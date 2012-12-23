@@ -45,10 +45,17 @@ t_COMMENT = '\#[^\n]*'
 t_COMMA = ','
 t_DOT = '\.'
 t_STRING = "'[^']*'"
-t_EOL_CONTINUE = r'\\[ \t]*\n'
-t_EOL = r'\n'
 
 t_ignore = ' \t'
+
+def t_EOL(t):
+    r'\n'
+    t.lexer.lineno += 1
+    return t
+
+def t_EOL_CONTINUE(t):
+    r'\\[ \t]*\n'
+    t.lexer.lineno += 1
 
 def t_error(t):
     print("Illegal character '%s'" % t.value[0])
