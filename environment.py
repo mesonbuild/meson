@@ -33,9 +33,6 @@ def detect_c_compiler(execmd):
 class CCompiler():
     def __init__(self, exelist):
         self.exelist = exelist
-        
-    def get_std_warn_flags(self):
-        return []
 
 class GnuCCompiler(CCompiler):
     std_warn_flags = ['-Wall']
