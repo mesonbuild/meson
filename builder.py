@@ -21,6 +21,8 @@ tokens = ['LPAREN',
           'RPAREN',
           'LBRACKET',
           'RBRACKET',
+          'LBRACE',
+          'RBRACE',
           'VARIABLE',
           'COMMENT',
           'EQUALS',
@@ -36,6 +38,8 @@ t_LPAREN = '\('
 t_RPAREN = '\)'
 t_LBRACKET = '\['
 t_RBRACKET = '\]'
+t_LBRACE = '\{'
+t_RBRACE = '\}'
 t_VARIABLE = '[a-zA-Z][_0-9a-zA-Z]*'
 t_COMMENT = '\#[^\n]*'
 t_COMMA = ','
@@ -53,7 +57,7 @@ def t_error(t):
 def test_lexer():
     s = """hello = (something) # this = (that)
     two = ['file1', 'file2']
-    function(h)
+    function(h) { stuff }
     obj.method(lll, \\ 
     'string')
     """
