@@ -37,7 +37,7 @@ t_COMMENT = '\#[^\n]*'
 t_COMMA = ','
 t_DOT = '\.'
 t_STRING = "'[^']*'"
-t_EOL_CONTINUE = r'\\\n'
+t_EOL_CONTINUE = r'\\[ \t]*\n'
 t_EOL = r'\n'
 
 t_ignore = ' \t'
@@ -49,7 +49,7 @@ def t_error(t):
 def test_lexer():
     s = """hello = (something) # this = (that)
     function(h)
-    obj.method(lll, \\
+    obj.method(lll, \\ 
     'string')
     """
     lexer = lex.lex()
