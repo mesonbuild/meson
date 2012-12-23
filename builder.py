@@ -23,7 +23,8 @@ tokens = ['LPAREN',
           'COMMENT',
           'EQUALS',
           'COMMA',
-          'DOT']
+          'DOT',
+          'STRING']
 
 t_EQUALS = '='
 t_LPAREN = '\('
@@ -32,6 +33,7 @@ t_VARIABLE = '[a-zA-Z][_0-9a-zA-Z]*'
 t_COMMENT = '\#[^\n]*'
 t_COMMA = ','
 t_DOT = '\.'
+t_STRING = "'[^']*'"
 
 t_ignore = '  \t\n'
 
@@ -42,7 +44,7 @@ def t_error(t):
 def test_lexer():
     s = """hello = (something) # this = (that)
     function(h)
-    obj.method(lll)
+    obj.method(lll, 'string')
     """
     lexer = lex.lex()
     lexer.input(s)
