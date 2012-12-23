@@ -20,26 +20,27 @@ class EnvironmentException(Exception):
     def __init(self, text):
         Exception.__init__(self, text)
 
-def detect_c_compiler(exename):
-    p = subprocess.Popen([exename, '--version'], stdout=subprocess.PIPE)
+def detect_c_compiler(execmd):
+    exelist = execmd.split()
+    p = subprocess.Popen(exelist + ['--version'], stdout=subprocess.PIPE)
     (out, err) = p.communicate()
     out = out.decode()
     if (out.startswith('cc ') or out.startswith('gcc')) and \
         'Free Software Foundation' in out:
-        return GnuCCompiler(exename)
-    raise EnvironmentException('Unknown compiler ' + exename)
+        return GnuCCompiler(exelist)
+    raise EnvironmentException('Unknown compiler ' + execmd)
 
 class CCompiler():
-    def __init__(self, exename):
-        self.exename = exename
+    def __init__(self, exelist):
+        self.exelist = exelist
         
     def get_std_warn_flags(self):
         return []
 
 class GnuCCompiler(CCompiler):
     std_warn_flags = ['-Wall']
-    def __init__(self, exename):
-        CCompiler.__init__(self, exename)
+    def __init__(self, exelist):
+        CCompiler.__init__(self, exelist)
 
     def get_std_warn_flags(self):
         return GnuCCompiler.std_warn_flags
