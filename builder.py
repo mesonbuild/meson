@@ -24,7 +24,10 @@ tokens = ['LPAREN',
           'EQUALS',
           'COMMA',
           'DOT',
-          'STRING']
+          'STRING',
+          'EOL_CONTINUE',
+          'EOL',
+          ]
 
 t_EQUALS = '='
 t_LPAREN = '\('
@@ -34,8 +37,10 @@ t_COMMENT = '\#[^\n]*'
 t_COMMA = ','
 t_DOT = '\.'
 t_STRING = "'[^']*'"
+t_EOL_CONTINUE = r'\\\n'
+t_EOL = r'\n'
 
-t_ignore = '  \t\n'
+t_ignore = ' \t'
 
 def t_error(t):
     print("Illegal character '%s'" % t.value[0])
@@ -44,7 +49,8 @@ def t_error(t):
 def test_lexer():
     s = """hello = (something) # this = (that)
     function(h)
-    obj.method(lll, 'string')
+    obj.method(lll, \\
+    'string')
     """
     lexer = lex.lex()
     lexer.input(s)
