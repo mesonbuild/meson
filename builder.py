@@ -17,5 +17,40 @@
 import ply.lex as lex
 import ply.yacc as yacc
 
+tokens = ['LPAREN',
+          'RPAREN',
+          'VARIABLE',
+          'COMMENT',
+          'EQUALS',
+          'COMMA',
+          'DOT']
+
+t_EQUALS = '='
+t_LPAREN = '\('
+t_RPAREN = '\)'
+t_VARIABLE = '[a-zA-Z][_0-9a-zA-Z]*'
+t_COMMENT = '\#[^\n]*'
+t_COMMA = ','
+t_DOT = '\.'
+
+t_ignore = '  \t\n'
+
+def t_error(t):
+    print("Illegal character '%s'" % t.value[0])
+    t.lexer.skip(1)
+
+def test_lexer():
+    s = """hello = (something) # this = (that)
+    function(h)
+    obj.method(lll)
+    """
+    lexer = lex.lex()
+    lexer.input(s)
+    while True:
+        tok = lexer.token()
+        if not tok:
+            break
+        print(tok)
+
 if __name__ == '__main__':
-    pass
+    test_lexer()
