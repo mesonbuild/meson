@@ -34,14 +34,20 @@ class CCompiler():
     def __init__(self, exelist):
         self.exelist = exelist
 
+    def get_exelist(self):
+        return self.exelist
+
 class GnuCCompiler(CCompiler):
-    std_warn_flags = ['-Wall']
+    std_warn_flags = ['-Wall', '-Winvalid-pch']
+    std_opt_flags = ['-O2']
+    
     def __init__(self, exelist):
         CCompiler.__init__(self, exelist)
 
     def get_std_warn_flags(self):
         return GnuCCompiler.std_warn_flags
 
+    def get_std_opt_flags(self):
+        return GnuCCompiler.std_opt_flags
 if __name__ == '__main__':
     gnuc = detect_c_compiler('/usr/bin/cc')
-    
