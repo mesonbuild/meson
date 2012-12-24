@@ -28,7 +28,7 @@ def detect_c_compiler(execmd):
     if (out.startswith('cc ') or out.startswith('gcc')) and \
         'Free Software Foundation' in out:
         return GnuCCompiler(exelist)
-    raise EnvironmentException('Unknown compiler ' + execmd)
+    raise EnvironmentException('Unknown compiler "' + execmd + '"')
 
 class CCompiler():
     def __init__(self, exelist):
@@ -42,6 +42,12 @@ class CCompiler():
     
     def get_output_flags(self):
         return ['-o']
+    
+    def can_compile(self, filename):
+        suffix = filename.split['.'][-1]
+        if suffix == 'c' or suffix == 'h':
+            return True
+        return False
 
 class GnuCCompiler(CCompiler):
     std_warn_flags = ['-Wall', '-Winvalid-pch']
