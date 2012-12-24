@@ -36,6 +36,12 @@ class CCompiler():
 
     def get_exelist(self):
         return self.exelist
+    
+    def get_compile_only_flags(self):
+        return ['-c']
+    
+    def get_output_flags(self):
+        return ['-o']
 
 class GnuCCompiler(CCompiler):
     std_warn_flags = ['-Wall', '-Winvalid-pch']
@@ -49,5 +55,22 @@ class GnuCCompiler(CCompiler):
 
     def get_std_opt_flags(self):
         return GnuCCompiler.std_opt_flags
-if __name__ == '__main__':
+
+def shell_quote(cmdlist):
+    return ["'" + x + "'" for x in cmdlist]
+
+def test_cmd_line_building():
+    src_file = 'file.c'
+    dst_file = 'file.o'
     gnuc = detect_c_compiler('/usr/bin/cc')
+    cmds = gnuc.get_exelist()
+    cmds += gnuc.get_std_warn_flags()
+    cmds += gnuc.get_compile_only_flags()
+    cmds.append(src_file)
+    cmds += gnuc.get_output_flags()
+    cmds.append(dst_file)
+    cmd_line = ' '.join(shell_quote(cmds))
+    print(cmd_line)
+
+if __name__ == '__main__':
+    test_cmd_line_building()
