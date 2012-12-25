@@ -118,7 +118,7 @@ def p_args_single(t):
 
 def p_args_none(t):
     'args :'
-    pass
+    t[0] = []
 
 def p_error(t):
     print('Parser errored out at: ' + t.value)
@@ -141,6 +141,7 @@ def test_lexer():
 def test_parser():
     code = """func_call('something', 'or else')
     objectname.methodname(abc)
+    emptycall()
     """
     lexer = lex.lex()
     parser = yacc.yacc()
