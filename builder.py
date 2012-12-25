@@ -63,24 +63,28 @@ def t_error(t):
 
 # Yacc part
 
-def p_expression_atom(t):
-    'expression : ATOM'
-    pass
-
-def p_expression_string(t):
-    'expression : STRING'
-    pass
-
 def p_codeblock(t):
     'codeblock : statement EOL codeblock'
+    print('Codeblock')
     pass
 
 def p_codeblock_last(t):
     'codeblock : statement EOL'
+    print('Single line')
     pass
 
-def p_codeblock_empty(t):
-    'codeblock :'
+#def p_codeblock_empty(t):
+#    'codeblock :'
+#    pass
+
+def p_expression_atom(t):
+    'expression : ATOM'
+    print('Atom: ' + t[1])
+    pass
+
+def p_expression_string(t):
+    'expression : STRING'
+    print('String: ' + t[1])
     pass
 
 def p_statement_assign(t):
@@ -89,17 +93,17 @@ def p_statement_assign(t):
 
 def p_statement_func_call(t):
     'statement : expression LPAREN args RPAREN'
-    print('Function call:' % t[1])
+    print('Function call: ' + str(t[1])) # t[1])
     pass
 
 def p_statement_method_call(t):
     'statement : expression DOT expression LPAREN args RPAREN'
-    print('Method call:' % t[1])
+    print('Method call: ' + str(t[1]))
     pass
 
 def p_statement_expression(t):
     'statement : expression'
-    print('s-e: ' + t[1])
+    #print('s-e: ' + t[1])
     pass
 
 def p_args_multiple(t):
