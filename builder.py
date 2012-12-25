@@ -80,12 +80,12 @@ def p_codeblock_last(t):
 def p_expression_atom(t):
     'expression : ATOM'
     print('Atom: ' + t[1])
-    pass
+    t[0] = t[1]
 
 def p_expression_string(t):
     'expression : STRING'
     print('String: ' + t[1])
-    pass
+    t[0] = t[1]
 
 def p_statement_assign(t):
     'statement : expression EQUALS statement'
@@ -93,13 +93,11 @@ def p_statement_assign(t):
 
 def p_statement_func_call(t):
     'statement : expression LPAREN args RPAREN'
-    print('Function call: ' + str(t[1])) # t[1])
-    pass
+    print('Function call: %s. Args: %s' % (str(t[1]), str(t[3]))) # t[1])
 
 def p_statement_method_call(t):
     'statement : expression DOT expression LPAREN args RPAREN'
-    print('Method call: ' + str(t[1]))
-    pass
+    print('Method call: %s %s. Args: %s' % (str(t[1]), str(t[3]), str(t[5])))
 
 def p_statement_expression(t):
     'statement : expression'
@@ -108,11 +106,11 @@ def p_statement_expression(t):
 
 def p_args_multiple(t):
     'args : statement COMMA args'
-    pass
+    t[0] = [t[1]] + t[3]
 
 def p_args_single(t):
     'args : statement'
-    pass
+    t[0] = [t[1]]
 
 def p_args_none(t):
     'args :'
@@ -137,8 +135,8 @@ def test_lexer():
         print(tok)
 
 def test_parser():
-    code = """funccall('something')
-    method.call(abc)
+    code = """func_call('something', 'or else')
+    objectname.methodname(abc)
     """
     lexer = lex.lex()
     parser = yacc.yacc()
