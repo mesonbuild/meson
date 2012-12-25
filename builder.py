@@ -102,7 +102,7 @@ def p_statement_method_call(t):
 def p_statement_expression(t):
     'statement : expression'
     #print('s-e: ' + t[1])
-    pass
+    t[0] = t[1]
 
 def p_args_multiple(t):
     'args : statement COMMA args'
