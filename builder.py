@@ -23,7 +23,7 @@ tokens = ['LPAREN',
           'RBRACKET',
           'LBRACE',
           'RBRACE',
-          'VARIABLE',
+          'ATOM',
           'COMMENT',
           'EQUALS',
           'COMMA',
@@ -40,7 +40,7 @@ t_LBRACKET = '\['
 t_RBRACKET = '\]'
 t_LBRACE = '\{'
 t_RBRACE = '\}'
-t_VARIABLE = '[a-zA-Z][_0-9a-zA-Z]*'
+t_ATOM = '[a-zA-Z][_0-9a-zA-Z]*'
 t_COMMENT = '\#[^\n]*'
 t_COMMA = ','
 t_DOT = '\.'
@@ -61,6 +61,62 @@ def t_error(t):
     print("Illegal character '%s'" % t.value[0])
     t.lexer.skip(1)
 
+# Yacc part
+
+def p_expression_atom(t):
+    'expression : ATOM'
+    pass
+
+def p_expression_string(t):
+    'expression : STRING'
+    pass
+
+def p_codeblock(t):
+    'codeblock : statement EOL codeblock'
+    pass
+
+def p_codeblock_last(t):
+    'codeblock : statement EOL'
+    pass
+
+def p_codeblock_empty(t):
+    'codeblock :'
+    pass
+
+def p_statement_assign(t):
+    'statement : expression EQUALS statement'
+    pass
+
+def p_statement_func_call(t):
+    'statement : expression LPAREN args RPAREN'
+    print('Function call:' % t[1])
+    pass
+
+def p_statement_method_call(t):
+    'statement : expression DOT expression LPAREN args RPAREN'
+    print('Method call:' % t[1])
+    pass
+
+def p_statement_expression(t):
+    'statement : expression'
+    print('s-e: ' + t[1])
+    pass
+
+def p_args_multiple(t):
+    'args : statement COMMA args'
+    pass
+
+def p_args_single(t):
+    'args : statement'
+    pass
+
+def p_args_none(t):
+    'args :'
+    pass
+
+def p_error(t):
+    print('Parser errored out at: ' + t.value)
+
 def test_lexer():
     s = """hello = (something) # this = (that)
     two = ['file1', 'file2']
@@ -76,5 +132,15 @@ def test_lexer():
             break
         print(tok)
 
+def test_parser():
+    code = """funccall('something')
+    method.call(abc)
+    """
+    lexer = lex.lex()
+    parser = yacc.yacc()
+    result = parser.parse(code)
+    print(result)
+
 if __name__ == '__main__':
-    test_lexer()
+    #test_lexer()
+    test_parser()
