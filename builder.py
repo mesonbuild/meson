@@ -44,9 +44,13 @@ t_ATOM = '[a-zA-Z][_0-9a-zA-Z]*'
 t_COMMENT = '\#[^\n]*'
 t_COMMA = ','
 t_DOT = '\.'
-t_STRING = "'[^']*'"
 
 t_ignore = ' \t'
+
+def t_STRING(t):
+    "'[^']*'"
+    t.value = t.value[1:-1]
+    return t
 
 def t_EOL(t):
     r'\n'
