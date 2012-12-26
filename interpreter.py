@@ -16,6 +16,7 @@
 
 import parser
 import nodes
+import environment
 
 class InterpreterException(Exception):
     pass
@@ -29,6 +30,7 @@ class Interpreter():
         self.ast = parser.build_ast(code)
         self.sanity_check_ast()
         self.project = None
+        self.compilers = []
         
     def sanity_check_ast(self):
         if not isinstance(self.ast, nodes.CodeBlock):
@@ -52,8 +54,8 @@ class Interpreter():
 
     def function_call(self, node):
         func_name = node.get_function_name()
+        args = node.arguments.arguments
         if func_name == 'project':
-            args = node.arguments.arguments
             if len(args) != 1:
                 raise InvalidCode('Project() must have one and only one argument.')
             if not isinstance(args[0], nodes.StringStatement):
@@ -63,17 +65,31 @@ class Interpreter():
             self.project = args[0].get_string()
             print("Project name is %s." % self.project)
         elif func_name == 'message':
-            args = node.arguments.arguments
             if len(args) != 1:
-                raise InvalidCode('Message() must have only one argument')
+                raise InvalidCode('Function message() must have only one argument')
             if not isinstance(args[0], nodes.StringStatement):
-                raise InvalidCode('Argument to Message() must be a string')
+                raise InvalidCode('Argument to message() must be a string')
             print('Message: %s' % args[0].get_string())
+        elif func_name == 'language':
+            if len(args) != 1:
+                raise InvalidCode('Function language() must have only one argument')
+            if not isinstance(args[0], nodes.StringStatement):
+                raise InvalidCode('Argument to language() must be a string')
+            if len(self.compilers) > 0:
+                raise InvalidCode('Function language() can only be called once (line %d).' % node.lineno())
+            lang = args[0].get_string()
+            if lang.lower() == 'c':
+                self.compilers.append(environment.detect_c_compiler('gcc'))
+            else:
+                raise InvalidCode('Tried to use unknown language "%s".' % lang)
+        else:
+            raise InvalidCode('Unknown function "%s".' % func_name)
 
 if __name__ == '__main__':
     code = """project('myawesomeproject')
     message('I can haz text printed out?')
     message('It workses!')
+    language('c')
     """
     i = Interpreter(code)
     i.run()
