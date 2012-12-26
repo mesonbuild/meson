@@ -50,6 +50,9 @@ class FunctionCall(Statement):
         Statement.__init__(self)
         self.func_name = func_name
         self.arguments = arguments
+        
+    def get_function_name(self):
+        return self.func_name.value
 
 class MethodCall(Statement):
     def __init__(self, object_name, method_name, arguments):
@@ -71,6 +74,9 @@ class CodeBlock(Statement):
         
     def prepend(self, statement):
         self.statements = [statement] + self.statements
+        
+    def get_statements(self):
+        return self.statements
 
 class Arguments(Statement):
     def __init__(self):

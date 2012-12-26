@@ -143,10 +143,15 @@ def test_parser():
     objectname.methodname(abc)
     emptycall()
     """
+    print(build_ast(code))
+
+def build_ast(code):
+    if not code.endswith('\n'):
+        code = code + '\n'
     lex.lex()
     parser = yacc.yacc()
     result = parser.parse(code)
-    print(result)
+    return result
 
 if __name__ == '__main__':
     #test_lexer()
