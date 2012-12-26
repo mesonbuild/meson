@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import subprocess
+import subprocess, os.path
 
 class EnvironmentException(Exception):
     def __init(self, text):
@@ -32,7 +32,12 @@ def detect_c_compiler(execmd):
 
 class CCompiler():
     def __init__(self, exelist):
-        self.exelist = exelist
+        if type(exelist) == type(''):
+            self.exelist = [exelist]
+        elif type(exelist) == type([]):
+            self.exelist = exelist
+        else:
+            raise TypeError('Unknown argument to CCompiler')
 
     def get_exelist(self):
         return self.exelist
@@ -48,6 +53,24 @@ class CCompiler():
         if suffix == 'c' or suffix == 'h':
             return True
         return False
+    
+    def name_string(self):
+        return ' '.join(self.exelist)
+    
+    def sanity_check(self, work_dir):
+        source_name = os.path.join(work_dir, 'sanitycheck.c')
+        binary_name = os.path.join(work_dir, 'sanitycheck')
+        ofile = open(source_name, 'w')
+        ofile.write('int main(int argc, char **argv) { return 0; }\n')
+        ofile.close()
+        pc = subprocess.Popen(self.exelist + [source_name, '-o', binary_name])
+        pc.wait()
+        if pc.returncode != 0:
+            raise RuntimeError('Compiler %s can not compile programs.' % self.name_string())
+        pe = subprocess.Popen(binary_name)
+        pe.wait()
+        if pe.returncode != 0:
+            raise RuntimeError('Executables created by compiler %s are not runnable.' % self.name_string())
 
 class GnuCCompiler(CCompiler):
     std_warn_flags = ['-Wall', '-Winvalid-pch']
