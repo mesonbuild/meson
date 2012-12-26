@@ -73,6 +73,10 @@ def p_codeblock(t):
     cb = t[3]
     cb.prepend(t[1])
     t[0] = cb
+    
+def p_codeblock_emptyline(t):
+    'codeblock : EOL codeblock'
+    t[0] = t[2]
 
 def p_codeblock_last(t):
     'codeblock : statement EOL'
@@ -141,6 +145,7 @@ def test_lexer():
 def test_parser():
     code = """func_call('something', 'or else')
     objectname.methodname(abc)
+    
     emptycall()"""
     print(build_ast(code))
 
