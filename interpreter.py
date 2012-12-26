@@ -28,6 +28,7 @@ class Interpreter():
     def __init__(self, code):
         self.ast = parser.build_ast(code)
         self.sanity_check_ast()
+        self.project = None
         
     def sanity_check_ast(self):
         if not isinstance(self.ast, nodes.CodeBlock):
@@ -37,8 +38,42 @@ class Interpreter():
         first = self.ast.get_statements()[0]
         if not isinstance(first, nodes.FunctionCall) or first.get_function_name() != 'project':
             raise InvalidCode('First statement must be a call to project')
-            
+    
+    def run(self):
+        i = 0
+        statements = self.ast.get_statements()
+        while i < len(statements):
+            cur = statements[i]
+            if isinstance(cur, nodes.FunctionCall):
+                self.function_call(cur)
+            else:
+                print("Unknown statement in line %d." % cur.lineno())
+            i += 1
+
+    def function_call(self, node):
+        func_name = node.get_function_name()
+        if func_name == 'project':
+            args = node.arguments.arguments
+            if len(args) != 1:
+                raise InvalidCode('Project() must have one and only one argument.')
+            if not isinstance(args[0], nodes.StringStatement):
+                raise InvalidCode('Project() argument must be a string.')
+            if self.project is not None:
+                raise InvalidCode('Second call to project() on line %d.' % node.lineno())
+            self.project = args[0].get_string()
+            print("Project name is %s." % self.project)
+        elif func_name == 'message':
+            args = node.arguments.arguments
+            if len(args) != 1:
+                raise InvalidCode('Message() must have only one argument')
+            if not isinstance(args[0], nodes.StringStatement):
+                raise InvalidCode('Argument to Message() must be a string')
+            print('Message: %s' % args[0].get_string())
 
 if __name__ == '__main__':
-    code = "project('myawesomeproject')"
+    code = """project('myawesomeproject')
+    message('I can haz text printed out?')
+    message('It workses!')
+    """
     i = Interpreter(code)
+    i.run()

@@ -150,8 +150,7 @@ def test_parser():
     print(build_ast(code))
 
 def build_ast(code):
-    if not code.endswith('\n'):
-        code = code + '\n'
+    code = code.rstrip() + '\n'
     lex.lex()
     parser = yacc.yacc()
     result = parser.parse(code)

@@ -48,6 +48,9 @@ class StringStatement(Statement):
         assert(type(value) == type(''))
         Statement.__init__(self, lineno)
         self.value = value
+        
+    def get_string(self):
+        return self.value
 
 class FunctionCall(Statement):
     def __init__(self, func_name, arguments, lineno):
@@ -89,6 +92,9 @@ class Arguments(Statement):
         
     def prepend(self, statement):
         self.arguments = [statement] + self.arguments
+
+    def __len__(self):
+        return len(self.arguments)
 
 def statement_from_expression(expr):
     if isinstance(expr, AtomExpression):
