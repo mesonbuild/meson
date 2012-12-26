@@ -15,9 +15,8 @@
 # limitations under the License.
 
 from optparse import OptionParser
-import sys, os, stat
+import sys, stat
 import os.path
-from argparse import ArgumentError
 
 parser = OptionParser()
 
