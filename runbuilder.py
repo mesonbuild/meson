@@ -48,7 +48,7 @@ class Builder():
         if not stat.S_ISDIR(os.stat(ndir2).st_mode):
             raise RuntimeError('%s is not a directory' % dir2)
         self.options = options
-        if ndir1 == ndir2:
+        if os.path.samefile(dir1, dir2):
             raise RuntimeError('Source and build directories must not be the same. Create a pristine build directory.')
         if self.has_builder_file(ndir1):
             if self.has_builder_file(ndir2):
