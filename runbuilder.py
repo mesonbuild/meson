@@ -15,7 +15,9 @@
 # limitations under the License.
 
 from optparse import OptionParser
-import sys
+import sys, os, stat
+import os.path
+from argparse import ArgumentError
 
 parser = OptionParser()
 
@@ -24,8 +26,48 @@ parser.add_option('--libdir', default='lib', dest='libdir')
 parser.add_option('--includedir', default='include', dest='includedir')
 parser.add_option('--datadir', default='share', dest='datadir')
 
+class Builder():
+    builder_filename = 'builder.txt'
+    
+    def __init__(self, dir1, dir2, options):
+        (self.source_dir, self.build_dir) = self.validate_dirs(dir1, dir2)
+    
+    def has_builder_file(self, dirname):
+        fname = os.path.join(dirname, Builder.builder_filename)
+        try:
+            ifile = open(fname, 'r')
+            return True
+        except IOError:
+            return False
+
+    def validate_dirs(self, dir1, dir2):
+        ndir1 = os.path.abspath(dir1)
+        ndir2 = os.path.abspath(dir2)
+        if not stat.S_ISDIR(os.stat(ndir1).st_mode):
+            raise RuntimeError('%s is not a directory' % dir1)
+        if not stat.S_ISDIR(os.stat(ndir2).st_mode):
+            raise RuntimeError('%s is not a directory' % dir2)
+        self.options = options
+        if ndir1 == ndir2:
+            raise RuntimeError('Source and build directories must not be the same. Create a pristine build directory.')
+        if self.has_builder_file(ndir1):
+            if self.has_builder_file(ndir2):
+                raise RuntimeError('Both directories contain a builder file %s.' % Builder.builder_filename)
+            return (ndir1, ndir2)
+        if self.has_builder_file(ndir2):
+            return (ndir2, ndir1)
+        raise RuntimeError('Neither directory contains a builder file %s.' % Builder.builder_filename)
+
 if __name__ == '__main__':
     (options, args) = parser.parse_args(sys.argv)
-    print (len(args))
     if len(args) == 1 or len(args) > 3:
-        print('Invalid arguments')
+        print('Invalid number of arguments')
+        sys.exit(1)
+    dir1 = args[1]
+    if len(args) > 2:
+        dir2 = args[2]
+    else:
+        dir2 = '.'
+    builder = Builder(dir1, dir2, options)
+    print ('Source dir: ' + builder.source_dir)
+    print ('Build dir: ' + builder.build_dir)
