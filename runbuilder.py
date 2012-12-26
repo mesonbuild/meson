@@ -35,6 +35,7 @@ class Builder():
         fname = os.path.join(dirname, Builder.builder_filename)
         try:
             ifile = open(fname, 'r')
+            ifile.close()
             return True
         except IOError:
             return False
