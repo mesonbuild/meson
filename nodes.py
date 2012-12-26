@@ -68,10 +68,21 @@ class CodeBlock(Statement):
     def __init__(self):
         Statement.__init__(self)
         self.statements = []
+        
+    def prepend(self, statement):
+        self.statements = [statement] + self.statements
+
+class Arguments(Statement):
+    def __init__(self):
+        Statement.__init__(self)
+        self.arguments = []
+        
+    def prepend(self, statement):
+        self.arguments = [statement] + self.arguments
 
 def statement_from_expression(expr):
-    if type(expr) == type(AtomExpression(None)):
+    if isinstance(expr, AtomExpression):
         return AtomStatement(expr.value)
-    if type(expr) == type(StringExpression(None)):
+    if isinstance(expr, StringExpression):
         return StringStatement(expr.value)
     raise RuntimeError('Can not convert unknown expression to a statement.')

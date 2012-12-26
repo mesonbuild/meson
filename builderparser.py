@@ -70,56 +70,55 @@ def t_error(t):
 
 def p_codeblock(t):
     'codeblock : statement EOL codeblock'
-    print('Codeblock')
-    pass
+    cb = t[3]
+    cb.prepend(t[1])
+    t[0] = cb
 
 def p_codeblock_last(t):
     'codeblock : statement EOL'
-    print('Single line')
-    pass
-
-#def p_codeblock_empty(t):
-#    'codeblock :'
-#    pass
+    cb = nodes.CodeBlock()
+    cb.prepend(t[1])
+    t[0] = cb
 
 def p_expression_atom(t):
     'expression : ATOM'
-    print('Atom: ' + t[1])
-    t[0] = t[1]
+    t[0] = nodes.AtomExpression(t[1])
 
 def p_expression_string(t):
     'expression : STRING'
-    print('String: ' + t[1])
-    t[0] = t[1]
+    t[0] = nodes.StringExpression(t[1])
 
 def p_statement_assign(t):
     'statement : expression EQUALS statement'
-    pass
+    t[0] = nodes.Assignment(t[1], t[3])
 
 def p_statement_func_call(t):
     'statement : expression LPAREN args RPAREN'
-    print('Function call: %s. Args: %s' % (str(t[1]), str(t[3]))) # t[1])
+    t[0] = nodes.FunctionCall(t[1], t[3])
 
 def p_statement_method_call(t):
     'statement : expression DOT expression LPAREN args RPAREN'
-    print('Method call: %s %s. Args: %s' % (str(t[1]), str(t[3]), str(t[5])))
+    t[0] = nodes.MethodCall(t[1], t[3], t[5])
 
 def p_statement_expression(t):
     'statement : expression'
-    #print('s-e: ' + t[1])
-    t[0] = t[1]
+    t[0] = nodes.statement_from_expression(t[1])
 
 def p_args_multiple(t):
     'args : statement COMMA args'
-    t[0] = [t[1]] + t[3]
+    args = t[3]
+    args.prepend(t[1])
+    t[0] = args
 
 def p_args_single(t):
     'args : statement'
-    t[0] = [t[1]]
+    args = nodes.Arguments()
+    args.prepend(t[1])
+    t[0] = args
 
 def p_args_none(t):
     'args :'
-    t[0] = []
+    t[0] = nodes.Arguments()
 
 def p_error(t):
     print('Parser errored out at: ' + t.value)
@@ -144,7 +143,7 @@ def test_parser():
     objectname.methodname(abc)
     emptycall()
     """
-    lexer = lex.lex()
+    lex.lex()
     parser = yacc.yacc()
     result = parser.parse(code)
     print(result)
