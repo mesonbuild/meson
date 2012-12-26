@@ -15,7 +15,11 @@
 # limitations under the License.
 
 class Node():
-    pass
+    def __init__(self, lineno):
+        self.line_number = lineno
+    
+    def lineno(self):
+        return self.line_number
 
 class Expression(Node):
     pass
@@ -24,30 +28,30 @@ class Statement(Node):
     pass
 
 class AtomExpression(Expression):
-    def __init__(self, value):
-        Expression.__init__(self)
+    def __init__(self, value, lineno):
+        Expression.__init__(self, lineno)
         self.value = value
 
 class StringExpression(Expression):
-    def __init__(self, value):
-        Expression.__init__(self)
+    def __init__(self, value, lineno):
+        Expression.__init__(self, lineno)
         self.value = value
 
 class AtomStatement(Statement):
-    def __init__(self, value):
-        Statement.__init__(self)
+    def __init__(self, value, lineno):
+        Statement.__init__(self, lineno)
         assert(type(value) == type(''))
         self.value = value
 
 class StringStatement(Statement):
-    def __init__(self, value):
+    def __init__(self, value, lineno):
         assert(type(value) == type(''))
-        Statement.__init__(self)
+        Statement.__init__(self, lineno)
         self.value = value
 
 class FunctionCall(Statement):
-    def __init__(self, func_name, arguments):
-        Statement.__init__(self)
+    def __init__(self, func_name, arguments, lineno):
+        Statement.__init__(self, lineno)
         self.func_name = func_name
         self.arguments = arguments
         
@@ -55,21 +59,21 @@ class FunctionCall(Statement):
         return self.func_name.value
 
 class MethodCall(Statement):
-    def __init__(self, object_name, method_name, arguments):
-        Statement.__init__(self)
+    def __init__(self, object_name, method_name, arguments, lineno):
+        Statement.__init__(self, lineno)
         self.object_name = object_name
         self.method_name = method_name
         self.arguments = arguments
 
 class Assignment(Statement):
-    def __init__(self, var_name, value):
-        Statement.__init__(self)
+    def __init__(self, var_name, value, lineno):
+        Statement.__init__(self, lineno)
         self.var_name = var_name
         self.value = value
 
 class CodeBlock(Statement):
-    def __init__(self):
-        Statement.__init__(self)
+    def __init__(self, lineno):
+        Statement.__init__(self, lineno)
         self.statements = []
         
     def prepend(self, statement):
@@ -79,8 +83,8 @@ class CodeBlock(Statement):
         return self.statements
 
 class Arguments(Statement):
-    def __init__(self):
-        Statement.__init__(self)
+    def __init__(self, lineno):
+        Statement.__init__(self, lineno)
         self.arguments = []
         
     def prepend(self, statement):
@@ -88,7 +92,7 @@ class Arguments(Statement):
 
 def statement_from_expression(expr):
     if isinstance(expr, AtomExpression):
-        return AtomStatement(expr.value)
+        return AtomStatement(expr.value, expr.lineno())
     if isinstance(expr, StringExpression):
-        return StringStatement(expr.value)
+        return StringStatement(expr.value, expr.lineno())
     raise RuntimeError('Can not convert unknown expression to a statement.')
