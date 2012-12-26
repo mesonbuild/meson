@@ -18,7 +18,7 @@ from glob import glob
 import os, subprocess, shutil
 
 test_build_dir = 'test build area'
-builder_command = './runbuilder.py'
+builder_command = './builder.py'
 
 def run_test(testdir):
     shutil.rmtree(test_build_dir)
