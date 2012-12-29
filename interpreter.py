@@ -24,6 +24,9 @@ class InterpreterException(Exception):
 class InvalidCode(InterpreterException):
     pass
 
+class InvalidArguments(InterpreterException):
+    pass
+
 class Interpreter():
     
     def __init__(self, code):
@@ -51,19 +54,31 @@ class Interpreter():
             else:
                 print("Unknown statement in line %d." % cur.lineno())
             i += 1
+            
+    def validate_arguments(self, args, argcount, arg_types):
+        if argcount is not None:
+            if argcount != len(args):
+                raise InvalidArguments('Expected %d arguments, got %d',
+                                       argcount, len(args))
+        for i in range(min(len(args), len(arg_types))):
+            wanted = arg_types[i]
+            actual = args[i]
+            if wanted != None:
+                if not isinstance(actual, wanted):
+                    raise InvalidArguments('Incorrect argument type.')
+
+    def func_project(self, node, args):
+        self.validate_arguments(args, 1, [nodes.StringStatement])
+        if self.project is not None:
+            raise InvalidCode('Second call to project() on line %d.' % node.lineno())
+        self.project = args[0].get_string()
+        print("Project name is %s." % self.project)
 
     def function_call(self, node):
         func_name = node.get_function_name()
         args = node.arguments.arguments
         if func_name == 'project':
-            if len(args) != 1:
-                raise InvalidCode('Project() must have one and only one argument.')
-            if not isinstance(args[0], nodes.StringStatement):
-                raise InvalidCode('Project() argument must be a string.')
-            if self.project is not None:
-                raise InvalidCode('Second call to project() on line %d.' % node.lineno())
-            self.project = args[0].get_string()
-            print("Project name is %s." % self.project)
+            self.func_project(node, args)
         elif func_name == 'message':
             if len(args) != 1:
                 raise InvalidCode('Function message() must have only one argument')
