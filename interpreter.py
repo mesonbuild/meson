@@ -30,18 +30,29 @@ class InvalidArguments(InterpreterException):
 class InterpreterObject():
     pass
 
-class Executable(InterpreterObject):
+class BuildTarget(InterpreterObject):
     
     def __init__(self, name, sources):
         self.name = name
         self.sources = sources
+        self.external_deps = []
         
     def get_basename(self):
         return self.name
     
     def get_sources(self):
         return self.sources
+    
+    def add_external_dep(self, dep):
+        if not isinstance(dep, environment.PkgConfigDependency):
+            raise InvalidArguments('Argument is not an external dependency')
+        self.external_deps.append(dep)
+        
+    def get_external_deps(self):
+        return self.external_deps
 
+class Executable(BuildTarget):
+    pass
 
 class Interpreter():
     

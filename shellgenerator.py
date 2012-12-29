@@ -37,7 +37,7 @@ class ShellGenerator():
         os.chmod(outfilename, stat.S_IREAD | stat.S_IWRITE | stat.S_IEXEC |\
                  stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
 
-    def generate_single_compile(self, outfile, src):
+    def generate_single_compile(self, target, outfile, src):
         compiler = None
         for i in self.interpreter.compilers:
             if i.can_compile(src):
@@ -53,6 +53,8 @@ class ShellGenerator():
         commands += compiler.get_debug_flags()
         commands += compiler.get_std_warn_flags()
         commands += compiler.get_compile_only_flags()
+        for dep in target.get_external_deps():
+            commands += dep.get_compile_flags()
         commands.append(abs_src)
         commands += compiler.get_output_flags()
         commands.append(abs_obj)
@@ -61,11 +63,13 @@ class ShellGenerator():
         outfile.write(' '.join(quoted))
         return abs_obj
 
-    def generate_exe_link(self, outfile, outname, obj_list):
+    def generate_link(self, target, outfile, outname, obj_list):
         linker = self.interpreter.compilers[0] # Fixme.
         commands = []
         commands += linker.get_exelist()
         commands += obj_list
+        for dep in target.get_external_deps():
+            commands += dep.get_link_flags()
         commands += linker.get_output_flags()
         commands.append(outname)
         quoted = environment.shell_quote(commands) + ['\n']
@@ -83,8 +87,8 @@ class ShellGenerator():
                 outname = outname + '.' + suffix
             obj_list = []
             for src in e.get_sources():
-                obj_list.append(self.generate_single_compile(outfile, src))
-            self.generate_exe_link(outfile, outname, obj_list)
+                obj_list.append(self.generate_single_compile(e, outfile, src))
+            self.generate_link(e, outfile, outname, obj_list)
 
 if __name__ == '__main__':
     code = """
