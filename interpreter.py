@@ -35,6 +35,12 @@ class Executable(InterpreterObject):
     def __init__(self, name, sources):
         self.name = name
         self.sources = sources
+        
+    def get_basename(self):
+        return self.name
+    
+    def get_sources(self):
+        return self.sources
 
 
 class Interpreter():
@@ -45,6 +51,9 @@ class Interpreter():
         self.project = None
         self.compilers = []
         self.executables = {}
+
+    def get_executables(self):
+        return self.executables
 
     def sanity_check_ast(self):
         if not isinstance(self.ast, nodes.CodeBlock):

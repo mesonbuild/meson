@@ -49,7 +49,7 @@ class CCompiler():
         return ['-o']
     
     def can_compile(self, filename):
-        suffix = filename.split['.'][-1]
+        suffix = filename.split('.')[-1]
         if suffix == 'c' or suffix == 'h':
             return True
         return False
@@ -114,6 +114,7 @@ class Environment():
         self.shared_lib_prefix = 'lib'
         self.static_lib_suffix = 'a'
         self.static_lib_prefix = 'lib'
+        self.object_suffix = 'o'
 
     def get_c_compiler(self):
         evar = 'CC'
@@ -147,6 +148,9 @@ class Environment():
 
     def get_static_lib_suffix(self):
         return self.static_lib_suffix
+    
+    def get_object_suffix(self):
+        return self.object_suffix
 
 if __name__ == '__main__':
     test_cmd_line_building()
