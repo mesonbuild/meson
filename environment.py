@@ -155,5 +155,62 @@ class Environment():
     def get_object_suffix(self):
         return self.object_suffix
 
+class PkgConfigDependency():
+    pkgconfig_found = False
+    
+    def __init__(self, name):
+        if not PkgConfigDependency.pkgconfig_found:
+            self.check_pkgconfig()
+
+        p = subprocess.Popen(['pkg-config', '--modversion', name], stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE)
+        (out, err) = p.communicate()
+        if p.returncode != 0:
+            raise RuntimeError('Dependency %s not known to pkg-config.' % name)
+        self.modversion = out.decode().strip()
+        p = subprocess.Popen(['pkg-config', '--cflags', name], stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE)
+        (out, err) = p.communicate()
+        if p.returncode != 0:
+            raise RuntimeError('Could not generate cflags for %s.' % name)
+        self.cflags = out.decode().split()
+        
+        p = subprocess.Popen(['pkg-config', '--libs', name], stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE)
+        (out, err) = p.communicate()
+        if p.returncode != 0:
+            raise RuntimeError('Could not generate libs for %s.' % name)
+        self.libs = out.decode().split()
+    
+    def get_modversion(self):
+        return self.modversion
+    
+    def get_compile_flags(self):
+        return self.cflags
+    
+    def get_link_flags(self):
+        return self.libs
+    
+    def check_pkgconfig(self):
+        p = subprocess.Popen(['pkg-config', '--version'], stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE)
+        (out, err) = p.communicate()
+        if p.returncode != 0:
+            raise RuntimeError('Pkg-config not found.')
+        print('Found pkg-config version %s\n', out.strip())
+        PkgConfigDependency.pkgconfig_found = True
+
+def find_external_dependency(self, name):
+    # Add detectors for non-pkg-config deps (e.g. Boost) etc here.
+    return PkgConfigDependency(name)
+
+def test_pkg_config():
+    name = 'gtk+-3.0'
+    dep = PkgConfigDependency(name)
+    print(dep.get_modversion())
+    print(dep.get_compile_flags())
+    print(dep.get_link_flags())
+    
 if __name__ == '__main__':
-    test_cmd_line_building()
+    #test_cmd_line_building()
+    test_pkg_config()
