@@ -62,6 +62,7 @@ class Interpreter():
         self.project = None
         self.compilers = []
         self.executables = {}
+        self.variables = {}
         
     def get_project(self):
         return self.project
@@ -83,11 +84,16 @@ class Interpreter():
         statements = self.ast.get_statements()
         while i < len(statements):
             cur = statements[i]
-            if isinstance(cur, nodes.FunctionCall):
-                self.function_call(cur)
-            else:
-                print("Unknown statement in line %d." % cur.lineno())
-            i += 1
+            self.evaluate_expression(cur)
+            i += 1 # In THE FUTURE jump over blocks and stuff.
+
+    def evaluate_expression(self, cur):
+        if isinstance(cur, nodes.FunctionCall):
+            return self.function_call(cur)
+        elif isinstance(cur, nodes.Assignment):
+            return self.assignment(cur)
+        else:
+            raise InvalidCode("Unknown statement in line %d." % cur.lineno())
 
     def validate_arguments(self, args, argcount, arg_types):
         if argcount is not None:
@@ -137,22 +143,33 @@ class Interpreter():
         func_name = node.get_function_name()
         args = node.arguments.arguments
         if func_name == 'project':
-            self.func_project(node, args)
+            return self.func_project(node, args)
         elif func_name == 'message':
-            self.func_message(node, args)
+            return self.func_message(node, args)
         elif func_name == 'language':
-            self.func_language(node, args)
+            return self.func_language(node, args)
         elif func_name == 'executable':
-            self.func_executable(node, args)
+            return self.func_executable(node, args)
         else:
             raise InvalidCode('Unknown function "%s".' % func_name)
+    
+    def assignment(self, node):
+        var_name = node.var_name
+        if not isinstance(var_name, nodes.AtomExpression):
+            raise InvalidArguments('Line %d: Tried to assign value to a non-variable.' % node.lineno())
+        value = self.evaluate_expression(node.value)
+        if value is None:
+            raise InvalidCode('Line %d: Can not assign None to variable.' % node.lineno())
+        if not isinstance(value, InterpreterObject):
+            raise InvalidCode('Line %d: Tried to assign an invalid value to variable.' % node.lineno())
+        self.variables[var_name] = value
+        return value
 
 if __name__ == '__main__':
     code = """project('myawesomeproject')
     message('I can haz text printed out?')
-    message('It workses!')
     language('c')
-    executable('prog', 'prog.c')
+    prog = executable('prog', 'prog.c')
     """
     i = Interpreter(code)
     i.run()
