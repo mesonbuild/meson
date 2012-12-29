@@ -41,13 +41,16 @@ class CCompiler():
 
     def get_exelist(self):
         return self.exelist
-    
+
     def get_compile_only_flags(self):
         return ['-c']
-    
+
     def get_output_flags(self):
         return ['-o']
-    
+
+    def get_debug_flags(self):
+        return ['-g']
+
     def can_compile(self, filename):
         suffix = filename.split('.')[-1]
         if suffix == 'c' or suffix == 'h':

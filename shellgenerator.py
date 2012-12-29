@@ -47,6 +47,7 @@ class ShellGenerator():
         abs_obj = os.path.join(self.environment.get_build_dir(), src)
         abs_obj += '.' + self.environment.get_object_suffix()
         commands = compiler.get_exelist()
+        commands += compiler.get_debug_flags()
         commands += compiler.get_std_warn_flags()
         commands += compiler.get_compile_only_flags()
         commands.append(abs_src)
