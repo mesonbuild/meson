@@ -101,5 +101,52 @@ def test_cmd_line_building():
     cmd_line = ' '.join(shell_quote(cmds))
     print(cmd_line)
 
+class Environment():
+    def __init__(self, source_dir, build_dir):
+        self.source_dir = source_dir
+        self.build_dir = build_dir
+
+        self.default_c = ['cc']
+        self.default_cxx = ['c++']
+
+        self.exe_suffix = ''
+        self.shared_lib_suffix = 'so'
+        self.shared_lib_prefix = 'lib'
+        self.static_lib_suffix = 'a'
+        self.static_lib_prefix = 'lib'
+
+    def get_c_compiler(self):
+        evar = 'CC'
+        if evar in os.environ:
+            return os.environ[evar].split()
+        return self.default_c
+
+    def get_cxx_compiler(self):
+        evar = 'CXX'
+        if evar in os.environ:
+            return os.environ[evar].split()
+        return self.default_cxx
+
+    def get_source_dir(self):
+        return self.source_dir
+    
+    def get_build_dir(self):
+        return self.build_dir
+
+    def get_exe_suffix(self):
+        return self.exe_suffix
+
+    def get_shared_lib_prefix(self):
+        return self.shared_lib_prefix
+
+    def get_shared_lib_suffix(self):
+        return self.shared_lib_suffix
+
+    def get_static_lib_prefix(self):
+        return self.static_lib_prefix
+
+    def get_static_lib_suffix(self):
+        return self.static_lib_suffix
+
 if __name__ == '__main__':
     test_cmd_line_building()
