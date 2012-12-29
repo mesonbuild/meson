@@ -74,29 +74,29 @@ class Interpreter():
         self.project = args[0].get_string()
         print("Project name is %s." % self.project)
 
+    def func_message(self, node, args):
+        self.validate_arguments(args, 1, [nodes.StringStatement])
+        print('Message: %s' % args[0].get_string())
+        
+    def func_language(self, node, args):
+        self.validate_arguments(args, 1, [nodes.StringStatement])
+        if len(self.compilers) > 0:
+            raise InvalidCode('Function language() can only be called once (line %d).' % node.lineno())
+        lang = args[0].get_string()
+        if lang.lower() == 'c':
+            self.compilers.append(environment.detect_c_compiler('gcc'))
+        else:
+            raise InvalidCode('Tried to use unknown language "%s".' % lang)
+
     def function_call(self, node):
         func_name = node.get_function_name()
         args = node.arguments.arguments
         if func_name == 'project':
             self.func_project(node, args)
         elif func_name == 'message':
-            if len(args) != 1:
-                raise InvalidCode('Function message() must have only one argument')
-            if not isinstance(args[0], nodes.StringStatement):
-                raise InvalidCode('Argument to message() must be a string')
-            print('Message: %s' % args[0].get_string())
+            self.func_message(node, args)
         elif func_name == 'language':
-            if len(args) != 1:
-                raise InvalidCode('Function language() must have only one argument')
-            if not isinstance(args[0], nodes.StringStatement):
-                raise InvalidCode('Argument to language() must be a string')
-            if len(self.compilers) > 0:
-                raise InvalidCode('Function language() can only be called once (line %d).' % node.lineno())
-            lang = args[0].get_string()
-            if lang.lower() == 'c':
-                self.compilers.append(environment.detect_c_compiler('gcc'))
-            else:
-                raise InvalidCode('Tried to use unknown language "%s".' % lang)
+            self.func_language(node, args)
         else:
             raise InvalidCode('Unknown function "%s".' % func_name)
 
