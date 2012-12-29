@@ -51,6 +51,9 @@ class Interpreter():
         self.project = None
         self.compilers = []
         self.executables = {}
+        
+    def get_project(self):
+        return self.project
 
     def get_executables(self):
         return self.executables
