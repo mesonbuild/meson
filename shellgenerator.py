@@ -93,5 +93,5 @@ if __name__ == '__main__':
     executable('prog', 'prog.c')
     """
     os.chdir(os.path.split(__file__)[0])
-    g = ShellGenerator(code, '.', 'test build area')
+    g = ShellGenerator(code, '.', 'work area')
     g.generate()

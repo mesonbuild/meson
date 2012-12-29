@@ -17,7 +17,7 @@
 from glob import glob
 import os, subprocess, shutil
 
-test_build_dir = 'test build area'
+test_build_dir = 'work area'
 builder_command = './builder.py'
 
 def run_test(testdir):
