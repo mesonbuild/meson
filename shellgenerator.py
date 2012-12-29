@@ -46,7 +46,8 @@ class ShellGenerator():
         abs_src = os.path.join(self.environment.get_source_dir(), src)
         abs_obj = os.path.join(self.environment.get_build_dir(), src)
         abs_obj += '.' + self.environment.get_object_suffix()
-        commands = compiler.get_exelist()
+        commands = []
+        commands += compiler.get_exelist()
         commands += compiler.get_debug_flags()
         commands += compiler.get_std_warn_flags()
         commands += compiler.get_compile_only_flags()
@@ -54,11 +55,20 @@ class ShellGenerator():
         commands += compiler.get_output_flags()
         commands.append(abs_obj)
         quoted = environment.shell_quote(commands) + ['\n']
+        outfile.write('\necho Compiling %s\n' % src)
         outfile.write(' '.join(quoted))
         return abs_obj
 
     def generate_exe_link(self, outfile, outname, obj_list):
-        outfile.write('Linking %s with files %s.\n' % (outname, ' '.join(obj_list)))
+        linker = self.interpreter.compilers[0] # Fixme.
+        commands = []
+        commands += linker.get_exelist()
+        commands += obj_list
+        commands += linker.get_output_flags()
+        commands.append(outname)
+        quoted = environment.shell_quote(commands) + ['\n']
+        outfile.write('\necho Linking %s.\n' % outname)
+        outfile.write(' '.join(quoted))
 
     def generate_commands(self, outfile):
         for i in self.interpreter.get_executables().items():
