@@ -31,6 +31,9 @@ class AtomExpression(Expression):
     def __init__(self, value, lineno):
         Expression.__init__(self, lineno)
         self.value = value
+        
+    def get_value(self):
+        return self.value
 
 class StringExpression(Expression):
     def __init__(self, value, lineno):
@@ -42,6 +45,9 @@ class AtomStatement(Statement):
         Statement.__init__(self, lineno)
         assert(type(value) == type(''))
         self.value = value
+        
+    def get_value(self):
+        return self.value
 
 class StringStatement(Statement):
     def __init__(self, value, lineno):

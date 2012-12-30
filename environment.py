@@ -17,8 +17,8 @@
 import subprocess, os.path
 
 class EnvironmentException(Exception):
-    def __init(self, text):
-        Exception.__init__(self, text)
+    def __init(self, *args, **kwargs):
+        Exception.__init__(self, *args, **kwargs)
 
 def detect_c_compiler(execmd):
     exelist = execmd.split()

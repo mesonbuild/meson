@@ -28,7 +28,9 @@ class InvalidArguments(InterpreterException):
     pass
 
 class InterpreterObject():
-    pass
+    
+    def method_call(self, method_name, *args, **kwargs):
+        raise InvalidCode('Object does not have method %s.' % method_name)
 
 class BuildTarget(InterpreterObject):
     
@@ -45,11 +47,20 @@ class BuildTarget(InterpreterObject):
     
     def add_external_dep(self, dep):
         if not isinstance(dep, environment.PkgConfigDependency):
+            print(dep)
+            print(type(dep))
             raise InvalidArguments('Argument is not an external dependency')
         self.external_deps.append(dep)
         
     def get_external_deps(self):
         return self.external_deps
+
+    def method_call(self, method_name, *args, **kwargs):
+        if method_name == 'add_dep':
+            dep = args[0]
+            self.add_external_dep(dep)
+            return
+        raise InvalidCode('Unknown method "%s" in BuildTarget.' % method_name)
 
 class Executable(BuildTarget):
     pass
@@ -92,6 +103,8 @@ class Interpreter():
             return self.function_call(cur)
         elif isinstance(cur, nodes.Assignment):
             return self.assignment(cur)
+        elif isinstance(cur, nodes.MethodCall):
+            return self.method_call(cur)
         else:
             raise InvalidCode("Unknown statement in line %d." % cur.lineno())
 
@@ -171,6 +184,7 @@ class Interpreter():
         var_name = node.var_name
         if not isinstance(var_name, nodes.AtomExpression):
             raise InvalidArguments('Line %d: Tried to assign value to a non-variable.' % node.lineno())
+        var_name = var_name.get_value()
         value = self.evaluate_statement(node.value)
         if value is None:
             raise InvalidCode('Line %d: Can not assign None to variable.' % node.lineno())
@@ -178,6 +192,20 @@ class Interpreter():
             raise InvalidCode('Line %d: Tried to assign an invalid value to variable.' % node.lineno())
         self.variables[var_name] = value
         return value
+    
+    def method_call(self, node):
+        object_name = node.object_name.get_value()
+        method_name = node.method_name.get_value()
+        args = node.arguments
+        if not object_name in self.variables:
+            raise InvalidArguments('Line %d: unknown variable %s.' % (node.lineno(), object_name))
+        obj = self.variables[object_name]
+        if not isinstance(obj, InterpreterObject):
+            raise InvalidArguments('Line %d: variable %s can not be called.' % (node.lineno(), object_name))
+        # Fixme, write argument list reducer function.
+        var_name = args.arguments[0].get_value()
+        tmpargs = self.variables[var_name]
+        return obj.method_call(method_name, tmpargs)
 
 if __name__ == '__main__':
     code = """project('myawesomeproject')
@@ -185,6 +213,7 @@ if __name__ == '__main__':
     language('c')
     prog = executable('prog', 'prog.c')
     dep = find_dep('gtk+-3.0')
+    prog.add_dep(dep)
     """
     i = Interpreter(code)
     i.run()
