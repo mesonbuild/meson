@@ -155,6 +155,7 @@ class Environment():
     def get_object_suffix(self):
         return self.object_suffix
 
+# This should be an InterpreterObject. Fix it.
 class PkgConfigDependency():
     pkgconfig_found = False
     
@@ -196,11 +197,12 @@ class PkgConfigDependency():
                              stderr=subprocess.PIPE)
         (out, err) = p.communicate()
         if p.returncode != 0:
-            raise RuntimeError('Pkg-config not found.')
-        print('Found pkg-config version %s\n', out.strip())
+            raise RuntimeError('Pkg-config executable not found.')
+        print('Found pkg-config version %s.' % out.decode().strip())
         PkgConfigDependency.pkgconfig_found = True
 
-def find_external_dependency(self, name):
+# Fixme, move to environment.
+def find_external_dependency(name):
     # Add detectors for non-pkg-config deps (e.g. Boost) etc here.
     return PkgConfigDependency(name)
 

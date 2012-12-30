@@ -84,10 +84,10 @@ class Interpreter():
         statements = self.ast.get_statements()
         while i < len(statements):
             cur = statements[i]
-            self.evaluate_expression(cur)
+            self.evaluate_statement(cur)
             i += 1 # In THE FUTURE jump over blocks and stuff.
 
-    def evaluate_expression(self, cur):
+    def evaluate_statement(self, cur):
         if isinstance(cur, nodes.FunctionCall):
             return self.function_call(cur)
         elif isinstance(cur, nodes.Assignment):
@@ -138,6 +138,12 @@ class Interpreter():
         self.executables[name] = exe
         print('Creating executable %s with file %s' % (name, sources[0]))
         return exe
+    
+    def func_find_dep(self, node, args):
+        self.validate_arguments(args, 1, [nodes.StringStatement])
+        name = args[0].get_string()
+        dep = environment.find_external_dependency(name)
+        return dep
 
     def function_call(self, node):
         func_name = node.get_function_name()
@@ -150,17 +156,25 @@ class Interpreter():
             return self.func_language(node, args)
         elif func_name == 'executable':
             return self.func_executable(node, args)
+        elif func_name == 'find_dep':
+            return self.func_find_dep(node, args)
         else:
             raise InvalidCode('Unknown function "%s".' % func_name)
+    
+    def is_assignable(self, value):
+        if isinstance(value, InterpreterObject) or \
+            isinstance(value, environment.PkgConfigDependency):
+            return True
+        return False
     
     def assignment(self, node):
         var_name = node.var_name
         if not isinstance(var_name, nodes.AtomExpression):
             raise InvalidArguments('Line %d: Tried to assign value to a non-variable.' % node.lineno())
-        value = self.evaluate_expression(node.value)
+        value = self.evaluate_statement(node.value)
         if value is None:
             raise InvalidCode('Line %d: Can not assign None to variable.' % node.lineno())
-        if not isinstance(value, InterpreterObject):
+        if not self.is_assignable(value):
             raise InvalidCode('Line %d: Tried to assign an invalid value to variable.' % node.lineno())
         self.variables[var_name] = value
         return value
@@ -170,6 +184,7 @@ if __name__ == '__main__':
     message('I can haz text printed out?')
     language('c')
     prog = executable('prog', 'prog.c')
+    dep = find_dep('gtk+-3.0')
     """
     i = Interpreter(code)
     i.run()
