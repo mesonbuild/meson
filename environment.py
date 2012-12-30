@@ -23,7 +23,7 @@ class EnvironmentException(Exception):
 def detect_c_compiler(execmd):
     exelist = execmd.split()
     p = subprocess.Popen(exelist + ['--version'], stdout=subprocess.PIPE)
-    (out, err) = p.communicate()
+    out = p.communicate()[0]
     out = out.decode()
     if (out.startswith('cc ') or out.startswith('gcc')) and \
         'Free Software Foundation' in out:
@@ -165,20 +165,20 @@ class PkgConfigDependency():
 
         p = subprocess.Popen(['pkg-config', '--modversion', name], stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE)
-        (out, err) = p.communicate()
+        out = p.communicate()[0]
         if p.returncode != 0:
             raise RuntimeError('Dependency %s not known to pkg-config.' % name)
         self.modversion = out.decode().strip()
         p = subprocess.Popen(['pkg-config', '--cflags', name], stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE)
-        (out, err) = p.communicate()
+        out = p.communicate()[0]
         if p.returncode != 0:
             raise RuntimeError('Could not generate cflags for %s.' % name)
         self.cflags = out.decode().split()
         
         p = subprocess.Popen(['pkg-config', '--libs', name], stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE)
-        (out, err) = p.communicate()
+        out = p.communicate()[0]
         if p.returncode != 0:
             raise RuntimeError('Could not generate libs for %s.' % name)
         self.libs = out.decode().split()
@@ -195,7 +195,7 @@ class PkgConfigDependency():
     def check_pkgconfig(self):
         p = subprocess.Popen(['pkg-config', '--version'], stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE)
-        (out, err) = p.communicate()
+        out = p.communicate()[0]
         if p.returncode != 0:
             raise RuntimeError('Pkg-config executable not found.')
         print('Found pkg-config version %s.' % out.decode().strip())
