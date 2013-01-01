@@ -146,7 +146,7 @@ class Interpreter():
     def func_executable(self, node, args):
         for a in args:
             if not isinstance(a, str):
-                raise InvalidArguments('Line %d: Argument %s is not a string.' % str(a))
+                raise InvalidArguments('Line %d: Argument %s is not a string.' % (node.lineno(), str(a)))
         name = args[0]
         sources = args[1:]
         if name in self.targets:
