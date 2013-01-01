@@ -16,6 +16,9 @@
 
 import os, stat
 
+def shell_quote(cmdlist):
+    return ["'" + x + "'" for x in cmdlist]
+
 class ShellGenerator():
     
     def __init__(self, interpreter, environment):
@@ -57,7 +60,7 @@ class ShellGenerator():
         commands.append(abs_src)
         commands += compiler.get_output_flags()
         commands.append(abs_obj)
-        quoted = environment.shell_quote(commands)
+        quoted = shell_quote(commands)
         outfile.write('\necho Compiling \\"%s\\"\n' % src)
         outfile.write(' '.join(quoted) + ' || exit\n')
         return abs_obj
@@ -71,7 +74,7 @@ class ShellGenerator():
             commands += dep.get_link_flags()
         commands += linker.get_output_flags()
         commands.append(outname)
-        quoted = environment.shell_quote(commands)
+        quoted = shell_quote(commands)
         outfile.write('\necho Linking \\"%s\\".\n' % outname)
         outfile.write(' '.join(quoted) + ' || exit\n')
 

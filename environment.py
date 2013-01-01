@@ -78,9 +78,6 @@ class GnuCCompiler(CCompiler):
     def get_std_opt_flags(self):
         return GnuCCompiler.std_opt_flags
 
-def shell_quote(cmdlist):
-    return ["'" + x + "'" for x in cmdlist]
-
 class Environment():
     def __init__(self, source_dir, build_dir):
         self.source_dir = source_dir
