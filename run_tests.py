@@ -38,7 +38,6 @@ def run_tests():
         pass
     [run_test(t) for t in tests]
 
-
 if __name__ == '__main__':
     os.chdir(os.path.split(__file__)[0])
     run_tests()

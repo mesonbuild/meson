@@ -14,15 +14,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import interpreter, environment
 import os, stat
 
 class ShellGenerator():
     
-    def __init__(self, code, source_dir, build_dir):
+    def __init__(self, interpreter, environment):
         self.code = code
-        self.environment = environment.Environment(source_dir, build_dir)
-        self.interpreter = interpreter.Interpreter(code)
+        self.environment = environment
+        self.interpreter = interpreter
         self.build_filename = 'compile.sh'
     
     def generate(self):
@@ -95,8 +94,11 @@ if __name__ == '__main__':
     code = """
     project('simple generator')
     language('c')
-    executable('prog', 'prog.c')
+    executable('prog', 'prog.c', 'dep.c')
     """
+    import interpreter, environment
     os.chdir(os.path.split(__file__)[0])
-    g = ShellGenerator(code, '.', 'work area')
+    envir = environment.Environment('.', 'work area')
+    intpr = interpreter.Interpreter(code)
+    g = ShellGenerator(intpr, envir)
     g.generate()
