@@ -98,6 +98,6 @@ if __name__ == '__main__':
     import interpreter, environment
     os.chdir(os.path.split(__file__)[0])
     envir = environment.Environment('.', 'work area')
-    intpr = interpreter.Interpreter(code)
+    intpr = interpreter.Interpreter(code, envir.get_scratch_dir())
     g = ShellGenerator(intpr, envir)
     g.generate()

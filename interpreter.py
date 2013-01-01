@@ -149,7 +149,7 @@ class Interpreter():
                 raise InvalidArguments('Line %d: Argument %s is not a string.' % str(a))
         name = args[0]
         sources = args[1:]
-        if name in self.target:
+        if name in self.targets:
             raise InvalidCode('Line %d, tried to create executable "%s", but a build target of that name already exists.' % (node.lineno(), name))
         exe = Executable(name, sources)
         self.targets[name] = exe
