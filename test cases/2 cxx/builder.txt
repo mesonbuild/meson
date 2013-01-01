@@ -1,0 +1,3 @@
+project('trivial test')
+language('c++')
+exe = executable('trivialprog', 'trivial.cc')

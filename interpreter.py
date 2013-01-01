@@ -144,6 +144,10 @@ class Interpreter():
                 comp = self.environment.detect_c_compiler()
                 comp.sanity_check(self.environment.get_scratch_dir())
                 self.compilers.append(comp)
+            elif lang.lower() == 'c++':
+                comp = self.environment.detect_cxx_compiler()
+                comp.sanity_check(self.environment.get_scratch_dir())
+                self.compilers.append(comp)
             else:
                 raise InvalidCode('Tried to use unknown language "%s".' % lang)
 

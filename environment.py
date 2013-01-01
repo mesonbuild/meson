@@ -63,12 +63,38 @@ class CCompiler():
         pe = subprocess.Popen(binary_name)
         pe.wait()
         if pe.returncode != 0:
-            raise RuntimeError('Executables created by compiler %s are not runnable.' % self.name_string())
+            raise RuntimeError('Executables created by C compiler %s are not runnable.' % self.name_string())
+
+class CXXCompiler(CCompiler):
+    def __init__(self, exelist):
+        CCompiler.__init__(self, exelist)
+
+    def can_compile(self, filename):
+        suffix = filename.split('.')[-1]
+        if suffix == 'cc' or suffix == 'cpp' or suffix == 'cxx' or \
+            suffix == 'hh' or suffix == 'hpp' or suffix == 'hxx':
+            return True
+        return False
+
+    def sanity_check(self, work_dir):
+        source_name = os.path.join(work_dir, 'sanitycheckcxx.cc')
+        binary_name = os.path.join(work_dir, 'sanitycheckcxx')
+        ofile = open(source_name, 'w')
+        ofile.write('class breakCCompiler;int main(int argc, char **argv) { return 0; }\n')
+        ofile.close()
+        pc = subprocess.Popen(self.exelist + [source_name, '-o', binary_name])
+        pc.wait()
+        if pc.returncode != 0:
+            raise RuntimeError('Compiler %s can not compile programs.' % self.name_string())
+        pe = subprocess.Popen(binary_name)
+        pe.wait()
+        if pe.returncode != 0:
+            raise RuntimeError('Executables created by C++ compiler %s are not runnable.' % self.name_string())
 
 class GnuCCompiler(CCompiler):
     std_warn_flags = ['-Wall', '-Winvalid-pch']
     std_opt_flags = ['-O2']
-    
+
     def __init__(self, exelist):
         CCompiler.__init__(self, exelist)
 
@@ -77,6 +103,20 @@ class GnuCCompiler(CCompiler):
 
     def get_std_opt_flags(self):
         return GnuCCompiler.std_opt_flags
+
+class GnuCXXCompiler(CXXCompiler):
+    std_warn_flags = ['-Wall', '-Winvalid-pch']
+    std_opt_flags = ['-O2']
+    
+    def __init__(self, exelist):
+        CXXCompiler.__init__(self, exelist)
+
+    def get_std_warn_flags(self):
+        return GnuCXXCompiler.std_warn_flags
+
+    def get_std_opt_flags(self):
+        return GnuCXXCompiler.std_opt_flags
+
 
 class Environment():
     def __init__(self, source_dir, build_dir):
@@ -100,7 +140,7 @@ class Environment():
         if evar in os.environ:
             return os.environ[evar].split()
         return self.default_c
-    
+
     def detect_c_compiler(self):
         exelist = self.get_c_compiler_exelist()
         p = subprocess.Popen(exelist + ['--version'], stdout=subprocess.PIPE)
@@ -109,10 +149,20 @@ class Environment():
         if (out.startswith('cc ') or out.startswith('gcc')) and \
             'Free Software Foundation' in out:
             return GnuCCompiler(exelist)
-        raise EnvironmentException('Unknown compiler "' + execmd + '"')
-    
+        raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
+
     def get_scratch_dir(self):
         return self.scratch_dir
+
+    def detect_cxx_compiler(self):
+        exelist = self.get_cxx_compiler_exelist()
+        p = subprocess.Popen(exelist + ['--version'], stdout=subprocess.PIPE)
+        out = p.communicate()[0]
+        out = out.decode()
+        if (out.startswith('c++ ') or out.startswith('g++')) and \
+            'Free Software Foundation' in out:
+            return GnuCXXCompiler(exelist)
+        raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
 
     def get_cxx_compiler_exelist(self):
         evar = 'CXX'
