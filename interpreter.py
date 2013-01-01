@@ -132,16 +132,20 @@ class Interpreter():
         print('Message: %s' % args[0])
 
     def func_language(self, node, args):
-        self.validate_arguments(args, 1, [str])
+        if len(args) == 0:
+            raise InvalidArguments('Line %d: no arguments to function language.' % node.lineno())
+        for a in args:
+            if not isinstance(a, str):
+                raise InvalidArguments('Line %d: Argument %s is not a string.' % (node.lineno(), str(a)))
         if len(self.compilers) > 0:
             raise InvalidCode('Function language() can only be called once (line %d).' % node.lineno())
-        lang = args[0]
-        if lang.lower() == 'c':
-            comp = environment.detect_c_compiler('gcc')
-            comp.sanity_check(self.scratch_dir)
-            self.compilers.append(comp)
-        else:
-            raise InvalidCode('Tried to use unknown language "%s".' % lang)
+        for lang in args:
+            if lang.lower() == 'c':
+                comp = environment.detect_c_compiler('gcc')
+                comp.sanity_check(self.scratch_dir)
+                self.compilers.append(comp)
+            else:
+                raise InvalidCode('Tried to use unknown language "%s".' % lang)
 
     def func_executable(self, node, args):
         for a in args:
