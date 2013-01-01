@@ -76,10 +76,10 @@ class ShellGenerator():
         outfile.write(' '.join(quoted) + ' || exit\n')
 
     def generate_commands(self, outfile):
-        for i in self.interpreter.get_executables().items():
+        for i in self.interpreter.get_targets().items():
             name = i[0]
             e = i[1]
-            print('Generating executable', name)
+            print('Generating target', name)
             outname = os.path.join(self.environment.get_build_dir(), e.get_basename())
             suffix = self.environment.get_exe_suffix()
             if suffix != '':

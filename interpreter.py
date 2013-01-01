@@ -71,15 +71,15 @@ class Interpreter():
         self.sanity_check_ast()
         self.project = None
         self.compilers = []
-        self.executables = {}
+        self.targets = {}
         self.variables = {}
         self.scratch_dir = scratch_dir
 
     def get_project(self):
         return self.project
 
-    def get_executables(self):
-        return self.executables
+    def get_targets(self):
+        return self.targets
 
     def sanity_check_ast(self):
         if not isinstance(self.ast, nodes.CodeBlock):
@@ -149,10 +149,10 @@ class Interpreter():
                 raise InvalidArguments('Line %d: Argument %s is not a string.' % str(a))
         name = args[0]
         sources = args[1:]
-        if name in self.executables:
-            raise InvalidCode('Line %d, tried to create executable "%s", which already exists.' % (node.lineno(), name))
+        if name in self.target:
+            raise InvalidCode('Line %d, tried to create executable "%s", but a build target of that name already exists.' % (node.lineno(), name))
         exe = Executable(name, sources)
-        self.executables[name] = exe
+        self.targets[name] = exe
         print('Creating executable %s with %d files.' % (name, len(sources)))
         return exe
     
