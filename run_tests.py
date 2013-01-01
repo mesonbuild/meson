@@ -19,6 +19,7 @@ import os, subprocess, shutil
 
 test_build_dir = 'work area'
 builder_command = './builder.py'
+compile_command = os.path.join(test_build_dir, 'compile.sh')
 
 def run_test(testdir):
     shutil.rmtree(test_build_dir)
@@ -27,7 +28,11 @@ def run_test(testdir):
     p = subprocess.Popen([builder_command, testdir, test_build_dir])
     p.wait()
     if p.returncode != 0:
-        raise RuntimeError('Test failed.')
+        raise RuntimeError('Generating the build system failed.')
+    pc = subprocess.Popen([compile_command])
+    pc.wait()
+    if pc.returncode != 0:
+        raise RuntimeError('Compiling source code failed.')
 
 def run_tests():
     tests = glob('test cases/*')
