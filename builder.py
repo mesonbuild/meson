@@ -19,7 +19,6 @@ import sys, stat
 import os.path
 import environment, interpreter
 import shellgenerator
-from interpreter import InvalidCode
 
 parser = OptionParser()
 
@@ -33,8 +32,7 @@ class Builder():
     
     def __init__(self, dir1, dir2, options):
         (self.source_dir, self.build_dir) = self.validate_dirs(dir1, dir2)
-        self.compiler = environment.GnuCCompiler('gcc')
-        self.compiler.sanity_check(self.build_dir)
+        self.options = options
     
     def has_builder_file(self, dirname):
         fname = os.path.join(dirname, Builder.builder_filename)
