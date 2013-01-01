@@ -65,7 +65,7 @@ class Executable(BuildTarget):
     pass
 
 class Interpreter():
-    
+
     def __init__(self, code, scratch_dir):
         self.ast = parser.build_ast(code)
         self.sanity_check_ast()

@@ -61,10 +61,10 @@ class CCompiler():
         return ' '.join(self.exelist)
     
     def sanity_check(self, work_dir):
-        source_name = os.path.join(work_dir, 'sanitycheck.c')
-        binary_name = os.path.join(work_dir, 'sanitycheck')
+        source_name = os.path.join(work_dir, 'sanitycheckc.c')
+        binary_name = os.path.join(work_dir, 'sanitycheckc')
         ofile = open(source_name, 'w')
-        ofile.write('int main(int argc, char **argv) { return 0; }\n')
+        ofile.write('int main(int argc, char **argv) { int class=0; return class; }\n')
         ofile.close()
         pc = subprocess.Popen(self.exelist + [source_name, '-o', binary_name])
         pc.wait()
