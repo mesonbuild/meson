@@ -38,7 +38,7 @@ class BuildTarget(InterpreterObject):
         self.name = name
         self.sources = sources
         self.external_deps = []
-        
+
     def get_basename(self):
         return self.name
     

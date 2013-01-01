@@ -50,7 +50,7 @@ class ShellGenerator():
         if compiler is None:
             raise RuntimeError('No specified compiler can handle file ' + src)
         abs_src = os.path.join(self.environment.get_source_dir(), src)
-        abs_obj = os.path.join(self.environment.get_build_dir(), src)
+        abs_obj = os.path.join(self.get_target_dir(target), src)
         abs_obj += '.' + self.environment.get_object_suffix()
         commands = []
         commands += compiler.get_exelist()
@@ -80,19 +80,25 @@ class ShellGenerator():
         outfile.write('\necho Linking \\"%s\\".\n' % outname)
         outfile.write(' '.join(quoted) + ' || exit\n')
 
+    def get_target_dir(self, target):
+        dirname = os.path.join(self.environment.get_build_dir(), target.get_basename())
+        os.makedirs(dirname, exist_ok=True)
+        return dirname
+
     def generate_commands(self, outfile):
         for i in self.interpreter.get_targets().items():
             name = i[0]
-            e = i[1]
+            target = i[1]
             print('Generating target', name)
-            outname = os.path.join(self.environment.get_build_dir(), e.get_basename())
+            targetdir = self.get_target_dir(target)
+            outname = os.path.join(targetdir, target.get_basename())
             suffix = self.environment.get_exe_suffix()
             if suffix != '':
                 outname = outname + '.' + suffix
             obj_list = []
-            for src in e.get_sources():
-                obj_list.append(self.generate_single_compile(e, outfile, src))
-            self.generate_link(e, outfile, outname, obj_list)
+            for src in target.get_sources():
+                obj_list.append(self.generate_single_compile(target, outfile, src))
+            self.generate_link(target, outfile, outname, obj_list)
 
 if __name__ == '__main__':
     code = """
