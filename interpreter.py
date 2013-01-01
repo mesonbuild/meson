@@ -120,30 +120,30 @@ class Interpreter():
                     raise InvalidArguments('Incorrect argument type.')
 
     def func_project(self, node, args):
-        self.validate_arguments(args, 1, [nodes.StringStatement])
+        self.validate_arguments(args, 1, [str])
         if self.project is not None:
             raise InvalidCode('Second call to project() on line %d.' % node.lineno())
-        self.project = args[0].get_string()
+        self.project = args[0]
         print("Project name is %s." % self.project)
 
     def func_message(self, node, args):
-        self.validate_arguments(args, 1, [nodes.StringStatement])
-        print('Message: %s' % args[0].get_string())
-        
+        self.validate_arguments(args, 1, [str])
+        print('Message: %s' % args[0])
+
     def func_language(self, node, args):
-        self.validate_arguments(args, 1, [nodes.StringStatement])
+        self.validate_arguments(args, 1, [str])
         if len(self.compilers) > 0:
             raise InvalidCode('Function language() can only be called once (line %d).' % node.lineno())
-        lang = args[0].get_string()
+        lang = args[0]
         if lang.lower() == 'c':
             self.compilers.append(environment.detect_c_compiler('gcc'))
         else:
             raise InvalidCode('Tried to use unknown language "%s".' % lang)
 
     def func_executable(self, node, args):
-        self.validate_arguments(args, 2, (nodes.StringStatement, nodes.StringStatement))
-        name = args[0].get_string()
-        sources = [args[1].get_string()]
+        self.validate_arguments(args, 2, (str, str))
+        name = args[0]
+        sources = [args[1]]
         if name in self.executables:
             raise InvalidCode('Line %d, tried to create executable "%s", which already exists.' % (node.lineno(), name))
         exe = Executable(name, sources)
@@ -152,14 +152,14 @@ class Interpreter():
         return exe
     
     def func_find_dep(self, node, args):
-        self.validate_arguments(args, 1, [nodes.StringStatement])
-        name = args[0].get_string()
+        self.validate_arguments(args, 1, [str])
+        name = args[0]
         dep = environment.find_external_dependency(name)
         return dep
 
     def function_call(self, node):
         func_name = node.get_function_name()
-        args = node.arguments.arguments
+        args = self.reduce_arguments(node.arguments)
         if func_name == 'project':
             return self.func_project(node, args)
         elif func_name == 'message':
