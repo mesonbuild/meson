@@ -29,7 +29,7 @@ class InvalidArguments(InterpreterException):
 
 class InterpreterObject():
     
-    def method_call(self, method_name, *args, **kwargs):
+    def method_call(self, method_name):
         raise InvalidCode('Object does not have method %s.' % method_name)
 
 class BuildTarget(InterpreterObject):
@@ -55,10 +55,9 @@ class BuildTarget(InterpreterObject):
     def get_external_deps(self):
         return self.external_deps
 
-    def method_call(self, method_name, *args, **kwargs):
+    def method_call(self, method_name, args):
         if method_name == 'add_dep':
-            dep = args[0]
-            self.add_external_dep(dep)
+            [self.add_external_dep(dep) for dep in args]
             return
         raise InvalidCode('Unknown method "%s" in BuildTarget.' % method_name)
 
@@ -193,6 +192,24 @@ class Interpreter():
         self.variables[var_name] = value
         return value
     
+    def reduce_arguments(self, args):
+        assert(isinstance(args, nodes.Arguments))
+        reduced = []
+        for arg in args.arguments:
+            if isinstance(arg, nodes.AtomExpression) or isinstance(arg, nodes.AtomStatement):
+                r = self.variables[arg.value]
+            elif isinstance(arg, nodes.StringExpression) or isinstance(arg, nodes.StringStatement):
+                r = arg.get_string()
+            elif isinstance(arg, nodes.FunctionCall):
+                r  = self.function_call(arg)
+            elif isinstance(arg, nodes.MethodCall):
+                r = self.method_call(arg)
+            else:
+                raise InvalidCode('Line %d: Irreducable argument.' % args.lineno())
+            reduced.append(r)
+        assert(len(reduced) == len(args))
+        return reduced
+
     def method_call(self, node):
         object_name = node.object_name.get_value()
         method_name = node.method_name.get_value()
@@ -202,10 +219,7 @@ class Interpreter():
         obj = self.variables[object_name]
         if not isinstance(obj, InterpreterObject):
             raise InvalidArguments('Line %d: variable %s can not be called.' % (node.lineno(), object_name))
-        # Fixme, write argument list reducer function.
-        var_name = args.arguments[0].get_value()
-        tmpargs = self.variables[var_name]
-        return obj.method_call(method_name, tmpargs)
+        return obj.method_call(method_name, self.reduce_arguments(args))
 
 if __name__ == '__main__':
     code = """project('myawesomeproject')
