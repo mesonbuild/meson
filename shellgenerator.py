@@ -19,7 +19,6 @@ import os, stat
 class ShellGenerator():
     
     def __init__(self, interpreter, environment):
-        self.code = code
         self.environment = environment
         self.interpreter = interpreter
         self.build_filename = 'compile.sh'

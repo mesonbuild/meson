@@ -124,7 +124,7 @@ class Interpreter():
         if self.project is not None:
             raise InvalidCode('Second call to project() on line %d.' % node.lineno())
         self.project = args[0]
-        print("Project name is %s." % self.project)
+        print('Project name is "%s".' % self.project)
 
     def func_message(self, node, args):
         self.validate_arguments(args, 1, [str])

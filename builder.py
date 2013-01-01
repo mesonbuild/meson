@@ -17,7 +17,9 @@
 from optparse import OptionParser
 import sys, stat
 import os.path
-import environment
+import environment, interpreter
+import shellgenerator
+from interpreter import InvalidCode
 
 parser = OptionParser()
 
@@ -60,6 +62,16 @@ class Builder():
         if self.has_builder_file(ndir2):
             return (ndir2, ndir1)
         raise RuntimeError('Neither directory contains a builder file %s.' % Builder.builder_filename)
+    
+    def generate(self):
+        code = open(os.path.join(self.source_dir, Builder.builder_filename)).read()
+        if len(code.strip()) == 0:
+            raise interpreter.InvalidCode('Builder file is empty.')
+        assert(isinstance(code, str))
+        env = environment.Environment(self.source_dir, self.build_dir)
+        intr = interpreter.Interpreter(code)
+        g = shellgenerator.ShellGenerator(intr, env)
+        g.generate()
 
 if __name__ == '__main__':
     (options, args) = parser.parse_args(sys.argv)
@@ -74,3 +86,5 @@ if __name__ == '__main__':
     builder = Builder(dir1, dir2, options)
     print ('Source dir: ' + builder.source_dir)
     print ('Build dir: ' + builder.build_dir)
+    builder.generate()
+
