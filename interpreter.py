@@ -141,14 +141,16 @@ class Interpreter():
             raise InvalidCode('Tried to use unknown language "%s".' % lang)
 
     def func_executable(self, node, args):
-        self.validate_arguments(args, 2, (str, str))
+        for a in args:
+            if not isinstance(a, str):
+                raise InvalidArguments('Line %d: Argument %s is not a string.' % str(a))
         name = args[0]
-        sources = [args[1]]
+        sources = args[1:]
         if name in self.executables:
             raise InvalidCode('Line %d, tried to create executable "%s", which already exists.' % (node.lineno(), name))
         exe = Executable(name, sources)
         self.executables[name] = exe
-        print('Creating executable %s with file %s' % (name, sources[0]))
+        print('Creating executable %s with %d files.' % (name, len(sources)))
         return exe
     
     def func_find_dep(self, node, args):
@@ -225,7 +227,7 @@ if __name__ == '__main__':
     code = """project('myawesomeproject')
     message('I can haz text printed out?')
     language('c')
-    prog = executable('prog', 'prog.c')
+    prog = executable('prog', 'prog.c', 'subfile.c')
     dep = find_dep('gtk+-3.0')
     prog.add_dep(dep)
     """
