@@ -20,16 +20,6 @@ class EnvironmentException(Exception):
     def __init(self, *args, **kwargs):
         Exception.__init__(self, *args, **kwargs)
 
-def detect_c_compiler(execmd):
-    exelist = execmd.split()
-    p = subprocess.Popen(exelist + ['--version'], stdout=subprocess.PIPE)
-    out = p.communicate()[0]
-    out = out.decode()
-    if (out.startswith('cc ') or out.startswith('gcc')) and \
-        'Free Software Foundation' in out:
-        return GnuCCompiler(exelist)
-    raise EnvironmentException('Unknown compiler "' + execmd + '"')
-
 class CCompiler():
     def __init__(self, exelist):
         if type(exelist) == type(''):
@@ -91,19 +81,6 @@ class GnuCCompiler(CCompiler):
 def shell_quote(cmdlist):
     return ["'" + x + "'" for x in cmdlist]
 
-def test_cmd_line_building():
-    src_file = 'file.c'
-    dst_file = 'file.o'
-    gnuc = detect_c_compiler('/usr/bin/cc')
-    cmds = gnuc.get_exelist()
-    cmds += gnuc.get_std_warn_flags()
-    cmds += gnuc.get_compile_only_flags()
-    cmds.append(src_file)
-    cmds += gnuc.get_output_flags()
-    cmds.append(dst_file)
-    cmd_line = ' '.join(shell_quote(cmds))
-    print(cmd_line)
-
 class Environment():
     def __init__(self, source_dir, build_dir):
         self.source_dir = source_dir
@@ -121,16 +98,26 @@ class Environment():
         self.static_lib_prefix = 'lib'
         self.object_suffix = 'o'
 
-    def get_c_compiler(self):
+    def get_c_compiler_exelist(self):
         evar = 'CC'
         if evar in os.environ:
             return os.environ[evar].split()
         return self.default_c
     
+    def detect_c_compiler(self):
+        exelist = self.get_c_compiler_exelist()
+        p = subprocess.Popen(exelist + ['--version'], stdout=subprocess.PIPE)
+        out = p.communicate()[0]
+        out = out.decode()
+        if (out.startswith('cc ') or out.startswith('gcc')) and \
+            'Free Software Foundation' in out:
+            return GnuCCompiler(exelist)
+        raise EnvironmentException('Unknown compiler "' + execmd + '"')
+    
     def get_scratch_dir(self):
         return self.scratch_dir
 
-    def get_cxx_compiler(self):
+    def get_cxx_compiler_exelist(self):
         evar = 'CXX'
         if evar in os.environ:
             return os.environ[evar].split()
