@@ -66,14 +66,15 @@ class Executable(BuildTarget):
 
 class Interpreter():
     
-    def __init__(self, code):
+    def __init__(self, code, scratch_dir):
         self.ast = parser.build_ast(code)
         self.sanity_check_ast()
         self.project = None
         self.compilers = []
         self.executables = {}
         self.variables = {}
-        
+        self.scratch_dir = scratch_dir
+
     def get_project(self):
         return self.project
 
@@ -136,7 +137,9 @@ class Interpreter():
             raise InvalidCode('Function language() can only be called once (line %d).' % node.lineno())
         lang = args[0]
         if lang.lower() == 'c':
-            self.compilers.append(environment.detect_c_compiler('gcc'))
+            comp = environment.detect_c_compiler('gcc')
+            comp.sanity_check(self.scratch_dir)
+            self.compilers.append(comp)
         else:
             raise InvalidCode('Tried to use unknown language "%s".' % lang)
 
@@ -231,5 +234,5 @@ if __name__ == '__main__':
     dep = find_dep('gtk+-3.0')
     prog.add_dep(dep)
     """
-    i = Interpreter(code)
+    i = Interpreter(code, '.')
     i.run()

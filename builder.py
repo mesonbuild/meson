@@ -67,7 +67,7 @@ class Builder():
             raise interpreter.InvalidCode('Builder file is empty.')
         assert(isinstance(code, str))
         env = environment.Environment(self.source_dir, self.build_dir)
-        intr = interpreter.Interpreter(code)
+        intr = interpreter.Interpreter(code, env.get_scratch_dir())
         g = shellgenerator.ShellGenerator(intr, env)
         g.generate()
 

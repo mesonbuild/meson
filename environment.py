@@ -108,6 +108,8 @@ class Environment():
     def __init__(self, source_dir, build_dir):
         self.source_dir = source_dir
         self.build_dir = build_dir
+        self.scratch_dir = os.path.join(build_dir, 'builder-private')
+        os.makedirs(self.scratch_dir, exist_ok=True)
 
         self.default_c = ['cc']
         self.default_cxx = ['c++']
@@ -124,6 +126,9 @@ class Environment():
         if evar in os.environ:
             return os.environ[evar].split()
         return self.default_c
+    
+    def get_scratch_dir(self):
+        return self.scratch_dir
 
     def get_cxx_compiler(self):
         evar = 'CXX'
