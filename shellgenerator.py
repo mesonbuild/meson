@@ -77,7 +77,7 @@ class ShellGenerator():
         commands += linker.get_output_flags()
         commands.append(outname)
         quoted = shell_quote(commands)
-        outfile.write('\necho Linking \\"%s\\".\n' % outname)
+        outfile.write('\necho Linking \\"%s\\".\n' % target.get_basename())
         outfile.write(' '.join(quoted) + ' || exit\n')
 
     def get_target_dir(self, target):
