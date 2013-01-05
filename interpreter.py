@@ -38,6 +38,7 @@ class BuildTarget(InterpreterObject):
         self.name = name
         self.sources = sources
         self.external_deps = []
+        self.methods = {'add_dep': self.add_dep_method}
 
     def get_basename(self):
         return self.name
@@ -47,18 +48,18 @@ class BuildTarget(InterpreterObject):
     
     def add_external_dep(self, dep):
         if not isinstance(dep, environment.PkgConfigDependency):
-            print(dep)
-            print(type(dep))
             raise InvalidArguments('Argument is not an external dependency')
         self.external_deps.append(dep)
         
     def get_external_deps(self):
         return self.external_deps
 
+    def add_dep_method(self, method_name, args):
+        [self.add_external_dep(dep) for dep in args]
+
     def method_call(self, method_name, args):
-        if method_name == 'add_dep':
-            [self.add_external_dep(dep) for dep in args]
-            return
+        if method_name in self.methods:
+            return self.methods[method_name](self, args)
         raise InvalidCode('Unknown method "%s" in BuildTarget.' % method_name)
 
 class Executable(BuildTarget):
