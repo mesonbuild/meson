@@ -249,10 +249,10 @@ class Interpreter():
         method_name = node.method_name.get_value()
         args = node.arguments
         if not object_name in self.variables:
-            raise InvalidArguments('Line %d: unknown variable %s.' % (node.lineno(), object_name))
+            raise InvalidArguments('Line %d: unknown variable "%s".' % (node.lineno(), object_name))
         obj = self.variables[object_name]
         if not isinstance(obj, InterpreterObject):
-            raise InvalidArguments('Line %d: variable %s can not be called.' % (node.lineno(), object_name))
+            raise InvalidArguments('Line %d: variable "%s" is not callable.' % (node.lineno(), object_name))
         return obj.method_call(method_name, self.reduce_arguments(args))
 
 if __name__ == '__main__':
