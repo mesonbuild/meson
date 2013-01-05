@@ -15,6 +15,7 @@
 # limitations under the License.
 
 import os, stat
+import interpreter
 
 def shell_quote(cmdlist):
     return ["'" + x + "'" for x in cmdlist]
@@ -68,14 +69,18 @@ class ShellGenerator():
         return abs_obj
 
     def generate_link(self, target, outfile, outname, obj_list):
-        linker = self.interpreter.compilers[0] # Fixme.
+        if isinstance(target, interpreter.StaticLibrary):
+            linker = self.interpreter.static_linker
+        else:
+            linker = self.interpreter.compilers[0] # Fixme.
         commands = []
         commands += linker.get_exelist()
-        commands += obj_list
+        commands += linker.get_std_link_flags()
         for dep in target.get_external_deps():
             commands += dep.get_link_flags()
         commands += linker.get_output_flags()
         commands.append(outname)
+        commands += obj_list
         quoted = shell_quote(commands)
         outfile.write('\necho Linking \\"%s\\".\n' % target.get_basename())
         outfile.write(' '.join(quoted) + ' || exit\n')
@@ -91,8 +96,13 @@ class ShellGenerator():
             target = i[1]
             print('Generating target', name)
             targetdir = self.get_target_dir(target)
-            outname = os.path.join(targetdir, target.get_basename())
-            suffix = self.environment.get_exe_suffix()
+            if isinstance(target, interpreter.Executable):
+                prefix = ''
+                suffix = self.environment.get_exe_suffix()
+            elif isinstance(target, interpreter.StaticLibrary):
+                prefix = self.environment.get_static_lib_prefix()
+                suffix = self.environment.get_static_lib_suffix()
+            outname = os.path.join(targetdir, prefix + target.get_basename())
             if suffix != '':
                 outname = outname + '.' + suffix
             obj_list = []

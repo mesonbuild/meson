@@ -40,6 +40,9 @@ class CCompiler():
 
     def get_debug_flags(self):
         return ['-g']
+    
+    def get_std_link_flags(self):
+        return []
 
     def can_compile(self, filename):
         suffix = filename.split('.')[-1]
@@ -117,6 +120,20 @@ class GnuCXXCompiler(CXXCompiler):
     def get_std_opt_flags(self):
         return GnuCXXCompiler.std_opt_flags
 
+class ArLinker():
+    std_flags = ['cr']
+    
+    def __init__(self, exelist):
+        self.exelist = exelist
+        
+    def get_exelist(self):
+        return self.exelist
+    
+    def get_std_link_flags(self):
+        return self.std_flags
+    
+    def get_output_flags(self):
+        return []
 
 class Environment():
     def __init__(self, source_dir, build_dir):
@@ -127,6 +144,7 @@ class Environment():
 
         self.default_c = ['cc']
         self.default_cxx = ['c++']
+        self.default_static_linker = ['ar']
 
         self.exe_suffix = ''
         self.shared_lib_suffix = 'so'
@@ -163,12 +181,27 @@ class Environment():
             'Free Software Foundation' in out:
             return GnuCXXCompiler(exelist)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
+    
+    def detect_static_linker(self):
+        exelist = self.get_static_linker_exelist()
+        p = subprocess.Popen(exelist + ['--version'], stdout=subprocess.PIPE)
+        out = p.communicate()[0]
+        out = out.decode()
+        if p.returncode == 0:
+            return ArLinker(exelist)
+        raise EnvironmentException('Unknown static linker "' + ' '.join(exelist) + '"')
 
     def get_cxx_compiler_exelist(self):
         evar = 'CXX'
         if evar in os.environ:
             return os.environ[evar].split()
         return self.default_cxx
+    
+    def get_static_linker_exelist(self):
+        evar = 'AR'
+        if evar in os.environ:
+            return os.environ[evar].split()
+        return self.default_static_linker
 
     def get_source_dir(self):
         return self.source_dir

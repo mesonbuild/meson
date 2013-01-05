@@ -64,6 +64,9 @@ class BuildTarget(InterpreterObject):
 class Executable(BuildTarget):
     pass
 
+class StaticLibrary(BuildTarget):
+    pass
+
 class Interpreter():
 
     def __init__(self, code, environment):
@@ -74,6 +77,7 @@ class Interpreter():
         self.targets = {}
         self.variables = {}
         self.environment = environment
+        self.static_linker = self.environment.detect_static_linker()
 
     def get_project(self):
         return self.project
@@ -169,6 +173,19 @@ class Interpreter():
         name = args[0]
         dep = environment.find_external_dependency(name)
         return dep
+    
+    def func_static_lib(self, node, args):
+        for a in args:
+            if not isinstance(a, str):
+                raise InvalidArguments('Line %d: Argument %s is not a string.' % (node.lineno(), str(a)))
+        name= args[0]
+        sources = args[1:]
+        if name in self.targets:
+            raise InvalidCode('Line %d: tried to create static library "%s", but a target of that name already exists.' % (node.lineno(), name))
+        l = StaticLibrary(name, sources)
+        self.targets[name] = l
+        print('Creating static library "%s" with %d files.' % (name, len(sources)))
+        return l
 
     def function_call(self, node):
         func_name = node.get_function_name()
@@ -183,9 +200,11 @@ class Interpreter():
             return self.func_executable(node, args)
         elif func_name == 'find_dep':
             return self.func_find_dep(node, args)
+        elif func_name == 'static_library':
+            return self.func_static_lib(node, args)
         else:
             raise InvalidCode('Unknown function "%s".' % func_name)
-    
+
     def is_assignable(self, value):
         if isinstance(value, InterpreterObject) or \
             isinstance(value, environment.PkgConfigDependency):

@@ -1,3 +1,3 @@
-project('trivial test')
+project('c++ test')
 language('c++')
 exe = executable('trivialprog', 'trivial.cc')
