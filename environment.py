@@ -41,8 +41,11 @@ class CCompiler():
     def get_debug_flags(self):
         return ['-g']
     
-    def get_std_link_flags(self):
+    def get_std_exe_link_flags(self):
         return []
+
+    def get_std_shared_lib_link_flags(self):
+        return ['-shared']
 
     def can_compile(self, filename):
         suffix = filename.split('.')[-1]
@@ -50,6 +53,9 @@ class CCompiler():
             return True
         return False
     
+    def get_pic_flags(self):
+        return ['-fPIC']
+
     def name_string(self):
         return ' '.join(self.exelist)
     

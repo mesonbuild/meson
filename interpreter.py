@@ -67,6 +67,9 @@ class Executable(BuildTarget):
 class StaticLibrary(BuildTarget):
     pass
 
+class SharedLibrary(BuildTarget):
+    pass
+
 class Interpreter():
 
     def __init__(self, code, environment):
@@ -155,36 +158,32 @@ class Interpreter():
             else:
                 raise InvalidCode('Tried to use unknown language "%s".' % lang)
 
-    def func_executable(self, node, args):
-        for a in args:
-            if not isinstance(a, str):
-                raise InvalidArguments('Line %d: Argument %s is not a string.' % (node.lineno(), str(a)))
-        name = args[0]
-        sources = args[1:]
-        if name in self.targets:
-            raise InvalidCode('Line %d, tried to create executable "%s", but a build target of that name already exists.' % (node.lineno(), name))
-        exe = Executable(name, sources)
-        self.targets[name] = exe
-        print('Creating executable %s with %d files.' % (name, len(sources)))
-        return exe
-    
     def func_find_dep(self, node, args):
         self.validate_arguments(args, 1, [str])
         name = args[0]
         dep = environment.find_external_dependency(name)
         return dep
-    
+
+    def func_executable(self, node, args):
+        return self.build_target(node, args, Executable)
+
     def func_static_lib(self, node, args):
+        return self.build_target(node, args, StaticLibrary)
+
+    def func_shared_lib(self, node, args):
+        return self.build_target(node, args, SharedLibrary)
+
+    def build_target(self, node, args, targetclass):
         for a in args:
             if not isinstance(a, str):
                 raise InvalidArguments('Line %d: Argument %s is not a string.' % (node.lineno(), str(a)))
         name= args[0]
         sources = args[1:]
         if name in self.targets:
-            raise InvalidCode('Line %d: tried to create static library "%s", but a target of that name already exists.' % (node.lineno(), name))
-        l = StaticLibrary(name, sources)
+            raise InvalidCode('Line %d: tried to create target "%s", but a target of that name already exists.' % (node.lineno(), name))
+        l = targetclass(name, sources)
         self.targets[name] = l
-        print('Creating static library "%s" with %d files.' % (name, len(sources)))
+        print('Creating build target "%s" with %d files.' % (name, len(sources)))
         return l
 
     def function_call(self, node):
@@ -202,6 +201,8 @@ class Interpreter():
             return self.func_find_dep(node, args)
         elif func_name == 'static_library':
             return self.func_static_lib(node, args)
+        elif func_name == 'shared_library':
+            return self.func_shared_lib(node, args)
         else:
             raise InvalidCode('Unknown function "%s".' % func_name)
 

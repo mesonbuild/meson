@@ -58,6 +58,8 @@ class ShellGenerator():
         commands += compiler.get_debug_flags()
         commands += compiler.get_std_warn_flags()
         commands += compiler.get_compile_only_flags()
+        if isinstance(target, interpreter.SharedLibrary):
+            commands += compiler.get_pic_flags()
         for dep in target.get_external_deps():
             commands += dep.get_compile_flags()
         commands.append(abs_src)
@@ -75,7 +77,14 @@ class ShellGenerator():
             linker = self.interpreter.compilers[0] # Fixme.
         commands = []
         commands += linker.get_exelist()
-        commands += linker.get_std_link_flags()
+        if isinstance(target, interpreter.Executable):
+            commands += linker.get_std_exe_link_flags()
+        elif isinstance(target, interpreter.SharedLibrary):
+            commands += linker.get_std_shared_lib_link_flags()
+        elif isinstance(target, interpreter.StaticLibrary):
+            commands += linker.get_std_link_flags()
+        else:
+            raise RuntimeError('Unknown build target type.')
         for dep in target.get_external_deps():
             commands += dep.get_link_flags()
         commands += linker.get_output_flags()
@@ -96,12 +105,16 @@ class ShellGenerator():
             target = i[1]
             print('Generating target', name)
             targetdir = self.get_target_dir(target)
+            prefix = ''
+            suffix = ''
             if isinstance(target, interpreter.Executable):
-                prefix = ''
                 suffix = self.environment.get_exe_suffix()
             elif isinstance(target, interpreter.StaticLibrary):
                 prefix = self.environment.get_static_lib_prefix()
                 suffix = self.environment.get_static_lib_suffix()
+            elif isinstance(target, interpreter.SharedLibrary):
+                prefix = self.environment.get_shared_lib_prefix()
+                suffix = self.environment.get_shared_lib_suffix()
             outname = os.path.join(targetdir, prefix + target.get_basename())
             if suffix != '':
                 outname = outname + '.' + suffix
@@ -116,7 +129,7 @@ if __name__ == '__main__':
     language('c')
     executable('prog', 'prog.c', 'dep.c')
     """
-    import interpreter, environment
+    import environment
     os.chdir(os.path.split(__file__)[0])
     envir = environment.Environment('.', 'work area')
     intpr = interpreter.Interpreter(code, envir)
