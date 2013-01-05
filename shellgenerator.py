@@ -81,6 +81,7 @@ class ShellGenerator():
             commands += linker.get_std_exe_link_flags()
         elif isinstance(target, interpreter.SharedLibrary):
             commands += linker.get_std_shared_lib_link_flags()
+            commands += linker.get_pic_flags()
         elif isinstance(target, interpreter.StaticLibrary):
             commands += linker.get_std_link_flags()
         else:
