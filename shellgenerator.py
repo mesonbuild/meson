@@ -70,13 +70,13 @@ class ShellGenerator():
         outfile.write('\necho Compiling \\"%s\\"\n' % src)
         outfile.write(' '.join(quoted) + ' || exit\n')
         return abs_obj
-    
+
     def build_target_link_arguments(self, deps):
         args = []
         for d in deps:
-            if not isinstance(d, interpreter.StaticLibrary):
-                print(d)
-                raise RuntimeError('Only static libraries supported ATM.')
+            if not isinstance(d, interpreter.StaticLibrary) and\
+            not isinstance(d, interpreter.SharedLibrary):
+                raise RuntimeError('Tried to link with a non-library target "%s".' % d.get_basename())
             args.append(self.get_target_filename(d))
         return args
 
