@@ -114,6 +114,17 @@ class Interpreter():
         self.variables = {}
         self.environment = environment
         self.static_linker = self.environment.detect_static_linker()
+        self.build_func_dict()
+
+    def build_func_dict(self):
+        self.funcs = {'project' : self.func_project, 
+                      'message' : self.func_message,
+                      'language': self.func_language,
+                      'executable': self.func_executable,
+                      'find_dep' : self.func_find_dep,
+                      'static_library' : self.func_static_lib,
+                      'shared_library' : self.func_shared_lib
+                      }
 
     def get_project(self):
         return self.project
@@ -222,20 +233,8 @@ class Interpreter():
     def function_call(self, node):
         func_name = node.get_function_name()
         args = self.reduce_arguments(node.arguments)
-        if func_name == 'project':
-            return self.func_project(node, args)
-        elif func_name == 'message':
-            return self.func_message(node, args)
-        elif func_name == 'language':
-            return self.func_language(node, args)
-        elif func_name == 'executable':
-            return self.func_executable(node, args)
-        elif func_name == 'find_dep':
-            return self.func_find_dep(node, args)
-        elif func_name == 'static_library':
-            return self.func_static_lib(node, args)
-        elif func_name == 'shared_library':
-            return self.func_shared_lib(node, args)
+        if func_name in self.funcs:
+            return self.funcs[func_name](node, args)
         else:
             raise InvalidCode('Unknown function "%s".' % func_name)
 
