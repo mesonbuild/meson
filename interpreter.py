@@ -87,7 +87,6 @@ class Executable(BuildTarget):
             self.filename = self.name + '.' + suffix
         else:
             self.filename = self.name
- 
 
 class StaticLibrary(BuildTarget):
     def __init__(self, name, sources, environment):
@@ -103,6 +102,18 @@ class SharedLibrary(BuildTarget):
         suffix = environment.get_shared_lib_suffix()
         self.filename = prefix + self.name + '.' + suffix
 
+class Test(InterpreterObject):
+    def __init__(self, name, exe):
+        InterpreterObject.__init__(self)
+        self.name = name
+        self.exe = exe
+        
+    def get_exe(self):
+        return self.exe
+    
+    def get_name(self):
+        return self.name
+
 class Interpreter():
 
     def __init__(self, code, environment):
@@ -115,6 +126,7 @@ class Interpreter():
         self.environment = environment
         self.static_linker = self.environment.detect_static_linker()
         self.build_func_dict()
+        self.tests = []
 
     def build_func_dict(self):
         self.funcs = {'project' : self.func_project, 
@@ -123,7 +135,8 @@ class Interpreter():
                       'executable': self.func_executable,
                       'find_dep' : self.func_find_dep,
                       'static_library' : self.func_static_lib,
-                      'shared_library' : self.func_shared_lib
+                      'shared_library' : self.func_shared_lib,
+                      'add_test' : self.func_add_test
                       }
 
     def get_project(self):
@@ -131,6 +144,9 @@ class Interpreter():
 
     def get_targets(self):
         return self.targets
+    
+    def get_tests(self):
+        return self.tests
 
     def sanity_check_ast(self):
         if not isinstance(self.ast, nodes.CodeBlock):
@@ -216,6 +232,12 @@ class Interpreter():
 
     def func_shared_lib(self, node, args):
         return self.build_target(node, args, SharedLibrary)
+    
+    def func_add_test(self, node, args):
+        self.validate_arguments(args, 2, [str, Executable])
+        t = Test(args[0], args[1])
+        self.tests.append(t)
+        print('Adding test "%s"' % args[0])
 
     def build_target(self, node, args, targetclass):
         for a in args:
