@@ -1,0 +1,5 @@
+project('static library linking test')
+language('c')
+lib = static_library('mylib', 'libfile.c')
+exe = executable('prog', 'main.c')
+exe.link(lib)

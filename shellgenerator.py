@@ -26,7 +26,8 @@ class ShellGenerator():
         self.environment = environment
         self.interpreter = interpreter
         self.build_filename = 'compile.sh'
-    
+        self.processed_targets = {}
+
     def generate(self):
         self.interpreter.run()
         outfilename = os.path.join(self.environment.get_build_dir(), self.build_filename)
@@ -69,6 +70,15 @@ class ShellGenerator():
         outfile.write('\necho Compiling \\"%s\\"\n' % src)
         outfile.write(' '.join(quoted) + ' || exit\n')
         return abs_obj
+    
+    def build_target_link_arguments(self, deps):
+        args = []
+        for d in deps:
+            if not isinstance(d, interpreter.StaticLibrary):
+                print(d)
+                raise RuntimeError('Only static libraries supported ATM.')
+            args.append(self.get_target_filename(d))
+        return args
 
     def generate_link(self, target, outfile, outname, obj_list):
         if isinstance(target, interpreter.StaticLibrary):
@@ -91,6 +101,7 @@ class ShellGenerator():
         commands += linker.get_output_flags()
         commands.append(outname)
         commands += obj_list
+        commands += self.build_target_link_arguments(target.get_dependencies())
         quoted = shell_quote(commands)
         outfile.write('\necho Linking \\"%s\\".\n' % target.get_basename())
         outfile.write(' '.join(quoted) + ' || exit\n')
@@ -102,27 +113,32 @@ class ShellGenerator():
 
     def generate_commands(self, outfile):
         for i in self.interpreter.get_targets().items():
-            name = i[0]
             target = i[1]
-            print('Generating target', name)
-            targetdir = self.get_target_dir(target)
-            prefix = ''
-            suffix = ''
-            if isinstance(target, interpreter.Executable):
-                suffix = self.environment.get_exe_suffix()
-            elif isinstance(target, interpreter.StaticLibrary):
-                prefix = self.environment.get_static_lib_prefix()
-                suffix = self.environment.get_static_lib_suffix()
-            elif isinstance(target, interpreter.SharedLibrary):
-                prefix = self.environment.get_shared_lib_prefix()
-                suffix = self.environment.get_shared_lib_suffix()
-            outname = os.path.join(targetdir, prefix + target.get_basename())
-            if suffix != '':
-                outname = outname + '.' + suffix
-            obj_list = []
-            for src in target.get_sources():
-                obj_list.append(self.generate_single_compile(target, outfile, src))
-            self.generate_link(target, outfile, outname, obj_list)
+            self.generate_target(target, outfile)
+
+    def process_target_dependencies(self, target, outfile):
+        for t in target.get_dependencies():
+            tname = t.get_basename()
+            if not tname in self.processed_targets:
+                self.generate_target(t, outfile)
+
+    def get_target_filename(self, target):
+        targetdir = self.get_target_dir(target)
+        filename = os.path.join(targetdir, target.get_filename())
+        return filename
+
+    def generate_target(self, target, outfile):
+        name = target.get_basename()
+        if name in self.processed_targets:
+            return
+        self.process_target_dependencies(target, outfile)
+        print('Generating target', name)
+        outname = self.get_target_filename(target)
+        obj_list = []
+        for src in target.get_sources():
+            obj_list.append(self.generate_single_compile(target, outfile, src))
+        self.generate_link(target, outfile, outname, obj_list)
+        self.processed_targets[name] = True
 
 if __name__ == '__main__':
     code = """

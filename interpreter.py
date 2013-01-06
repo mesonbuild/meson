@@ -38,7 +38,16 @@ class BuildTarget(InterpreterObject):
         self.name = name
         self.sources = sources
         self.external_deps = []
-        self.methods = {'add_dep': self.add_dep_method}
+        self.methods = {'add_dep': self.add_dep_method,
+                        'link' : self.link_method}
+        self.link_targets = []
+        self.filename = 'no_name'
+        
+    def get_filename(self):
+        return self.filename
+        
+    def get_dependencies(self):
+        return self.link_targets
 
     def get_basename(self):
         return self.name
@@ -54,22 +63,45 @@ class BuildTarget(InterpreterObject):
     def get_external_deps(self):
         return self.external_deps
 
-    def add_dep_method(self, method_name, args):
+    def add_dep_method(self, args):
         [self.add_external_dep(dep) for dep in args]
+
+    def link_method(self, args):
+        target = args[0]
+        if not isinstance(target, StaticLibrary) and \
+        not isinstance(target, SharedLibrary):
+            raise InvalidArguments('Link target is not library.')
+        self.link_targets.append(target)
 
     def method_call(self, method_name, args):
         if method_name in self.methods:
-            return self.methods[method_name](self, args)
+            return self.methods[method_name](args)
         raise InvalidCode('Unknown method "%s" in BuildTarget.' % method_name)
 
+
 class Executable(BuildTarget):
-    pass
+    def __init__(self, name, sources, environment):
+        BuildTarget.__init__(self, name, sources)
+        suffix = environment.get_exe_suffix()
+        if suffix != '':
+            self.filename = self.name + '.' + suffix
+        else:
+            self.filename = self.name
+ 
 
 class StaticLibrary(BuildTarget):
-    pass
+    def __init__(self, name, sources, environment):
+        BuildTarget.__init__(self, name, sources)
+        prefix = environment.get_static_lib_prefix()
+        suffix = environment.get_static_lib_suffix()
+        self.filename = prefix + self.name + '.' + suffix
 
 class SharedLibrary(BuildTarget):
-    pass
+    def __init__(self, name, sources, environment):
+        BuildTarget.__init__(self, name, sources)
+        prefix = environment.get_shared_lib_prefix()
+        suffix = environment.get_shared_lib_suffix()
+        self.filename = prefix + self.name + '.' + suffix
 
 class Interpreter():
 
@@ -182,7 +214,7 @@ class Interpreter():
         sources = args[1:]
         if name in self.targets:
             raise InvalidCode('Line %d: tried to create target "%s", but a target of that name already exists.' % (node.lineno(), name))
-        l = targetclass(name, sources)
+        l = targetclass(name, sources, self.environment)
         self.targets[name] = l
         print('Creating build target "%s" with %d files.' % (name, len(sources)))
         return l
