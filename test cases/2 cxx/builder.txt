@@ -1,3 +1,4 @@
 project('c++ test')
 language('c++')
 exe = executable('trivialprog', 'trivial.cc')
+add_test('runtest', exe)

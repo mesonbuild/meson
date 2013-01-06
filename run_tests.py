@@ -20,6 +20,7 @@ import os, subprocess, shutil
 test_build_dir = 'work area'
 builder_command = './builder.py'
 compile_command = os.path.join(test_build_dir, 'compile.sh')
+test_command = os.path.join(test_build_dir, 'run_tests.sh')
 
 def run_test(testdir):
     shutil.rmtree(test_build_dir)
@@ -33,6 +34,10 @@ def run_test(testdir):
     pc.wait()
     if pc.returncode != 0:
         raise RuntimeError('Compiling source code failed.')
+    pt = subprocess.Popen([test_command])
+    pt.wait()
+    if pt.returncode != 0:
+        raise RuntimeError('Running unit tests failed.')
 
 def run_tests():
     tests = glob('test cases/*')
