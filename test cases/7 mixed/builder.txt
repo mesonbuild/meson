@@ -1,0 +1,3 @@
+project('mixed C and C++', 'c', 'c++')
+exe = executable('prog', 'main.cc', 'func.c')
+add_test('mixtest', exe)
