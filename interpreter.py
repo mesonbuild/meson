@@ -116,17 +116,13 @@ class Test(InterpreterObject):
 
 class Interpreter():
 
-    def __init__(self, code, environment):
+    def __init__(self, code, build):
+        self.build = build
         self.ast = parser.build_ast(code)
         self.sanity_check_ast()
-        self.project = None
-        self.compilers = []
-        self.targets = {}
         self.variables = {}
-        self.environment = environment
-        self.static_linker = self.environment.detect_static_linker()
+        self.environment = build.environment
         self.build_func_dict()
-        self.tests = []
 
     def build_func_dict(self):
         self.funcs = {'project' : self.func_project, 
@@ -138,15 +134,6 @@ class Interpreter():
                       'shared_library' : self.func_shared_lib,
                       'add_test' : self.func_add_test
                       }
-
-    def get_project(self):
-        return self.project
-
-    def get_targets(self):
-        return self.targets
-    
-    def get_tests(self):
-        return self.tests
 
     def sanity_check_ast(self):
         if not isinstance(self.ast, nodes.CodeBlock):
@@ -189,10 +176,10 @@ class Interpreter():
 
     def func_project(self, node, args):
         self.validate_arguments(args, 1, [str])
-        if self.project is not None:
+        if self.build.project is not None:
             raise InvalidCode('Second call to project() on line %d.' % node.lineno())
-        self.project = args[0]
-        print('Project name is "%s".' % self.project)
+        self.build.project = args[0]
+        print('Project name is "%s".' % self.build.project)
 
     def func_message(self, node, args):
         self.validate_arguments(args, 1, [str])
@@ -204,17 +191,17 @@ class Interpreter():
         for a in args:
             if not isinstance(a, str):
                 raise InvalidArguments('Line %d: Argument %s is not a string.' % (node.lineno(), str(a)))
-        if len(self.compilers) > 0:
+        if len(self.build.compilers) > 0:
             raise InvalidCode('Function language() can only be called once (line %d).' % node.lineno())
         for lang in args:
             if lang.lower() == 'c':
                 comp = self.environment.detect_c_compiler()
                 comp.sanity_check(self.environment.get_scratch_dir())
-                self.compilers.append(comp)
+                self.build.compilers.append(comp)
             elif lang.lower() == 'c++':
                 comp = self.environment.detect_cxx_compiler()
                 comp.sanity_check(self.environment.get_scratch_dir())
-                self.compilers.append(comp)
+                self.build.compilers.append(comp)
             else:
                 raise InvalidCode('Tried to use unknown language "%s".' % lang)
 
@@ -236,7 +223,7 @@ class Interpreter():
     def func_add_test(self, node, args):
         self.validate_arguments(args, 2, [str, Executable])
         t = Test(args[0], args[1])
-        self.tests.append(t)
+        self.build.tests.append(t)
         print('Adding test "%s"' % args[0])
 
     def build_target(self, node, args, targetclass):
@@ -245,10 +232,10 @@ class Interpreter():
                 raise InvalidArguments('Line %d: Argument %s is not a string.' % (node.lineno(), str(a)))
         name= args[0]
         sources = args[1:]
-        if name in self.targets:
+        if name in self.build.targets:
             raise InvalidCode('Line %d: tried to create target "%s", but a target of that name already exists.' % (node.lineno(), name))
         l = targetclass(name, sources, self.environment)
-        self.targets[name] = l
+        self.build.targets[name] = l
         print('Creating build target "%s" with %d files.' % (name, len(sources)))
         return l
 

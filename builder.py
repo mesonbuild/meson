@@ -18,7 +18,7 @@ from optparse import OptionParser
 import sys, stat
 import os.path
 import environment, interpreter
-import shellgenerator
+import shellgenerator, build
 
 parser = OptionParser()
 
@@ -27,7 +27,7 @@ parser.add_option('--libdir', default='lib', dest='libdir')
 parser.add_option('--includedir', default='include', dest='includedir')
 parser.add_option('--datadir', default='share', dest='datadir')
 
-class Builder():
+class BuilderApp():
     builder_filename = 'builder.txt'
     
     def __init__(self, dir1, dir2, options):
@@ -35,7 +35,7 @@ class Builder():
         self.options = options
     
     def has_builder_file(self, dirname):
-        fname = os.path.join(dirname, Builder.builder_filename)
+        fname = os.path.join(dirname, BuilderApp.builder_filename)
         try:
             ifile = open(fname, 'r')
             ifile.close()
@@ -55,20 +55,22 @@ class Builder():
             raise RuntimeError('Source and build directories must not be the same. Create a pristine build directory.')
         if self.has_builder_file(ndir1):
             if self.has_builder_file(ndir2):
-                raise RuntimeError('Both directories contain a builder file %s.' % Builder.builder_filename)
+                raise RuntimeError('Both directories contain a builder file %s.' % BuilderApp.builder_filename)
             return (ndir1, ndir2)
         if self.has_builder_file(ndir2):
             return (ndir2, ndir1)
-        raise RuntimeError('Neither directory contains a builder file %s.' % Builder.builder_filename)
+        raise RuntimeError('Neither directory contains a builder file %s.' % BuilderApp.builder_filename)
     
     def generate(self):
-        code = open(os.path.join(self.source_dir, Builder.builder_filename)).read()
+        code = open(os.path.join(self.source_dir, BuilderApp.builder_filename)).read()
         if len(code.strip()) == 0:
             raise interpreter.InvalidCode('Builder file is empty.')
         assert(isinstance(code, str))
         env = environment.Environment(self.source_dir, self.build_dir)
-        intr = interpreter.Interpreter(code, env)
-        g = shellgenerator.ShellGenerator(intr, env)
+        b = build.Build(env)
+        intr = interpreter.Interpreter(code, b)
+        intr.run()
+        g = shellgenerator.ShellGenerator(b)
         g.generate()
 
 if __name__ == '__main__':
@@ -81,7 +83,7 @@ if __name__ == '__main__':
         dir2 = args[2]
     else:
         dir2 = '.'
-    builder = Builder(dir1, dir2, options)
+    builder = BuilderApp(dir1, dir2, options)
     print ('Source dir: ' + builder.source_dir)
     print ('Build dir: ' + builder.build_dir)
     builder.generate()
