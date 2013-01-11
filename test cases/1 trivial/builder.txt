@@ -1,4 +1,3 @@
-project('trivial test')
-language('c')
+project('trivial test', 'c')
 exe = executable('trivialprog', 'trivial.c')
 add_test('runtest', exe)

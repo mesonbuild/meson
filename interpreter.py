@@ -127,7 +127,6 @@ class Interpreter():
     def build_func_dict(self):
         self.funcs = {'project' : self.func_project, 
                       'message' : self.func_message,
-                      'language': self.func_language,
                       'executable': self.func_executable,
                       'find_dep' : self.func_find_dep,
                       'static_library' : self.func_static_lib,
@@ -175,24 +174,22 @@ class Interpreter():
                     raise InvalidArguments('Incorrect argument type.')
 
     def func_project(self, node, args):
-        self.validate_arguments(args, 1, [str])
+        if len(args) < 2:
+            raise InvalidArguments('Not enough arguments to project(). Needs at least the project name and one language')
+        for a in args:
+            if not isinstance(a, str):
+                raise InvalidArguments('Line %d: Argument %s is not a string.' % (node.lineno(), str(a)))
         if self.build.project is not None:
             raise InvalidCode('Second call to project() on line %d.' % node.lineno())
         self.build.project = args[0]
         print('Project name is "%s".' % self.build.project)
+        self.add_languages(node, args[1:])
 
     def func_message(self, node, args):
         self.validate_arguments(args, 1, [str])
         print('Message: %s' % args[0])
 
-    def func_language(self, node, args):
-        if len(args) == 0:
-            raise InvalidArguments('Line %d: no arguments to function language.' % node.lineno())
-        for a in args:
-            if not isinstance(a, str):
-                raise InvalidArguments('Line %d: Argument %s is not a string.' % (node.lineno(), str(a)))
-        if len(self.build.compilers) > 0:
-            raise InvalidCode('Function language() can only be called once (line %d).' % node.lineno())
+    def add_languages(self, node, args):
         for lang in args:
             if lang.lower() == 'c':
                 comp = self.environment.detect_c_compiler()

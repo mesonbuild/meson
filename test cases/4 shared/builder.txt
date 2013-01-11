@@ -1,3 +1,2 @@
-project('shared library test')
-language('c')
+project('shared library test', 'c')
 lib = shared_library('mylib', 'libfile.c')

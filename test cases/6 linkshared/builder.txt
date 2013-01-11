@@ -1,5 +1,4 @@
-project('shared library linking test')
-language('c')
+project('shared library linking test', 'c')
 lib = shared_library('mylib', 'libfile.c')
 exe = executable('prog', 'main.c')
 exe.link(lib)
