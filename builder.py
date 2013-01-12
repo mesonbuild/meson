@@ -24,6 +24,7 @@ parser = OptionParser()
 
 parser.add_option('--prefix', default='/usr/local', dest='prefix')
 parser.add_option('--libdir', default='lib', dest='libdir')
+parser.add_option('--bindir', default='bin', dest='bindir')
 parser.add_option('--includedir', default='include', dest='includedir')
 parser.add_option('--datadir', default='share', dest='datadir')
 
@@ -32,6 +33,8 @@ class BuilderApp():
     
     def __init__(self, dir1, dir2, options):
         (self.source_dir, self.build_dir) = self.validate_dirs(dir1, dir2)
+        if options.prefix[0] != '/':
+            raise RuntimeError('--prefix must be an absolute path.')
         self.options = options
     
     def has_builder_file(self, dirname):
@@ -66,7 +69,7 @@ class BuilderApp():
         if len(code.strip()) == 0:
             raise interpreter.InvalidCode('Builder file is empty.')
         assert(isinstance(code, str))
-        env = environment.Environment(self.source_dir, self.build_dir)
+        env = environment.Environment(self.source_dir, self.build_dir, options)
         b = build.Build(env)
         intr = interpreter.Interpreter(code, b)
         intr.run()

@@ -142,9 +142,10 @@ class ArLinker():
         return []
 
 class Environment():
-    def __init__(self, source_dir, build_dir):
+    def __init__(self, source_dir, build_dir, options):
         self.source_dir = source_dir
         self.build_dir = build_dir
+        self.options = options
         self.scratch_dir = os.path.join(build_dir, 'builder-private')
         os.makedirs(self.scratch_dir, exist_ok=True)
 
@@ -232,6 +233,15 @@ class Environment():
     
     def get_object_suffix(self):
         return self.object_suffix
+    
+    def get_prefix(self):
+        return self.options.prefix
+    
+    def get_libdir(self):
+        return self.options.libdir
+    
+    def get_bindir(self):
+        return self.options.bindir
 
 # This should be an InterpreterObject. Fix it.
 class PkgConfigDependency():

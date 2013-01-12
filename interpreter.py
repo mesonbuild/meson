@@ -39,9 +39,11 @@ class BuildTarget(InterpreterObject):
         self.sources = sources
         self.external_deps = []
         self.methods = {'add_dep': self.add_dep_method,
-                        'link' : self.link_method}
+                        'link' : self.link_method,
+                        'install': self.install}
         self.link_targets = []
         self.filename = 'no_name'
+        self.need_install = False
         
     def get_filename(self):
         return self.filename
@@ -54,7 +56,10 @@ class BuildTarget(InterpreterObject):
     
     def get_sources(self):
         return self.sources
-    
+
+    def should_install(self):
+        return self.need_install
+
     def add_external_dep(self, dep):
         if not isinstance(dep, environment.PkgConfigDependency):
             raise InvalidArguments('Argument is not an external dependency')
@@ -78,6 +83,10 @@ class BuildTarget(InterpreterObject):
             return self.methods[method_name](args)
         raise InvalidCode('Unknown method "%s" in BuildTarget.' % method_name)
 
+    def install(self, args):
+        if len(args) != 0:
+            raise InvalidArguments('Install() takes no arguments.')
+        self.need_install = True
 
 class Executable(BuildTarget):
     def __init__(self, name, sources, environment):
@@ -95,12 +104,14 @@ class StaticLibrary(BuildTarget):
         suffix = environment.get_static_lib_suffix()
         self.filename = prefix + self.name + '.' + suffix
 
+
 class SharedLibrary(BuildTarget):
     def __init__(self, name, sources, environment):
         BuildTarget.__init__(self, name, sources)
         prefix = environment.get_shared_lib_prefix()
         suffix = environment.get_shared_lib_suffix()
         self.filename = prefix + self.name + '.' + suffix
+
 
 class Test(InterpreterObject):
     def __init__(self, name, exe):
@@ -229,6 +240,8 @@ class Interpreter():
                 raise InvalidArguments('Line %d: Argument %s is not a string.' % (node.lineno(), str(a)))
         name= args[0]
         sources = args[1:]
+        if len(sources) == 0:
+            raise InvalidArguments('Line %d: target has no source files.' % node.lineno())
         if name in self.build.targets:
             raise InvalidCode('Line %d: tried to create target "%s", but a target of that name already exists.' % (node.lineno(), name))
         l = targetclass(name, sources, self.environment)
