@@ -29,22 +29,45 @@ class InvalidArguments(InterpreterException):
 
 class InterpreterObject():
     
-    def method_call(self, method_name):
-        raise InvalidCode('Object does not have method %s.' % method_name)
+    def __init__(self):
+        self.methods = {}
+
+    def method_call(self, method_name, args):
+        if method_name in self.methods:
+            return self.methods[method_name](args)
+        raise InvalidCode('Unknown method "%s" in object.' % method_name)
+
+class Headers(InterpreterObject):
+    
+    def __init__(self, sources):
+        InterpreterObject.__init__(self)
+        self.sources = sources
+        self.methods.update({'set_subdir' : self.set_subdir})
+        self.subdir = ''
+
+    def set_subdir(self, args):
+        self.subdir = args[0]
+
+    def get_subdir(self):
+        return self.subdir
+    
+    def get_sources(self):
+        return self.sources
 
 class BuildTarget(InterpreterObject):
     
     def __init__(self, name, sources):
+        InterpreterObject.__init__(self)
         self.name = name
         self.sources = sources
         self.external_deps = []
-        self.methods = {'add_dep': self.add_dep_method,
+        self.methods.update({'add_dep': self.add_dep_method,
                         'link' : self.link_method,
-                        'install': self.install}
+                        'install': self.install})
         self.link_targets = []
         self.filename = 'no_name'
         self.need_install = False
-        
+
     def get_filename(self):
         return self.filename
         
@@ -77,11 +100,6 @@ class BuildTarget(InterpreterObject):
         not isinstance(target, SharedLibrary):
             raise InvalidArguments('Link target is not library.')
         self.link_targets.append(target)
-
-    def method_call(self, method_name, args):
-        if method_name in self.methods:
-            return self.methods[method_name](args)
-        raise InvalidCode('Unknown method "%s" in BuildTarget.' % method_name)
 
     def install(self, args):
         if len(args) != 0:
@@ -142,7 +160,8 @@ class Interpreter():
                       'find_dep' : self.func_find_dep,
                       'static_library' : self.func_static_lib,
                       'shared_library' : self.func_shared_lib,
-                      'add_test' : self.func_add_test
+                      'add_test' : self.func_add_test,
+                      'headers' : self.func_headers
                       }
 
     def sanity_check_ast(self):
@@ -233,6 +252,14 @@ class Interpreter():
         t = Test(args[0], args[1])
         self.build.tests.append(t)
         print('Adding test "%s"' % args[0])
+        
+    def func_headers(self, node, args):
+        for a in args:
+            if not isinstance(a, str):
+                raise InvalidArguments('Line %d: Argument %s is not a string.' % (node.lineno(), str(a)))
+        h = Headers(args)
+        self.build.headers.append(h)
+        return h
 
     def build_target(self, node, args, targetclass):
         for a in args:

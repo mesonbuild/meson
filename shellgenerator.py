@@ -71,15 +71,40 @@ echo This is experimental and most likely will not work!
 echo Run compile.sh before this or bad things will happen.
 """ % self.build.get_project()
         outfile = self.create_shfile(outfilename, message)
-        self.generate_install(outfile)
+        self.generate_target_install(outfile)
+        self.generate_header_install(outfile)
         outfile.close()
+    
+    def make_subdir(self, outfile, dir):
+        cmdlist = ['mkdir', '-p', dir]
+        outfile.write(' '.join(shell_quote(cmdlist)) + '\n')
+        
+    def copy_file(self, outfile, filename, outdir):
+        cpcommand = ['cp', filename, outdir]
+        cpcommand = ' '.join(shell_quote(cpcommand)) + '\n'
+        outfile.write(cpcommand)
 
-    def generate_install(self, outfile):
+    def generate_header_install(self, outfile):
+        prefix = self.environment.get_prefix()
+        incroot = os.path.join(prefix, self.environment.get_includedir())
+        headers = self.build.get_headers()
+        if len(headers) != 0:
+            outfile.write('\necho Installing headers.\n')
+        else:
+            outfile.write('\necho This project has no headers to install.')
+        for h in headers:
+            outdir = os.path.join(incroot, h.get_subdir())
+            self.make_subdir(outfile, outdir)
+            for f in h.get_sources():
+                abspath = os.path.join(self.environment.get_source_dir(), f)
+                self.copy_file(outfile, abspath, outdir)
+
+    def generate_target_install(self, outfile):
         prefix = self.environment.get_prefix()
         libdir = os.path.join(prefix, self.environment.get_libdir())
         bindir = os.path.join(prefix, self.environment.get_bindir())
-        outfile.write("mkdir -p '%s'\n" % libdir)
-        outfile.write("mkdir -p '%s'\n" % bindir)
+        self.make_subdir(outfile, libdir)
+        self.make_subdir(outfile, bindir)
         for tmp in self.build.get_targets().items():
             (name, t) = tmp
             if t.should_install():
@@ -88,9 +113,7 @@ echo Run compile.sh before this or bad things will happen.
                 else:
                     outdir = libdir
                 outfile.write('echo Installing "%s".\n' % name)
-                cpcommand = ['cp', self.get_target_filename(t), outdir]
-                cpcommand = ' '.join(shell_quote(cpcommand)) + '\n'
-                outfile.write(cpcommand)
+                self.copy_file(outfile, self.get_target_filename(t), outdir)
 
     def generate_tests(self, outfile):
         for t in self.build.get_tests():

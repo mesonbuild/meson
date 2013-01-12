@@ -242,6 +242,9 @@ class Environment():
     
     def get_bindir(self):
         return self.options.bindir
+    
+    def get_includedir(self):
+        return self.options.includedir
 
 # This should be an InterpreterObject. Fix it.
 class PkgConfigDependency():
