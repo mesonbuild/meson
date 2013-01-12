@@ -53,6 +53,22 @@ class Headers(InterpreterObject):
     
     def get_sources(self):
         return self.sources
+    
+class Man(InterpreterObject):
+
+    def __init__(self, sources):
+        InterpreterObject.__init__(self)
+        self.sources = sources
+        self.validate_sources()
+        
+    def validate_sources(self):
+        for s in self.sources:
+            num = int(s.split('.')[-1])
+            if num < 1 or num > 8:
+                raise InvalidArguments('Man file must have a file extension of a number between 1 and 8')
+
+    def get_sources(self):
+        return self.sources
 
 class BuildTarget(InterpreterObject):
     
@@ -161,7 +177,8 @@ class Interpreter():
                       'static_library' : self.func_static_lib,
                       'shared_library' : self.func_shared_lib,
                       'add_test' : self.func_add_test,
-                      'headers' : self.func_headers
+                      'headers' : self.func_headers,
+                      'man' : self.func_man
                       }
 
     def sanity_check_ast(self):
@@ -260,6 +277,14 @@ class Interpreter():
         h = Headers(args)
         self.build.headers.append(h)
         return h
+    
+    def func_man(self, node, args):
+        for a in args:
+            if not isinstance(a, str):
+                raise InvalidArguments('Line %d: Argument %s is not a string.' % (node.lineno(), str(a)))
+        m = Man(args)
+        self.build.man.append(m)
+        return m
 
     def build_target(self, node, args, targetclass):
         for a in args:

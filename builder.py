@@ -27,6 +27,7 @@ parser.add_option('--libdir', default='lib', dest='libdir')
 parser.add_option('--bindir', default='bin', dest='bindir')
 parser.add_option('--includedir', default='include', dest='includedir')
 parser.add_option('--datadir', default='share', dest='datadir')
+parser.add_option('--mandir' , default='share/man', dest='mandir')
 
 class BuilderApp():
     builder_filename = 'builder.txt'

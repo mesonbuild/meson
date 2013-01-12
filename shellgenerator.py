@@ -73,16 +73,37 @@ echo Run compile.sh before this or bad things will happen.
         outfile = self.create_shfile(outfilename, message)
         self.generate_target_install(outfile)
         self.generate_header_install(outfile)
+        self.generate_man_install(outfile)
         outfile.close()
     
     def make_subdir(self, outfile, dir):
         cmdlist = ['mkdir', '-p', dir]
-        outfile.write(' '.join(shell_quote(cmdlist)) + '\n')
+        outfile.write(' '.join(shell_quote(cmdlist)) + ' || exit\n')
         
     def copy_file(self, outfile, filename, outdir):
         cpcommand = ['cp', filename, outdir]
-        cpcommand = ' '.join(shell_quote(cpcommand)) + '\n'
+        cpcommand = ' '.join(shell_quote(cpcommand)) + ' || exit\n'
         outfile.write(cpcommand)
+        
+    def generate_man_install(self, outfile):
+        prefix = self.environment.get_prefix()
+        manroot = os.path.join(prefix, self.environment.get_mandir())
+        man = self.build.get_man()
+        if len(man) != 0:
+            outfile.write('\necho Installing man pages.\n')
+        else:
+            outfile.write('\necho This project has no man pages to install.\n')
+        for m in man:
+            for f in m.get_sources():
+                num = f.split('.')[-1]
+                subdir = 'man' + num
+                absdir = os.path.join(manroot, subdir)
+                self.make_subdir(outfile, absdir)
+                srcabs = os.path.join(self.environment.get_source_dir(), f)
+                dstabs = os.path.join(manroot, 
+                                      os.path.join(subdir, f + '.gz'))
+                cmd = "gzip < '%s' > '%s' || exit\n" % (srcabs, dstabs)
+                outfile.write(cmd)
 
     def generate_header_install(self, outfile):
         prefix = self.environment.get_prefix()
@@ -91,12 +112,12 @@ echo Run compile.sh before this or bad things will happen.
         if len(headers) != 0:
             outfile.write('\necho Installing headers.\n')
         else:
-            outfile.write('\necho This project has no headers to install.')
+            outfile.write('\necho This project has no headers to install.\n')
         for h in headers:
             outdir = os.path.join(incroot, h.get_subdir())
             self.make_subdir(outfile, outdir)
             for f in h.get_sources():
-                abspath = os.path.join(self.environment.get_source_dir(), f)
+                abspath = os.path.join(self.environment.get_source_dir(), f) # FIXME
                 self.copy_file(outfile, abspath, outdir)
 
     def generate_target_install(self, outfile):

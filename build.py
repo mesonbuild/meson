@@ -26,6 +26,7 @@ class Build:
         self.compilers = []
         self.tests = []
         self.headers = []
+        self.man = []
         self.static_linker = self.environment.detect_static_linker()
 
     def get_project(self):
@@ -39,3 +40,6 @@ class Build:
 
     def get_headers(self):
         return self.headers
+
+    def get_man(self):
+        return self.man

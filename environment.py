@@ -230,21 +230,24 @@ class Environment():
 
     def get_static_lib_suffix(self):
         return self.static_lib_suffix
-    
+
     def get_object_suffix(self):
         return self.object_suffix
-    
+
     def get_prefix(self):
         return self.options.prefix
-    
+
     def get_libdir(self):
         return self.options.libdir
-    
+
     def get_bindir(self):
         return self.options.bindir
-    
+
     def get_includedir(self):
         return self.options.includedir
+
+    def get_mandir(self):
+        return self.options.mandir
 
 # This should be an InterpreterObject. Fix it.
 class PkgConfigDependency():
