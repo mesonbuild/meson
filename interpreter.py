@@ -73,9 +73,10 @@ class Man(InterpreterObject):
 
 class BuildTarget(InterpreterObject):
     
-    def __init__(self, name, sources):
+    def __init__(self, name, subdir, sources):
         InterpreterObject.__init__(self)
         self.name = name
+        self.subdir = subdir
         self.sources = sources
         self.external_deps = []
         self.methods.update({'add_dep': self.add_dep_method,
@@ -93,7 +94,10 @@ class BuildTarget(InterpreterObject):
 
     def get_basename(self):
         return self.name
-    
+
+    def get_source_subdir(self):
+        return self.subdir
+
     def get_sources(self):
         return self.sources
 
@@ -124,8 +128,8 @@ class BuildTarget(InterpreterObject):
         self.need_install = True
 
 class Executable(BuildTarget):
-    def __init__(self, name, sources, environment):
-        BuildTarget.__init__(self, name, sources)
+    def __init__(self, name, subdir, sources, environment):
+        BuildTarget.__init__(self, name, subdir, sources)
         suffix = environment.get_exe_suffix()
         if suffix != '':
             self.filename = self.name + '.' + suffix
@@ -133,16 +137,16 @@ class Executable(BuildTarget):
             self.filename = self.name
 
 class StaticLibrary(BuildTarget):
-    def __init__(self, name, sources, environment):
-        BuildTarget.__init__(self, name, sources)
+    def __init__(self, name, subdir, sources, environment):
+        BuildTarget.__init__(self, subdir, name, sources)
         prefix = environment.get_static_lib_prefix()
         suffix = environment.get_static_lib_suffix()
         self.filename = prefix + self.name + '.' + suffix
 
 
 class SharedLibrary(BuildTarget):
-    def __init__(self, name, sources, environment):
-        BuildTarget.__init__(self, name, sources)
+    def __init__(self, name, subdir, sources, environment):
+        BuildTarget.__init__(self, name, subdir, sources)
         prefix = environment.get_shared_lib_prefix()
         suffix = environment.get_shared_lib_suffix()
         self.filename = prefix + self.name + '.' + suffix
@@ -194,8 +198,13 @@ class Interpreter():
             raise InvalidCode('First statement must be a call to project')
 
     def run(self):
+        self.evaluate_codeblock(self.ast)
+
+    def evaluate_codeblock(self, node):
+        if not isinstance(node, nodes.CodeBlock):
+            raise InvalidCode('Tried to execute a non-codeblock. Possibly a bug in the parser.')
+        statements = node.get_statements()
         i = 0
-        statements = self.ast.get_statements()
         while i < len(statements):
             cur = statements[i]
             self.evaluate_statement(cur)
@@ -296,7 +305,9 @@ class Interpreter():
         buildfilename = os.path.join(self.subdir, environment.builder_filename)
         code = open(os.path.join(self.environment.get_source_dir(), buildfilename)).read()
         assert(isinstance(code, str))
+        codeblock = parser.build_ast(code)
         print('Going to subdirectory "%s".' % self.subdir)
+        self.evaluate_codeblock(codeblock)
         self.subdir = prev_subdir
 
     def build_target(self, node, args, targetclass):
@@ -309,7 +320,7 @@ class Interpreter():
             raise InvalidArguments('Line %d: target has no source files.' % node.lineno())
         if name in self.build.targets:
             raise InvalidCode('Line %d: tried to create target "%s", but a target of that name already exists.' % (node.lineno(), name))
-        l = targetclass(name, sources, self.environment)
+        l = targetclass(name, self.subdir, sources, self.environment)
         self.build.targets[name] = l
         print('Creating build target "%s" with %d files.' % (name, len(sources)))
         return l
