@@ -74,6 +74,7 @@ echo Run compile.sh before this or bad things will happen.
         self.generate_target_install(outfile)
         self.generate_header_install(outfile)
         self.generate_man_install(outfile)
+        self.generate_data_install(outfile)
         outfile.close()
     
     def make_subdir(self, outfile, dir):
@@ -84,7 +85,24 @@ echo Run compile.sh before this or bad things will happen.
         cpcommand = ['cp', filename, outdir]
         cpcommand = ' '.join(shell_quote(cpcommand)) + ' || exit\n'
         outfile.write(cpcommand)
-        
+
+    def generate_data_install(self, outfile):
+        prefix = self.environment.get_prefix()
+        dataroot = os.path.join(prefix, self.environment.get_datadir())
+        data = self.build.get_data()
+        if len(data) != 0:
+            outfile.write('\necho Installing data files.\n')
+        else:
+            outfile.write('\necho This project has no data files to install.\n')
+        for d in data:
+            subdir = os.path.join(self.environment.get_datadir(), d.get_subdir())
+            absdir = os.path.join(self.environment.get_prefix(), subdir)
+            for f in d.get_sources():
+                self.make_subdir(outfile, absdir)
+                srcabs = os.path.join(self.environment.get_source_dir(), f)
+                dstabs = os.path.join(absdir, f)
+                self.copy_file(outfile, srcabs, dstabs)
+
     def generate_man_install(self, outfile):
         prefix = self.environment.get_prefix()
         manroot = os.path.join(prefix, self.environment.get_mandir())
@@ -126,6 +144,10 @@ echo Run compile.sh before this or bad things will happen.
         bindir = os.path.join(prefix, self.environment.get_bindir())
         self.make_subdir(outfile, libdir)
         self.make_subdir(outfile, bindir)
+        if len(self.build.get_targets()) != 0:
+            outfile.write('\necho Installing targets.\n')
+        else:
+            outfile.write('\necho This project has no targets to install.\n')
         for tmp in self.build.get_targets().items():
             (name, t) = tmp
             if t.should_install():

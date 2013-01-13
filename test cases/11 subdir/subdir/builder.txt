@@ -1,0 +1,1 @@
+executable('prog', 'prog.c')

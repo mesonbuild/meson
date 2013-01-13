@@ -1,0 +1,2 @@
+project('data install test', 'c')
+data('progname', 'datafile.dat')

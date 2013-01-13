@@ -251,6 +251,9 @@ class Environment():
     def get_mandir(self):
         return self.options.mandir
 
+    def get_datadir(self):
+        return self.options.datadir
+
 # This should be an InterpreterObject. Fix it.
 class PkgConfigDependency():
     pkgconfig_found = False

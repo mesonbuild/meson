@@ -54,7 +54,21 @@ class Headers(InterpreterObject):
     
     def get_sources(self):
         return self.sources
+
+class Data(InterpreterObject):
     
+    def __init__(self, subdir, sources):
+        InterpreterObject.__init__(self)
+        self.subdir = subdir
+        self.sources = sources
+
+    def get_subdir(self):
+        return self.subdir
+
+    def get_sources(self):
+        return self.sources
+
+
 class Man(InterpreterObject):
 
     def __init__(self, sources):
@@ -185,7 +199,8 @@ class Interpreter():
                       'add_test' : self.func_add_test,
                       'headers' : self.func_headers,
                       'man' : self.func_man,
-                      'subdir' : self.func_subdir
+                      'subdir' : self.func_subdir,
+                      'data' : self.func_data
                       }
 
     def sanity_check_ast(self):
@@ -309,6 +324,16 @@ class Interpreter():
         print('Going to subdirectory "%s".' % self.subdir)
         self.evaluate_codeblock(codeblock)
         self.subdir = prev_subdir
+
+    def func_data(self, node, args):
+        if len(args ) < 2:
+            raise InvalidArguments('Line %d: Data function must have at least two arguments: name and source file(s)' % node.lineno())
+        for a in args:
+            if not isinstance(a, str):
+                raise InvalidArguments('Line %d: Argument %s is not a string.' % (node.lineno(), str(a)))
+        data = Data(args[0], args[1:])
+        self.build.data.append(data)
+        return data
 
     def build_target(self, node, args, targetclass):
         for a in args:
