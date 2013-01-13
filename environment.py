@@ -16,6 +16,8 @@
 
 import subprocess, os.path
 
+builder_filename = 'builder.txt'
+
 class EnvironmentException(Exception):
     def __init(self, *args, **kwargs):
         Exception.__init__(self, *args, **kwargs)

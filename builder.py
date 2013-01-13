@@ -30,8 +30,7 @@ parser.add_option('--datadir', default='share', dest='datadir')
 parser.add_option('--mandir' , default='share/man', dest='mandir')
 
 class BuilderApp():
-    builder_filename = 'builder.txt'
-    
+
     def __init__(self, dir1, dir2, options):
         (self.source_dir, self.build_dir) = self.validate_dirs(dir1, dir2)
         if options.prefix[0] != '/':
@@ -39,7 +38,7 @@ class BuilderApp():
         self.options = options
     
     def has_builder_file(self, dirname):
-        fname = os.path.join(dirname, BuilderApp.builder_filename)
+        fname = os.path.join(dirname, environment.builder_filename)
         try:
             ifile = open(fname, 'r')
             ifile.close()
@@ -66,7 +65,7 @@ class BuilderApp():
         raise RuntimeError('Neither directory contains a builder file %s.' % BuilderApp.builder_filename)
     
     def generate(self):
-        code = open(os.path.join(self.source_dir, BuilderApp.builder_filename)).read()
+        code = open(os.path.join(self.source_dir, environment.builder_filename)).read()
         if len(code.strip()) == 0:
             raise interpreter.InvalidCode('Builder file is empty.')
         assert(isinstance(code, str))

@@ -17,6 +17,7 @@
 import parser
 import nodes
 import environment
+import os
 
 class InterpreterException(Exception):
     pass
@@ -168,6 +169,7 @@ class Interpreter():
         self.variables = {}
         self.environment = build.environment
         self.build_func_dict()
+        self.subdir = ''
 
     def build_func_dict(self):
         self.funcs = {'project' : self.func_project, 
@@ -178,7 +180,8 @@ class Interpreter():
                       'shared_library' : self.func_shared_lib,
                       'add_test' : self.func_add_test,
                       'headers' : self.func_headers,
-                      'man' : self.func_man
+                      'man' : self.func_man,
+                      'subdir' : self.func_subdir
                       }
 
     def sanity_check_ast(self):
@@ -285,6 +288,16 @@ class Interpreter():
         m = Man(args)
         self.build.man.append(m)
         return m
+    
+    def func_subdir(self, node, args):
+        self.validate_arguments(args, 1, [str])
+        prev_subdir = self.subdir
+        self.subdir = os.path.join(prev_subdir, args[0])
+        buildfilename = os.path.join(self.subdir, environment.builder_filename)
+        code = open(os.path.join(self.environment.get_source_dir(), buildfilename)).read()
+        assert(isinstance(code, str))
+        print('Going to subdirectory "%s".' % self.subdir)
+        self.subdir = prev_subdir
 
     def build_target(self, node, args, targetclass):
         for a in args:
