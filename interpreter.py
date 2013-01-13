@@ -138,7 +138,7 @@ class Executable(BuildTarget):
 
 class StaticLibrary(BuildTarget):
     def __init__(self, name, subdir, sources, environment):
-        BuildTarget.__init__(self, subdir, name, sources)
+        BuildTarget.__init__(self, name, subdir, sources)
         prefix = environment.get_static_lib_prefix()
         suffix = environment.get_static_lib_suffix()
         self.filename = prefix + self.name + '.' + suffix

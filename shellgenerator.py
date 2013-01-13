@@ -151,7 +151,8 @@ echo Run compile.sh before this or bad things will happen.
                 break
         if compiler is None:
             raise RuntimeError('No specified compiler can handle file ' + src)
-        abs_src = os.path.join(self.environment.get_source_dir(), src)
+        abs_src = os.path.join(self.environment.get_source_dir(), target.get_source_subdir(), src)
+        print(target.get_source_subdir())
         abs_obj = os.path.join(self.get_target_dir(target), src)
         abs_obj += '.' + self.environment.get_object_suffix()
         commands = []
