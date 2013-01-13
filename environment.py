@@ -45,6 +45,9 @@ class CCompiler():
     
     def get_std_exe_link_flags(self):
         return []
+    
+    def get_include_arg(self, path):
+        return '-I' + path
 
     def get_std_shared_lib_link_flags(self):
         return ['-shared']
@@ -115,6 +118,9 @@ class GnuCCompiler(CCompiler):
     def get_std_opt_flags(self):
         return GnuCCompiler.std_opt_flags
 
+    def get_pch_suffix(self):
+        return 'gch'
+
 class GnuCXXCompiler(CXXCompiler):
     std_warn_flags = ['-Wall', '-Winvalid-pch']
     std_opt_flags = ['-O2']
@@ -127,6 +133,9 @@ class GnuCXXCompiler(CXXCompiler):
 
     def get_std_opt_flags(self):
         return GnuCXXCompiler.std_opt_flags
+
+    def get_pch_suffix(self):
+        return 'gch'
 
 class ArLinker():
     std_flags = ['cr']

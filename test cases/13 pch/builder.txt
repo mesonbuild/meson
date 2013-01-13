@@ -1,0 +1,4 @@
+project('pch test', 'c')
+
+exe = executable('prog', 'prog.c')
+exe.pch('pch/prog.h')

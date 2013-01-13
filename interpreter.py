@@ -95,10 +95,13 @@ class BuildTarget(InterpreterObject):
         self.external_deps = []
         self.methods.update({'add_dep': self.add_dep_method,
                         'link' : self.link_method,
-                        'install': self.install})
+                        'install': self.install_method,
+                        'pch' : self.pch_method
+                        })
         self.link_targets = []
         self.filename = 'no_name'
         self.need_install = False
+        self.pch = []
 
     def get_filename(self):
         return self.filename
@@ -118,11 +121,17 @@ class BuildTarget(InterpreterObject):
     def should_install(self):
         return self.need_install
 
+    def has_pch(self):
+        return len(self.pch) > 0
+
+    def get_pch(self):
+        return self.pch
+
     def add_external_dep(self, dep):
         if not isinstance(dep, environment.PkgConfigDependency):
             raise InvalidArguments('Argument is not an external dependency')
         self.external_deps.append(dep)
-        
+
     def get_external_deps(self):
         return self.external_deps
 
@@ -136,10 +145,17 @@ class BuildTarget(InterpreterObject):
             raise InvalidArguments('Link target is not library.')
         self.link_targets.append(target)
 
-    def install(self, args):
+    def install_method(self, args):
         if len(args) != 0:
             raise InvalidArguments('Install() takes no arguments.')
         self.need_install = True
+    
+    def pch_method(self, args):
+        if len(args) == 0:
+            raise InvalidArguments('Pch requires arguments.')
+        for a in args:
+            self.pch.append(a)
+
 
 class Executable(BuildTarget):
     def __init__(self, name, subdir, sources, environment):

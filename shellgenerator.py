@@ -95,7 +95,7 @@ echo Run compile.sh before this or bad things will happen.
         else:
             outfile.write('\necho This project has no data files to install.\n')
         for d in data:
-            subdir = os.path.join(self.environment.get_datadir(), d.get_subdir())
+            subdir = os.path.join(dataroot, d.get_subdir())
             absdir = os.path.join(self.environment.get_prefix(), subdir)
             for f in d.get_sources():
                 self.make_subdir(outfile, absdir)
@@ -165,18 +165,13 @@ echo Run compile.sh before this or bad things will happen.
             outfile.write('echo Running test \\"%s\\".\n' % t.get_name())
             outfile.write(' '.join(shell_quote(cmds)) + ' || exit\n')
 
-    def generate_single_compile(self, target, outfile, src):
-        compiler = None
+    def get_compiler_for_source(self, src):
         for i in self.build.compilers:
             if i.can_compile(src):
-                compiler = i
-                break
-        if compiler is None:
-            raise RuntimeError('No specified compiler can handle file ' + src)
-        abs_src = os.path.join(self.environment.get_source_dir(), target.get_source_subdir(), src)
-        print(target.get_source_subdir())
-        abs_obj = os.path.join(self.get_target_dir(target), src)
-        abs_obj += '.' + self.environment.get_object_suffix()
+                return i
+        raise RuntimeError('No specified compiler can handle file ' + src)
+
+    def generate_basic_compiler_arguments(self, target, compiler):
         commands = []
         commands += compiler.get_exelist()
         commands += compiler.get_debug_flags()
@@ -186,6 +181,27 @@ echo Run compile.sh before this or bad things will happen.
             commands += compiler.get_pic_flags()
         for dep in target.get_external_deps():
             commands += dep.get_compile_flags()
+        return commands
+    
+    def get_pch_include_args(self, compiler, target):
+        args = []
+        pchpath = self.get_target_dir(target)
+        includearg = compiler.get_include_arg(pchpath)
+        for p in target.get_pch():
+            if compiler.can_compile(p):
+                args.append('-include')
+                args.append(os.path.split(p)[-1])
+        if len(args) > 0:
+            args = [includearg] + args
+        return args
+
+    def generate_single_compile(self, target, outfile, src):
+        compiler = self.get_compiler_for_source(src)
+        commands = self.generate_basic_compiler_arguments(target, compiler)
+        abs_src = os.path.join(self.environment.get_source_dir(), target.get_source_subdir(), src)
+        abs_obj = os.path.join(self.get_target_dir(target), src)
+        abs_obj += '.' + self.environment.get_object_suffix()
+        commands += self.get_pch_include_args(compiler, target)
         commands.append(abs_src)
         commands += compiler.get_output_flags()
         commands.append(abs_obj)
@@ -250,6 +266,24 @@ echo Run compile.sh before this or bad things will happen.
         filename = os.path.join(targetdir, target.get_filename())
         return filename
 
+    def generate_pch(self, target, outfile):
+        print('Generating pch for "%s"' % target.get_basename())
+        for pch in target.get_pch():
+            if '/' not in pch:
+                raise interpreter.InvalidArguments('Precompiled header of "%s" must not be in the same direcotory as source, please put it in a subdirectory.' % target.get_basename())
+            compiler = self.get_compiler_for_source(pch)
+            commands = self.generate_basic_compiler_arguments(target, compiler)
+            srcabs = os.path.join(self.environment.get_source_dir(), target.get_source_subdir(), pch)
+            dstabs = os.path.join(self.environment.get_build_dir(),
+                                   self.get_target_dir(target),
+                                   os.path.split(pch)[-1] + '.' + compiler.get_pch_suffix())
+            commands.append(srcabs)
+            commands += compiler.get_output_flags()
+            commands.append(dstabs)
+            quoted = shell_quote(commands)
+            outfile.write('\necho Generating pch \\"%s\\".\n' % pch)
+            outfile.write(' '.join(quoted) + ' || exit\n')
+
     def generate_target(self, target, outfile):
         name = target.get_basename()
         if name in self.processed_targets:
@@ -258,6 +292,8 @@ echo Run compile.sh before this or bad things will happen.
         print('Generating target', name)
         outname = self.get_target_filename(target)
         obj_list = []
+        if target.has_pch():
+            self.generate_pch(target, outfile)
         for src in target.get_sources():
             obj_list.append(self.generate_single_compile(target, outfile, src))
         self.generate_link(target, outfile, outname, obj_list)
