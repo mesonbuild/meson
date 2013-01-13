@@ -28,7 +28,6 @@ def do_conf_file(src, dst, variables):
         match = re.search(regex, line)
         while match:
             varname = match.group(1)
-            print(varname)
             if varname in variables:
                 var = variables[varname]
                 if isinstance(var, str):
