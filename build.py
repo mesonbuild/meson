@@ -29,6 +29,7 @@ class Build:
         self.man = []
         self.data = []
         self.static_linker = self.environment.detect_static_linker()
+        self.configure_files = []
 
     def get_project(self):
         return self.project
@@ -47,3 +48,6 @@ class Build:
 
     def get_data(self):
         return self.data
+
+    def get_configure_files(self):
+        return self.configure_files

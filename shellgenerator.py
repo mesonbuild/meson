@@ -14,17 +14,42 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os, stat
-import interpreter
+import os, stat, re
+import interpreter, nodes
 
 def shell_quote(cmdlist):
     return ["'" + x + "'" for x in cmdlist]
 
+def do_conf_file(src, dst, variables):
+    data = open(src).readlines()
+    regex = re.compile('@(.*?)@')
+    result = []
+    for line in data:
+        match = re.search(regex, line)
+        while match:
+            varname = match.group(1)
+            print(varname)
+            if varname in variables:
+                var = variables[varname]
+                if isinstance(var, str):
+                    pass
+                elif isinstance(var, nodes.StringStatement):
+                    var = var.get_string()
+                else:
+                    raise RuntimeError('Tried to replace a variable with something other than a string.')
+            else:
+                var = ''
+            line = line.replace('@' + varname + '@', var)
+            match = re.search(regex, line)
+        result.append(line)
+    open(dst, 'w').writelines(result)
+
 class ShellGenerator():
     
-    def __init__(self, build):
+    def __init__(self, build, interp):
         self.build = build
         self.environment = build.environment
+        self.interpreter = interp
         self.build_filename = 'compile.sh'
         self.test_filename = 'run_tests.sh'
         self.install_filename = 'install.sh'
@@ -71,6 +96,7 @@ echo This is experimental and most likely will not work!
 echo Run compile.sh before this or bad things will happen.
 """ % self.build.get_project()
         outfile = self.create_shfile(outfilename, message)
+        self.generate_configure_files()
         self.generate_target_install(outfile)
         self.generate_header_install(outfile)
         self.generate_man_install(outfile)
@@ -85,6 +111,16 @@ echo Run compile.sh before this or bad things will happen.
         cpcommand = ['cp', filename, outdir]
         cpcommand = ' '.join(shell_quote(cpcommand)) + ' || exit\n'
         outfile.write(cpcommand)
+        
+    def generate_configure_files(self):
+        for cf in self.build.get_configure_files():
+            infile = os.path.join(self.environment.get_source_dir(),
+                                  cf.get_subdir(),
+                                  cf.get_source_name())
+            # FIXME, put in in the proper path.
+            outfile = os.path.join(self.environment.get_build_dir(),
+                                   cf.get_target_name())
+            do_conf_file(infile, outfile, self.interpreter.get_variables())
 
     def generate_data_install(self, outfile):
         prefix = self.environment.get_prefix()

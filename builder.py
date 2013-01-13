@@ -73,7 +73,7 @@ class BuilderApp():
         b = build.Build(env)
         intr = interpreter.Interpreter(code, b)
         intr.run()
-        g = shellgenerator.ShellGenerator(b)
+        g = shellgenerator.ShellGenerator(b, intr)
         g.generate()
 
 if __name__ == '__main__':

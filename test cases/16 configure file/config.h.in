@@ -1,0 +1,3 @@
+#define MESSAGE "@var@"
+#define OTHER "@other@" "@second@" "@empty@"
+

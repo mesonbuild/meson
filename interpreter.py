@@ -68,6 +68,25 @@ class Data(InterpreterObject):
     def get_sources(self):
         return self.sources
 
+class ConfigureFile(InterpreterObject):
+    
+    def __init__(self, subdir, sourcename, targetname):
+        InterpreterObject.__init__(self)
+        self.subdir = subdir
+        self.sourcename = sourcename
+        self.targetname = targetname
+
+    def get_sources(self):
+        return self.sources
+    
+    def get_subdir(self):
+        return self.subdir
+    
+    def get_source_name(self):
+        return self.sourcename
+
+    def get_target_name(self):
+        return self.targetname
 
 class Man(InterpreterObject):
 
@@ -86,7 +105,7 @@ class Man(InterpreterObject):
         return self.sources
 
 class BuildTarget(InterpreterObject):
-    
+
     def __init__(self, name, subdir, sources):
         InterpreterObject.__init__(self)
         self.name = name
@@ -216,8 +235,12 @@ class Interpreter():
                       'headers' : self.func_headers,
                       'man' : self.func_man,
                       'subdir' : self.func_subdir,
-                      'data' : self.func_data
+                      'data' : self.func_data,
+                      'configure_file' : self.func_configure_file
                       }
+        
+    def get_variables(self):
+        return self.variables
 
     def sanity_check_ast(self):
         if not isinstance(self.ast, nodes.CodeBlock):
@@ -248,6 +271,8 @@ class Interpreter():
             return self.assignment(cur)
         elif isinstance(cur, nodes.MethodCall):
             return self.method_call(cur)
+        elif isinstance(cur, nodes.StringStatement):
+            return cur
         else:
             raise InvalidCode("Unknown statement in line %d." % cur.lineno())
 
@@ -350,6 +375,11 @@ class Interpreter():
         data = Data(args[0], args[1:])
         self.build.data.append(data)
         return data
+    
+    def func_configure_file(self, node, args):
+        self.validate_arguments(args, 2, [str, str])
+        c = ConfigureFile(self.subdir, args[0], args[1])
+        self.build.configure_files.append(c)
 
     def build_target(self, node, args, targetclass):
         for a in args:
@@ -376,7 +406,8 @@ class Interpreter():
 
     def is_assignable(self, value):
         if isinstance(value, InterpreterObject) or \
-            isinstance(value, environment.PkgConfigDependency):
+            isinstance(value, environment.PkgConfigDependency) or\
+            isinstance(value, nodes.StringStatement):
             return True
         return False
     
@@ -406,7 +437,7 @@ class Interpreter():
             elif isinstance(arg, nodes.MethodCall):
                 r = self.method_call(arg)
             else:
-                raise InvalidCode('Line %d: Irreducable argument.' % args.lineno())
+                raise InvalidCode('Line %d: Irreducible argument.' % args.lineno())
             reduced.append(r)
         assert(len(reduced) == len(args))
         return reduced
