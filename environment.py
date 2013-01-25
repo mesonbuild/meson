@@ -152,6 +152,8 @@ class ArLinker():
     def get_output_flags(self):
         return []
 
+header_suffixes = ['h', 'hh', 'hpp', 'hxx', 'H']
+
 class Environment():
     def __init__(self, source_dir, build_dir, options):
         self.source_dir = source_dir
@@ -176,6 +178,10 @@ class Environment():
         if evar in os.environ:
             return os.environ[evar].split()
         return self.default_c
+    
+    def is_header(self, fname):
+        suffix = fname.split('.')[-1]
+        return suffix in header_suffixes
 
     def detect_c_compiler(self):
         exelist = self.get_c_compiler_exelist()

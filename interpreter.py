@@ -442,8 +442,12 @@ class Interpreter():
         for a in args:
             if not isinstance(a, str):
                 raise InvalidArguments('Line %d: Argument %s is not a string.' % (node.lineno(), str(a)))
-        name= args[0]
-        sources = args[1:]
+        name = args[0]
+        sources = []
+        for s in args[1:]:
+            print(s)
+            if not self.environment.is_header(s):
+                sources.append(s)
         if len(sources) == 0:
             raise InvalidArguments('Line %d: target has no source files.' % node.lineno())
         if name in self.build.targets:
