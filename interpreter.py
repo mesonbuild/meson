@@ -258,7 +258,7 @@ class Interpreter():
         if node is None:
             return
         if not isinstance(node, nodes.CodeBlock):
-            raise InvalidCode('Tried to execute a non-codeblock. Possibly a bug in the parser.')
+            raise InvalidCode('Line %d: Tried to execute a non-codeblock. Possibly a bug in the parser.' % node.lineno())
         statements = node.get_statements()
         i = 0
         while i < len(statements):
