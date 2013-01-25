@@ -27,6 +27,15 @@ class Expression(Node):
 class Statement(Node):
     pass
 
+class BoolExpression(Expression):
+    def __init__(self, value, lineno):
+        Expression.__init__(self, lineno)
+        self.value = value
+        assert(isinstance(value, bool))
+    
+    def get_value(self):
+        return self.value
+
 class AtomExpression(Expression):
     def __init__(self, value, lineno):
         Expression.__init__(self, lineno)
@@ -46,6 +55,15 @@ class AtomStatement(Statement):
         assert(type(value) == type(''))
         self.value = value
         
+    def get_value(self):
+        return self.value
+
+class BoolStatement(Statement):
+    def __init__(self, value, lineno):
+        Statement.__init__(self, lineno)
+        assert(isinstance(value, bool))
+        self.value = value
+
     def get_value(self):
         return self.value
 
@@ -107,4 +125,6 @@ def statement_from_expression(expr):
         return AtomStatement(expr.value, expr.lineno())
     if isinstance(expr, StringExpression):
         return StringStatement(expr.value, expr.lineno())
+    if isinstance(expr, BoolExpression):
+        return BoolStatement(expr.value, expr.lineno())
     raise RuntimeError('Can not convert unknown expression to a statement.')

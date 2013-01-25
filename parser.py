@@ -18,6 +18,9 @@ import ply.lex as lex
 import ply.yacc as yacc
 import nodes
 
+reserved = {'true' : 'TRUE',
+            'false' : 'FALSE'}
+
 tokens = ['LPAREN',
           'RPAREN',
           'LBRACKET',
@@ -32,7 +35,7 @@ tokens = ['LPAREN',
           'STRING',
           'EOL_CONTINUE',
           'EOL',
-          ]
+          ] + list(reserved.values())
 
 t_EQUALS = '='
 t_LPAREN = '\('
@@ -41,12 +44,16 @@ t_LBRACKET = '\['
 t_RBRACKET = '\]'
 t_LBRACE = '\{'
 t_RBRACE = '\}'
-t_ATOM = '[a-zA-Z][_0-9a-zA-Z]*'
 t_COMMENT = '\#[^\n]*'
 t_COMMA = ','
 t_DOT = '\.'
 
 t_ignore = ' \t'
+
+def t_ATOM(t):
+    '[a-zA-Z][_0-9a-zA-Z]*'
+    t.type = reserved.get(t.value, 'ATOM')
+    return t
 
 def t_STRING(t):
     "'[^']*'"
@@ -87,6 +94,14 @@ def p_codeblock_last(t):
 def p_expression_atom(t):
     'expression : ATOM'
     t[0] = nodes.AtomExpression(t[1], t.lineno(1))
+
+def p_expression_bool(t):
+    '''expression : TRUE
+                  | FALSE'''
+    if t[1] == 'true':
+        t[0] = nodes.BoolExpression(True, t.lineno(1))
+    else:
+        t[0] = nodes.BoolExpression(False, t.lineno(1))
 
 def p_expression_string(t):
     'expression : STRING'

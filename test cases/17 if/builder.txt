@@ -1,0 +1,3 @@
+project('if test', 'c')
+
+var = true

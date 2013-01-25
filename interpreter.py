@@ -273,6 +273,8 @@ class Interpreter():
             return self.method_call(cur)
         elif isinstance(cur, nodes.StringStatement):
             return cur
+        elif isinstance(cur, nodes.BoolStatement):
+            return cur
         else:
             raise InvalidCode("Unknown statement in line %d." % cur.lineno())
 
@@ -407,7 +409,8 @@ class Interpreter():
     def is_assignable(self, value):
         if isinstance(value, InterpreterObject) or \
             isinstance(value, environment.PkgConfigDependency) or\
-            isinstance(value, nodes.StringStatement):
+            isinstance(value, nodes.StringStatement) or\
+            isinstance(value, nodes.BoolStatement):
             return True
         return False
     
