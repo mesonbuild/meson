@@ -286,6 +286,8 @@ class Interpreter():
             raise InvalidCode('Line %d: unknown variable "%s".' % (cur.lineno(), varname))
         elif isinstance(cur, nodes.Comparison):
             return self.evaluate_comparison(cur)
+        elif isinstance(cur, nodes.ArrayStatement):
+            return self.evaluate_arraystatement(cur)
         else:
             raise InvalidCode("Line %d: Unknown statement." % cur.lineno())
 
@@ -394,7 +396,17 @@ class Interpreter():
         c = ConfigureFile(self.subdir, args[0], args[1])
         self.build.configure_files.append(c)
 
+    def flatten(self, args):
+        result = []
+        for a in args:
+            if isinstance(a, list):
+                result = result + self.flatten(a)
+            else:
+                result.append(a)
+        return result
+
     def build_target(self, node, args, targetclass):
+        args = self.flatten(args)
         for a in args:
             if not isinstance(a, str):
                 raise InvalidArguments('Line %d: Argument %s is not a string.' % (node.lineno(), str(a)))
@@ -421,7 +433,8 @@ class Interpreter():
         if isinstance(value, InterpreterObject) or \
             isinstance(value, environment.PkgConfigDependency) or\
             isinstance(value, nodes.StringStatement) or\
-            isinstance(value, nodes.BoolStatement):
+            isinstance(value, nodes.BoolStatement) or\
+            isinstance(value, list):
             return True
         return False
     
@@ -500,6 +513,11 @@ class Interpreter():
             return val1 != val2
         else:
             raise InvalidCode('You broke me.')
+    
+    def evaluate_arraystatement(self, cur):
+        arguments = self.reduce_arguments(cur.get_args())
+        return arguments
+
 if __name__ == '__main__':
     code = """project('myawesomeproject')
     message('I can haz text printed out?')

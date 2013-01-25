@@ -99,6 +99,14 @@ class Comparison(Statement):
     def get_second(self):
         return self.second
 
+class ArrayStatement(Statement):
+    def __init__(self, args, lineno):
+        Statement.__init__(self, lineno)
+        self.args = args
+
+    def get_args(self):
+        return self.args
+
 class StringStatement(Statement):
     def __init__(self, value, lineno):
         assert(type(value) == type(''))

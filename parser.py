@@ -119,10 +119,14 @@ def p_statement_assign(t):
     'statement : expression ASSIGN statement'
     t[0] = nodes.Assignment(t[1], t[3], t.lineno(1))
 
-def p_statement_equals(t):
+def p_statement_comparison(t):
     '''statement : statement EQUALS statement
                  | statement NEQUALS statement'''
     t[0] = nodes.Comparison(t[1], t[2], t[3], t.lineno(1))
+
+def p_statement_array(t):
+    '''statement : LBRACKET args RBRACKET'''
+    t[0] = nodes.ArrayStatement(t[2], t.lineno(1))
 
 def p_statement_func_call(t):
     'statement : expression LPAREN args RPAREN'
