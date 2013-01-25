@@ -68,16 +68,20 @@ class BoolStatement(Statement):
         return self.value
     
 class IfStatement(Statement):
-    def __init__(self, clause, codeblock, lineno):
+    def __init__(self, clause, trueblock, falseblock, lineno):
         Statement.__init__(self, lineno)
         self.clause = clause
-        self.codeblock = codeblock
+        self.trueblock = trueblock
+        self.falseblock = falseblock
 
     def get_clause(self):
         return self.clause
 
-    def get_codeblock(self):
-        return self.codeblock
+    def get_trueblock(self):
+        return self.trueblock
+
+    def get_falseblock(self):
+        return self.falseblock
 
 class StringStatement(Statement):
     def __init__(self, value, lineno):

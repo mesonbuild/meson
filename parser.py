@@ -21,7 +21,9 @@ import nodes
 reserved = {'true' : 'TRUE',
             'false' : 'FALSE',
             'if' : 'IF',
-            'endif' : 'ENDIF'}
+            'endif' : 'ENDIF',
+            'else' : 'ELSE',
+            }
 
 tokens = ['LPAREN',
           'RPAREN',
@@ -122,8 +124,16 @@ def p_statement_method_call(t):
     t[0] = nodes.MethodCall(t[1], t[3], t[5], t.lineno(1))
 
 def p_statement_if(t):
-    'statement : IF LPAREN statement RPAREN EOL codeblock ENDIF'
-    t[0] = nodes.IfStatement(t[3], t[6], t.lineno(1))
+    'statement : IF LPAREN statement RPAREN EOL codeblock elseblock ENDIF'
+    t[0] = nodes.IfStatement(t[3], t[6], t[7], t.lineno(1))
+
+def p_empty_else(t):
+    'elseblock : '
+    return None
+
+def p_else(t):
+    'elseblock : ELSE EOL codeblock'
+    t[0] = t[3]
 
 def p_statement_expression(t):
     'statement : expression'

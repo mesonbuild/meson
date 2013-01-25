@@ -255,6 +255,8 @@ class Interpreter():
         self.evaluate_codeblock(self.ast)
 
     def evaluate_codeblock(self, node):
+        if node is None:
+            return
         if not isinstance(node, nodes.CodeBlock):
             raise InvalidCode('Tried to execute a non-codeblock. Possibly a bug in the parser.')
         statements = node.get_statements()
@@ -439,6 +441,8 @@ class Interpreter():
         reduced = []
         for arg in args.arguments:
             if isinstance(arg, nodes.AtomExpression) or isinstance(arg, nodes.AtomStatement):
+                if arg.value not in self.variables:
+                    raise InvalidCode('Line %d: variable "%s" is not set' % (arg.lineno(), arg.value))
                 r = self.variables[arg.value]
             elif isinstance(arg, nodes.StringExpression) or isinstance(arg, nodes.StringStatement):
                 r = arg.get_string()
@@ -468,7 +472,9 @@ class Interpreter():
         if isinstance(result, nodes.BoolExpression) or \
            isinstance(result, nodes.BoolStatement):
             if result.get_value():
-                self.evaluate_codeblock(node.get_codeblock())
+                self.evaluate_codeblock(node.get_trueblock())
+            else:
+                self.evaluate_codeblock(node.get_falseblock())
         else:
             raise InvalidCode('Line %d: If clause does not evaluate to true or false.' % node.lineno())
 

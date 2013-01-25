@@ -1,0 +1,11 @@
+project('else test', 'c')
+
+var = false
+
+if(var)
+  exe = executable('break', 'break.c')
+else
+  exe = executable('prog', 'prog.c')
+endif
+
+add_test('elsetest', exe)
