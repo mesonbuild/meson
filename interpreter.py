@@ -38,8 +38,22 @@ class InterpreterObject():
             return self.methods[method_name](args)
         raise InvalidCode('Unknown method "%s" in object.' % method_name)
 
+class IncludeDirs(InterpreterObject):
+    def __init__(self, curdir, dirs):
+        InterpreterObject.__init__(self)
+        self.curdir = curdir
+        self.incdirs = dirs
+        # Fixme: check that the directories actually exist.
+        # Also that they don't contain ".." or somesuch.
+
+    def get_curdir(self):
+        return self.curdir
+
+    def get_incdirs(self):
+        return self.incdirs
+
 class Headers(InterpreterObject):
-    
+
     def __init__(self, sources):
         InterpreterObject.__init__(self)
         self.sources = sources
@@ -112,10 +126,12 @@ class BuildTarget(InterpreterObject):
         self.subdir = subdir
         self.sources = sources
         self.external_deps = []
+        self.include_dirs = []
         self.methods.update({'add_dep': self.add_dep_method,
                         'link' : self.link_method,
                         'install': self.install_method,
-                        'pch' : self.pch_method
+                        'pch' : self.pch_method,
+                        'add_include_dirs': self.add_include_dirs_method,
                         })
         self.link_targets = []
         self.filename = 'no_name'
@@ -146,6 +162,9 @@ class BuildTarget(InterpreterObject):
     def get_pch(self):
         return self.pch
 
+    def get_include_dirs(self):
+        return self.include_dirs
+
     def add_external_dep(self, dep):
         if not isinstance(dep, environment.PkgConfigDependency):
             raise InvalidArguments('Argument is not an external dependency')
@@ -175,6 +194,11 @@ class BuildTarget(InterpreterObject):
         for a in args:
             self.pch.append(a)
 
+    def add_include_dirs_method(self, args):
+        for a in args:
+            if not isinstance(a, IncludeDirs):
+                raise InvalidArguments('Include directory to be added is not an include directory object.')
+        self.include_dirs += args
 
 class Executable(BuildTarget):
     def __init__(self, name, subdir, sources, environment):
@@ -236,9 +260,10 @@ class Interpreter():
                       'man' : self.func_man,
                       'subdir' : self.func_subdir,
                       'data' : self.func_data,
-                      'configure_file' : self.func_configure_file
+                      'configure_file' : self.func_configure_file,
+                      'include_directories' : self.func_include_directories,
                       }
-        
+
     def get_variables(self):
         return self.variables
 
@@ -395,6 +420,13 @@ class Interpreter():
         self.validate_arguments(args, 2, [str, str])
         c = ConfigureFile(self.subdir, args[0], args[1])
         self.build.configure_files.append(c)
+
+    def func_include_directories(self, node, args):
+        for a in args:
+            if not isinstance(a, str):
+                raise InvalidArguments('Line %d: Argument %s is not a string.' % (node.lineno(), str(a)))
+        i = IncludeDirs(self.subdir, args)
+        return i
 
     def flatten(self, args):
         result = []

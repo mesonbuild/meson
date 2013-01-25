@@ -236,6 +236,12 @@ echo Run compile.sh before this or bad things will happen.
         abs_src = os.path.join(self.environment.get_source_dir(), target.get_source_subdir(), src)
         abs_obj = os.path.join(self.get_target_dir(target), src)
         abs_obj += '.' + self.environment.get_object_suffix()
+        for i in target.get_include_dirs():
+            basedir = i.get_curdir()
+            for d in i.get_incdirs():
+                fulldir = os.path.join(self.environment.get_source_dir(), basedir, d)
+                arg = compiler.get_include_arg(fulldir)
+                commands.append(arg)
         commands += self.get_pch_include_args(compiler, target)
         commands.append(abs_src)
         commands += compiler.get_output_flags()
