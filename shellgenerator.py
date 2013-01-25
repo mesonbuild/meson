@@ -33,7 +33,7 @@ def do_conf_file(src, dst, variables):
                 if isinstance(var, str):
                     pass
                 elif isinstance(var, nodes.StringStatement):
-                    var = var.get_string()
+                    var = var.get_value()
                 else:
                     raise RuntimeError('Tried to replace a variable with something other than a string.')
             else:
