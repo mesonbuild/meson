@@ -34,6 +34,8 @@ tokens = ['LPAREN',
           'ATOM',
           'COMMENT',
           'ASSIGN',
+          'EQUALS',
+          'NEQUALS',
           'COMMA',
           'DOT',
           'STRING',
@@ -42,6 +44,8 @@ tokens = ['LPAREN',
           ] + list(reserved.values())
 
 t_ASSIGN = '='
+t_EQUALS = '=='
+t_NEQUALS = '\!='
 t_LPAREN = '\('
 t_RPAREN = '\)'
 t_LBRACKET = '\['
@@ -114,6 +118,11 @@ def p_expression_string(t):
 def p_statement_assign(t):
     'statement : expression ASSIGN statement'
     t[0] = nodes.Assignment(t[1], t[3], t.lineno(1))
+
+def p_statement_equals(t):
+    '''statement : statement EQUALS statement
+                 | statement NEQUALS statement'''
+    t[0] = nodes.Comparison(t[1], t[2], t[3], t.lineno(1))
 
 def p_statement_func_call(t):
     'statement : expression LPAREN args RPAREN'

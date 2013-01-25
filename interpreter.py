@@ -284,6 +284,8 @@ class Interpreter():
             if varname in self.variables:
                 return self.variables[varname]
             raise InvalidCode('Line %d: unknown variable "%s".' % (cur.lineno(), varname))
+        elif isinstance(cur, nodes.Comparison):
+            return self.evaluate_comparison(cur)
         else:
             raise InvalidCode("Line %d: Unknown statement." % cur.lineno())
 
@@ -445,7 +447,7 @@ class Interpreter():
                     raise InvalidCode('Line %d: variable "%s" is not set' % (arg.lineno(), arg.value))
                 r = self.variables[arg.value]
             elif isinstance(arg, nodes.StringExpression) or isinstance(arg, nodes.StringStatement):
-                r = arg.get_string()
+                r = arg.get_value()
             elif isinstance(arg, nodes.FunctionCall):
                 r  = self.function_call(arg)
             elif isinstance(arg, nodes.MethodCall):
@@ -469,15 +471,35 @@ class Interpreter():
     
     def evaluate_if(self, node):
         result = self.evaluate_statement(node.get_clause())
+        cond = None
         if isinstance(result, nodes.BoolExpression) or \
            isinstance(result, nodes.BoolStatement):
-            if result.get_value():
+            cond = result.get_value()
+        if isinstance(result, bool):
+            cond = result
+        
+        if cond is not None:
+            if cond:
                 self.evaluate_codeblock(node.get_trueblock())
             else:
                 self.evaluate_codeblock(node.get_falseblock())
         else:
+            print(node.get_clause())
+            print(result)
             raise InvalidCode('Line %d: If clause does not evaluate to true or false.' % node.lineno())
-
+        
+    def evaluate_comparison(self, node):
+        v1 = self.evaluate_statement(node.get_first())
+        v2 = self.evaluate_statement(node.get_second())
+        val1 = v1.get_value()
+        val2 = v2.get_value()
+        assert(type(val1) == type(val2))
+        if node.get_ctype() == '==':
+            return val1 == val2
+        elif node.get_ctype() == '!=':
+            return val1 != val2
+        else:
+            raise InvalidCode('You broke me.')
 if __name__ == '__main__':
     code = """project('myawesomeproject')
     message('I can haz text printed out?')

@@ -83,13 +83,29 @@ class IfStatement(Statement):
     def get_falseblock(self):
         return self.falseblock
 
+class Comparison(Statement):
+    def __init__(self, first, ctype, second, lineno):
+        Statement.__init__(self, lineno)
+        self.first = first
+        self.ctype = ctype
+        self.second = second
+    
+    def get_first(self):
+        return self.first
+
+    def get_ctype(self):
+        return self.ctype
+
+    def get_second(self):
+        return self.second
+
 class StringStatement(Statement):
     def __init__(self, value, lineno):
         assert(type(value) == type(''))
         Statement.__init__(self, lineno)
         self.value = value
-        
-    def get_string(self):
+
+    def get_value(self):
         return self.value
 
 class FunctionCall(Statement):
