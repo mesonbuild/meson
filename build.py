@@ -24,6 +24,7 @@ class Build:
         self.project = None
         self.targets = {}
         self.compilers = []
+        self.global_args = {}
         self.tests = []
         self.headers = []
         self.man = []
@@ -51,3 +52,6 @@ class Build:
 
     def get_configure_files(self):
         return self.configure_files
+    
+    def get_global_flags(self, compiler):
+        return self.global_args.get(compiler.get_language(), [])

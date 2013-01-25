@@ -30,6 +30,10 @@ class CCompiler():
             self.exelist = exelist
         else:
             raise TypeError('Unknown argument to CCompiler')
+        self.language = 'c'
+        
+    def get_language(self):
+        return self.language
 
     def get_exelist(self):
         return self.exelist
@@ -82,6 +86,7 @@ class CCompiler():
 class CXXCompiler(CCompiler):
     def __init__(self, exelist):
         CCompiler.__init__(self, exelist)
+        self.language = 'c++'
 
     def can_compile(self, filename):
         suffix = filename.split('.')[-1]

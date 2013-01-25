@@ -209,6 +209,7 @@ echo Run compile.sh before this or bad things will happen.
     def generate_basic_compiler_arguments(self, target, compiler):
         commands = []
         commands += compiler.get_exelist()
+        commands += self.build.get_global_flags(compiler)
         commands += compiler.get_debug_flags()
         commands += compiler.get_std_warn_flags()
         commands += compiler.get_compile_only_flags()

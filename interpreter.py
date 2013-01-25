@@ -262,6 +262,7 @@ class Interpreter():
                       'data' : self.func_data,
                       'configure_file' : self.func_configure_file,
                       'include_directories' : self.func_include_directories,
+                      'add_global_arguments' : self.func_add_global_arguments,
                       }
 
     def get_variables(self):
@@ -427,6 +428,19 @@ class Interpreter():
                 raise InvalidArguments('Line %d: Argument %s is not a string.' % (node.lineno(), str(a)))
         i = IncludeDirs(self.subdir, args)
         return i
+
+    def func_add_global_arguments(self, node, args):
+        for a in args:
+            if not isinstance(a, str):
+                raise InvalidArguments('Line %d: Argument %s is not a string.' % (node.lineno(), str(a)))
+        if len(self.build.get_targets()) > 0:
+            raise InvalidCode('Line %d: global flags can not be set once any build target is defined.' % node.lineno())
+        lang = args[0].lower()
+        switches = args[1:]
+        if lang in self.build.global_args:
+            self.build.global_args[lang] += switches
+        else:
+            self.build.global_args[lang] = switches
 
     def flatten(self, args):
         result = []
