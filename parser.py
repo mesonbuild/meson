@@ -19,7 +19,9 @@ import ply.yacc as yacc
 import nodes
 
 reserved = {'true' : 'TRUE',
-            'false' : 'FALSE'}
+            'false' : 'FALSE',
+            'if' : 'IF',
+            'endif' : 'ENDIF'}
 
 tokens = ['LPAREN',
           'RPAREN',
@@ -118,6 +120,10 @@ def p_statement_func_call(t):
 def p_statement_method_call(t):
     'statement : expression DOT expression LPAREN args RPAREN'
     t[0] = nodes.MethodCall(t[1], t[3], t[5], t.lineno(1))
+
+def p_statement_if(t):
+    'statement : IF LPAREN statement RPAREN EOL codeblock ENDIF'
+    t[0] = nodes.IfStatement(t[3], t[6], t.lineno(1))
 
 def p_statement_expression(t):
     'statement : expression'

@@ -275,8 +275,15 @@ class Interpreter():
             return cur
         elif isinstance(cur, nodes.BoolStatement):
             return cur
+        elif isinstance(cur, nodes.IfStatement):
+            return self.evaluate_if(cur)
+        elif isinstance(cur, nodes.AtomStatement):
+            varname = cur.get_value()
+            if varname in self.variables:
+                return self.variables[varname]
+            raise InvalidCode('Line %d: unknown variable "%s".' % (cur.lineno(), varname))
         else:
-            raise InvalidCode("Unknown statement in line %d." % cur.lineno())
+            raise InvalidCode("Line %d: Unknown statement." % cur.lineno())
 
     def validate_arguments(self, args, argcount, arg_types):
         if argcount is not None:
@@ -455,6 +462,15 @@ class Interpreter():
         if not isinstance(obj, InterpreterObject):
             raise InvalidArguments('Line %d: variable "%s" is not callable.' % (node.lineno(), object_name))
         return obj.method_call(method_name, self.reduce_arguments(args))
+    
+    def evaluate_if(self, node):
+        result = self.evaluate_statement(node.get_clause())
+        if isinstance(result, nodes.BoolExpression) or \
+           isinstance(result, nodes.BoolStatement):
+            if result.get_value():
+                self.evaluate_codeblock(node.get_codeblock())
+        else:
+            raise InvalidCode('Line %d: If clause does not evaluate to true or false.' % node.lineno())
 
 if __name__ == '__main__':
     code = """project('myawesomeproject')
