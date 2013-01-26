@@ -2,6 +2,10 @@
 #error "Global argument not set"
 #endif
 
+#ifdef MYCXXTHING
+#error "Wrong global argument set"
+#endif
+
 int main(int argc, char **argv) {
     return 0;
 }
