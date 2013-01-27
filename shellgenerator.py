@@ -210,6 +210,7 @@ echo Run compile.sh before this or bad things will happen.
         commands = []
         commands += compiler.get_exelist()
         commands += self.build.get_global_flags(compiler)
+        commands += target.get_extra_args(compiler.get_language())
         commands += compiler.get_debug_flags()
         commands += compiler.get_std_warn_flags()
         commands += compiler.get_compile_only_flags()

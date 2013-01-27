@@ -17,7 +17,7 @@
 import parser
 import nodes
 import environment
-import os
+import os, sys, platform
 
 class InterpreterException(Exception):
     pass
@@ -37,6 +37,25 @@ class InterpreterObject():
         if method_name in self.methods:
             return self.methods[method_name](args)
         raise InvalidCode('Unknown method "%s" in object.' % method_name)
+
+
+# This currently returns data for the current environment.
+# It should return info for the target host.
+class Host(InterpreterObject):
+    
+    def __init__(self):
+        InterpreterObject.__init__(self)
+
+    def get_ptrsize(self):
+        if sys.maxsize > 2**32:
+            return 64
+        return 32
+
+    def get_name(self):
+        return platform.system().lower()
+    
+    def is_little_endian(self):
+        return sys.byteorder == 'little'
 
 class IncludeDirs(InterpreterObject):
     def __init__(self, curdir, dirs):
@@ -132,15 +151,20 @@ class BuildTarget(InterpreterObject):
                         'install': self.install_method,
                         'pch' : self.pch_method,
                         'add_include_dirs': self.add_include_dirs_method,
+                        'add_compiler_args' : self.add_compiler_args_method,
                         })
         self.link_targets = []
         self.filename = 'no_name'
         self.need_install = False
         self.pch = []
+        self.extra_args = {}
 
     def get_filename(self):
         return self.filename
-        
+
+    def get_extra_args(self, language):
+        return self.extra_args.get(language, [])
+
     def get_dependencies(self):
         return self.link_targets
 
@@ -199,6 +223,17 @@ class BuildTarget(InterpreterObject):
             if not isinstance(a, IncludeDirs):
                 raise InvalidArguments('Include directory to be added is not an include directory object.')
         self.include_dirs += args
+        
+    def add_compiler_args_method(self, args):
+        for a in args:
+            if not isinstance(a, str):
+                raise InvalidArguments('A non-string passed to compiler args.')
+        language = args[0]
+        flags = args[1:]
+        if language in self.extra_args:
+            self.extra_args[language] += flags
+        else:
+            self.extra_args[language] = flags
 
 class Executable(BuildTarget):
     def __init__(self, name, subdir, sources, environment):
@@ -244,6 +279,8 @@ class Interpreter():
         self.ast = parser.build_ast(code)
         self.sanity_check_ast()
         self.variables = {}
+        self.builtin = {}
+        self.builtin['host'] = Host()
         self.environment = build.environment
         self.build_func_dict()
         self.subdir = ''
@@ -292,6 +329,18 @@ class Interpreter():
             self.evaluate_statement(cur)
             i += 1 # In THE FUTURE jump over blocks and stuff.
 
+    def get_variable(self, varname):
+        if varname in self.builtin:
+            return self.builtin[varname]
+        if varname in self.variables:
+            return self.variables[varname]
+        raise InvalidCode('Line %d: unknown variable "%s".' % varname)
+
+    def set_variable(self, varname, variable):
+        if varname in self.builtin:
+            raise InvalidCode('Tried to overwrite internal variable "%s"' % varname)
+        self.variables[varname] = variable
+
     def evaluate_statement(self, cur):
         if isinstance(cur, nodes.FunctionCall):
             return self.function_call(cur)
@@ -306,10 +355,7 @@ class Interpreter():
         elif isinstance(cur, nodes.IfStatement):
             return self.evaluate_if(cur)
         elif isinstance(cur, nodes.AtomStatement):
-            varname = cur.get_value()
-            if varname in self.variables:
-                return self.variables[varname]
-            raise InvalidCode('Line %d: unknown variable "%s".' % (cur.lineno(), varname))
+            return self.get_variable(cur.get_value())
         elif isinstance(cur, nodes.Comparison):
             return self.evaluate_comparison(cur)
         elif isinstance(cur, nodes.ArrayStatement):
@@ -459,7 +505,6 @@ class Interpreter():
         name = args[0]
         sources = []
         for s in args[1:]:
-            print(s)
             if not self.environment.is_header(s):
                 sources.append(s)
         if len(sources) == 0:
@@ -498,7 +543,7 @@ class Interpreter():
             raise InvalidCode('Line %d: Can not assign None to variable.' % node.lineno())
         if not self.is_assignable(value):
             raise InvalidCode('Line %d: Tried to assign an invalid value to variable.' % node.lineno())
-        self.variables[var_name] = value
+        self.set_variable(var_name, value)
         return value
     
     def reduce_arguments(self, args):
@@ -506,9 +551,7 @@ class Interpreter():
         reduced = []
         for arg in args.arguments:
             if isinstance(arg, nodes.AtomExpression) or isinstance(arg, nodes.AtomStatement):
-                if arg.value not in self.variables:
-                    raise InvalidCode('Line %d: variable "%s" is not set' % (arg.lineno(), arg.value))
-                r = self.variables[arg.value]
+                r = self.get_variable(arg.value)
             elif isinstance(arg, nodes.StringExpression) or isinstance(arg, nodes.StringStatement):
                 r = arg.get_value()
             elif isinstance(arg, nodes.FunctionCall):
@@ -525,9 +568,7 @@ class Interpreter():
         object_name = node.object_name.get_value()
         method_name = node.method_name.get_value()
         args = node.arguments
-        if not object_name in self.variables:
-            raise InvalidArguments('Line %d: unknown variable "%s".' % (node.lineno(), object_name))
-        obj = self.variables[object_name]
+        obj = self.get_variable(object_name)
         if not isinstance(obj, InterpreterObject):
             raise InvalidArguments('Line %d: variable "%s" is not callable.' % (node.lineno(), object_name))
         return obj.method_call(method_name, self.reduce_arguments(args))
