@@ -39,6 +39,7 @@ tokens = ['LPAREN',
           'COMMA',
           'DOT',
           'STRING',
+          'INT',
           'EOL_CONTINUE',
           'EOL',
           ] + list(reserved.values())
@@ -66,6 +67,11 @@ def t_ATOM(t):
 def t_STRING(t):
     "'[^']*'"
     t.value = t.value[1:-1]
+    return t
+
+def t_INT(t):
+    '[0-9]+'
+    t.value = int(t.value)
     return t
 
 def t_EOL(t):
@@ -102,6 +108,10 @@ def p_codeblock_last(t):
 def p_expression_atom(t):
     'expression : ATOM'
     t[0] = nodes.AtomExpression(t[1], t.lineno(1))
+
+def p_expression_int(t):
+    'expression : INT'
+    t[0] = nodes.IntExpression(t[1], t.lineno(1))
 
 def p_expression_bool(t):
     '''expression : TRUE

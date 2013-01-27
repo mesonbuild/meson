@@ -38,23 +38,26 @@ class InterpreterObject():
             return self.methods[method_name](args)
         raise InvalidCode('Unknown method "%s" in object.' % method_name)
 
-
 # This currently returns data for the current environment.
 # It should return info for the target host.
 class Host(InterpreterObject):
 
     def __init__(self):
         InterpreterObject.__init__(self)
+        self.methods.update({'pointer_size' : self.get_ptrsize_method,
+                             'name' : self.get_name_method,
+                             'is_little_endian' : self.is_little_endian_method,
+                             })
 
-    def get_ptrsize(self):
+    def get_ptrsize_method(self, args):
         if sys.maxsize > 2**32:
             return 64
         return 32
 
-    def get_name(self):
+    def get_name_method(self, args):
         return platform.system().lower()
     
-    def is_little_endian(self):
+    def is_little_endian_method(self, args):
         return sys.byteorder == 'little'
 
 class IncludeDirs(InterpreterObject):
@@ -114,7 +117,7 @@ class ConfigureFile(InterpreterObject):
     
     def get_subdir(self):
         return self.subdir
-    
+
     def get_source_name(self):
         return self.sourcename
 
@@ -360,6 +363,8 @@ class Interpreter():
             return self.evaluate_comparison(cur)
         elif isinstance(cur, nodes.ArrayStatement):
             return self.evaluate_arraystatement(cur)
+        elif isinstance(cur, nodes.IntStatement):
+            return cur
         else:
             raise InvalidCode("Line %d: Unknown statement." % cur.lineno())
 
@@ -595,8 +600,14 @@ class Interpreter():
     def evaluate_comparison(self, node):
         v1 = self.evaluate_statement(node.get_first())
         v2 = self.evaluate_statement(node.get_second())
-        val1 = v1.get_value()
-        val2 = v2.get_value()
+        if isinstance(v1, int):
+            val1 = v1
+        else:
+            val1 = v1.get_value()
+        if(isinstance(v2, int)):
+            val2 = v2
+        else:
+            val2 = v2.get_value()
         assert(type(val1) == type(val2))
         if node.get_ctype() == '==':
             return val1 == val2

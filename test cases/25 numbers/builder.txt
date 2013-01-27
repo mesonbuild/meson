@@ -1,0 +1,7 @@
+project('numbers', 'c')
+
+if(host.pointer_size() == 64)
+  add_global_arguments('c', '-DIS64')
+endif
+
+add_test('sizetest', executable('prog', 'prog.c'))

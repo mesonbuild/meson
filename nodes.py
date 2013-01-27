@@ -49,12 +49,20 @@ class StringExpression(Expression):
         Expression.__init__(self, lineno)
         self.value = value
 
+class IntExpression(Expression):
+    def __init__(self, value, lineno):
+        Expression.__init__(self, lineno)
+        self.value = value
+
+    def get_value(self):
+        return self.value
+
 class AtomStatement(Statement):
     def __init__(self, value, lineno):
         Statement.__init__(self, lineno)
         assert(type(value) == type(''))
         self.value = value
-        
+
     def get_value(self):
         return self.value
 
@@ -66,7 +74,16 @@ class BoolStatement(Statement):
 
     def get_value(self):
         return self.value
-    
+
+class IntStatement(Statement):
+    def __init__(self, value, lineno):
+        Statement.__init__(self, lineno)
+        assert(isinstance(value, int))
+        self.value = value
+
+    def get_value(self):
+        return self.value
+
 class IfStatement(Statement):
     def __init__(self, clause, trueblock, falseblock, lineno):
         Statement.__init__(self, lineno)
@@ -167,4 +184,6 @@ def statement_from_expression(expr):
         return StringStatement(expr.value, expr.lineno())
     if isinstance(expr, BoolExpression):
         return BoolStatement(expr.value, expr.lineno())
+    if isinstance(expr, IntExpression):
+        return IntStatement(expr.get_value(), expr.lineno())
     raise RuntimeError('Can not convert unknown expression to a statement.')
