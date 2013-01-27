@@ -1,12 +1,10 @@
 #include<stdint.h>
 
 int is_big_endian(void) {
-    union {
-        uint32_t i;
-        char c[4];
-    } bint = {0x01020304};
-
-    return bint.c[0] == 1;
+    uint32_t one = 1;
+    if(*((uint8_t*) &one) == 1)
+        return 0;
+    return 1;
 }
 
 
