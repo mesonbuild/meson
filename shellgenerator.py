@@ -192,6 +192,7 @@ echo Run compile.sh before this or bad things will happen.
                     outdir = libdir
                 outfile.write('echo Installing "%s".\n' % name)
                 self.copy_file(outfile, self.get_target_filename(t), outdir)
+                self.generate_shlib_aliases(t, outdir, outfile)
 
     def generate_tests(self, outfile):
         for t in self.build.get_tests():
@@ -326,6 +327,14 @@ echo Run compile.sh before this or bad things will happen.
             quoted = shell_quote(commands)
             outfile.write('\necho Generating pch \\"%s\\".\n' % pch)
             outfile.write(' '.join(quoted) + ' || exit\n')
+    
+    def generate_shlib_aliases(self, target, outdir, outfile):
+        basename = target.get_filename()
+        aliases = target.get_aliaslist()
+        for alias in aliases:
+            aliasfile = os.path.join(outdir, alias)
+            cmd = ['ln', '-s', '-f', basename, aliasfile]
+            outfile.write(' '.join(shell_quote(cmd)) + '|| exit\n')
 
     def generate_target(self, target, outfile):
         name = target.get_basename()
@@ -340,6 +349,7 @@ echo Run compile.sh before this or bad things will happen.
         for src in target.get_sources():
             obj_list.append(self.generate_single_compile(target, outfile, src))
         self.generate_link(target, outfile, outname, obj_list)
+        self.generate_shlib_aliases(target, self.get_target_dir(target), outfile)
         self.processed_targets[name] = True
 
 if __name__ == '__main__':

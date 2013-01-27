@@ -238,6 +238,9 @@ class BuildTarget(InterpreterObject):
         else:
             self.extra_args[language] = flags
 
+    def get_aliaslist(self):
+        return []
+
 class Executable(BuildTarget):
     def __init__(self, name, subdir, sources, environment):
         BuildTarget.__init__(self, name, subdir, sources)
@@ -258,10 +261,42 @@ class StaticLibrary(BuildTarget):
 class SharedLibrary(BuildTarget):
     def __init__(self, name, subdir, sources, environment):
         BuildTarget.__init__(self, name, subdir, sources)
-        prefix = environment.get_shared_lib_prefix()
-        suffix = environment.get_shared_lib_suffix()
-        self.filename = prefix + self.name + '.' + suffix
+        self.version = None
+        self.soversion = None
+        self.prefix = environment.get_shared_lib_prefix()
+        self.suffix = environment.get_shared_lib_suffix()
+        self.methods.update({'set_version' : self.set_version_method,
+                             'set_soversion' : self.set_soversion_method,
+                             })
+    
+    def get_shbase(self):
+        return self.prefix + self.name + '.' + self.suffix
+    def get_filename(self):
+        fname = self.get_shbase()
+        if self.version is None:
+            return fname
+        else:
+            return fname + '.' + self.version
 
+    def set_version_method(self, args):
+        v = args[0]
+        if not isinstance(v, str):
+            raise InvalidArguments('Shared library version is not a string.')
+        self.version = v
+
+    def set_soversion_method(self, args):
+        v = args[0]
+        if not isinstance(v, str):
+            raise InvalidArguments('Shared library soversion is not a string.')
+        self.soversion = v
+
+    def get_aliaslist(self):
+        aliases = []
+        if self.soversion is not None:
+            aliases.append(self.get_shbase() + '.' + self.soversion)
+        if self.version is not None:
+            aliases.append(self.get_shbase())
+        return aliases
 
 class Test(InterpreterObject):
     def __init__(self, name, exe):
