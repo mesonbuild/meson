@@ -58,11 +58,11 @@ class BuilderApp():
             raise RuntimeError('Source and build directories must not be the same. Create a pristine build directory.')
         if self.has_builder_file(ndir1):
             if self.has_builder_file(ndir2):
-                raise RuntimeError('Both directories contain a builder file %s.' % BuilderApp.builder_filename)
+                raise RuntimeError('Both directories contain a builder file %s.' % environment.builder_filename)
             return (ndir1, ndir2)
         if self.has_builder_file(ndir2):
             return (ndir2, ndir1)
-        raise RuntimeError('Neither directory contains a builder file %s.' % BuilderApp.builder_filename)
+        raise RuntimeError('Neither directory contains a builder file %s.' % environment.builder_filename)
     
     def generate(self):
         code = open(os.path.join(self.source_dir, environment.builder_filename)).read()

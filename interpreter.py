@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import parser
+import bparser
 import nodes
 import environment
 import os, sys, platform
@@ -42,7 +42,7 @@ class InterpreterObject():
 # This currently returns data for the current environment.
 # It should return info for the target host.
 class Host(InterpreterObject):
-    
+
     def __init__(self):
         InterpreterObject.__init__(self)
 
@@ -276,7 +276,7 @@ class Interpreter():
 
     def __init__(self, code, build):
         self.build = build
-        self.ast = parser.build_ast(code)
+        self.ast = bparser.build_ast(code)
         self.sanity_check_ast()
         self.variables = {}
         self.builtin = {}
@@ -448,7 +448,7 @@ class Interpreter():
         buildfilename = os.path.join(self.subdir, environment.builder_filename)
         code = open(os.path.join(self.environment.get_source_dir(), buildfilename)).read()
         assert(isinstance(code, str))
-        codeblock = parser.build_ast(code)
+        codeblock = bparser.build_ast(code)
         print('Going to subdirectory "%s".' % self.subdir)
         self.evaluate_codeblock(codeblock)
         self.subdir = prev_subdir
