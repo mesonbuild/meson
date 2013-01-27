@@ -46,7 +46,7 @@ class Host(InterpreterObject):
         InterpreterObject.__init__(self)
         self.methods.update({'pointer_size' : self.get_ptrsize_method,
                              'name' : self.get_name_method,
-                             'is_little_endian' : self.is_little_endian_method,
+                             'is_big_endian' : self.is_big_endian_method,
                              })
 
     def get_ptrsize_method(self, args):
@@ -57,8 +57,8 @@ class Host(InterpreterObject):
     def get_name_method(self, args):
         return platform.system().lower()
     
-    def is_little_endian_method(self, args):
-        return sys.byteorder == 'little'
+    def is_big_endian_method(self, args):
+        return sys.byteorder != 'little'
 
 class IncludeDirs(InterpreterObject):
     def __init__(self, curdir, dirs):
