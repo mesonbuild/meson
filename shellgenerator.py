@@ -223,7 +223,7 @@ echo Run compile.sh before this or bad things will happen.
     
     def get_pch_include_args(self, compiler, target):
         args = []
-        pchpath = self.get_target_dir(target)
+        pchpath = self.get_target_private_dir(target)
         includearg = compiler.get_include_arg(pchpath)
         for p in target.get_pch():
             if compiler.can_compile(p):
@@ -237,7 +237,7 @@ echo Run compile.sh before this or bad things will happen.
         compiler = self.get_compiler_for_source(src)
         commands = self.generate_basic_compiler_arguments(target, compiler)
         abs_src = os.path.join(self.environment.get_source_dir(), target.get_source_subdir(), src)
-        abs_obj = os.path.join(self.get_target_dir(target), src)
+        abs_obj = os.path.join(self.get_target_private_dir(target), src)
         abs_obj += '.' + self.environment.get_object_suffix()
         for i in target.get_include_dirs():
             basedir = i.get_curdir()
@@ -290,7 +290,12 @@ echo Run compile.sh before this or bad things will happen.
         outfile.write(' '.join(quoted) + ' || exit\n')
 
     def get_target_dir(self, target):
-        dirname = os.path.join(self.environment.get_build_dir(), target.get_basename())
+        dirname = os.path.join(self.environment.get_build_dir(), target.get_subdir())
+        os.makedirs(dirname, exist_ok=True)
+        return dirname
+    
+    def get_target_private_dir(self, target):
+        dirname = os.path.join(self.get_target_dir(target), target.get_basename() + '.dir')
         os.makedirs(dirname, exist_ok=True)
         return dirname
 
@@ -319,7 +324,7 @@ echo Run compile.sh before this or bad things will happen.
             commands = self.generate_basic_compiler_arguments(target, compiler)
             srcabs = os.path.join(self.environment.get_source_dir(), target.get_source_subdir(), pch)
             dstabs = os.path.join(self.environment.get_build_dir(),
-                                   self.get_target_dir(target),
+                                   self.get_target_private_dir(target),
                                    os.path.split(pch)[-1] + '.' + compiler.get_pch_suffix())
             commands.append(srcabs)
             commands += compiler.get_output_flags()

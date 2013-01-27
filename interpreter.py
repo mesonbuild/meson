@@ -162,6 +162,9 @@ class BuildTarget(InterpreterObject):
         self.pch = []
         self.extra_args = {}
 
+    def get_subdir(self):
+        return self.subdir
+
     def get_filename(self):
         return self.filename
 
