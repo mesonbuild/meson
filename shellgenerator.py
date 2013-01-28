@@ -116,9 +116,10 @@ echo Run compile.sh before this or bad things will happen.
             infile = os.path.join(self.environment.get_source_dir(),
                                   cf.get_subdir(),
                                   cf.get_source_name())
-            # FIXME, put in in the proper path.
-            outfile = os.path.join(self.environment.get_build_dir(),
-                                   cf.get_target_name())
+            outdir = os.path.join(self.environment.get_build_dir(),
+                                   cf.get_subdir())
+            os.makedirs(outdir, exist_ok=True)
+            outfile = os.path.join(outdir, cf.get_target_name())
             do_conf_file(infile, outfile, self.interpreter.get_variables())
 
     def generate_data_install(self, outfile):
@@ -242,9 +243,12 @@ echo Run compile.sh before this or bad things will happen.
         for i in target.get_include_dirs():
             basedir = i.get_curdir()
             for d in i.get_incdirs():
-                fulldir = os.path.join(self.environment.get_source_dir(), basedir, d)
-                arg = compiler.get_include_arg(fulldir)
-                commands.append(arg)
+                expdir =  os.path.join(basedir, d)
+                fulldir = os.path.join(self.environment.get_source_dir(), expdir)
+                barg = compiler.get_include_arg(expdir)
+                sarg = compiler.get_include_arg(fulldir)
+                commands.append(barg)
+                commands.append(sarg)
         commands += self.get_pch_include_args(compiler, target)
         commands.append(abs_src)
         commands += compiler.get_output_flags()

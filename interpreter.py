@@ -572,6 +572,7 @@ class Interpreter():
             isinstance(value, environment.PkgConfigDependency) or\
             isinstance(value, nodes.StringStatement) or\
             isinstance(value, nodes.BoolStatement) or\
+            isinstance(value, nodes.IntStatement) or\
             isinstance(value, list):
             return True
         return False
