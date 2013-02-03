@@ -17,6 +17,15 @@
 import sys, struct
 
 SHT_STRTAB = 3
+DT_NEEDED = 1
+DT_RPATH = 15
+DT_STRTAB = 5
+DT_SONAME = 14
+
+class DynamicEntry():
+    def __init__(self, ifile):
+        self.d_tag = struct.unpack('Q', ifile.read(8))[0];
+        self.val = struct.unpack('Q', ifile.read(8))[0];
 
 class SectionHeader():
     def __init__(self, ifile):
@@ -48,6 +57,7 @@ class Elf():
         self.bf = open(bfile, 'rb')
         self.parse_header()
         self.parse_sections()
+        self.parse_dynamic()
 
     def parse_header(self):
         self.e_ident = struct.unpack('16s', self.bf.read(16))[0]
@@ -81,6 +91,21 @@ class Elf():
             x = self.bf.read(1)
         return b''.join(arr)
 
+    def find_section(self, target_name):
+        section_names = self.sections[self.e_shstrndx]
+        for i in self.sections:
+            self.bf.seek(section_names.sh_offset + i.sh_name)
+            name = self.read_str()
+            if name == target_name:
+                return i
+
+    def parse_dynamic(self):
+        sec = self.find_section(b'.dynamic')
+        self.dynamic = []
+        self.bf.seek(sec.sh_offset)
+        for i in range(sec.sh_entsize):
+            self.dynamic.append(DynamicEntry(self.bf))
+
     def print_section_names(self):
         section_names = self.sections[self.e_shstrndx]
         for i in self.sections:
@@ -88,9 +113,36 @@ class Elf():
             name = self.read_str()
             print(name.decode())
 
+    def print_soname(self):
+        soname = None
+        strtab = None
+        for i in self.dynamic:
+            if i.d_tag == DT_SONAME:
+                soname = i
+            if i.d_tag == DT_STRTAB:
+                strtab = i
+        self.bf.seek(strtab.val + soname.val)
+        print(self.read_str())
+
+    def print_rpath(self):
+        deps = []
+        strtab = None
+        for i in self.dynamic:
+            if i.d_tag == DT_RPATH or i.d_tag == DT_NEEDED:
+                deps.append(i)
+            if i.d_tag == DT_STRTAB:
+                strtab = i
+        assert(strtab is not None)
+        for i in deps:
+            self.bf.seek(strtab.val + i.val)
+            name = self.read_str()
+            print(name)
+
 if __name__ == '__main__':
     if len(sys.argv) != 2:
         print('%s: <binary file>' % sys.argv[0])
         exit(1)
     e = Elf(sys.argv[1])
-    e.print_section_names()
+    #e.print_section_names()
+    e.print_rpath()
+    #e.print_soname()
