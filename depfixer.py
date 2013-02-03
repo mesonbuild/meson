@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 import sys, struct
 
 SHT_STRTAB = 3
@@ -54,7 +55,7 @@ class Elf():
 
     def __init__(self, bfile):
         self.bfile = bfile
-        self.bf = open(bfile, 'rb')
+        self.bf = open(bfile, 'r+b')
         self.parse_header()
         self.parse_sections()
         self.parse_dynamic()
@@ -141,9 +142,32 @@ class Elf():
             name = self.read_str()
             print(name)
 
+    def fix_deps(self, prefix):
+        sec = self.find_section(b'.dynstr')
+        deps = []
+        for i in self.dynamic:
+            if i.d_tag == DT_NEEDED:
+                deps.append(i)
+        for i in deps:
+            offset = sec.sh_offset + i.val
+            self.bf.seek(offset)
+            name = self.read_str()
+            if name.startswith(prefix):
+                basename = name.split(b'/')[-1]
+                padding = b'\0'*(len(name) - len(basename))
+                newname = basename + padding
+                assert(len(newname) == len(name))
+                self.bf.seek(offset)
+                self.bf.write(newname)
+
+
 if __name__ == '__main__':
-    if len(sys.argv) != 2:
-        print('%s: <binary file>' % sys.argv[0])
+    if len(sys.argv) != 3:
+        print('This application converts absolute dep paths to relative ones.')
+        print('Don\'t run this unless you know what you are doing.')
+        print('%s: <binary file> <prefix>' % sys.argv[0])
         exit(1)
     e = Elf(sys.argv[1])
-    e.print_deps()
+    prefix = sys.argv[2]
+    #e.print_deps()
+    e.fix_deps(prefix.encode())
