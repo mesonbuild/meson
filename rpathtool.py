@@ -16,6 +16,8 @@
 
 import sys, struct
 
+SHT_STRTAB = 3
+
 class SectionHeader():
     def __init__(self, ifile):
 #Elf64_Word
@@ -35,7 +37,7 @@ class SectionHeader():
 #Elf64_Word
         self.sh_info = struct.unpack('I', ifile.read(4))[0];
 #Elf64_Xword
-        self.sh_addralign = struct.unpack('Q', ifile.read(4))[0];
+        self.sh_addralign = struct.unpack('Q', ifile.read(8))[0];
 #Elf64_Xword
         self.sh_entsize = struct.unpack('Q', ifile.read(8))[0];
 
@@ -69,15 +71,26 @@ class Elf():
         self.bf.seek(self.e_shoff)
         self.sections = []
         for i in range(self.e_shnum):
-            self.sections.append(self.bf)
+            self.sections.append(SectionHeader(self.bf))
 
-def remove_rpath(bfile):
-        elf = Elf(bfile)
+    def read_str(self):
+        arr = []
+        x = self.bf.read(1)
+        while x != b'\0':
+            arr.append(x)
+            x = self.bf.read(1)
+        return b''.join(arr)
 
+    def print_section_names(self):
+        section_names = self.sections[self.e_shstrndx]
+        for i in self.sections:
+            self.bf.seek(section_names.sh_offset + i.sh_name)
+            name = self.read_str()
+            print(name.decode())
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
         print('%s: <binary file>' % sys.argv[0])
         exit(1)
-    bfile = sys.argv[1]
-    remove_rpath(bfile)
+    e = Elf(sys.argv[1])
+    e.print_section_names()
