@@ -110,7 +110,6 @@ class Elf():
             self.dynamic.append(e)
             if e.d_tag == 0:
                 break
-        print('Dynamic has %d entries at offset 0x%x.' % (len(self.dynamic), sec.sh_offset))
 
     def print_section_names(self):
         section_names = self.sections[self.e_shstrndx]
@@ -130,22 +129,14 @@ class Elf():
         self.bf.seek(strtab.val + soname.val)
         print(self.read_str())
 
-    def print_rpath(self):
+    def print_deps(self):
+        sec = self.find_section(b'.dynstr')
         deps = []
-        strtab = None
         for i in self.dynamic:
             if i.d_tag == DT_NEEDED:
                 deps.append(i)
-            if i.d_tag == DT_STRTAB:
-                strtab = i
-        assert(strtab is not None)
-        print('0x%x' % strtab.val)
-        fsize = self.bf.seek(0, 2)
         for i in deps:
-            print('Strtab: 0x%x Filesize 0x%x' % (strtab.val, fsize))
-            print('0x%x' % (0x463 - i.val))
-            #assert(strtab.val <= fsize)
-            offset = strtab.val + i.val
+            offset = sec.sh_offset + i.val
             self.bf.seek(offset)
             name = self.read_str()
             print(name)
@@ -155,6 +146,4 @@ if __name__ == '__main__':
         print('%s: <binary file>' % sys.argv[0])
         exit(1)
     e = Elf(sys.argv[1])
-    #e.print_section_names()
-    e.print_rpath()
-    #e.print_soname()
+    e.print_deps()
