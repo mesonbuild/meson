@@ -16,13 +16,41 @@
 
 import sys, struct
 
+class SectionHeader():
+    def __init__(self, ifile):
+#Elf64_Word
+        self.sh_name = struct.unpack('I', ifile.read(4))[0];
+#Elf64_Word
+        self.sh_type = struct.unpack('I', ifile.read(4))[0]
+#Elf64_Xword
+        self.sh_flags = struct.unpack('Q', ifile.read(8))[0];
+#Elf64_Addr
+        self.sh_addr = struct.unpack('Q', ifile.read(8))[0];
+#Elf64_Off
+        self.sh_offset = struct.unpack('Q', ifile.read(8))[0]
+#Elf64_Xword
+        self.sh_size = struct.unpack('Q', ifile.read(8))[0];
+#Elf64_Word
+        self.sh_link = struct.unpack('I', ifile.read(4))[0];
+#Elf64_Word
+        self.sh_info = struct.unpack('I', ifile.read(4))[0];
+#Elf64_Xword
+        self.sh_addralign = struct.unpack('Q', ifile.read(4))[0];
+#Elf64_Xword
+        self.sh_entsize = struct.unpack('Q', ifile.read(8))[0];
+
 class Elf():
 
     def __init__(self, bfile):
+        self.bfile = bfile
         self.bf = open(bfile, 'rb')
-        self.ident = struct.unpack('16s', self.bf.read(16))[0]
-        if self.ident[1:4] != b'ELF':
-            raise RuntimeError('File "%s" is not an ELF file.' % bfile)
+        self.parse_header()
+        self.parse_sections()
+
+    def parse_header(self):
+        self.e_ident = struct.unpack('16s', self.bf.read(16))[0]
+        if self.e_ident[1:4] != b'ELF':
+            raise RuntimeError('File "%s" is not an ELF file.' % self.bfile)
         self.e_type = struct.unpack('h', self.bf.read(2))[0]
         self.e_machine = struct.unpack('h', self.bf.read(2))[0]
         self.e_version = struct.unpack('i', self.bf.read(4))[0]
@@ -36,6 +64,12 @@ class Elf():
         self.e_shentsize = struct.unpack('h', self.bf.read(2))[0]
         self.e_shnum = struct.unpack('h', self.bf.read(2))[0]
         self.e_shstrndx = struct.unpack('h', self.bf.read(2))[0]
+
+    def parse_sections(self):
+        self.bf.seek(self.e_shoff)
+        self.sections = []
+        for i in range(self.e_shnum):
+            self.sections.append(self.bf)
 
 def remove_rpath(bfile):
         elf = Elf(bfile)
