@@ -194,6 +194,15 @@ echo Run compile.sh before this or bad things will happen.
                 outfile.write('echo Installing "%s".\n' % name)
                 self.copy_file(outfile, self.get_target_filename(t), outdir)
                 self.generate_shlib_aliases(t, outdir, outfile)
+                self.fix_deps(outfile, t, outdir)
+
+    def fix_deps(self, outfile, target, outdir):
+        if isinstance(target, interpreter.StaticLibrary):
+            return
+        depfixer = self.environment.get_depfixer()
+        fname = os.path.join(outdir, target.get_filename())
+        cmds = [depfixer, fname, self.environment.get_build_dir()]
+        outfile.write(' '.join(shell_quote(cmds)) + ' || exit\n')
 
     def generate_tests(self, outfile):
         for t in self.build.get_tests():

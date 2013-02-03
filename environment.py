@@ -201,6 +201,10 @@ class Environment():
     def get_scratch_dir(self):
         return self.scratch_dir
 
+    def get_depfixer(self):
+        path = os.path.split(__file__)[0]
+        return os.path.join(path, 'depfixer.py')
+
     def detect_cxx_compiler(self):
         exelist = self.get_cxx_compiler_exelist()
         p = subprocess.Popen(exelist + ['--version'], stdout=subprocess.PIPE)
