@@ -89,6 +89,8 @@ class Elf():
         while x != b'\0':
             arr.append(x)
             x = self.bf.read(1)
+            if x == b'':
+                raise RuntimeError('Tried to read past the end of the file')
         return b''.join(arr)
 
     def find_section(self, target_name):
@@ -103,8 +105,12 @@ class Elf():
         sec = self.find_section(b'.dynamic')
         self.dynamic = []
         self.bf.seek(sec.sh_offset)
-        for i in range(sec.sh_entsize):
-            self.dynamic.append(DynamicEntry(self.bf))
+        while True:
+            e = DynamicEntry(self.bf)
+            self.dynamic.append(e)
+            if e.d_tag == 0:
+                break
+        print('Dynamic has %d entries at offset 0x%x.' % (len(self.dynamic), sec.sh_offset))
 
     def print_section_names(self):
         section_names = self.sections[self.e_shstrndx]
@@ -128,13 +134,19 @@ class Elf():
         deps = []
         strtab = None
         for i in self.dynamic:
-            if i.d_tag == DT_RPATH or i.d_tag == DT_NEEDED:
+            if i.d_tag == DT_NEEDED:
                 deps.append(i)
             if i.d_tag == DT_STRTAB:
                 strtab = i
         assert(strtab is not None)
+        print('0x%x' % strtab.val)
+        fsize = self.bf.seek(0, 2)
         for i in deps:
-            self.bf.seek(strtab.val + i.val)
+            print('Strtab: 0x%x Filesize 0x%x' % (strtab.val, fsize))
+            print('0x%x' % (0x463 - i.val))
+            #assert(strtab.val <= fsize)
+            offset = strtab.val + i.val
+            self.bf.seek(offset)
             name = self.read_str()
             print(name)
 
