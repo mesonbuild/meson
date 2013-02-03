@@ -14,10 +14,32 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys
+import sys, struct
+
+class Elf():
+
+    def __init__(self, bfile):
+        self.bf = open(bfile, 'rb')
+        self.ident = struct.unpack('16s', self.bf.read(16))[0]
+        if self.ident[1:4] != b'ELF':
+            raise RuntimeError('File "%s" is not an ELF file.' % bfile)
+        self.e_type = struct.unpack('h', self.bf.read(2))[0]
+        self.e_machine = struct.unpack('h', self.bf.read(2))[0]
+        self.e_version = struct.unpack('i', self.bf.read(4))[0]
+        self.e_entry = struct.unpack('Q', self.bf.read(8))[0]
+        self.e_phoff = struct.unpack('Q', self.bf.read(8))[0]
+        self.e_shoff = struct.unpack('Q', self.bf.read(8))[0]
+        self.e_flags = struct.unpack('i', self.bf.read(4))[0]
+        self.e_ehsize = struct.unpack('h', self.bf.read(2))[0]
+        self.e_phentsize = struct.unpack('h', self.bf.read(2))[0]
+        self.e_phnum = struct.unpack('h', self.bf.read(2))[0]
+        self.e_shentsize = struct.unpack('h', self.bf.read(2))[0]
+        self.e_shnum = struct.unpack('h', self.bf.read(2))[0]
+        self.e_shstrndx = struct.unpack('h', self.bf.read(2))[0]
 
 def remove_rpath(bfile):
-    bf = open(bfile, 'rb')
+        elf = Elf(bfile)
+
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
