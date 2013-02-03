@@ -79,7 +79,8 @@ class BuilderApp():
 if __name__ == '__main__':
     (options, args) = parser.parse_args(sys.argv)
     if len(args) == 1 or len(args) > 3:
-        print('Invalid number of arguments')
+        print('%s <source directory> <build directory>' % sys.argv[0])
+        print('If you omit either directory, the current directory is substituted.')
         sys.exit(1)
     dir1 = args[1]
     if len(args) > 2:
