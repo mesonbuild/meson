@@ -109,14 +109,12 @@ class Generator():
             args = [includearg] + args
         return args
 
-    def generate_basic_compiler_arguments(self, target, compiler):
+    def generate_basic_compiler_flags(self, target, compiler):
         commands = []
-        commands += compiler.get_exelist()
         commands += self.build.get_global_flags(compiler)
         commands += target.get_extra_args(compiler.get_language())
         commands += compiler.get_debug_flags()
         commands += compiler.get_std_warn_flags()
-        commands += compiler.get_compile_only_flags()
         if isinstance(target, interpreter.SharedLibrary):
             commands += compiler.get_pic_flags()
         for dep in target.get_external_deps():
@@ -190,7 +188,7 @@ class NinjaGenerator(Generator):
 
     def generate_single_compile(self, target, outfile, src):
         compiler = self.get_compiler_for_source(src)
-        commands = self.generate_basic_compiler_arguments(target, compiler)
+        commands = self.generate_basic_compiler_flags(target, compiler)
         abs_src = os.path.join(self.environment.get_source_dir(), target.get_source_subdir(), src)
         abs_obj = os.path.join(self.get_target_private_dir(target), src)
         abs_obj += '.' + self.environment.get_object_suffix()
@@ -204,9 +202,9 @@ class NinjaGenerator(Generator):
                 commands.append(barg)
                 commands.append(sarg)
         commands += self.get_pch_include_args(compiler, target)
-        commands.append(abs_src)
         compiler_name = '%s_COMPILER' % compiler.get_language()
-        build = 'build %s: %s %s\n' % (abs_obj, compiler_name, abs_src)
+        build = 'build %s: %s %s\n' % \
+        (ninja_quote(abs_obj), compiler_name, ninja_quote(abs_src))
         flags = ' FLAGS = %s\n\n' % ' '.join([ninja_quote(t) for t in commands])
         outfile.write(build)
         outfile.write(flags)
@@ -390,7 +388,10 @@ echo Run compile.sh before this or bad things will happen.
 
     def generate_single_compile(self, target, outfile, src):
         compiler = self.get_compiler_for_source(src)
-        commands = self.generate_basic_compiler_arguments(target, compiler)
+        commands = []
+        commands += compiler.get_exelist()
+        commands += self.generate_basic_compiler_flags(target, compiler)
+        commands += compiler.get_compile_only_flags()
         abs_src = os.path.join(self.environment.get_source_dir(), target.get_source_subdir(), src)
         abs_obj = os.path.join(self.get_target_private_dir(target), src)
         abs_obj += '.' + self.environment.get_object_suffix()
@@ -459,7 +460,9 @@ echo Run compile.sh before this or bad things will happen.
             if '/' not in pch:
                 raise interpreter.InvalidArguments('Precompiled header of "%s" must not be in the same direcotory as source, please put it in a subdirectory.' % target.get_basename())
             compiler = self.get_compiler_for_source(pch)
-            commands = self.generate_basic_compiler_arguments(target, compiler)
+            commands = []
+            commands += compiler.get_exelist()
+            commands += self.generate_basic_compiler_flags(target, compiler)
             srcabs = os.path.join(self.environment.get_source_dir(), target.get_source_subdir(), pch)
             dstabs = os.path.join(self.environment.get_build_dir(),
                                    self.get_target_private_dir(target),
