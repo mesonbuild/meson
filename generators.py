@@ -130,8 +130,7 @@ class Generator():
             not isinstance(d, interpreter.SharedLibrary):
                 raise RuntimeError('Tried to link with a non-library target "%s".' % d.get_basename())
             fname = self.get_target_filename(d)
-            if '/' not in fname:
-                fname = './' + fname # Hack to make ldd find the library.
+            fname = './' + fname # Hack to make ldd find the library.
             args.append(fname)
         return args
 
@@ -413,7 +412,7 @@ echo Run compile.sh before this or bad things will happen.
             return
         depfixer = self.environment.get_depfixer()
         fname = os.path.join(outdir, target.get_filename())
-        cmds = [depfixer, fname, self.environment.get_build_dir()]
+        cmds = [depfixer, fname, './']
         outfile.write(' '.join(shell_quote(cmds)) + ' || exit\n')
 
     def generate_tests(self, outfile):
