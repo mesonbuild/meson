@@ -53,6 +53,8 @@ class Generator():
         self.environment = build.environment
         self.interpreter = interp
         self.processed_targets = {}
+        self.build_to_src = os.path.relpath(self.environment.get_source_dir(),
+                                            self.environment.get_build_dir())
 
     def get_compiler_for_source(self, src):
         for i in self.build.compilers:
@@ -66,13 +68,13 @@ class Generator():
         return filename
 
     def get_target_dir(self, target):
-        dirname = os.path.join(self.environment.get_build_dir(), target.get_subdir())
-        os.makedirs(dirname, exist_ok=True)
+        dirname = target.get_subdir()
+        os.makedirs(os.path.join(self.environment.get_build_dir(), dirname), exist_ok=True)
         return dirname
     
     def get_target_private_dir(self, target):
         dirname = os.path.join(self.get_target_dir(target), target.get_basename() + '.dir')
-        os.makedirs(dirname, exist_ok=True)
+        os.makedirs(os.path.join(self.environment.get_build_dir(), dirname), exist_ok=True)
         return dirname
 
     def generate_target(self, target, outfile):
@@ -127,7 +129,10 @@ class Generator():
             if not isinstance(d, interpreter.StaticLibrary) and\
             not isinstance(d, interpreter.SharedLibrary):
                 raise RuntimeError('Tried to link with a non-library target "%s".' % d.get_basename())
-            args.append(self.get_target_filename(d))
+            fname = self.get_target_filename(d)
+            if '/' not in fname:
+                fname = './' + fname # Hack to make ldd find the library.
+            args.append(fname)
         return args
 
 class NinjaGenerator(Generator):
@@ -197,7 +202,7 @@ class NinjaGenerator(Generator):
     def generate_single_compile(self, target, outfile, src):
         compiler = self.get_compiler_for_source(src)
         commands = self.generate_basic_compiler_flags(target, compiler)
-        abs_src = os.path.join(self.environment.get_source_dir(), target.get_source_subdir(), src)
+        abs_src = os.path.join(self.build_to_src, target.get_source_subdir(), src)
         abs_obj = os.path.join(self.get_target_private_dir(target), src)
         abs_obj += '.' + self.environment.get_object_suffix()
         for i in target.get_include_dirs():
