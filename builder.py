@@ -18,7 +18,7 @@ from optparse import OptionParser
 import sys, stat
 import os.path
 import environment, interpreter
-import shellgenerator, build
+import generators, build
 
 parser = OptionParser()
 
@@ -73,7 +73,7 @@ class BuilderApp():
         b = build.Build(env)
         intr = interpreter.Interpreter(code, b)
         intr.run()
-        g = shellgenerator.ShellGenerator(b, intr)
+        g = generators.ShellGenerator(b, intr)
         g.generate()
 
 if __name__ == '__main__':

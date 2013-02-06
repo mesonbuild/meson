@@ -12,7 +12,7 @@ called 'builder.txt'. To generate the build system run this command:
 
 builder.py <source directory> <build directory>
 
-You can omit either of the two directories, and Builder will subsitute
+You can omit either of the two directories, and Builder will substitute
 the current directory and autodetect what you mean. This mean that you
 can do things like this:
 
