@@ -121,6 +121,15 @@ class Generator():
             commands += dep.get_compile_flags()
         return commands
 
+    def build_target_link_arguments(self, deps):
+        args = []
+        for d in deps:
+            if not isinstance(d, interpreter.StaticLibrary) and\
+            not isinstance(d, interpreter.SharedLibrary):
+                raise RuntimeError('Tried to link with a non-library target "%s".' % d.get_basename())
+            args.append(self.get_target_filename(d))
+        return args
+
 class NinjaGenerator(Generator):
 
     def __init__(self, build, interp):
@@ -160,10 +169,9 @@ class NinjaGenerator(Generator):
         for compiler in self.build.compilers:
             langname = compiler.get_language()
             rule = 'rule %s_LINKER\n' % langname
-            command = ' command = %s $FLAGS $LINK_FLAGS %s $out %s $in\n' % \
+            command = ' command = %s $FLAGS $LINK_FLAGS %s $out $in\n' % \
             (' '.join(compiler.get_exelist()),\
-             ' '.join(compiler.get_output_flags()),\
-             ' '.join(compiler.get_compile_only_flags()))
+             ' '.join(compiler.get_output_flags()))
             description = ' description = Linking target $out'
             outfile.write(rule)
             outfile.write(command)
@@ -208,9 +216,34 @@ class NinjaGenerator(Generator):
         flags = ' FLAGS = %s\n\n' % ' '.join([ninja_quote(t) for t in commands])
         outfile.write(build)
         outfile.write(flags)
-    
+        return abs_obj
+
     def generate_link(self, target, outfile, outname, obj_list):
-        pass
+        if isinstance(target, interpreter.StaticLibrary):
+            linker = self.build.static_linker
+            linker_base = 'STATIC'
+        else:
+            linker = self.build.compilers[0]
+            linker_base = linker.get_language() # Fixme.
+        linker_rule = linker_base + '_LINKER'
+        commands = []
+        if isinstance(target, interpreter.Executable):
+            commands += linker.get_std_exe_link_flags()
+        elif isinstance(target, interpreter.SharedLibrary):
+            commands += linker.get_std_shared_lib_link_flags()
+            commands += linker.get_pic_flags()
+        elif isinstance(target, interpreter.StaticLibrary):
+            commands += linker.get_std_link_flags()
+        else:
+            raise RuntimeError('Unknown build target type.')
+        for dep in target.get_external_deps():
+            commands += dep.get_link_flags()
+        commands += self.build_target_link_arguments(target.get_dependencies())
+        build = 'build %s: %s %s\n' % \
+        (ninja_quote(outname), linker_rule, ' '.join([ninja_quote(i) for i in obj_list]))
+        flags = ' LINK_FLAGS = %s\n\n' % ' '.join([ninja_quote(a) for a in commands])
+        outfile.write(build)
+        outfile.write(flags)
 
     def generate_shlib_aliases(self, target, outdir, outfile):
         pass
@@ -276,8 +309,8 @@ echo Run compile.sh before this or bad things will happen.
         self.generate_data_install(outfile)
         outfile.close()
     
-    def make_subdir(self, outfile, dir):
-        cmdlist = ['mkdir', '-p', dir]
+    def make_subdir(self, outfile, sdir):
+        cmdlist = ['mkdir', '-p', sdir]
         outfile.write(' '.join(shell_quote(cmdlist)) + ' || exit\n')
         
     def copy_file(self, outfile, filename, outdir):
@@ -412,15 +445,6 @@ echo Run compile.sh before this or bad things will happen.
         outfile.write('\necho Compiling \\"%s\\"\n' % src)
         outfile.write(' '.join(quoted) + ' || exit\n')
         return abs_obj
-
-    def build_target_link_arguments(self, deps):
-        args = []
-        for d in deps:
-            if not isinstance(d, interpreter.StaticLibrary) and\
-            not isinstance(d, interpreter.SharedLibrary):
-                raise RuntimeError('Tried to link with a non-library target "%s".' % d.get_basename())
-            args.append(self.get_target_filename(d))
-        return args
 
     def generate_link(self, target, outfile, outname, obj_list):
         if isinstance(target, interpreter.StaticLibrary):
