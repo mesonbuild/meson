@@ -20,6 +20,9 @@ import interpreter, nodes
 def shell_quote(cmdlist):
     return ["'" + x + "'" for x in cmdlist]
 
+def ninja_quote(text):
+    return text.replace(' ', '$ ')
+
 def do_conf_file(src, dst, variables):
     data = open(src).readlines()
     regex = re.compile('@(.*?)@')
@@ -50,6 +53,21 @@ class Generator():
         self.interpreter = interp
         self.processed_targets = {}
 
+    def get_target_filename(self, target):
+        targetdir = self.get_target_dir(target)
+        filename = os.path.join(targetdir, target.get_filename())
+        return filename
+
+    def get_target_dir(self, target):
+        dirname = os.path.join(self.environment.get_build_dir(), target.get_subdir())
+        os.makedirs(dirname, exist_ok=True)
+        return dirname
+    
+    def get_target_private_dir(self, target):
+        dirname = os.path.join(self.get_target_dir(target), target.get_basename() + '.dir')
+        os.makedirs(dirname, exist_ok=True)
+        return dirname
+
 class NinjaGenerator(Generator):
 
     def __init__(self, build, interp):
@@ -64,11 +82,13 @@ class NinjaGenerator(Generator):
         self.generate_rules(outfile)
     
     def generate_rules(self, outfile):
+        outfile.write('# Rules for compiling.\n\n')
         self.generate_compile_rules(outfile)
-        self.generate_link_rules(outfile)
-
-    def generate_link_rules(self, outfile):
         outfile.write('# Rules for linking.\n\n')
+        self.generate_static_link_rules(outfile)
+        self.generate_dynamic_link_rules(outfile)
+
+    def generate_static_link_rules(self, outfile):
         static_linker = self.build.static_linker
         rule = 'rule STATIC_LINKER\n'
         command = ' command = %s %s $out $LINK_FLAGS $in\n' % \
@@ -79,8 +99,21 @@ class NinjaGenerator(Generator):
         outfile.write(command)
         outfile.write(description)
 
+    def generate_dynamic_link_rules(self, outfile):
+        for compiler in self.build.compilers:
+            langname = compiler.get_language()
+            rule = 'rule %s_LINKER\n' % langname
+            command = ' command = %s $FLAGS $LINK_FLAGS %s $out %s $in\n' % \
+            (' '.join(compiler.get_exelist()),\
+             ' '.join(compiler.get_output_flags()),\
+             ' '.join(compiler.get_compile_only_flags()))
+            description = ' description = Linking target $out'
+            outfile.write(rule)
+            outfile.write(command)
+            outfile.write(description)
+            outfile.write('\n')
+            
     def generate_compile_rules(self, outfile):
-        outfile.write('# Rules for compiling.\n\n')
         for compiler in self.build.compilers:
             langname = compiler.get_language()
             rule = 'rule %s_COMPILER\n' % langname
@@ -88,7 +121,7 @@ class NinjaGenerator(Generator):
             (' '.join(compiler.get_exelist()),\
              ' '.join(compiler.get_output_flags()),\
              ' '.join(compiler.get_compile_only_flags()))
-            description = ' description = Compiling object %s' % langname
+            description = ' description = Compiling %s object $out' % langname
             outfile.write(rule)
             outfile.write(command)
             outfile.write(description)
@@ -350,16 +383,6 @@ echo Run compile.sh before this or bad things will happen.
         outfile.write('\necho Linking \\"%s\\".\n' % target.get_basename())
         outfile.write(' '.join(quoted) + ' || exit\n')
 
-    def get_target_dir(self, target):
-        dirname = os.path.join(self.environment.get_build_dir(), target.get_subdir())
-        os.makedirs(dirname, exist_ok=True)
-        return dirname
-    
-    def get_target_private_dir(self, target):
-        dirname = os.path.join(self.get_target_dir(target), target.get_basename() + '.dir')
-        os.makedirs(dirname, exist_ok=True)
-        return dirname
-
     def generate_commands(self, outfile):
         for i in self.build.get_targets().items():
             target = i[1]
@@ -371,10 +394,6 @@ echo Run compile.sh before this or bad things will happen.
             if not tname in self.processed_targets:
                 self.generate_target(t, outfile)
 
-    def get_target_filename(self, target):
-        targetdir = self.get_target_dir(target)
-        filename = os.path.join(targetdir, target.get_filename())
-        return filename
 
     def generate_pch(self, target, outfile):
         print('Generating pch for "%s"' % target.get_basename())
