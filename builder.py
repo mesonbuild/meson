@@ -28,6 +28,7 @@ parser.add_option('--bindir', default='bin', dest='bindir')
 parser.add_option('--includedir', default='include', dest='includedir')
 parser.add_option('--datadir', default='share', dest='datadir')
 parser.add_option('--mandir' , default='share/man', dest='mandir')
+parser.add_option('--generator', default='shell', dest='generator')
 
 class BuilderApp():
 
@@ -73,7 +74,12 @@ class BuilderApp():
         b = build.Build(env)
         intr = interpreter.Interpreter(code, b)
         intr.run()
-        g = generators.ShellGenerator(b, intr)
+        if options.generator == 'shell':
+            g = generators.ShellGenerator(b, intr)
+        elif options.generator == 'ninja':
+            g = generators.NinjaGenerator(b, intr)
+        else:
+            raise RuntimeError('Unknown generator "%s".' % options.generator)
         g.generate()
 
 if __name__ == '__main__':

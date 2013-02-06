@@ -43,16 +43,27 @@ def do_conf_file(src, dst, variables):
         result.append(line)
     open(dst, 'w').writelines(result)
 
-class ShellGenerator():
-    
+class Generator():
     def __init__(self, build, interp):
         self.build = build
         self.environment = build.environment
         self.interpreter = interp
+        self.processed_targets = {}
+
+class NinjaGenerator(Generator):
+
+    def __init__(self, build, interp):
+        Generator.__init__(self, build, interp)
+
+    def generate(self):
+        pass
+
+class ShellGenerator(Generator):
+    def __init__(self, build, interp):
+        Generator.__init__(self, build, interp)
         self.build_filename = 'compile.sh'
         self.test_filename = 'run_tests.sh'
         self.install_filename = 'install.sh'
-        self.processed_targets = {}
 
     def generate(self):
         self.generate_compile_script()
