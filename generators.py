@@ -54,9 +54,27 @@ class NinjaGenerator(Generator):
 
     def __init__(self, build, interp):
         Generator.__init__(self, build, interp)
+        self.ninja_filename = 'build.ninja'
 
     def generate(self):
-        pass
+        outfilename = os.path.join(self.environment.get_build_dir(), self.ninja_filename)
+        outfile = open(outfilename, 'w')
+        self.generate_rules(outfile)
+    
+    def generate_rules(self, outfile):
+        for compiler in self.build.compilers:
+            langname = compiler.get_language()
+            rule = 'rule %s_COMPILER\n' % langname
+            command = ' command = %s $FLAGS %s $out %s $in\n' % \
+            (' '.join(compiler.get_exelist()),\
+             ' '.join(compiler.get_output_flags()),\
+             ' '.join(compiler.get_compile_only_flags()))
+            description = ' description = compiling %s object' % langname
+            outfile.write(rule)
+            outfile.write(command)
+            outfile.write(description)
+            outfile.write('\n')
+        outfile.write('\n')
 
 class ShellGenerator(Generator):
     def __init__(self, build, interp):
