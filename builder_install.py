@@ -40,7 +40,7 @@ def install_data(d):
         outdir = os.path.split(outfilename)[0]
         os.makedirs(outdir, exist_ok=True)
         print('Installing %s to %s.' % (fullfilename, outdir))
-        gzip.open(outfilename, 'w').write(open(fullfilename, 'rb').read())
+        shutil.copyfile(fullfilename, outfilename)
         shutil.copystat(fullfilename, outfilename)
 
 def install_man(d):
