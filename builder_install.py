@@ -14,16 +14,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys, pickle
+import sys, pickle, os, shutil
 
 class InstallData():
-    def __init__(self, src_dir, build_dir):
-        self.src_dir = src_dir
-        self.build_dir = build_dir
+    def __init__(self):
+        self.targets = []
 
 def do_install(datafilename):
     ifile = open(datafilename, 'rb')
     d = pickle.load(ifile)
+    for t in d.targets:
+        fullfilename = t[0]
+        outdir = t[1]
+        fname = os.path.split(fullfilename)[1]
+        outname = os.path.join(outdir, fname)
+        print('Copying %s to %s' % (fname, outdir))
+        os.makedirs(outdir, exist_ok=True)
+        shutil.copyfile(fullfilename, outname)
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:

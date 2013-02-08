@@ -171,9 +171,20 @@ class NinjaGenerator(Generator):
         self.generate_install_data(outfile, install_data)
     
     def generate_install_data(self, outfile, install_data_file):
-        #d['source_dir'] = self.environment.get_source_dir()
-        #d['build_dir'] = self.environment.get_build_dir()
-        d = InstallData(self.environment.get_source_dir(), self.environment.get_build_dir())
+        prefix = self.environment.get_prefix()
+        d = InstallData()
+        libdir = os.path.join(prefix, self.environment.get_libdir())
+        bindir = os.path.join(prefix, self.environment.get_bindir())
+
+        for tmp in self.build.get_targets().items():
+            (name, t) = tmp
+            if t.should_install():
+                if isinstance(t, interpreter.Executable):
+                    outdir = bindir
+                else:
+                    outdir = libdir
+                i = [os.path.join(self.environment.get_build_dir(), self.get_target_filename(t)), outdir]
+                d.targets.append(i)
         ofile = open(install_data_file, 'wb')
         pickle.dump(d, ofile)
 
