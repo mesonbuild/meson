@@ -171,8 +171,10 @@ class NinjaGenerator(Generator):
         self.generate_install_data(outfile, install_data)
     
     def generate_install_data(self, outfile, install_data_file):
+        depfixer = os.path.join(self.get_script_root(), 'depfixer.py')
+        
         prefix = self.environment.get_prefix()
-        d = InstallData()
+        d = InstallData(depfixer, './') # Fixme
         libdir = os.path.join(prefix, self.environment.get_libdir())
         bindir = os.path.join(prefix, self.environment.get_bindir())
 
@@ -305,7 +307,8 @@ class NinjaGenerator(Generator):
         pass
 
     def generate_ending(self, outfile):
-        build = 'build all: phony %s\n' % ' '.join(self.build.get_targets().keys())
+        targetlist = [self.get_target_filename(t) for t in self.build.get_targets().values()]
+        build = 'build all: phony %s\n' % ' '.join(targetlist)
         default = 'default all\n\n'
         outfile.write(build)
         outfile.write(default)

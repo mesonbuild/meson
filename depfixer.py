@@ -63,7 +63,8 @@ class Elf():
     def parse_header(self):
         self.e_ident = struct.unpack('16s', self.bf.read(16))[0]
         if self.e_ident[1:4] != b'ELF':
-            raise RuntimeError('File "%s" is not an ELF file.' % self.bfile)
+            print('File "%s" is not an ELF file.' % self.bfile)
+            sys.exit(0)
         self.e_type = struct.unpack('h', self.bf.read(2))[0]
         self.e_machine = struct.unpack('h', self.bf.read(2))[0]
         self.e_version = struct.unpack('i', self.bf.read(4))[0]
