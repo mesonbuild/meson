@@ -268,7 +268,7 @@ class NinjaGenerator(Generator):
         for compiler in self.build.compilers:
             langname = compiler.get_language()
             rule = 'rule %s_LINKER\n' % langname
-            command = ' command = %s $FLAGS $LINK_FLAGS %s $out $in\n' % \
+            command = ' command = %s $FLAGS  %s $out $in $LINK_FLAGS\n' % \
             (' '.join(compiler.get_exelist()),\
              ' '.join(compiler.get_output_flags()))
             description = ' description = Linking target $out'
@@ -337,9 +337,15 @@ class NinjaGenerator(Generator):
             raise RuntimeError('Unknown build target type.')
         for dep in target.get_external_deps():
             commands += dep.get_link_flags()
-        commands += self.build_target_link_arguments(target.get_dependencies())
-        build = 'build %s: %s %s\n' % \
-        (ninja_quote(outname), linker_rule, ' '.join([ninja_quote(i) for i in obj_list]))
+        dependencies = target.get_dependencies()
+        commands += self.build_target_link_arguments(dependencies)
+        if len(dependencies) == 0:
+            dep_targets = ''
+        else:
+            dep_targets = '| ' + ' '.join([self.get_target_filename(t) for t in dependencies])
+        build = 'build %s: %s %s %s\n' % \
+        (ninja_quote(outname), linker_rule, ' '.join([ninja_quote(i) for i in obj_list]),
+         dep_targets)
         flags = ' LINK_FLAGS = %s\n\n' % ' '.join([ninja_quote(a) for a in commands])
         outfile.write(build)
         outfile.write(flags)
