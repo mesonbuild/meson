@@ -69,11 +69,14 @@ def install_targets(d):
         fullfilename = t[0]
         outdir = t[1]
         fname = os.path.split(fullfilename)[1]
+        aliases = t[2]
         outname = os.path.join(outdir, fname)
         print('Installing %s to %s' % (fname, outdir))
         os.makedirs(outdir, exist_ok=True)
         shutil.copyfile(fullfilename, outname)
         shutil.copystat(fullfilename, outname)
+        for alias in aliases:
+            os.symlink(fname, os.path.join(outdir, alias))
         p = subprocess.Popen([d.depfixer, outname, d.dep_prefix], stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE)
         (stdo, stde) = p.communicate()

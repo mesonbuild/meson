@@ -189,7 +189,7 @@ class NinjaGenerator(Generator):
                     outdir = bindir
                 else:
                     outdir = libdir
-                i = [os.path.join(self.environment.get_build_dir(), self.get_target_filename(t)), outdir]
+                i = [os.path.join(self.environment.get_build_dir(), self.get_target_filename(t)), outdir, t.get_aliaslist()]
                 d.targets.append(i)
 
     def generate_header_install(self, d):
@@ -268,7 +268,7 @@ class NinjaGenerator(Generator):
         for compiler in self.build.compilers:
             langname = compiler.get_language()
             rule = 'rule %s_LINKER\n' % langname
-            command = ' command = %s $FLAGS  %s $out $in $LINK_FLAGS\n' % \
+            command = ' command = %s $FLAGS  %s $out $in $LINK_FLAGS $aliasing\n' % \
             (' '.join(compiler.get_exelist()),\
              ' '.join(compiler.get_output_flags()))
             description = ' description = Linking target $out'
@@ -375,12 +375,19 @@ class NinjaGenerator(Generator):
         build = 'build %s: %s %s %s\n' % \
         (ninja_quote(outname), linker_rule, ' '.join([ninja_quote(i) for i in obj_list]),
          dep_targets)
-        flags = ' LINK_FLAGS = %s\n\n' % ' '.join([ninja_quote(a) for a in commands])
+        flags = ' LINK_FLAGS = %s\n' % ' '.join([ninja_quote(a) for a in commands])
         outfile.write(build)
         outfile.write(flags)
 
     def generate_shlib_aliases(self, target, outdir, outfile):
-        pass
+        basename = target.get_filename()
+        aliases = target.get_aliaslist()
+        aliascmd = ''
+        for alias in aliases:
+            aliasfile = os.path.join(outdir, alias)
+            cmd = " && ln -s -f '%s' '%s'" % (ninja_quote(basename), ninja_quote(aliasfile))
+            aliascmd += cmd
+        outfile.write(' aliasing =%s\n\n' % aliascmd)
 
     def generate_ending(self, outfile):
         targetlist = [self.get_target_filename(t) for t in self.build.get_targets().values()]
