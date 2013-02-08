@@ -1,4 +1,4 @@
-project('mixed C and C++ pch test', 'c++', 'c')
+project('mixed C and C++ pch test', 'cxx', 'c')
 
 exe = executable('prog', 'main.cc', 'func.c')
 exe.pch('pch/main.hh', 'pch/func.h')

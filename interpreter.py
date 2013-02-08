@@ -438,7 +438,7 @@ class Interpreter():
         for lang in args:
             if lang.lower() == 'c':
                 comp = self.environment.detect_c_compiler()
-            elif lang.lower() == 'c++':
+            elif lang.lower() == 'cxx':
                 comp = self.environment.detect_cxx_compiler()
             else:
                 raise InvalidCode('Tried to use unknown language "%s".' % lang)

@@ -1,8 +1,8 @@
-project('local arg test', 'c++', 'c')
+project('local arg test', 'cxx', 'c')
 
 exe1 = executable('prog', 'prog.cc', 'func.c')
 
 exe1.add_compiler_args('c', '-DCTHING')
-exe1.add_compiler_args('c++', '-DCXXTHING')
+exe1.add_compiler_args('cxx', '-DCXXTHING')
 
 add_test('prog1', exe1)

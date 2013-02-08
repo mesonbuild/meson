@@ -1,7 +1,7 @@
-project('global arg test', 'c++', 'c')
+project('global arg test', 'cxx', 'c')
 
 add_global_arguments('c', '-DMYTHING')
-add_global_arguments('c++', '-DMYCXXTHING')
+add_global_arguments('cxx', '-DMYCXXTHING')
 
 exe1 = executable('prog', 'prog.c')
 exe2 = executable('prog2', 'prog.cc')
