@@ -174,7 +174,7 @@ class NinjaGenerator(Generator):
         self.generate_target_install(d)
         self.generate_header_install(d)
         self.generate_man_install(d)
-        #self.generate_data_install(outfile)
+        self.generate_data_install(d)
         ofile = open(install_data_file, 'wb')
         pickle.dump(d, ofile)
 
@@ -217,6 +217,19 @@ class NinjaGenerator(Generator):
                                       os.path.join(subdir, f + '.gz'))
                 i = [srcabs, dstabs]
                 d.man.append(i)
+
+    def generate_data_install(self, d):
+        prefix = self.environment.get_prefix()
+        dataroot = os.path.join(prefix, self.environment.get_datadir())
+        data = self.build.get_data()
+        for de in data:
+            subdir = os.path.join(dataroot, de.get_subdir())
+            absdir = os.path.join(self.environment.get_prefix(), subdir)
+            for f in de.get_sources():
+                srcabs = os.path.join(self.environment.get_source_dir(), f)
+                dstabs = os.path.join(absdir, f)
+                i = [srcabs, dstabs]
+                d.data.append(i)
 
     def generate_tests(self, outfile):
         script_root = self.get_script_root()

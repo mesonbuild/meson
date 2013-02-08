@@ -23,6 +23,7 @@ class InstallData():
         self.dep_prefix = dep_prefix
         self.headers = []
         self.man = []
+        self.data = []
 
 def do_install(datafilename):
     ifile = open(datafilename, 'rb')
@@ -30,6 +31,17 @@ def do_install(datafilename):
     install_targets(d)
     install_headers(d)
     install_man(d)
+    install_data(d)
+
+def install_data(d):
+    for i in d.data:
+        fullfilename = i[0]
+        outfilename = i[1]
+        outdir = os.path.split(outfilename)[0]
+        os.makedirs(outdir, exist_ok=True)
+        print('Installing %s to %s.' % (fullfilename, outdir))
+        gzip.open(outfilename, 'w').write(open(fullfilename, 'rb').read())
+        shutil.copystat(fullfilename, outfilename)
 
 def install_man(d):
     for m in d.man:
@@ -38,18 +50,19 @@ def install_man(d):
         outdir = os.path.split(outfilename)[0]
         os.makedirs(outdir, exist_ok=True)
         print('Installing %s to %s.' % (fullfilename, outdir))
-        gzip.open(outfilename, 'w').write(open(fullfilename, 'rb').read())
-        
+        shutil.copyfile(fullfilename, outfilename)
+        shutil.copystat(fullfilename, outfilename)
 
 def install_headers(d):
     for t in d.headers:
         fullfilename = t[0]
         outdir = t[1]
         fname = os.path.split(fullfilename)[1]
-        outname = os.path.join(outdir, fname)
+        outfilename = os.path.join(outdir, fname)
         print('Installing %s to %s' % (fname, outdir))
         os.makedirs(outdir, exist_ok=True)
-        shutil.copyfile(fullfilename, outname)
+        shutil.copyfile(fullfilename, outfilename)
+        shutil.copystat(fullfilename, outfilename)
 
 def install_targets(d):
     for t in d.targets:
