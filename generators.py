@@ -299,6 +299,17 @@ class NinjaGenerator(Generator):
         abs_src = os.path.join(self.build_to_src, target.get_source_subdir(), src)
         abs_obj = os.path.join(self.get_target_private_dir(target), src)
         abs_obj += '.' + self.environment.get_object_suffix()
+        pchlist = target.get_pch()
+        if len(pchlist) == 0:
+            pch_dep = ''
+        else:
+            arr = []
+            for pch in pchlist:
+                i = os.path.join(self.get_target_private_dir(target),
+                                  os.path.split(pch)[-1] + '.' + compiler.get_pch_suffix())
+                arr.append(i)
+            pch_dep = '|| ' + ' '.join([ninja_quote(i) for i in arr])
+
         for i in target.get_include_dirs():
             basedir = i.get_curdir()
             for d in i.get_incdirs():
@@ -310,12 +321,30 @@ class NinjaGenerator(Generator):
                 commands.append(sarg)
         commands += self.get_pch_include_args(compiler, target)
         compiler_name = '%s_COMPILER' % compiler.get_language()
-        build = 'build %s: %s %s\n' % \
-        (ninja_quote(abs_obj), compiler_name, ninja_quote(abs_src))
+        build = 'build %s: %s %s %s\n' % \
+        (ninja_quote(abs_obj), compiler_name, ninja_quote(abs_src),
+         pch_dep)
         flags = ' FLAGS = %s\n\n' % ' '.join([ninja_quote(t) for t in commands])
         outfile.write(build)
         outfile.write(flags)
         return abs_obj
+
+    def generate_pch(self, target, outfile):
+        for pch in target.get_pch():
+            if '/' not in pch:
+                raise interpreter.InvalidArguments('Precompiled header of "%s" must not be in the same direcotory as source, please put it in a subdirectory.' % target.get_basename())
+            compiler = self.get_compiler_for_source(pch)
+            commands = []
+            commands += self.generate_basic_compiler_flags(target, compiler)
+            src = os.path.join(self.build_to_src, target.get_source_subdir(), pch)
+            dst = os.path.join(self.get_target_private_dir(target),
+                                  os.path.split(pch)[-1] + '.' + compiler.get_pch_suffix())
+            build = 'build %s: %s %s\n' % (ninja_quote(dst), 
+                                           ninja_quote(compiler.get_language() + '_COMPILER'),
+                                           ninja_quote(src))
+            flags = ' FLAGS = %s\n\n' % ' '.join([ninja_quote(t) for t in commands])
+            outfile.write(build)
+            outfile.write(flags)
 
     def generate_link(self, target, outfile, outname, obj_list):
         if isinstance(target, interpreter.StaticLibrary):
@@ -342,7 +371,7 @@ class NinjaGenerator(Generator):
         if len(dependencies) == 0:
             dep_targets = ''
         else:
-            dep_targets = '| ' + ' '.join([self.get_target_filename(t) for t in dependencies])
+            dep_targets = '| ' + ' '.join([ninja_quote(self.get_target_filename(t)) for t in dependencies])
         build = 'build %s: %s %s %s\n' % \
         (ninja_quote(outname), linker_rule, ' '.join([ninja_quote(i) for i in obj_list]),
          dep_targets)
