@@ -173,7 +173,7 @@ class NinjaGenerator(Generator):
         outfile.write(" COMMAND = '%s' '%s'\n\n" % (ninja_quote(install_script), ninja_quote(install_data_file)))
         self.generate_target_install(d)
         self.generate_header_install(d)
-        #self.generate_man_install(outfile)
+        self.generate_man_install(d)
         #self.generate_data_install(outfile)
         ofile = open(install_data_file, 'wb')
         pickle.dump(d, ofile)
@@ -203,6 +203,20 @@ class NinjaGenerator(Generator):
                 abspath = os.path.join(self.environment.get_source_dir(), f) # FIXME
                 i = [abspath, outdir]
                 d.headers.append(i)
+
+    def generate_man_install(self, d):
+        prefix = self.environment.get_prefix()
+        manroot = os.path.join(prefix, self.environment.get_mandir())
+        man = self.build.get_man()
+        for m in man:
+            for f in m.get_sources():
+                num = f.split('.')[-1]
+                subdir = 'man' + num
+                srcabs = os.path.join(self.environment.get_source_dir(), f)
+                dstabs = os.path.join(manroot, 
+                                      os.path.join(subdir, f + '.gz'))
+                i = [srcabs, dstabs]
+                d.man.append(i)
 
     def generate_tests(self, outfile):
         script_root = self.get_script_root()

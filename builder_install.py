@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys, pickle, os, shutil, subprocess
+import sys, pickle, os, shutil, subprocess, gzip
 
 class InstallData():
     def __init__(self, depfixer, dep_prefix):
@@ -22,12 +22,24 @@ class InstallData():
         self.depfixer = depfixer
         self.dep_prefix = dep_prefix
         self.headers = []
+        self.man = []
 
 def do_install(datafilename):
     ifile = open(datafilename, 'rb')
     d = pickle.load(ifile)
     install_targets(d)
     install_headers(d)
+    install_man(d)
+
+def install_man(d):
+    for m in d.man:
+        fullfilename = m[0]
+        outfilename = m[1]
+        outdir = os.path.split(outfilename)[0]
+        os.makedirs(outdir, exist_ok=True)
+        print('Installing %s to %s.' % (fullfilename, outdir))
+        gzip.open(outfilename, 'w').write(open(fullfilename, 'rb').read())
+        
 
 def install_headers(d):
     for t in d.headers:
