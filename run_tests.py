@@ -20,9 +20,9 @@ import os, subprocess, shutil
 test_build_dir = 'work area'
 install_dir = os.path.join(os.path.split(os.path.abspath(__file__))[0], 'install dir')
 builder_command = './builder.py'
-compile_command = os.path.join(test_build_dir, 'compile.sh')
-test_command = os.path.join(test_build_dir, 'run_tests.sh')
-install_command = os.path.join(test_build_dir, 'install.sh')
+compile_commands = [os.path.join(test_build_dir, 'compile.sh')]
+test_commands = [os.path.join(test_build_dir, 'run_tests.sh')]
+install_commands = [os.path.join(test_build_dir, 'install.sh')]
 
 def run_test(testdir):
     shutil.rmtree(test_build_dir)
@@ -34,15 +34,15 @@ def run_test(testdir):
     p.wait()
     if p.returncode != 0:
         raise RuntimeError('Generating the build system failed.')
-    pc = subprocess.Popen([compile_command])
+    pc = subprocess.Popen(compile_commands)
     pc.wait()
     if pc.returncode != 0:
         raise RuntimeError('Compiling source code failed.')
-    pt = subprocess.Popen([test_command])
+    pt = subprocess.Popen(test_commands)
     pt.wait()
     if pt.returncode != 0:
         raise RuntimeError('Running unit tests failed.')
-    pi = subprocess.Popen([install_command])
+    pi = subprocess.Popen(install_commands)
     pi.wait()
     if pi.returncode != 0:
         raise RuntimeError('Running install failed.')
