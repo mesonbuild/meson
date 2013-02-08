@@ -56,6 +56,12 @@ class Generator():
         self.build_to_src = os.path.relpath(self.environment.get_source_dir(),
                                             self.environment.get_build_dir())
 
+    def get_script_root(self):
+        # The path to wherever our internal scripts are.
+        # /usr/share/../ when installed, local path
+        # when running from source directory.
+        return '..' # FIXME
+
     def get_compiler_for_source(self, src):
         for i in self.build.compilers:
             if i.can_compile(src):
@@ -150,11 +156,21 @@ class NinjaGenerator(Generator):
         [self.generate_target(t, outfile) for t in self.build.get_targets().values()]
         outfile.write('# Test rules\n\n')
         self.generate_tests(outfile)
+        outfile.write('# Install rules\n\n')
+        self.generate_install(outfile)
         outfile.write('# Suffix\n\n')
         self.generate_ending(outfile)
+
+    def generate_install(self, outfile):
+        script_root = self.get_script_root()
+        install_script = os.path.join(script_root, 'builder_install.py')
+        install_data = os.path.join(self.environment.get_scratch_dir(), 'install.dat')
+        outfile.write('build install: CUSTOM_COMMAND | all\n')
+        outfile.write(" COMMAND = '%s' '%s'\n\n" % (ninja_quote(install_script), ninja_quote(install_data)))
         
+
     def generate_tests(self, outfile):
-        script_root = '..' # FIXME
+        script_root = self.get_script_root()
         test_script = os.path.join(script_root, 'builder_test.py')
         test_data = os.path.join(self.environment.get_scratch_dir(), 'builder_test_setup.dat')
         outfile.write('build test: CUSTOM_COMMAND\n')
@@ -179,9 +195,9 @@ class NinjaGenerator(Generator):
     def generate_static_link_rules(self, outfile):
         static_linker = self.build.static_linker
         rule = 'rule STATIC_LINKER\n'
-        command = ' command = %s %s $out $LINK_FLAGS $in\n' % \
-        (' '.join(static_linker.get_exelist()),\
-         ' '.join(static_linker.get_std_link_flags()))
+        command = ' command = %s  $LINK_FLAGS $out $in\n' % \
+        ' '.join(static_linker.get_exelist())
+         
         description = ' description = Static linking library $out\n\n'
         outfile.write(rule)
         outfile.write(command)

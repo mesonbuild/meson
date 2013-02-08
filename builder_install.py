@@ -14,25 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys, subprocess
-
-def run_tests(datafilename):
-    for line in open(datafilename, 'r'):
-        line = line.strip()
-        if line == '':
-            continue
-        p = subprocess.Popen(line, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        (stdo, stde) = p.communicate()
-        if p.returncode != 0:
-            print('Error running test.')
-            print('Stdout:\n' + stdo)
-            print('Stderr:\n' + stde)
-            sys.exit(1)
-        print('Test "%s": OK' % line)
+import sys
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
-        print('Test runner for Builder. Do not run on your own, mmm\'kay?')
-        print('%s [data file]' % sys.argv[0])
+        print('Installer script for Builder. Do not run on your own, mmm\'kay?')
+        print('%s [install info file]' % sys.argv[0])
     datafile = sys.argv[1]
-    run_tests(datafile)
