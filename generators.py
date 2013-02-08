@@ -148,8 +148,22 @@ class NinjaGenerator(Generator):
         self.generate_rules(outfile)
         outfile.write('# Build rules for targets\n\n')
         [self.generate_target(t, outfile) for t in self.build.get_targets().values()]
+        outfile.write('# Test rules\n\n')
+        self.generate_tests(outfile)
         outfile.write('# Suffix\n\n')
         self.generate_ending(outfile)
+        
+    def generate_tests(self, outfile):
+        script_root = '..' # FIXME
+        test_script = os.path.join(script_root, 'builder_test.py')
+        test_data = os.path.join(self.environment.get_scratch_dir(), 'builder_test_setup.dat')
+        outfile.write('build test: CUSTOM_COMMAND\n')
+        outfile.write(' COMMAND = \'%s\' \'%s\'\n\n' % (ninja_quote(test_script), ninja_quote(test_data)))
+        datafile = open(test_data, 'w')
+        for t in self.build.get_tests():
+            datafile.write(self.get_target_filename(t.get_exe()) + '\n')
+        datafile.close()
+
 
     def generate_rules(self, outfile):
         outfile.write('# Rules for compiling.\n\n')
@@ -157,6 +171,10 @@ class NinjaGenerator(Generator):
         outfile.write('# Rules for linking.\n\n')
         self.generate_static_link_rules(outfile)
         self.generate_dynamic_link_rules(outfile)
+        outfile.write('# Other rules\n\n')
+        outfile.write('rule CUSTOM_COMMAND\n')
+        outfile.write(' command = $COMMAND\n')
+        outfile.write(' restat = 1\n\n')
 
     def generate_static_link_rules(self, outfile):
         static_linker = self.build.static_linker

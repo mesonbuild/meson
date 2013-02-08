@@ -144,7 +144,7 @@ class GnuCXXCompiler(CXXCompiler):
 
 class ArLinker():
     std_flags = ['csr']
-    
+
     def __init__(self, exelist):
         self.exelist = exelist
         
