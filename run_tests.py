@@ -48,8 +48,10 @@ def run_test(testdir):
         raise RuntimeError('Running install failed.')
 
 def run_tests():
-    tests = glob('test cases/*')
-    tests.sort()
+    tests = [t.split('/', 1)[1] for t in glob('test cases/*')]
+    testlist = [(int(t.split()[0]), t) for t in tests]
+    testlist.sort()
+    tests = [os.path.join('test cases', t[1]) for t in testlist]
     try:
         os.mkdir(test_build_dir)
     except OSError:
