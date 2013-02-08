@@ -14,10 +14,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys
+import sys, pickle
+
+class InstallData():
+    def __init__(self, src_dir, build_dir):
+        self.src_dir = src_dir
+        self.build_dir = build_dir
+
+def do_install(datafilename):
+    ifile = open(datafilename, 'rb')
+    d = pickle.load(ifile)
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
         print('Installer script for Builder. Do not run on your own, mmm\'kay?')
         print('%s [install info file]' % sys.argv[0])
-    datafile = sys.argv[1]
+    datafilename = sys.argv[1]
+    do_install(datafilename)
+

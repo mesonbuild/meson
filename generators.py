@@ -14,8 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os, stat, re
+import os, stat, re, pickle
 import interpreter, nodes
+from builder_install import InstallData
 
 def shell_quote(cmdlist):
     return ["'" + x + "'" for x in cmdlist]
@@ -167,7 +168,14 @@ class NinjaGenerator(Generator):
         install_data = os.path.join(self.environment.get_scratch_dir(), 'install.dat')
         outfile.write('build install: CUSTOM_COMMAND | all\n')
         outfile.write(" COMMAND = '%s' '%s'\n\n" % (ninja_quote(install_script), ninja_quote(install_data)))
-        
+        self.generate_install_data(outfile, install_data)
+    
+    def generate_install_data(self, outfile, install_data_file):
+        #d['source_dir'] = self.environment.get_source_dir()
+        #d['build_dir'] = self.environment.get_build_dir()
+        d = InstallData(self.environment.get_source_dir(), self.environment.get_build_dir())
+        ofile = open(install_data_file, 'wb')
+        pickle.dump(d, ofile)
 
     def generate_tests(self, outfile):
         script_root = self.get_script_root()
@@ -197,7 +205,6 @@ class NinjaGenerator(Generator):
         rule = 'rule STATIC_LINKER\n'
         command = ' command = %s  $LINK_FLAGS $out $in\n' % \
         ' '.join(static_linker.get_exelist())
-         
         description = ' description = Static linking library $out\n\n'
         outfile.write(rule)
         outfile.write(command)
