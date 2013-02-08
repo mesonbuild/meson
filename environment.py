@@ -86,7 +86,7 @@ class CCompiler():
 class CXXCompiler(CCompiler):
     def __init__(self, exelist):
         CCompiler.__init__(self, exelist)
-        self.language = 'c++'
+        self.language = 'cxx'
 
     def can_compile(self, filename):
         suffix = filename.split('.')[-1]

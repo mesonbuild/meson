@@ -438,14 +438,12 @@ class Interpreter():
         for lang in args:
             if lang.lower() == 'c':
                 comp = self.environment.detect_c_compiler()
-                comp.sanity_check(self.environment.get_scratch_dir())
-                self.build.compilers.append(comp)
             elif lang.lower() == 'c++':
                 comp = self.environment.detect_cxx_compiler()
-                comp.sanity_check(self.environment.get_scratch_dir())
-                self.build.compilers.append(comp)
             else:
                 raise InvalidCode('Tried to use unknown language "%s".' % lang)
+            comp.sanity_check(self.environment.get_scratch_dir())
+            self.build.compilers.append(comp)
 
     def func_find_dep(self, node, args):
         self.validate_arguments(args, 1, [str])
