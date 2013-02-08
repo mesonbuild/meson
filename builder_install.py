@@ -21,10 +21,25 @@ class InstallData():
         self.targets = []
         self.depfixer = depfixer
         self.dep_prefix = dep_prefix
+        self.headers = []
 
 def do_install(datafilename):
     ifile = open(datafilename, 'rb')
     d = pickle.load(ifile)
+    install_targets(d)
+    install_headers(d)
+
+def install_headers(d):
+    for t in d.headers:
+        fullfilename = t[0]
+        outdir = t[1]
+        fname = os.path.split(fullfilename)[1]
+        outname = os.path.join(outdir, fname)
+        print('Installing %s to %s' % (fname, outdir))
+        os.makedirs(outdir, exist_ok=True)
+        shutil.copyfile(fullfilename, outname)
+
+def install_targets(d):
     for t in d.targets:
         fullfilename = t[0]
         outdir = t[1]

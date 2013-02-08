@@ -165,21 +165,25 @@ class NinjaGenerator(Generator):
     def generate_install(self, outfile):
         script_root = self.get_script_root()
         install_script = os.path.join(script_root, 'builder_install.py')
-        install_data = os.path.join(self.environment.get_scratch_dir(), 'install.dat')
-        outfile.write('build install: CUSTOM_COMMAND | all\n')
-        outfile.write(" COMMAND = '%s' '%s'\n\n" % (ninja_quote(install_script), ninja_quote(install_data)))
-        self.generate_install_data(outfile, install_data)
-    
-    def generate_install_data(self, outfile, install_data_file):
+        install_data_file = os.path.join(self.environment.get_scratch_dir(), 'install.dat')
         depfixer = os.path.join(self.get_script_root(), 'depfixer.py')
-        
-        prefix = self.environment.get_prefix()
         d = InstallData(depfixer, './') # Fixme
+
+        outfile.write('build install: CUSTOM_COMMAND | all\n')
+        outfile.write(" COMMAND = '%s' '%s'\n\n" % (ninja_quote(install_script), ninja_quote(install_data_file)))
+        self.generate_target_install(d)
+        self.generate_header_install(d)
+        #self.generate_man_install(outfile)
+        #self.generate_data_install(outfile)
+        ofile = open(install_data_file, 'wb')
+        pickle.dump(d, ofile)
+
+    def generate_target_install(self, d):
+        prefix = self.environment.get_prefix()
         libdir = os.path.join(prefix, self.environment.get_libdir())
         bindir = os.path.join(prefix, self.environment.get_bindir())
 
-        for tmp in self.build.get_targets().items():
-            (name, t) = tmp
+        for t in self.build.get_targets().values():
             if t.should_install():
                 if isinstance(t, interpreter.Executable):
                     outdir = bindir
@@ -187,8 +191,18 @@ class NinjaGenerator(Generator):
                     outdir = libdir
                 i = [os.path.join(self.environment.get_build_dir(), self.get_target_filename(t)), outdir]
                 d.targets.append(i)
-        ofile = open(install_data_file, 'wb')
-        pickle.dump(d, ofile)
+
+    def generate_header_install(self, d):
+        prefix = self.environment.get_prefix()
+        incroot = os.path.join(prefix, self.environment.get_includedir())
+        headers = self.build.get_headers()
+
+        for h in headers:
+            outdir = os.path.join(incroot, h.get_subdir())
+            for f in h.get_sources():
+                abspath = os.path.join(self.environment.get_source_dir(), f) # FIXME
+                i = [abspath, outdir]
+                d.headers.append(i)
 
     def generate_tests(self, outfile):
         script_root = self.get_script_root()
