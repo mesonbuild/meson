@@ -189,7 +189,7 @@ def p_args_single_kw(t):
     a.set_kwarg(t[1], t[3])
     t[0] = a
 
-def p_posargs_none(t):
+def p_args_none(t):
     'args :'
     t[0] = nodes.Arguments(t.lineno(0))
 
