@@ -152,7 +152,6 @@ class BuildTarget(InterpreterObject):
         self.include_dirs = []
         self.methods.update({'add_dep': self.add_dep_method,
                         'link' : self.link_method,
-                        'install': self.install_method,
                         'pch' : self.pch_method,
                         'add_include_dirs': self.add_include_dirs_method,
                         'add_compiler_args' : self.add_compiler_args_method,
@@ -218,11 +217,6 @@ class BuildTarget(InterpreterObject):
             raise InvalidArguments('Link target is not library.')
         self.link_targets.append(target)
 
-    def install_method(self, args, kwargs):
-        if len(args) != 0 or len(kwargs) != 0:
-            raise InvalidArguments('Install() takes no arguments.')
-        self.need_install = True
-    
     def pch_method(self, args):
         if len(args) == 0:
             raise InvalidArguments('Pch requires arguments.')
@@ -264,7 +258,6 @@ class StaticLibrary(BuildTarget):
         prefix = environment.get_static_lib_prefix()
         suffix = environment.get_static_lib_suffix()
         self.filename = prefix + self.name + '.' + suffix
-
 
 class SharedLibrary(BuildTarget):
     def __init__(self, name, subdir, sources, environment, kwargs):
