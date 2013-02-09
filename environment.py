@@ -278,11 +278,23 @@ class Environment():
     def get_datadir(self):
         return self.options.datadir
 
+class Dependency():
+    def __init__(self):
+        pass
+
+    def get_compile_flags(self):
+        return []
+
+    def get_link_flags(self):
+        return []
+
 # This should be an InterpreterObject. Fix it.
-class PkgConfigDependency():
+
+class PkgConfigDependency(Dependency):
     pkgconfig_found = False
     
     def __init__(self, name):
+        Dependency.__init__(self)
         if not PkgConfigDependency.pkgconfig_found:
             self.check_pkgconfig()
 
@@ -308,13 +320,13 @@ class PkgConfigDependency():
     
     def get_modversion(self):
         return self.modversion
-    
+
     def get_compile_flags(self):
         return self.cflags
-    
+
     def get_link_flags(self):
         return self.libs
-    
+
     def check_pkgconfig(self):
         p = subprocess.Popen(['pkg-config', '--version'], stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE)
