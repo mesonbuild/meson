@@ -2,8 +2,7 @@ project('install test', 'c')
 
 stlib = static_library('stat', 'stat.c')
 shlib = shared_library('shar', 'shar.c')
-exe = executable('prog', 'prog.c')
+exe = executable('prog', 'prog.c', install : true)
 
 stlib.install()
 shlib.install()
-exe.install()

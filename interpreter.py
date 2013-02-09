@@ -18,6 +18,7 @@ import bparser
 import nodes
 import environment
 import os, sys, platform
+from nodes import BoolStatement
 
 class InterpreterException(Exception):
     pass
@@ -33,9 +34,9 @@ class InterpreterObject():
     def __init__(self):
         self.methods = {}
 
-    def method_call(self, method_name, args):
+    def method_call(self, method_name, args, kwargs):
         if method_name in self.methods:
-            return self.methods[method_name](args)
+            return self.methods[method_name](args, kwargs)
         raise InvalidCode('Unknown method "%s" in object.' % method_name)
 
 # This currently returns data for the current environment.
@@ -142,7 +143,7 @@ class Man(InterpreterObject):
 
 class BuildTarget(InterpreterObject):
 
-    def __init__(self, name, subdir, sources):
+    def __init__(self, name, subdir, sources, kwargs):
         InterpreterObject.__init__(self)
         self.name = name
         self.subdir = subdir
@@ -161,6 +162,10 @@ class BuildTarget(InterpreterObject):
         self.need_install = False
         self.pch = []
         self.extra_args = {}
+        self.process_kwargs(kwargs)
+
+    def process_kwargs(self, kwargs):
+        self.need_install = kwargs.get('install', self.need_install)
 
     def get_subdir(self):
         return self.subdir
@@ -213,8 +218,8 @@ class BuildTarget(InterpreterObject):
             raise InvalidArguments('Link target is not library.')
         self.link_targets.append(target)
 
-    def install_method(self, args):
-        if len(args) != 0:
+    def install_method(self, args, kwargs):
+        if len(args) != 0 or len(kwargs) != 0:
             raise InvalidArguments('Install() takes no arguments.')
         self.need_install = True
     
@@ -245,8 +250,8 @@ class BuildTarget(InterpreterObject):
         return []
 
 class Executable(BuildTarget):
-    def __init__(self, name, subdir, sources, environment):
-        BuildTarget.__init__(self, name, subdir, sources)
+    def __init__(self, name, subdir, sources, environment, kwargs):
+        BuildTarget.__init__(self, name, subdir, sources, kwargs)
         suffix = environment.get_exe_suffix()
         if suffix != '':
             self.filename = self.name + '.' + suffix
@@ -254,16 +259,16 @@ class Executable(BuildTarget):
             self.filename = self.name
 
 class StaticLibrary(BuildTarget):
-    def __init__(self, name, subdir, sources, environment):
-        BuildTarget.__init__(self, name, subdir, sources)
+    def __init__(self, name, subdir, sources, environment, kwargs):
+        BuildTarget.__init__(self, name, subdir, sources, kwargs)
         prefix = environment.get_static_lib_prefix()
         suffix = environment.get_static_lib_suffix()
         self.filename = prefix + self.name + '.' + suffix
 
 
 class SharedLibrary(BuildTarget):
-    def __init__(self, name, subdir, sources, environment):
-        BuildTarget.__init__(self, name, subdir, sources)
+    def __init__(self, name, subdir, sources, environment, kwargs):
+        BuildTarget.__init__(self, name, subdir, sources, kwargs)
         self.version = None
         self.soversion = None
         self.prefix = environment.get_shared_lib_prefix()
@@ -456,12 +461,12 @@ class Interpreter():
     def func_executable(self, node, args, kwargs):
         return self.build_target(node, args, kwargs, Executable)
 
-    def func_static_lib(self, node, args):
-        return self.build_target(node, args, StaticLibrary)
+    def func_static_lib(self, node, args, kwargs):
+        return self.build_target(node, args, kwargs, StaticLibrary)
 
-    def func_shared_lib(self, node, args):
-        return self.build_target(node, args, SharedLibrary)
-    
+    def func_shared_lib(self, node, args, kwargs):
+        return self.build_target(node, args, kwargs, SharedLibrary)
+
     def func_add_test(self, node, args, kwargs):
         self.validate_arguments(args, 2, [str, Executable])
         t = Test(args[0], args[1])
@@ -552,15 +557,19 @@ class Interpreter():
         for s in args[1:]:
             if not self.environment.is_header(s):
                 sources.append(s)
-        kw_src = self.flatten([kwargs.get('sources', [])])
+        try:
+            kw_src = self.flatten(kwargs['sources'])
+        except KeyError:
+            kw_src = []
         for s in kw_src:
+            print(s)
             if not self.environment.is_header(s):
                 sources.append(s)
         if len(sources) == 0:
             raise InvalidArguments('Line %d: target has no source files.' % node.lineno())
         if name in self.build.targets:
             raise InvalidCode('Line %d: tried to create target "%s", but a target of that name already exists.' % (node.lineno(), name))
-        l = targetclass(name, self.subdir, sources, self.environment)
+        l = targetclass(name, self.subdir, sources, self.environment, kwargs)
         self.build.targets[name] = l
         print('Creating build target "%s" with %d files.' % (name, len(sources)))
         return l
@@ -607,6 +616,8 @@ class Interpreter():
             return self.function_call(arg)
         elif isinstance(arg, nodes.MethodCall):
             return self.method_call(arg)
+        elif isinstance(arg, BoolStatement):
+            return arg.get_value()
         else:
             raise InvalidCode('Line %d: Irreducible argument.' % arg.lineno())
 
@@ -628,7 +639,8 @@ class Interpreter():
         obj = self.get_variable(object_name)
         if not isinstance(obj, InterpreterObject):
             raise InvalidArguments('Line %d: variable "%s" is not callable.' % (node.lineno(), object_name))
-        return obj.method_call(method_name, self.reduce_arguments(args))
+        (args, kwargs) = self.reduce_arguments(args)
+        return obj.method_call(method_name, args, kwargs)
     
     def evaluate_if(self, node):
         result = self.evaluate_statement(node.get_clause())
