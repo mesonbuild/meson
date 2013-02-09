@@ -170,12 +170,25 @@ class Arguments(Statement):
     def __init__(self, lineno):
         Statement.__init__(self, lineno)
         self.arguments = []
-        
+        self.kwargs = {}
+        self.order_error = False
+
     def prepend(self, statement):
         self.arguments = [statement] + self.arguments
 
-    def __len__(self):
+    def set_kwarg(self, name, value):
+        if self.num_args() > 0:
+            self.order_error = True
+        self.kwargs[name.get_value()] = value
+
+    def num_args(self):
         return len(self.arguments)
+
+    def num_kwargs(self):
+        return len(self.kwargs)
+
+    def __len__(self):
+        return self.num_args() # Fixme
 
 def statement_from_expression(expr):
     if isinstance(expr, AtomExpression):

@@ -465,7 +465,7 @@ class Interpreter():
         t = Test(args[0], args[1])
         self.build.tests.append(t)
         print('Adding test "%s"' % args[0])
-        
+
     def func_headers(self, node, args):
         for a in args:
             if not isinstance(a, str):
@@ -534,6 +534,8 @@ class Interpreter():
         for a in args:
             if isinstance(a, list):
                 result = result + self.flatten(a)
+            if isinstance(a, nodes.StringStatement):
+                result.append(a.get_value())
             else:
                 result.append(a)
         return result
@@ -559,9 +561,9 @@ class Interpreter():
 
     def function_call(self, node):
         func_name = node.get_function_name()
-        args = self.reduce_arguments(node.arguments)
+        (posargs, kwargs) = self.reduce_arguments(node.arguments)
         if func_name in self.funcs:
-            return self.funcs[func_name](node, args)
+            return self.funcs[func_name](node, posargs)
         else:
             raise InvalidCode('Unknown function "%s".' % func_name)
 
@@ -587,24 +589,27 @@ class Interpreter():
             raise InvalidCode('Line %d: Tried to assign an invalid value to variable.' % node.lineno())
         self.set_variable(var_name, value)
         return value
-    
+
+    def reduce_single(self, arg):
+        if isinstance(arg, nodes.AtomExpression) or isinstance(arg, nodes.AtomStatement):
+            return self.get_variable(arg.value)
+        elif isinstance(arg, nodes.StringExpression) or isinstance(arg, nodes.StringStatement):
+            return arg.get_value()
+        elif isinstance(arg, nodes.FunctionCall):
+            return self.function_call(arg)
+        elif isinstance(arg, nodes.MethodCall):
+            return self.method_call(arg)
+        else:
+            raise InvalidCode('Line %d: Irreducible argument.' % args.lineno())
+
     def reduce_arguments(self, args):
         assert(isinstance(args, nodes.Arguments))
-        reduced = []
-        for arg in args.arguments:
-            if isinstance(arg, nodes.AtomExpression) or isinstance(arg, nodes.AtomStatement):
-                r = self.get_variable(arg.value)
-            elif isinstance(arg, nodes.StringExpression) or isinstance(arg, nodes.StringStatement):
-                r = arg.get_value()
-            elif isinstance(arg, nodes.FunctionCall):
-                r  = self.function_call(arg)
-            elif isinstance(arg, nodes.MethodCall):
-                r = self.method_call(arg)
-            else:
-                raise InvalidCode('Line %d: Irreducible argument.' % args.lineno())
-            reduced.append(r)
-        assert(len(reduced) == len(args))
-        return reduced
+        reduced_pos = [self.reduce_single(arg) for arg in args.arguments]
+        for key in args.kwargs.keys():
+            if not isinstance(key, str):
+                raise InvalidArguments('Line %d: keyword argument name is not a string.' % args.lineno())
+        reduced_kw = {}
+        return (reduced_pos, reduced_kw)
 
     def method_call(self, node):
         object_name = node.object_name.get_value()

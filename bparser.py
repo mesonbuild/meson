@@ -42,6 +42,7 @@ tokens = ['LPAREN',
           'INT',
           'EOL_CONTINUE',
           'EOL',
+          'COLON',
           ] + list(reserved.values())
 
 t_ASSIGN = '='
@@ -56,6 +57,7 @@ t_RBRACE = '\}'
 t_COMMENT = '\#[^\n]*'
 t_COMMA = ','
 t_DOT = '\.'
+t_COLON = ':'
 
 t_ignore = ' \t'
 
@@ -162,19 +164,32 @@ def p_statement_expression(t):
     'statement : expression'
     t[0] = nodes.statement_from_expression(t[1])
 
+
 def p_args_multiple(t):
     'args : statement COMMA args'
     args = t[3]
     args.prepend(t[1])
     t[0] = args
 
-def p_args_single(t):
+def p_kwargs_multiple(t):
+    'args : expression COLON statement COMMA args'
+    args = t[5]
+    args.add_kwarg(t[1], t[3])
+    t[0] = args
+
+def p_args_single_pos(t):
     'args : statement'
     args = nodes.Arguments(t.lineno(1))
     args.prepend(t[1])
     t[0] = args
 
-def p_args_none(t):
+def p_args_single_kw(t):
+    'args : expression COLON statement'
+    a = nodes.Arguments(t.lineno(1))
+    a.set_kwarg(t[1], t[2])
+    t[0] = a
+
+def p_posargs_none(t):
     'args :'
     t[0] = nodes.Arguments(t.lineno(0))
 
