@@ -418,9 +418,11 @@ class Interpreter():
                 if not isinstance(actual, wanted):
                     raise InvalidArguments('Incorrect argument type.')
 
-    def func_project(self, node, args):
-        if len(args) < 2:
+    def func_project(self, node, args, kwargs):
+        if len(args)< 2:
             raise InvalidArguments('Not enough arguments to project(). Needs at least the project name and one language')
+        if len(kwargs) > 0:
+            raise InvalidArguments('Project() does not take keyword arguments.')
         for a in args:
             if not isinstance(a, str):
                 raise InvalidArguments('Line %d: Argument %s is not a string.' % (node.lineno(), str(a)))
@@ -451,8 +453,8 @@ class Interpreter():
         dep = environment.find_external_dependency(name)
         return dep
 
-    def func_executable(self, node, args):
-        return self.build_target(node, args, Executable)
+    def func_executable(self, node, args, kwargs):
+        return self.build_target(node, args, kwargs, Executable)
 
     def func_static_lib(self, node, args):
         return self.build_target(node, args, StaticLibrary)
@@ -460,7 +462,7 @@ class Interpreter():
     def func_shared_lib(self, node, args):
         return self.build_target(node, args, SharedLibrary)
     
-    def func_add_test(self, node, args):
+    def func_add_test(self, node, args, kwargs):
         self.validate_arguments(args, 2, [str, Executable])
         t = Test(args[0], args[1])
         self.build.tests.append(t)
@@ -540,7 +542,7 @@ class Interpreter():
                 result.append(a)
         return result
 
-    def build_target(self, node, args, targetclass):
+    def build_target(self, node, args, kwargs, targetclass):
         args = self.flatten(args)
         for a in args:
             if not isinstance(a, str):
@@ -548,6 +550,10 @@ class Interpreter():
         name = args[0]
         sources = []
         for s in args[1:]:
+            if not self.environment.is_header(s):
+                sources.append(s)
+        kw_src = self.flatten([kwargs.get('sources', [])])
+        for s in kw_src:
             if not self.environment.is_header(s):
                 sources.append(s)
         if len(sources) == 0:
@@ -563,7 +569,7 @@ class Interpreter():
         func_name = node.get_function_name()
         (posargs, kwargs) = self.reduce_arguments(node.arguments)
         if func_name in self.funcs:
-            return self.funcs[func_name](node, posargs)
+            return self.funcs[func_name](node, posargs, kwargs)
         else:
             raise InvalidCode('Unknown function "%s".' % func_name)
 
@@ -593,6 +599,8 @@ class Interpreter():
     def reduce_single(self, arg):
         if isinstance(arg, nodes.AtomExpression) or isinstance(arg, nodes.AtomStatement):
             return self.get_variable(arg.value)
+        elif isinstance(arg, str):
+            return arg
         elif isinstance(arg, nodes.StringExpression) or isinstance(arg, nodes.StringStatement):
             return arg.get_value()
         elif isinstance(arg, nodes.FunctionCall):
@@ -600,15 +608,17 @@ class Interpreter():
         elif isinstance(arg, nodes.MethodCall):
             return self.method_call(arg)
         else:
-            raise InvalidCode('Line %d: Irreducible argument.' % args.lineno())
+            raise InvalidCode('Line %d: Irreducible argument.' % arg.lineno())
 
     def reduce_arguments(self, args):
         assert(isinstance(args, nodes.Arguments))
         reduced_pos = [self.reduce_single(arg) for arg in args.arguments]
+        reduced_kw = {}
         for key in args.kwargs.keys():
             if not isinstance(key, str):
                 raise InvalidArguments('Line %d: keyword argument name is not a string.' % args.lineno())
-        reduced_kw = {}
+            a = args.kwargs[key]
+            reduced_kw[key] = self.reduce_single(a)
         return (reduced_pos, reduced_kw)
 
     def method_call(self, node):

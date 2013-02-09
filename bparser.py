@@ -186,7 +186,7 @@ def p_args_single_pos(t):
 def p_args_single_kw(t):
     'args : expression COLON statement'
     a = nodes.Arguments(t.lineno(1))
-    a.set_kwarg(t[1], t[2])
+    a.set_kwarg(t[1], t[3])
     t[0] = a
 
 def p_posargs_none(t):
