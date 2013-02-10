@@ -92,10 +92,14 @@ class Headers(InterpreterObject):
 
 class Data(InterpreterObject):
     
-    def __init__(self, subdir, sources):
+    def __init__(self, subdir, sources, kwargs):
         InterpreterObject.__init__(self)
         self.subdir = subdir
         self.sources = sources
+        kwsource = kwargs.get('sources', [])
+        if not isinstance(kwsource, list):
+            kwsource = [kwsource]
+        self.sources += kwsource
 
     def get_subdir(self):
         return self.subdir
@@ -496,13 +500,13 @@ class Interpreter():
         self.evaluate_codeblock(codeblock)
         self.subdir = prev_subdir
 
-    def func_data(self, node, args):
-        if len(args ) < 2:
-            raise InvalidArguments('Line %d: Data function must have at least two arguments: name and source file(s)' % node.lineno())
+    def func_data(self, node, args, kwargs):
+        if len(args ) < 1:
+            raise InvalidArguments('Line %d: Data function must have at least one argument: the subdirectory.' % node.lineno())
         for a in args:
             if not isinstance(a, str):
                 raise InvalidArguments('Line %d: Argument %s is not a string.' % (node.lineno(), str(a)))
-        data = Data(args[0], args[1:])
+        data = Data(args[0], args[1:], kwargs)
         self.build.data.append(data)
         return data
     
