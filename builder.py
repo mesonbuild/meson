@@ -20,9 +20,11 @@ import os.path
 import environment, interpreter
 import generators, build
 
+version = '0.1-research'
+
 usage_info = '%prog [options] source_dir build_dir'
 
-parser = OptionParser(usage=usage_info)
+parser = OptionParser(usage=usage_info, version=version)
 
 parser.add_option('--prefix', default='/usr/local', dest='prefix',
                   help='the installation prefix (default: %default)')
