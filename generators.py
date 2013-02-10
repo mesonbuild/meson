@@ -122,7 +122,10 @@ class Generator():
         commands = []
         commands += self.build.get_global_flags(compiler)
         commands += target.get_extra_args(compiler.get_language())
-        commands += compiler.get_debug_flags()
+        if self.environment.options.buildtype != 'plain':
+            commands += compiler.get_debug_flags()
+        if self.environment.options.buildtype == 'optimized':
+            commands += compiler.get_std_opt_flags()
         commands += compiler.get_std_warn_flags()
         if isinstance(target, interpreter.SharedLibrary):
             commands += compiler.get_pic_flags()
