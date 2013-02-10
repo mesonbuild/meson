@@ -153,7 +153,6 @@ class BuildTarget(InterpreterObject):
         self.external_deps = []
         self.include_dirs = []
         self.methods.update({'add_dep': self.add_dep_method,
-                        'pch' : self.pch_method,
                         'add_include_dirs': self.add_include_dirs_method,
                         'add_compiler_args' : self.add_compiler_args_method,
                         })
@@ -171,6 +170,10 @@ class BuildTarget(InterpreterObject):
             llist = [llist]
         for linktarget in llist:
             self.link(linktarget)
+        pchlist = kwargs.get('pch', [])
+        if not isinstance(pchlist, list):
+            pchlist = [pchlist]
+        self.add_pch(pchlist)
 
     def get_subdir(self):
         return self.subdir
@@ -223,10 +226,8 @@ class BuildTarget(InterpreterObject):
             raise InvalidArguments('Link target is not library.')
         self.link_targets.append(target)
 
-    def pch_method(self, args):
-        if len(args) == 0:
-            raise InvalidArguments('Pch requires arguments.')
-        for a in args:
+    def add_pch(self, pchlist):
+        for a in pchlist:
             self.pch.append(a)
 
     def add_include_dirs_method(self, args):
@@ -593,6 +594,7 @@ class Interpreter():
     
     def assignment(self, node):
         var_name = node.var_name
+        print(node.value)
         if not isinstance(var_name, nodes.AtomExpression):
             raise InvalidArguments('Line %d: Tried to assign value to a non-variable.' % node.lineno())
         var_name = var_name.get_value()
@@ -682,7 +684,9 @@ class Interpreter():
             raise InvalidCode('You broke me.')
     
     def evaluate_arraystatement(self, cur):
-        arguments = self.reduce_arguments(cur.get_args())
+        (arguments, kwargs) = self.reduce_arguments(cur.get_args())
+        if len(kwargs) > 0:
+            raise InvalidCode('Line %d: Keyword arguments are invalid in array construction.' % cur.lineno())
         return arguments
 
 if __name__ == '__main__':
