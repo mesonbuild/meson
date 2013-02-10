@@ -1,3 +1,2 @@
-exe = executable('prog', 'prog.c')
-exe.add_include_dirs(inc)
+exe = executable('prog', 'prog.c', include_dirs : inc)
 add_test('subdir config', exe)
