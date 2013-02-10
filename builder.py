@@ -24,13 +24,19 @@ usage_info = '%prog [options] source_dir build_dir'
 
 parser = OptionParser(usage=usage_info)
 
-parser.add_option('--prefix', default='/usr/local', dest='prefix')
-parser.add_option('--libdir', default='lib', dest='libdir')
-parser.add_option('--bindir', default='bin', dest='bindir')
-parser.add_option('--includedir', default='include', dest='includedir')
-parser.add_option('--datadir', default='share', dest='datadir')
+parser.add_option('--prefix', default='/usr/local', dest='prefix',
+                  help='the installation prefix (default: %default)')
+parser.add_option('--libdir', default='lib', dest='libdir',
+                  help='the installation subdir of libraries (default: %default)')
+parser.add_option('--bindir', default='bin', dest='bindir',
+                  help='the installation subdir of executables (default: %default)')
+parser.add_option('--includedir', default='include', dest='includedir',
+                  help='relative path of installed headers (default: %default)')
+parser.add_option('--datadir', default='share', dest='datadir',
+                  help='relative path of data files (default: %default)')
 parser.add_option('--mandir' , default='share/man', dest='mandir')
-parser.add_option('--generator', default='shell', dest='generator')
+parser.add_option('-G', '--generator', default='shell', dest='generator',
+                  help='the backend generator to use (default: %default)')
 
 class BuilderApp():
 
