@@ -20,7 +20,9 @@ import os.path
 import environment, interpreter
 import generators, build
 
-parser = OptionParser()
+usage_info = '%prog [options] source_dir build_dir'
+
+parser = OptionParser(usage=usage_info)
 
 parser.add_option('--prefix', default='/usr/local', dest='prefix')
 parser.add_option('--libdir', default='lib', dest='libdir')
