@@ -74,10 +74,20 @@ def install_targets(d):
         fname = os.path.split(fullfilename)[1]
         aliases = t[2]
         outname = os.path.join(outdir, fname)
+        should_strip = t[3]
         print('Installing %s to %s' % (fname, outdir))
         os.makedirs(outdir, exist_ok=True)
         shutil.copyfile(fullfilename, outname)
         shutil.copystat(fullfilename, outname)
+        if should_strip:
+            print('Stripping target')
+            ps = subprocess.Popen(['strip', outname], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            (stdo, stde) = ps.communicate()
+            if ps.returncode != 0:
+                print('Could not strip file.\n')
+                print('Stdout:\n%s\n' % stdo.decode())
+                print('Stderr:\n%s\n' % stde.decode())
+                sys.exit(1)
         for alias in aliases:
             os.symlink(fname, os.path.join(outdir, alias))
         p = subprocess.Popen([d.depfixer, outname, d.dep_prefix], stdout=subprocess.PIPE,

@@ -198,13 +198,14 @@ class NinjaGenerator(Generator):
         libdir = os.path.join(prefix, self.environment.get_libdir())
         bindir = os.path.join(prefix, self.environment.get_bindir())
 
+        should_strip = self.environment.options.strip
         for t in self.build.get_targets().values():
             if t.should_install():
                 if isinstance(t, interpreter.Executable):
                     outdir = bindir
                 else:
                     outdir = libdir
-                i = [os.path.join(self.environment.get_build_dir(), self.get_target_filename(t)), outdir, t.get_aliaslist()]
+                i = [os.path.join(self.environment.get_build_dir(), self.get_target_filename(t)), outdir, t.get_aliaslist(), should_strip]
                 d.targets.append(i)
 
     def generate_header_install(self, d):
@@ -360,12 +361,15 @@ class NinjaGenerator(Generator):
             src = os.path.join(self.build_to_src, target.get_source_subdir(), pch)
             dst = os.path.join(self.get_target_private_dir(target),
                                   os.path.split(pch)[-1] + '.' + compiler.get_pch_suffix())
+            dep = dst + '.' + compiler.get_depfile_suffix()
             build = 'build %s: %s %s\n' % (ninja_quote(dst), 
                                            ninja_quote(compiler.get_language() + '_COMPILER'),
                                            ninja_quote(src))
-            flags = ' FLAGS = %s\n\n' % ' '.join([ninja_quote(t) for t in commands])
+            flags = ' FLAGS = %s\n' % ' '.join([ninja_quote(t) for t in commands])
+            depfile = ' DEPFILE = %s\n\n' % ninja_quote(dep)
             outfile.write(build)
             outfile.write(flags)
+            outfile.write(depfile)
 
     def generate_link(self, target, outfile, outname, obj_list):
         if isinstance(target, interpreter.StaticLibrary):
