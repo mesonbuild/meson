@@ -50,7 +50,10 @@ def install_man(d):
         outdir = os.path.split(outfilename)[0]
         os.makedirs(outdir, exist_ok=True)
         print('Installing %s to %s.' % (fullfilename, outdir))
-        shutil.copyfile(fullfilename, outfilename)
+        if outfilename.endswith('.gz') and not fullfilename.endswith('.gz'):
+            open(outfilename, 'wb').write(gzip.compress(open(fullfilename, 'rb').read()))
+        else:
+            shutil.copyfile(fullfilename, outfilename)
         shutil.copystat(fullfilename, outfilename)
 
 def install_headers(d):
