@@ -1,5 +1,5 @@
 project('static library linking test', 'c')
 lib = static_library('mylib', 'libfile.c')
-exe = executable('prog', 'main.c')
-exe.link(lib)
+exe = executable('prog', 'main.c', link_with : lib)
+
 add_test('runtest', exe)

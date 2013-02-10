@@ -18,7 +18,6 @@ import bparser
 import nodes
 import environment
 import os, sys, platform
-from nodes import BoolStatement
 
 class InterpreterException(Exception):
     pass
@@ -151,7 +150,6 @@ class BuildTarget(InterpreterObject):
         self.external_deps = []
         self.include_dirs = []
         self.methods.update({'add_dep': self.add_dep_method,
-                        'link' : self.link_method,
                         'pch' : self.pch_method,
                         'add_include_dirs': self.add_include_dirs_method,
                         'add_compiler_args' : self.add_compiler_args_method,
@@ -165,6 +163,11 @@ class BuildTarget(InterpreterObject):
 
     def process_kwargs(self, kwargs):
         self.need_install = kwargs.get('install', self.need_install)
+        llist = kwargs.get('link_with', [])
+        if not isinstance(llist, list):
+            llist = [llist]
+        for linktarget in llist:
+            self.link(linktarget)
 
     def get_subdir(self):
         return self.subdir
@@ -210,8 +213,8 @@ class BuildTarget(InterpreterObject):
     def add_dep_method(self, args):
         [self.add_external_dep(dep) for dep in args]
 
-    def link_method(self, args):
-        target = args[0]
+    def link(self, target):
+        target
         if not isinstance(target, StaticLibrary) and \
         not isinstance(target, SharedLibrary):
             raise InvalidArguments('Link target is not library.')
@@ -609,7 +612,7 @@ class Interpreter():
             return self.function_call(arg)
         elif isinstance(arg, nodes.MethodCall):
             return self.method_call(arg)
-        elif isinstance(arg, BoolStatement):
+        elif isinstance(arg, nodes.BoolStatement) or isinstance(arg, nodes.BoolExpression):
             return arg.get_value()
         else:
             raise InvalidCode('Line %d: Irreducible argument.' % arg.lineno())
