@@ -109,7 +109,7 @@ class Data(InterpreterObject):
 
 class ConfigureFile(InterpreterObject):
     
-    def __init__(self, subdir, sourcename, targetname):
+    def __init__(self, subdir, sourcename, targetname, kwargs):
         InterpreterObject.__init__(self)
         self.subdir = subdir
         self.sourcename = sourcename
@@ -129,10 +129,12 @@ class ConfigureFile(InterpreterObject):
 
 class Man(InterpreterObject):
 
-    def __init__(self, sources):
+    def __init__(self, sources, kwargs):
         InterpreterObject.__init__(self)
         self.sources = sources
         self.validate_sources()
+        if len(kwargs) > 0:
+            raise InvalidArguments('Man function takes no keyword arguments.')
         
     def validate_sources(self):
         for s in self.sources:
@@ -486,15 +488,17 @@ class Interpreter():
         self.build.headers.append(h)
         return h
     
-    def func_man(self, node, args):
+    def func_man(self, node, args, kwargs):
         for a in args:
             if not isinstance(a, str):
                 raise InvalidArguments('Line %d: Argument %s is not a string.' % (node.lineno(), str(a)))
-        m = Man(args)
+        m = Man(args, kwargs)
         self.build.man.append(m)
         return m
     
-    def func_subdir(self, node, args):
+    def func_subdir(self, node, args, kwargs):
+        if len(kwargs) > 0:
+            raise InvalidArguments('Line %d: subdir command takes no keyword arguments.' % node.lineno())
         self.validate_arguments(args, 1, [str])
         prev_subdir = self.subdir
         self.subdir = os.path.join(prev_subdir, args[0])
@@ -516,9 +520,9 @@ class Interpreter():
         self.build.data.append(data)
         return data
     
-    def func_configure_file(self, node, args):
+    def func_configure_file(self, node, args, kwargs):
         self.validate_arguments(args, 2, [str, str])
-        c = ConfigureFile(self.subdir, args[0], args[1])
+        c = ConfigureFile(self.subdir, args[0], args[1], kwargs)
         self.build.configure_files.append(c)
 
     def func_include_directories(self, node, args):
