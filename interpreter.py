@@ -181,6 +181,10 @@ class BuildTarget(InterpreterObject):
         if not isinstance(cxxlist, list):
             cxxlist = [cxxlist]
         self.add_compiler_args('cxx', cxxlist)
+        if 'version' in kwargs:
+            self.set_version(kwargs['version'])
+        if 'soversion' in kwargs:
+            self.set_soversion(kwargs['soversion'])
 
     def get_subdir(self):
         return self.subdir
@@ -273,17 +277,15 @@ class StaticLibrary(BuildTarget):
 
 class SharedLibrary(BuildTarget):
     def __init__(self, name, subdir, sources, environment, kwargs):
-        BuildTarget.__init__(self, name, subdir, sources, kwargs)
         self.version = None
         self.soversion = None
+        BuildTarget.__init__(self, name, subdir, sources, kwargs)
         self.prefix = environment.get_shared_lib_prefix()
         self.suffix = environment.get_shared_lib_suffix()
-        self.methods.update({'set_version' : self.set_version_method,
-                             'set_soversion' : self.set_soversion_method,
-                             })
-    
+
     def get_shbase(self):
         return self.prefix + self.name + '.' + self.suffix
+
     def get_filename(self):
         fname = self.get_shbase()
         if self.version is None:
@@ -291,17 +293,15 @@ class SharedLibrary(BuildTarget):
         else:
             return fname + '.' + self.version
 
-    def set_version_method(self, args):
-        v = args[0]
-        if not isinstance(v, str):
+    def set_version(self, version):
+        if not isinstance(version, str):
             raise InvalidArguments('Shared library version is not a string.')
-        self.version = v
+        self.version = version
 
-    def set_soversion_method(self, args):
-        v = args[0]
-        if not isinstance(v, str):
+    def set_soversion(self, version):
+        if not isinstance(version, str):
             raise InvalidArguments('Shared library soversion is not a string.')
-        self.soversion = v
+        self.soversion = version
 
     def get_aliaslist(self):
         aliases = []
