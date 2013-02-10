@@ -1,7 +1,5 @@
 project('shared library linking test', 'c')
-lib = shared_library('mylib', 'libfile.c')
-exe = executable('prog', 'main.c')
-exe.link(lib)
-lib.install()
-exe.install()
+lib = shared_library('mylib', 'libfile.c', install : true)
+exe = executable('prog', 'main.c', link_with : lib, install : true)
+
 add_test('runtest', exe)
