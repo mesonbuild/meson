@@ -15,11 +15,11 @@
 # limitations under the License.
 
 from glob import glob
-import os, subprocess, shutil
+import os, subprocess, shutil, sys
 
 test_build_dir = 'work area'
 install_dir = os.path.join(os.path.split(os.path.abspath(__file__))[0], 'install dir')
-use_shell = True
+use_shell = len(sys.argv) == 1
 builder_command = './builder.py'
 if use_shell:
     generator_flags = []
