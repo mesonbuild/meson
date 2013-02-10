@@ -61,12 +61,14 @@ class Host(InterpreterObject):
         return sys.byteorder != 'little'
 
 class IncludeDirs(InterpreterObject):
-    def __init__(self, curdir, dirs):
+    def __init__(self, curdir, dirs, kwargs):
         InterpreterObject.__init__(self)
         self.curdir = curdir
         self.incdirs = dirs
         # Fixme: check that the directories actually exist.
         # Also that they don't contain ".." or somesuch.
+        if len(kwargs) > 0:
+            raise InvalidCode('Includedirs function does not take keyword arguments.')
 
     def get_curdir(self):
         return self.curdir
@@ -155,7 +157,6 @@ class BuildTarget(InterpreterObject):
         self.external_deps = []
         self.include_dirs = []
         self.methods.update({'add_dep': self.add_dep_method,
-                        'add_include_dirs': self.add_include_dirs_method,
                         })
         self.link_targets = []
         self.filename = 'no_name'
@@ -187,6 +188,10 @@ class BuildTarget(InterpreterObject):
             self.set_version(kwargs['version'])
         if 'soversion' in kwargs:
             self.set_soversion(kwargs['soversion'])
+        inclist = kwargs.get('include_dirs', [])
+        if not isinstance(inclist, list):
+            inclist = [inclist]
+        self.add_include_dirs(inclist)
 
     def get_subdir(self):
         return self.subdir
@@ -243,12 +248,12 @@ class BuildTarget(InterpreterObject):
         for a in pchlist:
             self.pch.append(a)
 
-    def add_include_dirs_method(self, args):
+    def add_include_dirs(self, args):
         for a in args:
             if not isinstance(a, IncludeDirs):
                 raise InvalidArguments('Include directory to be added is not an include directory object.')
         self.include_dirs += args
-        
+
     def add_compiler_args(self, language, flags):
         for a in flags:
             if not isinstance(a, str):
@@ -525,11 +530,11 @@ class Interpreter():
         c = ConfigureFile(self.subdir, args[0], args[1], kwargs)
         self.build.configure_files.append(c)
 
-    def func_include_directories(self, node, args):
+    def func_include_directories(self, node, args, kwargs):
         for a in args:
             if not isinstance(a, str):
                 raise InvalidArguments('Line %d: Argument %s is not a string.' % (node.lineno(), str(a)))
-        i = IncludeDirs(self.subdir, args)
+        i = IncludeDirs(self.subdir, args, kwargs)
         return i
 
     def func_add_global_arguments(self, node, args):
