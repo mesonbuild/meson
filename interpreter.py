@@ -616,6 +616,8 @@ class Interpreter():
 
     def reduce_arguments(self, args):
         assert(isinstance(args, nodes.Arguments))
+        if args.incorrect_order():
+            raise InvalidArguments('Line %d: all keyword arguments must be after positional arguments.' % args.lineno())
         reduced_pos = [self.reduce_single(arg) for arg in args.arguments]
         reduced_kw = {}
         for key in args.kwargs.keys():

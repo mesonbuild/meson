@@ -174,7 +174,7 @@ def p_args_multiple(t):
 def p_kwargs_multiple(t):
     'args : expression COLON statement COMMA args'
     args = t[5]
-    args.add_kwarg(t[1], t[3])
+    args.set_kwarg(t[1], t[3])
     t[0] = args
 
 def p_args_single_pos(t):

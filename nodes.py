@@ -186,6 +186,9 @@ class Arguments(Statement):
 
     def num_kwargs(self):
         return len(self.kwargs)
+    
+    def incorrect_order(self):
+        return self.order_error
 
     def __len__(self):
         return self.num_args() # Fixme
