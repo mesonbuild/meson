@@ -26,6 +26,10 @@ usage_info = '%prog [options] source_dir build_dir'
 
 parser = OptionParser(usage=usage_info, version=version)
 
+build_types = ['plain', 'debug', 'optimized']
+buildtype_help = 'build type, one of: %s' % ', '.join(build_types)
+buildtype_help += ' (default: %default)'
+
 parser.add_option('--prefix', default='/usr/local', dest='prefix',
                   help='the installation prefix (default: %default)')
 parser.add_option('--libdir', default='lib', dest='libdir',
@@ -40,6 +44,10 @@ parser.add_option('--mandir' , default='share/man', dest='mandir',
                   help='relatie path of man files (default: %default)')
 parser.add_option('-G', '--generator', default='shell', dest='generator',
                   help='the backend generator to use (default: %default)')
+parser.add_option('--buildtype', default='debug', type='choice', choices=build_types, dest='buildtype',
+                  help=buildtype_help)
+parser.add_option('--strip', action='store_true', dest='strip', default=False,\
+                  help='strip targets on install (default: %default)')
 
 class BuilderApp():
 
