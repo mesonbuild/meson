@@ -76,14 +76,13 @@ class IncludeDirs(InterpreterObject):
 
 class Headers(InterpreterObject):
 
-    def __init__(self, sources):
+    def __init__(self, sources, kwargs):
         InterpreterObject.__init__(self)
         self.sources = sources
-        self.methods.update({'set_subdir' : self.set_subdir})
-        self.subdir = ''
+        self.subdir = kwargs.get('subdir', '')
 
-    def set_subdir(self, args):
-        self.subdir = args[0]
+    def set_subdir(self, subdir):
+        self.subdir = subdir
 
     def get_subdir(self):
         return self.subdir
@@ -469,11 +468,11 @@ class Interpreter():
         self.build.tests.append(t)
         print('Adding test "%s"' % args[0])
 
-    def func_headers(self, node, args):
+    def func_headers(self, node, args, kwargs):
         for a in args:
             if not isinstance(a, str):
                 raise InvalidArguments('Line %d: Argument %s is not a string.' % (node.lineno(), str(a)))
-        h = Headers(args)
+        h = Headers(args, kwargs)
         self.build.headers.append(h)
         return h
     
