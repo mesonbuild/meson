@@ -222,7 +222,10 @@ class Environment():
 
     def detect_c_compiler(self):
         exelist = self.get_c_compiler_exelist()
-        p = subprocess.Popen(exelist + ['--version'], stdout=subprocess.PIPE)
+        try:
+            p = subprocess.Popen(exelist + ['--version'], stdout=subprocess.PIPE)
+        except OSError:
+            raise EnvironmentException('Could not execute C compiler "%s"' % ' '.join(exelist))
         out = p.communicate()[0]
         out = out.decode()
         if (out.startswith('cc ') or out.startswith('gcc')) and \
@@ -241,7 +244,10 @@ class Environment():
 
     def detect_cxx_compiler(self):
         exelist = self.get_cxx_compiler_exelist()
-        p = subprocess.Popen(exelist + ['--version'], stdout=subprocess.PIPE)
+        try:
+            p = subprocess.Popen(exelist + ['--version'], stdout=subprocess.PIPE)
+        except OSError:
+            raise EnvironmentException('Could not execute C++ compiler "%s"' % ' '.join(exelist))
         out = p.communicate()[0]
         out = out.decode()
         if (out.startswith('c++ ') or out.startswith('g++')) and \
