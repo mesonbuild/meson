@@ -126,6 +126,22 @@ class GnuCCompiler(CCompiler):
     def get_pch_suffix(self):
         return 'gch'
 
+class ClangCCompiler(CCompiler):
+    std_warn_flags = ['-Wall', '-Winvalid-pch']
+    std_opt_flags = ['-O2']
+
+    def __init__(self, exelist):
+        CCompiler.__init__(self, exelist)
+
+    def get_std_warn_flags(self):
+        return ClangCCompiler.std_warn_flags
+
+    def get_std_opt_flags(self):
+        return ClangCCompiler.std_opt_flags
+
+    def get_pch_suffix(self):
+        return 'pch'
+
 class GnuCXXCompiler(CXXCompiler):
     std_warn_flags = ['-Wall', '-Winvalid-pch']
     std_opt_flags = ['-O2']
@@ -141,6 +157,22 @@ class GnuCXXCompiler(CXXCompiler):
 
     def get_pch_suffix(self):
         return 'gch'
+
+class ClangCXXCompiler(CXXCompiler):
+    std_warn_flags = ['-Wall', '-Winvalid-pch']
+    std_opt_flags = ['-O2']
+    
+    def __init__(self, exelist):
+        CXXCompiler.__init__(self, exelist)
+
+    def get_std_warn_flags(self):
+        return ClangCXXCompiler.std_warn_flags
+
+    def get_std_opt_flags(self):
+        return ClangCXXCompiler.std_opt_flags
+
+    def get_pch_suffix(self):
+        return 'pch'
 
 class ArLinker():
     std_flags = ['csr']
@@ -196,6 +228,8 @@ class Environment():
         if (out.startswith('cc ') or out.startswith('gcc')) and \
             'Free Software Foundation' in out:
             return GnuCCompiler(exelist)
+        if (out.startswith('clang')):
+            return ClangCCompiler(exelist)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
 
     def get_scratch_dir(self):
@@ -213,6 +247,8 @@ class Environment():
         if (out.startswith('c++ ') or out.startswith('g++')) and \
             'Free Software Foundation' in out:
             return GnuCXXCompiler(exelist)
+        if out.startswith('clang'):
+            return ClangCXXCompiler(exelist)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
     
     def detect_static_linker(self):
