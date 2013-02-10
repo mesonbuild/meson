@@ -49,15 +49,15 @@ class Host(InterpreterObject):
                              'is_big_endian' : self.is_big_endian_method,
                              })
 
-    def get_ptrsize_method(self, args):
+    def get_ptrsize_method(self, args, kwargs):
         if sys.maxsize > 2**32:
             return 64
         return 32
 
-    def get_name_method(self, args):
+    def get_name_method(self, args, kwargs):
         return platform.system().lower()
     
-    def is_big_endian_method(self, args):
+    def is_big_endian_method(self, args, kwargs):
         return sys.byteorder != 'little'
 
 class IncludeDirs(InterpreterObject):
