@@ -537,18 +537,19 @@ class Interpreter():
         i = IncludeDirs(self.subdir, args, kwargs)
         return i
 
-    def func_add_global_arguments(self, node, args):
+    def func_add_global_arguments(self, node, args, kwargs):
         for a in args:
             if not isinstance(a, str):
                 raise InvalidArguments('Line %d: Argument %s is not a string.' % (node.lineno(), str(a)))
         if len(self.build.get_targets()) > 0:
             raise InvalidCode('Line %d: global flags can not be set once any build target is defined.' % node.lineno())
-        lang = args[0].lower()
-        switches = args[1:]
+        if not 'language' in kwargs:
+            raise InvalidCode('Line %d: missing language definition in add_global_arguments' % node.lineno())
+        lang = kwargs['language'].lower()
         if lang in self.build.global_args:
-            self.build.global_args[lang] += switches
+            self.build.global_args[lang] += args
         else:
-            self.build.global_args[lang] = switches
+            self.build.global_args[lang] = args
 
     def flatten(self, args):
         if isinstance(args, nodes.StringStatement):
