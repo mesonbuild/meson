@@ -31,7 +31,13 @@ class CCompiler():
         else:
             raise TypeError('Unknown argument to CCompiler')
         self.language = 'c'
-        
+
+    def get_dependency_gen_flags(self, outtarget, outfile):
+        return ['-MMD', '-MT', outtarget, '-MF', outfile]
+
+    def get_depfile_suffix(self):
+        return 'd'
+
     def get_language(self):
         return self.language
 

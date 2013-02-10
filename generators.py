@@ -294,13 +294,17 @@ class NinjaGenerator(Generator):
         for compiler in self.build.compilers:
             langname = compiler.get_language()
             rule = 'rule %s_COMPILER\n' % langname
-            command = ' command = %s $FLAGS %s $out %s $in\n' % \
+            depflags = compiler.get_dependency_gen_flags('$out', '$DEPFILE')
+            command = " command = %s $FLAGS %s %s $out %s $in\n" % \
             (' '.join(compiler.get_exelist()),\
+             ' '.join(['\'%s\''% d for d in depflags]),\
              ' '.join(compiler.get_output_flags()),\
              ' '.join(compiler.get_compile_only_flags()))
-            description = ' description = Compiling %s object $out' % langname
+            description = ' description = Compiling %s object $out\n' % langname
+            dep = ' depfile = $DEPFILE\n'
             outfile.write(rule)
             outfile.write(command)
+            outfile.write(dep)
             outfile.write(description)
             outfile.write('\n')
         outfile.write('\n')
@@ -311,6 +315,7 @@ class NinjaGenerator(Generator):
         abs_src = os.path.join(self.build_to_src, target.get_source_subdir(), src)
         abs_obj = os.path.join(self.get_target_private_dir(target), src)
         abs_obj += '.' + self.environment.get_object_suffix()
+        dep_file = abs_obj + '.' + compiler.get_depfile_suffix()
         pchlist = target.get_pch()
         if len(pchlist) == 0:
             pch_dep = ''
@@ -321,7 +326,6 @@ class NinjaGenerator(Generator):
                                   os.path.split(pch)[-1] + '.' + compiler.get_pch_suffix())
                 arr.append(i)
             pch_dep = '|| ' + ' '.join([ninja_quote(i) for i in arr])
-
         for i in target.get_include_dirs():
             basedir = i.get_curdir()
             for d in i.get_incdirs():
@@ -336,8 +340,10 @@ class NinjaGenerator(Generator):
         build = 'build %s: %s %s %s\n' % \
         (ninja_quote(abs_obj), compiler_name, ninja_quote(abs_src),
          pch_dep)
+        dep = ' DEPFILE = %s\n' % dep_file
         flags = ' FLAGS = %s\n\n' % ' '.join(["'" + ninja_quote(t) + "'" for t in commands])
         outfile.write(build)
+        outfile.write(dep)
         outfile.write(flags)
         return abs_obj
 
