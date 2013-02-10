@@ -154,7 +154,6 @@ class BuildTarget(InterpreterObject):
         self.include_dirs = []
         self.methods.update({'add_dep': self.add_dep_method,
                         'add_include_dirs': self.add_include_dirs_method,
-                        'add_compiler_args' : self.add_compiler_args_method,
                         })
         self.link_targets = []
         self.filename = 'no_name'
@@ -174,6 +173,14 @@ class BuildTarget(InterpreterObject):
         if not isinstance(pchlist, list):
             pchlist = [pchlist]
         self.add_pch(pchlist)
+        clist = kwargs.get('c_args', [])
+        if not isinstance(clist, list):
+            clist = [clist]
+        self.add_compiler_args('c', clist)
+        cxxlist = kwargs.get('cxx_args', [])
+        if not isinstance(cxxlist, list):
+            cxxlist = [cxxlist]
+        self.add_compiler_args('cxx', cxxlist)
 
     def get_subdir(self):
         return self.subdir
@@ -236,12 +243,10 @@ class BuildTarget(InterpreterObject):
                 raise InvalidArguments('Include directory to be added is not an include directory object.')
         self.include_dirs += args
         
-    def add_compiler_args_method(self, args):
-        for a in args:
+    def add_compiler_args(self, language, flags):
+        for a in flags:
             if not isinstance(a, str):
                 raise InvalidArguments('A non-string passed to compiler args.')
-        language = args[0]
-        flags = args[1:]
         if language in self.extra_args:
             self.extra_args[language] += flags
         else:
@@ -562,7 +567,6 @@ class Interpreter():
         except KeyError:
             kw_src = []
         for s in kw_src:
-            print(s)
             if not self.environment.is_header(s):
                 sources.append(s)
         if len(sources) == 0:
@@ -594,7 +598,6 @@ class Interpreter():
     
     def assignment(self, node):
         var_name = node.var_name
-        print(node.value)
         if not isinstance(var_name, nodes.AtomExpression):
             raise InvalidArguments('Line %d: Tried to assign value to a non-variable.' % node.lineno())
         var_name = var_name.get_value()
