@@ -156,8 +156,6 @@ class BuildTarget(InterpreterObject):
         self.sources = sources
         self.external_deps = []
         self.include_dirs = []
-        self.methods.update({'add_dep': self.add_dep_method,
-                        })
         self.link_targets = []
         self.filename = 'no_name'
         self.need_install = False
@@ -192,6 +190,10 @@ class BuildTarget(InterpreterObject):
         if not isinstance(inclist, list):
             inclist = [inclist]
         self.add_include_dirs(inclist)
+        deplist = kwargs.get('deps', [])
+        if not isinstance(deplist, list):
+            deplist = [deplist]
+        self.add_external_deps(deplist)
 
     def get_subdir(self):
         return self.subdir
@@ -226,15 +228,16 @@ class BuildTarget(InterpreterObject):
     def get_include_dirs(self):
         return self.include_dirs
 
-    def add_external_dep(self, dep):
-        if not isinstance(dep, environment.PkgConfigDependency):
-            raise InvalidArguments('Argument is not an external dependency')
-        self.external_deps.append(dep)
+    def add_external_deps(self, deps):
+        for dep in deps:
+            if not isinstance(dep, environment.Dependency):
+                raise InvalidArguments('Argument is not an external dependency')
+            self.external_deps.append(dep)
 
     def get_external_deps(self):
         return self.external_deps
 
-    def add_dep_method(self, args):
+    def add_dep(self, args):
         [self.add_external_dep(dep) for dep in args]
 
     def link(self, target):
@@ -464,10 +467,10 @@ class Interpreter():
             comp.sanity_check(self.environment.get_scratch_dir())
             self.build.compilers.append(comp)
 
-    def func_find_dep(self, node, args):
+    def func_find_dep(self, node, args, kwargs):
         self.validate_arguments(args, 1, [str])
         name = args[0]
-        dep = environment.find_external_dependency(name)
+        dep = environment.find_external_dependency(name, kwargs)
         return dep
 
     def func_executable(self, node, args, kwargs):

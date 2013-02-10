@@ -337,7 +337,7 @@ class PkgConfigDependency(Dependency):
         PkgConfigDependency.pkgconfig_found = True
 
 # Fixme, move to environment.
-def find_external_dependency(name):
+def find_external_dependency(name, kwargs):
     # Add detectors for non-pkg-config deps (e.g. Boost) etc here.
     return PkgConfigDependency(name)
 

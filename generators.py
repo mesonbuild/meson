@@ -596,6 +596,9 @@ echo Run compile.sh before this or bad things will happen.
             linker = self.build.compilers[0] # Fixme.
         commands = []
         commands += linker.get_exelist()
+        commands += linker.get_output_flags()
+        commands.append(outname)
+        commands += obj_list
         if isinstance(target, interpreter.Executable):
             commands += linker.get_std_exe_link_flags()
         elif isinstance(target, interpreter.SharedLibrary):
@@ -607,9 +610,6 @@ echo Run compile.sh before this or bad things will happen.
             raise RuntimeError('Unknown build target type.')
         for dep in target.get_external_deps():
             commands += dep.get_link_flags()
-        commands += linker.get_output_flags()
-        commands.append(outname)
-        commands += obj_list
         commands += self.build_target_link_arguments(target.get_dependencies())
         quoted = shell_quote(commands)
         outfile.write('\necho Linking \\"%s\\".\n' % target.get_basename())
