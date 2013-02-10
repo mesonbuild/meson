@@ -596,6 +596,8 @@ echo Run compile.sh before this or bad things will happen.
             linker = self.build.compilers[0] # Fixme.
         commands = []
         commands += linker.get_exelist()
+        if isinstance(target, interpreter.StaticLibrary):
+            commands += linker.get_std_link_flags()
         commands += linker.get_output_flags()
         commands.append(outname)
         commands += obj_list
@@ -605,7 +607,7 @@ echo Run compile.sh before this or bad things will happen.
             commands += linker.get_std_shared_lib_link_flags()
             commands += linker.get_pic_flags()
         elif isinstance(target, interpreter.StaticLibrary):
-            commands += linker.get_std_link_flags()
+            pass
         else:
             raise RuntimeError('Unknown build target type.')
         for dep in target.get_external_deps():

@@ -19,10 +19,18 @@ import os, subprocess, shutil
 
 test_build_dir = 'work area'
 install_dir = os.path.join(os.path.split(os.path.abspath(__file__))[0], 'install dir')
+use_shell = True
 builder_command = './builder.py'
-compile_commands = ['compile.sh']
-test_commands = ['run_tests.sh']
-install_commands = ['install.sh']
+if use_shell:
+    generator_flags = []
+    compile_commands = ['compile.sh']
+    test_commands = ['run_tests.sh']
+    install_commands = ['install.sh']
+else:
+    generator_flags = ['--generator', 'ninja']
+    compile_commands = ['ninja']
+    test_commands = ['ninja', 'test']
+    install_commands = ['ninja', 'install']
 
 def run_test(testdir):
     shutil.rmtree(test_build_dir)
@@ -30,7 +38,8 @@ def run_test(testdir):
     os.mkdir(test_build_dir)
     os.mkdir(install_dir)
     print('Running test: ' + testdir)
-    p = subprocess.Popen([builder_command, '--prefix', install_dir, testdir, test_build_dir])
+    p = subprocess.Popen([builder_command, '--prefix', install_dir, testdir, test_build_dir] +\
+                         generator_flags)
     p.wait()
     if p.returncode != 0:
         raise RuntimeError('Generating the build system failed.')
