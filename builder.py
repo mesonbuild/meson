@@ -33,8 +33,9 @@ parser.add_option('--bindir', default='bin', dest='bindir',
 parser.add_option('--includedir', default='include', dest='includedir',
                   help='relative path of installed headers (default: %default)')
 parser.add_option('--datadir', default='share', dest='datadir',
-                  help='relative path of data files (default: %default)')
-parser.add_option('--mandir' , default='share/man', dest='mandir')
+                  help='relative path to the top of data file subdirectory (default: %default)')
+parser.add_option('--mandir' , default='share/man', dest='mandir',
+                  help='relatie path of man files (default: %default)')
 parser.add_option('-G', '--generator', default='shell', dest='generator',
                   help='the backend generator to use (default: %default)')
 
