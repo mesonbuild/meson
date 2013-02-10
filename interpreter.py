@@ -542,6 +542,8 @@ class Interpreter():
             self.build.global_args[lang] = switches
 
     def flatten(self, args):
+        if isinstance(args, nodes.StringStatement):
+            return args.get_value()
         result = []
         for a in args:
             if isinstance(a, list):
@@ -566,6 +568,8 @@ class Interpreter():
             kw_src = self.flatten(kwargs['sources'])
         except KeyError:
             kw_src = []
+        if not isinstance(kw_src, list):
+            kw_src = [kw_src]
         for s in kw_src:
             if not self.environment.is_header(s):
                 sources.append(s)
