@@ -217,11 +217,12 @@ class Environment():
         self.object_suffix = 'o'
 
     def get_c_compiler_exelist(self):
+        ccachelist = self.detect_ccache()
         evar = 'CC'
         if evar in os.environ:
             return os.environ[evar].split()
-        return self.default_c
-    
+        return ccachelist + self.default_c
+
     def is_header(self, fname):
         suffix = fname.split('.')[-1]
         return suffix in header_suffixes
@@ -272,11 +273,20 @@ class Environment():
             return ArLinker(exelist)
         raise EnvironmentException('Unknown static linker "' + ' '.join(exelist) + '"')
 
+    def detect_ccache(self):
+        has_ccache = subprocess.call(['ccache', '--version'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if has_ccache == 0:
+            cmdlist = ['ccache']
+        else:
+            cmdlist = []
+        return cmdlist
+
     def get_cxx_compiler_exelist(self):
+        ccachelist = self.detect_ccache()
         evar = 'CXX'
         if evar in os.environ:
             return os.environ[evar].split()
-        return self.default_cxx
+        return ccachelist + self.default_cxx
     
     def get_static_linker_exelist(self):
         evar = 'AR'
