@@ -182,7 +182,7 @@ class NinjaGenerator(Generator):
         install_script = os.path.join(script_root, 'builder_install.py')
         install_data_file = os.path.join(self.environment.get_scratch_dir(), 'install.dat')
         depfixer = os.path.join(self.get_script_root(), 'depfixer.py')
-        d = InstallData(depfixer, './') # Fixme
+        d = InstallData(self.environment.get_prefix(), depfixer, './') # Fixme
 
         outfile.write('build install: CUSTOM_COMMAND | all\n')
         outfile.write(" COMMAND = '%s' '%s'\n\n" % (ninja_quote(install_script), ninja_quote(install_data_file)))
@@ -194,9 +194,8 @@ class NinjaGenerator(Generator):
         pickle.dump(d, ofile)
 
     def generate_target_install(self, d):
-        prefix = self.environment.get_prefix()
-        libdir = os.path.join(prefix, self.environment.get_libdir())
-        bindir = os.path.join(prefix, self.environment.get_bindir())
+        libdir = self.environment.get_libdir()
+        bindir = self.environment.get_bindir()
 
         should_strip = self.environment.options.strip
         for t in self.build.get_targets().values():
@@ -205,12 +204,11 @@ class NinjaGenerator(Generator):
                     outdir = bindir
                 else:
                     outdir = libdir
-                i = [os.path.join(self.environment.get_build_dir(), self.get_target_filename(t)), outdir, t.get_aliaslist(), should_strip]
+                i = [self.get_target_filename(t), outdir, t.get_aliaslist(), should_strip]
                 d.targets.append(i)
 
     def generate_header_install(self, d):
-        prefix = self.environment.get_prefix()
-        incroot = os.path.join(prefix, self.environment.get_includedir())
+        incroot = self.environment.get_includedir()
         headers = self.build.get_headers()
 
         for h in headers:
@@ -221,8 +219,7 @@ class NinjaGenerator(Generator):
                 d.headers.append(i)
 
     def generate_man_install(self, d):
-        prefix = self.environment.get_prefix()
-        manroot = os.path.join(prefix, self.environment.get_mandir())
+        manroot = self.environment.get_mandir()
         man = self.build.get_man()
         for m in man:
             for f in m.get_sources():
@@ -235,15 +232,13 @@ class NinjaGenerator(Generator):
                 d.man.append(i)
 
     def generate_data_install(self, d):
-        prefix = self.environment.get_prefix()
-        dataroot = os.path.join(prefix, self.environment.get_datadir())
+        dataroot = self.environment.get_datadir()
         data = self.build.get_data()
         for de in data:
             subdir = os.path.join(dataroot, de.get_subdir())
-            absdir = os.path.join(self.environment.get_prefix(), subdir)
             for f in de.get_sources():
                 srcabs = os.path.join(self.environment.get_source_dir(), f)
-                dstabs = os.path.join(absdir, f)
+                dstabs = os.path.join(subdir, f)
                 i = [srcabs, dstabs]
                 d.data.append(i)
 

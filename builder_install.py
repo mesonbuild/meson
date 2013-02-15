@@ -17,7 +17,8 @@
 import sys, pickle, os, shutil, subprocess, gzip
 
 class InstallData():
-    def __init__(self, depfixer, dep_prefix):
+    def __init__(self, prefix, depfixer, dep_prefix):
+        self.prefix = prefix
         self.targets = []
         self.depfixer = depfixer
         self.dep_prefix = dep_prefix
@@ -28,6 +29,9 @@ class InstallData():
 def do_install(datafilename):
     ifile = open(datafilename, 'rb')
     d = pickle.load(ifile)
+    pref_var = 'PREFIX'
+    if pref_var in os.environ:
+        d.prefix = os.environ[pref_var]
     install_targets(d)
     install_headers(d)
     install_man(d)
@@ -45,21 +49,22 @@ def install_data(d):
 
 def install_man(d):
     for m in d.man:
-        fullfilename = m[0]
-        outfilename = m[1]
+        outfileroot = m[1]
+        outfilename = os.path.join(d.prefix, outfileroot)
+        full_source_filename = m[0]
         outdir = os.path.split(outfilename)[0]
         os.makedirs(outdir, exist_ok=True)
-        print('Installing %s to %s.' % (fullfilename, outdir))
-        if outfilename.endswith('.gz') and not fullfilename.endswith('.gz'):
-            open(outfilename, 'wb').write(gzip.compress(open(fullfilename, 'rb').read()))
+        print('Installing %s to %s.' % (full_source_filename, outdir))
+        if outfilename.endswith('.gz') and not full_source_filename.endswith('.gz'):
+            open(outfilename, 'wb').write(gzip.compress(open(full_source_filename, 'rb').read()))
         else:
-            shutil.copyfile(fullfilename, outfilename)
-        shutil.copystat(fullfilename, outfilename)
+            shutil.copyfile(full_source_filename, outfilename)
+        shutil.copystat(full_source_filename, outfilename)
 
 def install_headers(d):
     for t in d.headers:
         fullfilename = t[0]
-        outdir = t[1]
+        outdir = os.path.join(d.prefix, t[1])
         fname = os.path.split(fullfilename)[1]
         outfilename = os.path.join(outdir, fname)
         print('Installing %s to %s' % (fname, outdir))
@@ -69,16 +74,15 @@ def install_headers(d):
 
 def install_targets(d):
     for t in d.targets:
-        fullfilename = t[0]
-        outdir = t[1]
-        fname = os.path.split(fullfilename)[1]
+        fname = t[0]
+        outdir = os.path.join(d.prefix, t[1])
         aliases = t[2]
         outname = os.path.join(outdir, fname)
         should_strip = t[3]
-        print('Installing %s to %s' % (fname, outdir))
+        print('Installing %s to %s' % (fname, outname))
         os.makedirs(outdir, exist_ok=True)
-        shutil.copyfile(fullfilename, outname)
-        shutil.copystat(fullfilename, outname)
+        shutil.copyfile(fname, outname)
+        shutil.copystat(fname, outname)
         if should_strip:
             print('Stripping target')
             ps = subprocess.Popen(['strip', outname], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
