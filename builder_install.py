@@ -40,8 +40,9 @@ def do_install(datafilename):
 def install_data(d):
     for i in d.data:
         fullfilename = i[0]
-        outfilename = i[1]
-        outdir = os.path.split(outfilename)[0]
+        outfilerel = i[1]
+        outdir = os.path.join(d.prefix, os.path.split(outfilerel)[0])
+        outfilename = os.path.join(outdir, os.path.split(outfilerel)[1])
         os.makedirs(outdir, exist_ok=True)
         print('Installing %s to %s.' % (fullfilename, outdir))
         shutil.copyfile(fullfilename, outfilename)
