@@ -51,10 +51,11 @@ parser.add_option('--strip', action='store_true', dest='strip', default=False,\
 
 class BuilderApp():
 
-    def __init__(self, dir1, dir2, options):
+    def __init__(self, dir1, dir2, script_file, options):
         (self.source_dir, self.build_dir) = self.validate_dirs(dir1, dir2)
         if options.prefix[0] != '/':
             raise RuntimeError('--prefix must be an absolute path.')
+        self.builder_script_file = script_file
         self.options = options
     
     def has_builder_file(self, dirname):
@@ -85,13 +86,9 @@ class BuilderApp():
         raise RuntimeError('Neither directory contains a builder file %s.' % environment.builder_filename)
     
     def generate(self):
-        code = open(os.path.join(self.source_dir, environment.builder_filename)).read()
-        if len(code.strip()) == 0:
-            raise interpreter.InvalidCode('Builder file is empty.')
-        assert(isinstance(code, str))
-        env = environment.Environment(self.source_dir, self.build_dir, options)
+        env = environment.Environment(self.source_dir, self.build_dir, self.builder_script_file, options)
         b = build.Build(env)
-        intr = interpreter.Interpreter(code, b)
+        intr = interpreter.Interpreter(b)
         intr.run()
         if options.generator == 'shell':
             g = generators.ShellGenerator(b, intr)
@@ -112,7 +109,8 @@ if __name__ == '__main__':
         dir2 = args[2]
     else:
         dir2 = '.'
-    builder = BuilderApp(dir1, dir2, options)
+    this_file = os.path.abspath(__file__)
+    builder = BuilderApp(dir1, dir2, this_file, options)
     print ('Source dir: ' + builder.source_dir)
     print ('Build dir: ' + builder.build_dir)
     os.chdir(builder.build_dir)

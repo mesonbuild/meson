@@ -253,7 +253,6 @@ class NinjaGenerator(Generator):
             datafile.write(self.get_target_filename(t.get_exe()) + '\n')
         datafile.close()
 
-
     def generate_rules(self, outfile):
         outfile.write('# Rules for compiling.\n\n')
         self.generate_compile_rules(outfile)
@@ -264,6 +263,11 @@ class NinjaGenerator(Generator):
         outfile.write('rule CUSTOM_COMMAND\n')
         outfile.write(' command = $COMMAND\n')
         outfile.write(' restat = 1\n\n')
+        outfile.write('rule REGENERATE_BUILD\n')
+        c = (ninja_quote(self.environment.get_builder_command()),
+             ninja_quote(self.environment.get_source_dir()),
+             ninja_quote(self.environment.get_build_dir()))
+        outfile.write(" command = '%s' '%s' '%s' -G ninja\n\n" % c)
 
     def generate_static_link_rules(self, outfile):
         static_linker = self.build.static_linker
@@ -415,6 +419,13 @@ class NinjaGenerator(Generator):
         default = 'default all\n\n'
         outfile.write(build)
         outfile.write(default)
+        deps = [ ninja_quote(os.path.join(self.build_to_src, df)) \
+                for df in self.interpreter.get_build_def_files()]
+        depstr = ' '.join(deps)
+        buildregen = 'build build.ninja: REGENERATE_BUILD | %s\n\n' % depstr
+        ignore_missing = 'build %s: phony\n\n' % depstr
+        outfile.write(buildregen)
+        outfile.write(ignore_missing)
 
 class ShellGenerator(Generator):
     def __init__(self, build, interp):

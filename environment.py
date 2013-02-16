@@ -198,9 +198,10 @@ class ArLinker():
 header_suffixes = ['h', 'hh', 'hpp', 'hxx', 'H']
 
 class Environment():
-    def __init__(self, source_dir, build_dir, options):
+    def __init__(self, source_dir, build_dir, builder_script_file, options):
         self.source_dir = source_dir
         self.build_dir = build_dir
+        self.builder_script_file = builder_script_file
         self.options = options
         self.scratch_dir = os.path.join(build_dir, 'builder-private')
         os.makedirs(self.scratch_dir, exist_ok=True)
@@ -215,6 +216,9 @@ class Environment():
         self.static_lib_suffix = 'a'
         self.static_lib_prefix = 'lib'
         self.object_suffix = 'o'
+
+    def get_builder_command(self):
+        return self.builder_script_file
 
     def get_c_compiler_exelist(self):
         ccachelist = self.detect_ccache()

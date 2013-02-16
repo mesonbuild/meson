@@ -335,8 +335,13 @@ class Test(InterpreterObject):
 
 class Interpreter():
 
-    def __init__(self, code, build):
+    def __init__(self, build):
         self.build = build
+        code = open(os.path.join(build.environment.get_source_dir(),\
+                                 environment.builder_filename)).read()
+        if len(code.strip()) == 0:
+            raise InvalidCode('Builder file is empty.')
+        assert(isinstance(code, str))
         self.ast = bparser.build_ast(code)
         self.sanity_check_ast()
         self.variables = {}
@@ -344,6 +349,7 @@ class Interpreter():
         self.builtin['host'] = Host()
         self.environment = build.environment
         self.build_func_dict()
+        self.build_def_files = [environment.builder_filename]
         self.subdir = ''
 
     def build_func_dict(self):
@@ -362,6 +368,9 @@ class Interpreter():
                       'include_directories' : self.func_include_directories,
                       'add_global_arguments' : self.func_add_global_arguments,
                       }
+        
+    def get_build_def_files(self):
+        return self.build_def_files
 
     def get_variables(self):
         return self.variables
@@ -511,6 +520,7 @@ class Interpreter():
         prev_subdir = self.subdir
         self.subdir = os.path.join(prev_subdir, args[0])
         buildfilename = os.path.join(self.subdir, environment.builder_filename)
+        self.build_def_files.append(buildfilename)
         code = open(os.path.join(self.environment.get_source_dir(), buildfilename)).read()
         assert(isinstance(code, str))
         codeblock = bparser.build_ast(code)
@@ -530,6 +540,8 @@ class Interpreter():
     
     def func_configure_file(self, node, args, kwargs):
         self.validate_arguments(args, 2, [str, str])
+        conffile = os.path.join(self.subdir, args[0])
+        self.build_def_files.append(conffile)
         c = ConfigureFile(self.subdir, args[0], args[1], kwargs)
         self.build.configure_files.append(c)
 
