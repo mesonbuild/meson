@@ -16,7 +16,7 @@
 
 import subprocess, os.path
 
-builder_filename = 'builder.txt'
+builder_filename = 'meson.build'
 
 class EnvironmentException(Exception):
     def __init(self, *args, **kwargs):

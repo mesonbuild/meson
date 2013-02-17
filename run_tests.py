@@ -20,7 +20,7 @@ import os, subprocess, shutil, sys
 test_build_dir = 'work area'
 install_dir = os.path.join(os.path.split(os.path.abspath(__file__))[0], 'install dir')
 use_shell = len(sys.argv) > 1
-builder_command = './builder.py'
+builder_command = './meson.py'
 if use_shell:
     generator_flags = ['--generator', 'shell']
     compile_commands = ['compile.sh']
