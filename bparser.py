@@ -149,8 +149,8 @@ def p_statement_method_call(t):
     t[0] = nodes.MethodCall(t[1], t[3], t[5], t.lineno(1))
 
 def p_statement_if(t):
-    'statement : IF LPAREN statement RPAREN EOL codeblock elseblock ENDIF'
-    t[0] = nodes.IfStatement(t[3], t[6], t[7], t.lineno(1))
+    'statement : IF statement EOL codeblock elseblock ENDIF'
+    t[0] = nodes.IfStatement(t[2], t[4], t[5], t.lineno(1))
 
 def p_empty_else(t):
     'elseblock : '

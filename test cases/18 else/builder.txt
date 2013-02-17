@@ -2,7 +2,7 @@ project('else test', 'c')
 
 var = false
 
-if(var)
+if var
   exe = executable('break', 'break.c')
 else
   exe = executable('prog', 'prog.c')
