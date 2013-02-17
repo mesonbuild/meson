@@ -113,6 +113,5 @@ if __name__ == '__main__':
     builder = BuilderApp(dir1, dir2, this_file, options)
     print ('Source dir: ' + builder.source_dir)
     print ('Build dir: ' + builder.build_dir)
-    os.chdir(builder.build_dir)
     builder.generate()
 
