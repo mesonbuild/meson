@@ -185,8 +185,10 @@ class NinjaGenerator(Generator):
 
     def generate_coverage_rules(self, outfile):
         (gcovr_exe, lcov_exe, genhtml_exe) = environment.find_coverage_tools()
+        added_rule = False
         if gcovr_exe:
-            xmlbuild = 'build coverage-xml: CUSTOM_COMMAND\n\n'
+            added_rule = True
+            xmlbuild = 'build coverage-xml: CUSTOM_COMMAND\n'
             xmlcommand = " COMMAND = '%s' -x -r '%s' -o coverage.xml\n\n" %\
                 (ninja_quote(gcovr_exe), ninja_quote(self.environment.get_build_dir()))
             outfile.write(xmlbuild)
@@ -197,6 +199,7 @@ class NinjaGenerator(Generator):
             outfile.write(textbuild)
             outfile.write(textcommand)
         if lcov_exe and genhtml_exe:
+            added_rule = True
             phony = 'build coverage-html: phony coveragereport/index.html\n'
             htmlbuild = 'build coveragereport/index.html: CUSTOM_COMMAND\n'
             lcov_command = "'%s' --directory '%s' --capture --output-file coverage.info --no-checksum" %\
@@ -207,6 +210,8 @@ class NinjaGenerator(Generator):
             outfile.write(phony)
             outfile.write(htmlbuild)
             outfile.write(command)
+        if not added_rule:
+            print('Warning: coverage requested but neither gcovr nor lcov/genhtml found.')
 
     def generate_install(self, outfile):
         script_root = self.get_script_root()
