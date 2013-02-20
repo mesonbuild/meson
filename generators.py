@@ -16,6 +16,7 @@
 
 import os, stat, re, pickle
 import interpreter, nodes
+import environment
 from builder_install import InstallData
 
 def shell_quote(cmdlist):
@@ -126,6 +127,8 @@ class Generator():
             commands += compiler.get_debug_flags()
         if self.environment.options.buildtype == 'optimized':
             commands += compiler.get_std_opt_flags()
+        if self.environment.options.coverage:
+            commands += compiler.get_coverage_flags()
         commands += compiler.get_std_warn_flags()
         if isinstance(target, interpreter.SharedLibrary):
             commands += compiler.get_pic_flags()
@@ -174,8 +177,36 @@ class NinjaGenerator(Generator):
         self.generate_tests(outfile)
         outfile.write('# Install rules\n\n')
         self.generate_install(outfile)
+        if self.environment.options.coverage:
+            outfile.write('# Coverage rules\n\n')
+            self.generate_coverage_rules(outfile)
         outfile.write('# Suffix\n\n')
         self.generate_ending(outfile)
+
+    def generate_coverage_rules(self, outfile):
+        (gcovr_exe, lcov_exe, genhtml_exe) = environment.find_coverage_tools()
+        if gcovr_exe:
+            xmlbuild = 'build coverage-xml: CUSTOM_COMMAND\n\n'
+            xmlcommand = " COMMAND = '%s' -x -r '%s' -o coverage.xml\n\n" %\
+                (ninja_quote(gcovr_exe), ninja_quote(self.environment.get_build_dir()))
+            outfile.write(xmlbuild)
+            outfile.write(xmlcommand)
+            textbuild = 'build coverage-text: CUSTOM_COMMAND\n'
+            textcommand = " COMMAND = '%s' -r '%s' -o coverage.txt\n\n" %\
+                (ninja_quote(gcovr_exe), ninja_quote(self.environment.get_build_dir()))
+            outfile.write(textbuild)
+            outfile.write(textcommand)
+        if lcov_exe and genhtml_exe:
+            phony = 'build coverage-html: phony coveragereport/index.html\n'
+            htmlbuild = 'build coveragereport/index.html: CUSTOM_COMMAND\n'
+            lcov_command = "'%s' --directory '%s' --capture --output-file coverage.info --no-checksum" %\
+                (ninja_quote(lcov_exe), ninja_quote(self.environment.get_build_dir()))
+            genhtml_command = "'%s' --prefix='%s' --output-directory coveragereport --title='Code coverage' --legend --show-details coverage.info" %\
+                (ninja_quote(genhtml_exe), ninja_quote(self.environment.get_build_dir()))
+            command = ' COMMAND = %s && %s\n\n' % (lcov_command, genhtml_command)
+            outfile.write(phony)
+            outfile.write(htmlbuild)
+            outfile.write(command)
 
     def generate_install(self, outfile):
         script_root = self.get_script_root()
@@ -394,6 +425,8 @@ class NinjaGenerator(Generator):
             commands += dep.get_link_flags()
         dependencies = target.get_dependencies()
         commands += self.build_target_link_arguments(dependencies)
+        if self.environment.options.coverage:
+            commands += linker.get_coverage_link_flags()
         if len(dependencies) == 0:
             dep_targets = ''
         else:

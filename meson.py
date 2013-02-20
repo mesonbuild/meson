@@ -48,6 +48,8 @@ parser.add_option('--buildtype', default='debug', type='choice', choices=build_t
                   help=buildtype_help)
 parser.add_option('--strip', action='store_true', dest='strip', default=False,\
                   help='strip targets on install (default: %default)')
+parser.add_option('--enable-gcov', action='store_true', dest='coverage', default=False,\
+                  help='measure test coverage')
 
 class BuilderApp():
 

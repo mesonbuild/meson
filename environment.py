@@ -52,10 +52,16 @@ class CCompiler():
 
     def get_debug_flags(self):
         return ['-g']
-    
+
+    def get_coverage_flags(self):
+        return ['--coverage']
+
+    def get_coverage_link_flags(self):
+        return ['-lgcov']
+
     def get_std_exe_link_flags(self):
         return []
-    
+
     def get_include_arg(self, path):
         return '-I' + path
 
@@ -167,7 +173,7 @@ class GnuCXXCompiler(CXXCompiler):
 class ClangCXXCompiler(CXXCompiler):
     std_warn_flags = ['-Wall', '-Winvalid-pch']
     std_opt_flags = ['-O2']
-    
+
     def __init__(self, exelist):
         CXXCompiler.__init__(self, exelist)
 
@@ -191,9 +197,31 @@ class ArLinker():
     
     def get_std_link_flags(self):
         return self.std_flags
-    
+
     def get_output_flags(self):
         return []
+
+    def get_coverage_link_flags(self):
+        return []
+
+def find_coverage_tools():
+    gcovr_exe = 'gcovr'
+    lcov_exe = 'lcov'
+    genhtml_exe = 'genhtml'
+    
+    pg = subprocess.Popen([gcovr_exe, '--version'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    pg.communicate()
+    if pg.returncode != 0:
+        gcovr_exe = None
+    pl = subprocess.Popen([lcov_exe, '--version'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    pl.communicate()
+    if pl.returncode != 0:
+        lcov_exe = None
+    ph = subprocess.Popen([genhtml_exe, '--version'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    ph.communicate()
+    if ph.returncode != 0:
+        genhtml_exe = None
+    return (gcovr_exe, lcov_exe, genhtml_exe)
 
 header_suffixes = ['h', 'hh', 'hpp', 'hxx', 'H']
 
