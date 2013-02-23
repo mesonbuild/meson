@@ -85,6 +85,7 @@ class Backend():
             return
         self.process_target_dependencies(target, outfile)
         print('Generating target', name)
+        self.generate_custom_generator_rules(target, outfile)
         outname = self.get_target_filename(target)
         obj_list = []
         if target.has_pch():
@@ -346,6 +347,29 @@ class NinjaBackend(Backend):
             outfile.write(description)
             outfile.write('\n')
         outfile.write('\n')
+
+    def generate_custom_generator_rules(self, target, outfile):
+        for genlist in target.get_generated_sources():
+            generator = genlist.get_generator()
+            exe = generator.get_exe()
+            infilelist = genlist.get_infilelist()
+            outfilelist = genlist.get_outfilelist()
+            if len(infilelist) != len(outfilelist):
+                raise RuntimeError('Internal data structures broken.')
+            exe_file = os.path.join(self.environment.get_build_dir(), self.get_target_filename(exe))
+            base_args = generator.get_arglist()
+            for i in range(len(infilelist)):
+                infilename = os.path.join(self.build_to_src, infilelist[i])
+                outfilename = os.path.join(self.get_target_dir(target), outfilelist[i])
+                args = [x.replace("@INPUTNAME@", infilename).replace('@OUTPUTNAME@', outfilename)\
+                        for x in base_args]
+                cmdlist = [exe_file] + args
+                build = 'build %s: CUSTOM_COMMAND %s | %s\n' % \
+                (ninja_quote(outfilename), ninja_quote(infilename), ninja_quote(self.get_target_filename(exe)))
+                command = ' COMMAND = %s\n\n' % \
+                ' '.join(["'%s'" % ninja_quote(i) for i in cmdlist])
+                outfile.write(build)
+                outfile.write(command)
 
     def generate_single_compile(self, target, outfile, src, is_generated=False):
         compiler = self.get_compiler_for_source(src)

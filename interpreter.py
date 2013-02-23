@@ -50,6 +50,9 @@ class Generator(InterpreterObject):
         self.methods.update({'process' : self.process_method})
         self.process_kwargs(kwargs)
     
+    def get_exe(self):
+        return self.exe
+
     def process_kwargs(self, kwargs):
         if 'arguments' not in kwargs:
             raise InvalidArguments('Generator must have "arguments" keyword argument.')
@@ -89,6 +92,9 @@ class Generator(InterpreterObject):
         gl = GeneratedList(self)
         [gl.add_file(a) for a in args]
         return gl
+
+    def get_arglist(self):
+        return self.arglist
 
 class GeneratedList(InterpreterObject):
     def __init__(self, generator):
