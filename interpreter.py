@@ -77,7 +77,33 @@ class Generator(InterpreterObject):
         return self.name_rule.replace('@BASENAME@', base)
 
     def process_method(self, args, kwargs):
-        return self
+        if len(kwargs) > 0:
+            raise InvalidArguments('Process does not take keyword arguments.')
+        if isinstance(args, str):
+            args = [args]
+        if not isinstance(args, list):
+            raise InvalidArguments('Argument to "process" must be a string or a list of strings.')
+        for a in args:
+            if not isinstance(a, str):
+                raise InvalidArguments('A non-string object in "process" arguments.')
+        gl = GeneratedList(self)
+        [gl.add_file(a) for a in args]
+        return gl
+
+class GeneratedList(InterpreterObject):
+    def __init__(self, generator):
+        InterpreterObject.__init__(self)
+        self.generator = generator
+        self.filelist = []
+
+    def add_file(self, newfile):
+        self.filelist.append(newfile)
+
+    def get_filelist(self):
+        return self.filelist
+
+    def get_generator(self):
+        return self.generator
 
 # This currently returns data for the current environment.
 # It should return info for the target host.
@@ -202,6 +228,7 @@ class BuildTarget(InterpreterObject):
         self.need_install = False
         self.pch = []
         self.extra_args = {}
+        self.generated = []
         self.process_kwargs(kwargs)
 
     def process_kwargs(self, kwargs):
@@ -235,6 +262,10 @@ class BuildTarget(InterpreterObject):
         if not isinstance(deplist, list):
             deplist = [deplist]
         self.add_external_deps(deplist)
+        genlist = kwargs.get('gen_src', [])
+        if not isinstance(genlist, list):
+            genlist = [genlist]
+        self.set_generated(genlist)
 
     def get_subdir(self):
         return self.subdir
@@ -256,6 +287,9 @@ class BuildTarget(InterpreterObject):
 
     def get_sources(self):
         return self.sources
+
+    def get_generated_sources(self):
+        return self.generated
 
     def should_install(self):
         return self.need_install
@@ -287,6 +321,11 @@ class BuildTarget(InterpreterObject):
         not isinstance(target, SharedLibrary):
             raise InvalidArguments('Link target is not library.')
         self.link_targets.append(target)
+
+    def set_generated(self, genlist):
+        for g in genlist:
+            if not(isinstance(g, GeneratedList)):
+                raise InvalidArguments('Generated source argument is not the output of a generator.')
 
     def add_pch(self, pchlist):
         for a in pchlist:
