@@ -112,6 +112,12 @@ if __name__ == '__main__':
     else:
         dir2 = '.'
     this_file = os.path.abspath(__file__)
+    while os.path.islink(this_file):
+        resolved = os.readlink(this_file)
+        if resolved[0] != '/':
+            this_file = os.path.join(os.path.dirname(this_file), resolved)
+        else:
+            this_file = resolved 
     app = MesonApp(dir1, dir2, this_file, options)
     print ('Source dir: ' + app.source_dir)
     print ('Build dir: ' + app.build_dir)

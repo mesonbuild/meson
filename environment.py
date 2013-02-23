@@ -228,6 +228,7 @@ header_suffixes = ['h', 'hh', 'hpp', 'hxx', 'H']
 class Environment():
     def __init__(self, source_dir, build_dir, main_script_file, options):
         assert(main_script_file[0] == '/')
+        assert(not os.path.islink(main_script_file))
         self.source_dir = source_dir
         self.build_dir = build_dir
         self.meson_script_file = main_script_file
@@ -245,16 +246,9 @@ class Environment():
         self.static_lib_suffix = 'a'
         self.static_lib_prefix = 'lib'
         self.object_suffix = 'o'
-    
+
     def get_script_dir(self):
-        fullfile = self.meson_script_file
-        while os.path.islink(fullfile):
-            resolved = os.readlink(fullfile)
-            if resolved[0] != '/':
-                fullfile = os.path.join(os.path.dirname(fullfile), resolved)
-            else:
-                fullfile = resolved 
-        return os.path.dirname(fullfile)
+        return os.path.dirname(self.meson_script_file)
 
     def get_build_command(self):
         return self.meson_script_file
