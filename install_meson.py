@@ -42,7 +42,10 @@ if options.prefix[0] != '/':
     print('Error, prefix must be an absolute path.')
     sys.exit(1)
 
-install_root = os.path.join(options.destdir, options.prefix[1:])
+if options.destdir == '':
+    install_root = options.prefix
+else:
+    install_root = os.path.join(options.destdir, options.prefix[1:])
 
 script_dir = os.path.join(install_root, 'share/meson-' + version)
 bin_dir = os.path.join(install_root, 'bin')

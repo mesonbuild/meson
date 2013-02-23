@@ -4,6 +4,18 @@ system.
 
 Dependencies: Python3 and Python-Ply
 
+Installing from source
+
+You can run Meson directly from a revision control checkout.
+Installing it system-wide is simple.
+
+Configure step: None
+Compile step: ./compile_meson.py
+Install step: [sudo] ./install_meson.py --prefix /your/prefix --destdir /destdir/path
+
+The default value of prefix is /usr/local. The default value of destdir
+is empty. 
+
 Running:
 
 Meson requires that you have a source directory and a build directory
@@ -18,6 +30,7 @@ can do things like this:
 
 cd source_root; mkdir build; cd build; meson.py ..
 cd source_root; mkdir build; meson.py build
+
 
 For questions contact the mailing list at
 https://lists.sourceforge.net/lists/listinfo/meson-devel
