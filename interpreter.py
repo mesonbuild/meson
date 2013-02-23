@@ -73,7 +73,7 @@ class Generator(InterpreterObject):
         self.name_rule = rule
 
     def get_base_outname(self, inname):
-        base = os.path.split()[1]
+        base = os.path.split(inname)[1]
         return self.name_rule.replace('@BASENAME@', base)
 
     def process_method(self, args, kwargs):
@@ -94,13 +94,18 @@ class GeneratedList(InterpreterObject):
     def __init__(self, generator):
         InterpreterObject.__init__(self)
         self.generator = generator
-        self.filelist = []
+        self.infilelist = []
+        self.outfilelist = []
 
     def add_file(self, newfile):
-        self.filelist.append(newfile)
+        self.infilelist.append(newfile)
+        self.outfilelist.append(self.generator.get_base_outname(newfile))
 
-    def get_filelist(self):
-        return self.filelist
+    def get_infilelist(self):
+        return self.infilelist
+
+    def get_outfilelist(self):
+        return self.outfilelist
 
     def get_generator(self):
         return self.generator
@@ -326,6 +331,7 @@ class BuildTarget(InterpreterObject):
         for g in genlist:
             if not(isinstance(g, GeneratedList)):
                 raise InvalidArguments('Generated source argument is not the output of a generator.')
+            self.generated.append(g)
 
     def add_pch(self, pchlist):
         for a in pchlist:

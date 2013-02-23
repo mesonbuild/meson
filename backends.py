@@ -91,6 +91,9 @@ class Backend():
             self.generate_pch(target, outfile)
         for src in target.get_sources():
             obj_list.append(self.generate_single_compile(target, outfile, src))
+        for genlist in target.get_generated_sources():
+            for src in genlist.get_outfilelist():
+                obj_list.append(self.generate_single_compile(target, outfile, src, True))
         self.generate_link(target, outfile, outname, obj_list)
         self.generate_shlib_aliases(target, self.get_target_dir(target), outfile)
         self.processed_targets[name] = True
@@ -344,10 +347,13 @@ class NinjaBackend(Backend):
             outfile.write('\n')
         outfile.write('\n')
 
-    def generate_single_compile(self, target, outfile, src):
+    def generate_single_compile(self, target, outfile, src, is_generated=False):
         compiler = self.get_compiler_for_source(src)
         commands = self.generate_basic_compiler_flags(target, compiler)
-        abs_src = os.path.join(self.build_to_src, target.get_source_subdir(), src)
+        if is_generated:
+            abs_src = src
+        else:
+            abs_src = os.path.join(self.build_to_src, target.get_source_subdir(), src)
         abs_obj = os.path.join(self.get_target_private_dir(target), src)
         abs_obj += '.' + self.environment.get_object_suffix()
         dep_file = abs_obj + '.' + compiler.get_depfile_suffix()
@@ -705,16 +711,3 @@ echo Run compile.sh before this or bad things will happen.
             aliasfile = os.path.join(outdir, alias)
             cmd = ['ln', '-s', '-f', basename, aliasfile]
             outfile.write(' '.join(shell_quote(cmd)) + '|| exit\n')
-
-if __name__ == '__main__':
-    code = """
-    project('simple generator')
-    language('c')
-    executable('prog', 'prog.c', 'dep.c')
-    """
-    import environment
-    os.chdir(os.path.split(__file__)[0])
-    envir = environment.Environment('.', 'work area')
-    intpr = interpreter.Interpreter(code, envir)
-    g = ShellBackend(intpr, envir)
-    g.generate()
