@@ -19,4 +19,5 @@ can do things like this:
 cd source_root; mkdir build; cd build; meson.py ..
 cd source_root; mkdir build; meson.py build
 
-For questions contact jpakkane@gmail.com.
+For questions contact the mailing list at
+https://lists.sourceforge.net/lists/listinfo/meson-devel
