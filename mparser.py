@@ -215,20 +215,17 @@ def test_lexer():
             break
         print(tok)
 
-def test_parser():
-    code = """func_call('something', 'or else')
-    objectname.methodname(abc)
-    
-    emptycall()"""
-    print(build_ast(code))
+def generate_parser_files(outputdir):
+    code = """project('empty', 'c')
+"""
+    build_ast(code, outputdir=outputdir)
 
-def build_ast(code):
+def build_ast(code, outputdir=None):
     code = code.rstrip() + '\n'
     lex.lex()
-    parser = yacc.yacc()
+    if outputdir:
+        parser = yacc.yacc(outputdir=outputdir)
+    else:
+        parser = yacc.yacc()
     result = parser.parse(code)
     return result
-
-if __name__ == '__main__':
-    #test_lexer()
-    test_parser()
