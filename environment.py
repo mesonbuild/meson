@@ -16,7 +16,7 @@
 
 import subprocess, os.path
 
-builder_filename = 'meson.build'
+build_filename = 'meson.build'
 
 class EnvironmentException(Exception):
     def __init(self, *args, **kwargs):
@@ -226,13 +226,13 @@ def find_coverage_tools():
 header_suffixes = ['h', 'hh', 'hpp', 'hxx', 'H']
 
 class Environment():
-    def __init__(self, source_dir, build_dir, builder_script_file, options):
-        assert(builder_script_file[0] == '/')
+    def __init__(self, source_dir, build_dir, main_script_file, options):
+        assert(main_script_file[0] == '/')
         self.source_dir = source_dir
         self.build_dir = build_dir
-        self.builder_script_file = builder_script_file
+        self.meson_script_file = main_script_file
         self.options = options
-        self.scratch_dir = os.path.join(build_dir, 'builder-private')
+        self.scratch_dir = os.path.join(build_dir, 'meson-private')
         os.makedirs(self.scratch_dir, exist_ok=True)
 
         self.default_c = ['cc']
@@ -247,7 +247,7 @@ class Environment():
         self.object_suffix = 'o'
     
     def get_script_dir(self):
-        fullfile = self.builder_script_file
+        fullfile = self.meson_script_file
         while os.path.islink(fullfile):
             resolved = os.readlink(fullfile)
             if resolved[0] != '/':
@@ -256,8 +256,8 @@ class Environment():
                 fullfile = resolved 
         return os.path.dirname(fullfile)
 
-    def get_builder_command(self):
-        return self.builder_script_file
+    def get_build_command(self):
+        return self.meson_script_file
 
     def get_c_compiler_exelist(self):
         ccachelist = self.detect_ccache()

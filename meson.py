@@ -51,17 +51,17 @@ parser.add_option('--strip', action='store_true', dest='strip', default=False,\
 parser.add_option('--enable-gcov', action='store_true', dest='coverage', default=False,\
                   help='measure test coverage')
 
-class BuilderApp():
+class MesonApp():
 
     def __init__(self, dir1, dir2, script_file, options):
         (self.source_dir, self.build_dir) = self.validate_dirs(dir1, dir2)
         if options.prefix[0] != '/':
             raise RuntimeError('--prefix must be an absolute path.')
-        self.builder_script_file = script_file
+        self.meson_script_file = script_file
         self.options = options
     
-    def has_builder_file(self, dirname):
-        fname = os.path.join(dirname, environment.builder_filename)
+    def has_build_file(self, dirname):
+        fname = os.path.join(dirname, environment.build_filename)
         try:
             ifile = open(fname, 'r')
             ifile.close()
@@ -79,16 +79,16 @@ class BuilderApp():
         self.options = options
         if os.path.samefile(dir1, dir2):
             raise RuntimeError('Source and build directories must not be the same. Create a pristine build directory.')
-        if self.has_builder_file(ndir1):
-            if self.has_builder_file(ndir2):
-                raise RuntimeError('Both directories contain a build file %s.' % environment.builder_filename)
+        if self.has_build_file(ndir1):
+            if self.has_build_file(ndir2):
+                raise RuntimeError('Both directories contain a build file %s.' % environment.build_filename)
             return (ndir1, ndir2)
-        if self.has_builder_file(ndir2):
+        if self.has_build_file(ndir2):
             return (ndir2, ndir1)
-        raise RuntimeError('Neither directory contains a build file %s.' % environment.builder_filename)
+        raise RuntimeError('Neither directory contains a build file %s.' % environment.build_filename)
     
     def generate(self):
-        env = environment.Environment(self.source_dir, self.build_dir, self.builder_script_file, options)
+        env = environment.Environment(self.source_dir, self.build_dir, self.meson_script_file, options)
         b = build.Build(env)
         intr = interpreter.Interpreter(b)
         intr.run()
@@ -112,8 +112,8 @@ if __name__ == '__main__':
     else:
         dir2 = '.'
     this_file = os.path.abspath(__file__)
-    builder = BuilderApp(dir1, dir2, this_file, options)
-    print ('Source dir: ' + builder.source_dir)
-    print ('Build dir: ' + builder.build_dir)
-    builder.generate()
+    app = MesonApp(dir1, dir2, this_file, options)
+    print ('Source dir: ' + app.source_dir)
+    print ('Build dir: ' + app.build_dir)
+    app.generate()
 

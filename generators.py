@@ -294,7 +294,7 @@ class NinjaGenerator(Generator):
         outfile.write(' command = $COMMAND\n')
         outfile.write(' restat = 1\n\n')
         outfile.write('rule REGENERATE_BUILD\n')
-        c = (ninja_quote(self.environment.get_builder_command()),
+        c = (ninja_quote(self.environment.get_build_command()),
              ninja_quote(self.environment.get_source_dir()),
              ninja_quote(self.environment.get_build_dir()))
         outfile.write(" command = '%s' '%s' '%s' -G ninja\n" % c)

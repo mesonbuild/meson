@@ -338,7 +338,7 @@ class Interpreter():
     def __init__(self, build):
         self.build = build
         code = open(os.path.join(build.environment.get_source_dir(),\
-                                 environment.builder_filename)).read()
+                                 environment.build_filename)).read()
         if len(code.strip()) == 0:
             raise InvalidCode('Builder file is empty.')
         assert(isinstance(code, str))
@@ -349,7 +349,7 @@ class Interpreter():
         self.builtin['host'] = Host()
         self.environment = build.environment
         self.build_func_dict()
-        self.build_def_files = [environment.builder_filename]
+        self.build_def_files = [environment.build_filename]
         self.subdir = ''
 
     def build_func_dict(self):
@@ -519,7 +519,7 @@ class Interpreter():
         self.validate_arguments(args, 1, [str])
         prev_subdir = self.subdir
         self.subdir = os.path.join(prev_subdir, args[0])
-        buildfilename = os.path.join(self.subdir, environment.builder_filename)
+        buildfilename = os.path.join(self.subdir, environment.build_filename)
         self.build_def_files.append(buildfilename)
         code = open(os.path.join(self.environment.get_source_dir(), buildfilename)).read()
         assert(isinstance(code, str))
