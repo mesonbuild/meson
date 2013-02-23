@@ -38,6 +38,47 @@ class InterpreterObject():
             return self.methods[method_name](args, kwargs)
         raise InvalidCode('Unknown method "%s" in object.' % method_name)
 
+class Generator(InterpreterObject):
+
+    def __init__(self, args, kwargs):
+        InterpreterObject.__init__(self)
+        if len(args) != 1:
+            raise InvalidArguments('Generator requires one and only one positional argument')
+        if not isinstance(args[0], Executable):
+            raise InvalidArguments('First generator argument must be an executable object.')
+        self.exe = args[0]
+        self.methods.update({'process' : self.process_method})
+        self.process_kwargs(kwargs)
+    
+    def process_kwargs(self, kwargs):
+        if 'arguments' not in kwargs:
+            raise InvalidArguments('Generator must have "arguments" keyword argument.')
+        args = kwargs['arguments']
+        if isinstance(args, str):
+            args = [args]
+        if not isinstance(args, list):
+            raise InvalidArguments('"Arguments" keyword argument must be a string or a list of strings.')
+        for a in args:
+            if not isinstance(a, str):
+                raise InvalidArguments('A non-string object in "arguments" keyword argument.')
+        self.arglist = args
+        
+        if 'name_rule' not in kwargs:
+            raise InvalidArguments('Generator must have "name_rule" keyword argument.')
+        rule = kwargs['name_rule']
+        if not isinstance(rule, str):
+            raise InvalidArguments('"name_rule" keyword argument must be a string.')
+        if not '@BASENAME@' in rule:
+            raise InvalidArguments('"name_rule" must contain @BASENAME@.')
+        self.name_rule = rule
+
+    def get_base_outname(self, inname):
+        base = os.path.split()[1]
+        return self.name_rule.replace('@BASENAME@', base)
+
+    def process_method(self, args, kwargs):
+        return self
+
 # This currently returns data for the current environment.
 # It should return info for the target host.
 class Host(InterpreterObject):
@@ -351,6 +392,7 @@ class Interpreter():
         self.build_func_dict()
         self.build_def_files = [environment.build_filename]
         self.subdir = ''
+        self.generators = []
 
     def build_func_dict(self):
         self.funcs = {'project' : self.func_project, 
@@ -359,6 +401,7 @@ class Interpreter():
                       'find_dep' : self.func_find_dep,
                       'static_library' : self.func_static_lib,
                       'shared_library' : self.func_shared_lib,
+                      'generator' : self.func_generator,
                       'add_test' : self.func_add_test,
                       'headers' : self.func_headers,
                       'man' : self.func_man,
@@ -490,6 +533,11 @@ class Interpreter():
 
     def func_shared_lib(self, node, args, kwargs):
         return self.build_target(node, args, kwargs, SharedLibrary)
+
+    def func_generator(self, node, args, kwargs):
+        gen = Generator(args, kwargs)
+        self.generators.append(gen)
+        return gen
 
     def func_add_test(self, node, args, kwargs):
         self.validate_arguments(args, 2, [str, Executable])
@@ -651,6 +699,8 @@ class Interpreter():
             return self.method_call(arg)
         elif isinstance(arg, nodes.BoolStatement) or isinstance(arg, nodes.BoolExpression):
             return arg.get_value()
+        elif isinstance(arg, nodes.ArrayStatement):
+            return [self.reduce_single(curarg) for curarg in arg.args.arguments]
         else:
             raise InvalidCode('Line %d: Irreducible argument.' % arg.lineno())
 
