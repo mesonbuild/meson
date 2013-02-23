@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import bparser
+import mparser
 import nodes
 import environment
 import os, sys, platform
@@ -342,7 +342,7 @@ class Interpreter():
         if len(code.strip()) == 0:
             raise InvalidCode('Builder file is empty.')
         assert(isinstance(code, str))
-        self.ast = bparser.build_ast(code)
+        self.ast = mparser.build_ast(code)
         self.sanity_check_ast()
         self.variables = {}
         self.builtin = {}
@@ -523,7 +523,7 @@ class Interpreter():
         self.build_def_files.append(buildfilename)
         code = open(os.path.join(self.environment.get_source_dir(), buildfilename)).read()
         assert(isinstance(code, str))
-        codeblock = bparser.build_ast(code)
+        codeblock = mparser.build_ast(code)
         print('Going to subdirectory "%s".' % self.subdir)
         self.evaluate_codeblock(codeblock)
         self.subdir = prev_subdir
