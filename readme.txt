@@ -37,7 +37,9 @@ cd source_root; mkdir build; cd build; meson.py ..
 cd source_root; mkdir build; meson.py build
 
 To compile, cd into your build directory and type 'ninja'. To run unit
-tests, type 'ninja test'. Installing takes a few more arguments:
+tests, type 'ninja test'.
+
+Install is the same but it can take an extra argument:
 
 DESTDIR=/destdir/path ninja install
 
