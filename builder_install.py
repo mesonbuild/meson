@@ -29,9 +29,13 @@ class InstallData():
 def do_install(datafilename):
     ifile = open(datafilename, 'rb')
     d = pickle.load(ifile)
-    pref_var = 'PREFIX'
-    if pref_var in os.environ:
-        d.prefix = os.environ[pref_var]
+    destdir_var = 'DESTDIR'
+    if destdir_var in os.environ:
+        if d.prefix[0] == '/':
+            subdir = d.prefix[1:]
+        else:
+            subdir = d.prefix
+        d.prefix = os.path.join(os.environ[destdir_var], subdir)
     install_targets(d)
     install_headers(d)
     install_man(d)
