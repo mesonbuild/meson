@@ -73,6 +73,8 @@ class Generator(InterpreterObject):
             raise InvalidArguments('"name_rule" keyword argument must be a string.')
         if not '@BASENAME@' in rule:
             raise InvalidArguments('"name_rule" must contain @BASENAME@.')
+        if '/' in rule:
+            raise InvalidArguments('"name_rule" must not contain a slash.')
         self.name_rule = rule
 
     def get_base_outname(self, inname):
