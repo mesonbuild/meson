@@ -42,8 +42,8 @@ parser.add_option('--datadir', default='share', dest='datadir',
                   help='relative path to the top of data file subdirectory (default: %default)')
 parser.add_option('--mandir' , default='share/man', dest='mandir',
                   help='relatie path of man files (default: %default)')
-parser.add_option('-G', '--generator', default='ninja', dest='generator',
-                  help='the backend generator to use (default: %default)')
+parser.add_option('--backend', default='ninja', dest='backend',
+                  help='the backend to use (default: %default)')
 parser.add_option('--buildtype', default='debug', type='choice', choices=build_types, dest='buildtype',
                   help=buildtype_help)
 parser.add_option('--strip', action='store_true', dest='strip', default=False,\
@@ -92,9 +92,9 @@ class MesonApp():
         b = build.Build(env)
         intr = interpreter.Interpreter(b)
         intr.run()
-        if options.generator == 'shell':
+        if options.backend == 'shell':
             g = backends.ShellBackend(b, intr)
-        elif options.generator == 'ninja':
+        elif options.backend == 'ninja':
             g = backends.NinjaBackend(b, intr)
         else:
             raise RuntimeError('Unknown generator "%s".' % options.generator)

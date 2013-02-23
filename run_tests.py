@@ -22,12 +22,12 @@ install_dir = os.path.join(os.path.split(os.path.abspath(__file__))[0], 'install
 use_shell = len(sys.argv) > 1
 meson_command = './meson.py'
 if use_shell:
-    generator_flags = ['--generator', 'shell']
+    backend_flags = ['--backend', 'shell']
     compile_commands = ['compile.sh']
     test_commands = ['run_tests.sh']
     install_commands = ['install.sh']
 else:
-    generator_flags = []
+    backend_flags = []
     compile_commands = ['ninja']
     test_commands = ['ninja', 'test']
     install_commands = ['ninja', 'install']
@@ -38,7 +38,7 @@ def run_test(testdir):
     os.mkdir(test_build_dir)
     os.mkdir(install_dir)
     print('Running test: ' + testdir)
-    gen_command = [meson_command, '--prefix', install_dir, testdir, test_build_dir] + generator_flags
+    gen_command = [meson_command, '--prefix', install_dir, testdir, test_build_dir] + backend_flags
     p = subprocess.Popen(gen_command)
     p.wait()
     if p.returncode != 0:
