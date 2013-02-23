@@ -227,6 +227,7 @@ header_suffixes = ['h', 'hh', 'hpp', 'hxx', 'H']
 
 class Environment():
     def __init__(self, source_dir, build_dir, builder_script_file, options):
+        assert(builder_script_file[0] == '/')
         self.source_dir = source_dir
         self.build_dir = build_dir
         self.builder_script_file = builder_script_file
@@ -244,6 +245,16 @@ class Environment():
         self.static_lib_suffix = 'a'
         self.static_lib_prefix = 'lib'
         self.object_suffix = 'o'
+    
+    def get_script_dir(self):
+        fullfile = self.builder_script_file
+        while os.path.islink(fullfile):
+            resolved = os.readlink(fullfile)
+            if resolved[0] != '/':
+                fullfile = os.path.join(os.path.dirname(fullfile), resolved)
+            else:
+                fullfile = resolved 
+        return os.path.dirname(fullfile)
 
     def get_builder_command(self):
         return self.builder_script_file

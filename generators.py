@@ -58,12 +58,6 @@ class Generator():
         self.build_to_src = os.path.relpath(self.environment.get_source_dir(),
                                             self.environment.get_build_dir())
 
-    def get_script_root(self):
-        # The path to wherever our internal scripts are.
-        # /usr/share/../ when installed, local path
-        # when running from source directory.
-        return '..' # FIXME
-
     def get_compiler_for_source(self, src):
         for i in self.build.compilers:
             if i.can_compile(src):
@@ -214,10 +208,10 @@ class NinjaGenerator(Generator):
             print('Warning: coverage requested but neither gcovr nor lcov/genhtml found.')
 
     def generate_install(self, outfile):
-        script_root = self.get_script_root()
+        script_root = self.environment.get_script_dir()
         install_script = os.path.join(script_root, 'builder_install.py')
         install_data_file = os.path.join(self.environment.get_scratch_dir(), 'install.dat')
-        depfixer = os.path.join(self.get_script_root(), 'depfixer.py')
+        depfixer = os.path.join(script_root, 'depfixer.py')
         d = InstallData(self.environment.get_prefix(), depfixer, './') # Fixme
 
         outfile.write('build install: CUSTOM_COMMAND | all\n')
@@ -279,7 +273,7 @@ class NinjaGenerator(Generator):
                 d.data.append(i)
 
     def generate_tests(self, outfile):
-        script_root = self.get_script_root()
+        script_root = self.environment.get_script_dir()
         test_script = os.path.join(script_root, 'builder_test.py')
         test_data = os.path.join(self.environment.get_scratch_dir(), 'builder_test_setup.dat')
         outfile.write('build test: CUSTOM_COMMAND\n')
