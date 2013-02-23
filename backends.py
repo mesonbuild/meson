@@ -49,7 +49,7 @@ def do_conf_file(src, dst, variables):
     open(dst, 'w').writelines(result)
 
 
-class Generator():
+class Backend():
     def __init__(self, build, interp):
         self.build = build
         self.environment = build.environment
@@ -152,10 +152,10 @@ class Generator():
             outfile = os.path.join(outdir, cf.get_target_name())
             do_conf_file(infile, outfile, self.interpreter.get_variables())
 
-class NinjaGenerator(Generator):
+class NinjaBackend(Backend):
 
     def __init__(self, build, interp):
-        Generator.__init__(self, build, interp)
+        Backend.__init__(self, build, interp)
         self.ninja_filename = 'build.ninja'
 
     def generate(self):
@@ -463,9 +463,9 @@ class NinjaGenerator(Generator):
         ignore_missing = 'build %s: phony\n\n' % depstr
         outfile.write(ignore_missing)
 
-class ShellGenerator(Generator):
+class ShellBackend(Backend):
     def __init__(self, build, interp):
-        Generator.__init__(self, build, interp)
+        Backend.__init__(self, build, interp)
         self.build_filename = 'compile.sh'
         self.test_filename = 'run_tests.sh'
         self.install_filename = 'install.sh'
@@ -716,5 +716,5 @@ if __name__ == '__main__':
     os.chdir(os.path.split(__file__)[0])
     envir = environment.Environment('.', 'work area')
     intpr = interpreter.Interpreter(code, envir)
-    g = ShellGenerator(intpr, envir)
+    g = ShellBackend(intpr, envir)
     g.generate()

@@ -18,7 +18,7 @@ from optparse import OptionParser
 import sys, stat
 import os.path
 import environment, interpreter
-import generators, build
+import backends, build
 
 version = '0.1-research'
 
@@ -93,9 +93,9 @@ class MesonApp():
         intr = interpreter.Interpreter(b)
         intr.run()
         if options.generator == 'shell':
-            g = generators.ShellGenerator(b, intr)
+            g = backends.ShellBackend(b, intr)
         elif options.generator == 'ninja':
-            g = generators.NinjaGenerator(b, intr)
+            g = backends.NinjaBackend(b, intr)
         else:
             raise RuntimeError('Unknown generator "%s".' % options.generator)
         g.generate()
