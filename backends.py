@@ -361,7 +361,7 @@ class NinjaBackend(Backend):
             for i in range(len(infilelist)):
                 infilename = os.path.join(self.build_to_src, infilelist[i])
                 outfilename = os.path.join(self.get_target_dir(target), outfilelist[i])
-                args = [x.replace("@INPUTNAME@", infilename).replace('@OUTPUTNAME@', outfilename)\
+                args = [x.replace("@INPUT@", infilename).replace('@OUTPUT@', outfilename)\
                         for x in base_args]
                 cmdlist = [exe_file] + args
                 build = 'build %s: CUSTOM_COMMAND %s | %s\n' % \
