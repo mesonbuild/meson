@@ -66,15 +66,15 @@ class Generator(InterpreterObject):
                 raise InvalidArguments('A non-string object in "arguments" keyword argument.')
         self.arglist = args
         
-        if 'name_rule' not in kwargs:
-            raise InvalidArguments('Generator must have "name_rule" keyword argument.')
-        rule = kwargs['name_rule']
+        if 'output_name' not in kwargs:
+            raise InvalidArguments('Generator must have "output_name" keyword argument.')
+        rule = kwargs['output_name']
         if not isinstance(rule, str):
-            raise InvalidArguments('"name_rule" keyword argument must be a string.')
+            raise InvalidArguments('"output_name" keyword argument must be a string.')
         if not '@BASENAME@' in rule:
-            raise InvalidArguments('"name_rule" must contain @BASENAME@.')
+            raise InvalidArguments('"output_name" must contain @BASENAME@.')
         if '/' in rule:
-            raise InvalidArguments('"name_rule" must not contain a slash.')
+            raise InvalidArguments('"output_name" must not contain a slash.')
         self.name_rule = rule
 
     def get_base_outname(self, inname):

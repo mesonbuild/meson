@@ -3,7 +3,7 @@ project('pipeline test', 'c')
 e1 = executable('srcgen', 'srcgen.c')
 
 gen = generator(e1, \
- name_rule : '@BASENAME@.c', \
+ output_name  : '@BASENAME@.c', \
  arguments : ['@INPUT@', '@OUTPUT@'])
 
 generated = gen.process('input_src.dat')
