@@ -14,6 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# This script installs Meson. We can't use Meson to install itself
+# because of the bootstrap problem. We can't use any other build system
+# either becaust that would be just silly.
+
 import os, sys, glob, shutil, gzip
 from optparse import OptionParser
 from meson import version
@@ -21,10 +25,6 @@ from meson import version
 usage_info = '%prog [--prefix PREFIX] [--destdir DESTDIR]'
 
 parser = OptionParser(usage=usage_info)
-
-build_types = ['plain', 'debug', 'optimized']
-buildtype_help = 'build type, one of: %s' % ', '.join(build_types)
-buildtype_help += ' (default: %default)'
 
 parser.add_option('--prefix', default='/usr/local', dest='prefix',
                   help='the installation prefix (default: %default)')
