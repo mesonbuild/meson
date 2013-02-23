@@ -17,7 +17,7 @@
 import os, stat, re, pickle
 import interpreter, nodes
 import environment
-from builder_install import InstallData
+from meson_install import InstallData
 
 def shell_quote(cmdlist):
     return ["'" + x + "'" for x in cmdlist]
@@ -209,7 +209,7 @@ class NinjaGenerator(Generator):
 
     def generate_install(self, outfile):
         script_root = self.environment.get_script_dir()
-        install_script = os.path.join(script_root, 'builder_install.py')
+        install_script = os.path.join(script_root, 'meson_install.py')
         install_data_file = os.path.join(self.environment.get_scratch_dir(), 'install.dat')
         depfixer = os.path.join(script_root, 'depfixer.py')
         d = InstallData(self.environment.get_prefix(), depfixer, './') # Fixme
@@ -274,8 +274,8 @@ class NinjaGenerator(Generator):
 
     def generate_tests(self, outfile):
         script_root = self.environment.get_script_dir()
-        test_script = os.path.join(script_root, 'builder_test.py')
-        test_data = os.path.join(self.environment.get_scratch_dir(), 'builder_test_setup.dat')
+        test_script = os.path.join(script_root, 'meson_test.py')
+        test_data = os.path.join(self.environment.get_scratch_dir(), 'meson_test_setup.dat')
         outfile.write('build test: CUSTOM_COMMAND\n')
         outfile.write(' COMMAND = \'%s\' \'%s\'\n\n' % (ninja_quote(test_script), ninja_quote(test_data)))
         datafile = open(test_data, 'w')

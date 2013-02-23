@@ -20,7 +20,7 @@ import os, subprocess, shutil, sys
 test_build_dir = 'work area'
 install_dir = os.path.join(os.path.split(os.path.abspath(__file__))[0], 'install dir')
 use_shell = len(sys.argv) > 1
-builder_command = './meson.py'
+meson_command = './meson.py'
 if use_shell:
     generator_flags = ['--generator', 'shell']
     compile_commands = ['compile.sh']
@@ -38,7 +38,7 @@ def run_test(testdir):
     os.mkdir(test_build_dir)
     os.mkdir(install_dir)
     print('Running test: ' + testdir)
-    gen_command = [builder_command, '--prefix', install_dir, testdir, test_build_dir] + generator_flags
+    gen_command = [meson_command, '--prefix', install_dir, testdir, test_build_dir] + generator_flags
     p = subprocess.Popen(gen_command)
     p.wait()
     if p.returncode != 0:
