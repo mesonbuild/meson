@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os, sys, glob, shutil
+import os, sys, glob, shutil, gzip
 from optparse import OptionParser
 from meson import version
 
@@ -51,6 +51,9 @@ script_dir = os.path.join(install_root, 'share/meson-' + version)
 bin_dir = os.path.join(install_root, 'bin')
 bin_script = os.path.join(script_dir, 'meson.py')
 bin_name = os.path.join(bin_dir, 'meson')
+man_dir = os.path.join(install_root, 'share/man/man1')
+in_manfile = 'man/meson.1'
+out_manfile = os.path.join(man_dir, 'meson.1.gz')
 
 symlink_value = os.path.relpath(bin_script, os.path.dirname(bin_name))
 
@@ -62,11 +65,18 @@ files = [x for x in files if x not in noinstall]
 
 os.makedirs(script_dir, exist_ok=True)
 os.makedirs(bin_dir, exist_ok=True)
+os.makedirs(man_dir, exist_ok=True)
 
 for f in files:
-    print('Installing %s to %s' %(f, script_dir))
+    print('Installing %s to %s.' %(f, script_dir))
     outfilename = os.path.join(script_dir, f)
     shutil.copyfile(f, outfilename)
     shutil.copystat(f, outfilename)
-
+try:
+    os.remove(bin_name)
+except OSError:
+    pass
+print('Creating symlink %s.' % bin_name)
 os.symlink(symlink_value, bin_name)
+print('Installing manfile to %s.' % man_dir)
+open(out_manfile, 'wb').write(gzip.compress(open(in_manfile, 'rb').read()))
