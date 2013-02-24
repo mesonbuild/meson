@@ -411,17 +411,18 @@ class Dependency():
 class PkgConfigDependency(Dependency):
     pkgconfig_found = False
     
-    def __init__(self, name):
+    def __init__(self, name, required):
         Dependency.__init__(self)
-        self.is_found = False
         if not PkgConfigDependency.pkgconfig_found:
             self.check_pkgconfig()
 
+        self.is_found = False
         p = subprocess.Popen(['pkg-config', '--modversion', name], stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE)
         out = p.communicate()[0]
         if p.returncode != 0:
-            print('Dependency %s not known to pkg-config.' % name)
+            if required:
+                raise EnvironmentException('Required dependency %s not found.' % name)
             self.modversion = 'none'
             self.cflags = []
             self.libs = []
@@ -465,8 +466,8 @@ class PkgConfigDependency(Dependency):
 
 # Fixme, move to environment.
 def find_external_dependency(name, kwargs):
-    # Add detectors for non-pkg-config deps (e.g. Boost) etc here.
-    return PkgConfigDependency(name)
+    required = kwargs.get('required', False)
+    return PkgConfigDependency(name, required)
 
 def test_pkg_config():
     name = 'gtk+-3.0'
