@@ -34,6 +34,13 @@ class CoreData():
         self.strip = options.strip
         self.coverage = options.coverage
 
+        if isinstance(options, CoreData):
+            self.compilers = options.compilers.copy()
+            self.deps = options.deps.copy()
+        else:
+            self.compilers = {}
+            self.deps = {}
+
 def load(filename):
     obj = pickle.load(open(filename, 'rb'))
     if not isinstance(obj, CoreData):

@@ -264,6 +264,12 @@ class Environment():
     def get_script_dir(self):
         return os.path.dirname(self.meson_script_file)
 
+    def get_old_coredata(self):
+        return self.old_coredata
+
+    def get_new_coredata(self):
+        return self.new_coredata
+
     def get_build_command(self):
         return self.meson_script_file
 
@@ -397,6 +403,9 @@ class Dependency():
     def get_link_flags(self):
         return []
 
+    def found(self):
+        return False
+
 # This should be an InterpreterObject. Fix it.
 
 class PkgConfigDependency(Dependency):
@@ -404,6 +413,7 @@ class PkgConfigDependency(Dependency):
     
     def __init__(self, name):
         Dependency.__init__(self)
+        self.is_found = False
         if not PkgConfigDependency.pkgconfig_found:
             self.check_pkgconfig()
 
@@ -411,22 +421,27 @@ class PkgConfigDependency(Dependency):
                                  stderr=subprocess.PIPE)
         out = p.communicate()[0]
         if p.returncode != 0:
-            raise RuntimeError('Dependency %s not known to pkg-config.' % name)
-        self.modversion = out.decode().strip()
-        p = subprocess.Popen(['pkg-config', '--cflags', name], stdout=subprocess.PIPE,
+            print('Dependency %s not known to pkg-config.' % name)
+            self.modversion = 'none'
+            self.cflags = []
+            self.libs = []
+        else:
+            self.is_found = True
+            self.modversion = out.decode().strip()
+            p = subprocess.Popen(['pkg-config', '--cflags', name], stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE)
-        out = p.communicate()[0]
-        if p.returncode != 0:
-            raise RuntimeError('Could not generate cflags for %s.' % name)
-        self.cflags = out.decode().split()
-        
-        p = subprocess.Popen(['pkg-config', '--libs', name], stdout=subprocess.PIPE,
+            out = p.communicate()[0]
+            if p.returncode != 0:
+                raise RuntimeError('Could not generate cflags for %s.' % name)
+            self.cflags = out.decode().split()
+
+            p = subprocess.Popen(['pkg-config', '--libs', name], stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE)
-        out = p.communicate()[0]
-        if p.returncode != 0:
-            raise RuntimeError('Could not generate libs for %s.' % name)
-        self.libs = out.decode().split()
-    
+            out = p.communicate()[0]
+            if p.returncode != 0:
+                raise RuntimeError('Could not generate libs for %s.' % name)
+            self.libs = out.decode().split()
+
     def get_modversion(self):
         return self.modversion
 
@@ -444,6 +459,9 @@ class PkgConfigDependency(Dependency):
             raise RuntimeError('Pkg-config executable not found.')
         print('Found pkg-config version %s.' % out.decode().strip())
         PkgConfigDependency.pkgconfig_found = True
+
+    def found(self):
+        return self.is_found
 
 # Fixme, move to environment.
 def find_external_dependency(name, kwargs):
