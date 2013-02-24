@@ -34,12 +34,14 @@ class CoreData():
         self.strip = options.strip
         self.coverage = options.coverage
 
+        self.deps = {}
+        # To prevent weird bugs, compiler name can not be altered
+        # after it is first declared. So always copy all compilers
+        # from old coredata.
         if isinstance(options, CoreData):
             self.compilers = options.compilers.copy()
-            self.deps = options.deps.copy()
         else:
             self.compilers = {}
-            self.deps = {}
 
 def load(filename):
     obj = pickle.load(open(filename, 'rb'))
