@@ -15,6 +15,7 @@
 # limitations under the License.
 
 import subprocess, os.path
+import coredata
 
 build_filename = 'meson.build'
 
@@ -232,9 +233,11 @@ class Environment():
         self.source_dir = source_dir
         self.build_dir = build_dir
         self.meson_script_file = main_script_file
-        self.options = options
         self.scratch_dir = os.path.join(build_dir, 'meson-private')
         os.makedirs(self.scratch_dir, exist_ok=True)
+
+        self.old_coredata = coredata.CoreData(options) # FIXME: read from disk
+        self.new_coredata = coredata.CoreData(self.old_coredata)
 
         self.default_c = ['cc']
         self.default_cxx = ['c++']
@@ -356,22 +359,22 @@ class Environment():
         return self.object_suffix
 
     def get_prefix(self):
-        return self.options.prefix
+        return self.new_coredata.prefix
 
     def get_libdir(self):
-        return self.options.libdir
+        return self.new_coredata.libdir
 
     def get_bindir(self):
-        return self.options.bindir
+        return self.new_coredata.bindir
 
     def get_includedir(self):
-        return self.options.includedir
+        return self.new_coredata.includedir
 
     def get_mandir(self):
-        return self.options.mandir
+        return self.new_coredata.mandir
 
     def get_datadir(self):
-        return self.options.datadir
+        return self.new_coredata.datadir
 
 class Dependency():
     def __init__(self):

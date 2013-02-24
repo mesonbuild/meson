@@ -121,11 +121,11 @@ class Backend():
         commands = []
         commands += self.build.get_global_flags(compiler)
         commands += target.get_extra_args(compiler.get_language())
-        if self.environment.options.buildtype != 'plain':
+        if self.environment.new_coredata.buildtype != 'plain':
             commands += compiler.get_debug_flags()
-        if self.environment.options.buildtype == 'optimized':
+        if self.environment.new_coredata.buildtype == 'optimized':
             commands += compiler.get_std_opt_flags()
-        if self.environment.options.coverage:
+        if self.environment.new_coredata.coverage:
             commands += compiler.get_coverage_flags()
         commands += compiler.get_std_warn_flags()
         if isinstance(target, interpreter.SharedLibrary):
@@ -175,7 +175,7 @@ class NinjaBackend(Backend):
         self.generate_tests(outfile)
         outfile.write('# Install rules\n\n')
         self.generate_install(outfile)
-        if self.environment.options.coverage:
+        if self.environment.new_coredata.coverage:
             outfile.write('# Coverage rules\n\n')
             self.generate_coverage_rules(outfile)
         outfile.write('# Suffix\n\n')
@@ -231,7 +231,7 @@ class NinjaBackend(Backend):
         libdir = self.environment.get_libdir()
         bindir = self.environment.get_bindir()
 
-        should_strip = self.environment.options.strip
+        should_strip = self.environment.new_coredata.strip
         for t in self.build.get_targets().values():
             if t.should_install():
                 if isinstance(t, interpreter.Executable):
@@ -454,7 +454,7 @@ class NinjaBackend(Backend):
             commands += dep.get_link_flags()
         dependencies = target.get_dependencies()
         commands += self.build_target_link_arguments(dependencies)
-        if self.environment.options.coverage:
+        if self.environment.new_coredata.coverage:
             commands += linker.get_coverage_link_flags()
         if len(dependencies) == 0:
             dep_targets = ''
