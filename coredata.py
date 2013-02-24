@@ -18,6 +18,8 @@
 # invocations of Meson. It is roughly the same thing as
 # cmakecache.
 
+import pickle
+
 class CoreData():
     
     def __init__(self, options):
@@ -31,3 +33,12 @@ class CoreData():
         self.buildtype = options.buildtype
         self.strip = options.strip
         self.coverage = options.coverage
+
+def load(filename):
+    obj = pickle.load(open(filename, 'rb'))
+    if not isinstance(obj, CoreData):
+        raise RuntimeError('Core data file is corrupted.')
+    return obj
+
+def save(obj, filename):
+    pickle.dump(obj, open(filename, 'wb'))

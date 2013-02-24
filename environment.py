@@ -227,16 +227,23 @@ def find_coverage_tools():
 header_suffixes = ['h', 'hh', 'hpp', 'hxx', 'H']
 
 class Environment():
+    private_dir = 'meson-private'
+    coredata_file = os.path.join(private_dir, 'coredata.dat')
+
     def __init__(self, source_dir, build_dir, main_script_file, options):
         assert(main_script_file[0] == '/')
         assert(not os.path.islink(main_script_file))
         self.source_dir = source_dir
         self.build_dir = build_dir
         self.meson_script_file = main_script_file
-        self.scratch_dir = os.path.join(build_dir, 'meson-private')
+        self.scratch_dir = os.path.join(build_dir, Environment.private_dir)
         os.makedirs(self.scratch_dir, exist_ok=True)
 
-        self.old_coredata = coredata.CoreData(options) # FIXME: read from disk
+        try:
+            cdf = os.path.join(self.get_build_dir(), Environment.coredata_file)
+            self.old_coredata = coredata.load(cdf)
+        except IOError:
+            self.old_coredata = coredata.CoreData(options)
         self.new_coredata = coredata.CoreData(self.old_coredata)
 
         self.default_c = ['cc']
@@ -249,6 +256,10 @@ class Environment():
         self.static_lib_suffix = 'a'
         self.static_lib_prefix = 'lib'
         self.object_suffix = 'o'
+
+    def generating_finished(self):
+        cdf = os.path.join(self.get_build_dir(), Environment.coredata_file)
+        coredata.save(self.new_coredata, cdf)
 
     def get_script_dir(self):
         return os.path.dirname(self.meson_script_file)

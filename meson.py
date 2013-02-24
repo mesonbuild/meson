@@ -99,6 +99,7 @@ class MesonApp():
         else:
             raise RuntimeError('Unknown generator "%s".' % options.generator)
         g.generate()
+        env.generating_finished()
 
 if __name__ == '__main__':
     (options, args) = parser.parse_args(sys.argv)
