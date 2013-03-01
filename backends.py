@@ -97,8 +97,8 @@ class Backend():
             for src in genlist.get_outfilelist():
                 if not self.environment.is_header(src):
                     obj_list.append(self.generate_single_compile(target, outfile, src, True))
-        self.generate_link(target, outfile, outname, obj_list)
-        self.generate_shlib_aliases(target, self.get_target_dir(target), outfile)
+        elem = self.generate_link(target, outfile, outname, obj_list)
+        self.generate_shlib_aliases(target, self.get_target_dir(target), outfile, elem)
         self.processed_targets[name] = True
 
     def process_target_dependencies(self, target, outfile):
@@ -159,10 +159,13 @@ class Backend():
             do_conf_file(infile, outfile, self.interpreter.get_variables())
 
 class NinjaBuildElement():
-    def __init__(self, infilename, rule, outfilename):
+    def __init__(self, infilename, rule, outfilenames):
         self.infilename = infilename
         self.rule = rule
-        self.outfilename = outfilename
+        if isinstance(outfilenames, str):
+            self.outfilenames = [outfilenames]
+        else:
+            self.outfilenames = outfilenames
         self.deps = []
         self.orderdeps = []
         self.elems = []
@@ -186,7 +189,7 @@ class NinjaBuildElement():
 
     def write(self, outfile):
         line = 'build %s: %s %s' % (ninja_quote(self.infilename), self.rule,
-                                    ninja_quote(self.outfilename))
+                                    ' '.join([ninja_quote(i) for i in self.outfilenames]))
         if len(self.deps) > 0:
             line += ' | ' + ' '.join([ninja_quote(x) for x in self.deps])
         if len(self.orderdeps) > 0:
@@ -200,11 +203,16 @@ class NinjaBuildElement():
             if name == 'DEPFILE':
                 should_quote = False
             line = ' %s = ' % name
-            if should_quote:
-                templ = "'%s'"
-            else:
-                templ = "%s"
-            line += ' '.join([templ % ninja_quote(i) for i in elems])
+            q_templ = "'%s'"
+            noq_templ = "%s"
+            newelems = []
+            for i in elems:
+                if not should_quote or i == '&&': # Hackety hack hack
+                    templ = noq_templ
+                else:
+                    templ = q_templ
+                newelems.append(templ % ninja_quote(i))
+            line += ' '.join(newelems)
             line += '\n'
             outfile.write(line)
         outfile.write('\n')
@@ -421,12 +429,10 @@ class NinjaBackend(Backend):
                 args = [x.replace("@INPUT@", infilename).replace('@OUTPUT@', outfilename)\
                         for x in base_args]
                 cmdlist = [exe_file] + args
-                build = 'build %s: CUSTOM_COMMAND %s | %s\n' % \
-                (ninja_quote(outfilename), ninja_quote(infilename), ninja_quote(self.get_target_filename(exe)))
-                command = ' COMMAND = %s\n\n' % \
-                ' '.join(["'%s'" % ninja_quote(i) for i in cmdlist])
-                outfile.write(build)
-                outfile.write(command)
+                elem = NinjaBuildElement(outfilename, 'CUSTOM_COMMAND', infilename)
+                elem.add_dep(self.get_target_filename(exe))
+                elem.add_item('COMMAND', cmdlist)
+                elem.write(outfile)
 
     def generate_single_compile(self, target, outfile, src, is_generated=False):
         compiler = self.get_compiler_for_source(src)
@@ -478,14 +484,10 @@ class NinjaBackend(Backend):
             dst = os.path.join(self.get_target_private_dir(target),
                                   os.path.split(pch)[-1] + '.' + compiler.get_pch_suffix())
             dep = dst + '.' + compiler.get_depfile_suffix()
-            build = 'build %s: %s %s\n' % (ninja_quote(dst), 
-                                           ninja_quote(compiler.get_language() + '_COMPILER'),
-                                           ninja_quote(src))
-            flags = ' FLAGS = %s\n' % ' '.join([ninja_quote(t) for t in commands])
-            depfile = ' DEPFILE = %s\n\n' % ninja_quote(dep)
-            outfile.write(build)
-            outfile.write(flags)
-            outfile.write(depfile)
+            elem = NinjaBuildElement(dst, compiler.get_language() + '_COMPILER', src)
+            elem.add_item('FLAGS', commands)
+            elem.add_item('DEPFILE', dep)
+            elem.write(outfile)
 
     def generate_link(self, target, outfile, outname, obj_list):
         if isinstance(target, interpreter.StaticLibrary):
@@ -511,26 +513,28 @@ class NinjaBackend(Backend):
         commands += self.build_target_link_arguments(dependencies)
         if self.environment.new_coredata.coverage:
             commands += linker.get_coverage_link_flags()
-        if len(dependencies) == 0:
-            dep_targets = ''
-        else:
-            dep_targets = '| ' + ' '.join([ninja_quote(self.get_target_filename(t)) for t in dependencies])
-        build = 'build %s: %s %s %s\n' % \
-        (ninja_quote(outname), linker_rule, ' '.join([ninja_quote(i) for i in obj_list]),
-         dep_targets)
-        flags = ' LINK_FLAGS = %s\n' % ' '.join([ninja_quote(a) for a in commands])
-        outfile.write(build)
-        outfile.write(flags)
+        dep_targets = [self.get_target_filename(t) for t in dependencies]
+        elem = NinjaBuildElement(outname, linker_rule, obj_list)
+        elem.add_dep(dep_targets)
+        elem.add_item('LINK_FLAGS', commands)
+        return elem
+        #build = 'build %s: %s %s %s\n' % \
+        #(ninja_quote(outname), linker_rule, ' '.join([ninja_quote(i) for i in obj_list]),
+        # dep_targets)
+        #flags = ' LINK_FLAGS = %s\n' % ' '.join([ninja_quote(a) for a in commands])
+        #outfile.write(build)
+        #outfile.write(flags)
 
-    def generate_shlib_aliases(self, target, outdir, outfile):
+    def generate_shlib_aliases(self, target, outdir, outfile, elem):
         basename = target.get_filename()
         aliases = target.get_aliaslist()
-        aliascmd = ''
+        aliascmd = []
         for alias in aliases:
             aliasfile = os.path.join(outdir, alias)
-            cmd = " && ln -s -f '%s' '%s'" % (ninja_quote(basename), ninja_quote(aliasfile))
+            cmd = ["&&", 'ln', '-s', '-f', basename, aliasfile]
             aliascmd += cmd
-        outfile.write(' aliasing =%s\n\n' % aliascmd)
+        elem.add_item('aliasing', aliascmd)
+        elem.write(outfile)
 
     def generate_ending(self, outfile):
         targetlist = [self.get_target_filename(t) for t in self.build.get_targets().values()]
