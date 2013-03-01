@@ -765,6 +765,8 @@ class Interpreter():
             return arg.get_value()
         elif isinstance(arg, nodes.ArrayStatement):
             return [self.reduce_single(curarg) for curarg in arg.args.arguments]
+        elif isinstance(arg, nodes.IntStatement):
+            return arg.get_value()
         else:
             raise InvalidCode('Line %d: Irreducible argument.' % arg.lineno())
 

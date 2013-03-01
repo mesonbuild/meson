@@ -103,7 +103,7 @@ def p_codeblock_emptyline(t):
 
 def p_codeblock_last(t):
     'codeblock : statement EOL'
-    cb = nodes.CodeBlock(t.lineno(1))
+    cb = nodes.CodeBlock(t[1].lineno())
     cb.prepend(t[1])
     t[0] = cb
 
@@ -129,12 +129,12 @@ def p_expression_string(t):
 
 def p_statement_assign(t):
     'statement : expression ASSIGN statement'
-    t[0] = nodes.Assignment(t[1], t[3], t.lineno(1))
+    t[0] = nodes.Assignment(t[1], t[3], t[1].lineno())
 
 def p_statement_comparison(t):
     '''statement : statement EQUALS statement
                  | statement NEQUALS statement'''
-    t[0] = nodes.Comparison(t[1], t[2], t[3], t.lineno(1))
+    t[0] = nodes.Comparison(t[1], t[2], t[3], t[1].lineno())
 
 def p_statement_array(t):
     '''statement : LBRACKET args RBRACKET'''
@@ -142,11 +142,11 @@ def p_statement_array(t):
 
 def p_statement_func_call(t):
     'statement : expression LPAREN args RPAREN'
-    t[0] = nodes.FunctionCall(t[1], t[3], t.lineno(1))
+    t[0] = nodes.FunctionCall(t[1], t[3], t[1].lineno())
 
 def p_statement_method_call(t):
     'statement : expression DOT expression LPAREN args RPAREN'
-    t[0] = nodes.MethodCall(t[1], t[3], t[5], t.lineno(1))
+    t[0] = nodes.MethodCall(t[1], t[3], t[5], t[1].lineno())
 
 def p_statement_if(t):
     'statement : IF statement EOL codeblock elseblock ENDIF'
@@ -189,13 +189,13 @@ def p_kwargs_multiple(t):
 
 def p_args_single_pos(t):
     'args : statement'
-    args = nodes.Arguments(t.lineno(1))
+    args = nodes.Arguments(t[1].lineno())
     args.prepend(t[1])
     t[0] = args
 
 def p_args_single_kw(t):
     'args : expression COLON statement'
-    a = nodes.Arguments(t.lineno(1))
+    a = nodes.Arguments(t[1].lineno())
     a.set_kwarg(t[1], t[3])
     t[0] = a
 
