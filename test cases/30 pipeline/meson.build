@@ -4,7 +4,7 @@ e1 = executable('srcgen', 'srcgen.c')
 
 gen = generator(e1, \
  output_name  : '@BASENAME@.c', \
- arguments : ['@INPUT@', '@OUTPUT@'])
+ arguments : ['@INPUT@', '@OUTPUT@']) # comment
 
 generated = gen.process('input_src.dat')
 

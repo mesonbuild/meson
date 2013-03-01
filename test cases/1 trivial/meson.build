@@ -1,7 +1,8 @@
+# Comment on the first line
 project('trivial test', 'c')
-
+#this is a comment
 sources = 'trivial.c'
 
 exe = executable('trivialprog', sources : sources)
 
-add_test('runtest', exe)
+add_test('runtest', exe) # This is a comment
