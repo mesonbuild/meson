@@ -208,6 +208,7 @@ class NinjaBuildElement():
             line += '\n'
             outfile.write(line)
         outfile.write('\n')
+
 class NinjaBackend(Backend):
 
     def __init__(self, build, interp):
@@ -269,9 +270,11 @@ class NinjaBackend(Backend):
         install_data_file = os.path.join(self.environment.get_scratch_dir(), 'install.dat')
         depfixer = os.path.join(script_root, 'depfixer.py')
         d = InstallData(self.environment.get_prefix(), depfixer, './') # Fixme
-
-        outfile.write('build install: CUSTOM_COMMAND | all\n')
-        outfile.write(" COMMAND = '%s' '%s'\n\n" % (ninja_quote(install_script), ninja_quote(install_data_file)))
+        elem = NinjaBuildElement('install', 'CUSTOM_COMMAND', '')
+        elem.add_dep('all')
+        elem.add_item('COMMAND', [install_script, install_data_file])
+        elem.write(outfile)
+        
         self.generate_target_install(d)
         self.generate_header_install(d)
         self.generate_man_install(d)
@@ -332,8 +335,10 @@ class NinjaBackend(Backend):
         script_root = self.environment.get_script_dir()
         test_script = os.path.join(script_root, 'meson_test.py')
         test_data = os.path.join(self.environment.get_scratch_dir(), 'meson_test_setup.dat')
-        outfile.write('build test: CUSTOM_COMMAND\n')
-        outfile.write(' COMMAND = \'%s\' \'%s\'\n\n' % (ninja_quote(test_script), ninja_quote(test_data)))
+        elem = NinjaBuildElement('test', 'CUSTOM_COMMAND', '')
+        elem.add_item('COMMAND', [test_script, test_data])
+        elem.write(outfile)
+        
         datafile = open(test_data, 'w')
         for t in self.build.get_tests():
             datafile.write(self.get_target_filename(t.get_exe()) + '\n')
