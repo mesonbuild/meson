@@ -166,14 +166,24 @@ def p_statement_expression(t):
 
 
 def p_args_multiple(t):
-    'args : statement COMMA args'
-    args = t[3]
+    '''args : statement COMMA args
+            | statement COMMA EOL args
+            | statement EOL COMMA args'''
+    if len(t) == 5:
+        args = t[4]
+    else:
+        args = t[3]
     args.prepend(t[1])
     t[0] = args
 
 def p_kwargs_multiple(t):
-    'args : expression COLON statement COMMA args'
-    args = t[5]
+    '''args : expression COLON statement COMMA args
+            | expression COLON statement COMMA EOL args
+            | expression COLON statement EOL COMMA args'''
+    if len(t) == 7:
+        args = t[6]
+    else:
+        args = t[5]
     args.set_kwarg(t[1], t[3])
     t[0] = args
 
