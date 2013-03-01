@@ -241,10 +241,9 @@ class Environment():
 
         try:
             cdf = os.path.join(self.get_build_dir(), Environment.coredata_file)
-            self.old_coredata = coredata.load(cdf)
+            self.coredata = coredata.load(cdf)
         except IOError:
-            self.old_coredata = coredata.CoreData(options)
-        self.new_coredata = coredata.CoreData(self.old_coredata)
+            self.coredata = coredata.CoreData(options)
 
         self.default_c = ['cc']
         self.default_cxx = ['c++']
@@ -259,16 +258,13 @@ class Environment():
 
     def generating_finished(self):
         cdf = os.path.join(self.get_build_dir(), Environment.coredata_file)
-        coredata.save(self.new_coredata, cdf)
+        coredata.save(self.coredata, cdf)
 
     def get_script_dir(self):
         return os.path.dirname(self.meson_script_file)
 
-    def get_old_coredata(self):
-        return self.old_coredata
-
-    def get_new_coredata(self):
-        return self.new_coredata
+    def get_coredata(self):
+        return self.coredata
 
     def get_build_command(self):
         return self.meson_script_file
@@ -376,22 +372,22 @@ class Environment():
         return self.object_suffix
 
     def get_prefix(self):
-        return self.new_coredata.prefix
+        return self.coredata.prefix
 
     def get_libdir(self):
-        return self.new_coredata.libdir
+        return self.coredata.libdir
 
     def get_bindir(self):
-        return self.new_coredata.bindir
+        return self.coredata.bindir
 
     def get_includedir(self):
-        return self.new_coredata.includedir
+        return self.coredata.includedir
 
     def get_mandir(self):
-        return self.new_coredata.mandir
+        return self.coredata.mandir
 
     def get_datadir(self):
-        return self.new_coredata.datadir
+        return self.coredata.datadir
 
 class Dependency():
     def __init__(self):

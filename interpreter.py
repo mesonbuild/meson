@@ -456,8 +456,7 @@ class Interpreter():
         self.build_def_files = [environment.build_filename]
         self.subdir = ''
         self.generators = []
-        self.old_coredata = self.environment.get_old_coredata()
-        self.new_coredata = self.environment.get_new_coredata()
+        self.coredata = self.environment.get_coredata()
 
     def build_func_dict(self):
         self.funcs = {'project' : self.func_project, 
@@ -575,7 +574,7 @@ class Interpreter():
 
     def add_languages(self, node, args):
         for lang in args:
-            if lang in self.new_coredata.compilers:
+            if lang in self.coredata.compilers:
                 comp = self.new_coredata.compilers[lang]
             else:
                 if lang.lower() == 'c':
@@ -585,20 +584,19 @@ class Interpreter():
                 else:
                     raise InvalidCode('Tried to use unknown language "%s".' % lang)
                 comp.sanity_check(self.environment.get_scratch_dir())
-                self.new_coredata.compilers[lang] = comp
+                self.coredata.compilers[lang] = comp
             self.build.compilers.append(comp)
 
     def func_find_dep(self, node, args, kwargs):
         self.validate_arguments(args, 1, [str])
         name = args[0]
-        if name in self.old_coredata.deps:
-            dep = self.old_coredata.deps[name]
-            if not dep.found():
-                raise RuntimeError('Non-found dependency stored in coredata.')
+        if name in self.coredata.deps:
+            dep = self.coredata.deps[name]
         else:
+            dep = environment.Dependency() # Returns always false for dep.found()
+        if not dep.found():
             dep = environment.find_external_dependency(name, kwargs)
-        if dep.found():
-            self.new_coredata.deps[name] = dep
+        self.coredata.deps[name] = dep
         return dep
 
     def func_executable(self, node, args, kwargs):
