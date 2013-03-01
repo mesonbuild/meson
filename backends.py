@@ -159,13 +159,16 @@ class Backend():
             do_conf_file(infile, outfile, self.interpreter.get_variables())
 
 class NinjaBuildElement():
-    def __init__(self, infilename, rule, outfilenames):
-        self.infilename = infilename
-        self.rule = rule
+    def __init__(self, outfilenames, rule, infilenames):
         if isinstance(outfilenames, str):
             self.outfilenames = [outfilenames]
         else:
             self.outfilenames = outfilenames
+        self.rule = rule
+        if isinstance(infilenames, str):
+            self.infilenames = [infilenames]
+        else:
+            self.infilenames = infilenames
         self.deps = []
         self.orderdeps = []
         self.elems = []
@@ -188,8 +191,9 @@ class NinjaBuildElement():
         self.elems.append((name, elems))
 
     def write(self, outfile):
-        line = 'build %s: %s %s' % (ninja_quote(self.infilename), self.rule,
-                                    ' '.join([ninja_quote(i) for i in self.outfilenames]))
+        line = 'build %s: %s %s' % (' '.join([ninja_quote(i) for i in  self.outfilenames]),\
+                                    self.rule,
+                                    ' '.join([ninja_quote(i) for i in self.infilenames]))
         if len(self.deps) > 0:
             line += ' | ' + ' '.join([ninja_quote(x) for x in self.deps])
         if len(self.orderdeps) > 0:
@@ -544,11 +548,8 @@ class NinjaBackend(Backend):
         elem = NinjaBuildElement('build.ninja', 'REGENERATE_BUILD', deps)
         elem.write(outfile)
 
-        phonydeps = [ ninja_quote(os.path.join(self.build_to_src, df)) \
-                for df in self.interpreter.get_build_def_files()]
-        phonydepstr = ' '.join(phonydeps)
-        ignore_missing = 'build %s: phony\n\n' % phonydepstr
-        outfile.write(ignore_missing)
+        elem = NinjaBuildElement(deps, 'phony', '')
+        elem.write(outfile)
 
 class ShellBackend(Backend):
     def __init__(self, build, interp):
