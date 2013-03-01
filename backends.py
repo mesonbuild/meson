@@ -207,7 +207,7 @@ class NinjaBuildElement():
         for e in self.elems:
             (name, elems) = e
             should_quote = True
-            if name == 'DEPFILE':
+            if name == 'DEPFILE' or name == 'DESC':
                 should_quote = False
             line = ' %s = ' % name
             q_templ = "'%s'"
@@ -257,10 +257,12 @@ class NinjaBackend(Backend):
             elem = NinjaBuildElement('coverage-xml', 'CUSTOM_COMMAND', '')
             elem.add_item('COMMAND', [gcovr_exe, '-x', '-r', self.environment.get_build_dir(),\
                                       '-o', 'coverage.xml'])
+            elem.add_item('DESC', 'Generating XML coverage report.')
             elem.write(outfile)
             elem = NinjaBuildElement('coverage-text', 'CUSTOM_COMMAND', '')
             elem.add_item('COMMAND', [gcovr_exe, '-r', self.environment.get_build_dir(),\
                                       '-o', 'coverage.txt'])
+            elem.add_item('DESC', 'Generating text coverage report.')
             elem.write(outfile)
         if lcov_exe and genhtml_exe:
             added_rule = True
@@ -274,6 +276,7 @@ class NinjaBackend(Backend):
                        '--output-directory', 'coveragereport', '--title', 'Code coverage',\
                        '--legend', '--show-details', 'coverage.info']
             elem.add_item('COMMAND', command)
+            elem.add_item('DESC', 'Generating HTML coverage report.')
             elem.write(outfile)
         if not added_rule:
             print('Warning: coverage requested but neither gcovr nor lcov/genhtml found.')
@@ -286,6 +289,7 @@ class NinjaBackend(Backend):
         d = InstallData(self.environment.get_prefix(), depfixer, './') # Fixme
         elem = NinjaBuildElement('install', 'CUSTOM_COMMAND', '')
         elem.add_dep('all')
+        elem.add_item('DESC', 'Installing files.')
         elem.add_item('COMMAND', [install_script, install_data_file])
         elem.write(outfile)
         
@@ -351,6 +355,7 @@ class NinjaBackend(Backend):
         test_data = os.path.join(self.environment.get_scratch_dir(), 'meson_test_setup.dat')
         elem = NinjaBuildElement('test', 'CUSTOM_COMMAND', '')
         elem.add_item('COMMAND', [test_script, test_data])
+        elem.add_item('DESC', 'Running test suite.')
         elem.write(outfile)
         
         datafile = open(test_data, 'w')
@@ -367,6 +372,7 @@ class NinjaBackend(Backend):
         outfile.write('# Other rules\n\n')
         outfile.write('rule CUSTOM_COMMAND\n')
         outfile.write(' command = $COMMAND\n')
+        outfile.write(' description = $DESC\n')
         outfile.write(' restat = 1\n\n')
         outfile.write('rule REGENERATE_BUILD\n')
         c = (ninja_quote(self.environment.get_build_command()),
@@ -436,6 +442,7 @@ class NinjaBackend(Backend):
                         for x in base_args]
                 cmdlist = [exe_file] + args
                 elem = NinjaBuildElement(outfilename, 'CUSTOM_COMMAND', infilename)
+                elem.add_item('DESC', 'Generating $out')
                 elem.add_dep(self.get_target_filename(exe))
                 elem.add_item('COMMAND', cmdlist)
                 elem.write(outfile)
