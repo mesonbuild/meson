@@ -705,7 +705,6 @@ class Interpreter():
 
     def build_target(self, node, args, kwargs, targetclass):
         args = self.flatten(args)
-        print(args)
         name = args[0]
         sources = args[1:]
         try:

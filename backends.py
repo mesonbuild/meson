@@ -158,6 +158,56 @@ class Backend():
             outfile = os.path.join(outdir, cf.get_target_name())
             do_conf_file(infile, outfile, self.interpreter.get_variables())
 
+class NinjaBuildElement():
+    def __init__(self, infilename, rule, outfilename):
+        self.infilename = infilename
+        self.rule = rule
+        self.outfilename = outfilename
+        self.deps = []
+        self.orderdeps = []
+        self.elems = []
+
+    def add_dep(self, dep):
+        if isinstance(dep, list):
+            self.deps += dep
+        else:
+            self.deps.append(dep)
+
+    def add_orderdep(self, dep):
+        if isinstance(dep, list):
+            self.orderdeps += dep
+        else:
+            self.orderdeps.append(dep)
+
+    def add_item(self, name, elems):
+        if isinstance(elems, str):
+            elems = [elems]
+        self.elems.append((name, elems))
+
+    def write(self, outfile):
+        line = 'build %s: %s %s' % (ninja_quote(self.infilename), self.rule,
+                                    ninja_quote(self.outfilename))
+        if len(self.deps) > 0:
+            line += ' | ' + ' '.join([ninja_quote(x) for x in self.deps])
+        if len(self.orderdeps) > 0:
+            line += ' || ' + ' '.join([ninja_quote(x) for x in self.orderdeps])
+        line += '\n'
+        outfile.write(line)
+        
+        for e in self.elems:
+            (name, elems) = e
+            should_quote = True
+            if name == 'DEPFILE':
+                should_quote = False
+            line = ' %s = ' % name
+            if should_quote:
+                templ = "'%s'"
+            else:
+                templ = "%s"
+            line += ' '.join([templ % ninja_quote(i) for i in elems])
+            line += '\n'
+            outfile.write(line)
+        outfile.write('\n')
 class NinjaBackend(Backend):
 
     def __init__(self, build, interp):
@@ -385,14 +435,14 @@ class NinjaBackend(Backend):
         dep_file = abs_obj + '.' + compiler.get_depfile_suffix()
         pchlist = target.get_pch()
         if len(pchlist) == 0:
-            pch_dep = ''
+            pch_dep = []
         else:
             arr = []
             for pch in pchlist:
                 i = os.path.join(self.get_target_private_dir(target),
                                   os.path.split(pch)[-1] + '.' + compiler.get_pch_suffix())
                 arr.append(i)
-            pch_dep = '|| ' + ' '.join([ninja_quote(i) for i in arr])
+            pch_dep = arr
         for i in target.get_include_dirs():
             basedir = i.get_curdir()
             for d in i.get_incdirs():
@@ -404,14 +454,12 @@ class NinjaBackend(Backend):
                 commands.append(sarg)
         commands += self.get_pch_include_args(compiler, target)
         compiler_name = '%s_COMPILER' % compiler.get_language()
-        build = 'build %s: %s %s %s\n' % \
-        (ninja_quote(abs_obj), compiler_name, ninja_quote(abs_src),
-         pch_dep)
-        dep = ' DEPFILE = %s\n' % dep_file
-        flags = ' FLAGS = %s\n\n' % ' '.join(["'" + ninja_quote(t) + "'" for t in commands])
-        outfile.write(build)
-        outfile.write(dep)
-        outfile.write(flags)
+
+        element = NinjaBuildElement(abs_obj, compiler_name, abs_src)
+        element.add_orderdep(pch_dep)
+        element.add_item('DEPFILE', dep_file)
+        element.add_item('FLAGS', commands)
+        element.write(outfile)
         return abs_obj
 
     def generate_pch(self, target, outfile):
