@@ -25,8 +25,8 @@ def run_tests(datafilename):
         (stdo, stde) = p.communicate()
         if p.returncode != 0:
             print('Error running test.')
-            print('Stdout:\n' + stdo)
-            print('Stderr:\n' + stde)
+            print('Stdout:\n' + stdo.decode())
+            print('Stderr:\n' + stde.decode())
             sys.exit(1)
         print('Test "%s": OK' % line)
 

@@ -90,13 +90,16 @@ class Backend():
         obj_list = []
         if target.has_pch():
             self.generate_pch(target, outfile)
-        for src in target.get_sources():
-            if not self.environment.is_header(src):
-                obj_list.append(self.generate_single_compile(target, outfile, src))
+        header_deps = []
         for genlist in target.get_generated_sources():
             for src in genlist.get_outfilelist():
                 if not self.environment.is_header(src):
                     obj_list.append(self.generate_single_compile(target, outfile, src, True))
+                else:
+                    header_deps.append(src)
+        for src in target.get_sources():
+            if not self.environment.is_header(src):
+                obj_list.append(self.generate_single_compile(target, outfile, src, False, header_deps))
         elem = self.generate_link(target, outfile, outname, obj_list)
         self.generate_shlib_aliases(target, self.get_target_dir(target), outfile, elem)
         self.processed_targets[name] = True
@@ -429,7 +432,7 @@ class NinjaBackend(Backend):
             base_args = generator.get_arglist()
             for i in range(len(infilelist)):
                 infilename = os.path.join(self.build_to_src, infilelist[i])
-                outfilename = os.path.join(self.get_target_dir(target), outfilelist[i])
+                outfilename = os.path.join(self.get_target_private_dir(target), outfilelist[i])
                 args = [x.replace("@INPUT@", infilename).replace('@OUTPUT@', outfilename)\
                         for x in base_args]
                 cmdlist = [exe_file] + args
@@ -438,11 +441,12 @@ class NinjaBackend(Backend):
                 elem.add_item('COMMAND', cmdlist)
                 elem.write(outfile)
 
-    def generate_single_compile(self, target, outfile, src, is_generated=False):
+    def generate_single_compile(self, target, outfile, src, is_generated=False, header_deps=[]):
         compiler = self.get_compiler_for_source(src)
         commands = self.generate_basic_compiler_flags(target, compiler)
+        commands.append(compiler.get_include_arg(self.get_target_private_dir(target)))
         if is_generated:
-            abs_src = src
+            abs_src = os.path.join(self.get_target_private_dir(target), src)
         else:
             abs_src = os.path.join(self.build_to_src, target.get_source_subdir(), src)
         abs_obj = os.path.join(self.get_target_private_dir(target), src)
@@ -471,6 +475,8 @@ class NinjaBackend(Backend):
         compiler_name = '%s_COMPILER' % compiler.get_language()
 
         element = NinjaBuildElement(abs_obj, compiler_name, abs_src)
+        if len(header_deps) > 0:
+            element.add_dep([os.path.join(self.get_target_private_dir(target), d) for d in header_deps])
         element.add_orderdep(pch_dep)
         element.add_item('DEPFILE', dep_file)
         element.add_item('FLAGS', commands)
