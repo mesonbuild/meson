@@ -233,7 +233,7 @@ class BuildTarget(InterpreterObject):
         InterpreterObject.__init__(self)
         self.name = name
         self.subdir = subdir
-        self.sources = sources
+        self.sources = []
         self.external_deps = []
         self.include_dirs = []
         self.link_targets = []
@@ -242,7 +242,21 @@ class BuildTarget(InterpreterObject):
         self.pch = []
         self.extra_args = {}
         self.generated = []
+        self.process_sourcelist(sources)
         self.process_kwargs(kwargs)
+        if len(self.sources) == 0:
+            raise InvalidArguments('Build target %s has no sources.' % name)
+    
+    def process_sourcelist(self, sources):
+        if not isinstance(sources, list):
+            sources = [sources]
+        for s in sources:
+            if isinstance(s, str):
+                self.sources.append(s)
+            elif isinstance(s, GeneratedList):
+                self.generated.append(s)
+            else:
+                raise InvalidArguments('Bad source in target %s.' % self.name)
 
     def process_kwargs(self, kwargs):
         self.need_install = kwargs.get('install', self.need_install)
@@ -275,10 +289,6 @@ class BuildTarget(InterpreterObject):
         if not isinstance(deplist, list):
             deplist = [deplist]
         self.add_external_deps(deplist)
-        genlist = kwargs.get('gen_src', [])
-        if not isinstance(genlist, list):
-            genlist = [genlist]
-        self.set_generated(genlist)
 
     def get_subdir(self):
         return self.subdir
@@ -695,25 +705,16 @@ class Interpreter():
 
     def build_target(self, node, args, kwargs, targetclass):
         args = self.flatten(args)
-        for a in args:
-            if not isinstance(a, str):
-                raise InvalidArguments('Line %d: Argument %s is not a string.' % (node.lineno(), str(a)))
+        print(args)
         name = args[0]
-        sources = []
-        for s in args[1:]:
-            if not self.environment.is_header(s):
-                sources.append(s)
+        sources = args[1:]
         try:
             kw_src = self.flatten(kwargs['sources'])
+            if not isinstance(kw_src, list):
+                kw_src = [kw_src]
         except KeyError:
             kw_src = []
-        if not isinstance(kw_src, list):
-            kw_src = [kw_src]
-        for s in kw_src:
-            if not self.environment.is_header(s):
-                sources.append(s)
-        if len(sources) == 0:
-            raise InvalidArguments('Line %d: target has no source files.' % node.lineno())
+        sources += kw_src
         if name in self.build.targets:
             raise InvalidCode('Line %d: tried to create target "%s", but a target of that name already exists.' % (node.lineno(), name))
         l = targetclass(name, self.subdir, sources, self.environment, kwargs)

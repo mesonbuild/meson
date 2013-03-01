@@ -91,10 +91,12 @@ class Backend():
         if target.has_pch():
             self.generate_pch(target, outfile)
         for src in target.get_sources():
-            obj_list.append(self.generate_single_compile(target, outfile, src))
+            if not self.environment.is_header(src):
+                obj_list.append(self.generate_single_compile(target, outfile, src))
         for genlist in target.get_generated_sources():
             for src in genlist.get_outfilelist():
-                obj_list.append(self.generate_single_compile(target, outfile, src, True))
+                if not self.environment.is_header(src):
+                    obj_list.append(self.generate_single_compile(target, outfile, src, True))
         self.generate_link(target, outfile, outname, obj_list)
         self.generate_shlib_aliases(target, self.get_target_dir(target), outfile)
         self.processed_targets[name] = True
