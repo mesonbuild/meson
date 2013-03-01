@@ -254,28 +254,27 @@ class NinjaBackend(Backend):
         added_rule = False
         if gcovr_exe:
             added_rule = True
-            xmlbuild = 'build coverage-xml: CUSTOM_COMMAND\n'
-            xmlcommand = " COMMAND = '%s' -x -r '%s' -o coverage.xml\n\n" %\
-                (ninja_quote(gcovr_exe), ninja_quote(self.environment.get_build_dir()))
-            outfile.write(xmlbuild)
-            outfile.write(xmlcommand)
-            textbuild = 'build coverage-text: CUSTOM_COMMAND\n'
-            textcommand = " COMMAND = '%s' -r '%s' -o coverage.txt\n\n" %\
-                (ninja_quote(gcovr_exe), ninja_quote(self.environment.get_build_dir()))
-            outfile.write(textbuild)
-            outfile.write(textcommand)
+            elem = NinjaBuildElement('coverage-xml', 'CUSTOM_COMMAND', '')
+            elem.add_item('COMMAND', [gcovr_exe, '-x', '-r', self.environment.get_build_dir(),\
+                                      '-o', 'coverage.xml'])
+            elem.write(outfile)
+            elem = NinjaBuildElement('coverage-text', 'CUSTOM_COMMAND', '')
+            elem.add_item('COMMAND', [gcovr_exe, '-r', self.environment.get_build_dir(),\
+                                      '-o', 'coverage.txt'])
+            elem.write(outfile)
         if lcov_exe and genhtml_exe:
             added_rule = True
-            phony = 'build coverage-html: phony coveragereport/index.html\n'
-            htmlbuild = 'build coveragereport/index.html: CUSTOM_COMMAND\n'
-            lcov_command = "'%s' --directory '%s' --capture --output-file coverage.info --no-checksum" %\
-                (ninja_quote(lcov_exe), ninja_quote(self.environment.get_build_dir()))
-            genhtml_command = "'%s' --prefix='%s' --output-directory coveragereport --title='Code coverage' --legend --show-details coverage.info" %\
-                (ninja_quote(genhtml_exe), ninja_quote(self.environment.get_build_dir()))
-            command = ' COMMAND = %s && %s\n\n' % (lcov_command, genhtml_command)
-            outfile.write(phony)
-            outfile.write(htmlbuild)
-            outfile.write(command)
+            phony_elem = NinjaBuildElement('coverage-html', 'phony', 'coveragereport/index.html')
+            phony_elem.write(outfile)
+
+            elem = NinjaBuildElement('coveragereport/index.html', 'CUSTOM_COMMAND', '')
+            command = [lcov_exe, '--directory', self.environment.get_build_dir(),\
+                       '--capture', '--output-file', 'coverage.info', '--no-checksum',\
+                       '&&', genhtml_exe, '--prefix', self.environment.get_build_dir(),\
+                       '--output-directory', 'coveragereport', '--title', 'Code coverage',\
+                       '--legend', '--show-details', 'coverage.info']
+            elem.add_item('COMMAND', command)
+            elem.write(outfile)
         if not added_rule:
             print('Warning: coverage requested but neither gcovr nor lcov/genhtml found.')
 

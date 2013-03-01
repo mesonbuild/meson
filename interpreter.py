@@ -575,7 +575,7 @@ class Interpreter():
     def add_languages(self, node, args):
         for lang in args:
             if lang in self.coredata.compilers:
-                comp = self.new_coredata.compilers[lang]
+                comp = self.coredata.compilers[lang]
             else:
                 if lang.lower() == 'c':
                     comp = self.environment.detect_c_compiler()
