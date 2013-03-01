@@ -20,7 +20,7 @@ import os.path
 import environment, interpreter
 import backends, build
 
-version = '0.1-research'
+from coredata import version
 
 usage_info = '%prog [options] source_dir build_dir'
 

@@ -20,9 +20,12 @@
 
 import pickle
 
+version = '0.1-research'
+
 class CoreData():
     
     def __init__(self, options):
+        self.version = version
         self.prefix = options.prefix
         self.libdir = options.libdir
         self.bindir = options.bindir
@@ -47,7 +50,12 @@ def load(filename):
     obj = pickle.load(open(filename, 'rb'))
     if not isinstance(obj, CoreData):
         raise RuntimeError('Core data file is corrupted.')
+    if obj.version != version:
+        raise RuntimeError('Build tree has been generated with Meson version %s, which is incompatible with current version %s.'%
+                           (obj.version, version))
     return obj
 
 def save(obj, filename):
+    if obj.version != version:
+        raise RuntimeError('Fatal version mismatch corruption.')
     pickle.dump(obj, open(filename, 'wb'))
