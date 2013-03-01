@@ -518,12 +518,6 @@ class NinjaBackend(Backend):
         elem.add_dep(dep_targets)
         elem.add_item('LINK_FLAGS', commands)
         return elem
-        #build = 'build %s: %s %s %s\n' % \
-        #(ninja_quote(outname), linker_rule, ' '.join([ninja_quote(i) for i in obj_list]),
-        # dep_targets)
-        #flags = ' LINK_FLAGS = %s\n' % ' '.join([ninja_quote(a) for a in commands])
-        #outfile.write(build)
-        #outfile.write(flags)
 
     def generate_shlib_aliases(self, target, outdir, outfile, elem):
         basename = target.get_filename()
@@ -538,18 +532,22 @@ class NinjaBackend(Backend):
 
     def generate_ending(self, outfile):
         targetlist = [self.get_target_filename(t) for t in self.build.get_targets().values()]
-        build = 'build all: phony %s\n' % ' '.join(targetlist)
+        elem = NinjaBuildElement('all', 'phony', targetlist)
+        elem.write(outfile)
+
         default = 'default all\n\n'
-        outfile.write(build)
         outfile.write(default)
 
-        deps = [ ninja_quote(os.path.join(self.build_to_src, df)) \
-                for df in self.interpreter.get_build_def_files()]
-        depstr = ' '.join(deps)
-        buildregen = 'build build.ninja: REGENERATE_BUILD | %s\n\n' % depstr
-        outfile.write(buildregen)
 
-        ignore_missing = 'build %s: phony\n\n' % depstr
+        deps = [os.path.join(self.build_to_src, df) \
+                for df in self.interpreter.get_build_def_files()]
+        elem = NinjaBuildElement('build.ninja', 'REGENERATE_BUILD', deps)
+        elem.write(outfile)
+
+        phonydeps = [ ninja_quote(os.path.join(self.build_to_src, df)) \
+                for df in self.interpreter.get_build_def_files()]
+        phonydepstr = ' '.join(phonydeps)
+        ignore_missing = 'build %s: phony\n\n' % phonydepstr
         outfile.write(ignore_missing)
 
 class ShellBackend(Backend):
