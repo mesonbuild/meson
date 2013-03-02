@@ -20,7 +20,7 @@
 
 import pickle
 
-version = '0.1-research'
+version = '0.1.0'
 
 class CoreData():
     
