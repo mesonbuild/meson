@@ -65,6 +65,10 @@ def run_tests():
         os.mkdir(test_build_dir)
     except OSError:
         pass
+    try:
+        os.mkdir(install_dir)
+    except OSError:
+        pass
     [run_test(t) for t in tests]
 
 if __name__ == '__main__':
