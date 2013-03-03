@@ -79,7 +79,9 @@ def install_headers(d):
 
 def is_elf_platform():
     platname = platform.system().lower()
-    
+    if platname == 'darwin' or platname == 'windows':
+        return False
+    return True
 
 def install_targets(d):
     for t in d.targets:
