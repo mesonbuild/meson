@@ -1,4 +1,4 @@
-#!/usr/bin/python3 -tt
+    #!/usr/bin/python3 -tt
 
 # Copyright 2012 Jussi Pakkanen
 
@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import subprocess, os.path
+import subprocess, os.path, platform
 import coredata
 
 build_filename = 'meson.build'
@@ -224,6 +224,12 @@ def find_coverage_tools():
         genhtml_exe = None
     return (gcovr_exe, lcov_exe, genhtml_exe)
 
+def is_osx():
+    return platform.system().lower() == 'darwin'
+
+def is_windows():
+    return platform.system().lower() == 'windows'
+
 header_suffixes = ['h', 'hh', 'hpp', 'hxx', 'H']
 
 class Environment():
@@ -249,12 +255,23 @@ class Environment():
         self.default_cxx = ['c++']
         self.default_static_linker = ['ar']
 
-        self.exe_suffix = ''
-        self.shared_lib_suffix = 'so'
-        self.shared_lib_prefix = 'lib'
-        self.static_lib_suffix = 'a'
-        self.static_lib_prefix = 'lib'
-        self.object_suffix = 'o'
+        if is_windows():
+            self.exe_suffix = 'exe'
+            self.shared_lib_suffix = 'dll'
+            self.shared_lib_prefix = ''
+            self.static_lib_suffix = 'lib'
+            self.static_lib_prefix = ''
+            self.object_suffix = 'obj'
+        else:
+            self.exe_suffix = ''
+            if is_osx():
+                self.shared_lib_suffix = 'dylib'
+            else:
+                self.shared_lib_suffix = 'so'
+            self.shared_lib_prefix = 'lib'
+            self.static_lib_suffix = 'a'
+            self.static_lib_prefix = 'lib'
+            self.object_suffix = 'o'
 
     def generating_finished(self):
         cdf = os.path.join(self.get_build_dir(), Environment.coredata_file)
