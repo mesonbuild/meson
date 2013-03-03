@@ -23,37 +23,82 @@ DT_RPATH = 15
 DT_STRTAB = 5
 DT_SONAME = 14
 
+def init_datasizes(self):
+    self.Half = 'h'
+    self.HalfSize = 2
+    self.Word = 'I'
+    self.WordSize = 4
+    self.Sword = 'i'
+    self.SwordSize = 4
+    if sys.maxsize > 2**32:
+        self.Addr = 'Q'
+        self.AddrSize = 8
+        self.Off = 'Q'
+        self.OffSize = 8
+        self.XWord = 'Q'
+        self.XWordSize = 8
+        self.Sxword = 'q'
+        self.SxwordSize = 8
+    else:
+        self.Addr = 'I'
+        self.AddrSize = 4
+        self.Off = 'I'
+        self.OffSize = 4
+
 class DynamicEntry():
     def __init__(self, ifile):
-        self.d_tag = struct.unpack('Q', ifile.read(8))[0];
-        self.val = struct.unpack('Q', ifile.read(8))[0];
+        init_datasizes(self)
+        if sys.maxsize > 2**32:
+            self.d_tag = struct.unpack(self.Sxword, ifile.read(self.SxwordSize))[0];
+            self.val = struct.unpack(self.Xword, ifile.read(self.XwordSize))[0];
+        else:
+            self.d_tag = struct.unpack(self.Sword, ifile.read(self.SwordSize))[0]
+            self.val = struct.unpack(self.Word, ifile.read(self.WordSize))[0]
 
 class SectionHeader():
     def __init__(self, ifile):
+        init_datasizes(self)
+        if sys.maxsize > 2**32:
+            is_64 = True
+        else:
+            is_64 = False
 #Elf64_Word
-        self.sh_name = struct.unpack('I', ifile.read(4))[0];
+        self.sh_name = struct.unpack(self.Word, ifile.read(self.WordSize))[0];
 #Elf64_Word
-        self.sh_type = struct.unpack('I', ifile.read(4))[0]
+        self.sh_type = struct.unpack(self.Word, ifile.read(self.WordSize))[0]
 #Elf64_Xword
-        self.sh_flags = struct.unpack('Q', ifile.read(8))[0];
+        if is_64:
+            self.sh_flags = struct.unpack(self.Xword, ifile.read(self.XwordSize))[0]
+        else:
+            self.sh_flags = struct.unpack(self.Word, ifile.read(self.WordSize))[0]
 #Elf64_Addr
-        self.sh_addr = struct.unpack('Q', ifile.read(8))[0];
+        self.sh_addr = struct.unpack(self.Addr, ifile.read(self.AddrSize))[0];
 #Elf64_Off
-        self.sh_offset = struct.unpack('Q', ifile.read(8))[0]
+        self.sh_offset = struct.unpack(self.Off, ifile.read(self.OffSize))[0]
 #Elf64_Xword
-        self.sh_size = struct.unpack('Q', ifile.read(8))[0];
+        if is_64:
+            self.sh_size = struct.unpack(self.XWord, ifile.read(self.XWordSize))[0]
+        else:
+            self.sh_size = struct.unpack(self.Word, ifile.read(self.WordSize))[0]
 #Elf64_Word
-        self.sh_link = struct.unpack('I', ifile.read(4))[0];
+        self.sh_link = struct.unpack(self.Word, ifile.read(self.WordSize))[0];
 #Elf64_Word
-        self.sh_info = struct.unpack('I', ifile.read(4))[0];
+        self.sh_info = struct.unpack(self.Word, ifile.read(self.WordSize))[0];
 #Elf64_Xword
-        self.sh_addralign = struct.unpack('Q', ifile.read(8))[0];
+        if is_64:
+            self.sh_addralign = struct.unpack(self.XWord, ifile.read(self.XWordSize))[0]
+        else:
+            self.sh_addralign = struct.unpack(self.Word, ifile.read(self.WordSize))[0]
 #Elf64_Xword
-        self.sh_entsize = struct.unpack('Q', ifile.read(8))[0];
+        if is_64:
+            self.sh_entsize = struct.unpack(self.XWord, ifile.read(self.XWordSize))[0]
+        else:
+            self.sh_entsize = struct.unpack(self.Word, ifile.read(self.WordSize))[0]
 
 class Elf():
 
     def __init__(self, bfile):
+        init_datasizes(self)
         self.bfile = bfile
         self.bf = open(bfile, 'r+b')
         self.parse_header()
@@ -65,19 +110,19 @@ class Elf():
         if self.e_ident[1:4] != b'ELF':
             print('File "%s" is not an ELF file.' % self.bfile)
             sys.exit(0)
-        self.e_type = struct.unpack('h', self.bf.read(2))[0]
-        self.e_machine = struct.unpack('h', self.bf.read(2))[0]
-        self.e_version = struct.unpack('i', self.bf.read(4))[0]
-        self.e_entry = struct.unpack('Q', self.bf.read(8))[0]
-        self.e_phoff = struct.unpack('Q', self.bf.read(8))[0]
-        self.e_shoff = struct.unpack('Q', self.bf.read(8))[0]
-        self.e_flags = struct.unpack('i', self.bf.read(4))[0]
-        self.e_ehsize = struct.unpack('h', self.bf.read(2))[0]
-        self.e_phentsize = struct.unpack('h', self.bf.read(2))[0]
-        self.e_phnum = struct.unpack('h', self.bf.read(2))[0]
-        self.e_shentsize = struct.unpack('h', self.bf.read(2))[0]
-        self.e_shnum = struct.unpack('h', self.bf.read(2))[0]
-        self.e_shstrndx = struct.unpack('h', self.bf.read(2))[0]
+        self.e_type = struct.unpack(self.Half, self.bf.read(self.HalfSize))[0]
+        self.e_machine = struct.unpack(self.Half, self.bf.read(self.HalfSize))[0]
+        self.e_version = struct.unpack(self.Word, self.bf.read(self.WordSize))[0]
+        self.e_entry = struct.unpack(self.Addr, self.bf.read(self.AddrSize))[0]
+        self.e_phoff = struct.unpack(self.Off, self.bf.read(self.OffSize))[0]
+        self.e_shoff = struct.unpack(self.Off, self.bf.read(self.OffSize))[0]
+        self.e_flags = struct.unpack(self.Word, self.bf.read(self.WordSize))[0]
+        self.e_ehsize = struct.unpack(self.Half, self.bf.read(self.HalfSize))[0]
+        self.e_phentsize = struct.unpack(self.Half, self.bf.read(self.HalfSize))[0]
+        self.e_phnum = struct.unpack(self.Half, self.bf.read(self.HalfSize))[0]
+        self.e_shentsize = struct.unpack(self.Half, self.bf.read(self.HalfSize))[0]
+        self.e_shnum = struct.unpack(self.Half, self.bf.read(self.HalfSize))[0]
+        self.e_shstrndx = struct.unpack(self.Half, self.bf.read(self.HalfSize))[0]
 
     def parse_sections(self):
         self.bf.seek(self.e_shoff)
