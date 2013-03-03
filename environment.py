@@ -334,7 +334,7 @@ class Environment():
     def detect_ccache(self):
         try:
             has_ccache = subprocess.call(['ccache', '--version'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        except FileNotFoundError:
+        except OSError:
             has_ccache = 1
         if has_ccache == 0:
             cmdlist = ['ccache']
