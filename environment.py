@@ -319,15 +319,21 @@ class Environment():
     
     def detect_static_linker(self):
         exelist = self.get_static_linker_exelist()
-        p = subprocess.Popen(exelist + ['--version'], stdout=subprocess.PIPE)
-        out = p.communicate()[0]
+        p = subprocess.Popen(exelist + ['--version'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        (out, err) = p.communicate()
         out = out.decode()
+        err = err.decode()
         if p.returncode == 0:
+            return ArLinker(exelist)
+        if p.returncode == 1 and err.startswith('usage'): # OSX
             return ArLinker(exelist)
         raise EnvironmentException('Unknown static linker "' + ' '.join(exelist) + '"')
 
     def detect_ccache(self):
-        has_ccache = subprocess.call(['ccache', '--version'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        try:
+            has_ccache = subprocess.call(['ccache', '--version'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        except FileNotFoundError:
+            has_ccache = 1
         if has_ccache == 0:
             cmdlist = ['ccache']
         else:
