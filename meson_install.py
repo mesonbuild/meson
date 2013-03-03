@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys, pickle, os, shutil, subprocess, gzip
+import sys, pickle, os, shutil, subprocess, gzip, platform
 
 class InstallData():
     def __init__(self, prefix, depfixer, dep_prefix):
@@ -77,6 +77,10 @@ def install_headers(d):
         shutil.copyfile(fullfilename, outfilename)
         shutil.copystat(fullfilename, outfilename)
 
+def is_elf_platform():
+    platname = platform.system().lower()
+    
+
 def install_targets(d):
     for t in d.targets:
         fname = t[0]
@@ -99,14 +103,15 @@ def install_targets(d):
                 sys.exit(1)
         for alias in aliases:
             os.symlink(fname, os.path.join(outdir, alias))
-        p = subprocess.Popen([d.depfixer, outname, d.dep_prefix], stdout=subprocess.PIPE,
+        if is_elf_platform():
+            p = subprocess.Popen([d.depfixer, outname, d.dep_prefix], stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE)
-        (stdo, stde) = p.communicate()
-        if p.returncode != 0:
-            print('Could not fix dependency info.\n')
-            print('Stdout:\n%s\n' % stdo.decode())
-            print('Stderr:\n%s\n' % stde.decode())
-            sys.exit(1)
+            (stdo, stde) = p.communicate()
+            if p.returncode != 0:
+                print('Could not fix dependency info.\n')
+                print('Stdout:\n%s\n' % stdo.decode())
+                print('Stderr:\n%s\n' % stde.decode())
+                sys.exit(1)
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:

@@ -315,6 +315,8 @@ class Environment():
         if (out.startswith('c++ ') or out.startswith('g++')) and \
             'Free Software Foundation' in out:
             return GnuCXXCompiler(exelist)
+        if 'apple' in out and 'Free Software Foundation' in out:
+            return GnuCXXCompiler(exelist)
         if out.startswith('clang'):
             return ClangCXXCompiler(exelist)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
