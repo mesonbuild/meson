@@ -16,6 +16,7 @@
 
 from glob import glob
 import os, subprocess, shutil, sys
+import environment
 
 test_build_dir = 'work area'
 install_dir = os.path.join(os.path.split(os.path.abspath(__file__))[0], 'install dir')
@@ -56,11 +57,22 @@ def run_test(testdir):
     if pi.returncode != 0:
         raise RuntimeError('Running install failed.')
 
-def run_tests():
-    tests = [t.split('/', 1)[1] for t in glob('test cases/*')]
+def gather_tests(testdir):
+    
+    tests = [t.split('/', 2)[2] for t in glob(os.path.join(testdir, '*'))]
     testlist = [(int(t.split()[0]), t) for t in tests]
     testlist.sort()
-    tests = [os.path.join('test cases', t[1]) for t in testlist]
+    tests = [os.path.join(testdir, t[1]) for t in testlist]
+    return tests
+
+def run_tests():
+    commontests = gather_tests('test cases/common')
+    if environment.is_osx():
+        platformtests = gather_tests('test cases/osx')
+    elif environment.is_windows():
+        platformtests = gather_tests('test cases/windows')
+    else:
+        platformtests = gather_tests('test cases/linuxlike')
     try:
         os.mkdir(test_build_dir)
     except OSError:
@@ -69,7 +81,10 @@ def run_tests():
         os.mkdir(install_dir)
     except OSError:
         pass
-    [run_test(t) for t in tests]
+    print('Running common tests.')
+    [run_test(t) for t in commontests]
+    print('Running platform dependent tetss')
+    [run_test(t) for t in platformtests]
 
 if __name__ == '__main__':
     os.chdir(os.path.split(__file__)[0])
