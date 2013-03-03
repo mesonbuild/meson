@@ -81,9 +81,9 @@ def run_tests():
         os.mkdir(install_dir)
     except OSError:
         pass
-    print('Running common tests.')
+    print('\nRunning common tests.\n')
     [run_test(t) for t in commontests]
-    print('Running platform dependent tetss')
+    print('\nRunning platform dependent tests.\n')
     [run_test(t) for t in platformtests]
 
 if __name__ == '__main__':
