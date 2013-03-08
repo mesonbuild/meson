@@ -103,8 +103,14 @@ def install_targets(d):
                 print('Stdout:\n%s\n' % stdo.decode())
                 print('Stderr:\n%s\n' % stde.decode())
                 sys.exit(1)
+        printed_symlink_error = False
         for alias in aliases:
-            os.symlink(fname, os.path.join(outdir, alias))
+            try:
+                os.symlink(fname, os.path.join(outdir, alias))
+            except NotImplementedError:
+                if not printed_symlink_error:
+                    print("Symlink creation does not work on this platform.")
+                    printed_symlink_error = True
         if is_elf_platform():
             p = subprocess.Popen([d.depfixer, outname, d.dep_prefix], stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE)

@@ -21,8 +21,10 @@ from meson_install import InstallData
 
 if environment.is_windows():
     quote_char = '"'
+    execute_wrapper = 'cmd /c'
 else:
     quote_char = "'"
+    execute_wrapper = ''
 
 def shell_quote(cmdlist):
     return ["'" + x + "'" for x in cmdlist]
@@ -401,8 +403,9 @@ class NinjaBackend(Backend):
         for compiler in self.build.compilers:
             langname = compiler.get_language()
             rule = 'rule %s_LINKER\n' % langname
-            command = ' command = %s $FLAGS  %s $out $in $LINK_FLAGS $aliasing\n' % \
-            (' '.join(compiler.get_exelist()),\
+            command = ' command = %s %s $FLAGS  %s $out $in $LINK_FLAGS $aliasing\n' % \
+            (execute_wrapper,
+             ' '.join(compiler.get_exelist()),\
              ' '.join(compiler.get_output_flags()))
             description = ' description = Linking target $out'
             outfile.write(rule)
