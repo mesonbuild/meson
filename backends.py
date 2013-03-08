@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os, stat, re, pickle
+import os, sys, stat, re, pickle
 import interpreter, nodes
 import environment
 from meson_install import InstallData
@@ -295,7 +295,7 @@ class NinjaBackend(Backend):
         elem = NinjaBuildElement('install', 'CUSTOM_COMMAND', '')
         elem.add_dep('all')
         elem.add_item('DESC', 'Installing files.')
-        elem.add_item('COMMAND', [install_script, install_data_file])
+        elem.add_item('COMMAND', [sys.executable, install_script, install_data_file])
         elem.write(outfile)
         
         self.generate_target_install(d)
@@ -359,7 +359,7 @@ class NinjaBackend(Backend):
         test_script = os.path.join(script_root, 'meson_test.py')
         test_data = os.path.join(self.environment.get_scratch_dir(), 'meson_test_setup.dat')
         elem = NinjaBuildElement('test', 'CUSTOM_COMMAND', '')
-        elem.add_item('COMMAND', [test_script, test_data])
+        elem.add_item('COMMAND', [sys.executable, test_script, test_data])
         elem.add_item('DESC', 'Running test suite.')
         elem.write(outfile)
         

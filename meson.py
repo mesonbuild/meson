@@ -30,7 +30,12 @@ build_types = ['plain', 'debug', 'optimized']
 buildtype_help = 'build type, one of: %s' % ', '.join(build_types)
 buildtype_help += ' (default: %default)'
 
-parser.add_option('--prefix', default='/usr/local', dest='prefix',
+if environment.is_windows():
+    def_prefix = 'c:/'
+else:
+    def_prefix = '/usr/local'
+
+parser.add_option('--prefix', default=def_prefix, dest='prefix',
                   help='the installation prefix (default: %default)')
 parser.add_option('--libdir', default='lib', dest='libdir',
                   help='the installation subdir of libraries (default: %default)')
@@ -55,7 +60,7 @@ class MesonApp():
 
     def __init__(self, dir1, dir2, script_file, options):
         (self.source_dir, self.build_dir) = self.validate_dirs(dir1, dir2)
-        if options.prefix[0] != '/':
+        if not os.path.isabs(options.prefix):
             raise RuntimeError('--prefix must be an absolute path.')
         self.meson_script_file = script_file
         self.options = options
