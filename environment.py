@@ -228,6 +228,7 @@ def is_osx():
     return platform.system().lower() == 'darwin'
 
 def is_windows():
+    print(platform.system().lower())
     return platform.system().lower() == 'windows'
 
 header_suffixes = ['h', 'hh', 'hpp', 'hxx', 'H']
@@ -237,7 +238,7 @@ class Environment():
     coredata_file = os.path.join(private_dir, 'coredata.dat')
 
     def __init__(self, source_dir, build_dir, main_script_file, options):
-        assert(main_script_file[0] == '/')
+        assert(os.path.isabs(main_script_file))
         assert(not os.path.islink(main_script_file))
         self.source_dir = source_dir
         self.build_dir = build_dir

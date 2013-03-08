@@ -19,6 +19,11 @@ import interpreter, nodes
 import environment
 from meson_install import InstallData
 
+if environment.is_windows():
+    quote_char = '"'
+else:
+    quote_char = "'"
+
 def shell_quote(cmdlist):
     return ["'" + x + "'" for x in cmdlist]
 
@@ -210,7 +215,7 @@ class NinjaBuildElement():
             if name == 'DEPFILE' or name == 'DESC':
                 should_quote = False
             line = ' %s = ' % name
-            q_templ = "'%s'"
+            q_templ = quote_char + "%s" + quote_char
             noq_templ = "%s"
             newelems = []
             for i in elems:
@@ -407,13 +412,14 @@ class NinjaBackend(Backend):
         outfile.write('\n')
 
     def generate_compile_rules(self, outfile):
+        qstr = quote_char + "%s" + quote_char
         for compiler in self.build.compilers:
             langname = compiler.get_language()
             rule = 'rule %s_COMPILER\n' % langname
             depflags = compiler.get_dependency_gen_flags('$out', '$DEPFILE')
             command = " command = %s $FLAGS %s %s $out %s $in\n" % \
             (' '.join(compiler.get_exelist()),\
-             ' '.join(['\'%s\''% d for d in depflags]),\
+             ' '.join([qstr % d for d in depflags]),\
              ' '.join(compiler.get_output_flags()),\
              ' '.join(compiler.get_compile_only_flags()))
             description = ' description = Compiling %s object $out\n' % langname
