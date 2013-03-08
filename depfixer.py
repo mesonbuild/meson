@@ -50,7 +50,7 @@ class DynamicEntry():
         init_datasizes(self)
         if sys.maxsize > 2**32:
             self.d_tag = struct.unpack(self.Sxword, ifile.read(self.SxwordSize))[0];
-            self.val = struct.unpack(self.Xword, ifile.read(self.XwordSize))[0];
+            self.val = struct.unpack(self.XWord, ifile.read(self.XWordSize))[0];
         else:
             self.d_tag = struct.unpack(self.Sword, ifile.read(self.SwordSize))[0]
             self.val = struct.unpack(self.Word, ifile.read(self.WordSize))[0]
@@ -68,7 +68,7 @@ class SectionHeader():
         self.sh_type = struct.unpack(self.Word, ifile.read(self.WordSize))[0]
 #Elf64_Xword
         if is_64:
-            self.sh_flags = struct.unpack(self.Xword, ifile.read(self.XwordSize))[0]
+            self.sh_flags = struct.unpack(self.XWord, ifile.read(self.XWordSize))[0]
         else:
             self.sh_flags = struct.unpack(self.Word, ifile.read(self.WordSize))[0]
 #Elf64_Addr
