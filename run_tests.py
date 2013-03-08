@@ -39,7 +39,7 @@ def run_test(testdir):
     os.mkdir(test_build_dir)
     os.mkdir(install_dir)
     print('Running test: ' + testdir)
-    gen_command = [meson_command, '--prefix', install_dir, testdir, test_build_dir] + backend_flags
+    gen_command = [sys.executable, meson_command, '--prefix', install_dir, testdir, test_build_dir] + backend_flags
     p = subprocess.Popen(gen_command)
     p.wait()
     if p.returncode != 0:
@@ -58,8 +58,8 @@ def run_test(testdir):
         raise RuntimeError('Running install failed.')
 
 def gather_tests(testdir):
-    
-    tests = [t.split('/', 2)[2] for t in glob(os.path.join(testdir, '*'))]
+    print(glob(os.path.join(testdir, '*')))
+    tests = [t.replace('\\', '/').split('/', 2)[2] for t in glob(os.path.join(testdir, '*'))]
     testlist = [(int(t.split()[0]), t) for t in tests]
     testlist.sort()
     tests = [os.path.join(testdir, t[1]) for t in testlist]
@@ -87,5 +87,7 @@ def run_tests():
     [run_test(t) for t in platformtests]
 
 if __name__ == '__main__':
-    os.chdir(os.path.split(__file__)[0])
+    script_dir = os.path.split(__file__)[0]
+    if script_dir != '':
+        os.chdir(script_dir)
     run_tests()
