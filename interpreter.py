@@ -615,8 +615,12 @@ class Interpreter():
         if not isinstance(required, bool):
             raise InvalidArguments('Line %d: "required" argument must be a boolean.' % node.lineno())
         exename = args[0]
+        if exename in self.coredata.ext_progs and\
+           self.coredata.ext_progs[exename].found():
+            return self.coredata.ext_progs[exename]
         result = shutil.which(exename) # Does .exe appending on Windows.
         progobj = ExternalProgram(exename, result)
+        self.coredata.ext_progs[exename] = progobj
         if required and not progobj.found():
             raise InvalidArguments('Line %d: program "%s" not found.' % (node.lineno(), exename))
         return progobj
