@@ -567,6 +567,10 @@ class NinjaBackend(Backend):
         default = 'default all\n\n'
         outfile.write(default)
 
+        elem = NinjaBuildElement('clean', 'CUSTOM_COMMAND', '')
+        elem.add_item('COMMAND', ['ninja', '-t', 'clean'])
+        elem.add_item('description', 'Cleaning')
+        elem.write(outfile)
 
         deps = [os.path.join(self.build_to_src, df) \
                 for df in self.interpreter.get_build_def_files()]
