@@ -40,11 +40,11 @@ class InterpreterObject():
         raise InvalidCode('Unknown method "%s" in object.' % method_name)
 
 class ExternalProgram(InterpreterObject):
-    
     def __init__(self, name, fullpath=None):
         InterpreterObject.__init__(self)
         self.name = name
         self.fullpath = fullpath
+        #self.methods.update({'found': self.found_method})
 
     def found(self):
         return self.fullpath is not None
@@ -53,6 +53,25 @@ class ExternalProgram(InterpreterObject):
         return self.found()
 
     def get_command(self):
+        return self.fullpath
+
+    def get_name(self):
+        return self.name
+
+class ExternalLibrary(InterpreterObject):
+    def __init__(self, name, fullpath=None):
+        InterpreterObject.__init__(self)
+        self.name = name
+        self.fullpath = fullpath
+        #self.methods.update({'found': self.found_method})
+
+    def found(self):
+        return self.fullpath is not None
+
+    def found_method(self, args, kwargs):
+        return self.found()
+
+    def get_filename(self):
         return self.fullpath
 
     def get_name(self):
@@ -349,7 +368,8 @@ class BuildTarget(InterpreterObject):
 
     def add_external_deps(self, deps):
         for dep in deps:
-            if not isinstance(dep, environment.Dependency):
+            if not isinstance(dep, environment.Dependency) and\
+               not isinstance(dep, ExternalLibrary):
                 raise InvalidArguments('Argument is not an external dependency')
             self.external_deps.append(dep)
 
@@ -496,6 +516,7 @@ class Interpreter():
                       'include_directories' : self.func_include_directories,
                       'add_global_arguments' : self.func_add_global_arguments,
                       'find_program' : self.func_find_program,
+                      'find_library' : self.func_find_library,
                       }
 
     def get_build_def_files(self):
@@ -624,6 +645,22 @@ class Interpreter():
         if required and not progobj.found():
             raise InvalidArguments('Line %d: program "%s" not found.' % (node.lineno(), exename))
         return progobj
+
+    def func_find_library(self, node, args, kwargs):
+        self.validate_arguments(args, 1, [str])
+        required = kwargs.get('required', False)
+        if not isinstance(required, bool):
+            raise InvalidArguments('Line %d: "required" argument must be a boolean.' % node.lineno())
+        libname = args[0]
+        if libname in self.coredata.ext_libs and\
+           self.coredata.ext_libs[libname].found():
+            return self.coredata.ext_progs[libname]
+        result = self.environment.find_library(libname)
+        libobj = ExternalLibrary(libname, result)
+        self.coredata.ext_libs[libname] = libobj
+        if required and not libobj.found():
+            raise InvalidArguments('Line %d: external library "%s" not found.' % (node.lineno(), libname))
+        return libobj
 
     def func_find_dep(self, node, args, kwargs):
         self.validate_arguments(args, 1, [str])

@@ -40,6 +40,7 @@ class CoreData():
         self.compilers = {}
         self.deps = {}
         self.ext_progs = {}
+        self.ext_libs = {}
 
 def load(filename):
     obj = pickle.load(open(filename, 'rb'))

@@ -143,7 +143,8 @@ class Backend():
         if isinstance(target, interpreter.SharedLibrary):
             commands += compiler.get_pic_flags()
         for dep in target.get_external_deps():
-            commands += dep.get_compile_flags()
+            if isinstance(dep, environment.Dependency):
+                commands += dep.get_compile_flags()
         return commands
 
     def build_target_link_arguments(self, deps):
@@ -537,7 +538,10 @@ class NinjaBackend(Backend):
         else:
             raise RuntimeError('Unknown build target type.')
         for dep in target.get_external_deps():
-            commands += dep.get_link_flags()
+            if isinstance(dep, environment.Dependency):
+                commands += dep.get_link_flags()
+            else:
+                commands.append(dep.get_filename())
         dependencies = target.get_dependencies()
         commands += self.build_target_link_arguments(dependencies)
         if self.environment.coredata.coverage:

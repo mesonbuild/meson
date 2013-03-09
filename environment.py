@@ -16,6 +16,7 @@
 
 import subprocess, os.path, platform
 import coredata
+from glob import glob
 
 build_filename = 'meson.build'
 
@@ -415,6 +416,27 @@ class Environment():
 
     def get_datadir(self):
         return self.coredata.datadir
+
+    def find_library(self, libname):
+        dirs = self.get_library_dirs()
+        suffixes = [self.get_shared_lib_suffix(), self.get_static_lib_suffix()]
+        prefix = self.get_shared_lib_prefix()
+        for d in dirs:
+            for suffix in suffixes:
+                trial = os.path.join(d, prefix + libname + '.' + suffix)
+                if os.path.isfile(trial):
+                    return trial
+
+    def get_library_dirs(self):
+        if is_windows():
+            return ['C:/mingw/lib'] # Fixme
+        if is_osx():
+            return ['/usr/lib'] # Fix me as well.
+        unixdirs = ['/usr/lib', '/lib']
+        plat = subprocess.check_output(['uname', '-m']).decode().strip()
+        unixdirs += glob('/usr/lib/' + plat + '*')
+        unixdirs.append('/usr/local/lib')
+        return unixdirs
 
 class Dependency():
     def __init__(self):
