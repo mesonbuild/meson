@@ -53,7 +53,16 @@ def do_conf_file(src, dst, variables):
             line = line.replace('@' + varname + '@', var)
             match = re.search(regex, line)
         result.append(line)
-    open(dst, 'w').writelines(result)
+    dst_tmp = dst + '~'
+    open(dst_tmp, 'w').writelines(result)
+    # If contents are identical, don't touch the file to prevent
+    # unnecessary rebuilds.
+    try:
+        if open(dst, 'r').read() == open(dst_tmp, 'r').read():
+            return
+    except FileNotFoundError:
+        pass
+    os.replace(dst_tmp, dst)
 
 
 class Backend():
