@@ -386,7 +386,7 @@ class NinjaBackend(Backend):
              ninja_quote(self.environment.get_build_command()),
              ninja_quote(self.environment.get_source_dir()),
              ninja_quote(self.environment.get_build_dir()))
-        outfile.write(" command = '%s' %s' '%s' '%s' --backend ninja\n" % c)
+        outfile.write(" command = '%s' '%s' '%s' '%s' --backend ninja\n" % c)
         outfile.write(' description = Regenerating build files\n')
         outfile.write(' generator = 1\n\n')
 

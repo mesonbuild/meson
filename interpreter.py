@@ -562,7 +562,7 @@ class Interpreter():
             return self.builtin[varname]
         if varname in self.variables:
             return self.variables[varname]
-        raise InvalidCode('Line %d: unknown variable "%s".' % varname)
+        raise InvalidCode('Unknown variable "%s".' % varname)
 
     def set_variable(self, varname, variable):
         if varname in self.builtin:
