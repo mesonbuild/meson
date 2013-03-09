@@ -55,3 +55,14 @@ def save(obj, filename):
     if obj.version != version:
         raise RuntimeError('Fatal version mismatch corruption.')
     pickle.dump(obj, open(filename, 'wb'))
+
+forbidden_target_names = {'clean': None,
+                          'coverage-text': None,
+                          'coverage-xml': None,
+                          'coverage-html': None,
+                          'phony': None,
+                          'all': None,
+                          'test': None,
+                          'install': None,
+                          'build.ninja': None
+                          }

@@ -17,6 +17,7 @@
 import mparser
 import nodes
 import environment
+import coredata
 import os, sys, platform
 import shutil
 
@@ -662,7 +663,7 @@ class Interpreter():
         libname = args[0]
         if libname in self.coredata.ext_libs and\
            self.coredata.ext_libs[libname].found():
-            return ExternalLibraryHolder(self.coredata.ext_progs[libname])
+            return ExternalLibraryHolder(self.coredata.ext_libs[libname])
         result = self.environment.find_library(libname)
         extlib = environment.ExternalLibrary(libname, result)
         libobj = ExternalLibraryHolder(extlib)
@@ -789,6 +790,9 @@ class Interpreter():
         args = self.flatten(args)
         name = args[0]
         sources = args[1:]
+        if name in coredata.forbidden_target_names:
+            raise InvalidArguments('Line %d: target name "%s" is reserved for Meson\'s internal use. Please rename.'\
+                                   % (node.lineno(), name))
         try:
             kw_src = self.flatten(kwargs['sources'])
             if not isinstance(kw_src, list):
