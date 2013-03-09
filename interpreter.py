@@ -18,6 +18,7 @@ import mparser
 import nodes
 import environment
 import os, sys, platform
+import shutil
 
 class InterpreterException(Exception):
     pass
@@ -38,13 +39,33 @@ class InterpreterObject():
             return self.methods[method_name](args, kwargs)
         raise InvalidCode('Unknown method "%s" in object.' % method_name)
 
+class ExternalProgram(InterpreterObject):
+    
+    def __init__(self, name, fullpath=None):
+        InterpreterObject.__init__(self)
+        self.name = name
+        self.fullpath = fullpath
+
+    def found(self):
+        return self.fullpath is not None
+
+    def found_method(self, args, kwargs):
+        return self.found()
+
+    def get_command(self):
+        return self.fullpath
+
+    def get_name(self):
+        return self.name
+
 class Generator(InterpreterObject):
 
     def __init__(self, args, kwargs):
         InterpreterObject.__init__(self)
         if len(args) != 1:
             raise InvalidArguments('Generator requires one and only one positional argument')
-        if not isinstance(args[0], Executable):
+        if not isinstance(args[0], Executable) and \
+           not isinstance(args[0], ExternalProgram):
             raise InvalidArguments('First generator argument must be an executable object.')
         self.exe = args[0]
         self.methods.update({'process' : self.process_method})
@@ -244,7 +265,7 @@ class BuildTarget(InterpreterObject):
         self.generated = []
         self.process_sourcelist(sources)
         self.process_kwargs(kwargs)
-        if len(self.sources) == 0:
+        if len(self.sources) == 0 and len(self.generated) == 0:
             raise InvalidArguments('Build target %s has no sources.' % name)
     
     def process_sourcelist(self, sources):
@@ -474,6 +495,7 @@ class Interpreter():
                       'configure_file' : self.func_configure_file,
                       'include_directories' : self.func_include_directories,
                       'add_global_arguments' : self.func_add_global_arguments,
+                      'find_program' : self.func_find_program,
                       }
 
     def get_build_def_files(self):
@@ -586,6 +608,18 @@ class Interpreter():
                 comp.sanity_check(self.environment.get_scratch_dir())
                 self.coredata.compilers[lang] = comp
             self.build.compilers.append(comp)
+
+    def func_find_program(self, node, args, kwargs):
+        self.validate_arguments(args, 1, [str])
+        required = kwargs.get('required', False)
+        if not isinstance(required, bool):
+            raise InvalidArguments('Line %d: "required" argument must be a boolean.' % node.lineno())
+        exename = args[0]
+        result = shutil.which(exename) # Does .exe appending on Windows.
+        progobj = ExternalProgram(exename, result)
+        if required and not progobj.found():
+            raise InvalidArguments('Line %d: program "%s" not found.' % (node.lineno(), exename))
+        return progobj
 
     def func_find_dep(self, node, args, kwargs):
         self.validate_arguments(args, 1, [str])

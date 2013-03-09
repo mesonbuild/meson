@@ -228,7 +228,6 @@ def is_osx():
     return platform.system().lower() == 'darwin'
 
 def is_windows():
-    print(platform.system().lower())
     return platform.system().lower() == 'windows'
 
 header_suffixes = ['h', 'hh', 'hpp', 'hxx', 'H']

@@ -442,7 +442,10 @@ class NinjaBackend(Backend):
             outfilelist = genlist.get_outfilelist()
             if len(infilelist) != len(outfilelist):
                 raise RuntimeError('Internal data structures broken.')
-            exe_file = os.path.join(self.environment.get_build_dir(), self.get_target_filename(exe))
+            if isinstance(exe, interpreter.BuildTarget):
+                exe_file = os.path.join(self.environment.get_build_dir(), self.get_target_filename(exe))
+            else:
+                exe_file = exe.get_command()
             base_args = generator.get_arglist()
             for i in range(len(infilelist)):
                 infilename = os.path.join(self.build_to_src, infilelist[i])
@@ -452,7 +455,8 @@ class NinjaBackend(Backend):
                 cmdlist = [exe_file] + args
                 elem = NinjaBuildElement(outfilename, 'CUSTOM_COMMAND', infilename)
                 elem.add_item('DESC', 'Generating $out')
-                elem.add_dep(self.get_target_filename(exe))
+                if isinstance(exe, interpreter.BuildTarget):
+                    elem.add_dep(self.get_target_filename(exe))
                 elem.add_item('COMMAND', cmdlist)
                 elem.write(outfile)
 
