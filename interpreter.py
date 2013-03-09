@@ -39,43 +39,50 @@ class InterpreterObject():
             return self.methods[method_name](args, kwargs)
         raise InvalidCode('Unknown method "%s" in object.' % method_name)
 
-class ExternalProgram(InterpreterObject):
-    def __init__(self, name, fullpath=None):
-        InterpreterObject.__init__(self)
-        self.name = name
-        self.fullpath = fullpath
-        #self.methods.update({'found': self.found_method})
+# Interpreter objects can not be pickled so we must have
+# these wrappers.
 
-    def found(self):
-        return self.fullpath is not None
+class ExternalProgramHolder(InterpreterObject):
+    def __init__(self, ep):
+        InterpreterObject.__init__(self)
+        self.ep = ep
+        self.methods.update({'found': self.found_method})
 
     def found_method(self, args, kwargs):
         return self.found()
 
+    def found(self):
+        return self.ep.found()
+
     def get_command(self):
-        return self.fullpath
+        return self.ep.fullpath
 
     def get_name(self):
-        return self.name
+        return self.ep.name
 
-class ExternalLibrary(InterpreterObject):
-    def __init__(self, name, fullpath=None):
+class ExternalLibraryHolder(InterpreterObject):
+    def __init__(self, el):
         InterpreterObject.__init__(self)
-        self.name = name
-        self.fullpath = fullpath
-        #self.methods.update({'found': self.found_method})
+        self.el = el
+        self.methods.update({'found': self.found_method})
 
     def found(self):
-        return self.fullpath is not None
+        return self.el.found()
 
     def found_method(self, args, kwargs):
         return self.found()
 
     def get_filename(self):
-        return self.fullpath
+        return self.el.fullpath
 
     def get_name(self):
-        return self.name
+        return self.el.name
+    
+    def get_compile_flags(self):
+        return self.el.get_compile_flags()
+    
+    def get_link_flags(self):
+        return self.el.get_link_flags()
 
 class Generator(InterpreterObject):
 
@@ -84,7 +91,7 @@ class Generator(InterpreterObject):
         if len(args) != 1:
             raise InvalidArguments('Generator requires one and only one positional argument')
         if not isinstance(args[0], Executable) and \
-           not isinstance(args[0], ExternalProgram):
+           not isinstance(args[0], ExternalProgramHolder):
             raise InvalidArguments('First generator argument must be an executable object.')
         self.exe = args[0]
         self.methods.update({'process' : self.process_method})
@@ -369,7 +376,7 @@ class BuildTarget(InterpreterObject):
     def add_external_deps(self, deps):
         for dep in deps:
             if not isinstance(dep, environment.Dependency) and\
-               not isinstance(dep, ExternalLibrary):
+               not isinstance(dep, ExternalLibraryHolder):
                 raise InvalidArguments('Argument is not an external dependency')
             self.external_deps.append(dep)
 
@@ -638,10 +645,11 @@ class Interpreter():
         exename = args[0]
         if exename in self.coredata.ext_progs and\
            self.coredata.ext_progs[exename].found():
-            return self.coredata.ext_progs[exename]
+            return ExternalProgramHolder(self.coredata.ext_progs[exename])
         result = shutil.which(exename) # Does .exe appending on Windows.
-        progobj = ExternalProgram(exename, result)
-        self.coredata.ext_progs[exename] = progobj
+        extprog = environment.ExternalProgram(exename, result)
+        progobj = ExternalProgramHolder(extprog)
+        self.coredata.ext_progs[exename] = extprog
         if required and not progobj.found():
             raise InvalidArguments('Line %d: program "%s" not found.' % (node.lineno(), exename))
         return progobj
@@ -654,10 +662,11 @@ class Interpreter():
         libname = args[0]
         if libname in self.coredata.ext_libs and\
            self.coredata.ext_libs[libname].found():
-            return self.coredata.ext_progs[libname]
+            return ExternalLibraryHolder(self.coredata.ext_progs[libname])
         result = self.environment.find_library(libname)
-        libobj = ExternalLibrary(libname, result)
-        self.coredata.ext_libs[libname] = libobj
+        extlib = environment.ExternalLibrary(libname, result)
+        libobj = ExternalLibraryHolder(extlib)
+        self.coredata.ext_libs[libname] = extlib
         if required and not libobj.found():
             raise InvalidArguments('Line %d: external library "%s" not found.' % (node.lineno(), libname))
         return libobj

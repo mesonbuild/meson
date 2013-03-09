@@ -509,7 +509,37 @@ class PkgConfigDependency(Dependency):
     def found(self):
         return self.is_found
 
-# Fixme, move to environment.
+class ExternalProgram():
+    def __init__(self, name, fullpath=None):
+        self.name = name
+        self.fullpath = fullpath
+
+    def found(self):
+        return self.fullpath is not None
+
+    def get_command(self):
+        return self.fullpath
+
+    def get_name(self):
+        return self.name
+
+class ExternalLibrary(Dependency):
+    def __init__(self, name, fullpath=None):
+        Dependency.__init__(self)
+        self.name = name
+        self.fullpath = fullpath
+
+    def found(self):
+        return self.fullpath is not None
+
+    def get_name(self):
+        return self.name
+    
+    def get_link_flags(self):
+        if self.found():
+            return [self.fullpath]
+        return []
+
 def find_external_dependency(name, kwargs):
     required = kwargs.get('required', False)
     return PkgConfigDependency(name, required)
