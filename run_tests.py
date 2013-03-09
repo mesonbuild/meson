@@ -58,7 +58,6 @@ def run_test(testdir):
         raise RuntimeError('Running install failed.')
 
 def gather_tests(testdir):
-    print(glob(os.path.join(testdir, '*')))
     tests = [t.replace('\\', '/').split('/', 2)[2] for t in glob(os.path.join(testdir, '*'))]
     testlist = [(int(t.split()[0]), t) for t in tests]
     testlist.sort()
