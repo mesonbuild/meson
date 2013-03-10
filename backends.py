@@ -18,6 +18,7 @@ import os, sys, stat, re, pickle
 import interpreter, nodes
 import environment
 from meson_install import InstallData
+from interpreter import InvalidArguments
 
 if environment.is_windows():
     quote_char = '"'
@@ -32,26 +33,49 @@ def shell_quote(cmdlist):
 def ninja_quote(text):
     return text.replace(' ', '$ ')
 
+def do_replacement(regex, line, variables):
+    match = re.search(regex, line)
+    while match:
+        varname = match.group(1)
+        if varname in variables:
+            var = variables[varname]
+            if isinstance(var, str):
+                pass
+            elif isinstance(var, nodes.StringStatement):
+                var = var.get_value()
+            else:
+                raise RuntimeError('Tried to replace a variable with something other than a string.')
+        else:
+            var = ''
+        line = line.replace('@' + varname + '@', var)
+        match = re.search(regex, line)
+    return line
+
+def do_mesondefine(line, variables):
+    arr = line.split()
+    if len(arr) != 2:
+        raise interpreter.InvalidArguments('#cmakedefine does not contain exactly two tokens.')
+    varname = arr[1]
+    v = variables.get(varname, False)
+    if isinstance(v, bool):
+        value= v
+    elif isinstance(v, nodes.BoolStatement):
+        value = v.get_value()
+    else:
+        raise interpreter.InvalidArguments('#cmakedefine argument "%s" is not boolean.' % varname)
+    if value:
+        return '#define %s\n' % varname
+    return '/* undef %s */\n' % varname
+
 def do_conf_file(src, dst, variables):
     data = open(src).readlines()
     regex = re.compile('@(.*?)@')
     result = []
     for line in data:
-        match = re.search(regex, line)
-        while match:
-            varname = match.group(1)
-            if varname in variables:
-                var = variables[varname]
-                if isinstance(var, str):
-                    pass
-                elif isinstance(var, nodes.StringStatement):
-                    var = var.get_value()
-                else:
-                    raise RuntimeError('Tried to replace a variable with something other than a string.')
-            else:
-                var = ''
-            line = line.replace('@' + varname + '@', var)
-            match = re.search(regex, line)
+        if line.startswith('#mesondefine'):
+            line = do_mesondefine(line, variables)
+        else:
+            line = do_replacement(regex, line, variables)
         result.append(line)
     dst_tmp = dst + '~'
     open(dst_tmp, 'w').writelines(result)
