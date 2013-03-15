@@ -54,7 +54,7 @@ def do_replacement(regex, line, variables):
 def do_mesondefine(line, variables):
     arr = line.split()
     if len(arr) != 2:
-        raise interpreter.InvalidArguments('#cmakedefine does not contain exactly two tokens.')
+        raise interpreter.InvalidArguments('#mesondefine does not contain exactly two tokens.')
     varname = arr[1]
     v = variables.get(varname, False)
     if isinstance(v, bool):
@@ -62,7 +62,7 @@ def do_mesondefine(line, variables):
     elif isinstance(v, nodes.BoolStatement):
         value = v.get_value()
     else:
-        raise interpreter.InvalidArguments('#cmakedefine argument "%s" is not boolean.' % varname)
+        raise interpreter.InvalidArguments('#mesondefine argument "%s" is not boolean.' % varname)
     if value:
         return '#define %s\n' % varname
     return '/* undef %s */\n' % varname
