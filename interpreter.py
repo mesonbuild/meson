@@ -507,6 +507,7 @@ class Interpreter():
         self.subdir = ''
         self.generators = []
         self.coredata = self.environment.get_coredata()
+        self.visited_subdirs = {}
 
     def build_func_dict(self):
         self.funcs = {'project' : self.func_project, 
@@ -726,7 +727,12 @@ class Interpreter():
             raise InvalidArguments('Line %d: subdir command takes no keyword arguments.' % node.lineno())
         self.validate_arguments(args, 1, [str])
         prev_subdir = self.subdir
-        self.subdir = os.path.join(prev_subdir, args[0])
+        subdir = os.path.join(prev_subdir, args[0])
+        if subdir in self.visited_subdirs:
+            raise InvalidArguments('Line %d: tried to enter subdir "%s", which has already been visited.'\
+                                   % (node.lineno(), subdir))
+        self.visited_subdirs[subdir] = True
+        self.subdir = subdir
         buildfilename = os.path.join(self.subdir, environment.build_filename)
         self.build_def_files.append(buildfilename)
         code = open(os.path.join(self.environment.get_source_dir(), buildfilename)).read()
