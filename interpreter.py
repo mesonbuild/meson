@@ -729,7 +729,7 @@ class Interpreter():
         prev_subdir = self.subdir
         subdir = os.path.join(prev_subdir, args[0])
         if subdir in self.visited_subdirs:
-            raise InvalidArguments('Line %d: tried to enter subdir "%s", which has already been visited.'\
+            raise InvalidArguments('Line %d: tried to enter directory "%s", which has already been visited.'\
                                    % (node.lineno(), subdir))
         self.visited_subdirs[subdir] = True
         self.subdir = subdir

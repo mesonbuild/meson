@@ -127,5 +127,10 @@ if __name__ == '__main__':
     app = MesonApp(dir1, dir2, this_file, options)
     print ('Source dir: ' + app.source_dir)
     print ('Build dir: ' + app.build_dir)
-    app.generate()
+    try:
+        app.generate()
+    except Exception as e:
+        print('\nMeson encountered an error:')
+        print(e)
+        sys.exit(1)
 
