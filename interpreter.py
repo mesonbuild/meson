@@ -119,15 +119,16 @@ class Generator(InterpreterObject):
         rule = kwargs['output_name']
         if not isinstance(rule, str):
             raise InvalidArguments('"output_name" keyword argument must be a string.')
-        if not '@BASENAME@' in rule:
-            raise InvalidArguments('"output_name" must contain @BASENAME@.')
+        if not '@BASENAME@' in rule and not '@PLAINNAME@' in rule:
+            raise InvalidArguments('"output_name" must contain @BASENAME@ or @PLAINNAME@.')
         if '/' in rule:
             raise InvalidArguments('"output_name" must not contain a slash.')
         self.name_rule = rule
 
     def get_base_outname(self, inname):
-        base = os.path.split(inname)[1]
-        return self.name_rule.replace('@BASENAME@', base)
+        plainname = os.path.split(inname)[1]
+        basename = plainname.split('.')[0]
+        return self.name_rule.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname)
 
     def process_method(self, args, kwargs):
         if len(kwargs) > 0:

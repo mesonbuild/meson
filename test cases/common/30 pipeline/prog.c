@@ -1,4 +1,4 @@
-#include"input_src.dat.h"
+#include"input_src.h"
 
 int main(int argc, char **argv) {
     void *foo = printf;
