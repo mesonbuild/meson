@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys, subprocess
+import sys, subprocess, time
 from optparse import OptionParser
 
 parser = OptionParser()
@@ -44,15 +44,18 @@ def run_tests(options, datafilename):
         if line == '':
             continue
         cmd = wrap + [line]
+        starttime = time.time()
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (stdo, stde) = p.communicate()
+        endtime = time.time()
+        duration = endtime - starttime
         stdo = stdo.decode()
         stde = stde.decode()
         
         if p.returncode != 0:
-            result_str = 'Test "%s": FAIL' % line
+            result_str = 'Test "%s": FAIL (%.3f s)' % (line, duration)
         else:
-            result_str = 'Test "%s": OK' % line
+            result_str = 'Test "%s": OK (%.3f s)' % (line, duration)
         print(result_str)
         write_log(logfile, line, result_str, stdo, stde)
     print('\nFull log written to %s.' % logfilename)
