@@ -23,11 +23,11 @@ parser.add_option('--wrapper', default=None, dest='wrapper',
 
 def write_log(logfile, test_name, result_str, stdo, stde):
     logfile.write(result_str + '\n\n')
-    logfile.write('--- stdout ---\n')
+    logfile.write('--- "%s" stdout ---\n' % test_name)
     logfile.write(stdo)
-    logfile.write('\n--- stderr ---\n')
+    logfile.write('\n--- "%s" stderr ---\n' % test_name)
     logfile.write(stde)
-    logfile.write('\n')
+    logfile.write('\n-------\n\n')
 
 def run_tests(options, datafilename):
     logfile_base = 'meson-private/testlog'
