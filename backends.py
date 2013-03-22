@@ -408,7 +408,7 @@ class NinjaBackend(Backend):
         if valgrind:
             velem = NinjaBuildElement('test-valgrind', 'CUSTOM_COMMAND', 'all')
             velem.add_item('COMMAND', cmd + ['--wrapper=' + valgrind])
-            velem.add_item('DESC', 'Running test suite under valgrind.')
+            velem.add_item('DESC', 'Running test suite under Valgrind.')
             velem.write(outfile)
 
         datafile = open(test_data, 'w')
