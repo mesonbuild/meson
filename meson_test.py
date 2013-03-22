@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys, subprocess, time
+import sys, subprocess, time, datetime
 from optparse import OptionParser
 
 parser = OptionParser()
@@ -38,7 +38,7 @@ def run_tests(options, datafilename):
         wrap = [options.wrapper]
         logfilename = logfile_base + '-' + options.wrapper.replace(' ', '_') + '.txt'
     logfile = open(logfilename, 'w')
-    logfile.write('Log file for tests.\n\n')
+    logfile.write('Log of Meson test suite run on %s.\n\n' % datetime.datetime.now().isoformat())
     for line in open(datafilename, 'r'):
         line = line.strip()
         if line == '':
