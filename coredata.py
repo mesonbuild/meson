@@ -63,6 +63,7 @@ forbidden_target_names = {'clean': None,
                           'phony': None,
                           'all': None,
                           'test': None,
+                          'test-valgrind': None,
                           'install': None,
-                          'build.ninja': None
+                          'build.ninja': None,
                           }

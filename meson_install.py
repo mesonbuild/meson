@@ -123,7 +123,7 @@ def install_targets(d):
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
-        print('Installer script for Builder. Do not run on your own, mmm\'kay?')
+        print('Installer script for Meson. Do not run on your own, mmm\'kay?')
         print('%s [install info file]' % sys.argv[0])
     datafilename = sys.argv[1]
     do_install(datafilename)
