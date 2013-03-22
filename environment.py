@@ -206,24 +206,34 @@ class ArLinker():
     def get_coverage_link_flags(self):
         return []
 
+def exe_exists(arglist):
+    try:
+        p = subprocess.Popen(arglist, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p.communicate()
+        if p.returncode == 0:
+            return True
+    except FileNotFoundError:
+        pass
+    return False
+
 def find_coverage_tools():
     gcovr_exe = 'gcovr'
     lcov_exe = 'lcov'
     genhtml_exe = 'genhtml'
     
-    pg = subprocess.Popen([gcovr_exe, '--version'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    pg.communicate()
-    if pg.returncode != 0:
+    if not exe_exists([gcovr_exe, '--version']):
         gcovr_exe = None
-    pl = subprocess.Popen([lcov_exe, '--version'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    pl.communicate()
-    if pl.returncode != 0:
+    if not exe_exists([lcov_exe, '--version']):
         lcov_exe = None
-    ph = subprocess.Popen([genhtml_exe, '--version'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    ph.communicate()
-    if ph.returncode != 0:
+    if not exe_exists([genhtml_exe, '--version']):
         genhtml_exe = None
     return (gcovr_exe, lcov_exe, genhtml_exe)
+
+def find_valgrind():
+    valgrind_exe = 'valgrind'
+    if not exe_exists([valgrind_exe, '--version']):
+        valgrind_exe = None
+    return valgrind_exe
 
 def is_osx():
     return platform.system().lower() == 'darwin'
