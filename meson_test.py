@@ -19,14 +19,26 @@ from optparse import OptionParser
 
 parser = OptionParser()
 parser.add_option('--wrapper', default=None, dest='wrapper',
-                  help='wrapper to run tests (e.g. valgrind')
+                  help='wrapper to run tests with (e.g. valgrind')
 
+def write_log(logfile, test_name, result_str, stdo, stde):
+    logfile.write(result_str + '\n\n')
+    logfile.write('--- stdout ---\n')
+    logfile.write(stdo)
+    logfile.write('\n--- stderr ---\n')
+    logfile.write(stde)
+    logfile.write('\n')
 
 def run_tests(options, datafilename):
+    logfile_base = 'meson-private/testlog'
     if options.wrapper is None:
         wrap = []
+        logfilename = logfile_base + '.txt'
     else:
         wrap = [options.wrapper]
+        logfilename = logfile_base + '-' + options.wrapper.replace(' ', '_') + '.txt'
+    logfile = open(logfilename, 'w')
+    logfile.write('Log file for tests.\n\n')
     for line in open(datafilename, 'r'):
         line = line.strip()
         if line == '':
@@ -34,12 +46,16 @@ def run_tests(options, datafilename):
         cmd = wrap + [line]
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (stdo, stde) = p.communicate()
+        stdo = stdo.decode()
+        stde = stde.decode()
+        
         if p.returncode != 0:
-            print('Error running test.')
-            print('Stdout:\n' + stdo.decode())
-            print('Stderr:\n' + stde.decode())
-            sys.exit(1)
-        print('Test "%s": OK' % line)
+            result_str = 'Test "%s": FAIL' % line
+        else:
+            result_str = 'Test "%s": OK' % line
+        print(result_str)
+        write_log(logfile, line, result_str, stdo, stde)
+    print('\nFull log written to %s.' % logfilename)
 
 if __name__ == '__main__':
     (options, args) = parser.parse_args(sys.argv)
