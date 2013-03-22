@@ -395,14 +395,22 @@ class NinjaBackend(Backend):
                 d.data.append(i)
 
     def generate_tests(self, outfile):
+        valgrind = environment.find_valgrind()
         script_root = self.environment.get_script_dir()
         test_script = os.path.join(script_root, 'meson_test.py')
         test_data = os.path.join(self.environment.get_scratch_dir(), 'meson_test_setup.dat')
+        cmd = [sys.executable, test_script, test_data]
         elem = NinjaBuildElement('test', 'CUSTOM_COMMAND', 'all')
-        elem.add_item('COMMAND', [sys.executable, test_script, test_data])
+        elem.add_item('COMMAND', cmd)
         elem.add_item('DESC', 'Running test suite.')
         elem.write(outfile)
-        
+
+        if valgrind:
+            velem = NinjaBuildElement('test-valgrind', 'CUSTOM_COMMAND', 'all')
+            velem.add_item('COMMAND', cmd + ['--wrapper=' + valgrind])
+            velem.add_item('DESC', 'Running test suite under valgrind.')
+            velem.write(outfile)
+
         datafile = open(test_data, 'w')
         for t in self.build.get_tests():
             datafile.write(self.get_target_filename(t.get_exe()) + '\n')
