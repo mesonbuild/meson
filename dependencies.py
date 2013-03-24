@@ -111,7 +111,12 @@ class GTestDependency():
     def found(self):
         return os.path.exists(self.all_src)
     def get_compile_flags(self):
-        return ['-I' + self.include_dir, '-I' + self.src_include_dir]
+        arr = []
+        if self.include_dir != '/usr/include':
+            arr.append('-I' + self.include_dir)
+        arr.append('-I' + self.src_include_dir)
+        return arr
+
     def get_link_flags(self):
         return ['-lpthread']
     def get_version(self):
