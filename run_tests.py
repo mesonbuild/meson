@@ -91,8 +91,24 @@ def run_tests():
     print('\nRunning framework tests.\n')
     [run_test(t) for t in frameworktests]
 
+def check_file(fname):
+    linenum = 0
+    for line in open(fname).readlines():
+        if '\t' in line:
+            print("File %s contains a literal tab on line %d. Only spaces are permitted." % (fname, linenum))
+            sys.exit(1)
+    linenum += 1
+
+def check_tabs():
+    for (root, dirs, files) in os.walk('.'):
+        for file in files:
+            if file.endswith('.py') or file.endswith('.build'):
+                fullname = os.path.join(root, file)
+                check_file(fullname)
+
 if __name__ == '__main__':
     script_dir = os.path.split(__file__)[0]
     if script_dir != '':
         os.chdir(script_dir)
+    check_tabs()
     run_tests()
