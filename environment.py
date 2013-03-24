@@ -462,6 +462,11 @@ class Dependency():
     def found(self):
         return False
 
+    def get_sources(self):
+        """Source files that need to be added to the target.
+        As an example, gtest-all.cc when using GTest."""
+        return []
+
 class PackageDependency(Dependency): # Custom detector, not pkg-config.
     def __init__(self, dep):
         Dependency.__init__(self)
@@ -475,6 +480,9 @@ class PackageDependency(Dependency): # Custom detector, not pkg-config.
 
     def found(self):
         return self.dep.found()
+
+    def get_sources(self):
+        return self.dep.get_sources()
 
 # This should be an InterpreterObject. Fix it.
 

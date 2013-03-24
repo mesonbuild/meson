@@ -381,6 +381,8 @@ class BuildTarget(InterpreterObject):
                not isinstance(dep, ExternalLibraryHolder):
                 raise InvalidArguments('Argument is not an external dependency')
             self.external_deps.append(dep)
+            if isinstance(dep, environment.Dependency):
+                self.process_sourcelist(dep.get_sources())
 
     def get_external_deps(self):
         return self.external_deps
@@ -605,6 +607,8 @@ class Interpreter():
             actual = args[i]
             if wanted != None:
                 if not isinstance(actual, wanted):
+                    print(actual)
+                    print(wanted)
                     raise InvalidArguments('Incorrect argument type.')
 
     def func_project(self, node, args, kwargs):

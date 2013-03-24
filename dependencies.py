@@ -97,4 +97,29 @@ class BoostDependency():
                 flags.append(linkcmd)
         return flags
 
-packages = {'boost': BoostDependency}
+    def get_sources(self):
+        return []
+
+class GTestDependency():
+    def __init__(self, kwargs):
+        self.include_dir = '/usr/include'
+        self.src_include_dir = '/usr/src/gtest'
+        self.src_dir = '/usr/src/gtest/src'
+        self.all_src = os.path.join(self.src_dir, 'gtest-all.cc')
+        self.main_src = os.path.join(self.src_dir, 'gtest_main.cc')
+
+    def found(self):
+        return os.path.exists(self.all_src)
+    def get_compile_flags(self):
+        return ['-I' + self.include_dir, '-I' + self.src_include_dir]
+    def get_link_flags(self):
+        return []
+    def get_version(self):
+        return '1.something_maybe'
+
+    def get_sources(self):
+        return [self.all_src, self.main_src]
+
+packages = {'boost': BoostDependency,
+            'gtest': GTestDependency,
+            }
