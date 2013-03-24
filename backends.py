@@ -622,7 +622,7 @@ class NinjaBackend(Backend):
             script_root = self.environment.get_script_dir()
             clean_script = os.path.join(script_root, 'delwithsuffix.py')
             gcda_elem.add_item('COMMAND', [sys.executable, clean_script, '.', 'gcda'])
-            gcda_elem.add_item('description', 'Deleting gcno files')
+            gcda_elem.add_item('description', 'Deleting gcda files')
             gcda_elem.write(outfile)
 
     def generate_ending(self, outfile):
