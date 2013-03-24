@@ -72,6 +72,10 @@ def run_tests():
         platformtests = gather_tests('test cases/windows')
     else:
         platformtests = gather_tests('test cases/linuxlike')
+    if not environment.is_osx() and not environment.is_windows():
+        frameworktests = gather_tests('test cases/frameworks')
+    else:
+        frameworktests = []
     try:
         os.mkdir(test_build_dir)
     except OSError:
@@ -84,6 +88,8 @@ def run_tests():
     [run_test(t) for t in commontests]
     print('\nRunning platform dependent tests.\n')
     [run_test(t) for t in platformtests]
+    print('\nRunning framework tests.\n')
+    [run_test(t) for t in frameworktests]
 
 if __name__ == '__main__':
     script_dir = os.path.split(__file__)[0]

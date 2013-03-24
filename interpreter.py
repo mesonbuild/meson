@@ -824,7 +824,7 @@ class Interpreter():
 
     def is_assignable(self, value):
         if isinstance(value, InterpreterObject) or \
-            isinstance(value, environment.PkgConfigDependency) or\
+            isinstance(value, environment.Dependency) or\
             isinstance(value, nodes.StringStatement) or\
             isinstance(value, nodes.BoolStatement) or\
             isinstance(value, nodes.IntStatement) or\

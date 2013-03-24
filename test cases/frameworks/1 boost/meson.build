@@ -1,14 +1,11 @@
 project('boosttest', 'cxx')
 
-# One test case for a Boost module that is
-# header only and one test case for a module that
-# requires linking with a shared library.
+# Use a Boost module that requires a shared library.
+# Eventually we would like to be able to detect Boost
+# multiple times with different library combinations.
 
-nolinkdep = find_dep('boost', modules : 'utility', required : true)
 linkdep = find_dep('boost', modules : 'thread', required : true)
 
-nolinkexe = executable('nolinkexe', 'nolinkexe.cc', dep : nolinkdep)
-linkexe = executable('linkedexe', 'linkexe.cc', dep : linkdep)
+linkexe = executable('linkedexe', 'linkexe.cc', deps : linkdep)
 
-add_test('nolinktest', nolinkexe)
-add_test('linktext', linkexe)
+add_test('Boost linktext', linkexe)

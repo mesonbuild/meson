@@ -16,6 +16,7 @@
 
 import subprocess, os.path, platform
 import coredata
+import dependencies
 from glob import glob
 
 build_filename = 'meson.build'
@@ -461,6 +462,20 @@ class Dependency():
     def found(self):
         return False
 
+class PackageDependency(Dependency): # Custom detector, not pkg-config.
+    def __init__(self, dep):
+        Dependency.__init__(self)
+        self.dep = dep
+
+    def get_link_flags(self):
+        return self.dep.get_link_flags()
+
+    def get_compile_flags(self):
+        return self.dep.get_compile_flags()
+
+    def found(self):
+        return self.dep.found()
+
 # This should be an InterpreterObject. Fix it.
 
 class PkgConfigDependency(Dependency):
@@ -552,6 +567,11 @@ class ExternalLibrary(Dependency):
 
 def find_external_dependency(name, kwargs):
     required = kwargs.get('required', False)
+    if name in dependencies.packages:
+        dep = dependencies.packages[name](kwargs)
+        if required and not dep.found():
+            raise EnvironmentException('Dependency "%s" not found' % name)
+        return PackageDependency(dep)
     return PkgConfigDependency(name, required)
 
 def test_pkg_config():
