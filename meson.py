@@ -1,4 +1,4 @@
-#!/usr/bin/env python3 -tt
+#!/usr/bin/env python3
 
 # Copyright 2012 Jussi Pakkanen
 
