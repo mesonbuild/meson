@@ -610,6 +610,21 @@ class NinjaBackend(Backend):
         elem.add_item('aliasing', aliascmd)
         elem.write(outfile)
 
+    def generate_gcov_clean(self, outfile):
+            gcno_elem = NinjaBuildElement('clean-gcno', 'CUSTOM_COMMAND', '')
+            script_root = self.environment.get_script_dir()
+            clean_script = os.path.join(script_root, 'delwithsuffix.py')
+            gcno_elem.add_item('COMMAND', [sys.executable, clean_script, '.', 'gcno'])
+            gcno_elem.add_item('description', 'Deleting gcno files')
+            gcno_elem.write(outfile)
+
+            gcda_elem = NinjaBuildElement('clean-gcda', 'CUSTOM_COMMAND', '')
+            script_root = self.environment.get_script_dir()
+            clean_script = os.path.join(script_root, 'delwithsuffix.py')
+            gcda_elem.add_item('COMMAND', [sys.executable, clean_script, '.', 'gcda'])
+            gcda_elem.add_item('description', 'Deleting gcno files')
+            gcda_elem.write(outfile)
+
     def generate_ending(self, outfile):
         targetlist = [self.get_target_filename(t) for t in self.build.get_targets().values()]
         elem = NinjaBuildElement('all', 'phony', targetlist)
@@ -621,6 +636,10 @@ class NinjaBackend(Backend):
         elem = NinjaBuildElement('clean', 'CUSTOM_COMMAND', '')
         elem.add_item('COMMAND', ['ninja', '-t', 'clean'])
         elem.add_item('description', 'Cleaning')
+        if self.environment.coredata.coverage:
+            self.generate_gcov_clean(outfile)
+            elem.add_dep('clean-gcda')
+            elem.add_dep('clean-gcno')
         elem.write(outfile)
 
         deps = [os.path.join(self.build_to_src, df) \

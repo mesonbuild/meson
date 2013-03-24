@@ -57,6 +57,8 @@ def save(obj, filename):
     pickle.dump(obj, open(filename, 'wb'))
 
 forbidden_target_names = {'clean': None,
+                          'clean-gcno': None,
+                          'clean-gcda': None,
                           'coverage-text': None,
                           'coverage-xml': None,
                           'coverage-html': None,
