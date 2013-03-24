@@ -113,10 +113,9 @@ class GTestDependency():
     def get_compile_flags(self):
         return ['-I' + self.include_dir, '-I' + self.src_include_dir]
     def get_link_flags(self):
-        return []
+        return ['-lpthread']
     def get_version(self):
         return '1.something_maybe'
-
     def get_sources(self):
         return [self.all_src, self.main_src]
 

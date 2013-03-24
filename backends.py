@@ -512,12 +512,16 @@ class NinjaBackend(Backend):
         commands = self.generate_basic_compiler_flags(target, compiler)
         commands.append(compiler.get_include_arg(self.get_target_private_dir(target)))
         if is_generated:
-            abs_src = os.path.join(self.get_target_private_dir(target), src)
+            rel_src = os.path.join(self.get_target_private_dir(target), src)
         else:
-            abs_src = os.path.join(self.build_to_src, target.get_source_subdir(), src)
-        abs_obj = os.path.join(self.get_target_private_dir(target), src)
-        abs_obj += '.' + self.environment.get_object_suffix()
-        dep_file = abs_obj + '.' + compiler.get_depfile_suffix()
+            rel_src = os.path.join(self.build_to_src, target.get_source_subdir(), src)
+        if os.path.isabs(src):
+            src_filename = os.path.basename(src)
+        else:
+            src_filename = src
+        rel_obj = os.path.join(self.get_target_private_dir(target), src_filename)
+        rel_obj += '.' + self.environment.get_object_suffix()
+        dep_file = rel_obj + '.' + compiler.get_depfile_suffix()
         pchlist = target.get_pch()
         if len(pchlist) == 0:
             pch_dep = []
@@ -540,14 +544,14 @@ class NinjaBackend(Backend):
         commands += self.get_pch_include_args(compiler, target)
         compiler_name = '%s_COMPILER' % compiler.get_language()
 
-        element = NinjaBuildElement(abs_obj, compiler_name, abs_src)
+        element = NinjaBuildElement(rel_obj, compiler_name, rel_src)
         if len(header_deps) > 0:
             element.add_dep([os.path.join(self.get_target_private_dir(target), d) for d in header_deps])
         element.add_orderdep(pch_dep)
         element.add_item('DEPFILE', dep_file)
         element.add_item('FLAGS', commands)
         element.write(outfile)
-        return abs_obj
+        return rel_obj
 
     def generate_pch(self, target, outfile):
         for pch in target.get_pch():
