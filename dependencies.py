@@ -124,6 +124,28 @@ class GTestDependency():
     def get_sources(self):
         return [self.all_src, self.main_src]
 
+class GMockDependency():
+    def __init__(self, kwargs):
+        self.libdir = '/usr/lib'
+        self.libname = 'libgmock.so'
+
+    def get_version(self):
+        return '1.something_maybe'
+
+    def get_compile_flags(self):
+        return []
+
+    def get_sources(self):
+        return []
+
+    def get_link_flags(self):
+        return ['-lgmock']
+    
+    def found(self):
+        fname = os.path.join(self.libdir, self.libname)
+        return os.path.exists(fname)
+
 packages = {'boost': BoostDependency,
             'gtest': GTestDependency,
+            'gmock': GMockDependency,
             }
