@@ -349,10 +349,13 @@ class Environment():
         if out.startswith('clang'):
             return ClangCXXCompiler(exelist)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
-    
+
     def detect_static_linker(self):
         exelist = self.get_static_linker_exelist()
-        p = subprocess.Popen(exelist + ['--version'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        try:
+            p = subprocess.Popen(exelist + ['--version'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        except OSError:
+            raise EnvironmentException('Could not execute static linker "%s".' % ' '.join(exelist))
         (out, err) = p.communicate()
         out = out.decode()
         err = err.decode()
