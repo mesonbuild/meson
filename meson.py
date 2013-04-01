@@ -97,12 +97,10 @@ class MesonApp():
         b = build.Build(env)
         intr = interpreter.Interpreter(b)
         intr.run()
-        if options.backend == 'shell':
-            g = backends.ShellBackend(b, intr)
-        elif options.backend == 'ninja':
+        if options.backend == 'ninja':
             g = backends.NinjaBackend(b, intr)
         else:
-            raise RuntimeError('Unknown generator "%s".' % options.generator)
+            raise RuntimeError('Unknown backend "%s".' % options.backend)
         g.generate()
         env.generating_finished()
 

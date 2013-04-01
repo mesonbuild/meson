@@ -20,14 +20,8 @@ import environment
 
 test_build_dir = 'work area'
 install_dir = os.path.join(os.path.split(os.path.abspath(__file__))[0], 'install dir')
-use_shell = len(sys.argv) > 1
 meson_command = './meson.py'
-if use_shell:
-    backend_flags = ['--backend', 'shell']
-    compile_commands = ['compile.sh']
-    test_commands = ['run_tests.sh']
-    install_commands = ['install.sh']
-else:
+if True: # Currently we have only one backend.
     backend_flags = []
     compile_commands = ['ninja']
     test_commands = ['ninja', 'test']
