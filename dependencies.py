@@ -14,16 +14,153 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# This file contains the detection logic for all those
-# packages and frameworks that either don't provide
-# a pkg-confg file or require extra functionality
-# that can't be expressed with it.
+# This file contains the detection logic for external
+# dependencies. Mostly just uses pkg-config but also contains
+# custom logic for packages that don't provide them.
 
 # Currently one file, should probably be split into a
 # package before this gets too big.
 
-import os, stat, glob
+import os, stat, glob, subprocess
 from interpreter import InvalidArguments
+from coredata import MesonException
+
+class DependencyException(MesonException):
+    def __init__(self, args, **kwargs):
+        MesonException.__init__(args, kwargs)
+
+class Dependency():
+    def __init__(self):
+        pass
+
+    def get_compile_flags(self):
+        return []
+
+    def get_link_flags(self):
+        return []
+
+    def found(self):
+        return False
+
+    def get_sources(self):
+        """Source files that need to be added to the target.
+        As an example, gtest-all.cc when using GTest."""
+        return []
+
+class PackageDependency(Dependency): # Custom detector, not pkg-config.
+    def __init__(self, dep):
+        Dependency.__init__(self)
+        self.dep = dep
+
+    def get_link_flags(self):
+        return self.dep.get_link_flags()
+
+    def get_compile_flags(self):
+        return self.dep.get_compile_flags()
+
+    def found(self):
+        return self.dep.found()
+
+    def get_sources(self):
+        return self.dep.get_sources()
+
+# This should be an InterpreterObject. Fix it.
+
+class PkgConfigDependency(Dependency):
+    pkgconfig_found = False
+    
+    def __init__(self, name, required):
+        Dependency.__init__(self)
+        if not PkgConfigDependency.pkgconfig_found:
+            self.check_pkgconfig()
+
+        self.is_found = False
+        p = subprocess.Popen(['pkg-config', '--modversion', name], stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE)
+        out = p.communicate()[0]
+        if p.returncode != 0:
+            if required:
+                raise DependencyException('Required dependency %s not found.' % name)
+            self.modversion = 'none'
+            self.cflags = []
+            self.libs = []
+        else:
+            self.is_found = True
+            self.modversion = out.decode().strip()
+            p = subprocess.Popen(['pkg-config', '--cflags', name], stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE)
+            out = p.communicate()[0]
+            if p.returncode != 0:
+                raise RuntimeError('Could not generate cflags for %s.' % name)
+            self.cflags = out.decode().split()
+
+            p = subprocess.Popen(['pkg-config', '--libs', name], stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE)
+            out = p.communicate()[0]
+            if p.returncode != 0:
+                raise RuntimeError('Could not generate libs for %s.' % name)
+            self.libs = out.decode().split()
+
+    def get_modversion(self):
+        return self.modversion
+
+    def get_compile_flags(self):
+        return self.cflags
+
+    def get_link_flags(self):
+        return self.libs
+
+    def check_pkgconfig(self):
+        p = subprocess.Popen(['pkg-config', '--version'], stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE)
+        out = p.communicate()[0]
+        if p.returncode != 0:
+            raise RuntimeError('Pkg-config executable not found.')
+        print('Found pkg-config version %s.' % out.decode().strip())
+        PkgConfigDependency.pkgconfig_found = True
+
+    def found(self):
+        return self.is_found
+
+class ExternalProgram():
+    def __init__(self, name, fullpath=None):
+        self.name = name
+        self.fullpath = fullpath
+
+    def found(self):
+        return self.fullpath is not None
+
+    def get_command(self):
+        return self.fullpath
+
+    def get_name(self):
+        return self.name
+
+class ExternalLibrary(Dependency):
+    def __init__(self, name, fullpath=None):
+        Dependency.__init__(self)
+        self.name = name
+        self.fullpath = fullpath
+
+    def found(self):
+        return self.fullpath is not None
+
+    def get_name(self):
+        return self.name
+    
+    def get_link_flags(self):
+        if self.found():
+            return [self.fullpath]
+        return []
+
+def find_external_dependency(name, kwargs):
+    required = kwargs.get('required', False)
+    if name in packages:
+        dep = packages[name](kwargs)
+        if required and not dep.found():
+            raise DependencyException('Dependency "%s" not found' % name)
+        return PackageDependency(dep)
+    return PkgConfigDependency(name, required)
 
 class BoostDependency():
     def __init__(self, kwargs):
@@ -145,7 +282,33 @@ class GMockDependency():
         fname = os.path.join(self.libdir, self.libname)
         return os.path.exists(fname)
 
+class Qt5Dependency():
+    def __init__(self, kwargs):
+        self.root = '/usr'
+        self.modules = []
+        for module in kwargs.get('modules', []):
+            self.modules.append(PkgConfigDependency(module))
+
+    def get_version(self):
+        return '1.something_maybe'
+
+    def get_compile_flags(self):
+        return []
+
+    def get_sources(self):
+        return []
+
+    def get_link_flags(self):
+        return ['-lgmock']
+    
+    def found(self):
+        fname = os.path.join(self.libdir, self.libname)
+        return os.path.exists(fname)
+
+# This has to be at the end so all classes it references
+# are defined.
 packages = {'boost': BoostDependency,
             'gtest': GTestDependency,
             'gmock': GMockDependency,
+            'qt5': Qt5Dependency,
             }

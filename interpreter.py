@@ -18,6 +18,7 @@ import mparser
 import nodes
 import environment
 import coredata
+import dependencies
 import os, sys, platform
 import shutil
 
@@ -377,11 +378,11 @@ class BuildTarget(InterpreterObject):
 
     def add_external_deps(self, deps):
         for dep in deps:
-            if not isinstance(dep, environment.Dependency) and\
+            if not isinstance(dep, dependencies.Dependency) and\
                not isinstance(dep, ExternalLibraryHolder):
                 raise InvalidArguments('Argument is not an external dependency')
             self.external_deps.append(dep)
-            if isinstance(dep, environment.Dependency):
+            if isinstance(dep, dependencies.Dependency):
                 self.process_sourcelist(dep.get_sources())
 
     def get_external_deps(self):
@@ -654,7 +655,7 @@ class Interpreter():
            self.coredata.ext_progs[exename].found():
             return ExternalProgramHolder(self.coredata.ext_progs[exename])
         result = shutil.which(exename) # Does .exe appending on Windows.
-        extprog = environment.ExternalProgram(exename, result)
+        extprog = dependencies.ExternalProgram(exename, result)
         progobj = ExternalProgramHolder(extprog)
         self.coredata.ext_progs[exename] = extprog
         if required and not progobj.found():
@@ -671,7 +672,7 @@ class Interpreter():
            self.coredata.ext_libs[libname].found():
             return ExternalLibraryHolder(self.coredata.ext_libs[libname])
         result = self.environment.find_library(libname)
-        extlib = environment.ExternalLibrary(libname, result)
+        extlib = dependencies.ExternalLibrary(libname, result)
         libobj = ExternalLibraryHolder(extlib)
         self.coredata.ext_libs[libname] = extlib
         if required and not libobj.found():
@@ -684,9 +685,9 @@ class Interpreter():
         if name in self.coredata.deps:
             dep = self.coredata.deps[name]
         else:
-            dep = environment.Dependency() # Returns always false for dep.found()
+            dep = dependencies.Dependency() # Returns always false for dep.found()
         if not dep.found():
-            dep = environment.find_external_dependency(name, kwargs)
+            dep = dependencies.find_external_dependency(name, kwargs)
         self.coredata.deps[name] = dep
         return dep
 
@@ -828,7 +829,7 @@ class Interpreter():
 
     def is_assignable(self, value):
         if isinstance(value, InterpreterObject) or \
-            isinstance(value, environment.Dependency) or\
+            isinstance(value, dependencies.Dependency) or\
             isinstance(value, nodes.StringStatement) or\
             isinstance(value, nodes.BoolStatement) or\
             isinstance(value, nodes.IntStatement) or\

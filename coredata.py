@@ -14,13 +14,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# This file contains all data that must persist over multiple
-# invocations of Meson. It is roughly the same thing as
-# cmakecache.
-
 import pickle
 
 version = '0.3.0-research'
+
+# This class contains all data that must persist over multiple
+# invocations of Meson. It is roughly the same thing as
+# cmakecache.
 
 class CoreData():
     
@@ -69,3 +69,7 @@ forbidden_target_names = {'clean': None,
                           'install': None,
                           'build.ninja': None,
                           }
+
+class MesonException(Exception):
+    def __init__(self, *args, **kwargs):
+        Exception.__init__(args, kwargs)

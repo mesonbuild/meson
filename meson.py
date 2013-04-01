@@ -15,12 +15,12 @@
 # limitations under the License.
 
 from optparse import OptionParser
-import sys, stat
+import sys, stat, traceback
 import os.path
 import environment, interpreter
 import backends, build
 
-from coredata import version
+from coredata import version, MesonException
 
 usage_info = '%prog [options] source_dir build_dir'
 
@@ -128,7 +128,10 @@ if __name__ == '__main__':
     try:
         app.generate()
     except Exception as e:
-        print('\nMeson encountered an error:')
-        print(e)
-        sys.exit(1)
+        if isinstance(e, MesonException):
+            print('\nMeson encountered an error:')
+            print(e)
+            sys.exit(1)
+        else:
+            traceback.print_exc()
 
