@@ -126,7 +126,7 @@ class Backend():
         name = target.get_basename()
         if name in self.processed_targets:
             return
-        self.process_dep_gens(outfile, target)
+        (gen_src_deps, gen_other_deps) = self.process_dep_gens(outfile, target)
         self.process_target_dependencies(target, outfile)
         print('Generating target', name)
         self.generate_custom_generator_rules(target, outfile)
@@ -134,13 +134,15 @@ class Backend():
         obj_list = []
         if target.has_pch():
             self.generate_pch(target, outfile)
-        header_deps = []
+        header_deps = gen_other_deps
         for genlist in target.get_generated_sources():
             for src in genlist.get_outfilelist():
                 if not self.environment.is_header(src):
                     obj_list.append(self.generate_single_compile(target, outfile, src, True))
                 else:
                     header_deps.append(src)
+        for src in gen_src_deps:
+                obj_list.append(self.generate_single_compile(target, outfile, src, True, []))
         for src in target.get_sources():
             if not self.environment.is_header(src):
                 obj_list.append(self.generate_single_compile(target, outfile, src, False, header_deps))
@@ -651,7 +653,18 @@ class NinjaBackend(Backend):
             gcda_elem.add_item('description', 'Deleting gcda files')
             gcda_elem.write(outfile)
 
+    def is_compilable_file(self, filename):
+        if filename.endswith('.cpp') or\
+        filename.endswith('.c') or\
+        filename.endswith('.cxx') or\
+        filename.endswith('.cc') or\
+        filename.endswith('.C'):
+            return True
+        return False
+
     def process_dep_gens(self, outfile, target):
+        src_deps = []
+        other_deps = []
         for rule in self.dep_rules.values():
             srcs = target.get_original_kwargs().get(rule.src_keyword, [])
             if isinstance(srcs, str):
@@ -665,6 +678,11 @@ class NinjaBackend(Backend):
                 rule = rule.name
                 elem = NinjaBuildElement(outfilename, rule, infilename)
                 elem.write(outfile)
+                if self.is_compilable_file(outfilename):
+                    src_deps.append(outfilename)
+                else:
+                    other_deps.append(outfilename)
+        return (src_deps, other_deps)
 
     def generate_ending(self, outfile):
         targetlist = [self.get_target_filename(t) for t in self.build.get_targets().values()]

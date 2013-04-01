@@ -1,6 +1,6 @@
 project('qt5 build test', 'cxx')
 
-qt5dep = find_dep('qt5', modules : 'Widgets', required : true)
+qt5dep = find_dep('qt5', modules : 'Gui', required : true)
 
 q5exe = executable('qt5test',
 sources : ['main.cpp', 'mainWindow.cpp'],
