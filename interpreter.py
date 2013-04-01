@@ -680,13 +680,14 @@ class Interpreter():
     def func_find_dep(self, node, args, kwargs):
         self.validate_arguments(args, 1, [str])
         name = args[0]
-        if name in self.coredata.deps:
-            dep = self.coredata.deps[name]
+        identifier = dependencies.get_dep_identifier(name, kwargs)
+        if identifier in self.coredata.deps:
+            dep = self.coredata.deps[identifier]
         else:
             dep = dependencies.Dependency() # Returns always false for dep.found()
         if not dep.found():
             dep = dependencies.find_external_dependency(name, kwargs)
-        self.coredata.deps[name] = dep
+        self.coredata.deps[identifier] = dep
         return dep
 
     def func_executable(self, node, args, kwargs):

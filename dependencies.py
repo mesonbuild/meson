@@ -25,8 +25,8 @@ import os, stat, glob, subprocess, shutil
 from coredata import MesonException
 
 class DependencyException(MesonException):
-    def __init__(self, args, **kwargs):
-        MesonException.__init__(args, kwargs)
+    def __init__(self, *args, **kwargs):
+        MesonException.__init__(self, *args, **kwargs)
 
 class Dependency():
     def __init__(self):
@@ -321,6 +321,15 @@ class Qt5Dependency():
             if not i.found():
                 return False
         return True
+
+def get_dep_identifier(name, kwargs):
+    elements = [name]
+    modlist = kwargs.get('modules', [])
+    if isinstance(modlist, str):
+        modlist = [modlist]
+    for module in modlist:
+        elements.append(module)
+    return '/'.join(elements)
 
 # This has to be at the end so the classes it references
 # are defined.

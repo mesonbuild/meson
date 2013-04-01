@@ -1,11 +1,14 @@
 project('boosttest', 'cxx')
 
-# Use a Boost module that requires a shared library.
-# Eventually we would like to be able to detect Boost
-# multiple times with different library combinations.
+# We want to have multiple separate configurations of Boost
+# within one project. The need to be independent of each other.
+# Use one without a library dependency and one with it.
 
+nolinkdep = find_dep('boost', modules: 'utility', required : true)
 linkdep = find_dep('boost', modules : 'thread', required : true)
 
+nolinkexe = executable('nolinkedexe', 'nolinkexe.cc', deps : nolinkdep)
 linkexe = executable('linkedexe', 'linkexe.cc', deps : linkdep)
 
+add_test('Boost nolinktext', nolinkexe)
 add_test('Boost linktext', linkexe)

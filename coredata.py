@@ -72,4 +72,4 @@ forbidden_target_names = {'clean': None,
 
 class MesonException(Exception):
     def __init__(self, *args, **kwargs):
-        Exception.__init__(args, kwargs)
+        Exception.__init__(self, *args, **kwargs)
