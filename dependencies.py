@@ -45,29 +45,9 @@ class Dependency():
         """Source files that need to be added to the target.
         As an example, gtest-all.cc when using GTest."""
         return []
-    
+
     def get_name(self):
         return self.name
-
-class PackageDependency(Dependency): # Custom detector, not pkg-config.
-    def __init__(self, dep):
-        Dependency.__init__(self)
-        self.dep = dep
-
-    def get_link_flags(self):
-        return self.dep.get_link_flags()
-
-    def get_compile_flags(self):
-        return self.dep.get_compile_flags()
-
-    def found(self):
-        return self.dep.found()
-
-    def get_sources(self):
-        return self.dep.get_sources()
-
-    def get_name(self):
-        return self.dep.get_name()
 
 class PkgConfigDependency(Dependency):
     pkgconfig_found = False
@@ -163,7 +143,7 @@ def find_external_dependency(name, kwargs):
         dep = packages[name](kwargs)
         if required and not dep.found():
             raise DependencyException('Dependency "%s" not found' % name)
-        return PackageDependency(dep)
+        return dep
     return PkgConfigDependency(name, required)
 
 class BoostDependency(Dependency):
@@ -243,7 +223,7 @@ class BoostDependency(Dependency):
     def get_sources(self):
         return []
 
-class GTestDependency():
+class GTestDependency(Dependency):
     def __init__(self, kwargs):
         Dependency.__init__(self)
         self.name = 'gtest'
