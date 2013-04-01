@@ -126,6 +126,7 @@ class Backend():
         name = target.get_basename()
         if name in self.processed_targets:
             return
+        self.process_dep_gens(outfile, target)
         self.process_target_dependencies(target, outfile)
         print('Generating target', name)
         self.generate_custom_generator_rules(target, outfile)
@@ -649,6 +650,21 @@ class NinjaBackend(Backend):
             gcda_elem.add_item('COMMAND', [sys.executable, clean_script, '.', 'gcda'])
             gcda_elem.add_item('description', 'Deleting gcda files')
             gcda_elem.write(outfile)
+
+    def process_dep_gens(self, outfile, target):
+        for rule in self.dep_rules.values():
+            srcs = target.get_original_kwargs().get(rule.src_keyword, [])
+            if isinstance(srcs, str):
+                srcs = [srcs]
+            for src in srcs:
+                plainname = os.path.split(src)[1]
+                basename = plainname.split('.')[0]
+                outname = rule.name_templ.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname)
+                outfilename = os.path.join(self.get_target_private_dir(target), outname)
+                infilename = os.path.join(self.build_to_src, target.get_source_subdir(), src)
+                rule = rule.name
+                elem = NinjaBuildElement(outfilename, rule, infilename)
+                elem.write(outfile)
 
     def generate_ending(self, outfile):
         targetlist = [self.get_target_filename(t) for t in self.build.get_targets().values()]

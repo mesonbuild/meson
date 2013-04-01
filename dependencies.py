@@ -331,10 +331,10 @@ class Qt5Dependency(Dependency):
 
     def get_generate_rules(self):
         moc_rule = CustomRule([self.moc.get_command(), '@INFILE@', '-o', '@OUTFILE@'],
-                              'moc_%BASENAME%.cpp', 'moc_headers', 'moc_compile',
+                              'moc_@BASENAME@.cpp', 'moc_headers', 'moc_compile',
                               'Compiling @INFILE@ with the moc preprocessor')
         ui_rule = CustomRule([self.uic.get_command(), '@INFILE@', '-o', '@OUTFILE@'],
-                              'ui_%BASENAME%.h', 'ui_files', 'ui_compile',
+                              'ui_@BASENAME@.h', 'ui_files', 'ui_compile',
                               'Compiling @INFILE@ with the ui compiler')
         return [moc_rule, ui_rule]
 
