@@ -1,3 +1,4 @@
+#include <QObject>
 #include <QMainWindow>
 #include "ui_mainWindow.h"
 

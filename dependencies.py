@@ -28,6 +28,14 @@ class DependencyException(MesonException):
     def __init__(self, *args, **kwargs):
         MesonException.__init__(self, *args, **kwargs)
 
+class CustomRule:
+    def __init__(self, cmd_list, name_templ, src_keyword, name, description):
+        self.cmd_list = cmd_list
+        self.name_templ = name_templ
+        self.src_keyword = src_keyword
+        self.name = name
+        self.description = description
+
 class Dependency():
     def __init__(self):
         self.name = "null"
@@ -48,6 +56,11 @@ class Dependency():
 
     def get_name(self):
         return self.name
+
+    # Rules for commands to execute before compilation
+    # such as Qt's moc preprocessor.
+    def get_generate_rules(self):
+        return []
 
 class PkgConfigDependency(Dependency):
     pkgconfig_found = False
@@ -315,6 +328,13 @@ class Qt5Dependency(Dependency):
             if not i.found():
                 return False
         return True
+
+    def get_generate_rules(self):
+        moc_rule = CustomRule([self.moc.get_command(), '@INFILE@', '-o', '@OUTFILE@'],
+                              'moc_%BASENAME%.cpp','moc_headers', 'moc_compile',
+                              'Compiling @INFILE@ with the moc preprocessor')
+        return [moc_rule]
+
 
 def get_dep_identifier(name, kwargs):
     elements = [name]

@@ -418,12 +418,30 @@ class NinjaBackend(Backend):
             datafile.write(self.get_target_filename(t.get_exe()) + '\n')
         datafile.close()
 
+    def generate_dep_gen_rules(self, outfile):
+        outfile.write('# Rules for external dependency generators.\n\n')
+        processed = {}
+        for dep in self.environment.coredata.deps.values():
+            name = dep.get_name()
+            if name in processed:
+                continue
+            processed[name] = True
+            for rule in dep.get_generate_rules():
+                outfile.write('rule %s\n' % rule.name)
+                command = ' '.join([ninja_quote(x) for x in rule.cmd_list])
+                command = command.replace('@INFILE@', '$in').replace('@OUTFILE@', '$out')
+                outfile.write(' command = %s\n' % command)
+                desc = rule.description.replace('@INFILE@', '$in')
+                outfile.write(' description = %s\n' % desc)
+            outfile.write('\n')
+
     def generate_rules(self, outfile):
         outfile.write('# Rules for compiling.\n\n')
         self.generate_compile_rules(outfile)
         outfile.write('# Rules for linking.\n\n')
         self.generate_static_link_rules(outfile)
         self.generate_dynamic_link_rules(outfile)
+        self.generate_dep_gen_rules(outfile)
         outfile.write('# Other rules\n\n')
         outfile.write('rule CUSTOM_COMMAND\n')
         outfile.write(' command = $COMMAND\n')
