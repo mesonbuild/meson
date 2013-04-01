@@ -287,25 +287,40 @@ class Qt5Dependency():
         self.root = '/usr'
         self.modules = []
         for module in kwargs.get('modules', []):
-            self.modules.append(PkgConfigDependency(module))
+            self.modules.append(PkgConfigDependency('Qt5' + module))
+        if len(self.modules) == 0:
+            raise DependencyException('No Qt5 modules specified.')
+        self.moc = ExternalProgram('moc')
+        self.uic = ExternalProgram('uic')
 
     def get_version(self):
-        return '1.something_maybe'
+        return self.modules[0].get_version()
 
     def get_compile_flags(self):
-        return []
+        flags = []
+        for m in self.modules:
+            flags += m.get_compile_flags()
+        return flags
 
     def get_sources(self):
         return []
 
     def get_link_flags(self):
-        return ['-lgmock']
-    
-    def found(self):
-        fname = os.path.join(self.libdir, self.libname)
-        return os.path.exists(fname)
+        flags = []
+        for module in self.modules:
+            flags += module.get_link_flags()
 
-# This has to be at the end so all classes it references
+    def found(self):
+        if not self.moc.found():
+            return False
+        if not self.uic.found():
+            return False
+        for i in self.modules:
+            if not i.found():
+                return False
+        return True
+
+# This has to be at the end so the classes it references
 # are defined.
 packages = {'boost': BoostDependency,
             'gtest': GTestDependency,
