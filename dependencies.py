@@ -312,15 +312,15 @@ class Qt5Dependency(Dependency):
         if self.moc.found():
             mp = subprocess.Popen([self.moc.get_command(), '-v'],
                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            moc_ver = mp.communicate()[1].decode()
+            moc_ver = mp.communicate()[1].decode().strip()
             if 'Qt 5' not in moc_ver:
-                raise DependencyException('Moc preprocessor is not for Qt 5.')
+                raise DependencyException('Moc preprocessor is not for Qt 5. Output: %s' % moc_ver)
         if self.uic.found():
             up = subprocess.Popen([self.uic.get_command(), '-v'],
                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            uic_ver = up.communicate()[1].decode()
+            uic_ver = up.communicate()[1].decode().strip()
             if 'version 5.' not in uic_ver:
-                raise DependencyException('Uic compiler is not for Qt 5.')
+                raise DependencyException('Uic compiler is not for Qt 5. Output: %s' % uic_ver)
 
     def get_version(self):
         return self.modules[0].get_version()
