@@ -288,8 +288,11 @@ class Qt5Dependency():
     def __init__(self, kwargs):
         self.root = '/usr'
         self.modules = []
-        for module in kwargs.get('modules', []):
-            self.modules.append(PkgConfigDependency('Qt5' + module))
+        mods = kwargs.get('modules', [])
+        if isinstance(mods, str):
+            mods = [mods]
+        for module in mods:
+            self.modules.append(PkgConfigDependency('Qt5' + module, False))
         if len(self.modules) == 0:
             raise DependencyException('No Qt5 modules specified.')
         self.moc = ExternalProgram('moc')
@@ -311,6 +314,7 @@ class Qt5Dependency():
         flags = []
         for module in self.modules:
             flags += module.get_link_flags()
+        return flags
 
     def found(self):
         if not self.moc.found():
