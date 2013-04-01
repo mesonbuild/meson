@@ -4,8 +4,11 @@
 int main(int argc, char **argv) {
   QApplication app(argc, argv);
   MainWindow *win = new MainWindow();
-  win->setWindowTitle("Button demo app");
-  win->show();
+  win->setWindowTitle("Meson Qt5 build test");
 
-  return app.exec();
+  // Don't actually start the GUI so this
+  // can be run as a unit test.
+  //win->show();
+  //return app.exec();
+  return 0;
 }

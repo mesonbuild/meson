@@ -62,6 +62,9 @@ class Dependency():
     def get_generate_rules(self):
         return []
 
+    def get_exe_flags(self):
+        return []
+
 class PkgConfigDependency(Dependency):
     pkgconfig_found = False
 
@@ -355,6 +358,11 @@ class Qt5Dependency(Dependency):
                               'ui_@BASENAME@.h', 'ui_files', 'ui_compile',
                               'Compiling @INFILE@ with the ui compiler')
         return [moc_rule, ui_rule]
+
+    def get_exe_flags(self):
+        # Qt5 seems to require this always.
+        # Fix this to be more portable, especially to MSVC.
+        return ['-fPIE']
 
 
 def get_dep_identifier(name, kwargs):

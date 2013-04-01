@@ -183,6 +183,9 @@ class Backend():
             commands += compiler.get_pic_flags()
         for dep in target.get_external_deps():
             commands += dep.get_compile_flags()
+            if isinstance(target, interpreter.Executable):
+                commands += dep.get_exe_flags()
+
         return commands
 
     def build_target_link_arguments(self, deps):

@@ -84,6 +84,9 @@ class ExternalLibraryHolder(InterpreterObject):
     
     def get_link_flags(self):
         return self.el.get_link_flags()
+    
+    def get_exe_flags(self):
+        return self.el.get_exe_flags()
 
 class Generator(InterpreterObject):
 
