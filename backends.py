@@ -18,6 +18,7 @@ import os, sys, re, pickle
 import interpreter, nodes
 import environment
 from meson_install import InstallData
+from interpreter import InvalidArguments
 
 if environment.is_windows():
     quote_char = '"'
@@ -96,6 +97,7 @@ class Backend():
         self.environment = build.environment
         self.interpreter = interp
         self.processed_targets = {}
+        self.dep_rules = {}
         self.build_to_src = os.path.relpath(self.environment.get_source_dir(),
                                             self.environment.get_build_dir())
 
@@ -433,6 +435,9 @@ class NinjaBackend(Backend):
                 outfile.write(' command = %s\n' % command)
                 desc = rule.description.replace('@INFILE@', '$in')
                 outfile.write(' description = %s\n' % desc)
+                if rule.src_keyword in self.dep_rules:
+                    raise InvalidArguments('Multiple rules for keyword %s.' % rule.src_keyword)
+                self.dep_rules[rule.src_keyword] = rule
             outfile.write('\n')
 
     def generate_rules(self, outfile):
