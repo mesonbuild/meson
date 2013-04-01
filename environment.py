@@ -16,7 +16,6 @@
 
 import subprocess, os.path, platform
 import coredata
-import dependencies
 from glob import glob
 
 build_filename = 'meson.build'

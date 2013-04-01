@@ -21,8 +21,7 @@
 # Currently one file, should probably be split into a
 # package before this gets too big.
 
-import os, stat, glob, subprocess
-from interpreter import InvalidArguments
+import os, stat, glob, subprocess, shutil
 from coredata import MesonException
 
 class DependencyException(MesonException):
@@ -125,7 +124,10 @@ class PkgConfigDependency(Dependency):
 class ExternalProgram():
     def __init__(self, name, fullpath=None):
         self.name = name
-        self.fullpath = fullpath
+        if fullpath is not None:
+            self.fullpath = fullpath
+        else:
+            self.fullpath = shutil.which(name)
 
     def found(self):
         return self.fullpath is not None
@@ -182,19 +184,19 @@ class BoostDependency():
     def get_requested(self, kwargs):
         modules = 'modules'
         if not modules in kwargs:
-            raise InvalidArguments('Boost dependency must specify "%s" keyword.' % modules)
+            raise DependencyException('Boost dependency must specify "%s" keyword.' % modules)
         candidates = kwargs[modules]
         if isinstance(candidates, str):
             return [candidates]
         for c in candidates:
             if not isinstance(c, str):
-                raise InvalidArguments('Boost module argument is not a string.')
+                raise DependencyException('Boost module argument is not a string.')
         return candidates
 
     def validate_requested(self):
         for m in self.requested_modules:
             if m not in self.src_modules:
-                raise InvalidArguments('Requested Boost module "%s" not found.' % m)
+                raise DependencyException('Requested Boost module "%s" not found.' % m)
 
     def found(self):
         return self.version is not None

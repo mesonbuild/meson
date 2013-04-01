@@ -20,7 +20,6 @@ import environment
 import coredata
 import dependencies
 import os, sys, platform
-import shutil
 
 class InterpreterException(Exception):
     pass
@@ -654,8 +653,7 @@ class Interpreter():
         if exename in self.coredata.ext_progs and\
            self.coredata.ext_progs[exename].found():
             return ExternalProgramHolder(self.coredata.ext_progs[exename])
-        result = shutil.which(exename) # Does .exe appending on Windows.
-        extprog = dependencies.ExternalProgram(exename, result)
+        extprog = dependencies.ExternalProgram(exename)
         progobj = ExternalProgramHolder(extprog)
         self.coredata.ext_progs[exename] = extprog
         if required and not progobj.found():
