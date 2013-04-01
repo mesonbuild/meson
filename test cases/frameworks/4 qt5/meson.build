@@ -6,7 +6,6 @@ q5exe = executable('qt5test',
 sources : ['main.cpp', 'mainWindow.cpp'],
 moc_headers : ['mainWindow.h'],
 ui_files : 'mainWindow.ui',
-deps : qt5dep\
-)
+deps : qt5dep)
 
 add_test('qt5test', q5exe)

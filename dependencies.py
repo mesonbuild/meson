@@ -30,7 +30,7 @@ class DependencyException(MesonException):
 
 class Dependency():
     def __init__(self):
-        pass
+        self.name = "null"
 
     def get_compile_flags(self):
         return []
@@ -45,6 +45,9 @@ class Dependency():
         """Source files that need to be added to the target.
         As an example, gtest-all.cc when using GTest."""
         return []
+    
+    def get_name(self):
+        return self.name
 
 class PackageDependency(Dependency): # Custom detector, not pkg-config.
     def __init__(self, dep):
@@ -63,13 +66,15 @@ class PackageDependency(Dependency): # Custom detector, not pkg-config.
     def get_sources(self):
         return self.dep.get_sources()
 
-# This should be an InterpreterObject. Fix it.
+    def get_name(self):
+        return self.dep.get_name()
 
 class PkgConfigDependency(Dependency):
     pkgconfig_found = False
-    
+
     def __init__(self, name, required):
         Dependency.__init__(self)
+        self.name = name
         if not PkgConfigDependency.pkgconfig_found:
             self.check_pkgconfig()
 
@@ -147,9 +152,6 @@ class ExternalLibrary(Dependency):
     def found(self):
         return self.fullpath is not None
 
-    def get_name(self):
-        return self.name
-    
     def get_link_flags(self):
         if self.found():
             return [self.fullpath]
@@ -164,8 +166,10 @@ def find_external_dependency(name, kwargs):
         return PackageDependency(dep)
     return PkgConfigDependency(name, required)
 
-class BoostDependency():
+class BoostDependency(Dependency):
     def __init__(self, kwargs):
+        Dependency.__init__(self)
+        self.name = 'boost'
         self.incdir = '/usr/include/boost'
         self.libdir = '/usr/lib'
         self.src_modules = {}
@@ -177,7 +181,7 @@ class BoostDependency():
             self.detect_src_modules()
             self.detect_lib_modules()
             self.validate_requested()
-    
+
     def get_compile_flags(self):
         return []
 
@@ -241,6 +245,8 @@ class BoostDependency():
 
 class GTestDependency():
     def __init__(self, kwargs):
+        Dependency.__init__(self)
+        self.name = 'gtest'
         self.include_dir = '/usr/include'
         self.src_include_dir = '/usr/src/gtest'
         self.src_dir = '/usr/src/gtest/src'
@@ -263,8 +269,10 @@ class GTestDependency():
     def get_sources(self):
         return [self.all_src, self.main_src]
 
-class GMockDependency():
+class GMockDependency(Dependency):
     def __init__(self, kwargs):
+        Dependency.__init__(self)
+        self.name = 'gmock'
         self.libdir = '/usr/lib'
         self.libname = 'libgmock.so'
 
@@ -284,8 +292,10 @@ class GMockDependency():
         fname = os.path.join(self.libdir, self.libname)
         return os.path.exists(fname)
 
-class Qt5Dependency():
+class Qt5Dependency(Dependency):
     def __init__(self, kwargs):
+        Dependency.__init__(self)
+        self.name = 'qt5'
         self.root = '/usr'
         self.modules = []
         mods = kwargs.get('modules', [])

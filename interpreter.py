@@ -19,7 +19,7 @@ import nodes
 import environment
 import coredata
 import dependencies
-import os, sys, platform
+import os, sys, platform, copy
 
 class InterpreterException(Exception):
     pass
@@ -307,7 +307,12 @@ class BuildTarget(InterpreterObject):
             else:
                 raise InvalidArguments('Bad source in target %s.' % self.name)
 
+    def get_original_kwargs(self):
+        return self.kwargs
+
     def process_kwargs(self, kwargs):
+        self.kwargs = copy.copy(kwargs)
+        kwargs.get('modules', [])
         self.need_install = kwargs.get('install', self.need_install)
         llist = kwargs.get('link_with', [])
         if not isinstance(llist, list):
@@ -391,7 +396,6 @@ class BuildTarget(InterpreterObject):
         [self.add_external_dep(dep) for dep in args]
 
     def link(self, target):
-        target
         if not isinstance(target, StaticLibrary) and \
         not isinstance(target, SharedLibrary):
             raise InvalidArguments('Link target is not library.')
