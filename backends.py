@@ -142,7 +142,7 @@ class Backend():
                 else:
                     header_deps.append(src)
         for src in gen_src_deps:
-                obj_list.append(self.generate_single_compile(target, outfile, src, True, []))
+                obj_list.append(self.generate_single_compile(target, outfile, src, True))
         for src in target.get_sources():
             if not self.environment.is_header(src):
                 obj_list.append(self.generate_single_compile(target, outfile, src, False, header_deps))
@@ -540,14 +540,17 @@ class NinjaBackend(Backend):
         commands = self.generate_basic_compiler_flags(target, compiler)
         commands.append(compiler.get_include_arg(self.get_target_private_dir(target)))
         if is_generated:
-            rel_src = os.path.join(self.get_target_private_dir(target), src)
+            if '/' in src:
+                rel_src = src
+            else:
+                rel_src = os.path.join(self.get_target_private_dir(target), src)
         else:
             rel_src = os.path.join(self.build_to_src, target.get_source_subdir(), src)
         if os.path.isabs(src):
             src_filename = os.path.basename(src)
         else:
             src_filename = src
-        rel_obj = os.path.join(self.get_target_private_dir(target), src_filename)
+        rel_obj = os.path.join(self.get_target_private_dir(target), os.path.basename(src_filename))
         rel_obj += '.' + self.environment.get_object_suffix()
         dep_file = rel_obj + '.' + compiler.get_depfile_suffix()
         pchlist = target.get_pch()
@@ -573,8 +576,10 @@ class NinjaBackend(Backend):
         compiler_name = '%s_COMPILER' % compiler.get_language()
 
         element = NinjaBuildElement(rel_obj, compiler_name, rel_src)
-        if len(header_deps) > 0:
-            element.add_dep([os.path.join(self.get_target_private_dir(target), d) for d in header_deps])
+        for d in header_deps:
+            if not '/' in d:
+                d = os.path.join(self.get_target_private_dir(target), d)
+            element.add_dep(d)
         element.add_orderdep(pch_dep)
         element.add_item('DEPFILE', dep_file)
         element.add_item('FLAGS', commands)

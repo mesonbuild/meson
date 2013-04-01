@@ -298,8 +298,26 @@ class Qt5Dependency(Dependency):
             self.modules.append(PkgConfigDependency('Qt5' + module, False))
         if len(self.modules) == 0:
             raise DependencyException('No Qt5 modules specified.')
+        self.find_exes()
+        
+    def find_exes(self):
         self.moc = ExternalProgram('moc')
         self.uic = ExternalProgram('uic')
+        # Moc and uic write their version strings to stderr.
+        # Moc returns a non-zero result when doing so.
+        # What kind of an idiot thought that was a good idea?
+        if self.moc.found():
+            mp = subprocess.Popen([self.moc.get_command(), '-v'],
+                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            moc_ver = mp.communicate()[1].decode()
+            if 'Qt 5' not in moc_ver:
+                raise DependencyException('Moc preprocessor is not for Qt 5.')
+        if self.uic.found():
+            up = subprocess.Popen([self.uic.get_command(), '-v'],
+                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            uic_ver = up.communicate()[1].decode()
+            if 'version 5.' not in uic_ver:
+                raise DependencyException('Uic compiler is not for Qt 5.')
 
     def get_version(self):
         return self.modules[0].get_version()
@@ -354,4 +372,5 @@ packages = {'boost': BoostDependency,
             'gtest': GTestDependency,
             'gmock': GMockDependency,
             'qt5': Qt5Dependency,
+            'Qt5': Qt5Dependency, # Qt people sure do love their upper case.
             }

@@ -8,7 +8,7 @@ class MainWindow : public QMainWindow, private Ui_MainWindow {
     Q_OBJECT
 
 public:
-    MainWindow(QWidget *parent=nullptr);
+    MainWindow(QWidget *parent=0);
     ~MainWindow();
 
 private:
