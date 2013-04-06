@@ -21,7 +21,7 @@ import coredata
 import dependencies
 import os, sys, platform, copy
 
-class InterpreterException(Exception):
+class InterpreterException(coredata.MesonException):
     pass
 
 class InvalidCode(InterpreterException):
