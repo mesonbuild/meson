@@ -127,6 +127,7 @@ class CXXCompiler(CCompiler):
 class ObjCCompiler(CCompiler):
     def __init__(self, exelist):
         CCompiler.__init__(self, exelist)
+        self.language = 'objc'
 
     def can_compile(self, filename):
         suffix = filename.split('.')[-1]
@@ -137,6 +138,7 @@ class ObjCCompiler(CCompiler):
 class ObjCXXCompiler(CXXCompiler):
     def __init__(self, exelist):
         CXXCompiler.__init__(self, exelist)
+        self.language = 'objcxx'
 
     def can_compile(self, filename):
         suffix = filename.split('.')[-1]
