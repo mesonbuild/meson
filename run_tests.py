@@ -70,6 +70,10 @@ def run_tests():
         frameworktests = gather_tests('test cases/frameworks')
     else:
         frameworktests = []
+    if not environment.is_windows():
+        objctests = gather_tests('test cases/objc')
+    else:
+        objctests = []
     try:
         os.mkdir(test_build_dir)
     except OSError:
@@ -84,6 +88,8 @@ def run_tests():
     [run_test(t) for t in platformtests]
     print('\nRunning framework tests.\n')
     [run_test(t) for t in frameworktests]
+    print('\nRunning extra language tests.\n')
+    [run_test(t) for t in objctests]
 
 def check_file(fname):
     linenum = 0
