@@ -134,20 +134,30 @@ class ObjCCompiler(CCompiler):
             return True
         return False
 
+class ObjCXXCompiler(CXXCompiler):
+    def __init__(self, exelist):
+        CXXCompiler.__init__(self, exelist)
+
+    def can_compile(self, filename):
+        suffix = filename.split('.')[-1]
+        if suffix == 'mm' or suffix == 'h':
+            return True
+        return False
+
     def sanity_check(self, work_dir):
-        source_name = os.path.join(work_dir, 'sanitycheckobjc.m')
-        binary_name = os.path.join(work_dir, 'sanitycheckobjc')
+        source_name = os.path.join(work_dir, 'sanitycheckobjcxx.mm')
+        binary_name = os.path.join(work_dir, 'sanitycheckobjcxx')
         ofile = open(source_name, 'w')
-        ofile.write('#import<stdio.h>\nint main(int argc, char **argv) { return 0; }\n')
+        ofile.write('#import<stdio.h>\nclass MyClass;int main(int argc, char **argv) { return 0; }\n')
         ofile.close()
         pc = subprocess.Popen(self.exelist + [source_name, '-o', binary_name])
         pc.wait()
         if pc.returncode != 0:
-            raise EnvironmentException('ObjC compiler %s can not compile programs.' % self.name_string())
+            raise EnvironmentException('ObjC++ compiler %s can not compile programs.' % self.name_string())
         pe = subprocess.Popen(binary_name)
         pe.wait()
         if pe.returncode != 0:
-            raise EnvironmentException('Executables created by ObjC compiler %s are not runnable.' % self.name_string())
+            raise EnvironmentException('Executables created by ObjC++ compiler %s are not runnable.' % self.name_string())
 
 class GnuCCompiler(CCompiler):
     std_warn_flags = ['-Wall', '-Winvalid-pch']
@@ -174,6 +184,19 @@ class GnuObjCCompiler(ObjCCompiler):
 
     def get_std_opt_flags(self):
         return GnuObjCCompiler.std_opt_flags
+
+    def get_pch_suffix(self):
+        return 'gch'
+
+class GnuObjCXXCompiler(ObjCXXCompiler):
+    std_warn_flags = ['-Wall', '-Winvalid-pch']
+    std_opt_flags = ['-O2']
+
+    def get_std_warn_flags(self):
+        return GnuObjCXXCompiler.std_warn_flags
+
+    def get_std_opt_flags(self):
+        return GnuObjCXXCompiler.std_opt_flags
 
     def get_pch_suffix(self):
         return 'gch'
@@ -303,6 +326,7 @@ class Environment():
         self.default_c = ['cc']
         self.default_cxx = ['c++']
         self.default_objc = ['cc']
+        self.default_objcxx = ['c++']
         self.default_static_linker = ['ar']
 
         if is_windows():
@@ -401,6 +425,19 @@ class Environment():
             return GnuObjCCompiler(exelist)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
 
+    def detect_objcxx_compiler(self):
+        exelist = self.get_objcxx_compiler_exelist()
+        try:
+            p = subprocess.Popen(exelist + ['--version'], stdout=subprocess.PIPE)
+        except OSError:
+            raise EnvironmentException('Could not execute ObjC++ compiler "%s"' % ' '.join(exelist))
+        out = p.communicate()[0]
+        out = out.decode()
+        if (out.startswith('c++ ') or out.startswith('g++')) and \
+            'Free Software Foundation' in out:
+            return GnuObjCXXCompiler(exelist)
+        raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
+
     def detect_static_linker(self):
         exelist = self.get_static_linker_exelist()
         try:
@@ -440,6 +477,13 @@ class Environment():
         if evar in os.environ:
             return os.environ[evar].split()
         return ccachelist + self.default_objc
+
+    def get_objcxx_compiler_exelist(self):
+        ccachelist = self.detect_ccache()
+        evar = 'OBJCXX'
+        if evar in os.environ:
+            return os.environ[evar].split()
+        return ccachelist + self.default_objcxx
 
     def get_static_linker_exelist(self):
         evar = 'AR'
