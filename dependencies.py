@@ -364,6 +364,55 @@ class Qt5Dependency(Dependency):
         # Fix this to be more portable, especially to MSVC.
         return ['-fPIE']
 
+class GnuStepDependency(Dependency):
+    def __init__(self, kwargs):
+        Dependency.__init__(self)
+        self.modules = kwargs.get('modules', [])
+        self.detect()
+        
+        
+    def detect(self):
+        confprog = 'gnustep-config'
+        gp = subprocess.Popen([confprog, '--help'],
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        gp.communicate()
+        if gp.returncode != 0:
+            self.flags = None
+        if 'gui' in self.modules:
+            arg = '--gui-libs'
+        else:
+            arg = '--base-libs'
+        fp = subprocess.Popen([confprog, '--objc-flags'],
+                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        flagtxt = fp.communicate()[0].decode()
+        flags = flagtxt.split()
+        self.flags = self.filter_flags(flags)
+        fp = subprocess.Popen([confprog, arg],
+                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        libtxt = fp.communicate()[0].decode()
+        self.libs = libtxt.split()
+
+    def filter_flags(self, flags):
+        """gnustep-config returns a bunch of garbage flags such
+        as -O2 and so on. Drop everything that is not needed."""
+        result = []
+        for f in flags:
+            if f.startswith('-D') or f.startswith('-f') or \
+            f.startswith('-I') or f == '-pthread' or\
+            (f.startswith('-W') and not f == '-Wall'):
+                result.append(f)
+        return result
+
+    def found(self):
+        return self.flags is not None
+    
+    def get_compile_flags(self):
+        if self.flags is None:
+            return []
+        return self.flags
+    
+    def get_link_flags(self):
+        return self.libs
 
 def get_dep_identifier(name, kwargs):
     elements = [name]
@@ -381,4 +430,5 @@ packages = {'boost': BoostDependency,
             'gmock': GMockDependency,
             'qt5': Qt5Dependency,
             'Qt5': Qt5Dependency, # Qt people sure do love their upper case.
+            'gnustep': GnuStepDependency,
             }
