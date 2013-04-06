@@ -645,6 +645,8 @@ class Interpreter():
                     comp = self.environment.detect_c_compiler()
                 elif lang.lower() == 'cxx':
                     comp = self.environment.detect_cxx_compiler()
+                elif lang.lower() == 'objc':
+                    comp = self.environment.detect_objc_compiler()
                 else:
                     raise InvalidCode('Tried to use unknown language "%s".' % lang)
                 comp.sanity_check(self.environment.get_scratch_dir())
