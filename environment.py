@@ -423,6 +423,8 @@ class Environment():
         if (out.startswith('cc ') or out.startswith('gcc')) and \
             'Free Software Foundation' in out:
             return GnuObjCCompiler(exelist)
+        if 'apple' in out and 'Free Software Foundation' in out:
+            return GnuObjCCompiler(exelist)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
 
     def detect_objcxx_compiler(self):
@@ -435,6 +437,8 @@ class Environment():
         out = out.decode()
         if (out.startswith('c++ ') or out.startswith('g++')) and \
             'Free Software Foundation' in out:
+            return GnuObjCXXCompiler(exelist)
+        if 'apple' in out and 'Free Software Foundation' in out:
             return GnuObjCXXCompiler(exelist)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
 
