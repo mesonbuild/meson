@@ -23,6 +23,7 @@
 
 import os, stat, glob, subprocess, shutil
 from coredata import MesonException
+import environment
 
 class DependencyException(MesonException):
     def __init__(self, *args, **kwargs):
@@ -414,6 +415,26 @@ class GnuStepDependency(Dependency):
     def get_link_flags(self):
         return self.libs
 
+class AppleFrameworks(Dependency):
+    def __init__(self, kwargs):
+        Dependency.__init__(self)
+        modules = kwargs.get('modules', [])
+        if isinstance(modules, str):
+            modules = [modules]
+        if len(modules) == 0:
+            raise DependencyException("AppleFrameworks dependency requires at least one module.")
+        self.frameworks = modules
+    
+    def get_link_flags(self):
+        flags = []
+        for f in self.frameworks:
+            flags.append('-framework')
+            flags.append(f)
+        return flags
+
+    def found(self):
+        return environment.is_osx()
+
 def get_dep_identifier(name, kwargs):
     elements = [name]
     modlist = kwargs.get('modules', [])
@@ -431,4 +452,5 @@ packages = {'boost': BoostDependency,
             'qt5': Qt5Dependency,
             'Qt5': Qt5Dependency, # Qt people sure do love their upper case.
             'gnustep': GnuStepDependency,
+            'appleframeworks': AppleFrameworks,
             }

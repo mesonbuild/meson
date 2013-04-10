@@ -921,15 +921,20 @@ class Interpreter():
             print(node.get_clause())
             print(result)
             raise InvalidCode('Line %d: If clause does not evaluate to true or false.' % node.lineno())
-        
+    
+    def is_elementary_type(self, v):
+        if isinstance(v, int) or isinstance(v, str) or isinstance(v, bool):
+            return True
+        return False
+
     def evaluate_comparison(self, node):
         v1 = self.evaluate_statement(node.get_first())
         v2 = self.evaluate_statement(node.get_second())
-        if isinstance(v1, int):
+        if self.is_elementary_type(v1):
             val1 = v1
         else:
             val1 = v1.get_value()
-        if(isinstance(v2, int)):
+        if self.is_elementary_type(v2):
             val2 = v2
         else:
             val2 = v2.get_value()
