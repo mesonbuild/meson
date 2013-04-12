@@ -438,6 +438,8 @@ class NinjaBackend(Backend):
                 outfile.write('rule %s\n' % rule.name)
                 command = ' '.join([ninja_quote(x) for x in rule.cmd_list])
                 command = command.replace('@INFILE@', '$in').replace('@OUTFILE@', '$out')
+                command = command.replace('@SOURCE_ROOT@', self.environment.get_source_dir())
+                command = command.replace('@BUILD_ROOT@', self.environment.get_build_dir())
                 outfile.write(' command = %s\n' % command)
                 desc = rule.description.replace('@INFILE@', '$in')
                 outfile.write(' description = %s\n' % desc)
