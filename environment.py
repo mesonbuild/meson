@@ -45,12 +45,18 @@ class CCompiler():
 
     def get_exelist(self):
         return self.exelist
+    
+    def get_linker_exelist(self):
+        return self.exelist
 
     def get_compile_only_flags(self):
         return ['-c']
 
-    def get_output_flags(self):
-        return ['-o']
+    def get_output_flags(self, target):
+        return ['-o', target]
+    
+    def get_linker_output_flags(self, outputname):
+        return ['-o', outputname]
 
     def get_debug_flags(self):
         return ['-g']
@@ -183,6 +189,18 @@ class VisualStudioCCompiler(CCompiler):
     def get_compile_only_flags(self):
         return ['/c']
 
+    def get_output_flags(self, target):
+        return ['/Fo' + target]
+
+    def get_dependency_gen_flags(self, outtarget, outfile):
+        return []
+
+    def get_linker_exelist(self):
+        return ['link'] # FIXME, should have same path as compiler.
+
+    def get_linker_output_flags(self, outputname):
+        return ['/OUT:' + outputname]
+    
     def sanity_check(self, work_dir):
         source_name = os.path.join(work_dir, 'sanitycheckc.c')
         binary_name = os.path.join(work_dir, 'sanitycheckc')

@@ -484,10 +484,10 @@ class NinjaBackend(Backend):
         for compiler in self.build.compilers:
             langname = compiler.get_language()
             rule = 'rule %s_LINKER\n' % langname
-            command = ' command = %s %s $FLAGS  %s $out $in $LINK_FLAGS $aliasing\n' % \
+            command = ' command = %s %s $FLAGS  %s $in $LINK_FLAGS $aliasing\n' % \
             (execute_wrapper,
-             ' '.join(compiler.get_exelist()),\
-             ' '.join(compiler.get_output_flags()))
+             ' '.join(compiler.get_linker_exelist()),\
+             ' '.join(compiler.get_linker_output_flags('$out')))
             description = ' description = Linking target $out'
             outfile.write(rule)
             outfile.write(command)
@@ -501,10 +501,10 @@ class NinjaBackend(Backend):
             langname = compiler.get_language()
             rule = 'rule %s_COMPILER\n' % langname
             depflags = compiler.get_dependency_gen_flags('$out', '$DEPFILE')
-            command = " command = %s $FLAGS %s %s $out %s $in\n" % \
+            command = " command = %s $FLAGS %s %s %s $in\n" % \
             (' '.join(compiler.get_exelist()),\
              ' '.join([qstr % d for d in depflags]),\
-             ' '.join(compiler.get_output_flags()),\
+             ' '.join(compiler.get_output_flags('$out')),\
              ' '.join(compiler.get_compile_only_flags()))
             description = ' description = Compiling %s object $out\n' % langname
             dep = ' depfile = $DEPFILE\n'
