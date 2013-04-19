@@ -183,6 +183,23 @@ class VisualStudioCCompiler(CCompiler):
     def get_compile_only_flags(self):
         return ['/c']
 
+    def sanity_check(self, work_dir):
+        source_name = os.path.join(work_dir, 'sanitycheckc.c')
+        binary_name = os.path.join(work_dir, 'sanitycheckc')
+        ofile = open(source_name, 'w')
+        ofile.write('int main(int argc, char **argv) { return 0; }\n')
+        ofile.close()
+        pc = subprocess.Popen(self.exelist + [source_name, '/Fe' + binary_name],
+                              stdout=subprocess.DEVNULL,
+                              stderr=subprocess.DEVNULL)
+        pc.wait()
+        if pc.returncode != 0:
+            raise EnvironmentException('Compiler %s can not compile programs.' % self.name_string())
+        pe = subprocess.Popen(binary_name)
+        pe.wait()
+        if pe.returncode != 0:
+            raise EnvironmentException('Executables created by C++ compiler %s are not runnable.' % self.name_string())
+
 class GnuCCompiler(CCompiler):
     std_warn_flags = ['-Wall', '-Winvalid-pch']
     std_opt_flags = ['-O2']
@@ -408,7 +425,8 @@ class Environment():
                     arg = '/?'
                 else:
                     arg = '--version'
-                p = subprocess.Popen([compiler] + [arg], stdout=subprocess.PIPE)
+                p = subprocess.Popen([compiler] + [arg], stdout=subprocess.PIPE,
+                                     stderr=subprocess.DEVNULL)
             except OSError:
                 continue
             out = p.communicate()[0]
