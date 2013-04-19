@@ -103,6 +103,8 @@ class CCompiler():
         if pe.returncode != 0:
             raise EnvironmentException('Executables created by C compiler %s are not runnable.' % self.name_string())
 
+cxx_suffixes = ['cc', 'cpp', 'cxx', 'hh', 'hpp', 'hxx']
+
 class CXXCompiler(CCompiler):
     def __init__(self, exelist):
         CCompiler.__init__(self, exelist)
@@ -110,8 +112,7 @@ class CXXCompiler(CCompiler):
 
     def can_compile(self, filename):
         suffix = filename.split('.')[-1]
-        if suffix == 'cc' or suffix == 'cpp' or suffix == 'cxx' or \
-            suffix == 'hh' or suffix == 'hpp' or suffix == 'hxx':
+        if suffix in cxx_suffixes:
             return True
         return False
 
@@ -168,7 +169,7 @@ class ObjCXXCompiler(CXXCompiler):
             raise EnvironmentException('Executables created by ObjC++ compiler %s are not runnable.' % self.name_string())
 
 class VisualStudioCCompiler(CCompiler):
-    std_warn_flags = ['/Wall']
+    std_warn_flags = ['/W3']
     std_opt_flags= ['/O2']
     
     def __init__(self, exelist):
@@ -206,6 +207,33 @@ class VisualStudioCCompiler(CCompiler):
         binary_name = os.path.join(work_dir, 'sanitycheckc')
         ofile = open(source_name, 'w')
         ofile.write('int main(int argc, char **argv) { return 0; }\n')
+        ofile.close()
+        pc = subprocess.Popen(self.exelist + [source_name, '/Fe' + binary_name],
+                              stdout=subprocess.DEVNULL,
+                              stderr=subprocess.DEVNULL)
+        pc.wait()
+        if pc.returncode != 0:
+            raise EnvironmentException('Compiler %s can not compile programs.' % self.name_string())
+        pe = subprocess.Popen(binary_name)
+        pe.wait()
+        if pe.returncode != 0:
+            raise EnvironmentException('Executables created by C++ compiler %s are not runnable.' % self.name_string())
+
+class VisualStudioCXXCompiler(VisualStudioCCompiler):
+    def __init__(self, exelist):
+        VisualStudioCCompiler.__init__(self, exelist)
+
+    def can_compile(self, filename):
+        suffix = filename.split('.')[-1]
+        if suffix in cxx_suffixes:
+            return True
+        return False
+
+    def sanity_check(self, work_dir):
+        source_name = os.path.join(work_dir, 'sanitycheckcxx.cpp')
+        binary_name = os.path.join(work_dir, 'sanitycheckcxx')
+        ofile = open(source_name, 'w')
+        ofile.write('class BreakPlainC;int main(int argc, char **argv) { return 0; }\n')
         ofile.close()
         pc = subprocess.Popen(self.exelist + [source_name, '/Fe' + binary_name],
                               stdout=subprocess.DEVNULL,
@@ -468,21 +496,37 @@ class Environment():
         return os.path.join(path, 'depfixer.py')
 
     def detect_cxx_compiler(self):
-        exelist = self.get_cxx_compiler_exelist()
-        try:
-            p = subprocess.Popen(exelist + ['--version'], stdout=subprocess.PIPE)
-        except OSError:
-            raise EnvironmentException('Could not execute C++ compiler "%s"' % ' '.join(exelist))
-        out = p.communicate()[0]
-        out = out.decode()
-        if (out.startswith('c++ ') or out.startswith('g++')) and \
-            'Free Software Foundation' in out:
-            return GnuCXXCompiler(exelist)
-        if 'apple' in out and 'Free Software Foundation' in out:
-            return GnuCXXCompiler(exelist)
-        if out.startswith('clang'):
-            return ClangCXXCompiler(exelist)
-        raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
+        evar = 'CC'
+        if evar in os.environ:
+            compilers = [os.environ[evar].split()]
+            ccache = []
+        else:
+            compilers = self.default_cxx
+            ccache = self.detect_ccache()
+        for compiler in compilers:
+            basename = os.path.basename(compiler).lower() 
+            if basename == 'cl' or basename == 'cl.exe':
+                arg = '/?'
+            else:
+                arg = '--version'
+            try:
+                p = subprocess.Popen([compiler, arg],
+                                     stdout=subprocess.PIPE,
+                                     stderr=subprocess.DEVNULL)
+            except OSError:
+                continue
+            out = p.communicate()[0]
+            out = out.decode()
+            if (out.startswith('c++ ') or out.startswith('g++')) and \
+                'Free Software Foundation' in out:
+                return GnuCXXCompiler(ccache + [compiler])
+            if 'apple' in out and 'Free Software Foundation' in out:
+                return GnuCXXCompiler(ccache + [compiler])
+            if out.startswith('clang'):
+                return ClangCXXCompiler(ccache + [compiler])
+            if 'Microsoft' in out:
+                return VisualStudioCXXCompiler([compiler])
+        raise EnvironmentException('Unknown compiler(s) "' + ', '.join(compilers) + '"')
 
     def detect_objc_compiler(self):
         exelist = self.get_objc_compiler_exelist()
@@ -539,13 +583,6 @@ class Environment():
         else:
             cmdlist = []
         return cmdlist
-
-    def get_cxx_compiler_exelist(self):
-        ccachelist = self.detect_ccache()
-        evar = 'CXX'
-        if evar in os.environ:
-            return os.environ[evar].split()
-        return ccachelist + self.default_cxx
 
     def get_objc_compiler_exelist(self):
         ccachelist = self.detect_ccache()
