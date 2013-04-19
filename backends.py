@@ -19,6 +19,7 @@ import interpreter, nodes
 import environment
 from meson_install import InstallData
 from interpreter import InvalidArguments
+import shutil
 
 if environment.is_windows():
     quote_char = '"'
@@ -641,10 +642,13 @@ class NinjaBackend(Backend):
         basename = target.get_filename()
         aliases = target.get_aliaslist()
         aliascmd = []
-        for alias in aliases:
-            aliasfile = os.path.join(outdir, alias)
-            cmd = ["&&", 'ln', '-s', '-f', basename, aliasfile]
-            aliascmd += cmd
+        if shutil.which('ln'):
+            for alias in aliases:
+                aliasfile = os.path.join(outdir, alias)
+                cmd = ["&&", 'ln', '-s', '-f', basename, aliasfile]
+                aliascmd += cmd
+        else:
+            print("Library versioning disabled because host does not support symlinks.")
         elem.add_item('aliasing', aliascmd)
         elem.write(outfile)
 
