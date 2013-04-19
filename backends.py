@@ -473,8 +473,9 @@ class NinjaBackend(Backend):
     def generate_static_link_rules(self, outfile):
         static_linker = self.build.static_linker
         rule = 'rule STATIC_LINKER\n'
-        command = ' command = %s  $LINK_FLAGS $out $in\n' % \
-        ' '.join(static_linker.get_exelist())
+        command = ' command = %s  $LINK_FLAGS %s $in\n' % \
+        (' '.join(static_linker.get_exelist()),
+        ' '.join(static_linker.get_output_flags('$out')))
         description = ' description = Static linking library $out\n\n'
         outfile.write(rule)
         outfile.write(command)

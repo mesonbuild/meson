@@ -29,8 +29,13 @@ class Build:
         self.headers = []
         self.man = []
         self.data = []
-        self.static_linker = self.environment.detect_static_linker()
+        self.static_linker = None
         self.configure_files = []
+
+    def add_compiler(self, compiler):
+        if len(self.compilers) == 0:
+            self.static_linker = self.environment.detect_static_linker(compiler)
+        self.compilers.append(compiler)
 
     def get_project(self):
         return self.project

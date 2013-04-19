@@ -653,7 +653,7 @@ class Interpreter():
                     raise InvalidCode('Tried to use unknown language "%s".' % lang)
                 comp.sanity_check(self.environment.get_scratch_dir())
                 self.coredata.compilers[lang] = comp
-            self.build.compilers.append(comp)
+            self.build.add_compiler(comp)
 
     def func_find_program(self, node, args, kwargs):
         self.validate_arguments(args, 1, [str])

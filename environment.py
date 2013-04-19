@@ -336,6 +336,22 @@ class ClangCXXCompiler(CXXCompiler):
     def get_pch_suffix(self):
         return 'pch'
 
+class VisualStudioLinker():
+    def __init__(self, exelist):
+        self.exelist = exelist
+        
+    def get_exelist(self):
+        return self.exelist
+
+    def get_std_link_flags(self):
+        return []
+
+    def get_output_flags(self, target):
+        return ['/OUT:' + target]
+
+    def get_coverage_link_flags(self):
+        return []
+
 class ArLinker():
     std_flags = ['csr']
 
@@ -348,8 +364,8 @@ class ArLinker():
     def get_std_link_flags(self):
         return self.std_flags
 
-    def get_output_flags(self):
-        return []
+    def get_output_flags(self, target):
+        return [target]
 
     def get_coverage_link_flags(self):
         return []
@@ -419,7 +435,8 @@ class Environment():
             self.default_cxx = ['c++']
         self.default_objc = ['cc']
         self.default_objcxx = ['c++']
-        self.default_static_linker = ['ar']
+        self.default_static_linker = 'ar'
+        self.vs_static_linker = 'lib'
 
         if is_windows():
             self.exe_suffix = 'exe'
@@ -558,20 +575,33 @@ class Environment():
             return GnuObjCXXCompiler(exelist)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
 
-    def detect_static_linker(self):
-        exelist = self.get_static_linker_exelist()
+    def detect_static_linker(self, compiler):
+        evar = 'AR'
+        if evar in os.environ:
+            linker = os.environ[evar].strip()
+        if isinstance(compiler, VisualStudioCCompiler):
+            linker= self.vs_static_linker
+        else:
+            linker = self.default_static_linker
+        basename = os.path.basename(linker).lower()
+        if basename == 'lib' or basename == 'lib.exe':
+            arg = '/?'
+        else:
+            arg = '--version'
         try:
-            p = subprocess.Popen(exelist + ['--version'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            p = subprocess.Popen([linker, arg], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         except OSError:
-            raise EnvironmentException('Could not execute static linker "%s".' % ' '.join(exelist))
+            raise EnvironmentException('Could not execute static linker "%s".' % linker)
         (out, err) = p.communicate()
         out = out.decode()
         err = err.decode()
+        if '/OUT:' in out or '/OUT:' in err:
+            return VisualStudioLinker([linker])
         if p.returncode == 0:
-            return ArLinker(exelist)
+            return ArLinker([linker])
         if p.returncode == 1 and err.startswith('usage'): # OSX
-            return ArLinker(exelist)
-        raise EnvironmentException('Unknown static linker "' + ' '.join(exelist) + '"')
+            return ArLinker([linker])
+        raise EnvironmentException('Unknown static linker "%s"' % linker)
 
     def detect_ccache(self):
         try:
@@ -597,12 +627,6 @@ class Environment():
         if evar in os.environ:
             return os.environ[evar].split()
         return ccachelist + self.default_objcxx
-
-    def get_static_linker_exelist(self):
-        evar = 'AR'
-        if evar in os.environ:
-            return os.environ[evar].split()
-        return self.default_static_linker
 
     def get_source_dir(self):
         return self.source_dir
