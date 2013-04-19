@@ -93,11 +93,12 @@ def run_tests():
 
 def check_file(fname):
     linenum = 0
+    is_sane = not environment.is_windows()
     for line in open(fname, 'rb').readlines():
         if b'\t' in line:
             print("File %s contains a literal tab on line %d. Only spaces are permitted." % (fname, linenum))
             sys.exit(1)
-        if b'\r' in line:
+        if is_sane and b'\r' in line:
             print("File %s contains DOS line ending on line %d. Only unix-style line endings are permitted." % (fname, linenum))
             sys.exit(1)
         linenum += 1
