@@ -201,7 +201,13 @@ class VisualStudioCCompiler(CCompiler):
 
     def get_linker_output_flags(self, outputname):
         return ['/OUT:' + outputname]
-    
+
+    def get_pic_flags(self):
+        return []
+
+    def get_std_shared_lib_link_flags(self):
+        return []
+
     def sanity_check(self, work_dir):
         source_name = os.path.join(work_dir, 'sanitycheckc.c')
         binary_name = os.path.join(work_dir, 'sanitycheckc')
