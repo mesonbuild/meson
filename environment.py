@@ -161,6 +161,28 @@ class ObjCXXCompiler(CXXCompiler):
         if pe.returncode != 0:
             raise EnvironmentException('Executables created by ObjC++ compiler %s are not runnable.' % self.name_string())
 
+class VisualStudioCCompiler(CCompiler):
+    std_warn_flags = ['/Wall']
+    std_opt_flags= ['/O2']
+    
+    def __init__(self, exelist):
+        CCompiler.__init__(self, exelist)
+
+    def get_std_warn_flags(self):
+        return VisualStudioCCompiler.std_warn_flags
+
+    def get_std_opt_flags(self):
+        return VisualStudioCCompiler.std_opt_flags
+    
+    def get_pch_suffix(self):
+        return 'pch'
+
+    def get_debug_flags(self):
+        return ['/D_DEBUG', '/Zi', '/MDd', '/Ob0', '/RTC1']
+
+    def get_compile_only_flags(self):
+        return ['/c']
+
 class GnuCCompiler(CCompiler):
     std_warn_flags = ['-Wall', '-Winvalid-pch']
     std_opt_flags = ['-O2']
@@ -324,9 +346,14 @@ class Environment():
             self.coredata = coredata.load(cdf)
         except IOError:
             self.coredata = coredata.CoreData(options)
-
-        self.default_c = ['cc']
-        self.default_cxx = ['c++']
+        
+        # List of potential compilers.
+        if is_windows():
+            self.default_c = ['cl', 'cc']
+            self.default_cxx = ['cl', 'c++']
+        else:
+            self.default_c = ['cc']
+            self.default_cxx = ['c++']
         self.default_objc = ['cc']
         self.default_objcxx = ['c++']
         self.default_static_linker = ['ar']
@@ -362,33 +389,40 @@ class Environment():
     def get_build_command(self):
         return self.meson_script_file
 
-    def get_c_compiler_exelist(self):
-        ccachelist = self.detect_ccache()
-        evar = 'CC'
-        if evar in os.environ:
-            return os.environ[evar].split()
-        return ccachelist + self.default_c
-
     def is_header(self, fname):
         suffix = fname.split('.')[-1]
         return suffix in header_suffixes
 
     def detect_c_compiler(self):
-        exelist = self.get_c_compiler_exelist()
-        try:
-            p = subprocess.Popen(exelist + ['--version'], stdout=subprocess.PIPE)
-        except OSError:
-            raise EnvironmentException('Could not execute C compiler "%s"' % ' '.join(exelist))
-        out = p.communicate()[0]
-        out = out.decode()
-        if (out.startswith('cc ') or out.startswith('gcc')) and \
-            'Free Software Foundation' in out:
-            return GnuCCompiler(exelist)
-        if 'apple' in out and 'Free Software Foundation' in out:
-            return GnuCCompiler(exelist)
-        if (out.startswith('clang')):
-            return ClangCCompiler(exelist)
-        raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
+        evar = 'CC'
+        if evar in os.environ:
+            compilers = [os.environ[evar].split()]
+            ccache = []
+        else:
+            compilers = self.default_c
+            ccache = self.detect_ccache()
+        for compiler in compilers:
+            try:
+                basename = os.path.basename(compiler).lower() 
+                if basename == 'cl' or basename == 'cl.exe':
+                    arg = '/?'
+                else:
+                    arg = '--version'
+                p = subprocess.Popen([compiler] + [arg], stdout=subprocess.PIPE)
+            except OSError:
+                continue
+            out = p.communicate()[0]
+            out = out.decode()
+            if (out.startswith('cc ') or out.startswith('gcc')) and \
+                'Free Software Foundation' in out:
+                return GnuCCompiler(ccache + [compiler])
+            if 'apple' in out and 'Free Software Foundation' in out:
+                return GnuCCompiler(ccache + [compiler])
+            if (out.startswith('clang')):
+                return ClangCCompiler(ccache + [compiler])
+            if 'Microsoft' in out:
+                return VisualStudioCCompiler([compiler])
+        raise EnvironmentException('Unknown compiler(s): "' + ', '.join(compilers) + '"')
 
     def get_scratch_dir(self):
         return self.scratch_dir
