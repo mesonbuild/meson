@@ -17,6 +17,7 @@
 import subprocess, os.path, platform
 import coredata
 from glob import glob
+import tempfile
 
 build_filename = 'meson.build'
 
@@ -33,6 +34,7 @@ class CCompiler():
         else:
             raise TypeError('Unknown argument to CCompiler')
         self.language = 'c'
+        self.default_suffix = 'c'
 
     def get_dependency_gen_flags(self, outtarget, outfile):
         return ['-MMD', '-MT', outtarget, '-MF', outfile]
@@ -44,10 +46,10 @@ class CCompiler():
         return self.language
 
     def get_exelist(self):
-        return self.exelist
+        return self.exelist[:]
     
     def get_linker_exelist(self):
-        return self.exelist
+        return self.exelist[:]
 
     def get_compile_only_flags(self):
         return ['-c']
@@ -102,6 +104,28 @@ class CCompiler():
         pe.wait()
         if pe.returncode != 0:
             raise EnvironmentException('Executables created by C compiler %s are not runnable.' % self.name_string())
+    
+    def compiles(self, code):
+        suflen = len(self.default_suffix)
+        (fd, srcname) = tempfile.mkstemp(suffix='.'+self.default_suffix)
+        open(srcname, 'w').write(code)
+        commands = self.get_exelist()
+        commands += self.get_compile_only_flags()
+        commands.append(srcname)
+        p = subprocess.Popen(commands, cwd=os.path.split(srcname)[0], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        p.communicate()
+        os.close(fd)
+        os.remove(srcname)
+        try:
+            trial = srcname[:-suflen] + 'o'
+            os.remove(trial)
+        except FileNotFoundError:
+            pass
+        try:
+            os.remove(srcname[:-suflen] + 'obj')
+        except FileNotFoundError:
+            pass
+        return p.returncode == 0
 
 cxx_suffixes = ['cc', 'cpp', 'cxx', 'hh', 'hpp', 'hxx']
 
@@ -109,6 +133,7 @@ class CXXCompiler(CCompiler):
     def __init__(self, exelist):
         CCompiler.__init__(self, exelist)
         self.language = 'cxx'
+        self.default_suffix = 'cpp'
 
     def can_compile(self, filename):
         suffix = filename.split('.')[-1]
@@ -135,7 +160,8 @@ class ObjCCompiler(CCompiler):
     def __init__(self, exelist):
         CCompiler.__init__(self, exelist)
         self.language = 'objc'
-
+        self.default_suffix = 'm'
+        
     def can_compile(self, filename):
         suffix = filename.split('.')[-1]
         if suffix == 'm' or suffix == 'h':
@@ -146,6 +172,7 @@ class ObjCXXCompiler(CXXCompiler):
     def __init__(self, exelist):
         CXXCompiler.__init__(self, exelist)
         self.language = 'objcxx'
+        self.default_suffix = 'mm'
 
     def can_compile(self, filename):
         suffix = filename.split('.')[-1]
@@ -228,6 +255,8 @@ class VisualStudioCCompiler(CCompiler):
 class VisualStudioCXXCompiler(VisualStudioCCompiler):
     def __init__(self, exelist):
         VisualStudioCCompiler.__init__(self, exelist)
+        self.language = 'cxx'
+        self.default_suffix = 'cpp'
 
     def can_compile(self, filename):
         suffix = filename.split('.')[-1]

@@ -496,6 +496,38 @@ class Test(InterpreterObject):
     def get_name(self):
         return self.name
 
+class CompilerHolder(InterpreterObject):
+    def __init__(self, compiler):
+        InterpreterObject.__init__(self)
+        self.compiler = compiler
+        self.methods.update({'compiles': self.compiles_method})
+
+    def compiles_method(self, args, kwargs):
+        if len(args) != 1:
+            raise InterpreterException('compiles method takes exactly one argument.')
+        string = args[0]
+        if isinstance(string, nodes.StringStatement):
+            string = string.value
+        if not isinstance(string, str):
+            raise InterpreterException('Argument to compiles() must be a string')
+        return self.compiler.compiles(string)
+
+class MesonMain(InterpreterObject):
+    def __init__(self, build):
+        InterpreterObject.__init__(self)
+        self.build = build
+        self.methods.update({'get_compiler': self.get_compiler_method})
+        
+    def get_compiler_method(self, args, kwargs):
+        if len(args) != 1:
+            raise InterpreterException('get_compiler_method must have one and only one argument.')
+        cname = args[0]
+        for c in self.build.compilers:
+            if c.get_language() == cname:
+                return CompilerHolder(c)
+        raise InterpreterException('Tried to access compiler for unspecified language "%s".' % cname)
+        
+
 class Interpreter():
 
     def __init__(self, build):
@@ -510,12 +542,13 @@ class Interpreter():
         self.variables = {}
         self.builtin = {}
         self.builtin['host'] = Host()
+        self.builtin['meson'] = MesonMain(build)
         self.environment = build.environment
         self.build_func_dict()
         self.build_def_files = [environment.build_filename]
+        self.coredata = self.environment.get_coredata()
         self.subdir = ''
         self.generators = []
-        self.coredata = self.environment.get_coredata()
         self.visited_subdirs = {}
 
     def build_func_dict(self):
