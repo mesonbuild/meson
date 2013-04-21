@@ -528,13 +528,14 @@ class Environment():
     def detect_c_compiler(self):
         evar = 'CC'
         if evar in os.environ:
-            compilers = [os.environ[evar].split()]
+            compilers = os.environ[evar].split()
             ccache = []
         else:
             compilers = self.default_c
             ccache = self.detect_ccache()
         for compiler in compilers:
             try:
+                print(compiler)
                 basename = os.path.basename(compiler).lower() 
                 if basename == 'cl' or basename == 'cl.exe':
                     arg = '/?'
@@ -567,7 +568,7 @@ class Environment():
     def detect_cxx_compiler(self):
         evar = 'CC'
         if evar in os.environ:
-            compilers = [os.environ[evar].split()]
+            compilers = os.environ[evar].split()
             ccache = []
         else:
             compilers = self.default_cxx
