@@ -39,6 +39,7 @@ tokens = ['LPAREN',
           'COMMA',
           'DOT',
           'STRING',
+          'MULTILINE_STRING',
           'INT',
           'EOL_CONTINUE',
           'EOL',
@@ -64,6 +65,13 @@ t_ignore = ' \t'
 def t_ATOM(t):
     '[a-zA-Z][_0-9a-zA-Z]*'
     t.type = reserved.get(t.value, 'ATOM')
+    return t
+
+
+def t_MULTILINE_STRING(t):
+    r"'''(.|\n)*?'''"
+    t.value = t.value[3:-3]
+    t.lexer.lineno += t.value.count('\n')
     return t
 
 def t_STRING(t):
@@ -125,6 +133,10 @@ def p_expression_bool(t):
 
 def p_expression_string(t):
     'expression : STRING'
+    t[0] = nodes.StringExpression(t[1], t.lineno(1))
+
+def p_expression_multiline_string(t):
+    'expression : MULTILINE_STRING'
     t[0] = nodes.StringExpression(t[1], t.lineno(1))
 
 def p_statement_assign(t):
