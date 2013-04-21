@@ -500,7 +500,12 @@ class CompilerHolder(InterpreterObject):
     def __init__(self, compiler):
         InterpreterObject.__init__(self)
         self.compiler = compiler
-        self.methods.update({'compiles': self.compiles_method})
+        self.methods.update({'compiles': self.compiles_method,
+                             'get_id': self.get_id_method,
+                             })
+
+    def get_id_method(self, args, kwargs):
+        return self.compiler.get_id()
 
     def compiles_method(self, args, kwargs):
         if len(args) != 1:
@@ -665,7 +670,7 @@ class Interpreter():
         print('Project name is "%s".' % self.build.project)
         self.add_languages(node, args[1:])
 
-    def func_message(self, node, args):
+    def func_message(self, node, args, kwargs):
         self.validate_arguments(args, 1, [str])
         print('Message: %s' % args[0])
 
@@ -874,6 +879,7 @@ class Interpreter():
         if isinstance(value, InterpreterObject) or \
             isinstance(value, dependencies.Dependency) or\
             isinstance(value, nodes.StringStatement) or\
+            isinstance(value, str) or\
             isinstance(value, nodes.BoolStatement) or\
             isinstance(value, nodes.IntStatement) or\
             isinstance(value, list):

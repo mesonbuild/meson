@@ -35,6 +35,10 @@ class CCompiler():
             raise TypeError('Unknown argument to CCompiler')
         self.language = 'c'
         self.default_suffix = 'c'
+        self.id = 'unknown'
+    
+    def get_id(self):
+        return self.id
 
     def get_dependency_gen_flags(self, outtarget, outfile):
         return ['-MMD', '-MT', outtarget, '-MF', outfile]
@@ -201,6 +205,7 @@ class VisualStudioCCompiler(CCompiler):
     
     def __init__(self, exelist):
         CCompiler.__init__(self, exelist)
+        self.id = 'msvc'
 
     def get_std_warn_flags(self):
         return VisualStudioCCompiler.std_warn_flags
@@ -287,6 +292,7 @@ class GnuCCompiler(CCompiler):
 
     def __init__(self, exelist):
         CCompiler.__init__(self, exelist)
+        self.id = 'gcc'
 
     def get_std_warn_flags(self):
         return GnuCCompiler.std_warn_flags
@@ -300,6 +306,10 @@ class GnuCCompiler(CCompiler):
 class GnuObjCCompiler(ObjCCompiler):
     std_warn_flags = ['-Wall', '-Winvalid-pch']
     std_opt_flags = ['-O2']
+    
+    def __init__(self, exelist):
+        ObjCCompiler.__init__(self, exelist)
+        self.id = 'gcc'
 
     def get_std_warn_flags(self):
         return GnuObjCCompiler.std_warn_flags
@@ -313,6 +323,10 @@ class GnuObjCCompiler(ObjCCompiler):
 class GnuObjCXXCompiler(ObjCXXCompiler):
     std_warn_flags = ['-Wall', '-Winvalid-pch']
     std_opt_flags = ['-O2']
+
+    def __init__(self, exelist):
+        ObjCCompiler.__init__(self, exelist)
+        self.id = 'gcc'
 
     def get_std_warn_flags(self):
         return GnuObjCXXCompiler.std_warn_flags
@@ -329,6 +343,7 @@ class ClangCCompiler(CCompiler):
 
     def __init__(self, exelist):
         CCompiler.__init__(self, exelist)
+        self.id = 'clang'
 
     def get_std_warn_flags(self):
         return ClangCCompiler.std_warn_flags
@@ -345,6 +360,7 @@ class GnuCXXCompiler(CXXCompiler):
     
     def __init__(self, exelist):
         CXXCompiler.__init__(self, exelist)
+        self.id = 'gcc'
 
     def get_std_warn_flags(self):
         return GnuCXXCompiler.std_warn_flags
@@ -361,6 +377,7 @@ class ClangCXXCompiler(CXXCompiler):
 
     def __init__(self, exelist):
         CXXCompiler.__init__(self, exelist)
+        self.id = 'clang'
 
     def get_std_warn_flags(self):
         return ClangCXXCompiler.std_warn_flags
