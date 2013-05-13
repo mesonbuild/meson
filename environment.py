@@ -461,6 +461,7 @@ header_suffixes = ['h', 'hh', 'hpp', 'hxx', 'H']
 
 class Environment():
     private_dir = 'meson-private'
+    log_dir = 'meson-logs'
     coredata_file = os.path.join(private_dir, 'coredata.dat')
 
     def __init__(self, source_dir, build_dir, main_script_file, options):
@@ -470,8 +471,9 @@ class Environment():
         self.build_dir = build_dir
         self.meson_script_file = main_script_file
         self.scratch_dir = os.path.join(build_dir, Environment.private_dir)
+        self.log_dir = os.path.join(build_dir, Environment.log_dir)
         os.makedirs(self.scratch_dir, exist_ok=True)
-
+        os.makedirs(self.log_dir, exist_ok=True)
         try:
             cdf = os.path.join(self.get_build_dir(), Environment.coredata_file)
             self.coredata = coredata.load(cdf)
@@ -514,6 +516,9 @@ class Environment():
 
     def get_script_dir(self):
         return os.path.dirname(self.meson_script_file)
+    
+    def get_log_dir(self):
+        return self.log_dir
 
     def get_coredata(self):
         return self.coredata
@@ -535,7 +540,6 @@ class Environment():
             ccache = self.detect_ccache()
         for compiler in compilers:
             try:
-                print(compiler)
                 basename = os.path.basename(compiler).lower() 
                 if basename == 'cl' or basename == 'cl.exe':
                     arg = '/?'

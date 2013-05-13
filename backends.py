@@ -312,12 +312,12 @@ class NinjaBackend(Backend):
             added_rule = True
             elem = NinjaBuildElement('coverage-xml', 'CUSTOM_COMMAND', '')
             elem.add_item('COMMAND', [gcovr_exe, '-x', '-r', self.environment.get_build_dir(),\
-                                      '-o', 'coverage.xml'])
+                                      '-o', os.path.join(self.environment.get_log_dir(), 'coverage.xml')])
             elem.add_item('DESC', 'Generating XML coverage report.')
             elem.write(outfile)
             elem = NinjaBuildElement('coverage-text', 'CUSTOM_COMMAND', '')
             elem.add_item('COMMAND', [gcovr_exe, '-r', self.environment.get_build_dir(),\
-                                      '-o', 'coverage.txt'])
+                                      '-o', os.path.join(self.environment.get_log_dir(), 'coverage.txt')])
             elem.add_item('DESC', 'Generating text coverage report.')
             elem.write(outfile)
         if lcov_exe and genhtml_exe:
@@ -329,7 +329,7 @@ class NinjaBackend(Backend):
             command = [lcov_exe, '--directory', self.environment.get_build_dir(),\
                        '--capture', '--output-file', 'coverage.info', '--no-checksum',\
                        '&&', genhtml_exe, '--prefix', self.environment.get_build_dir(),\
-                       '--output-directory', 'coveragereport', '--title', 'Code coverage',\
+                       '--output-directory', self.environment.get_log_dir(), '--title', 'Code coverage',\
                        '--legend', '--show-details', 'coverage.info']
             elem.add_item('COMMAND', command)
             elem.add_item('DESC', 'Generating HTML coverage report.')

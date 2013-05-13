@@ -30,7 +30,7 @@ def write_log(logfile, test_name, result_str, stdo, stde):
     logfile.write('\n-------\n\n')
 
 def run_tests(options, datafilename):
-    logfile_base = 'meson-private/testlog'
+    logfile_base = 'meson-logs/testlog'
     if options.wrapper is None:
         wrap = []
         logfilename = logfile_base + '.txt'
