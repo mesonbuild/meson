@@ -112,13 +112,15 @@ class CCompiler():
     def compiles(self, code):
         suflen = len(self.default_suffix)
         (fd, srcname) = tempfile.mkstemp(suffix='.'+self.default_suffix)
-        open(srcname, 'w').write(code)
+        os.close(fd)
+        ofile = open(srcname, 'w')
+        ofile.write(code)
+        ofile.close()
         commands = self.get_exelist()
         commands += self.get_compile_only_flags()
         commands.append(srcname)
         p = subprocess.Popen(commands, cwd=os.path.split(srcname)[0], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         p.communicate()
-        os.close(fd)
         os.remove(srcname)
         try:
             trial = srcname[:-suflen] + 'o'
