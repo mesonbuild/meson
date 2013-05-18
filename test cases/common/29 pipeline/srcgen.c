@@ -1,27 +1,33 @@
 #include<stdio.h>
 #include<assert.h>
 
+#define ARRSIZE 80
+
 int main(int argc, char **argv) {
-    const int ARRSIZE = 80;
     char arr[ARRSIZE];
+    char *ofilename;
+    char *ifilename;
+    FILE *ifile;
+    FILE *ofile;
+    size_t bytes;
+
     if(argc != 3) {
         fprintf(stderr, "%s <input file> <output file>\n", argv[0]);
         return 1;
     }
-    char *ifilename = argv[1];
-    char *ofilename = argv[2];
+    ifilename = argv[1];
+    ofilename = argv[2];
     printf("%s\n", ifilename);
-    FILE *ifile = fopen(ifilename, "r");
+    ifile = fopen(argv[1], "r");
     if(!ifile) {
-        fprintf(stderr, "Could not open source file %s.\n", ifilename);
+        fprintf(stderr, "Could not open source file %s.\n", argv[1]);
         return 1;
     }
-    FILE *ofile = fopen(ofilename, "w");
+    ofile = fopen(ofilename, "w");
     if(!ofile) {
         fprintf(stderr, "Could not open target file %s\n", ofilename);
         return 1;
     }
-    size_t bytes;
     bytes = fread(arr, 1, ARRSIZE, ifile);
     assert(bytes < 80);
     assert(bytes > 0);
