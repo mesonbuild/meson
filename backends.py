@@ -424,7 +424,7 @@ class NinjaBackend(Backend):
 
         datafile = open(test_data, 'w')
         for t in self.build.get_tests():
-            datafile.write(self.get_target_filename(t.get_exe()) + '\n')
+            datafile.write(os.path.join(self.environment.get_build_dir(), self.get_target_filename(t.get_exe())) + '\n')
         datafile.close()
 
     def generate_dep_gen_rules(self, outfile):
