@@ -40,6 +40,37 @@ class InterpreterObject():
             return self.methods[method_name](args, kwargs)
         raise InvalidCode('Unknown method "%s" in object.' % method_name)
 
+class ConfigurationData(InterpreterObject):
+    
+    def __init__(self):
+        super().__init__()
+        self.used = False # These objects become immutable after use in configure_file.
+        self.values = {}
+        self.methods.update({'set': self.set_method})
+        
+    def is_used(self):
+        return self.used
+    
+    def mark_used(self):
+        self.used = True
+
+    def set_method(self, args, kwargs):
+        if len(args) != 2:
+            raise InterpreterException("Configuration set requires 2 arguments.")
+        if self.used:
+            raise InterpreterException("Can not set values on configuration object that has been used.")
+        name = args[0]
+        val = args[1]
+        if not isinstance(name, str):
+            raise InterpreterException("First argument to set must be a string.")
+        self.values[name] = val
+
+    def get(self, *args):
+        return self.values.get(*args)
+    
+    def keys(self):
+        return self.values.keys()
+
 # Interpreter objects can not be pickled so we must have
 # these wrappers.
 
@@ -243,11 +274,15 @@ class Data(InterpreterObject):
 
 class ConfigureFile(InterpreterObject):
     
-    def __init__(self, subdir, sourcename, targetname, kwargs):
+    def __init__(self, subdir, sourcename, targetname, configuration_data):
         InterpreterObject.__init__(self)
         self.subdir = subdir
         self.sourcename = sourcename
         self.targetname = targetname
+        self.configuration_data = configuration_data
+
+    def get_configuration_data(self):
+        return self.configuration_data
 
     def get_sources(self):
         return self.sources
@@ -574,6 +609,7 @@ class Interpreter():
                       'add_global_arguments' : self.func_add_global_arguments,
                       'find_program' : self.func_find_program,
                       'find_library' : self.func_find_library,
+                      'configuration_data' : self.func_configuration_data,
                       }
 
     def get_build_def_files(self):
@@ -655,6 +691,11 @@ class Interpreter():
                     print(actual)
                     print(wanted)
                     raise InvalidArguments('Incorrect argument type.')
+                
+    def func_configuration_data(self, node, args, kwargs):
+        if len(args) != 0:
+            raise InterpreterException('configuration_data takes no arguments')
+        return ConfigurationData()
 
     def func_project(self, node, args, kwargs):
         if len(args)< 2:
@@ -806,11 +847,25 @@ class Interpreter():
         return data
     
     def func_configure_file(self, node, args, kwargs):
-        self.validate_arguments(args, 2, [str, str])
-        conffile = os.path.join(self.subdir, args[0])
+        if len(args) > 0:
+            raise InterpreterException("configure_file takes only keyword arguments.")
+        if not 'input' in kwargs:
+            raise InterpreterException('Required keyword argument "input" not defined.')
+        if not 'output' in kwargs:
+            raise InterpreterException('Required keyword argument "output" not defined.')
+        if not 'configuration' in kwargs:
+            raise InterpreterException('Required keyword argument "configuration" not defined.')
+        inputfile = kwargs['input']
+        output = kwargs['output']
+        conf = kwargs['configuration']
+        if not isinstance(conf, ConfigurationData):
+            raise InterpreterException('Argument "configuration" is not of type configuration_data')
+
+        conffile = os.path.join(self.subdir, inputfile)
         self.build_def_files.append(conffile)
-        c = ConfigureFile(self.subdir, args[0], args[1], kwargs)
+        c = ConfigureFile(self.subdir, inputfile, output, conf)
         self.build.configure_files.append(c)
+        conf.mark_used()
 
     def func_include_directories(self, node, args, kwargs):
         for a in args:

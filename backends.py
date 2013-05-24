@@ -31,12 +31,12 @@ else:
 def ninja_quote(text):
     return text.replace(' ', '$ ')
 
-def do_replacement(regex, line, variables):
+def do_replacement(regex, line, confdata):
     match = re.search(regex, line)
     while match:
         varname = match.group(1)
-        if varname in variables:
-            var = variables[varname]
+        if varname in confdata.keys():
+            var = confdata.get(varname)
             if isinstance(var, str):
                 pass
             elif isinstance(var, nodes.StringStatement):
@@ -49,12 +49,12 @@ def do_replacement(regex, line, variables):
         match = re.search(regex, line)
     return line
 
-def do_mesondefine(line, variables):
+def do_mesondefine(line, confdata):
     arr = line.split()
     if len(arr) != 2:
         raise interpreter.InvalidArguments('#mesondefine does not contain exactly two tokens.')
     varname = arr[1]
-    v = variables.get(varname, False)
+    v = confdata.get(varname, False)
     if isinstance(v, bool):
         value= v
     elif isinstance(v, nodes.BoolStatement):
@@ -65,15 +65,15 @@ def do_mesondefine(line, variables):
         return '#define %s\n' % varname
     return '/* undef %s */\n' % varname
 
-def do_conf_file(src, dst, variables):
+def do_conf_file(src, dst, confdata):
     data = open(src).readlines()
     regex = re.compile('@(.*?)@')
     result = []
     for line in data:
         if line.startswith('#mesondefine'):
-            line = do_mesondefine(line, variables)
+            line = do_mesondefine(line, confdata)
         else:
-            line = do_replacement(regex, line, variables)
+            line = do_replacement(regex, line, confdata)
         result.append(line)
     dst_tmp = dst + '~'
     open(dst_tmp, 'w').writelines(result)
@@ -209,7 +209,8 @@ class Backend():
                                    cf.get_subdir())
             os.makedirs(outdir, exist_ok=True)
             outfile = os.path.join(outdir, cf.get_target_name())
-            do_conf_file(infile, outfile, self.interpreter.get_variables())
+            confdata = cf.get_configuration_data()
+            do_conf_file(infile, outfile, confdata)
 
 class NinjaBuildElement():
     def __init__(self, outfilenames, rule, infilenames):
