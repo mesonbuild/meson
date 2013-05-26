@@ -535,6 +535,8 @@ class NinjaBackend(Backend):
                 outfilename = os.path.join(self.get_target_private_dir(target), outfilelist[i])
                 args = [x.replace("@INPUT@", infilename).replace('@OUTPUT@', outfilename)\
                         for x in base_args]
+                args = [x.replace("@SOURCE_DIR@", self.environment.get_source_dir()).replace("@BUILD_DIR@", self.environment.get_build_dir())
+                        for x in args]
                 cmdlist = [exe_file] + args
                 elem = NinjaBuildElement(outfilename, 'CUSTOM_COMMAND', infilename)
                 elem.add_item('DESC', 'Generating $out')
