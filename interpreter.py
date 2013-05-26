@@ -683,7 +683,7 @@ class Interpreter():
         elif isinstance(cur, nodes.IntStatement):
             return cur
         else:
-            raise InvalidCode("Line %d: Unknown statement." % cur.lineno())
+            raise InvalidCode("Unknown statement.")
 
     def validate_arguments(self, args, argcount, arg_types):
         if argcount is not None:
@@ -711,9 +711,9 @@ class Interpreter():
             raise InvalidArguments('Project() does not take keyword arguments.')
         for a in args:
             if not isinstance(a, str):
-                raise InvalidArguments('Line %d: Argument %s is not a string.' % (node.lineno(), str(a)))
+                raise InvalidArguments('Argument %s is not a string.' % str(a))
         if self.build.project is not None:
-            raise InvalidCode('Second call to project() on line %d.' % node.lineno())
+            raise InvalidCode('Second call to project().')
         self.build.project = args[0]
         print('Project name is "%s".' % self.build.project)
         self.add_languages(node, args[1:])
@@ -745,7 +745,7 @@ class Interpreter():
         self.validate_arguments(args, 1, [str])
         required = kwargs.get('required', False)
         if not isinstance(required, bool):
-            raise InvalidArguments('Line %d: "required" argument must be a boolean.' % node.lineno())
+            raise InvalidArguments('"required" argument must be a boolean.')
         exename = args[0]
         if exename in self.coredata.ext_progs and\
            self.coredata.ext_progs[exename].found():
@@ -754,14 +754,14 @@ class Interpreter():
         progobj = ExternalProgramHolder(extprog)
         self.coredata.ext_progs[exename] = extprog
         if required and not progobj.found():
-            raise InvalidArguments('Line %d: program "%s" not found.' % (node.lineno(), exename))
+            raise InvalidArguments('Program "%s" not found.' % exename)
         return progobj
 
     def func_find_library(self, node, args, kwargs):
         self.validate_arguments(args, 1, [str])
         required = kwargs.get('required', False)
         if not isinstance(required, bool):
-            raise InvalidArguments('Line %d: "required" argument must be a boolean.' % node.lineno())
+            raise InvalidArguments('"required" argument must be a boolean.')
         libname = args[0]
         if libname in self.coredata.ext_libs and\
            self.coredata.ext_libs[libname].found():
@@ -771,7 +771,7 @@ class Interpreter():
         libobj = ExternalLibraryHolder(extlib)
         self.coredata.ext_libs[libname] = extlib
         if required and not libobj.found():
-            raise InvalidArguments('Line %d: external library "%s" not found.' % (node.lineno(), libname))
+            raise InvalidArguments('External library "%s" not found.' % libname)
         return libobj
 
     def func_find_dep(self, node, args, kwargs):
@@ -810,7 +810,7 @@ class Interpreter():
     def func_headers(self, node, args, kwargs):
         for a in args:
             if not isinstance(a, str):
-                raise InvalidArguments('Line %d: Argument %s is not a string.' % (node.lineno(), str(a)))
+                raise InvalidArguments('Argument %s is not a string.' % str(a))
         h = Headers(args, kwargs)
         self.build.headers.append(h)
         return h
@@ -818,20 +818,20 @@ class Interpreter():
     def func_man(self, node, args, kwargs):
         for a in args:
             if not isinstance(a, str):
-                raise InvalidArguments('Line %d: Argument %s is not a string.' % (node.lineno(), str(a)))
+                raise InvalidArguments('Argument %s is not a string.' % str(a))
         m = Man(args, kwargs)
         self.build.man.append(m)
         return m
     
     def func_subdir(self, node, args, kwargs):
         if len(kwargs) > 0:
-            raise InvalidArguments('Line %d: subdir command takes no keyword arguments.' % node.lineno())
+            raise InvalidArguments('subdir command takes no keyword arguments.')
         self.validate_arguments(args, 1, [str])
         prev_subdir = self.subdir
         subdir = os.path.join(prev_subdir, args[0])
         if subdir in self.visited_subdirs:
-            raise InvalidArguments('Line %d: tried to enter directory "%s", which has already been visited.'\
-                                   % (node.lineno(), subdir))
+            raise InvalidArguments('Tried to enter directory "%s", which has already been visited.'\
+                                   % subdir)
         self.visited_subdirs[subdir] = True
         self.subdir = subdir
         buildfilename = os.path.join(self.subdir, environment.build_filename)
@@ -845,10 +845,10 @@ class Interpreter():
 
     def func_data(self, node, args, kwargs):
         if len(args ) < 1:
-            raise InvalidArguments('Line %d: Data function must have at least one argument: the subdirectory.' % node.lineno())
+            raise InvalidArguments('Data function must have at least one argument: the subdirectory.')
         for a in args:
             if not isinstance(a, str):
-                raise InvalidArguments('Line %d: Argument %s is not a string.' % (node.lineno(), str(a)))
+                raise InvalidArguments('Argument %s is not a string.' % str(a))
         data = Data(args[0], args[1:], kwargs)
         self.build.data.append(data)
         return data
@@ -877,18 +877,18 @@ class Interpreter():
     def func_include_directories(self, node, args, kwargs):
         for a in args:
             if not isinstance(a, str):
-                raise InvalidArguments('Line %d: Argument %s is not a string.' % (node.lineno(), str(a)))
+                raise InvalidArguments('Argument %s is not a string.' % str(a))
         i = IncludeDirs(self.subdir, args, kwargs)
         return i
 
     def func_add_global_arguments(self, node, args, kwargs):
         for a in args:
             if not isinstance(a, str):
-                raise InvalidArguments('Line %d: Argument %s is not a string.' % (node.lineno(), str(a)))
+                raise InvalidArguments('Argument %s is not a string.' % str(a))
         if len(self.build.get_targets()) > 0:
-            raise InvalidCode('Line %d: global flags can not be set once any build target is defined.' % node.lineno())
+            raise InvalidCode('Global flags can not be set once any build target is defined.')
         if not 'language' in kwargs:
-            raise InvalidCode('Line %d: missing language definition in add_global_arguments' % node.lineno())
+            raise InvalidCode('Missing language definition in add_global_arguments')
         lang = kwargs['language'].lower()
         if lang in self.build.global_args:
             self.build.global_args[lang] += args
@@ -913,8 +913,8 @@ class Interpreter():
         name = args[0]
         sources = args[1:]
         if name in coredata.forbidden_target_names:
-            raise InvalidArguments('Line %d: target name "%s" is reserved for Meson\'s internal use. Please rename.'\
-                                   % (node.lineno(), name))
+            raise InvalidArguments('Target name "%s" is reserved for Meson\'s internal use. Please rename.'\
+                                   % name)
         try:
             kw_src = self.flatten(kwargs['sources'])
             if not isinstance(kw_src, list):
@@ -923,7 +923,7 @@ class Interpreter():
             kw_src = []
         sources += kw_src
         if name in self.build.targets:
-            raise InvalidCode('Line %d: tried to create target "%s", but a target of that name already exists.' % (node.lineno(), name))
+            raise InvalidCode('Tried to create target "%s", but a target of that name already exists.' % name)
         l = targetclass(name, self.subdir, sources, self.environment, kwargs)
         self.build.targets[name] = l
         print('Creating build target "%s" with %d files.' % (name, len(sources)))
@@ -951,13 +951,13 @@ class Interpreter():
     def assignment(self, node):
         var_name = node.var_name
         if not isinstance(var_name, nodes.AtomExpression):
-            raise InvalidArguments('Line %d: Tried to assign value to a non-variable.' % node.lineno())
+            raise InvalidArguments('Tried to assign value to a non-variable.')
         var_name = var_name.get_value()
         value = self.evaluate_statement(node.value)
         if value is None:
-            raise InvalidCode('Line %d: Can not assign None to variable.' % node.lineno())
+            raise InvalidCode('Can not assign None to variable.')
         if not self.is_assignable(value):
-            raise InvalidCode('Line %d: Tried to assign an invalid value to variable.' % node.lineno())
+            raise InvalidCode('Tried to assign an invalid value to variable.')
         self.set_variable(var_name, value)
         return value
 
@@ -979,17 +979,17 @@ class Interpreter():
         elif isinstance(arg, nodes.IntStatement):
             return arg.get_value()
         else:
-            raise InvalidCode('Line %d: Irreducible argument.' % arg.lineno())
+            raise InvalidCode('Irreducible argument.')
 
     def reduce_arguments(self, args):
         assert(isinstance(args, nodes.Arguments))
         if args.incorrect_order():
-            raise InvalidArguments('Line %d: all keyword arguments must be after positional arguments.' % args.lineno())
+            raise InvalidArguments('All keyword arguments must be after positional arguments.')
         reduced_pos = [self.reduce_single(arg) for arg in args.arguments]
         reduced_kw = {}
         for key in args.kwargs.keys():
             if not isinstance(key, str):
-                raise InvalidArguments('Line %d: keyword argument name is not a string.' % args.lineno())
+                raise InvalidArguments('Keyword argument name is not a string.')
             a = args.kwargs[key]
             reduced_kw[key] = self.reduce_single(a)
         return (reduced_pos, reduced_kw)
@@ -1000,7 +1000,7 @@ class Interpreter():
         args = node.arguments
         obj = self.get_variable(object_name)
         if not isinstance(obj, InterpreterObject):
-            raise InvalidArguments('Line %d: variable "%s" is not callable.' % (node.lineno(), object_name))
+            raise InvalidArguments('Variable "%s" is not callable.' % object_name)
         (args, kwargs) = self.reduce_arguments(args)
         return obj.method_call(method_name, args, kwargs)
     
@@ -1020,8 +1020,7 @@ class Interpreter():
                 self.evaluate_codeblock(node.get_falseblock())
         else:
             print(node.get_clause())
-            print(result)
-            raise InvalidCode('Line %d: If clause does not evaluate to true or false.' % node.lineno())
+            raise InvalidCode('If clause does not evaluate to true or false.')
     
     def is_elementary_type(self, v):
         if isinstance(v, int) or isinstance(v, str) or isinstance(v, bool):
@@ -1050,7 +1049,7 @@ class Interpreter():
     def evaluate_arraystatement(self, cur):
         (arguments, kwargs) = self.reduce_arguments(cur.get_args())
         if len(kwargs) > 0:
-            raise InvalidCode('Line %d: Keyword arguments are invalid in array construction.' % cur.lineno())
+            raise InvalidCode('Keyword arguments are invalid in array construction.')
         return arguments
 
 if __name__ == '__main__':
