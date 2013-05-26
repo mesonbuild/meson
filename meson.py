@@ -129,7 +129,7 @@ if __name__ == '__main__':
         app.generate()
     except Exception as e:
         if isinstance(e, MesonException):
-            print('\nMeson encountered an error:')
+            print('\nMeson encountered an error in %s:%d:' % (e.file, e.lineno))
             print(e)
             sys.exit(1)
         else:

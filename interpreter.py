@@ -634,12 +634,19 @@ class Interpreter():
         if node is None:
             return
         if not isinstance(node, nodes.CodeBlock):
-            raise InvalidCode('Line %d: Tried to execute a non-codeblock. Possibly a bug in the parser.' % node.lineno())
+            e = InvalidCode('Tried to execute a non-codeblock. Possibly a bug in the parser.')
+            e.lineno = node.lineno()
+            raise e
         statements = node.get_statements()
         i = 0
         while i < len(statements):
             cur = statements[i]
-            self.evaluate_statement(cur)
+            try:
+                self.evaluate_statement(cur)
+            except Exception as e:
+                e.lineno = cur.lineno()
+                e.file = os.path.join(self.subdir, 'meson.build')
+                raise e
             i += 1 # In THE FUTURE jump over blocks and stuff.
 
     def get_variable(self, varname):
