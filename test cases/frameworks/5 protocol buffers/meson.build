@@ -9,6 +9,5 @@ gen = generator(protoc, \
 
 generated = gen.process('defs.proto')
 e = executable('prog', 'main.cpp', generated,
- include_dirs: include_directories('.'),
- dep : dep)
+ deps : dep)
 add_test('prototest', e)

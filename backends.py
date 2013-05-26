@@ -531,11 +531,11 @@ class NinjaBackend(Backend):
                 exe_file = exe.get_command()
             base_args = generator.get_arglist()
             for i in range(len(infilelist)):
-                infilename = os.path.join(self.build_to_src, infilelist[i])
+                infilename = os.path.join(self.environment.get_source_dir(), infilelist[i])
                 outfilename = os.path.join(self.get_target_private_dir(target), outfilelist[i])
                 args = [x.replace("@INPUT@", infilename).replace('@OUTPUT@', outfilename)\
                         for x in base_args]
-                args = [x.replace("@SOURCE_DIR@", self.environment.get_source_dir()).replace("@BUILD_DIR@", self.environment.get_build_dir())
+                args = [x.replace("@SOURCE_DIR@", self.environment.get_source_dir()).replace("@BUILD_DIR@", self.get_target_private_dir(target))
                         for x in args]
                 cmdlist = [exe_file] + args
                 elem = NinjaBuildElement(outfilename, 'CUSTOM_COMMAND', infilename)
