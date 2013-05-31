@@ -133,8 +133,10 @@ class CCompiler():
             pass
         return p.returncode == 0
 
-    def sizeof(self, element):
+    def sizeof(self, element, prefix):
         templ = '''#include<stdio.h>
+%s
+
 int main(int argc, char **argv) {
     printf("%%ld\\n", (long)(sizeof(%s)));
     return 0;
@@ -144,7 +146,8 @@ int main(int argc, char **argv) {
         exename = srcname + '.exe' # Is guaranteed to be executable on every platform.
         os.close(fd)
         ofile = open(srcname, 'w')
-        code = templ % element
+        code = templ % (prefix, element)
+        print(code)
         ofile.write(code)
         ofile.close()
         commands = self.get_exelist()

@@ -1,1 +1,2 @@
 #define INTSIZE @INTSIZE@
+#define WCHARSIZE @WCHARSIZE@

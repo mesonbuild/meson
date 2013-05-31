@@ -546,10 +546,13 @@ class CompilerHolder(InterpreterObject):
     def sizeof_method(self, args, kwargs):
         if len(args) != 1:
             raise InterpreterException('Sizeof takes exactly one argument.')
-        string = args[0]
-        if not isinstance(string, str):
+        element = args[0]
+        if not isinstance(element, str):
             raise InterpreterException('Argument to sizeof must be a string.')
-        return self.compiler.sizeof(string)
+        prefix = kwargs.get('prefix', '')
+        if not isinstance(prefix, str):
+            raise InterpreterException('Prefix argument of sizeof must be a string.')
+        return self.compiler.sizeof(element, prefix)
 
     def compiles_method(self, args, kwargs):
         if len(args) != 1:
