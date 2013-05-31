@@ -41,8 +41,10 @@ def do_replacement(regex, line, confdata):
                 pass
             elif isinstance(var, nodes.StringStatement):
                 var = var.get_value()
+            elif isinstance(var, int):
+                var = str(var)
             else:
-                raise RuntimeError('Tried to replace a variable with something other than a string.')
+                raise RuntimeError('Tried to replace a variable with something other than a string or int.')
         else:
             var = ''
         line = line.replace('@' + varname + '@', var)

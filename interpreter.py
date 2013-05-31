@@ -537,10 +537,19 @@ class CompilerHolder(InterpreterObject):
         self.compiler = compiler
         self.methods.update({'compiles': self.compiles_method,
                              'get_id': self.get_id_method,
+                             'sizeof': self.sizeof_method,
                              })
 
     def get_id_method(self, args, kwargs):
         return self.compiler.get_id()
+    
+    def sizeof_method(self, args, kwargs):
+        if len(args) != 1:
+            raise InterpreterException('Sizeof takes exactly one argument.')
+        string = args[0]
+        if not isinstance(string, str):
+            raise InterpreterException('Argument to sizeof must be a string.')
+        return self.compiler.sizeof(string)
 
     def compiles_method(self, args, kwargs):
         if len(args) != 1:
@@ -944,6 +953,7 @@ class Interpreter():
             isinstance(value, str) or\
             isinstance(value, nodes.BoolStatement) or\
             isinstance(value, nodes.IntStatement) or\
+            isinstance(value, int) or \
             isinstance(value, list):
             return True
         return False
