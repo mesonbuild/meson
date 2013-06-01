@@ -11,7 +11,7 @@ if host.name() == 'windows'
 else
   cp = find_program('cp', required : true)
   gen = generator(cp, \
-   output_name  : '@BASENAME@.c', \
+   outputs  : '@BASENAME@.c', \
    arguments : ['@INPUT@', '@OUTPUT@'])
 
   generated = gen.process('source.in')

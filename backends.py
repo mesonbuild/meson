@@ -20,6 +20,7 @@ import environment
 from meson_install import InstallData
 from interpreter import InvalidArguments
 import shutil
+from coredata import MesonException
 
 if environment.is_windows():
     quote_char = '"'
@@ -525,22 +526,29 @@ class NinjaBackend(Backend):
             exe = generator.get_exe()
             infilelist = genlist.get_infilelist()
             outfilelist = genlist.get_outfilelist()
-            if len(infilelist) != len(outfilelist):
-                raise RuntimeError('Internal data structures broken.')
             if isinstance(exe, interpreter.BuildTarget):
                 exe_file = os.path.join(self.environment.get_build_dir(), self.get_target_filename(exe))
             else:
                 exe_file = exe.get_command()
             base_args = generator.get_arglist()
             for i in range(len(infilelist)):
-                infilename = os.path.join(self.environment.get_source_dir(), infilelist[i])
-                outfilename = os.path.join(self.get_target_private_dir(target), outfilelist[i])
-                args = [x.replace("@INPUT@", infilename).replace('@OUTPUT@', outfilename)\
+                if len(infilelist) == len(outfilelist):
+                    sole_output = os.path.join(self.get_target_private_dir(target), outfilelist[i])
+                else:
+                    for x in base_args:
+                        if '@OUTPUT@' in x:
+                            raise MesonException('Tried to use @OUTPUT@ in a rule with more than one output.')
+                    sole_output = ''
+                curfile = infilelist[i]
+                infilename = os.path.join(self.environment.get_source_dir(), curfile)
+                outfiles = genlist.get_outputs_for(curfile)
+                outfiles = [os.path.join(self.get_target_private_dir(target), of) for of in outfiles]
+                args = [x.replace("@INPUT@", infilename).replace('@OUTPUT@', sole_output)\
                         for x in base_args]
                 args = [x.replace("@SOURCE_DIR@", self.environment.get_source_dir()).replace("@BUILD_DIR@", self.get_target_private_dir(target))
                         for x in args]
                 cmdlist = [exe_file] + args
-                elem = NinjaBuildElement(outfilename, 'CUSTOM_COMMAND', infilename)
+                elem = NinjaBuildElement(outfiles, 'CUSTOM_COMMAND', infilename)
                 elem.add_item('DESC', 'Generating $out')
                 if isinstance(exe, interpreter.BuildTarget):
                     elem.add_dep(self.get_target_filename(exe))

@@ -148,21 +148,24 @@ class Generator(InterpreterObject):
                 raise InvalidArguments('A non-string object in "arguments" keyword argument.')
         self.arglist = args
         
-        if 'output_name' not in kwargs:
-            raise InvalidArguments('Generator must have "output_name" keyword argument.')
-        rule = kwargs['output_name']
-        if not isinstance(rule, str):
-            raise InvalidArguments('"output_name" keyword argument must be a string.')
-        if not '@BASENAME@' in rule and not '@PLAINNAME@' in rule:
-            raise InvalidArguments('"output_name" must contain @BASENAME@ or @PLAINNAME@.')
-        if '/' in rule:
-            raise InvalidArguments('"output_name" must not contain a slash.')
-        self.name_rule = rule
+        if 'outputs' not in kwargs:
+            raise InvalidArguments('Generator must have "outputs" keyword argument.')
+        outputs = kwargs['outputs']
+        if not isinstance(outputs, list):
+            outputs = [outputs]
+        for rule in outputs:
+            if not isinstance(rule, str):
+                raise InvalidArguments('"outputs" may only contain strings.')
+            if not '@BASENAME@' in rule and not '@PLAINNAME@' in rule:
+                raise InvalidArguments('"outputs" must contain @BASENAME@ or @PLAINNAME@.')
+            if '/' in rule or '\\' in rule:
+                raise InvalidArguments('"outputs" must not contain a directory separator.')
+        self.outputs = outputs
 
-    def get_base_outname(self, inname):
+    def get_base_outnames(self, inname):
         plainname = os.path.split(inname)[1]
         basename = plainname.split('.')[0]
-        return self.name_rule.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname)
+        return [x.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname) for x in self.outputs]
 
     def process_method(self, args, kwargs):
         if len(kwargs) > 0:
@@ -187,16 +190,22 @@ class GeneratedList(InterpreterObject):
         self.generator = generator
         self.infilelist = []
         self.outfilelist = []
+        self.outmap = {}
 
     def add_file(self, newfile):
         self.infilelist.append(newfile)
-        self.outfilelist.append(self.generator.get_base_outname(newfile))
+        outfiles = self.generator.get_base_outnames(newfile)
+        self.outfilelist += outfiles
+        self.outmap[newfile] = outfiles
 
     def get_infilelist(self):
         return self.infilelist
 
     def get_outfilelist(self):
         return self.outfilelist
+
+    def get_outputs_for(self, filename):
+        return self.outmap[filename]
 
     def get_generator(self):
         return self.generator
