@@ -7,9 +7,9 @@ if host.name() == 'windows'
   #  - anything that you might actually need
   # Because of these reasons we only check that
   # the program can be found.
-  cp = find_program('xcopy', required : true)
+  cp = find_program('xcopy')
 else
-  cp = find_program('cp', required : true)
+  cp = find_program('cp')
   gen = generator(cp, \
    outputs  : '@BASENAME@.c', \
    arguments : ['@INPUT@', '@OUTPUT@'])

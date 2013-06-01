@@ -1,6 +1,6 @@
 project('protocol buffer test', 'cxx')
 
-protoc = find_program('protoc', required : true)
+protoc = find_program('protoc')
 dep = find_dep('protobuf')
 
 gen = generator(protoc, \

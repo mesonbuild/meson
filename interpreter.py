@@ -764,7 +764,7 @@ class Interpreter():
 
     def func_find_program(self, node, args, kwargs):
         self.validate_arguments(args, 1, [str])
-        required = kwargs.get('required', False)
+        required = kwargs.get('required', True)
         if not isinstance(required, bool):
             raise InvalidArguments('"required" argument must be a boolean.')
         exename = args[0]
