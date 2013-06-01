@@ -155,7 +155,9 @@ class ExternalLibrary(Dependency):
         return []
 
 def find_external_dependency(name, kwargs):
-    required = kwargs.get('required', False)
+    required = kwargs.get('required', True)
+    if not isinstance(required, bool):
+        raise DependencyException('Keyword "required" must be a boolean.')
     if name in packages:
         dep = packages[name](kwargs)
         if required and not dep.found():

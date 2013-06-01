@@ -1,7 +1,7 @@
 project('protocol buffer test', 'cxx')
 
 protoc = find_program('protoc', required : true)
-dep = find_dep('protobuf', required : true)
+dep = find_dep('protobuf')
 
 gen = generator(protoc, \
   outputs  : ['@BASENAME@.pb.cc', '@BASENAME@.pb.h'],
