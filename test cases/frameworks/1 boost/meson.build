@@ -10,5 +10,5 @@ linkdep = find_dep('boost', modules : 'thread')
 nolinkexe = executable('nolinkedexe', 'nolinkexe.cc', deps : nolinkdep)
 linkexe = executable('linkedexe', 'linkexe.cc', deps : linkdep)
 
-add_test('Boost nolinktext', nolinkexe)
-add_test('Boost linktext', linkexe)
+test('Boost nolinktext', nolinkexe)
+test('Boost linktext', linkexe)

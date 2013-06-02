@@ -7,4 +7,4 @@ gtest = find_dep('gtest')
 gmock = find_dep('gmock')
 
 e = executable('gmocktest', 'gmocktest.cc', deps : [gtest, gmock])
-add_test('gmock test', e)
+test('gmock test', e)

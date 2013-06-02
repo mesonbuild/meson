@@ -16,5 +16,5 @@ else
 
   generated = gen.process('source.in')
   e = executable('prog', generated)
-  add_test('external exe', e)
+  test('external exe', e)
 endif

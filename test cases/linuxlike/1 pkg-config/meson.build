@@ -5,7 +5,7 @@ project('external dependency', 'c')
 dep = find_dep('zlib')
 exe = executable('zlibprog', 'prog.c', deps : dep)
 
-add_test('zlibtest', exe)
+test('zlibtest', exe)
 
 # Try to find a nonexistant library to ensure requires:false works.
 

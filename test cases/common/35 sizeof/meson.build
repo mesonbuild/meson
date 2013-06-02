@@ -10,4 +10,4 @@ cd.set('WCHARSIZE', wcharsize)
 configure_file(input : 'config.h.in', output : 'config.h', configuration : cd)
 
 e = executable('prog', 'prog.c', include_dirs : include_directories('.'))
-add_test('sizeof test', e)
+test('sizeof test', e)

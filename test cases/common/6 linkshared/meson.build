@@ -4,4 +4,4 @@ lib = shared_library('mylib',
  , install : true)
 exe = executable('prog', 'main.c', link_with : lib, install : true)
 
-add_test('runtest', exe)
+test('runtest', exe)

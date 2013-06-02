@@ -10,4 +10,4 @@ generated = gen.process('input_src.dat')
 
 e2 = executable('prog', 'prog.c', generated)
 
-add_test('pipelined', e2)
+test('pipelined', e2)

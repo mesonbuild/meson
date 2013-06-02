@@ -12,4 +12,4 @@ output : 'config.h',
 configuration : conf)
 
 e = executable('inctest', 'prog.c', include_dirs : include_directories('.'))
-add_test('inctest', e)
+test('inctest', e)

@@ -10,4 +10,4 @@ gen = generator(protoc, \
 generated = gen.process('defs.proto')
 e = executable('prog', 'main.cpp', generated,
  deps : dep)
-add_test('prototest', e)
+test('prototest', e)

@@ -5,4 +5,4 @@ sources = 'trivial.c'
 
 exe = executable('trivialprog', sources : sources)
 
-add_test('runtest', exe) # This is a comment
+test('runtest', exe) # This is a comment

@@ -27,7 +27,7 @@ else
   exe4 = executable('prog4', 'prog.c')
 endif
 
-add_test('equalfalse', exe1)
-add_test('equaltrue', exe2)
-add_test('nequaltrue', exe3)
-add_test('nequalfalse', exe4)
+test('equalfalse', exe1)
+test('equaltrue', exe2)
+test('nequaltrue', exe3)
+test('nequalfalse', exe4)

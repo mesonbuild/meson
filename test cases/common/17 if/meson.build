@@ -11,4 +11,4 @@ if var2
   exe = executable('breakbreakbreak', 'crashing.c')
 endif
 
-add_test('iftest', exe)
+test('iftest', exe)

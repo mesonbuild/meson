@@ -4,4 +4,4 @@ if host.pointer_size() == 64
   add_global_arguments('-DIS64', language : 'c')
 endif
 
-add_test('sizetest', executable('prog', 'prog.c'))
+test('sizetest', executable('prog', 'prog.c'))

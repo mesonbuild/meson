@@ -620,7 +620,7 @@ class Interpreter():
                       'static_library' : self.func_static_lib,
                       'shared_library' : self.func_shared_lib,
                       'generator' : self.func_generator,
-                      'add_test' : self.func_add_test,
+                      'test' : self.func_test,
                       'headers' : self.func_headers,
                       'man' : self.func_man,
                       'subdir' : self.func_subdir,
@@ -822,7 +822,7 @@ class Interpreter():
         self.generators.append(gen)
         return gen
 
-    def func_add_test(self, node, args, kwargs):
+    def func_test(self, node, args, kwargs):
         self.validate_arguments(args, 2, [str, Executable])
         t = Test(args[0], args[1])
         self.build.tests.append(t)

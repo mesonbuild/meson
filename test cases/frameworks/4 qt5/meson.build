@@ -8,4 +8,4 @@ moc_headers : ['mainWindow.h'], # These need to be fed through the moc tool befo
 ui_files : 'mainWindow.ui', # XML files that need to be compiled with the uic tol.
 deps : qt5dep)
 
-add_test('qt5test', q5exe)
+test('qt5test', q5exe)

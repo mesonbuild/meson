@@ -8,4 +8,4 @@ else
   exe = executable('prog', 'prog.c')
 endif
 
-add_test('elsetest', exe)
+test('elsetest', exe)
