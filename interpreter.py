@@ -46,15 +46,17 @@ class ConfigurationData(InterpreterObject):
         super().__init__()
         self.used = False # These objects become immutable after use in configure_file.
         self.values = {}
-        self.methods.update({'set': self.set_method})
-        
+        self.methods.update({'set': self.set_method,
+                             'set10': self.set10_method,
+                             })
+
     def is_used(self):
         return self.used
     
     def mark_used(self):
         self.used = True
 
-    def set_method(self, args, kwargs):
+    def validate_args(self, args):
         if len(args) != 2:
             raise InterpreterException("Configuration set requires 2 arguments.")
         if self.used:
@@ -63,10 +65,21 @@ class ConfigurationData(InterpreterObject):
         val = args[1]
         if not isinstance(name, str):
             raise InterpreterException("First argument to set must be a string.")
+        return (name, val)
+    
+    def set_method(self, args, kwargs):
+        (name, val) = self.validate_args(args)
         self.values[name] = val
+    
+    def set10_method(self, args, kwargs):
+        (name, val) = self.validate_args(args)
+        if val:
+            self.values[name] = 1
+        else:
+            self.values[name] = 0
 
-    def get(self, *args):
-        return self.values.get(*args)
+    def get(self, name):
+        return self.values[name]
     
     def keys(self):
         return self.values.keys()

@@ -57,16 +57,21 @@ def do_mesondefine(line, confdata):
     if len(arr) != 2:
         raise interpreter.InvalidArguments('#mesondefine does not contain exactly two tokens.')
     varname = arr[1]
-    v = confdata.get(varname, False)
+    try:
+        v = confdata.get(varname)
+    except KeyError:
+        return '/* undef %s */\n' % varname
+    if isinstance(v, nodes.BoolStatement):
+        v = v.get_value()
     if isinstance(v, bool):
-        value= v
-    elif isinstance(v, nodes.BoolStatement):
-        value = v.get_value()
+        if v:
+            return '#define %s\n' % varname
+        else:
+            return '#undef %s\n' % varname
+    elif isinstance(v, int):
+        return '#define %s %d\n' % (varname, v)
     else:
-        raise interpreter.InvalidArguments('#mesondefine argument "%s" is not boolean.' % varname)
-    if value:
-        return '#define %s\n' % varname
-    return '/* undef %s */\n' % varname
+        raise interpreter.InvalidArguments('#mesondefine argument "%s" is of unknown type.' % varname)
 
 def do_conf_file(src, dst, confdata):
     data = open(src).readlines()
