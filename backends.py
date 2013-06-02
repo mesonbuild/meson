@@ -55,7 +55,7 @@ def do_replacement(regex, line, confdata):
 def do_mesondefine(line, confdata):
     arr = line.split()
     if len(arr) != 2:
-        raise interpreter.InvalidArguments('#mesondefine does not contain exactly two tokens.')
+        raise interpreter.InvalidArguments('#mesondefine does not contain exactly two tokens: %s', line.strip())
     varname = arr[1]
     try:
         v = confdata.get(varname)
