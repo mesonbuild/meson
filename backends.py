@@ -70,6 +70,8 @@ def do_mesondefine(line, confdata):
             return '#undef %s\n' % varname
     elif isinstance(v, int):
         return '#define %s %d\n' % (varname, v)
+    elif isinstance(v, str):
+        return '#define %s %s\n' % (varname, v)
     else:
         raise interpreter.InvalidArguments('#mesondefine argument "%s" is of unknown type.' % varname)
 
