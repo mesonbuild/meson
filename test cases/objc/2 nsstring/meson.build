@@ -1,9 +1,9 @@
 project('nsstring', 'objc')
 
 if host.name() == 'darwin'
-  dep = find_dep('appleframeworks', modules : 'foundation')
+  dep = dependency('appleframeworks', modules : 'foundation')
 else
-  dep = find_dep('gnustep')
+  dep = dependency('gnustep')
 endif
 exe = executable('stringprog', 'stringprog.m', deps : dep)
 test('stringtest', exe)

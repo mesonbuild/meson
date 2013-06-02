@@ -616,7 +616,7 @@ class Interpreter():
         self.funcs = {'project' : self.func_project, 
                       'message' : self.func_message,
                       'executable': self.func_executable,
-                      'find_dep' : self.func_find_dep,
+                      'dependency' : self.func_dependency,
                       'static_library' : self.func_static_lib,
                       'shared_library' : self.func_shared_lib,
                       'generator' : self.func_generator,
@@ -795,7 +795,7 @@ class Interpreter():
             raise InvalidArguments('External library "%s" not found.' % libname)
         return libobj
 
-    def func_find_dep(self, node, args, kwargs):
+    def func_dependency(self, node, args, kwargs):
         self.validate_arguments(args, 1, [str])
         name = args[0]
         identifier = dependencies.get_dep_identifier(name, kwargs)

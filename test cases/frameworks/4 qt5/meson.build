@@ -1,6 +1,6 @@
 project('qt5 build test', 'cxx')
 
-qt5dep = find_dep('qt5', modules : 'Widgets')
+qt5dep = dependency('qt5', modules : 'Widgets')
 
 q5exe = executable('qt5test',
 sources : ['main.cpp', 'mainWindow.cpp'], # Sources that don't need preprocessing.
