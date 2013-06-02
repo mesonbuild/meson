@@ -17,6 +17,12 @@
 import ply.lex as lex
 import ply.yacc as yacc
 import nodes
+from coredata import MesonException
+
+class ParserException(MesonException):
+    def __init__(self, text, lineno):
+        MesonException.__init__(self, text)
+        self.lineno = lineno
 
 reserved = {'true' : 'TRUE',
             'false' : 'FALSE',
@@ -90,8 +96,7 @@ def t_EOL_CONTINUE(t):
     t.lexer.lineno += 1
 
 def t_error(t):
-    print("Illegal character '%s'" % t.value[0])
-    t.lexer.skip(1)
+    raise ParserException("Illegal character '%s'." % t.value[0], t.lineno)
 
 # Yacc part
 
@@ -228,7 +233,7 @@ def p_error(t):
         txt = 'NONE'
     else:
         txt = t.value
-    print('Parser errored out at: ' + txt)
+    raise ParserException('Parser errored out at: %s.' % txt, t.lineno)
 
 def test_lexer():
     s = """hello = (something) # this = (that)

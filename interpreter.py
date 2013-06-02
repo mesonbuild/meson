@@ -598,7 +598,11 @@ class Interpreter():
         if len(code.strip()) == 0:
             raise InvalidCode('Builder file is empty.')
         assert(isinstance(code, str))
-        self.ast = mparser.build_ast(code)
+        try:
+            self.ast = mparser.build_ast(code)
+        except coredata.MesonException as me:
+            me.file = environment.build_filename
+            raise me
         self.sanity_check_ast()
         self.variables = {}
         self.builtin = {}
@@ -859,7 +863,11 @@ class Interpreter():
         self.build_def_files.append(buildfilename)
         code = open(os.path.join(self.environment.get_source_dir(), buildfilename)).read()
         assert(isinstance(code, str))
-        codeblock = mparser.build_ast(code)
+        try:
+            codeblock = mparser.build_ast(code)
+        except coredata.MesonException as me:
+            me.file = buildfilename
+            raise me
         print('Going to subdirectory "%s".' % self.subdir)
         self.evaluate_codeblock(codeblock)
         self.subdir = prev_subdir
