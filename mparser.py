@@ -29,8 +29,6 @@ tokens = ['LPAREN',
           'RPAREN',
           'LBRACKET',
           'RBRACKET',
-          'LBRACE',
-          'RBRACE',
           'ATOM',
           'COMMENT',
           'ASSIGN',
@@ -53,8 +51,6 @@ t_LPAREN = '\('
 t_RPAREN = '\)'
 t_LBRACKET = '\['
 t_RBRACKET = '\]'
-t_LBRACE = '\{'
-t_RBRACE = '\}'
 t_ignore_COMMENT = '\\#.*?(?=\\n)'
 t_COMMA = ','
 t_DOT = '\.'
