@@ -1,4 +1,4 @@
-project('boosttest', 'cxx')
+project('boosttest', 'cpp')
 
 # We want to have multiple separate configurations of Boost
 # within one project. The need to be independent of each other.

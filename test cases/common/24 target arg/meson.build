@@ -1,7 +1,7 @@
-project('local arg test', 'cxx', 'c')
+project('local arg test', 'cpp', 'c')
 
 exe1 = executable('prog', 'prog.cc', 'func.c', \
 c_args   : '-DCTHING', \
-cxx_args : '-DCXXTHING')
+cpp_args : '-DCPPTHING')
 
 test('prog1', exe1)

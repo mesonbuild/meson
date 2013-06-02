@@ -1,4 +1,4 @@
-project('qt5 build test', 'cxx')
+project('qt5 build test', 'cpp')
 
 qt5dep = dependency('qt5', modules : 'Widgets')
 

@@ -1,4 +1,4 @@
-project('mixed C and C++ pch test', 'cxx', 'c')
+project('mixed C and C++ pch test', 'cpp', 'c')
 
 pch = ['pch/main.hh', 'pch/func.h']
 

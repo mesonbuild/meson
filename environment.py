@@ -164,23 +164,23 @@ int main(int argc, char **argv) {
             raise EnvironmentException('Could not run sizeof test binary.')
         return int(so.decode())
 
-cxx_suffixes = ['cc', 'cpp', 'cxx', 'hh', 'hpp', 'hxx']
+cpp_suffixes = ['cc', 'cpp', 'cxx', 'hh', 'hpp', 'hxx']
 
-class CXXCompiler(CCompiler):
+class CPPCompiler(CCompiler):
     def __init__(self, exelist):
         CCompiler.__init__(self, exelist)
-        self.language = 'cxx'
+        self.language = 'cpp'
         self.default_suffix = 'cpp'
 
     def can_compile(self, filename):
         suffix = filename.split('.')[-1]
-        if suffix in cxx_suffixes:
+        if suffix in cpp_suffixes:
             return True
         return False
 
     def sanity_check(self, work_dir):
-        source_name = os.path.join(work_dir, 'sanitycheckcxx.cc')
-        binary_name = os.path.join(work_dir, 'sanitycheckcxx')
+        source_name = os.path.join(work_dir, 'sanitycheckcpp.cc')
+        binary_name = os.path.join(work_dir, 'sanitycheckcpp')
         ofile = open(source_name, 'w')
         ofile.write('class breakCCompiler;int main(int argc, char **argv) { return 0; }\n')
         ofile.close()
@@ -205,10 +205,10 @@ class ObjCCompiler(CCompiler):
             return True
         return False
 
-class ObjCXXCompiler(CXXCompiler):
+class ObjCPPCompiler(CPPCompiler):
     def __init__(self, exelist):
-        CXXCompiler.__init__(self, exelist)
-        self.language = 'objcxx'
+        CPPCompiler.__init__(self, exelist)
+        self.language = 'objcpp'
         self.default_suffix = 'mm'
 
     def can_compile(self, filename):
@@ -218,8 +218,8 @@ class ObjCXXCompiler(CXXCompiler):
         return False
 
     def sanity_check(self, work_dir):
-        source_name = os.path.join(work_dir, 'sanitycheckobjcxx.mm')
-        binary_name = os.path.join(work_dir, 'sanitycheckobjcxx')
+        source_name = os.path.join(work_dir, 'sanitycheckobjcpp.mm')
+        binary_name = os.path.join(work_dir, 'sanitycheckobjcpp')
         ofile = open(source_name, 'w')
         ofile.write('#import<stdio.h>\nclass MyClass;int main(int argc, char **argv) { return 0; }\n')
         ofile.close()
@@ -290,21 +290,21 @@ class VisualStudioCCompiler(CCompiler):
         if pe.returncode != 0:
             raise EnvironmentException('Executables created by C++ compiler %s are not runnable.' % self.name_string())
 
-class VisualStudioCXXCompiler(VisualStudioCCompiler):
+class VisualStudioCPPCompiler(VisualStudioCCompiler):
     def __init__(self, exelist):
         VisualStudioCCompiler.__init__(self, exelist)
-        self.language = 'cxx'
+        self.language = 'cpp'
         self.default_suffix = 'cpp'
 
     def can_compile(self, filename):
         suffix = filename.split('.')[-1]
-        if suffix in cxx_suffixes:
+        if suffix in cpp_suffixes:
             return True
         return False
 
     def sanity_check(self, work_dir):
-        source_name = os.path.join(work_dir, 'sanitycheckcxx.cpp')
-        binary_name = os.path.join(work_dir, 'sanitycheckcxx')
+        source_name = os.path.join(work_dir, 'sanitycheckcpp.cpp')
+        binary_name = os.path.join(work_dir, 'sanitycheckcpp')
         ofile = open(source_name, 'w')
         ofile.write('class BreakPlainC;int main(int argc, char **argv) { return 0; }\n')
         ofile.close()
@@ -353,7 +353,7 @@ class GnuObjCCompiler(ObjCCompiler):
     def get_pch_suffix(self):
         return 'gch'
 
-class GnuObjCXXCompiler(ObjCXXCompiler):
+class GnuObjCPPCompiler(ObjCPPCompiler):
     std_warn_flags = ['-Wall', '-Winvalid-pch']
     std_opt_flags = ['-O2']
 
@@ -362,10 +362,10 @@ class GnuObjCXXCompiler(ObjCXXCompiler):
         self.id = 'gcc'
 
     def get_std_warn_flags(self):
-        return GnuObjCXXCompiler.std_warn_flags
+        return GnuObjCPPCompiler.std_warn_flags
 
     def get_std_opt_flags(self):
-        return GnuObjCXXCompiler.std_opt_flags
+        return GnuObjCPPCompiler.std_opt_flags
 
     def get_pch_suffix(self):
         return 'gch'
@@ -387,36 +387,36 @@ class ClangCCompiler(CCompiler):
     def get_pch_suffix(self):
         return 'pch'
 
-class GnuCXXCompiler(CXXCompiler):
+class GnuCPPCompiler(CPPCompiler):
     std_warn_flags = ['-Wall', '-Winvalid-pch']
     std_opt_flags = ['-O2']
     
     def __init__(self, exelist):
-        CXXCompiler.__init__(self, exelist)
+        CPPCompiler.__init__(self, exelist)
         self.id = 'gcc'
 
     def get_std_warn_flags(self):
-        return GnuCXXCompiler.std_warn_flags
+        return GnuCPPCompiler.std_warn_flags
 
     def get_std_opt_flags(self):
-        return GnuCXXCompiler.std_opt_flags
+        return GnuCPPCompiler.std_opt_flags
 
     def get_pch_suffix(self):
         return 'gch'
 
-class ClangCXXCompiler(CXXCompiler):
+class ClangCPPCompiler(CPPCompiler):
     std_warn_flags = ['-Wall', '-Winvalid-pch']
     std_opt_flags = ['-O2']
 
     def __init__(self, exelist):
-        CXXCompiler.__init__(self, exelist)
+        CPPCompiler.__init__(self, exelist)
         self.id = 'clang'
 
     def get_std_warn_flags(self):
-        return ClangCXXCompiler.std_warn_flags
+        return ClangCPPCompiler.std_warn_flags
 
     def get_std_opt_flags(self):
-        return ClangCXXCompiler.std_opt_flags
+        return ClangCPPCompiler.std_opt_flags
 
     def get_pch_suffix(self):
         return 'pch'
@@ -522,12 +522,12 @@ class Environment():
         # List of potential compilers.
         if is_windows():
             self.default_c = ['cl', 'cc']
-            self.default_cxx = ['cl', 'c++']
+            self.default_cpp = ['cl', 'c++']
         else:
             self.default_c = ['cc']
-            self.default_cxx = ['c++']
+            self.default_cpp = ['c++']
         self.default_objc = ['cc']
-        self.default_objcxx = ['c++']
+        self.default_objcpp = ['c++']
         self.default_static_linker = 'ar'
         self.vs_static_linker = 'lib'
 
@@ -608,13 +608,13 @@ class Environment():
         path = os.path.split(__file__)[0]
         return os.path.join(path, 'depfixer.py')
 
-    def detect_cxx_compiler(self):
+    def detect_cpp_compiler(self):
         evar = 'CC'
         if evar in os.environ:
             compilers = os.environ[evar].split()
             ccache = []
         else:
-            compilers = self.default_cxx
+            compilers = self.default_cpp
             ccache = self.detect_ccache()
         for compiler in compilers:
             basename = os.path.basename(compiler).lower() 
@@ -632,13 +632,13 @@ class Environment():
             out = out.decode()
             if (out.startswith('c++ ') or out.startswith('g++')) and \
                 'Free Software Foundation' in out:
-                return GnuCXXCompiler(ccache + [compiler])
+                return GnuCPPCompiler(ccache + [compiler])
             if 'apple' in out and 'Free Software Foundation' in out:
-                return GnuCXXCompiler(ccache + [compiler])
+                return GnuCPPCompiler(ccache + [compiler])
             if out.startswith('clang'):
-                return ClangCXXCompiler(ccache + [compiler])
+                return ClangCPPCompiler(ccache + [compiler])
             if 'Microsoft' in out:
-                return VisualStudioCXXCompiler([compiler])
+                return VisualStudioCPPCompiler([compiler])
         raise EnvironmentException('Unknown compiler(s) "' + ', '.join(compilers) + '"')
 
     def detect_objc_compiler(self):
@@ -656,8 +656,8 @@ class Environment():
             return GnuObjCCompiler(exelist)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
 
-    def detect_objcxx_compiler(self):
-        exelist = self.get_objcxx_compiler_exelist()
+    def detect_objcpp_compiler(self):
+        exelist = self.get_objcpp_compiler_exelist()
         try:
             p = subprocess.Popen(exelist + ['--version'], stdout=subprocess.PIPE)
         except OSError:
@@ -666,9 +666,9 @@ class Environment():
         out = out.decode()
         if (out.startswith('c++ ') or out.startswith('g++')) and \
             'Free Software Foundation' in out:
-            return GnuObjCXXCompiler(exelist)
+            return GnuObjCPPCompiler(exelist)
         if 'apple' in out and 'Free Software Foundation' in out:
-            return GnuObjCXXCompiler(exelist)
+            return GnuObjCPPCompiler(exelist)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
 
     def detect_static_linker(self, compiler):
@@ -717,12 +717,12 @@ class Environment():
             return os.environ[evar].split()
         return ccachelist + self.default_objc
 
-    def get_objcxx_compiler_exelist(self):
+    def get_objcpp_compiler_exelist(self):
         ccachelist = self.detect_ccache()
         evar = 'OBJCXX'
         if evar in os.environ:
             return os.environ[evar].split()
-        return ccachelist + self.default_objcxx
+        return ccachelist + self.default_objcpp
 
     def get_source_dir(self):
         return self.source_dir

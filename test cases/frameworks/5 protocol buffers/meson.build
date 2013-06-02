@@ -1,4 +1,4 @@
-project('protocol buffer test', 'cxx')
+project('protocol buffer test', 'cpp')
 
 protoc = find_program('protoc')
 dep = dependency('protobuf')

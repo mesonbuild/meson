@@ -387,10 +387,10 @@ class BuildTarget(InterpreterObject):
         if not isinstance(clist, list):
             clist = [clist]
         self.add_compiler_args('c', clist)
-        cxxlist = kwargs.get('cxx_args', [])
-        if not isinstance(cxxlist, list):
-            cxxlist = [cxxlist]
-        self.add_compiler_args('cxx', cxxlist)
+        cpplist = kwargs.get('cpp_args', [])
+        if not isinstance(cpplist, list):
+            cpplist = [cpplist]
+        self.add_compiler_args('cpp', cpplist)
         if 'version' in kwargs:
             self.set_version(kwargs['version'])
         if 'soversion' in kwargs:
@@ -767,12 +767,12 @@ class Interpreter():
             else:
                 if lang.lower() == 'c':
                     comp = self.environment.detect_c_compiler()
-                elif lang.lower() == 'cxx':
-                    comp = self.environment.detect_cxx_compiler()
+                elif lang.lower() == 'cpp':
+                    comp = self.environment.detect_cpp_compiler()
                 elif lang.lower() == 'objc':
                     comp = self.environment.detect_objc_compiler()
-                elif lang.lower() == 'objcxx':
-                    comp = self.environment.detect_objcxx_compiler()
+                elif lang.lower() == 'objcpp':
+                    comp = self.environment.detect_objcpp_compiler()
                 else:
                     raise InvalidCode('Tried to use unknown language "%s".' % lang)
                 comp.sanity_check(self.environment.get_scratch_dir())

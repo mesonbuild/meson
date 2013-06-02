@@ -2,7 +2,7 @@
 #error "Wrong global argument set"
 #endif
 
-#ifndef MYCXXTHING
+#ifndef MYCPPTHING
 #error "Global argument not set"
 #endif
 

@@ -1,4 +1,4 @@
-project('Objective C++', 'objcxx')
+project('Objective C++', 'objcpp')
 
-exe = executable('objcxxprog', 'prog.mm')
-test('objcxx', exe)
+exe = executable('objcppprog', 'prog.mm')
+test('objcpp', exe)

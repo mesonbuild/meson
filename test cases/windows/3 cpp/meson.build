@@ -1,4 +1,4 @@
-project('wincxx', 'cxx')
+project('wincpp', 'cpp')
 
 exe = executable('prog', 'prog.cpp')
-test('wincxx', exe)
+test('wincpp', exe)

@@ -1,4 +1,4 @@
-project('gmock test', 'cxx')
+project('gmock test', 'cpp')
 
 # Using gmock without gtest is a pain so just
 # don't support that then.

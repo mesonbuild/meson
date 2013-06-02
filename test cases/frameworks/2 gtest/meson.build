@@ -1,4 +1,4 @@
-project('gtest', 'cxx')
+project('gtest', 'cpp')
 
 gtest = dependency('gtest')
 

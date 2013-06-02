@@ -2,7 +2,7 @@
 #error "Wrong local argument set"
 #endif
 
-#ifndef CXXTHING
+#ifndef CPPTHING
 #error "Local argument not set"
 #endif
 
