@@ -30,7 +30,7 @@ else:
     execute_wrapper = ''
 
 def ninja_quote(text):
-    return text.replace(' ', '$ ')
+    return text.replace(' ', '$ ').replace(':', '$:')
 
 def do_replacement(regex, line, confdata):
     match = re.search(regex, line)

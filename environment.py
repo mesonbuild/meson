@@ -256,6 +256,8 @@ class VisualStudioCCompiler(CCompiler):
         return ['/c']
 
     def get_output_flags(self, target):
+        if target.endswith('.exe'):
+            return ['/Fe' + target]
         return ['/Fo' + target]
 
     def get_dependency_gen_flags(self, outtarget, outfile):
