@@ -109,6 +109,11 @@ class CCompiler():
         if pe.returncode != 0:
             raise EnvironmentException('Executables created by C compiler %s are not runnable.' % self.name_string())
     
+    def has_header(self, hname):
+        templ = '''#include<%s>
+'''
+        return self.compiles(templ % hname)
+
     def compiles(self, code):
         suflen = len(self.default_suffix)
         (fd, srcname) = tempfile.mkstemp(suffix='.'+self.default_suffix)

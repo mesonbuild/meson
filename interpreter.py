@@ -560,6 +560,7 @@ class CompilerHolder(InterpreterObject):
         self.methods.update({'compiles': self.compiles_method,
                              'get_id': self.get_id_method,
                              'sizeof': self.sizeof_method,
+                             'has_header': self.has_header_method,
                              })
 
     def get_id_method(self, args, kwargs):
@@ -585,6 +586,16 @@ class CompilerHolder(InterpreterObject):
         if not isinstance(string, str):
             raise InterpreterException('Argument to compiles() must be a string')
         return self.compiler.compiles(string)
+    
+    def has_header_method(self, args, kwargs):
+        if len(args) != 1:
+            raise InterpreterException('has_header method takes exactly one argument.')
+        string = args[0]
+        if isinstance(string, nodes.StringStatement):
+            string = string.value
+        if not isinstance(string, str):
+            raise InterpreterException('Argument to has_header() must be a string')
+        return self.compiler.has_header(string)
 
 class MesonMain(InterpreterObject):
     def __init__(self, build):
