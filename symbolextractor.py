@@ -47,6 +47,8 @@ def linux_syms(libfilename, outfilename):
     pnm = subprocess.Popen(['nm', '--dynamic', '--extern-only', '--defined-only', '--format=posix', libfilename],
                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     output = pnm.communicate()[0].decode()
+    if pnm.returncode != 0:
+        raise RuntimeError('nm does not work.')
     result += [x.split()[0] for x in output.split('\n') if len(x) > 0]
     write_if_changed('\n'.join(result), outfilename)
 
