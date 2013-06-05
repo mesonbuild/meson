@@ -575,7 +575,9 @@ class CompilerHolder(InterpreterObject):
         prefix = kwargs.get('prefix', '')
         if not isinstance(prefix, str):
             raise InterpreterException('Prefix argument of sizeof must be a string.')
-        return self.compiler.sizeof(element, prefix)
+        esize = self.compiler.sizeof(element, prefix)
+        print('Checking for size of "%s": %d' % (element, esize))
+        return esize
 
     def compiles_method(self, args, kwargs):
         if len(args) != 1:
@@ -595,7 +597,9 @@ class CompilerHolder(InterpreterObject):
             string = string.value
         if not isinstance(string, str):
             raise InterpreterException('Argument to has_header() must be a string')
-        return self.compiler.has_header(string)
+        haz = self.compiler.has_header(string)
+        print('Has header "%s": %s.' % (string, str(haz)))
+        return haz
 
 class MesonMain(InterpreterObject):
     def __init__(self, build):
