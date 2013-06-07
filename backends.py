@@ -473,7 +473,7 @@ class NinjaBackend(Backend):
         outfile.write(' description = $DESC\n')
         outfile.write(' restat = 1\n\n')
         outfile.write('rule REGENERATE_BUILD\n')
-        c = (sys.executable,
+        c = (ninja_quote(sys.executable),
              ninja_quote(self.environment.get_build_command()),
              ninja_quote(self.environment.get_source_dir()),
              ninja_quote(self.environment.get_build_dir()))
@@ -505,6 +505,18 @@ class NinjaBackend(Backend):
             outfile.write(command)
             outfile.write(description)
             outfile.write('\n')
+        scriptdir = self.environment.get_script_dir()
+        outfile.write('\n')
+        symrule = 'rule SHSYM\n'
+        symcmd = ' command = %s %s %s %s\n' % (ninja_quote(sys.executable),
+                                         ninja_quote(os.path.join(scriptdir, 'symbolextractor.py')),
+                                         '$in', '$out')
+        synstat = ' restat = 1\n'
+        syndesc = ' description = Generating symbol file $out.\n'
+        outfile.write(symrule)
+        outfile.write(symcmd)
+        outfile.write(synstat)
+        outfile.write(syndesc)
         outfile.write('\n')
 
     def generate_compile_rules(self, outfile):
@@ -628,6 +640,11 @@ class NinjaBackend(Backend):
             elem.add_item('FLAGS', commands)
             elem.add_item('DEPFILE', dep)
             elem.write(outfile)
+            
+    def generate_shsym(self, outfile, target_name):
+        symname = target_name + '.symbols'
+        elem = NinjaBuildElement(symname, 'SHSYM', target_name)
+        elem.write(outfile)
 
     def generate_link(self, target, outfile, outname, obj_list):
         if isinstance(target, interpreter.StaticLibrary):
@@ -636,6 +653,8 @@ class NinjaBackend(Backend):
         else:
             linker = self.build.compilers[0]
             linker_base = linker.get_language() # Fixme.
+        if isinstance(target, interpreter.SharedLibrary):
+            self.generate_shsym(outfile, outname)
         linker_rule = linker_base + '_LINKER'
         commands = []
         if isinstance(target, interpreter.Executable):
@@ -653,11 +672,16 @@ class NinjaBackend(Backend):
         commands += self.build_target_link_arguments(dependencies)
         if self.environment.coredata.coverage:
             commands += linker.get_coverage_link_flags()
-        dep_targets = [self.get_target_filename(t) for t in dependencies]
+        dep_targets = [self.get_dependency_filename(t) for t in dependencies]
         elem = NinjaBuildElement(outname, linker_rule, obj_list)
         elem.add_dep(dep_targets)
         elem.add_item('LINK_FLAGS', commands)
         return elem
+
+    def get_dependency_filename(self, t):
+        if isinstance(t, interpreter.SharedLibrary):
+            return self.get_target_filename(t) + '.symbols'
+        return self.get_target_filename(t)
 
     def generate_shlib_aliases(self, target, outdir, outfile, elem):
         basename = target.get_filename()

@@ -43,14 +43,14 @@ def linux_syms(libfilename, outfilename):
     if pe.returncode != 0:
         raise RuntimeError('Readelf does not work')
     result = [x for x in output.split('\n') if 'SONAME' in x]
-    assert(len(result) == 1)
+    assert(len(result) <= 1)
     pnm = subprocess.Popen(['nm', '--dynamic', '--extern-only', '--defined-only', '--format=posix', libfilename],
                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     output = pnm.communicate()[0].decode()
     if pnm.returncode != 0:
         raise RuntimeError('nm does not work.')
     result += [x.split()[0] for x in output.split('\n') if len(x) > 0]
-    write_if_changed('\n'.join(result), outfilename)
+    write_if_changed('\n'.join(result) + '\n', outfilename)
 
 def gen_symbols(libfilename, outfilename):
     if platform.system() == 'Linux':
