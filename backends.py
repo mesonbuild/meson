@@ -641,8 +641,10 @@ class NinjaBackend(Backend):
             elem.add_item('DEPFILE', dep)
             elem.write(outfile)
             
-    def generate_shsym(self, outfile, target_name):
-        symname = target_name + '.symbols'
+    def generate_shsym(self, outfile, target):
+        target_name = self.get_target_filename(target)
+        targetdir = self.get_target_private_dir(target)
+        symname = os.path.join(targetdir, target_name + '.symbols')
         elem = NinjaBuildElement(symname, 'SHSYM', target_name)
         elem.write(outfile)
 
@@ -654,7 +656,7 @@ class NinjaBackend(Backend):
             linker = self.build.compilers[0]
             linker_base = linker.get_language() # Fixme.
         if isinstance(target, interpreter.SharedLibrary):
-            self.generate_shsym(outfile, outname)
+            self.generate_shsym(outfile, target)
         linker_rule = linker_base + '_LINKER'
         commands = []
         if isinstance(target, interpreter.Executable):
@@ -680,7 +682,7 @@ class NinjaBackend(Backend):
 
     def get_dependency_filename(self, t):
         if isinstance(t, interpreter.SharedLibrary):
-            return self.get_target_filename(t) + '.symbols'
+            return os.path.join(self.get_target_private_dir(t), self.get_target_filename(t) + '.symbols')
         return self.get_target_filename(t)
 
     def generate_shlib_aliases(self, target, outdir, outfile, elem):
