@@ -1,4 +1,4 @@
-#!/usr/bin/python3 -tt
+#!/usr/bin/env python3
 
 # Copyright 2013 Jussi Pakkanen
 
@@ -49,12 +49,32 @@ def linux_syms(libfilename, outfilename):
     output = pnm.communicate()[0].decode()
     if pnm.returncode != 0:
         raise RuntimeError('nm does not work.')
-    result += [x.split()[0] for x in output.split('\n') if len(x) > 0]
+    result += [' '.join(x.split()[0:2]) for x in output.split('\n') if len(x) > 0]
+    write_if_changed('\n'.join(result) + '\n', outfilename)
+
+def osx_syms(libfilename, outfilename):
+    pe = subprocess.Popen(['otool', '-l', libfilename], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    output = pe.communicate()[0].decode()
+    if pe.returncode != 0:
+        raise RuntimeError('Otool does not work.')
+    arr = output.split('\n')
+    for (i, val) in enumerate(arr):
+        if 'LC_ID_DYLIB' in val:
+            match = i
+            break
+    result = [arr[match+2], arr[match+5]] # Libreoffice stores all 5 lines but the others seem irrelevant.
+    pnm = subprocess.Popen(['nm', '-g', '-P', libfilename], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    output = pnm.communicate()[0].decode()
+    if pnm.returncode != 0:
+        raise RuntimeError('nm does not work.')
+    result += [' '.join(x.split()[0:2]) for x in output.split('\n') if len(x) > 0 and not x.endswith('U')]
     write_if_changed('\n'.join(result) + '\n', outfilename)
 
 def gen_symbols(libfilename, outfilename):
     if platform.system() == 'Linux':
         linux_syms(libfilename, outfilename)
+    if platform.system() == 'Darwin':
+        osx_syms(libfilename, outfilename)
     else:
         dummy_syms(outfilename)
 
