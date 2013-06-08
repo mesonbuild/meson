@@ -508,7 +508,7 @@ class NinjaBackend(Backend):
         scriptdir = self.environment.get_script_dir()
         outfile.write('\n')
         symrule = 'rule SHSYM\n'
-        symcmd = ' command = %s %s %s %s\n' % (ninja_quote(sys.executable),
+        symcmd = ' command = "%s" "%s" "%s" "%s"\n' % (ninja_quote(sys.executable),
                                          ninja_quote(os.path.join(scriptdir, 'symbolextractor.py')),
                                          '$in', '$out')
         synstat = ' restat = 1\n'
