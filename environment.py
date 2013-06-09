@@ -788,8 +788,14 @@ class Environment():
             return ['C:/mingw/lib'] # Fixme
         if is_osx():
             return ['/usr/lib'] # Fix me as well.
+        # The following is probably Debian/Ubuntu specific.
         unixdirs = ['/usr/lib', '/lib']
         plat = subprocess.check_output(['uname', '-m']).decode().strip()
+        # This is a terrible hack. I admit it and I'm really sorry.
+        # I just don't know what the correct solution is.
+        if plat == 'i686':
+            plat = 'i386'
         unixdirs += glob('/usr/lib/' + plat + '*')
+        unixdirs += glob('/lib/' + plat + '*')
         unixdirs.append('/usr/local/lib')
         return unixdirs
