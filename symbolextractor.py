@@ -73,7 +73,7 @@ def osx_syms(libfilename, outfilename):
 def gen_symbols(libfilename, outfilename):
     if platform.system() == 'Linux':
         linux_syms(libfilename, outfilename)
-    if platform.system() == 'Darwin':
+    elif platform.system() == 'Darwin':
         osx_syms(libfilename, outfilename)
     else:
         dummy_syms(outfilename)
