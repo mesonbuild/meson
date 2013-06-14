@@ -692,11 +692,12 @@ class NinjaBackend(Backend):
             if '/' not in pch[0] or '/' not in pch[-1]:
                 raise interpreter.InvalidArguments('Precompiled header of "%s" must not be in the same direcotory as source, please put it in a subdirectory.' % target.get_basename())
             compiler = self.get_compiler_for_lang(lang)
-            src = os.path.join(self.build_to_src, target.get_source_subdir(), pch[-1])
             if compiler.id == 'msvc':
+                src = os.path.join(self.build_to_src, target.get_source_subdir(), pch[-1])
                 (commands, dep, dst) = self.generate_msvc_pch_command(target, compiler, pch)
                 extradep = os.path.join(self.build_to_src, target.get_source_subdir(), pch[0])
             else:
+                src = os.path.join(self.build_to_src, target.get_source_subdir(), pch[0])
                 (commands, dep, dst) = self.generate_gcc_pch_command(target, compiler, pch[0])
                 extradep = None
             rulename = compiler.get_language() + '_PCH'
