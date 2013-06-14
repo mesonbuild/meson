@@ -112,6 +112,12 @@ class Backend():
         self.build_to_src = os.path.relpath(self.environment.get_source_dir(),
                                             self.environment.get_build_dir())
 
+    def get_compiler_for_lang(self, lang):
+        for i in self.build.compilers:
+            if i.language == lang:
+                return i
+        raise RuntimeError('No compiler for language ' + lang)
+
     def get_compiler_for_source(self, src):
         for i in self.build.compilers:
             if i.can_compile(src):
@@ -171,10 +177,13 @@ class Backend():
         args = []
         pchpath = self.get_target_private_dir(target)
         includearg = compiler.get_include_arg(pchpath)
-        for p in target.get_pch():
-            if compiler.can_compile(p):
+        for lang in ['c', 'cpp']:
+            p = target.get_pch(lang)
+            if len(p) == 0:
+                continue
+            if compiler.can_compile(p[-1]):
                 args.append('-include')
-                args.append(os.path.split(p)[-1])
+                args.append(os.path.split(p[0])[-1])
         if len(args) > 0:
             args = [includearg] + args
         return args
@@ -595,7 +604,7 @@ class NinjaBackend(Backend):
         rel_obj = os.path.join(self.get_target_private_dir(target), os.path.basename(src_filename))
         rel_obj += '.' + self.environment.get_object_suffix()
         dep_file = rel_obj + '.' + compiler.get_depfile_suffix()
-        pchlist = target.get_pch()
+        pchlist = target.get_pch(compiler.language)
         if len(pchlist) == 0:
             pch_dep = []
         else:
@@ -628,22 +637,54 @@ class NinjaBackend(Backend):
         element.write(outfile)
         return rel_obj
 
+    def generate_msvc_pch_command(self, target, compiler, pch):
+        if len(pch) != 2:
+            raise RuntimeError('MSVC requires one header and one source to produce precompiled headers.')
+        header = pch[0]
+        source = pch[1]
+        chopped = os.path.split(header)[-1].split('.')[:-1]
+        chopped.append(compiler.get_pch_suffix())
+        pchname = '.'.join(chopped)
+        dst = os.path.join(self.get_target_private_dir(target), pchname)
+
+        commands = []
+        commands += self.generate_basic_compiler_flags(target, compiler)
+        commands += compiler.gen_pch_args(header, source, dst)
+        
+        dep = dst + '.' + compiler.get_depfile_suffix()
+        return (commands, dep, dst)
+
+    def generate_gcc_pch_command(self, target, compiler, pch):
+        commands = []
+        commands += self.generate_basic_compiler_flags(target, compiler)
+        
+        dst = os.path.join(self.get_target_private_dir(target),
+                           os.path.split(pch)[-1] + '.' + compiler.get_pch_suffix())
+        dep = dst + '.' + compiler.get_depfile_suffix()
+        return (commands, dep, dst)
+
     def generate_pch(self, target, outfile):
-        for pch in target.get_pch():
-            if '/' not in pch:
+        for lang in ['c', 'cpp']:
+            pch = target.get_pch(lang)
+            if len(pch) == 0:
+                continue
+            if '/' not in pch[0] or '/' not in pch[-1]:
                 raise interpreter.InvalidArguments('Precompiled header of "%s" must not be in the same direcotory as source, please put it in a subdirectory.' % target.get_basename())
-            compiler = self.get_compiler_for_source(pch)
-            commands = []
-            commands += self.generate_basic_compiler_flags(target, compiler)
-            src = os.path.join(self.build_to_src, target.get_source_subdir(), pch)
-            dst = os.path.join(self.get_target_private_dir(target),
-                                  os.path.split(pch)[-1] + '.' + compiler.get_pch_suffix())
-            dep = dst + '.' + compiler.get_depfile_suffix()
+            compiler = self.get_compiler_for_lang(lang)
+            src = os.path.join(self.build_to_src, target.get_source_subdir(), pch[-1])
+            if compiler.id == 'msvc':
+                (commands, dep, dst) = self.generate_msvc_pch_command(target, compiler, pch)
+                extradep = os.path.join(self.build_to_src, target.get_source_subdir(), pch[0])
+            else:
+                (commands, dep, dst) = self.generate_gcc_pch_command(target, compiler, pch[0])
+                extradep = None
             elem = NinjaBuildElement(dst, compiler.get_language() + '_COMPILER', src)
+            if extradep is not None:
+                elem.add_dep(extradep)
             elem.add_item('FLAGS', commands)
             elem.add_item('DEPFILE', dep)
             elem.write(outfile)
-            
+
     def generate_shsym(self, outfile, target):
         target_name = self.get_target_filename(target)
         targetdir = self.get_target_private_dir(target)

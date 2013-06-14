@@ -348,7 +348,7 @@ class BuildTarget(InterpreterObject):
         self.link_targets = []
         self.filename = 'no_name'
         self.need_install = False
-        self.pch = []
+        self.pch = {}
         self.extra_args = {}
         self.generated = []
         self.process_sourcelist(sources)
@@ -379,10 +379,14 @@ class BuildTarget(InterpreterObject):
             llist = [llist]
         for linktarget in llist:
             self.link(linktarget)
-        pchlist = kwargs.get('pch', [])
-        if not isinstance(pchlist, list):
-            pchlist = [pchlist]
-        self.add_pch(pchlist)
+        c_pchlist = kwargs.get('c_pch', [])
+        if not isinstance(c_pchlist, list):
+            c_pchlist = [c_pchlist]
+        self.add_pch('c', c_pchlist)
+        cpp_pchlist = kwargs.get('cpp_pch', [])
+        if not isinstance(cpp_pchlist, list):
+            cpp_pchlist = [cpp_pchlist]
+        self.add_pch('cpp', cpp_pchlist)
         clist = kwargs.get('c_args', [])
         if not isinstance(clist, list):
             clist = [clist]
@@ -434,8 +438,11 @@ class BuildTarget(InterpreterObject):
     def has_pch(self):
         return len(self.pch) > 0
 
-    def get_pch(self):
-        return self.pch
+    def get_pch(self, language):
+        try:
+            return self.pch[language]
+        except KeyError:
+            return[]
 
     def get_include_dirs(self):
         return self.include_dirs
@@ -467,9 +474,20 @@ class BuildTarget(InterpreterObject):
                 raise InvalidArguments('Generated source argument is not the output of a generator.')
             self.generated.append(g)
 
-    def add_pch(self, pchlist):
-        for a in pchlist:
-            self.pch.append(a)
+    def add_pch(self, language, pchlist):
+        if len(pchlist) == 0:
+            return
+        if len(pchlist) == 2:
+            if environment.is_header(pchlist[0]):
+                if not environment.is_source(pchlist[1]):
+                    raise InterpreterException('PCH definition must contain one header and at most one source.')
+            elif environment.is_source(pchlist[0]):
+                if not environment.is_header(pchlist[1]):
+                    raise InterpreterException('PCH definition must contain one header and at most one source.')
+            pchlist = [pchlist[1], pchlist[0]]
+        elif len(pchlist) > 2:
+            raise InterpreterException('PCH definition may have a maximum of 2 files.')
+        self.pch[language] = pchlist
 
     def add_include_dirs(self, args):
         for a in args:

@@ -169,8 +169,6 @@ int main(int argc, char **argv) {
             raise EnvironmentException('Could not run sizeof test binary.')
         return int(so.decode())
 
-cpp_suffixes = ['cc', 'cpp', 'cxx', 'hh', 'hpp', 'hxx']
-
 class CPPCompiler(CCompiler):
     def __init__(self, exelist):
         CCompiler.__init__(self, exelist)
@@ -279,6 +277,9 @@ class VisualStudioCCompiler(CCompiler):
 
     def get_std_shared_lib_link_flags(self):
         return ['/DLL']
+
+    def gen_pch_args(self, header, source, pchname):
+        return ['/Yc' + header, '/Fp' + pchname]
 
     def sanity_check(self, work_dir):
         source_name = os.path.join(work_dir, 'sanitycheckc.c')
@@ -504,6 +505,17 @@ def is_windows():
     return platform.system().lower() == 'windows'
 
 header_suffixes = ['h', 'hh', 'hpp', 'hxx', 'H']
+cpp_suffixes = ['cc', 'cpp', 'cxx', 'hh', 'hpp', 'hxx']
+c_suffixes = ['c']
+clike_suffixes = c_suffixes + cpp_suffixes
+
+def is_header(fname):
+    suffix = fname.split('.')[-1]
+    return suffix in header_suffixes
+
+def is_source(fname):
+    suffix = fname.split('.')[-1]
+    return suffix in clike_suffixes
 
 class Environment():
     private_dir = 'meson-private'
@@ -573,8 +585,10 @@ class Environment():
         return self.meson_script_file
 
     def is_header(self, fname):
-        suffix = fname.split('.')[-1]
-        return suffix in header_suffixes
+        return is_header(fname)
+    
+    def is_source(self, fname):
+        return is_source(fname)
 
     def detect_c_compiler(self):
         evar = 'CC'
