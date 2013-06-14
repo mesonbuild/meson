@@ -275,10 +275,10 @@ class VisualStudioCCompiler(CCompiler):
         return ['/OUT:' + outputname]
 
     def get_pic_flags(self):
-        return []
+        return ['/LD']
 
     def get_std_shared_lib_link_flags(self):
-        return []
+        return ['/DLL']
 
     def sanity_check(self, work_dir):
         source_name = os.path.join(work_dir, 'sanitycheckc.c')
