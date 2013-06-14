@@ -531,24 +531,48 @@ class NinjaBackend(Backend):
         outfile.write(syndesc)
         outfile.write('\n')
 
-    def generate_compile_rules(self, outfile):
-        qstr = quote_char + "%s" + quote_char
-        for compiler in self.build.compilers:
-            langname = compiler.get_language()
-            rule = 'rule %s_COMPILER\n' % langname
-            depflags = compiler.get_dependency_gen_flags('$out', '$DEPFILE')
-            command = " command = %s $FLAGS %s %s %s $in\n" % \
+    def generate_compile_rule_for(self, langname, compiler, qstr, outfile):
+        rule = 'rule %s_COMPILER\n' % langname
+        depflags = compiler.get_dependency_gen_flags('$out', '$DEPFILE')
+        command = " command = %s $FLAGS %s %s %s $in\n" % \
             (' '.join(compiler.get_exelist()),\
              ' '.join([qstr % d for d in depflags]),\
              ' '.join(compiler.get_output_flags('$out')),\
              ' '.join(compiler.get_compile_only_flags()))
-            description = ' description = Compiling %s object $out\n' % langname
-            dep = ' depfile = $DEPFILE\n'
-            outfile.write(rule)
-            outfile.write(command)
-            outfile.write(dep)
-            outfile.write(description)
-            outfile.write('\n')
+        description = ' description = Compiling %s object $out\n' % langname
+        dep = ' depfile = $DEPFILE\n'
+        outfile.write(rule)
+        outfile.write(command)
+        outfile.write(dep)
+        outfile.write(description)
+        outfile.write('\n')
+
+    def generate_pch_rule_for(self, langname, compiler, qstr, outfile):
+        rule = 'rule %s_PCH\n' % langname
+        depflags = compiler.get_dependency_gen_flags('$out', '$DEPFILE')
+        if compiler.get_id() == 'msvc':
+            output = ''
+        else:
+            output = ' '.join(compiler.get_output_flags('$out'))
+        command = " command = %s $FLAGS %s %s %s $in\n" % \
+            (' '.join(compiler.get_exelist()),\
+             ' '.join([qstr % d for d in depflags]),\
+             output,\
+             ' '.join(compiler.get_compile_only_flags()))
+        description = ' description = Precompilling header %s\n' % '$in'
+        dep = ' depfile = $DEPFILE\n'
+        outfile.write(rule)
+        outfile.write(command)
+        outfile.write(dep)
+        outfile.write(description)
+        outfile.write('\n')
+
+    def generate_compile_rules(self, outfile):
+        qstr = quote_char + "%s" + quote_char
+        for compiler in self.build.compilers:
+            langname = compiler.get_language()
+            self.generate_compile_rule_for(langname, compiler, qstr, outfile)
+            self.generate_pch_rule_for(langname, compiler, qstr, outfile)
         outfile.write('\n')
 
     def generate_custom_generator_rules(self, target, outfile):
@@ -649,7 +673,8 @@ class NinjaBackend(Backend):
 
         commands = []
         commands += self.generate_basic_compiler_flags(target, compiler)
-        commands += compiler.gen_pch_args(header, source, dst)
+        just_name = os.path.split(header)[1]
+        commands += compiler.gen_pch_args(just_name, source, dst)
         
         dep = dst + '.' + compiler.get_depfile_suffix()
         return (commands, dep, dst)
@@ -678,7 +703,8 @@ class NinjaBackend(Backend):
             else:
                 (commands, dep, dst) = self.generate_gcc_pch_command(target, compiler, pch[0])
                 extradep = None
-            elem = NinjaBuildElement(dst, compiler.get_language() + '_COMPILER', src)
+            rulename = compiler.get_language() + '_PCH'
+            elem = NinjaBuildElement(dst, rulename, src)
             if extradep is not None:
                 elem.add_dep(extradep)
             elem.add_item('FLAGS', commands)
