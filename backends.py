@@ -199,14 +199,17 @@ class Backend():
 
         return commands
 
-    def build_target_link_arguments(self, deps):
+    def build_target_link_arguments(self, compiler, deps):
         args = []
         for d in deps:
             if not isinstance(d, interpreter.StaticLibrary) and\
             not isinstance(d, interpreter.SharedLibrary):
                 raise RuntimeError('Tried to link with a non-library target "%s".' % d.get_basename())
             fname = self.get_target_filename(d)
-            fname = './' + fname # Hack to make ldd find the library.
+            if compiler.id == 'msvc':
+                if fname.endswith('dll'):
+                    fname = fname[:-3] + 'lib'
+            fname = os.path.join('.', fname) # Hack to make ldd find the library.
             args.append(fname)
         return args
 
@@ -671,7 +674,7 @@ class NinjaBackend(Backend):
         for dep in target.get_external_deps():
             commands += dep.get_link_flags()
         dependencies = target.get_dependencies()
-        commands += self.build_target_link_arguments(dependencies)
+        commands += self.build_target_link_arguments(linker, dependencies)
         if self.environment.coredata.coverage:
             commands += linker.get_coverage_link_flags()
         dep_targets = [self.get_dependency_filename(t) for t in dependencies]
