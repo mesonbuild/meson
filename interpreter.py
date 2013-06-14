@@ -484,7 +484,9 @@ class BuildTarget(InterpreterObject):
             elif environment.is_source(pchlist[0]):
                 if not environment.is_header(pchlist[1]):
                     raise InterpreterException('PCH definition must contain one header and at most one source.')
-            pchlist = [pchlist[1], pchlist[0]]
+                pchlist = [pchlist[1], pchlist[0]]
+            else:
+                raise InterpreterException('PCH argument %s is of unknown type.' % pchlist[0])
         elif len(pchlist) > 2:
             raise InterpreterException('PCH definition may have a maximum of 2 files.')
         self.pch[language] = pchlist
