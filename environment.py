@@ -93,7 +93,13 @@ class CCompiler():
 
     def name_string(self):
         return ' '.join(self.exelist)
-    
+
+    def get_pch_use_args(self, pch_dir, header):
+        return ['-include', os.path.split(header)[-1]]
+
+    def get_pch_name(self, header_name):
+        return os.path.split(header_name)[-1] + '.' + self.get_pch_suffix()
+
     def sanity_check(self, work_dir):
         source_name = os.path.join(work_dir, 'sanitycheckc.c')
         binary_name = os.path.join(work_dir, 'sanitycheckc')
@@ -251,6 +257,17 @@ class VisualStudioCCompiler(CCompiler):
     
     def get_pch_suffix(self):
         return 'pch'
+    
+    def get_pch_name(self, header):
+        chopped = os.path.split(header)[-1].split('.')[:-1]
+        chopped.append(self.get_pch_suffix())
+        pchname = '.'.join(chopped)
+        return pchname
+
+    def get_pch_use_args(self, pch_dir, header):
+        base = os.path.split(header)[-1]
+        pchname = self.get_pch_name(header)
+        return ['/FI' + base, '/Yu' + base, '/Fp' + os.path.join(pch_dir, pchname)]
 
     def get_debug_flags(self):
         return ['/D_DEBUG', '/Zi', '/MDd', '/Ob0', '/RTC1']

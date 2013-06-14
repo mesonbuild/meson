@@ -182,8 +182,8 @@ class Backend():
             if len(p) == 0:
                 continue
             if compiler.can_compile(p[-1]):
-                args.append('-include')
-                args.append(os.path.split(p[0])[-1])
+                header = p[0]
+                args += compiler.get_pch_use_args(pchpath, header)
         if len(args) > 0:
             args = [includearg] + args
         return args
@@ -633,10 +633,8 @@ class NinjaBackend(Backend):
             pch_dep = []
         else:
             arr = []
-            for pch in pchlist:
-                i = os.path.join(self.get_target_private_dir(target),
-                                  os.path.split(pch)[-1] + '.' + compiler.get_pch_suffix())
-                arr.append(i)
+            i = os.path.join(self.get_target_private_dir(target), compiler.get_pch_name(pchlist[0]))
+            arr.append(i)
             pch_dep = arr
         for i in target.get_include_dirs():
             basedir = i.get_curdir()
@@ -666,9 +664,7 @@ class NinjaBackend(Backend):
             raise RuntimeError('MSVC requires one header and one source to produce precompiled headers.')
         header = pch[0]
         source = pch[1]
-        chopped = os.path.split(header)[-1].split('.')[:-1]
-        chopped.append(compiler.get_pch_suffix())
-        pchname = '.'.join(chopped)
+        pchname = compiler.get_pch_name(header)
         dst = os.path.join(self.get_target_private_dir(target), pchname)
 
         commands = []
