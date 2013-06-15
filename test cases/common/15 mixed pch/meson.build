@@ -1,5 +1,6 @@
 project('mixed C and C++ pch test', 'cpp', 'c')
 
-pch = ['pch/main.hh', 'pch/func.h']
 
-exe = executable('prog', 'main.cc', 'func.c', pch : pch)
+exe = executable('prog', 'main.cc', 'func.c',
+c_pch : ['pch/func.h', 'pch/func_pch.c'],
+cpp_pch : ['pch/main_pch.cc', 'pch/main.h'])
