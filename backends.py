@@ -190,6 +190,7 @@ class Backend():
 
     def generate_basic_compiler_flags(self, target, compiler):
         commands = []
+        commands += compiler.get_always_flags()
         commands += self.build.get_global_flags(compiler)
         commands += target.get_extra_args(compiler.get_language())
         if self.environment.coredata.buildtype != 'plain':
@@ -540,10 +541,13 @@ class NinjaBackend(Backend):
              ' '.join(compiler.get_output_flags('$out')),\
              ' '.join(compiler.get_compile_only_flags()))
         description = ' description = Compiling %s object $out\n' % langname
-        dep = ' depfile = $DEPFILE\n'
+        if compiler.get_id() == 'msvc':
+            deps = ' deps = msvc\n'
+        else:
+            deps = ' depfile = $DEPFILE\n'
         outfile.write(rule)
         outfile.write(command)
-        outfile.write(dep)
+        outfile.write(deps)
         outfile.write(description)
         outfile.write('\n')
 
@@ -559,11 +563,14 @@ class NinjaBackend(Backend):
              ' '.join([qstr % d for d in depflags]),\
              output,\
              ' '.join(compiler.get_compile_only_flags()))
-        description = ' description = Precompilling header %s\n' % '$in'
-        dep = ' depfile = $DEPFILE\n'
+        description = ' description = Precompiling header %s\n' % '$in'
+        if compiler.get_id() == 'msvc':
+            deps = ' deps = msvc\n'
+        else:
+            deps = ' depfile = $DEPFILE\n'
         outfile.write(rule)
         outfile.write(command)
-        outfile.write(dep)
+        outfile.write(deps)
         outfile.write(description)
         outfile.write('\n')
 

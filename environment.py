@@ -36,7 +36,10 @@ class CCompiler():
         self.language = 'c'
         self.default_suffix = 'c'
         self.id = 'unknown'
-    
+
+    def get_always_flags(self):
+        return []
+
     def get_id(self):
         return self.id
 
@@ -244,10 +247,14 @@ class ObjCPPCompiler(CPPCompiler):
 class VisualStudioCCompiler(CCompiler):
     std_warn_flags = ['/W3']
     std_opt_flags= ['/O2']
+    always_flags = ['/nologo', '/showIncludes']
     
     def __init__(self, exelist):
         CCompiler.__init__(self, exelist)
         self.id = 'msvc'
+
+    def get_always_flags(self):
+        return VisualStudioCCompiler.always_flags
 
     def get_std_warn_flags(self):
         return VisualStudioCCompiler.std_warn_flags
@@ -447,6 +454,7 @@ class ClangCPPCompiler(CPPCompiler):
         return 'pch'
 
 class VisualStudioLinker():
+    always_flags = ['/NOLOGO']
     def __init__(self, exelist):
         self.exelist = exelist
         
@@ -461,6 +469,9 @@ class VisualStudioLinker():
 
     def get_coverage_link_flags(self):
         return []
+
+    def get_always_flags(self):
+        return VisualStudioLinker.always_flags
 
 class ArLinker():
     std_flags = ['csr']
@@ -480,6 +491,8 @@ class ArLinker():
     def get_coverage_link_flags(self):
         return []
 
+    def get_always_flags(self):
+        return []
 def exe_exists(arglist):
     try:
         p = subprocess.Popen(arglist, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
