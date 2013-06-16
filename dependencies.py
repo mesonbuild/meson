@@ -177,11 +177,15 @@ class BoostDependency(Dependency):
         self.lib_modules = {}
         self.detect_version()
         self.requested_modules = self.get_requested(kwargs)
-
+        module_str = ', '.join(self.requested_modules)
         if self.version is not None:
             self.detect_src_modules()
             self.detect_lib_modules()
             self.validate_requested()
+            print('Dependency Boost (%s) found: YES (%s)' % 
+                  (module_str, self.version))
+        else:
+            print("Dependency Boost (%s) found: NO" % module_str)
 
     def get_compile_flags(self):
         return []
