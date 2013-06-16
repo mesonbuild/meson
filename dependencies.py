@@ -394,8 +394,7 @@ class GnuStepDependency(Dependency):
         Dependency.__init__(self)
         self.modules = kwargs.get('modules', [])
         self.detect()
-        
-        
+
     def detect(self):
         confprog = 'gnustep-config'
         gp = subprocess.Popen([confprog, '--help'],
@@ -403,6 +402,8 @@ class GnuStepDependency(Dependency):
         gp.communicate()
         if gp.returncode != 0:
             self.flags = None
+            print('Dependency GnuStep found: NO')
+            return
         if 'gui' in self.modules:
             arg = '--gui-libs'
         else:
@@ -416,6 +417,7 @@ class GnuStepDependency(Dependency):
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         libtxt = fp.communicate()[0].decode()
         self.libs = libtxt.split()
+        print('Dependency GnuStep found: YES')
 
     def filter_flags(self, flags):
         """gnustep-config returns a bunch of garbage flags such
