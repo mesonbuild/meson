@@ -265,6 +265,10 @@ class GTestDependency(Dependency):
             print('Dependency GTest found: YES')
         else:
             print('Dependency GTest found: NO')
+        if kwargs.get('main', False):
+            self.sources = [self.all_src, self.main_src]
+        else:
+            self.sources = [self.all_src]
 
     def found(self):
         return os.path.exists(self.all_src)
@@ -281,7 +285,7 @@ class GTestDependency(Dependency):
     def get_version(self):
         return '1.something_maybe'
     def get_sources(self):
-        return [self.all_src, self.main_src]
+        return self.sources
 
 class GMockDependency(Dependency):
     def __init__(self, kwargs):
@@ -306,8 +310,12 @@ class GMockDependency(Dependency):
             self.is_found = True
             self.compile_flags = ['-I' + self.src_include_dir]
             self.link_flags = []
-            self.sources = [self.all_src]
+            if kwargs.get('main', False):
+                self.sources = [self.all_src, self.main_src]
+            else:
+                self.sources = [self.all_src]
             print('Dependency GMock found: YES')
+            
         else:
             print('Dependency GMock found: NO')
             self.is_found = False
