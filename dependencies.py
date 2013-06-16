@@ -132,6 +132,10 @@ class ExternalProgram():
             self.fullpath = fullpath
         else:
             self.fullpath = shutil.which(name)
+        if self.found():
+            print('Program %s found: YES (%s)' % (name, self.fullpath))
+        else:
+            print('Program %s found: NO' % name)
 
     def found(self):
         return self.fullpath is not None
