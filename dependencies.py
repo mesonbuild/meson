@@ -257,9 +257,14 @@ class GTestDependency(Dependency):
         self.src_dir = '/usr/src/gtest/src'
         self.all_src = os.path.join(self.src_dir, 'gtest-all.cc')
         self.main_src = os.path.join(self.src_dir, 'gtest_main.cc')
+        if self.found():
+            print('Dependency GTest found: YES')
+        else:
+            print('Dependency GTest found: NO')
 
     def found(self):
         return os.path.exists(self.all_src)
+
     def get_compile_flags(self):
         arr = []
         if self.include_dir != '/usr/include':
@@ -280,6 +285,10 @@ class GMockDependency(Dependency):
         self.name = 'gmock'
         self.libdir = '/usr/lib'
         self.libname = 'libgmock.so'
+        if self.found():
+            print('Dependency GMock found: YES')
+        else:
+            print('Dependency GMock found: NO')
 
     def get_version(self):
         return '1.something_maybe'
