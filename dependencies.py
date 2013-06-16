@@ -286,29 +286,46 @@ class GTestDependency(Dependency):
 class GMockDependency(Dependency):
     def __init__(self, kwargs):
         Dependency.__init__(self)
+        # GMock may be a library or just source.
+        # Work with both.
         self.name = 'gmock'
         self.libdir = '/usr/lib'
         self.libname = 'libgmock.so'
-        if self.found():
+        self.src_include_dir = '/usr/src/gmock'
+        self.src_dir = '/usr/src/gmock/src'
+        self.all_src = os.path.join(self.src_dir, 'gmock-all.cc')
+        self.main_src = os.path.join(self.src_dir, 'gmock_main.cc')
+        fname = os.path.join(self.libdir, self.libname)
+        if os.path.exists(fname):
+            self.is_found = True
+            self.compile_flags = []
+            self.link_flags = ['-lgmock']
+            self.sources = []
+            print('Dependency GMock found: YES')
+        elif os.path.exists(self.src_dir):
+            self.is_found = True
+            self.compile_flags = ['-I' + self.src_include_dir]
+            self.link_flags = []
+            self.sources = [self.all_src]
             print('Dependency GMock found: YES')
         else:
             print('Dependency GMock found: NO')
+            self.is_found = False
 
     def get_version(self):
         return '1.something_maybe'
 
     def get_compile_flags(self):
-        return []
+        return self.compile_flags
 
     def get_sources(self):
-        return []
+        return self.sources
 
     def get_link_flags(self):
-        return ['-lgmock']
-    
+        return self.link_flags
+
     def found(self):
-        fname = os.path.join(self.libdir, self.libname)
-        return os.path.exists(fname)
+        return self.is_found
 
 class Qt5Dependency(Dependency):
     def __init__(self, kwargs):
