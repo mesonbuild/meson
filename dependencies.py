@@ -414,12 +414,20 @@ class GnuStepDependency(Dependency):
             arg = '--base-libs'
         fp = subprocess.Popen([confprog, '--objc-flags'],
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        flagtxt = fp.communicate()[0].decode()
+        (flagtxt, flagerr) = fp.communicate()
+        flagtxt = flagtxt.decode()
+        flagerr = flagerr.decode()
+        if fp.returncode != 0:
+            raise DependencyException('Error getting objc-flags: %s %s' % (flagtxt, flagerr))
         flags = flagtxt.split()
         self.flags = self.filter_flags(flags)
         fp = subprocess.Popen([confprog, arg],
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        libtxt = fp.communicate()[0].decode()
+        (libtxt, liberr) = fp.communicate()
+        libtxt = libtxt.decode()
+        liberr = liberr.decode()
+        if fp.returncode != 0:
+            raise DependencyException('Error getting objc-lib flags: %s %s' % (libtxt, liberr))
         self.libs = libtxt.split()
         print('Dependency GnuStep found: YES')
 
