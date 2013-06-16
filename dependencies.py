@@ -428,8 +428,15 @@ class GnuStepDependency(Dependency):
         liberr = liberr.decode()
         if fp.returncode != 0:
             raise DependencyException('Error getting objc-lib flags: %s %s' % (libtxt, liberr))
-        self.libs = libtxt.split()
+        self.libs = self.weird_filter(libtxt.split())
         print('Dependency GnuStep found: YES')
+
+    def weird_filter(self, elems):
+        """When building packages, the output of the enclosing Make
+is sometimes mixed among the subprocess output. I have no idea
+why. As a hack filter out everything that is not a flag."""
+        return [e for e in elems if e.startswith('-')]
+
 
     def filter_flags(self, flags):
         """gnustep-config returns a bunch of garbage flags such
