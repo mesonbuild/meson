@@ -319,8 +319,9 @@ class Qt5Dependency(Dependency):
             self.modules.append(PkgConfigDependency('Qt5' + module, False))
         if len(self.modules) == 0:
             raise DependencyException('No Qt5 modules specified.')
+        print('Dependency Qt5 tools:')
         self.find_exes()
-        
+    
     def find_exes(self):
         self.moc = ExternalProgram('moc')
         self.uic = ExternalProgram('uic')
@@ -333,12 +334,18 @@ class Qt5Dependency(Dependency):
             moc_ver = mp.communicate()[1].decode().strip()
             if 'Qt 5' not in moc_ver:
                 raise DependencyException('Moc preprocessor is not for Qt 5. Output: %s' % moc_ver)
+            print(' moc: YES (%s)' % moc_ver)
+        else:
+            print(' moc: NO')
         if self.uic.found():
             up = subprocess.Popen([self.uic.get_command(), '-v'],
                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             uic_ver = up.communicate()[1].decode().strip()
             if 'version 5.' not in uic_ver:
                 raise DependencyException('Uic compiler is not for Qt 5. Output: %s' % uic_ver)
+            print(' uic: YES (%s)' % uic_ver)
+        else:
+            print(' uic: NO')
 
     def get_version(self):
         return self.modules[0].get_version()
