@@ -80,12 +80,14 @@ class PkgConfigDependency(Dependency):
                                  stderr=subprocess.PIPE)
         out = p.communicate()[0]
         if p.returncode != 0:
+            print('Dependency', name, 'found: NO')
             if required:
                 raise DependencyException('Required dependency %s not found.' % name)
             self.modversion = 'none'
             self.cflags = []
             self.libs = []
         else:
+            print('Dependency', name, 'found: YES')
             self.is_found = True
             self.modversion = out.decode().strip()
             p = subprocess.Popen(['pkg-config', '--cflags', name], stdout=subprocess.PIPE,
