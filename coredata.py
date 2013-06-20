@@ -1,5 +1,3 @@
-#!/usr/bin/python3 -tt
-
 # Copyright 2012 Jussi Pakkanen
 
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,7 +21,7 @@ version = '0.5.0-research'
 # cmakecache.
 
 class CoreData():
-    
+
     def __init__(self, options):
         self.version = version
         self.prefix = options.prefix

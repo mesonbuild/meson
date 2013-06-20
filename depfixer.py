@@ -1,4 +1,4 @@
-#!/usr/bin/python3 -tt
+#!/usr/bin/python3
 
 # Copyright 2013 Jussi Pakkanen
 

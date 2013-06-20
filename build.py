@@ -1,5 +1,3 @@
-#!/usr/bin/python3 -tt
-
 # Copyright 2012 Jussi Pakkanen
 
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -57,6 +55,6 @@ class Build:
 
     def get_configure_files(self):
         return self.configure_files
-    
+
     def get_global_flags(self, compiler):
         return self.global_args.get(compiler.get_language(), [])
