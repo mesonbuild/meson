@@ -1,6 +1,9 @@
-.project
-.pydevproject
+/.project
+/.pydevproject
 
 /__pycache__
 /install dir
 /work area
+
+/parser.out
+/parsetab.py
