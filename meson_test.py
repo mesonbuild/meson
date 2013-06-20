@@ -19,7 +19,7 @@ from optparse import OptionParser
 
 parser = OptionParser()
 parser.add_option('--wrapper', default=None, dest='wrapper',
-                  help='wrapper to run tests with (e.g. valgrind')
+                  help='wrapper to run tests with (e.g. valgrind)')
 
 def write_log(logfile, test_name, result_str, stdo, stde):
     logfile.write(result_str + '\n\n')
@@ -51,7 +51,7 @@ def run_tests(options, datafilename):
         duration = endtime - starttime
         stdo = stdo.decode()
         stde = stde.decode()
-        
+
         if p.returncode != 0:
             result_str = 'Test "%s": FAIL (%.3f s)' % (line, duration)
         else:
