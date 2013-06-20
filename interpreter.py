@@ -1,5 +1,3 @@
-#!/usr/bin/python3 -tt
-
 # Copyright 2012 Jussi Pakkanen
 
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,7 +29,6 @@ class InvalidArguments(InterpreterException):
     pass
 
 class InterpreterObject():
-    
     def __init__(self):
         self.methods = {}
 
@@ -41,7 +38,6 @@ class InterpreterObject():
         raise InvalidCode('Unknown method "%s" in object.' % method_name)
 
 class ConfigurationData(InterpreterObject):
-    
     def __init__(self):
         super().__init__()
         self.used = False # These objects become immutable after use in configure_file.
@@ -52,7 +48,7 @@ class ConfigurationData(InterpreterObject):
 
     def is_used(self):
         return self.used
-    
+
     def mark_used(self):
         self.used = True
 
@@ -66,11 +62,11 @@ class ConfigurationData(InterpreterObject):
         if not isinstance(name, str):
             raise InterpreterException("First argument to set must be a string.")
         return (name, val)
-    
+
     def set_method(self, args, kwargs):
         (name, val) = self.validate_args(args)
         self.values[name] = val
-    
+
     def set10_method(self, args, kwargs):
         (name, val) = self.validate_args(args)
         if val:
@@ -80,7 +76,7 @@ class ConfigurationData(InterpreterObject):
 
     def get(self, name):
         return self.values[name]
-    
+
     def keys(self):
         return self.values.keys()
 
@@ -1129,14 +1125,3 @@ class Interpreter():
         if len(kwargs) > 0:
             raise InvalidCode('Keyword arguments are invalid in array construction.')
         return arguments
-
-if __name__ == '__main__':
-    code = """project('myawesomeproject')
-    message('I can haz text printed out?')
-    language('c')
-    prog = executable('prog', 'prog.c', 'subfile.c')
-    dep = find_dep('gtk+-3.0')
-    prog.add_dep(dep)
-    """
-    i = Interpreter(code, environment.Environment('.', 'work area'))
-    i.run()

@@ -1,5 +1,3 @@
-#!/usr/bin/python3 -tt
-
 # Copyright 2012 Jussi Pakkanen
 
 # Licensed under the Apache License, Version 2.0 (the "License");
