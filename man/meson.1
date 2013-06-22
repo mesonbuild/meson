@@ -1,8 +1,40 @@
-.TH MESON "1" "February 2013" "meson 0.1.0" "User Commands"
+.TH MESON "1" "June 2013" "meson 0.5.0" "User Commands"
 .SH NAME
-meson - an experimental build system
+meson - a high productivity build system
 .SH DESCRIPTION
-usage: meson [options] [source directory] [build directory]
+
+Meson is a build system designed to optimize programmer
+productivity. It aims to do this by providing simple, out-of-the-box
+support for modern software development tools and practices, such as
+unit tests, coverage reports, Valgrind, CCache and the like.
+
+Using Meson is simple and follows the common two-phase
+process of most build systems. First you run Meson to
+configure your build:
+
+.B meson [
+.I options
+.B ] [
+.I source directory
+.B ] [
+.I build directory
+.B ]
+
+Note that the build directory must be different from the source
+directory. Meson does not support building inside the source directory
+and attempting to do that leads to an error.
+
+After a successful configuration step you can build the source by
+running the actual build command in the build directory. The default
+backend of Meson is Ninja, which can be invoked like this.
+
+\fBninja [\fR \fItarget\fR \fB]\fR
+
+You only need to run the Meson command once: when you first configure
+your build dir. After that you just run the build command. Meson will
+autodetect changes in your source tree and regenerates all files
+needed to build the project.
+
 .SS "options:"
 .TP
 \fB\-\-version\fR
