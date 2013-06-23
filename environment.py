@@ -658,7 +658,7 @@ class Environment():
         return os.path.join(path, 'depfixer.py')
 
     def detect_cpp_compiler(self):
-        evar = 'CC'
+        evar = 'CXX'
         if evar in os.environ:
             compilers = os.environ[evar].split()
             ccache = []
