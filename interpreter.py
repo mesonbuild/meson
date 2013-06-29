@@ -17,7 +17,7 @@ import nodes
 import environment
 import coredata
 import dependencies
-import os, sys, platform, copy
+import os, sys, platform, copy, subprocess
 
 class InterpreterException(coredata.MesonException):
     pass
@@ -36,6 +36,32 @@ class InterpreterObject():
         if method_name in self.methods:
             return self.methods[method_name](args, kwargs)
         raise InvalidCode('Unknown method "%s" in object.' % method_name)
+
+class RunProcess(InterpreterObject):
+
+    def __init__(self, command_array):
+        super().__init__()
+        try:
+            pc = subprocess.Popen(command_array, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        except FileNotFoundError:
+            raise InterpreterException('Command "%s" not found.' % command_array[0])
+        (stdout, stderr) = pc.communicate()
+        self.returncode = pc.returncode
+        self.stdout = stdout.decode()
+        self.stderr = stderr.decode()
+        self.methods.update({'returncode' : self.returncode_method,
+                             'stdout' : self.stdout_method,
+                             'stderr' : self.stderr_method,
+                             })
+
+    def returncode_method(self, args, kwargs):
+        return self.returncode
+
+    def stdout_method(self, args, kwargs):
+        return self.stdout
+
+    def stderr_method(self, args, kwargs):
+        return self.stderr
 
 class ConfigurationData(InterpreterObject):
     def __init__(self):
@@ -679,6 +705,7 @@ class Interpreter():
                       'find_program' : self.func_find_program,
                       'find_library' : self.func_find_library,
                       'configuration_data' : self.func_configuration_data,
+                      'run_command' : self.func_run_command,
                       }
 
     def get_build_def_files(self):
@@ -768,6 +795,12 @@ class Interpreter():
                     print(wanted)
                     raise InvalidArguments('Incorrect argument type.')
                 
+    def func_run_command(self, node, args, kwargs):
+        for i in args:
+            if not isinstance(i, str):
+                raise InterpreterObject('Run_command arguments must be strings.')
+        return RunProcess(args)
+
     def func_configuration_data(self, node, args, kwargs):
         if len(args) != 0:
             raise InterpreterException('configuration_data takes no arguments')
@@ -1067,12 +1100,19 @@ class Interpreter():
             a = args.kwargs[key]
             reduced_kw[key] = self.reduce_single(a)
         return (reduced_pos, reduced_kw)
+    
+    def string_method_call(self, obj, method_name):
+        if method_name == 'strip':
+            return obj.strip()
+        raise InterpreterException('Unknown method "%s" for a string.' % method_name)
 
     def method_call(self, node):
         object_name = node.object_name.get_value()
         method_name = node.method_name.get_value()
         args = node.arguments
         obj = self.get_variable(object_name)
+        if isinstance(obj, str):
+            return self.string_method_call(obj, method_name)
         if not isinstance(obj, InterpreterObject):
             raise InvalidArguments('Variable "%s" is not callable.' % object_name)
         (args, kwargs) = self.reduce_arguments(args)
