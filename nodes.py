@@ -141,9 +141,9 @@ class FunctionCall(Statement):
         return self.func_name.value
 
 class MethodCall(Statement):
-    def __init__(self, object_name, method_name, arguments, lineno):
+    def __init__(self, invokable, method_name, arguments, lineno):
         Statement.__init__(self, lineno)
-        self.object_name = object_name
+        self.invokable = invokable
         self.method_name = method_name
         self.arguments = arguments
 

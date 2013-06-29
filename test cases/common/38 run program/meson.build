@@ -7,8 +7,7 @@ if c.returncode() != 0
   error('Executing echo failed.')
 endif
 
-result = c.stdout()
-result = result.strip()
+result = c.stdout().strip()
 
 if result != correct
   error('Getting stdout failed.')

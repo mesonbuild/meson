@@ -1107,10 +1107,14 @@ class Interpreter():
         raise InterpreterException('Unknown method "%s" for a string.' % method_name)
 
     def method_call(self, node):
-        object_name = node.object_name.get_value()
+        invokable = node.invokable
+        if isinstance(invokable, nodes.AtomStatement):
+            object_name = invokable.get_value()
+            obj = self.get_variable(object_name)
+        else:
+            obj = self.evaluate_statement(invokable)
         method_name = node.method_name.get_value()
         args = node.arguments
-        obj = self.get_variable(object_name)
         if isinstance(obj, str):
             return self.string_method_call(obj, method_name)
         if not isinstance(obj, InterpreterObject):

@@ -168,7 +168,7 @@ def p_statement_func_call(t):
     t[0] = nodes.FunctionCall(t[1], t[3], t[1].lineno())
 
 def p_statement_method_call(t):
-    'statement : expression DOT expression LPAREN args RPAREN'
+    'statement : statement DOT expression LPAREN args RPAREN'
     t[0] = nodes.MethodCall(t[1], t[3], t[5], t[1].lineno())
 
 def p_statement_if(t):
