@@ -39,12 +39,9 @@ class InterpreterObject():
 
 class RunProcess(InterpreterObject):
 
-    def __init__(self, command_array):
+    def __init__(self, command_array, curdir):
         super().__init__()
-        try:
-            pc = subprocess.Popen(command_array, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        except FileNotFoundError:
-            raise InterpreterException('Command "%s" not found.' % command_array[0])
+        pc = self.run_command(command_array, curdir)
         (stdout, stderr) = pc.communicate()
         self.returncode = pc.returncode
         self.stdout = stdout.decode()
@@ -53,6 +50,20 @@ class RunProcess(InterpreterObject):
                              'stdout' : self.stdout_method,
                              'stderr' : self.stderr_method,
                              })
+        
+    def run_command(self, command_array, curdir):
+        cmd_name = command_array[0]
+        try:
+            return subprocess.Popen(command_array, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        except FileNotFoundError:
+            pass
+        # Was not a command, try to run as a script relative to current dir.
+        fullpath = os.path.join(curdir, command_array[0])
+        command_array = [fullpath] + command_array[1:]
+        try:
+            return subprocess.Popen(command_array, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        except FileNotFoundError:
+            raise InterpreterException('Could not execute command "%s".' % cmd_name)
 
     def returncode_method(self, args, kwargs):
         return self.returncode
@@ -799,7 +810,7 @@ class Interpreter():
         for i in args:
             if not isinstance(i, str):
                 raise InterpreterObject('Run_command arguments must be strings.')
-        return RunProcess(args)
+        return RunProcess(args, os.path.join(self.environment.source_dir, self.subdir))
 
     def func_configuration_data(self, node, args, kwargs):
         if len(args) != 0:
