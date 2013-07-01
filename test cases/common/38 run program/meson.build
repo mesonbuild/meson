@@ -1,6 +1,11 @@
 project('run command', 'c')
 
-c = run_command('echo', 'hello')
+if host.name() == 'windows'
+  c = run_command('cmd', '/c', 'echo', 'hello')
+else
+  c = run_command('echo', 'hello')
+endif
+
 correct = 'hello'
 
 if c.returncode() != 0
@@ -19,8 +24,11 @@ endif
 
 # Now the same with a script.
 
-cs = run_command('scripts/hello.sh')
-correct = 'hello'
+if host.name() == 'windows'
+  cs = run_command('scripts/hello.bat')
+else
+  cs = run_command('scripts/hello.sh')
+endif
 
 if cs.returncode() != 0
   error('Executing script failed.')

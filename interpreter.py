@@ -17,7 +17,7 @@ import nodes
 import environment
 import coredata
 import dependencies
-import os, sys, platform, copy, subprocess
+import os, sys, platform, copy, subprocess, shutil
 
 class InterpreterException(coredata.MesonException):
     pass
@@ -57,8 +57,13 @@ class RunProcess(InterpreterObject):
             return subprocess.Popen(command_array, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         except FileNotFoundError:
             pass
-        # Was not a command, try to run as a script relative to current dir.
-        fullpath = os.path.join(curdir, command_array[0])
+        # Was not a command, is a program in path?
+        exe = shutil.which(cmd_name)
+        if exe is not None:
+            command_array = [exe] + command_array[1:]
+            return subprocess.Popen(command_array, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        # No? Maybe it is a script in the source tree.
+        fullpath = os.path.join(curdir, cmd_name)
         command_array = [fullpath] + command_array[1:]
         try:
             return subprocess.Popen(command_array, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
