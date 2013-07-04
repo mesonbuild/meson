@@ -263,23 +263,46 @@ class BoostDependency(Dependency):
 class GTestDependency(Dependency):
     def __init__(self, kwargs):
         Dependency.__init__(self)
+        self.main = kwargs.get('main', False)
         self.name = 'gtest'
+        self.libdir = '/usr/lib'
+        self.libname = 'libgtest.so'
+        self.libmain_name = 'libgtest_main.so'
         self.include_dir = '/usr/include'
         self.src_include_dir = '/usr/src/gtest'
         self.src_dir = '/usr/src/gtest/src'
         self.all_src = os.path.join(self.src_dir, 'gtest-all.cc')
         self.main_src = os.path.join(self.src_dir, 'gtest_main.cc')
-        if self.found():
-            print('Dependency GTest found: YES')
-        else:
-            print('Dependency GTest found: NO')
-        if kwargs.get('main', False):
-            self.sources = [self.all_src, self.main_src]
-        else:
-            self.sources = [self.all_src]
+        self.detect()
 
     def found(self):
-        return os.path.exists(self.all_src)
+        return self.is_found
+
+    def detect(self):
+        libname = os.path.join(self.libdir, self.libname)
+        mainname = os.path.join(self.libdir, self.libmain_name)
+        if os.path.exists(libname) and os.path.exists(mainname):
+            self.is_found = True
+            self.compile_flags = []
+            self.link_flags = ['-lgtest']
+            if self.main:
+                self.link_flags.append('-lgtest_main')
+            self.sources = []
+            print('Dependency GTest found: YES (prebuilt)')
+        elif os.path.exists(self.src_dir):
+            self.is_found = True
+            self.compile_flags = ['-I' + self.src_include_dir]
+            self.link_flags = []
+            if self.main:
+                self.sources = [self.all_src, self.main_src]
+            else:
+                self.sources = [self.all_src]
+            print('Dependency GTest found: YES (building self)')
+        else:
+            print('Dependency GTest found: NO')
+            self.is_found = False
+        self.link_flags.append('-lpthread')
+        return self.is_found
 
     def get_compile_flags(self):
         arr = []
@@ -289,7 +312,7 @@ class GTestDependency(Dependency):
         return arr
 
     def get_link_flags(self):
-        return ['-lpthread']
+        return self.link_flags
     def get_version(self):
         return '1.something_maybe'
     def get_sources(self):
@@ -313,7 +336,7 @@ class GMockDependency(Dependency):
             self.compile_flags = []
             self.link_flags = ['-lgmock']
             self.sources = []
-            print('Dependency GMock found: YES')
+            print('Dependency GMock found: YES (prebuilt)')
         elif os.path.exists(self.src_dir):
             self.is_found = True
             self.compile_flags = ['-I' + self.src_include_dir]
@@ -322,7 +345,7 @@ class GMockDependency(Dependency):
                 self.sources = [self.all_src, self.main_src]
             else:
                 self.sources = [self.all_src]
-            print('Dependency GMock found: YES')
+            print('Dependency GMock found: YES (building self)')
             
         else:
             print('Dependency GMock found: NO')
