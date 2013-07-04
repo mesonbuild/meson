@@ -532,6 +532,26 @@ def is_osx():
 def is_windows():
     return platform.system().lower() == 'windows'
 
+def is_debianlike():
+    try:
+        open('/etc/debian_version', 'r')
+        return True
+    except FileNotFoundError:
+        return False
+
+def detect_ninja():
+    for n in ['ninja', 'ninja-build']:
+        # Plain 'ninja' or 'ninja -h' yields an error
+        # code. Thanks a bunch, guys.
+        try:
+            p = subprocess.Popen([n, '-t', 'list'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except FileNotFoundError:
+            continue
+        p.communicate()
+        if p.returncode == 0:
+            return n
+
+
 header_suffixes = ['h', 'hh', 'hpp', 'hxx', 'H']
 cpp_suffixes = ['cc', 'cpp', 'cxx', 'hh', 'hpp', 'hxx']
 c_suffixes = ['c']

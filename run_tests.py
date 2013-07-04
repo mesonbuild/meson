@@ -23,9 +23,12 @@ install_dir = os.path.join(os.path.split(os.path.abspath(__file__))[0], 'install
 meson_command = './meson.py'
 if True: # Currently we have only one backend.
     backend_flags = []
-    compile_commands = ['ninja']
-    test_commands = ['ninja', 'test']
-    install_commands = ['ninja', 'install']
+    ninja_command = environment.detect_ninja()
+    if ninja_command is None:
+        raise RuntimeError('Could not find Ninja executable.')
+    compile_commands = [ninja_command]
+    test_commands = [ninja_command, 'test']
+    install_commands = [ninja_command, 'install']
 
 def run_test(testdir):
     shutil.rmtree(test_build_dir)

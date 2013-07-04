@@ -834,8 +834,11 @@ class NinjaBackend(Backend):
         default = 'default all\n\n'
         outfile.write(default)
 
+        ninja_command = environment.detect_ninja()
+        if ninja_command is None:
+            raise RuntimeError('Could not detect ninja command')
         elem = NinjaBuildElement('clean', 'CUSTOM_COMMAND', '')
-        elem.add_item('COMMAND', ['ninja', '-t', 'clean'])
+        elem.add_item('COMMAND', [ninja_command, '-t', 'clean'])
         elem.add_item('description', 'Cleaning')
         if self.environment.coredata.coverage:
             self.generate_gcov_clean(outfile)
