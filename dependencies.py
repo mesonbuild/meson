@@ -179,6 +179,7 @@ class BoostDependency(Dependency):
         self.libdir = '/usr/lib'
         self.src_modules = {}
         self.lib_modules = {}
+        self.lib_modules_mt = {}
         self.detect_version()
         self.requested_modules = self.get_requested(kwargs)
         module_str = ', '.join(self.requested_modules)
@@ -236,16 +237,23 @@ class BoostDependency(Dependency):
     def detect_lib_modules(self):
         globber = 'libboost_*.so' # FIXME, make platform independent.
         for entry in glob.glob(os.path.join(self.libdir, globber)):
-            if entry.endswith('-mt.so'): # Fixme, seems to be Windows specific.
-                continue
             lib = os.path.basename(entry)
-            self.lib_modules[(lib.split('.')[0].split('_', 1)[-1])] = True
+            name = lib.split('.')[0].split('_', 1)[-1]
+            # I'm not 100% sure what to do here. Some distros
+            # have modules such as thread only as -mt versions.
+            if entry.endswith('-mt.so'):
+                self.lib_modules_mt[name] = True
+            else:
+                self.lib_modules[name] = True
 
     def get_link_flags(self):
         flags = [] # Fixme, add -L if necessary.
         for module in self.requested_modules:
-            if module in self.lib_modules:
+            if module in self.lib_modules or module in self.lib_modules_mt:
                 linkcmd = '-lboost_' + module
+                flags.append(linkcmd)
+            elif module + '-mt' in self.lib_modules_mt:
+                linkcmd = '-lboost_' + module + '-mt'
                 flags.append(linkcmd)
         return flags
 
