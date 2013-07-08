@@ -19,7 +19,7 @@ import sys, stat, traceback
 import os.path
 import environment, interpreter
 import backends, build
-import mlog
+import mlog, coredata
 
 from coredata import version, MesonException
 
@@ -96,6 +96,10 @@ class MesonApp():
     def generate(self):
         env = environment.Environment(self.source_dir, self.build_dir, self.meson_script_file, options)
         mlog.initialize(env.get_log_dir())
+        mlog.log(mlog.bold('The Meson build system'))
+        mlog.log(' version:', coredata.version)
+        mlog.log('Source dir:', mlog.cyan(app.source_dir))
+        mlog.log('Build dir:', mlog.cyan(app.build_dir))
         b = build.Build(env)
         intr = interpreter.Interpreter(b)
         intr.run()
@@ -125,8 +129,6 @@ if __name__ == '__main__':
         else:
             this_file = resolved 
     app = MesonApp(dir1, dir2, this_file, options)
-    print ('Source dir: ' + app.source_dir)
-    print ('Build dir: ' + app.build_dir)
     try:
         app.generate()
     except Exception as e:

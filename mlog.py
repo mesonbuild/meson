@@ -62,10 +62,10 @@ def process_markup(args, keep):
             arr.append(str(arg))
     return arr
 
-def log(*args):
+def log(*args, **kwargs):
     arr = process_markup(args, False)
     if log_file is not None:
-        print(*arr, file=log_file) # Log file never gets ANSI codes.
+        print(*arr, file=log_file, **kwargs) # Log file never gets ANSI codes.
     if colorize_console:
         arr = process_markup(args, True)
-    print(*arr)
+    print(*arr, **kwargs)

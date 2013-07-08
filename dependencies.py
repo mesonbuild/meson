@@ -24,6 +24,7 @@
 import os, stat, glob, subprocess, shutil
 from coredata import MesonException
 import environment
+import mlog
 
 class DependencyException(MesonException):
     def __init__(self, *args, **kwargs):
@@ -80,14 +81,14 @@ class PkgConfigDependency(Dependency):
                                  stderr=subprocess.PIPE)
         out = p.communicate()[0]
         if p.returncode != 0:
-            print('Dependency', name, 'found: NO')
+            mlog.log('Dependency', name, 'found:', mlog.red('NO'))
             if required:
                 raise DependencyException('Required dependency %s not found.' % name)
             self.modversion = 'none'
             self.cflags = []
             self.libs = []
         else:
-            print('Dependency', name, 'found: YES')
+            mlog.log('Dependency', name, 'found:', mlog.green('YES'))
             self.is_found = True
             self.modversion = out.decode().strip()
             p = subprocess.Popen(['pkg-config', '--cflags', name], stdout=subprocess.PIPE,
@@ -119,7 +120,7 @@ class PkgConfigDependency(Dependency):
         out = p.communicate()[0]
         if p.returncode != 0:
             raise RuntimeError('Pkg-config executable not found.')
-        print('Found pkg-config version %s.' % out.decode().strip())
+        mlog.log('Found pkg-config version %s.' % out.decode().strip())
         PkgConfigDependency.pkgconfig_found = True
 
     def found(self):
@@ -133,9 +134,9 @@ class ExternalProgram():
         else:
             self.fullpath = shutil.which(name)
         if self.found():
-            print('Program %s found: YES (%s)' % (name, self.fullpath))
+            mlog.log('Program', name, 'found:', mlog.green('YES'), '(%s)' % self.fullpath)
         else:
-            print('Program %s found: NO' % name)
+            mlog.log('Program', name, 'found:,', mlog.red('NO'))
 
     def found(self):
         return self.fullpath is not None
@@ -187,10 +188,9 @@ class BoostDependency(Dependency):
             self.detect_src_modules()
             self.detect_lib_modules()
             self.validate_requested()
-            print('Dependency Boost (%s) found: YES (%s)' % 
-                  (module_str, self.version))
+            mlog.log('Dependency Boost (%s) found:,' % module_str, mlog.green('YES'), self.version)
         else:
-            print("Dependency Boost (%s) found: NO" % module_str)
+            mlog.log("Dependency Boost (%s) found:" % module_str, mlog.red('NO'))
 
     def get_compile_flags(self):
         return []
@@ -288,7 +288,7 @@ class GTestDependency(Dependency):
             if self.main:
                 self.link_flags.append('-lgtest_main')
             self.sources = []
-            print('Dependency GTest found: YES (prebuilt)')
+            mlog.log('Dependency GTest found:', mlog.green('YES'), '(prebuilt)')
         elif os.path.exists(self.src_dir):
             self.is_found = True
             self.compile_flags = ['-I' + self.src_include_dir]
@@ -297,9 +297,9 @@ class GTestDependency(Dependency):
                 self.sources = [self.all_src, self.main_src]
             else:
                 self.sources = [self.all_src]
-            print('Dependency GTest found: YES (building self)')
+            mlog.log('Dependency GTest found:', mlog.green('YES'), '(building self)')
         else:
-            print('Dependency GTest found: NO')
+            mlog.log('Dependency GTest found:', mlog.red('NO'))
             self.is_found = False
         self.link_flags.append('-lpthread')
         return self.is_found
@@ -336,7 +336,7 @@ class GMockDependency(Dependency):
             self.compile_flags = []
             self.link_flags = ['-lgmock']
             self.sources = []
-            print('Dependency GMock found: YES (prebuilt)')
+            mlog.log('Dependency GMock found:', mlog.green('YES'), '(prebuilt)')
         elif os.path.exists(self.src_dir):
             self.is_found = True
             self.compile_flags = ['-I' + self.src_include_dir]
@@ -345,10 +345,10 @@ class GMockDependency(Dependency):
                 self.sources = [self.all_src, self.main_src]
             else:
                 self.sources = [self.all_src]
-            print('Dependency GMock found: YES (building self)')
+            mlog.log('Dependency GMock found:', mlog.green('YES'), '(building self)')
             
         else:
-            print('Dependency GMock found: NO')
+            mlog.log('Dependency GMock found:', mlog.red('NO'))
             self.is_found = False
 
     def get_version(self):
@@ -379,7 +379,7 @@ class Qt5Dependency(Dependency):
             self.modules.append(PkgConfigDependency('Qt5' + module, False))
         if len(self.modules) == 0:
             raise DependencyException('No Qt5 modules specified.')
-        print('Dependency Qt5 tools:')
+        mlog.log('Dependency Qt5 tools:')
         self.find_exes()
     
     def find_exes(self):
@@ -394,18 +394,18 @@ class Qt5Dependency(Dependency):
             moc_ver = mp.communicate()[1].decode().strip()
             if 'Qt 5' not in moc_ver:
                 raise DependencyException('Moc preprocessor is not for Qt 5. Output: %s' % moc_ver)
-            print(' moc: YES (%s)' % moc_ver)
+            mlog.log(' moc:', mlog.green('YES'), '(%s)' % moc_ver)
         else:
-            print(' moc: NO')
+            mlog.log(' moc:', mlog.red('NO'))
         if self.uic.found():
             up = subprocess.Popen([self.uic.get_command(), '-v'],
                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             uic_ver = up.communicate()[1].decode().strip()
             if 'version 5.' not in uic_ver:
                 raise DependencyException('Uic compiler is not for Qt 5. Output: %s' % uic_ver)
-            print(' uic: YES (%s)' % uic_ver)
+            mlog.log(' uic:', mlog.green('YES'), '(%s)' % uic_ver)
         else:
-            print(' uic: NO')
+            mlog.log(' uic:', mlog.red('NO'))
 
     def get_version(self):
         return self.modules[0].get_version()
@@ -462,7 +462,7 @@ class GnuStepDependency(Dependency):
         gp.communicate()
         if gp.returncode != 0:
             self.flags = None
-            print('Dependency GnuStep found: NO')
+            mlog.log('Dependency GnuStep found:', mlog.red('NO'))
             return
         if 'gui' in self.modules:
             arg = '--gui-libs'
@@ -485,7 +485,7 @@ class GnuStepDependency(Dependency):
         if fp.returncode != 0:
             raise DependencyException('Error getting objc-lib flags: %s %s' % (libtxt, liberr))
         self.libs = self.weird_filter(libtxt.split())
-        print('Dependency GnuStep found: YES')
+        mlog.log('Dependency GnuStep found:', mlog.green('YES'))
 
     def weird_filter(self, elems):
         """When building packages, the output of the enclosing Make

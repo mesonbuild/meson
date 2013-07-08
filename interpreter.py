@@ -17,6 +17,7 @@ import nodes
 import environment
 import coredata
 import dependencies
+import mlog
 import os, sys, platform, copy, subprocess, shutil
 
 class InterpreterException(coredata.MesonException):
@@ -833,12 +834,12 @@ class Interpreter():
         if self.build.project is not None:
             raise InvalidCode('Second call to project().')
         self.build.project = args[0]
-        print('Project name is "%s".' % self.build.project)
+        mlog.log('Project name is "', mlog.bold(self.build.project), '".', sep='')
         self.add_languages(node, args[1:])
 
     def func_message(self, node, args, kwargs):
         self.validate_arguments(args, 1, [str])
-        print('Message: %s' % args[0])
+        mlog.log(mlog.bold('Message:'), args[0])
 
     def add_languages(self, node, args):
         for lang in args:
