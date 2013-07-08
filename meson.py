@@ -95,6 +95,7 @@ class MesonApp():
     
     def generate(self):
         env = environment.Environment(self.source_dir, self.build_dir, self.meson_script_file, options)
+        mlog.initialize(env.get_log_dir())
         b = build.Build(env)
         intr = interpreter.Interpreter(b)
         intr.run()

@@ -19,6 +19,13 @@ information about Meson runs. Some output goes to screen,
 some to logging dir and some goes to both."""
 
 colorize_console = platform.system().lower() != 'windows' and os.isatty(sys.stdout.fileno())
+log_dir = None
+log_file = None
+
+def initialize(logdir):
+    global log_dir, log_file
+    log_dir = logdir
+    log_file = open(os.path.join(logdir, 'meson-log.txt'), 'w')
 
 class AnsiDecorator():
     plain_code = "\033[0m"
@@ -30,6 +37,7 @@ class AnsiDecorator():
     def get_text(self, with_codes):
         if with_codes:
             return self.code + self.text + AnsiDecorator.plain_code
+        return self.text
 
 def bold(text):
     return AnsiDecorator(text, "\033[1m")
@@ -43,13 +51,21 @@ def green(text):
 def cyan(text):
     return AnsiDecorator(text, "\033[1;36m")
 
-def log(*args):
+def process_markup(args, keep):
     arr = []
     for arg in args:
         if isinstance(arg, str):
             arr.append(arg)
         elif isinstance(arg, AnsiDecorator):
-            arr.append(arg.get_text(colorize_console))
+            arr.append(arg.get_text(keep))
         else:
             arr.append(str(arg))
+    return arr
+
+def log(*args):
+    arr = process_markup(args, False)
+    if log_file is not None:
+        print(*arr, file=log_file) # Log file never gets ANSI codes.
+    if colorize_console:
+        arr = process_markup(args, True)
     print(*arr)
