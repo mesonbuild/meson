@@ -14,7 +14,7 @@
 
 import os, sys, re, pickle
 import interpreter, nodes
-import environment
+import environment, mlog
 from meson_install import InstallData
 from interpreter import InvalidArguments
 import shutil
@@ -143,7 +143,7 @@ class Backend():
             return
         (gen_src_deps, gen_other_deps) = self.process_dep_gens(outfile, target)
         self.process_target_dependencies(target, outfile)
-        print('Generating target', name)
+        mlog.log('Generating target ', mlog.bold(name), '.', sep='')
         self.generate_custom_generator_rules(target, outfile)
         outname = self.get_target_filename(target)
         obj_list = []
@@ -357,7 +357,7 @@ class NinjaBackend(Backend):
             elem.add_item('DESC', 'Generating HTML coverage report.')
             elem.write(outfile)
         if not added_rule:
-            print('Warning: coverage requested but neither gcovr nor lcov/genhtml found.')
+            mlog.log(mlog.red('Warning:'), 'coverage requested but neither gcovr nor lcov/genhtml found.')
 
     def generate_install(self, outfile):
         script_root = self.environment.get_script_dir()
@@ -767,7 +767,7 @@ class NinjaBackend(Backend):
                 cmd = ["&&", 'ln', '-s', '-f', basename, aliasfile]
                 aliascmd += cmd
         else:
-            print("Library versioning disabled because host does not support symlinks.")
+            mlog.log("Library versioning disabled because host does not support symlinks.")
         elem.add_item('aliasing', aliascmd)
         elem.write(outfile)
 
