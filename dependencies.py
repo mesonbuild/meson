@@ -188,7 +188,7 @@ class BoostDependency(Dependency):
             self.detect_src_modules()
             self.detect_lib_modules()
             self.validate_requested()
-            mlog.log('Dependency Boost (%s) found:,' % module_str, mlog.green('YES'), '(' + self.version + ')')
+            mlog.log('Dependency Boost (%s) found:' % module_str, mlog.green('YES'), '(' + self.version + ')')
         else:
             mlog.log("Dependency Boost (%s) found:" % module_str, mlog.red('NO'))
 
