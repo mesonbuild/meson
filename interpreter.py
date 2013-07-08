@@ -706,6 +706,7 @@ class Interpreter():
     def build_func_dict(self):
         self.funcs = {'project' : self.func_project, 
                       'message' : self.func_message,
+                      'error' : self.func_error,
                       'executable': self.func_executable,
                       'dependency' : self.func_dependency,
                       'static_library' : self.func_static_lib,
@@ -840,6 +841,10 @@ class Interpreter():
     def func_message(self, node, args, kwargs):
         self.validate_arguments(args, 1, [str])
         mlog.log(mlog.bold('Message:'), args[0])
+
+    def func_error(self, node, args, kwargs):
+        self.validate_arguments(args, 1, [str])
+        raise InterpreterException('Error encountered: ' + args[0])
 
     def add_languages(self, node, args):
         for lang in args:
