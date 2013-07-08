@@ -635,7 +635,7 @@ class CompilerHolder(InterpreterObject):
         if not isinstance(prefix, str):
             raise InterpreterException('Prefix argument of sizeof must be a string.')
         esize = self.compiler.sizeof(element, prefix)
-        print('Checking for size of "%s": %d' % (element, esize))
+        mlog.log('Checking for size of "%s": %d' % (element, esize))
         return esize
 
     def compiles_method(self, args, kwargs):
@@ -657,7 +657,11 @@ class CompilerHolder(InterpreterObject):
         if not isinstance(string, str):
             raise InterpreterException('Argument to has_header() must be a string')
         haz = self.compiler.has_header(string)
-        print('Has header "%s": %s.' % (string, str(haz)))
+        if haz:
+            h = mlog.green('YES')
+        else:
+            h = mlog.red('NO')
+        mlog.log('Has header "%s":' % string, h)
         return haz
 
 class MesonMain(InterpreterObject):
@@ -809,8 +813,6 @@ class Interpreter():
             actual = args[i]
             if wanted != None:
                 if not isinstance(actual, wanted):
-                    print(actual)
-                    print(wanted)
                     raise InvalidArguments('Incorrect argument type.')
                 
     def func_run_command(self, node, args, kwargs):
@@ -929,7 +931,7 @@ class Interpreter():
         self.validate_arguments(args, 2, [str, Executable])
         t = Test(args[0], args[1])
         self.build.tests.append(t)
-        print('Adding test "%s"' % args[0])
+        mlog.log('Adding test "', mlog.bold(args[0]), '".', sep='')
 
     def func_headers(self, node, args, kwargs):
         for a in args:
@@ -967,7 +969,7 @@ class Interpreter():
         except coredata.MesonException as me:
             me.file = buildfilename
             raise me
-        print('Going to subdirectory "%s".' % self.subdir)
+        mlog.log('Going to subdirectory "%s".' % self.subdir)
         self.evaluate_codeblock(codeblock)
         self.subdir = prev_subdir
 
@@ -1054,7 +1056,7 @@ class Interpreter():
             raise InvalidCode('Tried to create target "%s", but a target of that name already exists.' % name)
         l = targetclass(name, self.subdir, sources, self.environment, kwargs)
         self.build.targets[name] = l
-        print('Creating build target "%s" with %d files.' % (name, len(sources)))
+        mlog.log('Creating build target "', mlog.bold(name), '" with %d files.' % len(sources), sep='')
         return l
 
     def function_call(self, node):
@@ -1159,7 +1161,6 @@ class Interpreter():
             else:
                 self.evaluate_codeblock(node.get_falseblock())
         else:
-            print(node.get_clause())
             raise InvalidCode('If clause does not evaluate to true or false.')
     
     def is_elementary_type(self, v):
