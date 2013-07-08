@@ -19,6 +19,7 @@ import sys, stat, traceback
 import os.path
 import environment, interpreter
 import backends, build
+import mlog
 
 from coredata import version, MesonException
 
@@ -130,10 +131,10 @@ if __name__ == '__main__':
     except Exception as e:
         if isinstance(e, MesonException):
             if hasattr(e, 'file') and hasattr(e, 'lineno'):
-                print('\nMeson encountered an error in %s:%d:' % (e.file, e.lineno))
+                mlog.log(mlog.red('\nMeson encountered an error in %s:%d:' % (e.file, e.lineno)))
             else:
-                print('\nMeson encountered an error:')
-            print(e)
+                mlog.log(mlog.red('\nMeson encountered an error:'))
+            mlog.log(e)
             sys.exit(1)
         else:
             traceback.print_exc()
