@@ -219,7 +219,11 @@ class BoostDependency(Dependency):
         return self.version
 
     def detect_version(self):
-        ifile = open(os.path.join(self.incdir, 'version.hpp'))
+        try:
+            ifile = open(os.path.join(self.incdir, 'version.hpp'))
+        except FileNotFoundError:
+            self.version = None
+            return
         for line in ifile:
             if line.startswith("#define") and 'BOOST_LIB_VERSION' in line:
                 ver = line.split()[-1]
