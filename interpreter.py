@@ -583,13 +583,20 @@ class SharedLibrary(BuildTarget):
             return fname + '.' + self.version
 
     def set_version(self, version):
+        if isinstance(version, nodes.StringStatement):
+            version = version.get_value()
         if not isinstance(version, str):
+            print(version)
             raise InvalidArguments('Shared library version is not a string.')
         self.version = version
 
     def set_soversion(self, version):
+        if isinstance(version, nodes.StringStatement) or isinstance(version, nodes.IntStatement):
+            version = version.get_value()
+        if isinstance(version, int):
+            version = str(version)
         if not isinstance(version, str):
-            raise InvalidArguments('Shared library soversion is not a string.')
+            raise InvalidArguments('Shared library soversion is not a string or integer.')
         self.soversion = version
 
     def get_aliaslist(self):
