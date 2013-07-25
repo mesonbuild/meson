@@ -1031,8 +1031,9 @@ class Interpreter():
         result = []
         for a in args:
             if isinstance(a, list):
-                result = result + self.flatten(a)
-            if isinstance(a, nodes.StringStatement):
+                rest = self.flatten(a)
+                result = result + rest
+            elif isinstance(a, nodes.StringStatement):
                 result.append(a.get_value())
             else:
                 result.append(a)
