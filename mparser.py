@@ -227,11 +227,13 @@ def p_args_none(t):
     t[0] = nodes.Arguments(t.lineno(0))
 
 def p_error(t):
+    lineno = -1
     if t is None:
         txt = 'NONE'
     else:
         txt = t.value
-    raise ParserException('Parser errored out at: %s.' % txt, t.lineno)
+        lineno = t.lineno
+    raise ParserException('Parser errored out at: %s.' % txt, lineno)
 
 def test_lexer():
     s = """hello = (something) # this = (that)
