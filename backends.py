@@ -143,7 +143,6 @@ class Backend():
             return
         (gen_src_deps, gen_other_deps) = self.process_dep_gens(outfile, target)
         self.process_target_dependencies(target, outfile)
-        mlog.log('Generating target ', mlog.bold(name), '.', sep='')
         self.generate_custom_generator_rules(target, outfile)
         outname = self.get_target_filename(target)
         obj_list = []
