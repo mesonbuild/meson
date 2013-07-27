@@ -94,6 +94,11 @@ class OrStatement(Statement):
         self.left = left
         self.right = right
 
+class NotStatement(Statement):
+    def __init__(self, val):
+        Statement.__init__(self, val.lineno)
+        self.val = val
+
 class IfStatement(Statement):
     def __init__(self, clause, trueblock, falseblock, lineno):
         Statement.__init__(self, lineno)

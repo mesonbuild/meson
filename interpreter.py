@@ -845,6 +845,8 @@ class Interpreter():
             return self.evaluate_andstatement(cur)
         elif isinstance(cur, nodes.OrStatement):
             return self.evaluate_orstatement(cur)
+        elif isinstance(cur, nodes.NotStatement):
+            return self.evaluate_notstatement(cur)
         else:
             raise InvalidCode("Unknown statement.")
 
@@ -1263,6 +1265,14 @@ class Interpreter():
         if not isinstance(r, bool):
             raise InterpreterException('Second argument to "or" is not a boolean.')
         return r
+    
+    def evaluate_notstatement(self, cur):
+        v = self.evaluate_statement(cur.val)
+        if isinstance(v, nodes.BoolStatement):
+            v = v.get_value()
+        if not isinstance(v, bool):
+            raise InterpreterException('First argument to "or" is not a boolean.')
+        return not v
 
     def evaluate_arraystatement(self, cur):
         (arguments, kwargs) = self.reduce_arguments(cur.get_args())

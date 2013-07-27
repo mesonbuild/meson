@@ -62,3 +62,16 @@ if t or true
 else
   error('Not ok.')
 endif
+
+if not true
+  error('Negation failed.')
+else
+  message('Ok.')
+endif
+
+if not f
+  message('Ok.')
+else
+  error('Negation failed.')
+endif
+
