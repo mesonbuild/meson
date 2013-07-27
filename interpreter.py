@@ -1209,31 +1209,12 @@ class Interpreter():
                 self.evaluate_codeblock(node.trueblock)
             else:
                 block = node.falseblock
-                if isinstance(block, nodes.ElifStatement):
-                    self.evaluate_elif(block)
+                if isinstance(block, nodes.IfStatement):
+                    self.evaluate_if(block)
                 else:
                     self.evaluate_codeblock(block)
         else:
             raise InvalidCode('If clause does not evaluate to true or false.')
-
-    def evaluate_elif(self, node):
-        result = self.evaluate_statement(node.clause)
-        cond = None
-        if isinstance(result, nodes.BoolExpression) or \
-           isinstance(result, nodes.BoolStatement):
-            cond = result.get_value()
-        if isinstance(result, bool):
-            cond = result
-        if cond is not None:
-            if cond:
-                self.evaluate_codeblock(node.trueblock)
-            else:
-                block = node.elseblock
-                if isinstance(block, nodes.ElifStatement):
-                    self.evaluate_elif(block)
-                self.evaluate_codeblock(block)
-        else:
-            raise InvalidCode('Elif clause does not evaluate to true or false.')
 
     def is_elementary_type(self, v):
         if isinstance(v, int) or isinstance(v, str) or isinstance(v, bool):

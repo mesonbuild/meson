@@ -208,7 +208,7 @@ def p_statement_not(t):
 
 def p_statement_elif(t):
     'elseblock : ELIF statement EOL codeblock elseblock'
-    t[0] = nodes.ElifStatement(t[2], t[4], t[5], t.lineno(1))
+    t[0] = nodes.IfStatement(t[2], t[4], t[5], t.lineno(1))
 
 def p_empty_else(t):
     'elseblock : '
