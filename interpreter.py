@@ -1271,7 +1271,7 @@ class Interpreter():
         if isinstance(v, nodes.BoolStatement):
             v = v.get_value()
         if not isinstance(v, bool):
-            raise InterpreterException('First argument to "or" is not a boolean.')
+            raise InterpreterException('Argument to "not" is not a boolean.')
         return not v
 
     def evaluate_arraystatement(self, cur):
