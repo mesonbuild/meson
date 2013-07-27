@@ -23,6 +23,13 @@ class EnvironmentException(Exception):
     def __init(self, *args, **kwargs):
         Exception.__init__(self, *args, **kwargs)
 
+class RunResult():
+    def __init__(self, compiled, returncode=999, stdout='UNDEFINED', stderr='UNDEFINED'):
+        self.compiled = compiled
+        self.returncode = returncode
+        self.stdout = stdout
+        self.stderr = stderr
+
 class CCompiler():
     def __init__(self, exelist):
         if type(exelist) == type(''):

@@ -38,6 +38,28 @@ class InterpreterObject():
             return self.methods[method_name](args, kwargs)
         raise InvalidCode('Unknown method "%s" in object.' % method_name)
 
+class TryRunResultHolder(InterpreterObject):
+    def __init__(self, res):
+        super().__init__()
+        self.res = res
+        self.methods.update({'returncode' : self.returncode_method,
+                             'compiled' : self.compiled_method,
+                             'stdout' : self.stdout_method,
+                             'stderr' : self.stderr_method,
+                             })
+        
+    def returncode_method(self, args, kwargs):
+        return self.res.returncode
+    
+    def compiled_method(self, args, kwargs):
+        return self.res.compiled
+    
+    def stdout_method(self, args, kwargs):
+        return self.res.stdout
+    
+    def stderr_method(self, args, kwargs):
+        return self.res.stderr
+
 class RunProcess(InterpreterObject):
 
     def __init__(self, command_array, curdir):
@@ -627,7 +649,19 @@ class CompilerHolder(InterpreterObject):
                              'get_id': self.get_id_method,
                              'sizeof': self.sizeof_method,
                              'has_header': self.has_header_method,
+                             'run' : self.run_method,
                              })
+
+    def run_method(self, args, kwargs):
+        if len(args) != 1:
+            raise InterpreterException('Run method takes exactly one positional argument.')
+        code = args[0]
+        if isinstance(code, nodes.StringStatement):
+            code = code.get_value()
+        if not isinstance(code, str):
+            raise InterpreterException('First argument is not a string.')
+        result = environment.RunResult(True, 0, 'stdout', 'stderr')
+        return TryRunResultHolder(result)
 
     def get_id_method(self, args, kwargs):
         return self.compiler.get_id()
