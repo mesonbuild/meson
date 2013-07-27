@@ -152,6 +152,26 @@ class CCompiler():
             pass
         return p.returncode == 0
 
+    def run(self, code):
+        (fd, srcname) = tempfile.mkstemp(suffix='.'+self.default_suffix)
+        os.close(fd)
+        ofile = open(srcname, 'w')
+        ofile.write(code)
+        ofile.close()
+        exename = srcname + '.exe' # Is guaranteed to be executable on every platform.
+        commands = self.get_exelist()
+        commands.append(srcname)
+        commands += self.get_output_flags(exename)
+        p = subprocess.Popen(commands, cwd=os.path.split(srcname)[0], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        p.communicate()
+        os.remove(srcname)
+        if p.returncode != 0:
+            return RunResult(False)
+        pe = subprocess.Popen(exename, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        (so, se) = pe.communicate()
+        os.remove(exename)
+        return RunResult(True, pe.returncode, so.decode(), se.decode())
+
     def sizeof(self, element, prefix):
         templ = '''#include<stdio.h>
 %s
@@ -161,27 +181,12 @@ int main(int argc, char **argv) {
     return 0;
 };
 '''
-        (fd, srcname) = tempfile.mkstemp(suffix='.'+self.default_suffix)
-        exename = srcname + '.exe' # Is guaranteed to be executable on every platform.
-        os.close(fd)
-        ofile = open(srcname, 'w')
-        code = templ % (prefix, element)
-        ofile.write(code)
-        ofile.close()
-        commands = self.get_exelist()
-        commands.append(srcname)
-        commands += self.get_output_flags(exename)
-        p = subprocess.Popen(commands, cwd=os.path.split(srcname)[0], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        p.communicate()
-        os.remove(srcname)
-        if p.returncode != 0:
+        res = self.run(templ % (prefix, element))
+        if not res.compiled:
             raise EnvironmentException('Could not compile sizeof test.')
-        pe = subprocess.Popen(exename, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        so = pe.communicate()[0]
-        os.remove(exename)
-        if pe.returncode != 0:
+        if res.returncode != 0:
             raise EnvironmentException('Could not run sizeof test binary.')
-        return int(so.decode())
+        return int(res.stdout)
 
 class CPPCompiler(CCompiler):
     def __init__(self, exelist):

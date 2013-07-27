@@ -23,9 +23,9 @@ err = cc.run(error_code)
 noc = cc.run(no_compile_code)
 
 if noc.compiled()
-  message('Compilation fail test failed.')
+  error('Compilation fail test failed.')
 else
-  error('Fail detected.')
+  message('Fail detected properly.')
 endif
 
 if ok.compiled()

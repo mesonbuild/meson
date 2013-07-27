@@ -660,7 +660,7 @@ class CompilerHolder(InterpreterObject):
             code = code.get_value()
         if not isinstance(code, str):
             raise InterpreterException('First argument is not a string.')
-        result = environment.RunResult(True, 0, 'stdout', 'stderr')
+        result = self.compiler.run(code)
         return TryRunResultHolder(result)
 
     def get_id_method(self, args, kwargs):
