@@ -82,6 +82,18 @@ class IntStatement(Statement):
     def get_value(self):
         return self.value
 
+class AndStatement(Statement):
+    def __init__(self, left, right):
+        Statement.__init__(self, left.lineno)
+        self.left = left
+        self.right = right
+
+class OrStatement(Statement):
+    def __init__(self, left, right):
+        Statement.__init__(self, left.lineno)
+        self.left = left
+        self.right = right
+
 class IfStatement(Statement):
     def __init__(self, clause, trueblock, falseblock, lineno):
         Statement.__init__(self, lineno)

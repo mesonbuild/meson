@@ -27,6 +27,9 @@ reserved = {'true' : 'TRUE',
             'if' : 'IF',
             'endif' : 'ENDIF',
             'else' : 'ELSE',
+            'and' : 'AND',
+            'or' : 'OR',
+            'not' : 'NOT',
             }
 
 tokens = ['LPAREN',
@@ -61,6 +64,16 @@ t_DOT = '\.'
 t_COLON = ':'
 
 t_ignore = ' \t'
+
+precedence = (
+('left', 'COMMA'),
+('left', 'ASSIGN'),
+('nonassoc', 'EQUALS', 'NEQUALS'),
+('left', 'OR'),
+('left', 'AND'),
+('nonassoc', 'COLON')
+('left', 'DOT'),
+)
 
 def t_ATOM(t):
     '[a-zA-Z][_0-9a-zA-Z]*'
@@ -174,6 +187,14 @@ def p_statement_method_call(t):
 def p_statement_if(t):
     'statement : IF statement EOL codeblock elseblock ENDIF'
     t[0] = nodes.IfStatement(t[2], t[4], t[5], t.lineno(1))
+
+def p_statement_parentheses(t):
+    'statement : LPAREN statement RPAREN'
+    t[0] = t[2]
+
+def p_statement_and(t):
+    'statement : statement AND statement'
+    t[0] = nodes.AndStatement(t[1], t[3])
 
 def p_empty_else(t):
     'elseblock : '

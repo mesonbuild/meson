@@ -841,6 +841,8 @@ class Interpreter():
             return self.evaluate_arraystatement(cur)
         elif isinstance(cur, nodes.IntStatement):
             return cur
+        elif isinstance(cur, nodes.AndStatement):
+            return self.evaluate_andstatement(cur)
         else:
             raise InvalidCode("Unknown statement.")
 
@@ -1229,7 +1231,22 @@ class Interpreter():
             return val1 != val2
         else:
             raise InvalidCode('You broke me.')
-    
+
+    def evaluate_andstatement(self, cur):
+        l = self.evaluate_statement(cur.left)
+        if isinstance(l, nodes.BoolStatement):
+            l = l.get_value()
+        if not isinstance(l, bool):
+            raise InterpreterException('First argument to "and" is not a boolean.')
+        if not l:
+            return False
+        r = self.evaluate_statement(cur.right)
+        if isinstance(r, nodes.BoolStatement):
+            r = r.get_value()
+        if not isinstance(r, bool):
+            raise InterpreterException('Second argument to "and" is not a boolean.')
+        return r
+
     def evaluate_arraystatement(self, cur):
         (arguments, kwargs) = self.reduce_arguments(cur.get_args())
         if len(kwargs) > 0:
