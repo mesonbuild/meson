@@ -1175,10 +1175,30 @@ class Interpreter():
             reduced_kw[key] = self.reduce_single(a)
         return (reduced_pos, reduced_kw)
     
-    def string_method_call(self, obj, method_name):
+    def string_method_call(self, obj, method_name, args):
         if method_name == 'strip':
-            return obj.strip()
+            return self.to_native(obj).strip()
+        if method_name == 'format':
+            return self.format_string(obj, args)
         raise InterpreterException('Unknown method "%s" for a string.' % method_name)
+
+    def to_native(self, arg):
+        if isinstance(arg, nodes.StringStatement) or \
+           isinstance(arg, nodes.IntStatement) or \
+           isinstance(arg, nodes.BoolStatement):
+            return arg.get_value()
+        return arg
+
+    def format_string(self, templ, args):
+        templ = self.to_native(templ)
+        if isinstance(args, nodes.Arguments):
+            args = args.arguments
+        for (i, arg) in enumerate(args):
+            arg = self.to_native(arg)
+            if isinstance(arg, bool): # Python boolean is upper case.
+                arg = str(arg).lower()
+            templ = templ.replace('@{}@'.format(i), str(arg))
+        return templ
 
     def method_call(self, node):
         invokable = node.invokable
@@ -1189,8 +1209,10 @@ class Interpreter():
             obj = self.evaluate_statement(invokable)
         method_name = node.method_name.get_value()
         args = node.arguments
+        if isinstance(obj, nodes.StringStatement):
+            obj = obj.get_value()
         if isinstance(obj, str):
-            return self.string_method_call(obj, method_name)
+            return self.string_method_call(obj, method_name, args)
         if not isinstance(obj, InterpreterObject):
             raise InvalidArguments('Variable "%s" is not callable.' % object_name)
         (args, kwargs) = self.reduce_arguments(args)
