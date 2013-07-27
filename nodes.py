@@ -106,6 +106,13 @@ class IfStatement(Statement):
         self.trueblock = trueblock
         self.falseblock = falseblock
 
+class ElifStatement(Statement):
+    def __init__(self, clause, trueblock, elseblock, lineno):
+        Statement.__init__(self, lineno)
+        self.clause = clause
+        self.trueblock = trueblock
+        self.elseblock = elseblock
+
     def get_clause(self):
         return self.clause
 

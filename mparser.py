@@ -26,6 +26,7 @@ reserved = {'true' : 'TRUE',
             'false' : 'FALSE',
             'if' : 'IF',
             'endif' : 'ENDIF',
+            'elif' : 'ELIF',
             'else' : 'ELSE',
             'and' : 'AND',
             'or' : 'OR',
@@ -204,6 +205,10 @@ def p_statement_or(t):
 def p_statement_not(t):
     'statement : NOT statement'
     t[0] = nodes.NotStatement(t[2])
+
+def p_statement_elif(t):
+    'elseblock : ELIF statement EOL codeblock elseblock'
+    t[0] = nodes.ElifStatement(t[2], t[4], t[5], t.lineno(1))
 
 def p_empty_else(t):
     'elseblock : '
