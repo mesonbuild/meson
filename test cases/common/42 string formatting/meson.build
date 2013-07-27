@@ -13,3 +13,10 @@ endif
 if '@0@'.format(true) != 'true'
   error('String boolean formatting is broken.')
 endif
+
+templ2 = '@0@'
+subs2 = '42'
+
+if templ2.format(subs2) != '42'
+  error('String formatting with variables is broken.')
+endif

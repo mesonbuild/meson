@@ -1194,7 +1194,7 @@ class Interpreter():
         if isinstance(args, nodes.Arguments):
             args = args.arguments
         for (i, arg) in enumerate(args):
-            arg = self.to_native(arg)
+            arg = self.to_native(self.reduce_single(arg))
             if isinstance(arg, bool): # Python boolean is upper case.
                 arg = str(arg).lower()
             templ = templ.replace('@{}@'.format(i), str(arg))
