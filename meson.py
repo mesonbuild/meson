@@ -129,7 +129,6 @@ if __name__ == '__main__':
         else:
             this_file = resolved 
     app = MesonApp(dir1, dir2, this_file, options)
-    app.generate()
     try:
         app.generate()
     except Exception as e:
