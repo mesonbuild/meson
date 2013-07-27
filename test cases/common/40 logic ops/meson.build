@@ -27,13 +27,13 @@ else
   error('Not ok.')
 endif
 
-if t and t
+if true and t
   message('Ok.')
 else
   error('Not ok.')
 endif
 
-if t and f
+if t and false
   error('Not ok.')
 else
   message('Ok.')
@@ -43,4 +43,22 @@ if f and t
   error('Not ok.')
 else
   message('Ok.')
+endif
+
+if f or false
+  error('Not ok.')
+else
+  message('Ok.')
+endif
+
+if true or f
+  message('Ok.')
+else
+  error('Not ok.')
+endif
+
+if t or true
+  message('Ok.')
+else
+  error('Not ok.')
 endif

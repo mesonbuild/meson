@@ -71,7 +71,7 @@ precedence = (
 ('nonassoc', 'EQUALS', 'NEQUALS'),
 ('left', 'OR'),
 ('left', 'AND'),
-('nonassoc', 'COLON')
+('nonassoc', 'COLON'),
 ('left', 'DOT'),
 )
 
@@ -195,6 +195,10 @@ def p_statement_parentheses(t):
 def p_statement_and(t):
     'statement : statement AND statement'
     t[0] = nodes.AndStatement(t[1], t[3])
+
+def p_statement_or(t):
+    'statement : statement OR statement'
+    t[0] = nodes.OrStatement(t[1], t[3])
 
 def p_empty_else(t):
     'elseblock : '
