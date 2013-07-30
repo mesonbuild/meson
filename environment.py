@@ -188,6 +188,19 @@ int main(int argc, char **argv) {
             raise EnvironmentException('Could not run sizeof test binary.')
         return int(res.stdout)
 
+    def has_function(self, funcname, prefix):
+        # This fails (returns true) if funcname is a ptr or a variable.
+        # The correct check is a lot more difficult.
+        # Fix this to do that eventually.
+        templ = '''%s
+int main(int argc, char **argv) {
+    void *ptr = (void*)(%s);
+    return 0;
+};
+'''
+        res = self.run(templ % (prefix, funcname))
+        return res.compiled
+
 class CPPCompiler(CCompiler):
     def __init__(self, exelist):
         CCompiler.__init__(self, exelist)

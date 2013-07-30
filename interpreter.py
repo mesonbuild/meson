@@ -650,6 +650,7 @@ class CompilerHolder(InterpreterObject):
                              'sizeof': self.sizeof_method,
                              'has_header': self.has_header_method,
                              'run' : self.run_method,
+                             'has_function' : self.has_function_method,
                              })
 
     def run_method(self, args, kwargs):
@@ -665,7 +666,25 @@ class CompilerHolder(InterpreterObject):
 
     def get_id_method(self, args, kwargs):
         return self.compiler.get_id()
-    
+
+
+    def has_function_method(self, args, kwargs):
+        if len(args) != 1:
+            raise InterpreterException('Has_function takes exactly one argument.')
+        funcname = args[0]
+        if not isinstance(funcname, str):
+            raise InterpreterException('Argument to has_function must be a string.')
+        prefix = kwargs.get('prefix', '')
+        if not isinstance(prefix, str):
+            raise InterpreterException('Prefix argument of has_function must be a string.')
+        had = self.compiler.has_function(funcname, prefix)
+        if had:
+            hadtxt = mlog.green('YES')
+        else:
+            hadtxt = mlog.red('NO')
+        mlog.log('Checking for function "', mlog.bold(funcname), '": ', hadtxt, sep='')
+        return had
+
     def sizeof_method(self, args, kwargs):
         if len(args) != 1:
             raise InterpreterException('Sizeof takes exactly one argument.')
@@ -688,7 +707,7 @@ class CompilerHolder(InterpreterObject):
         if not isinstance(string, str):
             raise InterpreterException('Argument to compiles() must be a string')
         return self.compiler.compiles(string)
-    
+
     def has_header_method(self, args, kwargs):
         if len(args) != 1:
             raise InterpreterException('has_header method takes exactly one argument.')
