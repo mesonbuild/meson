@@ -1117,6 +1117,8 @@ class Interpreter():
     def flatten(self, args):
         if isinstance(args, nodes.StringStatement):
             return args.get_value()
+        if isinstance(args, str):
+            return args
         result = []
         for a in args:
             if isinstance(a, list):
@@ -1160,10 +1162,7 @@ class Interpreter():
     def is_assignable(self, value):
         if isinstance(value, InterpreterObject) or \
             isinstance(value, dependencies.Dependency) or\
-            isinstance(value, nodes.StringStatement) or\
             isinstance(value, str) or\
-            isinstance(value, nodes.BoolStatement) or\
-            isinstance(value, nodes.IntStatement) or\
             isinstance(value, int) or \
             isinstance(value, list):
             return True
@@ -1177,6 +1176,7 @@ class Interpreter():
         value = self.evaluate_statement(node.value)
         if value is None:
             raise InvalidCode('Can not assign None to variable.')
+        value = self.to_native(value)
         if not self.is_assignable(value):
             raise InvalidCode('Tried to assign an invalid value to variable.')
         self.set_variable(var_name, value)
