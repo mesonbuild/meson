@@ -195,9 +195,7 @@ int main(int argc, char **argv) {
         # information.
         templ = '''#include<stdio.h>
 
-#define TESTTYPE %s
-
-#define SDEF(num) struct foo##num { char pad[num]; TESTTYPE x; };
+#define SDEF(num) struct foo##num { char pad[num]; %s x; };
 #define PR(num) printf("%%d\\n", (int)sizeof(struct foo##num))
 SDEF(1)
 SDEF(2)
