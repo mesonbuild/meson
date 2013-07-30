@@ -203,7 +203,7 @@ int main(int argc, char **argv) {
 
     def has_member(self, typename, membername, prefix):
         templ = '''%s
-void foo() {
+void bar() {
     %s foo;
     foo.%s;
 };
