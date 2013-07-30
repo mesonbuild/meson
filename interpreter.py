@@ -652,7 +652,18 @@ class CompilerHolder(InterpreterObject):
                              'run' : self.run_method,
                              'has_function' : self.has_function_method,
                              'has_member' : self.has_member_method,
+                             'alignment' : self.alignment_method,
                              })
+
+    def alignment_method(self, args, kwargs):
+        if len(args) != 1:
+            raise InterpreterException('Alignment method takes exactly one positional argument.')
+        typename = args[0]
+        if not isinstance(typename, str):
+            raise InterpreterException('First argument is not a string.')
+        result = self.compiler.alignment(typename)
+        mlog.log('Checking for alignment of "', mlog.bold(typename), '": ', result, sep='')
+        return result
 
     def run_method(self, args, kwargs):
         if len(args) != 1:

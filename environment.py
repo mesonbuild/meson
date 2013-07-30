@@ -162,7 +162,7 @@ class CCompiler():
         commands = self.get_exelist()
         commands.append(srcname)
         commands += self.get_output_flags(exename)
-        p = subprocess.Popen(commands, cwd=os.path.split(srcname)[0], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        p = subprocess.Popen(commands, cwd=os.path.split(srcname)[0])#, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         p.communicate()
         os.remove(srcname)
         if p.returncode != 0:
@@ -187,6 +187,68 @@ int main(int argc, char **argv) {
         if res.returncode != 0:
             raise EnvironmentException('Could not run sizeof test binary.')
         return int(res.stdout)
+
+    def alignment(self, typename):
+        # A word of warning: this algoritm may be totally incorrect.
+        # However it worked for me on the cases I tried.
+        # There is probably a smarter and more robust way to get this
+        # information.
+        templ = '''#include<stdio.h>
+
+#define TESTTYPE %s
+
+#define SDEF(num) struct foo##num { char pad[num]; TESTTYPE x; };
+#define PR(num) printf("%%d\\n", (int)sizeof(struct foo##num))
+SDEF(1)
+SDEF(2)
+SDEF(3)
+SDEF(4)
+SDEF(5)
+SDEF(6)
+SDEF(7)
+SDEF(8)
+SDEF(9)
+SDEF(10)
+SDEF(12)
+SDEF(13)
+SDEF(14)
+SDEF(15)
+SDEF(16)
+SDEF(17)
+
+int main(int argc, char **argv) {
+  PR(1);
+  PR(2);
+  PR(3);
+  PR(4);
+  PR(5);
+  PR(6);
+  PR(7);
+  PR(8);
+  PR(9);
+  PR(10);
+  PR(12);
+  PR(13);
+  PR(14);
+  PR(15);
+  PR(16);
+  PR(17);
+  return 0;
+}
+'''
+        res = self.run(templ % typename)
+        if not res.compiled:
+            raise EnvironmentException('Could not compile alignment test.')
+        if res.returncode != 0:
+            raise EnvironmentException('Could not run alignment test binary.')
+        arr = [int(x) for x in res.stdout.split()]
+        for i in range(len(arr)-1):
+            nxt= arr[i+1]
+            cur = arr[i]
+            diff = nxt - cur
+            if diff > 0:
+                return diff
+        raise EnvironmentException('Could not determine alignment of %s. Sorry. You might want to file a bug.' % typename)
 
     def has_function(self, funcname, prefix):
         # This fails (returns true) if funcname is a ptr or a variable.
