@@ -201,6 +201,18 @@ int main(int argc, char **argv) {
         res = self.run(templ % (prefix, funcname))
         return res.compiled
 
+    def has_member(self, typename, membername, prefix):
+        # This fails (returns true) if funcname is a ptr or a variable.
+        # The correct check is a lot more difficult.
+        # Fix this to do that eventually.
+        templ = '''%s
+void foo() {
+    %s foo;
+    foo.%s;
+};
+'''
+        return self.compiles(templ % (prefix, typename, membername))
+
 class CPPCompiler(CCompiler):
     def __init__(self, exelist):
         CCompiler.__init__(self, exelist)

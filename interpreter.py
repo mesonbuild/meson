@@ -651,6 +651,7 @@ class CompilerHolder(InterpreterObject):
                              'has_header': self.has_header_method,
                              'run' : self.run_method,
                              'has_function' : self.has_function_method,
+                             'has_member' : self.has_member_method,
                              })
 
     def run_method(self, args, kwargs):
@@ -667,6 +668,26 @@ class CompilerHolder(InterpreterObject):
     def get_id_method(self, args, kwargs):
         return self.compiler.get_id()
 
+    def has_member_method(self, args, kwargs):
+        if len(args) != 2:
+            raise InterpreterException('Has_member takes exactly two arguments.')
+        typename = args[0]
+        if not isinstance(typename, str):
+            raise InterpreterException('Name of type must be a string.')
+        membername = args[1]
+        if not isinstance(membername, str):
+            raise InterpreterException('Name of member must be a string.')
+        prefix = kwargs.get('prefix', '')
+        if not isinstance(prefix, str):
+            raise InterpreterException('Prefix argument of has_function must be a string.')
+        had = self.compiler.has_member(typename, membername, prefix)
+        if had:
+            hadtxt = mlog.green('YES')
+        else:
+            hadtxt = mlog.red('NO')
+        mlog.log('Checking whether type "', mlog.bold(typename), 
+                 '" has member "', mlog.bold(membername), '": ', hadtxt, sep='')
+        return had
 
     def has_function_method(self, args, kwargs):
         if len(args) != 1:
