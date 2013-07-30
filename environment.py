@@ -202,9 +202,6 @@ int main(int argc, char **argv) {
         return res.compiled
 
     def has_member(self, typename, membername, prefix):
-        # This fails (returns true) if funcname is a ptr or a variable.
-        # The correct check is a lot more difficult.
-        # Fix this to do that eventually.
         templ = '''%s
 void foo() {
     %s foo;
