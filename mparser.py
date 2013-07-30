@@ -78,7 +78,7 @@ precedence = (
 )
 
 def t_ATOM(t):
-    '[a-zA-Z][_0-9a-zA-Z]*'
+    '[_a-zA-Z][_0-9a-zA-Z]*'
     t.type = reserved.get(t.value, 'ATOM')
     return t
 
