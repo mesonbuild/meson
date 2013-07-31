@@ -162,7 +162,7 @@ class CCompiler():
         commands = self.get_exelist()
         commands.append(srcname)
         commands += self.get_output_flags(exename)
-        p = subprocess.Popen(commands, cwd=os.path.split(srcname)[0])#, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        p = subprocess.Popen(commands, cwd=os.path.split(srcname)[0], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         p.communicate()
         os.remove(srcname)
         if p.returncode != 0:

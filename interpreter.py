@@ -671,9 +671,20 @@ class CompilerHolder(InterpreterObject):
         code = args[0]
         if isinstance(code, nodes.StringStatement):
             code = code.get_value()
+        testname = kwargs.get('name', '')
+        if not isinstance(testname, str):
+            raise InterpreterException('Testname argument must be a string.')
         if not isinstance(code, str):
             raise InterpreterException('First argument is not a string.')
         result = self.compiler.run(code)
+        if len(testname) > 0:
+            if not result.compiled:
+                h = mlog.red('DID NOT COMPILE')
+            elif result.returncode == 0:
+                h = mlog.green('YES')
+            else:
+                h = mlog.red('NO (%d)' % result.returncode)
+            mlog.log('Checking if "', mlog.bold(testname), '" runs : ', h, sep='')
         return TryRunResultHolder(result)
 
     def get_id_method(self, args, kwargs):

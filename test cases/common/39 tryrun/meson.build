@@ -18,9 +18,9 @@ error_code = '''int main(int argc, char **argv) {
 no_compile_code = '''int main(int argc, char **argv) {
 '''
 
-ok = cc.run(ok_code)
-err = cc.run(error_code)
-noc = cc.run(no_compile_code)
+ok = cc.run(ok_code, name : 'should succeed')
+err = cc.run(error_code, name : 'should fail')
+noc = cc.run(no_compile_code, name : 'does not compile')
 
 if noc.compiled()
   error('Compilation fail test failed.')
