@@ -8,6 +8,11 @@ if cc.alignment('char') != 1
   error('Alignment of char misdetected.')
 endif
 
-if cc.alignment('double') != 8
-  error('Alignment of double misdetected.')
+ptr_size = cc.sizeof('void*')
+dbl_alignment = cc.alignment('double')
+
+if ((ptr_size == 4) and (dbl_alignment == 4)) or ((ptr_size == 8) and (dbl_alignment == 8))
+  message('Alignment of double ok.')
+else
+  error('Alignment of double erroneous.')
 endif
