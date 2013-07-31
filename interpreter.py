@@ -734,11 +734,21 @@ class CompilerHolder(InterpreterObject):
         if len(args) != 1:
             raise InterpreterException('compiles method takes exactly one argument.')
         string = args[0]
+        testname = kwargs.get('testname', '')
+        if not isinstance(testname, str):
+            raise InterpreterException('Testname argument must be a string.')
         if isinstance(string, nodes.StringStatement):
             string = string.value
         if not isinstance(string, str):
             raise InterpreterException('Argument to compiles() must be a string')
-        return self.compiler.compiles(string)
+        result = self.compiler.compiles(string)
+        if len(testname) > 0:
+            if result:
+                h = mlog.green('YES')
+            else:
+                h = mlog.red('NO')
+            mlog.log('Checking if "', mlog.bold(testname), '" compiles : ', h, sep='')
+        return result
 
     def has_header_method(self, args, kwargs):
         if len(args) != 1:
