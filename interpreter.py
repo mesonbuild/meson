@@ -734,7 +734,7 @@ class CompilerHolder(InterpreterObject):
         if len(args) != 1:
             raise InterpreterException('compiles method takes exactly one argument.')
         string = args[0]
-        testname = kwargs.get('testname', '')
+        testname = kwargs.get('name', '')
         if not isinstance(testname, str):
             raise InterpreterException('Testname argument must be a string.')
         if isinstance(string, nodes.StringStatement):

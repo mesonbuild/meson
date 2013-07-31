@@ -9,10 +9,10 @@ void func() { printf("This won't work.\n"); }
 '''
 
 compiler = meson.get_compiler('c')
-if compiler.compiles(code, testname : 'should succeed') == false
+if compiler.compiles(code, name : 'should succeed') == false
   error('Compiler is fail.')
 endif
 
-if compiler.compiles(breakcode, testname : 'should fail')
+if compiler.compiles(breakcode, name : 'should fail')
   error('Compiler returned true on broken code.')
 endif
