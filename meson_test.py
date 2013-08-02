@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys, subprocess, time, datetime
+import sys, subprocess, time, datetime, pickle
 from optparse import OptionParser
 
 parser = OptionParser()
@@ -39,11 +39,11 @@ def run_tests(options, datafilename):
         logfilename = logfile_base + '-' + options.wrapper.replace(' ', '_') + '.txt'
     logfile = open(logfilename, 'w')
     logfile.write('Log of Meson test suite run on %s.\n\n' % datetime.datetime.now().isoformat())
-    for line in open(datafilename, 'r'):
-        line = line.strip()
-        if line == '':
-            continue
-        cmd = wrap + [line]
+    tests = pickle.load(open(datafilename, 'rb'))
+    for test in tests:
+        name = test[0]
+        fname = test[1]
+        cmd = wrap + [fname]
         starttime = time.time()
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (stdo, stde) = p.communicate()
@@ -53,11 +53,11 @@ def run_tests(options, datafilename):
         stde = stde.decode()
 
         if p.returncode != 0:
-            result_str = 'Test "%s": FAIL (%.3f s)' % (line, duration)
+            result_str = 'Test "%s": FAIL (%.3f s)' % (name, duration)
         else:
-            result_str = 'Test "%s": OK (%.3f s)' % (line, duration)
+            result_str = 'Test "%s": OK (%.3f s)' % (name, duration)
         print(result_str)
-        write_log(logfile, line, result_str, stdo, stde)
+        write_log(logfile, name, result_str, stdo, stde)
     print('\nFull log written to %s.' % logfilename)
 
 if __name__ == '__main__':

@@ -443,10 +443,17 @@ class NinjaBackend(Backend):
             velem.add_item('DESC', 'Running test suite under Valgrind.')
             velem.write(outfile)
 
-        datafile = open(test_data, 'w')
-        for t in self.build.get_tests():
-            datafile.write(os.path.join(self.environment.get_build_dir(), self.get_target_filename(t.get_exe())) + '\n')
+        datafile = open(test_data, 'wb')
+        self.write_test_file(datafile)
         datafile.close()
+
+    def write_test_file(self, datafile):
+        arr = []
+        for t in self.build.get_tests():
+            name = t.get_name()
+            fname = os.path.join(self.environment.get_build_dir(), self.get_target_filename(t.get_exe()))
+            arr.append([name, fname])
+        pickle.dump(arr, datafile)
 
     def generate_dep_gen_rules(self, outfile):
         outfile.write('# Rules for external dependency generators.\n\n')
