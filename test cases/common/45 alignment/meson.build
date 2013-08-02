@@ -11,8 +11,14 @@ endif
 ptr_size = cc.sizeof('void*')
 dbl_alignment = cc.alignment('double')
 
-if ((ptr_size == 4) and (dbl_alignment == 4)) or ((ptr_size == 8) and (dbl_alignment == 8))
+if host.name() == 'windows'
+  dbl_exp = 8
+else
+  dbl_exp = ptr_size
+endif
+
+if dbl_alignment == dbl_exp
   message('Alignment of double ok.')
 else
-  error('Alignment of double erroneous.')
+  error('Alignment of double misdetected.')
 endif
