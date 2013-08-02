@@ -40,7 +40,7 @@ def run_tests(options, datafilename):
     logfile = open(logfilename, 'w')
     logfile.write('Log of Meson test suite run on %s.\n\n' % datetime.datetime.now().isoformat())
     tests = pickle.load(open(datafilename, 'rb'))
-    for test in tests:
+    for i, test in enumerate(tests):
         name = test[0]
         fname = test[1]
         cmd = wrap + [fname]
@@ -52,10 +52,14 @@ def run_tests(options, datafilename):
         stdo = stdo.decode()
         stde = stde.decode()
 
-        if p.returncode != 0:
-            result_str = 'Test "%s": FAIL (%.3f s)' % (name, duration)
+        num = '%d/%d' % (i+1, len(tests))
+        padding1 = ' '*(40-len(name))
+        if p.returncode == 0:
+            res = 'OK'
         else:
-            result_str = 'Test "%s": OK (%.3f s)' % (name, duration)
+            res = 'FAIL'
+        padding2 = ' '*(5-len(res))
+        result_str = '%s "%s"%s%s%s(%.3f s)' % (num, name, padding1, res, padding2, duration)
         print(result_str)
         write_log(logfile, name, result_str, stdo, stde)
     print('\nFull log written to %s.' % logfilename)
