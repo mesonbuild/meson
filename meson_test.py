@@ -61,7 +61,7 @@ def run_tests(options, datafilename):
         else:
             res = 'FAIL'
         padding2 = ' '*(5-len(res))
-        result_str = '%s "%s"%s%s%s(%.3f s)' % (num, name, padding1, res, padding2, duration)
+        result_str = '%s %s%s%s%s(%5.2f s)' % (num, name, padding1, res, padding2, duration)
         print(result_str)
         write_log(logfile, name, result_str, stdo, stde)
     print('\nFull log written to %s.' % logfilename)
