@@ -40,6 +40,7 @@ def run_tests(options, datafilename):
     logfile = open(logfilename, 'w')
     logfile.write('Log of Meson test suite run on %s.\n\n' % datetime.datetime.now().isoformat())
     tests = pickle.load(open(datafilename, 'rb'))
+    numlen = len('%d' % len(tests))
     for i, test in enumerate(tests):
         name = test[0]
         fname = test[1]
@@ -52,7 +53,8 @@ def run_tests(options, datafilename):
         stdo = stdo.decode()
         stde = stde.decode()
 
-        num = '%d/%d' % (i+1, len(tests))
+        startpad = ' '*(numlen - len('%d' % (i+1)))
+        num = '%s%d/%d' % (startpad, i+1, len(tests))
         padding1 = ' '*(40-len(name))
         if p.returncode == 0:
             res = 'OK'
