@@ -69,10 +69,10 @@ t_ignore = ' \t'
 precedence = (
 ('left', 'COMMA'),
 ('left', 'ASSIGN'),
-('nonassoc', 'EQUALS', 'NEQUALS'),
 ('left', 'OR'),
 ('left', 'AND'),
 ('right', 'NOT'),
+('nonassoc', 'EQUALS', 'NEQUALS'),
 ('nonassoc', 'COLON'),
 ('left', 'DOT'),
 )

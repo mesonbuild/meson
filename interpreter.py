@@ -1326,7 +1326,9 @@ class Interpreter():
             val2 = v2
         else:
             val2 = v2.get_value()
-        assert(type(val1) == type(val2))
+        if type(val1) != type(val2):
+            raise InterpreterException('Comparison of different types %s and %s.' %
+                                       (str(type(val1)), str(type(val2))))
         if node.get_ctype() == '==':
             return val1 == val2
         elif node.get_ctype() == '!=':
