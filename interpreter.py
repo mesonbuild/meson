@@ -1178,11 +1178,20 @@ class Interpreter():
         sources += kw_src
         if name in self.build.targets:
             raise InvalidCode('Tried to create target "%s", but a target of that name already exists.' % name)
+        self.check_sources_exist(os.path.join(self.environment.source_dir, self.subdir), sources)
         l = targetclass(name, self.subdir, sources, self.environment, kwargs)
         self.build.targets[name] = l
         mlog.log('Creating build target "', mlog.bold(name), '" with %d files.' % len(sources), sep='')
         return l
 
+    def check_sources_exist(self, subdir, sources):
+        for s in sources:
+            if not isinstance(s, str):
+                continue # This means a generated source and they always exist.
+            fname = os.path.join(subdir, s)
+            if not os.path.isfile(fname):
+                raise InterpreterException('Tried to add non-existing source %s.' % s)
+        
     def function_call(self, node):
         func_name = node.get_function_name()
         (posargs, kwargs) = self.reduce_arguments(node.arguments)
