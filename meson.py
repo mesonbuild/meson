@@ -138,7 +138,7 @@ if __name__ == '__main__':
             else:
                 mlog.log(mlog.red('\nMeson encountered an error:'))
             mlog.log(e)
-            sys.exit(1)
         else:
             traceback.print_exc()
+        sys.exit(1)
 
