@@ -1052,7 +1052,7 @@ class Interpreter():
         self.validate_arguments(args, 2, [str, Executable])
         t = Test(args[0], args[1])
         self.build.tests.append(t)
-        mlog.log('Adding test "', mlog.bold(args[0]), '".', sep='')
+        mlog.debug('Adding test "', mlog.bold(args[0]), '".', sep='')
 
     def func_headers(self, node, args, kwargs):
         for a in args:

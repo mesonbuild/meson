@@ -62,6 +62,11 @@ def process_markup(args, keep):
             arr.append(str(arg))
     return arr
 
+def debug(*args, **kwargs):
+    arr = process_markup(args, False)
+    if log_file is not None:
+        print(*arr, file=log_file, **kwargs) # Log file never gets ANSI codes.
+
 def log(*args, **kwargs):
     arr = process_markup(args, False)
     if log_file is not None:
