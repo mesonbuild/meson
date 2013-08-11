@@ -940,6 +940,9 @@ class Environment():
                     return trial
 
     def get_library_dirs(self):
+        return get_library_dirs()
+
+def get_library_dirs():
         if is_windows():
             return ['C:/mingw/lib'] # Fixme
         if is_osx():

@@ -1083,7 +1083,10 @@ class Interpreter():
         self.subdir = subdir
         buildfilename = os.path.join(self.subdir, environment.build_filename)
         self.build_def_files.append(buildfilename)
-        code = open(os.path.join(self.environment.get_source_dir(), buildfilename)).read()
+        absname = os.path.join(self.environment.get_source_dir(), buildfilename)
+        if not os.path.isfile(absname):
+            raise InterpreterException('Nonexistant build def file %s.' % buildfilename)
+        code = open(absname).read()
         assert(isinstance(code, str))
         try:
             codeblock = mparser.build_ast(code)

@@ -177,7 +177,6 @@ class BoostDependency(Dependency):
         Dependency.__init__(self)
         self.name = 'boost'
         self.incdir = '/usr/include/boost'
-        self.libdir = '/usr/lib'
         self.src_modules = {}
         self.lib_modules = {}
         self.lib_modules_mt = {}
@@ -240,15 +239,17 @@ class BoostDependency(Dependency):
 
     def detect_lib_modules(self):
         globber = 'libboost_*.so' # FIXME, make platform independent.
-        for entry in glob.glob(os.path.join(self.libdir, globber)):
-            lib = os.path.basename(entry)
-            name = lib.split('.')[0].split('_', 1)[-1]
-            # I'm not 100% sure what to do here. Some distros
-            # have modules such as thread only as -mt versions.
-            if entry.endswith('-mt.so'):
-                self.lib_modules_mt[name] = True
-            else:
-                self.lib_modules[name] = True
+        libdirs = environment.get_library_dirs()
+        for libdir in libdirs:
+            for entry in glob.glob(os.path.join(libdir, globber)):
+                lib = os.path.basename(entry)
+                name = lib.split('.')[0].split('_', 1)[-1]
+                # I'm not 100% sure what to do here. Some distros
+                # have modules such as thread only as -mt versions.
+                if entry.endswith('-mt.so'):
+                    self.lib_modules_mt[name] = True
+                else:
+                    self.lib_modules[name] = True
 
     def get_link_flags(self):
         flags = [] # Fixme, add -L if necessary.

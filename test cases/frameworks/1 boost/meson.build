@@ -5,7 +5,7 @@ project('boosttest', 'cpp')
 # Use one without a library dependency and one with it.
 
 nolinkdep = dependency('boost', modules: 'utility')
-linkdep = dependency('boost', modules : 'thread')
+linkdep = dependency('boost', modules : ['thread', 'system'])
 
 nolinkexe = executable('nolinkedexe', 'nolinkexe.cc', deps : nolinkdep)
 linkexe = executable('linkedexe', 'linkexe.cc', deps : linkdep)
