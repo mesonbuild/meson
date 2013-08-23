@@ -284,23 +284,35 @@ class GeneratedList(InterpreterObject):
     def get_generator(self):
         return self.generator
 
+class Build(InterpreterObject):
+    def __init__(self):
+        InterpreterObject.__init__(self)
+        self.methods.update({'name' : self.get_name_method,
+                             })
+
+    def get_name_method(self, args, kwargs):
+        return platform.system().lower()
+
 # This currently returns data for the current environment.
 # It should return info for the target host.
 class Host(InterpreterObject):
-
-    def __init__(self):
+    def __init__(self, envir):
         InterpreterObject.__init__(self)
+        self.environment = envir
         self.methods.update({'pointer_size' : self.get_ptrsize_method,
                              'name' : self.get_name_method,
                              'is_big_endian' : self.is_big_endian_method,
                              })
-
+    # Is this needed any more since we have proper compiler
+    # based tests? Consider removing it.
     def get_ptrsize_method(self, args, kwargs):
         if sys.maxsize > 2**32:
             return 64
         return 32
 
     def get_name_method(self, args, kwargs):
+        if self.environment.is_cross_build():
+            return self.environment.cross_info.get('name')
         return platform.system().lower()
     
     def is_big_endian_method(self, args, kwargs):
@@ -810,7 +822,8 @@ class Interpreter():
         self.sanity_check_ast()
         self.variables = {}
         self.builtin = {}
-        self.builtin['host'] = Host()
+        self.builtin['build'] = Build()
+        self.builtin['host'] = Host(build.environment)
         self.builtin['meson'] = MesonMain(build)
         self.environment = build.environment
         self.build_func_dict()
