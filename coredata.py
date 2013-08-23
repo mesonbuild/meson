@@ -34,6 +34,7 @@ class CoreData():
         self.buildtype = options.buildtype
         self.strip = options.strip
         self.coverage = options.coverage
+        self.cross_file = options.cross_file
 
         self.compilers = {}
         self.deps = {}

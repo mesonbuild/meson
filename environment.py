@@ -709,6 +709,9 @@ class Environment():
             self.static_lib_suffix = 'a'
             self.static_lib_prefix = 'lib'
             self.object_suffix = 'o'
+    
+    def is_cross_build(self):
+        return self.coredata.cross_file is not None
 
     def generating_finished(self):
         cdf = os.path.join(self.get_build_dir(), Environment.coredata_file)
@@ -958,3 +961,45 @@ def get_library_dirs():
         unixdirs += glob('/lib/' + plat + '*')
         unixdirs.append('/usr/local/lib')
         return unixdirs
+
+class CrossbuildInfo():
+    def __init__(self, filename):
+        self.items = {}
+        self.parse_datafile(filename)
+        if not 'name' in self:
+            raise EnvironmentException('Cross file must specify "name".')
+
+    def parse_datafile(self, filename):
+        # This is a bit hackish at the moment.
+        for linenum, line in enumerate(open(filename)):
+            line = line.strip()
+            if line == '':
+                continue
+            if '=' not in line:
+                raise EnvironmentException('Malformed line in cross file %s:%d.' % (filename, linenum))
+            (varname, value) = line.split('=', 1)
+            varname = varname.strip()
+            if ' ' in varname or '\t' in varname or "'" in varname or '"' in varname:
+                raise EnvironmentException('Malformed variable name in cross file %s:%d.' % (filename, linenum))
+            try:
+                res = eval(value)
+            except Exception:
+                raise EnvironmentException('Malformed line in cross file %s:%d.' % (filename, linenum))
+            if isinstance(res, str):
+                self.items[varname] = res
+            elif isinstance(res, list):
+                for i in res:
+                    if not isinstance(i, str):
+                        raise EnvironmentException('Malformed line in cross file %s:%d.' % (filename, linenum))
+                self.items[varname] = res
+            else:
+                raise EnvironmentException('Malformed line in cross file %s:%d.' % (filename, linenum))
+
+    def __getitem__(self, ind):
+        return self.items[ind]
+
+    def __contains__(self, item):
+        return item in self.items
+
+    def get(self, *args, **kwargs):
+        return self.items.get(*args, **kwargs)

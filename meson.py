@@ -56,6 +56,8 @@ parser.add_option('--strip', action='store_true', dest='strip', default=False,\
                   help='strip targets on install (default: %default)')
 parser.add_option('--enable-gcov', action='store_true', dest='coverage', default=False,\
                   help='measure test coverage')
+parser.add_option('--cross-file', default=None, dest='cross_file',
+                  help='file describing cross compilation environment')
 
 class MesonApp():
 
@@ -100,6 +102,10 @@ class MesonApp():
         mlog.log(' version:', coredata.version)
         mlog.log('Source dir:', mlog.bold(app.source_dir))
         mlog.log('Build dir:', mlog.bold(app.build_dir))
+        if env.is_cross_build():
+            mlog.log('Build type:', mlog.bold('cross build'))
+        else:
+            mlog.log('Build type:', mlog.bold('native build'))
         b = build.Build(env)
         intr = interpreter.Interpreter(b)
         intr.run()
