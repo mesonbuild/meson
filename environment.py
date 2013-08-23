@@ -31,7 +31,7 @@ class RunResult():
         self.stderr = stderr
 
 class CCompiler():
-    def __init__(self, exelist):
+    def __init__(self, exelist, is_cross, exe_wrapper=None):
         if type(exelist) == type(''):
             self.exelist = [exelist]
         elif type(exelist) == type([]):
@@ -41,6 +41,11 @@ class CCompiler():
         self.language = 'c'
         self.default_suffix = 'c'
         self.id = 'unknown'
+        self.is_cross = is_cross
+        if isinstance(exe_wrapper, str):
+            self.exe_wrapper = [exe_wrapper]
+        else:
+            self.exe_wrapper = exe_wrapper
 
     def get_always_flags(self):
         return []
@@ -118,7 +123,14 @@ class CCompiler():
         pc.wait()
         if pc.returncode != 0:
             raise EnvironmentException('Compiler %s can not compile programs.' % self.name_string())
-        pe = subprocess.Popen(binary_name)
+        if self.is_cross:
+            if self.exe_wrapper is None:
+                # Can't check if the binaries run so we have to assume they do
+                return
+            cmdlist = self.exe_wrapper + [binary_name]
+        else:
+            cmdlist = [binary_name]
+        pe = subprocess.Popen(cmdlist)
         pe.wait()
         if pe.returncode != 0:
             raise EnvironmentException('Executables created by C compiler %s are not runnable.' % self.name_string())
@@ -153,6 +165,8 @@ class CCompiler():
         return p.returncode == 0
 
     def run(self, code):
+        if self.is_cross and self.exe_wrapper is None:
+            raise EnvironmentException('Can not run test applications in this cross environment.')
         (fd, srcname) = tempfile.mkstemp(suffix='.'+self.default_suffix)
         os.close(fd)
         ofile = open(srcname, 'w')
@@ -167,7 +181,11 @@ class CCompiler():
         os.remove(srcname)
         if p.returncode != 0:
             return RunResult(False)
-        pe = subprocess.Popen(exename, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if self.is_cross:
+            cmdlist = self.exe_wrapper + exename
+        else:
+            cmdlist = exename
+        pe = subprocess.Popen(cmdlist, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (so, se) = pe.communicate()
         os.remove(exename)
         return RunResult(True, pe.returncode, so.decode(), se.decode())
@@ -447,8 +465,8 @@ class GnuCCompiler(CCompiler):
     std_warn_flags = ['-Wall', '-Winvalid-pch']
     std_opt_flags = ['-O2']
 
-    def __init__(self, exelist):
-        CCompiler.__init__(self, exelist)
+    def __init__(self, exelist, is_cross, exe_wrapper=None):
+        CCompiler.__init__(self, exelist, is_cross, exe_wrapper)
         self.id = 'gcc'
 
     def get_std_warn_flags(self):
@@ -679,6 +697,10 @@ class Environment():
             self.coredata = coredata.load(cdf)
         except IOError:
             self.coredata = coredata.CoreData(options)
+        if self.coredata.cross_file:
+            self.cross_info = CrossBuildInfo(self.coredata.cross_file)
+        else:
+            self.cross_info = None
         
         # List of potential compilers.
         if is_windows():
@@ -711,7 +733,7 @@ class Environment():
             self.object_suffix = 'o'
     
     def is_cross_build(self):
-        return self.coredata.cross_file is not None
+        return self.cross_info is not None
 
     def generating_finished(self):
         cdf = os.path.join(self.get_build_dir(), Environment.coredata_file)
@@ -737,12 +759,21 @@ class Environment():
 
     def detect_c_compiler(self):
         evar = 'CC'
-        if evar in os.environ:
+        if self.is_cross_build():
+            compilers = [self.cross_info['c']]
+            ccache = []
+            is_cross = True
+            exe_wrap = self.cross_info.get('exe_wrapper', None)
+        elif evar in os.environ:
             compilers = os.environ[evar].split()
             ccache = []
+            is_cross = False
+            exe_wrap = None
         else:
             compilers = self.default_c
             ccache = self.detect_ccache()
+            is_cross = False
+            exe_wrap = None
         for compiler in compilers:
             try:
                 basename = os.path.basename(compiler).lower() 
@@ -756,9 +787,9 @@ class Environment():
                 continue
             out = p.communicate()[0]
             out = out.decode()
-            if (out.startswith('cc ') or out.startswith('gcc')) and \
+            if 'gcc' in out and \
                 'Free Software Foundation' in out:
-                return GnuCCompiler(ccache + [compiler])
+                return GnuCCompiler(ccache + [compiler], is_cross, exe_wrap)
             if 'apple' in out and 'Free Software Foundation' in out:
                 return GnuCCompiler(ccache + [compiler])
             if (out.startswith('clang')):
@@ -962,7 +993,7 @@ def get_library_dirs():
         unixdirs.append('/usr/local/lib')
         return unixdirs
 
-class CrossbuildInfo():
+class CrossBuildInfo():
     def __init__(self, filename):
         self.items = {}
         self.parse_datafile(filename)
@@ -982,7 +1013,7 @@ class CrossbuildInfo():
             if ' ' in varname or '\t' in varname or "'" in varname or '"' in varname:
                 raise EnvironmentException('Malformed variable name in cross file %s:%d.' % (filename, linenum))
             try:
-                res = eval(value)
+                res = eval(value, {})
             except Exception:
                 raise EnvironmentException('Malformed line in cross file %s:%d.' % (filename, linenum))
             if isinstance(res, str):
