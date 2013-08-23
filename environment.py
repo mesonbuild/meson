@@ -316,8 +316,8 @@ class CPPCompiler(CCompiler):
             raise EnvironmentException('Executables created by C++ compiler %s are not runnable.' % self.name_string())
 
 class ObjCCompiler(CCompiler):
-    def __init__(self, exelist):
-        CCompiler.__init__(self, exelist)
+    def __init__(self, exelist, is_cross, exe_wrap):
+        CCompiler.__init__(self, exelist, is_cross, exe_wrap)
         self.language = 'objc'
         self.default_suffix = 'm'
         
@@ -328,8 +328,8 @@ class ObjCCompiler(CCompiler):
         return False
 
 class ObjCPPCompiler(CPPCompiler):
-    def __init__(self, exelist):
-        CPPCompiler.__init__(self, exelist)
+    def __init__(self, exelist, is_cross, exe_wrap):
+        CPPCompiler.__init__(self, exelist, is_cross, exe_wrap)
         self.language = 'objcpp'
         self.default_suffix = 'mm'
 
@@ -482,8 +482,8 @@ class GnuObjCCompiler(ObjCCompiler):
     std_warn_flags = ['-Wall', '-Winvalid-pch']
     std_opt_flags = ['-O2']
     
-    def __init__(self, exelist):
-        ObjCCompiler.__init__(self, exelist)
+    def __init__(self, exelist, is_cross, exe_wrapper=None):
+        ObjCCompiler.__init__(self, exelist, is_cross, exe_wrapper)
         self.id = 'gcc'
 
     def get_std_warn_flags(self):
@@ -499,8 +499,8 @@ class GnuObjCPPCompiler(ObjCPPCompiler):
     std_warn_flags = ['-Wall', '-Winvalid-pch']
     std_opt_flags = ['-O2']
 
-    def __init__(self, exelist):
-        ObjCCompiler.__init__(self, exelist)
+    def __init__(self, exelist, is_cross, exe_wrapper=None):
+        ObjCCompiler.__init__(self, exelist, is_cross, exe_wrapper)
         self.id = 'gcc'
 
     def get_std_warn_flags(self):
@@ -516,8 +516,8 @@ class ClangCCompiler(CCompiler):
     std_warn_flags = ['-Wall', '-Winvalid-pch']
     std_opt_flags = ['-O2']
 
-    def __init__(self, exelist):
-        CCompiler.__init__(self, exelist)
+    def __init__(self, exelist, is_cross, exe_wrapper=None):
+        CCompiler.__init__(self, exelist, is_cross, exe_wrapper)
         self.id = 'clang'
 
     def get_std_warn_flags(self):
@@ -550,8 +550,8 @@ class ClangCPPCompiler(CPPCompiler):
     std_warn_flags = ['-Wall', '-Winvalid-pch']
     std_opt_flags = ['-O2']
 
-    def __init__(self, exelist):
-        CPPCompiler.__init__(self, exelist)
+    def __init__(self, exelist, is_cross, exe_wrapper=None):
+        CPPCompiler.__init__(self, exelist, is_cross, exe_wrapper)
         self.id = 'clang'
 
     def get_std_warn_flags(self):
@@ -851,22 +851,36 @@ class Environment():
         raise EnvironmentException('Unknown compiler(s) "' + ', '.join(compilers) + '"')
 
     def detect_objc_compiler(self):
-        exelist = self.get_objc_compiler_exelist()
+        if self.is_cross_build():
+            exelist = [self.cross_info['objc']]
+            is_cross = True
+            exe_wrap = self.cross_info.get('exe_wrapper', None)
+        else:
+            exelist = self.get_objc_compiler_exelist()
+            is_cross = False
+            exe_wrap = None
         try:
             p = subprocess.Popen(exelist + ['--version'], stdout=subprocess.PIPE)
         except OSError:
             raise EnvironmentException('Could not execute ObjC compiler "%s"' % ' '.join(exelist))
         out = p.communicate()[0]
         out = out.decode()
-        if (out.startswith('cc ') or out.startswith('gcc')) and \
+        if (out.startswith('cc ') or 'gcc' in out) and \
             'Free Software Foundation' in out:
-            return GnuObjCCompiler(exelist)
+            return GnuObjCCompiler(exelist, is_cross, exe_wrap)
         if 'apple' in out and 'Free Software Foundation' in out:
-            return GnuObjCCompiler(exelist)
+            return GnuObjCCompiler(exelist, is_cross, exe_wrap)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
 
     def detect_objcpp_compiler(self):
-        exelist = self.get_objcpp_compiler_exelist()
+        if self.is_cross_build():
+            exelist = [self.cross_info['objc']]
+            is_cross = True
+            exe_wrap = self.cross_info.get('exe_wrapper', None)
+        else:
+            exelist = self.get_objcpp_compiler_exelist()
+            is_cross = False
+            exe_wrap = None
         try:
             p = subprocess.Popen(exelist + ['--version'], stdout=subprocess.PIPE)
         except OSError:
@@ -875,9 +889,9 @@ class Environment():
         out = out.decode()
         if (out.startswith('c++ ') or out.startswith('g++')) and \
             'Free Software Foundation' in out:
-            return GnuObjCPPCompiler(exelist)
+            return GnuObjCPPCompiler(exelist, is_cross, exe_wrap)
         if 'apple' in out and 'Free Software Foundation' in out:
-            return GnuObjCPPCompiler(exelist)
+            return GnuObjCPPCompiler(exelist, is_cross, exe_wrap)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
 
     def detect_static_linker(self, compiler):
