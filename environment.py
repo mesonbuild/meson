@@ -713,8 +713,10 @@ class Environment():
         self.default_objcpp = ['c++']
         self.default_static_linker = 'ar'
         self.vs_static_linker = 'lib'
-
-        if is_windows():
+        
+        cross = self.is_cross_build()
+        if (not cross and is_windows()) \
+        or (cross and self.cross_info['name'] == 'windows'):
             self.exe_suffix = 'exe'
             self.shared_lib_suffix = 'dll'
             self.shared_lib_prefix = ''
@@ -723,7 +725,8 @@ class Environment():
             self.object_suffix = 'obj'
         else:
             self.exe_suffix = ''
-            if is_osx():
+            if (not cross and is_osx()) or \
+            (cross and self.cross_info['name'] == 'darwin'):
                 self.shared_lib_suffix = 'dylib'
             else:
                 self.shared_lib_suffix = 'so'
@@ -731,7 +734,7 @@ class Environment():
             self.static_lib_suffix = 'a'
             self.static_lib_prefix = 'lib'
             self.object_suffix = 'o'
-    
+
     def is_cross_build(self):
         return self.cross_info is not None
 
