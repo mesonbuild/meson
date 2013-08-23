@@ -182,7 +182,7 @@ class CCompiler():
         if p.returncode != 0:
             return RunResult(False)
         if self.is_cross:
-            cmdlist = self.exe_wrapper + exename
+            cmdlist = self.exe_wrapper + [exename]
         else:
             cmdlist = exename
         pe = subprocess.Popen(cmdlist, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
