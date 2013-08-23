@@ -695,7 +695,7 @@ class Environment():
         try:
             cdf = os.path.join(self.get_build_dir(), Environment.coredata_file)
             self.coredata = coredata.load(cdf)
-        except IOError:
+        except FileNotFoundError:
             self.coredata = coredata.CoreData(options)
         if self.coredata.cross_file:
             self.cross_info = CrossBuildInfo(self.coredata.cross_file)

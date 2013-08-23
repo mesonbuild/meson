@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import pickle
+import pickle, os
 
 version = '0.7.0-research'
 
@@ -34,7 +34,10 @@ class CoreData():
         self.buildtype = options.buildtype
         self.strip = options.strip
         self.coverage = options.coverage
-        self.cross_file = options.cross_file
+        if options.cross_file is not None:
+            self.cross_file = os.path.join(os.getcwd(), options.cross_file)
+        else:
+            self.cross_file = None
 
         self.compilers = {}
         self.deps = {}

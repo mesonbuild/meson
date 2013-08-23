@@ -861,6 +861,9 @@ class NinjaBackend(Backend):
 
         deps = [os.path.join(self.build_to_src, df) \
                 for df in self.interpreter.get_build_def_files()]
+        if self.environment.is_cross_build():
+            deps.append(os.path.join(self.build_to_src,
+                                     self.environment.coredata.cross_file))
         elem = NinjaBuildElement('build.ninja', 'REGENERATE_BUILD', deps)
         elem.write(outfile)
 
