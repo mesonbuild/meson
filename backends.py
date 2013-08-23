@@ -453,7 +453,10 @@ class NinjaBackend(Backend):
             name = t.get_name()
             fname = os.path.join(self.environment.get_build_dir(), self.get_target_filename(t.get_exe()))
             is_cross = self.environment.is_cross_build()
-            exe_wrapper = self.environment.cross_info.get('exe_wrapper', None)
+            if is_cross:
+                exe_wrapper = self.environment.cross_info.get('exe_wrapper', None)
+            else:
+                exe_wrapper = None
             arr.append([name, fname, is_cross, exe_wrapper])
         pickle.dump(arr, datafile)
 

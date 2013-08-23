@@ -289,8 +289,8 @@ void bar() {
         return self.compiles(templ % (prefix, typename, membername))
 
 class CPPCompiler(CCompiler):
-    def __init__(self, exelist):
-        CCompiler.__init__(self, exelist)
+    def __init__(self, exelist, is_cross, exe_wrap):
+        CCompiler.__init__(self, exelist, is_cross, exe_wrap)
         self.language = 'cpp'
         self.default_suffix = 'cpp'
 
@@ -533,8 +533,8 @@ class GnuCPPCompiler(CPPCompiler):
     std_warn_flags = ['-Wall', '-Winvalid-pch']
     std_opt_flags = ['-O2']
     
-    def __init__(self, exelist):
-        CPPCompiler.__init__(self, exelist)
+    def __init__(self, exelist, is_cross, exe_wrap):
+        CPPCompiler.__init__(self, exelist, is_cross, exe_wrap)
         self.id = 'gcc'
 
     def get_std_warn_flags(self):
@@ -787,15 +787,15 @@ class Environment():
                 continue
             out = p.communicate()[0]
             out = out.decode()
-            if 'gcc' in out and \
+            if (out.startswith('cc') or 'gcc' in out) and \
                 'Free Software Foundation' in out:
                 return GnuCCompiler(ccache + [compiler], is_cross, exe_wrap)
             if 'apple' in out and 'Free Software Foundation' in out:
-                return GnuCCompiler(ccache + [compiler])
+                return GnuCCompiler(ccache + [compiler], is_cross, exe_wrap)
             if (out.startswith('clang')):
-                return ClangCCompiler(ccache + [compiler])
+                return ClangCCompiler(ccache + [compiler], is_cross, exe_wrap)
             if 'Microsoft' in out:
-                return VisualStudioCCompiler([compiler])
+                return VisualStudioCCompiler([compiler], is_cross, exe_wrap)
         raise EnvironmentException('Unknown compiler(s): "' + ', '.join(compilers) + '"')
 
     def get_scratch_dir(self):
@@ -807,12 +807,21 @@ class Environment():
 
     def detect_cpp_compiler(self):
         evar = 'CXX'
-        if evar in os.environ:
+        if self.is_cross_build():
+            compilers = [self.cross_info['cpp']]
+            ccache = []
+            is_cross = True
+            exe_wrap = self.cross_info.get('exe_wrapper', None)
+        elif evar in os.environ:
             compilers = os.environ[evar].split()
             ccache = []
+            is_cross = False
+            exe_wrap = None
         else:
             compilers = self.default_cpp
             ccache = self.detect_ccache()
+            is_cross = False
+            exe_wrap = None
         for compiler in compilers:
             basename = os.path.basename(compiler).lower() 
             if basename == 'cl' or basename == 'cl.exe':
@@ -827,15 +836,15 @@ class Environment():
                 continue
             out = p.communicate()[0]
             out = out.decode()
-            if (out.startswith('c++ ') or out.startswith('g++')) and \
+            if (out.startswith('c++ ') or out.startswith('g++') or 'GCC' in out) and \
                 'Free Software Foundation' in out:
-                return GnuCPPCompiler(ccache + [compiler])
+                return GnuCPPCompiler(ccache + [compiler], is_cross, exe_wrap)
             if 'apple' in out and 'Free Software Foundation' in out:
-                return GnuCPPCompiler(ccache + [compiler])
+                return GnuCPPCompiler(ccache + [compiler], is_cross, exe_wrap)
             if out.startswith('clang'):
-                return ClangCPPCompiler(ccache + [compiler])
+                return ClangCPPCompiler(ccache + [compiler], is_cross, exe_wrap)
             if 'Microsoft' in out:
-                return VisualStudioCPPCompiler([compiler])
+                return VisualStudioCPPCompiler([compiler], is_cross, exe_wrap)
         raise EnvironmentException('Unknown compiler(s) "' + ', '.join(compilers) + '"')
 
     def detect_objc_compiler(self):
