@@ -134,7 +134,7 @@ class CCompiler():
         pe.wait()
         if pe.returncode != 0:
             raise EnvironmentException('Executables created by C compiler %s are not runnable.' % self.name_string())
-    
+
     def has_header(self, hname):
         templ = '''#include<%s>
 '''

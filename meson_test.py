@@ -44,7 +44,16 @@ def run_tests(options, datafilename):
     for i, test in enumerate(tests):
         name = test[0]
         fname = test[1]
-        cmd = wrap + [fname]
+        is_cross = test[2]
+        exe_wrapper = test[3]
+        if is_cross:
+            if exe_wrapper is None:
+                print('Can not run test on cross compiled executable because there is no execute wrapper.')
+                sys.exit(1)
+            cmd = [exe_wrapper, fname]
+        else:
+            cmd = [fname]
+        cmd = wrap + cmd
         starttime = time.time()
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (stdo, stde) = p.communicate()
