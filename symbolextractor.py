@@ -23,6 +23,14 @@
 # http://cgit.freedesktop.org/libreoffice/core/commit/?id=3213cd54b76bc80a6f0516aac75a48ff3b2ad67c
 
 import sys, subprocess, platform
+from optparse import OptionParser
+
+usage_info = '%prog [options] <shared library> <symbol file>'
+
+parser = OptionParser(usage=usage_info)
+
+parser.add_option('--cross-host', default=None, dest='cross_host',
+                  help='cross compilation host platform')
 
 def dummy_syms(outfilename):
     """Just touch it so relinking happens always."""
@@ -70,8 +78,14 @@ def osx_syms(libfilename, outfilename):
     result += [' '.join(x.split()[0:2]) for x in output.split('\n') if len(x) > 0 and not x.endswith('U')]
     write_if_changed('\n'.join(result) + '\n', outfilename)
 
-def gen_symbols(libfilename, outfilename):
-    if platform.system() == 'Linux':
+def gen_symbols(libfilename, outfilename, cross_host):
+    if cross_host is not None:
+        # In case of cross builds just always relink.
+        # In theory we could determine the correct
+        # toolset but there are more important things
+        # to do.
+        dummy_syms(outfilename)
+    elif platform.system() == 'Linux':
         linux_syms(libfilename, outfilename)
     elif platform.system() == 'Darwin':
         osx_syms(libfilename, outfilename)
@@ -79,9 +93,10 @@ def gen_symbols(libfilename, outfilename):
         dummy_syms(outfilename)
 
 if __name__ == '__main__':
-    if len(sys.argv) != 3:
+    (options, args) = parser.parse_args(sys.argv)
+    if len(args) != 3:
         print(sys.argv[0], '<shared library file> <output file>')
         sys.exit(1)
     libfile = sys.argv[1]
     outfile = sys.argv[2]
-    gen_symbols(libfile, outfile)
+    gen_symbols(libfile, outfile, options.cross_host)

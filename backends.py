@@ -530,7 +530,7 @@ class NinjaBackend(Backend):
         scriptdir = self.environment.get_script_dir()
         outfile.write('\n')
         symrule = 'rule SHSYM\n'
-        symcmd = ' command = "%s" "%s" "%s" "%s"\n' % (ninja_quote(sys.executable),
+        symcmd = ' command = "%s" "%s" "%s" "%s" $CROSS\n' % (ninja_quote(sys.executable),
                                          ninja_quote(os.path.join(scriptdir, 'symbolextractor.py')),
                                          '$in', '$out')
         synstat = ' restat = 1\n'
@@ -729,6 +729,8 @@ class NinjaBackend(Backend):
         targetdir = self.get_target_private_dir(target)
         symname = os.path.join(targetdir, target_name + '.symbols')
         elem = NinjaBuildElement(symname, 'SHSYM', target_name)
+        if self.environment.is_cross_build():
+            elem.add_item('CROSS', '--cross-host=' + self.environment.cross_info['name'])
         elem.write(outfile)
 
     def generate_link(self, target, outfile, outname, obj_list):
