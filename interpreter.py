@@ -654,9 +654,10 @@ class Test(InterpreterObject):
         return self.name
 
 class CompilerHolder(InterpreterObject):
-    def __init__(self, compiler):
+    def __init__(self, compiler, env):
         InterpreterObject.__init__(self)
         self.compiler = compiler
+        self.environment = env
         self.methods.update({'compiles': self.compiles_method,
                              'get_id': self.get_id_method,
                              'sizeof': self.sizeof_method,
@@ -749,7 +750,7 @@ class CompilerHolder(InterpreterObject):
         prefix = kwargs.get('prefix', '')
         if not isinstance(prefix, str):
             raise InterpreterException('Prefix argument of sizeof must be a string.')
-        esize = self.compiler.sizeof(element, prefix)
+        esize = self.compiler.sizeof(element, prefix, self.environment)
         mlog.log('Checking for size of "%s": %d' % (element, esize))
         return esize
 
@@ -794,14 +795,14 @@ class MesonMain(InterpreterObject):
         InterpreterObject.__init__(self)
         self.build = build
         self.methods.update({'get_compiler': self.get_compiler_method})
-        
+
     def get_compiler_method(self, args, kwargs):
         if len(args) != 1:
             raise InterpreterException('get_compiler_method must have one and only one argument.')
         cname = args[0]
         for c in self.build.compilers:
             if c.get_language() == cname:
-                return CompilerHolder(c)
+                return CompilerHolder(c, self.build.environment)
         raise InterpreterException('Tried to access compiler for unspecified language "%s".' % cname)
         
 

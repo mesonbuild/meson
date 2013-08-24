@@ -1,0 +1,8 @@
+name = 'linux'
+c = '/usr/bin/arm-linux-gnueabihf-gcc'
+cpp = '/usr/bin/arm-linux-gnueabihf-g++'
+root = '/usr/arm-linux-gnueabihf'
+pkg-config = '/usr/bin/arm-linux-gnueabihf-pkg-config'
+
+sizeof_int = 4
+sizeof_wchar_t = 4

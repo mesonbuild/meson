@@ -16,10 +16,15 @@ import subprocess, os.path, platform
 import coredata
 from glob import glob
 import tempfile
+from coredata import MesonException
 
 build_filename = 'meson.build'
 
-class EnvironmentException(Exception):
+class EnvironmentException(MesonException):
+    def __init(self, *args, **kwargs):
+        Exception.__init__(self, *args, **kwargs)
+
+class CrossNoRunException(Exception):
     def __init(self, *args, **kwargs):
         Exception.__init__(self, *args, **kwargs)
 
@@ -166,7 +171,7 @@ class CCompiler():
 
     def run(self, code):
         if self.is_cross and self.exe_wrapper is None:
-            raise EnvironmentException('Can not run test applications in this cross environment.')
+            raise CrossNoRunException('Can not run test applications in this cross environment.')
         (fd, srcname) = tempfile.mkstemp(suffix='.'+self.default_suffix)
         os.close(fd)
         ofile = open(srcname, 'w')
@@ -190,7 +195,7 @@ class CCompiler():
         os.remove(exename)
         return RunResult(True, pe.returncode, so.decode(), se.decode())
 
-    def sizeof(self, element, prefix):
+    def sizeof(self, element, prefix, env):
         templ = '''#include<stdio.h>
 %s
 
@@ -199,7 +204,23 @@ int main(int argc, char **argv) {
     return 0;
 };
 '''
-        res = self.run(templ % (prefix, element))
+        varname = 'sizeof ' + element
+        varname = varname.replace(' ', '_')
+        if self.is_cross:
+            val = env.cross_info.get(varname)
+            if val is not None:
+                if isinstance(val, int):
+                    return val
+                raise EnvironmentException('Cross variable {0} is not an integer.'.format(varname))
+        cross_failed = False
+        try:
+            res = self.run(templ % (prefix, element))
+        except CrossNoRunException:
+            cross_failed = True
+        if cross_failed:
+            message = '''Can not determine size of {0} because cross compiled binaries are not runnable.
+Please define the corresponding variable {1} in your cross compilation definition file.'''.format(element, varname)
+            raise EnvironmentException(message)
         if not res.compiled:
             raise EnvironmentException('Could not compile sizeof test.')
         if res.returncode != 0:
@@ -1033,9 +1054,13 @@ class CrossBuildInfo():
         if not 'name' in self:
             raise EnvironmentException('Cross file must specify "name".')
 
+    def ok_type(self, i):
+        return isinstance(i, str) or isinstance(i, int)
+
     def parse_datafile(self, filename):
         # This is a bit hackish at the moment.
-        for linenum, line in enumerate(open(filename)):
+        for i, line in enumerate(open(filename)):
+            linenum = i+1
             line = line.strip()
             if line == '':
                 continue
@@ -1049,11 +1074,11 @@ class CrossBuildInfo():
                 res = eval(value, {})
             except Exception:
                 raise EnvironmentException('Malformed line in cross file %s:%d.' % (filename, linenum))
-            if isinstance(res, str):
+            if self.ok_type(res):
                 self.items[varname] = res
             elif isinstance(res, list):
                 for i in res:
-                    if not isinstance(i, str):
+                    if not self.ok_type(i):
                         raise EnvironmentException('Malformed line in cross file %s:%d.' % (filename, linenum))
                 self.items[varname] = res
             else:
