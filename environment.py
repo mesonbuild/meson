@@ -24,7 +24,7 @@ class EnvironmentException(MesonException):
     def __init(self, *args, **kwargs):
         Exception.__init__(self, *args, **kwargs)
 
-class CrossNoRunException(Exception):
+class CrossNoRunException(MesonException):
     def __init(self, *args, **kwargs):
         Exception.__init__(self, *args, **kwargs)
 
@@ -287,7 +287,7 @@ int main(int argc, char **argv) {
                 return diff
         raise EnvironmentException('Could not determine alignment of %s. Sorry. You might want to file a bug.' % typename)
 
-    def has_function(self, funcname, prefix):
+    def has_function(self, funcname, prefix, env):
         # This fails (returns true) if funcname is a ptr or a variable.
         # The correct check is a lot more difficult.
         # Fix this to do that eventually.
@@ -297,7 +297,23 @@ int main(int argc, char **argv) {
     return 0;
 };
 '''
-        res = self.run(templ % (prefix, funcname))
+        varname = 'has function ' + funcname
+        varname = varname.replace(' ', '_')
+        if self.is_cross:
+            val = env.cross_info.get(varname)
+            if val is not None:
+                if isinstance(val, bool):
+                    return val
+                raise EnvironmentException('Cross variable {0} is not an boolean.'.format(varname))
+        cross_failed = False
+        try:
+            res = self.run(templ % (prefix, funcname))
+        except CrossNoRunException:
+            cross_failed = True
+        if cross_failed:
+            message = '''Can not determine existance {0} because cross compiled binaries are not runnable.
+Please define variable {1} in your cross compilation definition file.'''.format(funcname, varname)
+            raise EnvironmentException(message)
         return res.compiled
 
     def has_member(self, typename, membername, prefix):
@@ -1055,7 +1071,7 @@ class CrossBuildInfo():
             raise EnvironmentException('Cross file must specify "name".')
 
     def ok_type(self, i):
-        return isinstance(i, str) or isinstance(i, int)
+        return isinstance(i, str) or isinstance(i, int) or isinstance(i, bool)
 
     def parse_datafile(self, filename):
         # This is a bit hackish at the moment.
@@ -1071,7 +1087,7 @@ class CrossBuildInfo():
             if ' ' in varname or '\t' in varname or "'" in varname or '"' in varname:
                 raise EnvironmentException('Malformed variable name in cross file %s:%d.' % (filename, linenum))
             try:
-                res = eval(value, {})
+                res = eval(value, {'true' : True, 'false' : False})
             except Exception:
                 raise EnvironmentException('Malformed line in cross file %s:%d.' % (filename, linenum))
             if self.ok_type(res):

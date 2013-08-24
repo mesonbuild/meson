@@ -6,3 +6,6 @@ pkg-config = '/usr/bin/arm-linux-gnueabihf-pkg-config'
 
 sizeof_int = 4
 sizeof_wchar_t = 4
+
+has_function_printf = true
+has_function_hfkerhisadf = false

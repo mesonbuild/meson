@@ -78,7 +78,7 @@ def run_tests():
     except OSError:
         pass
     print('\nRunning cross compilation tests.\n')
-    commontests = commontests[:28] + commontests[28:]
+    commontests = commontests[:28] + commontests[30:38] + commontests[39:]
     [run_test(t) for t in commontests]
 
 if __name__ == '__main__':

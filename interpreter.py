@@ -733,7 +733,7 @@ class CompilerHolder(InterpreterObject):
         prefix = kwargs.get('prefix', '')
         if not isinstance(prefix, str):
             raise InterpreterException('Prefix argument of has_function must be a string.')
-        had = self.compiler.has_function(funcname, prefix)
+        had = self.compiler.has_function(funcname, prefix, self.environment)
         if had:
             hadtxt = mlog.green('YES')
         else:
