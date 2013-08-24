@@ -310,7 +310,14 @@ class CPPCompiler(CCompiler):
         pc.wait()
         if pc.returncode != 0:
             raise EnvironmentException('Compiler %s can not compile programs.' % self.name_string())
-        pe = subprocess.Popen(binary_name)
+        if self.is_cross:
+            if self.exe_wrapper is None:
+                # Can't check if the binaries run so we have to assume they do
+                return
+            cmdlist = self.exe_wrapper + [binary_name]
+        else:
+            cmdlist = [binary_name]
+        pe = subprocess.Popen(cmdlist)
         pe.wait()
         if pe.returncode != 0:
             raise EnvironmentException('Executables created by C++ compiler %s are not runnable.' % self.name_string())
@@ -839,7 +846,7 @@ class Environment():
                 continue
             out = p.communicate()[0]
             out = out.decode()
-            if (out.startswith('c++ ') or out.startswith('g++') or 'GCC' in out) and \
+            if (out.startswith('c++ ') or 'g++' in out or 'GCC' in out) and \
                 'Free Software Foundation' in out:
                 return GnuCPPCompiler(ccache + [compiler], is_cross, exe_wrap)
             if 'apple' in out and 'Free Software Foundation' in out:
