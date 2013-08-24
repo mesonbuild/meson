@@ -110,7 +110,7 @@ class Elf():
         data = self.bf.read(5)
         if data[1:4] != b'ELF':
             print('File "%s" is not an ELF file.' % self.bfile)
-            sys.exit(1)
+            sys.exit(0)
         if data[4] == 1:
             return 32
         if data[4] == 2:
