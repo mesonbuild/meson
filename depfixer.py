@@ -23,14 +23,14 @@ DT_RPATH = 15
 DT_STRTAB = 5
 DT_SONAME = 14
 
-def init_datasizes(self):
+def init_datasizes(self, ptrsize):
     self.Half = 'h'
     self.HalfSize = 2
     self.Word = 'I'
     self.WordSize = 4
     self.Sword = 'i'
     self.SwordSize = 4
-    if sys.maxsize > 2**32:
+    if ptrsize == 64:
         self.Addr = 'Q'
         self.AddrSize = 8
         self.Off = 'Q'
@@ -46,9 +46,9 @@ def init_datasizes(self):
         self.OffSize = 4
 
 class DynamicEntry():
-    def __init__(self, ifile):
-        init_datasizes(self)
-        if sys.maxsize > 2**32:
+    def __init__(self, ifile, ptrsize):
+        init_datasizes(self, ptrsize)
+        if ptrsize == 64:
             self.d_tag = struct.unpack(self.Sxword, ifile.read(self.SxwordSize))[0];
             self.val = struct.unpack(self.XWord, ifile.read(self.XWordSize))[0];
         else:
@@ -56,9 +56,9 @@ class DynamicEntry():
             self.val = struct.unpack(self.Word, ifile.read(self.WordSize))[0]
 
 class SectionHeader():
-    def __init__(self, ifile):
-        init_datasizes(self)
-        if sys.maxsize > 2**32:
+    def __init__(self, ifile, ptrsize):
+        init_datasizes(self, ptrsize)
+        if ptrsize == 64:
             is_64 = True
         else:
             is_64 = False
@@ -98,18 +98,29 @@ class SectionHeader():
 class Elf():
 
     def __init__(self, bfile):
-        init_datasizes(self)
         self.bfile = bfile
         self.bf = open(bfile, 'r+b')
+        self.ptrsize = self.detect_elf_type()
+        init_datasizes(self, self.ptrsize)
         self.parse_header()
         self.parse_sections()
         self.parse_dynamic()
+    
+    def detect_elf_type(self):
+        data = self.bf.read(5)
+        if data[1:4] != b'ELF':
+            print('File "%s" is not an ELF file.' % self.bfile)
+            sys.exit(1)
+        if data[4] == 1:
+            return 32
+        if data[4] == 2:
+            return 64
+        print('File "%s" has unknown ELF class.' % self.bfile)
+        sys.exit(1)
 
     def parse_header(self):
+        self.bf.seek(0)
         self.e_ident = struct.unpack('16s', self.bf.read(16))[0]
-        if self.e_ident[1:4] != b'ELF':
-            print('File "%s" is not an ELF file.' % self.bfile)
-            sys.exit(0)
         self.e_type = struct.unpack(self.Half, self.bf.read(self.HalfSize))[0]
         self.e_machine = struct.unpack(self.Half, self.bf.read(self.HalfSize))[0]
         self.e_version = struct.unpack(self.Word, self.bf.read(self.WordSize))[0]
@@ -128,7 +139,7 @@ class Elf():
         self.bf.seek(self.e_shoff)
         self.sections = []
         for i in range(self.e_shnum):
-            self.sections.append(SectionHeader(self.bf))
+            self.sections.append(SectionHeader(self.bf, self.ptrsize))
 
     def read_str(self):
         arr = []
@@ -153,7 +164,7 @@ class Elf():
         self.dynamic = []
         self.bf.seek(sec.sh_offset)
         while True:
-            e = DynamicEntry(self.bf)
+            e = DynamicEntry(self.bf, self.ptrsize)
             self.dynamic.append(e)
             if e.d_tag == 0:
                 break
