@@ -48,27 +48,35 @@ def run_tests(options, datafilename):
         exe_wrapper = test[3]
         if is_cross:
             if exe_wrapper is None:
-                print('Can not run test on cross compiled executable because there is no execute wrapper.')
-                sys.exit(1)
-            cmd = [exe_wrapper, fname]
+                # 'Can not run test on cross compiled executable 
+                # because there is no execute wrapper.
+                cmd = None
+            else:
+                cmd = [exe_wrapper, fname]
         else:
             cmd = [fname]
-        cmd = wrap + cmd
-        starttime = time.time()
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        (stdo, stde) = p.communicate()
-        endtime = time.time()
-        duration = endtime - starttime
-        stdo = stdo.decode()
-        stde = stde.decode()
+        if cmd is None:
+            res = 'SKIP'
+            duration = 0.0
+            stdo = 'Not run because can not execute cross compiled binaries.'
+            stde = ''
+        else:
+            cmd = wrap + cmd
+            starttime = time.time()
+            p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            (stdo, stde) = p.communicate()
+            endtime = time.time()
+            duration = endtime - starttime
+            stdo = stdo.decode()
+            stde = stde.decode()
+            if p.returncode == 0:
+                res = 'OK'
+            else:
+                res = 'FAIL'
 
         startpad = ' '*(numlen - len('%d' % (i+1)))
         num = '%s%d/%d' % (startpad, i+1, len(tests))
         padding1 = ' '*(40-len(name))
-        if p.returncode == 0:
-            res = 'OK'
-        else:
-            res = 'FAIL'
         padding2 = ' '*(5-len(res))
         result_str = '%s %s%s%s%s(%5.2f s)' % (num, name, padding1, res, padding2, duration)
         print(result_str)
