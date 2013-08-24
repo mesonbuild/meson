@@ -2,10 +2,15 @@ name = 'linux'
 c = '/usr/bin/arm-linux-gnueabihf-gcc'
 cpp = '/usr/bin/arm-linux-gnueabihf-g++'
 root = '/usr/arm-linux-gnueabihf'
-pkg-config = '/usr/bin/arm-linux-gnueabihf-pkg-config'
+pkg_config = '/usr/bin/arm-linux-gnueabihf-pkg-config'
 
 sizeof_int = 4
 sizeof_wchar_t = 4
+sizeof_void* = 4
+
+alignment_char = 1
+alignment_void* = 4
+alignment_double = 4 # Don't know if this is correct...
 
 has_function_printf = true
 has_function_hfkerhisadf = false

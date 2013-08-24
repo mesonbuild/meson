@@ -227,7 +227,7 @@ Please define the corresponding variable {1} in your cross compilation definitio
             raise EnvironmentException('Could not run sizeof test binary.')
         return int(res.stdout)
 
-    def alignment(self, typename):
+    def alignment(self, typename, env):
         # A word of warning: this algoritm may be totally incorrect.
         # However it worked for me on the cases I tried.
         # There is probably a smarter and more robust way to get this
@@ -273,7 +273,23 @@ int main(int argc, char **argv) {
   return 0;
 }
 '''
-        res = self.run(templ % typename)
+        varname = 'alignment ' + typename
+        varname = varname.replace(' ', '_')
+        if self.is_cross:
+            val = env.cross_info.get(varname)
+            if val is not None:
+                if isinstance(val, int):
+                    return val
+                raise EnvironmentException('Cross variable {0} is not an integer.'.format(varname))
+        cross_failed = False
+        try:
+            res = self.run(templ % typename)
+        except CrossNoRunException:
+            cross_failed = True
+        if cross_failed:
+            message = '''Can not determine alignment of {0} because cross compiled binaries are not runnable.
+Please define the corresponding variable {1} in your cross compilation definition file.'''.format(typename, varname)
+            raise EnvironmentException(message)
         if not res.compiled:
             raise EnvironmentException('Could not compile alignment test.')
         if res.returncode != 0:

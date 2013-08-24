@@ -674,7 +674,7 @@ class CompilerHolder(InterpreterObject):
         typename = args[0]
         if not isinstance(typename, str):
             raise InterpreterException('First argument is not a string.')
-        result = self.compiler.alignment(typename)
+        result = self.compiler.alignment(typename, self.environment)
         mlog.log('Checking for alignment of "', mlog.bold(typename), '": ', result, sep='')
         return result
 
