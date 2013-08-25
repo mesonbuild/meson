@@ -556,6 +556,7 @@ class ClangCCompiler(CCompiler):
 class GnuCPPCompiler(CPPCompiler):
     std_warn_flags = ['-Wall', '-Winvalid-pch']
     std_opt_flags = ['-O2']
+    # may need to separate the latter to extra_debug_flags or something
     std_debug_flags = ['-g', '-D_GLIBCXX_DEBUG']
 
     def __init__(self, exelist, is_cross, exe_wrap):
