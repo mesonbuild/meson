@@ -228,48 +228,16 @@ Please define the corresponding variable {1} in your cross compilation definitio
         return int(res.stdout)
 
     def alignment(self, typename, env):
-        # A word of warning: this algoritm may be totally incorrect.
-        # However it worked for me on the cases I tried.
-        # There is probably a smarter and more robust way to get this
-        # information.
         templ = '''#include<stdio.h>
+#include<stddef.h>
 
-#define SDEF(num) struct foo##num { char pad[num]; %s x; };
-#define PR(num) printf("%%d\\n", (int)sizeof(struct foo##num))
-SDEF(1)
-SDEF(2)
-SDEF(3)
-SDEF(4)
-SDEF(5)
-SDEF(6)
-SDEF(7)
-SDEF(8)
-SDEF(9)
-SDEF(10)
-SDEF(12)
-SDEF(13)
-SDEF(14)
-SDEF(15)
-SDEF(16)
-SDEF(17)
+struct tmp {
+  char c;
+  %s target;
+};
 
 int main(int argc, char **argv) {
-  PR(1);
-  PR(2);
-  PR(3);
-  PR(4);
-  PR(5);
-  PR(6);
-  PR(7);
-  PR(8);
-  PR(9);
-  PR(10);
-  PR(12);
-  PR(13);
-  PR(14);
-  PR(15);
-  PR(16);
-  PR(17);
+  printf("%%d", (int)offsetof(struct tmp, target));
   return 0;
 }
 '''
@@ -294,14 +262,10 @@ Please define the corresponding variable {1} in your cross compilation definitio
             raise EnvironmentException('Could not compile alignment test.')
         if res.returncode != 0:
             raise EnvironmentException('Could not run alignment test binary.')
-        arr = [int(x) for x in res.stdout.split()]
-        for i in range(len(arr)-1):
-            nxt= arr[i+1]
-            cur = arr[i]
-            diff = nxt - cur
-            if diff > 0:
-                return diff
-        raise EnvironmentException('Could not determine alignment of %s. Sorry. You might want to file a bug.' % typename)
+        align = int(res.stdout)
+        if align == 0:
+            raise EnvironmentException('Could not determine alignment of %s. Sorry. You might want to file a bug.' % typename)
+        return align
 
     def has_function(self, funcname, prefix, env):
         # This fails (returns true) if funcname is a ptr or a variable.
