@@ -383,8 +383,8 @@ class VisualStudioCCompiler(CCompiler):
     std_opt_flags= ['/O2']
     always_flags = ['/nologo', '/showIncludes']
     
-    def __init__(self, exelist):
-        CCompiler.__init__(self, exelist)
+    def __init__(self, exelist, is_cross, exe_wrap):
+        CCompiler.__init__(self, exelist, is_cross, exe_wrap)
         self.id = 'msvc'
 
     def get_always_flags(self):
@@ -457,8 +457,8 @@ class VisualStudioCCompiler(CCompiler):
             raise EnvironmentException('Executables created by C++ compiler %s are not runnable.' % self.name_string())
 
 class VisualStudioCPPCompiler(VisualStudioCCompiler):
-    def __init__(self, exelist):
-        VisualStudioCCompiler.__init__(self, exelist)
+    def __init__(self, exelist, is_cross, exe_wrap):
+        VisualStudioCCompiler.__init__(self, exelist, is_cross, exe_wrap)
         self.language = 'cpp'
         self.default_suffix = 'cpp'
 
