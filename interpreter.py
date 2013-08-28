@@ -666,7 +666,11 @@ class CompilerHolder(InterpreterObject):
                              'has_function' : self.has_function_method,
                              'has_member' : self.has_member_method,
                              'alignment' : self.alignment_method,
+                             'version' : self.version_method
                              })
+
+    def version_method(self, args, kwargs):
+        return self.compiler.version
 
     def alignment_method(self, args, kwargs):
         if len(args) != 1:
@@ -999,7 +1003,7 @@ class Interpreter():
                     raise InvalidCode('Tried to use unknown language "%s".' % lang)
                 comp.sanity_check(self.environment.get_scratch_dir())
                 self.coredata.compilers[lang] = comp
-            mlog.log('Using %s compiler "' % lang, mlog.bold(' '.join(comp.get_exelist())), '". (%s)' % comp.id, sep='')
+            mlog.log('Using %s compiler "' % lang, mlog.bold(' '.join(comp.get_exelist())), '". (%s %s)' % (comp.id, comp.version), sep='')
             self.build.add_compiler(comp)
 
     def func_find_program(self, node, args, kwargs):

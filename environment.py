@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import subprocess, os.path, platform
+import subprocess, os.path, platform, re
 import coredata
 from glob import glob
 import tempfile
@@ -36,13 +36,14 @@ class RunResult():
         self.stderr = stderr
 
 class CCompiler():
-    def __init__(self, exelist, is_cross, exe_wrapper=None):
+    def __init__(self, exelist, version, is_cross, exe_wrapper=None):
         if type(exelist) == type(''):
             self.exelist = [exelist]
         elif type(exelist) == type([]):
             self.exelist = exelist
         else:
             raise TypeError('Unknown argument to CCompiler')
+        self.version = version
         self.language = 'c'
         self.default_suffix = 'c'
         self.id = 'unknown'
@@ -306,8 +307,8 @@ void bar() {
         return self.compiles(templ % (prefix, typename, membername))
 
 class CPPCompiler(CCompiler):
-    def __init__(self, exelist, is_cross, exe_wrap):
-        CCompiler.__init__(self, exelist, is_cross, exe_wrap)
+    def __init__(self, exelist, version, is_cross, exe_wrap):
+        CCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
         self.language = 'cpp'
         self.default_suffix = 'cpp'
 
@@ -340,8 +341,8 @@ class CPPCompiler(CCompiler):
             raise EnvironmentException('Executables created by C++ compiler %s are not runnable.' % self.name_string())
 
 class ObjCCompiler(CCompiler):
-    def __init__(self, exelist, is_cross, exe_wrap):
-        CCompiler.__init__(self, exelist, is_cross, exe_wrap)
+    def __init__(self, exelist, version, is_cross, exe_wrap):
+        CCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
         self.language = 'objc'
         self.default_suffix = 'm'
         
@@ -352,8 +353,8 @@ class ObjCCompiler(CCompiler):
         return False
 
 class ObjCPPCompiler(CPPCompiler):
-    def __init__(self, exelist, is_cross, exe_wrap):
-        CPPCompiler.__init__(self, exelist, is_cross, exe_wrap)
+    def __init__(self, exelist, version, is_cross, exe_wrap):
+        CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
         self.language = 'objcpp'
         self.default_suffix = 'mm'
 
@@ -383,8 +384,8 @@ class VisualStudioCCompiler(CCompiler):
     std_opt_flags= ['/O2']
     always_flags = ['/nologo', '/showIncludes']
     
-    def __init__(self, exelist, is_cross, exe_wrap):
-        CCompiler.__init__(self, exelist, is_cross, exe_wrap)
+    def __init__(self, exelist, version, is_cross, exe_wrap):
+        CCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
         self.id = 'msvc'
 
     def get_always_flags(self):
@@ -457,8 +458,8 @@ class VisualStudioCCompiler(CCompiler):
             raise EnvironmentException('Executables created by C++ compiler %s are not runnable.' % self.name_string())
 
 class VisualStudioCPPCompiler(VisualStudioCCompiler):
-    def __init__(self, exelist, is_cross, exe_wrap):
-        VisualStudioCCompiler.__init__(self, exelist, is_cross, exe_wrap)
+    def __init__(self, exelist, version, is_cross, exe_wrap):
+        VisualStudioCCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
         self.language = 'cpp'
         self.default_suffix = 'cpp'
 
@@ -489,8 +490,8 @@ class GnuCCompiler(CCompiler):
     std_warn_flags = ['-Wall', '-Winvalid-pch']
     std_opt_flags = ['-O2']
 
-    def __init__(self, exelist, is_cross, exe_wrapper=None):
-        CCompiler.__init__(self, exelist, is_cross, exe_wrapper)
+    def __init__(self, exelist, version, is_cross, exe_wrapper=None):
+        CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
         self.id = 'gcc'
 
     def get_std_warn_flags(self):
@@ -506,8 +507,8 @@ class GnuObjCCompiler(ObjCCompiler):
     std_warn_flags = ['-Wall', '-Winvalid-pch']
     std_opt_flags = ['-O2']
     
-    def __init__(self, exelist, is_cross, exe_wrapper=None):
-        ObjCCompiler.__init__(self, exelist, is_cross, exe_wrapper)
+    def __init__(self, exelist, version, is_cross, exe_wrapper=None):
+        ObjCCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
         self.id = 'gcc'
 
     def get_std_warn_flags(self):
@@ -523,8 +524,8 @@ class GnuObjCPPCompiler(ObjCPPCompiler):
     std_warn_flags = ['-Wall', '-Winvalid-pch']
     std_opt_flags = ['-O2']
 
-    def __init__(self, exelist, is_cross, exe_wrapper=None):
-        ObjCCompiler.__init__(self, exelist, is_cross, exe_wrapper)
+    def __init__(self, exelist, version, is_cross, exe_wrapper=None):
+        ObjCCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
         self.id = 'gcc'
 
     def get_std_warn_flags(self):
@@ -540,8 +541,8 @@ class ClangCCompiler(CCompiler):
     std_warn_flags = ['-Wall', '-Winvalid-pch']
     std_opt_flags = ['-O2']
 
-    def __init__(self, exelist, is_cross, exe_wrapper=None):
-        CCompiler.__init__(self, exelist, is_cross, exe_wrapper)
+    def __init__(self, exelist, version, is_cross, exe_wrapper=None):
+        CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
         self.id = 'clang'
 
     def get_std_warn_flags(self):
@@ -559,8 +560,8 @@ class GnuCPPCompiler(CPPCompiler):
     # may need to separate the latter to extra_debug_flags or something
     std_debug_flags = ['-g', '-D_GLIBCXX_DEBUG']
 
-    def __init__(self, exelist, is_cross, exe_wrap):
-        CPPCompiler.__init__(self, exelist, is_cross, exe_wrap)
+    def __init__(self, exelist, version, is_cross, exe_wrap):
+        CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
         self.id = 'gcc'
 
     def get_debug_flags(self):
@@ -579,8 +580,8 @@ class ClangCPPCompiler(CPPCompiler):
     std_warn_flags = ['-Wall', '-Winvalid-pch']
     std_opt_flags = ['-O2']
 
-    def __init__(self, exelist, is_cross, exe_wrapper=None):
-        CPPCompiler.__init__(self, exelist, is_cross, exe_wrapper)
+    def __init__(self, exelist, version, is_cross, exe_wrapper=None):
+        CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
         self.id = 'clang'
 
     def get_std_warn_flags(self):
@@ -710,7 +711,7 @@ class Environment():
     private_dir = 'meson-private'
     log_dir = 'meson-logs'
     coredata_file = os.path.join(private_dir, 'coredata.dat')
-
+    version_regex = '\d+(\.\d+)+'
     def __init__(self, source_dir, build_dir, main_script_file, options):
         assert(os.path.isabs(main_script_file))
         assert(not os.path.islink(main_script_file))
@@ -814,20 +815,29 @@ class Environment():
                 else:
                     arg = '--version'
                 p = subprocess.Popen([compiler] + [arg], stdout=subprocess.PIPE,
-                                     stderr=subprocess.DEVNULL)
+                                     stderr=subprocess.PIPE)
             except OSError:
                 continue
-            out = p.communicate()[0]
+            (out, err) = p.communicate()
             out = out.decode()
+            err = err.decode()
+            vmatch = re.search(Environment.version_regex, out)
+            if vmatch:
+                version = vmatch.group(0)
+            else:
+                version = 'unknown version'
             if (out.startswith('cc') or 'gcc' in out) and \
                 'Free Software Foundation' in out:
-                return GnuCCompiler(ccache + [compiler], is_cross, exe_wrap)
+                return GnuCCompiler(ccache + [compiler], version, is_cross, exe_wrap)
             if 'apple' in out and 'Free Software Foundation' in out:
-                return GnuCCompiler(ccache + [compiler], is_cross, exe_wrap)
+                return GnuCCompiler(ccache + [compiler], version, is_cross, exe_wrap)
             if (out.startswith('clang')):
-                return ClangCCompiler(ccache + [compiler], is_cross, exe_wrap)
+                return ClangCCompiler(ccache + [compiler], version, is_cross, exe_wrap)
             if 'Microsoft' in out:
-                return VisualStudioCCompiler([compiler], is_cross, exe_wrap)
+                # Visual Studio prints version number to stderr but
+                # everything else to stdout. Why? Lord only knows.
+                version = re.search(Environment.version_regex, err).group()
+                return VisualStudioCCompiler([compiler], version, is_cross, exe_wrap)
         raise EnvironmentException('Unknown compiler(s): "' + ', '.join(compilers) + '"')
 
     def get_scratch_dir(self):
@@ -863,20 +873,27 @@ class Environment():
             try:
                 p = subprocess.Popen([compiler, arg],
                                      stdout=subprocess.PIPE,
-                                     stderr=subprocess.DEVNULL)
+                                     stderr=subprocess.PIPE)
             except OSError:
                 continue
-            out = p.communicate()[0]
+            (out, err) = p.communicate()
             out = out.decode()
+            err = err.decode()
+            vmatch = re.search(Environment.version_regex, out)
+            if vmatch:
+                version = vmatch.group(0)
+            else:
+                version = 'unknown version'
             if (out.startswith('c++ ') or 'g++' in out or 'GCC' in out) and \
                 'Free Software Foundation' in out:
-                return GnuCPPCompiler(ccache + [compiler], is_cross, exe_wrap)
+                return GnuCPPCompiler(ccache + [compiler], version, is_cross, exe_wrap)
             if 'apple' in out and 'Free Software Foundation' in out:
-                return GnuCPPCompiler(ccache + [compiler], is_cross, exe_wrap)
+                return GnuCPPCompiler(ccache + [compiler], version, is_cross, exe_wrap)
             if out.startswith('clang'):
-                return ClangCPPCompiler(ccache + [compiler], is_cross, exe_wrap)
+                return ClangCPPCompiler(ccache + [compiler], version, is_cross, exe_wrap)
             if 'Microsoft' in out:
-                return VisualStudioCPPCompiler([compiler], is_cross, exe_wrap)
+                version = re.search(Environment.version_regex, err).group()
+                return VisualStudioCPPCompiler([compiler], version, is_cross, exe_wrap)
         raise EnvironmentException('Unknown compiler(s) "' + ', '.join(compilers) + '"')
 
     def detect_objc_compiler(self):
