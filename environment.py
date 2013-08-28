@@ -906,16 +906,22 @@ class Environment():
             is_cross = False
             exe_wrap = None
         try:
-            p = subprocess.Popen(exelist + ['--version'], stdout=subprocess.PIPE)
+            p = subprocess.Popen(exelist + ['--version'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         except OSError:
             raise EnvironmentException('Could not execute ObjC compiler "%s"' % ' '.join(exelist))
-        out = p.communicate()[0]
+        (out, err) = p.communicate()
         out = out.decode()
+        err = err.decode()
+        vmatch = re.search(Environment.version_regex, out)
+        if vmatch:
+            version = vmatch.group(0)
+        else:
+            version = 'unknown version'
         if (out.startswith('cc ') or 'gcc' in out) and \
             'Free Software Foundation' in out:
-            return GnuObjCCompiler(exelist, is_cross, exe_wrap)
+            return GnuObjCCompiler(exelist, version, is_cross, exe_wrap)
         if 'apple' in out and 'Free Software Foundation' in out:
-            return GnuObjCCompiler(exelist, is_cross, exe_wrap)
+            return GnuObjCCompiler(exelist, version, is_cross, exe_wrap)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
 
     def detect_objcpp_compiler(self):
@@ -928,16 +934,22 @@ class Environment():
             is_cross = False
             exe_wrap = None
         try:
-            p = subprocess.Popen(exelist + ['--version'], stdout=subprocess.PIPE)
+            p = subprocess.Popen(exelist + ['--version'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         except OSError:
             raise EnvironmentException('Could not execute ObjC++ compiler "%s"' % ' '.join(exelist))
-        out = p.communicate()[0]
+        (out, err) = p.communicate()
         out = out.decode()
+        err = err.decode()
+        vmatch = re.search(Environment.version_regex, out)
+        if vmatch:
+            version = vmatch.group(0)
+        else:
+            version = 'unknown version'
         if (out.startswith('c++ ') or out.startswith('g++')) and \
             'Free Software Foundation' in out:
-            return GnuObjCPPCompiler(exelist, is_cross, exe_wrap)
+            return GnuObjCPPCompiler(exelist, version, is_cross, exe_wrap)
         if 'apple' in out and 'Free Software Foundation' in out:
-            return GnuObjCPPCompiler(exelist, is_cross, exe_wrap)
+            return GnuObjCPPCompiler(exelist, version, is_cross, exe_wrap)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
 
     def detect_static_linker(self, compiler):
