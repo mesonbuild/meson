@@ -541,8 +541,12 @@ class NinjaBackend(Backend):
         outfile.write(syndesc)
         outfile.write('\n')
 
-    def generate_compile_rule_for(self, langname, compiler, qstr, outfile):
-        rule = 'rule %s_COMPILER\n' % langname
+    def generate_compile_rule_for(self, langname, compiler, qstr, is_cross, outfile):
+        if is_cross:
+            crstr = '_CROSS'
+        else:
+            crstr = ''
+        rule = 'rule %s%s_COMPILER\n' % (langname, crstr)
         depflags = compiler.get_dependency_gen_flags('$out', '$DEPFILE')
         command = " command = %s $FLAGS %s %s %s $in\n" % \
             (' '.join(compiler.get_exelist()),\
@@ -560,8 +564,12 @@ class NinjaBackend(Backend):
         outfile.write(description)
         outfile.write('\n')
 
-    def generate_pch_rule_for(self, langname, compiler, qstr, outfile):
-        rule = 'rule %s_PCH\n' % langname
+    def generate_pch_rule_for(self, langname, compiler, qstr, is_cross, outfile):
+        if is_cross:
+            crstr = '_CROSS'
+        else:
+            crstr = ''
+        rule = 'rule %s%s_PCH\n' % (langname, crstr)
         depflags = compiler.get_dependency_gen_flags('$out', '$DEPFILE')
         if compiler.get_id() == 'msvc':
             output = ''
@@ -587,8 +595,13 @@ class NinjaBackend(Backend):
         qstr = quote_char + "%s" + quote_char
         for compiler in self.build.compilers:
             langname = compiler.get_language()
-            self.generate_compile_rule_for(langname, compiler, qstr, outfile)
-            self.generate_pch_rule_for(langname, compiler, qstr, outfile)
+            self.generate_compile_rule_for(langname, compiler, qstr, False, outfile)
+            self.generate_pch_rule_for(langname, compiler, qstr, False, outfile)
+        if self.environment.is_cross_build():
+            for compiler in self.build.cross_compilers:
+                langname = compiler.get_language()
+                self.generate_compile_rule_for(langname, compiler, qstr, True, outfile)
+                self.generate_pch_rule_for(langname, compiler, qstr, True, outfile)
         outfile.write('\n')
 
     def generate_custom_generator_rules(self, target, outfile):

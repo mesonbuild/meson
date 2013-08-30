@@ -40,6 +40,7 @@ class CoreData():
             self.cross_file = None
 
         self.compilers = {}
+        self.cross_compilers = {}
         self.deps = {}
         self.ext_progs = {}
         self.ext_libs = {}

@@ -410,11 +410,11 @@ class Man(InterpreterObject):
         return self.sources
 
 class BuildTarget(InterpreterObject):
-
-    def __init__(self, name, subdir, sources, kwargs):
+    def __init__(self, name, subdir, is_cross, sources, kwargs):
         InterpreterObject.__init__(self)
         self.name = name
         self.subdir = subdir
+        self.is_cross = is_cross
         self.sources = []
         self.external_deps = []
         self.include_dirs = []
@@ -583,8 +583,8 @@ class BuildTarget(InterpreterObject):
         return []
 
 class Executable(BuildTarget):
-    def __init__(self, name, subdir, sources, environment, kwargs):
-        BuildTarget.__init__(self, name, subdir, sources, kwargs)
+    def __init__(self, name, subdir, is_cross, sources, environment, kwargs):
+        BuildTarget.__init__(self, name, subdir, is_cross, sources, kwargs)
         suffix = environment.get_exe_suffix()
         if suffix != '':
             self.filename = self.name + '.' + suffix
@@ -987,24 +987,40 @@ class Interpreter():
         raise InterpreterException('Error encountered: ' + args[0])
 
     def add_languages(self, node, args):
+        is_cross = self.environment.is_cross_build()
         for lang in args:
             if lang in self.coredata.compilers:
                 comp = self.coredata.compilers[lang]
+                cross_comp = self.coredata.cross_compilers.get(lang, None)
             else:
+                cross_comp = None
                 if lang.lower() == 'c':
-                    comp = self.environment.detect_c_compiler()
+                    comp = self.environment.detect_c_compiler(False)
+                    if is_cross:
+                        cross_comp = self.environment.detect_c_compiler(True)
                 elif lang.lower() == 'cpp':
-                    comp = self.environment.detect_cpp_compiler()
+                    comp = self.environment.detect_cpp_compiler(False)
+                    if is_cross:
+                        cross_comp = self.environment.detect_cpp_compiler(True)
                 elif lang.lower() == 'objc':
-                    comp = self.environment.detect_objc_compiler()
+                    comp = self.environment.detect_objc_compiler(False)
+                    if is_cross:
+                        cross_comp = self.environment.detect_objc_compiler(True)
                 elif lang.lower() == 'objcpp':
-                    comp = self.environment.detect_objcpp_compiler()
+                    comp = self.environment.detect_objcpp_compiler(False)
+                    if is_cross:
+                        cross_comp = self.environment.detect_objcpp_compiler(True)
                 else:
                     raise InvalidCode('Tried to use unknown language "%s".' % lang)
                 comp.sanity_check(self.environment.get_scratch_dir())
                 self.coredata.compilers[lang] = comp
-            mlog.log('Using %s compiler "' % lang, mlog.bold(' '.join(comp.get_exelist())), '". (%s %s)' % (comp.id, comp.version), sep='')
+                if cross_comp is not None:
+                    self.coredata.cross_compilers[lang] = cross_comp
+            mlog.log('Using native %s compiler "' % lang, mlog.bold(' '.join(comp.get_exelist())), '". (%s %s)' % (comp.id, comp.version), sep='')
             self.build.add_compiler(comp)
+            if is_cross:
+                mlog.log('Using cross %s compiler "' % lang, mlog.bold(' '.join(cross_comp.get_exelist())), '". (%s %s)' % (cross_comp.id, cross_comp.version), sep='')
+                self.build.add_cross_compiler(cross_comp)
 
     def func_find_program(self, node, args, kwargs):
         self.validate_arguments(args, 1, [str])
@@ -1187,6 +1203,13 @@ class Interpreter():
         args = self.flatten(args)
         name = args[0]
         sources = args[1:]
+        if self.environment.is_cross_build():
+            if kwargs.get('native', False):
+                is_cross = False
+            else:
+                is_cross = True
+        else:
+            is_cross = False
         if name in coredata.forbidden_target_names:
             raise InvalidArguments('Target name "%s" is reserved for Meson\'s internal use. Please rename.'\
                                    % name)
@@ -1200,9 +1223,13 @@ class Interpreter():
         if name in self.build.targets:
             raise InvalidCode('Tried to create target "%s", but a target of that name already exists.' % name)
         self.check_sources_exist(os.path.join(self.environment.source_dir, self.subdir), sources)
-        l = targetclass(name, self.subdir, sources, self.environment, kwargs)
+        l = targetclass(name, self.subdir, is_cross, sources, self.environment, kwargs)
         self.build.targets[name] = l
-        mlog.log('Creating build target "', mlog.bold(name), '" with %d files.' % len(sources), sep='')
+        if self.environment.is_cross_build() and l.is_cross:
+            txt = ' cross build '
+        else:
+            txt = ' build '
+        mlog.log('Creating', txt, 'target "', mlog.bold(name), '" with %d files.' % len(sources), sep='')
         return l
 
     def check_sources_exist(self, subdir, sources):

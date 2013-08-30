@@ -790,9 +790,9 @@ class Environment():
     def is_source(self, fname):
         return is_source(fname)
 
-    def detect_c_compiler(self):
+    def detect_c_compiler(self, want_cross):
         evar = 'CC'
-        if self.is_cross_build():
+        if self.is_cross_build() and want_cross:
             compilers = [self.cross_info['c']]
             ccache = []
             is_cross = True
