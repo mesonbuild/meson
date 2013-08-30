@@ -1,6 +1,15 @@
 project('tryrun', 'c')
 
-cc = meson.get_compiler('c')
+# Complex to exercise all code paths.
+if meson.is_cross_build()
+  if meson.has_exe_wrapper()
+    cc = meson.get_compiler('c', native : false)
+  else
+    cc = meson.get_compiler('c', native : true)
+  endif
+else
+  cc = meson.get_compiler('c')
+endif
 
 ok_code = '''#include<stdio.h>
 int main(int argc, char **argv) {

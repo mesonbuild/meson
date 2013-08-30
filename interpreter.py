@@ -800,8 +800,14 @@ class MesonMain(InterpreterObject):
         self.build = build
         self.methods.update({'get_compiler': self.get_compiler_method,
                              'is_cross_build' : self.is_cross_build_method,
+                             'has_exe_wrapper' : self.has_exe_wrapper_method,
                              })
 
+    def has_exe_wrapper_method(self, args, kwargs):
+        if self.is_cross_build_method(None, None):
+            return 'exe_wrap' in  self.build.environment.cross_info
+        return True # This is semantically confusing.
+        
     def is_cross_build_method(self, args, kwargs):
         return self.build.environment.is_cross_build()
 
