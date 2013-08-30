@@ -1,6 +1,6 @@
 project('pipeline test', 'c')
 
-e1 = executable('srcgen', 'srcgen.c')
+e1 = executable('srcgen', 'srcgen.c', native : true)
 
 gen = generator(e1,
  outputs  : '@BASENAME@.h',
