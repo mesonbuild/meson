@@ -1,6 +1,8 @@
 project('pipeline test', 'c')
 
-e1 = executable('srcgen', 'srcgen.c')
+# We need to run this executable locally so build it with
+# the host compiler.
+e1 = executable('srcgen', 'srcgen.c', native : true)
 
 gen = generator(e1, \
  outputs  : '@BASENAME@.c', # Line continuation inside arguments should work without needing a "\".

@@ -1,6 +1,9 @@
 name = 'linux'
 c = '/usr/bin/arm-linux-gnueabihf-gcc'
 cpp = '/usr/bin/arm-linux-gnueabihf-g++'
+ar = '/usr/arm-linux-gnueabihf/bin/ar'
+strip = '/usr/i586-mingw32msvc/bin/strip'
+
 root = '/usr/arm-linux-gnueabihf'
 pkg_config = '/usr/bin/arm-linux-gnueabihf-pkg-config'
 

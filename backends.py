@@ -515,18 +515,23 @@ class NinjaBackend(Backend):
         outfile.write(description)
 
     def generate_dynamic_link_rules(self, outfile):
-        for compiler in self.build.compilers:
-            langname = compiler.get_language()
-            rule = 'rule %s_LINKER\n' % langname
-            command = ' command = %s %s $FLAGS  %s $in $LINK_FLAGS $aliasing\n' % \
-            (execute_wrapper,
-             ' '.join(compiler.get_linker_exelist()),\
-             ' '.join(compiler.get_linker_output_flags('$out')))
-            description = ' description = Linking target $out'
-            outfile.write(rule)
-            outfile.write(command)
-            outfile.write(description)
-            outfile.write('\n')
+        ctypes = [(self.build.compilers, False), (self.build.cross_compilers, True)]
+        for (complist, is_cross) in ctypes:
+            for compiler in complist:
+                langname = compiler.get_language()
+                crstr = ''
+                if is_cross:
+                    crstr = '_CROSS'
+                rule = 'rule %s%s_LINKER\n' % (langname, crstr)
+                command = ' command = %s %s $FLAGS  %s $in $LINK_FLAGS $aliasing\n' % \
+                (execute_wrapper,
+                 ' '.join(compiler.get_linker_exelist()),\
+                 ' '.join(compiler.get_linker_output_flags('$out')))
+                description = ' description = Linking target $out'
+                outfile.write(rule)
+                outfile.write(command)
+                outfile.write(description)
+                outfile.write('\n')
         scriptdir = self.environment.get_script_dir()
         outfile.write('\n')
         symrule = 'rule SHSYM\n'
@@ -608,6 +613,13 @@ class NinjaBackend(Backend):
         for genlist in target.get_generated_sources():
             generator = genlist.get_generator()
             exe = generator.get_exe()
+            if self.environment.is_cross_build() and \
+            isinstance(exe, interpreter.BuildTarget) and exe.is_cross:
+                if 'exe_wrapper'  not in self.environment.cross_info:
+                    s = 'Can not use target %s as a generator because it is cross-built\n'
+                    s += 'and no exe wrapper is defined. You might want to set it to native instead.'
+                    s = s % exe.name
+                    raise MesonException(s)
             infilelist = genlist.get_infilelist()
             outfilelist = genlist.get_outfilelist()
             if isinstance(exe, interpreter.BuildTarget):
@@ -675,7 +687,10 @@ class NinjaBackend(Backend):
                 commands.append(barg)
                 commands.append(sarg)
         commands += self.get_pch_include_args(compiler, target)
-        compiler_name = '%s_COMPILER' % compiler.get_language()
+        crstr = ''
+        if target.is_cross:
+            crstr = '_CROSS'
+        compiler_name = '%s%s_COMPILER' % (compiler.get_language(), crstr)
 
         element = NinjaBuildElement(rel_obj, compiler_name, rel_src)
         for d in header_deps:
@@ -755,7 +770,10 @@ class NinjaBackend(Backend):
             linker_base = linker.get_language() # Fixme.
         if isinstance(target, interpreter.SharedLibrary):
             self.generate_shsym(outfile, target)
-        linker_rule = linker_base + '_LINKER'
+        crstr = ''
+        if target.is_cross:
+            crstr = '_CROSS'
+        linker_rule = linker_base + crstr + '_LINKER'
         commands = []
         if isinstance(target, interpreter.Executable):
             commands += linker.get_std_exe_link_flags()
