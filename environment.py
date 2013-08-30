@@ -1085,7 +1085,7 @@ class CrossBuildInfo():
         self.items = {}
         self.parse_datafile(filename)
         if not 'name' in self:
-            raise EnvironmentException('Cross file must specify "name".')
+            raise EnvironmentException('Cross file must specify "name" (e.g. "linux", "darwin" or "windows".')
 
     def ok_type(self, i):
         return isinstance(i, str) or isinstance(i, int) or isinstance(i, bool)
