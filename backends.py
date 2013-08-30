@@ -736,6 +736,9 @@ class NinjaBackend(Backend):
         return (commands, dep, dst)
 
     def generate_pch(self, target, outfile):
+        cstr = ''
+        if target.is_cross:
+            cstr = '_CROSS'
         for lang in ['c', 'cpp']:
             pch = target.get_pch(lang)
             if len(pch) == 0:
@@ -751,7 +754,7 @@ class NinjaBackend(Backend):
                 src = os.path.join(self.build_to_src, target.get_source_subdir(), pch[0])
                 (commands, dep, dst) = self.generate_gcc_pch_command(target, compiler, pch[0])
                 extradep = None
-            rulename = compiler.get_language() + '_PCH'
+            rulename = compiler.get_language() + cstr + '_PCH'
             elem = NinjaBuildElement(dst, rulename, src)
             if extradep is not None:
                 elem.add_dep(extradep)
