@@ -29,6 +29,7 @@ class Build:
         self.man = []
         self.data = []
         self.static_linker = None
+        self.static_cross_linker = None
         self.configure_files = []
 
     def add_compiler(self, compiler):
@@ -37,8 +38,8 @@ class Build:
         self.compilers.append(compiler)
 
     def add_cross_compiler(self, compiler):
-        #if len(self.cross_compilers) == 0:
-        #    self.static_linker = self.environment.detect_static_linker(compiler)
+        if len(self.cross_compilers) == 0:
+            self.static_cross_linker = self.environment.detect_static_linker(compiler)
         self.cross_compilers.append(compiler)
 
     def get_project(self):

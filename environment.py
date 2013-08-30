@@ -953,13 +953,16 @@ class Environment():
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
 
     def detect_static_linker(self, compiler):
-        evar = 'AR'
-        if evar in os.environ:
-            linker = os.environ[evar].strip()
-        if isinstance(compiler, VisualStudioCCompiler):
-            linker= self.vs_static_linker
+        if compiler.is_cross:
+            linker = self.cross_info['ar']
         else:
-            linker = self.default_static_linker
+            evar = 'AR'
+            if evar in os.environ:
+                linker = os.environ[evar].strip()
+            if isinstance(compiler, VisualStudioCCompiler):
+                linker= self.vs_static_linker
+            else:
+                linker = self.default_static_linker
         basename = os.path.basename(linker).lower()
         if basename == 'lib' or basename == 'lib.exe':
             arg = '/?'

@@ -486,7 +486,9 @@ class NinjaBackend(Backend):
         outfile.write('# Rules for compiling.\n\n')
         self.generate_compile_rules(outfile)
         outfile.write('# Rules for linking.\n\n')
-        self.generate_static_link_rules(outfile)
+        if self.environment.is_cross_build():
+            self.generate_static_link_rules(True, outfile)
+        self.generate_static_link_rules(False, outfile)
         self.generate_dynamic_link_rules(outfile)
         self.generate_dep_gen_rules(outfile)
         outfile.write('# Other rules\n\n')
@@ -503,9 +505,14 @@ class NinjaBackend(Backend):
         outfile.write(' description = Regenerating build files\n')
         outfile.write(' generator = 1\n\n')
 
-    def generate_static_link_rules(self, outfile):
-        static_linker = self.build.static_linker
-        rule = 'rule STATIC_LINKER\n'
+    def generate_static_link_rules(self, is_cross, outfile):
+        if is_cross:
+            static_linker = self.build.static_cross_linker
+            crstr = '_CROSS'
+        else:
+            static_linker = self.build.static_linker
+            crstr = ''
+        rule = 'rule STATIC%s_LINKER\n' % crstr
         command = ' command = %s  $LINK_FLAGS %s $in\n' % \
         (' '.join(static_linker.get_exelist()),
         ' '.join(static_linker.get_output_flags('$out')))
