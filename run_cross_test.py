@@ -31,8 +31,8 @@ test_build_dir = 'work area'
 install_dir = os.path.join(os.path.split(os.path.abspath(__file__))[0], 'install dir')
 meson_command = './meson.py'
 
-#extra_flags = ['--cross-file', 'cross/ubuntu-armhf.txt']
-extra_flags = ['--cross-file', 'cross/ubuntu-mingw.txt']
+extra_flags = ['--cross-file', 'cross/ubuntu-armhf.txt']
+#extra_flags = ['--cross-file', 'cross/ubuntu-mingw.txt']
 ninja_command = environment.detect_ninja()
 if ninja_command is None:
     raise RuntimeError('Could not find Ninja executable.')

@@ -798,17 +798,33 @@ class MesonMain(InterpreterObject):
     def __init__(self, build):
         InterpreterObject.__init__(self)
         self.build = build
-        self.methods.update({'get_compiler': self.get_compiler_method})
+        self.methods.update({'get_compiler': self.get_compiler_method,
+                             'is_cross_build' : self.is_cross_build_method,
+                             })
+
+    def is_cross_build_method(self, args, kwargs):
+        return self.build.environment.is_cross_build()
 
     def get_compiler_method(self, args, kwargs):
         if len(args) != 1:
             raise InterpreterException('get_compiler_method must have one and only one argument.')
         cname = args[0]
-        for c in self.build.compilers:
+        native = kwargs.get('native', None)
+        if native is None:
+            if self.build.environment.is_cross_build():
+                native = False
+            else:
+                native = True
+        if not isinstance(native, bool):
+            raise InterpreterException('Type of "native" must be a boolean.')
+        if native:
+            clist = self.build.compilers
+        else:
+            clist = self.build.cross_compilers
+        for c in clist:
             if c.get_language() == cname:
                 return CompilerHolder(c, self.build.environment)
         raise InterpreterException('Tried to access compiler for unspecified language "%s".' % cname)
-        
 
 class Interpreter():
 
