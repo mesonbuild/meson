@@ -847,9 +847,9 @@ class Environment():
         path = os.path.split(__file__)[0]
         return os.path.join(path, 'depfixer.py')
 
-    def detect_cpp_compiler(self):
+    def detect_cpp_compiler(self, want_cross):
         evar = 'CXX'
-        if self.is_cross_build():
+        if self.is_cross_build() and want_cross:
             compilers = [self.cross_info['cpp']]
             ccache = []
             is_cross = True

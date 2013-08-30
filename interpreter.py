@@ -592,17 +592,17 @@ class Executable(BuildTarget):
             self.filename = self.name
 
 class StaticLibrary(BuildTarget):
-    def __init__(self, name, subdir, sources, environment, kwargs):
-        BuildTarget.__init__(self, name, subdir, sources, kwargs)
+    def __init__(self, name, subdir, is_cross, sources, environment, kwargs):
+        BuildTarget.__init__(self, name, subdir, is_cross, sources, kwargs)
         prefix = environment.get_static_lib_prefix()
         suffix = environment.get_static_lib_suffix()
         self.filename = prefix + self.name + '.' + suffix
 
 class SharedLibrary(BuildTarget):
-    def __init__(self, name, subdir, sources, environment, kwargs):
+    def __init__(self, name, subdir, is_cross, sources, environment, kwargs):
         self.version = None
         self.soversion = None
-        BuildTarget.__init__(self, name, subdir, sources, kwargs)
+        BuildTarget.__init__(self, name, subdir, is_cross, sources, kwargs)
         self.prefix = environment.get_shared_lib_prefix()
         self.suffix = environment.get_shared_lib_suffix()
 
