@@ -1118,7 +1118,10 @@ class CrossBuildInfo():
                 raise EnvironmentException('Malformed line in cross file %s:%d.' % (filename, linenum))
 
     def __getitem__(self, ind):
-        return self.items[ind]
+        try:
+            return self.items[ind]
+        except KeyError:
+            raise EnvironmentException('Cross file does not specify variable "%s".' % ind)
 
     def __contains__(self, item):
         return item in self.items
