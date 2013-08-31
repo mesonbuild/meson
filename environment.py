@@ -896,8 +896,8 @@ class Environment():
                 return VisualStudioCPPCompiler([compiler], version, is_cross, exe_wrap)
         raise EnvironmentException('Unknown compiler(s) "' + ', '.join(compilers) + '"')
 
-    def detect_objc_compiler(self):
-        if self.is_cross_build():
+    def detect_objc_compiler(self, want_cross):
+        if self.is_cross_build() and want_cross:
             exelist = [self.cross_info['objc']]
             is_cross = True
             exe_wrap = self.cross_info.get('exe_wrapper', None)
@@ -924,9 +924,9 @@ class Environment():
             return GnuObjCCompiler(exelist, version, is_cross, exe_wrap)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
 
-    def detect_objcpp_compiler(self):
-        if self.is_cross_build():
-            exelist = [self.cross_info['objc']]
+    def detect_objcpp_compiler(self, want_cross):
+        if self.is_cross_build() and want_cross:
+            exelist = [self.cross_info['objcpp']]
             is_cross = True
             exe_wrap = self.cross_info.get('exe_wrapper', None)
         else:
