@@ -59,7 +59,7 @@ symlink_value = os.path.relpath(bin_script, os.path.dirname(bin_name))
 
 files = glob.glob('*.py')
 
-noinstall = ['compile_meson.py', 'install_meson.py', 'run_tests.py']
+noinstall = ['compile_meson.py', 'install_meson.py', 'run_tests.py', 'run_cross_test.py']
 
 files = [x for x in files if x not in noinstall]
 
