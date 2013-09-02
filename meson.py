@@ -133,8 +133,15 @@ if __name__ == '__main__':
         if resolved[0] != '/':
             this_file = os.path.join(os.path.dirname(this_file), resolved)
         else:
-            this_file = resolved 
-    app = MesonApp(dir1, dir2, this_file, options)
+            this_file = resolved
+    try:
+        app = MesonApp(dir1, dir2, this_file, options)
+    except Exception as e:
+        # Log directory does not exist, so just print
+        # to stdout.
+        print('Error validating working directories:\n')
+        print(e)
+        sys.exit(1)
     try:
         app.generate()
     except Exception as e:
