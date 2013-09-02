@@ -61,8 +61,8 @@ parser.add_option('--cross-file', default=None, dest='cross_file',
 
 class MesonApp():
 
-    def __init__(self, dir1, dir2, script_file, options):
-        (self.source_dir, self.build_dir) = self.validate_dirs(dir1, dir2)
+    def __init__(self, dir1, dir2, script_file, handshake, options):
+        (self.source_dir, self.build_dir) = self.validate_dirs(dir1, dir2, handshake)
         if not os.path.isabs(options.prefix):
             raise RuntimeError('--prefix must be an absolute path.')
         self.meson_script_file = script_file
@@ -77,7 +77,7 @@ class MesonApp():
         except IOError:
             return False
 
-    def validate_dirs(self, dir1, dir2):
+    def validate_core_dirs(self, dir1, dir2):
         ndir1 = os.path.abspath(dir1)
         ndir2 = os.path.abspath(dir2)
         if not stat.S_ISDIR(os.stat(ndir1).st_mode):
@@ -94,7 +94,22 @@ class MesonApp():
         if self.has_build_file(ndir2):
             return (ndir2, ndir1)
         raise RuntimeError('Neither directory contains a build file %s.' % environment.build_filename)
-    
+
+    def validate_dirs(self, dir1, dir2, handshake):
+        (src_dir, build_dir) = self.validate_core_dirs(dir1, dir2)
+        priv_dir = os.path.join(build_dir, 'meson-private')
+        if os.path.exists(priv_dir):
+            if not handshake:
+                msg = '''Trying to run Meson on a build directory that has already been configured.
+If you want to build it, just run your build command (e.g. ninja) inside the
+build directory. Meson will autodetect any changes in your setup and regenerate
+itself as required.'''
+                raise RuntimeError(msg)
+        else:
+            if handshake:
+                raise RuntimeError('Something went terribly wrong. Please file a bug.')
+        return (src_dir, build_dir)
+
     def generate(self):
         env = environment.Environment(self.source_dir, self.build_dir, self.meson_script_file, options)
         mlog.initialize(env.get_log_dir())
@@ -118,6 +133,11 @@ class MesonApp():
 
 if __name__ == '__main__':
     (options, args) = parser.parse_args(sys.argv)
+    if args[-1] == 'secret-handshake':
+        args = args[:-1]
+        handshake = True
+    else:
+        handshake = False
     if len(args) == 1 or len(args) > 3:
         print('%s <source directory> <build directory>' % sys.argv[0])
         print('If you omit either directory, the current directory is substituted.')
@@ -135,11 +155,11 @@ if __name__ == '__main__':
         else:
             this_file = resolved
     try:
-        app = MesonApp(dir1, dir2, this_file, options)
+        app = MesonApp(dir1, dir2, this_file, handshake, options)
     except Exception as e:
         # Log directory does not exist, so just print
         # to stdout.
-        print('Error validating working directories:\n')
+        print('Error during basic setup:\n')
         print(e)
         sys.exit(1)
     try:
