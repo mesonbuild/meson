@@ -70,12 +70,7 @@ class MesonApp():
     
     def has_build_file(self, dirname):
         fname = os.path.join(dirname, environment.build_filename)
-        try:
-            ifile = open(fname, 'r')
-            ifile.close()
-            return True
-        except IOError:
-            return False
+        return os.path.exists(fname)
 
     def validate_core_dirs(self, dir1, dir2):
         ndir1 = os.path.abspath(dir1)
@@ -97,7 +92,7 @@ class MesonApp():
 
     def validate_dirs(self, dir1, dir2, handshake):
         (src_dir, build_dir) = self.validate_core_dirs(dir1, dir2)
-        priv_dir = os.path.join(build_dir, 'meson-private')
+        priv_dir = os.path.join(build_dir, 'meson-private/coredata.dat')
         if os.path.exists(priv_dir):
             if not handshake:
                 msg = '''Trying to run Meson on a build directory that has already been configured.
