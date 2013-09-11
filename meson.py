@@ -47,7 +47,9 @@ parser.add_option('--includedir', default='include', dest='includedir',
 parser.add_option('--datadir', default='share', dest='datadir',
                   help='relative path to the top of data file subdirectory (default: %default)')
 parser.add_option('--mandir' , default='share/man', dest='mandir',
-                  help='relatie path of man files (default: %default)')
+                  help='relative path of man files (default: %default)')
+parser.add_option('--localedir', default='share/locale', dest='localedir',
+                  help='relative path of locale data (default: %default)')
 parser.add_option('--backend', default='ninja', dest='backend',
                   help='the backend to use (default: %default)')
 parser.add_option('--buildtype', default='debug', type='choice', choices=build_types, dest='buildtype',
