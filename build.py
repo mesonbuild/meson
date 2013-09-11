@@ -31,6 +31,7 @@ class Build:
         self.static_linker = None
         self.static_cross_linker = None
         self.configure_files = []
+        self.pot = []
 
     def add_compiler(self, compiler):
         if len(self.compilers) == 0:

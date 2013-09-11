@@ -881,6 +881,7 @@ class Interpreter():
                       'find_library' : self.func_find_library,
                       'configuration_data' : self.func_configuration_data,
                       'run_command' : self.func_run_command,
+                      'gettext' : self.func_gettext,
                       }
 
     def get_build_def_files(self):
@@ -980,6 +981,20 @@ class Interpreter():
             if not isinstance(i, str):
                 raise InterpreterObject('Run_command arguments must be strings.')
         return RunProcess(args, os.path.join(self.environment.source_dir, self.subdir))
+
+    def func_gettext(self, nodes, args, kwargs):
+        if len(args) != 1:
+            raise InterpreterException('Gettext requires one positional argument (package name).')
+        packagename = args[0]
+        if not isinstance(packagename, str):
+            raise InterpreterException('Gettext argument is not a string.')
+        languages = kwargs.get('languages', None)
+        if not isinstance(languages, list):
+            raise InterpreterException('Argument languages must be a list of strings.')
+        # TODO: check that elements are strings
+        if len(self.build.pot) > 0:
+            raise InterpreterException('More than one gettext definitions currently not supported.')
+        self.build.pot.append((packagename, languages))
 
     def func_configuration_data(self, node, args, kwargs):
         if len(args) != 0:

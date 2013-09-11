@@ -503,7 +503,17 @@ class NinjaBackend(Backend):
              ninja_quote(self.environment.get_build_dir()))
         outfile.write(" command = '%s' '%s' '%s' '%s' --backend ninja secret-handshake\n" % c)
         outfile.write(' description = Regenerating build files\n')
-        outfile.write(' generator = 1\n\n')
+        outfile.write(' generator = 1\n')
+        if len(self.build.pot) > 0:
+            self.generate_gettext_rules(outfile)
+        outfile.write('\n')
+
+    def generate_gettext_rules(self, outfile):
+        rule = 'rule GEN_POT\n'
+        command = " command = xgettext -p '$OUTDIR' -D '%s' -k_ -o '$OUTFILE'\n" % \
+        self.environment.get_source_dir()
+        outfile.write(rule)
+        outfile.write(command)
 
     def generate_static_link_rules(self, is_cross, outfile):
         if is_cross:
