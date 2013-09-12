@@ -19,4 +19,4 @@ msgstr ""
 
 #: src/intlmain.c:15
 msgid "International greeting."
-msgstr "Kansainvälinen tervehdys."
+msgstr "Maailman tervehdys."

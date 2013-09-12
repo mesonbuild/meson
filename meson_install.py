@@ -25,6 +25,8 @@ class InstallData():
         self.headers = []
         self.man = []
         self.data = []
+        self.po_package_name = ''
+        self.po = []
 
 def do_install(datafilename):
     ifile = open(datafilename, 'rb')
@@ -40,6 +42,20 @@ def do_install(datafilename):
     install_headers(d)
     install_man(d)
     install_data(d)
+    install_po(d)
+
+def install_po(d):
+    packagename = d.po_package_name
+    for f in d.po:
+        srcfile = f[0]
+        localedir = f[1]
+        languagename = f[2]
+        outfile = os.path.join(d.prefix, localedir, languagename, 'LC_MESSAGES',
+                               packagename + '.mo')
+        os.makedirs(os.path.split(outfile)[0], exist_ok=True)
+        shutil.copyfile(srcfile, outfile)
+        shutil.copystat(srcfile, outfile)
+        print('Installing %s to %s.' % (srcfile, outfile))
 
 def install_data(d):
     for i in d.data:
@@ -88,7 +104,7 @@ def install_targets(d):
         fname = t[0]
         outdir = os.path.join(d.prefix, t[1])
         aliases = t[2]
-        outname = os.path.join(outdir, fname)
+        outname = os.path.join(outdir, os.path.split(fname)[-1])
         should_strip = t[3]
         print('Installing %s to %s' % (fname, outname))
         os.makedirs(outdir, exist_ok=True)

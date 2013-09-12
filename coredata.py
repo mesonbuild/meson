@@ -30,6 +30,7 @@ class CoreData():
         self.includedir = options.includedir
         self.datadir = options.datadir
         self.mandir = options.mandir
+        self.localedir = options.localedir
         self.backend = options.backend
         self.buildtype = options.buildtype
         self.strip = options.strip

@@ -339,6 +339,13 @@ class NinjaBackend(Backend):
             elem.add_item('FILELIST', os.path.join(self.environment.get_source_dir(), input_file))
             elem.add_item('OUTDIR', os.path.join(self.environment.get_source_dir(), subdir))
             elem.write(outfile)
+            for l in languages:
+                infile = os.path.join(self.environment.get_source_dir(), subdir, l + '.po')
+                outfilename = os.path.join(subdir, l + '.gmo')
+                lelem = NinjaBuildElement(outfilename, 'GEN_GMO', infile)
+                lelem.add_item('INFILE', infile)
+                lelem.add_item('OUTFILE', outfilename)
+                lelem.write(outfile)
 
     def generate_coverage_rules(self, outfile):
         (gcovr_exe, lcov_exe, genhtml_exe) = environment.find_coverage_tools()
@@ -382,14 +389,26 @@ class NinjaBackend(Backend):
         elem.add_dep('all')
         elem.add_item('DESC', 'Installing files.')
         elem.add_item('COMMAND', [sys.executable, install_script, install_data_file])
-        elem.write(outfile)
-        
         self.generate_target_install(d)
         self.generate_header_install(d)
         self.generate_man_install(d)
         self.generate_data_install(d)
+        self.generate_po_install(d, elem)
+        elem.write(outfile)
+
         ofile = open(install_data_file, 'wb')
         pickle.dump(d, ofile)
+
+    def generate_po_install(self, d, elem):
+        for p in self.build.pot:
+            (package_name, languages, subdir) = p
+            # FIXME: assumes only one po package per source
+            d.po_package_name = package_name
+            for lang in languages:
+                rel_src =  os.path.join(subdir, lang + '.gmo')
+                src_file = os.path.join(self.environment.get_build_dir(), rel_src)
+                d.po.append((src_file, self.environment.coredata.localedir, lang))
+                elem.add_dep(rel_src)
 
     def generate_target_install(self, d):
         libdir = self.environment.get_libdir()
@@ -530,6 +549,14 @@ class NinjaBackend(Backend):
         outfile.write(rule)
         outfile.write(command)
         outfile.write(desc)
+        outfile.write('\n')
+        rule = 'rule GEN_GMO\n'
+        command = ' command = msgfmt $INFILE -o $OUTFILE\n'
+        desc = ' description = Generating gmo file $OUTFILE\n'
+        outfile.write(rule)
+        outfile.write(command)
+        outfile.write(desc)
+        outfile.write('\n')
 
     def generate_static_link_rules(self, is_cross, outfile):
         if is_cross:

@@ -1,1 +1,1 @@
-executable('intlprog', 'intlmain.c')
+executable('intlprog', 'intlmain.c', install : true)
