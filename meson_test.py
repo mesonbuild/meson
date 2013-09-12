@@ -21,6 +21,13 @@ parser = OptionParser()
 parser.add_option('--wrapper', default=None, dest='wrapper',
                   help='wrapper to run tests with (e.g. valgrind)')
 
+class TestRun():
+    def __init__(self, res, duration, stdo, stde):
+        self.res = res
+        self.duration = duration
+        self.stdo = stdo
+        self.stde = stde
+
 def write_log(logfile, test_name, result_str, stdo, stde):
     logfile.write(result_str + '\n\n')
     logfile.write('--- "%s" stdout ---\n' % test_name)
@@ -28,6 +35,36 @@ def write_log(logfile, test_name, result_str, stdo, stde):
     logfile.write('\n--- "%s" stderr ---\n' % test_name)
     logfile.write(stde)
     logfile.write('\n-------\n\n')
+
+def run_single_test(wrap, fname, is_cross, exe_runner):
+    if is_cross:
+        if exe_runner is None:
+            # 'Can not run test on cross compiled executable 
+            # because there is no execute wrapper.
+            cmd = None
+        else:
+            cmd = [exe_runner, fname]
+    else:
+        cmd = [fname]
+    if cmd is None:
+        res = 'SKIP'
+        duration = 0.0
+        stdo = 'Not run because can not execute cross compiled binaries.'
+        stde = ''
+    else:
+        cmd = wrap + cmd
+        starttime = time.time()
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        (stdo, stde) = p.communicate()
+        endtime = time.time()
+        duration = endtime - starttime
+        stdo = stdo.decode()
+        stde = stde.decode()
+        if p.returncode == 0:
+            res = 'OK'
+        else:
+            res = 'FAIL'
+    return TestRun(res, duration, stdo, stde)
 
 def run_tests(options, datafilename):
     logfile_base = 'meson-logs/testlog'
@@ -45,42 +82,17 @@ def run_tests(options, datafilename):
         name = test[0]
         fname = test[1]
         is_cross = test[2]
-        exe_wrapper = test[3]
-        if is_cross:
-            if exe_wrapper is None:
-                # 'Can not run test on cross compiled executable 
-                # because there is no execute wrapper.
-                cmd = None
-            else:
-                cmd = [exe_wrapper, fname]
-        else:
-            cmd = [fname]
-        if cmd is None:
-            res = 'SKIP'
-            duration = 0.0
-            stdo = 'Not run because can not execute cross compiled binaries.'
-            stde = ''
-        else:
-            cmd = wrap + cmd
-            starttime = time.time()
-            p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            (stdo, stde) = p.communicate()
-            endtime = time.time()
-            duration = endtime - starttime
-            stdo = stdo.decode()
-            stde = stde.decode()
-            if p.returncode == 0:
-                res = 'OK'
-            else:
-                res = 'FAIL'
-
+        exe_runner = test[3]
+        is_parallel = True
+        result = run_single_test(wrap, fname, is_cross, exe_runner)
         startpad = ' '*(numlen - len('%d' % (i+1)))
         num = '%s%d/%d' % (startpad, i+1, len(tests))
         padding1 = ' '*(40-len(name))
-        padding2 = ' '*(5-len(res))
-        result_str = '%s %s%s%s%s(%5.2f s)' % (num, name, padding1, res, padding2, duration)
+        padding2 = ' '*(5-len(result.res))
+        result_str = '%s %s%s%s%s(%5.2f s)' % \
+            (num, name, padding1, result.res, padding2, result.duration)
         print(result_str)
-        write_log(logfile, name, result_str, stdo, stde)
+        write_log(logfile, name, result_str, result.stdo, result.stde)
     print('\nFull log written to %s.' % logfilename)
 
 if __name__ == '__main__':
