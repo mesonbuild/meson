@@ -100,24 +100,21 @@ def run_tests(options, datafilename):
             num_workers = int(os.environ[varname])
         except ValueError:
             write_log('Invalid value in %s, using 1 thread.' % varname)
+            num_workers = 1
     else:
         num_workers = multiprocessing.cpu_count()
     executor = conc.ThreadPoolExecutor(max_workers=num_workers)
     futures = []
     for i, test in enumerate(tests):
-        name = test[0]
-        fname = test[1]
-        is_cross = test[2]
-        exe_runner = test[3]
-        is_parallel = False
-        if not is_parallel:
+        if not test.is_parallel:
             drain_futures(futures)
             futures = []
-            f = run_single_test(wrap, fname, is_cross, exe_runner)
-            print_stats(numlen, tests, name, f, i, logfile)
+            res = run_single_test(wrap, test.fname, test.is_cross, test.exe_runner)
+            print_stats(numlen, tests, test.name, res, i, logfile)
         else:
-            f = executor.submit(run_single_test, wrap, fname, is_cross, exe_runner)
-            futures.append((f, numlen, tests, name, f, i, logfile))
+            f = executor.submit(run_single_test, wrap, test.fname,
+                                test.is_cross, test.exe_runner)
+            futures.append((f, numlen, tests, test.name, f, i, logfile))
     drain_futures(futures)
     print('\nFull log written to %s.' % logfilename)
 

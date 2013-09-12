@@ -642,10 +642,11 @@ class SharedLibrary(BuildTarget):
         return aliases
 
 class Test(InterpreterObject):
-    def __init__(self, name, exe):
+    def __init__(self, name, exe, is_parallel):
         InterpreterObject.__init__(self)
         self.name = name
         self.exe = exe
+        self.is_parallel = is_parallel
         
     def get_exe(self):
         return self.exe
@@ -1121,7 +1122,10 @@ class Interpreter():
 
     def func_test(self, node, args, kwargs):
         self.validate_arguments(args, 2, [str, Executable])
-        t = Test(args[0], args[1])
+        par = kwargs.get('is_parallel', True)
+        if not isinstance(par, bool):
+            raise InterpreterException('Keyword argument is_parallel must be a boolean.')
+        t = Test(args[0], args[1], par)
         self.build.tests.append(t)
         mlog.debug('Adding test "', mlog.bold(args[0]), '".', sep='')
 

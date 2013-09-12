@@ -94,6 +94,14 @@ def do_conf_file(src, dst, confdata):
         pass
     os.replace(dst_tmp, dst)
 
+class TestSerialisation:
+    def __init__(self, name, fname, is_cross, exe_wrapper, is_parallel):
+        self.name = name
+        self.fname = fname
+        self.is_cross = is_cross
+        self.exe_runner = exe_wrapper
+        self.is_parallel = is_parallel
+
 # It may seem a bit silly that this Backend class exists on its own
 # rather than being a part of NinjaBackend, which is the only class
 # that uses Backend. The point is that common functionality
@@ -483,14 +491,14 @@ class NinjaBackend(Backend):
     def write_test_file(self, datafile):
         arr = []
         for t in self.build.get_tests():
-            name = t.get_name()
             fname = os.path.join(self.environment.get_build_dir(), self.get_target_filename(t.get_exe()))
             is_cross = self.environment.is_cross_build()
             if is_cross:
                 exe_wrapper = self.environment.cross_info.get('exe_wrapper', None)
             else:
                 exe_wrapper = None
-            arr.append([name, fname, is_cross, exe_wrapper])
+            ts = TestSerialisation(t.get_name(), fname, is_cross, exe_wrapper, t.is_parallel)
+            arr.append(ts)
         pickle.dump(arr, datafile)
 
     def generate_dep_gen_rules(self, outfile):
