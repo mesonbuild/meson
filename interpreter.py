@@ -994,7 +994,7 @@ class Interpreter():
         # TODO: check that elements are strings
         if len(self.build.pot) > 0:
             raise InterpreterException('More than one gettext definitions currently not supported.')
-        self.build.pot.append((packagename, languages))
+        self.build.pot.append((packagename, languages, self.subdir))
 
     def func_configuration_data(self, node, args, kwargs):
         if len(args) != 0:

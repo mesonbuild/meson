@@ -312,6 +312,9 @@ class NinjaBackend(Backend):
         self.generate_rules(outfile)
         outfile.write('# Build rules for targets\n\n')
         [self.generate_target(t, outfile) for t in self.build.get_targets().values()]
+        if len(self.build.pot) > 0:
+            outfile.write('# Build rules for localisation.\n\n')
+            self.generate_po(outfile)
         outfile.write('# Test rules\n\n')
         self.generate_tests(outfile)
         outfile.write('# Install rules\n\n')
@@ -325,6 +328,16 @@ class NinjaBackend(Backend):
         # fully created.
         outfile.close()
         os.replace(tempfilename, outfilename)
+
+    def generate_po(self, outfile):
+        for p in self.build.pot:
+            (packagename, languages, subdir) = p
+            input_file = os.path.join(subdir, 'POTFILES')
+            elem = NinjaBuildElement('pot', 'GEN_POT', [])
+            elem.add_item('OUTFILE', packagename + '.pot')
+            elem.add_item('FILELIST', os.path.join(self.environment.get_source_dir(), input_file))
+            elem.add_item('OUTDIR', os.path.join(self.environment.get_source_dir(), subdir))
+            elem.write(outfile)
 
     def generate_coverage_rules(self, outfile):
         (gcovr_exe, lcov_exe, genhtml_exe) = environment.find_coverage_tools()
@@ -510,7 +523,7 @@ class NinjaBackend(Backend):
 
     def generate_gettext_rules(self, outfile):
         rule = 'rule GEN_POT\n'
-        command = " command = xgettext -p '$OUTDIR' -D '%s' -k_ -o '$OUTFILE'\n" % \
+        command = " command = xgettext -p $OUTDIR -f $FILELIST -D '%s' -k_ -o $OUTFILE\n" % \
         self.environment.get_source_dir()
         outfile.write(rule)
         outfile.write(command)
