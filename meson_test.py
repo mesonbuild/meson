@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys, subprocess, time, datetime, pickle, multiprocessing
+import sys, os, subprocess, time, datetime, pickle, multiprocessing
 import concurrent.futures as conc
 from optparse import OptionParser
 
@@ -77,6 +77,11 @@ def print_stats(numlen, tests, name, result, i, logfile):
     print(result_str)
     write_log(logfile, name, result_str, result.stdo, result.stde)
 
+def drain_futures(futures):
+    for i in futures:
+        (result, numlen, tests, name, result, i, logfile) = i
+        print_stats(numlen, tests, name, result.result(), i, logfile)
+
 def run_tests(options, datafilename):
     logfile_base = 'meson-logs/testlog'
     if options.wrapper is None:
@@ -89,7 +94,14 @@ def run_tests(options, datafilename):
     logfile.write('Log of Meson test suite run on %s.\n\n' % datetime.datetime.now().isoformat())
     tests = pickle.load(open(datafilename, 'rb'))
     numlen = len('%d' % len(tests))
-    num_workers = multiprocessing.cpu_count()
+    varname = 'MESON_TESTTHREADS'
+    if varname in os.environ:
+        try:
+            num_workers = int(os.environ[varname])
+        except ValueError:
+            write_log('Invalid value in %s, using 1 thread.' % varname)
+    else:
+        num_workers = multiprocessing.cpu_count()
     executor = conc.ThreadPoolExecutor(max_workers=num_workers)
     futures = []
     for i, test in enumerate(tests):
@@ -97,12 +109,16 @@ def run_tests(options, datafilename):
         fname = test[1]
         is_cross = test[2]
         exe_runner = test[3]
-        is_parallel = True
-        f = executor.submit(run_single_test, wrap, fname, is_cross, exe_runner)
-        futures.append((f, numlen, tests, name, f, i, logfile))
-    for i in futures:
-        (f, numlen, tests, name, result, i, logfile) = i
-        print_stats(numlen, tests, name, result.result(), i, logfile)
+        is_parallel = False
+        if not is_parallel:
+            drain_futures(futures)
+            futures = []
+            f = run_single_test(wrap, fname, is_cross, exe_runner)
+            print_stats(numlen, tests, name, f, i, logfile)
+        else:
+            f = executor.submit(run_single_test, wrap, fname, is_cross, exe_runner)
+            futures.append((f, numlen, tests, name, f, i, logfile))
+    drain_futures(futures)
     print('\nFull log written to %s.' % logfilename)
 
 if __name__ == '__main__':
