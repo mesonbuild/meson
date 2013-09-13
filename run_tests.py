@@ -41,7 +41,6 @@ def validate_install(srcdir, installdir):
         for fname in files:
             found_name = os.path.join(root, fname)[len(installdir)+1:]
             found[found_name] = True
-    print(found)
     expected = set(expected)
     found = set(found)
     missing = expected - found
