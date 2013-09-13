@@ -1,0 +1,2 @@
+bin/prog
+lib/libmylib.so

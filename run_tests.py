@@ -30,6 +30,27 @@ if True: # Currently we have only one backend.
     test_commands = [ninja_command, 'test']
     install_commands = [ninja_command, 'install']
 
+def validate_install(srcdir, installdir):
+    info_file = os.path.join(srcdir, 'installed_files.txt')
+    expected = {}
+    found = {}
+    if os.path.exists(info_file):
+        for line in open(info_file):
+            expected[line.strip()] = True
+    for root, dirs, files in os.walk(installdir):
+        for fname in files:
+            found_name = os.path.join(root, fname)[len(installdir)+1:]
+            found[found_name] = True
+    print(found)
+    expected = set(expected)
+    found = set(found)
+    missing = expected - found
+    for fname in missing:
+        raise RuntimeError('Expected file %s missing.' % fname)
+    extra = found - expected
+    for fname in extra:
+        raise RuntimeError('Found extra file %s.' % fname)
+
 def run_test(testdir, should_succeed=True):
     shutil.rmtree(test_build_dir)
     shutil.rmtree(install_dir)
@@ -57,6 +78,7 @@ def run_test(testdir, should_succeed=True):
     pi.wait()
     if pi.returncode != 0:
         raise RuntimeError('Running install failed.')
+    validate_install(testdir, install_dir)
 
 def gather_tests(testdir):
     tests = [t.replace('\\', '/').split('/', 2)[2] for t in glob(os.path.join(testdir, '*'))]
