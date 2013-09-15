@@ -15,7 +15,7 @@
 # limitations under the License.
 
 from glob import glob
-import os, subprocess, shutil, sys
+import os, subprocess, shutil, sys, platform
 import environment
 
 test_build_dir = 'work area'
@@ -30,13 +30,20 @@ if True: # Currently we have only one backend.
     test_commands = [ninja_command, 'test']
     install_commands = [ninja_command, 'install']
 
+def platform_fix_filename(fname):
+    if platform.system() == 'Darwin':
+        if fname.endswith('.so'):
+            return fname[:-2] + 'dylib'
+        return fname.replace('.so.', '.dylib.')
+    return fname
+
 def validate_install(srcdir, installdir):
     info_file = os.path.join(srcdir, 'installed_files.txt')
     expected = {}
     found = {}
     if os.path.exists(info_file):
         for line in open(info_file):
-            expected[line.strip()] = True
+            expected[platform_fix_filename(line.strip())] = True
     for root, dirs, files in os.walk(installdir):
         for fname in files:
             found_name = os.path.join(root, fname)[len(installdir)+1:]
