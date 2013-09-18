@@ -45,7 +45,7 @@ class PathModel(QAbstractItemModel):
         return 2
 
     def headerData(self, section, orientation, role):
-        if section == '1':
+        if section == 1:
             return QVariant('Path')
         return QVariant('Type')
 
