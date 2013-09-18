@@ -17,6 +17,40 @@
 import sys, os, pickle
 from PyQt5 import uic
 from PyQt5.QtWidgets import QApplication, QMainWindow
+from PyQt5.QtCore import QAbstractItemModel, QModelIndex, QVariant
+import PyQt5.QtCore
+
+class PathModel(QAbstractItemModel):
+    def __init__(self):
+        super().__init__()
+        self.paths = [('k1', 'v1'), ('k1', 'v2')]
+    
+    def flags(self, index):
+        return PyQt5.QtCore.Qt.ItemIsSelectable | PyQt5.QtCore.Qt.ItemIsEnabled
+        
+    def rowCount(self, index):
+        if index.isValid():
+            return 0
+        return len(self.paths)
+    
+    def columnCount(self, index):
+        return 2
+
+    def headerData(self, section, orientation, role):
+        if section == '1':
+            return QVariant('Path')
+        return QVariant('Type')
+
+    def data(self, index, role):
+        if role != PyQt5.QtCore.Qt.DisplayRole:
+            return QVariant()
+        return QVariant(self.paths[index.row()][index.column()])
+
+    def index(self, row, column, parent):
+        return self.createIndex(row, column)
+    
+    def parent(self, index):
+        return QModelIndex()
 
 class MesonGui():
     def __init__(self, build_dir):
@@ -26,12 +60,14 @@ class MesonGui():
         self.ui = uic.loadUi(uifile)
         self.ui.show()
         self.coredata_file = os.path.join(build_dir, 'meson-private/coredata.dat')
+        self.path_model = PathModel()
         if not os.path.exists(self.coredata_file):
             printf("Argument is not build directory.")
             sys.exit(1)
         self.coredata = pickle.load(open(self.coredata_file, 'rb'))
         self.fill_data()
-        
+        self.ui.path_view.setModel(self.path_model)
+
     def fill_data(self):
         self.ui.project_label.setText('Hack project')
         self.ui.srcdir_label.setText(self.src_dir)
