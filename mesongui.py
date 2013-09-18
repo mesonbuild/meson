@@ -21,17 +21,21 @@ from PyQt5.QtCore import QAbstractItemModel, QModelIndex, QVariant
 import PyQt5.QtCore
 
 class PathModel(QAbstractItemModel):
-    def __init__(self):
+    def __init__(self, coredata):
         super().__init__()
-        self.paths = [('k1', 'v1'), ('k1', 'v2')]
-    
+        self.coredata = coredata
+        self.names = ['Prefix', 'Library dir', 'Binary dir', 'Include dir', 'Data dir',\
+                      'Man dir', 'Locale dir']
+        self.attr_name = ['prefix', 'libdir', 'bindir', 'includedir', 'datadir', \
+                          'mandir', 'localedir']
+
     def flags(self, index):
         return PyQt5.QtCore.Qt.ItemIsSelectable | PyQt5.QtCore.Qt.ItemIsEnabled
-        
+
     def rowCount(self, index):
         if index.isValid():
             return 0
-        return len(self.paths)
+        return len(self.names)
     
     def columnCount(self, index):
         return 2
@@ -44,7 +48,11 @@ class PathModel(QAbstractItemModel):
     def data(self, index, role):
         if role != PyQt5.QtCore.Qt.DisplayRole:
             return QVariant()
-        return QVariant(self.paths[index.row()][index.column()])
+        row = index.row()
+        column = index.column()
+        if column == 0:
+            return self.names[row]
+        return getattr(self.coredata, self.attr_name[row])
 
     def index(self, row, column, parent):
         return self.createIndex(row, column)
@@ -60,11 +68,11 @@ class MesonGui():
         self.ui = uic.loadUi(uifile)
         self.ui.show()
         self.coredata_file = os.path.join(build_dir, 'meson-private/coredata.dat')
-        self.path_model = PathModel()
         if not os.path.exists(self.coredata_file):
             printf("Argument is not build directory.")
             sys.exit(1)
         self.coredata = pickle.load(open(self.coredata_file, 'rb'))
+        self.path_model = PathModel(self.coredata)
         self.fill_data()
         self.ui.path_view.setModel(self.path_model)
 
