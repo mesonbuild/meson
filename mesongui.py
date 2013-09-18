@@ -30,7 +30,11 @@ class PathModel(QAbstractItemModel):
                           'mandir', 'localedir']
 
     def flags(self, index):
-        return PyQt5.QtCore.Qt.ItemIsSelectable | PyQt5.QtCore.Qt.ItemIsEnabled
+        if index.column() == 1:
+            editable = PyQt5.QtCore.Qt.ItemIsEditable
+        else:
+            editable= 0
+        return PyQt5.QtCore.Qt.ItemIsSelectable | PyQt5.QtCore.Qt.ItemIsEnabled | editable
 
     def rowCount(self, index):
         if index.isValid():
@@ -44,6 +48,16 @@ class PathModel(QAbstractItemModel):
         if section == '1':
             return QVariant('Path')
         return QVariant('Type')
+
+    def setData(self, index, value, role):
+        if role != PyQt5.QtCore.Qt.EditRole:
+            return False
+        row = index.row()
+        column = index.column()
+        s = str(value)
+        setattr(self.coredata, self.attr_name[row], s)
+        self.dataChanged.emit(self.createIndex(row, column), self.createIndex(row, column))
+        return True
 
     def data(self, index, role):
         if role != PyQt5.QtCore.Qt.DisplayRole:
