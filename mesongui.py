@@ -14,20 +14,38 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys
+import sys, os, pickle
 from PyQt5 import uic
 from PyQt5.QtWidgets import QApplication, QMainWindow
 
 class MesonGui():
-    def __init__(self):
+    def __init__(self, build_dir):
+        self.build_dir = os.path.join(os.getcwd(), build_dir)
+        self.src_dir = os.path.normpath(os.path.join(self.build_dir, '..')) # HACK HACK HACK WRONG!
         uifile = 'mesonmain.ui'
         self.ui = uic.loadUi(uifile)
         self.ui.show()
+        self.coredata_file = os.path.join(build_dir, 'meson-private/coredata.dat')
+        if not os.path.exists(self.coredata_file):
+            printf("Argument is not build directory.")
+            sys.exit(1)
+        self.coredata = pickle.load(open(self.coredata_file, 'rb'))
+        self.fill_data()
+        
+    def fill_data(self):
+        self.ui.project_label.setText('Hack project')
+        self.ui.srcdir_label.setText(self.src_dir)
+        self.ui.builddir_label.setText(self.build_dir)
+        if self.coredata.cross_file is None:
+            btype = 'Native build'
+        else:
+            btype = 'Cross build'
+        self.ui.buildtype_label.setText(btype)
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     if len(sys.argv) != 2:
         print(sys.argv[0], "<build dir>")
         sys.exit(1)
-    gui = MesonGui()
+    gui = MesonGui(sys.argv[1])
     sys.exit(app.exec_())
