@@ -191,53 +191,11 @@ class ExternalLibraryHolder(InterpreterObject):
     def get_exe_flags(self):
         return self.el.get_exe_flags()
 
-class Generator(InterpreterObject):
-
+class GeneratorHolder(InterpreterObject):
     def __init__(self, args, kwargs):
-        InterpreterObject.__init__(self)
-        if len(args) != 1:
-            raise InvalidArguments('Generator requires one and only one positional argument')
-        if not isinstance(args[0], Executable) and \
-           not isinstance(args[0], ExternalProgramHolder):
-            raise InvalidArguments('First generator argument must be an executable object.')
-        self.exe = args[0]
+        super().__init__()
+        self.generator = build.Generator(args, kwargs)
         self.methods.update({'process' : self.process_method})
-        self.process_kwargs(kwargs)
-    
-    def get_exe(self):
-        return self.exe
-
-    def process_kwargs(self, kwargs):
-        if 'arguments' not in kwargs:
-            raise InvalidArguments('Generator must have "arguments" keyword argument.')
-        args = kwargs['arguments']
-        if isinstance(args, str):
-            args = [args]
-        if not isinstance(args, list):
-            raise InvalidArguments('"Arguments" keyword argument must be a string or a list of strings.')
-        for a in args:
-            if not isinstance(a, str):
-                raise InvalidArguments('A non-string object in "arguments" keyword argument.')
-        self.arglist = args
-        
-        if 'outputs' not in kwargs:
-            raise InvalidArguments('Generator must have "outputs" keyword argument.')
-        outputs = kwargs['outputs']
-        if not isinstance(outputs, list):
-            outputs = [outputs]
-        for rule in outputs:
-            if not isinstance(rule, str):
-                raise InvalidArguments('"outputs" may only contain strings.')
-            if not '@BASENAME@' in rule and not '@PLAINNAME@' in rule:
-                raise InvalidArguments('"outputs" must contain @BASENAME@ or @PLAINNAME@.')
-            if '/' in rule or '\\' in rule:
-                raise InvalidArguments('"outputs" must not contain a directory separator.')
-        self.outputs = outputs
-
-    def get_base_outnames(self, inname):
-        plainname = os.path.split(inname)[1]
-        basename = plainname.split('.')[0]
-        return [x.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname) for x in self.outputs]
 
     def process_method(self, args, kwargs):
         if len(kwargs) > 0:
@@ -249,38 +207,17 @@ class Generator(InterpreterObject):
         for a in args:
             if not isinstance(a, str):
                 raise InvalidArguments('A non-string object in "process" arguments.')
-        gl = GeneratedList(self)
+        gl = GeneratedListHolder(self)
         [gl.add_file(a) for a in args]
         return gl
 
-    def get_arglist(self):
-        return self.arglist
-
-class GeneratedList(InterpreterObject):
+class GeneratedListHolder(InterpreterObject):
     def __init__(self, generator):
-        InterpreterObject.__init__(self)
-        self.generator = generator
-        self.infilelist = []
-        self.outfilelist = []
-        self.outmap = {}
+        super().__init__()
+        self.glist = build.GeneratedList(generator)
 
-    def add_file(self, newfile):
-        self.infilelist.append(newfile)
-        outfiles = self.generator.get_base_outnames(newfile)
-        self.outfilelist += outfiles
-        self.outmap[newfile] = outfiles
-
-    def get_infilelist(self):
-        return self.infilelist
-
-    def get_outfilelist(self):
-        return self.outfilelist
-
-    def get_outputs_for(self, filename):
-        return self.outmap[filename]
-
-    def get_generator(self):
-        return self.generator
+    def add_file(self, a):
+        self.glist.add_file(a)
 
 class Build(InterpreterObject):
     def __init__(self):
@@ -316,21 +253,10 @@ class Host(InterpreterObject):
     def is_big_endian_method(self, args, kwargs):
         return sys.byteorder != 'little'
 
-class IncludeDirs(InterpreterObject):
+class IncludeDirsHolder(InterpreterObject):
     def __init__(self, curdir, dirs, kwargs):
-        InterpreterObject.__init__(self)
-        self.curdir = curdir
-        self.incdirs = dirs
-        # Fixme: check that the directories actually exist.
-        # Also that they don't contain ".." or somesuch.
-        if len(kwargs) > 0:
-            raise InvalidCode('Includedirs function does not take keyword arguments.')
-
-    def get_curdir(self):
-        return self.curdir
-
-    def get_incdirs(self):
-        return self.incdirs
+        super().__init__()
+        self.includedirs = build.IncludeDirs(curdir, dirs, kwargs)
 
 class Headers(InterpreterObject):
 
@@ -898,7 +824,7 @@ class Interpreter():
         return self.build_target(node, args, kwargs, SharedLibraryHolder)
 
     def func_generator(self, node, args, kwargs):
-        gen = Generator(args, kwargs)
+        gen = GeneratorHolder(args, kwargs)
         self.generators.append(gen)
         return gen
 
@@ -989,7 +915,7 @@ class Interpreter():
         for a in args:
             if not isinstance(a, str):
                 raise InvalidArguments('Argument %s is not a string.' % str(a))
-        i = IncludeDirs(self.subdir, args, kwargs)
+        i = IncludeDirsHolder(self.subdir, args, kwargs)
         return i
 
     def func_add_global_arguments(self, node, args, kwargs):

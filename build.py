@@ -13,7 +13,8 @@
 # limitations under the License.
 
 import coredata
-import copy
+import copy, os
+import environment
 
 class InvalidArguments(coredata.MesonException):
     pass
@@ -73,6 +74,21 @@ class Build:
     def get_global_flags(self, compiler):
         return self.global_args.get(compiler.get_language(), [])
 
+class IncludeDirs():
+    def __init__(self, curdir, dirs, kwargs):
+        self.curdir = curdir
+        self.incdirs = dirs
+        # Fixme: check that the directories actually exist.
+        # Also that they don't contain ".." or somesuch.
+        if len(kwargs) > 0:
+            raise InvalidCode('Includedirs function does not take keyword arguments.')
+
+    def get_curdir(self):
+        return self.curdir
+
+    def get_incdirs(self):
+        return self.incdirs
+
 class BuildTarget():
     def __init__(self, name, subdir, is_cross, sources, environment, kwargs):
         self.name = name
@@ -114,6 +130,10 @@ class BuildTarget():
         if not isinstance(llist, list):
             llist = [llist]
         for linktarget in llist:
+            # Sorry for this hack. Keyword targets are kept in holders
+            # in kwargs. Unpack here without looking at the exact type.
+            if hasattr(linktarget, "target"):
+                linktarget = linktarget.target
             self.link(linktarget)
         c_pchlist = kwargs.get('c_pch', [])
         if not isinstance(c_pchlist, list):
@@ -229,10 +249,15 @@ class BuildTarget():
         self.pch[language] = pchlist
 
     def add_include_dirs(self, args):
+        ids = []
         for a in args:
+            # FIXME same hack, forcibly unpack from holder.
+            if hasattr(a, 'includedirs'):
+                a = a.includedirs
             if not isinstance(a, IncludeDirs):
                 raise InvalidArguments('Include directory to be added is not an include directory object.')
-        self.include_dirs += args
+            ids.append(a)
+        self.include_dirs += ids
 
     def add_compiler_args(self, language, flags):
         for a in flags:
@@ -245,6 +270,89 @@ class BuildTarget():
 
     def get_aliaslist(self):
         return []
+
+
+class Generator():
+    def __init__(self, args, kwargs):
+        if len(args) != 1:
+            raise InvalidArguments('Generator requires one and only one positional argument')
+        
+        if hasattr(args[0], 'target'):
+            exe = args[0].target
+            if not isinstance(exe, Executable):
+                raise InvalidArguments('First generator argument must be an executable.')
+        elif hasattr(args[0], 'ep'):
+            exe = args[0].ep
+        else:
+            print(args[0])
+            raise InvalidArguments('First generator argument must be an executable object.')
+        self.exe = exe
+        self.process_kwargs(kwargs)
+
+    def get_exe(self):
+        return self.exe
+
+    def process_kwargs(self, kwargs):
+        if 'arguments' not in kwargs:
+            raise InvalidArguments('Generator must have "arguments" keyword argument.')
+        args = kwargs['arguments']
+        if isinstance(args, str):
+            args = [args]
+        if not isinstance(args, list):
+            raise InvalidArguments('"Arguments" keyword argument must be a string or a list of strings.')
+        for a in args:
+            if not isinstance(a, str):
+                raise InvalidArguments('A non-string object in "arguments" keyword argument.')
+        self.arglist = args
+        
+        if 'outputs' not in kwargs:
+            raise InvalidArguments('Generator must have "outputs" keyword argument.')
+        outputs = kwargs['outputs']
+        if not isinstance(outputs, list):
+            outputs = [outputs]
+        for rule in outputs:
+            if not isinstance(rule, str):
+                raise InvalidArguments('"outputs" may only contain strings.')
+            if not '@BASENAME@' in rule and not '@PLAINNAME@' in rule:
+                raise InvalidArguments('"outputs" must contain @BASENAME@ or @PLAINNAME@.')
+            if '/' in rule or '\\' in rule:
+                raise InvalidArguments('"outputs" must not contain a directory separator.')
+        self.outputs = outputs
+
+    def get_base_outnames(self, inname):
+        plainname = os.path.split(inname)[1]
+        basename = plainname.split('.')[0]
+        return [x.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname) for x in self.outputs]
+
+    def get_arglist(self):
+        return self.arglist
+
+class GeneratedList():
+    def __init__(self, generator):
+        if hasattr(generator, 'generator'):
+            generator = generator.generator
+        self.generator = generator
+        self.infilelist = []
+        self.outfilelist = []
+        self.outmap = {}
+
+    def add_file(self, newfile):
+        self.infilelist.append(newfile)
+        outfiles = self.generator.get_base_outnames(newfile)
+        self.outfilelist += outfiles
+        self.outmap[newfile] = outfiles
+
+    def get_infilelist(self):
+        return self.infilelist
+
+    def get_outfilelist(self):
+        return self.outfilelist
+
+    def get_outputs_for(self, filename):
+        return self.outmap[filename]
+
+    def get_generator(self):
+        return self.generator
 
 class Executable(BuildTarget):
     def __init__(self, name, subdir, is_cross, sources, environment, kwargs):
@@ -282,16 +390,12 @@ class SharedLibrary(BuildTarget):
             return fname + '.' + self.version
 
     def set_version(self, version):
-        if isinstance(version, nodes.StringStatement):
-            version = version.get_value()
         if not isinstance(version, str):
             print(version)
             raise InvalidArguments('Shared library version is not a string.')
         self.version = version
 
     def set_soversion(self, version):
-        if isinstance(version, nodes.StringStatement) or isinstance(version, nodes.IntStatement):
-            version = version.get_value()
         if isinstance(version, int):
             version = str(version)
         if not isinstance(version, str):
