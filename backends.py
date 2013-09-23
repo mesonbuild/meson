@@ -16,7 +16,8 @@ import os, sys, re, pickle
 import interpreter, nodes
 import environment, mlog
 from meson_install import InstallData
-from interpreter import InvalidArguments
+from build import InvalidArguments
+import build
 import shutil
 from coredata import MesonException
 
@@ -53,7 +54,7 @@ def do_replacement(regex, line, confdata):
 def do_mesondefine(line, confdata):
     arr = line.split()
     if len(arr) != 2:
-        raise interpreter.InvalidArguments('#mesondefine does not contain exactly two tokens: %s', line.strip())
+        raise build.InvalidArguments('#mesondefine does not contain exactly two tokens: %s', line.strip())
     varname = arr[1]
     try:
         v = confdata.get(varname)
@@ -71,7 +72,7 @@ def do_mesondefine(line, confdata):
     elif isinstance(v, str):
         return '#define %s %s\n' % (varname, v)
     else:
-        raise interpreter.InvalidArguments('#mesondefine argument "%s" is of unknown type.' % varname)
+        raise build.InvalidArguments('#mesondefine argument "%s" is of unknown type.' % varname)
 
 def do_conf_file(src, dst, confdata):
     data = open(src).readlines()
@@ -205,11 +206,11 @@ class Backend():
             commands += compiler.get_std_opt_flags()
         if self.environment.coredata.coverage:
             commands += compiler.get_coverage_flags()
-        if isinstance(target, interpreter.SharedLibrary):
+        if isinstance(target, build.SharedLibrary):
             commands += compiler.get_pic_flags()
         for dep in target.get_external_deps():
             commands += dep.get_compile_flags()
-            if isinstance(target, interpreter.Executable):
+            if isinstance(target, build.Executable):
                 commands += dep.get_exe_flags()
 
         return commands
@@ -217,8 +218,8 @@ class Backend():
     def build_target_link_arguments(self, compiler, deps):
         args = []
         for d in deps:
-            if not isinstance(d, interpreter.StaticLibrary) and\
-            not isinstance(d, interpreter.SharedLibrary):
+            if not isinstance(d, build.StaticLibrary) and\
+            not isinstance(d, build.SharedLibrary):
                 raise RuntimeError('Tried to link with a non-library target "%s".' % d.get_basename())
             fname = self.get_target_filename(d)
             if compiler.id == 'msvc':
@@ -425,7 +426,7 @@ class NinjaBackend(Backend):
         should_strip = self.environment.coredata.strip
         for t in self.build.get_targets().values():
             if t.should_install():
-                if isinstance(t, interpreter.Executable):
+                if isinstance(t, build.Executable):
                     outdir = bindir
                 else:
                     outdir = libdir
@@ -682,7 +683,7 @@ class NinjaBackend(Backend):
             generator = genlist.get_generator()
             exe = generator.get_exe()
             if self.environment.is_cross_build() and \
-            isinstance(exe, interpreter.BuildTarget) and exe.is_cross:
+            isinstance(exe, build.BuildTarget) and exe.is_cross:
                 if 'exe_wrapper'  not in self.environment.cross_info:
                     s = 'Can not use target %s as a generator because it is cross-built\n'
                     s += 'and no exe wrapper is defined. You might want to set it to native instead.'
@@ -690,7 +691,7 @@ class NinjaBackend(Backend):
                     raise MesonException(s)
             infilelist = genlist.get_infilelist()
             outfilelist = genlist.get_outfilelist()
-            if isinstance(exe, interpreter.BuildTarget):
+            if isinstance(exe, build.BuildTarget):
                 exe_file = os.path.join(self.environment.get_build_dir(), self.get_target_filename(exe))
             else:
                 exe_file = exe.get_command()
@@ -714,7 +715,7 @@ class NinjaBackend(Backend):
                 cmdlist = [exe_file] + args
                 elem = NinjaBuildElement(outfiles, 'CUSTOM_COMMAND', infilename)
                 elem.add_item('DESC', 'Generating $out')
-                if isinstance(exe, interpreter.BuildTarget):
+                if isinstance(exe, build.BuildTarget):
                     elem.add_dep(self.get_target_filename(exe))
                 elem.add_item('COMMAND', cmdlist)
                 elem.write(outfile)
@@ -805,7 +806,7 @@ class NinjaBackend(Backend):
             if len(pch) == 0:
                 continue
             if '/' not in pch[0] or '/' not in pch[-1]:
-                raise interpreter.InvalidArguments('Precompiled header of "%s" must not be in the same direcotory as source, please put it in a subdirectory.' % target.get_basename())
+                raise build.InvalidArguments('Precompiled header of "%s" must not be in the same direcotory as source, please put it in a subdirectory.' % target.get_basename())
             compiler = self.get_compiler_for_lang(lang)
             if compiler.id == 'msvc':
                 src = os.path.join(self.build_to_src, target.get_source_subdir(), pch[-1])
@@ -833,25 +834,25 @@ class NinjaBackend(Backend):
         elem.write(outfile)
 
     def generate_link(self, target, outfile, outname, obj_list):
-        if isinstance(target, interpreter.StaticLibrary):
+        if isinstance(target, build.StaticLibrary):
             linker = self.build.static_linker
             linker_base = 'STATIC'
         else:
             linker = self.build.compilers[0]
             linker_base = linker.get_language() # Fixme.
-        if isinstance(target, interpreter.SharedLibrary):
+        if isinstance(target, build.SharedLibrary):
             self.generate_shsym(outfile, target)
         crstr = ''
         if target.is_cross:
             crstr = '_CROSS'
         linker_rule = linker_base + crstr + '_LINKER'
         commands = []
-        if isinstance(target, interpreter.Executable):
+        if isinstance(target, build.Executable):
             commands += linker.get_std_exe_link_flags()
-        elif isinstance(target, interpreter.SharedLibrary):
+        elif isinstance(target, build.SharedLibrary):
             commands += linker.get_std_shared_lib_link_flags()
             commands += linker.get_pic_flags()
-        elif isinstance(target, interpreter.StaticLibrary):
+        elif isinstance(target, build.StaticLibrary):
             commands += linker.get_std_link_flags()
         else:
             raise RuntimeError('Unknown build target type.')
@@ -868,7 +869,7 @@ class NinjaBackend(Backend):
         return elem
 
     def get_dependency_filename(self, t):
-        if isinstance(t, interpreter.SharedLibrary):
+        if isinstance(t, build.SharedLibrary):
             return os.path.join(self.get_target_private_dir(t), self.get_target_filename(t) + '.symbols')
         return self.get_target_filename(t)
 
