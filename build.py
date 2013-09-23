@@ -13,8 +13,9 @@
 # limitations under the License.
 
 import coredata
-import copy, os
 import environment
+import dependencies
+import copy, os
 
 class InvalidArguments(coredata.MesonException):
     pass
@@ -112,6 +113,9 @@ class BuildTarget():
         if not isinstance(sources, list):
             sources = [sources]
         for s in sources:
+            # Holder unpacking. Ugly.
+            if hasattr(s, 'glist'):
+                s = s.glist
             if isinstance(s, str):
                 self.sources.append(s)
             elif isinstance(s, GeneratedList):
@@ -205,8 +209,9 @@ class BuildTarget():
 
     def add_external_deps(self, deps):
         for dep in deps:
-            if not isinstance(dep, dependencies.Dependency) and\
-               not isinstance(dep, ExternalLibraryHolder):
+            if hasattr(dep, 'el'):
+                dep = dep.el
+            if not isinstance(dep, dependencies.Dependency):
                 raise InvalidArguments('Argument is not an external dependency')
             self.external_deps.append(dep)
             if isinstance(dep, dependencies.Dependency):
