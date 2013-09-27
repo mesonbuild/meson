@@ -15,6 +15,7 @@
 # limitations under the License.
 
 import sys, os, pickle
+import build, coredata
 from PyQt5 import uic
 from PyQt5.QtWidgets import QApplication, QMainWindow
 from PyQt5.QtCore import QAbstractItemModel, QModelIndex, QVariant
@@ -59,14 +60,47 @@ class PathModel(QAbstractItemModel):
         self.dataChanged.emit(self.createIndex(row, column), self.createIndex(row, column))
         return True
 
+class TargetModel(QAbstractItemModel):
+    def __init__(self, builddata):
+        super().__init__()
+        self.targets = []
+        for target in builddata.get_targets().values():
+            name = target.get_basename()
+            num_sources = len(target.get_sources()) + len(target.get_generated_sources())
+            if isinstance(target, build.Executable):
+                typename = 'executable'
+            elif isinstance(target, build.SharedLibrary):
+                typename = 'shared library'
+            elif isinstance(target, build.StaticLibrary):
+                typename = 'static library'
+            else:
+                typename = 'unknown'
+            self.targets.append((name, typename, num_sources))
+
+    def flags(self, index):
+        return PyQt5.QtCore.Qt.ItemIsSelectable | PyQt5.QtCore.Qt.ItemIsEnabled
+
+    def rowCount(self, index):
+        if index.isValid():
+            return 0
+        return len(self.targets)
+    
+    def columnCount(self, index):
+        return 3
+
+    def headerData(self, section, orientation, role):
+        if section == 2:
+            return QVariant('Number of source files')
+        if section == 1:
+            return QVariant('Type')
+        return QVariant('Name')
+
     def data(self, index, role):
         if role != PyQt5.QtCore.Qt.DisplayRole:
             return QVariant()
         row = index.row()
         column = index.column()
-        if column == 0:
-            return self.names[row]
-        return getattr(self.coredata, self.attr_name[row])
+        return self.targets[row][column]
 
     def index(self, row, column, parent):
         return self.createIndex(row, column)
@@ -82,13 +116,17 @@ class MesonGui():
         self.ui = uic.loadUi(uifile)
         self.ui.show()
         self.coredata_file = os.path.join(build_dir, 'meson-private/coredata.dat')
+        self.build_file = os.path.join(build_dir, 'meson-private/build.dat')
         if not os.path.exists(self.coredata_file):
             printf("Argument is not build directory.")
             sys.exit(1)
         self.coredata = pickle.load(open(self.coredata_file, 'rb'))
+        self.build = pickle.load(open(self.build_file, 'rb'))
         self.path_model = PathModel(self.coredata)
+        self.target_model = TargetModel(self.build)
         self.fill_data()
         self.ui.path_view.setModel(self.path_model)
+        self.ui.target_view.setModel(self.target_model)
 
     def fill_data(self):
         self.ui.project_label.setText('Hack project')

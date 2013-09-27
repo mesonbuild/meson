@@ -15,7 +15,7 @@
 # limitations under the License.
 
 from optparse import OptionParser
-import sys, stat, traceback
+import sys, stat, traceback, pickle
 import os.path
 import environment, interpreter
 import backends, build
@@ -127,6 +127,8 @@ itself as required.'''
             raise RuntimeError('Unknown backend "%s".' % options.backend)
         g.generate()
         env.generating_finished()
+        dumpfile = os.path.join(env.get_scratch_dir(), 'build.dat')
+        pickle.dump(b, open(dumpfile, 'wb'))
 
 if __name__ == '__main__':
     (options, args) = parser.parse_args(sys.argv)
