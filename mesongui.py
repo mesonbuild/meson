@@ -254,6 +254,8 @@ class MesonGui():
         self.ui.compile_button.clicked.connect(self.compile)
         self.ui.test_button.clicked.connect(self.run_tests)
         self.ui.install_button.clicked.connect(self.install)
+        self.ui.clean_button.clicked.connect(self.clean)
+        self.ui.save_button.clicked.connect(self.save)
         self.ui.show()
 
     def fill_data(self):
@@ -278,6 +280,12 @@ class MesonGui():
 
     def install(self, foo):
         self.run_process(['install'])
+    
+    def clean(self, foo):
+        self.run_process(['clean'])
+    
+    def save(self, foo):
+        pickle.dump(self.coredata, open(self.coredata_file, 'wb'))
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

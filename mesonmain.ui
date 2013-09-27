@@ -170,6 +170,13 @@
     <item row="6" column="0" colspan="2">
      <layout class="QHBoxLayout" name="horizontalLayout">
       <item>
+       <widget class="QPushButton" name="save_button">
+        <property name="text">
+         <string>Save</string>
+        </property>
+       </widget>
+      </item>
+      <item>
        <widget class="QPushButton" name="compile_button">
         <property name="text">
          <string>Compile</string>
@@ -187,6 +194,13 @@
        <widget class="QPushButton" name="install_button">
         <property name="text">
          <string>Install</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="clean_button">
+        <property name="text">
+         <string>Clean</string>
         </property>
        </widget>
       </item>
