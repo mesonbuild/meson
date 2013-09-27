@@ -149,6 +149,11 @@
        <attribute name="title">
         <string>Dependencies</string>
        </attribute>
+       <layout class="QGridLayout" name="gridLayout_5">
+        <item row="0" column="0">
+         <widget class="QTreeView" name="dep_view"/>
+        </item>
+       </layout>
       </widget>
       <widget class="QWidget" name="target_tab">
        <attribute name="title">
@@ -170,7 +175,7 @@
      <x>0</x>
      <y>0</y>
      <width>740</width>
-     <height>20</height>
+     <height>25</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">

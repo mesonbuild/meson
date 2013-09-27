@@ -130,13 +130,63 @@ class TargetModel(QAbstractItemModel):
     def parent(self, index):
         return QModelIndex()
 
+class DependencyModel(QAbstractItemModel):
+    def __init__(self, coredata):
+        super().__init__()
+        self.deps = []
+        for k in coredata.deps.keys():
+            bd = coredata.deps[k]
+            name = k
+            found = bd.found()
+            if found:
+                cflags = str(bd.get_compile_flags())
+                libs = str(bd.get_link_flags())
+                found = 'yes'
+            else:
+                cflags = ''
+                libs = ''
+                found = 'no'
+            self.deps.append((name, found, cflags, libs))
+
+    def flags(self, index):
+        return PyQt5.QtCore.Qt.ItemIsSelectable | PyQt5.QtCore.Qt.ItemIsEnabled
+
+    def rowCount(self, index):
+        if index.isValid():
+            return 0
+        return len(self.deps)
+    
+    def columnCount(self, index):
+        return 4
+
+    def headerData(self, section, orientation, role):
+        if role != PyQt5.QtCore.Qt.DisplayRole:
+            return QVariant()
+        if section == 3:
+            return QVariant('Libraries')
+        if section == 2:
+            return QVariant('Compile flags')
+        if section == 1:
+            return QVariant('Found')
+        return QVariant('Name')
+
+    def data(self, index, role):
+        if role != PyQt5.QtCore.Qt.DisplayRole:
+            return QVariant()
+        row = index.row()
+        column = index.column()
+        return self.deps[row][column]
+
+    def index(self, row, column, parent):
+        return self.createIndex(row, column)
+
+    def parent(self, index):
+        return QModelIndex()
+
 class MesonGui():
     def __init__(self, build_dir):
-        self.build_dir = os.path.join(os.getcwd(), build_dir)
-        self.src_dir = os.path.normpath(os.path.join(self.build_dir, '..')) # HACK HACK HACK WRONG!
         uifile = 'mesonmain.ui'
         self.ui = uic.loadUi(uifile)
-        self.ui.show()
         self.coredata_file = os.path.join(build_dir, 'meson-private/coredata.dat')
         self.build_file = os.path.join(build_dir, 'meson-private/build.dat')
         if not os.path.exists(self.coredata_file):
@@ -144,8 +194,11 @@ class MesonGui():
             sys.exit(1)
         self.coredata = pickle.load(open(self.coredata_file, 'rb'))
         self.build = pickle.load(open(self.build_file, 'rb'))
+        self.build_dir = self.build.environment.build_dir
+        self.src_dir = self.build.environment.source_dir
         self.path_model = PathModel(self.coredata)
         self.target_model = TargetModel(self.build)
+        self.dep_model = DependencyModel(self.coredata)
         self.fill_data()
         self.ui.path_view.setModel(self.path_model)
         hv = QHeaderView(1)
@@ -155,6 +208,11 @@ class MesonGui():
         hv = QHeaderView(1)
         hv.setModel(self.target_model)
         self.ui.target_view.setHeader(hv)
+        self.ui.dep_view.setModel(self.dep_model)
+        hv = QHeaderView(1)
+        hv.setModel(self.dep_model)
+        self.ui.dep_view.setHeader(hv)
+        self.ui.show()
 
     def fill_data(self):
         self.ui.project_label.setText(self.build.project)
