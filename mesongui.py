@@ -17,7 +17,7 @@
 import sys, os, pickle
 import build, coredata
 from PyQt5 import uic
-from PyQt5.QtWidgets import QApplication, QMainWindow
+from PyQt5.QtWidgets import QApplication, QMainWindow, QHeaderView
 from PyQt5.QtCore import QAbstractItemModel, QModelIndex, QVariant
 import PyQt5.QtCore
 
@@ -46,9 +46,29 @@ class PathModel(QAbstractItemModel):
         return 2
 
     def headerData(self, section, orientation, role):
+        if role != PyQt5.QtCore.Qt.DisplayRole:
+            return QVariant()
         if section == 1:
             return QVariant('Path')
         return QVariant('Type')
+
+    def index(self, row, column, parent):
+        return self.createIndex(row, column)
+
+    def index(self, row, column, parent):
+        return self.createIndex(row, column)
+
+    def data(self, index, role):
+        if role != PyQt5.QtCore.Qt.DisplayRole:
+            return QVariant()
+        row = index.row()
+        column = index.column()
+        if column == 0:
+            return self.names[row]
+        return getattr(self.coredata, self.attr_name[row])
+
+    def parent(self, index):
+        return QModelIndex()
 
     def setData(self, index, value, role):
         if role != PyQt5.QtCore.Qt.EditRole:
@@ -89,8 +109,10 @@ class TargetModel(QAbstractItemModel):
         return 3
 
     def headerData(self, section, orientation, role):
+        if role != PyQt5.QtCore.Qt.DisplayRole:
+            return QVariant()
         if section == 2:
-            return QVariant('Number of source files')
+            return QVariant('Source files')
         if section == 1:
             return QVariant('Type')
         return QVariant('Name')
@@ -104,7 +126,7 @@ class TargetModel(QAbstractItemModel):
 
     def index(self, row, column, parent):
         return self.createIndex(row, column)
-    
+
     def parent(self, index):
         return QModelIndex()
 
@@ -126,7 +148,13 @@ class MesonGui():
         self.target_model = TargetModel(self.build)
         self.fill_data()
         self.ui.path_view.setModel(self.path_model)
+        hv = QHeaderView(1)
+        hv.setModel(self.path_model)
+        self.ui.path_view.setHeader(hv)
         self.ui.target_view.setModel(self.target_model)
+        hv = QHeaderView(1)
+        hv.setModel(self.target_model)
+        self.ui.target_view.setHeader(hv)
 
     def fill_data(self):
         self.ui.project_label.setText('Hack project')
