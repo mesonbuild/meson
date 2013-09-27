@@ -157,7 +157,7 @@ class MesonGui():
         self.ui.target_view.setHeader(hv)
 
     def fill_data(self):
-        self.ui.project_label.setText('Hack project')
+        self.ui.project_label.setText(self.build.project)
         self.ui.srcdir_label.setText(self.src_dir)
         self.ui.builddir_label.setText(self.build_dir)
         if self.coredata.cross_file is None:
