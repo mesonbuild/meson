@@ -14,11 +14,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys, os, pickle
-import build, coredata
+import sys, os, pickle, time, shutil
+import build, coredata, environment
 from PyQt5 import uic
 from PyQt5.QtWidgets import QApplication, QMainWindow, QHeaderView
-from PyQt5.QtCore import QAbstractItemModel, QModelIndex, QVariant
+from PyQt5.QtCore import QAbstractItemModel, QModelIndex, QVariant, QTimer
 import PyQt5.QtCore
 
 class PathModel(QAbstractItemModel):
@@ -183,6 +183,45 @@ class DependencyModel(QAbstractItemModel):
     def parent(self, index):
         return QModelIndex()
 
+class ProcessRunner():
+    def __init__(self, rundir, cmdlist):
+        self.cmdlist = cmdlist
+        self.ui = uic.loadUi('mesonrunner.ui')
+        self.timer = QTimer(self.ui)
+        self.timer.setInterval(1000)
+        self.timer.timeout.connect(self.timeout)
+        self.process = PyQt5.QtCore.QProcess()
+        self.process.setProcessChannelMode(PyQt5.QtCore.QProcess.MergedChannels)
+        self.process.setWorkingDirectory(rundir)
+        self.process.readyRead.connect(self.read_data)
+        self.process.finished.connect(self.finished)
+        self.ui.termbutton.clicked.connect(self.terminated)
+        self.process.start(self.cmdlist[0], self.cmdlist[1:])
+        self.timer.start()
+        self.start_time = time.time()
+        self.ui.exec()
+
+    def read_data(self):
+        while(self.process.canReadLine()):
+            txt = bytes(self.process.readLine()).decode('utf8')
+            self.ui.console.append(txt)
+
+    def finished(self):
+        self.read_data()
+        self.ui.termbutton.setText('Done')
+        self.timer.stop()
+
+    def terminated(self, foo):
+        self.process.kill()
+        self.timer.stop()
+        self.ui.done(0)
+
+    def timeout(self):
+        now = time.time()
+        duration = int(now - self.start_time)
+        msg = 'Compile time: %d:%d' % (duration // 60, duration % 60)
+        self.ui.timelabel.setText(msg)
+
 class MesonGui():
     def __init__(self, build_dir):
         uifile = 'mesonmain.ui'
@@ -212,6 +251,9 @@ class MesonGui():
         hv = QHeaderView(1)
         hv.setModel(self.dep_model)
         self.ui.dep_view.setHeader(hv)
+        self.ui.compile_button.clicked.connect(self.compile)
+        self.ui.test_button.clicked.connect(self.run_tests)
+        self.ui.install_button.clicked.connect(self.install)
         self.ui.show()
 
     def fill_data(self):
@@ -223,6 +265,19 @@ class MesonGui():
         else:
             btype = 'Cross build'
         self.ui.buildtype_label.setText(btype)
+
+    def run_process(self, cmdlist):
+        cmdlist = [shutil.which(environment.detect_ninja())] + cmdlist
+        dialog = ProcessRunner(self.build.environment.build_dir, cmdlist)
+
+    def compile(self, foo):
+        self.run_process([])
+
+    def run_tests(self, foo):
+        self.run_process(['test'])
+
+    def install(self, foo):
+        self.run_process(['install'])
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

@@ -167,6 +167,31 @@
       </widget>
      </widget>
     </item>
+    <item row="6" column="0" colspan="2">
+     <layout class="QHBoxLayout" name="horizontalLayout">
+      <item>
+       <widget class="QPushButton" name="compile_button">
+        <property name="text">
+         <string>Compile</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="test_button">
+        <property name="text">
+         <string>Run tests</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="install_button">
+        <property name="text">
+         <string>Install</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
    </layout>
   </widget>
   <widget class="QMenuBar" name="menubar">
