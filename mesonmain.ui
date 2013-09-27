@@ -118,7 +118,7 @@
     <item row="5" column="0" colspan="2">
      <widget class="QTabWidget" name="tabWidget">
       <property name="currentIndex">
-       <number>3</number>
+       <number>0</number>
       </property>
       <widget class="QWidget" name="core_tab">
        <attribute name="title">

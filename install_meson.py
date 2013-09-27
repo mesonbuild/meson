@@ -58,6 +58,7 @@ out_manfile = os.path.join(man_dir, 'meson.1.gz')
 symlink_value = os.path.relpath(bin_script, os.path.dirname(bin_name))
 
 files = glob.glob('*.py')
+files += glob.glob('*.ui')
 
 noinstall = ['compile_meson.py', 'install_meson.py', 'run_tests.py', 'run_cross_test.py']
 
