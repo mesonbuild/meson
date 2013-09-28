@@ -149,7 +149,7 @@ class ExternalProgram():
 
 class ExternalLibrary(Dependency):
     def __init__(self, name, fullpath=None):
-        Dependency.__init__(self)
+        super().__init__(self)
         self.name = name
         self.fullpath = fullpath
 

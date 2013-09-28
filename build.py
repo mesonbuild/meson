@@ -126,8 +126,25 @@ class BuildTarget():
     def get_original_kwargs(self):
         return self.kwargs
 
-    def process_kwargs(self, kwargs):
+    def copy_kwargs(self, kwargs):
         self.kwargs = copy.copy(kwargs)
+        # This sucks quite badly. Arguments
+        # are holders but they can't be pickled
+        # so unpack those known.
+        if 'deps' in self.kwargs:
+            d = self.kwargs['deps']
+            if not isinstance(d, list):
+                d = [d]
+            newd = []
+            for i in d:
+                if hasattr(i, 'el'):
+                    newd.append(i.el)
+                else:
+                    newd.append(i)
+            self.kwargs['deps'] = newd
+
+    def process_kwargs(self, kwargs):
+        self.copy_kwargs(kwargs)
         kwargs.get('modules', [])
         self.need_install = kwargs.get('install', self.need_install)
         llist = kwargs.get('link_with', [])
