@@ -414,3 +414,37 @@ class SharedLibrary(BuildTarget):
         if self.version is not None:
             aliases.append(self.get_shbase())
         return aliases
+
+class ConfigureFile():
+
+    def __init__(self, subdir, sourcename, targetname, configuration_data):
+        self.subdir = subdir
+        self.sourcename = sourcename
+        self.targetname = targetname
+        self.configuration_data = configuration_data
+
+    def get_configuration_data(self):
+        return self.configuration_data
+
+    def get_sources(self):
+        return self.sources
+    
+    def get_subdir(self):
+        return self.subdir
+
+    def get_source_name(self):
+        return self.sourcename
+
+    def get_target_name(self):
+        return self.targetname
+
+class ConfigurationData():
+    def __init__(self):
+        super().__init__()
+        self.values = {}
+
+    def get(self, name):
+        return self.values[name]
+
+    def keys(self):
+        return self.values.keys()

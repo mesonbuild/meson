@@ -100,11 +100,17 @@ class RunProcess(InterpreterObject):
     def stderr_method(self, args, kwargs):
         return self.stderr
 
-class ConfigurationData(InterpreterObject):
+class ConfigureFileHolder(InterpreterObject):
+
+    def __init__(self, subdir, sourcename, targetname, configuration_data):
+        InterpreterObject.__init__(self)
+        self.held_object = build.ConfigureFile(subdir, sourcename, targetname, configuration_data)
+
+class ConfigurationDataHolder(InterpreterObject):
     def __init__(self):
         super().__init__()
         self.used = False # These objects become immutable after use in configure_file.
-        self.values = {}
+        self.held_object = build.ConfigurationData()
         self.methods.update({'set': self.set_method,
                              'set10': self.set10_method,
                              })
@@ -128,20 +134,20 @@ class ConfigurationData(InterpreterObject):
 
     def set_method(self, args, kwargs):
         (name, val) = self.validate_args(args)
-        self.values[name] = val
+        self.held_object.values[name] = val
 
     def set10_method(self, args, kwargs):
         (name, val) = self.validate_args(args)
         if val:
-            self.values[name] = 1
+            self.held_object.values[name] = 1
         else:
-            self.values[name] = 0
+            self.held_object.values[name] = 0
 
     def get(self, name):
-        return self.values[name]
+        return self.held_object.values[name]
 
     def keys(self):
-        return self.values.keys()
+        return self.held_object.values.keys()
 
 # Interpreter objects can not be pickled so we must have
 # these wrappers.
@@ -290,30 +296,6 @@ class Data(InterpreterObject):
 
     def get_sources(self):
         return self.sources
-
-class ConfigureFile(InterpreterObject):
-    
-    def __init__(self, subdir, sourcename, targetname, configuration_data):
-        InterpreterObject.__init__(self)
-        self.subdir = subdir
-        self.sourcename = sourcename
-        self.targetname = targetname
-        self.configuration_data = configuration_data
-
-    def get_configuration_data(self):
-        return self.configuration_data
-
-    def get_sources(self):
-        return self.sources
-    
-    def get_subdir(self):
-        return self.subdir
-
-    def get_source_name(self):
-        return self.sourcename
-
-    def get_target_name(self):
-        return self.targetname
 
 class Man(InterpreterObject):
 
@@ -708,7 +690,7 @@ class Interpreter():
     def func_configuration_data(self, node, args, kwargs):
         if len(args) != 0:
             raise InterpreterException('configuration_data takes no arguments')
-        return ConfigurationData()
+        return ConfigurationDataHolder()
 
     def func_project(self, node, args, kwargs):
         if len(args)< 2:
@@ -902,13 +884,13 @@ class Interpreter():
         inputfile = kwargs['input']
         output = kwargs['output']
         conf = kwargs['configuration']
-        if not isinstance(conf, ConfigurationData):
+        if not isinstance(conf, ConfigurationDataHolder):
             raise InterpreterException('Argument "configuration" is not of type configuration_data')
 
         conffile = os.path.join(self.subdir, inputfile)
         self.build_def_files.append(conffile)
-        c = ConfigureFile(self.subdir, inputfile, output, conf)
-        self.build.configure_files.append(c)
+        c = ConfigureFileHolder(self.subdir, inputfile, output, conf.held_object)
+        self.build.configure_files.append(c.held_object)
         conf.mark_used()
 
     def func_include_directories(self, node, args, kwargs):
