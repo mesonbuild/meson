@@ -378,7 +378,6 @@ class Starter():
         uifile = 'mesonstart.ui'
         self.ui = uic.loadUi(uifile)
         self.ui.source_entry.setText(sdir)
-        self.ui.show()
         self.dialog = PyQt5.QtWidgets.QFileDialog()
         if len(sdir) == 0:
             self.dialog.setDirectory(os.getcwd())
@@ -387,6 +386,21 @@ class Starter():
         self.ui.source_browse_button.clicked.connect(self.src_browse_clicked)
         self.ui.build_browse_button.clicked.connect(self.build_browse_clicked)
         self.ui.cross_browse_button.clicked.connect(self.cross_browse_clicked)
+        self.ui.source_entry.textChanged.connect(self.update_button)
+        self.ui.build_entry.textChanged.connect(self.update_button)
+        self.ui.generate_button.clicked.connect(self.generate)
+        self.update_button()
+        self.ui.show()
+
+    def generate(self):
+        srcdir = self.ui.source_entry.text()
+        builddir = self.ui.build_entry.text()
+
+    def update_button(self):
+        if self.ui.source_entry.text() == '' or self.ui.build_entry.text() == '':
+            self.ui.generate_button.setEnabled(False)
+        else:
+            self.ui.generate_button.setEnabled(True)
 
     def src_browse_clicked(self):
         self.dialog.setFileMode(2)
