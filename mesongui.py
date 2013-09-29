@@ -97,7 +97,11 @@ class TargetModel(QAbstractItemModel):
                 typename = 'static library'
             else:
                 typename = 'unknown'
-            self.targets.append((name, typename, num_sources))
+            if target.should_install():
+                installed = 'Yes'
+            else:
+                installed = 'No'
+            self.targets.append((name, typename, installed, num_sources))
 
     def flags(self, index):
         return PyQt5.QtCore.Qt.ItemIsSelectable | PyQt5.QtCore.Qt.ItemIsEnabled
@@ -108,13 +112,15 @@ class TargetModel(QAbstractItemModel):
         return len(self.targets)
     
     def columnCount(self, index):
-        return 3
+        return 4
 
     def headerData(self, section, orientation, role):
         if role != PyQt5.QtCore.Qt.DisplayRole:
             return QVariant()
-        if section == 2:
+        if section == 3:
             return QVariant('Source files')
+        if section == 2:
+            return QVariant('Installed')
         if section == 1:
             return QVariant('Type')
         return QVariant('Name')
