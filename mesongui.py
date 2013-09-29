@@ -18,6 +18,7 @@ import sys, os, pickle, time, shutil
 import build, coredata, environment
 from PyQt5 import uic
 from PyQt5.QtWidgets import QApplication, QMainWindow, QHeaderView
+from PyQt5.QtWidgets import QComboBox, QCheckBox 
 from PyQt5.QtCore import QAbstractItemModel, QModelIndex, QVariant, QTimer
 import PyQt5.QtCore
 
@@ -223,6 +224,42 @@ class CoreModel(QAbstractItemModel):
     def parent(self, index):
         return QModelIndex()
 
+class OptionForm:
+    def __init__(self, cdata, form):
+        self.coredata = cdata
+        self.form = form
+        combo = QComboBox()
+        combo.addItem('plain')
+        combo.addItem('debug')
+        combo.addItem('release')
+        combo.setCurrentText(self.coredata.buildtype)
+        combo.currentTextChanged.connect(self.build_type_changed)
+        self.form.addRow('Build type', combo)
+        strip = QCheckBox("")
+        strip.stateChanged.connect(self.strip_changed)
+        self.form.addRow('Strip on install', strip)
+        coverage = QCheckBox("")
+        coverage.stateChanged.connect(self.coverage_changed)
+        self.form.addRow('Enable coverage', coverage)
+
+    def build_type_changed(self, newtype):
+        print(newtype)
+        self.coredata.buildtype = newtype
+
+    def strip_changed(self, newState):
+        if newState == 0:
+            ns = False
+        else:
+            ns = True
+        self.coredata.strip = ns
+
+    def coverage_changed(self, newState):
+        if newState == 0:
+            ns = False
+        else:
+            ns = True
+        self.coredata.coverage = ns
+
 class ProcessRunner():
     def __init__(self, rundir, cmdlist):
         self.cmdlist = cmdlist
@@ -275,6 +312,11 @@ class MesonGui():
         self.build = pickle.load(open(self.build_file, 'rb'))
         self.build_dir = self.build.environment.build_dir
         self.src_dir = self.build.environment.source_dir
+        self.build_models()
+        self.options = OptionForm(self.coredata, self.ui.option_form)
+        self.ui.show()
+
+    def build_models(self):
         self.path_model = PathModel(self.coredata)
         self.target_model = TargetModel(self.build)
         self.dep_model = DependencyModel(self.coredata)
@@ -301,7 +343,6 @@ class MesonGui():
         self.ui.install_button.clicked.connect(self.install)
         self.ui.clean_button.clicked.connect(self.clean)
         self.ui.save_button.clicked.connect(self.save)
-        self.ui.show()
 
     def fill_data(self):
         self.ui.project_label.setText(self.build.project)
