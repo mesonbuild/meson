@@ -46,9 +46,9 @@ def platform_fix_filename(fname):
 
 def validate_install(srcdir, installdir):
     if platform.system() == 'Windows':
-         # Don't really know how Windows installs should work
-         # so skip.
-         return
+        # Don't really know how Windows installs should work
+        # so skip.
+        return
     info_file = os.path.join(srcdir, 'installed_files.txt')
     expected = {}
     found = {}
