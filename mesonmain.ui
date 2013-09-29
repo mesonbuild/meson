@@ -118,12 +118,17 @@
     <item row="5" column="0" colspan="2">
      <widget class="QTabWidget" name="tabWidget">
       <property name="currentIndex">
-       <number>0</number>
+       <number>1</number>
       </property>
       <widget class="QWidget" name="core_tab">
        <attribute name="title">
         <string>Core data</string>
        </attribute>
+       <layout class="QGridLayout" name="gridLayout_6">
+        <item row="0" column="0">
+         <widget class="QTreeView" name="core_view"/>
+        </item>
+       </layout>
       </widget>
       <widget class="QWidget" name="path_tab">
        <attribute name="title">

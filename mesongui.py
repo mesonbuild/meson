@@ -183,6 +183,46 @@ class DependencyModel(QAbstractItemModel):
     def parent(self, index):
         return QModelIndex()
 
+class CoreModel(QAbstractItemModel):
+    def __init__(self, core_data):
+        super().__init__()
+        self.elems = []
+        for langname, comp in core_data.compilers.items():
+            self.elems.append((langname + ' compiler', str(comp.get_exelist())))
+        for langname, comp in core_data.cross_compilers.items():
+            self.elems.append((langname + ' cross compiler', str(comp.get_exelist())))
+
+    def flags(self, index):
+        return PyQt5.QtCore.Qt.ItemIsSelectable | PyQt5.QtCore.Qt.ItemIsEnabled
+
+    def rowCount(self, index):
+        if index.isValid():
+            return 0
+        return len(self.elems)
+
+    def columnCount(self, index):
+        return 2
+
+    def headerData(self, section, orientation, role):
+        if role != PyQt5.QtCore.Qt.DisplayRole:
+            return QVariant()
+        if section == 1:
+            return QVariant('Value')
+        return QVariant('Name')
+
+    def data(self, index, role):
+        if role != PyQt5.QtCore.Qt.DisplayRole:
+            return QVariant()
+        row = index.row()
+        column = index.column()
+        return self.elems[row][column]
+
+    def index(self, row, column, parent):
+        return self.createIndex(row, column)
+
+    def parent(self, index):
+        return QModelIndex()
+
 class ProcessRunner():
     def __init__(self, rundir, cmdlist):
         self.cmdlist = cmdlist
@@ -238,7 +278,12 @@ class MesonGui():
         self.path_model = PathModel(self.coredata)
         self.target_model = TargetModel(self.build)
         self.dep_model = DependencyModel(self.coredata)
+        self.core_model = CoreModel(self.coredata)
         self.fill_data()
+        self.ui.core_view.setModel(self.core_model)
+        hv = QHeaderView(1)
+        hv.setModel(self.core_model)
+        self.ui.core_view.setHeader(hv)
         self.ui.path_view.setModel(self.path_model)
         hv = QHeaderView(1)
         hv.setModel(self.path_model)
