@@ -231,7 +231,7 @@ class OptionForm:
         combo = QComboBox()
         combo.addItem('plain')
         combo.addItem('debug')
-        combo.addItem('release')
+        combo.addItem('optimized')
         combo.setCurrentText(self.coredata.buildtype)
         combo.currentTextChanged.connect(self.build_type_changed)
         self.form.addRow('Build type', combo)
@@ -243,7 +243,6 @@ class OptionForm:
         self.form.addRow('Enable coverage', coverage)
 
     def build_type_changed(self, newtype):
-        print(newtype)
         self.coredata.buildtype = newtype
 
     def strip_changed(self, newState):
