@@ -21,6 +21,7 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QHeaderView
 from PyQt5.QtWidgets import QComboBox, QCheckBox 
 from PyQt5.QtCore import QAbstractItemModel, QModelIndex, QVariant, QTimer
 import PyQt5.QtCore
+import PyQt5.QtWidgets
 
 class PathModel(QAbstractItemModel):
     def __init__(self, coredata):
@@ -372,10 +373,47 @@ class MesonGui():
     def save(self, foo):
         pickle.dump(self.coredata, open(self.coredata_file, 'wb'))
 
+class Starter():
+    def __init__(self, sdir):
+        uifile = 'mesonstart.ui'
+        self.ui = uic.loadUi(uifile)
+        self.ui.source_entry.setText(sdir)
+        self.ui.show()
+        self.dialog = PyQt5.QtWidgets.QFileDialog()
+        if len(sdir) == 0:
+            self.dialog.setDirectory(os.getcwd())
+        else:
+            self.dialog.setDirectory(sdir)
+        self.ui.source_browse_button.clicked.connect(self.src_browse_clicked)
+        self.ui.build_browse_button.clicked.connect(self.build_browse_clicked)
+        self.ui.cross_browse_button.clicked.connect(self.cross_browse_clicked)
+
+    def src_browse_clicked(self):
+        self.dialog.setFileMode(2)
+        if self.dialog.exec():
+            self.ui.source_entry.setText(self.dialog.selectedFiles()[0])
+
+    def build_browse_clicked(self):
+        self.dialog.setFileMode(2)
+        if self.dialog.exec():
+            self.ui.build_entry.setText(self.dialog.selectedFiles()[0])
+
+    def cross_browse_clicked(self):
+        self.dialog.setFileMode(1)
+        if self.dialog.exec():
+            self.ui.cross_entry.setText(self.dialog.selectedFiles()[0])
+
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    if len(sys.argv) != 2:
-        print(sys.argv[0], "<build dir>")
+    if len(sys.argv) == 1:
+        arg = ""
+    elif len(sys.argv) == 2:
+        arg = sys.argv[1]
+    else:
+        print(sys.argv[0], "<build or source dir>")
         sys.exit(1)
-    gui = MesonGui(sys.argv[1])
+    if os.path.exists(os.path.join(arg, 'meson-private/coredata.dat')):
+        gui = MesonGui(arg)
+    else:
+        runner = Starter(arg)
     sys.exit(app.exec_())
