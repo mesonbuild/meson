@@ -35,9 +35,20 @@ def platform_fix_filename(fname):
         if fname.endswith('.so'):
             return fname[:-2] + 'dylib'
         return fname.replace('.so.', '.dylib.')
+    elif platform.system() == 'Windows':
+        if fname.endswith('.so'):
+            (p, f) = os.path.split(fname)
+            f = f[3:-2] + 'dll'
+            return os.path.join(p, f)
+        if fname.endswith('.a'):
+            return fname[:-1] + 'lib'
     return fname
 
 def validate_install(srcdir, installdir):
+    if platform.system() == 'Windows':
+         # Don't really know how Windows installs should work
+         # so skip.
+         return
     info_file = os.path.join(srcdir, 'installed_files.txt')
     expected = {}
     found = {}
