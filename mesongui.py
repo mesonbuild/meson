@@ -273,10 +273,13 @@ class ProcessRunner():
         self.process.readyRead.connect(self.read_data)
         self.process.finished.connect(self.finished)
         self.ui.termbutton.clicked.connect(self.terminated)
+        self.return_value = 100
+
+    def run(self):
         self.process.start(self.cmdlist[0], self.cmdlist[1:])
         self.timer.start()
         self.start_time = time.time()
-        self.ui.exec()
+        return self.ui.exec()
 
     def read_data(self):
         while(self.process.canReadLine()):
@@ -287,16 +290,17 @@ class ProcessRunner():
         self.read_data()
         self.ui.termbutton.setText('Done')
         self.timer.stop()
+        self.return_value = self.process.exitCode()
 
     def terminated(self, foo):
         self.process.kill()
         self.timer.stop()
-        self.ui.done(0)
+        self.ui.done(self.return_value)
 
     def timeout(self):
         now = time.time()
         duration = int(now - self.start_time)
-        msg = 'Compile time: %d:%d' % (duration // 60, duration % 60)
+        msg = 'Elapsed time: %d:%d' % (duration // 60, duration % 60)
         self.ui.timelabel.setText(msg)
 
 class MesonGui():
@@ -357,6 +361,7 @@ class MesonGui():
     def run_process(self, cmdlist):
         cmdlist = [shutil.which(environment.detect_ninja())] + cmdlist
         dialog = ProcessRunner(self.build.environment.build_dir, cmdlist)
+        dialog.run()
 
     def compile(self, foo):
         self.run_process([])
@@ -395,6 +400,14 @@ class Starter():
     def generate(self):
         srcdir = self.ui.source_entry.text()
         builddir = self.ui.build_entry.text()
+        cross = self.ui.cross_entry.text()
+        cmdlist = [os.path.join(os.path.split(__file__)[0], 'meson.py'), srcdir, builddir]
+        if cross != '':
+            cmdlist += ['--cross', cross]
+        pr = ProcessRunner(os.getcwd(), cmdlist)
+        rvalue = pr.run()
+        if rvalue == 0:
+            os.execl(__file__, 'dummy', builddir)
 
     def update_button(self):
         if self.ui.source_entry.text() == '' or self.ui.build_entry.text() == '':
