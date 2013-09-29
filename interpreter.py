@@ -318,6 +318,9 @@ class Man(InterpreterObject):
 class BuildTargetHolder(InterpreterObject):
     def __init__(self, targetttype, name, subdir, is_cross, sources, environment, kwargs):
         self.target = targetttype(name, subdir, is_cross, sources, environment, kwargs)
+    
+    def is_cross(self):
+        return self.target.is_cross()
 
 class ExecutableHolder(BuildTargetHolder):
     def __init__(self, name, subdir, is_cross, sources, environment, kwargs):
