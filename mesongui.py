@@ -23,7 +23,7 @@ from PyQt5.QtCore import QAbstractItemModel, QModelIndex, QVariant, QTimer
 import PyQt5.QtCore
 import PyQt5.QtWidgets
 
-priv_dir = os.path.split(os.path.abspath(__file__))[0]
+priv_dir = os.path.split(os.path.abspath(os.path.realpath(__file__)))[0]
 
 class PathModel(QAbstractItemModel):
     def __init__(self, coredata):
@@ -318,7 +318,7 @@ class MesonGui():
         self.coredata_file = os.path.join(build_dir, 'meson-private/coredata.dat')
         self.build_file = os.path.join(build_dir, 'meson-private/build.dat')
         if not os.path.exists(self.coredata_file):
-            printf("Argument is not build directory.")
+            print("Argument is not build directory.")
             sys.exit(1)
         self.coredata = pickle.load(open(self.coredata_file, 'rb'))
         self.build = pickle.load(open(self.build_file, 'rb'))
