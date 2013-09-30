@@ -306,7 +306,8 @@ class GTestDependency(Dependency):
         else:
             mlog.log('Dependency GTest found:', mlog.red('NO'))
             self.is_found = False
-        self.link_flags.append('-lpthread')
+        if self.is_found:
+            self.link_flags.append('-lpthread')
         return self.is_found
 
     def get_compile_flags(self):
