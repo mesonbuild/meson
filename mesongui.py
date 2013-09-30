@@ -23,6 +23,8 @@ from PyQt5.QtCore import QAbstractItemModel, QModelIndex, QVariant, QTimer
 import PyQt5.QtCore
 import PyQt5.QtWidgets
 
+priv_dir = os.path.split(os.path.abspath(__file__))[0]
+
 class PathModel(QAbstractItemModel):
     def __init__(self, coredata):
         super().__init__()
@@ -311,7 +313,7 @@ class ProcessRunner():
 
 class MesonGui():
     def __init__(self, build_dir):
-        uifile = 'mesonmain.ui'
+        uifile = os.path.join(priv_dir, 'mesonmain.ui')
         self.ui = uic.loadUi(uifile)
         self.coredata_file = os.path.join(build_dir, 'meson-private/coredata.dat')
         self.build_file = os.path.join(build_dir, 'meson-private/build.dat')
@@ -386,7 +388,7 @@ class MesonGui():
 
 class Starter():
     def __init__(self, sdir):
-        uifile = 'mesonstart.ui'
+        uifile = os.path.join(priv_dir, 'mesonstart.ui')
         self.ui = uic.loadUi(uifile)
         self.ui.source_entry.setText(sdir)
         self.dialog = PyQt5.QtWidgets.QFileDialog()
