@@ -538,6 +538,9 @@ class GnuObjCCompiler(ObjCCompiler):
     def get_pch_suffix(self):
         return 'gch'
 
+    def build_rpath_args(self, build_dir, rpath_paths):
+        return ['-Wl,-rpath,' + ':'.join([os.path.join(build_dir, p) for p in rpath_paths])]
+
 class GnuObjCPPCompiler(ObjCPPCompiler):
     std_warn_flags = ['-Wall', '-Winvalid-pch']
     std_opt_flags = ['-O2']
@@ -554,6 +557,9 @@ class GnuObjCPPCompiler(ObjCPPCompiler):
 
     def get_pch_suffix(self):
         return 'gch'
+
+    def build_rpath_args(self, build_dir, rpath_paths):
+        return ['-Wl,-rpath,' + ':'.join([os.path.join(build_dir, p) for p in rpath_paths])]
 
 class ClangCCompiler(CCompiler):
     std_warn_flags = ['-Wall', '-Winvalid-pch']
