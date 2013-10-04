@@ -187,6 +187,17 @@ class Elf():
         self.bf.seek(strtab.val + soname.val)
         print(self.read_str())
 
+    def get_rpath_offset(self):
+        sec = self.find_section(b'.dynstr')
+        for i in self.dynamic:
+            if i.d_tag == DT_RPATH:
+                rpath = i
+        return sec.sh_offset + rpath.val
+
+    def print_rpath(self):
+        self.bf.seek(self.get_rpath_offset())
+        print(self.read_str())
+
     def print_deps(self):
         sec = self.find_section(b'.dynstr')
         deps = []
@@ -217,14 +228,26 @@ class Elf():
                 self.bf.seek(offset)
                 self.bf.write(newname)
 
+    def fix_rpath(self, new_rpath):
+        rp_off = self.get_rpath_offset()
+        self.bf.seek(rp_off)
+        old_rpath = self.read_str()
+        if len(old_rpath) < len(new_rpath):
+            print("New rpath must not be longer than the old one.")
+        self.bf.seek(rp_off)
+        self.bf.write(new_rpath)
+        self.bf.write(b'\0'*(len(old_rpath) - len(new_rpath) + 1))
 
 if __name__ == '__main__':
-    if len(sys.argv) != 3:
-        print('This application converts absolute dep paths to relative ones.')
+    if len(sys.argv) < 2 or len(sys.argv) > 3:
+        print('This application resets target rpath.')
         print('Don\'t run this unless you know what you are doing.')
         print('%s: <binary file> <prefix>' % sys.argv[0])
         exit(1)
     e = Elf(sys.argv[1])
-    prefix = sys.argv[2]
-    #e.print_deps()
-    e.fix_deps(prefix.encode())
+    if len(sys.argv) == 2:
+        e.print_rpath()
+    else:
+        new_rpath = sys.argv[2]
+        e.fix_rpath(new_rpath.encode('utf8'))
+    #e.fix_deps(prefix.encode())

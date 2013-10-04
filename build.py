@@ -108,7 +108,7 @@ class BuildTarget():
         self.process_kwargs(kwargs)
         if len(self.sources) == 0 and len(self.generated) == 0:
             raise InvalidArguments('Build target %s has no sources.' % name)
-    
+
     def process_sourcelist(self, sources):
         if not isinstance(sources, list):
             sources = [sources]
@@ -142,6 +142,15 @@ class BuildTarget():
                 else:
                     newd.append(i)
             self.kwargs['deps'] = newd
+
+    def get_rpaths(self):
+        return self.get_transitive_rpaths()
+
+    def get_transitive_rpaths(self):
+        result = []
+        for i in self.link_targets:
+            result += i.get_rpaths()
+        return result
 
     def process_kwargs(self, kwargs):
         self.copy_kwargs(kwargs)
@@ -403,6 +412,9 @@ class SharedLibrary(BuildTarget):
 
     def get_shbase(self):
         return self.prefix + self.name + '.' + self.suffix
+
+    def get_rpaths(self):
+        return [self.subdir] + self.get_transitive_rpaths()
 
     def get_filename(self):
         fname = self.get_shbase()

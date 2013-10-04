@@ -56,6 +56,15 @@ class CCompiler():
     def get_always_flags(self):
         return []
 
+    def get_soname_flags(self, shlib_name):
+        return []
+
+    def split_shlib_to_parts(self, fname):
+        return (None, fname)
+
+    def build_rpath_arg(self, build_dir, rpath_paths):
+        return ''
+
     def get_id(self):
         return self.id
 
@@ -502,6 +511,15 @@ class GnuCCompiler(CCompiler):
 
     def get_pch_suffix(self):
         return 'gch'
+
+    def split_shlib_to_parts(self, fname):
+        return (os.path.split(fname)[0], fname)
+
+    def build_rpath_arg(self, build_dir, rpath_paths):
+        return '-Wl,-rpath,' + ':'.join([os.path.join(build_dir, p) for p in rpath_paths])
+
+    def get_soname_flags(self, shlib_name):
+        return ['-Wl,-soname,lib%s.so' % shlib_name]
 
 class GnuObjCCompiler(ObjCCompiler):
     std_warn_flags = ['-Wall', '-Winvalid-pch']

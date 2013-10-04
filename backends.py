@@ -225,7 +225,6 @@ class Backend():
             if compiler.id == 'msvc':
                 if fname.endswith('dll'):
                     fname = fname[:-3] + 'lib'
-            fname = os.path.join('.', fname) # Hack to make ldd find the library.
             args.append(fname)
         return args
 
@@ -852,6 +851,7 @@ class NinjaBackend(Backend):
         elif isinstance(target, build.SharedLibrary):
             commands += linker.get_std_shared_lib_link_flags()
             commands += linker.get_pic_flags()
+            commands += linker.get_soname_flags(target.name)
         elif isinstance(target, build.StaticLibrary):
             commands += linker.get_std_link_flags()
         else:
@@ -860,6 +860,7 @@ class NinjaBackend(Backend):
             commands += dep.get_link_flags()
         dependencies = target.get_dependencies()
         commands += self.build_target_link_arguments(linker, dependencies)
+        commands.append(linker.build_rpath_arg(self.environment.get_build_dir(), target.get_rpaths()))
         if self.environment.coredata.coverage:
             commands += linker.get_coverage_link_flags()
         dep_targets = [self.get_dependency_filename(t) for t in dependencies]
