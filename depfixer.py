@@ -191,12 +191,16 @@ class Elf():
         sec = self.find_section(b'.dynstr')
         for i in self.dynamic:
             if i.d_tag == DT_RPATH:
-                rpath = i
-        return sec.sh_offset + rpath.val
+                return sec.sh_offset + i.val
+        return None
 
     def print_rpath(self):
-        self.bf.seek(self.get_rpath_offset())
-        print(self.read_str())
+        offset = self.get_rpath_offset()
+        if offset is None:
+            print("This file does not have an rpath.")
+        else:
+            self.bf.seek(offset)
+            print(self.read_str())
 
     def print_deps(self):
         sec = self.find_section(b'.dynstr')
@@ -230,6 +234,9 @@ class Elf():
 
     def fix_rpath(self, new_rpath):
         rp_off = self.get_rpath_offset()
+        if rp_off is None:
+            print('File does not have rpath. It should be a fully static executable.')
+            return
         self.bf.seek(rp_off)
         old_rpath = self.read_str()
         if len(old_rpath) < len(new_rpath):

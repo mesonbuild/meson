@@ -594,6 +594,9 @@ class GnuCPPCompiler(CPPCompiler):
     def get_pch_suffix(self):
         return 'gch'
 
+    def build_rpath_args(self, build_dir, rpath_paths):
+        return ['-Wl,-rpath,' + ':'.join([os.path.join(build_dir, p) for p in rpath_paths])]
+
 class ClangCPPCompiler(CPPCompiler):
     std_warn_flags = ['-Wall', '-Winvalid-pch']
     std_opt_flags = ['-O2']
@@ -637,7 +640,7 @@ class ArLinker():
     def __init__(self, exelist):
         self.exelist = exelist
 
-    def build_rpath_arg(self, build_dir, rpath_paths):
+    def build_rpath_args(self, build_dir, rpath_paths):
         return []
 
     def get_exelist(self):

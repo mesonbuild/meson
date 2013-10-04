@@ -1,0 +1,4 @@
+bin/prog
+lib/liblib1.so
+lib/liblib2.so
+lib/liblib3.so
