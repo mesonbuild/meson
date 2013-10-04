@@ -127,16 +127,17 @@ class PkgConfigDependency(Dependency):
         return self.is_found
 
 class ExternalProgram():
-    def __init__(self, name, fullpath=None):
+    def __init__(self, name, fullpath=None, silent=False):
         self.name = name
         if fullpath is not None:
             self.fullpath = fullpath
         else:
             self.fullpath = shutil.which(name)
-        if self.found():
-            mlog.log('Program', name, 'found:', mlog.green('YES'), '(%s)' % self.fullpath)
-        else:
-            mlog.log('Program', name, 'found:,', mlog.red('NO'))
+        if not silent:
+            if self.found():
+                mlog.log('Program', name, 'found:', mlog.green('YES'), '(%s)' % self.fullpath)
+            else:
+                mlog.log('Program', name, 'found:,', mlog.red('NO'))
 
     def found(self):
         return self.fullpath is not None
@@ -389,10 +390,11 @@ class Qt5Dependency(Dependency):
         self.find_exes()
     
     def find_exes(self):
-        self.moc = ExternalProgram('moc')
-        self.uic = ExternalProgram('uic')
-        # Moc and uic write their version strings to stderr.
-        # Moc returns a non-zero result when doing so.
+        self.moc = ExternalProgram('moc', silent=True)
+        self.uic = ExternalProgram('uic', silent=True)
+        self.rcc = ExternalProgram('rcc', silent=True)
+        # Moc, uic and rcc write their version strings to stderr.
+        # Moc and rcc return a non-zero result when doing so.
         # What kind of an idiot thought that was a good idea?
         if self.moc.found():
             mp = subprocess.Popen([self.moc.get_command(), '-v'],
@@ -412,6 +414,15 @@ class Qt5Dependency(Dependency):
             mlog.log(' uic:', mlog.green('YES'), '(%s)' % uic_ver)
         else:
             mlog.log(' uic:', mlog.red('NO'))
+        if self.rcc.found():
+            up = subprocess.Popen([self.rcc.get_command(), '-v'],
+                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            rcc_ver = up.communicate()[1].decode().strip()
+            if 'version 5.' not in rcc_ver:
+                raise DependencyException('Rcc compiler is not for Qt 5. Output: %s' % rcc_ver)
+            mlog.log(' rcc:', mlog.green('YES'), '(%s)' % rcc_ver)
+        else:
+            mlog.log(' rcc:', mlog.red('NO'))
 
     def get_version(self):
         return self.modules[0].get_version()
@@ -436,6 +447,8 @@ class Qt5Dependency(Dependency):
             return False
         if not self.uic.found():
             return False
+        if not self.rcc.found():
+            return False
         for i in self.modules:
             if not i.found():
                 return False
@@ -448,7 +461,10 @@ class Qt5Dependency(Dependency):
         ui_rule = CustomRule([self.uic.get_command(), '@INFILE@', '-o', '@OUTFILE@'],
                               'ui_@BASENAME@.h', 'ui_files', 'ui_compile',
                               'Compiling @INFILE@ with the ui compiler')
-        return [moc_rule, ui_rule]
+        rrc_rule = CustomRule([self.rcc.get_command(), '@INFILE@', '-o', '@OUTFILE@'],
+                              '@BASENAME@.cpp', 'resources', 'rc_compile',
+                              'Compiling @INFILE@ with the rrc compiler')
+        return [moc_rule, ui_rule, rrc_rule]
 
     def get_exe_flags(self):
         # Qt5 seems to require this always.
