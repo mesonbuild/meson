@@ -56,7 +56,7 @@ class CCompiler():
     def get_always_flags(self):
         return []
 
-    def get_soname_flags(self, shlib_name):
+    def get_soname_flags(self, shlib_name, path):
         return []
 
     def split_shlib_to_parts(self, fname):
@@ -495,13 +495,26 @@ class VisualStudioCPPCompiler(VisualStudioCCompiler):
         if pe.returncode != 0:
             raise EnvironmentException('Executables created by C++ compiler %s are not runnable.' % self.name_string())
 
+GCC_STANDARD = 0
+GCC_OSX = 1
+GCC_MINGW = 2
+
+def get_gcc_soname_flags(gcc_type, shlib_name, path):
+    if gcc_type == GCC_STANDARD:
+        return ['-Wl,-soname,lib%s.so' % shlib_name]
+    elif gcc_type == GCC_OSX:
+        return ['-install_name', os.path.join(path, 'lib' + shlib_name + '.dylib')]
+    else:
+        raise RuntimeError('Not impelented yet.')
+
 class GnuCCompiler(CCompiler):
     std_warn_flags = ['-Wall', '-Winvalid-pch']
     std_opt_flags = ['-O2']
 
-    def __init__(self, exelist, version, is_cross, exe_wrapper=None):
+    def __init__(self, exelist, version, gcc_type, is_cross, exe_wrapper=None):
         CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
         self.id = 'gcc'
+        self.gcc_type = gcc_type
 
     def get_std_warn_flags(self):
         return GnuCCompiler.std_warn_flags
@@ -518,8 +531,8 @@ class GnuCCompiler(CCompiler):
     def build_rpath_args(self, build_dir, rpath_paths):
         return ['-Wl,-rpath,' + ':'.join([os.path.join(build_dir, p) for p in rpath_paths])]
 
-    def get_soname_flags(self, shlib_name):
-        return ['-Wl,-soname,lib%s.so' % shlib_name]
+    def get_soname_flags(self, shlib_name, path):
+        return get_gcc_soname_flags(self.gcc_type, shlib_name, path)
 
 class GnuObjCCompiler(ObjCCompiler):
     std_warn_flags = ['-Wall', '-Winvalid-pch']
@@ -541,6 +554,9 @@ class GnuObjCCompiler(ObjCCompiler):
     def build_rpath_args(self, build_dir, rpath_paths):
         return ['-Wl,-rpath,' + ':'.join([os.path.join(build_dir, p) for p in rpath_paths])]
 
+    def get_soname_flags(self, shlib_name, path):
+        return get_gcc_soname_flags(self.gcc_type, shlib_name, path)
+
 class GnuObjCPPCompiler(ObjCPPCompiler):
     std_warn_flags = ['-Wall', '-Winvalid-pch']
     std_opt_flags = ['-O2']
@@ -560,6 +576,9 @@ class GnuObjCPPCompiler(ObjCPPCompiler):
 
     def build_rpath_args(self, build_dir, rpath_paths):
         return ['-Wl,-rpath,' + ':'.join([os.path.join(build_dir, p) for p in rpath_paths])]
+
+    def get_soname_flags(self, shlib_name, path):
+        return get_gcc_soname_flags(self.gcc_type, shlib_name, path)
 
 class ClangCCompiler(CCompiler):
     std_warn_flags = ['-Wall', '-Winvalid-pch']
@@ -602,6 +621,9 @@ class GnuCPPCompiler(CPPCompiler):
 
     def build_rpath_args(self, build_dir, rpath_paths):
         return ['-Wl,-rpath,' + ':'.join([os.path.join(build_dir, p) for p in rpath_paths])]
+
+    def get_soname_flags(self, shlib_name, path):
+        return get_gcc_soname_flags(self.gcc_type, shlib_name, path)
 
 class ClangCPPCompiler(CPPCompiler):
     std_warn_flags = ['-Wall', '-Winvalid-pch']
@@ -856,11 +878,11 @@ class Environment():
                 version = vmatch.group(0)
             else:
                 version = 'unknown version'
+            if 'apple' in out and 'Free Software Foundation' in out:
+                return GnuCCompiler(ccache + [compiler], version, GCC_OSX, is_cross, exe_wrap)
             if (out.startswith('cc') or 'gcc' in out) and \
                 'Free Software Foundation' in out:
-                return GnuCCompiler(ccache + [compiler], version, is_cross, exe_wrap)
-            if 'apple' in out and 'Free Software Foundation' in out:
-                return GnuCCompiler(ccache + [compiler], version, is_cross, exe_wrap)
+                return GnuCCompiler(ccache + [compiler], version, GCC_STANDARD, is_cross, exe_wrap)
             if (out.startswith('clang')):
                 return ClangCCompiler(ccache + [compiler], version, is_cross, exe_wrap)
             if 'Microsoft' in out:

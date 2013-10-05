@@ -845,13 +845,14 @@ class NinjaBackend(Backend):
         if target.is_cross:
             crstr = '_CROSS'
         linker_rule = linker_base + crstr + '_LINKER'
+        abspath = os.path.join(self.environment.get_build_dir(), target.subdir)
         commands = []
         if isinstance(target, build.Executable):
             commands += linker.get_std_exe_link_flags()
         elif isinstance(target, build.SharedLibrary):
             commands += linker.get_std_shared_lib_link_flags()
             commands += linker.get_pic_flags()
-            commands += linker.get_soname_flags(target.name)
+            commands += linker.get_soname_flags(target.name, abspath)
         elif isinstance(target, build.StaticLibrary):
             commands += linker.get_std_link_flags()
         else:
