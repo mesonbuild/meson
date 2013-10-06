@@ -62,7 +62,7 @@ class CCompiler():
     def split_shlib_to_parts(self, fname):
         return (None, fname)
 
-    def build_rpath_arg(self, build_dir, rpath_paths):
+    def build_rpath_args(self, build_dir, rpath_paths):
         return []
 
     def get_id(self):
@@ -405,10 +405,10 @@ class VisualStudioCCompiler(CCompiler):
 
     def get_std_opt_flags(self):
         return VisualStudioCCompiler.std_opt_flags
-    
+
     def get_pch_suffix(self):
         return 'pch'
-    
+
     def get_pch_name(self, header):
         chopped = os.path.split(header)[-1].split('.')[:-1]
         chopped.append(self.get_pch_suffix())
@@ -646,7 +646,7 @@ class VisualStudioLinker():
     always_flags = ['/NOLOGO']
     def __init__(self, exelist):
         self.exelist = exelist
-        
+
     def get_exelist(self):
         return self.exelist
 
@@ -661,6 +661,9 @@ class VisualStudioLinker():
 
     def get_always_flags(self):
         return VisualStudioLinker.always_flags
+
+    def build_rpath_args(self, build_dir, rpath_paths):
+        return []
 
 class ArLinker():
     std_flags = ['csr']
@@ -685,6 +688,7 @@ class ArLinker():
 
     def get_always_flags(self):
         return []
+
 def exe_exists(arglist):
     try:
         p = subprocess.Popen(arglist, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
