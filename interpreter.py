@@ -27,6 +27,9 @@ class InterpreterException(coredata.MesonException):
 class InvalidCode(InterpreterException):
     pass
 
+class InvalidArguments(InterpreterException):
+    pass
+
 class InterpreterObject():
     def __init__(self):
         self.methods = {}
