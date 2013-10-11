@@ -173,7 +173,7 @@ class DependencyModel(QAbstractItemModel):
         if role != PyQt5.QtCore.Qt.DisplayRole:
             return QVariant()
         if section == 3:
-            return QVariant('Libraries')
+            return QVariant('Link flags')
         if section == 2:
             return QVariant('Compile flags')
         if section == 1:
