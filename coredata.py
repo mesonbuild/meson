@@ -34,6 +34,7 @@ class CoreData():
         self.backend = options.backend
         self.buildtype = options.buildtype
         self.strip = options.strip
+        self.use_pch = options.use_pch
         self.coverage = options.coverage
         if options.cross_file is not None:
             self.cross_file = os.path.join(os.getcwd(), options.cross_file)

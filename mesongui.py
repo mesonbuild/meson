@@ -245,11 +245,17 @@ class OptionForm:
         combo.currentTextChanged.connect(self.build_type_changed)
         self.form.addRow('Build type', combo)
         strip = QCheckBox("")
+        strip.setChecked(self.coredata.strip)
         strip.stateChanged.connect(self.strip_changed)
         self.form.addRow('Strip on install', strip)
         coverage = QCheckBox("")
+        coverage.setChecked(self.coredata.coverage)
         coverage.stateChanged.connect(self.coverage_changed)
         self.form.addRow('Enable coverage', coverage)
+        pch = QCheckBox("")
+        pch.setChecked(self.coredata.use_pch)
+        pch.stateChanged.connect(self.pch_changed)
+        self.form.addRow('Enable pch', pch)
 
     def build_type_changed(self, newtype):
         self.coredata.buildtype = newtype
@@ -267,6 +273,13 @@ class OptionForm:
         else:
             ns = True
         self.coredata.coverage = ns
+
+    def pch_changed(self, newState):
+        if newState == 0:
+            ns = False
+        else:
+            ns = True
+        self.coredata.use_pch = ns
 
 class ProcessRunner():
     def __init__(self, rundir, cmdlist):

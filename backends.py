@@ -155,7 +155,7 @@ class Backend():
         self.generate_custom_generator_rules(target, outfile)
         outname = self.get_target_filename(target)
         obj_list = []
-        if target.has_pch():
+        if self.environment.coredata.use_pch and target.has_pch():
             self.generate_pch(target, outfile)
         header_deps = gen_other_deps
         for genlist in target.get_generated_sources():
@@ -737,7 +737,10 @@ class NinjaBackend(Backend):
         rel_obj = os.path.join(self.get_target_private_dir(target), os.path.basename(src_filename))
         rel_obj += '.' + self.environment.get_object_suffix()
         dep_file = rel_obj + '.' + compiler.get_depfile_suffix()
-        pchlist = target.get_pch(compiler.language)
+        if self.environment.coredata.use_pch:
+            pchlist = target.get_pch(compiler.language)
+        else:
+            pchlist = []
         if len(pchlist) == 0:
             pch_dep = []
         else:
@@ -754,7 +757,8 @@ class NinjaBackend(Backend):
                 sarg = compiler.get_include_arg(fulldir)
                 commands.append(barg)
                 commands.append(sarg)
-        commands += self.get_pch_include_args(compiler, target)
+        if self.environment.coredata.use_pch:
+            commands += self.get_pch_include_args(compiler, target)
         crstr = ''
         if target.is_cross:
             crstr = '_CROSS'
