@@ -284,7 +284,7 @@ class OptionForm:
 class ProcessRunner():
     def __init__(self, rundir, cmdlist):
         self.cmdlist = cmdlist
-        self.ui = uic.loadUi('mesonrunner.ui')
+        self.ui = uic.loadUi(os.path.join(priv_dir, 'mesonrunner.ui'))
         self.timer = QTimer(self.ui)
         self.timer.setInterval(1000)
         self.timer.timeout.connect(self.timeout)
