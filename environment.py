@@ -516,6 +516,9 @@ class GnuCCompiler(CCompiler):
         self.id = 'gcc'
         self.gcc_type = gcc_type
 
+    def get_always_flags(self):
+        return ['-pipe']
+
     def get_std_warn_flags(self):
         return GnuCCompiler.std_warn_flags
 
@@ -606,6 +609,9 @@ class GnuCPPCompiler(CPPCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrap):
         CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
         self.id = 'gcc'
+
+    def get_always_flags(self):
+        return ['-pipe']
 
     def get_debug_flags(self):
         return GnuCPPCompiler.std_debug_flags
