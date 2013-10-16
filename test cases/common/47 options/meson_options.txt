@@ -1,0 +1,2 @@
+option('testoption', type : 'string', value : 'optval')
+option('other_one', type : 'boolean', value : false)

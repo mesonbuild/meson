@@ -580,6 +580,7 @@ class Interpreter():
                       'run_command' : self.func_run_command,
                       'gettext' : self.func_gettext,
                       'option' : self.func_option,
+                      'get_option' : self.func_get_option,
                       }
 
     def get_build_def_files(self):
@@ -695,6 +696,16 @@ class Interpreter():
 
     def func_option(self, nodes, args, kwargs):
         raise InterpreterException('Tried to call option() in build description file. All options must be in the option file.')
+
+    def func_get_option(self, nodes, args, kwargs):
+        if len(args) != 1:
+            raise InterpreterException('Argument required for get_option.')
+        optname = args[0]
+        if not isinstance(optname, str):
+            raise InterpreterException('Argument of get_option must be a string.')
+        if optname not in self.build.user_options:
+            raise InterpreterException('Tried to access unknown option "%s".' % optname)
+        return self.build.user_options[optname].value
 
     def func_configuration_data(self, node, args, kwargs):
         if len(args) != 0:

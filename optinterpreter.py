@@ -29,9 +29,17 @@ class UserStringOption(UserOption):
         super().__init__(kwargs)
         self.value = kwargs.get('value', '')
         if not isinstance(self.value, str):
-            raise OptionException('Value of string option is not a string')
+            raise OptionException('Value of string option is not a string.')
+
+class UserBooleanOption(UserOption):
+    def __init__(self, kwargs):
+        super().__init__(kwargs)
+        self.value = kwargs.get('value', 'true')
+        if not isinstance(self.value, bool):
+            raise OptionException('Value of boolean option is not boolean.')
 
 option_types = {'string' : UserStringOption,
+                'boolean' : UserBooleanOption,
                 }
 
 class OptionInterpreter:
@@ -49,17 +57,13 @@ class OptionInterpreter:
             e.lineno = ast.lineno()
             raise e
         statements = ast.get_statements()
-        i = 0
-        while i < len(statements):
-            cur = statements[i]
+        for cur in statements:
             try:
                 self.evaluate_statement(cur)
             except Exception as e:
                 e.lineno = cur.lineno()
-                e.file = os.path.join('options.txt')
+                e.file = os.path.join('meson_options.txt')
                 raise e
-            i += 1 # In THE FUTURE jump over blocks and stuff.
-        print(self.options)
 
     def reduce_single(self, arg):
         if isinstance(arg, nodes.AtomExpression) or isinstance(arg, nodes.AtomStatement):
@@ -103,13 +107,8 @@ class OptionInterpreter:
         if not opt_type in option_types:
             raise OptionException('Unknown type %s.' % opt_type)
         if len(posargs) != 1:
-            raise OptionException('Option all must have one (and only one) positional argument')
+            raise OptionException('Option() must have one (and only one) positional argument')
         opt_name = posargs[0]
         if not isinstance(opt_name, str):
             raise OptionException('Positional argument must be a string.')
         self.options[opt_name] = option_types[opt_type](kwargs)
-
-if __name__ == '__main__':
-    import sys
-    oi = OptionInterpreter()
-    oi.process(sys.argv[1])

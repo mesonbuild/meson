@@ -1,0 +1,9 @@
+project('options', 'c')
+
+if get_option('testoption') != 'optval'
+  error('Incorrect value to test option')
+endif
+
+if get_option('other_one') != false
+  error('Incorrect value to boolean option.')
+endif

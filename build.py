@@ -40,6 +40,16 @@ class Build:
         self.static_cross_linker = None
         self.configure_files = []
         self.pot = []
+        self.user_options = {}
+
+    def merge_options(self, options):
+        for (name, value) in options.items():
+            if name not in self.user_options:
+                self.user_options[name] = value
+            else:
+                oldval = self.user_options[name]
+                if type(oldval) != type(value):
+                    self.user_options[name] = value
 
     def add_compiler(self, compiler):
         if len(self.compilers) == 0:
@@ -82,7 +92,7 @@ class IncludeDirs():
         # Fixme: check that the directories actually exist.
         # Also that they don't contain ".." or somesuch.
         if len(kwargs) > 0:
-            raise InvalidCode('Includedirs function does not take keyword arguments.')
+            raise InvalidArguments('Includedirs function does not take keyword arguments.')
 
     def get_curdir(self):
         return self.curdir
@@ -268,15 +278,15 @@ class BuildTarget():
         if len(pchlist) == 2:
             if environment.is_header(pchlist[0]):
                 if not environment.is_source(pchlist[1]):
-                    raise InterpreterException('PCH definition must contain one header and at most one source.')
+                    raise InvalidArguments('PCH definition must contain one header and at most one source.')
             elif environment.is_source(pchlist[0]):
                 if not environment.is_header(pchlist[1]):
-                    raise InterpreterException('PCH definition must contain one header and at most one source.')
+                    raise InvalidArguments('PCH definition must contain one header and at most one source.')
                 pchlist = [pchlist[1], pchlist[0]]
             else:
-                raise InterpreterException('PCH argument %s is of unknown type.' % pchlist[0])
+                raise InvalidArguments('PCH argument %s is of unknown type.' % pchlist[0])
         elif len(pchlist) > 2:
-            raise InterpreterException('PCH definition may have a maximum of 2 files.')
+            raise InvalidArguments('PCH definition may have a maximum of 2 files.')
         self.pch[language] = pchlist
 
     def add_include_dirs(self, args):
