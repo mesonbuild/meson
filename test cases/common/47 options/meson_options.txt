@@ -1,2 +1,3 @@
 option('testoption', type : 'string', value : 'optval')
 option('other_one', type : 'boolean', value : false)
+option('combo_opt', type : 'combo', choices : ['one', 'two', 'combo'], value : 'combo')

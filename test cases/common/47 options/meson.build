@@ -7,3 +7,7 @@ endif
 if get_option('other_one') != false
   error('Incorrect value to boolean option.')
 endif
+
+if get_option('combo_opt') != 'combo'
+  error('Incorrect value to combo option.')
+endif

@@ -38,8 +38,24 @@ class UserBooleanOption(UserOption):
         if not isinstance(self.value, bool):
             raise OptionException('Value of boolean option is not boolean.')
 
+class UserComboOption(UserOption):
+    def __init__(self, kwargs):
+        super().__init__(kwargs)
+        if 'choices' not in kwargs:
+            raise OptionException('Combo option missing "choices" keyword.')
+        self.choices = kwargs['choices']
+        if not isinstance(self.choices, list):
+            raise OptionException('Combo choices must be an array.')
+        for i in self.choices:
+            if not isinstance(i, str):
+                raise OptionException('Combo choice elements must be strings.')
+        self.value = kwargs.get('value', self.choices[0])
+        if self.value not in self.choices:
+            raise OptionException('Combo value must be one of the choices.')
+
 option_types = {'string' : UserStringOption,
                 'boolean' : UserBooleanOption,
+                'combo' : UserComboOption,
                 }
 
 class OptionInterpreter:
