@@ -604,7 +604,6 @@ class Interpreter():
         if node is None:
             return
         if not isinstance(node, nodes.CodeBlock):
-            print(node)
             e = InvalidCode('Tried to execute a non-codeblock. Possibly a bug in the parser.')
             e.lineno = node.lineno()
             raise e
@@ -980,7 +979,7 @@ class Interpreter():
             fname = os.path.join(subdir, s)
             if not os.path.isfile(fname):
                 raise InterpreterException('Tried to add non-existing source %s.' % s)
-        
+
     def function_call(self, node):
         func_name = node.get_function_name()
         (posargs, kwargs) = self.reduce_arguments(node.arguments)
@@ -1044,7 +1043,7 @@ class Interpreter():
             a = args.kwargs[key]
             reduced_kw[key] = self.reduce_single(a)
         return (reduced_pos, reduced_kw)
-    
+
     def string_method_call(self, obj, method_name, args):
         if method_name == 'strip':
             return self.to_native(obj).strip()
