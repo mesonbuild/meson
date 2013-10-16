@@ -974,6 +974,7 @@ class NinjaBackend(Backend):
             deps.append(os.path.join(self.build_to_src,
                                      self.environment.coredata.cross_file))
         deps.append('meson-private/coredata.dat')
+        deps.append(os.path.join(self.build_to_src, 'meson_options.txt'))
         elem = NinjaBuildElement('build.ninja', 'REGENERATE_BUILD', deps)
         elem.write(outfile)
 
