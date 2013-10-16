@@ -579,6 +579,7 @@ class Interpreter():
                       'configuration_data' : self.func_configuration_data,
                       'run_command' : self.func_run_command,
                       'gettext' : self.func_gettext,
+                      'option' : self.func_option,
                       }
 
     def get_build_def_files(self):
@@ -692,6 +693,9 @@ class Interpreter():
         if len(self.build.pot) > 0:
             raise InterpreterException('More than one gettext definitions currently not supported.')
         self.build.pot.append((packagename, languages, self.subdir))
+
+    def func_option(self, nodes, args, kwargs):
+        raise InterpreterException('Tried to call option() in build description file. All options must be in the option file.')
 
     def func_configuration_data(self, node, args, kwargs):
         if len(args) != 0:
