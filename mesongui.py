@@ -15,7 +15,7 @@
 # limitations under the License.
 
 import sys, os, pickle, time, shutil
-import build, coredata, environment
+import build, coredata, environment, optinterpreter
 from PyQt5 import uic
 from PyQt5.QtWidgets import QApplication, QMainWindow, QHeaderView
 from PyQt5.QtWidgets import QComboBox, QCheckBox 
@@ -234,9 +234,11 @@ class CoreModel(QAbstractItemModel):
         return QModelIndex()
 
 class OptionForm:
-    def __init__(self, cdata, form):
-        self.coredata = cdata
+    def __init__(self, build, coredata, form):
+        self.build = build
+        self.coredata = coredata
         self.form = form
+        form.addRow(PyQt5.QtWidgets.QLabel("Meson options"))
         combo = QComboBox()
         combo.addItem('plain')
         combo.addItem('debug')
@@ -256,6 +258,28 @@ class OptionForm:
         pch.setChecked(self.coredata.use_pch)
         pch.stateChanged.connect(self.pch_changed)
         self.form.addRow('Enable pch', pch)
+        form.addRow(PyQt5.QtWidgets.QLabel("Project options"))
+        self.set_user_options()
+
+    def set_user_options(self):
+        options = self.build.user_options
+        keys = list(options.keys())
+        keys.sort()
+        for key in keys:
+            opt = options[key]
+            if isinstance(opt, optinterpreter.UserStringOption):
+                w = PyQt5.QtWidgets.QLineEdit(opt.value)
+            elif isinstance(opt, optinterpreter.UserBooleanOption):
+                w = QCheckBox('')
+                w.setChecked(opt.value)
+            elif isinstance(opt, optinterpreter.UserComboOption):
+                w = QComboBox()
+                for i in opt.choices:
+                    w.addItem(i)
+                w.setCurrentText(opt.value)
+            else:
+                raise RuntimeError("Unknown option type")
+            self.form.addRow(opt.description, w)
 
     def build_type_changed(self, newtype):
         self.coredata.buildtype = newtype
@@ -338,7 +362,7 @@ class MesonGui():
         self.build_dir = self.build.environment.build_dir
         self.src_dir = self.build.environment.source_dir
         self.build_models()
-        self.options = OptionForm(self.coredata, self.ui.option_form)
+        self.options = OptionForm(self.build, self.coredata, self.ui.option_form)
         self.ui.show()
 
     def build_models(self):

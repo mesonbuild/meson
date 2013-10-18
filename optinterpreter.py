@@ -23,6 +23,7 @@ class OptionException(coredata.MesonException):
 class UserOption:
     def __init__(self, kwargs):
         super().__init__()
+        self.description = kwargs.get('description', '')
 
 class UserStringOption(UserOption):
     def __init__(self, kwargs):
@@ -127,4 +128,7 @@ class OptionInterpreter:
         opt_name = posargs[0]
         if not isinstance(opt_name, str):
             raise OptionException('Positional argument must be a string.')
-        self.options[opt_name] = option_types[opt_type](kwargs)
+        opt = option_types[opt_type](kwargs)
+        if opt.description == '':
+            opt.description = opt_name
+        self.options[opt_name] = opt
