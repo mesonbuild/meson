@@ -125,7 +125,7 @@ itself as required.'''
         if os.path.exists(option_file):
             oi = optinterpreter.OptionInterpreter()
             oi.process(option_file)
-            b.merge_options(oi.options)
+            env.merge_options(oi.options)
         intr = interpreter.Interpreter(b)
         intr.run()
         if options.backend == 'ninja':

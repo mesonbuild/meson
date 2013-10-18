@@ -703,9 +703,9 @@ class Interpreter():
         optname = args[0]
         if not isinstance(optname, str):
             raise InterpreterException('Argument of get_option must be a string.')
-        if optname not in self.build.user_options:
+        if optname not in self.environment.coredata.user_options:
             raise InterpreterException('Tried to access unknown option "%s".' % optname)
-        return self.build.user_options[optname].value
+        return self.environment.coredata.user_options[optname].value
 
     def func_configuration_data(self, node, args, kwargs):
         if len(args) != 0:

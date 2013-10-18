@@ -852,6 +852,15 @@ class Environment():
     def is_source(self, fname):
         return is_source(fname)
 
+    def merge_options(self, options):
+        for (name, value) in options.items():
+            if name not in self.coredata.user_options:
+                self.coredata.user_options[name] = value
+            else:
+                oldval = self.coredata.user_options[name]
+                if type(oldval) != type(value):
+                    self.coredata.user_options[name] = value
+
     def detect_c_compiler(self, want_cross):
         evar = 'CC'
         if self.is_cross_build() and want_cross:

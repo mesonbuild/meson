@@ -36,6 +36,7 @@ class CoreData():
         self.strip = options.strip
         self.use_pch = options.use_pch
         self.coverage = options.coverage
+        self.user_options = {}
         if options.cross_file is not None:
             self.cross_file = os.path.join(os.getcwd(), options.cross_file)
         else:

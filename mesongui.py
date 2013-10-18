@@ -234,8 +234,7 @@ class CoreModel(QAbstractItemModel):
         return QModelIndex()
 
 class OptionForm:
-    def __init__(self, build, coredata, form):
-        self.build = build
+    def __init__(self, coredata, form):
         self.coredata = coredata
         self.form = form
         form.addRow(PyQt5.QtWidgets.QLabel("Meson options"))
@@ -262,24 +261,47 @@ class OptionForm:
         self.set_user_options()
 
     def set_user_options(self):
-        options = self.build.user_options
+        options = self.coredata.user_options
         keys = list(options.keys())
         keys.sort()
+        self.opt_keys = keys
+        self.opt_widgets = []
         for key in keys:
             opt = options[key]
             if isinstance(opt, optinterpreter.UserStringOption):
                 w = PyQt5.QtWidgets.QLineEdit(opt.value)
+                w.textChanged.connect(self.user_option_changed)
             elif isinstance(opt, optinterpreter.UserBooleanOption):
                 w = QCheckBox('')
                 w.setChecked(opt.value)
+                w.stateChanged.connect(self.user_option_changed)
             elif isinstance(opt, optinterpreter.UserComboOption):
                 w = QComboBox()
                 for i in opt.choices:
                     w.addItem(i)
                 w.setCurrentText(opt.value)
+                w.currentTextChanged.connect(self.user_option_changed)
             else:
                 raise RuntimeError("Unknown option type")
+            self.opt_widgets.append(w)
             self.form.addRow(opt.description, w)
+
+    def user_option_changed(self, dummy=None):
+        for i in range(len(self.opt_keys)):
+            key = self.opt_keys[i]
+            w = self.opt_widgets[i]
+            if isinstance(w, PyQt5.QtWidgets.QLineEdit):
+                newval = w.text()
+            elif isinstance(w, QComboBox):
+                newval = w.currentText()
+            elif isinstance(w, QCheckBox):
+                if w.checkState() == 0:
+                    newval = False
+                else:
+                    newval = True
+            else:
+                raise RuntimeError('Unknown widget type')
+            self.coredata.user_options[key].value = newval
 
     def build_type_changed(self, newtype):
         self.coredata.buildtype = newtype
@@ -362,7 +384,7 @@ class MesonGui():
         self.build_dir = self.build.environment.build_dir
         self.src_dir = self.build.environment.source_dir
         self.build_models()
-        self.options = OptionForm(self.build, self.coredata, self.ui.option_form)
+        self.options = OptionForm(self.coredata, self.ui.option_form)
         self.ui.show()
 
     def build_models(self):

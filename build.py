@@ -40,16 +40,6 @@ class Build:
         self.static_cross_linker = None
         self.configure_files = []
         self.pot = []
-        self.user_options = {}
-
-    def merge_options(self, options):
-        for (name, value) in options.items():
-            if name not in self.user_options:
-                self.user_options[name] = value
-            else:
-                oldval = self.user_options[name]
-                if type(oldval) != type(value):
-                    self.user_options[name] = value
 
     def add_compiler(self, compiler):
         if len(self.compilers) == 0:
