@@ -538,11 +538,11 @@ class NinjaBackend(Backend):
         outfile.write(' description = $DESC\n')
         outfile.write(' restat = 1\n\n')
         outfile.write('rule REGENERATE_BUILD\n')
-        c = (ninja_quote(sys.executable),
-             ninja_quote(self.environment.get_build_command()),
-             ninja_quote(self.environment.get_source_dir()),
-             ninja_quote(self.environment.get_build_dir()))
-        outfile.write(" command = '%s' '%s' '%s' '%s' --backend ninja secret-handshake\n" % c)
+        c = (quote_char + ninja_quote(sys.executable) + quote_char,
+             quote_char + ninja_quote(self.environment.get_build_command())  + quote_char,
+             quote_char + ninja_quote(self.environment.get_source_dir())  + quote_char,
+             quote_char + ninja_quote(self.environment.get_build_dir())  + quote_char)
+        outfile.write(" command = %s %s %s %s --backend ninja secret-handshake\n" % c)
         outfile.write(' description = Regenerating build files\n')
         outfile.write(' generator = 1\n\n')
         if len(self.build.pot) > 0:
