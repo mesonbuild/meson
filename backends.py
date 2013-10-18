@@ -631,7 +631,8 @@ class NinjaBackend(Backend):
         if compiler.get_id() == 'msvc':
             deps = ' deps = msvc\n'
         else:
-            deps = ' depfile = $DEPFILE\n'
+            deps = ' deps = gcc\n'
+            deps += ' depfile = $DEPFILE\n'
         outfile.write(rule)
         outfile.write(command)
         outfile.write(deps)
@@ -658,7 +659,8 @@ class NinjaBackend(Backend):
         if compiler.get_id() == 'msvc':
             deps = ' deps = msvc\n'
         else:
-            deps = ' depfile = $DEPFILE\n'
+            deps = ' deps = gcc\n'
+            deps += ' depfile = $DEPFILE\n'
         outfile.write(rule)
         outfile.write(command)
         outfile.write(deps)
