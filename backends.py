@@ -96,12 +96,14 @@ def do_conf_file(src, dst, confdata):
     os.replace(dst_tmp, dst)
 
 class TestSerialisation:
-    def __init__(self, name, fname, is_cross, exe_wrapper, is_parallel):
+    def __init__(self, name, fname, is_cross, exe_wrapper, is_parallel, cmd_args, env):
         self.name = name
         self.fname = fname
         self.is_cross = is_cross
         self.exe_runner = exe_wrapper
         self.is_parallel = is_parallel
+        self.cmd_args = cmd_args
+        self.env = env
 
 # It may seem a bit silly that this Backend class exists on its own
 # rather than being a part of NinjaBackend, which is the only class
@@ -498,7 +500,8 @@ class NinjaBackend(Backend):
                 exe_wrapper = self.environment.cross_info.get('exe_wrapper', None)
             else:
                 exe_wrapper = None
-            ts = TestSerialisation(t.get_name(), fname, is_cross, exe_wrapper, t.is_parallel)
+            ts = TestSerialisation(t.get_name(), fname, is_cross, exe_wrapper,
+                                   t.is_parallel, t.cmd_args, t.env)
             arr.append(ts)
         pickle.dump(arr, datafile)
 

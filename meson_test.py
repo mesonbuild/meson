@@ -39,26 +39,27 @@ def write_log(logfile, test_name, result_str, stdo, stde):
     logfile.write(stde)
     logfile.write('\n-------\n\n')
 
-def run_single_test(wrap, fname, is_cross, exe_runner):
+def run_single_test(wrap, test):
     global tests_failed
-    if is_cross:
-        if exe_runner is None:
+    if test.is_cross:
+        if test.exe_runner is None:
             # 'Can not run test on cross compiled executable 
             # because there is no execute wrapper.
             cmd = None
         else:
-            cmd = [exe_runner, fname]
+            cmd = [exe_runner, test.fname]
     else:
-        cmd = [fname]
+        cmd = [test.fname]
     if cmd is None:
         res = 'SKIP'
         duration = 0.0
         stdo = 'Not run because can not execute cross compiled binaries.'
         stde = ''
     else:
-        cmd = wrap + cmd
+        cmd = wrap + cmd + test.cmd_args
         starttime = time.time()
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                             env=test.env)
         (stdo, stde) = p.communicate()
         endtime = time.time()
         duration = endtime - starttime
@@ -113,11 +114,10 @@ def run_tests(options, datafilename):
         if not test.is_parallel:
             drain_futures(futures)
             futures = []
-            res = run_single_test(wrap, test.fname, test.is_cross, test.exe_runner)
+            res = run_single_test(wrap, t)
             print_stats(numlen, tests, test.name, res, i, logfile)
         else:
-            f = executor.submit(run_single_test, wrap, test.fname,
-                                test.is_cross, test.exe_runner)
+            f = executor.submit(run_single_test, wrap, test)
             futures.append((f, numlen, tests, test.name, i, logfile))
     drain_futures(futures)
     print('\nFull log written to %s.' % logfilename)

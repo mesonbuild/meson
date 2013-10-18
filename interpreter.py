@@ -338,11 +338,13 @@ class SharedLibraryHolder(BuildTargetHolder):
         super().__init__(build.SharedLibrary, name, subdir, is_cross, sources, environment, kwargs)
 
 class Test(InterpreterObject):
-    def __init__(self, name, exe, is_parallel):
+    def __init__(self, name, exe, is_parallel, cmd_args, env):
         InterpreterObject.__init__(self)
         self.name = name
         self.exe = exe
         self.is_parallel = is_parallel
+        self.cmd_args = cmd_args
+        self.env = env
         
     def get_exe(self):
         return self.exe
@@ -835,7 +837,26 @@ class Interpreter():
         par = kwargs.get('is_parallel', True)
         if not isinstance(par, bool):
             raise InterpreterException('Keyword argument is_parallel must be a boolean.')
-        t = Test(args[0], args[1].target, par)
+        cmd_args = kwargs.get('args', [])
+        if not isinstance(cmd_args, list):
+            cmd_args = [cmd_args]
+        for i in cmd_args:
+            if not isinstance(i, str):
+                raise InterpreterException('Command line arguments must be strings')
+        envlist = kwargs.get('env', [])
+        if not isinstance(envlist, list):
+            envlist = [envlist]
+        env = {}
+        for e in envlist:
+            if '=' not in e:
+                raise InterpreterException('Env var definition must be of type key=val.')
+            (k, val) = e.split('=', 1)
+            k = k.strip()
+            val = val.strip()
+            if ' ' in k:
+                raise InterpreterException('Env var key must not have spaces in it.')
+            env[k] = val
+        t = Test(args[0], args[1].target, par, cmd_args, env)
         self.build.tests.append(t)
         mlog.debug('Adding test "', mlog.bold(args[0]), '".', sep='')
 
