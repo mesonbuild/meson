@@ -18,6 +18,8 @@ import sys, os, subprocess, time, datetime, pickle, multiprocessing
 import concurrent.futures as conc
 from optparse import OptionParser
 
+tests_failed = False
+
 parser = OptionParser()
 parser.add_option('--wrapper', default=None, dest='wrapper',
                   help='wrapper to run tests with (e.g. valgrind)')
@@ -38,6 +40,7 @@ def write_log(logfile, test_name, result_str, stdo, stde):
     logfile.write('\n-------\n\n')
 
 def run_single_test(wrap, fname, is_cross, exe_runner):
+    global tests_failed
     if is_cross:
         if exe_runner is None:
             # 'Can not run test on cross compiled executable 
@@ -65,6 +68,7 @@ def run_single_test(wrap, fname, is_cross, exe_runner):
             res = 'OK'
         else:
             res = 'FAIL'
+            tests_failed = True
     return TestRun(res, duration, stdo, stde)
 
 def print_stats(numlen, tests, name, result, i, logfile):
@@ -79,7 +83,7 @@ def print_stats(numlen, tests, name, result, i, logfile):
 
 def drain_futures(futures):
     for i in futures:
-        (result, numlen, tests, name, result, i, logfile) = i
+        (result, numlen, tests, name, i, logfile) = i
         print_stats(numlen, tests, name, result.result(), i, logfile)
 
 def run_tests(options, datafilename):
@@ -114,7 +118,7 @@ def run_tests(options, datafilename):
         else:
             f = executor.submit(run_single_test, wrap, test.fname,
                                 test.is_cross, test.exe_runner)
-            futures.append((f, numlen, tests, test.name, f, i, logfile))
+            futures.append((f, numlen, tests, test.name, i, logfile))
     drain_futures(futures)
     print('\nFull log written to %s.' % logfilename)
 
@@ -125,3 +129,6 @@ if __name__ == '__main__':
         print('%s [data file]' % sys.argv[0])
     datafile = args[1]
     run_tests(options, datafile)
+    if tests_failed:
+        sys.exit(1)
+
