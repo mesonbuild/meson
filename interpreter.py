@@ -243,16 +243,9 @@ class Host(InterpreterObject):
     def __init__(self, envir):
         InterpreterObject.__init__(self)
         self.environment = envir
-        self.methods.update({'pointer_size' : self.get_ptrsize_method,
-                             'name' : self.get_name_method,
+        self.methods.update({'name' : self.get_name_method,
                              'is_big_endian' : self.is_big_endian_method,
                              })
-    # Is this needed any more since we have proper compiler
-    # based tests? Consider removing it.
-    def get_ptrsize_method(self, args, kwargs):
-        if sys.maxsize > 2**32:
-            return 64
-        return 32
 
     def get_name_method(self, args, kwargs):
         if self.environment.is_cross_build():

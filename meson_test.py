@@ -47,7 +47,7 @@ def run_single_test(wrap, test):
             # because there is no execute wrapper.
             cmd = None
         else:
-            cmd = [exe_runner, test.fname]
+            cmd = [test.exe_runner, test.fname]
     else:
         cmd = [test.fname]
     if cmd is None:
@@ -114,7 +114,7 @@ def run_tests(options, datafilename):
         if not test.is_parallel:
             drain_futures(futures)
             futures = []
-            res = run_single_test(wrap, t)
+            res = run_single_test(wrap, test)
             print_stats(numlen, tests, test.name, res, i, logfile)
         else:
             f = executor.submit(run_single_test, wrap, test)
