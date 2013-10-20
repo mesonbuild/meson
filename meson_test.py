@@ -58,8 +58,10 @@ def run_single_test(wrap, test):
     else:
         cmd = wrap + cmd + test.cmd_args
         starttime = time.time()
+        child_env = os.environ.copy()
+        child_env.update(test.env)
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                             env=test.env)
+                             env=child_env)
         (stdo, stde) = p.communicate()
         endtime = time.time()
         duration = endtime - starttime
