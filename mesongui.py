@@ -59,9 +59,6 @@ class PathModel(QAbstractItemModel):
     def index(self, row, column, parent):
         return self.createIndex(row, column)
 
-    def index(self, row, column, parent):
-        return self.createIndex(row, column)
-
     def data(self, index, role):
         if role != PyQt5.QtCore.Qt.DisplayRole:
             return QVariant()
