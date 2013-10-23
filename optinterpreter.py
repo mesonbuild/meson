@@ -28,16 +28,22 @@ class UserOption:
 class UserStringOption(UserOption):
     def __init__(self, kwargs):
         super().__init__(kwargs)
-        self.value = kwargs.get('value', '')
-        if not isinstance(self.value, str):
+        self.set_value(kwargs.get('value', ''))
+
+    def set_value(self, newvalue):
+        if not isinstance(newvalue, str):
             raise OptionException('Value of string option is not a string.')
+        self.value = newvalue
 
 class UserBooleanOption(UserOption):
     def __init__(self, kwargs):
         super().__init__(kwargs)
-        self.value = kwargs.get('value', 'true')
-        if not isinstance(self.value, bool):
+        self.set_value(kwargs.get('value', 'true'))
+
+    def set_value(self, newvalue):
+        if not isinstance(newvalue, bool):
             raise OptionException('Value of boolean option is not boolean.')
+        self.value = newvalue
 
 class UserComboOption(UserOption):
     def __init__(self, kwargs):
@@ -51,8 +57,11 @@ class UserComboOption(UserOption):
             if not isinstance(i, str):
                 raise OptionException('Combo choice elements must be strings.')
         self.value = kwargs.get('value', self.choices[0])
-        if self.value not in self.choices:
+
+    def set_value(self, newvalue):
+        if newvalue not in self.choices:
             raise OptionException('Combo value must be one of the choices.')
+        self.value = newvalue
 
 option_types = {'string' : UserStringOption,
                 'boolean' : UserBooleanOption,

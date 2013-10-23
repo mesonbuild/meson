@@ -301,7 +301,7 @@ class OptionForm:
                     newval = True
             else:
                 raise RuntimeError('Unknown widget type')
-            self.coredata.user_options[key].value = newval
+            self.coredata.user_options[key].set_value(newval)
 
     def build_type_changed(self, newtype):
         self.coredata.buildtype = newtype
