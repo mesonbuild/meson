@@ -90,6 +90,11 @@ class IncludeDirs():
     def get_incdirs(self):
         return self.incdirs
 
+class ExtractedObjects():
+    def __init__(self, target, srclist):
+        self.target = target
+        self.srclist = srclist
+
 class BuildTarget():
     def __init__(self, name, subdir, is_cross, sources, objects, environment, kwargs):
         self.name = name
@@ -114,7 +119,11 @@ class BuildTarget():
     def process_objectlist(self, objects):
         assert(isinstance(objects, list))
         for s in objects:
+            if hasattr(s, 'held_object'):
+                s = s.held_object
             if isinstance(s, str):
+                self.objects.append(s)
+            elif isinstance(s, ExtractedObjects):
                 self.objects.append(s)
             else:
                 raise InvalidArguments('Bad object in target %s.' % self.name)
@@ -136,22 +145,38 @@ class BuildTarget():
     def get_original_kwargs(self):
         return self.kwargs
 
+    def unpack_holder(self, d):
+        if not isinstance(d, list):
+            d = [d]
+        newd = []
+        for i in d:
+            if hasattr(i, 'el'):
+                newd.append(i.el)
+            elif hasattr(i, 'held_object'):
+                newd.append(i.held_object)
+            else:
+                newd.append(i)
+        return newd
+
     def copy_kwargs(self, kwargs):
         self.kwargs = copy.copy(kwargs)
         # This sucks quite badly. Arguments
         # are holders but they can't be pickled
         # so unpack those known.
         if 'deps' in self.kwargs:
-            d = self.kwargs['deps']
-            if not isinstance(d, list):
-                d = [d]
-            newd = []
-            for i in d:
-                if hasattr(i, 'el'):
-                    newd.append(i.el)
-                else:
-                    newd.append(i)
-            self.kwargs['deps'] = newd
+            self.kwargs['deps'] = self.unpack_holder(self.kwargs['deps'])
+        if 'link_with' in self.kwargs:
+            self.kwargs['link_with'] = self.unpack_holder(self.kwargs['link_with'])
+
+    def extract_objects(self, srclist):
+        obj_src = []
+        for src in srclist:
+            if not isinstance(src, str):
+                raise coredata.MesonException('Extraction arguments must be strings.')
+            if src not in self.sources:
+                raise coredata.MesonException('Tried to extract unknown source %s.' % src)
+            obj_src.append(src)
+        return ExtractedObjects(self, obj_src)
 
     def get_rpaths(self):
         return self.get_transitive_rpaths()
@@ -172,8 +197,8 @@ class BuildTarget():
         for linktarget in llist:
             # Sorry for this hack. Keyword targets are kept in holders
             # in kwargs. Unpack here without looking at the exact type.
-            if hasattr(linktarget, "target"):
-                linktarget = linktarget.target
+            if hasattr(linktarget, "held_object"):
+                linktarget = linktarget.held_object
             self.link(linktarget)
         c_pchlist = kwargs.get('c_pch', [])
         if not isinstance(c_pchlist, list):
@@ -263,6 +288,8 @@ class BuildTarget():
         [self.add_external_dep(dep) for dep in args]
 
     def link(self, target):
+        if hasattr(target, 'held_object'):
+            target = target.held_object
         if not isinstance(target, StaticLibrary) and \
         not isinstance(target, SharedLibrary):
             print(target)
@@ -321,8 +348,8 @@ class Generator():
         if len(args) != 1:
             raise InvalidArguments('Generator requires one and only one positional argument')
         
-        if hasattr(args[0], 'target'):
-            exe = args[0].target
+        if hasattr(args[0], 'held_object'):
+            exe = args[0].held_object
             if not isinstance(exe, Executable):
                 raise InvalidArguments('First generator argument must be an executable.')
         elif hasattr(args[0], 'ep'):

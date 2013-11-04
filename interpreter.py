@@ -311,12 +311,23 @@ class Man(InterpreterObject):
     def get_sources(self):
         return self.sources
 
+class GeneratedObjectsHolder(InterpreterObject):
+    def __init__(self, held_object):
+        super().__init__()
+        self.held_object = held_object
+
 class BuildTargetHolder(InterpreterObject):
     def __init__(self, targetttype, name, subdir, is_cross, sources, objects, environment, kwargs):
-        self.target = targetttype(name, subdir, is_cross, sources, objects, environment, kwargs)
-    
+        super().__init__()
+        self.held_object = targetttype(name, subdir, is_cross, sources, objects, environment, kwargs)
+        self.methods.update({'extract_objects' : self.extract_objects_method})
+
     def is_cross(self):
-        return self.target.is_cross()
+        return self.held_object.is_cross()
+
+    def extract_objects_method(self, args, kwargs):
+        gobjs = self.held_object.extract_objects(args)
+        return GeneratedObjectsHolder(gobjs)
 
 class ExecutableHolder(BuildTargetHolder):
     def __init__(self, name, subdir, is_cross, sources, objects, environment, kwargs):
@@ -849,7 +860,7 @@ class Interpreter():
             if ' ' in k:
                 raise InterpreterException('Env var key must not have spaces in it.')
             env[k] = val
-        t = Test(args[0], args[1].target, par, cmd_args, env)
+        t = Test(args[0], args[1].held_object, par, cmd_args, env)
         self.build.tests.append(t)
         mlog.debug('Adding test "', mlog.bold(args[0]), '".', sep='')
 
@@ -953,6 +964,8 @@ class Interpreter():
             return args.get_value()
         if isinstance(args, str):
             return args
+        if isinstance(args, InterpreterObject):
+            return args
         result = []
         for a in args:
             if isinstance(a, list):
@@ -992,7 +1005,7 @@ class Interpreter():
             raise InvalidCode('Tried to create target "%s", but a target of that name already exists.' % name)
         self.check_sources_exist(os.path.join(self.environment.source_dir, self.subdir), sources)
         l = targetclass(name, self.subdir, is_cross, sources, objs, self.environment, kwargs)
-        self.build.targets[name] = l.target
+        self.build.targets[name] = l.held_object
         if self.environment.is_cross_build() and l.is_cross:
             txt = ' cross build '
         else:

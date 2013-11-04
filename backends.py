@@ -174,12 +174,23 @@ class Backend():
         for obj in target.get_objects():
             if isinstance(obj, str):
                 o = os.path.join(self.build_to_src, target.get_subdir(), obj)
+                obj_list.append(o)
+            elif isinstance(obj, build.ExtractedObjects):
+                obj_list += self.determine_ext_objs(obj)
             else:
                 raise MesonException('Unknown data type in object list.')
-            obj_list.append(o)
         elem = self.generate_link(target, outfile, outname, obj_list)
         self.generate_shlib_aliases(target, self.get_target_dir(target), outfile, elem)
         self.processed_targets[name] = True
+
+    def determine_ext_objs(self, extobj):
+        result = []
+        targetdir = self.get_target_private_dir(extobj.target)
+        suffix = '.' + self.environment.get_object_suffix()
+        for osrc in extobj.srclist:
+            objname = os.path.join(targetdir, os.path.basename(osrc) + suffix)
+            result.append(objname)
+        return result
 
     def process_target_dependencies(self, target, outfile):
         for t in target.get_dependencies():
