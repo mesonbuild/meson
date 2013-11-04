@@ -419,7 +419,7 @@ class SharedLibrary(BuildTarget):
     def __init__(self, name, subdir, is_cross, sources, objects, environment, kwargs):
         self.version = None
         self.soversion = None
-        super().__init__(name, subdir, is_cross, sources, environment, kwargs);
+        super().__init__(name, subdir, is_cross, sources, objects, environment, kwargs);
         self.prefix = environment.get_shared_lib_prefix()
         self.suffix = environment.get_shared_lib_suffix()
 

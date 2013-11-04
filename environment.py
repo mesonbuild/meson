@@ -733,6 +733,9 @@ def find_cppcheck():
 def is_osx():
     return platform.system().lower() == 'darwin'
 
+def is_linux():
+    return platform.system().lower() == 'linux'
+
 def is_windows():
     return platform.system().lower() == 'windows'
 

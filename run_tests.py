@@ -107,6 +107,12 @@ def gather_tests(testdir):
 def run_tests():
     commontests = gather_tests('test cases/common')
     failtests = gather_tests('test cases/failing')
+    objtests = gather_tests('test cases/prebuilt object')
+    if environment.is_linux():
+        cpuid = platform.machine()
+        if cpuid != 'x86_64' and cpuid != 'i386':
+            # Don't have a prebuilt object file for those so skip.
+            objtests = []
     if environment.is_osx():
         platformtests = gather_tests('test cases/osx')
     elif environment.is_windows():
@@ -133,6 +139,11 @@ def run_tests():
     [run_test(t) for t in commontests]
     print('\nRunning failing tests.\n')
     [run_test(t, False) for t in failtests]
+    if len(objtests) > 0:
+        print('\nRunning object inclusion tests.\n')
+        [run_test(t) for t in objtests]
+    else:
+        print('\nNo object inclusion tests.\n')
     if len(platformtests) > 0:
         print('\nRunning platform dependent tests.\n')
         [run_test(t) for t in platformtests]
