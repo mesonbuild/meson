@@ -312,23 +312,23 @@ class Man(InterpreterObject):
         return self.sources
 
 class BuildTargetHolder(InterpreterObject):
-    def __init__(self, targetttype, name, subdir, is_cross, sources, environment, kwargs):
-        self.target = targetttype(name, subdir, is_cross, sources, environment, kwargs)
+    def __init__(self, targetttype, name, subdir, is_cross, sources, objects, environment, kwargs):
+        self.target = targetttype(name, subdir, is_cross, sources, objects, environment, kwargs)
     
     def is_cross(self):
         return self.target.is_cross()
 
 class ExecutableHolder(BuildTargetHolder):
-    def __init__(self, name, subdir, is_cross, sources, environment, kwargs):
-        super().__init__(build.Executable, name, subdir, is_cross, sources, environment, kwargs)
+    def __init__(self, name, subdir, is_cross, sources, objects, environment, kwargs):
+        super().__init__(build.Executable, name, subdir, is_cross, sources, objects, environment, kwargs)
 
 class StaticLibraryHolder(BuildTargetHolder):
-    def __init__(self, name, subdir, is_cross, sources, environment, kwargs):
-        super().__init__(build.StaticLibrary, name, subdir, is_cross, sources, environment, kwargs)
+    def __init__(self, name, subdir, is_cross, sources, objects, environment, kwargs):
+        super().__init__(build.StaticLibrary, name, subdir, is_cross, sources, objects, environment, kwargs)
 
 class SharedLibraryHolder(BuildTargetHolder):
-    def __init__(self, name, subdir, is_cross, sources, environment, kwargs):
-        super().__init__(build.SharedLibrary, name, subdir, is_cross, sources, environment, kwargs)
+    def __init__(self, name, subdir, is_cross, sources, objects, environment, kwargs):
+        super().__init__(build.SharedLibrary, name, subdir, is_cross, sources, objects, environment, kwargs)
 
 class Test(InterpreterObject):
     def __init__(self, name, exe, is_parallel, cmd_args, env):
@@ -985,10 +985,13 @@ class Interpreter():
         except KeyError:
             kw_src = []
         sources += kw_src
+        objs = self.flatten(kwargs.get('objects', []))
+        if not isinstance(objs, list):
+            objs = [objs]
         if name in self.build.targets:
             raise InvalidCode('Tried to create target "%s", but a target of that name already exists.' % name)
         self.check_sources_exist(os.path.join(self.environment.source_dir, self.subdir), sources)
-        l = targetclass(name, self.subdir, is_cross, sources, self.environment, kwargs)
+        l = targetclass(name, self.subdir, is_cross, sources, objs, self.environment, kwargs)
         self.build.targets[name] = l.target
         if self.environment.is_cross_build() and l.is_cross:
             txt = ' cross build '

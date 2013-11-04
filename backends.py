@@ -171,6 +171,12 @@ class Backend():
         for src in target.get_sources():
             if not self.environment.is_header(src):
                 obj_list.append(self.generate_single_compile(target, outfile, src, False, header_deps))
+        for obj in target.get_objects():
+            if isinstance(obj, str):
+                o = os.path.join(self.build_to_src, target.get_subdir(), obj)
+            else:
+                raise MesonException('Unknown data type in object list.')
+            obj_list.append(o)
         elem = self.generate_link(target, outfile, outname, obj_list)
         self.generate_shlib_aliases(target, self.get_target_dir(target), outfile, elem)
         self.processed_targets[name] = True

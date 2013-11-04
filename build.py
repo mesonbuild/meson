@@ -91,11 +91,12 @@ class IncludeDirs():
         return self.incdirs
 
 class BuildTarget():
-    def __init__(self, name, subdir, is_cross, sources, environment, kwargs):
+    def __init__(self, name, subdir, is_cross, sources, objects, environment, kwargs):
         self.name = name
         self.subdir = subdir
         self.is_cross = is_cross
         self.sources = []
+        self.objects = []
         self.external_deps = []
         self.include_dirs = []
         self.link_targets = []
@@ -105,9 +106,18 @@ class BuildTarget():
         self.extra_args = {}
         self.generated = []
         self.process_sourcelist(sources)
+        self.process_objectlist(objects)
         self.process_kwargs(kwargs)
         if len(self.sources) == 0 and len(self.generated) == 0:
             raise InvalidArguments('Build target %s has no sources.' % name)
+
+    def process_objectlist(self, objects):
+        assert(isinstance(objects, list))
+        for s in objects:
+            if isinstance(s, str):
+                self.objects.append(s)
+            else:
+                raise InvalidArguments('Bad object in target %s.' % self.name)
 
     def process_sourcelist(self, sources):
         if not isinstance(sources, list):
@@ -214,6 +224,9 @@ class BuildTarget():
 
     def get_sources(self):
         return self.sources
+
+    def get_objects(self):
+        return self.objects
 
     def get_generated_sources(self):
         return self.generated
@@ -386,8 +399,8 @@ class GeneratedList():
         return self.generator
 
 class Executable(BuildTarget):
-    def __init__(self, name, subdir, is_cross, sources, environment, kwargs):
-        super().__init__(name, subdir, is_cross, sources, environment, kwargs)
+    def __init__(self, name, subdir, is_cross, sources, objects, environment, kwargs):
+        super().__init__(name, subdir, is_cross, sources, objects, environment, kwargs)
         suffix = environment.get_exe_suffix()
         if suffix != '':
             self.filename = self.name + '.' + suffix
@@ -396,14 +409,14 @@ class Executable(BuildTarget):
 
 
 class StaticLibrary(BuildTarget):
-    def __init__(self, name, subdir, is_cross, sources, environment, kwargs):
-        super().__init__(name, subdir, is_cross, sources, environment, kwargs)
+    def __init__(self, name, subdir, is_cross, sources, objects, environment, kwargs):
+        super().__init__(name, subdir, is_cross, sources, objects, environment, kwargs)
         prefix = environment.get_static_lib_prefix()
         suffix = environment.get_static_lib_suffix()
         self.filename = prefix + self.name + '.' + suffix
 
 class SharedLibrary(BuildTarget):
-    def __init__(self, name, subdir, is_cross, sources, environment, kwargs):
+    def __init__(self, name, subdir, is_cross, sources, objects, environment, kwargs):
         self.version = None
         self.soversion = None
         super().__init__(name, subdir, is_cross, sources, environment, kwargs);
