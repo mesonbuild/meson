@@ -9,7 +9,26 @@
 
 project('prebuilt object', 'c')
 
-object = 'linux-amd64.o'
+if host.name() == 'darwin'
+  object = 'osx.o'
+elif host.name() == 'linux'
+  if meson.get_compiler('c').sizeof('void*') == 8
+    object = 'linux-amd64.o'
+  else
+    object = 'linux-i386.o'
+  endif
+elif host.name() == 'windows'
+  id = meson.get_compiler('c').get_id()
+  if id == 'gcc'
+    object = 'mingw.obj'
+  elif id == 'msvc'
+    object = 'msvc.obj'
+  else
+    error('Unknown compiler.')
+  endif
+else
+  error('Unknown platform.')
+endif
 
 # Remember: do not put source.c in this
 # declaration. Only the prebuilt object. 
