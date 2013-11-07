@@ -56,6 +56,9 @@ class CCompiler():
     def get_always_flags(self):
         return []
 
+    def get_linker_always_flags(self):
+        return []
+
     def get_soname_flags(self, shlib_name, path):
         return []
 
@@ -437,6 +440,9 @@ class VisualStudioCCompiler(CCompiler):
     def get_linker_exelist(self):
         return ['link'] # FIXME, should have same path as compiler.
 
+    def get_linker_always_flags(self):
+        return ['/nologo']
+
     def get_linker_output_flags(self, outputname):
         return ['/OUT:' + outputname]
 
@@ -668,6 +674,9 @@ class VisualStudioLinker():
     def get_always_flags(self):
         return VisualStudioLinker.always_flags
 
+    def get_linker_always_flags(self):
+        return VisualStudioLinker.always_flags
+
     def build_rpath_args(self, build_dir, rpath_paths):
         return []
 
@@ -682,12 +691,15 @@ class ArLinker():
 
     def get_exelist(self):
         return self.exelist
-    
+
     def get_std_link_flags(self):
         return self.std_flags
 
     def get_output_flags(self, target):
         return [target]
+
+    def get_linker_always_flags(self):
+        return []
 
     def get_coverage_link_flags(self):
         return []

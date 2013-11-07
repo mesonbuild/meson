@@ -874,6 +874,7 @@ class NinjaBackend(Backend):
         linker_rule = linker_base + crstr + '_LINKER'
         abspath = os.path.join(self.environment.get_build_dir(), target.subdir)
         commands = []
+        commands += linker.get_linker_always_flags()
         if isinstance(target, build.Executable):
             commands += linker.get_std_exe_link_flags()
         elif isinstance(target, build.SharedLibrary):
