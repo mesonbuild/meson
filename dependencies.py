@@ -198,7 +198,7 @@ class BoostDependency(Dependency):
             self.detect_lib_modules()
             self.validate_requested()
             if self.boost_root is not None:
-                info = self.version + ', root:' + self.boost_root
+                info = self.version + ', ' + self.boost_root
             else:
                 info = self.version
             mlog.log('Dependency Boost (%s) found:' % module_str, mlog.green('YES'),
