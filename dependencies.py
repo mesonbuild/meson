@@ -275,8 +275,8 @@ class BoostDependency(Dependency):
             # FIXME, these are in gcc format, not msvc.
             # On the other hand, so are the flags that
             # pkg-config returns.
-            flags += '-I' + os.path.join(self.boost_root, 'include')
-            flags += '-L' + os.path.join(self.boost_root, 'lib')
+            flags.append('-I' + os.path.join(self.boost_root, 'include'))
+            flags.append('-L' + os.path.join(self.boost_root, 'lib'))
         for module in self.requested_modules:
             if module in self.lib_modules or module in self.lib_modules_mt:
                 linkcmd = '-lboost_' + module
