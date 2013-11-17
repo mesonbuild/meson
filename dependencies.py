@@ -207,7 +207,10 @@ class BoostDependency(Dependency):
             mlog.log("Dependency Boost (%s) found:" % module_str, mlog.red('NO'))
 
     def get_compile_flags(self):
-        return []
+        flags = []
+        if self.boost_root is not None:
+            flags.append('-I' + os.path.join(self.boost_root, 'include'))
+        return flags
 
     def get_requested(self, kwargs):
         modules = 'modules'
@@ -275,7 +278,6 @@ class BoostDependency(Dependency):
             # FIXME, these are in gcc format, not msvc.
             # On the other hand, so are the flags that
             # pkg-config returns.
-            flags.append('-I' + os.path.join(self.boost_root, 'include'))
             flags.append('-L' + os.path.join(self.boost_root, 'lib'))
         for module in self.requested_modules:
             if module in self.lib_modules or module in self.lib_modules_mt:
