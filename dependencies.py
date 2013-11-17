@@ -177,7 +177,16 @@ class BoostDependency(Dependency):
     def __init__(self, kwargs):
         Dependency.__init__(self)
         self.name = 'boost'
-        self.incdir = '/usr/include/boost'
+        try:
+            self.boost_root = os.environ['BOOST_ROOT']
+            if not os.path.isabs(self.boost_root):
+                raise DependencyException('BOOST_ROOT must be an absolute path.')
+        except KeyError:
+            self.boost_root = None
+        if self.boost_root is None:
+            self.incdir = '/usr/include/boost'
+        else:
+            self.incdir = os.path.join(self.boost_root, 'include')
         self.src_modules = {}
         self.lib_modules = {}
         self.lib_modules_mt = {}
@@ -188,7 +197,12 @@ class BoostDependency(Dependency):
             self.detect_src_modules()
             self.detect_lib_modules()
             self.validate_requested()
-            mlog.log('Dependency Boost (%s) found:' % module_str, mlog.green('YES'), '(' + self.version + ')')
+            if self.boost_root is not None:
+                info = self.version + ', root:' + self.boost_root
+            else:
+                info = self.version
+            mlog.log('Dependency Boost (%s) found:' % module_str, mlog.green('YES'),
+                     '(' + info + ')')
         else:
             mlog.log("Dependency Boost (%s) found:" % module_str, mlog.red('NO'))
 
@@ -240,7 +254,10 @@ class BoostDependency(Dependency):
 
     def detect_lib_modules(self):
         globber = 'libboost_*.so' # FIXME, make platform independent.
-        libdirs = environment.get_library_dirs()
+        if self.boost_root is None:
+            libdirs = environment.get_library_dirs()
+        else:
+            libdirs = [os.path.join(self.boost_root, 'lib')]
         for libdir in libdirs:
             for entry in glob.glob(os.path.join(libdir, globber)):
                 lib = os.path.basename(entry)
