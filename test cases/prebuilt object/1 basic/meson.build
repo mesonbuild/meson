@@ -17,6 +17,12 @@ elif host.name() == 'linux'
   else
     object = 'linux-i386.o'
   endif
+elif host.name() == 'freebsd'
+  if meson.get_compiler('c').sizeof('void*') == 8
+    object = 'freebsd-amd64.o'
+  else
+    object = 'freebsd-i386.o'
+  endif
 elif host.name() == 'windows'
   id = meson.get_compiler('c').get_id()
   if id == 'gcc'
