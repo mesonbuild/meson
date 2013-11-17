@@ -186,7 +186,7 @@ class BoostDependency(Dependency):
         if self.boost_root is None:
             self.incdir = '/usr/include/boost'
         else:
-            self.incdir = os.path.join(self.boost_root, 'include')
+            self.incdir = os.path.join(self.boost_root, 'include/boost')
         self.src_modules = {}
         self.lib_modules = {}
         self.lib_modules_mt = {}
