@@ -166,10 +166,13 @@ class Backend():
                     obj_list.append(self.generate_single_compile(target, outfile, src, True))
                 else:
                     header_deps.append(src)
+        src_list = []
         for src in gen_src_deps:
+                src_list.append(src)
                 obj_list.append(self.generate_single_compile(target, outfile, src, True))
         for src in target.get_sources():
             if not self.environment.is_header(src):
+                src_list.append(src)
                 obj_list.append(self.generate_single_compile(target, outfile, src, False, header_deps))
         for obj in target.get_objects():
             if isinstance(obj, str):
@@ -179,9 +182,31 @@ class Backend():
                 obj_list += self.determine_ext_objs(obj)
             else:
                 raise MesonException('Unknown data type in object list.')
-        elem = self.generate_link(target, outfile, outname, obj_list)
+        linker = self.determine_linker(target, src_list)
+        elem = self.generate_link(target, outfile, outname, obj_list, linker)
         self.generate_shlib_aliases(target, self.get_target_dir(target), outfile, elem)
         self.processed_targets[name] = True
+
+    def determine_linker(self, target, src):
+        if isinstance(target, build.StaticLibrary):
+            return self.build.static_linker
+        if len(self.build.compilers) == 1:
+            return self.build.compilers[0]
+        # Currently a bit naive. C++ must
+        # be linked with a C++ compiler, but
+        # otherwise we don't care. This will
+        # become trickier if and when Fortran
+        # and the like become supported.
+        cpp = None
+        for c in self.build.compilers:
+            if c.get_language() == 'cpp':
+                cpp = c
+                break
+        if cpp is not None:
+            for s in src:
+                if c.can_compile(s):
+                    return cpp
+        return self.build.compilers[0]
 
     def determine_ext_objs(self, extobj):
         result = []
@@ -859,12 +884,10 @@ class NinjaBackend(Backend):
             elem.add_item('CROSS', '--cross-host=' + self.environment.cross_info['name'])
         elem.write(outfile)
 
-    def generate_link(self, target, outfile, outname, obj_list):
+    def generate_link(self, target, outfile, outname, obj_list, linker):
         if isinstance(target, build.StaticLibrary):
-            linker = self.build.static_linker
             linker_base = 'STATIC'
         else:
-            linker = self.build.compilers[0]
             linker_base = linker.get_language() # Fixme.
         if isinstance(target, build.SharedLibrary):
             self.generate_shsym(outfile, target)

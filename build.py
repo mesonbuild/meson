@@ -350,12 +350,12 @@ class Generator():
         
         if hasattr(args[0], 'held_object'):
             exe = args[0].held_object
+            if not isinstance(exe, Executable):
+                raise InvalidArguments('First generator argument must be an executable.')
         elif hasattr(args[0], 'ep'):
             exe = args[0].ep
         else:
             raise InvalidArguments('First generator argument must be an executable object.')
-        if not isinstance(exe, Executable):
-            raise InvalidArguments('First generator argument must be an executable.')
         self.exe = exe
         self.process_kwargs(kwargs)
 
