@@ -48,7 +48,7 @@ else:
     install_root = os.path.join(options.destdir, options.prefix[1:])
 
 script_dir = os.path.join(install_root, 'share/meson-' + version)
-bin_dir = os.path.join(install_root, 'bin')
+bin_dir = os.path.join(install_root, 'usr/bin')
 bin_script = os.path.join(script_dir, 'meson.py')
 gui_script = os.path.join(script_dir, 'mesongui.py')
 bin_name = os.path.join(bin_dir, 'meson')
@@ -56,6 +56,8 @@ gui_name = os.path.join(bin_dir, 'mesongui')
 man_dir = os.path.join(install_root, 'share/man/man1')
 in_manfile = 'man/meson.1'
 out_manfile = os.path.join(man_dir, 'meson.1.gz')
+in_guimanfile = 'man/mesongui.1'
+out_guimanfile = os.path.join(man_dir, 'mesongui.1.gz')
 
 symlink_value = os.path.relpath(bin_script, os.path.dirname(bin_name))
 guisymlink_value = os.path.relpath(gui_script, os.path.dirname(gui_name))
@@ -84,3 +86,4 @@ os.symlink(symlink_value, bin_name)
 os.symlink(guisymlink_value, gui_name)
 print('Installing manfile to %s.' % man_dir)
 open(out_manfile, 'wb').write(gzip.compress(open(in_manfile, 'rb').read()))
+open(out_guimanfile, 'wb').write(gzip.compress(open(in_guimanfile, 'rb').read()))
