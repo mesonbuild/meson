@@ -48,7 +48,7 @@ else:
     install_root = os.path.join(options.destdir, options.prefix[1:])
 
 script_dir = os.path.join(install_root, 'share/meson-' + version)
-bin_dir = os.path.join(install_root, 'usr/bin')
+bin_dir = os.path.join(install_root, 'bin')
 bin_script = os.path.join(script_dir, 'meson.py')
 gui_script = os.path.join(script_dir, 'mesongui.py')
 bin_name = os.path.join(bin_dir, 'meson')
