@@ -614,6 +614,7 @@ class Interpreter():
                       'option' : self.func_option,
                       'get_option' : self.func_get_option,
                       'subproject' : self.func_subproject,
+                      'is_subproject' : self.func_is_subproject,
                       }
 
     def get_build_def_files(self):
@@ -729,6 +730,9 @@ class Interpreter():
 
     def func_option(self, nodes, args, kwargs):
         raise InterpreterException('Tried to call option() in build description file. All options must be in the option file.')
+
+    def func_is_subproject(self, nodes, args, kwargs):
+        return self.subproject != ''
 
     def func_subproject(self, nodes, args, kwargs):
         if len(args) != 1:

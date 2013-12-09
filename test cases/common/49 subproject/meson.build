@@ -2,6 +2,10 @@ project('subproj user', 'c')
 
 sub = subproject('sublib')
 
+if is_subproject()
+  error('Claimed to be a subproject even though we are the master project.')
+endif
+
 inc = sub.get_variable('i')
 lib = sub.get_variable('l')
 
