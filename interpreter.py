@@ -740,7 +740,7 @@ class Interpreter():
             raise InterpreterException('Subprojects must be defined at the root directory.')
         if self.subproject != '':
             raise InterpreterException('Subprojects of subprojects are not yet supported.')
-        if dirname in self.subprojects:
+        if dirname in self.build.subprojects:
             raise InterpreterException('Tried to add the same subproject twice.')
         subdir = os.path.join(self.subproject, self.subdir, dirname)
         abs_subdir = os.path.join(self.build.environment.get_source_dir(), subdir)
@@ -751,6 +751,7 @@ class Interpreter():
         subi = Interpreter(self.build, subdir)
         subi.run()
         mlog.log('\nSubproject finished.\n')
+        self.build.subprojects[dirname] = True
         self.subprojects[dirname] = SubprojectHolder(subi)
         return self.subprojects[dirname]
 

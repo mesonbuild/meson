@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import os, sys, re, pickle
-import interpreter, nodes
+import nodes
 import environment, mlog
 from meson_install import InstallData
 from build import InvalidArguments
@@ -1023,6 +1023,10 @@ class NinjaBackend(Backend):
         deps.append('meson-private/coredata.dat')
         if os.path.exists(os.path.join(self.environment.get_source_dir(), 'meson_options.txt')):
             deps.append(os.path.join(self.build_to_src, 'meson_options.txt'))
+        for sp in self.build.subprojects.keys():
+            fname = os.path.join(self.environment.get_source_dir(), sp, 'meson_options.txt')
+            if os.path.isfile(fname):
+                deps.append(os.path.join(self.build_to_src, sp, 'meson_options.txt'))
         elem = NinjaBuildElement('build.ninja', 'REGENERATE_BUILD', deps)
         elem.write(outfile)
 

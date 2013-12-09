@@ -40,6 +40,7 @@ class Build:
         self.static_cross_linker = None
         self.configure_files = []
         self.pot = []
+        self.subprojects = {}
 
     def add_compiler(self, compiler):
         if len(self.compilers) == 0:
