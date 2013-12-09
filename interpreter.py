@@ -1004,6 +1004,8 @@ class Interpreter():
         for a in args:
             if not isinstance(a, str):
                 raise InvalidArguments('Argument %s is not a string.' % str(a))
+        if self.subproject != '':
+            raise InvalidCode('Global flags can not be set in subprojects because there is no way to make that reliable.')
         if self.global_flags_frozen:
             raise InvalidCode('Tried to set global flags after they have become immutable.')
         if not 'language' in kwargs:
