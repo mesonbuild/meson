@@ -356,6 +356,11 @@ class Test(InterpreterObject):
     def get_name(self):
         return self.name
 
+class SubprojectHolder(InterpreterObject):
+    def __init(self):
+        super().__init__()
+        
+
 class CompilerHolder(InterpreterObject):
     def __init__(self, compiler, env):
         InterpreterObject.__init__(self)
@@ -537,10 +542,11 @@ class MesonMain(InterpreterObject):
 
 class Interpreter():
 
-    def __init__(self, build):
+    def __init__(self, build, subproject=''):
         self.build = build
+        self.subproject = subproject
         code = open(os.path.join(build.environment.get_source_dir(),\
-                                 environment.build_filename)).read()
+                                 subproject, environment.build_filename)).read()
         if len(code.strip()) == 0:
             raise InvalidCode('Builder file is empty.')
         assert(isinstance(code, str))
@@ -562,6 +568,8 @@ class Interpreter():
         self.subdir = ''
         self.generators = []
         self.visited_subdirs = {}
+        self.global_flags_frozen = False
+        self.subprojects = {}
 
     def build_func_dict(self):
         self.funcs = {'project' : self.func_project, 
@@ -587,6 +595,7 @@ class Interpreter():
                       'gettext' : self.func_gettext,
                       'option' : self.func_option,
                       'get_option' : self.func_get_option,
+                      'subproject' : self.func_subproject,
                       }
 
     def get_build_def_files(self):
@@ -703,6 +712,26 @@ class Interpreter():
     def func_option(self, nodes, args, kwargs):
         raise InterpreterException('Tried to call option() in build description file. All options must be in the option file.')
 
+    def func_subproject(self, nodes, args, kwargs):
+        if len(args) != 1:
+            raise InterpreterException('Subproject takes exactly one argument')
+        dirname = args[0]
+        if not isinstance(dirname, str):
+            raise InterpreterException('Subproject argument must be a string')
+        if self.subproject != '':
+            raise InterpreterException('Subprojects of subprojects are not yet supported.')
+        if dirname in self.subprojects:
+            raise InterpreterException('Tried to add the same subproject twice.')
+        subdir = os.path.join(self.subproject, self.subdir, dirname)
+        abs_subdir = os.path.join(self.build.environment.get_source_dir(), subdir)
+        if not os.path.isdir(abs_subdir):
+            raise InterpreterException('Subproject directory does not exist.')
+        self.global_flags_frozen = True
+        subi = Interpreter(self.build, subdir)
+        subi.run()
+        self.subprojects[dirname] = SubprojectHolder()
+        return self.subprojects[dirname]
+
     def func_get_option(self, nodes, args, kwargs):
         if len(args) != 1:
             raise InterpreterException('Argument required for get_option.')
@@ -726,10 +755,10 @@ class Interpreter():
         for a in args:
             if not isinstance(a, str):
                 raise InvalidArguments('Argument %s is not a string.' % str(a))
-        if self.build.project is not None:
+        if self.subproject in self.build.projects:
             raise InvalidCode('Second call to project().')
-        self.build.project = args[0]
-        mlog.log('Project name is "', mlog.bold(self.build.project), '".', sep='')
+        self.build.projects[self.subproject] = args[0]
+        mlog.log('Project name is "', mlog.bold(args[0]), '".', sep='')
         self.add_languages(node, args[1:])
 
     def func_message(self, node, args, kwargs):
@@ -949,8 +978,8 @@ class Interpreter():
         for a in args:
             if not isinstance(a, str):
                 raise InvalidArguments('Argument %s is not a string.' % str(a))
-        if len(self.build.get_targets()) > 0:
-            raise InvalidCode('Global flags can not be set once any build target is defined.')
+        if self.global_flags_frozen:
+            raise InvalidCode('Tried to set global flags after they have become immutable.')
         if not 'language' in kwargs:
             raise InvalidCode('Missing language definition in add_global_arguments')
         lang = kwargs['language'].lower()
@@ -1011,6 +1040,7 @@ class Interpreter():
         else:
             txt = ' build '
         mlog.log('Creating', txt, 'target "', mlog.bold(name), '" with %d files.' % len(sources), sep='')
+        self.global_flags_frozen = True
         return l
 
     def check_sources_exist(self, subdir, sources):

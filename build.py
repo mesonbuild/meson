@@ -27,7 +27,7 @@ class Build:
 
     def __init__(self, environment):
         self.environment = environment
-        self.project = None
+        self.projects = {}
         self.targets = {}
         self.compilers = []
         self.cross_compilers = []
