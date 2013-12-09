@@ -52,7 +52,7 @@ class Build:
         self.cross_compilers.append(compiler)
 
     def get_project(self):
-        return self.project
+        return self.projects['']
 
     def get_targets(self):
         return self.targets

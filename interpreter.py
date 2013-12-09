@@ -357,9 +357,21 @@ class Test(InterpreterObject):
         return self.name
 
 class SubprojectHolder(InterpreterObject):
-    def __init(self):
+
+    def __init__(self, subinterpreter):
         super().__init__()
-        
+        self.subinterpreter = subinterpreter
+        self.methods.update({
+                             'get_variable' : self.get_variable_method,
+                             })
+
+    def get_variable_method(self, args, kwargs):
+        if len(args) != 1:
+            raise InterpreterException('Get_variable takes one argument.')
+        varname = args[0]
+        if not isinstance(varname, str):
+            raise InterpreterException('Get_variable takes a string argument.')
+        return self.subinterpreter.variables[varname]
 
 class CompilerHolder(InterpreterObject):
     def __init__(self, compiler, env):
@@ -545,8 +557,8 @@ class Interpreter():
     def __init__(self, build, subproject=''):
         self.build = build
         self.subproject = subproject
-        code = open(os.path.join(build.environment.get_source_dir(),\
-                                 subproject, environment.build_filename)).read()
+        self.source_root = os.path.join(build.environment.get_source_dir(), subproject)
+        code = open(os.path.join(self.source_root, environment.build_filename)).read()
         if len(code.strip()) == 0:
             raise InvalidCode('Builder file is empty.')
         assert(isinstance(code, str))
@@ -729,7 +741,7 @@ class Interpreter():
         self.global_flags_frozen = True
         subi = Interpreter(self.build, subdir)
         subi.run()
-        self.subprojects[dirname] = SubprojectHolder()
+        self.subprojects[dirname] = SubprojectHolder(subi)
         return self.subprojects[dirname]
 
     def func_get_option(self, nodes, args, kwargs):
@@ -1032,7 +1044,7 @@ class Interpreter():
             objs = [objs]
         if name in self.build.targets:
             raise InvalidCode('Tried to create target "%s", but a target of that name already exists.' % name)
-        self.check_sources_exist(os.path.join(self.environment.source_dir, self.subdir), sources)
+        self.check_sources_exist(os.path.join(self.source_root, self.subdir), sources)
         l = targetclass(name, self.subdir, is_cross, sources, objs, self.environment, kwargs)
         self.build.targets[name] = l.held_object
         if self.environment.is_cross_build() and l.is_cross:
@@ -1047,7 +1059,7 @@ class Interpreter():
         for s in sources:
             if not isinstance(s, str):
                 continue # This means a generated source and they always exist.
-            fname = os.path.join(subdir, s)
+            fname = os.path.join(self.subproject, subdir, s)
             if not os.path.isfile(fname):
                 raise InterpreterException('Tried to add non-existing source %s.' % s)
 
