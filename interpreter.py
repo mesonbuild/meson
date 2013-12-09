@@ -730,6 +730,8 @@ class Interpreter():
         dirname = args[0]
         if not isinstance(dirname, str):
             raise InterpreterException('Subproject argument must be a string')
+        if self.subdir != '':
+            raise InterpreterException('Subprojects must be defined at the root directory.')
         if self.subproject != '':
             raise InterpreterException('Subprojects of subprojects are not yet supported.')
         if dirname in self.subprojects:
@@ -985,7 +987,8 @@ class Interpreter():
         for a in args:
             if not isinstance(a, str):
                 raise InvalidArguments('Argument %s is not a string.' % str(a))
-        i = IncludeDirsHolder(self.subdir, args, kwargs)
+        curdir = os.path.join(self.subproject, self.subdir)
+        i = IncludeDirsHolder(curdir, args, kwargs)
         return i
 
     def func_add_global_arguments(self, node, args, kwargs):
@@ -1047,7 +1050,8 @@ class Interpreter():
         if name in self.build.targets:
             raise InvalidCode('Tried to create target "%s", but a target of that name already exists.' % name)
         self.check_sources_exist(os.path.join(self.source_root, self.subdir), sources)
-        l = targetclass(name, self.subdir, is_cross, sources, objs, self.environment, kwargs)
+        full_subdir = os.path.join(self.subproject, self.subdir)
+        l = targetclass(name, full_subdir, is_cross, sources, objs, self.environment, kwargs)
         self.build.targets[name] = l.held_object
         if self.environment.is_cross_build() and l.is_cross:
             txt = ' cross build '
