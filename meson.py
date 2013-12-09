@@ -17,7 +17,7 @@
 from optparse import OptionParser
 import sys, stat, traceback, pickle
 import os.path
-import environment, interpreter, optinterpreter
+import environment, interpreter
 import backends, build
 import mlog, coredata
 
@@ -121,11 +121,6 @@ itself as required.'''
         else:
             mlog.log('Build type:', mlog.bold('native build'))
         b = build.Build(env)
-        option_file = os.path.join(self.source_dir, 'meson_options.txt')
-        if os.path.exists(option_file):
-            oi = optinterpreter.OptionInterpreter()
-            oi.process(option_file)
-            env.merge_options(oi.options)
         intr = interpreter.Interpreter(b)
         intr.run()
         if options.backend == 'ninja':

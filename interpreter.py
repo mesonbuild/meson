@@ -19,6 +19,7 @@ import coredata
 import dependencies
 import mlog
 import build
+import optinterpreter
 import os, sys, platform, subprocess, shutil
 
 class InterpreterException(coredata.MesonException):
@@ -558,6 +559,11 @@ class Interpreter():
         self.build = build
         self.subproject = subproject
         self.source_root = os.path.join(build.environment.get_source_dir(), subproject)
+        option_file = os.path.join(self.source_root, 'meson_options.txt')
+        if os.path.exists(option_file):
+            oi = optinterpreter.OptionInterpreter(self.subproject)
+            oi.process(option_file)
+            self.build.environment.merge_options(oi.options)
         code = open(os.path.join(self.source_root, environment.build_filename)).read()
         if len(code.strip()) == 0:
             raise InvalidCode('Builder file is empty.')
@@ -754,6 +760,8 @@ class Interpreter():
         optname = args[0]
         if not isinstance(optname, str):
             raise InterpreterException('Argument of get_option must be a string.')
+        if self.subproject != '':
+            optname = self.subproject + '-' + optname
         if optname not in self.environment.coredata.user_options:
             raise InterpreterException('Tried to access unknown option "%s".' % optname)
         return self.environment.coredata.user_options[optname].value

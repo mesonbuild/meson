@@ -413,7 +413,7 @@ class MesonGui():
         self.ui.save_button.clicked.connect(self.save)
 
     def fill_data(self):
-        self.ui.project_label.setText(self.build.project)
+        self.ui.project_label.setText(self.build.projects[''])
         self.ui.srcdir_label.setText(self.src_dir)
         self.ui.builddir_label.setText(self.build_dir)
         if self.coredata.cross_file is None:

@@ -69,8 +69,9 @@ option_types = {'string' : UserStringOption,
                 }
 
 class OptionInterpreter:
-    def __init__(self):
+    def __init__(self, subproject):
         self.options = {}
+        self.subproject = subproject
     
     def process(self, option_file):
         try:
@@ -137,6 +138,8 @@ class OptionInterpreter:
         opt_name = posargs[0]
         if not isinstance(opt_name, str):
             raise OptionException('Positional argument must be a string.')
+        if self.subproject != '':
+            opt_name = self.subproject + '-' + opt_name
         opt = option_types[opt_type](kwargs)
         if opt.description == '':
             opt.description = opt_name
