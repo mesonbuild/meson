@@ -44,11 +44,17 @@ class Build:
     def add_compiler(self, compiler):
         if len(self.compilers) == 0:
             self.static_linker = self.environment.detect_static_linker(compiler)
+        for i in self.compilers:
+            if i.get_language() == compiler.get_language():
+                return
         self.compilers.append(compiler)
 
     def add_cross_compiler(self, compiler):
         if len(self.cross_compilers) == 0:
             self.static_cross_linker = self.environment.detect_static_linker(compiler)
+        for i in self.cross_compilers:
+            if i.get_language() == compiler.get_language():
+                return
         self.cross_compilers.append(compiler)
 
     def get_project(self):

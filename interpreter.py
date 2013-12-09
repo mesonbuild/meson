@@ -718,7 +718,7 @@ class Interpreter():
             raise InterpreterException('Argument languages must be a list of strings.')
         # TODO: check that elements are strings
         if len(self.build.pot) > 0:
-            raise InterpreterException('More than one gettext definitions currently not supported.')
+            raise InterpreterException('More than one gettext definition currently not supported.')
         self.build.pot.append((packagename, languages, self.subdir))
 
     def func_option(self, nodes, args, kwargs):
@@ -739,8 +739,10 @@ class Interpreter():
         if not os.path.isdir(abs_subdir):
             raise InterpreterException('Subproject directory does not exist.')
         self.global_flags_frozen = True
+        mlog.log('\nExecuting subproject ', mlog.bold(dirname), '.\n', sep='')
         subi = Interpreter(self.build, subdir)
         subi.run()
+        mlog.log('\nSubproject finished.\n')
         self.subprojects[dirname] = SubprojectHolder(subi)
         return self.subprojects[dirname]
 
