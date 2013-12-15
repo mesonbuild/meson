@@ -368,7 +368,8 @@ class ProcessRunner():
         self.ui.timelabel.setText(msg)
 
 class MesonGui():
-    def __init__(self, build_dir):
+    def __init__(self, respawner, build_dir):
+        self.respawner = respawner
         uifile = os.path.join(priv_dir, 'mesonmain.ui')
         self.ui = uic.loadUi(uifile)
         self.coredata_file = os.path.join(build_dir, 'meson-private/coredata.dat')
@@ -383,6 +384,9 @@ class MesonGui():
         self.build_models()
         self.options = OptionForm(self.coredata, self.ui.option_form)
         self.ui.show()
+
+    def hide(self):
+        self.ui.hide()
 
     def build_models(self):
         self.path_model = PathModel(self.coredata)
@@ -426,6 +430,9 @@ class MesonGui():
         cmdlist = [shutil.which(environment.detect_ninja())] + cmdlist
         dialog = ProcessRunner(self.build.environment.build_dir, cmdlist)
         dialog.run()
+        # All processes (at the moment) may change cache state
+        # so reload.
+        self.respawner.respawn()
 
     def compile(self, foo):
         self.run_process([])
@@ -435,7 +442,7 @@ class MesonGui():
 
     def install(self, foo):
         self.run_process(['install'])
-    
+
     def clean(self, foo):
         self.run_process(['clean'])
     
@@ -494,6 +501,20 @@ class Starter():
         if self.dialog.exec():
             self.ui.cross_entry.setText(self.dialog.selectedFiles()[0])
 
+# Rather than rewrite all classes and arrays to be
+# updateable, just rebuild the entire GUI from
+# scratch whenever data on disk changes.
+
+class MesonGuiRespawner():
+    def __init__(self, arg):
+        self.arg = arg
+        self.gui = MesonGui(self, self.arg)
+
+    def respawn(self):
+        self.gui.hide()
+        self.gui = MesonGui(self, self.arg)
+        # Garbage collection takes care of the old gui widget
+
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     if len(sys.argv) == 1:
@@ -504,7 +525,7 @@ if __name__ == '__main__':
         print(sys.argv[0], "<build or source dir>")
         sys.exit(1)
     if os.path.exists(os.path.join(arg, 'meson-private/coredata.dat')):
-        gui = MesonGui(arg)
+        guirespawner = MesonGuiRespawner(arg)
     else:
         runner = Starter(arg)
     sys.exit(app.exec_())
