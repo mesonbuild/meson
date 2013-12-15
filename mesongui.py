@@ -388,6 +388,18 @@ class MesonGui():
     def hide(self):
         self.ui.hide()
 
+    def geometry(self):
+        return self.ui.geometry()
+
+    def move(self, x, y):
+        return self.ui.move(x, y)
+
+    def size(self):
+        return self.ui.size()
+
+    def resize(self, s):
+        return self.ui.resize(s)
+
     def build_models(self):
         self.path_model = PathModel(self.coredata)
         self.target_model = TargetModel(self.build)
@@ -511,8 +523,12 @@ class MesonGuiRespawner():
         self.gui = MesonGui(self, self.arg)
 
     def respawn(self):
+        geo = self.gui.geometry()
+        s = self.gui.size()
         self.gui.hide()
         self.gui = MesonGui(self, self.arg)
+        self.gui.move(geo.x(), geo.y())
+        self.gui.resize(s)
         # Garbage collection takes care of the old gui widget
 
 if __name__ == '__main__':
