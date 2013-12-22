@@ -1,6 +1,5 @@
-This is an experiment to examine what would be
-the optimal syntax for a cross-platform build
-system.
+Meson is project to create the best possible next-generation
+build system.
 
 Dependencies
 
