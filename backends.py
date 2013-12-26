@@ -161,7 +161,7 @@ class Backend():
             language = comp.get_language()
             suffix = '.' + comp.get_default_suffix()
             if language not in langlist:
-                outfilename = os.path.join(self.get_target_private_dir(target), target.name + suffix)
+                outfilename = os.path.join(self.get_target_private_dir(target), target.name + '-unity' + suffix)
                 outfileabs = os.path.join(self.environment.get_build_dir(), outfilename)
                 outfileabs_tmp = outfileabs + '.tmp'
                 abs_files.append(outfileabs)
@@ -231,7 +231,7 @@ class Backend():
                 raise MesonException('Unknown data type in object list.')
         if is_unity:
             for src in self.generate_unity_files(target, unity_src):
-                obj_list.append(self.generate_single_compile(target, outfile, src, True, unity_deps))
+                obj_list.append(self.generate_single_compile(target, outfile, src, True, unity_deps + header_deps))
         linker = self.determine_linker(target, src_list)
         elem = self.generate_link(target, outfile, outname, obj_list, linker)
         self.generate_shlib_aliases(target, self.get_target_dir(target), outfile, elem)
