@@ -148,6 +148,16 @@ class Backend():
         os.makedirs(os.path.join(self.environment.get_build_dir(), dirname), exist_ok=True)
         return dirname
 
+    def generate_unity_files(self, target, unity_src):
+        outfilename = os.path.join(self.get_target_private_dir(target), target.name + '.c')
+        outfileabs = os.path.join(self.environment.get_build_dir(), outfilename)
+        outfile = open(outfileabs, 'w')
+        for src in unity_src:
+            outfile.write('#include<%s>\n' % src)
+        outfile.close()
+        return [outfilename]
+
+
     def generate_target(self, target, outfile):
         name = target.get_basename()
         if name in self.processed_targets:
@@ -157,23 +167,36 @@ class Backend():
         self.generate_custom_generator_rules(target, outfile)
         outname = self.get_target_filename(target)
         obj_list = []
-        if self.environment.coredata.use_pch and target.has_pch():
+        use_pch = self.environment.coredata.use_pch
+        is_unity = self.environment.coredata.unity
+        if use_pch and target.has_pch():
             self.generate_pch(target, outfile)
         header_deps = gen_other_deps
+        unity_src = []
         for genlist in target.get_generated_sources():
             for src in genlist.get_outfilelist():
                 if not self.environment.is_header(src):
-                    obj_list.append(self.generate_single_compile(target, outfile, src, True))
+                    if is_unity:
+                        unity_src.append(src)
+                    else:
+                        obj_list.append(self.generate_single_compile(target, outfile, src, True))
                 else:
                     header_deps.append(src)
         src_list = []
         for src in gen_src_deps:
                 src_list.append(src)
-                obj_list.append(self.generate_single_compile(target, outfile, src, True))
+                if is_unity:
+                    unity_src.append(src)
+                else:
+                    obj_list.append(self.generate_single_compile(target, outfile, src, True))
         for src in target.get_sources():
             if not self.environment.is_header(src):
                 src_list.append(src)
-                obj_list.append(self.generate_single_compile(target, outfile, src, False, header_deps))
+                if is_unity:
+                    abs_src = os.path.join(self.environment.get_source_dir(), src)
+                    unity_src.append(abs_src)
+                else:
+                    obj_list.append(self.generate_single_compile(target, outfile, src, False, header_deps))
         for obj in target.get_objects():
             if isinstance(obj, str):
                 o = os.path.join(self.build_to_src, target.get_subdir(), obj)
@@ -182,6 +205,9 @@ class Backend():
                 obj_list += self.determine_ext_objs(obj)
             else:
                 raise MesonException('Unknown data type in object list.')
+        if is_unity:
+            for src in self.generate_unity_files(target, unity_src):
+                obj_list.append(self.generate_single_compile(target, outfile, src, True))
         linker = self.determine_linker(target, src_list)
         elem = self.generate_link(target, outfile, outname, obj_list, linker)
         self.generate_shlib_aliases(target, self.get_target_dir(target), outfile, elem)

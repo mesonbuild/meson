@@ -35,6 +35,7 @@ class CoreData():
         self.buildtype = options.buildtype
         self.strip = options.strip
         self.use_pch = options.use_pch
+        self.unity = options.unity
         self.coverage = options.coverage
         self.user_options = {}
         if options.cross_file is not None:

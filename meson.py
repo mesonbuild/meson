@@ -60,6 +60,8 @@ parser.add_option('--enable-gcov', action='store_true', dest='coverage', default
                   help='measure test coverage')
 parser.add_option('--disable-pch', action='store_false', dest='use_pch', default=True,\
                   help='do not use precompiled headers')
+parser.add_option('--unity', action='store_true', dest='unity', default=True,\
+                  help='unity build')
 parser.add_option('--cross-file', default=None, dest='cross_file',
                   help='file describing cross compilation environment')
 
