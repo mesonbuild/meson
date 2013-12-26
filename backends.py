@@ -189,11 +189,18 @@ class Backend():
             self.generate_pch(target, outfile)
         header_deps = gen_other_deps
         unity_src = []
+        unity_deps = [] # Generated sources that must be built before compiling a Unity target.
         for genlist in target.get_generated_sources():
             for src in genlist.get_outfilelist():
                 if not self.environment.is_header(src):
                     if is_unity:
-                        unity_src.append(src)
+                        if '/' in src:
+                            rel_src = src
+                        else:
+                            rel_src = os.path.join(self.get_target_private_dir(target), src)
+                        unity_deps.append(rel_src)
+                        abs_src = os.path.join(self.environment.get_build_dir(), rel_src)
+                        unity_src.append(abs_src)
                     else:
                         obj_list.append(self.generate_single_compile(target, outfile, src, True))
                 else:
@@ -224,7 +231,7 @@ class Backend():
                 raise MesonException('Unknown data type in object list.')
         if is_unity:
             for src in self.generate_unity_files(target, unity_src):
-                obj_list.append(self.generate_single_compile(target, outfile, src, True))
+                obj_list.append(self.generate_single_compile(target, outfile, src, True, unity_deps))
         linker = self.determine_linker(target, src_list)
         elem = self.generate_link(target, outfile, outname, obj_list, linker)
         self.generate_shlib_aliases(target, self.get_target_dir(target), outfile, elem)
