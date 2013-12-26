@@ -209,7 +209,8 @@ class Backend():
             if not self.environment.is_header(src):
                 src_list.append(src)
                 if is_unity:
-                    abs_src = os.path.join(self.environment.get_source_dir(), src)
+                    abs_src = os.path.join(self.environment.get_source_dir(),
+                                           target.get_subdir(), src)
                     unity_src.append(abs_src)
                 else:
                     obj_list.append(self.generate_single_compile(target, outfile, src, False, header_deps))
