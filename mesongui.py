@@ -254,6 +254,10 @@ class OptionForm:
         pch.setChecked(self.coredata.use_pch)
         pch.stateChanged.connect(self.pch_changed)
         self.form.addRow('Enable pch', pch)
+        unity = QCheckBox("")
+        unity.setChecked(self.coredata.unity)
+        unity.stateChanged.connect(self.unity_changed)
+        self.form.addRow('Unity build', unity)
         form.addRow(PyQt5.QtWidgets.QLabel("Project options"))
         self.set_user_options()
 
@@ -323,6 +327,13 @@ class OptionForm:
         else:
             ns = True
         self.coredata.use_pch = ns
+
+    def unity_changed(self, newState):
+        if newState == 0:
+            ns = False
+        else:
+            ns = True
+        self.coredata.unity = ns
 
 class ProcessRunner():
     def __init__(self, rundir, cmdlist):
