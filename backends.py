@@ -74,6 +74,17 @@ def do_mesondefine(line, confdata):
     else:
         raise build.InvalidArguments('#mesondefine argument "%s" is of unknown type.' % varname)
 
+def replace_if_different(dst, dst_tmp):
+    # If contents are identical, don't touch the file to prevent
+    # unnecessary rebuilds.
+    try:
+        if open(dst, 'r').read() == open(dst_tmp, 'r').read():
+            os.unlink(dst_tmp)
+            return
+    except FileNotFoundError:
+        pass
+    os.replace(dst_tmp, dst)
+
 def do_conf_file(src, dst, confdata):
     data = open(src).readlines()
     regex = re.compile('@(.*?)@')
@@ -86,14 +97,7 @@ def do_conf_file(src, dst, confdata):
         result.append(line)
     dst_tmp = dst + '~'
     open(dst_tmp, 'w').writelines(result)
-    # If contents are identical, don't touch the file to prevent
-    # unnecessary rebuilds.
-    try:
-        if open(dst, 'r').read() == open(dst_tmp, 'r').read():
-            return
-    except FileNotFoundError:
-        pass
-    os.replace(dst_tmp, dst)
+    replace_if_different(dst, dst_tmp)
 
 class TestSerialisation:
     def __init__(self, name, fname, is_cross, exe_wrapper, is_parallel, cmd_args, env):
@@ -149,14 +153,26 @@ class Backend():
         return dirname
 
     def generate_unity_files(self, target, unity_src):
-        outfilename = os.path.join(self.get_target_private_dir(target), target.name + '.c')
-        outfileabs = os.path.join(self.environment.get_build_dir(), outfilename)
-        outfile = open(outfileabs, 'w')
+        langlist = {}
+        abs_files = []
+        result = []
         for src in unity_src:
-            outfile.write('#include<%s>\n' % src)
-        outfile.close()
-        return [outfilename]
-
+            comp = self.get_compiler_for_source(src)
+            language = comp.get_language()
+            suffix = '.' + comp.get_default_suffix()
+            if language not in langlist:
+                outfilename = os.path.join(self.get_target_private_dir(target), target.name + suffix)
+                outfileabs = os.path.join(self.environment.get_build_dir(), outfilename)
+                outfileabs_tmp = outfileabs + '.tmp'
+                abs_files.append(outfileabs)
+                outfile = open(outfileabs_tmp, 'w')
+                langlist[language] = outfile
+                result.append(outfilename)
+            ofile = langlist[language]
+            ofile.write('#include<%s>\n' % src)
+        [x.close() for x in langlist.values()]
+        [replace_if_different(x, x + '.tmp') for x in abs_files]
+        return result
 
     def generate_target(self, target, outfile):
         name = target.get_basename()

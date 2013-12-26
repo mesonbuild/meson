@@ -80,6 +80,9 @@ class CCompiler():
     def get_language(self):
         return self.language
 
+    def get_default_suffix(self):
+        return self.default_suffix
+
     def get_exelist(self):
         return self.exelist[:]
     
