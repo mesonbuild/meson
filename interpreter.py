@@ -522,13 +522,14 @@ class MesonMain(InterpreterObject):
         self.methods.update({'get_compiler': self.get_compiler_method,
                              'is_cross_build' : self.is_cross_build_method,
                              'has_exe_wrapper' : self.has_exe_wrapper_method,
+                             'is_unity' : self.is_unity_method,
                              })
 
     def has_exe_wrapper_method(self, args, kwargs):
         if self.is_cross_build_method(None, None):
             return 'exe_wrap' in  self.build.environment.cross_info
         return True # This is semantically confusing.
-        
+
     def is_cross_build_method(self, args, kwargs):
         return self.build.environment.is_cross_build()
 
@@ -552,6 +553,9 @@ class MesonMain(InterpreterObject):
             if c.get_language() == cname:
                 return CompilerHolder(c, self.build.environment)
         raise InterpreterException('Tried to access compiler for unspecified language "%s".' % cname)
+
+    def is_unity_method(self, args, kwargs):
+        return self.build.environment.coredata.unity
 
 class Interpreter():
 
@@ -1181,6 +1185,8 @@ class Interpreter():
         else:
             obj = self.evaluate_statement(invokable)
         method_name = node.method_name.get_value()
+        if method_name == 'extract_objects' and self.environment.coredata.unity:
+            raise InterpreterException('Single object files can not be extracted in Unity builds.')
         args = node.arguments
         if isinstance(obj, nodes.StringStatement):
             obj = obj.get_value()
