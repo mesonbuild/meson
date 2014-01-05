@@ -40,17 +40,38 @@ class Conf:
             raise ConfException('Version mismatch (%s vs %s)' %
                                 (coredata.version, self.coredata.version))
 
+    def print_aligned(self, arr):
+        longest = max((len(x[0]) for x in arr))
+        for i in arr:
+            name = i[0]
+            value = i[1]
+            padding = ' '*(longest - len(name))
+            f = '%s:%s' % (name, padding)
+            print(f, value)
+
     def print_conf(self):
         print('Core properties\n')
         print('Source dir:', self.build.environment.source_dir)
         print('Build dir: ', self.build.environment.build_dir)
         print('')
-        print('Build options\n')
-        print('Build type:', self.coredata.buildtype)
-        print('Strip:', self.coredata.strip)
-        print('Coverage:', self.coredata.coverage)
-        print('Pch:', self.coredata.use_pch)
-        print('Unity:', self.coredata.unity)
+        print('Core options\n')
+        carr = []
+        carr.append(['Build type', self.coredata.buildtype])
+        carr.append(['Strip on install', self.coredata.strip])
+        carr.append(['Coverage', self.coredata.coverage])
+        carr.append(['Precompiled headers', self.coredata.use_pch])
+        carr.append(['Unity build', self.coredata.unity])
+        self.print_aligned(carr)
+        print('')
+        print('Project options\n')
+        options = self.coredata.user_options
+        keys = list(options.keys())
+        keys.sort()
+        optarr = []
+        for key in keys:
+            opt = options[key]
+            optarr.append([key, opt.value])
+        self.print_aligned(optarr)
 
 if __name__ == '__main__':
     (options, args) = parser.parse_args(sys.argv)
