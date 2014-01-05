@@ -62,16 +62,16 @@ class Conf:
             return True
         if thing.lower() == 'false':
             return False
-        raise ConfException('Value %s is not boolean (true or false)' % thing)
+        raise ConfException('Value %s is not boolean (true or false).' % thing)
 
     def set_options(self, options):
         for o in options:
             if '=' not in o:
-                raise ConfException('Value "%s" not of type "a=b"' % o)
+                raise ConfException('Value "%s" not of type "a=b".' % o)
             (k, v) = o.split('=', 1)
             if k == 'type':
                 if v not in build_types:
-                    raise ConfException('Invalid build type %s' % v)
+                    raise ConfException('Invalid build type %s.' % v)
                 self.coredata.buildtype = v
             elif k == 'strip':
                 self.coredata.strip = self.tobool(v)
