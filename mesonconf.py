@@ -17,7 +17,7 @@
 import sys, os
 import pickle
 from optparse import OptionParser
-import coredata
+import coredata, optinterpreter
 from meson import build_types
 
 usage_info = '%prog [build dir] [set commands]'
@@ -82,6 +82,22 @@ class Conf:
                 self.coredata.use_pch = self.tobool(v)
             elif k == 'unity':
                 self.coredata.unity = self.tobool(v)
+            else:
+                if k not in self.coredata.user_options:
+                    raise ConfException('Unknown option %s.' % k)
+                tgt = self.coredata.user_options[k]
+                if isinstance(tgt, optinterpreter.UserBooleanOption):
+                    tgt.set_value(self.tobool(v))
+                elif isinstance(tgt, optinterpreter.UserComboOption):
+                    try:
+                        tgt.set_value(v)
+                    except optinterpreter.OptionException:
+                        raise ConfException('Value of %s must be one of %s.' %
+                                            (k, tgt.choices))
+                elif isinstance(tgt, optinterpreter.UserStringOption):
+                    tgt.set_value(v)
+                else:
+                    raise ConfException('Internal error, unknown option type.')
 
     def print_conf(self):
         print('Core properties\n')
