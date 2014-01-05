@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright 2012 Jussi Pakkanen
+# Copyright 2012-2014 Jussi Pakkanen
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,11 +21,11 @@ import environment, interpreter
 import backends, build
 import mlog, coredata
 
-from coredata import version, MesonException
+from coredata import MesonException
 
 usage_info = '%prog [options] source_dir build_dir'
 
-parser = OptionParser(usage=usage_info, version=version)
+parser = OptionParser(usage=usage_info, version=coredata.version)
 
 build_types = ['plain', 'debug', 'optimized']
 buildtype_help = 'build type, one of: %s' % ', '.join(build_types)
