@@ -1,4 +1,4 @@
-# Copyright 2013 Jussi Pakkanen
+# Copyright 2013-2014 Jussi Pakkanen
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,6 +16,13 @@ import mparser
 import coredata
 import nodes
 import os
+
+forbidden_option_names = {'type': True,
+                          'strip': True,
+                          'coverage': True,
+                          'pch': True,
+                          'unity': True,
+                          }
 
 class OptionException(coredata.MesonException):
     pass
@@ -138,6 +145,8 @@ class OptionInterpreter:
         opt_name = posargs[0]
         if not isinstance(opt_name, str):
             raise OptionException('Positional argument must be a string.')
+        if opt_name in forbidden_option_names:
+            raise OptionException('Option name %s is reserved.' % opt_name)
         if self.subproject != '':
             opt_name = self.subproject + '-' + opt_name
         opt = option_types[opt_type](kwargs)

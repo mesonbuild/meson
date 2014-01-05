@@ -18,10 +18,14 @@ import sys, os
 import pickle
 from optparse import OptionParser
 import coredata
+from meson import build_types
 
-usage_info = '%prog [build dir]'
+usage_info = '%prog [build dir] [set commands]'
 
 parser = OptionParser(usage=usage_info, version=coredata.version)
+
+parser.add_option('-D', action='append', default=[], dest='sets',
+                  help='Set an option to the given value.')
 
 class ConfException(Exception):
     def __init__(self, *args, **kwargs):
@@ -40,6 +44,10 @@ class Conf:
             raise ConfException('Version mismatch (%s vs %s)' %
                                 (coredata.version, self.coredata.version))
 
+    def save(self):
+        # Only called if something has changed so overwrite unconditionally.
+        pickle.dump(self.coredata, open(self.coredata_file, 'wb'))
+
     def print_aligned(self, arr):
         longest = max((len(x[0]) for x in arr))
         for i in arr:
@@ -48,6 +56,32 @@ class Conf:
             padding = ' '*(longest - len(name))
             f = '%s:%s' % (name, padding)
             print(f, value)
+
+    def tobool(self, thing):
+        if thing.lower() == 'true':
+            return True
+        if thing.lower() == 'false':
+            return False
+        raise ConfException('Value %s is not boolean (true or false)' % thing)
+
+    def set_options(self, options):
+        for o in options:
+            if '=' not in o:
+                raise ConfException('Value "%s" not of type "a=b"' % o)
+            (k, v) = o.split('=', 1)
+            if k == 'type':
+                if v not in build_types:
+                    raise ConfException('Invalid build type %s' % v)
+                self.coredata.buildtype = v
+            elif k == 'strip':
+                self.coredata.strip = self.tobool(v)
+            elif k == 'coverage':
+                v = self.tobool(v)
+                self.coredata.coverage = self.tobool(v)
+            elif k == 'pch':
+                self.coredata.use_pch = self.tobool(v)
+            elif k == 'unity':
+                self.coredata.unity = self.tobool(v)
 
     def print_conf(self):
         print('Core properties\n')
@@ -86,7 +120,11 @@ if __name__ == '__main__':
         builddir = args[-1]
     try:
         c = Conf(builddir)
-        c.print_conf()
+        if len(options.sets) > 0:
+            c.set_options(options.sets)
+            c.save()
+        else:
+            c.print_conf()
     except ConfException as e:
         print('Meson configurator encountered an error:\n')
         print(e)
