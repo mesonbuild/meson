@@ -1,0 +1,25 @@
+.TH MESONCONF "1" "December 2013" "mesonconf 0.11.0" "User Commands"
+.SH NAME
+mesonconf - a tool to configure Meson builds
+.SH DESCRIPTION
+
+Mesonconf provides a way to configure a Meson
+project from the command line. Its usage is simple.
+
+.B mesonconf [
+.I build directory
+.B ] [
+.I options to set
+.B ]
+
+If build directory is omitted, the current directory is used instead.
+
+If no parameters are set, mesonconf will print the value of all build
+options to the console.
+
+To set values, just use the -D command line argument like this.
+
+.B mesonconf -Dopt1=value1 -Dopt2=value2
+
+.SH SEE ALSO
+https://sourceforge.net/p/meson

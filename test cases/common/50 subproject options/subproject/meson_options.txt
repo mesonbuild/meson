@@ -1,1 +1,1 @@
-option('opt', type : 'boolean', value : false)
+option('opt', type : 'boolean', value : false, description : 'subproject option')

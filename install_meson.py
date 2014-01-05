@@ -20,7 +20,7 @@
 
 import os, sys, glob, shutil, gzip
 from optparse import OptionParser
-from meson import version
+from coredata import version
 
 usage_info = '%prog [--prefix PREFIX] [--destdir DESTDIR]'
 
@@ -51,16 +51,21 @@ script_dir = os.path.join(install_root, 'share/meson-' + version)
 bin_dir = os.path.join(install_root, 'bin')
 bin_script = os.path.join(script_dir, 'meson.py')
 gui_script = os.path.join(script_dir, 'mesongui.py')
+conf_script = os.path.join(script_dir, 'mesonconf.py')
 bin_name = os.path.join(bin_dir, 'meson')
 gui_name = os.path.join(bin_dir, 'mesongui')
+conf_name = os.path.join(bin_dir, 'mesonconf')
 man_dir = os.path.join(install_root, 'share/man/man1')
 in_manfile = 'man/meson.1'
 out_manfile = os.path.join(man_dir, 'meson.1.gz')
 in_guimanfile = 'man/mesongui.1'
 out_guimanfile = os.path.join(man_dir, 'mesongui.1.gz')
+in_confmanfile = 'man/mesonconf.1'
+out_confmanfile = os.path.join(man_dir, 'mesonconf.1.gz')
 
 symlink_value = os.path.relpath(bin_script, os.path.dirname(bin_name))
 guisymlink_value = os.path.relpath(gui_script, os.path.dirname(gui_name))
+confsymlink_value = os.path.relpath(conf_script, os.path.dirname(conf_name))
 files = glob.glob('*.py')
 files += glob.glob('*.ui')
 
@@ -84,6 +89,8 @@ except OSError:
 print('Creating symlinks %s and %s.' % (bin_name, gui_name))
 os.symlink(symlink_value, bin_name)
 os.symlink(guisymlink_value, gui_name)
-print('Installing manfile to %s.' % man_dir)
+os.symlink(confsymlink_value, conf_name)
+print('Installing manfiles to %s.' % man_dir)
 open(out_manfile, 'wb').write(gzip.compress(open(in_manfile, 'rb').read()))
+open(out_confmanfile, 'wb').write(gzip.compress(open(in_confmanfile, 'rb').read()))
 open(out_guimanfile, 'wb').write(gzip.compress(open(in_guimanfile, 'rb').read()))
