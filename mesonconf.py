@@ -49,12 +49,15 @@ class Conf:
         pickle.dump(self.coredata, open(self.coredata_file, 'wb'))
 
     def print_aligned(self, arr):
-        longest = max((len(x[0]) for x in arr))
+        longest_name = max((len(x[0]) for x in arr))
+        longest_descr = max((len(x[1]) for x in arr))
         for i in arr:
             name = i[0]
-            value = i[1]
-            padding = ' '*(longest - len(name))
-            f = '%s:%s' % (name, padding)
+            descr = i[1]
+            value = i[2]
+            namepad = ' '*(longest_name - len(name))
+            descrpad = ' '*(longest_descr - len(descr))
+            f = '%s%s %s%s' % (name, namepad, descr, descrpad)
             print(f, value)
 
     def tobool(self, thing):
@@ -101,16 +104,16 @@ class Conf:
 
     def print_conf(self):
         print('Core properties\n')
-        print('Source dir:', self.build.environment.source_dir)
-        print('Build dir: ', self.build.environment.build_dir)
+        print('Source dir', self.build.environment.source_dir)
+        print('Build dir ', self.build.environment.build_dir)
         print('')
         print('Core options\n')
         carr = []
-        carr.append(['Build type', self.coredata.buildtype])
-        carr.append(['Strip on install', self.coredata.strip])
-        carr.append(['Coverage', self.coredata.coverage])
-        carr.append(['Precompiled headers', self.coredata.use_pch])
-        carr.append(['Unity build', self.coredata.unity])
+        carr.append(['type', 'Build type', self.coredata.buildtype])
+        carr.append(['strip', 'Strip on install', self.coredata.strip])
+        carr.append(['coverage', 'Coverage', self.coredata.coverage])
+        carr.append(['pch', 'Precompiled headers', self.coredata.use_pch])
+        carr.append(['unity', 'Unity build', self.coredata.unity])
         self.print_aligned(carr)
         print('')
         print('Project options\n')
@@ -120,7 +123,7 @@ class Conf:
         optarr = []
         for key in keys:
             opt = options[key]
-            optarr.append([key, opt.value])
+            optarr.append([key, opt.description, opt.value])
         self.print_aligned(optarr)
 
 if __name__ == '__main__':
