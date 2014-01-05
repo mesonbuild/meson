@@ -15,6 +15,7 @@
 # limitations under the License.
 
 import sys, os
+import pickle
 from optparse import OptionParser
 import coredata
 
@@ -33,13 +34,30 @@ class Conf:
         self.build_file = os.path.join(build_dir, 'meson-private/build.dat')
         if not os.path.isfile(self.coredata_file) or not os.path.isfile(self.build_file):
             raise ConfException('Directory %s does not seem to be a Meson build directory.' % build_dir)
+        self.coredata = pickle.load(open(self.coredata_file, 'rb'))
+        self.build = pickle.load(open(self.build_file, 'rb'))
+        if self.coredata.version != coredata.version:
+            raise ConfException('Version mismatch (%s vs %s)' %
+                                (coredata.version, self.coredata.version))
+
+    def print_conf(self):
+        print('Core properties\n')
+        print('Source dir:', self.build.environment.source_dir)
+        print('Build dir: ', self.build.environment.build_dir)
+        print('')
+        print('Build options\n')
+        print('Build type:', self.coredata.buildtype)
+        print('Strip:', self.coredata.strip)
+        print('Coverage:', self.coredata.coverage)
+        print('Pch:', self.coredata.use_pch)
+        print('Unity:', self.coredata.unity)
 
 if __name__ == '__main__':
     (options, args) = parser.parse_args(sys.argv)
     if len(args) > 2:
         print(args)
         print('%s <build directory>' % sys.argv[0])
-        print('If you omit build directory, the current directory is substituted.')
+        print('If you omit the build directory, the current directory is substituted.')
         sys.exit(1)
     if len(args) == 1:
         builddir = os.getcwd()
@@ -47,6 +65,7 @@ if __name__ == '__main__':
         builddir = args[-1]
     try:
         c = Conf(builddir)
+        c.print_conf()
     except ConfException as e:
         print('Meson configurator encountered an error:\n')
         print(e)
