@@ -22,8 +22,17 @@ usage_info = '%prog [build dir]'
 
 parser = OptionParser(usage=usage_info, version=coredata.version)
 
-def print_conf(builddir):
-    pass
+class ConfException(Exception):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+class Conf:
+    def __init__(self, build_dir):
+        self.build_dir = build_dir
+        self.coredata_file = os.path.join(build_dir, 'meson-private/coredata.dat')
+        self.build_file = os.path.join(build_dir, 'meson-private/build.dat')
+        if not os.path.isfile(self.coredata_file) or not os.path.isfile(self.build_file):
+            raise ConfException('Directory %s does not seem to be a Meson build directory.' % build_dir)
 
 if __name__ == '__main__':
     (options, args) = parser.parse_args(sys.argv)
@@ -36,5 +45,9 @@ if __name__ == '__main__':
         builddir = os.getcwd()
     else:
         builddir = args[-1]
-    print_conf(builddir)
+    try:
+        c = Conf(builddir)
+    except ConfException as e:
+        print('Meson configurator encountered an error:\n')
+        print(e)
 
