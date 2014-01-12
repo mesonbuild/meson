@@ -88,18 +88,32 @@ class Conf:
             elif k == 'unity':
                 self.coredata.unity = self.tobool(v)
             elif k == 'installprefix':
+                if not os.path.isabs(v):
+                    raise ConfException('Install prefix %s is not an absolute path.' % v)
                 self.coredata.prefix = v
             elif k == 'libdir':
+                if os.path.isabs(v):
+                    raise ConfException('Library dir %s must not be an absolute path.' % v)
                 self.coredata.libdir = v
             elif k == 'bindir':
+                if os.path.isabs(v):
+                    raise ConfException('Binary dir %s must not be an absolute path.' % v)
                 self.coredata.bindir = v
             elif k == 'includedir':
+                if os.path.isabs(v):
+                    raise ConfException('Include dir %s must not be an absolute path.' % v)
                 self.coredata.includedir = v
             elif k == 'datadir':
+                if os.path.isabs(v):
+                    raise ConfException('Data dir %s must not be an absolute path.' % v)
                 self.coredata.datadir = v
             elif k == 'mandir':
+                if os.path.isabs(v):
+                    raise ConfException('Man dir %s must not be an absolute path.' % v)
                 self.coredata.mandir = v
             elif k == 'localedir':
+                if os.path.isabs(v):
+                    raise ConfException('Locale dir %s must not be an absolute path.' % v)
                 self.coredata.localedir = v
             else:
                 if k not in self.coredata.user_options:
