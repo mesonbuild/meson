@@ -22,6 +22,13 @@ forbidden_option_names = {'type': True,
                           'coverage': True,
                           'pch': True,
                           'unity': True,
+                          'installprefix': True,
+                          'libdir' : True,
+                          'bindir' : True,
+                          'includedir' : True,
+                          'datadir' : True,
+                          'mandir' : True,
+                          'localedir' : True,
                           }
 
 class OptionException(coredata.MesonException):

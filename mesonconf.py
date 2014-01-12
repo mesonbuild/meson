@@ -87,6 +87,20 @@ class Conf:
                 self.coredata.use_pch = self.tobool(v)
             elif k == 'unity':
                 self.coredata.unity = self.tobool(v)
+            elif k == 'installprefix':
+                self.coredata.prefix = v
+            elif k == 'libdir':
+                self.coredata.libdir = v
+            elif k == 'bindir':
+                self.coredata.bindir = v
+            elif k == 'includedir':
+                self.coredata.includedir = v
+            elif k == 'datadir':
+                self.coredata.datadir = v
+            elif k == 'mandir':
+                self.coredata.mandir = v
+            elif k == 'localedir':
+                self.coredata.localedir = v
             else:
                 if k not in self.coredata.user_options:
                     raise ConfException('Unknown option %s.' % k)
@@ -113,10 +127,21 @@ class Conf:
         carr = []
         carr.append(['type', 'Build type', self.coredata.buildtype])
         carr.append(['strip', 'Strip on install', self.coredata.strip])
-        carr.append(['coverage', 'Coverage', self.coredata.coverage])
+        carr.append(['coverage', 'Coverage report', self.coredata.coverage])
         carr.append(['pch', 'Precompiled headers', self.coredata.use_pch])
         carr.append(['unity', 'Unity build', self.coredata.unity])
         self.print_aligned(carr)
+        print('')
+        print('Directories\n')
+        parr = []
+        parr.append(['installprefix', 'Install prefix', self.coredata.prefix])
+        parr.append(['libdir', 'Library directory', self.coredata.libdir])
+        parr.append(['bindir', 'Binary directory', self.coredata.bindir])
+        parr.append(['includedir', 'Header directory', self.coredata.includedir])
+        parr.append(['datadir', 'Data directory', self.coredata.datadir])
+        parr.append(['mandir', 'Man page directory', self.coredata.mandir])
+        parr.append(['localedir', 'Locale file directory', self.coredata.localedir])
+        self.print_aligned(parr)
         print('')
         print('Project options\n')
         options = self.coredata.user_options
