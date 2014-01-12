@@ -49,6 +49,8 @@ class Conf:
         pickle.dump(self.coredata, open(self.coredata_file, 'wb'))
 
     def print_aligned(self, arr):
+        if len(arr) == 0:
+            return
         longest_name = max((len(x[0]) for x in arr))
         longest_descr = max((len(x[1]) for x in arr))
         for i in arr:
