@@ -299,7 +299,6 @@ class BuildTarget():
             target = target.held_object
         if not isinstance(target, StaticLibrary) and \
         not isinstance(target, SharedLibrary):
-            print(target)
             raise InvalidArguments('Link target is not library.')
         self.link_targets.append(target)
 
