@@ -1001,10 +1001,14 @@ class Interpreter():
         conf.mark_used()
 
     def func_include_directories(self, node, args, kwargs):
+        curdir = os.path.join(self.subproject, self.subdir)
+        absbase = os.path.join(self.environment.get_source_dir(), curdir)
         for a in args:
             if not isinstance(a, str):
                 raise InvalidArguments('Argument %s is not a string.' % str(a))
-        curdir = os.path.join(self.subproject, self.subdir)
+            absdir = os.path.join(absbase, a)
+            if not os.path.isdir(absdir):
+                raise InvalidArguments('Include dir %s does not exist.' % a)
         i = IncludeDirsHolder(curdir, args, kwargs)
         return i
 

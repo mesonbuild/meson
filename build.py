@@ -86,8 +86,8 @@ class IncludeDirs():
     def __init__(self, curdir, dirs, kwargs):
         self.curdir = curdir
         self.incdirs = dirs
-        # Fixme: check that the directories actually exist.
-        # Also that they don't contain ".." or somesuch.
+        # Interpreter has validated that all given directories
+        # actually exist.
         if len(kwargs) > 0:
             raise InvalidArguments('Includedirs function does not take keyword arguments.')
 
