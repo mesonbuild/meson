@@ -1,4 +1,4 @@
-# Copyright 2012-2013 Jussi Pakkanen
+# Copyright 2012-2014 Jussi Pakkanen
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
 
 import pickle, os
 
-version = '0.12.0-research'
+version = '0.12.0'
 
 # This class contains all data that must persist over multiple
 # invocations of Meson. It is roughly the same thing as
