@@ -424,9 +424,16 @@ class Qt5Dependency(Dependency):
         if self.moc.found():
             mp = subprocess.Popen([self.moc.get_command(), '-v'],
                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            moc_ver = mp.communicate()[1].decode().strip()
-            if 'Qt 5' not in moc_ver:
-                raise DependencyException('Moc preprocessor is not for Qt 5. Output: %s' % moc_ver)
+            (stdout, stderr) = mp.communicate()
+            stdout = stdout.decode().strip()
+            stderr = stderr.decode().strip()
+            if 'Qt 5' in stderr:
+                moc_ver = stderr
+            elif '5.' in stdout:
+                moc_ver = stdout
+            else:
+                raise DependencyException('Moc preprocessor is not for Qt 5. Output:\n%s\n%s' %
+                                          (stdout, stderr))
             mlog.log(' moc:', mlog.green('YES'), '(%s)' % moc_ver)
         else:
             mlog.log(' moc:', mlog.red('NO'))
