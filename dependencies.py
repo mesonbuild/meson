@@ -440,9 +440,16 @@ class Qt5Dependency(Dependency):
         if self.uic.found():
             up = subprocess.Popen([self.uic.get_command(), '-v'],
                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            uic_ver = up.communicate()[1].decode().strip()
-            if 'version 5.' not in uic_ver:
-                raise DependencyException('Uic compiler is not for Qt 5. Output: %s' % uic_ver)
+            (stdout, stderr) = up.communicate()
+            stdout = stdout.decode().strip()
+            stderr = stderr.decode().strip()
+            if 'version 5.' in stderr:
+                uic_ver = stderr
+            elif '5.' in stdout:
+                uic_ver = stdout
+            else:
+                raise DependencyException('Uic compiler is not for Qt 5. Output:\n%s\n%s' %
+                                          (stdout, stderr))
             mlog.log(' uic:', mlog.green('YES'), '(%s)' % uic_ver)
         else:
             mlog.log(' uic:', mlog.red('NO'))
