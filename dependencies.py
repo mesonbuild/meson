@@ -454,11 +454,18 @@ class Qt5Dependency(Dependency):
         else:
             mlog.log(' uic:', mlog.red('NO'))
         if self.rcc.found():
-            up = subprocess.Popen([self.rcc.get_command(), '-v'],
+            rp = subprocess.Popen([self.rcc.get_command(), '-v'],
                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            rcc_ver = up.communicate()[1].decode().strip()
-            if 'version 5.' not in rcc_ver:
-                raise DependencyException('Rcc compiler is not for Qt 5. Output: %s' % rcc_ver)
+            (stdout, stderr) = rp.communicate()
+            stdout = stdout.decode().strip()
+            stderr = stderr.decode().strip()
+            if 'version 5.' in stderr:
+                rcc_ver = stderr
+            elif '5.' in stdout:
+                rcc_ver = stdout
+            else:
+                raise DependencyException('Rcc compiler is not for Qt 5. Output:\n%s\n%s' %
+                                          (stdout, stderr))
             mlog.log(' rcc:', mlog.green('YES'), '(%s)' % rcc_ver)
         else:
             mlog.log(' rcc:', mlog.red('NO'))
