@@ -41,6 +41,7 @@ class Build:
         self.configure_files = []
         self.pot = []
         self.subprojects = {}
+        self.pkgconfig_gens = []
 
     def add_compiler(self, compiler):
         if len(self.compilers) == 0:
@@ -522,3 +523,19 @@ class ConfigurationData():
 
     def keys(self):
         return self.values.keys()
+
+class PkgConfigGenerator():
+    def __init__(self, libraries, headers, name, description, version, filebase):
+        self.libraries = []
+        for l in libraries:
+            if hasattr(l, 'held_object'):
+                self.libraries.append(l.held_object)
+            else:
+                self.libraries.append(l)
+        self.headerdirs = {}
+        for h in headers:
+            self.headerdirs[h.subdir] = True
+        self.name = name
+        self.description = description
+        self.version = version
+        self.filebase = filebase

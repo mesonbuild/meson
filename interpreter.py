@@ -278,7 +278,6 @@ class Headers(InterpreterObject):
         return self.sources
 
 class Data(InterpreterObject):
-    
     def __init__(self, subdir, sources, kwargs):
         InterpreterObject.__init__(self)
         self.subdir = subdir
@@ -619,6 +618,7 @@ class Interpreter():
                       'get_option' : self.func_get_option,
                       'subproject' : self.func_subproject,
                       'is_subproject' : self.func_is_subproject,
+                      'pkgconfig_gen' : self.func_pkgconfig_gen,
                       }
 
     def get_build_def_files(self):
@@ -734,6 +734,36 @@ class Interpreter():
 
     def func_option(self, nodes, args, kwargs):
         raise InterpreterException('Tried to call option() in build description file. All options must be in the option file.')
+
+    def func_pkgconfig_gen(self, nodes, args, kwargs):
+        if len(args) > 0:
+            raise InterpreterException('Pkgconfig_gen takes no positional arguments.')
+        libs = kwargs.get('libraries', [])
+        if not isinstance(libs, list):
+            libs = [libs]
+        for l in libs:
+            if not (isinstance(l, SharedLibraryHolder) or isinstance(l, StaticLibraryHolder)):
+                raise InterpreterException('Library argument not a library object.')
+        headers = kwargs.get('headers', [])
+        if not isinstance(headers, list):
+            headers = [headers]
+        for h in headers:
+            if not isinstance(h, Headers):
+                raise InterpreterException('Header argument not a Headers object.')
+        version = kwargs.get('version', '')
+        if not isinstance(version, str):
+            raise InterpreterException('Version must be a string.')
+        name = kwargs.get('name', None)
+        if not isinstance(name, str):
+            raise InterpreterException('Name not specified.')
+        filebase = kwargs.get('filebase', None)
+        if not isinstance(filebase, str):
+            raise InterpreterException('Filebase not specified.')
+        description = kwargs.get('description', None)
+        if not isinstance(description, str):
+            raise InterpreterException('Description is not a string.')
+        p = build.PkgConfigGenerator(libs, headers, name, description, version, filebase)
+        self.build.pkgconfig_gens.append(p)
 
     def func_is_subproject(self, nodes, args, kwargs):
         return self.subproject != ''

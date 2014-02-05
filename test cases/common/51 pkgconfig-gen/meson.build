@@ -1,0 +1,8 @@
+project('pkgconfig-gen', 'c')
+
+lib = shared_library('simple', 'simple.c', install : true)
+libver = '1.0'
+h = headers('simple.h')
+
+pkgconfig_gen(libraries : lib, headers : h, version : libver,
+name : 'libsimple', filebase : 'simple', description : 'This is a simple library.')
