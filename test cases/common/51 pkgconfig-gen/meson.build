@@ -5,4 +5,4 @@ libver = '1.0'
 h = headers('simple.h')
 
 pkgconfig_gen(libraries : lib, headers : h, version : libver,
-name : 'libsimple', filebase : 'simple', description : 'This is a simple library.')
+name : 'libsimple', filebase : 'simple', description : 'A simple demo library.')

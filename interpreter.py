@@ -756,9 +756,9 @@ class Interpreter():
         name = kwargs.get('name', None)
         if not isinstance(name, str):
             raise InterpreterException('Name not specified.')
-        filebase = kwargs.get('filebase', None)
+        filebase = kwargs.get('filebase', name)
         if not isinstance(filebase, str):
-            raise InterpreterException('Filebase not specified.')
+            raise InterpreterException('Filebase must be a string.')
         description = kwargs.get('description', None)
         if not isinstance(description, str):
             raise InterpreterException('Description is not a string.')
