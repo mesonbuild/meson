@@ -521,6 +521,7 @@ class NinjaBackend(Backend):
         self.generate_man_install(d)
         self.generate_data_install(d)
         self.generate_po_install(d, elem)
+        self.generate_pkgconfig_install(d)
         elem.write(outfile)
 
         ofile = open(install_data_file, 'wb')
@@ -550,6 +551,18 @@ class NinjaBackend(Backend):
                     outdir = libdir
                 i = [self.get_target_filename(t), outdir, t.get_aliaslist(), should_strip]
                 d.targets.append(i)
+
+    def generate_pkgconfig_install(self, d):
+        pkgroot = os.path.join(self.environment.coredata.prefix,
+                               self.environment.coredata.libdir, 'pkgconfig')
+
+        for p in self.build.pkgconfig_gens:
+            pcfile = p.filebase + '.pc'
+            srcabs = os.path.join(self.environment.get_scratch_dir(),
+                                  pcfile)
+            dstabs = os.path.join(pkgroot, pcfile)
+            i = [srcabs, dstabs]
+            d.man.append(i)
 
     def generate_header_install(self, d):
         incroot = self.environment.get_includedir()
