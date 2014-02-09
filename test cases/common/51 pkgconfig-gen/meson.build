@@ -4,5 +4,5 @@ lib = shared_library('simple', 'simple.c', install : true)
 libver = '1.0'
 h = headers('simple.h')
 
-pkgconfig_gen(libraries : lib, headers : h, version : libver,
+pkgconfig_gen(libraries : lib, subdirs : '.', version : libver,
 name : 'libsimple', filebase : 'simple', description : 'A simple demo library.')

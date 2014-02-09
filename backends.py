@@ -352,7 +352,9 @@ class Backend():
                 ofile.write('-l%s ' % l.name)
             ofile.write('\n')
             ofile.write('CFlags: ')
-            for h in p.headerdirs.keys():
+            for h in p.subdirs:
+                if h == '.':
+                    h = ''
                 ofile.write(os.path.join('-I${includedir}', h))
                 ofile.write(' ')
             ofile.write('\n')

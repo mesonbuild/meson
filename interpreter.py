@@ -744,12 +744,12 @@ class Interpreter():
         for l in libs:
             if not (isinstance(l, SharedLibraryHolder) or isinstance(l, StaticLibraryHolder)):
                 raise InterpreterException('Library argument not a library object.')
-        headers = kwargs.get('headers', [])
-        if not isinstance(headers, list):
-            headers = [headers]
-        for h in headers:
-            if not isinstance(h, Headers):
-                raise InterpreterException('Header argument not a Headers object.')
+        subdirs = kwargs.get('subdirs', ['.'])
+        if not isinstance(subdirs, list):
+            subdirs = [subdirs]
+        for h in subdirs:
+            if not isinstance(h, str):
+                raise InterpreterException('Header argument not string.')
         version = kwargs.get('version', '')
         if not isinstance(version, str):
             raise InterpreterException('Version must be a string.')
@@ -762,7 +762,7 @@ class Interpreter():
         description = kwargs.get('description', None)
         if not isinstance(description, str):
             raise InterpreterException('Description is not a string.')
-        p = build.PkgConfigGenerator(libs, headers, name, description, version, filebase)
+        p = build.PkgConfigGenerator(libs, subdirs, name, description, version, filebase)
         self.build.pkgconfig_gens.append(p)
 
     def func_is_subproject(self, nodes, args, kwargs):
