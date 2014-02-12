@@ -293,6 +293,9 @@ class Data(InterpreterObject):
         if not isinstance(kwsource, list):
             kwsource = [kwsource]
         self.sources += kwsource
+        self.custom_install_dir = kwargs.get('install_dir', None)
+        if self.custom_install_dir is not None and not isinstance(self.custom_install_dir, str):
+            raise InterpreterException('Custom_install_dir must be a string.')
 
     def get_subdir(self):
         return self.subdir
@@ -300,20 +303,29 @@ class Data(InterpreterObject):
     def get_sources(self):
         return self.sources
 
+    def get_custom_install_dir(self):
+        return self.custom_install_dir
+
 class Man(InterpreterObject):
 
     def __init__(self, sources, kwargs):
         InterpreterObject.__init__(self)
         self.sources = sources
         self.validate_sources()
-        if len(kwargs) > 0:
-            raise InvalidArguments('Man function takes no keyword arguments.')
-        
+        if len(kwargs) > 1:
+            raise InvalidArguments('Man function takes at most one keyword arguments.')
+        self.custom_install_dir = kwargs.get('install_dir', None)
+        if self.custom_install_dir is not None and not isinstance(self.custom_install_dir, str):
+            raise InterpreterException('Custom_install_dir must be a string.')
+
     def validate_sources(self):
         for s in self.sources:
             num = int(s.split('.')[-1])
             if num < 1 or num > 8:
                 raise InvalidArguments('Man file must have a file extension of a number between 1 and 8')
+
+    def get_custom_install_dir(self):
+        return self.custom_install_dir
 
     def get_sources(self):
         return self.sources

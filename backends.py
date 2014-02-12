@@ -587,10 +587,11 @@ class NinjaBackend(Backend):
         for m in man:
             for f in m.get_sources():
                 num = f.split('.')[-1]
-                subdir = 'man' + num
+                subdir = m.get_custom_install_dir()
+                if subdir is None:
+                    subdir = os.path.join(manroot, 'man' + num)
                 srcabs = os.path.join(self.environment.get_source_dir(), f)
-                dstabs = os.path.join(manroot, 
-                                      os.path.join(subdir, f + '.gz'))
+                dstabs = os.path.join(subdir, f + '.gz')
                 i = [srcabs, dstabs]
                 d.man.append(i)
 
@@ -598,7 +599,9 @@ class NinjaBackend(Backend):
         dataroot = self.environment.get_datadir()
         data = self.build.get_data()
         for de in data:
-            subdir = os.path.join(dataroot, de.get_subdir())
+            subdir = de.get_custom_install_dir()
+            if subdir is None:
+                subdir = os.path.join(dataroot, de.get_subdir())
             for f in de.get_sources():
                 srcabs = os.path.join(self.environment.get_source_dir(), f)
                 dstabs = os.path.join(subdir, f)
