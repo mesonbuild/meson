@@ -194,6 +194,9 @@ class BuildTarget():
         for i in self.link_targets:
             result += i.get_rpaths()
         return result
+    
+    def get_custom_install_dir(self):
+        return self.custom_install_dir
 
     def process_kwargs(self, kwargs):
         self.copy_kwargs(kwargs)
@@ -236,6 +239,10 @@ class BuildTarget():
         if not isinstance(deplist, list):
             deplist = [deplist]
         self.add_external_deps(deplist)
+        self.custom_install_dir = kwargs.get('install_dir', None)
+        if self.custom_install_dir is not None:
+            if not isinstance(self.custom_install_dir, str):
+                raise InvalidArguments('Custom_install_dir must be a string')
 
     def get_subdir(self):
         return self.subdir

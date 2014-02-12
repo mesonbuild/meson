@@ -52,13 +52,13 @@ class TryRunResultHolder(InterpreterObject):
         
     def returncode_method(self, args, kwargs):
         return self.res.returncode
-    
+
     def compiled_method(self, args, kwargs):
         return self.res.compiled
     
     def stdout_method(self, args, kwargs):
         return self.res.stdout
-    
+
     def stderr_method(self, args, kwargs):
         return self.res.stderr
 
@@ -267,6 +267,10 @@ class Headers(InterpreterObject):
         InterpreterObject.__init__(self)
         self.sources = sources
         self.subdir = kwargs.get('subdir', '')
+        self.custom_install_dir = kwargs.get('install_dir', None)
+        if self.custom_install_dir is not None:
+            if not isinstance(self.custom_install_dir, str):
+                raise InterpreterException('Custom_install_dir must be a string.')
 
     def set_subdir(self, subdir):
         self.subdir = subdir
@@ -276,6 +280,9 @@ class Headers(InterpreterObject):
     
     def get_sources(self):
         return self.sources
+
+    def get_custom_install_dir(self):
+        return self.custom_install_dir
 
 class Data(InterpreterObject):
     def __init__(self, subdir, sources, kwargs):

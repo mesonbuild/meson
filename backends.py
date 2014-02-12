@@ -547,10 +547,12 @@ class NinjaBackend(Backend):
         should_strip = self.environment.coredata.strip
         for t in self.build.get_targets().values():
             if t.should_install():
-                if isinstance(t, build.Executable):
-                    outdir = bindir
-                else:
-                    outdir = libdir
+                outdir = t.get_custom_install_dir()
+                if outdir is None:
+                    if isinstance(t, build.Executable):
+                        outdir = bindir
+                    else:
+                        outdir = libdir
                 i = [self.get_target_filename(t), outdir, t.get_aliaslist(), should_strip]
                 d.targets.append(i)
 
@@ -571,7 +573,9 @@ class NinjaBackend(Backend):
         headers = self.build.get_headers()
 
         for h in headers:
-            outdir = os.path.join(incroot, h.get_subdir())
+            outdir = h.get_custom_install_dir()
+            if outdir is None:
+                outdir = os.path.join(incroot, h.get_subdir())
             for f in h.get_sources():
                 abspath = os.path.join(self.environment.get_source_dir(), f) # FIXME
                 i = [abspath, outdir]
