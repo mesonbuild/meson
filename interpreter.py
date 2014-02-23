@@ -610,6 +610,7 @@ class Interpreter():
         self.visited_subdirs = {}
         self.global_flags_frozen = False
         self.subprojects = {}
+        self.subproject_stack = []
 
     def build_func_dict(self):
         self.funcs = {'project' : self.func_project, 
@@ -795,10 +796,12 @@ class Interpreter():
             raise InterpreterException('Subproject argument must be a string')
         if self.subdir != '':
             raise InterpreterException('Subprojects must be defined at the root directory.')
-        if self.subproject != '':
-            raise InterpreterException('Subprojects of subprojects are not yet supported.')
-        if dirname in self.build.subprojects:
-            raise InterpreterException('Tried to add the same subproject twice.')
+        if dirname in self.subproject_stack:
+            fullstack = self.subdir_stack + [dirname]
+            incpath = ' => '.join(fullstack)
+            raise InterpreterException('Recursive include of subprojects: %s.' % incpath)
+        if dirname == self.subprojects:
+            return self.subprojects[dirname]
         subdir = os.path.join('subprojects', dirname)
         abs_subdir = os.path.join(self.build.environment.get_source_dir(), subdir)
         if not os.path.isdir(abs_subdir):
@@ -806,6 +809,7 @@ class Interpreter():
         self.global_flags_frozen = True
         mlog.log('\nExecuting subproject ', mlog.bold(dirname), '.\n', sep='')
         subi = Interpreter(self.build, subdir)
+        subi.subproject_stack = self.subproject_stack + [subdir]
         subi.run()
         mlog.log('\nSubproject', mlog.bold(dirname), 'finished.')
         self.build.subprojects[dirname] = True
