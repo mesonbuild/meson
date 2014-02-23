@@ -938,7 +938,6 @@ class NinjaBackend(Backend):
     def generate_gcc_pch_command(self, target, compiler, pch):
         commands = []
         commands += self.generate_basic_compiler_flags(target, compiler)
-        
         dst = os.path.join(self.get_target_private_dir(target),
                            os.path.split(pch)[-1] + '.' + compiler.get_pch_suffix())
         dep = dst + '.' + compiler.get_depfile_suffix()
@@ -953,7 +952,7 @@ class NinjaBackend(Backend):
             if len(pch) == 0:
                 continue
             if '/' not in pch[0] or '/' not in pch[-1]:
-                raise build.InvalidArguments('Precompiled header of "%s" must not be in the same direcotory as source, please put it in a subdirectory.' % target.get_basename())
+                raise build.InvalidArguments('Precompiled header of "%s" must not be in the same directory as source, please put it in a subdirectory.' % target.get_basename())
             compiler = self.get_compiler_for_lang(lang)
             if compiler.id == 'msvc':
                 src = os.path.join(self.build_to_src, target.get_source_subdir(), pch[-1])

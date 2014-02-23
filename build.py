@@ -319,7 +319,10 @@ class BuildTarget():
     def add_pch(self, language, pchlist):
         if len(pchlist) == 0:
             return
-        if len(pchlist) == 2:
+        elif len(pchlist) == 1:
+            if not environment.is_header(pchlist[0]):
+                raise InvalidArguments('Pch argument %s is not a header.' % pchlist[0])
+        elif len(pchlist) == 2:
             if environment.is_header(pchlist[0]):
                 if not environment.is_source(pchlist[1]):
                     raise InvalidArguments('PCH definition must contain one header and at most one source.')

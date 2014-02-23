@@ -775,7 +775,7 @@ def detect_ninja():
 
 
 header_suffixes = ['h', 'hh', 'hpp', 'hxx', 'H']
-cpp_suffixes = ['cc', 'cpp', 'cxx', 'hh', 'hpp', 'hxx']
+cpp_suffixes = ['cc', 'cpp', 'cxx', 'h', 'hh', 'hpp', 'hxx', 'c++']
 c_suffixes = ['c']
 clike_suffixes = c_suffixes + cpp_suffixes
 
