@@ -799,7 +799,7 @@ class Interpreter():
             raise InterpreterException('Subprojects of subprojects are not yet supported.')
         if dirname in self.build.subprojects:
             raise InterpreterException('Tried to add the same subproject twice.')
-        subdir = os.path.join(self.subproject, self.subdir, dirname)
+        subdir = os.path.join('subprojects', dirname)
         abs_subdir = os.path.join(self.build.environment.get_source_dir(), subdir)
         if not os.path.isdir(abs_subdir):
             raise InterpreterException('Subproject directory does not exist.')
@@ -807,7 +807,7 @@ class Interpreter():
         mlog.log('\nExecuting subproject ', mlog.bold(dirname), '.\n', sep='')
         subi = Interpreter(self.build, subdir)
         subi.run()
-        mlog.log('\nSubproject finished.\n')
+        mlog.log('\nSubproject', mlog.bold(dirname), 'finished.')
         self.build.subprojects[dirname] = True
         self.subprojects[dirname] = SubprojectHolder(subi)
         return self.subprojects[dirname]
@@ -995,6 +995,10 @@ class Interpreter():
         if len(kwargs) > 0:
             raise InvalidArguments('subdir command takes no keyword arguments.')
         self.validate_arguments(args, 1, [str])
+        if '..' in args[0]:
+            raise InvalidArguments('Subdir contains ..')
+        if self.subdir == '' and args[0] == 'subprojects':
+            raise InvalidArguments('Must not go into subprojects dir with subdir(), use subproject() instead.')
         prev_subdir = self.subdir
         subdir = os.path.join(prev_subdir, args[0])
         if subdir in self.visited_subdirs:
