@@ -797,7 +797,7 @@ class Interpreter():
         if self.subdir != '':
             raise InterpreterException('Subprojects must be defined at the root directory.')
         if dirname in self.subproject_stack:
-            fullstack = self.subdir_stack + [dirname]
+            fullstack = self.subproject_stack + [dirname]
             incpath = ' => '.join(fullstack)
             raise InterpreterException('Recursive include of subprojects: %s.' % incpath)
         if dirname == self.subprojects:
@@ -809,7 +809,7 @@ class Interpreter():
         self.global_flags_frozen = True
         mlog.log('\nExecuting subproject ', mlog.bold(dirname), '.\n', sep='')
         subi = Interpreter(self.build, subdir)
-        subi.subproject_stack = self.subproject_stack + [subdir]
+        subi.subproject_stack = self.subproject_stack + [dirname]
         subi.run()
         mlog.log('\nSubproject', mlog.bold(dirname), 'finished.')
         self.build.subprojects[dirname] = True
