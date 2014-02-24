@@ -878,7 +878,8 @@ class NinjaBackend(Backend):
             src_filename = os.path.basename(src)
         else:
             src_filename = src
-        rel_obj = os.path.join(self.get_target_private_dir(target), os.path.basename(src_filename))
+        obj_basename = src_filename.replace('/', '_').replace('\\', '_')
+        rel_obj = os.path.join(self.get_target_private_dir(target), obj_basename)
         rel_obj += '.' + self.environment.get_object_suffix()
         dep_file = rel_obj + '.' + compiler.get_depfile_suffix()
         if self.environment.coredata.use_pch:
