@@ -1008,6 +1008,7 @@ class NinjaBackend(Backend):
             commands += dep.get_link_flags()
         dependencies = target.get_dependencies()
         commands += self.build_target_link_arguments(linker, dependencies)
+        commands += target.link_flags
         commands += linker.build_rpath_args(self.environment.get_build_dir(), target.get_rpaths())
         if self.environment.coredata.coverage:
             commands += linker.get_coverage_link_flags()

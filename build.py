@@ -227,6 +227,12 @@ class BuildTarget():
         if not isinstance(cpplist, list):
             cpplist = [cpplist]
         self.add_compiler_args('cpp', cpplist)
+        self.link_flags = kwargs.get('link_flags', [])
+        if not isinstance(self.link_flags, list):
+            self.link_flags = [self.link_flags]
+        for i in self.link_flags:
+            if not isinstance(i, str):
+                raise InvalidArguments('Link_flags arguments must be strings.')
         if 'version' in kwargs:
             self.set_version(kwargs['version'])
         if 'soversion' in kwargs:
