@@ -18,6 +18,9 @@ from glob import glob
 import os, subprocess, shutil, sys, platform
 import environment
 
+passing_tests = 0
+failing_tests = 0
+
 test_build_dir = 'work area'
 install_dir = os.path.join(os.path.split(os.path.abspath(__file__))[0], 'install dir')
 meson_command = './meson.py'
@@ -63,39 +66,66 @@ def validate_install(srcdir, installdir):
     found = set(found)
     missing = expected - found
     for fname in missing:
-        raise RuntimeError('Expected file %s missing.' % fname)
+        return 'Expected file %s missing.' % fname
     extra = found - expected
     for fname in extra:
-        raise RuntimeError('Found extra file %s.' % fname)
+        return 'Found extra file %s.' % fname
+    return ''
 
-def run_test(testdir, should_succeed=True):
+def run_and_log(logfile, testdir, should_succeed=True):
+    global passing_tests, failing_tests
+    (msg, stdo, stde) = run_test(testdir, should_succeed)
+    if msg != '':
+        print('Fail:', msg)
+        failing_tests += 1
+    else:
+        print('Success')
+        passing_tests += 1
+    logfile.write('%s\nstdout\n\n---\n' % testdir)
+    logfile.write(stdo)
+    logfile.write('\n\n---\n\nstderr\n\n---\n')
+    logfile.write(stde)
+    logfile.write('\n\n---\n\n')
+
+def run_test(testdir, should_succeed):
     shutil.rmtree(test_build_dir)
     shutil.rmtree(install_dir)
     os.mkdir(test_build_dir)
     os.mkdir(install_dir)
     print('Running test: ' + testdir)
     gen_command = [sys.executable, meson_command, '--prefix', install_dir, testdir, test_build_dir] + backend_flags
-    p = subprocess.Popen(gen_command)
-    p.wait()
+    p = subprocess.Popen(gen_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    (stdo, stde) = p.communicate()
+    stdo = stdo.decode('utf-8')
+    stde = stde.decode('utf-8')
     if not should_succeed:
         if p.returncode != 0:
-            return
-        raise RuntimeError('Test that should fail succeeded.')
+            return ('', stdo, stde)
+        return ('Test that should have failed succeeded', stdo, stde)
     if p.returncode != 0:
-        raise RuntimeError('Generating the build system failed.')
-    pc = subprocess.Popen(compile_commands, cwd=test_build_dir)
-    pc.wait()
+        return ('Generating the build system failed.', stdo, stde)
+    pc = subprocess.Popen(compile_commands, cwd=test_build_dir,
+                          stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    (o, e) = pc.communicate()
+    stdo += o.decode('utf-8')
+    stde += e.decode('utf-8')
     if pc.returncode != 0:
-        raise RuntimeError('Compiling source code failed.')
-    pt = subprocess.Popen(test_commands, cwd=test_build_dir)
-    pt.wait()
+        return ('Compiling source code failed.', stdo, stde)
+    pt = subprocess.Popen(test_commands, cwd=test_build_dir,
+                          stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    (o, e) = pt.communicate()
+    stdo += o.decode('utf-8')
+    stde += e.decode('utf-8')
     if pt.returncode != 0:
-        raise RuntimeError('Running unit tests failed.')
-    pi = subprocess.Popen(install_commands, cwd=test_build_dir)
-    pi.wait()
+        return ('Running unit tests failed.', stdo, stde)
+    pi = subprocess.Popen(install_commands, cwd=test_build_dir,
+                          stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    (o, e) = pi.communicate()
+    stdo += o.decode('utf-8')
+    stde += e.decode('utf-8')
     if pi.returncode != 0:
-        raise RuntimeError('Running install failed.')
-    validate_install(testdir, install_dir)
+        return ('Running install failed.', stdo, stde)
+    return (validate_install(testdir, install_dir), stdo, stde)
 
 def gather_tests(testdir):
     tests = [t.replace('\\', '/').split('/', 2)[2] for t in glob(os.path.join(testdir, '*'))]
@@ -105,6 +135,7 @@ def gather_tests(testdir):
     return tests
 
 def run_tests():
+    logfile = open('meson-test-run.txt', 'w')
     commontests = gather_tests('test cases/common')
     failtests = gather_tests('test cases/failing')
     objtests = gather_tests('test cases/prebuilt object')
@@ -136,27 +167,27 @@ def run_tests():
     except OSError:
         pass
     print('\nRunning common tests.\n')
-    [run_test(t) for t in commontests]
+    [run_and_log(logfile, t) for t in commontests]
     print('\nRunning failing tests.\n')
-    [run_test(t, False) for t in failtests]
+    [run_and_log(logfile, t, False) for t in failtests]
     if len(objtests) > 0:
         print('\nRunning object inclusion tests.\n')
-        [run_test(t) for t in objtests]
+        [run_and_log(logfile, t) for t in objtests]
     else:
         print('\nNo object inclusion tests.\n')
     if len(platformtests) > 0:
         print('\nRunning platform dependent tests.\n')
-        [run_test(t) for t in platformtests]
+        [run_and_log(logfile, t) for t in platformtests]
     else:
         print('\nNo platform specific tests.\n')
     if len(frameworktests) > 0:
         print('\nRunning framework tests.\n')
-        [run_test(t) for t in frameworktests]
+        [run_and_log(logfile, t) for t in frameworktests]
     else:
         print('\nNo framework tests on this platform.\n')
     if len(objctests) > 0:
         print('\nRunning extra language tests.\n')
-        [run_test(t) for t in objctests]
+        [run_and_log(logfile, t) for t in objctests]
     else:
         print('\nNo extra language tests on this platform.\n')
 
@@ -186,3 +217,7 @@ if __name__ == '__main__':
         os.chdir(script_dir)
     check_format()
     run_tests()
+    print('\nTotal passed tests:', passing_tests)
+    print('Total failed tests:', failing_tests)
+    sys.exit(failing_tests)
+
