@@ -534,14 +534,23 @@ class CompilerHolder(InterpreterObject):
         return haz
 
 class MesonMain(InterpreterObject):
-    def __init__(self, build):
+    def __init__(self, build, interpreter):
         InterpreterObject.__init__(self)
         self.build = build
+        self.interpreter = interpreter
         self.methods.update({'get_compiler': self.get_compiler_method,
                              'is_cross_build' : self.is_cross_build_method,
                              'has_exe_wrapper' : self.has_exe_wrapper_method,
                              'is_unity' : self.is_unity_method,
+                             'current_source_dir' : self.current_source_dir_method,
                              })
+
+    def current_source_dir_method(self, args, kwargs):
+        src = self.interpreter.environment.source_dir
+        sub = self.interpreter.subdir
+        if sub == '':
+            return src
+        return os.path.join(src, sub)
 
     def has_exe_wrapper_method(self, args, kwargs):
         if self.is_cross_build_method(None, None):
@@ -600,7 +609,7 @@ class Interpreter():
         self.builtin = {}
         self.builtin['build'] = Build()
         self.builtin['host'] = Host(build.environment)
-        self.builtin['meson'] = MesonMain(build)
+        self.builtin['meson'] = MesonMain(build, self)
         self.environment = build.environment
         self.build_func_dict()
         self.build_def_files = [environment.build_filename]
