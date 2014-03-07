@@ -113,6 +113,7 @@ class BuildTarget():
         self.external_deps = []
         self.include_dirs = []
         self.link_targets = []
+        self.link_depends = []
         self.filename = 'no_name'
         self.need_install = False
         self.pch = {}
@@ -233,6 +234,12 @@ class BuildTarget():
         for i in self.link_flags:
             if not isinstance(i, str):
                 raise InvalidArguments('Link_flags arguments must be strings.')
+        self.link_depends = kwargs.get('link_depends', [])
+        if not isinstance(self.link_depends, list):
+            self.link_depends = [self.link_depends]
+        for i in self.link_depends:
+            if not isinstance(i, str):
+                raise InvalidArguments('Link_depends arguments must be strings.')
         if 'version' in kwargs:
             self.set_version(kwargs['version'])
         if 'soversion' in kwargs:

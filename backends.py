@@ -1013,6 +1013,8 @@ class NinjaBackend(Backend):
         if self.environment.coredata.coverage:
             commands += linker.get_coverage_link_flags()
         dep_targets = [self.get_dependency_filename(t) for t in dependencies]
+        dep_targets += [os.path.join(self.environment.source_dir,
+                                     target.subdir, t) for t in target.link_depends]
         elem = NinjaBuildElement(outname, linker_rule, obj_list)
         elem.add_dep(dep_targets)
         elem.add_item('LINK_FLAGS', commands)

@@ -1,7 +1,8 @@
 project('linker script', 'c')
 
-vflag = '-Wl,--version-script,@0@/bob.map'.format(meson.current_source_dir())
+mapfile = 'bob.map'
+vflag = '-Wl,--version-script,@0@/@1@'.format(meson.current_source_dir(), mapfile)
 
-l = shared_library('bob', 'bob.c', link_flags : vflag)
+l = shared_library('bob', 'bob.c', link_flags : vflag, link_depends : mapfile)
 e = executable('prog', 'prog.c', link_with : l)
 test('core', e)
