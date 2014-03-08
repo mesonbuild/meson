@@ -616,7 +616,7 @@ class Interpreter():
         self.builtin['meson'] = MesonMain(build, self)
         self.environment = build.environment
         self.build_func_dict()
-        self.build_def_files = [environment.build_filename]
+        self.build_def_files = [os.path.join(self.subdir, environment.build_filename)]
         self.coredata = self.environment.get_coredata()
         self.generators = []
         self.visited_subdirs = {}
@@ -829,6 +829,7 @@ class Interpreter():
         mlog.log('\nSubproject', mlog.bold(dirname), 'finished.')
         self.build.subprojects[dirname] = True
         self.subprojects[dirname] = SubprojectHolder(subi)
+        self.build_def_files += subi.build_def_files
         return self.subprojects[dirname]
 
     def func_get_option(self, nodes, args, kwargs):
