@@ -141,7 +141,7 @@ def run_tests():
     objtests = gather_tests('test cases/prebuilt object')
     if environment.is_linux():
         cpuid = platform.machine()
-        if cpuid != 'x86_64' and cpuid != 'i386':
+        if cpuid != 'x86_64' and cpuid != 'i386' and cpuid != 'i686':
             # Don't have a prebuilt object file for those so skip.
             objtests = []
     if environment.is_osx():
