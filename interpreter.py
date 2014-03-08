@@ -586,16 +586,20 @@ class MesonMain(InterpreterObject):
 
 class Interpreter():
 
-    def __init__(self, build, subproject=''):
+    def __init__(self, build, subproject='', subdir=''):
         self.build = build
         self.subproject = subproject
-        self.source_root = os.path.join(build.environment.get_source_dir(), subproject)
-        option_file = os.path.join(self.source_root, 'meson_options.txt')
+        self.subdir = subdir
+        self.source_root = build.environment.get_source_dir()
+        option_file = os.path.join(self.source_root, self.subdir, 'meson_options.txt')
         if os.path.exists(option_file):
             oi = optinterpreter.OptionInterpreter(self.subproject)
             oi.process(option_file)
             self.build.environment.merge_options(oi.options)
-        code = open(os.path.join(self.source_root, environment.build_filename)).read()
+        mesonfile = os.path.join(self.source_root, self.subdir, environment.build_filename)
+        if not os.path.isfile(mesonfile):
+            raise InvalidArguments('Missing Meson file in %s' % mesonfile)
+        code = open(mesonfile).read()
         if len(code.strip()) == 0:
             raise InvalidCode('Builder file is empty.')
         assert(isinstance(code, str))
@@ -614,7 +618,6 @@ class Interpreter():
         self.build_func_dict()
         self.build_def_files = [environment.build_filename]
         self.coredata = self.environment.get_coredata()
-        self.subdir = ''
         self.generators = []
         self.visited_subdirs = {}
         self.global_flags_frozen = False
@@ -804,7 +807,9 @@ class Interpreter():
         if not isinstance(dirname, str):
             raise InterpreterException('Subproject argument must be a string')
         if self.subdir != '':
-            raise InterpreterException('Subprojects must be defined at the root directory.')
+            segs = os.path.split(self.subdir)
+            if len(segs) != 2 or segs[0] != 'subprojects':
+                raise InterpreterException('Subprojects must be defined at the root directory.')
         if dirname in self.subproject_stack:
             fullstack = self.subproject_stack + [dirname]
             incpath = ' => '.join(fullstack)
@@ -817,7 +822,8 @@ class Interpreter():
             raise InterpreterException('Subproject directory does not exist.')
         self.global_flags_frozen = True
         mlog.log('\nExecuting subproject ', mlog.bold(dirname), '.\n', sep='')
-        subi = Interpreter(self.build, subdir)
+        subi = Interpreter(self.build, dirname, subdir)
+
         subi.subproject_stack = self.subproject_stack + [dirname]
         subi.run()
         mlog.log('\nSubproject', mlog.bold(dirname), 'finished.')
@@ -1067,15 +1073,14 @@ class Interpreter():
         conf.mark_used()
 
     def func_include_directories(self, node, args, kwargs):
-        curdir = os.path.join(self.subproject, self.subdir)
-        absbase = os.path.join(self.environment.get_source_dir(), curdir)
+        absbase = os.path.join(self.environment.get_source_dir(), self.subdir)
         for a in args:
             if not isinstance(a, str):
                 raise InvalidArguments('Argument %s is not a string.' % str(a))
             absdir = os.path.join(absbase, a)
             if not os.path.isdir(absdir):
                 raise InvalidArguments('Include dir %s does not exist.' % a)
-        i = IncludeDirsHolder(curdir, args, kwargs)
+        i = IncludeDirsHolder(self.subdir, args, kwargs)
         return i
 
     def func_add_global_arguments(self, node, args, kwargs):
@@ -1139,8 +1144,7 @@ class Interpreter():
         if name in self.build.targets:
             raise InvalidCode('Tried to create target "%s", but a target of that name already exists.' % name)
         self.check_sources_exist(os.path.join(self.source_root, self.subdir), sources)
-        full_subdir = os.path.join(self.subproject, self.subdir)
-        l = targetclass(name, full_subdir, is_cross, sources, objs, self.environment, kwargs)
+        l = targetclass(name, self.subdir, is_cross, sources, objs, self.environment, kwargs)
         self.build.targets[name] = l.held_object
         if self.environment.is_cross_build() and l.is_cross:
             txt = ' cross build '
@@ -1154,7 +1158,7 @@ class Interpreter():
         for s in sources:
             if not isinstance(s, str):
                 continue # This means a generated source and they always exist.
-            fname = os.path.join(self.subproject, subdir, s)
+            fname = os.path.join(subdir, s)
             if not os.path.isfile(fname):
                 raise InterpreterException('Tried to add non-existing source %s.' % s)
 
