@@ -301,16 +301,7 @@ int main(int argc, char **argv) {
                 if isinstance(val, bool):
                     return val
                 raise EnvironmentException('Cross variable {0} is not an boolean.'.format(varname))
-        cross_failed = False
-        try:
-            res = self.run(templ % (prefix, funcname))
-        except CrossNoRunException:
-            cross_failed = True
-        if cross_failed:
-            message = '''Can not determine existance {0} because cross compiled binaries are not runnable.
-Please define variable {1} in your cross compilation definition file.'''.format(funcname, varname)
-            raise EnvironmentException(message)
-        return res.compiled
+        return self.compiles(templ % (prefix, funcname))
 
     def has_member(self, typename, membername, prefix):
         templ = '''%s
