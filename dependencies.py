@@ -88,7 +88,7 @@ class PkgConfigDependency(Dependency):
             self.cflags = []
             self.libs = []
         else:
-            mlog.log('Dependency', name, 'found:', mlog.green('YES'))
+            mlog.log('Dependency', mlog.bold(name), 'found:', mlog.green('YES'))
             self.is_found = True
             self.modversion = out.decode().strip()
             p = subprocess.Popen(['pkg-config', '--cflags', name], stdout=subprocess.PIPE,
@@ -135,9 +135,9 @@ class ExternalProgram():
             self.fullpath = shutil.which(name)
         if not silent:
             if self.found():
-                mlog.log('Program', name, 'found:', mlog.green('YES'), '(%s)' % self.fullpath)
+                mlog.log('Program', mlog.bold(name), 'found:', mlog.green('YES'), '(%s)' % self.fullpath)
             else:
-                mlog.log('Program', name, 'found:,', mlog.red('NO'))
+                mlog.log('Program', mlog.bold(name), 'found:,', mlog.red('NO'))
 
     def found(self):
         return self.fullpath is not None
@@ -149,10 +149,15 @@ class ExternalProgram():
         return self.name
 
 class ExternalLibrary(Dependency):
-    def __init__(self, name, fullpath=None):
+    def __init__(self, name, fullpath=None, silent=False):
         super().__init__()
         self.name = name
         self.fullpath = fullpath
+        if not silent:
+            if self.found():
+                mlog.log('Library', mlog.bold(name), 'found:', mlog.green('YES'), '(%s)' % self.fullpath)
+            else:
+                mlog.log('Library', mlog.bold(name), 'found:,', mlog.red('NO'))
 
     def found(self):
         return self.fullpath is not None
