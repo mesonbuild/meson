@@ -158,6 +158,7 @@ class CCompiler():
 
     def has_header(self, hname):
         templ = '''#include<%s>
+int someSymbolHereJustForFun;
 '''
         return self.compiles(templ % hname)
 
@@ -532,6 +533,8 @@ class GnuCCompiler(CCompiler):
         return (os.path.split(fname)[0], fname)
 
     def build_rpath_args(self, build_dir, rpath_paths):
+        if len(rpath_paths) == 0:
+            return []
         return ['-Wl,-rpath,' + ':'.join([os.path.join(build_dir, p) for p in rpath_paths])]
 
     def get_soname_flags(self, shlib_name, path):
@@ -555,6 +558,8 @@ class GnuObjCCompiler(ObjCCompiler):
         return 'gch'
 
     def build_rpath_args(self, build_dir, rpath_paths):
+        if len(rpath_paths) == 0:
+            return []
         return ['-Wl,-rpath,' + ':'.join([os.path.join(build_dir, p) for p in rpath_paths])]
 
     def get_soname_flags(self, shlib_name, path):
@@ -578,6 +583,8 @@ class GnuObjCPPCompiler(ObjCPPCompiler):
         return 'gch'
 
     def build_rpath_args(self, build_dir, rpath_paths):
+        if len(rpath_paths) == 0:
+            return []
         return ['-Wl,-rpath,' + ':'.join([os.path.join(build_dir, p) for p in rpath_paths])]
 
     def get_soname_flags(self, shlib_name, path):
@@ -601,6 +608,8 @@ class ClangCCompiler(CCompiler):
         return 'pch'
 
     def build_rpath_args(self, build_dir, rpath_paths):
+        if len(rpath_paths) == 0:
+            return []
         return ['-Wl,-rpath,' + ':'.join([os.path.join(build_dir, p) for p in rpath_paths])]
 
 class GnuCPPCompiler(CPPCompiler):
@@ -629,6 +638,8 @@ class GnuCPPCompiler(CPPCompiler):
         return 'gch'
 
     def build_rpath_args(self, build_dir, rpath_paths):
+        if len(rpath_paths) == 0:
+            return []
         return ['-Wl,-rpath,' + ':'.join([os.path.join(build_dir, p) for p in rpath_paths])]
 
     def get_soname_flags(self, shlib_name, path):
