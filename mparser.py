@@ -168,14 +168,6 @@ def p_statement_array(t):
     else:
         t[0] = nodes.ArrayStatement(t[3], t.lineno(1))
 
-def p_statement_array2(t):
-    '''statement : LBRACKET args EOL RBRACKET
-                 | LBRACKET EOL args EOL RBRACKET'''
-    if len(t) == 5:
-        t[0] = nodes.ArrayStatement(t[2], t.lineno(1))
-    else:
-        t[0] = nodes.ArrayStatement(t[3], t.lineno(1))
-
 def p_statement_func_call(t):
     'statement : expression LPAREN args RPAREN'
     t[0] = nodes.FunctionCall(t[1], t[3], t[1].lineno())
