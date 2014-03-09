@@ -911,7 +911,7 @@ class Environment():
             if (out.startswith('cc') or 'gcc' in out) and \
                 'Free Software Foundation' in out:
                 return GnuCCompiler(ccache + [compiler], version, GCC_STANDARD, is_cross, exe_wrap)
-            if (out.startswith('clang')):
+            if 'clang' in out:
                 return ClangCCompiler(ccache + [compiler], version, is_cross, exe_wrap)
             if 'Microsoft' in out:
                 # Visual Studio prints version number to stderr but
@@ -969,7 +969,7 @@ class Environment():
                 return GnuCPPCompiler(ccache + [compiler], version, is_cross, exe_wrap)
             if 'apple' in out and 'Free Software Foundation' in out:
                 return GnuCPPCompiler(ccache + [compiler], version, is_cross, exe_wrap)
-            if out.startswith('clang'):
+            if 'clang' in out:
                 return ClangCPPCompiler(ccache + [compiler], version, is_cross, exe_wrap)
             if 'Microsoft' in out:
                 version = re.search(Environment.version_regex, err).group()
