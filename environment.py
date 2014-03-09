@@ -600,6 +600,9 @@ class ClangCCompiler(CCompiler):
     def get_pch_suffix(self):
         return 'pch'
 
+    def build_rpath_args(self, build_dir, rpath_paths):
+        return ['-Wl,-rpath,' + ':'.join([os.path.join(build_dir, p) for p in rpath_paths])]
+
 class GnuCPPCompiler(CPPCompiler):
     std_warn_flags = ['-Wall', '-Winvalid-pch']
     std_opt_flags = ['-O2']
@@ -647,6 +650,11 @@ class ClangCPPCompiler(CPPCompiler):
 
     def get_pch_suffix(self):
         return 'pch'
+
+    def build_rpath_args(self, build_dir, rpath_paths):
+        if len(rpath_paths) == 0:
+            return []
+        return ['-Wl,-rpath,' + ':'.join([os.path.join(build_dir, p) for p in rpath_paths])]
 
 class VisualStudioLinker():
     always_flags = ['/NOLOGO']
