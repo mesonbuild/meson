@@ -387,7 +387,7 @@ class ObjCPPCompiler(CPPCompiler):
             raise EnvironmentException('Executables created by ObjC++ compiler %s are not runnable.' % self.name_string())
 
 class JavaCompiler():
-    def __init__(self, exelist, version, is_cross, exe_wrapper=None):
+    def __init__(self, exelist, version):
         if type(exelist) == type(''):
             self.exelist = [exelist]
         elif type(exelist) == type([]):
@@ -398,11 +398,6 @@ class JavaCompiler():
         self.language = 'java'
         self.default_suffix = 'java'
         self.id = 'unknown'
-        self.is_cross = is_cross
-        if isinstance(exe_wrapper, str):
-            self.exe_wrapper = [exe_wrapper]
-        else:
-            self.exe_wrapper = exe_wrapper
         self.javarunner = 'java'
 
     def get_always_flags(self):
@@ -425,9 +420,6 @@ class JavaCompiler():
 
     def get_dependency_gen_flags(self, outtarget, outfile):
         return []
-
-    def get_depfile_suffix(self):
-        return 'd'
 
     def get_language(self):
         return self.language
@@ -488,12 +480,12 @@ class JavaCompiler():
 
     def sanity_check(self, work_dir):
         src = 'SanityCheck.java'
-        obj = 'SanityCheck.class'
+        obj = 'SanityCheck'
         source_name = os.path.join(work_dir, src)
         ofile = open(source_name, 'w')
         ofile.write('''class SanityCheck {
   public static void main(String[] args) {
-    System.out.println("Java is working.");
+    int i;
   }
 }
 ''')
@@ -1190,6 +1182,24 @@ class Environment():
             return GnuObjCPPCompiler(exelist, version, is_cross, exe_wrap)
         if 'apple' in out and 'Free Software Foundation' in out:
             return GnuObjCPPCompiler(exelist, version, is_cross, exe_wrap)
+        raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
+
+    def detect_java_compiler(self):
+        exelist = ['javac']
+        try:
+            p = subprocess.Popen(exelist + ['-version'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        except OSError:
+            raise EnvironmentException('Could not execute Java compiler "%s"' % ' '.join(exelist))
+        (out, err) = p.communicate()
+        out = out.decode()
+        err = err.decode()
+        vmatch = re.search(Environment.version_regex, err)
+        if vmatch:
+            version = vmatch.group(0)
+        else:
+            version = 'unknown version'
+        if 'javac' in err:
+            return JavaCompiler(exelist, version)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
 
     def detect_static_linker(self, compiler):

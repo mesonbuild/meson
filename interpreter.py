@@ -895,6 +895,10 @@ class Interpreter():
                     comp = self.environment.detect_objcpp_compiler(False)
                     if is_cross:
                         cross_comp = self.environment.detect_objcpp_compiler(True)
+                elif lang.lower() == 'java':
+                    comp = self.environment.detect_java_compiler()
+                    if is_cross:
+                        cross_comp = comp # Java is platform independent.
                 else:
                     raise InvalidCode('Tried to use unknown language "%s".' % lang)
                 comp.sanity_check(self.environment.get_scratch_dir())
