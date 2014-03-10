@@ -43,12 +43,17 @@ class Build:
         self.subprojects = {}
         self.pkgconfig_gens = []
 
+    def has_language(self, language):
+        for i in self.compilers:
+            if i.get_language() == language:
+                return True
+        return False
+
     def add_compiler(self, compiler):
         if len(self.compilers) == 0:
             self.static_linker = self.environment.detect_static_linker(compiler)
-        for i in self.compilers:
-            if i.get_language() == compiler.get_language():
-                return
+        if self.has_language(compiler.get_language()):
+            return
         self.compilers.append(compiler)
 
     def add_cross_compiler(self, compiler):

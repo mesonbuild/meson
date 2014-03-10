@@ -386,6 +386,147 @@ class ObjCPPCompiler(CPPCompiler):
         if pe.returncode != 0:
             raise EnvironmentException('Executables created by ObjC++ compiler %s are not runnable.' % self.name_string())
 
+class JavaCompiler():
+    def __init__(self, exelist, version, is_cross, exe_wrapper=None):
+        if type(exelist) == type(''):
+            self.exelist = [exelist]
+        elif type(exelist) == type([]):
+            self.exelist = exelist
+        else:
+            raise TypeError('Unknown argument to JavaCompiler')
+        self.version = version
+        self.language = 'java'
+        self.default_suffix = 'java'
+        self.id = 'unknown'
+        self.is_cross = is_cross
+        if isinstance(exe_wrapper, str):
+            self.exe_wrapper = [exe_wrapper]
+        else:
+            self.exe_wrapper = exe_wrapper
+        self.javarunner = 'java'
+
+    def get_always_flags(self):
+        return []
+
+    def get_linker_always_flags(self):
+        return []
+
+    def get_soname_flags(self, shlib_name, path):
+        return []
+
+    def split_shlib_to_parts(self, fname):
+        return (None, fname)
+
+    def build_rpath_args(self, build_dir, rpath_paths):
+        return []
+
+    def get_id(self):
+        return self.id
+
+    def get_dependency_gen_flags(self, outtarget, outfile):
+        return []
+
+    def get_depfile_suffix(self):
+        return 'd'
+
+    def get_language(self):
+        return self.language
+
+    def get_default_suffix(self):
+        return self.default_suffix
+
+    def get_exelist(self):
+        return self.exelist[:]
+
+    def get_linker_exelist(self):
+        return self.exelist[:]
+
+    def get_compile_only_flags(self):
+        return []
+
+    def get_output_flags(self, target):
+        return []
+
+    def get_linker_output_flags(self, outputname):
+        return []
+
+    def get_debug_flags(self):
+        return ['-g']
+
+    def get_coverage_flags(self):
+        return []
+
+    def get_coverage_link_flags(self):
+        return []
+
+    def get_std_exe_link_flags(self):
+        return []
+
+    def get_include_arg(self, path):
+        return ''
+
+    def get_std_shared_lib_link_flags(self):
+        return []
+
+    def can_compile(self, filename):
+        suffix = filename.split('.')[-1]
+        if suffix == 'java':
+            return True
+        return False
+
+    def get_pic_flags(self):
+        return []
+
+    def name_string(self):
+        return ' '.join(self.exelist)
+
+    def get_pch_use_args(self, pch_dir, header):
+        return []
+
+    def get_pch_name(self, header_name):
+        return ''
+
+    def sanity_check(self, work_dir):
+        src = 'SanityCheck.java'
+        obj = 'SanityCheck.class'
+        source_name = os.path.join(work_dir, src)
+        ofile = open(source_name, 'w')
+        ofile.write('''class SanityCheck {
+  public static void main(String[] args) {
+    System.out.println("Java is working.");
+  }
+}
+''')
+        ofile.close()
+        pc = subprocess.Popen(self.exelist + [src], cwd=work_dir)
+        pc.wait()
+        if pc.returncode != 0:
+            raise EnvironmentException('Java compiler %s can not compile programs.' % self.name_string())
+        cmdlist = [self.javarunner, obj]
+        pe = subprocess.Popen(cmdlist, cwd=work_dir)
+        pe.wait()
+        if pe.returncode != 0:
+            raise EnvironmentException('Executables created by Java compiler %s are not runnable.' % self.name_string())
+
+    def has_header(self, hname):
+        raise EnvironmentException('Java does not support header checks.')
+
+    def compiles(self, code):
+        raise EnvironmentException('Java does not support compile checks.')
+
+    def run(self, code):
+        raise EnvironmentException('Java does not support run checks.')
+
+    def sizeof(self, element, prefix, env):
+        raise EnvironmentException('Java does not support sizeof checks.')
+
+    def alignment(self, typename, env):
+        raise EnvironmentException('Java does not support alignment checks.')
+
+    def has_function(self, funcname, prefix, env):
+        raise EnvironmentException('Java does not support function checks.')
+
+
 class VisualStudioCCompiler(CCompiler):
     std_warn_flags = ['/W3']
     std_opt_flags= ['/O2']
