@@ -94,7 +94,7 @@ class CCompiler():
 
     def get_output_flags(self, target):
         return ['-o', target]
-    
+
     def get_linker_output_flags(self, outputname):
         return ['-o', outputname]
 
@@ -436,8 +436,8 @@ class JavaCompiler():
     def get_compile_only_flags(self):
         return []
 
-    def get_output_flags(self, target):
-        return []
+    def get_output_flags(self, subdir):
+        return ['-d', subdir, '-s', subdir]
 
     def get_linker_output_flags(self, outputname):
         return []

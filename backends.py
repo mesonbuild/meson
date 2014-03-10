@@ -178,6 +178,10 @@ class Backend():
         name = target.get_basename()
         if name in self.processed_targets:
             return
+        if isinstance(target, build.Jar):
+            self.generate_jar_target(target, outfile)
+            return
+        # The following deals with C/C++ compilation.
         (gen_src_deps, gen_other_deps) = self.process_dep_gens(outfile, target)
         self.process_target_dependencies(target, outfile)
         self.generate_custom_generator_rules(target, outfile)
@@ -236,6 +240,36 @@ class Backend():
         elem = self.generate_link(target, outfile, outname, obj_list, linker)
         self.generate_shlib_aliases(target, self.get_target_dir(target), outfile, elem)
         self.processed_targets[name] = True
+
+    def generate_jar_target(self, target, outfile):
+        fname = target.get_filename()
+        subdir = target.get_subdir()
+        outname_rel = os.path.join(subdir, fname)
+        src_list = target.get_sources()
+        obj_list = []
+        compiler = self.get_compiler_for_source(src_list[0])
+        assert(compiler.get_language() == 'java')
+        for src in src_list:
+            obj_list.append(self.generate_single_java_compile(src, target, compiler, outfile))
+        jar_rule = 'JAR_LINK'
+        commands = ['c']
+        elem = NinjaBuildElement(outname_rel, jar_rule, obj_list)
+        elem.add_item('LINK_FLAGS', commands)
+        return elem
+
+    def generate_single_java_compile(self, src, target, compiler, outfile):
+        buildtype = self.environment.coredata.buildtype
+        args = []
+        if buildtype == 'debug':
+            args += compiler.get_debug_flags()
+        args += compiler.get_output_flags(self.get_target_dir(target))
+        rel_src = os.path.join(self.build_to_src, src)
+        rel_obj = os.path.join(target.get_subdir(), src[:-4] + 'class')
+        element = NinjaBuildElement(rel_obj,
+                    compiler.get_language() + '_COMPILER', rel_src)
+        element.add_item('FLAGS', args)
+        element.write(outfile)
+        return rel_obj
 
     def determine_linker(self, target, src):
         if isinstance(target, build.StaticLibrary):
@@ -365,6 +399,7 @@ class NinjaBuildElement():
             self.outfilenames = [outfilenames]
         else:
             self.outfilenames = outfilenames
+        assert(isinstance(rule, str))
         self.rule = rule
         if isinstance(infilenames, str):
             self.infilenames = [infilenames]
@@ -401,7 +436,7 @@ class NinjaBuildElement():
             line += ' || ' + ' '.join([ninja_quote(x) for x in self.orderdeps])
         line += '\n'
         outfile.write(line)
-        
+
         for e in self.elems:
             (name, elems) = e
             should_quote = True

@@ -524,6 +524,7 @@ class Jar(BuildTarget):
         for s in self.sources:
             if not s.endswith('.java'):
                 raise InvalidArguments('Jar source %s is not a java file.' % s)
+        self.filename = self.name + '.jar'
 
 class ConfigureFile():
 
