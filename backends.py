@@ -715,6 +715,8 @@ class NinjaBackend(Backend):
         else:
             static_linker = self.build.static_linker
             crstr = ''
+        if static_linker is None:
+            return
         rule = 'rule STATIC%s_LINKER\n' % crstr
         command = ' command = %s  $LINK_FLAGS %s $in\n' % \
         (' '.join(static_linker.get_exelist()),

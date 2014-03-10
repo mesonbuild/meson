@@ -518,6 +518,13 @@ class SharedLibrary(BuildTarget):
             aliases.append(self.get_shbase())
         return aliases
 
+class Jar(BuildTarget):
+    def __init__(self, name, subdir, is_cross, sources, objects, environment, kwargs):
+        super().__init__(name, subdir, is_cross, sources, objects, environment, kwargs);
+        for s in self.sources:
+            if not s.endswith('.java'):
+                raise InvalidArguments('Jar source %s is not a java file.' % s)
+
 class ConfigureFile():
 
     def __init__(self, subdir, sourcename, targetname, configuration_data):

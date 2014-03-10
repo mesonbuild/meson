@@ -360,6 +360,10 @@ class SharedLibraryHolder(BuildTargetHolder):
     def __init__(self, name, subdir, is_cross, sources, objects, environment, kwargs):
         super().__init__(build.SharedLibrary, name, subdir, is_cross, sources, objects, environment, kwargs)
 
+class JarHolder(BuildTargetHolder):
+    def __init__(self, name, subdir, is_cross, sources, objects, environment, kwargs):
+        super().__init__(build.Jar, name, subdir, is_cross, sources, objects, environment, kwargs)
+
 class Test(InterpreterObject):
     def __init__(self, name, exe, is_parallel, cmd_args, env):
         InterpreterObject.__init__(self)
@@ -632,6 +636,7 @@ class Interpreter():
                       'dependency' : self.func_dependency,
                       'static_library' : self.func_static_lib,
                       'shared_library' : self.func_shared_lib,
+                      'jar' : self.func_jar,
                       'generator' : self.func_generator,
                       'test' : self.func_test,
                       'headers' : self.func_headers,
@@ -966,13 +971,21 @@ class Interpreter():
     def func_shared_lib(self, node, args, kwargs):
         return self.build_target(node, args, kwargs, SharedLibraryHolder)
 
+    def func_jar(self, node, args, kwargs):
+        return self.build_target(node, args, kwargs, JarHolder)
+
     def func_generator(self, node, args, kwargs):
         gen = GeneratorHolder(args, kwargs)
         self.generators.append(gen)
         return gen
 
     def func_test(self, node, args, kwargs):
-        self.validate_arguments(args, 2, [str, ExecutableHolder])
+        if len(args) != 2:
+            raise InterpreterException('Incorrect number of arguments')
+        if not isinstance(args[0], str):
+            raise InterpreterException('First argument of test must be a string.')
+        if not isinstance(args[1], ExecutableHolder) and not isinstance(args[1], JarHolder):
+            raise InterpreterException('Second argument must be executable.')
         par = kwargs.get('is_parallel', True)
         if not isinstance(par, bool):
             raise InterpreterException('Keyword argument is_parallel must be a boolean.')
