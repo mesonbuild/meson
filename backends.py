@@ -255,7 +255,7 @@ class Backend():
         commands = ['c']
         elem = NinjaBuildElement(outname_rel, jar_rule, obj_list)
         elem.add_item('LINK_FLAGS', commands)
-        return elem
+        elem.write(outfile)
 
     def generate_single_java_compile(self, src, target, compiler, outfile):
         buildtype = self.environment.coredata.buildtype
