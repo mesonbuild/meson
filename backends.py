@@ -246,7 +246,7 @@ class Backend():
         subdir = target.get_subdir()
         outname_rel = os.path.join(subdir, fname)
         src_list = target.get_sources()
-        obj_list = []
+        class_list = []
         compiler = self.get_compiler_for_source(src_list[0])
         assert(compiler.get_language() == 'java')
         c = 'c'
@@ -257,31 +257,33 @@ class Backend():
         if main_class != '':
             e = 'e'
         for src in src_list:
-            obj_list.append(self.generate_single_java_compile(src, target, compiler, outfile))
+            class_list.append(self.generate_single_java_compile(subdir, src, target, compiler, outfile))
         jar_rule = 'java_LINKER'
         commands = [c+m+e+f]
         if e != '':
             commands.append(main_class)
         commands.append(self.get_target_filename(target))
-        commands += obj_list
+        commands += ['-C', self.get_target_private_dir(target)]
+        commands += class_list
         elem = NinjaBuildElement(outname_rel, jar_rule, [])
-        elem.add_dep(obj_list)
+        elem.add_dep([os.path.join(self.get_target_private_dir(target), i) for i in class_list])
         elem.add_item('FLAGS', commands)
         elem.write(outfile)
 
-    def generate_single_java_compile(self, src, target, compiler, outfile):
+    def generate_single_java_compile(self, subdir, src, target, compiler, outfile):
         buildtype = self.environment.coredata.buildtype
         args = []
         if buildtype == 'debug':
             args += compiler.get_debug_flags()
-        args += compiler.get_output_flags(self.get_target_dir(target))
-        rel_src = os.path.join(self.build_to_src, src)
-        rel_obj = os.path.join(target.get_subdir(), src[:-4] + 'class')
+        args += compiler.get_output_flags(self.get_target_private_dir(target))
+        rel_src = os.path.join(self.build_to_src, subdir, src)
+        plain_class_path = src[:-4] + 'class'
+        rel_obj = os.path.join(self.get_target_private_dir(target), plain_class_path)
         element = NinjaBuildElement(rel_obj,
                     compiler.get_language() + '_COMPILER', rel_src)
         element.add_item('FLAGS', args)
         element.write(outfile)
-        return rel_obj
+        return plain_class_path
 
     def determine_linker(self, target, src):
         if isinstance(target, build.StaticLibrary):
