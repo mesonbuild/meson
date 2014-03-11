@@ -249,10 +249,21 @@ class Backend():
         obj_list = []
         compiler = self.get_compiler_for_source(src_list[0])
         assert(compiler.get_language() == 'java')
+        c = 'c'
+        m = ''
+        e = ''
+        f = 'f'
+        main_class = target.get_main_class()
+        if main_class != '':
+            e = 'e'
         for src in src_list:
             obj_list.append(self.generate_single_java_compile(src, target, compiler, outfile))
         jar_rule = 'java_LINKER'
-        commands = ['cf', self.get_target_filename(target)] + obj_list
+        commands = [c+m+e+f]
+        if e != '':
+            commands.append(main_class)
+        commands.append(self.get_target_filename(target))
+        commands += obj_list
         elem = NinjaBuildElement(outname_rel, jar_rule, [])
         elem.add_dep(obj_list)
         elem.add_item('FLAGS', commands)

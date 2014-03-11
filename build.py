@@ -261,6 +261,10 @@ class BuildTarget():
         if self.custom_install_dir is not None:
             if not isinstance(self.custom_install_dir, str):
                 raise InvalidArguments('Custom_install_dir must be a string')
+        main_class = kwargs.get('main_class', '')
+        if not isinstance(main_class, str):
+            raise InvalidArguments('Main class must be a string')
+        self.main_class = main_class
 
     def get_subdir(self):
         return self.subdir
@@ -525,6 +529,9 @@ class Jar(BuildTarget):
             if not s.endswith('.java'):
                 raise InvalidArguments('Jar source %s is not a java file.' % s)
         self.filename = self.name + '.jar'
+
+    def get_main_class(self):
+        return self.main_class
 
 class ConfigureFile():
 
