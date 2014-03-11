@@ -251,10 +251,11 @@ class Backend():
         assert(compiler.get_language() == 'java')
         for src in src_list:
             obj_list.append(self.generate_single_java_compile(src, target, compiler, outfile))
-        jar_rule = 'JAR_LINK'
-        commands = ['c']
-        elem = NinjaBuildElement(outname_rel, jar_rule, obj_list)
-        elem.add_item('LINK_FLAGS', commands)
+        jar_rule = 'java_LINKER'
+        commands = ['cf', self.get_target_filename(target)] + obj_list
+        elem = NinjaBuildElement(outname_rel, jar_rule, [])
+        elem.add_dep(obj_list)
+        elem.add_item('FLAGS', commands)
         elem.write(outfile)
 
     def generate_single_java_compile(self, src, target, compiler, outfile):
@@ -743,7 +744,19 @@ class NinjaBackend(Backend):
         outfile.write(desc)
         outfile.write('\n')
 
+    def generate_java_link(self, outfile):
+        rule = 'rule java_LINKER\n'
+        command = ' command = jar $FLAGS\n'
+        description = ' description = Creating jar $out.\n'
+        outfile.write(rule)
+        outfile.write(command)
+        outfile.write(description)
+        outfile.write('\n')
+
     def generate_static_link_rules(self, is_cross, outfile):
+        if self.build.has_language('java'):
+            if not is_cross:
+                self.generate_java_link(outfile)
         if is_cross:
             static_linker = self.build.static_cross_linker
             crstr = '_CROSS'
@@ -766,6 +779,8 @@ class NinjaBackend(Backend):
         for (complist, is_cross) in ctypes:
             for compiler in complist:
                 langname = compiler.get_language()
+                if langname == 'java':
+                    continue
                 crstr = ''
                 if is_cross:
                     crstr = '_CROSS'
@@ -793,7 +808,21 @@ class NinjaBackend(Backend):
         outfile.write(syndesc)
         outfile.write('\n')
 
+    def generate_java_compile_rule(self, compiler, outfile):
+        rule = 'rule %s_COMPILER\n' % compiler.get_language()
+        invoc = ' '.join([ninja_quote(i) for i in compiler.get_exelist()])
+        command = ' command = %s $FLAGS $in\n' % invoc
+        description = ' description = Compiling Java object $in.\n'
+        outfile.write(rule)
+        outfile.write(command)
+        outfile.write(description)
+        outfile.write('\n')
+
     def generate_compile_rule_for(self, langname, compiler, qstr, is_cross, outfile):
+        if langname == 'java':
+            if not is_cross:
+                self.generate_java_compile_rule(compiler, outfile)
+            return
         if is_cross:
             crstr = '_CROSS'
         else:
@@ -818,6 +847,8 @@ class NinjaBackend(Backend):
         outfile.write('\n')
 
     def generate_pch_rule_for(self, langname, compiler, qstr, is_cross, outfile):
+        if langname != 'c' and langname != 'cpp':
+            return
         if is_cross:
             crstr = '_CROSS'
         else:

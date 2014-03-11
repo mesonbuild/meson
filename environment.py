@@ -437,6 +437,8 @@ class JavaCompiler():
         return []
 
     def get_output_flags(self, subdir):
+        if subdir == '':
+            subdir = './'
         return ['-d', subdir, '-s', subdir]
 
     def get_linker_output_flags(self, outputname):
