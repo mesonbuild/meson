@@ -41,15 +41,18 @@ def write_log(logfile, test_name, result_str, stdo, stde):
 
 def run_single_test(wrap, test):
     global tests_failed
-    if test.is_cross:
-        if test.exe_runner is None:
-            # 'Can not run test on cross compiled executable 
-            # because there is no execute wrapper.
-            cmd = None
-        else:
-            cmd = [test.exe_runner, test.fname]
+    if test.fname.endswith('.jar'):
+        cmd = ['java', '-jar', test.fname]
     else:
-        cmd = [test.fname]
+        if test.is_cross:
+            if test.exe_runner is None:
+                # Can not run test on cross compiled executable 
+                # because there is no execute wrapper.
+                cmd = None
+            else:
+                cmd = [test.exe_runner, test.fname]
+        else:
+            cmd = [test.fname]
     if cmd is None:
         res = 'SKIP'
         duration = 0.0

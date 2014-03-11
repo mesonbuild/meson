@@ -154,6 +154,10 @@ def run_tests():
         frameworktests = gather_tests('test cases/frameworks')
     else:
         frameworktests = []
+    if shutil.which('javac'):
+        javatests = gather_tests('test cases/java')
+    else:
+        javatests = []
     if not environment.is_windows():
         objctests = gather_tests('test cases/objc')
     else:
@@ -185,6 +189,9 @@ def run_tests():
         [run_and_log(logfile, t) for t in frameworktests]
     else:
         print('\nNo framework tests on this platform.\n')
+    if len(javatests) > 0:
+        print('\nRunning java tests.\n')
+        [run_and_log(logfile, t) for t in javatests]
     if len(objctests) > 0:
         print('\nRunning extra language tests.\n')
         [run_and_log(logfile, t) for t in objctests]
