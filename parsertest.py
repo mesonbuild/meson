@@ -18,8 +18,9 @@ import re
 import sys
 
 class ParseException(Exception):
-    def __init__(self, lineno, colno):
+    def __init__(self, text, lineno, colno):
         super().__init__()
+        self.text = text
         self.lineno = lineno
         self.colno = colno
 
@@ -30,6 +31,8 @@ class Token:
         self.colno = colno
     
     def __eq__(self, other):
+        if isinstance(other, str):
+            return self.tid == other
         return self.tid == other.tid
 
 class Lexer:
@@ -75,7 +78,7 @@ class Lexer:
                     matched = True
                     loc = mo.end()
                     match_text = mo.group()
-                    if tid == 'ignore':
+                    if tid == 'ignore' or tid == 'comment':
                         break
                     elif tid == 'lparen':
                         par_count += 1
@@ -86,6 +89,7 @@ class Lexer:
                     elif tid == 'rbracket':
                         bracket_count -= 1
                     elif tid == 'multiline_string':
+                        tid = 'string'
                         lines = match_text.split('\n')
                         if len(lines) > 1:
                             lineno += len(lines) - 1
@@ -97,7 +101,7 @@ class Lexer:
                             break
                     yield Token(tid, curline, col)
             if not matched:
-                raise ParseException(lineno, col)
+                raise ParseException('lexer', lineno, col)
 
 class Parser:
     def __init__(self, code):
@@ -116,16 +120,72 @@ class Parser:
     def expect(self, s):
         if self.accept(s):
             return True
-        raise ParseException('Unknown token', s.lineno, s.colno)
+        raise ParseException('Unknown token', self.current.lineno, self.current.colno)
 
     def parse(self):
         self.codeblock()
 
     def statement(self):
-        if self.accept('('):
+        if self.accept('lparen'):
             self.statement()
-            self.expect(')')
-        
+            self.expect('rparen')
+        if self.accept('lbracket'):
+            self.args()
+            self.expect('rbracket')
+        self.expression()
+        self.rest_statement()
+
+    def args(self):
+        self.statement()
+        if self.accept('comma'):
+            self.args()
+        if self.accept('colon'):
+            self.statement()
+            if self.accept('comma'):
+                self.args()
+
+    def rest_statement(self):
+        if self.accept('.'):
+            self.method_call()
+
+    def method_call(self):
+        self.expression()
+        self.expect('lparen')
+        self.args()
+        self.expect('rparen')
+
+    def expression(self):
+        #t = self.current
+        if self.accept('true'):
+            return
+        if self.accept('false'):
+            return
+        if self.accept('id'):
+            self.rest_expression()
+            return
+        if self.accept('number'):
+            return
+        if self.accept('string'):
+            return
+        if self.accept('not'):
+            self.statement()
+            return
+
+    def rest_expression(self):
+        if self.accept('lparen'):
+            self.args()
+            self.expect('rparen')
+
+    def ifelseblock(self):
+        if self.current == 'elif':
+            self.statement()
+            self.expect('eol')
+            self.codeblock()
+
+    def elseblock(self):
+        if self.current == 'else':
+            self.expect('eol')
+            self.codeblock()
 
     def line(self):
         if self.accept('if'):
@@ -133,7 +193,7 @@ class Parser:
             self.ifelseblock()
             self.elseblock()
             self.expect('endif')
-        if self.token == 'eol':
+        if self.current == 'eol':
             return
         self.statement()
 
@@ -154,5 +214,8 @@ if __name__ == '__main__':
 #    except ParseException as e:
 #        print('Error line', e.lineno, 'column', e.colno)
     parser = Parser(code)
-    parser.parse()
+    try:
+        parser.parse()
+    except ParseException as e:
+        print('Error', e.text, 'line', e.lineno, 'column', e.colno)
 
