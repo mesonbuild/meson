@@ -24,10 +24,13 @@ class ParseException(Exception):
         self.colno = colno
 
 class Token:
-    def __init__(self, id, lineno, colno):
-        self.id = id
+    def __init__(self, tid, lineno, colno):
+        self.tid = tid
         self.lineno = lineno
         self.colno = colno
+    
+    def __eq__(self, other):
+        return self.tid == other.tid
 
 class Lexer:
     def __init__(self):
@@ -96,11 +99,60 @@ class Lexer:
             if not matched:
                 raise ParseException(lineno, col)
 
+class Parser:
+    def __init__(self, code):
+        self.stream = Lexer().lex(code)
+        self.getsym()
+
+    def getsym(self):
+        self.current = next(self.stream)
+
+    def accept(self, s):
+        if self.current.tid == s:
+            self.getsym()
+            return True
+        return False
+    
+    def expect(self, s):
+        if self.accept(s):
+            return True
+        raise ParseException('Unknown token', s.lineno, s.colno)
+
+    def parse(self):
+        self.codeblock()
+
+    def statement(self):
+        if self.accept('('):
+            self.statement()
+            self.expect(')')
+        
+
+    def line(self):
+        if self.accept('if'):
+            self.statement()
+            self.ifelseblock()
+            self.elseblock()
+            self.expect('endif')
+        if self.token == 'eol':
+            return
+        self.statement()
+
+    def codeblock(self):
+        if self.accept('eol'):
+            return self.codeblock()
+        cond = True
+        while cond:
+            self.line()
+            cond = self.expect('eol')
+
 if __name__ == '__main__':
     code = open(sys.argv[1]).read()
-    lex = Lexer()
-    try:
-        for i in lex.lex(code):
-            print('Token:', i.id, 'Line:', i.lineno, 'Column:', i.colno)
-    except ParseException as e:
-        print('Error line', e.lineno, 'column', e.colno)
+#    lex = Lexer()
+#    try:
+#        for i in lex.lex(code):
+#            print('Token:', i.tid, 'Line:', i.lineno, 'Column:', i.colno)
+#    except ParseException as e:
+#        print('Error line', e.lineno, 'column', e.colno)
+    parser = Parser(code)
+    parser.parse()
+
