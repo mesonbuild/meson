@@ -99,9 +99,27 @@ class Lexer:
                         line_start = loc
                         if par_count > 0 or bracket_count > 0:
                             break
+                    elif tid == 'id':
+                        if match_text in self.keywords:
+                            tid = match_text
                     yield Token(tid, curline, col)
             if not matched:
                 raise ParseException('lexer', lineno, col)
+
+# Recursive descent parser for Meson's definition language.
+# Very basic apart from the fact that we have many precedence
+# levels so there are not enough words to describe them all.
+# Enter numbering:
+#
+# 1 assignment
+# 2 or
+# 3 and
+# 4 equality
+# comparison, plus and multiplication would go here
+# 5 negation
+# 6 funcall, method call
+# 7 parentheses 
+# 8 plain token
 
 class Parser:
     def __init__(self, code):
@@ -120,20 +138,68 @@ class Parser:
     def expect(self, s):
         if self.accept(s):
             return True
-        raise ParseException('Unknown token', self.current.lineno, self.current.colno)
+        raise ParseException('Unknown token ' + self.current.tid, self.current.lineno, self.current.colno)
 
     def parse(self):
         self.codeblock()
 
     def statement(self):
-        if self.accept('lparen'):
-            self.statement()
-            self.expect('rparen')
-        if self.accept('lbracket'):
+        self.e1()
+
+    def e1(self):
+        self.e2()
+        while self.accept('assign'):
+            self.e1()
+
+    def e2(self):
+        self.e3()
+        if self.accept('or'):
+            self.e3()
+
+    def e3(self):
+        self.e4()
+        if self.accept('and'):
+            self.e4()
+
+    def e4(self):
+        self.e5()
+        if self.accept('equal'):
+            self.e5()
+    
+    def e5(self):
+        if self.accept('not'):
+            pass
+        self.e6()
+
+    def e6(self):
+        self.e7()
+        if self.accept('dot'):
+            self.method_call()
+            self.e6()
+        elif self.accept('lparen'):
             self.args()
-            self.expect('rbracket')
-        self.expression()
-        self.rest_statement()
+            self.expect('rparen')
+            self.e6()
+
+    def e7(self):
+        if self.accept('('):
+            self.expression()
+            self.expect(')')
+        else:
+            self.e8()
+
+    def e8(self):
+        #t = self.current
+        if self.accept('true'):
+            return
+        if self.accept('false'):
+            return
+        if self.accept('id'):
+            return
+        if self.accept('number'):
+            return
+        if self.accept('string'):
+            return
 
     def args(self):
         self.statement()
@@ -149,7 +215,7 @@ class Parser:
             self.method_call()
 
     def method_call(self):
-        self.expression()
+        self.e8()
         self.expect('lparen')
         self.args()
         self.expect('rparen')
@@ -177,19 +243,20 @@ class Parser:
             self.expect('rparen')
 
     def ifelseblock(self):
-        if self.current == 'elif':
+        if self.accept('elif'):
             self.statement()
             self.expect('eol')
             self.codeblock()
 
     def elseblock(self):
-        if self.current == 'else':
+        if self.accept('else'):
             self.expect('eol')
             self.codeblock()
 
     def line(self):
         if self.accept('if'):
             self.statement()
+            self.codeblock()
             self.ifelseblock()
             self.elseblock()
             self.expect('endif')
@@ -198,12 +265,10 @@ class Parser:
         self.statement()
 
     def codeblock(self):
-        if self.accept('eol'):
-            return self.codeblock()
         cond = True
         while cond:
             self.line()
-            cond = self.expect('eol')
+            cond = self.expect('eol') or self.current == 'elif' or self.current == 'else'
 
 if __name__ == '__main__':
     code = open(sys.argv[1]).read()
