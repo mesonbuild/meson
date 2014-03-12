@@ -55,7 +55,7 @@ class Lexer:
             ('string', re.compile("'[^']*?'")),
             ('comma', re.compile(r',')),
             ('dot', re.compile(r'\.')),
-            ('semicolon', re.compile(r':')),
+            ('colon', re.compile(r':')),
             ('assign', re.compile(r'==')),
             ('equal', re.compile(r'=')),
             ('nequals', re.compile(r'\!=')),
