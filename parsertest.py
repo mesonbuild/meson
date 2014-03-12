@@ -127,18 +127,21 @@ class Parser:
         self.getsym()
 
     def getsym(self):
-        self.current = next(self.stream)
+        try:
+            self.current = next(self.stream)
+        except StopIteration:
+            self.current = Token('eof', 0, 0)
 
     def accept(self, s):
         if self.current.tid == s:
             self.getsym()
             return True
         return False
-    
+
     def expect(self, s):
         if self.accept(s):
             return True
-        raise ParseException('Unknown token ' + self.current.tid, self.current.lineno, self.current.colno)
+        raise ParseException('Expecting %s got %s.' % (s, self.current.tid), self.current.lineno, self.current.colno)
 
     def parse(self):
         self.codeblock()
@@ -210,10 +213,6 @@ class Parser:
             if self.accept('comma'):
                 self.args()
 
-    def rest_statement(self):
-        if self.accept('.'):
-            self.method_call()
-
     def method_call(self):
         self.e8()
         self.expect('lparen')
@@ -243,7 +242,7 @@ class Parser:
             self.expect('rparen')
 
     def ifelseblock(self):
-        if self.accept('elif'):
+        while self.accept('elif'):
             self.statement()
             self.expect('eol')
             self.codeblock()
@@ -268,7 +267,9 @@ class Parser:
         cond = True
         while cond:
             self.line()
-            cond = self.expect('eol') or self.current == 'elif' or self.current == 'else'
+            cond = self.accept('eol')
+            if self.current == 'elif' or self.current == 'else':
+                cond = False
 
 if __name__ == '__main__':
     code = open(sys.argv[1]).read()
