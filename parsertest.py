@@ -148,6 +148,40 @@ class EmptyNode:
         self.colno = 0
         self.value = None
 
+class OrNode:
+    def __init__(self, lineno, colno, left, right):
+        self.lineno = lineno
+        self.colno = colno
+        self.left = left
+        self.right = right
+
+class AndNode:
+    def __init__(self, lineno, colno, left, right):
+        self.lineno = lineno
+        self.colno = colno
+        self.left = left
+        self.right = right
+
+class EqualNode:
+    def __init__(self, lineno, colno, left, right):
+        self.lineno = lineno
+        self.colno = colno
+        self.left = left
+        self.right = right
+
+class NEqualNode:
+    def __init__(self, lineno, colno, left, right):
+        self.lineno = lineno
+        self.colno = colno
+        self.left = left
+        self.right = right
+
+class NotNode:
+    def __init__(self, lineno, colno, value):
+        self.lineno = lineno
+        self.colno = colno
+        self.value = value
+
 class CodeBlockNode:
     def __init__(self, lineno, colno):
         self.lineno = lineno
@@ -178,6 +212,20 @@ class AssignmentNode:
         self.var_name = var_name
         assert(isinstance(var_name, str))
         self.value = value
+
+class IfClauseNode():
+    def __init__(self, lineno, colno):
+        self.lineno = lineno
+        self.colno = colno
+        self.ifs = []
+        self.elseblock = EmptyNode()
+
+class IfNode():
+    def __init__(self, lineno, colno, condition, block):
+        self.lineno = lineno
+        self.colno = colno
+        self.condition = condition
+        self.block = block
 
 class ArgumentNode():
     def __init__(self, token):
@@ -267,24 +315,26 @@ class Parser:
     def e2(self):
         left = self.e3()
         if self.accept('or'):
-            self.e3()
+            return OrNode(left.lineno, left.colno, left, self.e3())
         return left
 
     def e3(self):
         left = self.e4()
         if self.accept('and'):
-            self.e4()
+            return AndNode(left.lineno, left.colno, left, self.e4())
         return left
 
     def e4(self):
         left = self.e5()
         if self.accept('equal'):
-            self.e5()
+            return EqualNode(left.lineno, left.colno, left, self.e5())
+        if self.accept('nequal'):
+            return NEqualNode(left.lineno, left.colno, left, self.e5())
         return left
 
     def e5(self):
         if self.accept('not'):
-            pass
+            return NotNode(self.current.lineno, self.current.colno, self.e6())
         return self.e6()
 
     def e6(self):
@@ -294,6 +344,10 @@ class Parser:
         elif self.accept('lparen'):
             args = self.args()
             self.expect('rparen')
+            if not isinstance(left, IdNode):
+                raise ParseException('Function call must be applied to plain id',
+                                     left.lineno, left.colno)
+            return FunctionNode(left.lineno, left.colno, left.value, args)
         return left
 
     def e7(self):
@@ -321,7 +375,7 @@ class Parser:
     def args(self):
         s = self.statement()
         if isinstance(s, EmptyNode):
-            ArgumentNode(self.current.lineno, self.current.colno)
+            ArgumentNode(s)
 
         if self.accept('comma'):
             rest = self.args()
@@ -351,26 +405,34 @@ class Parser:
         self.expect('rparen')
         return MethodNode(methodname.lineno, methodname.colno, source_object, methodname.value, args)
 
-    def ifelseblock(self):
+    def ifblock(self):
+        condition = self.statement()
+        clause = IfClauseNode(condition.lineno, condition.colno)
+        block = self.codeblock()
+        clause.ifs.append(IfNode(clause.lineno, clause.colno, condition, block))
+        self.elseifblock(clause)
+        clause.elseblock = self.elseblock()
+        return clause
+
+    def elseifblock(self, clause):
         while self.accept('elif'):
-            self.statement()
+            s = self.statement()
             self.expect('eol')
-            self.codeblock()
+            b = self.codeblock()
+            clause.ifs.append(IfNode(s.lineno, s.colno, s, b))
 
     def elseblock(self):
         if self.accept('else'):
             self.expect('eol')
-            self.codeblock()
+            return self.codeblock()
 
     def line(self):
-        if self.accept('if'):
-            self.statement()
-            self.codeblock()
-            self.ifelseblock()
-            self.elseblock()
-            self.expect('endif')
         if self.current == 'eol':
-            return
+            return EmptyNode()
+        if self.accept('if'):
+            block = self.ifblock()
+            self.expect('endif')
+            return block
         return self.statement()
 
     def codeblock(self):
@@ -381,8 +443,6 @@ class Parser:
             if not isinstance(curline, EmptyNode):
                 block.lines.append(curline)
             cond = self.accept('eol')
-            if self.current == 'elif' or self.current == 'else':
-                cond = False
         return block
 
 if __name__ == '__main__':
