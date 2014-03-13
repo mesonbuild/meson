@@ -52,7 +52,7 @@ class Lexer:
             ('lparen', re.compile(r'\(')),
             ('rparen', re.compile(r'\)')),
             ('lbracket', re.compile(r'\[')),
-            ('lbracket', re.compile(r'\]')),
+            ('rbracket', re.compile(r'\]')),
             ('string', re.compile("'[^']*?'")),
             ('comma', re.compile(r',')),
             ('dot', re.compile(r'\.')),
@@ -141,6 +141,12 @@ class StringNode:
         self.colno = token.colno
         self.value = token.value
         assert(isinstance(self.value, str))
+
+class ArrayNode:
+    def __init__(self, args):
+        self.lineno = args.lineno
+        self.colno = args.colno
+        self.args = args
 
 class EmptyNode:
     def __init__(self):
@@ -351,10 +357,14 @@ class Parser:
         return left
 
     def e7(self):
-        if self.accept('('):
+        if self.accept('lparen'):
             e = self.expression()
-            self.expect(')')
+            self.expect('rparen')
             return e
+        elif self.accept('lbracket'):
+            args = self.args()
+            self.expect('rbracket')
+            return ArrayNode(args)
         else:
             return self.e8()
 
@@ -403,7 +413,10 @@ class Parser:
         self.expect('lparen')
         args = self.args()
         self.expect('rparen')
-        return MethodNode(methodname.lineno, methodname.colno, source_object, methodname.value, args)
+        method = MethodNode(methodname.lineno, methodname.colno, source_object, methodname.value, args)
+        if self.accept('dot'):
+            return self.method_call(method)
+        return method
 
     def ifblock(self):
         condition = self.statement()
