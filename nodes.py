@@ -174,10 +174,10 @@ class CodeBlock(Statement):
     def __init__(self, lineno):
         Statement.__init__(self, lineno)
         self.statements = []
-        
+
     def prepend(self, statement):
         self.statements = [statement] + self.statements
-        
+
     def get_statements(self):
         return self.statements
 

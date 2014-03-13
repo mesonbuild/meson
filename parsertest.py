@@ -57,9 +57,9 @@ class Lexer:
             ('comma', re.compile(r',')),
             ('dot', re.compile(r'\.')),
             ('colon', re.compile(r':')),
-            ('assign', re.compile(r'==')),
-            ('equal', re.compile(r'=')),
+            ('equal', re.compile(r'==')),
             ('nequals', re.compile(r'\!=')),
+            ('assign', re.compile(r'=')),
         ]
 
     def lex(self, code):
@@ -148,6 +148,37 @@ class EmptyNode:
         self.colno = 0
         self.value = None
 
+class CodeBlockNode:
+    def __init__(self, lineno, colno):
+        self.lineno = lineno
+        self.colno = colno
+        self.lines = []
+
+class MethodNode:
+    def __init__(self, lineno, colno, source_object, name, args):
+        self.lineno = lineno
+        self.colno = colno
+        self.source_object = source_object
+        self.name = name
+        assert(isinstance(self.name, str))
+        self.args = args
+
+class FunctionNode:
+    def __init__(self, lineno, colno, func_name, args):
+        self.lineno = lineno
+        self.colno = colno
+        self.func_name = func_name
+        assert(isinstance(func_name, str))
+        self.args = args
+
+class AssignmentNode:
+    def __init__(self, lineno, colno, var_name, value):
+        self.lineno = lineno
+        self.colno = colno
+        self.var_name = var_name
+        assert(isinstance(var_name, str))
+        self.value = value
+
 class ArgumentNode():
     def __init__(self, token):
         self.lineno = token.lineno
@@ -165,7 +196,7 @@ class ArgumentNode():
     def set_kwarg(self, name, value):
         if self.num_args() > 0:
             self.order_error = True
-        self.kwargs[name.get_value()] = value
+        self.kwargs[name] = value
 
     def num_args(self):
         return len(self.arguments)
@@ -217,45 +248,53 @@ class Parser:
         raise ParseException('Expecting %s got %s.' % (s, self.current.tid), self.current.lineno, self.current.colno)
 
     def parse(self):
-        self.codeblock()
+        block = self.codeblock()
+        print(block.lines)
 
     def statement(self):
-        self.e1()
+        return self.e1()
 
     def e1(self):
-        self.e2()
-        while self.accept('assign'):
-            self.e1()
+        left = self.e2()
+        if self.accept('assign'):
+            value = self.e1()
+            if not isinstance(left, IdNode):
+                raise ParseException('Assignment target must be an id.',
+                                     left.lineno, left.colno)
+            return AssignmentNode(left.lineno, left.colno, left.value, value)
+        return left
 
     def e2(self):
-        self.e3()
+        left = self.e3()
         if self.accept('or'):
             self.e3()
+        return left
 
     def e3(self):
-        self.e4()
+        left = self.e4()
         if self.accept('and'):
             self.e4()
+        return left
 
     def e4(self):
-        self.e5()
+        left = self.e5()
         if self.accept('equal'):
             self.e5()
-    
+        return left
+
     def e5(self):
         if self.accept('not'):
             pass
-        self.e6()
+        return self.e6()
 
     def e6(self):
         left = self.e7()
         if self.accept('dot'):
-            self.method_call()
-            self.e6()
+            return self.method_call(left)
         elif self.accept('lparen'):
-            self.args()
+            args = self.args()
             self.expect('rparen')
-            self.e6()
+        return left
 
     def e7(self):
         if self.accept('('):
@@ -302,11 +341,15 @@ class Parser:
         a = ArgumentNode(self.current)
         return a
 
-    def method_call(self):
-        self.e8()
+    def method_call(self, source_object):
+        methodname = self.e8()
+        if not(isinstance(methodname, IdNode)):
+            raise ParseException('Method name must be plain id',
+                                 self.current.lineno, self.current.colno)
         self.expect('lparen')
-        self.args()
+        args = self.args()
         self.expect('rparen')
+        return MethodNode(methodname.lineno, methodname.colno, source_object, methodname.value, args)
 
     def ifelseblock(self):
         while self.accept('elif'):
@@ -328,15 +371,19 @@ class Parser:
             self.expect('endif')
         if self.current == 'eol':
             return
-        self.statement()
+        return self.statement()
 
     def codeblock(self):
+        block = CodeBlockNode(self.current.lineno, self.current.colno)
         cond = True
         while cond:
-            self.line()
+            curline = self.line()
+            if not isinstance(curline, EmptyNode):
+                block.lines.append(curline)
             cond = self.accept('eol')
             if self.current == 'elif' or self.current == 'else':
                 cond = False
+        return block
 
 if __name__ == '__main__':
     code = open(sys.argv[1]).read()
