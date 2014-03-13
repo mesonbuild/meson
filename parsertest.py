@@ -303,7 +303,8 @@ class Parser:
 
     def parse(self):
         block = self.codeblock()
-        print(block.lines)
+        self.expect('eof')
+        return block
 
     def statement(self):
         return self.e1()
