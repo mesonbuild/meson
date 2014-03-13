@@ -58,7 +58,7 @@ class Lexer:
             ('dot', re.compile(r'\.')),
             ('colon', re.compile(r':')),
             ('equal', re.compile(r'==')),
-            ('nequals', re.compile(r'\!=')),
+            ('nequal', re.compile(r'\!=')),
             ('assign', re.compile(r'=')),
         ]
 
@@ -359,7 +359,7 @@ class Parser:
 
     def e7(self):
         if self.accept('lparen'):
-            e = self.expression()
+            e = self.statement()
             self.expect('rparen')
             return e
         elif self.accept('lbracket'):
@@ -460,16 +460,11 @@ class Parser:
         return block
 
 if __name__ == '__main__':
-    code = open(sys.argv[1]).read()
-#    lex = Lexer()
-#    try:
-#        for i in lex.lex(code):
-#            print('Token:', i.tid, 'Line:', i.lineno, 'Column:', i.colno)
-#    except ParseException as e:
-#        print('Error line', e.lineno, 'column', e.colno)
-    parser = Parser(code)
-    try:
-        parser.parse()
-    except ParseException as e:
-        print('Error', e.text, 'line', e.lineno, 'column', e.colno)
+    for code in sys.argv[1:]:
+        parser = Parser(open(code).read())
+        try:
+            print(code)
+            parser.parse()
+        except ParseException as e:
+            print('Error', e.text, 'line', e.lineno, 'column', e.colno)
 
