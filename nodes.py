@@ -201,7 +201,7 @@ class Arguments(Statement):
 
     def num_kwargs(self):
         return len(self.kwargs)
-    
+
     def incorrect_order(self):
         return self.order_error
 

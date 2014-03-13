@@ -142,6 +142,43 @@ class StringNode:
         self.value = token.value
         assert(isinstance(self.value, str))
 
+class EmptyNode:
+    def __init__(self):
+        self.lineno = 0
+        self.colno = 0
+        self.value = None
+
+class ArgumentNode():
+    def __init__(self, token):
+        self.lineno = token.lineno
+        self.colno = token.colno
+        self.arguments = []
+        self.kwargs = {}
+        self.order_error = False
+
+    def prepend(self, statement):
+        self.arguments = [statement] + self.arguments
+
+    def append(self, statement):
+        self.arguments = self.arguments + [statement]
+
+    def set_kwarg(self, name, value):
+        if self.num_args() > 0:
+            self.order_error = True
+        self.kwargs[name.get_value()] = value
+
+    def num_args(self):
+        return len(self.arguments)
+
+    def num_kwargs(self):
+        return len(self.kwargs)
+
+    def incorrect_order(self):
+        return self.order_error
+
+    def __len__(self):
+        return self.num_args() # Fixme
+
 # Recursive descent parser for Meson's definition language.
 # Very basic apart from the fact that we have many precedence
 # levels so there are not enough words to describe them all.
@@ -211,7 +248,7 @@ class Parser:
         self.e6()
 
     def e6(self):
-        self.e7()
+        left = self.e7()
         if self.accept('dot'):
             self.method_call()
             self.e6()
@@ -222,10 +259,11 @@ class Parser:
 
     def e7(self):
         if self.accept('('):
-            self.expression()
+            e = self.expression()
             self.expect(')')
+            return e
         else:
-            self.e8()
+            return self.e8()
 
     def e8(self):
         t = self.current
@@ -239,15 +277,30 @@ class Parser:
             return NumberNode(t)
         if self.accept('string'):
             return StringNode(t)
+        return EmptyNode()
 
     def args(self):
-        self.statement()
+        s = self.statement()
+        if isinstance(s, EmptyNode):
+            ArgumentNode(self.current.lineno, self.current.colno)
+
         if self.accept('comma'):
-            self.args()
+            rest = self.args()
+            rest.prepend(s)
+            return rest
         if self.accept('colon'):
-            self.statement()
+            if not isinstance(s, IdNode):
+                raise ParseException('Keyword argument must be a plain identifier.',
+                                     s.lineno, s.colno)
+            value = self.statement()
             if self.accept('comma'):
-                self.args()
+                rest = self.args()
+                rest.set_kwarg(s.value, value)
+                return rest
+            a = ArgumentNode(self.current)
+            a.set_kwarg(s.value, value)
+        a = ArgumentNode(self.current)
+        return a
 
     def method_call(self):
         self.e8()
