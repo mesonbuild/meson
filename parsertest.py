@@ -25,10 +25,11 @@ class ParseException(Exception):
         self.colno = colno
 
 class Token:
-    def __init__(self, tid, lineno, colno):
+    def __init__(self, tid, lineno, colno, value):
         self.tid = tid
         self.lineno = lineno
         self.colno = colno
+        self.value = value
     
     def __eq__(self, other):
         if isinstance(other, str):
@@ -70,6 +71,7 @@ class Lexer:
         col = 0
         while(loc < len(code)):
             matched = False
+            value = None
             for (tid, reg) in self.token_specification:
                 mo = reg.match(code, loc)
                 if mo:
@@ -88,12 +90,17 @@ class Lexer:
                         bracket_count += 1
                     elif tid == 'rbracket':
                         bracket_count -= 1
+                    elif tid == 'string':
+                        value = match_text[1:-1]
                     elif tid == 'multiline_string':
                         tid = 'string'
+                        value = match_text[3:-3]
                         lines = match_text.split('\n')
                         if len(lines) > 1:
                             lineno += len(lines) - 1
                             line_start = mo.end() - len(lines[-1])
+                    elif tid == 'number':
+                        value = int(match_text)
                     elif tid == 'eol' or tid == 'eol_cont':
                         lineno += 1
                         line_start = loc
@@ -102,9 +109,38 @@ class Lexer:
                     elif tid == 'id':
                         if match_text in self.keywords:
                             tid = match_text
-                    yield Token(tid, curline, col)
+                        else:
+                            value = match_text
+                    yield Token(tid, curline, col, value)
             if not matched:
                 raise ParseException('lexer', lineno, col)
+
+class BooleanNode:
+    def __init__(self, token):
+        self.lineno = token.lineno
+        self.colno = token.colno
+        self.value = bool(token.value)
+
+class IdNode:
+    def __init__(self, token):
+        self.lineno = token.lineno
+        self.colno = token.colno
+        self.value = token.value
+        assert(isinstance(self.value, str))
+
+class NumberNode:
+    def __init__(self, token):
+        self.lineno = token.lineno
+        self.colno = token.colno
+        self.value = token.value
+        assert(isinstance(self.value, int))
+
+class StringNode:
+    def __init__(self, token):
+        self.lineno = token.lineno
+        self.colno = token.colno
+        self.value = token.value
+        assert(isinstance(self.value, str))
 
 # Recursive descent parser for Meson's definition language.
 # Very basic apart from the fact that we have many precedence
@@ -130,7 +166,7 @@ class Parser:
         try:
             self.current = next(self.stream)
         except StopIteration:
-            self.current = Token('eof', 0, 0)
+            self.current = Token('eof', 0, 0, None)
 
     def accept(self, s):
         if self.current.tid == s:
@@ -192,17 +228,17 @@ class Parser:
             self.e8()
 
     def e8(self):
-        #t = self.current
+        t = self.current
         if self.accept('true'):
-            return
+            return BooleanNode(t);
         if self.accept('false'):
-            return
+            BooleanNode(t)
         if self.accept('id'):
-            return
+            return IdNode(t)
         if self.accept('number'):
-            return
+            return NumberNode(t)
         if self.accept('string'):
-            return
+            return StringNode(t)
 
     def args(self):
         self.statement()
@@ -218,28 +254,6 @@ class Parser:
         self.expect('lparen')
         self.args()
         self.expect('rparen')
-
-    def expression(self):
-        #t = self.current
-        if self.accept('true'):
-            return
-        if self.accept('false'):
-            return
-        if self.accept('id'):
-            self.rest_expression()
-            return
-        if self.accept('number'):
-            return
-        if self.accept('string'):
-            return
-        if self.accept('not'):
-            self.statement()
-            return
-
-    def rest_expression(self):
-        if self.accept('lparen'):
-            self.args()
-            self.expect('rparen')
 
     def ifelseblock(self):
         while self.accept('elif'):

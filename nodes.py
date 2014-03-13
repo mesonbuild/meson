@@ -38,7 +38,7 @@ class AtomExpression(Expression):
     def __init__(self, value, lineno):
         Expression.__init__(self, lineno)
         self.value = value
-        
+
     def get_value(self):
         return self.value
 
