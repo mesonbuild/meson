@@ -398,11 +398,11 @@ class Parser:
                                      s.lineno, s.colno)
             value = self.statement()
             if self.accept('comma'):
-                rest = self.args()
-                rest.set_kwarg(s.value, value)
-                return rest
-            a = ArgumentNode(self.current)
+                a = self.args()
+            else:
+                a = ArgumentNode(self.current)
             a.set_kwarg(s.value, value)
+            return a
         a = ArgumentNode(self.current)
         a.arguments.append(s)
         return a

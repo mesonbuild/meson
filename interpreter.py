@@ -1274,8 +1274,8 @@ class Interpreter():
 
     def method_call(self, node):
         invokable = node.invokable
-        if isinstance(invokable, nodes.AtomStatement):
-            object_name = invokable.get_value()
+        if isinstance(invokable, mparser2.IdNode):
+            object_name = invokable.value
             obj = self.get_variable(object_name)
         else:
             obj = self.evaluate_statement(invokable)
