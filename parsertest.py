@@ -169,19 +169,13 @@ class AndNode:
         self.left = left
         self.right = right
 
-class EqualNode:
-    def __init__(self, lineno, colno, left, right):
+class ComparisonNode:
+    def __init__(self, lineno, colno, ctype, left, right):
         self.lineno = lineno
         self.colno = colno
         self.left = left
         self.right = right
-
-class NEqualNode:
-    def __init__(self, lineno, colno, left, right):
-        self.lineno = lineno
-        self.colno = colno
-        self.left = left
-        self.right = right
+        self.ctype = ctype
 
 class NotNode:
     def __init__(self, lineno, colno, value):
@@ -337,9 +331,9 @@ class Parser:
     def e4(self):
         left = self.e5()
         if self.accept('equal'):
-            return EqualNode(left.lineno, left.colno, left, self.e5())
+            return ComparisonNode(left.lineno, left.colno, '==', left, self.e5())
         if self.accept('nequal'):
-            return NEqualNode(left.lineno, left.colno, left, self.e5())
+            return ComparisonNode(left.lineno, left.colno, '!=', left, self.e5())
         return left
 
     def e5(self):

@@ -725,7 +725,7 @@ class Interpreter():
             return self.evaluate_if(cur)
         elif isinstance(cur, mparser2.IdNode):
             return self.get_variable(cur.value)
-        elif isinstance(cur, mparser2.EqualNode): # FIXME, should be comparison
+        elif isinstance(cur, mparser2.ComparisonNode):
             return self.evaluate_comparison(cur)
         elif isinstance(cur, mparser2.ArrayNode):
             return self.evaluate_arraystatement(cur)
@@ -1310,8 +1310,8 @@ class Interpreter():
         return False
 
     def evaluate_comparison(self, node):
-        v1 = self.evaluate_statement(node.get_first())
-        v2 = self.evaluate_statement(node.get_second())
+        v1 = self.evaluate_statement(node.left)
+        v2 = self.evaluate_statement(node.right)
         if self.is_elementary_type(v1):
             val1 = v1
         else:
@@ -1323,9 +1323,9 @@ class Interpreter():
         if type(val1) != type(val2):
             raise InterpreterException('Comparison of different types %s and %s.' %
                                        (str(type(val1)), str(type(val2))))
-        if node.get_ctype() == '==':
+        if node.ctype == '==':
             return val1 == val2
-        elif node.get_ctype() == '!=':
+        elif node.ctype == '!=':
             return val1 != val2
         else:
             raise InvalidCode('You broke me.')
