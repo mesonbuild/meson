@@ -116,10 +116,11 @@ class Lexer:
                 raise ParseException('lexer', lineno, col)
 
 class BooleanNode:
-    def __init__(self, token):
+    def __init__(self, token, value):
         self.lineno = token.lineno
         self.colno = token.colno
-        self.value = bool(token.value)
+        self.value = value
+        assert(isinstance(self.value, bool))
 
 class IdNode:
     def __init__(self, token):
@@ -372,9 +373,9 @@ class Parser:
     def e8(self):
         t = self.current
         if self.accept('true'):
-            return BooleanNode(t);
+            return BooleanNode(t, True);
         if self.accept('false'):
-            BooleanNode(t)
+            BooleanNode(t, False)
         if self.accept('id'):
             return IdNode(t)
         if self.accept('number'):

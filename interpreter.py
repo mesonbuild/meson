@@ -1295,8 +1295,7 @@ class Interpreter():
     def evaluate_if(self, node):
         result = self.evaluate_statement(node.clause)
         cond = None
-        if isinstance(result, nodes.BoolExpression) or \
-           isinstance(result, nodes.BoolStatement):
+        if isinstance(result, mparser2.BooleanNode):
             cond = result.get_value()
         if isinstance(result, bool):
             cond = result
@@ -1340,14 +1339,14 @@ class Interpreter():
 
     def evaluate_andstatement(self, cur):
         l = self.evaluate_statement(cur.left)
-        if isinstance(l, nodes.BoolStatement):
+        if isinstance(l, mparser2.BooleanNode):
             l = l.get_value()
         if not isinstance(l, bool):
             raise InterpreterException('First argument to "and" is not a boolean.')
         if not l:
             return False
         r = self.evaluate_statement(cur.right)
-        if isinstance(r, nodes.BoolStatement):
+        if isinstance(r, mparser2.BooleanNode):
             r = r.get_value()
         if not isinstance(r, bool):
             raise InterpreterException('Second argument to "and" is not a boolean.')
@@ -1355,14 +1354,14 @@ class Interpreter():
 
     def evaluate_orstatement(self, cur):
         l = self.evaluate_statement(cur.left)
-        if isinstance(l, nodes.BoolStatement):
+        if isinstance(l, mparser2.BooleanNode):
             l = l.get_value()
         if not isinstance(l, bool):
             raise InterpreterException('First argument to "or" is not a boolean.')
         if l:
             return True
         r = self.evaluate_statement(cur.right)
-        if isinstance(r, nodes.BoolStatement):
+        if isinstance(r, mparser2.BooleanNode):
             r = r.get_value()
         if not isinstance(r, bool):
             raise InterpreterException('Second argument to "or" is not a boolean.')
@@ -1370,7 +1369,7 @@ class Interpreter():
     
     def evaluate_notstatement(self, cur):
         v = self.evaluate_statement(cur.val)
-        if isinstance(v, nodes.BoolStatement):
+        if isinstance(v, mparser2.BooleanNode):
             v = v.get_value()
         if not isinstance(v, bool):
             raise InterpreterException('Argument to "not" is not a boolean.')
