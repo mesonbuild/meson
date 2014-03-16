@@ -711,31 +711,31 @@ class Interpreter():
         self.variables[varname] = variable
 
     def evaluate_statement(self, cur):
-        if isinstance(cur, nodes.FunctionCall):
+        if isinstance(cur, mparser2.FunctionNode):
             return self.function_call(cur)
-        elif isinstance(cur, nodes.Assignment):
+        elif isinstance(cur, mparser2.AssignmentNode):
             return self.assignment(cur)
-        elif isinstance(cur, nodes.MethodCall):
+        elif isinstance(cur, mparser2.MethodNode):
             return self.method_call(cur)
-        elif isinstance(cur, nodes.StringStatement):
+        elif isinstance(cur, mparser2.StringNode):
             return cur
-        elif isinstance(cur, nodes.BoolStatement):
+        elif isinstance(cur, mparser2.BooleanNode):
             return cur
-        elif isinstance(cur, nodes.IfStatement):
+        elif isinstance(cur, mparser2.IfNode):
             return self.evaluate_if(cur)
-        elif isinstance(cur, nodes.AtomStatement):
-            return self.get_variable(cur.get_value())
-        elif isinstance(cur, nodes.Comparison):
+        elif isinstance(cur, mparser2.IdNode):
+            return self.get_variable(cur.value)
+        elif isinstance(cur, mparser2.EqualNode): # FIXME, should be comparison
             return self.evaluate_comparison(cur)
-        elif isinstance(cur, nodes.ArrayStatement):
+        elif isinstance(cur, mparser2.ArrayNode):
             return self.evaluate_arraystatement(cur)
-        elif isinstance(cur, nodes.IntStatement):
+        elif isinstance(cur, mparser2.NumberNode):
             return cur
-        elif isinstance(cur, nodes.AndStatement):
+        elif isinstance(cur, mparser2.AndNode):
             return self.evaluate_andstatement(cur)
-        elif isinstance(cur, nodes.OrStatement):
+        elif isinstance(cur, mparser2.OrNode):
             return self.evaluate_orstatement(cur)
-        elif isinstance(cur, nodes.NotStatement):
+        elif isinstance(cur, mparser2.NotNode):
             return self.evaluate_notstatement(cur)
         else:
             raise InvalidCode("Unknown statement.")
@@ -1184,8 +1184,8 @@ class Interpreter():
                 raise InterpreterException('Tried to add non-existing source %s.' % s)
 
     def function_call(self, node):
-        func_name = node.get_function_name()
-        (posargs, kwargs) = self.reduce_arguments(node.arguments)
+        func_name = node.func_name
+        (posargs, kwargs) = self.reduce_arguments(node.args)
         if func_name in self.funcs:
             return self.funcs[func_name](node, posargs, kwargs)
         else:
@@ -1201,10 +1201,10 @@ class Interpreter():
         return False
     
     def assignment(self, node):
+        assert(isinstance(node, mparser2.AssignmentNode))
         var_name = node.var_name
-        if not isinstance(var_name, nodes.AtomExpression):
+        if not isinstance(var_name, str):
             raise InvalidArguments('Tried to assign value to a non-variable.')
-        var_name = var_name.get_value()
         value = self.evaluate_statement(node.value)
         if value is None:
             raise InvalidCode('Can not assign None to variable.')
@@ -1215,27 +1215,27 @@ class Interpreter():
         return value
 
     def reduce_single(self, arg):
-        if isinstance(arg, nodes.AtomExpression) or isinstance(arg, nodes.AtomStatement):
+        if isinstance(arg, mparser2.IdNode):
             return self.get_variable(arg.value)
         elif isinstance(arg, str):
             return arg
-        elif isinstance(arg, nodes.StringExpression) or isinstance(arg, nodes.StringStatement):
-            return arg.get_value()
-        elif isinstance(arg, nodes.FunctionCall):
+        elif isinstance(arg, mparser2.StringNode):
+            return arg.value
+        elif isinstance(arg, mparser2.FunctionNode):
             return self.function_call(arg)
-        elif isinstance(arg, nodes.MethodCall):
+        elif isinstance(arg, mparser2.MethodNode):
             return self.method_call(arg)
-        elif isinstance(arg, nodes.BoolStatement) or isinstance(arg, nodes.BoolExpression):
-            return arg.get_value()
-        elif isinstance(arg, nodes.ArrayStatement):
+        elif isinstance(arg, mparser2.BooleanNode):
+            return arg.value
+        elif isinstance(arg, mparser2.ArrayNode):
             return [self.reduce_single(curarg) for curarg in arg.args.arguments]
-        elif isinstance(arg, nodes.IntStatement):
-            return arg.get_value()
+        elif isinstance(arg, mparser2.NumberNode):
+            return arg.value
         else:
             raise InvalidCode('Irreducible argument.')
 
     def reduce_arguments(self, args):
-        assert(isinstance(args, nodes.Arguments))
+        assert(isinstance(args, mparser2.ArgumentNode))
         if args.incorrect_order():
             raise InvalidArguments('All keyword arguments must be after positional arguments.')
         reduced_pos = [self.reduce_single(arg) for arg in args.arguments]
@@ -1255,10 +1255,10 @@ class Interpreter():
         raise InterpreterException('Unknown method "%s" for a string.' % method_name)
 
     def to_native(self, arg):
-        if isinstance(arg, nodes.StringStatement) or \
-           isinstance(arg, nodes.IntStatement) or \
-           isinstance(arg, nodes.BoolStatement):
-            return arg.get_value()
+        if isinstance(arg, mparser2.StringNode) or \
+           isinstance(arg, mparser2.NumberNode) or \
+           isinstance(arg, mparser2.BooleanNode):
+            return arg.value
         return arg
 
     def format_string(self, templ, args):

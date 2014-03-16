@@ -404,6 +404,7 @@ class Parser:
             a = ArgumentNode(self.current)
             a.set_kwarg(s.value, value)
         a = ArgumentNode(self.current)
+        a.arguments.append(s)
         return a
 
     def method_call(self, source_object):
