@@ -1054,7 +1054,7 @@ class Interpreter():
         code = open(absname).read()
         assert(isinstance(code, str))
         try:
-            codeblock = mparser.build_ast(code)
+            codeblock = mparser2.Parser(code).parse()
         except coredata.MesonException as me:
             me.file = buildfilename
             raise me
@@ -1273,16 +1273,16 @@ class Interpreter():
         return templ
 
     def method_call(self, node):
-        invokable = node.invokable
+        invokable = node.source_object
         if isinstance(invokable, mparser2.IdNode):
             object_name = invokable.value
             obj = self.get_variable(object_name)
         else:
             obj = self.evaluate_statement(invokable)
-        method_name = node.method_name.get_value()
+        method_name = node.name
         if method_name == 'extract_objects' and self.environment.coredata.unity:
             raise InterpreterException('Single object files can not be extracted in Unity builds.')
-        args = node.arguments
+        args = node.args
         if isinstance(obj, nodes.StringStatement):
             obj = obj.get_value()
         if isinstance(obj, str):

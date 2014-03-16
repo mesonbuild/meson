@@ -243,10 +243,12 @@ class ArgumentNode():
         self.order_error = False
 
     def prepend(self, statement):
-        self.arguments = [statement] + self.arguments
+        if not isinstance(statement, EmptyNode):
+            self.arguments = [statement] + self.arguments
 
     def append(self, statement):
-        self.arguments = self.arguments + [statement]
+        if not isinstance(statement, EmptyNode):
+            self.arguments = self.arguments + [statement]
 
     def set_kwarg(self, name, value):
         if self.num_args() > 0:
@@ -405,7 +407,7 @@ class Parser:
             a.set_kwarg(s.value, value)
             return a
         a = ArgumentNode(self.current)
-        a.arguments.append(s)
+        a.append(s)
         return a
 
     def method_call(self, source_object):
