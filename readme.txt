@@ -4,7 +4,6 @@ build system.
 Dependencies
 
 Python 3.3: http://python.org
-Python-Ply: http://www.dabeaz.com/ply/ply.html
 Ninja:      http://martine.github.com/ninja/
 
 Installing from source

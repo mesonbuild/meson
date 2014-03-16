@@ -12,9 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import mparser
 import parsertest as mparser2
-import nodes
 import environment
 import coredata
 import dependencies
@@ -430,8 +428,6 @@ class CompilerHolder(InterpreterObject):
         if len(args) != 1:
             raise InterpreterException('Run method takes exactly one positional argument.')
         code = args[0]
-        if isinstance(code, nodes.StringStatement):
-            code = code.get_value()
         testname = kwargs.get('name', '')
         if not isinstance(testname, str):
             raise InterpreterException('Testname argument must be a string.')
@@ -509,8 +505,6 @@ class CompilerHolder(InterpreterObject):
         testname = kwargs.get('name', '')
         if not isinstance(testname, str):
             raise InterpreterException('Testname argument must be a string.')
-        if isinstance(string, nodes.StringStatement):
-            string = string.value
         if not isinstance(string, str):
             raise InterpreterException('Argument to compiles() must be a string')
         result = self.compiler.compiles(string)
@@ -526,8 +520,6 @@ class CompilerHolder(InterpreterObject):
         if len(args) != 1:
             raise InterpreterException('has_header method takes exactly one argument.')
         string = args[0]
-        if isinstance(string, nodes.StringStatement):
-            string = string.value
         if not isinstance(string, str):
             raise InterpreterException('Argument to has_header() must be a string')
         haz = self.compiler.has_header(string)
@@ -1121,8 +1113,8 @@ class Interpreter():
             self.build.global_args[lang] = args
 
     def flatten(self, args):
-        if isinstance(args, nodes.StringStatement):
-            return args.get_value()
+        if isinstance(args, mparser2.StringNode):
+            return args.value
         if isinstance(args, str):
             return args
         if isinstance(args, InterpreterObject):
@@ -1132,8 +1124,8 @@ class Interpreter():
             if isinstance(a, list):
                 rest = self.flatten(a)
                 result = result + rest
-            elif isinstance(a, nodes.StringStatement):
-                result.append(a.get_value())
+            elif isinstance(a, mparser2.StringNode):
+                result.append(a.value)
             else:
                 result.append(a)
         return result
@@ -1283,7 +1275,7 @@ class Interpreter():
         if method_name == 'extract_objects' and self.environment.coredata.unity:
             raise InterpreterException('Single object files can not be extracted in Unity builds.')
         args = node.args
-        if isinstance(obj, nodes.StringStatement):
+        if isinstance(obj, mparser2.StringNode):
             obj = obj.get_value()
         if isinstance(obj, str):
             return self.string_method_call(obj, method_name, args)

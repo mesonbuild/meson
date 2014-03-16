@@ -12,9 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import mparser
+import parsertest as mparser2
 import coredata
-import nodes
 import os
 
 forbidden_option_names = {'type': True,
@@ -89,41 +88,41 @@ class OptionInterpreter:
     
     def process(self, option_file):
         try:
-            ast = mparser.build_ast(open(option_file, 'r').read())
+            ast = mparser2.Parser(open(option_file, 'r').read()).parse()
         except coredata.MesonException as me:
             me.file = option_file
             raise me
-        if not isinstance(ast, nodes.CodeBlock):
+        if not isinstance(ast, mparser2.CodeBlockNode):
             e = OptionException('Option file is malformed.')
             e.lineno = ast.lineno()
             raise e
-        statements = ast.get_statements()
-        for cur in statements:
+        for cur in ast.lines:
             try:
                 self.evaluate_statement(cur)
             except Exception as e:
-                e.lineno = cur.lineno()
+                e.lineno = cur.lineno
+                e.colno = cur.colno
                 e.file = os.path.join('meson_options.txt')
                 raise e
 
     def reduce_single(self, arg):
-        if isinstance(arg, nodes.AtomExpression) or isinstance(arg, nodes.AtomStatement):
+        if isinstance(arg, mparser2.IdNode):
             return self.get_variable(arg.value)
         elif isinstance(arg, str):
             return arg
-        elif isinstance(arg, nodes.StringExpression) or isinstance(arg, nodes.StringStatement):
-            return arg.get_value()
-        elif isinstance(arg, nodes.BoolStatement) or isinstance(arg, nodes.BoolExpression):
-            return arg.get_value()
-        elif isinstance(arg, nodes.ArrayStatement):
+        elif isinstance(arg, mparser2.StringNode):
+            return arg.value
+        elif isinstance(arg, mparser2.BooleanNode):
+            return arg.value
+        elif isinstance(arg, mparser2.ArrayNode):
             return [self.reduce_single(curarg) for curarg in arg.args.arguments]
-        elif isinstance(arg, nodes.IntStatement):
+        elif isinstance(arg, mparser2.NumberNode):
             return arg.get_value()
         else:
             raise OptionException('Arguments may only be string, int, bool, or array of those.')
 
     def reduce_arguments(self, args):
-        assert(isinstance(args, nodes.Arguments))
+        assert(isinstance(args, mparser2.ArgumentNode))
         if args.incorrect_order():
             raise OptionException('All keyword arguments must be after positional arguments.')
         reduced_pos = [self.reduce_single(arg) for arg in args.arguments]
@@ -136,12 +135,12 @@ class OptionInterpreter:
         return (reduced_pos, reduced_kw)
 
     def evaluate_statement(self, node):
-        if not isinstance(node, nodes.FunctionCall):
+        if not isinstance(node, mparser2.FunctionNode):
             raise OptionException('Option file may only contain option definitions')
-        func_name = node.get_function_name()
+        func_name = node.func_name
         if func_name != 'option':
             raise OptionException('Only calls to option() are allowed in option files.')
-        (posargs, kwargs) = self.reduce_arguments(node.arguments)
+        (posargs, kwargs) = self.reduce_arguments(node.args)
         if 'type' not in kwargs:
             raise OptionException('Option call missing mandatory "type" keyword argument')
         opt_type = kwargs['type']

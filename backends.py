@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import parsertest as mparser2
 import os, sys, re, pickle
-import nodes
 import environment, mlog
 from meson_install import InstallData
 from build import InvalidArguments
@@ -39,8 +39,8 @@ def do_replacement(regex, line, confdata):
             var = confdata.get(varname)
             if isinstance(var, str):
                 pass
-            elif isinstance(var, nodes.StringStatement):
-                var = var.get_value()
+            elif isinstance(var, mparser2.StringNode):
+                var = var.value
             elif isinstance(var, int):
                 var = str(var)
             else:
@@ -60,8 +60,8 @@ def do_mesondefine(line, confdata):
         v = confdata.get(varname)
     except KeyError:
         return '/* undef %s */\n' % varname
-    if isinstance(v, nodes.BoolStatement):
-        v = v.get_value()
+    if isinstance(v, mparser2.BooleanNode):
+        v = v.value
     if isinstance(v, bool):
         if v:
             return '#define %s\n' % varname
