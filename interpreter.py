@@ -1263,7 +1263,7 @@ class Interpreter():
 
     def format_string(self, templ, args):
         templ = self.to_native(templ)
-        if isinstance(args, nodes.Arguments):
+        if isinstance(args, mparser2.ArgumentNode):
             args = args.arguments
         for (i, arg) in enumerate(args):
             arg = self.to_native(self.reduce_single(arg))
@@ -1296,7 +1296,6 @@ class Interpreter():
         assert(isinstance(node, mparser2.IfClauseNode))
         for i in node.ifs:
             result = self.evaluate_statement(i.condition)
-            print(result)
             if not(isinstance(result, bool)):
                 raise InvalidCode('If clause does not evaluate to true or false.')
             if result:
