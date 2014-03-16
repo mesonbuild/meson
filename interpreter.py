@@ -1315,11 +1315,11 @@ class Interpreter():
         if self.is_elementary_type(v1):
             val1 = v1
         else:
-            val1 = v1.get_value()
+            val1 = v1.value
         if self.is_elementary_type(v2):
             val2 = v2
         else:
-            val2 = v2.get_value()
+            val2 = v2.value
         if type(val1) != type(val2):
             raise InterpreterException('Comparison of different types %s and %s.' %
                                        (str(type(val1)), str(type(val2))))
@@ -1333,14 +1333,14 @@ class Interpreter():
     def evaluate_andstatement(self, cur):
         l = self.evaluate_statement(cur.left)
         if isinstance(l, mparser2.BooleanNode):
-            l = l.get_value()
+            l = l.value
         if not isinstance(l, bool):
             raise InterpreterException('First argument to "and" is not a boolean.')
         if not l:
             return False
         r = self.evaluate_statement(cur.right)
         if isinstance(r, mparser2.BooleanNode):
-            r = r.get_value()
+            r = r.value
         if not isinstance(r, bool):
             raise InterpreterException('Second argument to "and" is not a boolean.')
         return r
@@ -1369,7 +1369,7 @@ class Interpreter():
         return not v
 
     def evaluate_arraystatement(self, cur):
-        (arguments, kwargs) = self.reduce_arguments(cur.get_args())
+        (arguments, kwargs) = self.reduce_arguments(cur.args)
         if len(kwargs) > 0:
             raise InvalidCode('Keyword arguments are invalid in array construction.')
         return arguments
