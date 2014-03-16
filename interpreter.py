@@ -721,7 +721,7 @@ class Interpreter():
             return cur
         elif isinstance(cur, mparser2.BooleanNode):
             return cur
-        elif isinstance(cur, mparser2.IfNode):
+        elif isinstance(cur, mparser2.IfClauseNode):
             return self.evaluate_if(cur)
         elif isinstance(cur, mparser2.IdNode):
             return self.get_variable(cur.value)
@@ -1293,23 +1293,16 @@ class Interpreter():
         return obj.method_call(method_name, args, kwargs)
     
     def evaluate_if(self, node):
-        result = self.evaluate_statement(node.clause)
-        cond = None
-        if isinstance(result, mparser2.BooleanNode):
-            cond = result.get_value()
-        if isinstance(result, bool):
-            cond = result
-        if cond is not None:
-            if cond:
-                self.evaluate_codeblock(node.trueblock)
-            else:
-                block = node.falseblock
-                if isinstance(block, nodes.IfStatement):
-                    self.evaluate_if(block)
-                else:
-                    self.evaluate_codeblock(block)
-        else:
-            raise InvalidCode('If clause does not evaluate to true or false.')
+        assert(isinstance(node, mparser2.IfClauseNode))
+        for i in node.ifs:
+            result = self.evaluate_statement(i.condition)
+            if not(isinstance(result, bool)):
+                raise InvalidCode('If clause does not evaluate to true or false.')
+            if result:
+                self.evaluate_codeblock(i.block)
+                return
+        if not isinstance(node.elseblock, mparser2.EmptyNode):
+            self.evaluate_codeblock(node.elseblock)
 
     def is_elementary_type(self, v):
         if isinstance(v, int) or isinstance(v, str) or isinstance(v, bool):

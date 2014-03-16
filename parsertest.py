@@ -377,7 +377,7 @@ class Parser:
         if self.accept('true'):
             return BooleanNode(t, True);
         if self.accept('false'):
-            BooleanNode(t, False)
+            return BooleanNode(t, False)
         if self.accept('id'):
             return IdNode(t)
         if self.accept('number'):
