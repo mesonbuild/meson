@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import mparser
+import parsertest as mparser2
 import nodes
 import environment
 import coredata
@@ -608,7 +609,7 @@ class Interpreter():
             raise InvalidCode('Builder file is empty.')
         assert(isinstance(code, str))
         try:
-            self.ast = mparser.build_ast(code)
+            self.ast = mparser2.Parser(code).parse()
         except coredata.MesonException as me:
             me.file = environment.build_filename
             raise me
@@ -665,12 +666,12 @@ class Interpreter():
         return self.variables
 
     def sanity_check_ast(self):
-        if not isinstance(self.ast, nodes.CodeBlock):
+        if not isinstance(self.ast, mparser2.CodeBlockNode):
             raise InvalidCode('AST is of invalid type. Possibly a bug in the parser.')
-        if len(self.ast.get_statements()) == 0:
+        if len(self.ast.lines) == 0:
             raise InvalidCode('No statements in code.')
-        first = self.ast.get_statements()[0]
-        if not isinstance(first, nodes.FunctionCall) or first.get_function_name() != 'project':
+        first = self.ast.lines[0]
+        if not isinstance(first, mparser2.FunctionNode) or first.func_name != 'project':
             raise InvalidCode('First statement must be a call to project')
 
     def run(self):
@@ -679,18 +680,20 @@ class Interpreter():
     def evaluate_codeblock(self, node):
         if node is None:
             return
-        if not isinstance(node, nodes.CodeBlock):
+        if not isinstance(node, mparser2.CodeBlockNode):
             e = InvalidCode('Tried to execute a non-codeblock. Possibly a bug in the parser.')
-            e.lineno = node.lineno()
+            e.lineno = node.lineno
+            e.colno = node.colno
             raise e
-        statements = node.get_statements()
+        statements = node.lines
         i = 0
         while i < len(statements):
             cur = statements[i]
             try:
                 self.evaluate_statement(cur)
             except Exception as e:
-                e.lineno = cur.lineno()
+                e.lineno = cur.lineno
+                e.colno = cur.colno
                 e.file = os.path.join(self.subdir, 'meson.build')
                 raise e
             i += 1 # In THE FUTURE jump over blocks and stuff.
