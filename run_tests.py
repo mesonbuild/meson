@@ -51,14 +51,14 @@ def validate_install(srcdir, installdir):
     if platform.system() == 'Windows':
         # Don't really know how Windows installs should work
         # so skip.
-        return
+        return ''
     info_file = os.path.join(srcdir, 'installed_files.txt')
     expected = {}
     found = {}
     if os.path.exists(info_file):
         for line in open(info_file):
             expected[platform_fix_filename(line.strip())] = True
-    for root, dirs, files in os.walk(installdir):
+    for root, _, files in os.walk(installdir):
         for fname in files:
             found_name = os.path.join(root, fname)[len(installdir)+1:]
             found[found_name] = True
