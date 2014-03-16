@@ -718,9 +718,9 @@ class Interpreter():
         elif isinstance(cur, mparser2.MethodNode):
             return self.method_call(cur)
         elif isinstance(cur, mparser2.StringNode):
-            return cur
+            return cur.value
         elif isinstance(cur, mparser2.BooleanNode):
-            return cur
+            return cur.value
         elif isinstance(cur, mparser2.IfClauseNode):
             return self.evaluate_if(cur)
         elif isinstance(cur, mparser2.IdNode):
@@ -1296,6 +1296,7 @@ class Interpreter():
         assert(isinstance(node, mparser2.IfClauseNode))
         for i in node.ifs:
             result = self.evaluate_statement(i.condition)
+            print(result)
             if not(isinstance(result, bool)):
                 raise InvalidCode('If clause does not evaluate to true or false.')
             if result:
@@ -1361,9 +1362,9 @@ class Interpreter():
         return r
     
     def evaluate_notstatement(self, cur):
-        v = self.evaluate_statement(cur.val)
+        v = self.evaluate_statement(cur.value)
         if isinstance(v, mparser2.BooleanNode):
-            v = v.get_value()
+            v = v.value
         if not isinstance(v, bool):
             raise InterpreterException('Argument to "not" is not a boolean.')
         return not v
