@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import parsertest as mparser2
+import mparser
 import environment
 import coredata
 import dependencies
@@ -601,7 +601,7 @@ class Interpreter():
             raise InvalidCode('Builder file is empty.')
         assert(isinstance(code, str))
         try:
-            self.ast = mparser2.Parser(code).parse()
+            self.ast = mparser.Parser(code).parse()
         except coredata.MesonException as me:
             me.file = environment.build_filename
             raise me
@@ -658,12 +658,12 @@ class Interpreter():
         return self.variables
 
     def sanity_check_ast(self):
-        if not isinstance(self.ast, mparser2.CodeBlockNode):
+        if not isinstance(self.ast, mparser.CodeBlockNode):
             raise InvalidCode('AST is of invalid type. Possibly a bug in the parser.')
         if len(self.ast.lines) == 0:
             raise InvalidCode('No statements in code.')
         first = self.ast.lines[0]
-        if not isinstance(first, mparser2.FunctionNode) or first.func_name != 'project':
+        if not isinstance(first, mparser.FunctionNode) or first.func_name != 'project':
             raise InvalidCode('First statement must be a call to project')
 
     def run(self):
@@ -672,7 +672,7 @@ class Interpreter():
     def evaluate_codeblock(self, node):
         if node is None:
             return
-        if not isinstance(node, mparser2.CodeBlockNode):
+        if not isinstance(node, mparser.CodeBlockNode):
             e = InvalidCode('Tried to execute a non-codeblock. Possibly a bug in the parser.')
             e.lineno = node.lineno
             e.colno = node.colno
@@ -703,31 +703,31 @@ class Interpreter():
         self.variables[varname] = variable
 
     def evaluate_statement(self, cur):
-        if isinstance(cur, mparser2.FunctionNode):
+        if isinstance(cur, mparser.FunctionNode):
             return self.function_call(cur)
-        elif isinstance(cur, mparser2.AssignmentNode):
+        elif isinstance(cur, mparser.AssignmentNode):
             return self.assignment(cur)
-        elif isinstance(cur, mparser2.MethodNode):
+        elif isinstance(cur, mparser.MethodNode):
             return self.method_call(cur)
-        elif isinstance(cur, mparser2.StringNode):
+        elif isinstance(cur, mparser.StringNode):
             return cur.value
-        elif isinstance(cur, mparser2.BooleanNode):
+        elif isinstance(cur, mparser.BooleanNode):
             return cur.value
-        elif isinstance(cur, mparser2.IfClauseNode):
+        elif isinstance(cur, mparser.IfClauseNode):
             return self.evaluate_if(cur)
-        elif isinstance(cur, mparser2.IdNode):
+        elif isinstance(cur, mparser.IdNode):
             return self.get_variable(cur.value)
-        elif isinstance(cur, mparser2.ComparisonNode):
+        elif isinstance(cur, mparser.ComparisonNode):
             return self.evaluate_comparison(cur)
-        elif isinstance(cur, mparser2.ArrayNode):
+        elif isinstance(cur, mparser.ArrayNode):
             return self.evaluate_arraystatement(cur)
-        elif isinstance(cur, mparser2.NumberNode):
+        elif isinstance(cur, mparser.NumberNode):
             return cur
-        elif isinstance(cur, mparser2.AndNode):
+        elif isinstance(cur, mparser.AndNode):
             return self.evaluate_andstatement(cur)
-        elif isinstance(cur, mparser2.OrNode):
+        elif isinstance(cur, mparser.OrNode):
             return self.evaluate_orstatement(cur)
-        elif isinstance(cur, mparser2.NotNode):
+        elif isinstance(cur, mparser.NotNode):
             return self.evaluate_notstatement(cur)
         else:
             raise InvalidCode("Unknown statement.")
@@ -1046,7 +1046,7 @@ class Interpreter():
         code = open(absname).read()
         assert(isinstance(code, str))
         try:
-            codeblock = mparser2.Parser(code).parse()
+            codeblock = mparser.Parser(code).parse()
         except coredata.MesonException as me:
             me.file = buildfilename
             raise me
@@ -1113,7 +1113,7 @@ class Interpreter():
             self.build.global_args[lang] = args
 
     def flatten(self, args):
-        if isinstance(args, mparser2.StringNode):
+        if isinstance(args, mparser.StringNode):
             return args.value
         if isinstance(args, str):
             return args
@@ -1124,7 +1124,7 @@ class Interpreter():
             if isinstance(a, list):
                 rest = self.flatten(a)
                 result = result + rest
-            elif isinstance(a, mparser2.StringNode):
+            elif isinstance(a, mparser.StringNode):
                 result.append(a.value)
             else:
                 result.append(a)
@@ -1193,7 +1193,7 @@ class Interpreter():
         return False
     
     def assignment(self, node):
-        assert(isinstance(node, mparser2.AssignmentNode))
+        assert(isinstance(node, mparser.AssignmentNode))
         var_name = node.var_name
         if not isinstance(var_name, str):
             raise InvalidArguments('Tried to assign value to a non-variable.')
@@ -1207,27 +1207,27 @@ class Interpreter():
         return value
 
     def reduce_single(self, arg):
-        if isinstance(arg, mparser2.IdNode):
+        if isinstance(arg, mparser.IdNode):
             return self.get_variable(arg.value)
         elif isinstance(arg, str):
             return arg
-        elif isinstance(arg, mparser2.StringNode):
+        elif isinstance(arg, mparser.StringNode):
             return arg.value
-        elif isinstance(arg, mparser2.FunctionNode):
+        elif isinstance(arg, mparser.FunctionNode):
             return self.function_call(arg)
-        elif isinstance(arg, mparser2.MethodNode):
+        elif isinstance(arg, mparser.MethodNode):
             return self.method_call(arg)
-        elif isinstance(arg, mparser2.BooleanNode):
+        elif isinstance(arg, mparser.BooleanNode):
             return arg.value
-        elif isinstance(arg, mparser2.ArrayNode):
+        elif isinstance(arg, mparser.ArrayNode):
             return [self.reduce_single(curarg) for curarg in arg.args.arguments]
-        elif isinstance(arg, mparser2.NumberNode):
+        elif isinstance(arg, mparser.NumberNode):
             return arg.value
         else:
             raise InvalidCode('Irreducible argument.')
 
     def reduce_arguments(self, args):
-        assert(isinstance(args, mparser2.ArgumentNode))
+        assert(isinstance(args, mparser.ArgumentNode))
         if args.incorrect_order():
             raise InvalidArguments('All keyword arguments must be after positional arguments.')
         reduced_pos = [self.reduce_single(arg) for arg in args.arguments]
@@ -1247,15 +1247,15 @@ class Interpreter():
         raise InterpreterException('Unknown method "%s" for a string.' % method_name)
 
     def to_native(self, arg):
-        if isinstance(arg, mparser2.StringNode) or \
-           isinstance(arg, mparser2.NumberNode) or \
-           isinstance(arg, mparser2.BooleanNode):
+        if isinstance(arg, mparser.StringNode) or \
+           isinstance(arg, mparser.NumberNode) or \
+           isinstance(arg, mparser.BooleanNode):
             return arg.value
         return arg
 
     def format_string(self, templ, args):
         templ = self.to_native(templ)
-        if isinstance(args, mparser2.ArgumentNode):
+        if isinstance(args, mparser.ArgumentNode):
             args = args.arguments
         for (i, arg) in enumerate(args):
             arg = self.to_native(self.reduce_single(arg))
@@ -1266,7 +1266,7 @@ class Interpreter():
 
     def method_call(self, node):
         invokable = node.source_object
-        if isinstance(invokable, mparser2.IdNode):
+        if isinstance(invokable, mparser.IdNode):
             object_name = invokable.value
             obj = self.get_variable(object_name)
         else:
@@ -1275,7 +1275,7 @@ class Interpreter():
         if method_name == 'extract_objects' and self.environment.coredata.unity:
             raise InterpreterException('Single object files can not be extracted in Unity builds.')
         args = node.args
-        if isinstance(obj, mparser2.StringNode):
+        if isinstance(obj, mparser.StringNode):
             obj = obj.get_value()
         if isinstance(obj, str):
             return self.string_method_call(obj, method_name, args)
@@ -1285,7 +1285,7 @@ class Interpreter():
         return obj.method_call(method_name, args, kwargs)
     
     def evaluate_if(self, node):
-        assert(isinstance(node, mparser2.IfClauseNode))
+        assert(isinstance(node, mparser.IfClauseNode))
         for i in node.ifs:
             result = self.evaluate_statement(i.condition)
             if not(isinstance(result, bool)):
@@ -1293,7 +1293,7 @@ class Interpreter():
             if result:
                 self.evaluate_codeblock(i.block)
                 return
-        if not isinstance(node.elseblock, mparser2.EmptyNode):
+        if not isinstance(node.elseblock, mparser.EmptyNode):
             self.evaluate_codeblock(node.elseblock)
 
     def is_elementary_type(self, v):
@@ -1324,14 +1324,14 @@ class Interpreter():
 
     def evaluate_andstatement(self, cur):
         l = self.evaluate_statement(cur.left)
-        if isinstance(l, mparser2.BooleanNode):
+        if isinstance(l, mparser.BooleanNode):
             l = l.value
         if not isinstance(l, bool):
             raise InterpreterException('First argument to "and" is not a boolean.')
         if not l:
             return False
         r = self.evaluate_statement(cur.right)
-        if isinstance(r, mparser2.BooleanNode):
+        if isinstance(r, mparser.BooleanNode):
             r = r.value
         if not isinstance(r, bool):
             raise InterpreterException('Second argument to "and" is not a boolean.')
@@ -1339,14 +1339,14 @@ class Interpreter():
 
     def evaluate_orstatement(self, cur):
         l = self.evaluate_statement(cur.left)
-        if isinstance(l, mparser2.BooleanNode):
+        if isinstance(l, mparser.BooleanNode):
             l = l.get_value()
         if not isinstance(l, bool):
             raise InterpreterException('First argument to "or" is not a boolean.')
         if l:
             return True
         r = self.evaluate_statement(cur.right)
-        if isinstance(r, mparser2.BooleanNode):
+        if isinstance(r, mparser.BooleanNode):
             r = r.get_value()
         if not isinstance(r, bool):
             raise InterpreterException('Second argument to "or" is not a boolean.')
@@ -1354,7 +1354,7 @@ class Interpreter():
     
     def evaluate_notstatement(self, cur):
         v = self.evaluate_statement(cur.value)
-        if isinstance(v, mparser2.BooleanNode):
+        if isinstance(v, mparser.BooleanNode):
             v = v.value
         if not isinstance(v, bool):
             raise InterpreterException('Argument to "not" is not a boolean.')

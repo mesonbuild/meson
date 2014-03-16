@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import parsertest as mparser2
+import mparser
 import coredata
 import os
 
@@ -88,11 +88,11 @@ class OptionInterpreter:
     
     def process(self, option_file):
         try:
-            ast = mparser2.Parser(open(option_file, 'r').read()).parse()
+            ast = mparser.Parser(open(option_file, 'r').read()).parse()
         except coredata.MesonException as me:
             me.file = option_file
             raise me
-        if not isinstance(ast, mparser2.CodeBlockNode):
+        if not isinstance(ast, mparser.CodeBlockNode):
             e = OptionException('Option file is malformed.')
             e.lineno = ast.lineno()
             raise e
@@ -106,23 +106,23 @@ class OptionInterpreter:
                 raise e
 
     def reduce_single(self, arg):
-        if isinstance(arg, mparser2.IdNode):
+        if isinstance(arg, mparser.IdNode):
             return self.get_variable(arg.value)
         elif isinstance(arg, str):
             return arg
-        elif isinstance(arg, mparser2.StringNode):
+        elif isinstance(arg, mparser.StringNode):
             return arg.value
-        elif isinstance(arg, mparser2.BooleanNode):
+        elif isinstance(arg, mparser.BooleanNode):
             return arg.value
-        elif isinstance(arg, mparser2.ArrayNode):
+        elif isinstance(arg, mparser.ArrayNode):
             return [self.reduce_single(curarg) for curarg in arg.args.arguments]
-        elif isinstance(arg, mparser2.NumberNode):
+        elif isinstance(arg, mparser.NumberNode):
             return arg.get_value()
         else:
             raise OptionException('Arguments may only be string, int, bool, or array of those.')
 
     def reduce_arguments(self, args):
-        assert(isinstance(args, mparser2.ArgumentNode))
+        assert(isinstance(args, mparser.ArgumentNode))
         if args.incorrect_order():
             raise OptionException('All keyword arguments must be after positional arguments.')
         reduced_pos = [self.reduce_single(arg) for arg in args.arguments]
@@ -135,7 +135,7 @@ class OptionInterpreter:
         return (reduced_pos, reduced_kw)
 
     def evaluate_statement(self, node):
-        if not isinstance(node, mparser2.FunctionNode):
+        if not isinstance(node, mparser.FunctionNode):
             raise OptionException('Option file may only contain option definitions')
         func_name = node.func_name
         if func_name != 'option':

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import parsertest as mparser2
+import mparser
 import os, sys, re, pickle
 import environment, mlog
 from meson_install import InstallData
@@ -39,7 +39,7 @@ def do_replacement(regex, line, confdata):
             var = confdata.get(varname)
             if isinstance(var, str):
                 pass
-            elif isinstance(var, mparser2.StringNode):
+            elif isinstance(var, mparser.StringNode):
                 var = var.value
             elif isinstance(var, int):
                 var = str(var)
@@ -60,7 +60,7 @@ def do_mesondefine(line, confdata):
         v = confdata.get(varname)
     except KeyError:
         return '/* undef %s */\n' % varname
-    if isinstance(v, mparser2.BooleanNode):
+    if isinstance(v, mparser.BooleanNode):
         v = v.value
     if isinstance(v, bool):
         if v:
