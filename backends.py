@@ -1232,7 +1232,7 @@ class Vs2010Backend(Backend):
         ofile.write('Microsoft Visual Studio Solution File, Format Version 11.00\n')
         ofile.write('# Visual Studio 2010\n')
         for p in projlist:
-            prj_line = 'Project("%s") = "%s", "%s", "{%s}"\nEndProject\n' % \
+            prj_line = 'Project("{%s}") = "%s", "%s", "{%s}"\nEndProject\n' % \
                 (self.environment.coredata.guid, p[0], p[1], p[2])
             ofile.write(prj_line)
         ofile.write('Global\n')
@@ -1288,7 +1288,7 @@ class Vs2010Backend(Backend):
         pl = ET.SubElement(prjconf, 'Platform')
         pl.text = platform
         globalgroup = ET.SubElement(root, 'PropertyGroup', Label='Globals')
-        guidelem = ET.SubElement(globalgroup, 'ProjectGUID')
+        guidelem = ET.SubElement(globalgroup, 'ProjectGuid')
         guidelem.text = guid
         kw = ET.SubElement(globalgroup, 'Keyword')
         kw.text = 'Win32Proj'

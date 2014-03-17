@@ -23,7 +23,7 @@ version = '0.14.0-research'
 class CoreData():
 
     def __init__(self, options):
-        self.guid = str(uuid.uuid4())
+        self.guid = str(uuid.uuid4()).upper()
         self.target_guids = {}
         self.version = version
         self.prefix = options.prefix
