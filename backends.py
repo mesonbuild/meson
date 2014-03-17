@@ -1260,7 +1260,18 @@ class Vs2010Backend(Backend):
             projlist.append((name, relname, uuid))
         return projlist
 
+    def split_sources(self, target):
+        sources = []
+        headers = []
+        for i in target.sources:
+            if self.environment.is_header(i):
+                headers.append(i)
+            else:
+                sources.append(i)
+        return (sources, headers)
+
     def gen_vcxproj(self, target, ofname, guid):
+        (sources, headers) = self.split_sources(target)
         buildtype = 'Debug'
         platform = "Win32"
         project_name = target.name
@@ -1305,7 +1316,7 @@ class Vs2010Backend(Backend):
         intdir = ET.SubElement(direlem, 'IntDir')
         intdir.text = self.get_target_private_dir(target) + '\\'
         tname = ET.SubElement(direlem, 'TargetName')
-        tname.text = target.get_filename()
+        tname.text = target_name
         inclinc = ET.SubElement(direlem, 'LinkIncremental')
         inclinc.text = 'true'
 
@@ -1329,7 +1340,8 @@ class Vs2010Backend(Backend):
         respreproc = ET.SubElement(resourcecompile, 'PreprocessorDefinitions')
         link = ET.SubElement(compiles, 'Link')
         ofile = ET.SubElement(link, 'OutputFile')
-        ofile.text = '$(OutDir)prog.exe'
+        ofile.text = '$(OutDir)%s' % target.get_filename()
+        print(target.get_filename())
         addlibdir = ET.SubElement(link, 'AdditionalLibraryDirectories')
         addlibdir.text = '%(AdditionalLibraryDirectories)'
         subsys = ET.SubElement(link, 'SubSystem')
@@ -1343,10 +1355,16 @@ class Vs2010Backend(Backend):
         targetmachine = ET.SubElement(link, 'TargetMachine')
         targetmachine.text = 'MachineX86'
 
-        inc_files = ET.SubElement(root, 'ItemGroup')
-        ET.SubElement(inc_files, 'CLInclude', Include='prog.h')
-        inc_src = ET.SubElement(root, 'ItemGroup')
-        ET.SubElement(inc_src, 'ClCompile', Include='prog.cpp')
+        if len(headers) > 0:
+            inc_hdrs = ET.SubElement(root, 'ItemGroup')
+            for h in headers:
+                relpath = os.path.join(self.build_to_src, target.subdir, h)
+                ET.SubElement(inc_hdrs, 'CLInclude', Include=relpath)
+        if len(sources) > 0:
+            inc_src = ET.SubElement(root, 'ItemGroup')
+            for s in sources:
+                relpath = os.path.join(self.build_to_src, target.subdir, s)
+                ET.SubElement(inc_src, 'CLCompile', Include=relpath)
         ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.targets')
         tree = ET.ElementTree(root)
         tree.write(ofname, encoding='utf-8', xml_declaration=True)
