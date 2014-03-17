@@ -18,7 +18,7 @@
 import xml.etree.ElementTree as ET
 import xml.dom.minidom
 
-def runtest(ofname):
+def gen_vcxproj(ofname):
     buildtype = 'Debug'
     platform = "Win32"
     project_name = 'prog'
@@ -35,7 +35,7 @@ def runtest(ofname):
     p.text= buildtype
     pl = ET.SubElement(prjconf, 'Platform')
     pl.text = platform
-    globalgroup = ET.SubElement(root, 'PropertyGroups', Label='Globals')
+    globalgroup = ET.SubElement(root, 'PropertyGroup', Label='Globals')
     guidelem = ET.SubElement(globalgroup, 'ProjectGUID')
     guidelem.text = guid
     kw = ET.SubElement(globalgroup, 'Keyword')
@@ -49,7 +49,7 @@ def runtest(ofname):
     fver = ET.SubElement(direlem, '_ProjectFileVersion')
     fver.text = project_file_version
     outdir = ET.SubElement(direlem, 'OutDir')
-    outdir.text = './'
+    outdir.text = '.\\'
     intdir = ET.SubElement(direlem, 'IntDir')
     intdir.text = 'obj'
     tname = ET.SubElement(direlem, 'TargetName')
@@ -95,12 +95,48 @@ def runtest(ofname):
     ET.SubElement(inc_files, 'CLInclude', Include='prog.h')
     inc_src = ET.SubElement(root, 'ItemGroup')
     ET.SubElement(inc_src, 'ClCompile', Include='prog.cpp')
-
+    ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.targets')
     tree = ET.ElementTree(root)
     tree.write(ofname, encoding='utf-8', xml_declaration=True)
     # ElementTree can not do prettyprinting so do it manually
     doc = xml.dom.minidom.parse(ofname)
     open(ofname, 'w').write(doc.toprettyxml())
 
+def gen_solution(ofname):
+    solution_guid = '{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}'
+    proj_guid = '{4A8C542D-A4C3-AC4A-A85A-E2A893CCB716}'
+    target_name = 'Sample'
+    target_vcxproj = 'sample.vcxproj'
+    ofile = open(ofname, 'w')
+    ofile.write('Microsoft Visual Studio Solution File, Format Version 11.00\n')
+    ofile.write('# Visual Studio 2010\n')
+    prj_line = 'Project("%s") = "%s", "%s", "%s"\n' % (solution_guid, target_name,
+                                                       target_vcxproj, proj_guid)
+    ofile.write(prj_line)
+    ofile.write('EndProject')
+    ofile.write('Global')
+    indent = '\t' # I shudder
+    ofile.write('%sGlobalSection(SolutionConfigurationPlatforms) = preSolution\n' % indent)
+    indent = '\t\t'
+    ofile.write('%sDebug|Win32 = Debug|Win32\n' % indent)
+    indent = '\t'
+    ofile.write(indent + 'EndGlobalSection\n')
+    ofile.write(indent + 'GlobalSection(ProjectConfigurationPlatforms) = postSolution\n')
+    indent = '\t\t'
+    ofile.write(indent + proj_guid + '.Debug|Win32.ActiveCfg = Debug|Win32\n')
+    ofile.write(indent + proj_guid + '.Debug|Win32.Build.0 = Debug|Win32\n')
+    indent = '\t'
+    ofile.write(indent + 'EndGlobalSection\n')
+    ofile.write(indent + 'GlobalSection(SolutionProperties) = preSolution\n')
+    indent = '\t\t'
+    ofile.write(indent + 'HideSolutionNode = FALSE\n')
+    indent = '\t'
+    ofile.write(indent + 'EndGlobalSection')
+    ofile.write('EndGlobal\n')
+
+def runtest(base):
+    gen_vcxproj(base + '.vcxproj')
+    gen_solution(base + '.sln')
+
 if __name__ == '__main__':
-    runtest('sample.vcxproj')
+    runtest('sample')
