@@ -16,12 +16,14 @@
 # limitations under the License.
 
 import xml.etree.ElementTree as ET
+import xml.dom.minidom
 
 def runtest(ofname):
     buildtype = 'Debug'
     platform = "Win32"
     project_name = 'prog'
     target_name = 'prog'
+    subsystem = 'console'
     project_file_version = '10.0.30319.1'
     guid = '{4A8C542D-A4C3-AC4A-A85A-E2A893CCB716}'
     root = ET.Element('Project', {'DefaultTargets' : "Build",
@@ -42,7 +44,7 @@ def runtest(ofname):
     p.text= platform
     pname= ET.SubElement(globalgroup, 'ProjectName')
     pname.text = project_name
-    tree = ET.ElementTree(root)
+    ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.Default.props')
     direlem = ET.SubElement(root, 'PropertyGroup')
     fver = ET.SubElement(direlem, '_ProjectFileVersion')
     fver.text = project_file_version
@@ -55,8 +57,50 @@ def runtest(ofname):
     inclinc = ET.SubElement(direlem, 'LinkIncremental')
     inclinc.text = 'true'
 
-    ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.Default.props')
+    compiles = ET.SubElement(root, 'ItemDefinitionGroup')
+    clconf = ET.SubElement(compiles, 'ClCompile')
+    opt = ET.SubElement(clconf, 'Optimization')
+    opt.text = 'disabled'
+    preproc = ET.SubElement(clconf, 'PreprocessorDefinitions')
+    rebuild = ET.SubElement(clconf, 'MinimalRebuild')
+    rebuild.text = 'true'
+    rtlib = ET.SubElement(clconf, 'RuntimeLibrary')
+    rtlib.text = 'MultiThreadedDebugDLL'
+    funclink = ET.SubElement(clconf, 'FunctionLevelLinking')
+    funclink.text = 'true'
+    pch = ET.SubElement(clconf, 'PrecompiledHeader')
+    warnings = ET.SubElement(clconf, 'WarningLevel')
+    warnings.text = 'Level3'
+    debinfo = ET.SubElement(clconf, 'DebugInformationFormat')
+    debinfo.text = 'EditAndContinue'
+    resourcecompile = ET.SubElement(compiles, 'ResourceCompile')
+    respreproc = ET.SubElement(resourcecompile, 'PreprocessorDefinitions')
+    link = ET.SubElement(compiles, 'Link')
+    ofile = ET.SubElement(link, 'OutputFile')
+    ofile.text = '$(OutDir)prog.exe'
+    addlibdir = ET.SubElement(link, 'AdditionalLibraryDirectories')
+    addlibdir.text = '%(AdditionalLibraryDirectories)'
+    subsys = ET.SubElement(link, 'SubSystem')
+    subsys.text = subsystem
+    gendeb = ET.SubElement(link, 'GenerateDebugInformation')
+    gendeb.text = 'true'
+    pdb = ET.SubElement(link, 'ProgramDataBaseFileName')
+    pdb.text = '$(OutDir}prog.pdb'
+    entrypoint = ET.SubElement(link, 'EntryPointSymbol')
+    entrypoint.text = 'mainCRTStartup'
+    targetmachine = ET.SubElement(link, 'TargetMachine')
+    targetmachine.text = 'MachineX86'
+
+    inc_files = ET.SubElement(root, 'ItemGroup')
+    ET.SubElement(inc_files, 'CLInclude', Include='prog.h')
+    inc_src = ET.SubElement(root, 'ItemGroup')
+    ET.SubElement(inc_src, 'ClCompile', Include='prog.cpp')
+
+    tree = ET.ElementTree(root)
     tree.write(ofname, encoding='utf-8', xml_declaration=True)
+    # ElementTree can not do prettyprinting so do it manually
+    doc = xml.dom.minidom.parse(ofname)
+    open(ofname, 'w').write(doc.toprettyxml())
 
 if __name__ == '__main__':
     runtest('sample.vcxproj')
