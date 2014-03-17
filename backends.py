@@ -1221,4 +1221,37 @@ class Vs2010Backend(Backend):
 
     def generate(self):
         sln_filename = os.path.join(self.environment.get_build_dir(), self.build.project_name + '.sln')
-        open(sln_filename, 'w')
+        projlist = self.generate_projects()
+        self.generate_solution(sln_filename, projlist)
+
+    def generate_solution(self, sln_filename, projlist):
+        ofile = open(sln_filename, 'w')
+        ofile.write('Microsoft Visual Studio Solution File, Format Version 11.00\n')
+        ofile.write('# Visual Studio 2010\n')
+        for p in projlist:
+            prj_line = 'Project("%s") = "%s", "%s", "{%s}"\nEndProject\n' % \
+                (self.environment.coredata.guid, p[0], p[1], p[2])
+            ofile.write(prj_line)
+        ofile.write('Global\n')
+        ofile.write('\tGlobalSection(SolutionConfigurationPlatforms) = preSolution\n')
+        ofile.write('\t\tDebug|Win32 = Debug|Win32\n')
+        ofile.write('\tEndGlobalSection\n')
+        ofile.write('\tGlobalSection(ProjectConfigurationPlatforms) = postSolution\n')
+        ofile.write('\t\t{%s}.Debug|Win32.ActiveCfg = Debug|Win32\n' % p[2])
+        ofile.write('\t\t{%s}.Debug|Win32.Build.0 = Debug|Win32\n' % p[2])
+        ofile.write('\tEndGlobalSection\n')
+        ofile.write('\tGlobalSection(SolutionProperties) = preSolution\n')
+        ofile.write('\t\tHideSolutionNode = FALSE\n')
+        ofile.write('\tEndGlobalSection\n')
+        ofile.write('EndGlobal\n')
+
+    def generate_projects(self):
+        projlist = []
+        for name, target in self.build.targets.items():
+            outdir = os.path.join(self.environment.get_build_dir(), target.subdir)
+            fname = name + '.vcxproj'
+            relname = os.path.join(target.subdir, fname)
+            projfile = os.path.join(outdir, fname)
+            uuid = self.environment.coredata.target_guids[name]
+            projlist.append((name, relname, uuid))
+        return projlist
