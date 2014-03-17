@@ -18,10 +18,17 @@
 import xml.etree.ElementTree as ET
 
 def runtest(ofname):
+    buildtype = 'Debug'
+    platform = "Win32"
     root = ET.Element('Project', {'DefaultTargets' : "Build",
                                   'ToolsVersion' : '4.0',
                                   'xmlns' : 'http://schemas.microsoft.com/developer/msbuild/2003'})
     confitems = ET.Element('ItemGroup', {'Label' : 'ProjectConfigurations'})
+    prjconf = ET.SubElement(confitems, 'ProjectConfiguration', {'Include' : 'Debug|Win32'})
+    p = ET.SubElement(prjconf, 'Configuration')
+    p.text= buildtype
+    pl = ET.SubElement(prjconf, 'Platform')
+    pl.text = platform
     root.append(confitems)
     tree = ET.ElementTree(root)
     tree.write(ofname, encoding='utf-8', xml_declaration=True)
