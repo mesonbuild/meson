@@ -40,18 +40,26 @@ def gen_vcxproj(ofname):
     guidelem.text = guid
     kw = ET.SubElement(globalgroup, 'Keyword')
     kw.text = 'Win32Proj'
+    ns = ET.SubElement(globalgroup, 'RootNamespace')
+    ns.text = 'Sample'
     p = ET.SubElement(globalgroup, 'Platform')
     p.text= platform
     pname= ET.SubElement(globalgroup, 'ProjectName')
     pname.text = project_name
     ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.Default.props')
+    type_config = ET.SubElement(root, 'PropertyGroup', Label='Configuration')
+    ET.SubElement(type_config, 'ConfigurationType').text = 'Application'
+    ET.SubElement(type_config, 'CharacterSet').text = 'MultiByte'
+    ET.SubElement(type_config, 'WholeProgramOptimization').text = 'false'
+    ET.SubElement(type_config, 'UseDebugLibraries').text = 'false'
+    ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.props')
     direlem = ET.SubElement(root, 'PropertyGroup')
     fver = ET.SubElement(direlem, '_ProjectFileVersion')
     fver.text = project_file_version
     outdir = ET.SubElement(direlem, 'OutDir')
     outdir.text = '.\\'
     intdir = ET.SubElement(direlem, 'IntDir')
-    intdir.text = 'obj'
+    intdir.text = 'obj\\'
     tname = ET.SubElement(direlem, 'TargetName')
     tname.text = target_name
     inclinc = ET.SubElement(direlem, 'LinkIncremental')
