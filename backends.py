@@ -474,7 +474,7 @@ class NinjaBuildElement():
 class NinjaBackend(Backend):
 
     def __init__(self, build, interp):
-        Backend.__init__(self, build, interp)
+        super().__init__(build, interp)
         self.ninja_filename = 'build.ninja'
 
     def generate(self):
@@ -1214,3 +1214,11 @@ class NinjaBackend(Backend):
         elem.write(outfile)
 
         self.generate_cppcheck_target(outfile)
+
+class Vs2010Backend(Backend):
+    def __init__(self, build, interp):
+        super().__init__(build, interp)
+
+    def generate(self):
+        sln_filename = os.path.join(self.environment.get_build_dir(), self.build.project_name + '.sln')
+        open(sln_filename, 'w')

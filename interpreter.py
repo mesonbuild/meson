@@ -19,7 +19,7 @@ import dependencies
 import mlog
 import build
 import optinterpreter
-import os, sys, platform, subprocess, shutil
+import os, sys, platform, subprocess, shutil, uuid
 
 class InterpreterException(coredata.MesonException):
     pass
@@ -857,6 +857,8 @@ class Interpreter():
         for a in args:
             if not isinstance(a, str):
                 raise InvalidArguments('Argument %s is not a string.' % str(a))
+        if self.subproject == '':
+            self.build.project_name = args[0]
         if self.subproject in self.build.projects:
             raise InvalidCode('Second call to project().')
         self.build.projects[self.subproject] = args[0]
@@ -1159,6 +1161,8 @@ class Interpreter():
         self.check_sources_exist(os.path.join(self.source_root, self.subdir), sources)
         l = targetclass(name, self.subdir, is_cross, sources, objs, self.environment, kwargs)
         self.build.targets[name] = l.held_object
+        if name not in self.coredata.target_guids:
+            self.coredata.target_guids[name] = uuid.uuid4()
         if self.environment.is_cross_build() and l.is_cross:
             txt = ' cross build '
         else:

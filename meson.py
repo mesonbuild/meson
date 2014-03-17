@@ -31,6 +31,10 @@ build_types = ['plain', 'debug', 'optimized']
 buildtype_help = 'build type, one of: %s' % ', '.join(build_types)
 buildtype_help += ' (default: %default)'
 
+backendlist = ['ninja', 'vs2010']
+backend_help = 'backend to use, one of: %s' % ', '.join(backendlist)
+backend_help += ' (default: %default)'
+
 if environment.is_windows():
     def_prefix = 'c:/'
 else:
@@ -50,8 +54,8 @@ parser.add_option('--mandir' , default='share/man', dest='mandir',
                   help='relative path of man files (default: %default)')
 parser.add_option('--localedir', default='share/locale', dest='localedir',
                   help='relative path of locale data (default: %default)')
-parser.add_option('--backend', default='ninja', dest='backend',
-                  help='the backend to use (default: %default)')
+parser.add_option('--backend', default='ninja', dest='backend', choices=backendlist,
+                  help=backend_help)
 parser.add_option('--buildtype', default='debug', type='choice', choices=build_types, dest='buildtype',
                   help=buildtype_help)
 parser.add_option('--strip', action='store_true', dest='strip', default=False,\
@@ -127,6 +131,8 @@ itself as required.'''
         intr.run()
         if options.backend == 'ninja':
             g = backends.NinjaBackend(b, intr)
+        elif options.backend == 'vs2010':
+            g = backends.Vs2010Backend(b, intr)
         else:
             raise RuntimeError('Unknown backend "%s".' % options.backend)
         g.generate()

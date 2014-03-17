@@ -26,6 +26,7 @@ class Build:
     """
 
     def __init__(self, environment):
+        self.project_name = 'name of master project'
         self.environment = environment
         self.projects = {}
         self.targets = {}

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import pickle, os
+import pickle, os, uuid
 
 version = '0.14.0-research'
 
@@ -23,6 +23,8 @@ version = '0.14.0-research'
 class CoreData():
 
     def __init__(self, options):
+        self.guid = str(uuid.uuid4())
+        self.target_guids = {}
         self.version = version
         self.prefix = options.prefix
         self.libdir = options.libdir
