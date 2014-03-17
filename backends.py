@@ -1293,7 +1293,7 @@ class Vs2010Backend(Backend):
         kw = ET.SubElement(globalgroup, 'Keyword')
         kw.text = 'Win32Proj'
         ns = ET.SubElement(globalgroup, 'RootNamespace')
-        ns.text = 'Sample'
+        ns.text = target_name
         p = ET.SubElement(globalgroup, 'Platform')
         p.text= platform
         pname= ET.SubElement(globalgroup, 'ProjectName')
@@ -1303,7 +1303,7 @@ class Vs2010Backend(Backend):
         ET.SubElement(type_config, 'ConfigurationType').text = 'Application'
         ET.SubElement(type_config, 'CharacterSet').text = 'MultiByte'
         ET.SubElement(type_config, 'WholeProgramOptimization').text = 'false'
-        ET.SubElement(type_config, 'UseDebugLibraries').text = 'false'
+        ET.SubElement(type_config, 'UseDebugLibraries').text = 'true'
         ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.props')
         direlem = ET.SubElement(root, 'PropertyGroup')
         fver = ET.SubElement(direlem, '_ProjectFileVersion')
@@ -1314,7 +1314,7 @@ class Vs2010Backend(Backend):
         else:
             outdir.text = target.subdir + '\\'
         intdir = ET.SubElement(direlem, 'IntDir')
-        intdir.text = self.get_target_private_dir(target) + '\\'
+        intdir.text = os.path.join(self.get_target_dir(target), target.get_basename() + '.dir') + '\\'
         tname = ET.SubElement(direlem, 'TargetName')
         tname.text = target_name
         inclinc = ET.SubElement(direlem, 'LinkIncremental')
@@ -1341,7 +1341,6 @@ class Vs2010Backend(Backend):
         link = ET.SubElement(compiles, 'Link')
         ofile = ET.SubElement(link, 'OutputFile')
         ofile.text = '$(OutDir)%s' % target.get_filename()
-        print(target.get_filename())
         addlibdir = ET.SubElement(link, 'AdditionalLibraryDirectories')
         addlibdir.text = '%(AdditionalLibraryDirectories)'
         subsys = ET.SubElement(link, 'SubSystem')
@@ -1349,7 +1348,7 @@ class Vs2010Backend(Backend):
         gendeb = ET.SubElement(link, 'GenerateDebugInformation')
         gendeb.text = 'true'
         pdb = ET.SubElement(link, 'ProgramDataBaseFileName')
-        pdb.text = '$(OutDir}prog.pdb'
+        pdb.text = '$(OutDir}%s.pdb' % target_name
         entrypoint = ET.SubElement(link, 'EntryPointSymbol')
         entrypoint.text = 'mainCRTStartup'
         targetmachine = ET.SubElement(link, 'TargetMachine')
