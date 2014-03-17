@@ -1215,6 +1215,9 @@ class NinjaBackend(Backend):
 
         self.generate_cppcheck_target(outfile)
 
+import xml.etree.ElementTree as ET
+import xml.dom.minidom
+
 class Vs2010Backend(Backend):
     def __init__(self, build, interp):
         super().__init__(build, interp)
@@ -1253,5 +1256,100 @@ class Vs2010Backend(Backend):
             relname = os.path.join(target.subdir, fname)
             projfile = os.path.join(outdir, fname)
             uuid = self.environment.coredata.target_guids[name]
+            self.gen_vcxproj(target, projfile, uuid)
             projlist.append((name, relname, uuid))
         return projlist
+
+    def gen_vcxproj(self, target, ofname, guid):
+        buildtype = 'Debug'
+        platform = "Win32"
+        project_name = target.name
+        target_name = target.name
+        subsystem = 'console'
+        project_file_version = '10.0.30319.1'
+        root = ET.Element('Project', {'DefaultTargets' : "Build",
+                        'ToolsVersion' : '4.0',
+                         'xmlns' : 'http://schemas.microsoft.com/developer/msbuild/2003'})
+        confitems = ET.SubElement(root, 'ItemGroup', {'Label' : 'ProjectConfigurations'})
+        prjconf = ET.SubElement(confitems, 'ProjectConfiguration', {'Include' : 'Debug|Win32'})
+        p = ET.SubElement(prjconf, 'Configuration')
+        p.text= buildtype
+        pl = ET.SubElement(prjconf, 'Platform')
+        pl.text = platform
+        globalgroup = ET.SubElement(root, 'PropertyGroup', Label='Globals')
+        guidelem = ET.SubElement(globalgroup, 'ProjectGUID')
+        guidelem.text = guid
+        kw = ET.SubElement(globalgroup, 'Keyword')
+        kw.text = 'Win32Proj'
+        ns = ET.SubElement(globalgroup, 'RootNamespace')
+        ns.text = 'Sample'
+        p = ET.SubElement(globalgroup, 'Platform')
+        p.text= platform
+        pname= ET.SubElement(globalgroup, 'ProjectName')
+        pname.text = project_name
+        ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.Default.props')
+        type_config = ET.SubElement(root, 'PropertyGroup', Label='Configuration')
+        ET.SubElement(type_config, 'ConfigurationType').text = 'Application'
+        ET.SubElement(type_config, 'CharacterSet').text = 'MultiByte'
+        ET.SubElement(type_config, 'WholeProgramOptimization').text = 'false'
+        ET.SubElement(type_config, 'UseDebugLibraries').text = 'false'
+        ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.props')
+        direlem = ET.SubElement(root, 'PropertyGroup')
+        fver = ET.SubElement(direlem, '_ProjectFileVersion')
+        fver.text = project_file_version
+        outdir = ET.SubElement(direlem, 'OutDir')
+        if target.subdir == '':
+            outdir.text = '.\\'
+        else:
+            outdir.text = target.subdir + '\\'
+        intdir = ET.SubElement(direlem, 'IntDir')
+        intdir.text = self.get_target_private_dir(target) + '\\'
+        tname = ET.SubElement(direlem, 'TargetName')
+        tname.text = target.get_filename()
+        inclinc = ET.SubElement(direlem, 'LinkIncremental')
+        inclinc.text = 'true'
+
+        compiles = ET.SubElement(root, 'ItemDefinitionGroup')
+        clconf = ET.SubElement(compiles, 'ClCompile')
+        opt = ET.SubElement(clconf, 'Optimization')
+        opt.text = 'disabled'
+        preproc = ET.SubElement(clconf, 'PreprocessorDefinitions')
+        rebuild = ET.SubElement(clconf, 'MinimalRebuild')
+        rebuild.text = 'true'
+        rtlib = ET.SubElement(clconf, 'RuntimeLibrary')
+        rtlib.text = 'MultiThreadedDebugDLL'
+        funclink = ET.SubElement(clconf, 'FunctionLevelLinking')
+        funclink.text = 'true'
+        pch = ET.SubElement(clconf, 'PrecompiledHeader')
+        warnings = ET.SubElement(clconf, 'WarningLevel')
+        warnings.text = 'Level3'
+        debinfo = ET.SubElement(clconf, 'DebugInformationFormat')
+        debinfo.text = 'EditAndContinue'
+        resourcecompile = ET.SubElement(compiles, 'ResourceCompile')
+        respreproc = ET.SubElement(resourcecompile, 'PreprocessorDefinitions')
+        link = ET.SubElement(compiles, 'Link')
+        ofile = ET.SubElement(link, 'OutputFile')
+        ofile.text = '$(OutDir)prog.exe'
+        addlibdir = ET.SubElement(link, 'AdditionalLibraryDirectories')
+        addlibdir.text = '%(AdditionalLibraryDirectories)'
+        subsys = ET.SubElement(link, 'SubSystem')
+        subsys.text = subsystem
+        gendeb = ET.SubElement(link, 'GenerateDebugInformation')
+        gendeb.text = 'true'
+        pdb = ET.SubElement(link, 'ProgramDataBaseFileName')
+        pdb.text = '$(OutDir}prog.pdb'
+        entrypoint = ET.SubElement(link, 'EntryPointSymbol')
+        entrypoint.text = 'mainCRTStartup'
+        targetmachine = ET.SubElement(link, 'TargetMachine')
+        targetmachine.text = 'MachineX86'
+
+        inc_files = ET.SubElement(root, 'ItemGroup')
+        ET.SubElement(inc_files, 'CLInclude', Include='prog.h')
+        inc_src = ET.SubElement(root, 'ItemGroup')
+        ET.SubElement(inc_src, 'ClCompile', Include='prog.cpp')
+        ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.targets')
+        tree = ET.ElementTree(root)
+        tree.write(ofname, encoding='utf-8', xml_declaration=True)
+        # ElementTree can not do prettyprinting so do it manually
+        doc = xml.dom.minidom.parse(ofname)
+        open(ofname, 'w').write(doc.toprettyxml())

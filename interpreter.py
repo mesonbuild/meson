@@ -1162,7 +1162,7 @@ class Interpreter():
         l = targetclass(name, self.subdir, is_cross, sources, objs, self.environment, kwargs)
         self.build.targets[name] = l.held_object
         if name not in self.coredata.target_guids:
-            self.coredata.target_guids[name] = uuid.uuid4()
+            self.coredata.target_guids[name] = str(uuid.uuid4())
         if self.environment.is_cross_build() and l.is_cross:
             txt = ' cross build '
         else:
