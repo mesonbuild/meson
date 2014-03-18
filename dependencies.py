@@ -420,9 +420,18 @@ class Qt5Dependency(Dependency):
         self.find_exes()
     
     def find_exes(self):
+        # The binaries have different names on different
+        # distros. Joy.
         self.moc = ExternalProgram('moc', silent=True)
+        if not self.moc.found():
+            self.moc = ExternalProgram('moc-qt5', silent=True)
         self.uic = ExternalProgram('uic', silent=True)
+        if not self.uic.found():
+            self.uic = ExternalProgram('uic-qt5', silent=True)
         self.rcc = ExternalProgram('rcc', silent=True)
+        if not self.rcc.found():
+            self.rcc = ExternalProgram('rcc-qt5', silent=True)
+
         # Moc, uic and rcc write their version strings to stderr.
         # Moc and rcc return a non-zero result when doing so.
         # What kind of an idiot thought that was a good idea?
