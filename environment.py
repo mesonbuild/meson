@@ -973,6 +973,7 @@ class Environment():
         if (not cross and is_windows()) \
         or (cross and self.cross_info['name'] == 'windows'):
             self.exe_suffix = 'exe'
+            self.import_lib_suffix = 'lib'
             self.shared_lib_suffix = 'dll'
             self.shared_lib_prefix = ''
             self.static_lib_suffix = 'lib'
@@ -989,6 +990,7 @@ class Environment():
             self.static_lib_suffix = 'a'
             self.static_lib_prefix = 'lib'
             self.object_suffix = 'o'
+            self.import_lib_suffix = self.shared_lib_suffix
 
     def is_cross_build(self):
         return self.cross_info is not None
@@ -1268,6 +1270,11 @@ class Environment():
 
     def get_exe_suffix(self):
         return self.exe_suffix
+
+    # On Windows the library has suffix dll
+    # but you link against a file that has suffix lib.
+    def get_import_lib_suffix(self):
+        return self.import_lib_suffix
 
     def get_shared_lib_prefix(self):
         return self.shared_lib_prefix

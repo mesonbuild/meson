@@ -1299,7 +1299,7 @@ class Vs2010Backend(Backend):
         elif isinstance(target, build.StaticLibrary):
             conftype = 'StaticLibrary'
         elif isinstance(target, build.SharedLibrary):
-            conftype = 'SharedLibrary'
+            conftype = 'DynamicLibrary'
         else:
             raise MesonException('Unknown target type for %s' % target_name)
         root = ET.Element('Project', {'DefaultTargets' : "Build",
@@ -1367,7 +1367,7 @@ class Vs2010Backend(Backend):
             links = []
             for t in target.link_targets:
                 lobj = self.build.targets[t.get_basename()]
-                linkname = lobj.get_filename()
+                linkname = lobj.get_import_filename()
                 links.append(linkname)
             links.append('%(AdditionalDependencies)')
             ET.SubElement(link, 'AdditionalDependencies').text = ';'.join(links)
@@ -1379,10 +1379,12 @@ class Vs2010Backend(Backend):
         subsys.text = subsystem
         gendeb = ET.SubElement(link, 'GenerateDebugInformation')
         gendeb.text = 'true'
+        if isinstance(target, build.SharedLibrary):
+            ET.SubElement(link, 'ImportLibrary').text = target.get_import_filename()
         pdb = ET.SubElement(link, 'ProgramDataBaseFileName')
         pdb.text = '$(OutDir}%s.pdb' % target_name
-        entrypoint = ET.SubElement(link, 'EntryPointSymbol')
-        entrypoint.text = 'mainCRTStartup'
+        if isinstance(target, build.Executable):
+            ET.SubElement(link, 'EntryPointSymbol').text = 'mainCRTStartup'
         targetmachine = ET.SubElement(link, 'TargetMachine')
         targetmachine.text = 'MachineX86'
 

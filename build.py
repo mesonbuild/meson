@@ -481,6 +481,9 @@ class StaticLibrary(BuildTarget):
         suffix = environment.get_static_lib_suffix()
         self.filename = prefix + self.name + '.' + suffix
 
+    def get_import_filename(self):
+        return self.filename
+
 class SharedLibrary(BuildTarget):
     def __init__(self, name, subdir, is_cross, sources, objects, environment, kwargs):
         self.version = None
@@ -488,9 +491,13 @@ class SharedLibrary(BuildTarget):
         super().__init__(name, subdir, is_cross, sources, objects, environment, kwargs);
         self.prefix = environment.get_shared_lib_prefix()
         self.suffix = environment.get_shared_lib_suffix()
+        self.importsuffix = environment.get_import_lib_suffix()
 
     def get_shbase(self):
         return self.prefix + self.name + '.' + self.suffix
+
+    def get_import_filename(self):
+        return self.prefix + self.name + '.' + self.importsuffix
 
     def get_rpaths(self):
         return [self.subdir] + self.get_transitive_rpaths()
