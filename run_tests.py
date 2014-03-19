@@ -24,7 +24,15 @@ failing_tests = 0
 test_build_dir = 'work area'
 install_dir = os.path.join(os.path.split(os.path.abspath(__file__))[0], 'install dir')
 meson_command = './meson.py'
-if True: # Currently we have only one backend.
+
+msbuild_exe = shutil.which('msbuild')
+
+if msbuild_exe is not None:
+    backend_flags = ['--backend=vs2010']
+    compile_commands = ['msbuild']
+    test_commands = ['msbuild', 'RUN_TESTS.vcxproj']
+    install_commands = []
+else:
     backend_flags = []
     ninja_command = environment.detect_ninja()
     if ninja_command is None:
@@ -88,6 +96,7 @@ def run_and_log(logfile, testdir, should_succeed=True):
     logfile.write('\n\n---\n\n')
 
 def run_test(testdir, should_succeed):
+    global compile_commands
     shutil.rmtree(test_build_dir)
     shutil.rmtree(install_dir)
     os.mkdir(test_build_dir)
@@ -104,7 +113,12 @@ def run_test(testdir, should_succeed):
         return ('Test that should have failed succeeded', stdo, stde)
     if p.returncode != 0:
         return ('Generating the build system failed.', stdo, stde)
-    pc = subprocess.Popen(compile_commands, cwd=test_build_dir,
+    if 'msbuild' in compile_commands[0]:
+        sln_name = glob(os.path.join(test_build_dir, '*.sln'))[0]
+        comp = compile_commands + [os.path.split(sln_name)[-1]]
+    else:
+        comp = compile_commands
+    pc = subprocess.Popen(comp, cwd=test_build_dir,
                           stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     (o, e) = pc.communicate()
     stdo += o.decode('utf-8')
@@ -118,14 +132,18 @@ def run_test(testdir, should_succeed):
     stde += e.decode('utf-8')
     if pt.returncode != 0:
         return ('Running unit tests failed.', stdo, stde)
-    pi = subprocess.Popen(install_commands, cwd=test_build_dir,
+    if len(install_commands) == 0:
+        print("Skipping install test")
+        return ('', '', '')
+    else:
+        pi = subprocess.Popen(install_commands, cwd=test_build_dir,
                           stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    (o, e) = pi.communicate()
-    stdo += o.decode('utf-8')
-    stde += e.decode('utf-8')
-    if pi.returncode != 0:
-        return ('Running install failed.', stdo, stde)
-    return (validate_install(testdir, install_dir), stdo, stde)
+        (o, e) = pi.communicate()
+        stdo += o.decode('utf-8')
+        stde += e.decode('utf-8')
+        if pi.returncode != 0:
+            return ('Running install failed.', stdo, stde)
+        return (validate_install(testdir, install_dir), stdo, stde)
 
 def gather_tests(testdir):
     tests = [t.replace('\\', '/').split('/', 2)[2] for t in glob(os.path.join(testdir, '*'))]
