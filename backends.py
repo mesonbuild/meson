@@ -1343,10 +1343,7 @@ class Vs2010Backend(Backend):
         fver = ET.SubElement(direlem, '_ProjectFileVersion')
         fver.text = self.project_file_version
         outdir = ET.SubElement(direlem, 'OutDir')
-        if target.subdir == '':
-            outdir.text = '.\\'
-        else:
-            outdir.text = target.subdir + '\\'
+        outdir.text = '.\\'
         intdir = ET.SubElement(direlem, 'IntDir')
         intdir.text = os.path.join(self.get_target_dir(target), target.get_basename() + '.dir') + '\\'
         tname = ET.SubElement(direlem, 'TargetName')
