@@ -1295,7 +1295,8 @@ class Vs2010Backend(Backend):
 
     def gen_vcxproj(self, target, ofname, guid):
         down = self.target_to_build_root(target)
-        proj_to_src_dir = os.path.join(down, self.build_to_src, target.subdir)
+        proj_to_src_root = os.path.join(down, self.build_to_src)
+        proj_to_src_dir = os.path.join(proj_to_src_root, target.subdir)
         (sources, headers) = self.split_sources(target)
         buildtype = 'Debug'
         platform = "Win32"
@@ -1374,7 +1375,7 @@ class Vs2010Backend(Backend):
             for i in d.incdirs:
                 curdir = os.path.join(d.curdir, i)
                 inc_dirs.append(self.relpath(curdir, target.subdir)) # build dir
-                inc_dirs.append(os.path.join(proj_to_src_dir, curdir)) # src dir
+                inc_dirs.append(os.path.join(proj_to_src_root, curdir)) # src dir
         inc_dirs.append('%(AdditionalIncludeDirectories)')
         ET.SubElement(clconf, 'AdditionalIncludeDirectories').text = ';'.join(inc_dirs)
         preproc = ET.SubElement(clconf, 'PreprocessorDefinitions')
