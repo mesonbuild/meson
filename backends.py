@@ -1233,13 +1233,22 @@ class Vs2010Backend(Backend):
         ofile = open(sln_filename, 'w')
         ofile.write('Microsoft Visual Studio Solution File, Format Version 11.00\n')
         ofile.write('# Visual Studio 2010\n')
-        prj_templ = prj_line = 'Project("{%s}") = "%s", "%s", "{%s}"\nEndProject\n'
+        prj_templ = prj_line = 'Project("{%s}") = "%s", "%s", "{%s}"\n'
         for p in projlist:
             prj_line = prj_templ % (self.environment.coredata.guid, p[0], p[1], p[2])
             ofile.write(prj_line)
+            pdeps = self.build.targets[p[0]].link_targets
+            if len(pdeps) > 0:
+                ofile.write('\tProjectSection(ProjectDependencies) = postProject\n')
+                for dep in pdeps:
+                    guid = self.environment.coredata.target_guids[dep.get_basename()]
+                    ofile.write('\t\t{%s} = {%s}\n' % (guid, guid))
+                ofile.write('EndProjectSection\n')
+            ofile.write('EndProject\n')
         test_line = prj_templ % (self.environment.coredata.guid,
                                  'RUN_TESTS', 'RUN_TESTS.vcxproj', self.environment.coredata.test_guid)
         ofile.write(test_line)
+        ofile.write('EndProject\n')
         ofile.write('Global\n')
         ofile.write('\tGlobalSection(SolutionConfigurationPlatforms) = preSolution\n')
         ofile.write('\t\tDebug|Win32 = Debug|Win32\n')
@@ -1354,6 +1363,14 @@ class Vs2010Backend(Backend):
         resourcecompile = ET.SubElement(compiles, 'ResourceCompile')
         respreproc = ET.SubElement(resourcecompile, 'PreprocessorDefinitions')
         link = ET.SubElement(compiles, 'Link')
+        if len(target.link_targets) > 0:
+            links = []
+            for t in target.link_targets:
+                lobj = self.build.targets[t.get_basename()]
+                linkname = lobj.get_filename()
+                links.append(linkname)
+            links.append('%(AdditionalDependencies)')
+            ET.SubElement(link, 'AdditionalDependencies').text = ';'.join(links)
         ofile = ET.SubElement(link, 'OutputFile')
         ofile.text = '$(OutDir)%s' % target.get_filename()
         addlibdir = ET.SubElement(link, 'AdditionalLibraryDirectories')
