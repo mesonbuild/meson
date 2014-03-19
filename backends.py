@@ -1224,6 +1224,8 @@ class Vs2010Backend(Backend):
         self.project_file_version = '10.0.30319.1'
 
     def generate(self):
+        self.generate_configure_files()
+        self.generate_pkgconfig_files()
         sln_filename = os.path.join(self.environment.get_build_dir(), self.build.project_name + '.sln')
         projlist = self.generate_projects()
         self.gen_testproj('RUN_TESTS', os.path.join(self.environment.get_build_dir(), 'RUN_TESTS.vcxproj'))
@@ -1286,11 +1288,13 @@ class Vs2010Backend(Backend):
                 sources.append(i)
         return (sources, headers)
 
-    def gen_vcxproj(self, target, ofname, guid):
+    def target_to_build_root(self, target):
         if target.subdir == '':
-            down = ''
-        else:
-            down = '/'.join(['..']*(len(os.path.split(target.subdir))-1))
+            return ''
+        return '/'.join(['..']*(len(os.path.split(target.subdir))-1))
+
+    def gen_vcxproj(self, target, ofname, guid):
+        down = self.target_to_build_root(target)
         proj_to_src_dir = os.path.join(down, self.build_to_src, target.subdir)
         (sources, headers) = self.split_sources(target)
         buildtype = 'Debug'
@@ -1353,6 +1357,14 @@ class Vs2010Backend(Backend):
         clconf = ET.SubElement(compiles, 'ClCompile')
         opt = ET.SubElement(clconf, 'Optimization')
         opt.text = 'disabled'
+        inc_dirs = [proj_to_src_dir, self.get_target_private_dir(target)]
+        for d in target.include_dirs:
+            for i in d.incdirs:
+                curdir = os.path.join(d.curdir, i)
+                inc_dirs.append(self.relpath(curdir, target.subdir)) # build dir
+                inc_dirs.append(os.path.join(proj_to_src_dir, curdir)) # src dir
+        inc_dirs.append('%(AdditionalIncludeDirectories)')
+        ET.SubElement(clconf, 'AdditionalIncludeDirectories').text = ';'.join(inc_dirs)
         preproc = ET.SubElement(clconf, 'PreprocessorDefinitions')
         rebuild = ET.SubElement(clconf, 'MinimalRebuild')
         rebuild.text = 'true'
