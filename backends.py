@@ -1283,7 +1283,16 @@ class Vs2010Backend(Backend):
         platform = "Win32"
         project_name = target.name
         target_name = target.name
-        subsystem = 'console'
+        subsystem = 'Windows'
+        if isinstance(target, build.Executable):
+            conftype = 'Application'
+            subsystem = 'Console'
+        elif isinstance(target, build.StaticLibrary):
+            conftype = 'StaticLibrary'
+        elif isinstance(target, build.SharedLibrary):
+            conftype = 'SharedLibrary'
+        else:
+            raise MesonException('Unknown target type for %s' % target_name)
         root = ET.Element('Project', {'DefaultTargets' : "Build",
                         'ToolsVersion' : '4.0',
                          'xmlns' : 'http://schemas.microsoft.com/developer/msbuild/2003'})
@@ -1306,7 +1315,7 @@ class Vs2010Backend(Backend):
         pname.text = project_name
         ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.Default.props')
         type_config = ET.SubElement(root, 'PropertyGroup', Label='Configuration')
-        ET.SubElement(type_config, 'ConfigurationType').text = 'Application'
+        ET.SubElement(type_config, 'ConfigurationType').text = conftype
         ET.SubElement(type_config, 'CharacterSet').text = 'MultiByte'
         ET.SubElement(type_config, 'WholeProgramOptimization').text = 'false'
         ET.SubElement(type_config, 'UseDebugLibraries').text = 'true'
