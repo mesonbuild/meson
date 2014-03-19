@@ -1358,6 +1358,18 @@ class Vs2010Backend(Backend):
         opt = ET.SubElement(clconf, 'Optimization')
         opt.text = 'disabled'
         inc_dirs = [proj_to_src_dir, self.get_target_private_dir(target)]
+        extra_args = []
+        # SUCKS, VS can not handle per-language type flags, so just use
+        # them all.
+        for l in self.build.global_args.values():
+            for a in l:
+                extra_args.append(a)
+        for l in target.extra_args.values():
+            for a in l:
+                extra_args.append(a)
+        if len(extra_args) > 0:
+            extra_args.append('%(AdditionalOptions)')
+            ET.SubElement(clconf, "AdditionalOptions").text = ' '.join(extra_args)
         for d in target.include_dirs:
             for i in d.incdirs:
                 curdir = os.path.join(d.curdir, i)
