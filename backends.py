@@ -1287,6 +1287,11 @@ class Vs2010Backend(Backend):
         return (sources, headers)
 
     def gen_vcxproj(self, target, ofname, guid):
+        if target.subdir == '':
+            down = ''
+        else:
+            down = '/'.join(['..']*(len(os.path.split(target.subdir))-1))
+        proj_to_src_dir = os.path.join(down, self.build_to_src, target.subdir)
         (sources, headers) = self.split_sources(target)
         buildtype = 'Debug'
         platform = "Win32"
@@ -1361,13 +1366,14 @@ class Vs2010Backend(Backend):
         debinfo = ET.SubElement(clconf, 'DebugInformationFormat')
         debinfo.text = 'EditAndContinue'
         resourcecompile = ET.SubElement(compiles, 'ResourceCompile')
-        respreproc = ET.SubElement(resourcecompile, 'PreprocessorDefinitions')
+        ET.SubElement(resourcecompile, 'PreprocessorDefinitions')
         link = ET.SubElement(compiles, 'Link')
         if len(target.link_targets) > 0:
             links = []
             for t in target.link_targets:
                 lobj = self.build.targets[t.get_basename()]
-                linkname = lobj.get_import_filename()
+                rel_path = self.relpath(lobj.subdir, target.subdir)
+                linkname = os.path.join(rel_path, lobj.get_import_filename())
                 links.append(linkname)
             links.append('%(AdditionalDependencies)')
             ET.SubElement(link, 'AdditionalDependencies').text = ';'.join(links)
@@ -1391,12 +1397,12 @@ class Vs2010Backend(Backend):
         if len(headers) > 0:
             inc_hdrs = ET.SubElement(root, 'ItemGroup')
             for h in headers:
-                relpath = os.path.join(self.build_to_src, target.subdir, h)
+                relpath = os.path.join(proj_to_src_dir, h)
                 ET.SubElement(inc_hdrs, 'CLInclude', Include=relpath)
         if len(sources) > 0:
             inc_src = ET.SubElement(root, 'ItemGroup')
             for s in sources:
-                relpath = os.path.join(self.build_to_src, target.subdir, s)
+                relpath = os.path.join(proj_to_src_dir, s)
                 ET.SubElement(inc_src, 'CLCompile', Include=relpath)
         ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.targets')
         tree = ET.ElementTree(root)
@@ -1475,3 +1481,7 @@ if %%errorlevel%% neq 0 goto :VCEnd'''
         # ElementTree can not do prettyprinting so do it manually
         #doc = xml.dom.minidom.parse(ofname)
         #open(ofname, 'w').write(doc.toprettyxml())
+
+    def relpath(self, todir, fromdir):
+        return os.path.relpath(os.path.join('dummyprefixdir', todir),\
+                               os.path.join('dummyprefixdir', fromdir))
