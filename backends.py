@@ -321,7 +321,7 @@ class Backend():
         targetdir = self.get_target_private_dir(extobj.target)
         suffix = '.' + self.environment.get_object_suffix()
         for osrc in extobj.srclist:
-            if not self.source_suffix_in_obj:
+            if not self.source_suffix_in_objs:
                 osrc = '.'.join(osrc.split('.')[:-1])
             objname = os.path.join(proj_dir_to_build_root,
                                    targetdir, os.path.basename(osrc) + suffix)
