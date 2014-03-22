@@ -266,6 +266,12 @@ class BuildTarget():
         if not isinstance(main_class, str):
             raise InvalidArguments('Main class must be a string')
         self.main_class = main_class
+        if isinstance(self, Executable):
+            self.gui_app = kwargs.get('gui_app', False)
+            if not isinstance(self.gui_app, bool):
+                raise InvalidArguments('Argument gui_app must be boolean.')
+        elif 'gui_app' in kwargs:
+            raise InvalidArguments('Argument gui_app can only be used on executables.')
 
     def get_subdir(self):
         return self.subdir

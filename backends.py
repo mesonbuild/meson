@@ -1366,6 +1366,7 @@ class Vs2010Backend(Backend):
         proj_to_src_root = os.path.join(down, self.build_to_src)
         proj_to_src_dir = os.path.join(proj_to_src_root, target.subdir)
         (sources, headers) = self.split_sources(target.sources)
+        entrypoint = 'WinMainCRTStartup'
         buildtype = 'Debug'
         platform = "Win32"
         project_name = target.name
@@ -1373,11 +1374,14 @@ class Vs2010Backend(Backend):
         subsystem = 'Windows'
         if isinstance(target, build.Executable):
             conftype = 'Application'
-            subsystem = 'Console'
+            if not target.gui_app:
+                subsystem = 'Console'
+                entrypoint = 'mainCRTStartup'
         elif isinstance(target, build.StaticLibrary):
             conftype = 'StaticLibrary'
         elif isinstance(target, build.SharedLibrary):
             conftype = 'DynamicLibrary'
+            entrypoint = '_DllMainCrtStartup'
         else:
             raise MesonException('Unknown target type for %s' % target_name)
         root = ET.Element('Project', {'DefaultTargets' : "Build",
@@ -1485,7 +1489,7 @@ class Vs2010Backend(Backend):
         pdb = ET.SubElement(link, 'ProgramDataBaseFileName')
         pdb.text = '$(OutDir}%s.pdb' % target_name
         if isinstance(target, build.Executable):
-            ET.SubElement(link, 'EntryPointSymbol').text = 'mainCRTStartup'
+            ET.SubElement(link, 'EntryPointSymbol').text = entrypoint
         targetmachine = ET.SubElement(link, 'TargetMachine')
         targetmachine.text = 'MachineX86'
 
