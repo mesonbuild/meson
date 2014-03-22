@@ -12,7 +12,7 @@ You can run Meson directly from a revision control checkout.
 Installing it system-wide is simple.
 
 Configure step: None
-Compile step:   ./compile_meson.py
+Compile step:   None
 Unit test step: ./run_tests.py
 Install step:   [sudo] ./install_meson.py --prefix /your/prefix --destdir /destdir/path
 

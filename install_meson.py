@@ -31,12 +31,6 @@ parser.add_option('--prefix', default='/usr/local', dest='prefix',
 parser.add_option('--destdir', default='', dest='destdir',
                   help='the destdir (default: %default)')
 
-try:
-    open('parsetab.py', 'r').close()
-except IOError:
-    print('Parsetab.py not found, run compile_meson.py first.')
-    sys.exit(1)
-
 (options, args) = parser.parse_args(sys.argv)
 if options.prefix[0] != '/':
     print('Error, prefix must be an absolute path.')
