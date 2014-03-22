@@ -174,6 +174,23 @@ class Backend():
         [replace_if_different(x, x + '.tmp') for x in abs_files]
         return result
 
+    def relpath(self, todir, fromdir):
+        return os.path.relpath(os.path.join('dummyprefixdir', todir),\
+                               os.path.join('dummyprefixdir', fromdir))
+
+    def flatten_object_list(self, target, proj_dir_to_build_root=''):
+        obj_list = []
+        for obj in target.get_objects():
+            if isinstance(obj, str):
+                o = os.path.join(proj_dir_to_build_root,
+                                 self.build_to_src, target.get_subdir(), obj)
+                obj_list.append(o)
+            elif isinstance(obj, build.ExtractedObjects):
+                obj_list += self.determine_ext_objs(obj, proj_dir_to_build_root)
+            else:
+                raise MesonException('Unknown data type in object list.')
+        return obj_list
+
     def generate_target(self, target, outfile):
         name = target.get_basename()
         if name in self.processed_targets:
@@ -225,14 +242,7 @@ class Backend():
                     unity_src.append(abs_src)
                 else:
                     obj_list.append(self.generate_single_compile(target, outfile, src, False, header_deps))
-        for obj in target.get_objects():
-            if isinstance(obj, str):
-                o = os.path.join(self.build_to_src, target.get_subdir(), obj)
-                obj_list.append(o)
-            elif isinstance(obj, build.ExtractedObjects):
-                obj_list += self.determine_ext_objs(obj)
-            else:
-                raise MesonException('Unknown data type in object list.')
+        obj_list += self.flatten_obj_list(target)
         if is_unity:
             for src in self.generate_unity_files(target, unity_src):
                 obj_list.append(self.generate_single_compile(target, outfile, src, True, unity_deps + header_deps))
@@ -306,12 +316,15 @@ class Backend():
                     return cpp
         return self.build.compilers[0]
 
-    def determine_ext_objs(self, extobj):
+    def determine_ext_objs(self, extobj, proj_dir_to_build_root=''):
         result = []
         targetdir = self.get_target_private_dir(extobj.target)
         suffix = '.' + self.environment.get_object_suffix()
         for osrc in extobj.srclist:
-            objname = os.path.join(targetdir, os.path.basename(osrc) + suffix)
+            if not self.source_suffix_in_obj:
+                osrc = '.'.join(osrc.split('.')[:-1])
+            objname = os.path.join(proj_dir_to_build_root,
+                                   targetdir, os.path.basename(osrc) + suffix)
             result.append(objname)
         return result
 
@@ -489,6 +502,7 @@ class NinjaBackend(Backend):
 
     def __init__(self, build, interp):
         super().__init__(build, interp)
+        self.source_suffix_in_objs = True
         self.ninja_filename = 'build.ninja'
 
     def generate(self):
@@ -1222,6 +1236,8 @@ class Vs2010Backend(Backend):
     def __init__(self, build, interp):
         super().__init__(build, interp)
         self.project_file_version = '10.0.30319.1'
+        # foo.c compiles to foo.obj, not foo.c.obj
+        self.source_suffix_in_obj = False
 
     def generate(self):
         self.generate_configure_files()
@@ -1231,6 +1247,13 @@ class Vs2010Backend(Backend):
         self.gen_testproj('RUN_TESTS', os.path.join(self.environment.get_build_dir(), 'RUN_TESTS.vcxproj'))
         self.generate_solution(sln_filename, projlist)
 
+    def get_obj_target_deps(self, obj_list):
+        result = {}
+        for o in obj_list:
+            if isinstance(o, build.ExtractedObjects):
+                result[o.target.get_basename()] = True
+        return result.keys()
+
     def generate_solution(self, sln_filename, projlist):
         ofile = open(sln_filename, 'w')
         ofile.write('Microsoft Visual Studio Solution File, Format Version 11.00\n')
@@ -1239,11 +1262,15 @@ class Vs2010Backend(Backend):
         for p in projlist:
             prj_line = prj_templ % (self.environment.coredata.guid, p[0], p[1], p[2])
             ofile.write(prj_line)
-            pdeps = self.build.targets[p[0]].link_targets
-            if len(pdeps) > 0:
+            all_deps = {}
+            for ldep in self.build.targets[p[0]].link_targets:
+                all_deps[ldep.get_basename()] = True
+            for objdep in self.get_obj_target_deps(self.build.targets[p[0]].objects):
+                all_deps[objdep] = True
+            if len(all_deps) > 0:
                 ofile.write('\tProjectSection(ProjectDependencies) = postProject\n')
-                for dep in pdeps:
-                    guid = self.environment.coredata.target_guids[dep.get_basename()]
+                for dep in all_deps.keys():
+                    guid = self.environment.coredata.target_guids[dep]
                     ofile.write('\t\t{%s} = {%s}\n' % (guid, guid))
                 ofile.write('EndProjectSection\n')
             ofile.write('EndProject\n')
@@ -1390,15 +1417,18 @@ class Vs2010Backend(Backend):
         resourcecompile = ET.SubElement(compiles, 'ResourceCompile')
         ET.SubElement(resourcecompile, 'PreprocessorDefinitions')
         link = ET.SubElement(compiles, 'Link')
-        if len(target.link_targets) > 0:
-            links = []
-            for t in target.link_targets:
-                lobj = self.build.targets[t.get_basename()]
-                rel_path = self.relpath(lobj.subdir, target.subdir)
-                linkname = os.path.join(rel_path, lobj.get_import_filename())
-                links.append(linkname)
-            links.append('%(AdditionalDependencies)')
-            ET.SubElement(link, 'AdditionalDependencies').text = ';'.join(links)
+        additional_links = []
+        for t in target.link_targets:
+            lobj = self.build.targets[t.get_basename()]
+            rel_path = self.relpath(lobj.subdir, target.subdir)
+            linkname = os.path.join(rel_path, lobj.get_import_filename())
+            additional_links.append(linkname)
+        for o in self.flatten_object_list(target, down):
+            assert(isinstance(o, str))
+            additional_links.append(o)
+        if len(additional_links) > 0:
+            additional_links.append('%(AdditionalDependencies)')
+            ET.SubElement(link, 'AdditionalDependencies').text = ';'.join(additional_links)
         ofile = ET.SubElement(link, 'OutputFile')
         ofile.text = '$(OutDir)%s' % target.get_filename()
         addlibdir = ET.SubElement(link, 'AdditionalLibraryDirectories')
@@ -1503,7 +1533,3 @@ if %%errorlevel%% neq 0 goto :VCEnd'''
         # ElementTree can not do prettyprinting so do it manually
         #doc = xml.dom.minidom.parse(ofname)
         #open(ofname, 'w').write(doc.toprettyxml())
-
-    def relpath(self, todir, fromdir):
-        return os.path.relpath(os.path.join('dummyprefixdir', todir),\
-                               os.path.join('dummyprefixdir', fromdir))
