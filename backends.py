@@ -1301,6 +1301,10 @@ class Vs2010Backend(Backend):
                 all_deps[ldep.get_basename()] = True
             for objdep in self.get_obj_target_deps(self.build.targets[p[0]].objects):
                 all_deps[objdep] = True
+            for gendep in self.build.targets[p[0]].generated:
+                gen_exe = gendep.generator.get_exe()
+                if isinstance(gen_exe, build.Executable):
+                    all_deps[gen_exe.get_basename()] = True
             if len(all_deps) > 0:
                 ofile.write('\tProjectSection(ProjectDependencies) = postProject\n')
                 for dep in all_deps.keys():
@@ -1505,8 +1509,13 @@ class Vs2010Backend(Backend):
         tree = ET.ElementTree(root)
         tree.write(ofname, encoding='utf-8', xml_declaration=True)
         # ElementTree can not do prettyprinting so do it manually
-        #doc = xml.dom.minidom.parse(ofname)
-        #open(ofname, 'w').write(doc.toprettyxml())
+        doc = xml.dom.minidom.parse(ofname)
+        open(ofname, 'w').write(doc.toprettyxml())
+        # World of horror! Python insists on not quoting quotes and
+        # fixing the escaped &quot; into &amp;quot; whereas MSVS
+        # requires quoted but not fixed elements. Enter horrible hack.
+        txt = open(ofname, 'r').read()
+        open(ofname, 'w').write(txt.replace('&amp;quot;', '&quot;'))
 
     def gen_testproj(self, target_name, ofname):
         buildtype = 'Debug'
