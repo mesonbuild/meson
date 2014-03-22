@@ -1236,6 +1236,43 @@ class Vs2010Backend(Backend):
         # foo.c compiles to foo.obj, not foo.c.obj
         self.source_suffix_in_obj = False
 
+    def generate_custom_generator_commands(self, target, parent_node):
+        idgroup = ET.SubElement(parent_node, 'ItemDefinitionGroup')
+        all_output_files = []
+        for genlist in target.get_generated_sources():
+            generator = genlist.get_generator()
+            exe = generator.get_exe()
+            infilelist = genlist.get_infilelist()
+            outfilelist = genlist.get_outfilelist()
+            if isinstance(exe, build.BuildTarget):
+                exe_file = os.path.join(self.environment.get_build_dir(), self.get_target_filename(exe))
+            else:
+                exe_file = exe.get_command()
+            base_args = generator.get_arglist()
+            for i in range(len(infilelist)):
+                if len(infilelist) == len(outfilelist):
+                    sole_output = os.path.join(self.get_target_private_dir(target), outfilelist[i])
+                else:
+                    sole_output = ''
+                curfile = infilelist[i]
+                infilename = os.path.join(self.environment.get_source_dir(), curfile)
+                outfiles = genlist.get_outputs_for(curfile)
+                outfiles = [os.path.join(self.get_target_private_dir(target), of) for of in outfiles]
+                all_output_files += outfiles
+                args = [x.replace("@INPUT@", infilename).replace('@OUTPUT@', sole_output)\
+                        for x in base_args]
+                args = [x.replace("@SOURCE_DIR@", self.environment.get_source_dir()).replace("@BUILD_DIR@", self.get_target_private_dir(target))
+                        for x in args]
+                fullcmd = [exe_file] + args
+                cbs = ET.SubElement(idgroup, 'CustomBuildStep')
+                ET.SubElement(cbs, 'Command').text = ' '.join(self.special_quote(fullcmd))
+                ET.SubElement(cbs, 'Inputs').text = infilename
+                ET.SubElement(cbs, 'Outputs').text = ';'.join(outfiles)
+                ET.SubElement(cbs, 'Message').text = 'Generating sources from %s.' % infilename
+        pg = ET.SubElement(parent_node, 'PropertyGroup')
+        ET.SubElement(pg, 'CustomBuildBeforeTargets').text = 'ClCompile'
+        return all_output_files
+
     def generate(self):
         self.generate_configure_files()
         self.generate_pkgconfig_files()
@@ -1302,10 +1339,10 @@ class Vs2010Backend(Backend):
             projlist.append((name, relname, uuid))
         return projlist
 
-    def split_sources(self, target):
+    def split_sources(self, srclist):
         sources = []
         headers = []
-        for i in target.sources:
+        for i in srclist:
             if self.environment.is_header(i):
                 headers.append(i)
             else:
@@ -1317,11 +1354,14 @@ class Vs2010Backend(Backend):
             return ''
         return '/'.join(['..']*(len(os.path.split(target.subdir))-1))
 
+    def special_quote(self, arr):
+        return ['&quot;%s&quot;' % i for i in arr]
+
     def gen_vcxproj(self, target, ofname, guid):
         down = self.target_to_build_root(target)
         proj_to_src_root = os.path.join(down, self.build_to_src)
         proj_to_src_dir = os.path.join(proj_to_src_root, target.subdir)
-        (sources, headers) = self.split_sources(target)
+        (sources, headers) = self.split_sources(target.sources)
         buildtype = 'Debug'
         platform = "Win32"
         project_name = target.name
@@ -1363,6 +1403,8 @@ class Vs2010Backend(Backend):
         ET.SubElement(type_config, 'WholeProgramOptimization').text = 'false'
         ET.SubElement(type_config, 'UseDebugLibraries').text = 'true'
         ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.props')
+        generated_files = self.generate_custom_generator_commands(target, root)
+        (gen_src, gen_hdrs) = self.split_sources(generated_files)
         direlem = ET.SubElement(root, 'PropertyGroup')
         fver = ET.SubElement(direlem, '_ProjectFileVersion')
         fver.text = self.project_file_version
@@ -1443,22 +1485,28 @@ class Vs2010Backend(Backend):
         targetmachine = ET.SubElement(link, 'TargetMachine')
         targetmachine.text = 'MachineX86'
 
-        if len(headers) > 0:
+        if len(headers) + len(gen_hdrs) > 0:
             inc_hdrs = ET.SubElement(root, 'ItemGroup')
             for h in headers:
                 relpath = os.path.join(proj_to_src_dir, h)
                 ET.SubElement(inc_hdrs, 'CLInclude', Include=relpath)
-        if len(sources) > 0:
+            for h in gen_hdrs:
+                relpath = self.relpath(h, target.subdir)
+                ET.SubElement(inc_hdrs, 'CLInclude', Inlucde = relpath)
+        if len(sources) + len(gen_src) > 0:
             inc_src = ET.SubElement(root, 'ItemGroup')
             for s in sources:
                 relpath = os.path.join(proj_to_src_dir, s)
+                ET.SubElement(inc_src, 'CLCompile', Include=relpath)
+            for s in gen_src:
+                relpath =  self.relpath(s, target.subdir)
                 ET.SubElement(inc_src, 'CLCompile', Include=relpath)
         ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.targets')
         tree = ET.ElementTree(root)
         tree.write(ofname, encoding='utf-8', xml_declaration=True)
         # ElementTree can not do prettyprinting so do it manually
-        doc = xml.dom.minidom.parse(ofname)
-        open(ofname, 'w').write(doc.toprettyxml())
+        #doc = xml.dom.minidom.parse(ofname)
+        #open(ofname, 'w').write(doc.toprettyxml())
 
     def gen_testproj(self, target_name, ofname):
         buildtype = 'Debug'
