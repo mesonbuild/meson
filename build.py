@@ -387,7 +387,7 @@ class Generator():
     def __init__(self, args, kwargs):
         if len(args) != 1:
             raise InvalidArguments('Generator requires one and only one positional argument')
-        
+
         if hasattr(args[0], 'held_object'):
             exe = args[0].held_object
             if not isinstance(exe, Executable):
@@ -427,6 +427,10 @@ class Generator():
                 raise InvalidArguments('"outputs" must contain @BASENAME@ or @PLAINNAME@.')
             if '/' in rule or '\\' in rule:
                 raise InvalidArguments('"outputs" must not contain a directory separator.')
+        if len(outputs) > 1:
+            for o in outputs:
+                if '@OUTPUT@' in o:
+                    raise InvalidArguments('Tried to use @OUTPUT@ in a rule with more than one output.')
         self.outputs = outputs
 
     def get_base_outnames(self, inname):

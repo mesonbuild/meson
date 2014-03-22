@@ -242,7 +242,7 @@ class Backend():
                     unity_src.append(abs_src)
                 else:
                     obj_list.append(self.generate_single_compile(target, outfile, src, False, header_deps))
-        obj_list += self.flatten_obj_list(target)
+        obj_list += self.flatten_object_list(target)
         if is_unity:
             for src in self.generate_unity_files(target, unity_src):
                 obj_list.append(self.generate_single_compile(target, outfile, src, True, unity_deps + header_deps))
@@ -938,9 +938,6 @@ class NinjaBackend(Backend):
                 if len(infilelist) == len(outfilelist):
                     sole_output = os.path.join(self.get_target_private_dir(target), outfilelist[i])
                 else:
-                    for x in base_args:
-                        if '@OUTPUT@' in x:
-                            raise MesonException('Tried to use @OUTPUT@ in a rule with more than one output.')
                     sole_output = ''
                 curfile = infilelist[i]
                 infilename = os.path.join(self.environment.get_source_dir(), curfile)
