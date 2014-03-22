@@ -1496,7 +1496,7 @@ class Vs2010Backend(Backend):
                 ET.SubElement(inc_hdrs, 'CLInclude', Include=relpath)
             for h in gen_hdrs:
                 relpath = self.relpath(h, target.subdir)
-                ET.SubElement(inc_hdrs, 'CLInclude', Inlucde = relpath)
+                ET.SubElement(inc_hdrs, 'CLInclude', Include = relpath)
         if len(sources) + len(gen_src) > 0:
             inc_src = ET.SubElement(root, 'ItemGroup')
             for s in sources:
