@@ -109,12 +109,8 @@ class TestSerialisation:
         self.cmd_args = cmd_args
         self.env = env
 
-# It may seem a bit silly that this Backend class exists on its own
-# rather than being a part of NinjaBackend, which is the only class
-# that uses Backend. The point is that common functionality
-# that will be used in XCode, Visual Studio etc will be in
-# this one. Once work on that code starts the exact division
-# of labor between the classes is determined.
+# This class contains the basic functionality that is needed by all backends.
+# Feel free to move stuff in and out of it as you see fit.
 class Backend():
     def __init__(self, build, interp):
         self.build = build
@@ -1591,3 +1587,57 @@ if %%errorlevel%% neq 0 goto :VCEnd'''
         # ElementTree can not do prettyprinting so do it manually
         #doc = xml.dom.minidom.parse(ofname)
         #open(ofname, 'w').write(doc.toprettyxml())
+
+class XCodeBackend(Backend):
+    def __init__(self, build, interp):
+        super().__init__(build, interp)
+        self.project_uid = self.environment.coredata.guid.replace('-', '')[:24]
+        self.indent = '    '
+        self.indent_level = 0
+
+    def gen_id(self):
+        return str(uuid.uuid4()).toupper().replace('-', '')[:24]
+
+    def write_line(self, text):
+        self.ofile.write(self.indent*self.indent_level + text)
+
+    def generate(self):
+        self.generate_configure_files()
+        self.generate_pkgconfig_files()
+        self.proj_dir = os.path.join(self.environment.get_build_dir(), self.build.project_name + '.xcodeproj')
+        os.makedirs(self.proj_dir, exist_ok=True)
+        self.proj_file = os.path.join(self.proj_dir, 'project.pbxproj')
+        self.ofile = open(self.proj_file, 'w')
+        self.generate_prefix()
+#         self.generate_pbx_aggregate_target(ofile)
+#         self.generate_pbx_build_file(ofile)
+#         self.generate_pbx_build_style(ofile)
+#         self.generate_pbx_container_item_proxy(ofile)
+#         self.generate_pbx_file_reference(ofile)
+#         self.generate_pbx_group(ofile)
+#         self.generate_pbx_native_target(ofile)
+#         self.generate_pbx_project(ofile)
+#         self.generate_pbx_shell_build_phase(ofile)
+#         self.generate_pbx_sources_build_phase(ofile)
+#         self.generate_pbx_target_dependency(ofile)
+#         self.generate_pbx_build_configuration(ofile)
+#         self.generate_xc_configurationList(ofile)
+        self.generate_suffix()
+
+    def generate_prefix(self):
+        self.ofile.write('// !$*UTF8*$!\n{\n')
+        self.indent_level += 1
+        self.write_line('archiveVersion = 1;\n')
+        self.write_line('classes = {\n')
+        self.write_line('};\n')
+        self.write_line('objectVersion = 46;\n')
+        self.write_line('objects = {\n')
+        self.indent_level += 1
+
+    def generate_suffix(self):
+        self.indent_level -= 1
+        self.write_line('};\n')
+        self.write_line('rootObject = ' + self.project_uid + '\n')
+        self.indent_level -= 1
+        self.write_line('}\n')
+

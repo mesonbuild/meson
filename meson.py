@@ -31,7 +31,7 @@ build_types = ['plain', 'debug', 'optimized']
 buildtype_help = 'build type, one of: %s' % ', '.join(build_types)
 buildtype_help += ' (default: %default)'
 
-backendlist = ['ninja', 'vs2010']
+backendlist = ['ninja', 'vs2010', 'xcode']
 backend_help = 'backend to use, one of: %s' % ', '.join(backendlist)
 backend_help += ' (default: %default)'
 
@@ -133,6 +133,8 @@ itself as required.'''
             g = backends.NinjaBackend(b, intr)
         elif options.backend == 'vs2010':
             g = backends.Vs2010Backend(b, intr)
+        elif options.backend == 'xcode':
+            g = backends.XCodeBackend(b, intr)
         else:
             raise RuntimeError('Unknown backend "%s".' % options.backend)
         g.generate()
