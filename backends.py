@@ -1609,20 +1609,72 @@ class XCodeBackend(Backend):
         self.proj_file = os.path.join(self.proj_dir, 'project.pbxproj')
         self.ofile = open(self.proj_file, 'w')
         self.generate_prefix()
-#         self.generate_pbx_aggregate_target(ofile)
-#         self.generate_pbx_build_file(ofile)
-#         self.generate_pbx_build_style(ofile)
-#         self.generate_pbx_container_item_proxy(ofile)
-#         self.generate_pbx_file_reference(ofile)
-#         self.generate_pbx_group(ofile)
-#         self.generate_pbx_native_target(ofile)
-#         self.generate_pbx_project(ofile)
-#         self.generate_pbx_shell_build_phase(ofile)
-#         self.generate_pbx_sources_build_phase(ofile)
-#         self.generate_pbx_target_dependency(ofile)
-#         self.generate_pbx_build_configuration(ofile)
-#         self.generate_xc_configurationList(ofile)
+        self.generate_pbx_aggregate_target()
+        self.generate_pbx_build_file()
+        self.generate_pbx_build_style()
+        self.generate_pbx_container_item_proxy()
+        self.generate_pbx_file_reference()
+        self.generate_pbx_group()
+        self.generate_pbx_native_target()
+        self.generate_pbx_project()
+        self.generate_pbx_shell_build_phase()
+        self.generate_pbx_sources_build_phase()
+        self.generate_pbx_target_dependency()
+        self.generate_xc_build_configuration()
+        self.generate_xc_configurationList()
         self.generate_suffix()
+
+    def generate_pbx_aggregate_target(self):
+        self.ofile.write('\n/* Begin PBXAggregateTarget section */\n')
+        self.ofile.write('/* End PBXAggregateTarget section */\n')
+
+    def generate_pbx_build_file(self):
+        self.ofile.write('\n/* Begin PBXBuildFile section */\n')
+        self.ofile.write('/* End PBXBuildFile section */\n')
+
+    def generate_pbx_build_style(self):
+        self.ofile.write('\n/* Begin PBXBuildStyle section */\n')
+        self.ofile.write('/* End PBXBuildStyle section */\n')
+
+    def generate_pbx_container_item_proxy(self):
+        self.ofile.write('\n/* Begin PBXContainerItemProxy section */\n')
+        self.ofile.write('/* End PBXContainerItemProxy section */\n')
+
+    def generate_pbx_file_reference(self):
+        self.ofile.write('\n/* Begin PBXFileReference section */\n')
+        self.ofile.write('/* End PBXFileReference section */\n')
+
+    def generate_pbx_group(self):
+        self.ofile.write('\n/* Begin PBXGroup section */\n')
+        self.ofile.write('/* End PBXGroup section */\n')
+
+    def generate_pbx_native_target(self):
+        self.ofile.write('\n/* Begin PBXNativeTarget section */\n')
+        self.ofile.write('/* End PBXNativeTarget section */\n')
+
+    def generate_pbx_project(self):
+        self.ofile.write('\n/* Begin PBXProject section */\n')
+        self.ofile.write('/* End PBXProject section */\n')
+
+    def generate_pbx_shell_build_phase(self):
+        self.ofile.write('\n/* Begin PBXShellScriptBuildPhase section */\n')
+        self.ofile.write('/* End PBXShellScriptBuildPhase section */\n')
+
+    def generate_pbx_sources_build_phase(self):
+        self.ofile.write('\n/* Begin PBXSourcesBuildPhase section */\n')
+        self.ofile.write('/* End PBXSourcesBuildPhase section */\n')
+
+    def generate_pbx_target_dependency(self):
+        self.ofile.write('\n/* Begin PBXTargetDependency section */\n')
+        self.ofile.write('/* End PBXTargetDependency section */\n')
+
+    def generate_xc_build_configuration(self):
+        self.ofile.write('\n/* Begin XCBuildConfiguration section */\n')
+        self.ofile.write('/* End XCBuildConfiguration section */\n')
+
+    def generate_xc_configurationList(self):
+        self.ofile.write('\n/* Begin XCConfigurationList section */\n')
+        self.ofile.write('/* End XCConfigurationList section */\n')
 
     def generate_prefix(self):
         self.ofile.write('// !$*UTF8*$!\n{\n')
