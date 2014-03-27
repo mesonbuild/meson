@@ -1601,10 +1601,16 @@ class XCodeBackend(Backend):
 
     def write_line(self, text):
         self.ofile.write(self.indent*self.indent_level + text)
+        if not text.endswith('\n'):
+            self.ofile.write('\n')
 
     def generate(self):
         self.generate_filemap()
         self.generate_buildmap()
+        self.generate_buildstylemap()
+        self.generate_build_configuration_map()
+        self.generate_build_configurationlist_map()
+        self.generate_native_target_map()
         self.generate_configure_files()
         self.generate_pkgconfig_files()
         self.proj_dir = os.path.join(self.environment.get_build_dir(), self.build.project_name + '.xcodeproj')
@@ -1644,6 +1650,25 @@ class XCodeBackend(Backend):
                 if isinstance(s, str):
                     self.buildmap[s] = self.gen_id()
 
+    def generate_buildstylemap(self):
+        self.buildstylemap = {'debug' : self.gen_id()}
+
+    def generate_build_configuration_map(self):
+        self.buildconfmap = {}
+        for t in self.build.targets:
+            bconfs = {'debug' : self.gen_id()}
+            self.buildconfmap[t] = bconfs
+
+    def generate_build_configurationlist_map(self):
+        self.buildconflistmap = {}
+        for t in self.build.targets:
+            self.buildconflistmap[t] = self.gen_id()
+
+    def generate_native_target_map(self):
+        self.native_targets = {}
+        for t in self.build.targets:
+            self.native_targets[t] = self.gen_id()
+
     def generate_pbx_aggregate_target(self):
         self.ofile.write('\n/* Begin PBXAggregateTarget section */\n')
         self.ofile.write('/* End PBXAggregateTarget section */\n')
@@ -1664,6 +1689,18 @@ class XCodeBackend(Backend):
 
     def generate_pbx_build_style(self):
         self.ofile.write('\n/* Begin PBXBuildStyle section */\n')
+        for name, idval in self.buildstylemap.items():
+            self.write_line('%s /* %s */ = {\n' % (name, idval))
+            self.indent_level += 1
+            self.write_line('isa = PBXBuildStyle;\n')
+            self.write_line('buildSettings = {\n')
+            self.indent_level += 1
+            self.write_line('COPY_PHASE_STRIP = NO\n')
+            self.indent_level -= 1
+            self.write_line('};\n')
+            self.write_line('name = %s;\n' % name)
+            self.indent_level -= 1
+            self.write_line('};\n')
         self.ofile.write('/* End PBXBuildStyle section */\n')
 
     def generate_pbx_container_item_proxy(self):
@@ -1691,6 +1728,40 @@ class XCodeBackend(Backend):
 
     def generate_pbx_project(self):
         self.ofile.write('\n/* Begin PBXProject section */\n')
+        self.write_line('%s /* Project object */ = {')
+        self.indent_level += 1
+        self.write_line('isa = PBXProject')
+        self.write_line('attributes = {')
+        self.indent_level += 1
+        self.write_line('BuildIndependentTargetsInParallel = YES;')
+        self.indent_level -= 1
+        self.write_line('};')
+        conftempl = 'buildConfigurationList = %s /* build configuration list for PBXProject "%s"*/;'
+        for t in self.build.targets:
+            idval = self.buildconflistmap[t]
+            self.write_line(conftempl % (idval, t))
+        self.write_line('buildSettings = {')
+        self.write_line('};')
+        self.write_line('buildStyles = (')
+        self.indent_level += 1
+        for name, idval in self.buildstylemap.items():
+            self.write_line('%s /* %s */')
+        self.indent_level -= 1
+        self.write_line(');')
+        self.write_line('compatibilityVersion = "Xcode 3.2";')
+        self.write_line('hasScannedForEncodings = 0')
+        maingroup = 'FIXME'
+        self.write_line('mainGroup = %s' % maingroup)
+        self.write_line('projectDirPath = ".."')
+        self.write_line('projectRoot = ""')
+        self.write_line('targets = (')
+        self.indent_level += 1
+        for t in self.build.targets:
+            self.write_line('%s /* %s */' % (self.native_targets[t], t))
+        self.indent_level -= 1
+        self.write_line(');')
+        self.indent_level -= 1
+        self.write_line(');')
         self.ofile.write('/* End PBXProject section */\n')
 
     def generate_pbx_shell_build_phase(self):
@@ -1711,6 +1782,22 @@ class XCodeBackend(Backend):
 
     def generate_xc_configurationList(self):
         self.ofile.write('\n/* Begin XCConfigurationList section */\n')
+        for target_name in self.build.targets:
+            listid = self.buildconflistmap[target_name]
+            self.write_line('%s /* Build configuration list for PBXProject "%s" */ = {' % (listid, target_name))
+            self.indent_level += 1
+            self.write_line('isa = XCConfigurationList;')
+            self.write_line('buildConfigurations = {')
+            self.indent_level += 1
+            type = 'debug'
+            idval = self.buildconfmap[target_name][type]
+            self.write_line('%s /* %s */' % (idval, type))
+            self.indent_level -= 1
+            self.write_line('};')
+            self.write_line('defaultConfigurationIsVisible = 0')
+            self.write_line('defaultConfigurationName = %s' % type)
+            self.indent_level -= 1
+            self.write_line('};')
         self.ofile.write('/* End XCConfigurationList section */\n')
 
     def generate_prefix(self):
