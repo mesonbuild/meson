@@ -1604,6 +1604,7 @@ class XCodeBackend(Backend):
 
     def generate(self):
         self.generate_filemap()
+        self.generate_buildmap()
         self.generate_configure_files()
         self.generate_pkgconfig_files()
         self.proj_dir = os.path.join(self.environment.get_build_dir(), self.build.project_name + '.xcodeproj')
@@ -1636,12 +1637,29 @@ class XCodeBackend(Backend):
                 if isinstance(s, str):
                     self.filemap[s] = self.gen_id()
 
+    def generate_buildmap(self):
+        self.buildmap = {}
+        for t in self.build.targets.values():
+            for s in t.sources:
+                if isinstance(s, str):
+                    self.buildmap[s] = self.gen_id()
+
     def generate_pbx_aggregate_target(self):
         self.ofile.write('\n/* Begin PBXAggregateTarget section */\n')
         self.ofile.write('/* End PBXAggregateTarget section */\n')
 
     def generate_pbx_build_file(self):
         self.ofile.write('\n/* Begin PBXBuildFile section */\n')
+        templ = '%s /* %s */ = { isa = PBXBuildFile; fileRef = %s /* %s */; settings = { COMPILER_FLAGS = "%s"; }; };\n'
+        for t in self.build.targets.values():
+            for s in t.sources:
+                if isinstance(s, str):
+                    idval = self.buildmap[s]
+                    fullpath = os.path.join(self.environment.get_source_dir(), s)
+                    fileref = self.filemap[s]
+                    fullpath2 = fullpath
+                    compiler_flags = ''
+                    self.ofile.write(templ % (idval, fullpath, fileref, fullpath2, compiler_flags))
         self.ofile.write('/* End PBXBuildFile section */\n')
 
     def generate_pbx_build_style(self):
