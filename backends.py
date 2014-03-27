@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import mparser
-import os, sys, re, pickle
+import os, sys, re, pickle, uuid
 import environment, mlog
 from meson_install import InstallData
 from build import InvalidArguments
@@ -1594,14 +1594,16 @@ class XCodeBackend(Backend):
         self.project_uid = self.environment.coredata.guid.replace('-', '')[:24]
         self.indent = '    '
         self.indent_level = 0
+        self.xcodetypemap = {'c' : 'sourcecode.c.c', 'a' : 'archive.ar'}
 
     def gen_id(self):
-        return str(uuid.uuid4()).toupper().replace('-', '')[:24]
+        return str(uuid.uuid4()).upper().replace('-', '')[:24]
 
     def write_line(self, text):
         self.ofile.write(self.indent*self.indent_level + text)
 
     def generate(self):
+        self.generate_filemap()
         self.generate_configure_files()
         self.generate_pkgconfig_files()
         self.proj_dir = os.path.join(self.environment.get_build_dir(), self.build.project_name + '.xcodeproj')
@@ -1624,6 +1626,16 @@ class XCodeBackend(Backend):
         self.generate_xc_configurationList()
         self.generate_suffix()
 
+    def get_xcodetype(self, fname):
+        return self.xcodetypemap[fname.split('.')[-1]]
+
+    def generate_filemap(self):
+        self.filemap = {} # Key is source file relative to src root.
+        for t in self.build.targets.values():
+            for s in t.sources:
+                if isinstance(s, str):
+                    self.filemap[s] = self.gen_id()
+
     def generate_pbx_aggregate_target(self):
         self.ofile.write('\n/* Begin PBXAggregateTarget section */\n')
         self.ofile.write('/* End PBXAggregateTarget section */\n')
@@ -1642,6 +1654,13 @@ class XCodeBackend(Backend):
 
     def generate_pbx_file_reference(self):
         self.ofile.write('\n/* Begin PBXFileReference section */\n')
+        templ = '%s /* %s */ = { isa = PbxFileReference; explicitFileType = "%s"; fileEncoding = 4; name = "%s"; path = "%s"; sourceTree = SOURCE_ROOT; };\n'
+        for fname, idval in self.filemap.items():
+            fullpath = os.path.join(self.environment.get_source_dir(), fname)
+            xcodetype = self.get_xcodetype(fname)
+            name = os.path.split(fname)[-1]
+            path = fname
+            self.ofile.write(templ % (idval, fullpath, xcodetype, name, path))
         self.ofile.write('/* End PBXFileReference section */\n')
 
     def generate_pbx_group(self):
