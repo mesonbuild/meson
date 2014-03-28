@@ -1595,6 +1595,7 @@ class XCodeBackend(Backend):
         self.indent = '    '
         self.indent_level = 0
         self.xcodetypemap = {'c' : 'sourcecode.c.c', 'a' : 'archive.ar'}
+        self.maingroup_id = self.gen_id()
 
     def gen_id(self):
         return str(uuid.uuid4()).upper().replace('-', '')[:24]
@@ -1638,10 +1639,12 @@ class XCodeBackend(Backend):
 
     def generate_filemap(self):
         self.filemap = {} # Key is source file relative to src root.
-        for t in self.build.targets.values():
+        self.target_filemap = {}
+        for name, t in self.build.targets.items():
             for s in t.sources:
                 if isinstance(s, str):
                     self.filemap[s] = self.gen_id()
+            self.target_filemap[name] = self.gen_id()
 
     def generate_buildmap(self):
         self.buildmap = {}
@@ -1709,17 +1712,105 @@ class XCodeBackend(Backend):
 
     def generate_pbx_file_reference(self):
         self.ofile.write('\n/* Begin PBXFileReference section */\n')
-        templ = '%s /* %s */ = { isa = PbxFileReference; explicitFileType = "%s"; fileEncoding = 4; name = "%s"; path = "%s"; sourceTree = SOURCE_ROOT; };\n'
+        templ = '%s /* %s */ = { isa = PbxFileReference; explicitFileType = "%s"; fileEncoding = 4; name = "%s"; path = "%s"; sourceTree = %s; };\n'
         for fname, idval in self.filemap.items():
             fullpath = os.path.join(self.environment.get_source_dir(), fname)
             xcodetype = self.get_xcodetype(fname)
             name = os.path.split(fname)[-1]
             path = fname
-            self.ofile.write(templ % (idval, fullpath, xcodetype, name, path))
+            srcroot = 'SOURCE_ROOT'
+            self.ofile.write(templ % (idval, fullpath, xcodetype, name, path, srcroot))
         self.ofile.write('/* End PBXFileReference section */\n')
 
     def generate_pbx_group(self):
+        groupmap = {}
+        target_src_map = {}
+        for t in self.build.targets:
+            groupmap[t] = self.gen_id()
+            target_src_map[t] = self.gen_id()
         self.ofile.write('\n/* Begin PBXGroup section */\n')
+        sources_id = self.gen_id()
+        resources_id = self.gen_id()
+        products_id = self.gen_id()
+        self.write_line('%s = {' % self.maingroup_id)
+        self.indent_level+=1
+        self.write_line('isa = PBXGroup;')
+        self.write_line('children = (')
+        self.indent_level+=1
+        self.write_line('%s /* Sources */,' % sources_id)
+        self.write_line('%s /* Resources */,' % resources_id)
+        self.write_line('%s /* Products */,' % products_id)
+        self.indent_level-=1
+        self.write_line(');')
+        self.write_line('sourceTree = <group>;')
+        self.indent_level -= 1
+        self.write_line('};')
+
+        # Sources
+        self.write_line('%s /* Sources */ = {' % sources_id)
+        self.indent_level+=1
+        self.write_line('isa = PBXGroup;')
+        self.write_line('children = (')
+        self.indent_level+=1
+        for t in self.build.targets:
+            self.write_line('%s /* %s */,' % (groupmap[t], t))
+        self.indent_level-=1
+        self.write_line('name = Sources;')
+        self.write_line('sourcetree = "<group>;"')
+        self.indent_level-=1
+        self.write_line('};')
+        
+        self.write_line('%s /* Resources */' % resources_id)
+        self.indent_level+=1
+        self.write_line('isa = PBXGroup;')
+        self.write_line('children = (')
+        self.write_line(');')
+        self.write_line('name = Resources;')
+        self.write_line('sourceTree = <group>;')
+        self.indent_level-=1
+        self.write_line('};')
+
+        # Targets
+        for t in self.build.targets:
+            self.write_line('%s /* %s */ = {' % (groupmap[t], t))
+            self.indent_level+=1
+            self.write_line('isa = PBXGroup')
+            self.write_line('children = (')
+            self.indent_level+=1
+            self.write_line('%s /* Source files */' % target_src_map[t])
+            self.indent_level-=1
+            self.write_line('name = %s;' % t)
+            self.write_line('sourceTree = "<group>"')
+            self.indent_level-=1
+            self.write_line('};')
+            self.write_line('%s /* Source files */ = {' % sources_id)
+            self.write_line('isa = PBXGroup;')
+            self.write_line('children = (')
+            self.indent_level+=1
+            for s in self.build.targets[t].sources:
+                if isinstance(s, str):
+                    self.write_line('%s /* %s */,' % (self.filemap[s], s))
+            self.indent_level-=1
+            self.write_line(');')
+            self.write_line('name = "Source files";')
+            self.write_line('sourceTree = "<group>";')
+            self.indent_level-=1
+            self.write_line('};')
+
+        # And finally products
+        self.write_line('%s /* Products */ = {' % products_id)
+        self.indent_level+=1
+        self.write_line('isa = PBXGroup;')
+        self.write_line('children = (')
+        self.indent_level+=1
+        for t in self.build.targets:
+            self.write_line('%s /* %s */,' % (self.target_filemap[t], t))
+        self.indent_level-=1
+        self.write_line(');')
+        self.write_line('name = Products;')
+        self.write_line('sourceTree = "<group>";')
+        self.indent_level-=1
+        self.write_line('};')
         self.ofile.write('/* End PBXGroup section */\n')
 
     def generate_pbx_native_target(self):
@@ -1728,7 +1819,7 @@ class XCodeBackend(Backend):
 
     def generate_pbx_project(self):
         self.ofile.write('\n/* Begin PBXProject section */\n')
-        self.write_line('%s /* Project object */ = {')
+        self.write_line('%s /* Project object */ = {' % self.project_uid)
         self.indent_level += 1
         self.write_line('isa = PBXProject')
         self.write_line('attributes = {')
@@ -1745,13 +1836,12 @@ class XCodeBackend(Backend):
         self.write_line('buildStyles = (')
         self.indent_level += 1
         for name, idval in self.buildstylemap.items():
-            self.write_line('%s /* %s */')
+            self.write_line('%s /* %s */' % (idval, name))
         self.indent_level -= 1
         self.write_line(');')
         self.write_line('compatibilityVersion = "Xcode 3.2";')
         self.write_line('hasScannedForEncodings = 0')
-        maingroup = 'FIXME'
-        self.write_line('mainGroup = %s' % maingroup)
+        self.write_line('mainGroup = %s' % self.maingroup_id)
         self.write_line('projectDirPath = ".."')
         self.write_line('projectRoot = ""')
         self.write_line('targets = (')
