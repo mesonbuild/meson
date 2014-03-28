@@ -1618,6 +1618,7 @@ class XCodeBackend(Backend):
         self.generate_source_phase_map()
         self.generate_target_dependency_map()
         self.generate_pbxdep_map()
+        self.generate_containerproxy_map()
         self.generate_configure_files()
         self.generate_pkgconfig_files()
         self.proj_dir = os.path.join(self.environment.get_build_dir(), self.build.project_name + '.xcodeproj')
@@ -1694,6 +1695,11 @@ class XCodeBackend(Backend):
         for t in self.build.targets:
             self.pbx_dep_map[t] = self.gen_id()
 
+    def generate_containerproxy_map(self):
+        self.containerproxy_map = {}
+        for t in self.build.targets:
+            self.containerproxy_map[t] = self.gen_id()
+
     def generate_source_phase_map(self):
         self.source_phase = {}
         for t in self.build.targets:
@@ -1704,13 +1710,13 @@ class XCodeBackend(Backend):
         self.write_line('%s /* ALL_BUILD */ = {' % self.all_id)
         self.indent_level+=1
         self.write_line('isa = PBXAggregateTarget;')
-        self.write_line('buildConfigurationList = %s' % self.all_buildconf_id)
+        self.write_line('buildConfigurationList = %s;' % self.all_buildconf_id)
         self.write_line('buildPhases = (')
         self.write_line(');')
         self.write_line('dependencies = (')
         self.indent_level+=1
         for t in self.build.targets:
-            self.write_line('%s /* PBXTargetDependency */,' % self.pbx_dep_map[])
+            self.write_line('%s /* PBXTargetDependency */,' % self.pbx_dep_map[t])
         self.indent_level-=1
         self.write_line(');')
         self.write_line('name = ALL_BUILD;')
@@ -1751,6 +1757,16 @@ class XCodeBackend(Backend):
 
     def generate_pbx_container_item_proxy(self):
         self.ofile.write('\n/* Begin PBXContainerItemProxy section */\n')
+        for t in self.build.targets:
+            self.write_line('%s /*PBXContainerItemProxy */ = {' % self.containerproxy_map[t])
+            self.indent_level += 1
+            self.write_line('isa = PBXContainerItemProxy;')
+            self.write_line('containerPortal = %s /* Project object */;' % self.project_uid)
+            self.write_line('proxyType = 1;')
+            self.write_line('remoteGlobalIDString = %s;' % self.native_targets[t])
+            self.write_line('remoteInfo = %s;' % t)
+            self.indent_level-=1
+            self.write_line('};')
         self.ofile.write('/* End PBXContainerItemProxy section */\n')
 
     def generate_pbx_file_reference(self):
