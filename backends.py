@@ -1609,9 +1609,11 @@ class XCodeBackend(Backend):
         self.generate_filemap()
         self.generate_buildmap()
         self.generate_buildstylemap()
+        self.generate_build_phase_map()
         self.generate_build_configuration_map()
         self.generate_build_configurationlist_map()
         self.generate_native_target_map()
+        self.generate_source_phase_map()
         self.generate_configure_files()
         self.generate_pkgconfig_files()
         self.proj_dir = os.path.join(self.environment.get_build_dir(), self.build.project_name + '.xcodeproj')
@@ -1656,6 +1658,11 @@ class XCodeBackend(Backend):
     def generate_buildstylemap(self):
         self.buildstylemap = {'debug' : self.gen_id()}
 
+    def generate_build_phase_map(self):
+        self.buildphasemap = {}
+        for t in self.build.targets:
+            self.buildphasemap[t] = self.gen_id()
+
     def generate_build_configuration_map(self):
         self.buildconfmap = {}
         for t in self.build.targets:
@@ -1671,6 +1678,11 @@ class XCodeBackend(Backend):
         self.native_targets = {}
         for t in self.build.targets:
             self.native_targets[t] = self.gen_id()
+
+    def generate_source_phase_map(self):
+        self.source_phase = {}
+        for t in self.build.targets:
+            self.source_phase[t] = self.gen_id()
 
     def generate_pbx_aggregate_target(self):
         self.ofile.write('\n/* Begin PBXAggregateTarget section */\n')
@@ -1870,6 +1882,20 @@ class XCodeBackend(Backend):
 
     def generate_pbx_sources_build_phase(self):
         self.ofile.write('\n/* Begin PBXSourcesBuildPhase section */\n')
+        for name, phase_id in self.source_phase.items():
+            self.write_line('%s /* Sources */ = {' % self.buildphasemap[name])
+            self.indent_level+=1
+            self.write_line('isa = PBXSourcesBuildPhase;')
+            self.write_line('buildActionMask = 2147483647;')
+            self.write_line('files = (')
+            self.indent_level+=1
+            for s in self.build.targets[name].sources:
+                if not self.environment.is_header(s):
+                    self.write_line('%s /* %s */,' % (self.buildmap[s], os.path.join(self.environment.get_source_dir(), s)))
+            self.indent_level-=1
+            self.write_line('runOnlyForDeploymentPostprocessing = 0;')
+            self.indent_level-=1
+            self.write_line('};')
         self.ofile.write('/* End PBXSourcesBuildPhase section */\n')
 
     def generate_pbx_target_dependency(self):
