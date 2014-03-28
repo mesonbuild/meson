@@ -2007,6 +2007,48 @@ class XCodeBackend(Backend):
     def generate_xc_build_configuration(self):
         self.ofile.write('\n/* Begin XCBuildConfiguration section */\n')
         # First the setup for the toplevel project.
+        for buildtype in self.buildtypes:
+            self.write_line('%s /* %s */ = {' % (self.project_configurations[buildtype], buildtype))
+            self.indent_level+=1
+            self.write_line('isa = XCBuildConfiguration;')
+            self.write_line('buildSettings = {')
+            self.indent_level+=1
+            self.write_line('ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";')
+            self.write_line('ONLY_ACTIVE_ARCH = YES;')
+            self.write_line('SDKROOT = "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk";')
+            self.write_line('SYMROOT = %s/build;' % self.environment.get_build_dir())
+            self.indent_level-=1
+            self.write_line('};')
+            self.write_line('name = %s;' % buildtype)
+            self.indent_level-=1
+            self.write_line('};')
+        # Then the all target.
+        for buildtype in self.buildtypes:
+            self.write_line('%s /* %s */ = {' % (self.buildall_configurations[buildtype], buildtype))
+            self.indent_level+=1
+            self.write_line('isa = XCBuildConfiguration;')
+            self.write_line('buildSettings = {')
+            self.indent_level += 1
+            self.write_line('COMBINE_HIDPI_IMAGES = YES;')
+            self.write_line('GCC_GENERATE_DEBUGGING_SYMBOLS = NO;')
+            self.write_line('GCC_INLINES_ARE_PRIVATE_EXTERN = NO;')
+            self.write_line('GCC_OPTIMIZATION_LEVEL = 0;')
+            self.write_line('GCC_PREPROCESSOR_DEFINITIONS = ("");')
+            self.write_line('GCC_SYMBOLS_PRIVATE_EXTERN = NO;')
+            self.write_line('INSTALL_PATH = "";')
+            self.write_line('OTHER_CFLAGS = "  ";')
+            self.write_line('OTHER_LDFLAGS = " ";')
+            self.write_line('OTHER_REZFLAGS = "";')
+            self.write_line('PRODUCT_NAME = ALL_BUILD;')
+            self.write_line('SECTORDER_FLAGS = "";')
+            self.write_line('SYMROOT = %s;' % self.environment.get_build_dir())
+            self.write_line('USE_HEADERMAP = NO;')
+            self.write_line('WARNING_CFLAGS = ("-Wmost", "-Wno-four-char-constants", "-Wno-unknown-pragmas", );')
+            self.indent_level-=1
+            self.write_line('};')
+            self.write_line('name = %s;' % buildtype)
+            self.indent_level-=1
+            self.write_line('};')
         self.ofile.write('/* End XCBuildConfiguration section */\n')
 
     def generate_xc_configurationList(self):
@@ -2024,7 +2066,7 @@ class XCodeBackend(Backend):
         self.write_line('defaultConfigurationName = debug;')
         self.indent_level-=1
         self.write_line('};')
-        
+
         # Now the all target
         self.write_line('%s /* Build configuration list for PBXAggregateTarget "ALL_BUILD" */ = {' % self.all_buildconf_id)
         self.indent_level+=1
