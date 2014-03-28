@@ -1742,7 +1742,7 @@ class XCodeBackend(Backend):
     def generate_pbx_build_style(self):
         self.ofile.write('\n/* Begin PBXBuildStyle section */\n')
         for name, idval in self.buildstylemap.items():
-            self.write_line('%s /* %s */ = {\n' % (name, idval))
+            self.write_line('%s /* %s */ = {\n' % (idval, name))
             self.indent_level += 1
             self.write_line('isa = PBXBuildStyle;\n')
             self.write_line('buildSettings = {\n')
@@ -1758,7 +1758,7 @@ class XCodeBackend(Backend):
     def generate_pbx_container_item_proxy(self):
         self.ofile.write('\n/* Begin PBXContainerItemProxy section */\n')
         for t in self.build.targets:
-            self.write_line('%s /*PBXContainerItemProxy */ = {' % self.containerproxy_map[t])
+            self.write_line('%s /* PBXContainerItemProxy */ = {' % self.containerproxy_map[t])
             self.indent_level += 1
             self.write_line('isa = PBXContainerItemProxy;')
             self.write_line('containerPortal = %s /* Project object */;' % self.project_uid)
@@ -1985,6 +1985,15 @@ class XCodeBackend(Backend):
 
     def generate_pbx_target_dependency(self):
         self.ofile.write('\n/* Begin PBXTargetDependency section */\n')
+        for t in self.build.targets:
+            idval = self.pbx_dep_map[t] # VERIFY: is this correct?
+            self.write_line('%s /* PBXTargetDependency */ = {' % idval)
+            self.indent_level += 1
+            self.write_line('isa = PBXTargetDependency;')
+            self.write_line('target = %s;' % self.native_targets[t])
+            self.write_line('targetProxy = %s\n' % self.containerproxy_map[t])
+            self.indent_level-=1
+            self.write_line('};')
         self.ofile.write('/* End PBXTargetDependency section */\n')
 
     def generate_xc_build_configuration(self):
