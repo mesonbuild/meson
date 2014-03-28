@@ -1712,14 +1712,24 @@ class XCodeBackend(Backend):
 
     def generate_pbx_file_reference(self):
         self.ofile.write('\n/* Begin PBXFileReference section */\n')
-        templ = '%s /* %s */ = { isa = PbxFileReference; explicitFileType = "%s"; fileEncoding = 4; name = "%s"; path = "%s"; sourceTree = %s; };\n'
+        src_templ = '%s /* %s */ = { isa = PbxFileReference; explicitFileType = "%s"; fileEncoding = 4; name = "%s"; path = "%s"; sourceTree = SOURCE_ROOT; };\n'
         for fname, idval in self.filemap.items():
             fullpath = os.path.join(self.environment.get_source_dir(), fname)
             xcodetype = self.get_xcodetype(fname)
             name = os.path.split(fname)[-1]
             path = fname
-            srcroot = 'SOURCE_ROOT'
-            self.ofile.write(templ % (idval, fullpath, xcodetype, name, path, srcroot))
+            self.ofile.write(src_templ % (idval, fullpath, xcodetype, name, path))
+        target_templ = '%s /* %s */ = { isa = PbxFileReference; explicitFileType = "%s"; path = %s; sourceTree = BUILT_PRODUCTS_DIR; };\n'
+        for tname, idval in self.target_filemap.items():
+            t = self.build.targets[tname]
+            fname = t.get_filename()
+            if isinstance(t, build.Executable):
+                typestr = 'compiled.mach-o.executable'
+                path = t.get_filename()
+            else:
+                typestr = self.get_xcodetype(fname)
+                path = '"%s"' % t.get_filename()
+            self.ofile.write(target_templ % (idval, tname, typestr, path))
         self.ofile.write('/* End PBXFileReference section */\n')
 
     def generate_pbx_group(self):
