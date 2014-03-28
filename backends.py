@@ -1596,6 +1596,8 @@ class XCodeBackend(Backend):
         self.indent_level = 0
         self.xcodetypemap = {'c' : 'sourcecode.c.c', 'a' : 'archive.ar'}
         self.maingroup_id = self.gen_id()
+        self.all_id = self.gen_id()
+        self.all_buildconf_id = self.gen_id()
 
     def gen_id(self):
         return str(uuid.uuid4()).upper().replace('-', '')[:24]
@@ -1615,6 +1617,7 @@ class XCodeBackend(Backend):
         self.generate_native_target_map()
         self.generate_source_phase_map()
         self.generate_target_dependency_map()
+        self.generate_pbxdep_map()
         self.generate_configure_files()
         self.generate_pkgconfig_files()
         self.proj_dir = os.path.join(self.environment.get_build_dir(), self.build.project_name + '.xcodeproj')
@@ -1686,6 +1689,11 @@ class XCodeBackend(Backend):
             for target in t.link_targets:
                 self.target_dependency_map[(tname, target.basename())] = self.gen_id()
 
+    def generate_pbxdep_map(self):
+        self.pbx_dep_map = {}
+        for t in self.build.targets:
+            self.pbx_dep_map[t] = self.gen_id()
+
     def generate_source_phase_map(self):
         self.source_phase = {}
         for t in self.build.targets:
@@ -1693,6 +1701,22 @@ class XCodeBackend(Backend):
 
     def generate_pbx_aggregate_target(self):
         self.ofile.write('\n/* Begin PBXAggregateTarget section */\n')
+        self.write_line('%s /* ALL_BUILD */ = {' % self.all_id)
+        self.indent_level+=1
+        self.write_line('isa = PBXAggregateTarget;')
+        self.write_line('buildConfigurationList = %s' % self.all_buildconf_id)
+        self.write_line('buildPhases = (')
+        self.write_line(');')
+        self.write_line('dependencies = (')
+        self.indent_level+=1
+        for t in self.build.targets:
+            self.write_line('%s /* PBXTargetDependency */,' % self.pbx_dep_map[])
+        self.indent_level-=1
+        self.write_line(');')
+        self.write_line('name = ALL_BUILD;')
+        self.write_line('productName = ALL_BUILD;')
+        self.indent_level-=1
+        self.write_line('};')
         self.ofile.write('/* End PBXAggregateTarget section */\n')
 
     def generate_pbx_build_file(self):
@@ -1803,7 +1827,7 @@ class XCodeBackend(Backend):
         for t in self.build.targets:
             self.write_line('%s /* %s */ = {' % (groupmap[t], t))
             self.indent_level+=1
-            self.write_line('isa = PBXGroup')
+            self.write_line('isa = PBXGroup;')
             self.write_line('children = (')
             self.indent_level+=1
             self.write_line('%s /* Source files */' % target_src_map[t])
@@ -1911,6 +1935,7 @@ class XCodeBackend(Backend):
         self.write_line('projectRoot = ""')
         self.write_line('targets = (')
         self.indent_level += 1
+        self.write_line('%s /* ALL_BUILD */,' % self.all_id)
         for t in self.build.targets:
             self.write_line('%s /* %s */' % (self.native_targets[t], t))
         self.indent_level -= 1
