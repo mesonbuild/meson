@@ -477,6 +477,8 @@ class GeneratedList():
 class Executable(BuildTarget):
     def __init__(self, name, subdir, is_cross, sources, objects, environment, kwargs):
         super().__init__(name, subdir, is_cross, sources, objects, environment, kwargs)
+        self.prefix = ''
+        self.suffix = environment.get_exe_suffix()
         suffix = environment.get_exe_suffix()
         if suffix != '':
             self.filename = self.name + '.' + suffix
