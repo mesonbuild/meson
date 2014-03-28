@@ -1614,6 +1614,7 @@ class XCodeBackend(Backend):
         self.generate_build_configurationlist_map()
         self.generate_native_target_map()
         self.generate_source_phase_map()
+        self.generate_target_dependency_map()
         self.generate_configure_files()
         self.generate_pkgconfig_files()
         self.proj_dir = os.path.join(self.environment.get_build_dir(), self.build.project_name + '.xcodeproj')
@@ -1678,6 +1679,12 @@ class XCodeBackend(Backend):
         self.native_targets = {}
         for t in self.build.targets:
             self.native_targets[t] = self.gen_id()
+
+    def generate_target_dependency_map(self):
+        self.target_dependency_map = {}
+        for tname, t in self.build.targets.items():
+            for target in t.link_targets:
+                self.target_dependency_map[(tname, target.basename())] = self.gen_id()
 
     def generate_source_phase_map(self):
         self.source_phase = {}
@@ -1806,6 +1813,7 @@ class XCodeBackend(Backend):
             self.indent_level-=1
             self.write_line('};')
             self.write_line('%s /* Source files */ = {' % sources_id)
+            self.indent_level+=1
             self.write_line('isa = PBXGroup;')
             self.write_line('children = (')
             self.indent_level+=1
@@ -1837,6 +1845,41 @@ class XCodeBackend(Backend):
 
     def generate_pbx_native_target(self):
         self.ofile.write('\n/* Begin PBXNativeTarget section */\n')
+        for tname, idval in self.native_targets.items():
+            t = self.build.targets[tname]
+            self.write_line('%s /* %s */ = {' % (idval, tname))
+            self.indent_level+=1
+            self.write_line('isa = PBXNativeTarget;')
+            self.write_line('buildConfigurationList = %s /* Build configuration list for PBXNativeTarget "%s" */;'\
+                            % (self.buildconflistmap[tname], tname))
+            self.write_line('buildPhases = (')
+            self.indent_level+=1
+            self.write_line('%s /* Sources */,' % self.buildphasemap[tname])
+            self.indent_level-=1
+            self.write_line(');')
+            self.write_line('buildRules = (')
+            self.write_line(');')
+            self.write_line('dependencies = (')
+            self.indent_level+=1
+            for t in self.build.targets[tname].link_targets:
+                idval = self.target_dependency_map[(tname, idval.basename())]
+                self.write_line('%s /* PBXTargetDependency */')
+            self.indent_level -=1
+            self.write_line(");")
+            self.write_line('name = %s;' % tname)
+            self.write_line('productName = %s;' % tname)
+            self.write_line('productReference = %s;' % self.target_filemap[tname])
+            if isinstance(t, build.Executable):
+                typestr = 'com.apple.product-type.tool'
+            elif isinstance(t, build.StaticLibrary):
+                typestr = 'com.apple.product-type.library.static'
+            elif isinstance(t, build.SharedLibrary):
+                typestr = 'com.apple.product-type.library.dynamic'
+            else:
+                raise MesonException('Unknown target type for %s' % tname)
+            self.write_line('productType = "%s";' % typestr)
+            self.indent_level-=1
+            self.write_line('};')
         self.ofile.write('/* End PBXNativeTarget section */\n')
 
     def generate_pbx_project(self):
@@ -1893,6 +1936,7 @@ class XCodeBackend(Backend):
                 if not self.environment.is_header(s):
                     self.write_line('%s /* %s */,' % (self.buildmap[s], os.path.join(self.environment.get_source_dir(), s)))
             self.indent_level-=1
+            self.write_line(');')
             self.write_line('runOnlyForDeploymentPostprocessing = 0;')
             self.indent_level-=1
             self.write_line('};')
