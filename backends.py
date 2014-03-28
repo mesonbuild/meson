@@ -1592,12 +1592,14 @@ class XCodeBackend(Backend):
     def __init__(self, build, interp):
         super().__init__(build, interp)
         self.project_uid = self.environment.coredata.guid.replace('-', '')[:24]
+        self.project_conflist = self.gen_id()
         self.indent = '    '
         self.indent_level = 0
         self.xcodetypemap = {'c' : 'sourcecode.c.c', 'a' : 'archive.ar'}
         self.maingroup_id = self.gen_id()
         self.all_id = self.gen_id()
         self.all_buildconf_id = self.gen_id()
+        self.buildtypes = ['debug']
 
     def gen_id(self):
         return str(uuid.uuid4()).upper().replace('-', '')[:24]
@@ -1614,6 +1616,7 @@ class XCodeBackend(Backend):
         self.generate_build_phase_map()
         self.generate_build_configuration_map()
         self.generate_build_configurationlist_map()
+        self.generate_project_configurations_map()
         self.generate_native_target_map()
         self.generate_source_phase_map()
         self.generate_target_dependency_map()
@@ -1673,6 +1676,9 @@ class XCodeBackend(Backend):
         for t in self.build.targets:
             bconfs = {'debug' : self.gen_id()}
             self.buildconfmap[t] = bconfs
+
+    def generate_project_configurations_map(self):
+        self.project_configurations = {'debug' : self.gen_id()}
 
     def generate_build_configurationlist_map(self):
         self.buildconflistmap = {}
@@ -1933,9 +1939,7 @@ class XCodeBackend(Backend):
         self.indent_level -= 1
         self.write_line('};')
         conftempl = 'buildConfigurationList = %s /* build configuration list for PBXProject "%s"*/;'
-        for t in self.build.targets:
-            idval = self.buildconflistmap[t]
-            self.write_line(conftempl % (idval, t))
+        self.write_line(conftempl % (self.project_conflist, self.build.project_name))
         self.write_line('buildSettings = {')
         self.write_line('};')
         self.write_line('buildStyles = (')
@@ -1991,20 +1995,34 @@ class XCodeBackend(Backend):
             self.indent_level += 1
             self.write_line('isa = PBXTargetDependency;')
             self.write_line('target = %s;' % self.native_targets[t])
-            self.write_line('targetProxy = %s\n' % self.containerproxy_map[t])
+            self.write_line('targetProxy = %s\n;' % self.containerproxy_map[t])
             self.indent_level-=1
             self.write_line('};')
         self.ofile.write('/* End PBXTargetDependency section */\n')
 
     def generate_xc_build_configuration(self):
         self.ofile.write('\n/* Begin XCBuildConfiguration section */\n')
+        # First the setup for the toplevel project.
         self.ofile.write('/* End XCBuildConfiguration section */\n')
 
     def generate_xc_configurationList(self):
         self.ofile.write('\n/* Begin XCConfigurationList section */\n')
+        self.write_line('%s /* BuildConfigurationList for PBXProject "%s" */ = {' % (self.project_conflist, self.build.project_name))
+        self.indent_level+=1
+        self.write_line('isa = XCConfigurationList;')
+        self.write_line('buildConfigurations = (')
+        self.indent_level+=1
+        for buildtype in self.buildtypes:
+            self.write_line('%s /* %s */,' % (self.project_configurations[buildtype], buildtype))
+        self.indent_level-=1
+        self.write_line(');')
+        self.write_line('defaultConfigurationIsVisible = 0;')
+        self.write_line('defaultConfigurationName = debug;')
+        self.indent_level-=1
+        self.write_line('};')
         for target_name in self.build.targets:
             listid = self.buildconflistmap[target_name]
-            self.write_line('%s /* Build configuration list for PBXProject "%s" */ = {' % (listid, target_name))
+            self.write_line('%s /* Build configuration list for PBXNativeTarget "%s" */ = {' % (listid, target_name))
             self.indent_level += 1
             self.write_line('isa = XCConfigurationList;')
             self.write_line('buildConfigurations = {')
