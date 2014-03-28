@@ -1617,6 +1617,7 @@ class XCodeBackend(Backend):
         self.generate_build_configuration_map()
         self.generate_build_configurationlist_map()
         self.generate_project_configurations_map()
+        self.generate_buildall_configurations_map()
         self.generate_native_target_map()
         self.generate_source_phase_map()
         self.generate_target_dependency_map()
@@ -1679,6 +1680,9 @@ class XCodeBackend(Backend):
 
     def generate_project_configurations_map(self):
         self.project_configurations = {'debug' : self.gen_id()}
+
+    def generate_buildall_configurations_map(self):
+        self.buildall_configurations = {'debug' : self.gen_id()}
 
     def generate_build_configurationlist_map(self):
         self.buildconflistmap = {}
@@ -2007,7 +2011,7 @@ class XCodeBackend(Backend):
 
     def generate_xc_configurationList(self):
         self.ofile.write('\n/* Begin XCConfigurationList section */\n')
-        self.write_line('%s /* BuildConfigurationList for PBXProject "%s" */ = {' % (self.project_conflist, self.build.project_name))
+        self.write_line('%s /* Build configuration list for PBXProject "%s" */ = {' % (self.project_conflist, self.build.project_name))
         self.indent_level+=1
         self.write_line('isa = XCConfigurationList;')
         self.write_line('buildConfigurations = (')
@@ -2020,6 +2024,22 @@ class XCodeBackend(Backend):
         self.write_line('defaultConfigurationName = debug;')
         self.indent_level-=1
         self.write_line('};')
+        
+        # Now the all target
+        self.write_line('%s /* Build configuration list for PBXAggregateTarget "ALL_BUILD" */ = {' % self.all_buildconf_id)
+        self.indent_level+=1
+        self.write_line('isa = XCConfigurationList;')
+        self.write_line('buildConfigurations = (')
+        self.indent_level+=1
+        for buildtype in self.buildtypes:
+            self.write_line('%s /* %s */,' % (self.buildall_configurations[buildtype], buildtype))
+        self.indent_level-=1
+        self.write_line(');')
+        self.write_line('defaultConfigurationIsVisible = 0;')
+        self.write_line('defaultConfigurationName = debug;')
+        self.indent_level-=1
+        self.write_line('};')
+
         for target_name in self.build.targets:
             listid = self.buildconflistmap[target_name]
             self.write_line('%s /* Build configuration list for PBXNativeTarget "%s" */ = {' % (listid, target_name))
