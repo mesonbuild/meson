@@ -142,7 +142,7 @@ class Backend():
         dirname = target.get_subdir()
         os.makedirs(os.path.join(self.environment.get_build_dir(), dirname), exist_ok=True)
         return dirname
-    
+
     def get_target_private_dir(self, target):
         dirname = os.path.join(self.get_target_dir(target), target.get_basename() + '.dir')
         os.makedirs(os.path.join(self.environment.get_build_dir(), dirname), exist_ok=True)
@@ -186,6 +186,12 @@ class Backend():
             else:
                 raise MesonException('Unknown data type in object list.')
         return obj_list
+
+    def serialise_tests(self):
+        test_data = os.path.join(self.environment.get_scratch_dir(), 'meson_test_setup.dat')
+        datafile = open(test_data, 'wb')
+        self.write_test_file(datafile)
+        datafile.close()
 
     def generate_target(self, target, outfile):
         name = target.get_basename()
@@ -682,6 +688,7 @@ class NinjaBackend(Backend):
                 d.data.append(i)
 
     def generate_tests(self, outfile):
+        self.serialise_tests()
         valgrind = environment.find_valgrind()
         script_root = self.environment.get_script_dir()
         test_script = os.path.join(script_root, 'meson_test.py')
@@ -697,10 +704,6 @@ class NinjaBackend(Backend):
             velem.add_item('COMMAND', cmd + ['--wrapper=' + valgrind])
             velem.add_item('DESC', 'Running test suite under Valgrind.')
             velem.write(outfile)
-
-        datafile = open(test_data, 'wb')
-        self.write_test_file(datafile)
-        datafile.close()
 
     def generate_dep_gen_rules(self, outfile):
         outfile.write('# Rules for external dependency generators.\n\n')
@@ -1600,6 +1603,9 @@ class XCodeBackend(Backend):
         self.all_id = self.gen_id()
         self.all_buildconf_id = self.gen_id()
         self.buildtypes = ['debug']
+        self.test_id = self.gen_id()
+        self.test_command_id = self.gen_id()
+        self.test_buildconf_id = self.gen_id()
 
     def gen_id(self):
         return str(uuid.uuid4()).upper().replace('-', '')[:24]
@@ -1610,6 +1616,7 @@ class XCodeBackend(Backend):
             self.ofile.write('\n')
 
     def generate(self):
+        self.serialise_tests()
         self.generate_filemap()
         self.generate_buildmap()
         self.generate_buildstylemap()
@@ -1618,6 +1625,7 @@ class XCodeBackend(Backend):
         self.generate_build_configurationlist_map()
         self.generate_project_configurations_map()
         self.generate_buildall_configurations_map()
+        self.generate_test_configurations_map()
         self.generate_native_target_map()
         self.generate_source_phase_map()
         self.generate_target_dependency_map()
@@ -1684,6 +1692,9 @@ class XCodeBackend(Backend):
     def generate_buildall_configurations_map(self):
         self.buildall_configurations = {'debug' : self.gen_id()}
 
+    def generate_test_configurations_map(self):
+        self.test_configurations = {'debug' : self.gen_id()}
+
     def generate_build_configurationlist_map(self):
         self.buildconflistmap = {}
         for t in self.build.targets:
@@ -1731,6 +1742,21 @@ class XCodeBackend(Backend):
         self.write_line(');')
         self.write_line('name = ALL_BUILD;')
         self.write_line('productName = ALL_BUILD;')
+        self.indent_level-=1
+        self.write_line('};')
+        self.write_line('%s /* RUN_TESTS */ = {' % self.test_id)
+        self.indent_level +=1
+        self.write_line('isa = PBXAggregateTarget;')
+        self.write_line('buildConfigurationList = %s;' % self.test_buildconf_id)
+        self.write_line('buildPhases = (')
+        self.indent_level+=1
+        self.write_line('%s /* test run command */,' % self.test_command_id)
+        self.indent_level-=1
+        self.write_line(');')
+        self.write_line('dependencies = (')
+        self.write_line(');')
+        self.write_line('name = RUN_TESTS;')
+        self.write_line('productName = RUN_TESTS;')
         self.indent_level-=1
         self.write_line('};')
         self.ofile.write('/* End PBXAggregateTarget section */\n')
@@ -1963,6 +1989,7 @@ class XCodeBackend(Backend):
         self.write_line('targets = (')
         self.indent_level += 1
         self.write_line('%s /* ALL_BUILD */,' % self.all_id)
+        self.write_line('%s /* RUN_TESTS */,' % self.test_id)
         for t in self.build.targets:
             self.write_line('%s /* %s */,' % (self.native_targets[t], t))
         self.indent_level -= 1
@@ -1973,6 +2000,27 @@ class XCodeBackend(Backend):
 
     def generate_pbx_shell_build_phase(self):
         self.ofile.write('\n/* Begin PBXShellScriptBuildPhase section */\n')
+        self.write_line('%s = {' % self.test_command_id)
+        self.indent_level += 1
+        self.write_line('isa = PBXShellScriptBuildPhase;')
+        self.write_line('buildActionMask = 2147483647;')
+        self.write_line('files = (')
+        self.write_line(');')
+        self.write_line('inputPaths = (')
+        self.write_line(');')
+        self.write_line('outputPaths = (')
+        self.write_line(');')
+        self.write_line('runOnlyForDeploymentPostprocessing = 0;')
+        self.write_line('shellPath = /bin/sh;')
+        script_root = self.environment.get_script_dir()
+        test_script = os.path.join(script_root, 'meson_test.py')
+        test_data = os.path.join(self.environment.get_scratch_dir(), 'meson_test_setup.dat')
+        cmd = [sys.executable, test_script, test_data, '--wd', self.environment.get_build_dir()]
+        cmdstr = ' '.join(["'%s'" % i for i in cmd])
+        self.write_line('shellScript = "%s";' % cmdstr)
+        self.write_line('showEnvVarsInLog = 0;')
+        self.indent_level-=1
+        self.write_line('};')
         self.ofile.write('/* End PBXShellScriptBuildPhase section */\n')
 
     def generate_pbx_sources_build_phase(self):
@@ -2054,6 +2102,34 @@ class XCodeBackend(Backend):
             self.indent_level-=1
             self.write_line('};')
 
+        # Then the test target.
+        for buildtype in self.buildtypes:
+            self.write_line('%s /* %s */ = {' % (self.test_configurations[buildtype], buildtype))
+            self.indent_level+=1
+            self.write_line('isa = XCBuildConfiguration;')
+            self.write_line('buildSettings = {')
+            self.indent_level += 1
+            self.write_line('COMBINE_HIDPI_IMAGES = YES;')
+            self.write_line('GCC_GENERATE_DEBUGGING_SYMBOLS = NO;')
+            self.write_line('GCC_INLINES_ARE_PRIVATE_EXTERN = NO;')
+            self.write_line('GCC_OPTIMIZATION_LEVEL = 0;')
+            self.write_line('GCC_PREPROCESSOR_DEFINITIONS = ("");')
+            self.write_line('GCC_SYMBOLS_PRIVATE_EXTERN = NO;')
+            self.write_line('INSTALL_PATH = "";')
+            self.write_line('OTHER_CFLAGS = "  ";')
+            self.write_line('OTHER_LDFLAGS = " ";')
+            self.write_line('OTHER_REZFLAGS = "";')
+            self.write_line('PRODUCT_NAME = RUN_TESTS;')
+            self.write_line('SECTORDER_FLAGS = "";')
+            self.write_line('SYMROOT = "%s";' % self.environment.get_build_dir())
+            self.write_line('USE_HEADERMAP = NO;')
+            self.write_line('WARNING_CFLAGS = ("-Wmost", "-Wno-four-char-constants", "-Wno-unknown-pragmas", );')
+            self.indent_level-=1
+            self.write_line('};')
+            self.write_line('name = %s;' % buildtype)
+            self.indent_level-=1
+            self.write_line('};')
+
         # Now finally targets.
         for target_name, target in self.build.targets.items():
             for buildtype in self.buildtypes:
@@ -2112,6 +2188,21 @@ class XCodeBackend(Backend):
         self.indent_level+=1
         for buildtype in self.buildtypes:
             self.write_line('%s /* %s */,' % (self.buildall_configurations[buildtype], buildtype))
+        self.indent_level-=1
+        self.write_line(');')
+        self.write_line('defaultConfigurationIsVisible = 0;')
+        self.write_line('defaultConfigurationName = debug;')
+        self.indent_level-=1
+        self.write_line('};')
+
+        # Test target
+        self.write_line('%s /* Build configuration list for PBXAggregateTarget "ALL_BUILD" */ = {' % self.test_buildconf_id)
+        self.indent_level+=1
+        self.write_line('isa = XCConfigurationList;')
+        self.write_line('buildConfigurations = (')
+        self.indent_level+=1
+        for buildtype in self.buildtypes:
+            self.write_line('%s /* %s */,' % (self.test_configurations[buildtype], buildtype))
         self.indent_level-=1
         self.write_line(');')
         self.write_line('defaultConfigurationIsVisible = 0;')

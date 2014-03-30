@@ -23,7 +23,8 @@ tests_failed = False
 parser = OptionParser()
 parser.add_option('--wrapper', default=None, dest='wrapper',
                   help='wrapper to run tests with (e.g. valgrind)')
-
+parser.add_option('--wd', default=None, dest='wd',
+                  help='directory to cd into before running')
 class TestRun():
     def __init__(self, res, duration, stdo, stde):
         self.res = res
@@ -132,6 +133,8 @@ if __name__ == '__main__':
     if len(args) != 2:
         print('Test runner for Meson. Do not run on your own, mmm\'kay?')
         print('%s [data file]' % sys.argv[0])
+    if options.wd is not None:
+        os.chdir(options.wd)
     datafile = args[1]
     run_tests(options, datafile)
     if tests_failed:
