@@ -1593,7 +1593,7 @@ class XCodeBackend(Backend):
         super().__init__(build, interp)
         self.project_uid = self.environment.coredata.guid.replace('-', '')[:24]
         self.project_conflist = self.gen_id()
-        self.indent = '    '
+        self.indent = '       '
         self.indent_level = 0
         self.xcodetypemap = {'c' : 'sourcecode.c.c', 'a' : 'archive.ar'}
         self.maingroup_id = self.gen_id()
@@ -1837,7 +1837,7 @@ class XCodeBackend(Backend):
         self.indent_level-=1
         self.write_line(');')
         self.write_line('name = Sources;')
-        self.write_line('sourcetree = "<group>;"')
+        self.write_line('sourcetree = "<group>";')
         self.indent_level-=1
         self.write_line('};')
         
@@ -1939,7 +1939,7 @@ class XCodeBackend(Backend):
         self.ofile.write('\n/* Begin PBXProject section */\n')
         self.write_line('%s /* Project object */ = {' % self.project_uid)
         self.indent_level += 1
-        self.write_line('isa = PBXProject')
+        self.write_line('isa = PBXProject;')
         self.write_line('attributes = {')
         self.indent_level += 1
         self.write_line('BuildIndependentTargetsInParallel = YES;')
@@ -1957,7 +1957,7 @@ class XCodeBackend(Backend):
         self.write_line(');')
         self.write_line('compatibilityVersion = "Xcode 3.2";')
         self.write_line('hasScannedForEncodings = 0;')
-        self.write_line('mainGroup = %s' % self.maingroup_id)
+        self.write_line('mainGroup = %s;' % self.maingroup_id)
         self.write_line('projectDirPath = "..";')
         self.write_line('projectRoot = "";')
         self.write_line('targets = (')
@@ -2131,8 +2131,8 @@ class XCodeBackend(Backend):
             self.write_line('%s /* %s */,' % (idval, typestr))
             self.indent_level -= 1
             self.write_line(');')
-            self.write_line('defaultConfigurationIsVisible = 0')
-            self.write_line('defaultConfigurationName = %s' % type)
+            self.write_line('defaultConfigurationIsVisible = 0;')
+            self.write_line('defaultConfigurationName = %s;' % type)
             self.indent_level -= 1
             self.write_line('};')
         self.ofile.write('/* End XCConfigurationList section */\n')
@@ -2150,7 +2150,7 @@ class XCodeBackend(Backend):
     def generate_suffix(self):
         self.indent_level -= 1
         self.write_line('};\n')
-        self.write_line('rootObject = ' + self.project_uid + '\n')
+        self.write_line('rootObject = ' + self.project_uid + ';n')
         self.indent_level -= 1
         self.write_line('}\n')
 
