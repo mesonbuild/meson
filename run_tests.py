@@ -32,6 +32,11 @@ if msbuild_exe is not None:
     compile_commands = ['msbuild']
     test_commands = ['msbuild', 'RUN_TESTS.vcxproj']
     install_commands = []
+elif environment.is_osx():
+    backend_flags = ['--backend=xcode']
+    compile_commands = ['xcodebuild']
+    test_commands = ['xcodebuild', '-target', 'RUN_TESTS']
+    install_commands = []
 else:
     backend_flags = []
     ninja_command = environment.detect_ninja()
