@@ -1840,14 +1840,14 @@ class XCodeBackend(Backend):
         self.write_line('sourcetree = "<group>";')
         self.indent_level-=1
         self.write_line('};')
-        
-        self.write_line('%s /* Resources */' % resources_id)
+
+        self.write_line('%s /* Resources */ = {' % resources_id)
         self.indent_level+=1
         self.write_line('isa = PBXGroup;')
         self.write_line('children = (')
         self.write_line(');')
         self.write_line('name = Resources;')
-        self.write_line('sourceTree = <group>;')
+        self.write_line('sourceTree = "<group>";')
         self.indent_level-=1
         self.write_line('};')
 
@@ -1858,11 +1858,11 @@ class XCodeBackend(Backend):
             self.write_line('isa = PBXGroup;')
             self.write_line('children = (')
             self.indent_level+=1
-            self.write_line('%s /* Source files */' % target_src_map[t])
+            self.write_line('%s /* Source files */,' % target_src_map[t])
             self.indent_level-=1
             self.write_line(');')
             self.write_line('name = %s;' % t)
-            self.write_line('sourceTree = "<group>"')
+            self.write_line('sourceTree = "<group>";')
             self.indent_level-=1
             self.write_line('};')
             self.write_line('%s /* Source files */ = {' % target_src_map[t])
@@ -1952,13 +1952,13 @@ class XCodeBackend(Backend):
         self.write_line('buildStyles = (')
         self.indent_level += 1
         for name, idval in self.buildstylemap.items():
-            self.write_line('%s /* %s */' % (idval, name))
+            self.write_line('%s /* %s */,' % (idval, name))
         self.indent_level -= 1
         self.write_line(');')
         self.write_line('compatibilityVersion = "Xcode 3.2";')
         self.write_line('hasScannedForEncodings = 0;')
         self.write_line('mainGroup = %s;' % self.maingroup_id)
-        self.write_line('projectDirPath = "..";')
+        self.write_line('projectDirPath = "%s";' % self.build_to_src)
         self.write_line('projectRoot = "";')
         self.write_line('targets = (')
         self.indent_level += 1
@@ -1968,7 +1968,7 @@ class XCodeBackend(Backend):
         self.indent_level -= 1
         self.write_line(');')
         self.indent_level -= 1
-        self.write_line(');')
+        self.write_line('};')
         self.ofile.write('/* End PBXProject section */\n')
 
     def generate_pbx_shell_build_phase(self):
@@ -2078,7 +2078,7 @@ class XCodeBackend(Backend):
                 self.write_line('OTHER_REZFLAGS = "";')
                 self.write_line('PRODUCT_NAME = %s;' % target_name)
                 self.write_line('SECTORDER_FLAGS = "";')
-                self.write_line('SYMROOT = %s;' % self.environment.get_build_dir())
+                self.write_line('SYMROOT = "%s";' % self.environment.get_build_dir())
                 self.write_line('USE_HEADERMAP = NO;')
                 self.write_line('WARNING_CFLAGS = ("-Wmost", "-Wno-four-char-constants", "-Wno-unknown-pragmas", );')
                 self.indent_level-=1
@@ -2132,7 +2132,7 @@ class XCodeBackend(Backend):
             self.indent_level -= 1
             self.write_line(');')
             self.write_line('defaultConfigurationIsVisible = 0;')
-            self.write_line('defaultConfigurationName = %s;' % type)
+            self.write_line('defaultConfigurationName = %s;' % typestr)
             self.indent_level -= 1
             self.write_line('};')
         self.ofile.write('/* End XCConfigurationList section */\n')
@@ -2150,7 +2150,7 @@ class XCodeBackend(Backend):
     def generate_suffix(self):
         self.indent_level -= 1
         self.write_line('};\n')
-        self.write_line('rootObject = ' + self.project_uid + ';n')
+        self.write_line('rootObject = ' + self.project_uid + ';')
         self.indent_level -= 1
         self.write_line('}\n')
 
