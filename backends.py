@@ -1788,17 +1788,18 @@ class XCodeBackend(Backend):
             name = os.path.split(fname)[-1]
             path = fname
             self.ofile.write(src_templ % (idval, fullpath, xcodetype, name, path))
-        target_templ = '%s /* %s */ = { isa = PbxFileReference; explicitFileType = "%s"; path = %s; sourceTree = BUILT_PRODUCTS_DIR; };\n'
+        target_templ = '%s /* %s */ = { isa = PBXFileReference; explicitFileType = "%s"; path = %s; refType = %d; sourceTree = BUILT_PRODUCTS_DIR; };\n'
         for tname, idval in self.target_filemap.items():
             t = self.build.targets[tname]
             fname = t.get_filename()
+            reftype = 4
             if isinstance(t, build.Executable):
                 typestr = 'compiled.mach-o.executable'
                 path = t.get_filename()
             else:
                 typestr = self.get_xcodetype(fname)
                 path = '"%s"' % t.get_filename()
-            self.ofile.write(target_templ % (idval, tname, typestr, path))
+            self.ofile.write(target_templ % (idval, tname, typestr, path, reftype))
         self.ofile.write('/* End PBXFileReference section */\n')
 
     def generate_pbx_group(self):
@@ -1821,7 +1822,7 @@ class XCodeBackend(Backend):
         self.write_line('%s /* Products */,' % products_id)
         self.indent_level-=1
         self.write_line(');')
-        self.write_line('sourceTree = <group>;')
+        self.write_line('sourceTree = "<group>";')
         self.indent_level -= 1
         self.write_line('};')
 
@@ -1834,6 +1835,7 @@ class XCodeBackend(Backend):
         for t in self.build.targets:
             self.write_line('%s /* %s */,' % (groupmap[t], t))
         self.indent_level-=1
+        self.write_line(');')
         self.write_line('name = Sources;')
         self.write_line('sourcetree = "<group>;"')
         self.indent_level-=1
@@ -1858,6 +1860,7 @@ class XCodeBackend(Backend):
             self.indent_level+=1
             self.write_line('%s /* Source files */' % target_src_map[t])
             self.indent_level-=1
+            self.write_line(');')
             self.write_line('name = %s;' % t)
             self.write_line('sourceTree = "<group>"')
             self.indent_level-=1
@@ -1999,7 +2002,7 @@ class XCodeBackend(Backend):
             self.indent_level += 1
             self.write_line('isa = PBXTargetDependency;')
             self.write_line('target = %s;' % self.native_targets[t])
-            self.write_line('targetProxy = %s\n;' % self.containerproxy_map[t])
+            self.write_line('targetProxy = %s;\n' % self.containerproxy_map[t])
             self.indent_level-=1
             self.write_line('};')
         self.ofile.write('/* End PBXTargetDependency section */\n')
@@ -2016,7 +2019,7 @@ class XCodeBackend(Backend):
             self.write_line('ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";')
             self.write_line('ONLY_ACTIVE_ARCH = YES;')
             self.write_line('SDKROOT = "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk";')
-            self.write_line('SYMROOT = %s/build;' % self.environment.get_build_dir())
+            self.write_line('SYMROOT = "%s/build";' % self.environment.get_build_dir())
             self.indent_level-=1
             self.write_line('};')
             self.write_line('name = %s;' % buildtype)
@@ -2042,7 +2045,7 @@ class XCodeBackend(Backend):
             self.write_line('OTHER_REZFLAGS = "";')
             self.write_line('PRODUCT_NAME = ALL_BUILD;')
             self.write_line('SECTORDER_FLAGS = "";')
-            self.write_line('SYMROOT = %s;' % self.environment.get_build_dir())
+            self.write_line('SYMROOT = "%s";' % self.environment.get_build_dir())
             self.write_line('USE_HEADERMAP = NO;')
             self.write_line('WARNING_CFLAGS = ("-Wmost", "-Wno-four-char-constants", "-Wno-unknown-pragmas", );')
             self.indent_level-=1
@@ -2121,13 +2124,13 @@ class XCodeBackend(Backend):
             self.write_line('%s /* Build configuration list for PBXNativeTarget "%s" */ = {' % (listid, target_name))
             self.indent_level += 1
             self.write_line('isa = XCConfigurationList;')
-            self.write_line('buildConfigurations = {')
+            self.write_line('buildConfigurations = (')
             self.indent_level += 1
             type = 'debug'
             idval = self.buildconfmap[target_name][type]
-            self.write_line('%s /* %s */' % (idval, type))
+            self.write_line('%s /* %s */,' % (idval, type))
             self.indent_level -= 1
-            self.write_line('};')
+            self.write_line(');')
             self.write_line('defaultConfigurationIsVisible = 0')
             self.write_line('defaultConfigurationName = %s' % type)
             self.indent_level -= 1
