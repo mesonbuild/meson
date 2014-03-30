@@ -118,6 +118,7 @@ class Backend():
         self.interpreter = interp
         self.processed_targets = {}
         self.dep_rules = {}
+        self.output_path_override = None
         self.build_to_src = os.path.relpath(self.environment.get_source_dir(),
                                             self.environment.get_build_dir())
 
@@ -139,7 +140,10 @@ class Backend():
         return filename
 
     def get_target_dir(self, target):
-        dirname = target.get_subdir()
+        if self.output_path_override is None:
+            dirname = target.get_subdir()
+        else:
+            dirname = self.output_path_override
         os.makedirs(os.path.join(self.environment.get_build_dir(), dirname), exist_ok=True)
         return dirname
 
@@ -1596,6 +1600,7 @@ class XCodeBackend(Backend):
         super().__init__(build, interp)
         self.project_uid = self.environment.coredata.guid.replace('-', '')[:24]
         self.project_conflist = self.gen_id()
+        self.output_path_override = self.environment.coredata.buildtype
         self.indent = '       '
         self.indent_level = 0
         self.xcodetypemap = {'c' : 'sourcecode.c.c', 'a' : 'archive.ar'}
