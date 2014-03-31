@@ -578,8 +578,10 @@ class XCodeBackend(backends.Backend):
                     dep_libs = ['-Wl,-search_paths_first', '-Wl,-headerpad_max_install_names'] + dep_libs
                 if isinstance(target, build.SharedLibrary):
                     ldargs = ['-dynamiclib', '-Wl,-headerpad_max_install_names'] + dep_libs
+                    install_path = os.path.join(self.environment.get_build_dir(), buildtype)
                 else:
                     ldargs = dep_libs
+                    install_path = ''
                 ldstr = ' '.join(ldargs)
                 valid = self.buildconfmap[target_name][buildtype]
                 self.write_line('%s /* %s */ = {' % (valid, buildtype))
@@ -594,12 +596,12 @@ class XCodeBackend(backends.Backend):
                 else:
                     suffix = '.' + target.suffix
                 self.write_line('EXECUTABLE_SUFFIX = "%s";' % suffix)
-                self.write_line('GCC_GENERATE_DEBUGGING_SYMBOLS = NO;')
+                self.write_line('GCC_GENERATE_DEBUGGING_SYMBOLS = YES;')
                 self.write_line('GCC_INLINES_ARE_PRIVATE_EXTERN = NO;')
                 self.write_line('GCC_OPTIMIZATION_LEVEL = 0;')
                 self.write_line('GCC_PREPROCESSOR_DEFINITIONS = ("");')
                 self.write_line('GCC_SYMBOLS_PRIVATE_EXTERN = NO;')
-                self.write_line('INSTALL_PATH = "";')
+                self.write_line('INSTALL_PATH = "%s";' % install_path)
                 self.write_line('LIBRARY_SEARCH_PATHS = "";')
                 if isinstance(target, build.SharedLibrary):
                     self.write_line('LIBRARY_STYLE = DYNAMIC;')
