@@ -753,9 +753,10 @@ class GnuCPPCompiler(CPPCompiler):
     # may need to separate the latter to extra_debug_flags or something
     std_debug_flags = ['-g']
 
-    def __init__(self, exelist, version, is_cross, exe_wrap):
+    def __init__(self, exelist, version, gcc_type, is_cross, exe_wrap):
         CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
         self.id = 'gcc'
+        self.gcc_type = gcc_type
 
     def get_always_flags(self):
         return ['-pipe']
@@ -1120,11 +1121,11 @@ class Environment():
                 version = vmatch.group(0)
             else:
                 version = 'unknown version'
+            if 'apple' in out and 'Free Software Foundation' in out:
+                return GnuCPPCompiler(ccache + [compiler], version, GCC_OSX, is_cross, exe_wrap)
             if (out.startswith('c++ ') or 'g++' in out or 'GCC' in out) and \
                 'Free Software Foundation' in out:
-                return GnuCPPCompiler(ccache + [compiler], version, is_cross, exe_wrap)
-            if 'apple' in out and 'Free Software Foundation' in out:
-                return GnuCPPCompiler(ccache + [compiler], version, is_cross, exe_wrap)
+                return GnuCPPCompiler(ccache + [compiler], version, GCC_STANDARD, is_cross, exe_wrap)
             if 'clang' in out:
                 return ClangCPPCompiler(ccache + [compiler], version, is_cross, exe_wrap)
             if 'Microsoft' in out:
