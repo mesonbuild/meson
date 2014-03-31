@@ -23,7 +23,12 @@ class XCodeBackend(backends.Backend):
         self.output_path_override = self.environment.coredata.buildtype
         self.indent = '       '
         self.indent_level = 0
-        self.xcodetypemap = {'c' : 'sourcecode.c.c', 'a' : 'archive.ar'}
+        self.xcodetypemap = {'c' : 'sourcecode.c.c',
+                             'a' : 'archive.ar',
+                             'cc': 'sourcecode.cpp.cpp',
+                             'cxx' : 'sourcecode.cpp.cpp',
+                             'cpp' : 'sourcecode.cpp.cpp',
+                             'c++' : 'sourcecode.cpp.cpp'}
         self.maingroup_id = self.gen_id()
         self.all_id = self.gen_id()
         self.all_buildconf_id = self.gen_id()
