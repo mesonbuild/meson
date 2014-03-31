@@ -567,11 +567,20 @@ class XCodeBackend(backends.Backend):
         for target_name, target in self.build.targets.items():
             for buildtype in self.buildtypes:
                 dep_libs = []
+                links_dylib = False
                 for l in target.link_targets:
                     abs_path = os.path.join(self.environment.get_build_dir(),
                                             buildtype, l.get_filename())
                     dep_libs.append("'%s'" % abs_path)
-                depstr = ' '.join(dep_libs)
+                    if isinstance(l, build.SharedLibrary):
+                        links_dylib = True
+                if links_dylib:
+                    dep_libs = ['-Wl,-search_paths_first', '-Wl,-headerpad_max_install_names'] + dep_libs
+                if isinstance(target, build.SharedLibrary):
+                    ldargs = ['-dynamiclib', '-Wl,-headerpad_max_install_names'] + dep_libs
+                else:
+                    ldargs = dep_libs
+                ldstr = ' '.join(ldargs)
                 valid = self.buildconfmap[target_name][buildtype]
                 self.write_line('%s /* %s */ = {' % (valid, buildtype))
                 self.indent_level+=1
@@ -592,8 +601,10 @@ class XCodeBackend(backends.Backend):
                 self.write_line('GCC_SYMBOLS_PRIVATE_EXTERN = NO;')
                 self.write_line('INSTALL_PATH = "";')
                 self.write_line('LIBRARY_SEARCH_PATHS = "";')
+                if isinstance(target, build.SharedLibrary):
+                    self.write_line('LIBRARY_STYLE = DYNAMIC;')
                 self.write_line('OTHER_CFLAGS = "  ";')
-                self.write_line('OTHER_LDFLAGS = "%s";' % depstr)
+                self.write_line('OTHER_LDFLAGS = "%s";' % ldstr)
                 self.write_line('OTHER_REZFLAGS = "";')
                 self.write_line('PRODUCT_NAME = %s;' % target_name)
                 self.write_line('SECTORDER_FLAGS = "";')
