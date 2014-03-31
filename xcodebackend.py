@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import backends
+import backends, build
+import uuid, os, sys
 
 class XCodeBackend(backends.Backend):
     def __init__(self, build, interp):
