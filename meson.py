@@ -18,7 +18,7 @@ from optparse import OptionParser
 import sys, stat, traceback, pickle
 import os.path
 import environment, interpreter
-import backends, build
+import build
 import mlog, coredata
 
 from coredata import MesonException
@@ -130,11 +130,14 @@ itself as required.'''
         intr = interpreter.Interpreter(b)
         intr.run()
         if options.backend == 'ninja':
-            g = backends.NinjaBackend(b, intr)
+            import ninjabackend
+            g = ninjabackend.NinjaBackend(b, intr)
         elif options.backend == 'vs2010':
-            g = backends.Vs2010Backend(b, intr)
+            import vs2010backend
+            g = vs2010backend.Vs2010Backend(b, intr)
         elif options.backend == 'xcode':
-            g = backends.XCodeBackend(b, intr)
+            import xcodebackend
+            g = xcodebackend.XCodeBackend(b, intr)
         else:
             raise RuntimeError('Unknown backend "%s".' % options.backend)
         g.generate()
