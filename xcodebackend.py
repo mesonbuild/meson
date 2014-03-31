@@ -372,7 +372,9 @@ class XCodeBackend(backends.Backend):
             self.write_line('dependencies = (')
             self.indent_level+=1
             for lt in self.build.targets[tname].link_targets:
-                idval = self.target_dependency_map[(tname, lt.get_basename())]
+                # NOT DOCUMENTED, may need to make different links
+                # to same target have different targetdependency item.
+                idval = self.pbx_dep_map[lt.get_basename()]
                 self.write_line('%s /* PBXTargetDependency */,' % idval)
             self.indent_level -=1
             self.write_line(");")
