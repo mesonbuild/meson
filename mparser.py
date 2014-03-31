@@ -16,11 +16,11 @@
 
 import re
 import sys
+from coredata import MesonException
 
-class ParseException(Exception):
+class ParseException(MesonException):
     def __init__(self, text, lineno, colno):
-        super().__init__()
-        self.text = text
+        super().__init__(text)
         self.lineno = lineno
         self.colno = colno
 

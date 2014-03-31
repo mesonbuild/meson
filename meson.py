@@ -181,7 +181,7 @@ if __name__ == '__main__':
     except Exception as e:
         if isinstance(e, MesonException):
             if hasattr(e, 'file') and hasattr(e, 'lineno') and hasattr(e, 'colno'):
-                mlog.log(mlog.red('\nMeson encountered an error in %s:%d,%d:' % (e.file, e.lineno, e.colno)))
+                mlog.log(mlog.red('\nMeson encountered an error in file %s, line %d, column %d:' % (e.file, e.lineno, e.colno)))
             else:
                 mlog.log(mlog.red('\nMeson encountered an error:'))
             mlog.log(e)
