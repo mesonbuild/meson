@@ -489,9 +489,9 @@ class Executable(BuildTarget):
 class StaticLibrary(BuildTarget):
     def __init__(self, name, subdir, is_cross, sources, objects, environment, kwargs):
         super().__init__(name, subdir, is_cross, sources, objects, environment, kwargs)
-        prefix = environment.get_static_lib_prefix()
-        suffix = environment.get_static_lib_suffix()
-        self.filename = prefix + self.name + '.' + suffix
+        self.prefix = environment.get_static_lib_prefix()
+        self.suffix = environment.get_static_lib_suffix()
+        self.filename = self.prefix + self.name + '.' + self.suffix
 
     def get_import_filename(self):
         return self.filename

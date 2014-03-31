@@ -28,7 +28,8 @@ class XCodeBackend(backends.Backend):
                              'cc': 'sourcecode.cpp.cpp',
                              'cxx' : 'sourcecode.cpp.cpp',
                              'cpp' : 'sourcecode.cpp.cpp',
-                             'c++' : 'sourcecode.cpp.cpp'}
+                             'c++' : 'sourcecode.cpp.cpp',
+                             'dylib' : 'compiled.mach-o.dylib'}
         self.maingroup_id = self.gen_id()
         self.all_id = self.gen_id()
         self.all_buildconf_id = self.gen_id()
@@ -139,7 +140,7 @@ class XCodeBackend(backends.Backend):
         self.target_dependency_map = {}
         for tname, t in self.build.targets.items():
             for target in t.link_targets:
-                self.target_dependency_map[(tname, target.basename())] = self.gen_id()
+                self.target_dependency_map[(tname, target.get_basename())] = self.gen_id()
 
     def generate_pbxdep_map(self):
         self.pbx_dep_map = {}
@@ -370,9 +371,9 @@ class XCodeBackend(backends.Backend):
             self.write_line(');')
             self.write_line('dependencies = (')
             self.indent_level+=1
-            for t in self.build.targets[tname].link_targets:
-                idval = self.target_dependency_map[(tname, idval.basename())]
-                self.write_line('%s /* PBXTargetDependency */')
+            for lt in self.build.targets[tname].link_targets:
+                idval = self.target_dependency_map[(tname, lt.get_basename())]
+                self.write_line('%s /* PBXTargetDependency */,' % idval)
             self.indent_level -=1
             self.write_line(");")
             self.write_line('name = %s;' % tname)
@@ -563,6 +564,12 @@ class XCodeBackend(backends.Backend):
         # Now finally targets.
         for target_name, target in self.build.targets.items():
             for buildtype in self.buildtypes:
+                dep_libs = []
+                for l in target.link_targets:
+                    abs_path = os.path.join(self.environment.get_build_dir(),
+                                            buildtype, l.get_filename())
+                    dep_libs.append("'%s'" % abs_path)
+                depstr = ' '.join(dep_libs)
                 valid = self.buildconfmap[target_name][buildtype]
                 self.write_line('%s /* %s */ = {' % (valid, buildtype))
                 self.indent_level+=1
@@ -571,7 +578,11 @@ class XCodeBackend(backends.Backend):
                 self.indent_level += 1
                 self.write_line('COMBINE_HIDPI_IMAGES = YES;')
                 self.write_line('EXECUTABLE_PREFIX = "%s";' % target.prefix)
-                self.write_line('EXECUTABLE_SUFFIX = "%s";' % target.suffix)
+                if target.suffix == '':
+                    suffix = ''
+                else:
+                    suffix = '.' + target.suffix
+                self.write_line('EXECUTABLE_SUFFIX = "%s";' % suffix)
                 self.write_line('GCC_GENERATE_DEBUGGING_SYMBOLS = NO;')
                 self.write_line('GCC_INLINES_ARE_PRIVATE_EXTERN = NO;')
                 self.write_line('GCC_OPTIMIZATION_LEVEL = 0;')
@@ -580,7 +591,7 @@ class XCodeBackend(backends.Backend):
                 self.write_line('INSTALL_PATH = "";')
                 self.write_line('LIBRARY_SEARCH_PATHS = "";')
                 self.write_line('OTHER_CFLAGS = "  ";')
-                self.write_line('OTHER_LDFLAGS = " ";')
+                self.write_line('OTHER_LDFLAGS = "%s";' % depstr)
                 self.write_line('OTHER_REZFLAGS = "";')
                 self.write_line('PRODUCT_NAME = %s;' % target_name)
                 self.write_line('SECTORDER_FLAGS = "";')
