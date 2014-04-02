@@ -605,6 +605,7 @@ class XCodeBackend(backends.Backend):
                 else:
                     ldargs = dep_libs
                     install_path = ''
+                ldargs += target.link_flags
                 ldstr = ' '.join(ldargs)
                 valid = self.buildconfmap[target_name][buildtype]
                 langflags = {}
