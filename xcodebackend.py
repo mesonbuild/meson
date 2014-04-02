@@ -28,6 +28,11 @@ class XCodeBackend(backends.Backend):
                              'cxx' : 'sourcecode.cpp.cpp',
                              'cpp' : 'sourcecode.cpp.cpp',
                              'c++' : 'sourcecode.cpp.cpp',
+                             'h' : 'sourcecode.c.h',
+                             'hpp' : 'sourcecode.cpp.h',
+                             'hxx' : 'sourcecode.cpp.h',
+                             'hh' : 'sourcecode.cpp.hh',
+                             'inc' : 'sourcecode.c.h',
                              'dylib' : 'compiled.mach-o.dylib'}
         self.maingroup_id = self.gen_id()
         self.all_id = self.gen_id()
