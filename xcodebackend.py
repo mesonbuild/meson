@@ -35,7 +35,8 @@ class XCodeBackend(backends.Backend):
                              'hxx' : 'sourcecode.cpp.h',
                              'hh' : 'sourcecode.cpp.hh',
                              'inc' : 'sourcecode.c.h',
-                             'dylib' : 'compiled.mach-o.dylib'}
+                             'dylib' : 'compiled.mach-o.dylib',
+                             'o' : 'compiled.mach-o.objfile',}
         self.maingroup_id = self.gen_id()
         self.all_id = self.gen_id()
         self.all_buildconf_id = self.gen_id()
@@ -103,18 +104,26 @@ class XCodeBackend(backends.Backend):
         self.target_filemap = {}
         for name, t in self.build.targets.items():
             for s in t.sources:
-                s = os.path.join(t.subdir, s)
                 if isinstance(s, str):
+                    s = os.path.join(t.subdir, s)
                     self.filemap[s] = self.gen_id()
+            for o in t.objects:
+                if isinstance(o, str):
+                    o = os.path.join(t.subdir, o)
+                    self.filemap[o] = self.gen_id()
             self.target_filemap[name] = self.gen_id()
 
     def generate_buildmap(self):
         self.buildmap = {}
         for t in self.build.targets.values():
             for s in t.sources:
-                s = os.path.join(t.subdir, s)
                 if isinstance(s, str):
+                    s = os.path.join(t.subdir, s)
                     self.buildmap[s] = self.gen_id()
+            for o in t.objects:
+                o = os.path.join(t.subdir, o)
+                if isinstance(o, str):
+                    self.buildmap[o] = self.gen_id()
 
     def generate_buildstylemap(self):
         self.buildstylemap = {'debug' : self.gen_id()}
@@ -208,16 +217,24 @@ class XCodeBackend(backends.Backend):
     def generate_pbx_build_file(self):
         self.ofile.write('\n/* Begin PBXBuildFile section */\n')
         templ = '%s /* %s */ = { isa = PBXBuildFile; fileRef = %s /* %s */; settings = { COMPILER_FLAGS = "%s"; }; };\n'
+        otempl = '%s /* %s */ = { isa = PBXBuildFile; fileRef = %s /* %s */;};\n'
         for t in self.build.targets.values():
             for s in t.sources:
-                s = os.path.join(t.subdir, s)
                 if isinstance(s, str):
+                    s = os.path.join(t.subdir, s)
                     idval = self.buildmap[s]
                     fullpath = os.path.join(self.environment.get_source_dir(), s)
                     fileref = self.filemap[s]
                     fullpath2 = fullpath
                     compiler_flags = ''
                     self.ofile.write(templ % (idval, fullpath, fileref, fullpath2, compiler_flags))
+            for o in t.objects:
+                o = os.path.join(t.subdir, o)
+                idval = self.buildmap[o]
+                fileref = self.filemap[o]
+                fullpath = os.path.join(self.environment.get_source_dir(), o)
+                fullpath2 = fullpath
+                self.ofile.write(otempl % (idval, fullpath, fileref, fullpath2))
         self.ofile.write('/* End PBXBuildFile section */\n')
 
     def generate_pbx_build_style(self):
@@ -350,6 +367,9 @@ class XCodeBackend(backends.Backend):
                 s = os.path.join(self.build.targets[t].subdir, s)
                 if isinstance(s, str):
                     self.write_line('%s /* %s */,' % (self.filemap[s], s))
+            for o in self.build.targets[t].objects:
+                o = os.path.join(self.build.targets[t].subdir, o)
+                self.write_line('%s /* %s */,' % (self.filemap[o], o))
             self.indent_level-=1
             self.write_line(');')
             self.write_line('name = "Source files";')
