@@ -177,7 +177,7 @@ def run_tests():
         frameworktests = gather_tests('test cases/frameworks')
     else:
         frameworktests = []
-    if shutil.which('javac'):
+    if not environment.is_osx() and shutil.which('javac'):
         javatests = gather_tests('test cases/java')
     else:
         javatests = []
