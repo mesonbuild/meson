@@ -267,7 +267,7 @@ class XCodeBackend(backends.Backend):
             if isinstance(t, build.Executable):
                 typestr = 'compiled.mach-o.executable'
                 path = t.get_filename()
-            if isinstance(t, build.SharedLibrary):
+            elif isinstance(t, build.SharedLibrary):
                 # OSX has a completely different shared library
                 # naming scheme so do this manually.
                 typestr = self.get_xcodetype('dummy.dylib')
