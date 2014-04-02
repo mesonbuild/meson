@@ -577,6 +577,12 @@ class XCodeBackend(backends.Backend):
             for buildtype in self.buildtypes:
                 dep_libs = []
                 links_dylib = False
+                headerdirs = []
+                for d in target.include_dirs:
+                    for sd in d.incdirs:
+                        cd = os.path.join(d.curdir, sd)
+                        headerdirs.append(os.path.join(self.environment.get_source_dir(), cd))
+                        headerdirs.append(os.path.join(self.environment.get_build_dir(), cd))
                 for l in target.link_targets:
                     abs_path = os.path.join(self.environment.get_build_dir(),
                                             buildtype, l.get_filename())
@@ -611,6 +617,9 @@ class XCodeBackend(backends.Backend):
                 self.write_line('GCC_OPTIMIZATION_LEVEL = 0;')
                 self.write_line('GCC_PREPROCESSOR_DEFINITIONS = ("");')
                 self.write_line('GCC_SYMBOLS_PRIVATE_EXTERN = NO;')
+                if len(headerdirs) > 0:
+                    quotedh = ','.join(['"\\"%s\\""' % i for i in headerdirs])
+                    self.write_line('HEADER_SEARCH_PATHS=(%s);' % quotedh)
                 self.write_line('INSTALL_PATH = "%s";' % install_path)
                 self.write_line('LIBRARY_SEARCH_PATHS = "";')
                 if isinstance(target, build.SharedLibrary):
