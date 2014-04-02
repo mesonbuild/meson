@@ -352,7 +352,7 @@ class ObjCCompiler(CCompiler):
         CCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
         self.language = 'objc'
         self.default_suffix = 'm'
-        
+
     def can_compile(self, filename):
         suffix = filename.split('.')[-1]
         if suffix == 'm' or suffix == 'h':
@@ -678,7 +678,7 @@ class GnuCCompiler(CCompiler):
 class GnuObjCCompiler(ObjCCompiler):
     std_warn_flags = ['-Wall', '-Winvalid-pch']
     std_opt_flags = ['-O2']
-    
+
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
         ObjCCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
         self.id = 'gcc'
@@ -724,6 +724,16 @@ class GnuObjCPPCompiler(ObjCPPCompiler):
 
     def get_soname_flags(self, shlib_name, path):
         return get_gcc_soname_flags(self.gcc_type, shlib_name, path)
+
+class ClangObjCCompiler(GnuObjCCompiler):
+    def __init__(self, exelist, version, is_cross, exe_wrapper=None):
+        super().__init__(exelist, version, is_cross, exe_wrapper)
+        self.id = 'clang'
+
+class ClangObjCPPCompiler(GnuObjCPPCompiler):
+    def __init__(self, exelist, version, is_cross, exe_wrapper=None):
+        super().__init__(exelist, version, is_cross, exe_wrapper)
+        self.id = 'clang'
 
 class ClangCCompiler(CCompiler):
     std_warn_flags = ['-Wall', '-Winvalid-pch']
@@ -957,7 +967,7 @@ class Environment():
             self.cross_info = CrossBuildInfo(self.coredata.cross_file)
         else:
             self.cross_info = None
-        
+
         # List of potential compilers.
         if is_windows():
             self.default_c = ['cl', 'cc']
@@ -969,7 +979,7 @@ class Environment():
         self.default_objcpp = ['c++']
         self.default_static_linker = 'ar'
         self.vs_static_linker = 'lib'
-        
+
         cross = self.is_cross_build()
         if (not cross and is_windows()) \
         or (cross and self.cross_info['name'] == 'windows'):
@@ -1157,6 +1167,8 @@ class Environment():
         if (out.startswith('cc ') or 'gcc' in out) and \
             'Free Software Foundation' in out:
             return GnuObjCCompiler(exelist, version, is_cross, exe_wrap)
+        if out.startswith('Apple LLVM'):
+            return ClangObjCCompiler(exelist, version, is_cross, exe_wrap)
         if 'apple' in out and 'Free Software Foundation' in out:
             return GnuObjCCompiler(exelist, version, is_cross, exe_wrap)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
@@ -1185,6 +1197,8 @@ class Environment():
         if (out.startswith('c++ ') or out.startswith('g++')) and \
             'Free Software Foundation' in out:
             return GnuObjCPPCompiler(exelist, version, is_cross, exe_wrap)
+        if out.startswith('Apple LLVM'):
+            return ClangObjCPPCompiler(exelist, version, is_cross, exe_wrap)
         if 'apple' in out and 'Free Software Foundation' in out:
             return GnuObjCPPCompiler(exelist, version, is_cross, exe_wrap)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')

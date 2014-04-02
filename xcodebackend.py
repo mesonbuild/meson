@@ -28,6 +28,8 @@ class XCodeBackend(backends.Backend):
                              'cxx' : 'sourcecode.cpp.cpp',
                              'cpp' : 'sourcecode.cpp.cpp',
                              'c++' : 'sourcecode.cpp.cpp',
+                             'm' : 'sourcecode.c.objc',
+                             'mm' : 'sourcecode.cpp.objcpp',
                              'h' : 'sourcecode.c.h',
                              'hpp' : 'sourcecode.cpp.h',
                              'hxx' : 'sourcecode.cpp.h',
