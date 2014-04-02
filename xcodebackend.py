@@ -267,6 +267,11 @@ class XCodeBackend(backends.Backend):
             if isinstance(t, build.Executable):
                 typestr = 'compiled.mach-o.executable'
                 path = t.get_filename()
+            if isinstance(t, build.SharedLibrary):
+                # OSX has a completely different shared library
+                # naming scheme so do this manually.
+                typestr = self.get_xcodetype('dummy.dylib')
+                path = t.get_osx_filename()
             else:
                 typestr = self.get_xcodetype(fname)
                 path = '"%s"' % t.get_filename()
@@ -599,12 +604,18 @@ class XCodeBackend(backends.Backend):
                         links_dylib = True
                 if links_dylib:
                     dep_libs = ['-Wl,-search_paths_first', '-Wl,-headerpad_max_install_names'] + dep_libs
+                dylib_version = None
                 if isinstance(target, build.SharedLibrary):
                     ldargs = ['-dynamiclib', '-Wl,-headerpad_max_install_names'] + dep_libs
                     install_path = os.path.join(self.environment.get_build_dir(), target.subdir, buildtype)
+                    dylib_version = target.version
                 else:
                     ldargs = dep_libs
                     install_path = ''
+                if dylib_version is not None:
+                    product_name = target_name + '.' + dylib_version
+                else:
+                    product_name = target_name
                 ldargs += target.link_flags
                 ldstr = ' '.join(ldargs)
                 valid = self.buildconfmap[target_name][buildtype]
@@ -624,6 +635,8 @@ class XCodeBackend(backends.Backend):
                 self.write_line('buildSettings = {')
                 self.indent_level += 1
                 self.write_line('COMBINE_HIDPI_IMAGES = YES;')
+                if dylib_version is not None:
+                    self.write_line('DYLIB_CURRENT_VERSION = "%s";' % dylib_version)
                 self.write_line('EXECUTABLE_PREFIX = "%s";' % target.prefix)
                 if target.suffix == '':
                     suffix = ''
@@ -647,7 +660,7 @@ class XCodeBackend(backends.Backend):
                     self.write_line('OTHER_%sFLAGS = "%s";' % (langname, flagstr))
                 self.write_line('OTHER_LDFLAGS = "%s";' % ldstr)
                 self.write_line('OTHER_REZFLAGS = "";')
-                self.write_line('PRODUCT_NAME = %s;' % target_name)
+                self.write_line('PRODUCT_NAME = %s;' % product_name)
                 self.write_line('SECTORDER_FLAGS = "";')
                 self.write_line('SYMROOT = "%s";' % symroot)
                 self.write_line('USE_HEADERMAP = NO;')

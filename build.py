@@ -515,11 +515,17 @@ class SharedLibrary(BuildTarget):
         return [self.subdir] + self.get_transitive_rpaths()
 
     def get_filename(self):
+        '''Works on all platforms except OSX, which does its own thing.'''
         fname = self.get_shbase()
         if self.version is None:
             return fname
         else:
             return fname + '.' + self.version
+
+    def get_osx_filename(self):
+        if self.version is None:
+            return self.get_shbase()
+        return self.prefix + self.name + '.' + self.version + '.' + self.suffix
 
     def set_version(self, version):
         if not isinstance(version, str):
