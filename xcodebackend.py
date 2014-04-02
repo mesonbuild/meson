@@ -20,7 +20,6 @@ class XCodeBackend(backends.Backend):
         super().__init__(build, interp)
         self.project_uid = self.environment.coredata.guid.replace('-', '')[:24]
         self.project_conflist = self.gen_id()
-        self.output_path_override = self.environment.coredata.buildtype
         self.indent = '       '
         self.indent_level = 0
         self.xcodetypemap = {'c' : 'sourcecode.c.c',
@@ -40,6 +39,11 @@ class XCodeBackend(backends.Backend):
 
     def gen_id(self):
         return str(uuid.uuid4()).upper().replace('-', '')[:24]
+
+    def get_target_dir(self, target):
+        dirname = os.path.join(target.get_subdir(), self.environment.coredata.buildtype)
+        os.makedirs(os.path.join(self.environment.get_build_dir(), dirname), exist_ok=True)
+        return dirname
 
     def write_line(self, text):
         self.ofile.write(self.indent*self.indent_level + text)

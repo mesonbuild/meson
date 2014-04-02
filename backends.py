@@ -107,7 +107,6 @@ class Backend():
         self.interpreter = interp
         self.processed_targets = {}
         self.dep_rules = {}
-        self.output_path_override = None
         self.build_to_src = os.path.relpath(self.environment.get_source_dir(),
                                             self.environment.get_build_dir())
 
@@ -129,10 +128,7 @@ class Backend():
         return filename
 
     def get_target_dir(self, target):
-        if self.output_path_override is None:
-            dirname = target.get_subdir()
-        else:
-            dirname = self.output_path_override
+        dirname = target.get_subdir()
         os.makedirs(os.path.join(self.environment.get_build_dir(), dirname), exist_ok=True)
         return dirname
 
