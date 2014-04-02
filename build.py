@@ -496,6 +496,9 @@ class StaticLibrary(BuildTarget):
     def get_import_filename(self):
         return self.filename
 
+    def get_osx_filename(self):
+        return self.get_filename()
+
 class SharedLibrary(BuildTarget):
     def __init__(self, name, subdir, is_cross, sources, objects, environment, kwargs):
         self.version = None

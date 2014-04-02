@@ -598,7 +598,7 @@ class XCodeBackend(backends.Backend):
                         headerdirs.append(os.path.join(self.environment.get_build_dir(), cd))
                 for l in target.link_targets:
                     abs_path = os.path.join(self.environment.get_build_dir(),
-                                            buildtype, l.get_filename())
+                                            l.subdir, buildtype, l.get_osx_filename())
                     dep_libs.append("'%s'" % abs_path)
                     if isinstance(l, build.SharedLibrary):
                         links_dylib = True
