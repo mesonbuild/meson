@@ -96,6 +96,7 @@ class XCodeBackend(backends.Backend):
         self.target_filemap = {}
         for name, t in self.build.targets.items():
             for s in t.sources:
+                s = os.path.join(t.subdir, s)
                 if isinstance(s, str):
                     self.filemap[s] = self.gen_id()
             self.target_filemap[name] = self.gen_id()
@@ -104,6 +105,7 @@ class XCodeBackend(backends.Backend):
         self.buildmap = {}
         for t in self.build.targets.values():
             for s in t.sources:
+                s = os.path.join(t.subdir, s)
                 if isinstance(s, str):
                     self.buildmap[s] = self.gen_id()
 
@@ -201,6 +203,7 @@ class XCodeBackend(backends.Backend):
         templ = '%s /* %s */ = { isa = PBXBuildFile; fileRef = %s /* %s */; settings = { COMPILER_FLAGS = "%s"; }; };\n'
         for t in self.build.targets.values():
             for s in t.sources:
+                s = os.path.join(t.subdir, s)
                 if isinstance(s, str):
                     idval = self.buildmap[s]
                     fullpath = os.path.join(self.environment.get_source_dir(), s)
@@ -332,6 +335,7 @@ class XCodeBackend(backends.Backend):
             self.write_line('children = (')
             self.indent_level+=1
             for s in self.build.targets[t].sources:
+                s = os.path.join(self.build.targets[t].subdir, s)
                 if isinstance(s, str):
                     self.write_line('%s /* %s */,' % (self.filemap[s], s))
             self.indent_level-=1
@@ -470,6 +474,7 @@ class XCodeBackend(backends.Backend):
             self.write_line('files = (')
             self.indent_level+=1
             for s in self.build.targets[name].sources:
+                s = os.path.join(self.build.targets[name].subdir, s)
                 if not self.environment.is_header(s):
                     self.write_line('%s /* %s */,' % (self.buildmap[s], os.path.join(self.environment.get_source_dir(), s)))
             self.indent_level-=1
@@ -582,12 +587,13 @@ class XCodeBackend(backends.Backend):
                     dep_libs = ['-Wl,-search_paths_first', '-Wl,-headerpad_max_install_names'] + dep_libs
                 if isinstance(target, build.SharedLibrary):
                     ldargs = ['-dynamiclib', '-Wl,-headerpad_max_install_names'] + dep_libs
-                    install_path = os.path.join(self.environment.get_build_dir(), buildtype)
+                    install_path = os.path.join(self.environment.get_build_dir(), target.subdir, buildtype)
                 else:
                     ldargs = dep_libs
                     install_path = ''
                 ldstr = ' '.join(ldargs)
                 valid = self.buildconfmap[target_name][buildtype]
+                symroot = os.path.join(self.environment.get_build_dir(), target.subdir)
                 self.write_line('%s /* %s */ = {' % (valid, buildtype))
                 self.indent_level+=1
                 self.write_line('isa = XCBuildConfiguration;')
@@ -614,7 +620,7 @@ class XCodeBackend(backends.Backend):
                 self.write_line('OTHER_REZFLAGS = "";')
                 self.write_line('PRODUCT_NAME = %s;' % target_name)
                 self.write_line('SECTORDER_FLAGS = "";')
-                self.write_line('SYMROOT = "%s";' % self.environment.get_build_dir())
+                self.write_line('SYMROOT = "%s";' % symroot)
                 self.write_line('USE_HEADERMAP = NO;')
                 self.write_line('WARNING_CFLAGS = ("-Wmost", "-Wno-four-char-constants", "-Wno-unknown-pragmas", );')
                 self.indent_level-=1
