@@ -580,6 +580,7 @@ class XCodeBackend(backends.Backend):
             self.write_line('};')
 
         # Now finally targets.
+        langnamemap = {'c' : 'C', 'cpp' : 'CPLUSPLUS', 'objc' : 'OBJC', 'objcpp' : 'OBJCPLUSPLUS'}
         for target_name, target in self.build.targets.items():
             for buildtype in self.buildtypes:
                 dep_libs = []
@@ -606,6 +607,15 @@ class XCodeBackend(backends.Backend):
                     install_path = ''
                 ldstr = ' '.join(ldargs)
                 valid = self.buildconfmap[target_name][buildtype]
+                langflags = {}
+                for lang in self.environment.coredata.compilers:
+                    if lang not in langnamemap:
+                        continue
+                    gflags = self.build.global_args.get(lang, [])
+                    tflags = target.get_extra_args(lang)
+                    flags = gflags + tflags
+                    if len(flags) > 0:
+                        langflags[langnamemap[lang]] = flags
                 symroot = os.path.join(self.environment.get_build_dir(), target.subdir)
                 self.write_line('%s /* %s */ = {' % (valid, buildtype))
                 self.indent_level+=1
@@ -631,7 +641,9 @@ class XCodeBackend(backends.Backend):
                 self.write_line('LIBRARY_SEARCH_PATHS = "";')
                 if isinstance(target, build.SharedLibrary):
                     self.write_line('LIBRARY_STYLE = DYNAMIC;')
-                self.write_line('OTHER_CFLAGS = "  ";')
+                for langname, flags in langflags.items():
+                    flagstr = ' '.join(flags)
+                    self.write_line('OTHER_%sFLAGS = "%s";' % (langname, flagstr))
                 self.write_line('OTHER_LDFLAGS = "%s";' % ldstr)
                 self.write_line('OTHER_REZFLAGS = "";')
                 self.write_line('PRODUCT_NAME = %s;' % target_name)
