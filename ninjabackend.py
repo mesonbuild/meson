@@ -805,8 +805,7 @@ class NinjaBackend(backends.Backend):
                 outname = rule.name_templ.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname)
                 outfilename = os.path.join(self.get_target_private_dir(target), outname)
                 infilename = os.path.join(self.build_to_src, target.get_source_subdir(), src)
-                rule = rule.name
-                elem = NinjaBuildElement(outfilename, rule, infilename)
+                elem = NinjaBuildElement(outfilename, rule.name, infilename)
                 elem.write(outfile)
                 if self.is_compilable_file(outfilename):
                     src_deps.append(outfilename)
