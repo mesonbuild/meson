@@ -8,6 +8,10 @@ int main(int argc, char **argv) {
   if(qi.width() != 640) {
       return 1;
   }
+  QImage qi2(":/thing2.png");
+  if(qi2.width() != 640) {
+      return 1;
+  }
   win->setWindowTitle("Meson Qt5 build test");
 
   win->show();
