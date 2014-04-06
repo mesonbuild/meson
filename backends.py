@@ -13,11 +13,8 @@
 # limitations under the License.
 
 import mparser
-import os, sys, re, pickle, uuid
-import environment, mlog
-from build import InvalidArguments
+import os, sys, re, pickle
 import build
-import shutil
 from coredata import MesonException
 
 def do_replacement(regex, line, confdata):

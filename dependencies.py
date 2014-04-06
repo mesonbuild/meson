@@ -516,15 +516,18 @@ class Qt5Dependency(Dependency):
 
     def get_generate_rules(self):
         moc_rule = CustomRule([self.moc.get_command(), '@INFILE@', '-o', '@OUTFILE@'],
-                              'moc_@BASENAME@.cpp', 'moc_headers', 'moc_compile',
-                              'Compiling @INFILE@ with the moc preprocessor')
+                              'moc_@BASENAME@.cpp', 'moc_headers', 'moc_hdr_compile',
+                              'Compiling header @INFILE@ with the moc preprocessor')
+        mocsrc_rule = CustomRule([self.moc.get_command(), '@INFILE@', '-o', '@OUTFILE@'],
+                              'moc@BASENAME@.moc', 'moc_sources', 'moc_src_compile',
+                              'Compiling source @INFILE@ with the moc preprocessor')
         ui_rule = CustomRule([self.uic.get_command(), '@INFILE@', '-o', '@OUTFILE@'],
                               'ui_@BASENAME@.h', 'ui_files', 'ui_compile',
                               'Compiling @INFILE@ with the ui compiler')
         rrc_rule = CustomRule([self.rcc.get_command(), '@INFILE@', '-o', '@OUTFILE@'],
                               '@BASENAME@.cpp', 'qresources', 'rc_compile',
                               'Compiling @INFILE@ with the rrc compiler')
-        return [moc_rule, ui_rule, rrc_rule]
+        return [moc_rule, mocsrc_rule, ui_rule, rrc_rule]
 
     def get_exe_flags(self):
         # Qt5 seems to require this always.

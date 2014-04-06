@@ -12,7 +12,19 @@ deps : qt5dep)
 # We need a console test application because some test environments
 # do not have an X server.
 
-q5core = executable('q5core', 'q5core.cpp',
-deps : dependency('qt5', modules : 'Core'))
+qt5core = dependency('qt5', modules : 'Core')
 
-test('qt5test', q5core)
+qt5coreapp = executable('q5core', 'q5core.cpp',
+deps : qt5core)
+
+test('qt5test', qt5coreapp)
+
+# Tests for source file compilation with moc.
+
+q5moc = executable('q5moc',
+sources : 'moctest.cpp',
+moc_sources : 'mocinclude.cpp',
+deps : qt5core)
+
+test('q5moc', q5moc)
+

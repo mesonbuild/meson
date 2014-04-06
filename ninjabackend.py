@@ -15,7 +15,10 @@
 import backends
 import environment
 import build
+import mlog
 from meson_install import InstallData
+from build import InvalidArguments
+from coredata import MesonException
 import os, sys, shutil, pickle
 
 if environment.is_windows():
@@ -811,6 +814,8 @@ class NinjaBackend(backends.Backend):
                     src_deps.append(outfilename)
                 else:
                     other_deps.append(outfilename)
+                if rule.name == 'moc_src_compile': #HACK
+                    src_deps.append(infilename)
         return (src_deps, other_deps)
 
     def generate_cppcheck_target(self, outfile):

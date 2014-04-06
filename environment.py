@@ -72,7 +72,7 @@ class CCompiler():
         return self.id
 
     def get_dependency_gen_flags(self, outtarget, outfile):
-        return ['-MMD', '-MT', outtarget, '-MF', outfile]
+        return ['-MMD', '-MQ', outtarget, '-MF', outfile]
 
     def get_depfile_suffix(self):
         return 'd'
