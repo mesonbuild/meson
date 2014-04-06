@@ -522,7 +522,7 @@ class Qt5Dependency(Dependency):
                               'ui_@BASENAME@.h', 'ui_files', 'ui_compile',
                               'Compiling @INFILE@ with the ui compiler')
         rrc_rule = CustomRule([self.rcc.get_command(), '@INFILE@', '-o', '@OUTFILE@'],
-                              '@BASENAME@.cpp', 'resources', 'rc_compile',
+                              '@BASENAME@.cpp', 'qresources', 'rc_compile',
                               'Compiling @INFILE@ with the rrc compiler')
         return [moc_rule, ui_rule, rrc_rule]
 
