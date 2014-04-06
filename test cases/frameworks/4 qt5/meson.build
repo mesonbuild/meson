@@ -28,3 +28,10 @@ deps : qt5core)
 
 test('q5moc', q5moc)
 
+q5maninclude = executable('q5maninclude',
+sources : 'manualinclude.cpp',
+moc_headers : 'manualinclude.h',
+include_moc_files : false,
+deps : qt5core)
+
+test('q5maninclude', q5maninclude)

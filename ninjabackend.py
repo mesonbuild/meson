@@ -811,7 +811,16 @@ class NinjaBackend(backends.Backend):
                 elem = NinjaBuildElement(outfilename, rule.name, infilename)
                 elem.write(outfile)
                 if self.is_compilable_file(outfilename):
-                    src_deps.append(outfilename)
+                    if rule.name == 'moc_hdr_compile':
+                        include_mocs = target.get_original_kwargs().get('include_moc_files', True)
+                        if not isinstance(include_mocs, bool):
+                            raise InvalidArguments('Include_moc_files kwarg must be boolean.')
+                        if include_mocs:
+                            src_deps.append(outfilename)
+                        else:
+                            other_deps.append(outfilename)
+                    else:
+                        src_deps.append(outfilename)
                 else:
                     other_deps.append(outfilename)
                 if rule.name == 'moc_src_compile': #HACK
