@@ -9,4 +9,4 @@ int mocfunc() {
     return 0;
 }
 
-#include"mocmocinclude.moc"
+#include"mocinclude.moc"

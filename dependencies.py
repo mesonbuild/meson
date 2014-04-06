@@ -519,7 +519,7 @@ class Qt5Dependency(Dependency):
                               'moc_@BASENAME@.cpp', 'moc_headers', 'moc_hdr_compile',
                               'Compiling header @INFILE@ with the moc preprocessor')
         mocsrc_rule = CustomRule([self.moc.get_command(), '@INFILE@', '-o', '@OUTFILE@'],
-                              'moc@BASENAME@.moc', 'moc_sources', 'moc_src_compile',
+                              '@BASENAME@.moc', 'moc_sources', 'moc_src_compile',
                               'Compiling source @INFILE@ with the moc preprocessor')
         ui_rule = CustomRule([self.uic.get_command(), '@INFILE@', '-o', '@OUTFILE@'],
                               'ui_@BASENAME@.h', 'ui_files', 'ui_compile',
