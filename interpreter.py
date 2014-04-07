@@ -1052,7 +1052,6 @@ class Interpreter():
         except coredata.MesonException as me:
             me.file = buildfilename
             raise me
-        mlog.log('Going to subdirectory "%s".' % self.subdir)
         self.evaluate_codeblock(codeblock)
         self.subdir = prev_subdir
 
@@ -1167,7 +1166,8 @@ class Interpreter():
             txt = ' cross build '
         else:
             txt = ' build '
-        mlog.log('Creating', txt, 'target "', mlog.bold(name), '" with %d files.' % len(sources), sep='')
+        displayname = os.path.join(l.held_object.subdir, name)
+        mlog.log('Creating', txt, 'target ', mlog.bold(displayname), ' with %d files.' % len(sources), sep='')
         self.global_flags_frozen = True
         return l
 
