@@ -594,7 +594,7 @@ class NinjaBackend(backends.Backend):
                 elem.add_item('COMMAND', cmdlist)
                 elem.write(outfile)
 
-    def generate_single_compile(self, target, outfile, src, is_generated=False, header_deps=[]):
+    def generate_single_compile(self, target, outfile, src, is_generated=False, header_deps=[], order_deps=[]):
         compiler = self.get_compiler_for_source(src)
         commands = self.generate_basic_compiler_flags(target, compiler)
         commands.append(compiler.get_include_arg(self.get_target_private_dir(target)))
@@ -645,6 +645,10 @@ class NinjaBackend(backends.Backend):
             if not '/' in d:
                 d = os.path.join(self.get_target_private_dir(target), d)
             element.add_dep(d)
+        for d in order_deps:
+            if not '/' in d:
+                d = os.path.join(self.get_target_private_dir(target), d)
+            element.add_orderdep(d)
         element.add_orderdep(pch_dep)
         element.add_item('DEPFILE', dep_file)
         element.add_item('FLAGS', commands)

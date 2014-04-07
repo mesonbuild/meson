@@ -4,8 +4,8 @@ qt5dep = dependency('qt5', modules : 'Widgets')
 
 q5exe = executable('qt5app',
 sources : ['main.cpp', 'mainWindow.cpp'], # Sources that don't need preprocessing.
-moc_headers : ['mainWindow.h'], # These need to be fed through the moc tool before use. 
-ui_files : 'mainWindow.ui', # XML files that need to be compiled with the uic tol.
+moc_headers : ['mainWindow.h'],           # These need to be fed through the moc tool before use. 
+ui_files : 'mainWindow.ui',               # XML files that need to be compiled with the uic tol.
 qresources : ['stuff.qrc', 'stuff2.qrc'], # Resource files for rcc compiler.
 deps : qt5dep)
 

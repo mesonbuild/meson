@@ -220,7 +220,12 @@ class Backend():
                 if is_unity:
                     unity_src.append(src)
                 else:
-                    obj_list.append(self.generate_single_compile(target, outfile, src, True))
+                    # Generated targets are ordered deps because the must exist
+                    # before the sources compiling them are used. After the first
+                    # compile we get precise dependency info from dep files.
+                    # This should work in all cases. If it does not, then just
+                    # move them from orderdeps to proper deps.
+                    obj_list.append(self.generate_single_compile(target, outfile, src, True, [], header_deps))
         for src in target.get_sources():
             if not self.environment.is_header(src):
                 src_list.append(src)
@@ -229,7 +234,7 @@ class Backend():
                                            target.get_subdir(), src)
                     unity_src.append(abs_src)
                 else:
-                    obj_list.append(self.generate_single_compile(target, outfile, src, False, header_deps))
+                    obj_list.append(self.generate_single_compile(target, outfile, src, False, [], header_deps))
         obj_list += self.flatten_object_list(target)
         if is_unity:
             for src in self.generate_unity_files(target, unity_src):
