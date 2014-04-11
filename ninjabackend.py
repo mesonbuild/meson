@@ -817,7 +817,14 @@ class NinjaBackend(backends.Backend):
                     elem.add_item('rcc_flags', ['--name', basename])
                 elem.write(outfile)
                 if self.is_compilable_file(outfilename):
-                    src_deps.append(outfilename)
+                    if rule.name == 'moc_hdr_compile' or rule.name == 'moc_src_compile':
+                        manual_mocs = target.get_original_kwargs().get('manual_moc_include', [])
+                        if src in manual_mocs:
+                            other_deps.append(outfilename)
+                        else:
+                            src_deps.append(outfilename)
+                    else:
+                        src_deps.append(outfilename)
                 else:
                     other_deps.append(outfilename)
                 if rule.name == 'moc_src_compile': #HACK
