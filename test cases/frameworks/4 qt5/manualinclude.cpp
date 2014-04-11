@@ -1,7 +1,8 @@
 #include<QCoreApplication>
 #include"manualinclude.h"
 
-#include"moc_manualinclude.cpp"
+ManualInclude::ManualInclude() {
+}
 
 int main(int argc, char **argv) {
     ManualInclude mi;

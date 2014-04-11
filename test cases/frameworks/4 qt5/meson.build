@@ -19,19 +19,13 @@ deps : qt5core)
 
 test('qt5test', qt5coreapp)
 
-# Tests for source file compilation with moc.
-
-q5moc = executable('q5moc',
-sources : 'moctest.cpp',
-moc_sources : 'mocinclude.cpp',
-deps : qt5core)
-
-test('q5moc', q5moc)
-
+# The build system needs to include the cpp files from
+# headers but the user must manually include moc
+# files from sources.
 q5maninclude = executable('q5maninclude',
 sources : 'manualinclude.cpp',
+moc_sources : 'mocinclude.cpp',
 moc_headers : 'manualinclude.h',
-include_moc_files : false,
 deps : qt5core)
 
 test('q5maninclude', q5maninclude)
