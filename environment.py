@@ -35,6 +35,12 @@ class RunResult():
         self.stdout = stdout
         self.stderr = stderr
 
+gnulike_buildtype_flags = {'plain' : [],
+                           'debug' : ['-g'],
+                           'debugoptimized' : ['-O2', '-g'],
+                           'release' : ['-O3'],
+                           }
+
 class CCompiler():
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
         if type(exelist) == type(''):
@@ -645,7 +651,6 @@ def get_gcc_soname_flags(gcc_type, shlib_name, path):
 
 class GnuCCompiler(CCompiler):
     std_warn_flags = ['-Wall', '-Winvalid-pch']
-    std_opt_flags = ['-O2']
 
     def __init__(self, exelist, version, gcc_type, is_cross, exe_wrapper=None):
         CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
@@ -658,8 +663,8 @@ class GnuCCompiler(CCompiler):
     def get_std_warn_flags(self):
         return GnuCCompiler.std_warn_flags
 
-    def get_std_opt_flags(self):
-        return GnuCCompiler.std_opt_flags
+    def get_buildtype_flags(self, buildtype):
+        return gnulike_buildtype_flags[buildtype]
 
     def get_pch_suffix(self):
         return 'gch'
@@ -677,7 +682,6 @@ class GnuCCompiler(CCompiler):
 
 class GnuObjCCompiler(ObjCCompiler):
     std_warn_flags = ['-Wall', '-Winvalid-pch']
-    std_opt_flags = ['-O2']
 
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
         ObjCCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
@@ -686,8 +690,8 @@ class GnuObjCCompiler(ObjCCompiler):
     def get_std_warn_flags(self):
         return GnuObjCCompiler.std_warn_flags
 
-    def get_std_opt_flags(self):
-        return GnuObjCCompiler.std_opt_flags
+    def get_buildtype_flags(self, buildtype):
+        return gnulike_buildtype_flags[buildtype]
 
     def get_pch_suffix(self):
         return 'gch'
@@ -711,8 +715,8 @@ class GnuObjCPPCompiler(ObjCPPCompiler):
     def get_std_warn_flags(self):
         return GnuObjCPPCompiler.std_warn_flags
 
-    def get_std_opt_flags(self):
-        return GnuObjCPPCompiler.std_opt_flags
+    def get_buildtype_flags(self, buildtype):
+        return gnulike_buildtype_flags[buildtype]
 
     def get_pch_suffix(self):
         return 'gch'
@@ -737,7 +741,6 @@ class ClangObjCPPCompiler(GnuObjCPPCompiler):
 
 class ClangCCompiler(CCompiler):
     std_warn_flags = ['-Wall', '-Winvalid-pch']
-    std_opt_flags = ['-O2']
 
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
         CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
@@ -746,8 +749,8 @@ class ClangCCompiler(CCompiler):
     def get_std_warn_flags(self):
         return ClangCCompiler.std_warn_flags
 
-    def get_std_opt_flags(self):
-        return ClangCCompiler.std_opt_flags
+    def get_buildtype_flags(self, buildtype):
+        return gnulike_buildtype_flags[buildtype]
 
     def get_pch_suffix(self):
         return 'pch'
@@ -759,7 +762,6 @@ class ClangCCompiler(CCompiler):
 
 class GnuCPPCompiler(CPPCompiler):
     std_warn_flags = ['-Wall', '-Winvalid-pch']
-    std_opt_flags = ['-O2']
     # may need to separate the latter to extra_debug_flags or something
     std_debug_flags = ['-g']
 
@@ -777,8 +779,8 @@ class GnuCPPCompiler(CPPCompiler):
     def get_std_warn_flags(self):
         return GnuCPPCompiler.std_warn_flags
 
-    def get_std_opt_flags(self):
-        return GnuCPPCompiler.std_opt_flags
+    def get_buildtype_flags(self, buildtype):
+        return gnulike_buildtype_flags[buildtype]
 
     def get_pch_suffix(self):
         return 'gch'
@@ -793,7 +795,6 @@ class GnuCPPCompiler(CPPCompiler):
 
 class ClangCPPCompiler(CPPCompiler):
     std_warn_flags = ['-Wall', '-Winvalid-pch']
-    std_opt_flags = ['-O2']
 
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
         CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
@@ -802,8 +803,8 @@ class ClangCPPCompiler(CPPCompiler):
     def get_std_warn_flags(self):
         return ClangCPPCompiler.std_warn_flags
 
-    def get_std_opt_flags(self):
-        return ClangCPPCompiler.std_opt_flags
+    def get_buildtype_flags(self, buildtype):
+        return gnulike_buildtype_flags[buildtype]
 
     def get_pch_suffix(self):
         return 'pch'

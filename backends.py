@@ -306,8 +306,7 @@ class Backend():
         if self.environment.coredata.buildtype != 'plain':
             commands += compiler.get_debug_flags()
             commands += compiler.get_std_warn_flags()
-        if self.environment.coredata.buildtype == 'optimized':
-            commands += compiler.get_std_opt_flags()
+        commands += compiler.get_buildtype_flags(self.environment.coredata.buildtype)
         if self.environment.coredata.coverage:
             commands += compiler.get_coverage_flags()
         if isinstance(target, build.SharedLibrary):

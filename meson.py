@@ -27,7 +27,7 @@ usage_info = '%prog [options] source_dir build_dir'
 
 parser = OptionParser(usage=usage_info, version=coredata.version)
 
-build_types = ['plain', 'debug', 'optimized']
+build_types = ['plain', 'debug', 'debugoptimized', 'release']
 buildtype_help = 'build type, one of: %s' % ', '.join(build_types)
 buildtype_help += ' (default: %default)'
 
