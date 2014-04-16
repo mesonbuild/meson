@@ -63,9 +63,9 @@ class TryRunResultHolder(InterpreterObject):
 
 class RunProcess(InterpreterObject):
 
-    def __init__(self, command_array, curdir):
+    def __init__(self, command_array, source_dir, build_dir, subdir):
         super().__init__()
-        pc = self.run_command(command_array, curdir)
+        pc = self.run_command(command_array, source_dir, build_dir, subdir)
         (stdout, stderr) = pc.communicate()
         self.returncode = pc.returncode
         self.stdout = stdout.decode()
@@ -75,22 +75,31 @@ class RunProcess(InterpreterObject):
                              'stderr' : self.stderr_method,
                              })
         
-    def run_command(self, command_array, curdir):
+    def run_command(self, command_array, source_dir, build_dir, subdir):
         cmd_name = command_array[0]
+        env = {'MESON_SOURCE_ROOT' : source_dir,
+               'MESON_BUILD_ROOT' : build_dir,
+               'MESON_SUBDIR' : subdir}
+        cwd = os.path.join(source_dir, subdir)
+        child_env = os.environ.copy()
+        child_env.update(env)
         try:
-            return subprocess.Popen(command_array, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            return subprocess.Popen(command_array, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                    env=child_env, cwd=cwd)
         except FileNotFoundError:
             pass
         # Was not a command, is a program in path?
         exe = shutil.which(cmd_name)
         if exe is not None:
             command_array = [exe] + command_array[1:]
-            return subprocess.Popen(command_array, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            return subprocess.Popen(command_array, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                    env=child_env, cwd=cwd)
         # No? Maybe it is a script in the source tree.
-        fullpath = os.path.join(curdir, cmd_name)
+        fullpath = os.path.join(source_dir, subdir, cmd_name)
         command_array = [fullpath] + command_array[1:]
         try:
-            return subprocess.Popen(command_array, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            return subprocess.Popen(command_array, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                    env=child_env, cwd=cwd)
         except FileNotFoundError:
             raise InterpreterException('Could not execute command "%s".' % cmd_name)
 
@@ -748,7 +757,7 @@ class Interpreter():
         for i in args:
             if not isinstance(i, str):
                 raise InterpreterObject('Run_command arguments must be strings.')
-        return RunProcess(args, os.path.join(self.environment.source_dir, self.subdir))
+        return RunProcess(args, self.environment.source_dir, self.environment.build_dir, self.subdir)
 
     def func_gettext(self, nodes, args, kwargs):
         if len(args) != 1:
@@ -1244,10 +1253,23 @@ class Interpreter():
         return (reduced_pos, reduced_kw)
 
     def string_method_call(self, obj, method_name, args):
+        obj = self.to_native(obj)
         if method_name == 'strip':
-            return self.to_native(obj).strip()
-        if method_name == 'format':
+            return obj.strip()
+        elif method_name == 'format':
             return self.format_string(obj, args)
+        elif method_name == 'split':
+            (posargs, _) = self.reduce_arguments(args)
+            if len(posargs) > 1:
+                raise InterpreterException('Split()  must have at most one argument.')
+            elif len(posargs) == 1:
+                s = posargs[0]
+                if not isinstance(s, str):
+                    raise InterpreterException('Split() argument must be a string')
+                print(obj.split(s))
+                return obj.split(s)
+            else:
+                return obj.split()
         raise InterpreterException('Unknown method "%s" for a string.' % method_name)
 
     def to_native(self, arg):
