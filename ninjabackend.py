@@ -729,6 +729,7 @@ class NinjaBackend(backends.Backend):
         abspath = os.path.join(self.environment.get_build_dir(), target.subdir)
         commands = []
         commands += linker.get_linker_always_flags()
+        commands += linker.get_buildtype_linker_flags(self.environment.coredata.buildtype)
         if isinstance(target, build.Executable):
             commands += linker.get_std_exe_link_flags()
         elif isinstance(target, build.SharedLibrary):

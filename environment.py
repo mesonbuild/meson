@@ -41,6 +41,16 @@ gnulike_buildtype_flags = {'plain' : [],
                            'release' : ['-O3'],
                            }
 
+gnulike_buildtype_linker_flags = {'plain' : [],
+                                  'debug' : [],
+                                  'debugoptimized' : [],
+                                  'release' : ['-Wl,-O1']}
+
+msvc_buildtype_linker_flags = {'plain' : [],
+                               'debug' : [],
+                               'debugoptimized' : [],
+                               'release' : []}
+
 class CCompiler():
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
         if type(exelist) == type(''):
@@ -666,6 +676,9 @@ class GnuCCompiler(CCompiler):
     def get_buildtype_flags(self, buildtype):
         return gnulike_buildtype_flags[buildtype]
 
+    def get_buildtype_linker_flags(self, buildtype):
+        return gnulike_buildtype_linker_flags[buildtype]
+
     def get_pch_suffix(self):
         return 'gch'
 
@@ -693,6 +706,9 @@ class GnuObjCCompiler(ObjCCompiler):
     def get_buildtype_flags(self, buildtype):
         return gnulike_buildtype_flags[buildtype]
 
+    def get_buildtype_linker_flags(self, buildtype):
+        return gnulike_buildtype_linker_flags[buildtype]
+
     def get_pch_suffix(self):
         return 'gch'
 
@@ -717,6 +733,9 @@ class GnuObjCPPCompiler(ObjCPPCompiler):
 
     def get_buildtype_flags(self, buildtype):
         return gnulike_buildtype_flags[buildtype]
+
+    def get_buildtype_linker_flags(self, buildtype):
+        return gnulike_buildtype_linker_flags[buildtype]
 
     def get_pch_suffix(self):
         return 'gch'
@@ -752,6 +771,9 @@ class ClangCCompiler(CCompiler):
     def get_buildtype_flags(self, buildtype):
         return gnulike_buildtype_flags[buildtype]
 
+    def get_buildtype_linker_flags(self, buildtype):
+        return gnulike_buildtype_linker_flags[buildtype]
+
     def get_pch_suffix(self):
         return 'pch'
 
@@ -782,6 +804,9 @@ class GnuCPPCompiler(CPPCompiler):
     def get_buildtype_flags(self, buildtype):
         return gnulike_buildtype_flags[buildtype]
 
+    def get_buildtype_linker_flags(self, buildtype):
+        return gnulike_buildtype_linker_flags[buildtype]
+
     def get_pch_suffix(self):
         return 'gch'
 
@@ -805,6 +830,9 @@ class ClangCPPCompiler(CPPCompiler):
 
     def get_buildtype_flags(self, buildtype):
         return gnulike_buildtype_flags[buildtype]
+
+    def get_buildtype_linker_flags(self, buildtype):
+        return gnulike_buildtype_linker_flags[buildtype]
 
     def get_pch_suffix(self):
         return 'pch'
@@ -857,6 +885,9 @@ class ArLinker():
 
     def get_output_flags(self, target):
         return [target]
+
+    def get_buildtype_linker_flags(self, buildtype):
+        return []
 
     def get_linker_always_flags(self):
         return []
