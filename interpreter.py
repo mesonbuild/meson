@@ -68,8 +68,8 @@ class RunProcess(InterpreterObject):
         pc = self.run_command(command_array, source_dir, build_dir, subdir)
         (stdout, stderr) = pc.communicate()
         self.returncode = pc.returncode
-        self.stdout = stdout.decode()
-        self.stderr = stderr.decode()
+        self.stdout = stdout.decode().replace('\r\n', '\n')
+        self.stderr = stderr.decode().replace('\r\n', '\n')
         self.methods.update({'returncode' : self.returncode_method,
                              'stdout' : self.stdout_method,
                              'stderr' : self.stderr_method,
@@ -1266,7 +1266,6 @@ class Interpreter():
                 s = posargs[0]
                 if not isinstance(s, str):
                     raise InterpreterException('Split() argument must be a string')
-                print(obj.split(s))
                 return obj.split(s)
             else:
                 return obj.split()
