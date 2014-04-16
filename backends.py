@@ -218,7 +218,8 @@ class Backend():
         for src in gen_src_deps:
                 src_list.append(src)
                 if is_unity:
-                    unity_src.append(src)
+                    unity_src.append(os.path.join(self.environment.get_build_dir(), src))
+                    header_deps.append(src)
                 else:
                     # Generated targets are ordered deps because the must exist
                     # before the sources compiling them are used. After the first

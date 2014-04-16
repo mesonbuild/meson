@@ -1,3 +1,6 @@
+#ifndef MES_MAINWINDOW
+#define MES_MAINWINDOW
+
 #include <QObject>
 #include <QMainWindow>
 #include "ui_mainWindow.h"
@@ -13,3 +16,5 @@ public:
 
 private:
 };
+
+#endif
