@@ -25,7 +25,7 @@ test_build_dir = 'work area'
 install_dir = os.path.join(os.path.split(os.path.abspath(__file__))[0], 'install dir')
 meson_command = './meson.py'
 
-msbuild_exe = None#shutil.which('msbuild')
+msbuild_exe = shutil.which('msbuild')
 
 if msbuild_exe is not None:
     backend_flags = ['--backend=vs2010']

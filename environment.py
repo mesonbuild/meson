@@ -41,10 +41,16 @@ gnulike_buildtype_flags = {'plain' : [],
                            'release' : ['-O3'],
                            }
 
+msvc_buildtype_flags = {'plain' : [],
+                        'debug' : ["/MDd", "/Zi", "/Ob0", "/Od", "/RTC1"],
+                        'debugoptimized' : ["/MD", "/Zi", "/O2", "/Ob1", "/D"],
+                        'release' : ["/MD", "/O2", "/Ob2"]}
+
 gnulike_buildtype_linker_flags = {'plain' : [],
                                   'debug' : [],
                                   'debugoptimized' : [],
-                                  'release' : ['-Wl,-O1']}
+                                  'release' : ['-Wl,-O1'],
+                                  }
 
 msvc_buildtype_linker_flags = {'plain' : [],
                                'debug' : [],
@@ -552,8 +558,11 @@ class VisualStudioCCompiler(CCompiler):
     def get_std_warn_flags(self):
         return VisualStudioCCompiler.std_warn_flags
 
-    def get_std_opt_flags(self):
-        return VisualStudioCCompiler.std_opt_flags
+    def get_buildtype_flags(self, buildtype):
+        return msvc_buildtype_flags[buildtype]
+
+    def get_buildtype_linker_flags(self, buildtype):
+        return msvc_buildtype_linker_flags[buildtype]
 
     def get_pch_suffix(self):
         return 'pch'
@@ -851,6 +860,9 @@ class VisualStudioLinker():
         return self.exelist
 
     def get_std_link_flags(self):
+        return []
+
+    def get_buildtype_linker_flags(self, buildtype):
         return []
 
     def get_output_flags(self, target):
