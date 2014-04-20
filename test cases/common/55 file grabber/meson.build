@@ -11,10 +11,14 @@ project('grabber', 'c')
 
 if build.name() == 'windows'
   c = run_command('grabber.bat')
+  grabber = find_program('grabber')
 else
   c = run_command('grabber.sh')
+  grabber = find_program('grabber.sh')
 endif
 
+
+# First test running command explicitly.
 if c.returncode() != 0
   error('Executing script failed.')
 endif
@@ -26,3 +30,6 @@ sources = c.stdout().strip().split(newline)
 
 e = executable('prog', sources)
 test('grabtest', e)
+
+# Then test using program with find_program
+subdir('subdir')

@@ -127,17 +127,21 @@ class PkgConfigDependency(Dependency):
         return self.is_found
 
 class ExternalProgram():
-    def __init__(self, name, fullpath=None, silent=False):
+    def __init__(self, name, fullpath=None, silent=False, search_dir=None):
         self.name = name
         if fullpath is not None:
             self.fullpath = fullpath
         else:
             self.fullpath = shutil.which(name)
+            if self.fullpath is None and search_dir is not None:
+                trial = os.path.join(search_dir, name)
+                if os.access(trial, os.X_OK):
+                    self.fullpath = trial
         if not silent:
             if self.found():
                 mlog.log('Program', mlog.bold(name), 'found:', mlog.green('YES'), '(%s)' % self.fullpath)
             else:
-                mlog.log('Program', mlog.bold(name), 'found:,', mlog.red('NO'))
+                mlog.log('Program', mlog.bold(name), 'found:', mlog.red('NO'))
 
     def found(self):
         return self.fullpath is not None

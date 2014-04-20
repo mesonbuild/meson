@@ -25,7 +25,8 @@ test_build_dir = 'work area'
 install_dir = os.path.join(os.path.split(os.path.abspath(__file__))[0], 'install dir')
 meson_command = './meson.py'
 
-unity_flags = ['--unity']
+#unity_flags = ['--unity']
+unity_flags = []
 msbuild_exe = shutil.which('msbuild')
 
 if msbuild_exe is not None:

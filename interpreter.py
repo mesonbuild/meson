@@ -754,9 +754,18 @@ class Interpreter():
                     raise InvalidArguments('Incorrect argument type.')
                 
     def func_run_command(self, node, args, kwargs):
-        for i in args:
+        if len(args) < 1:
+            raise InterpreterException('Not enough arguments')
+        cmd = args[0]
+        cargs = args[1:]
+        if isinstance(cmd, ExternalProgramHolder):
+            cmd = cmd.get_command()
+        elif not isinstance(cmd, str):
+            raise InterpreterException('First argument is of incorrect type.')
+        for i in cargs:
             if not isinstance(i, str):
-                raise InterpreterObject('Run_command arguments must be strings.')
+                raise InterpreterException('Run_command arguments must be strings.')
+        args = [cmd] + cargs
         return RunProcess(args, self.environment.source_dir, self.environment.build_dir, self.subdir)
 
     def func_gettext(self, nodes, args, kwargs):
@@ -931,7 +940,9 @@ class Interpreter():
         if exename in self.coredata.ext_progs and\
            self.coredata.ext_progs[exename].found():
             return ExternalProgramHolder(self.coredata.ext_progs[exename])
-        extprog = dependencies.ExternalProgram(exename)
+        # Search for scripts relative to current subdir.
+        search_dir = os.path.join(self.environment.get_source_dir(), self.subdir)
+        extprog = dependencies.ExternalProgram(exename, search_dir=search_dir)
         progobj = ExternalProgramHolder(extprog)
         self.coredata.ext_progs[exename] = extprog
         if required and not progobj.found():
