@@ -54,12 +54,14 @@ def list_targets(coredata, builddata):
 
 def list_target_files(target_name, coredata, builddata):
     try:
-        sources = builddata.targets[target_name].sources
-        subdir = builddata.targets[target_name].subdir
+        t = builddata.targets[target_name]
+        sources = t.sources + t.extra_files
+        subdir = t.subdir
     except KeyError:
         print("Unknown target %s." % target_name)
         sys.exit(1)
-    print(json.dumps([os.path.join(subdir, i) for i in sources]))
+    sources = [os.path.join(subdir, i) for i in sources]
+    print(json.dumps(sources))
 
 if __name__ == '__main__':
     (options, args) = parser.parse_args()

@@ -125,9 +125,10 @@ class BuildTarget():
         self.pch = {}
         self.extra_args = {}
         self.generated = []
+        self.extra_files = []
         self.process_sourcelist(sources)
         self.process_objectlist(objects)
-        self.process_kwargs(kwargs)
+        self.process_kwargs(kwargs, environment)
         if len(self.sources) == 0 and len(self.generated) == 0:
             raise InvalidArguments('Build target %s has no sources.' % name)
 
@@ -205,7 +206,7 @@ class BuildTarget():
     def get_custom_install_dir(self):
         return self.custom_install_dir
 
-    def process_kwargs(self, kwargs):
+    def process_kwargs(self, kwargs, environment):
         self.copy_kwargs(kwargs)
         kwargs.get('modules', [])
         self.need_install = kwargs.get('install', self.need_install)
@@ -272,6 +273,16 @@ class BuildTarget():
                 raise InvalidArguments('Argument gui_app must be boolean.')
         elif 'gui_app' in kwargs:
             raise InvalidArguments('Argument gui_app can only be used on executables.')
+        extra_files = kwargs.get('extra_files', [])
+        if isinstance(extra_files, str):
+            extra_files = [extra_files]
+        for i in extra_files:
+            if not isinstance(i, str):
+                raise InvalidArguments('Arguments to extra_files must be strings.')
+            trial = os.path.join(environment.get_source_dir(), self.subdir, i)
+            if not(os.path.isfile(trial)):
+                raise InvalidArguments('Tried to add non-existing extra file %s.' % i)
+        self.extra_files = extra_files
 
     def get_subdir(self):
         return self.subdir
