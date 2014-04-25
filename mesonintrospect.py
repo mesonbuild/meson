@@ -22,7 +22,7 @@ Currently only works for the Ninja backend. Others use generated
 project files and don't need this info."""
 
 import json, pickle
-import coredata, build
+import coredata, build, optinterpreter
 from optparse import OptionParser
 import sys, os
 
@@ -30,6 +30,7 @@ parser = OptionParser()
 parser.add_option('--list-targets', action='store_true', dest='list_targets', default=False)
 parser.add_option('--target-files', action='store', dest='target_files', default=None)
 parser.add_option('--buildsystem-files', action='store_true', dest='buildsystem_files', default=False)
+parser.add_option('--buildoptions', action='store_true', dest='buildoptions', default=False)
 
 def list_targets(coredata, builddata):
     tlist = []
@@ -64,6 +65,51 @@ def list_target_files(target_name, coredata, builddata):
     sources = [os.path.join(subdir, i) for i in sources]
     print(json.dumps(sources))
 
+def list_buildoptions(coredata, builddata):
+    buildtype= {'choices': ['plain', 'debug', 'debugoptimized', 'release'],
+                'type' : 'combo',
+                'value' : coredata.buildtype,
+                'description' : 'Build type',
+                'name' : 'type'}
+    strip = {'value' : coredata.strip,
+             'type' : 'boolean',
+             'description' : 'Strip on install',
+             'name' : 'strip'}
+    coverage = {'value': coredata.coverage,
+                'type' : 'boolean',
+                'description' : 'Enable coverage',
+                'name' : 'coverage'}
+    pch = {'value' : coredata.use_pch,
+           'type' : 'boolean',
+           'description' : 'Use precompiled headers',
+           'name' : 'pch'}
+    unity = {'value' : coredata.unity,
+             'type' : 'boolean',
+             'description' : 'Unity build',
+             'name' : 'unity'}
+    optlist = [buildtype, strip, coverage, pch, unity]
+    options = coredata.user_options
+    keys = list(options.keys())
+    keys.sort()
+    for key in keys:
+        opt = options[key]
+        optdict = {}
+        optdict['name'] = key
+        optdict['value'] = opt.value
+        if isinstance(opt, optinterpreter.UserStringOption):
+            typestr = 'string'
+        elif isinstance(opt, optinterpreter.UserBooleanOption):
+            typestr = 'boolean'
+        elif isinstance(opt, optinterpreter.UserComboOption):
+            optdict['choices'] = opt.choices
+            typestr = 'combo'
+        else:
+            raise RuntimeError("Unknown option type")
+        optdict['type'] = typestr
+        optdict['description'] = opt.description
+        optlist.append(optdict)
+    print(json.dumps(optlist))
+
 def list_buildsystem_files(coredata, builddata):
     src_dir = builddata.environment.get_source_dir()
     # I feel dirty about this. But only slightly.
@@ -93,6 +139,8 @@ if __name__ == '__main__':
         list_target_files(options.target_files, coredata, builddata)
     elif options.buildsystem_files:
         list_buildsystem_files(coredata, builddata)
+    elif options.buildoptions:
+        list_buildoptions(coredata, builddata)
     else:
         print('No command specified')
         sys.exit(1)
