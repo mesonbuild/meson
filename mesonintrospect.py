@@ -28,6 +28,7 @@ import sys, os
 
 parser = OptionParser()
 parser.add_option('--list-targets', action='store_true', dest='list_targets', default=False)
+parser.add_option('--target-files', action='store', dest='target_files', default=None)
 
 def list_targets(coredata, builddata):
     tlist = []
@@ -51,6 +52,15 @@ def list_targets(coredata, builddata):
         tlist.append(t)
     print(json.dumps(tlist))
 
+def list_target_files(target_name, coredata, builddata):
+    try:
+        sources = builddata.targets[target_name].sources
+        subdir = builddata.targets[target_name].subdir
+    except KeyError:
+        print("Unknown target %s." % target_name)
+        sys.exit(1)
+    print(json.dumps([os.path.join(subdir, i) for i in sources]))
+
 if __name__ == '__main__':
     (options, args) = parser.parse_args()
     if len(args) > 1:
@@ -66,6 +76,8 @@ if __name__ == '__main__':
     builddata = pickle.load(open(buildfile, 'rb'))
     if options.list_targets:
         list_targets(coredata, builddata)
+    elif options.target_files is not None:
+        list_target_files(options.target_files, coredata, builddata)
     else:
         print('No command specified')
         sys.exit(1)
