@@ -29,6 +29,7 @@ import sys, os
 parser = OptionParser()
 parser.add_option('--list-targets', action='store_true', dest='list_targets', default=False)
 parser.add_option('--target-files', action='store', dest='target_files', default=None)
+parser.add_option('--buildsystem-files', action='store_true', dest='buildsystem_files', default=False)
 
 def list_targets(coredata, builddata):
     tlist = []
@@ -63,6 +64,16 @@ def list_target_files(target_name, coredata, builddata):
     sources = [os.path.join(subdir, i) for i in sources]
     print(json.dumps(sources))
 
+def list_buildsystem_files(coredata, builddata):
+    src_dir = builddata.environment.get_source_dir()
+    # I feel dirty about this. But only slightly.
+    filelist = []
+    for root, dirs, files in os.walk(src_dir):
+        for f in files:
+            if f == 'meson.build' or f == 'meson_options.txt':
+                filelist.append(os.path.relpath(os.path.join(root, f), src_dir))
+    print(json.dumps(filelist))
+
 if __name__ == '__main__':
     (options, args) = parser.parse_args()
     if len(args) > 1:
@@ -71,7 +82,7 @@ if __name__ == '__main__':
     elif len(args) == 1:
         bdir = args[0]
     else:
-        bdir == ''
+        bdir = ''
     corefile = os.path.join(bdir, 'meson-private/coredata.dat')
     buildfile = os.path.join(bdir, 'meson-private/build.dat')
     coredata = pickle.load(open(corefile, 'rb'))
@@ -80,6 +91,8 @@ if __name__ == '__main__':
         list_targets(coredata, builddata)
     elif options.target_files is not None:
         list_target_files(options.target_files, coredata, builddata)
+    elif options.buildsystem_files:
+        list_buildsystem_files(coredata, builddata)
     else:
         print('No command specified')
         sys.exit(1)
