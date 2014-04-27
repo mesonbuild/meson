@@ -549,10 +549,18 @@ class MesonMain(InterpreterObject):
                              'has_exe_wrapper' : self.has_exe_wrapper_method,
                              'is_unity' : self.is_unity_method,
                              'current_source_dir' : self.current_source_dir_method,
+                             'current_build_dir' : self.current_build_dir_method,
                              })
 
     def current_source_dir_method(self, args, kwargs):
         src = self.interpreter.environment.source_dir
+        sub = self.interpreter.subdir
+        if sub == '':
+            return src
+        return os.path.join(src, sub)
+
+    def current_build_dir_method(self, args, kwargs):
+        src = self.interpreter.environment.build_dir
         sub = self.interpreter.subdir
         if sub == '':
             return src
@@ -1092,19 +1100,24 @@ class Interpreter():
             raise InterpreterException('Required keyword argument "input" not defined.')
         if not 'output' in kwargs:
             raise InterpreterException('Required keyword argument "output" not defined.')
-        if not 'configuration' in kwargs:
-            raise InterpreterException('Required keyword argument "configuration" not defined.')
-        inputfile = kwargs['input']
-        output = kwargs['output']
-        conf = kwargs['configuration']
-        if not isinstance(conf, ConfigurationDataHolder):
-            raise InterpreterException('Argument "configuration" is not of type configuration_data')
+        if 'configuration' in kwargs:
+            inputfile = kwargs['input']
+            output = kwargs['output']
+            conf = kwargs['configuration']
+            if not isinstance(conf, ConfigurationDataHolder):
+                raise InterpreterException('Argument "configuration" is not of type configuration_data')
 
-        conffile = os.path.join(self.subdir, inputfile)
-        self.build_def_files.append(conffile)
-        c = ConfigureFileHolder(self.subdir, inputfile, output, conf.held_object)
-        self.build.configure_files.append(c.held_object)
-        conf.mark_used()
+            conffile = os.path.join(self.subdir, inputfile)
+            self.build_def_files.append(conffile)
+            c = ConfigureFileHolder(self.subdir, inputfile, output, conf.held_object)
+            self.build.configure_files.append(c.held_object)
+            conf.mark_used()
+        elif 'command' in kwargs:
+            res = self.func_run_command(node, kwargs['command'], {})
+            if res.returncode != 0:
+                raise InterpreterException('Running configure command failed.')
+        else:
+            raise InterpreterException('Configure_file must have either "configuration" or "command".')
 
     def func_include_directories(self, node, args, kwargs):
         absbase = os.path.join(self.environment.get_source_dir(), self.subdir)

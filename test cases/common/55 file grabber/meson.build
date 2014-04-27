@@ -11,7 +11,7 @@ project('grabber', 'c')
 
 if build.name() == 'windows'
   c = run_command('grabber.bat')
-  grabber = find_program('grabber')
+  grabber = find_program('grabber.bat')
 else
   c = run_command('grabber.sh')
   grabber = find_program('grabber.sh')
