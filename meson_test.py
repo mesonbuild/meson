@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys, os, subprocess, time, datetime, pickle, multiprocessing
+import sys, os, subprocess, time, datetime, pickle, multiprocessing, json
 import concurrent.futures as conc
 from optparse import OptionParser
 
@@ -26,8 +26,9 @@ parser.add_option('--wrapper', default=None, dest='wrapper',
 parser.add_option('--wd', default=None, dest='wd',
                   help='directory to cd into before running')
 class TestRun():
-    def __init__(self, res, duration, stdo, stde):
+    def __init__(self, res, returncode, duration, stdo, stde):
         self.res = res
+        self.returncode = returncode
         self.duration = duration
         self.stdo = stdo
         self.stde = stde
@@ -39,6 +40,15 @@ def write_log(logfile, test_name, result_str, stdo, stde):
     logfile.write('\n--- "%s" stderr ---\n' % test_name)
     logfile.write(stde)
     logfile.write('\n-------\n\n')
+
+def write_json_log(jsonlogfile, test_name, result):
+    result = {'name' : test_name,
+              'stdout' : result.stdo,
+              'stderr' : result.stde,
+              'result' : result.res,
+              'duration' : result.duration,
+              'returncode' : result.returncode}
+    jsonlogfile.write(json.dumps(result))
 
 def run_single_test(wrap, test):
     global tests_failed
@@ -59,6 +69,7 @@ def run_single_test(wrap, test):
         duration = 0.0
         stdo = 'Not run because can not execute cross compiled binaries.'
         stde = ''
+        returncode = -1
     else:
         cmd = wrap + cmd + test.cmd_args
         starttime = time.time()
@@ -76,9 +87,10 @@ def run_single_test(wrap, test):
         else:
             res = 'FAIL'
             tests_failed = True
-    return TestRun(res, duration, stdo, stde)
+        returncode = p.returncode
+    return TestRun(res, returncode, duration, stdo, stde)
 
-def print_stats(numlen, tests, name, result, i, logfile):
+def print_stats(numlen, tests, name, result, i, logfile, jsonlogfile):
     startpad = ' '*(numlen - len('%d' % (i+1)))
     num = '%s%d/%d' % (startpad, i+1, len(tests))
     padding1 = ' '*(40-len(name))
@@ -87,21 +99,25 @@ def print_stats(numlen, tests, name, result, i, logfile):
         (num, name, padding1, result.res, padding2, result.duration)
     print(result_str)
     write_log(logfile, name, result_str, result.stdo, result.stde)
+    write_json_log(jsonlogfile, name, result)
 
 def drain_futures(futures):
     for i in futures:
-        (result, numlen, tests, name, i, logfile) = i
-        print_stats(numlen, tests, name, result.result(), i, logfile)
+        (result, numlen, tests, name, i, logfile, jsonlogfile) = i
+        print_stats(numlen, tests, name, result.result(), i, logfile, jsonlogfile)
 
 def run_tests(options, datafilename):
     logfile_base = 'meson-logs/testlog'
     if options.wrapper is None:
         wrap = []
         logfilename = logfile_base + '.txt'
+        jsonlogfilename = logfile_base+ '.json'
     else:
         wrap = [options.wrapper]
         logfilename = logfile_base + '-' + options.wrapper.replace(' ', '_') + '.txt'
+        jsonlogfilename = logfile_base + '-' + options.wrapper.replace(' ', '_') + '.json'
     logfile = open(logfilename, 'w')
+    jsonlogfile = open(jsonlogfilename, 'w')
     logfile.write('Log of Meson test suite run on %s.\n\n' % datetime.datetime.now().isoformat())
     tests = pickle.load(open(datafilename, 'rb'))
     numlen = len('%d' % len(tests))
@@ -121,10 +137,10 @@ def run_tests(options, datafilename):
             drain_futures(futures)
             futures = []
             res = run_single_test(wrap, test)
-            print_stats(numlen, tests, test.name, res, i, logfile)
+            print_stats(numlen, tests, test.name, res, i, logfile, jsonlogfile)
         else:
             f = executor.submit(run_single_test, wrap, test)
-            futures.append((f, numlen, tests, test.name, i, logfile))
+            futures.append((f, numlen, tests, test.name, i, logfile, jsonlogfile))
     drain_futures(futures)
     print('\nFull log written to %s.' % logfilename)
 
