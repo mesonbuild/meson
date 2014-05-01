@@ -27,10 +27,16 @@ from optparse import OptionParser
 import sys, os
 
 parser = OptionParser()
-parser.add_option('--list-targets', action='store_true', dest='list_targets', default=False)
-parser.add_option('--target-files', action='store', dest='target_files', default=None)
-parser.add_option('--buildsystem-files', action='store_true', dest='buildsystem_files', default=False)
-parser.add_option('--buildoptions', action='store_true', dest='buildoptions', default=False)
+parser.add_option('--targets', action='store_true', dest='list_targets', default=False,
+                  help='List top level targets.')
+parser.add_option('--target-files', action='store', dest='target_files', default=None,
+                  help='List source files for a given target.')
+parser.add_option('--buildsystem-files', action='store_true', dest='buildsystem_files', default=False,
+                  help='List files that make up the build system.')
+parser.add_option('--buildoptions', action='store_true', dest='buildoptions', default=False,
+                  help='List all build options.')
+parser.add_option('--tests', action='store_true', dest='tests', default=False,
+                  help='List all unit tests.')
 
 def list_targets(coredata, builddata):
     tlist = []
@@ -114,11 +120,21 @@ def list_buildsystem_files(coredata, builddata):
     src_dir = builddata.environment.get_source_dir()
     # I feel dirty about this. But only slightly.
     filelist = []
-    for root, dirs, files in os.walk(src_dir):
+    for root, _, files in os.walk(src_dir):
         for f in files:
             if f == 'meson.build' or f == 'meson_options.txt':
                 filelist.append(os.path.relpath(os.path.join(root, f), src_dir))
     print(json.dumps(filelist))
+
+def list_tests(testdata):
+    result = []
+    for t in testdata:
+        to = {}
+        to['cmd'] = [t.fname] + t.cmd_args
+        to['env'] = t.env
+        to['name'] = t.name
+        result.append(to)
+    print(json.dumps(result))
 
 if __name__ == '__main__':
     (options, args) = parser.parse_args()
@@ -131,8 +147,10 @@ if __name__ == '__main__':
         bdir = ''
     corefile = os.path.join(bdir, 'meson-private/coredata.dat')
     buildfile = os.path.join(bdir, 'meson-private/build.dat')
+    testfile = os.path.join(bdir, 'meson-private/meson_test_setup.dat')
     coredata = pickle.load(open(corefile, 'rb'))
     builddata = pickle.load(open(buildfile, 'rb'))
+    testdata = pickle.load(open(testfile, 'rb'))
     if options.list_targets:
         list_targets(coredata, builddata)
     elif options.target_files is not None:
@@ -141,6 +159,8 @@ if __name__ == '__main__':
         list_buildsystem_files(coredata, builddata)
     elif options.buildoptions:
         list_buildoptions(coredata, builddata)
+    elif options.tests:
+        list_tests(testdata)
     else:
         print('No command specified')
         sys.exit(1)
