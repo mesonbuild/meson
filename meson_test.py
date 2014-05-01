@@ -48,7 +48,7 @@ def write_json_log(jsonlogfile, test_name, result):
               'result' : result.res,
               'duration' : result.duration,
               'returncode' : result.returncode}
-    jsonlogfile.write(json.dumps(result))
+    jsonlogfile.write(json.dumps(result) + '\n')
 
 def run_single_test(wrap, test):
     global tests_failed
