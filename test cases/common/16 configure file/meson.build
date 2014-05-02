@@ -15,13 +15,14 @@ e = executable('inctest', 'prog.c', include_dirs : include_directories('.'))
 test('inctest', e)
 
 # Now generate a header file with an external script.
-genprog = find_program('generator.py')
+genprog = find_program('python3')
+scriptfile = '@0@/generator.py'.format(meson.current_source_dir())
 ifile = '@0@/dummy.dat'.format(meson.current_source_dir())
 ofile = '@0@/config2.h'.format(meson.current_build_dir())
 
 configure_file(input : 'dummy.dat',
 output : 'config2.h',
-command : [genprog, ifile, ofile])
+command : [genprog, scriptfile,  ifile, ofile])
 
 test('inctest2', executable('prog2', 'prog2.c',
 include_dirs : include_directories('.')))
