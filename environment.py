@@ -542,6 +542,37 @@ class JavaCompiler():
     def has_function(self, funcname, prefix, env):
         raise EnvironmentException('Java does not support function checks.')
 
+class ValaCompiler():
+    def __init__(self, exelist, version):
+        if isinstance(exelist, str):
+            self.exelist = [exelist]
+        elif type(exelist) == type([]):
+            self.exelist = exelist
+        else:
+            raise TypeError('Unknown argument to JavaCompiler')
+        self.version = version
+        self.id = 'unknown'
+        self.language = 'vala'
+
+    def get_exelist(self):
+        return self.exelist
+
+    def get_language(self):
+        return self.language
+
+    def sanity_check(self, work_dir):
+        src = 'valatest.vala'
+        obj = 'valatest.c'
+        source_name = os.path.join(work_dir, src)
+        ofile = open(source_name, 'w')
+        ofile.write('''class SanityCheck : Object {
+}
+''')
+        ofile.close()
+        pc = subprocess.Popen(self.exelist + ['-C', '-o', obj, src], cwd=work_dir)
+        pc.wait()
+        if pc.returncode != 0:
+            raise EnvironmentException('Vala compiler %s can not compile programs.' % self.name_string())
 
 class VisualStudioCCompiler(CCompiler):
     std_warn_flags = ['/W3']
@@ -1263,6 +1294,23 @@ class Environment():
             version = 'unknown version'
         if 'javac' in err:
             return JavaCompiler(exelist, version)
+        raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
+
+    def detect_vala_compiler(self):
+        exelist = ['valac']
+        try:
+            p = subprocess.Popen(exelist + ['--version'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        except OSError:
+            raise EnvironmentException('Could not execute Vala compiler "%s"' % ' '.join(exelist))
+        (out, _) = p.communicate()
+        out = out.decode()
+        vmatch = re.search(Environment.version_regex, out)
+        if vmatch:
+            version = vmatch.group(0)
+        else:
+            version = 'unknown version'
+        if 'Vala' in out:
+            return ValaCompiler(exelist, version)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
 
     def detect_static_linker(self, compiler):

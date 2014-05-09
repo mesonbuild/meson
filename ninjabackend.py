@@ -484,11 +484,24 @@ class NinjaBackend(backends.Backend):
         outfile.write(description)
         outfile.write('\n')
 
+    def generate_vala_compile_rules(self, compiler, outfile):
+        rule = 'rule %s_COMPILER\n' % compiler.get_language()
+        invoc = ' '.join([ninja_quote(i) for i in compiler.get_exelist()])
+        command = ' command = %s $FLAGS $in\n' % invoc
+        description = ' description = Compiling Vala source $in.\n'
+        outfile.write(rule)
+        outfile.write(command)
+        outfile.write(description)
+        outfile.write('\n')
+
     def generate_compile_rule_for(self, langname, compiler, qstr, is_cross, outfile):
         if langname == 'java':
             if not is_cross:
                 self.generate_java_compile_rule(compiler, outfile)
             return
+        if langname == 'vala':
+            if not is_cross:
+                self.generate_vala_compile_rules(compiler, outfile)
         if is_cross:
             crstr = '_CROSS'
         else:

@@ -890,6 +890,13 @@ class Interpreter():
         self.build.projects[self.subproject] = args[0]
         mlog.log('Project name is "', mlog.bold(args[0]), '".', sep='')
         self.add_languages(node, args[1:])
+        langs = self.coredata.compilers.keys()
+        if 'vala' in langs:
+            if not 'c' in langs:
+                raise InterpreterException('Compiling Vala requires a C compiler')
+            # These are the implicit dependencies of Vala.
+            self.func_dependency(None, ['glib-2.0'], {})
+            self.func_dependency(None, ['gobject-2.0'], {})
 
     def func_message(self, node, args, kwargs):
         self.validate_arguments(args, 1, [str])
@@ -902,31 +909,36 @@ class Interpreter():
     def add_languages(self, node, args):
         is_cross = self.environment.is_cross_build()
         for lang in args:
+            lang = lang.lower()
             if lang in self.coredata.compilers:
                 comp = self.coredata.compilers[lang]
                 cross_comp = self.coredata.cross_compilers.get(lang, None)
             else:
                 cross_comp = None
-                if lang.lower() == 'c':
+                if lang == 'c':
                     comp = self.environment.detect_c_compiler(False)
                     if is_cross:
                         cross_comp = self.environment.detect_c_compiler(True)
-                elif lang.lower() == 'cpp':
+                elif lang == 'cpp':
                     comp = self.environment.detect_cpp_compiler(False)
                     if is_cross:
                         cross_comp = self.environment.detect_cpp_compiler(True)
-                elif lang.lower() == 'objc':
+                elif lang == 'objc':
                     comp = self.environment.detect_objc_compiler(False)
                     if is_cross:
                         cross_comp = self.environment.detect_objc_compiler(True)
-                elif lang.lower() == 'objcpp':
+                elif lang == 'objcpp':
                     comp = self.environment.detect_objcpp_compiler(False)
                     if is_cross:
                         cross_comp = self.environment.detect_objcpp_compiler(True)
-                elif lang.lower() == 'java':
+                elif lang == 'java':
                     comp = self.environment.detect_java_compiler()
                     if is_cross:
                         cross_comp = comp # Java is platform independent.
+                elif lang == 'vala':
+                    comp = self.environment.detect_vala_compiler()
+                    if is_cross:
+                        cross_comp = comp # Vala is too (I think).
                 else:
                     raise InvalidCode('Tried to use unknown language "%s".' % lang)
                 comp.sanity_check(self.environment.get_scratch_dir())
