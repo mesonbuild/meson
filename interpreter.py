@@ -894,9 +894,6 @@ class Interpreter():
         if 'vala' in langs:
             if not 'c' in langs:
                 raise InterpreterException('Compiling Vala requires a C compiler')
-            # These are the implicit dependencies of Vala.
-            self.func_dependency(None, ['glib-2.0'], {})
-            self.func_dependency(None, ['gobject-2.0'], {})
 
     def func_message(self, node, args, kwargs):
         self.validate_arguments(args, 1, [str])

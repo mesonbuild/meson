@@ -419,6 +419,24 @@ class NinjaBackend(backends.Backend):
         outfile.write(description)
         outfile.write('\n')
 
+    def generate_vala_compile(self, target, outfile):
+        """Vala is compiled into C. Set up all necessary build steps here."""
+        valac = self.environment.coredata.compilers['vala']
+        generated_c = []
+        for s in target.get_sources():
+            if not s.endswith('.vala'):
+                continue
+            flags = ['-d', self.get_target_private_dir(target)]
+            sc = os.path.basename(s)[:-4] + 'c'
+            flags += ['-C', '-o', sc]
+            relsc = os.path.join(self.get_target_dir(target), target.get_basename() + '.dir', sc)
+            rel_s = os.path.join(self.build_to_src, s)
+            generated_c += [relsc]
+            element = NinjaBuildElement(relsc, valac.get_language() + '_COMPILER', rel_s)
+            element.add_item('FLAGS', flags)
+            element.write(outfile)
+        return generated_c
+
     def generate_static_link_rules(self, is_cross, outfile):
         if self.build.has_language('java'):
             if not is_cross:
@@ -445,7 +463,7 @@ class NinjaBackend(backends.Backend):
         for (complist, is_cross) in ctypes:
             for compiler in complist:
                 langname = compiler.get_language()
-                if langname == 'java':
+                if langname == 'java' or langname == 'vala':
                     continue
                 crstr = ''
                 if is_cross:
@@ -502,6 +520,7 @@ class NinjaBackend(backends.Backend):
         if langname == 'vala':
             if not is_cross:
                 self.generate_vala_compile_rules(compiler, outfile)
+            return
         if is_cross:
             crstr = '_CROSS'
         else:

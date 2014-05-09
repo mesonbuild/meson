@@ -179,15 +179,25 @@ class Backend():
         self.write_test_file(datafile)
         datafile.close()
 
+    def has_vala(self, target):
+        for s in target.get_sources():
+            if s.endswith('.vala'):
+                return True
+        return False
+
     def generate_target(self, target, outfile):
         name = target.get_basename()
+        gen_src_deps = []
         if name in self.processed_targets:
             return
         if isinstance(target, build.Jar):
             self.generate_jar_target(target, outfile)
             return
+        if 'vala' in self.environment.coredata.compilers.keys() and self.has_vala(target):
+            gen_src_deps += self.generate_vala_compile(target, outfile)
         # The following deals with C/C++ compilation.
-        (gen_src_deps, gen_other_deps) = self.process_dep_gens(outfile, target)
+        (gen_src, gen_other_deps) = self.process_dep_gens(outfile, target)
+        gen_src_deps += gen_src
         self.process_target_dependencies(target, outfile)
         self.generate_custom_generator_rules(target, outfile)
         outname = self.get_target_filename(target)
@@ -228,6 +238,8 @@ class Backend():
                     # move them from orderdeps to proper deps.
                     obj_list.append(self.generate_single_compile(target, outfile, src, True, [], header_deps))
         for src in target.get_sources():
+            if src.endswith('.vala'):
+                continue
             if not self.environment.is_header(src):
                 src_list.append(src)
                 if is_unity:
@@ -264,7 +276,10 @@ class Backend():
             for s in src:
                 if c.can_compile(s):
                     return cpp
-        return self.build.compilers[0]
+        for c in self.build.compilers:
+            if c.get_language() != 'vala':
+                return c
+        raise RuntimeError('Unreachable code')
 
     def determine_ext_objs(self, extobj, proj_dir_to_build_root=''):
         result = []

@@ -574,6 +574,9 @@ class ValaCompiler():
         if pc.returncode != 0:
             raise EnvironmentException('Vala compiler %s can not compile programs.' % self.name_string())
 
+    def can_compile(self, fname):
+        return fname.endswith('.vala')
+
 class VisualStudioCCompiler(CCompiler):
     std_warn_flags = ['/W3']
     std_opt_flags= ['/O2']
