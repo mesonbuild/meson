@@ -184,6 +184,10 @@ def run_tests():
         javatests = gather_tests('test cases/java')
     else:
         javatests = []
+    if shutil.which('valac'):
+        valatests = gather_tests('test cases/vala')
+    else:
+        valatests = []
     if not environment.is_windows():
         objctests = gather_tests('test cases/objc')
     else:
@@ -218,6 +222,9 @@ def run_tests():
     if len(javatests) > 0:
         print('\nRunning java tests.\n')
         [run_and_log(logfile, t) for t in javatests]
+    if len(valatests) > 0:
+        print('\nRunning Vala tests.\n')
+        [run_and_log(logfile, t) for t in valatests]
     if len(objctests) > 0:
         print('\nRunning extra language tests.\n')
         [run_and_log(logfile, t) for t in objctests]
