@@ -419,9 +419,25 @@ class NinjaBackend(backends.Backend):
         outfile.write(description)
         outfile.write('\n')
 
+    def generate_fastvapi_compile(self, target, valac, outfile):
+        fastvapis = {}
+        for s in target.get_sources():
+            if not s.endswith('.vala'):
+                continue
+            vapibase = os.path.basename(s)[:-4] + 'vapi'
+            rel_vapi = os.path.join(self.get_target_dir(target), target.get_basename() + '.dir', vapibase)
+            flags = ['--fast-vapi=' + rel_vapi]
+            rel_s = os.path.join(self.build_to_src, s)
+            element = NinjaBuildElement(rel_vapi, valac.get_language() + '_COMPILER', rel_s)
+            element.add_item('FLAGS', flags)
+            element.write(outfile)
+            fastvapis[s] = (vapibase, rel_vapi)
+        return fastvapis
+
     def generate_vala_compile(self, target, outfile):
         """Vala is compiled into C. Set up all necessary build steps here."""
         valac = self.environment.coredata.compilers['vala']
+        fast_vapis = self.generate_fastvapi_compile(target, valac, outfile)
         generated_c = []
         for s in target.get_sources():
             if not s.endswith('.vala'):
@@ -429,11 +445,20 @@ class NinjaBackend(backends.Backend):
             flags = ['-d', self.get_target_private_dir(target)]
             sc = os.path.basename(s)[:-4] + 'c'
             flags += ['-C', '-o', sc]
+            vapi_order_deps = []
+            for (sourcefile, vapi_info) in fast_vapis.items():
+                if sourcefile == s:
+                    continue
+                (vapibase, rel_vapi) = vapi_info
+                flags += ['--use-fast-vapi=' + rel_vapi]
+                vapi_order_deps.append(rel_vapi)
             relsc = os.path.join(self.get_target_dir(target), target.get_basename() + '.dir', sc)
             rel_s = os.path.join(self.build_to_src, s)
+            flags += ['--deps', relsc + '.d']
             generated_c += [relsc]
             element = NinjaBuildElement(relsc, valac.get_language() + '_COMPILER', rel_s)
             element.add_item('FLAGS', flags)
+            element.add_orderdep(vapi_order_deps)
             element.write(outfile)
         return generated_c
 
@@ -507,9 +532,15 @@ class NinjaBackend(backends.Backend):
         invoc = ' '.join([ninja_quote(i) for i in compiler.get_exelist()])
         command = ' command = %s $FLAGS $in\n' % invoc
         description = ' description = Compiling Vala source $in.\n'
+        restat = ' restat = 1\n' # ValaC does this always to take advantage of it.
+        depfile = ' depfile = $out.d\n'
+        depstyle = ' deps = gcc\n'
         outfile.write(rule)
         outfile.write(command)
         outfile.write(description)
+        outfile.write(restat)
+        outfile.write(depfile)
+        outfile.write(depstyle)
         outfile.write('\n')
 
     def generate_compile_rule_for(self, langname, compiler, qstr, is_cross, outfile):
