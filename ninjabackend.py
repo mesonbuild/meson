@@ -16,6 +16,7 @@ import backends
 import environment
 import build
 import mlog
+import dependencies
 from meson_install import InstallData
 from build import InvalidArguments
 from coredata import MesonException
@@ -455,6 +456,9 @@ class NinjaBackend(backends.Backend):
             relsc = os.path.join(self.get_target_dir(target), target.get_basename() + '.dir', sc)
             rel_s = os.path.join(self.build_to_src, s)
             flags += ['--deps', relsc + '.d']
+            for d in target.external_deps:
+                if isinstance(d, dependencies.PkgConfigDependency):
+                    flags += ['--pkg', d.name]
             generated_c += [relsc]
             element = NinjaBuildElement(relsc, valac.get_language() + '_COMPILER', rel_s)
             element.add_item('FLAGS', flags)
