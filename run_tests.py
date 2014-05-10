@@ -222,9 +222,13 @@ def run_tests():
     if len(javatests) > 0:
         print('\nRunning java tests.\n')
         [run_and_log(logfile, t) for t in javatests]
+    else:
+        print('\nNot running Java tests.\n')
     if len(valatests) > 0:
         print('\nRunning Vala tests.\n')
         [run_and_log(logfile, t) for t in valatests]
+    else:
+        print('\nNot running Vala tests.\n')
     if len(objctests) > 0:
         print('\nRunning extra language tests.\n')
         [run_and_log(logfile, t) for t in objctests]
