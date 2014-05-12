@@ -1077,6 +1077,7 @@ class Interpreter():
                                    % subdir)
         self.visited_subdirs[subdir] = True
         self.subdir = subdir
+        os.mkdir(os.path.join(self.environment.build_dir, subdir))
         buildfilename = os.path.join(self.subdir, environment.build_filename)
         self.build_def_files.append(buildfilename)
         absname = os.path.join(self.environment.get_source_dir(), buildfilename)
@@ -1124,7 +1125,8 @@ class Interpreter():
         elif 'command' in kwargs:
             res = self.func_run_command(node, kwargs['command'], {})
             if res.returncode != 0:
-                raise InterpreterException('Running configure command failed.')
+                raise InterpreterException('Running configure command failed.\n%s\n%s' %
+                                           (res.stdout, res.stderr))
         else:
             raise InterpreterException('Configure_file must have either "configuration" or "command".')
 
