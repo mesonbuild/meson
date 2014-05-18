@@ -186,6 +186,8 @@ class Backend():
         return False
 
     def generate_target(self, target, outfile):
+        if isinstance(target, build.CustomTarget):
+            self.generate_custom_target(target, outfile)
         name = target.get_basename()
         gen_src_deps = []
         if name in self.processed_targets:

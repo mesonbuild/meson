@@ -134,6 +134,13 @@ class NinjaBackend(backends.Backend):
         outfile.close()
         os.replace(tempfilename, outfilename)
 
+    def generate_custom_target(self, target, outfile):
+        ofilename = os.path.join(target.subdir, target.output)
+        elem = NinjaBuildElement(ofilename, 'CUSTOM_COMMAND', '')
+        elem.add_item('COMMAND', target.command)
+        elem.write(outfile)
+        self.processed_targets[target.name] = True
+
     def generate_po(self, outfile):
         for p in self.build.pot:
             (packagename, languages, subdir) = p

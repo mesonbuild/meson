@@ -563,6 +563,69 @@ class SharedLibrary(BuildTarget):
             aliases.append(self.get_shbase())
         return aliases
 
+class CustomTarget:
+    def __init__(self, name, subdir, kwargs):
+        self.name = name
+        self.subdir = subdir
+        self.process_kwargs(kwargs)
+
+    def process_kwargs(self, kwargs):
+        if 'output' not in kwargs:
+            raise InvalidArguments('Missing keyword argument "output".')
+        self.output = kwargs['output']
+        if not(isinstance(self.output, str)):
+            raise InvalidArguments('Output argument not a string.')
+        if '/' in self.output:
+            raise InvalidArguments('Output must not contain a path segment.')
+        if 'command' not in kwargs:
+            raise InvalidArguments('Missing keyword argument "command".')
+        cmd = kwargs['command']
+        if not(isinstance(cmd, list)):
+            cmd = [cmd]
+        final_cmd = []
+        for i, c in enumerate(cmd):
+            if hasattr(c, 'ep'):
+                c = c.ep
+            if isinstance(c, str):
+                final_cmd.append(c)
+            elif isinstance(c, dependencies.ExternalProgram):
+                final_cmd.append(c.get_command())
+            else:
+                raise InvalidArguments('Argument %s in "command" is invalid.' % i)
+        self.command = final_cmd
+        if 'install' in kwargs:
+            self.install = kwargs['install']
+            if not isinstance(self.install, bool):
+                raise InvalidArguments('"install" must be boolean.')
+            if 'install_dir' not in kwargs:
+                raise InvalidArguments('"install_dir" not specified.')
+            self.install_dir = kwargs['install_dir']
+            if not(isinstance(self.install_dir, str)):
+                raise InvalidArguments('"install_dir" must be a string.')
+        else:
+            self.install = False
+
+    def get_basename(self):
+        return self.name
+
+    def get_dependencies(self):
+        return []
+
+    def should_install(self):
+        return self.install
+
+    def get_custom_install_dir(self):
+        return self.install_dir
+    
+    def get_subdir(self):
+        return self.subdir
+
+    def get_filename(self):
+        return self.output
+
+    def get_aliaslist(self):
+        return []
+
 class Jar(BuildTarget):
     def __init__(self, name, subdir, is_cross, sources, objects, environment, kwargs):
         super().__init__(name, subdir, is_cross, sources, objects, environment, kwargs);
