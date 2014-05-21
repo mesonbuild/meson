@@ -203,7 +203,7 @@ class BuildTarget():
         for i in self.link_targets:
             result += i.get_rpaths()
         return result
-    
+
     def get_custom_install_dir(self):
         return self.custom_install_dir
 
@@ -567,6 +567,7 @@ class CustomTarget:
     def __init__(self, name, subdir, kwargs):
         self.name = name
         self.subdir = subdir
+        self.dependencies = []
         self.process_kwargs(kwargs)
 
     def process_kwargs(self, kwargs):
@@ -586,10 +587,15 @@ class CustomTarget:
         for i, c in enumerate(cmd):
             if hasattr(c, 'ep'):
                 c = c.ep
+            if hasattr(c, 'held_object'):
+                c = c.held_object
             if isinstance(c, str):
                 final_cmd.append(c)
             elif isinstance(c, dependencies.ExternalProgram):
                 final_cmd.append(c.get_command())
+            elif isinstance(c, BuildTarget) or isinstance(c, CustomTarget):
+                self.dependencies.append(c)
+                final_cmd.append(os.path.join(c.get_subdir(), c.get_filename()))
             else:
                 raise InvalidArguments('Argument %s in "command" is invalid.' % i)
         self.command = final_cmd
@@ -609,14 +615,14 @@ class CustomTarget:
         return self.name
 
     def get_dependencies(self):
-        return []
+        return self.dependencies
 
     def should_install(self):
         return self.install
 
     def get_custom_install_dir(self):
         return self.install_dir
-    
+
     def get_subdir(self):
         return self.subdir
 
