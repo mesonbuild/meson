@@ -94,6 +94,8 @@ class TargetModel(QAbstractItemModel):
                 typename = 'shared library'
             elif isinstance(target, build.StaticLibrary):
                 typename = 'static library'
+            elif isinstance(target, build.CustomTarget):
+                typename = 'custom'
             else:
                 typename = 'unknown'
             if target.should_install():

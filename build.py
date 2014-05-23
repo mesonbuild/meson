@@ -569,6 +569,8 @@ class CustomTarget:
         self.subdir = subdir
         self.dependencies = []
         self.process_kwargs(kwargs)
+        self.sources = []
+        self.extra_files = []
 
     def process_kwargs(self, kwargs):
         if 'output' not in kwargs:
@@ -630,6 +632,12 @@ class CustomTarget:
         return self.output
 
     def get_aliaslist(self):
+        return []
+
+    def get_sources(self):
+        return self.sources
+
+    def get_generated_sources(self):
         return []
 
 class Jar(BuildTarget):

@@ -50,6 +50,8 @@ def list_targets(coredata, builddata):
             typename = 'shared library'
         elif isinstance(target, build.StaticLibrary):
             typename = 'static library'
+        elif isinstance(target, build.CustomTarget):
+            typename = 'custom'
         else:
             typename = 'unknown'
         t['type'] = typename
