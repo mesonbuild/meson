@@ -433,14 +433,14 @@ class Generator():
                 raise InvalidArguments('A non-string object in "arguments" keyword argument.')
         self.arglist = args
         
-        if 'outputs' not in kwargs:
-            raise InvalidArguments('Generator must have "outputs" keyword argument.')
-        outputs = kwargs['outputs']
+        if 'output' not in kwargs:
+            raise InvalidArguments('Generator must have "output" keyword argument.')
+        outputs = kwargs['output']
         if not isinstance(outputs, list):
             outputs = [outputs]
         for rule in outputs:
             if not isinstance(rule, str):
-                raise InvalidArguments('"outputs" may only contain strings.')
+                raise InvalidArguments('"output" may only contain strings.')
             if not '@BASENAME@' in rule and not '@PLAINNAME@' in rule:
                 raise InvalidArguments('"outputs" must contain @BASENAME@ or @PLAINNAME@.')
             if '/' in rule or '\\' in rule:

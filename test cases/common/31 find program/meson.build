@@ -11,7 +11,7 @@ if build.name() == 'windows'
 else
   cp = find_program('cp')
   gen = generator(cp, \
-   outputs  : '@BASENAME@.c', \
+   output  : '@BASENAME@.c', \
    arguments : ['@INPUT@', '@OUTPUT@'])
 
   generated = gen.process('source.in')
