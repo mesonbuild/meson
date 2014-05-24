@@ -137,8 +137,19 @@ class NinjaBackend(backends.Backend):
     def generate_custom_target(self, target, outfile):
         ofilename = os.path.join(target.subdir, target.output)
         deps = [os.path.join(i.get_subdir(), i.get_filename()) for i in target.get_dependencies()]
+        srcs = [os.path.join(self.build_to_src, i) for i in  target.sources]
+        deps +=  srcs
         elem = NinjaBuildElement(ofilename, 'CUSTOM_COMMAND', deps)
-        elem.add_item('COMMAND', target.command)
+        cmd = []
+        for i in target.command:
+            if i == '@INPUT@':
+                cmd += srcs
+            elif i == '@OUTPUT@':
+                cmd.append(ofilename)
+            else:
+                cmd.append(i)
+        elem.add_item('COMMAND', cmd)
+        elem.add_item('description', 'Generating %s with a custom command.' % ofilename)
         elem.write(outfile)
         self.processed_targets[target.name] = True
 

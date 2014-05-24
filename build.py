@@ -569,10 +569,12 @@ class CustomTarget:
         self.subdir = subdir
         self.dependencies = []
         self.process_kwargs(kwargs)
-        self.sources = []
         self.extra_files = []
 
     def process_kwargs(self, kwargs):
+        self.sources = kwargs.get('input', [])
+        if not isinstance(self.sources, list):
+            self.sources = [self.sources]
         if 'output' not in kwargs:
             raise InvalidArguments('Missing keyword argument "output".')
         self.output = kwargs['output']
@@ -598,6 +600,13 @@ class CustomTarget:
             elif isinstance(c, BuildTarget) or isinstance(c, CustomTarget):
                 self.dependencies.append(c)
                 final_cmd.append(os.path.join(c.get_subdir(), c.get_filename()))
+            elif isinstance(c, list):
+                # Hackety hack, only supports one level of flattening. Should really
+                # work to arbtrary depth.
+                for s in c:
+                    if not isinstance(s, str):
+                        raise InvalidArguments('Array as argument %d contains a non-string.' % i)
+                    final_cmd.append(s)
             else:
                 raise InvalidArguments('Argument %s in "command" is invalid.' % i)
         self.command = final_cmd
