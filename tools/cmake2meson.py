@@ -17,6 +17,18 @@
 import sys, os
 import re
 
+class Token:
+    def __init__(self, tid, value):
+        self.tid = tid
+        self.value = value
+        self.lineno = 0
+        self.colno = 0
+
+class Statement():
+    def __init__(self, name, args):
+        self.name = name
+        self.args = args
+
 class Lexer:
     def __init__(self):
         self.token_specification = [
@@ -50,29 +62,69 @@ class Lexer:
                     if tid == 'ignore' or tid == 'comment':
                         pass
                     elif tid == 'lparen':
-                        yield('lparen')
+                        yield(Token('lparen', '('))
                     elif tid == 'rparen':
-                        yield('rparen')
+                        yield(Token('rparen', ')'))
                     elif tid == 'string':
-                        yield('String: ' + match_text[1:-1])
+                        yield(Token('string', match_text[1:-1]))
                     elif tid == 'id':
-                        yield('Id: ' + match_text)
+                        yield(Token('id', match_text))
                     elif tid == 'eol':
-                        yield('eol')
+                        #yield('eol')
+                        pass
                     elif tid == 'varexp':
-                        yield('Variable:' + match_text[2:-1])
+                        yield(Token('varexp', match_text[2:-1]))
                     else:
                         raise RuntimeError('Wharrgarbl')
                     break
             if not matched:
                 raise RuntimeError('Lexer got confused %d %d' % (lineno, col))
 
+class Parser():
+    def __init__(self, code):
+        self.stream = Lexer().lex(code)
+        self.getsym()
+
+    def getsym(self):
+        try:
+            self.current = next(self.stream)
+        except StopIteration:
+            self.current = Token('eof', '')
+
+    def accept(self, s):
+        if self.current.tid == s:
+            self.getsym()
+            return True
+        return False
+
+    def expect(self, s):
+        if self.accept(s):
+            return True
+        raise RuntimeError('Expecting %s got %s.' % (s, self.current.tid), self.current.lineno, self.current.colno)
+
+    def statement(self):
+        name = self.current.value
+        self.accept('id')
+        args = []
+        self.expect('lparen')
+        arg = self.current.value
+        while self.accept('string') or self.accept('varexp') or\
+        self.accept('id'):
+            args.append(arg)
+            arg = self.current.value
+        self.expect('rparen')
+        return Statement(name, args)
+
+    def parse(self):
+        while not self.accept('eof'):
+            yield(self.statement())
+
 def convert(cmake_root):
     cfile = os.path.join(cmake_root, 'CMakeLists.txt')
     cmakecode = open(cfile).read()
-    l = Lexer()
-    for t in l.lex(cmakecode):
-        print(t)
+    p = Parser(cmakecode)
+    for t in p.parse():
+        print(t.name, t.args)
 
 
 if __name__ == '__main__':
