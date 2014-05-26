@@ -343,15 +343,15 @@ class Parser:
 
     def e6(self):
         left = self.e7()
-        if self.accept('dot'):
-            return self.method_call(left)
-        elif self.accept('lparen'):
+        if self.accept('lparen'):
             args = self.args()
             self.expect('rparen')
             if not isinstance(left, IdNode):
                 raise ParseException('Function call must be applied to plain id',
                                      left.lineno, left.colno)
-            return FunctionNode(left.lineno, left.colno, left.value, args)
+            left = FunctionNode(left.lineno, left.colno, left.value, args)
+        while self.accept('dot'):
+            left = self.method_call(left)
         return left
 
     def e7(self):

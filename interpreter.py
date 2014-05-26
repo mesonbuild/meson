@@ -1379,6 +1379,7 @@ class Interpreter():
         for i in node.ifs:
             result = self.evaluate_statement(i.condition)
             if not(isinstance(result, bool)):
+                print(result)
                 raise InvalidCode('If clause does not evaluate to true or false.')
             if result:
                 self.evaluate_codeblock(i.block)
