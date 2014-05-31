@@ -8,8 +8,8 @@ Ninja:      http://martine.github.com/ninja/
 
 Installing from source
 
-You can run Meson directly from a revision control checkout.
-Installing it system-wide is simple.
+You can run Meson directly from a revision control checkout or an
+extracted tarball.  Installing it system-wide is simple.
 
 Configure step: None
 Compile step:   None
