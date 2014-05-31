@@ -34,7 +34,7 @@ class Lexer:
         self.token_specification = [
             # Need to be sorted longest to shortest.
             ('ignore', re.compile(r'[ \t]')),
-            ('id', re.compile('[-+_0-9a-z/A-Z.]+')),
+            ('id', re.compile('[-+_0-9a-z/A-Z.@]+')),
             ('eol', re.compile(r'\n')),
             ('comment', re.compile(r'\#.*')),
             ('lparen', re.compile(r'\(')),
@@ -124,11 +124,15 @@ def convert(cmake_root):
     cmakecode = open(cfile).read()
     p = Parser(cmakecode)
     for t in p.parse():
-        print(t.name, t.args)
-
+        if t.name == 'add_subdirectory':
+            print('\nRecursing to subdir', t.args[0], '\n')
+            convert(os.path.join(cmake_root, t.args[0]))
+        else:
+            print(t.name, t.args)
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
         print(sys.argv[0], '<CMake project root>')
+        sys.exit(1)
     convert(sys.argv[1])
 
