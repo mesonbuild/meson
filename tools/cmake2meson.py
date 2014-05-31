@@ -34,12 +34,12 @@ class Lexer:
         self.token_specification = [
             # Need to be sorted longest to shortest.
             ('ignore', re.compile(r'[ \t]')),
-            ('id', re.compile('[-+_0-9a-z/A-Z.@]+')),
+            ('string', re.compile('"[^"]*?"')),
+            ('id', re.compile('''[-+_0-9a-z/A-Z@.]+''')),
             ('eol', re.compile(r'\n')),
             ('comment', re.compile(r'\#.*')),
             ('lparen', re.compile(r'\(')),
             ('rparen', re.compile(r'\)')),
-            ('string', re.compile('"[^"]*?"')),
             ('varexp', re.compile(r'\${[-_0-9a-z/A-Z.]+}')),
         ]
 
