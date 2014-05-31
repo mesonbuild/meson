@@ -50,11 +50,9 @@ class Lexer:
         col = 0
         while(loc < len(code)):
             matched = False
-            value = None
             for (tid, reg) in self.token_specification:
                 mo = reg.match(code, loc)
                 if mo:
-                    curline = lineno
                     col = mo.start()-line_start
                     matched = True
                     loc = mo.end()
@@ -71,6 +69,9 @@ class Lexer:
                         yield(Token('id', match_text))
                     elif tid == 'eol':
                         #yield('eol')
+                        lineno += 1
+                        col = 1
+                        line_start = mo.end()
                         pass
                     elif tid == 'varexp':
                         yield(Token('varexp', match_text[2:-1]))
@@ -78,7 +79,7 @@ class Lexer:
                         raise RuntimeError('Wharrgarbl')
                     break
             if not matched:
-                raise RuntimeError('Lexer got confused %d %d' % (lineno, col))
+                raise RuntimeError('Lexer got confused line %d column %d' % (lineno, col))
 
 class Parser():
     def __init__(self, code):
