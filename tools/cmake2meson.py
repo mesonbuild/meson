@@ -133,24 +133,40 @@ class Parser():
             yield(self.statement())
 
 class Converter:
+    ignored_funcs = {'cmake_minimum_required' : True}
     def __init__(self, cmake_root):
         self.cmake_root = cmake_root
         self.indent_unit = '  '
         self.indent_level = 0
 
     def write_entry(self, outfile, t):
+        if t.name in Converter.ignored_funcs:
+            return
+
         indent = self.indent_level*self.indent_unit
         if t.name == '_':
             line = t.args[0]
         elif t.name == 'add_subdirectory':
-            line = 'subdir(' + t.args[0].value + ')'
+            line = "subdir('" + t.args[0].value + "')"
         elif t.name == 'pkg_search_module' or t.name == 'pkg_search_modules':
             varname = t.args[0].value.lower()
-            mods = ['dependency(%s)' % i.value for i in t.args[1:]]
+            mods = ["dependency('%s')" % i.value for i in t.args[1:]]
             if len(mods) == 1:
                 line = '%s = %s' % (varname, mods[0])
             else:
-                line = '%s = [%s]' % (varname, ', '.join(mods))
+                line = '%s = [%s]' % (varname, ', '.join(["'%s'" % i for i in mods]))
+        elif t.name == 'find_package':
+            line = '%s_dep = dependency(%s)' % (t.args[0].value, t.args[0].value)
+        elif t.name == 'project':
+            pname = t.args[0].value
+            args = [pname]
+            for l in t.args[1:]:
+                l = l.value.lower()
+                if l == 'cxx':
+                    l = 'cpp'
+                args.append(l)
+            args = ["'%s'" % i for i in args]
+            line = 'project(' + ', '.join(args) + ')'
         else:
             line = '''# %s''' % t.name
         outfile.write(indent)
