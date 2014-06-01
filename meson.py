@@ -119,7 +119,7 @@ itself as required.'''
         env = environment.Environment(self.source_dir, self.build_dir, self.meson_script_file, options)
         mlog.initialize(env.get_log_dir())
         mlog.log(mlog.bold('The Meson build system'))
-        mlog.log(' version:', coredata.version)
+        mlog.log('Version:', coredata.version)
         mlog.log('Source dir:', mlog.bold(app.source_dir))
         mlog.log('Build dir:', mlog.bold(app.build_dir))
         if env.is_cross_build():
