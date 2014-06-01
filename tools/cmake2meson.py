@@ -35,7 +35,7 @@ class Lexer:
             # Need to be sorted longest to shortest.
             ('ignore', re.compile(r'[ \t]')),
             ('string', re.compile(r'"([^\\]|(\\.))*?"', re.M)),
-            ('id', re.compile('''[,-=+_0-9a-z/A-Z@.*]+''')),
+            ('id', re.compile('''[,-><${}=+_0-9a-z/A-Z@.*]+''')),
             ('eol', re.compile(r'\n')),
             ('comment', re.compile(r'\#.*')),
             ('lparen', re.compile(r'\(')),
@@ -106,12 +106,14 @@ class Parser():
         raise RuntimeError('Expecting %s got %s.' % (s, self.current.tid), self.current.lineno, self.current.colno)
 
     def statement(self):
-        name = self.current.value
+        cur = self.current
+        if self.accept('comment'):
+            return Statement('_', [cur.value])
         self.accept('id')
         self.expect('lparen')
         args = self.arguments()
         self.expect('rparen')
-        return Statement(name, args)
+        return Statement(cur.value, args)
 
     def arguments(self):
         args = []
@@ -133,6 +135,18 @@ class Parser():
 class Converter:
     def __init__(self, cmake_root):
         self.cmake_root = cmake_root
+        self.indent_unit = '  '
+
+    def write_entry(self, outfile, indent, t):
+        if t.name == '_':
+            outfile.writelines([indent, t.args[0], '\n'])
+        elif t.name == 'subdir':
+            outfile.writelines([indent, t.args[0], '\n'])
+        else:
+            self.unknown_command(outfile, indent, t)
+
+    def unknown_command(self, outfile, indent, t):
+        outfile.writelines([indent, '# ', t.name, '\n'])
 
     def convert(self, subdir=''):
         if subdir == '':
@@ -144,13 +158,15 @@ class Converter:
             print('\nWarning: No CMakeLists.txt in', subdir, '\n')
             return
         p = Parser(cmakecode)
+        outfile = open(os.path.join(subdir, 'meson.build'), 'w')
+        indent_depth = 0
         for t in p.parse():
+            indent = self.indent_unit*indent_depth
             if t.name == 'add_subdirectory':
-                print('\nRecursing to subdir', os.path.join(self.cmake_root, t.args[0].value), '\n')
+                #print('\nRecursing to subdir', os.path.join(self.cmake_root, t.args[0].value), '\n')
                 self.convert(os.path.join(subdir, t.args[0].value))
-                print('\nReturning to', self.cmake_root, '\n')
-            else:
-                print(t.name, t.args)
+                #print('\nReturning to', self.cmake_root, '\n')
+            self.write_entry(outfile, indent, t)
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
