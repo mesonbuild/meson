@@ -57,8 +57,10 @@ class Lexer:
                     matched = True
                     loc = mo.end()
                     match_text = mo.group()
-                    if tid == 'ignore' or tid == 'comment':
-                        pass
+                    if tid == 'ignore':
+                        continue
+                    if tid == 'comment':
+                        yield(Token('comment', match_text))
                     elif tid == 'lparen':
                         yield(Token('lparen', '('))
                     elif tid == 'rparen':
@@ -128,28 +130,35 @@ class Parser():
         while not self.accept('eof'):
             yield(self.statement())
 
-def convert(cmake_root):
-    cfile = os.path.join(cmake_root, 'CMakeLists.txt')
-    try:
-        cmakecode = open(cfile).read()
-    except FileNotFoundError:
-        print('\nWarning: No CMakeLists.txt in', cmake_root, '\n')
-        return
-    p = Parser(cmakecode)
-    for t in p.parse():
-        if t.name == 'add_subdirectory':
-            print('\nRecursing to subdir', os.path.join(cmake_root, t.args[0].value), '\n')
-            convert(os.path.join(cmake_root, t.args[0].value))
-            print('\nReturning to', cmake_root, '\n')
-        else:
-            print(t.name, t.args)
+class Converter:
+    def __init__(self, cmake_root):
+        self.cmake_root = cmake_root
+
+    def convert(self, subdir=''):
+        if subdir == '':
+            subdir = self.cmake_root
+        cfile = os.path.join(subdir, 'CMakeLists.txt')
+        try:
+            cmakecode = open(cfile).read()
+        except FileNotFoundError:
+            print('\nWarning: No CMakeLists.txt in', subdir, '\n')
+            return
+        p = Parser(cmakecode)
+        for t in p.parse():
+            if t.name == 'add_subdirectory':
+                print('\nRecursing to subdir', os.path.join(self.cmake_root, t.args[0].value), '\n')
+                self.convert(os.path.join(subdir, t.args[0].value))
+                print('\nReturning to', self.cmake_root, '\n')
+            else:
+                print(t.name, t.args)
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
         print(sys.argv[0], '<CMake project root>')
         sys.exit(1)
     try:
-        convert(sys.argv[1])
+        c = Converter(sys.argv[1])
+        c.convert()
     except Exception as e:
         print('Error:', e)
         sys.exit(1)
