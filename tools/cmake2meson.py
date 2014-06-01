@@ -116,7 +116,7 @@ class Parser():
         if self.accept('lparen'):
             args.append(self.arguments())
             self.expect('rparen')
-        arg = self.current.value
+        arg = self.current
         if self.accept('string') or self.accept('varexp') or\
         self.accept('id'):
             args.append(arg)
@@ -138,8 +138,8 @@ def convert(cmake_root):
     p = Parser(cmakecode)
     for t in p.parse():
         if t.name == 'add_subdirectory':
-            print('\nRecursing to subdir', os.path.join(cmake_root, t.args[0]), '\n')
-            convert(os.path.join(cmake_root, t.args[0]))
+            print('\nRecursing to subdir', os.path.join(cmake_root, t.args[0].value), '\n')
+            convert(os.path.join(cmake_root, t.args[0].value))
             print('\nReturning to', cmake_root, '\n')
         else:
             print(t.name, t.args)
