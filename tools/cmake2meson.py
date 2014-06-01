@@ -136,17 +136,27 @@ class Converter:
     def __init__(self, cmake_root):
         self.cmake_root = cmake_root
         self.indent_unit = '  '
+        self.indent_level = 0
 
-    def write_entry(self, outfile, indent, t):
+    def write_entry(self, outfile, t):
+        indent = self.indent_level*self.indent_unit
         if t.name == '_':
-            outfile.writelines([indent, t.args[0], '\n'])
-        elif t.name == 'subdir':
-            outfile.writelines([indent, t.args[0], '\n'])
+            line = t.args[0]
+        elif t.name == 'add_subdirectory':
+            line = 'subdir(' + t.args[0].value + ')'
+        elif t.name == 'pkg_search_module' or t.name == 'pkg_search_modules':
+            varname = t.args[0].value.lower()
+            mods = ['dependency(%s)' % i.value for i in t.args[1:]]
+            if len(mods) == 1:
+                line = '%s = %s' % (varname, mods[0])
+            else:
+                line = '%s = [%s]' % (varname, ', '.join(mods))
         else:
-            self.unknown_command(outfile, indent, t)
-
-    def unknown_command(self, outfile, indent, t):
-        outfile.writelines([indent, '# ', t.name, '\n'])
+            line = '''# %s''' % t.name
+        outfile.write(indent)
+        outfile.write(line)
+        if not(line.endswith('\n')):
+            outfile.write('\n')
 
     def convert(self, subdir=''):
         if subdir == '':
@@ -159,22 +169,16 @@ class Converter:
             return
         p = Parser(cmakecode)
         outfile = open(os.path.join(subdir, 'meson.build'), 'w')
-        indent_depth = 0
         for t in p.parse():
-            indent = self.indent_unit*indent_depth
             if t.name == 'add_subdirectory':
                 #print('\nRecursing to subdir', os.path.join(self.cmake_root, t.args[0].value), '\n')
                 self.convert(os.path.join(subdir, t.args[0].value))
                 #print('\nReturning to', self.cmake_root, '\n')
-            self.write_entry(outfile, indent, t)
+            self.write_entry(outfile, t)
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
         print(sys.argv[0], '<CMake project root>')
         sys.exit(1)
-    try:
-        c = Converter(sys.argv[1])
-        c.convert()
-    except Exception as e:
-        print('Error:', e)
-        sys.exit(1)
+    c = Converter(sys.argv[1])
+    c.convert()
