@@ -35,7 +35,7 @@ class Lexer:
             # Need to be sorted longest to shortest.
             ('ignore', re.compile(r'[ \t]')),
             ('string', re.compile(r'"([^\\]|(\\.))*?"', re.M)),
-            ('id', re.compile('''[-=+_0-9a-z/A-Z@.*]+''')),
+            ('id', re.compile('''[,-=+_0-9a-z/A-Z@.*]+''')),
             ('eol', re.compile(r'\n')),
             ('comment', re.compile(r'\#.*')),
             ('lparen', re.compile(r'\(')),
@@ -113,16 +113,15 @@ class Parser():
 
     def arguments(self):
         args = []
-        arg = self.current.value
         if self.accept('lparen'):
             args.append(self.arguments())
             self.expect('rparen')
+        arg = self.current.value
         if self.accept('string') or self.accept('varexp') or\
         self.accept('id'):
             args.append(arg)
             rest = self.arguments()
-            if len(rest) > 0:
-                args.append(rest)
+            args += rest
         return args
 
     def parse(self):
