@@ -34,8 +34,8 @@ class Lexer:
         self.token_specification = [
             # Need to be sorted longest to shortest.
             ('ignore', re.compile(r'[ \t]')),
-            ('string', re.compile('"[^"]*?"')),
-            ('id', re.compile('''[-+_0-9a-z/A-Z@.]+''')),
+            ('string', re.compile(r'"([^\\]|(\\.))*?"', re.M)),
+            ('id', re.compile('''[-=+_0-9a-z/A-Z@.*]+''')),
             ('eol', re.compile(r'\n')),
             ('comment', re.compile(r'\#.*')),
             ('lparen', re.compile(r'\(')),
@@ -106,15 +106,24 @@ class Parser():
     def statement(self):
         name = self.current.value
         self.accept('id')
-        args = []
         self.expect('lparen')
-        arg = self.current.value
-        while self.accept('string') or self.accept('varexp') or\
-        self.accept('id'):
-            args.append(arg)
-            arg = self.current.value
+        args = self.arguments()
         self.expect('rparen')
         return Statement(name, args)
+
+    def arguments(self):
+        args = []
+        arg = self.current.value
+        if self.accept('lparen'):
+            args.append(self.arguments())
+            self.expect('rparen')
+        if self.accept('string') or self.accept('varexp') or\
+        self.accept('id'):
+            args.append(arg)
+            rest = self.arguments()
+            if len(rest) > 0:
+                args.append(rest)
+        return args
 
     def parse(self):
         while not self.accept('eof'):
@@ -122,12 +131,17 @@ class Parser():
 
 def convert(cmake_root):
     cfile = os.path.join(cmake_root, 'CMakeLists.txt')
-    cmakecode = open(cfile).read()
+    try:
+        cmakecode = open(cfile).read()
+    except FileNotFoundError:
+        print('\nWarning: No CMakeLists.txt in', cmake_root, '\n')
+        return
     p = Parser(cmakecode)
     for t in p.parse():
         if t.name == 'add_subdirectory':
-            print('\nRecursing to subdir', t.args[0], '\n')
+            print('\nRecursing to subdir', os.path.join(cmake_root, t.args[0]), '\n')
             convert(os.path.join(cmake_root, t.args[0]))
+            print('\nReturning to', cmake_root, '\n')
         else:
             print(t.name, t.args)
 
