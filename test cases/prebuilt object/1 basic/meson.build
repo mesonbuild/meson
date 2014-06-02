@@ -26,9 +26,9 @@ elif host.name() == 'freebsd'
 elif host.name() == 'windows'
   id = meson.get_compiler('c').get_id()
   if id == 'gcc'
-    object = 'mingw.obj'
+    object = 'mingw-i386.obj'
   elif id == 'msvc'
-    object = 'msvc.obj'
+    object = 'msvc-i386.obj'
   else
     error('Unknown compiler.')
   endif
