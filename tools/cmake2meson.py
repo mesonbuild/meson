@@ -162,8 +162,8 @@ class Converter:
     def write_entry(self, outfile, t):
         if t.name in Converter.ignored_funcs:
             return
-
-        indent = self.indent_level*self.indent_unit
+        preincrement = 0
+        postincrement = 0
         if t.name == '_':
             line = t.args[0]
         elif t.name == 'add_subdirectory':
@@ -190,12 +190,29 @@ class Converter:
         elif t.name == 'set':
             varname = t.args[0].value.lower()
             line = '%s = %s\n' % (varname, self.convert_args(t.args[1:]))
+        elif t.name == 'if':
+            postincrement = 1
+            line = 'if %s' % self.convert_args(t.args)
+        elif t.name == 'elseif':
+            preincrement = -1
+            postincrement = 1
+            line = 'elif %s' % self.convert_args(t.args)
+        elif t.name == 'else':
+            preincrement = -1
+            postincrement = 1
+            line = 'else'
+        elif t.name == 'endif':
+            preincrement = -1
+            line = 'endif'
         else:
-            line = '''# %s''' % t.name
+            line = '''# %s(%s)''' % (t.name, self.convert_args(t.args))
+        self.indent_level += preincrement
+        indent = self.indent_level*self.indent_unit
         outfile.write(indent)
         outfile.write(line)
         if not(line.endswith('\n')):
             outfile.write('\n')
+        self.indent_level += postincrement
 
     def convert(self, subdir=''):
         if subdir == '':
