@@ -35,12 +35,12 @@ class Lexer:
             # Need to be sorted longest to shortest.
             ('ignore', re.compile(r'[ \t]')),
             ('string', re.compile(r'"([^\\]|(\\.))*?"', re.M)),
+            ('varexp', re.compile(r'\${[-_0-9a-z/A-Z.]+}')),
             ('id', re.compile('''[,-><${}=+_0-9a-z/A-Z@.*]+''')),
             ('eol', re.compile(r'\n')),
             ('comment', re.compile(r'\#.*')),
             ('lparen', re.compile(r'\(')),
             ('rparen', re.compile(r'\)')),
-            ('varexp', re.compile(r'\${[-_0-9a-z/A-Z.]+}')),
         ]
 
     def lex(self, code):
@@ -133,11 +133,31 @@ class Parser():
             yield(self.statement())
 
 class Converter:
-    ignored_funcs = {'cmake_minimum_required' : True}
+    ignored_funcs = {'cmake_minimum_required' : True,
+                     'enable_testing' : True,
+                     'include' : True}
     def __init__(self, cmake_root):
         self.cmake_root = cmake_root
         self.indent_unit = '  '
         self.indent_level = 0
+
+    def convert_args(self, args):
+        res = []
+        for i in args:
+            if i.tid == 'id':
+                res.append("'%s'" % i.value)
+            elif i.tid == 'varexp':
+                res.append('%s' % i.value)
+            elif i.tid == 'string':
+                res.append("'%s'" % i.value)
+            else:
+                print(i)
+                raise RuntimeError('Unknown arg type.')
+        if len(res) > 1:
+            return '[' + ', '.join(res) + ']'
+        if len(res) == 1:
+            return res[0]
+        return ''
 
     def write_entry(self, outfile, t):
         if t.name in Converter.ignored_funcs:
@@ -167,6 +187,9 @@ class Converter:
                 args.append(l)
             args = ["'%s'" % i for i in args]
             line = 'project(' + ', '.join(args) + ')'
+        elif t.name == 'set':
+            varname = t.args[0].value.lower()
+            line = '%s = %s\n' % (varname, self.convert_args(t.args[1:]))
         else:
             line = '''# %s''' % t.name
         outfile.write(indent)
