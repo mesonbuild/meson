@@ -141,8 +141,14 @@ class Converter:
         self.indent_unit = '  '
         self.indent_level = 0
 
-    def convert_args(self, args):
+    def convert_args(self, args, as_array=True):
         res = []
+        if as_array:
+            start = '['
+            end = ']'
+        else:
+            start = ''
+            end = ''
         for i in args:
             if i.tid == 'id':
                 res.append("'%s'" % i.value)
@@ -154,7 +160,7 @@ class Converter:
                 print(i)
                 raise RuntimeError('Unknown arg type.')
         if len(res) > 1:
-            return '[' + ', '.join(res) + ']'
+            return start + ', '.join(res) + end
         if len(res) == 1:
             return res[0]
         return ''
@@ -176,7 +182,9 @@ class Converter:
             else:
                 line = '%s = [%s]' % (varname, ', '.join(["'%s'" % i for i in mods]))
         elif t.name == 'find_package':
-            line = '%s_dep = dependency(%s)' % (t.args[0].value, t.args[0].value)
+            line = "%s_dep = dependency('%s')" % (t.args[0].value, t.args[0].value)
+        elif t.name == 'find_library':
+            line = "%s = find_library('%s')" % (t.args[0].value.lower(), t.args[0].value)
         elif t.name == 'project':
             pname = t.args[0].value
             args = [pname]
@@ -192,11 +200,11 @@ class Converter:
             line = '%s = %s\n' % (varname, self.convert_args(t.args[1:]))
         elif t.name == 'if':
             postincrement = 1
-            line = 'if %s' % self.convert_args(t.args)
+            line = 'if %s' % self.convert_args(t.args, False)
         elif t.name == 'elseif':
             preincrement = -1
             postincrement = 1
-            line = 'elif %s' % self.convert_args(t.args)
+            line = 'elif %s' % self.convert_args(t.args, False)
         elif t.name == 'else':
             preincrement = -1
             postincrement = 1
