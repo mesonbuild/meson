@@ -140,6 +140,7 @@ class Converter:
         self.cmake_root = cmake_root
         self.indent_unit = '  '
         self.indent_level = 0
+        self.options = []
 
     def convert_args(self, args, as_array=True):
         res = []
@@ -185,6 +186,15 @@ class Converter:
             line = "%s_dep = dependency('%s')" % (t.args[0].value, t.args[0].value)
         elif t.name == 'find_library':
             line = "%s = find_library('%s')" % (t.args[0].value.lower(), t.args[0].value)
+        elif t.name == 'option':
+            optname = t.args[0].value
+            description = t.args[1].value
+            if len(t.args) > 2:
+                default = t.args[2].value
+            else:
+                default = None
+            self.options.append((optname, description, default))
+            return
         elif t.name == 'project':
             pname = t.args[0].value
             args = [pname]
@@ -239,6 +249,27 @@ class Converter:
                 self.convert(os.path.join(subdir, t.args[0].value))
                 #print('\nReturning to', self.cmake_root, '\n')
             self.write_entry(outfile, t)
+        if subdir == self.cmake_root and len(self.options) > 0:
+            self.write_options()
+
+    def write_options(self):
+        optfile = open(os.path.join(self.cmake_root, 'meson_options.txt'), 'w')
+        for o in self.options:
+            (optname, description, default) = o
+            if default is None:
+                defaultstr = ''
+            else:
+                if default == 'OFF':
+                    typestr = ' type : boolean,'
+                    default = 'false'
+                elif default == 'ON':
+                    default = 'true'
+                    typestr = ' type : boolean,'
+                else:
+                    typestr = ' type : string,'
+                defaultstr = ' value : %s,' % default
+            line = "option(%s,%s%s description : '%s')\n" % (optname, typestr, defaultstr, description)
+            optfile.write(line)
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
