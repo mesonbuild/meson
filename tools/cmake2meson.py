@@ -186,6 +186,8 @@ class Converter:
             line = "%s_dep = dependency('%s')" % (t.args[0].value, t.args[0].value)
         elif t.name == 'find_library':
             line = "%s = find_library('%s')" % (t.args[0].value.lower(), t.args[0].value)
+        elif t.name == 'add_executable':
+            line = '%s_exe = executable(%s)' % (t.args[0].value, self.convert_args(t.args, False))
         elif t.name == 'option':
             optname = t.args[0].value
             description = t.args[1].value
