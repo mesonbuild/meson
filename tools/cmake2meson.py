@@ -188,6 +188,17 @@ class Converter:
             line = "%s = find_library('%s')" % (t.args[0].value.lower(), t.args[0].value)
         elif t.name == 'add_executable':
             line = '%s_exe = executable(%s)' % (t.args[0].value, self.convert_args(t.args, False))
+        elif t.name == 'add_library':
+            if t.args[1].value == 'SHARED':
+                libcmd = 'shared_library'
+                args = [t.args[0]] + t.args[2:]
+            elif t.args[1].value == 'STATIC':
+                libcmd = 'static_library'
+                args = [t.args[0]] + t.args[2:]
+            else:
+                libcmd = 'static_library'
+                args = t.args
+            line = '%s_lib = %s(%s)' % (t.args[0].value, libcmd, self.convert_args(args, False))
         elif t.name == 'option':
             optname = t.args[0].value
             description = t.args[1].value
