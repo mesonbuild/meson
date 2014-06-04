@@ -599,7 +599,10 @@ class CustomTarget:
                 final_cmd.append(c.get_command())
             elif isinstance(c, BuildTarget) or isinstance(c, CustomTarget):
                 self.dependencies.append(c)
-                final_cmd.append(os.path.join(c.get_subdir(), c.get_filename()))
+                # GIR scanner will attempt to execute this binary but
+                # it assumes that it is in path, so always give it a full path.
+                totarget = os.path.join('.', c.get_subdir(), c.get_filename())
+                final_cmd.append(totarget)
             elif isinstance(c, list):
                 # Hackety hack, only supports one level of flattening. Should really
                 # work to arbtrary depth.
