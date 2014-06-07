@@ -320,7 +320,7 @@ class Backend():
         commands = []
         commands += compiler.get_always_flags()
         commands += self.build.get_global_flags(compiler)
-        commands += self.build.get_external_args(compiler)
+        commands += self.environment.coredata.external_args[compiler.get_language()]
         commands += target.get_extra_args(compiler.get_language())
         if self.environment.coredata.buildtype != 'plain':
             commands += compiler.get_debug_flags()

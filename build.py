@@ -33,8 +33,6 @@ class Build:
         self.compilers = []
         self.cross_compilers = []
         self.global_args = {}
-        self.external_args = {} # These are set from "the outside" with e.g. mesonconf
-        self.external_link_args = {}
         self.tests = []
         self.headers = []
         self.man = []
@@ -60,25 +58,6 @@ class Build:
         if self.has_language(compiler.get_language()):
             return
         self.compilers.append(compiler)
-        self.get_flags_from_envvars(compiler)
-
-    def get_flags_from_envvars(self, compiler):
-        lang = compiler.get_language()
-        if lang == 'c':
-            compile_flags = os.environ.get('CFLAGS', '').split()
-            compile_flags += os.environ.get('CPPFLAGS', '').split()
-            link_flags = compile_flags + os.environ.get('LDFLAGS', '').split()
-        elif lang == 'cpp':
-            compile_flags = os.environ.get('CXXFLAGS', '').split()
-            compile_flags += os.environ.get('CPPFLAGS', '').split()
-            link_flags = compile_flags + os.environ.get('LDFLAGS', '').split()
-        else:
-            compile_flags = []
-            link_flags = []
-        if len(compile_flags) > 0:
-            self.external_args[lang] = compile_flags
-        if len(link_flags) > 0:
-            self.external_link_args[lang] = link_flags
 
     def add_cross_compiler(self, compiler):
         if len(self.cross_compilers) == 0:

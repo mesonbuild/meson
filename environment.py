@@ -1449,6 +1449,20 @@ def get_library_dirs():
         unixdirs.append('/usr/local/lib')
         return unixdirs
 
+def get_flags_from_envvars(lang):
+    if lang == 'c':
+        compile_flags = os.environ.get('CFLAGS', '').split()
+        compile_flags += os.environ.get('CPPFLAGS', '').split()
+        link_flags = compile_flags + os.environ.get('LDFLAGS', '').split()
+    elif lang == 'cpp':
+        compile_flags = os.environ.get('CXXFLAGS', '').split()
+        compile_flags += os.environ.get('CPPFLAGS', '').split()
+        link_flags = compile_flags + os.environ.get('LDFLAGS', '').split()
+    else:
+        compile_flags = []
+        link_flags = []
+    return (compile_flags, link_flags)
+
 class CrossBuildInfo():
     def __init__(self, filename):
         self.items = {}

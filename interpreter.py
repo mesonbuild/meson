@@ -955,6 +955,11 @@ class Interpreter():
                 if cross_comp is not None:
                     self.coredata.cross_compilers[lang] = cross_comp
             mlog.log('Using native %s compiler "' % lang, mlog.bold(' '.join(comp.get_exelist())), '". (%s %s)' % (comp.id, comp.version), sep='')
+            if not comp.get_language() in self.coredata.external_args:
+                print('getting from envvars')
+                (ext_compile_flags, ext_link_flags) = environment.get_flags_from_envvars(comp.get_language())
+                self.coredata.external_args[comp.get_language()] = ext_compile_flags
+                self.coredata.external_link_args[comp.get_language()] = ext_link_flags
             self.build.add_compiler(comp)
             if is_cross:
                 mlog.log('Using cross %s compiler "' % lang, mlog.bold(' '.join(cross_comp.get_exelist())), '". (%s %s)' % (cross_comp.id, cross_comp.version), sep='')

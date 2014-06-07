@@ -47,6 +47,9 @@ class Conf:
     def save(self):
         # Only called if something has changed so overwrite unconditionally.
         pickle.dump(self.coredata, open(self.coredata_file, 'wb'))
+        # We don't write the build file because any changes to it
+        # are erased when Meson is executed the nex time, i.e. the next
+        # time Ninja is run.
 
     def print_aligned(self, arr):
         if len(arr) == 0:
@@ -115,9 +118,7 @@ class Conf:
                 if os.path.isabs(v):
                     raise ConfException('Locale dir %s must not be an absolute path.' % v)
                 self.coredata.localedir = v
-            else:
-                if k not in self.coredata.user_options:
-                    raise ConfException('Unknown option %s.' % k)
+            elif k in self.coredata.user_options:
                 tgt = self.coredata.user_options[k]
                 if isinstance(tgt, optinterpreter.UserBooleanOption):
                     tgt.set_value(self.tobool(v))
@@ -131,6 +132,24 @@ class Conf:
                     tgt.set_value(v)
                 else:
                     raise ConfException('Internal error, unknown option type.')
+            elif k.endswith('linkflags'):
+                lang = k[:-9]
+                if not lang in self.coredata.external_link_args:
+                    raise ConfException('Unknown language %s in linkflags.' % lang)
+                # TODO, currently split on spaces, make it so that user
+                # can pass in an array string.
+                newvalue = v.split()
+                self.coredata.external_link_args[lang] = newvalue
+            elif k.endswith('flags'):
+                lang = k[:-5]
+                if not lang in self.coredata.external_args:
+                    raise ConfException('Unknown language %s in compile flags' % lang)
+                # TODO same fix as above
+                newvalue = v.split()
+                self.coredata.external_args[lang] = newvalue
+            else:
+                raise ConfException('Unknown option %s.' % k)
+
 
     def print_conf(self):
         print('Core properties\n')
@@ -146,6 +165,14 @@ class Conf:
         carr.append(['unity', 'Unity build', self.coredata.unity])
         self.print_aligned(carr)
         print('')
+        print('Compiler flags\n')
+        for (lang, flags) in self.coredata.external_args.items():
+            print(lang + 'flags', str(flags))
+        print('')
+        print('Linker flags\n')
+        for (lang, flags) in self.coredata.external_link_args.items():
+            print(lang + 'linkflags', str(flags))
+        print('')
         print('Directories\n')
         parr = []
         parr.append(['installprefix', 'Install prefix', self.coredata.prefix])
@@ -157,15 +184,18 @@ class Conf:
         parr.append(['localedir', 'Locale file directory', self.coredata.localedir])
         self.print_aligned(parr)
         print('')
-        print('Project options\n')
-        options = self.coredata.user_options
-        keys = list(options.keys())
-        keys.sort()
-        optarr = []
-        for key in keys:
-            opt = options[key]
-            optarr.append([key, opt.description, opt.value])
-        self.print_aligned(optarr)
+        if len(self.coredata.user_options) == 0:
+            print('This project does not have any options')
+        else:
+            print('Project options\n')
+            options = self.coredata.user_options
+            keys = list(options.keys())
+            keys.sort()
+            optarr = []
+            for key in keys:
+                opt = options[key]
+                optarr.append([key, opt.description, opt.value])
+            self.print_aligned(optarr)
 
 if __name__ == '__main__':
     (options, args) = parser.parse_args(sys.argv)

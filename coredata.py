@@ -41,6 +41,8 @@ class CoreData():
         self.unity = options.unity
         self.coverage = options.coverage
         self.user_options = {}
+        self.external_args = {} # These are set from "the outside" with e.g. mesonconf
+        self.external_link_args = {}
         if options.cross_file is not None:
             self.cross_file = os.path.join(os.getcwd(), options.cross_file)
         else:

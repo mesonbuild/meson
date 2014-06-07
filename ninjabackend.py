@@ -817,7 +817,7 @@ class NinjaBackend(backends.Backend):
         commands += linker.get_linker_always_flags()
         commands += linker.get_buildtype_linker_flags(self.environment.coredata.buildtype)
         if not(isinstance(target, build.StaticLibrary)):
-            commands += self.build.get_external_link_args(linker)
+            commands += self.environment.coredata.external_link_args[linker.get_language()]
         if isinstance(target, build.Executable):
             commands += linker.get_std_exe_link_flags()
         elif isinstance(target, build.SharedLibrary):
