@@ -33,6 +33,8 @@ class Build:
         self.compilers = []
         self.cross_compilers = []
         self.global_args = {}
+        self.external_args = {} # These are set from "the outside" with e.g. mesonconf
+        self.external_link_args = {}
         self.tests = []
         self.headers = []
         self.man = []
@@ -51,12 +53,32 @@ class Build:
         return False
 
     def add_compiler(self, compiler):
-        if self.static_linker is None and compiler.get_language() != 'java'\
-        and compiler.get_language() != 'vala':
+        lang = compiler.get_language()
+        if self.static_linker is None and lang != 'java'\
+        and lang != 'vala':
             self.static_linker = self.environment.detect_static_linker(compiler)
         if self.has_language(compiler.get_language()):
             return
         self.compilers.append(compiler)
+        self.get_flags_from_envvars(compiler)
+
+    def get_flags_from_envvars(self, compiler):
+        lang = compiler.get_language()
+        if lang == 'c':
+            compile_flags = os.environ.get('CFLAGS', '').split()
+            compile_flags += os.environ.get('CPPFLAGS', '').split()
+            link_flags = compile_flags + os.environ.get('LDFLAGS', '').split()
+        elif lang == 'cpp':
+            compile_flags = os.environ.get('CXXFLAGS', '').split()
+            compile_flags += os.environ.get('CPPFLAGS', '').split()
+            link_flags = compile_flags + os.environ.get('LDFLAGS', '').split()
+        else:
+            compile_flags = []
+            link_flags = []
+        if len(compile_flags) > 0:
+            self.external_args[lang] = compile_flags
+        if len(link_flags) > 0:
+            self.external_link_args[lang] = link_flags
 
     def add_cross_compiler(self, compiler):
         if len(self.cross_compilers) == 0:
@@ -89,6 +111,12 @@ class Build:
 
     def get_global_flags(self, compiler):
         return self.global_args.get(compiler.get_language(), [])
+
+    def get_external_args(self, compiler):
+        return self.external_args.get(compiler.get_language(), [])
+
+    def get_external_link_args(self, compiler):
+        return self.external_link_args.get(compiler.get_language(), [])
 
 class IncludeDirs():
     def __init__(self, curdir, dirs, kwargs):

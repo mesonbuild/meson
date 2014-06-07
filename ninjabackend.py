@@ -816,6 +816,8 @@ class NinjaBackend(backends.Backend):
         commands = []
         commands += linker.get_linker_always_flags()
         commands += linker.get_buildtype_linker_flags(self.environment.coredata.buildtype)
+        if not(isinstance(target, build.StaticLibrary)):
+            commands += self.build.get_external_link_args(linker)
         if isinstance(target, build.Executable):
             commands += linker.get_std_exe_link_flags()
         elif isinstance(target, build.SharedLibrary):
@@ -830,8 +832,9 @@ class NinjaBackend(backends.Backend):
         commands += self.build_target_link_arguments(linker, dependencies)
         commands += target.link_flags
         # External deps must be last because target link libraries may depend on them.
-        for dep in target.get_external_deps():
-            commands += dep.get_link_flags()
+        if not(isinstance(target, build.StaticLibrary)):
+            for dep in target.get_external_deps():
+                commands += dep.get_link_flags()
         commands += linker.build_rpath_args(self.environment.get_build_dir(), target.get_rpaths())
         if self.environment.coredata.coverage:
             commands += linker.get_coverage_link_flags()
