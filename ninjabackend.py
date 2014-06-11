@@ -153,6 +153,16 @@ class NinjaBackend(backends.Backend):
         elem.write(outfile)
         self.processed_targets[target.name] = True
 
+    def generate_run_target(self, target, outfile):
+        runnerscript = os.path.join(self.environment.get_script_dir(), 'commandrunner.py')
+        elem = NinjaBuildElement(target.name, 'CUSTOM_COMMAND', [])
+        cmd = [sys.executable, runnerscript, self.environment.get_source_dir(), self.environment.get_build_dir(),
+               target.subdir, target.command] + target.args
+        elem.add_item('COMMAND', cmd)
+        elem.add_item('description', 'Running external command %s.' % target.name)
+        elem.write(outfile)
+        self.processed_targets[target.name] = True
+
     def generate_po(self, outfile):
         for p in self.build.pot:
             (packagename, languages, subdir) = p

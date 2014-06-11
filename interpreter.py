@@ -383,6 +383,10 @@ class CustomTargetHolder(InterpreterObject):
         gobjs = self.held_object.extract_objects(args)
         return GeneratedObjectsHolder(gobjs)
 
+class RunTargetHolder(InterpreterObject):
+    def __init__(self, name, command, args, subdir):
+        self.held_object = build.RunTarget(name, command, args, subdir)
+
 class Test(InterpreterObject):
     def __init__(self, name, exe, is_parallel, cmd_args, env):
         InterpreterObject.__init__(self)
@@ -659,6 +663,7 @@ class Interpreter():
                       'shared_library' : self.func_shared_lib,
                       'jar' : self.func_jar,
                       'custom_target' : self.func_custom_target,
+                      'run_target' : self.func_run_target,
                       'generator' : self.func_generator,
                       'test' : self.func_test,
                       'headers' : self.func_headers,
@@ -956,7 +961,6 @@ class Interpreter():
                     self.coredata.cross_compilers[lang] = cross_comp
             mlog.log('Using native %s compiler "' % lang, mlog.bold(' '.join(comp.get_exelist())), '". (%s %s)' % (comp.id, comp.version), sep='')
             if not comp.get_language() in self.coredata.external_args:
-                print('getting from envvars')
                 (ext_compile_flags, ext_link_flags) = environment.get_flags_from_envvars(comp.get_language())
                 self.coredata.external_args[comp.get_language()] = ext_compile_flags
                 self.coredata.external_link_args[comp.get_language()] = ext_link_flags
@@ -1024,7 +1028,7 @@ class Interpreter():
 
     def func_jar(self, node, args, kwargs):
         return self.build_target(node, args, kwargs, JarHolder)
-    
+
     def func_custom_target(self, node, args, kwargs):
         if len(args) != 1:
             raise InterpreterException('Incorrect number of arguments')
@@ -1037,6 +1041,24 @@ class Interpreter():
         if name in self.build.targets:
             raise InvalidCode('Tried to create target "%s", but a target of that name already exists.' % name)
         tg = CustomTargetHolder(name, self.subdir, kwargs)
+        self.build.targets[name] = tg.held_object
+        return tg
+
+    def func_run_target(self, node, args, kwargs):
+        if len(args) < 2:
+            raise InterpreterException('Incorrect number of arguments')
+        for i in args:
+            if not isinstance(i, str):
+                raise InvalidArguments('Argument is not a string')
+        name = args[0]
+        if name in coredata.forbidden_target_names:
+            raise InvalidArguments('Target name "%s" is reserved for Meson\'s internal use. Please rename.'\
+                                   % name)
+        if name in self.build.targets:
+            raise InvalidCode('Tried to create target "%s", but a target of that name already exists.' % name)
+        command = args[1]
+        cmd_args = args[2:]
+        tg = RunTargetHolder(name, command, cmd_args, self.subdir)
         self.build.targets[name] = tg.held_object
         return tg
 

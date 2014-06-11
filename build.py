@@ -659,6 +659,30 @@ class CustomTarget:
     def get_generated_sources(self):
         return []
 
+class RunTarget:
+    def __init__(self, name, command, args, subdir):
+        self.name = name
+        self.command = command
+        self.args = args
+        self.subdir = subdir
+
+    def get_basename(self):
+        return self.name
+
+    def get_dependencies(self):
+        return []
+
+    def get_generated_sources(self):
+        return []
+
+    def get_subdir(self):
+        return self.subdir
+
+    def should_install(self):
+        return False
+
+    def get_filename(self):
+        return self.name
 class Jar(BuildTarget):
     def __init__(self, name, subdir, is_cross, sources, objects, environment, kwargs):
         super().__init__(name, subdir, is_cross, sources, objects, environment, kwargs);
