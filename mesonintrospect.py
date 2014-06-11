@@ -52,6 +52,8 @@ def list_targets(coredata, builddata):
             typename = 'static library'
         elif isinstance(target, build.CustomTarget):
             typename = 'custom'
+        elif isinstance(target, build.RunTarget):
+            typename = 'run'
         else:
             typename = 'unknown'
         t['type'] = typename
