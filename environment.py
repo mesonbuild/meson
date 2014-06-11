@@ -973,12 +973,6 @@ def find_valgrind():
         valgrind_exe = None
     return valgrind_exe
 
-def find_cppcheck():
-    cppcheck_exe = 'cppcheck'
-    if not exe_exists([cppcheck_exe, '-h']):
-        cppcheck_exe = None
-    return cppcheck_exe
-
 def is_osx():
     return platform.system().lower() == 'darwin'
 

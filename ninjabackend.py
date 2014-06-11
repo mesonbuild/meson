@@ -933,15 +933,6 @@ class NinjaBackend(backends.Backend):
                     src_deps.append(infilename)
         return (src_deps, other_deps)
 
-    def generate_cppcheck_target(self, outfile):
-        cppcheck_exe = environment.find_cppcheck()
-        if not cppcheck_exe:
-            return
-        elem = NinjaBuildElement('cppcheck', 'CUSTOM_COMMAND', [])
-        elem.add_item('COMMAND', [cppcheck_exe, self.environment.get_source_dir()])
-        elem.add_item('description', 'Running cppchecker')
-        elem.write(outfile)
-
     def generate_ending(self, outfile):
         targetlist = [self.get_target_filename(t) for t in self.build.get_targets().values()]
         elem = NinjaBuildElement('all', 'phony', targetlist)
@@ -979,5 +970,3 @@ class NinjaBackend(backends.Backend):
 
         elem = NinjaBuildElement(deps, 'phony', '')
         elem.write(outfile)
-
-        self.generate_cppcheck_target(outfile)
