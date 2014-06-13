@@ -26,7 +26,7 @@ class Converter():
         while line != '':
             line = line.rstrip()
             while line.endswith('\\'):
-                line = line[:-1] + file.readline.rstrip()
+                line = line[:-1] + file.readline().rstrip()
             yield line
             line = file.readline()
 
@@ -37,8 +37,20 @@ class Converter():
             ifile = open(os.path.join(subdir, 'Makefile.am'))
         except FileNotFoundError:
             print('Makefile.am not found in subdir', subdir)
+        ofile = open(os.path.join(subdir, 'meson.build'), 'w')
         for line in self.readlines(ifile):
-            print(line)
+            items = line.strip().split()
+            if len(items) == 0:
+                ofile.write('\n')
+                continue
+            if items[0] == 'SUBDIRS':
+                for i in items[2:]:
+                    if i != '.':
+                        ofile.write("subdir('%s')\n" % i)
+                        self.convert(os.path.join(subdir, i))
+            else:
+                ofile.write(line)
+                ofile.write('\n')
 
 
 if __name__ == '__main__':
