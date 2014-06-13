@@ -48,10 +48,28 @@ class Converter():
                     if i != '.':
                         ofile.write("subdir('%s')\n" % i)
                         self.convert(os.path.join(subdir, i))
+            elif items[0].endswith('_SOURCES'):
+                self.convert_target(ofile, items)
             else:
-                ofile.write(line)
-                ofile.write('\n')
+                ofile.write("# %s\n" % line)
 
+    def convert_target(self, ofile, items):
+        if items[0].endswith('la_SOURCES'):
+            func = 'shared_library'
+            tname = "'%s'" % items[0][:-11]
+        else:
+            func = 'executable'
+            tname = "'%s'" % items[0][:-8]
+        sources = [tname]
+        for s in items[2:]:
+            if s.startswith('$('):
+                s = s[2:-1]
+            elif s.startswith('$'):
+                s = s[1:]
+            else:
+                s = "'%s'" % s
+            sources.append(s)
+        ofile.write('%s(%s)\n' % (func, ',\n'.join(sources)))
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
