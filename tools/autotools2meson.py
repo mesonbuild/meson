@@ -86,6 +86,12 @@ class Converter():
                 languages.append("'c'")
             elif line == 'AC_PROG_CXX':
                 languages.append("'cpp'")
+            elif line.startswith('AC_INIT'):
+                line = line[8:]
+                if line[0] == '[':
+                    name = line.split(']')[0][1:]
+                else:
+                    name = line.split()[0]
             elif line.startswith('#'):
                 outlines.append(line + '\n')
             elif line.startswith('PKG_CHECK_MODULES'):
