@@ -21,11 +21,11 @@ class Converter():
     def __init__(self, root):
         self.project_root = root
 
-    def readlines(self, file):
+    def readlines(self, file, continuator):
         line = file.readline()
         while line != '':
             line = line.rstrip()
-            while line.endswith('\\'):
+            while line.endswith(continuator):
                 line = line[:-1] + file.readline().rstrip()
             yield line
             line = file.readline()
@@ -37,8 +37,11 @@ class Converter():
             ifile = open(os.path.join(subdir, 'Makefile.am'))
         except FileNotFoundError:
             print('Makefile.am not found in subdir', subdir)
+            return
         ofile = open(os.path.join(subdir, 'meson.build'), 'w')
-        for line in self.readlines(ifile):
+        if subdir == self.project_root:
+            self.process_autoconf(ofile, subdir)
+        for line in self.readlines(ifile, '\\'):
             items = line.strip().split()
             if len(items) == 0:
                 ofile.write('\n')
@@ -57,19 +60,39 @@ class Converter():
         if items[0].endswith('la_SOURCES'):
             func = 'shared_library'
             tname = "'%s'" % items[0][:-11]
+        elif items[0].endswith('a_SOURCES'):
+            func = 'static_library'
+            tname = "'%s'" % items[0][:-10]
         else:
             func = 'executable'
             tname = "'%s'" % items[0][:-8]
         sources = [tname]
         for s in items[2:]:
-            if s.startswith('$('):
+            if s.startswith('$(') and s.endswith(')'):
                 s = s[2:-1]
-            elif s.startswith('$'):
-                s = s[1:]
             else:
                 s = "'%s'" % s
             sources.append(s)
         ofile.write('%s(%s)\n' % (func, ',\n'.join(sources)))
+
+    def process_autoconf(self, ofile, subdir):
+        ifile = open(os.path.join(subdir, 'configure.ac'))
+        languages = []
+        name = 'undetected'
+        outlines = []
+        for line in self.readlines(ifile, ','):
+            line = line.strip()
+            if line == 'AC_PROG_CC':
+                languages.append("'c'")
+            elif line == 'AC_PROG_CXX':
+                languages.append("'cpp'")
+            elif line.startswith('#'):
+                outlines.append(line + '\n')
+            else:
+                outlines.append('# %s\n' % line)
+        ofile.write("project(%s)\n" % ', '.join(["'%s'" % name] + languages))
+        ofile.writelines(outlines)
+
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
