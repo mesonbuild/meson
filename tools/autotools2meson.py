@@ -15,7 +15,7 @@
 # limitations under the License.
 
 
-import sys, os
+import sys, os, re
 
 class Converter():
     def __init__(self, root):
@@ -88,6 +88,20 @@ class Converter():
                 languages.append("'cpp'")
             elif line.startswith('#'):
                 outlines.append(line + '\n')
+            elif line.startswith('PKG_CHECK_MODULES'):
+                rest = line.split('(', 1)[-1].strip()
+                pkgstanza = rest.split()[1:]
+                for i in pkgstanza:
+                    i = i.strip()
+                    dep = None
+                    if '=' in i:
+                        continue
+                    if i.startswith('['):
+                        dep = i[1:]
+                    elif re.match('[a-zA-Z]', i):
+                        dep = i
+                    if dep is not None:
+                        outlines.append("%s_dep = dependency('%s')\n" % (dep, dep))
             else:
                 outlines.append('# %s\n' % line)
         ofile.write("project(%s)\n" % ', '.join(["'%s'" % name] + languages))
