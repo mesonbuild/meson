@@ -45,7 +45,8 @@ DESTDIR can be omitted. If you are installing to system directories,
 you may need to run this command with sudo.
 
 
-Contact info
+Further info
 
-All questions should be sent to the mailing list:
-https://lists.sourceforge.net/lists/listinfo/meson-devel
+The home page of Meson can be found here:
+
+https://jpakkane.github.io/meson/
