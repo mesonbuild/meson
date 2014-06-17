@@ -495,6 +495,24 @@ class NinjaBackend(backends.Backend):
             element.write(outfile)
         return generated_c
 
+    def generate_rust_target(self, target, outfile):
+        rustc = self.environment.coredata.compilers['rust']
+        relsrc = []
+        for i in target.get_sources():
+            if not rustc.can_compile(i):
+                raise InvalidArguments('Rust target %s contains a non-rust source file.' % target.get_basename())
+            relsrc.append(os.path.join(self.build_to_src, i))
+        target_name = os.path.join(target.subdir, target.get_filename())
+        flags = ['--crate-type']
+        if isinstance(target, build.Executable):
+            flags.append('bin')
+        else:
+            raise InvalidArguments('Unknown target type for rustc.')
+        flags += ['--out-dir', target.subdir, '-o', target.get_basename()]
+        element = NinjaBuildElement(target_name, 'rust_COMPILER', relsrc)
+        element.add_item('FLAGS', flags)
+        element.write(outfile)
+
     def generate_static_link_rules(self, is_cross, outfile):
         if self.build.has_language('java'):
             if not is_cross:
@@ -521,7 +539,7 @@ class NinjaBackend(backends.Backend):
         for (complist, is_cross) in ctypes:
             for compiler in complist:
                 langname = compiler.get_language()
-                if langname == 'java' or langname == 'vala':
+                if langname == 'java' or langname == 'vala' or langname == 'rust':
                     continue
                 crstr = ''
                 if is_cross:
@@ -576,6 +594,20 @@ class NinjaBackend(backends.Backend):
         outfile.write(depstyle)
         outfile.write('\n')
 
+    def generate_rust_compile_rules(self, compiler, outfile):
+        rule = 'rule %s_COMPILER\n' % compiler.get_language()
+        invoc = ' '.join([ninja_quote(i) for i in compiler.get_exelist()])
+        command = ' command = %s $FLAGS $in\n' % invoc
+        description = ' description = Compiling Rust source $in.\n'
+        depfile = ' depfile = $out.d\n'
+        depstyle = ' deps = gcc\n'
+        outfile.write(rule)
+        outfile.write(command)
+        outfile.write(description)
+        outfile.write(depfile)
+        outfile.write(depstyle)
+        outfile.write('\n')
+
     def generate_compile_rule_for(self, langname, compiler, qstr, is_cross, outfile):
         if langname == 'java':
             if not is_cross:
@@ -584,6 +616,10 @@ class NinjaBackend(backends.Backend):
         if langname == 'vala':
             if not is_cross:
                 self.generate_vala_compile_rules(compiler, outfile)
+            return
+        if langname == 'rust':
+            if not is_cross:
+                self.generate_rust_compile_rules(compiler, outfile)
             return
         if is_cross:
             crstr = '_CROSS'

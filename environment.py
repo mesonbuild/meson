@@ -75,6 +75,9 @@ class CCompiler():
         else:
             self.exe_wrapper = exe_wrapper
 
+    def needs_static_linker(self):
+        return True # When compiling static libraries, so yes.
+
     def get_always_flags(self):
         return []
 
@@ -524,6 +527,9 @@ class JavaCompiler():
         if pe.returncode != 0:
             raise EnvironmentException('Executables created by Java compiler %s are not runnable.' % self.name_string())
 
+    def needs_static_linker(self):
+        return False
+
     def has_header(self, hname):
         raise EnvironmentException('Java does not support header checks.')
 
@@ -549,10 +555,13 @@ class ValaCompiler():
         elif type(exelist) == type([]):
             self.exelist = exelist
         else:
-            raise TypeError('Unknown argument to JavaCompiler')
+            raise TypeError('Unknown argument to Vala compiler')
         self.version = version
         self.id = 'unknown'
         self.language = 'vala'
+
+    def needs_static_linker(self):
+        return False # Because compiles into C.
 
     def get_exelist(self):
         return self.exelist
@@ -577,11 +586,56 @@ class ValaCompiler():
     def can_compile(self, fname):
         return fname.endswith('.vala')
 
+class RustCompiler():
+    def __init__(self, exelist, version):
+        if isinstance(exelist, str):
+            self.exelist = [exelist]
+        elif type(exelist) == type([]):
+            self.exelist = exelist
+        else:
+            raise TypeError('Unknown argument to Rust compiler')
+        self.version = version
+        self.id = 'unknown'
+        self.language = 'rust'
+
+    def needs_static_linker(self):
+        return False
+
+    def get_exelist(self):
+        return self.exelist
+
+    def get_id(self):
+        return self.id
+
+    def get_language(self):
+        return self.language
+
+    def sanity_check(self, work_dir):
+        source_name = os.path.join(work_dir, 'sanity.rs')
+        output_name = os.path.join(work_dir, 'rusttest')
+        ofile = open(source_name, 'w')
+        ofile.write('''fn main() {
+}
+''')
+        ofile.close()
+        pc = subprocess.Popen(self.exelist + ['-o', output_name, source_name], cwd=work_dir)
+        pc.wait()
+        if pc.returncode != 0:
+            raise EnvironmentException('Rust compiler %s can not compile programs.' % self.name_string())
+        if subprocess.call(output_name) != 0:
+            raise EnvironmentException('Executables created by Rust compiler %s are not runnable.' % self.name_string())
+
+    def can_compile(self, fname):
+        return fname.endswith('.rs')
+
+    def get_dependency_gen_flags(self, outfile):
+        return ['--dep-info', outfile]
+
 class VisualStudioCCompiler(CCompiler):
     std_warn_flags = ['/W3']
     std_opt_flags= ['/O2']
     always_flags = ['/nologo', '/showIncludes']
-    
+
     def __init__(self, exelist, version, is_cross, exe_wrap):
         CCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
         self.id = 'msvc'
@@ -1308,6 +1362,23 @@ class Environment():
             version = 'unknown version'
         if 'Vala' in out:
             return ValaCompiler(exelist, version)
+        raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
+
+    def detect_rust_compiler(self):
+        exelist = ['rustc']
+        try:
+            p = subprocess.Popen(exelist + ['--version'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        except OSError:
+            raise EnvironmentException('Could not execute Rust compiler "%s"' % ' '.join(exelist))
+        (out, _) = p.communicate()
+        out = out.decode()
+        vmatch = re.search(Environment.version_regex, out)
+        if vmatch:
+            version = vmatch.group(0)
+        else:
+            version = 'unknown version'
+        if 'rustc' in out:
+            return RustCompiler(exelist, version)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
 
     def detect_static_linker(self, compiler):

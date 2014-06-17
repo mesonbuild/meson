@@ -51,9 +51,7 @@ class Build:
         return False
 
     def add_compiler(self, compiler):
-        lang = compiler.get_language()
-        if self.static_linker is None and lang != 'java'\
-        and lang != 'vala':
+        if self.static_linker is None and compiler.needs_static_linker():
             self.static_linker = self.environment.detect_static_linker(compiler)
         if self.has_language(compiler.get_language()):
             return

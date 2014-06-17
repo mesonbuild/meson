@@ -953,6 +953,10 @@ class Interpreter():
                     comp = self.environment.detect_vala_compiler()
                     if is_cross:
                         cross_comp = comp # Vala is too (I think).
+                elif lang == 'rust':
+                    comp = self.environment.detect_rust_compiler()
+                    if is_cross:
+                        cross_comp = comp # FIXME, probably not correct.
                 else:
                     raise InvalidCode('Tried to use unknown language "%s".' % lang)
                 comp.sanity_check(self.environment.get_scratch_dir())
