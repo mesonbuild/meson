@@ -514,7 +514,17 @@ class NinjaBackend(backends.Backend):
         depfile = target.name + '.d'
         flags += ['--out-dir', target.subdir, '-o', target.get_filename()]
         flags += ['--dep-info', depfile]
+        orderdeps = [os.path.join(t.subdir, t.get_filename()) for t in target.link_targets]
+        linkdirs = {}
+        for d in target.link_targets:
+            linkdirs[d.subdir] = True
+        for d in linkdirs.keys():
+            if d == '':
+                d = '.'
+            flags += ['-L', d]
         element = NinjaBuildElement(target_name, 'rust_COMPILER', relsrc)
+        if len(orderdeps) > 0:
+            element.add_orderdep(orderdeps)
         element.add_item('FLAGS', flags)
         element.add_item('targetdep', depfile)
         element.write(outfile)
