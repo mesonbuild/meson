@@ -188,6 +188,10 @@ def run_tests():
         valatests = gather_tests('test cases/vala')
     else:
         valatests = []
+    if shutil.which('rustc'):
+        rusttests = gather_tests('test cases/rust')
+    else:
+        rusttests = []
     if not environment.is_windows():
         objctests = gather_tests('test cases/objc')
     else:
@@ -229,6 +233,11 @@ def run_tests():
         [run_and_log(logfile, t) for t in valatests]
     else:
         print('\nNot running Vala tests.\n')
+    if len(rusttests) > 0:
+        print('\nRunning Rust tests.\n')
+        [run_and_log(logfile, t) for t in rusttests]
+    else:
+        print('\nNot running Rust tests.\n')
     if len(objctests) > 0:
         print('\nRunning extra language tests.\n')
         [run_and_log(logfile, t) for t in objctests]
