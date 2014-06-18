@@ -506,12 +506,13 @@ class NinjaBackend(backends.Backend):
         flags = ['--crate-type']
         if isinstance(target, build.Executable):
             flags.append('bin')
+        elif isinstance(target, build.SharedLibrary):
+            flags.append('dylib')
         else:
             raise InvalidArguments('Unknown target type for rustc.')
         flags += rustc.get_buildtype_flags(self.environment.coredata.buildtype)
-        target_file = target.get_basename()
         depfile = target.name + '.d'
-        flags += ['--out-dir', target.subdir, '-o', target_file]
+        flags += ['--out-dir', target.subdir, '-o', target.get_filename()]
         flags += ['--dep-info', depfile]
         element = NinjaBuildElement(target_name, 'rust_COMPILER', relsrc)
         element.add_item('FLAGS', flags)
