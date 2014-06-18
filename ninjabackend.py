@@ -508,6 +508,7 @@ class NinjaBackend(backends.Backend):
             flags.append('bin')
         else:
             raise InvalidArguments('Unknown target type for rustc.')
+        flags += rustc.get_buildtype_flags(self.environment.coredata.buildtype)
         flags += ['--out-dir', target.subdir, '-o', target.get_basename()]
         element = NinjaBuildElement(target_name, 'rust_COMPILER', relsrc)
         element.add_item('FLAGS', flags)

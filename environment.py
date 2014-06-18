@@ -57,6 +57,11 @@ msvc_buildtype_linker_flags = {'plain' : [],
                                'debugoptimized' : [],
                                'release' : []}
 
+rust_buildtype_flags = {'plain' : [],
+                        'debug' : ['-g'],
+                        'debugoptimized' : ['-g', '--opt-level', '2'],
+                        'release' : ['--opt-level', '3']}
+
 class CCompiler():
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
         if type(exelist) == type(''):
@@ -630,6 +635,9 @@ class RustCompiler():
 
     def get_dependency_gen_flags(self, outfile):
         return ['--dep-info', outfile]
+
+    def get_buildtype_flags(self, buildtype):
+        return rust_buildtype_flags[buildtype]
 
 class VisualStudioCCompiler(CCompiler):
     std_warn_flags = ['/W3']
