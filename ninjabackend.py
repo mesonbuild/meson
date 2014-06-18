@@ -509,9 +509,13 @@ class NinjaBackend(backends.Backend):
         else:
             raise InvalidArguments('Unknown target type for rustc.')
         flags += rustc.get_buildtype_flags(self.environment.coredata.buildtype)
-        flags += ['--out-dir', target.subdir, '-o', target.get_basename()]
+        target_file = target.get_basename()
+        depfile = target.name + '.d'
+        flags += ['--out-dir', target.subdir, '-o', target_file]
+        flags += ['--dep-info', depfile]
         element = NinjaBuildElement(target_name, 'rust_COMPILER', relsrc)
         element.add_item('FLAGS', flags)
+        element.add_item('targetdep', depfile)
         element.write(outfile)
 
     def generate_static_link_rules(self, is_cross, outfile):
