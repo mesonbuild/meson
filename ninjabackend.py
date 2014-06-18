@@ -511,7 +511,7 @@ class NinjaBackend(backends.Backend):
         else:
             raise InvalidArguments('Unknown target type for rustc.')
         flags += rustc.get_buildtype_flags(self.environment.coredata.buildtype)
-        depfile = target.name + '.d'
+        depfile = target_name + '.d'
         flags += ['--out-dir', target.subdir, '-o', target.get_filename()]
         flags += ['--dep-info', depfile]
         orderdeps = [os.path.join(t.subdir, t.get_filename()) for t in target.link_targets]
