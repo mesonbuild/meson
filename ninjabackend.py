@@ -966,9 +966,9 @@ class NinjaBackend(backends.Backend):
                 infilename = os.path.join(self.build_to_src, target.get_source_subdir(), src)
                 elem = NinjaBuildElement(outfilename, rule.name, infilename)
                 if rule.name == 'rc_compile':
-                    elem.add_item('rcc_flags', ['--name', basename])
+                    elem.add_item('rcc_args', ['--name', basename])
                 if rule.name == 'moc_hdr_compile' or rule.name == 'moc_src_compile':
-                    elem.add_item('mocflags', ['-I', target.subdir])
+                    elem.add_item('mocargs', ['-I', target.subdir])
                 elem.write(outfile)
                 if self.is_compilable_file(outfilename):
                     if rule.name == 'moc_hdr_compile' or rule.name == 'moc_src_compile':
