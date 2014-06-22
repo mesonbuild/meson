@@ -567,7 +567,7 @@ class GnuStepDependency(Dependency):
             arg = '--gui-libs'
         else:
             arg = '--base-libs'
-        fp = subprocess.Popen([confprog, '--objc-args'],
+        fp = subprocess.Popen([confprog, '--objc-flags'],
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (flagtxt, flagerr) = fp.communicate()
         flagtxt = flagtxt.decode()
