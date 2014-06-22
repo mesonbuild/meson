@@ -1518,6 +1518,11 @@ def get_library_dirs():
         if plat == 'i686':
             plat = 'i386'
         unixdirs += glob('/usr/lib/' + plat + '*')
+        if os.path.exists('/usr/lib64'):
+            unixdirs.append('/usr/lib64')
+        unixdirs += glob('/lib/' + plat + '*')
+        if os.path.exists('/lib64'):
+            unixdirs.append('/lib64')
         unixdirs += glob('/lib/' + plat + '*')
         unixdirs.append('/usr/local/lib')
         return unixdirs

@@ -161,7 +161,7 @@ class ExternalLibrary(Dependency):
             if self.found():
                 mlog.log('Library', mlog.bold(name), 'found:', mlog.green('YES'), '(%s)' % self.fullpath)
             else:
-                mlog.log('Library', mlog.bold(name), 'found:,', mlog.red('NO'))
+                mlog.log('Library', mlog.bold(name), 'found:', mlog.red('NO'))
 
     def found(self):
         return self.fullpath is not None
