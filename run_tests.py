@@ -17,6 +17,7 @@
 from glob import glob
 import os, subprocess, shutil, sys, platform
 import environment
+from environment import is_windows
 
 passing_tests = 0
 failing_tests = 0
@@ -258,18 +259,32 @@ def check_file(fname):
         linenum += 1
 
 def check_format():
-    for (root, dirs, files) in os.walk('.'):
+    for (root, _, files) in os.walk('.'):
         for file in files:
             if file.endswith('.py') or file.endswith('.build'):
                 fullname = os.path.join(root, file)
                 check_file(fullname)
+
+def generate_prebuilt_object():
+    source = 'test cases/prebuilt object/1 basic/source.c'
+    objectbase = 'test cases/prebuilt object/1 basic/prebuilt.'
+    if shutil.which('cl'):
+        objectfile = objectbase + 'obj'
+        raise RuntimeError('MSVC compilation not done yet.')
+        # And neither is MinGW.
+    else:
+        objectfile = objectbase + 'o'
+        subprocess.check_call(['cc', '-c', source, '-o', objectfile])
+        return objectfile
 
 if __name__ == '__main__':
     script_dir = os.path.split(__file__)[0]
     if script_dir != '':
         os.chdir(script_dir)
     check_format()
+    pbfile = generate_prebuilt_object()
     run_tests()
+    os.unlink(pbfile)
     print('\nTotal passed tests:', passing_tests)
     print('Total failed tests:', failing_tests)
     sys.exit(failing_tests)
