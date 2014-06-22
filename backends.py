@@ -327,24 +327,24 @@ class Backend():
             args = [includearg] + args
         return args
 
-    def generate_basic_compiler_flags(self, target, compiler):
+    def generate_basic_compiler_args(self, target, compiler):
         commands = []
-        commands += compiler.get_always_flags()
-        commands += self.build.get_global_flags(compiler)
+        commands += compiler.get_always_args()
+        commands += self.build.get_global_args(compiler)
         commands += self.environment.coredata.external_args[compiler.get_language()]
         commands += target.get_extra_args(compiler.get_language())
         if self.environment.coredata.buildtype != 'plain':
-            commands += compiler.get_debug_flags()
-            commands += compiler.get_std_warn_flags()
-        commands += compiler.get_buildtype_flags(self.environment.coredata.buildtype)
+            commands += compiler.get_debug_args()
+            commands += compiler.get_std_warn_args()
+        commands += compiler.get_buildtype_args(self.environment.coredata.buildtype)
         if self.environment.coredata.coverage:
-            commands += compiler.get_coverage_flags()
+            commands += compiler.get_coverage_args()
         if isinstance(target, build.SharedLibrary):
-            commands += compiler.get_pic_flags()
+            commands += compiler.get_pic_args()
         for dep in target.get_external_deps():
-            commands += dep.get_compile_flags()
+            commands += dep.get_compile_args()
             if isinstance(target, build.Executable):
-                commands += dep.get_exe_flags()
+                commands += dep.get_exe_args()
 
         return commands
 

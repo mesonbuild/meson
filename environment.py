@@ -35,29 +35,29 @@ class RunResult():
         self.stdout = stdout
         self.stderr = stderr
 
-gnulike_buildtype_flags = {'plain' : [],
+gnulike_buildtype_args = {'plain' : [],
                            'debug' : ['-g'],
                            'debugoptimized' : ['-O2', '-g'],
                            'release' : ['-O3'],
                            }
 
-msvc_buildtype_flags = {'plain' : [],
+msvc_buildtype_args = {'plain' : [],
                         'debug' : ["/MDd", "/Zi", "/Ob0", "/Od", "/RTC1"],
                         'debugoptimized' : ["/MD", "/Zi", "/O2", "/Ob1", "/D"],
                         'release' : ["/MD", "/O2", "/Ob2"]}
 
-gnulike_buildtype_linker_flags = {'plain' : [],
+gnulike_buildtype_linker_args = {'plain' : [],
                                   'debug' : [],
                                   'debugoptimized' : [],
                                   'release' : ['-Wl,-O1'],
                                   }
 
-msvc_buildtype_linker_flags = {'plain' : [],
+msvc_buildtype_linker_args = {'plain' : [],
                                'debug' : [],
                                'debugoptimized' : [],
                                'release' : []}
 
-rust_buildtype_flags = {'plain' : [],
+rust_buildtype_args = {'plain' : [],
                         'debug' : ['-g'],
                         'debugoptimized' : ['-g', '--opt-level', '2'],
                         'release' : ['--opt-level', '3']}
@@ -83,13 +83,13 @@ class CCompiler():
     def needs_static_linker(self):
         return True # When compiling static libraries, so yes.
 
-    def get_always_flags(self):
+    def get_always_args(self):
         return []
 
-    def get_linker_always_flags(self):
+    def get_linker_always_args(self):
         return []
 
-    def get_soname_flags(self, shlib_name, path):
+    def get_soname_args(self, shlib_name, path):
         return []
 
     def split_shlib_to_parts(self, fname):
@@ -101,7 +101,7 @@ class CCompiler():
     def get_id(self):
         return self.id
 
-    def get_dependency_gen_flags(self, outtarget, outfile):
+    def get_dependency_gen_args(self, outtarget, outfile):
         return ['-MMD', '-MQ', outtarget, '-MF', outfile]
 
     def get_depfile_suffix(self):
@@ -119,31 +119,31 @@ class CCompiler():
     def get_linker_exelist(self):
         return self.exelist[:]
 
-    def get_compile_only_flags(self):
+    def get_compile_only_args(self):
         return ['-c']
 
-    def get_output_flags(self, target):
+    def get_output_args(self, target):
         return ['-o', target]
 
-    def get_linker_output_flags(self, outputname):
+    def get_linker_output_args(self, outputname):
         return ['-o', outputname]
 
-    def get_debug_flags(self):
+    def get_debug_args(self):
         return ['-g']
 
-    def get_coverage_flags(self):
+    def get_coverage_args(self):
         return ['--coverage']
 
-    def get_coverage_link_flags(self):
+    def get_coverage_link_args(self):
         return ['-lgcov']
 
-    def get_std_exe_link_flags(self):
+    def get_std_exe_link_args(self):
         return []
 
     def get_include_arg(self, path):
         return '-I' + path
 
-    def get_std_shared_lib_link_flags(self):
+    def get_std_shared_lib_link_args(self):
         return ['-shared']
 
     def can_compile(self, filename):
@@ -152,7 +152,7 @@ class CCompiler():
             return True
         return False
 
-    def get_pic_flags(self):
+    def get_pic_args(self):
         return ['-fPIC']
 
     def name_string(self):
@@ -200,7 +200,7 @@ int someSymbolHereJustForFun;
         ofile.write(code)
         ofile.close()
         commands = self.get_exelist()
-        commands += self.get_compile_only_flags()
+        commands += self.get_compile_only_args()
         commands.append(srcname)
         p = subprocess.Popen(commands, cwd=os.path.split(srcname)[0], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         p.communicate()
@@ -227,7 +227,7 @@ int someSymbolHereJustForFun;
         exename = srcname + '.exe' # Is guaranteed to be executable on every platform.
         commands = self.get_exelist()
         commands.append(srcname)
-        commands += self.get_output_flags(exename)
+        commands += self.get_output_args(exename)
         p = subprocess.Popen(commands, cwd=os.path.split(srcname)[0], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         p.communicate()
         os.remove(srcname)
@@ -430,13 +430,13 @@ class JavaCompiler():
         self.id = 'unknown'
         self.javarunner = 'java'
 
-    def get_always_flags(self):
+    def get_always_args(self):
         return []
 
-    def get_linker_always_flags(self):
+    def get_linker_always_args(self):
         return []
 
-    def get_soname_flags(self, shlib_name, path):
+    def get_soname_args(self, shlib_name, path):
         return []
 
     def split_shlib_to_parts(self, fname):
@@ -448,7 +448,7 @@ class JavaCompiler():
     def get_id(self):
         return self.id
 
-    def get_dependency_gen_flags(self, outtarget, outfile):
+    def get_dependency_gen_args(self, outtarget, outfile):
         return []
 
     def get_language(self):
@@ -463,33 +463,33 @@ class JavaCompiler():
     def get_linker_exelist(self):
         return self.exelist[:]
 
-    def get_compile_only_flags(self):
+    def get_compile_only_args(self):
         return []
 
-    def get_output_flags(self, subdir):
+    def get_output_args(self, subdir):
         if subdir == '':
             subdir = './'
         return ['-d', subdir, '-s', subdir]
 
-    def get_linker_output_flags(self, outputname):
+    def get_linker_output_args(self, outputname):
         return []
 
-    def get_debug_flags(self):
+    def get_debug_args(self):
         return ['-g']
 
-    def get_coverage_flags(self):
+    def get_coverage_args(self):
         return []
 
-    def get_coverage_link_flags(self):
+    def get_coverage_link_args(self):
         return []
 
-    def get_std_exe_link_flags(self):
+    def get_std_exe_link_args(self):
         return []
 
     def get_include_arg(self, path):
         return ''
 
-    def get_std_shared_lib_link_flags(self):
+    def get_std_shared_lib_link_args(self):
         return []
 
     def can_compile(self, filename):
@@ -498,7 +498,7 @@ class JavaCompiler():
             return True
         return False
 
-    def get_pic_flags(self):
+    def get_pic_args(self):
         return []
 
     def name_string(self):
@@ -633,32 +633,32 @@ class RustCompiler():
     def can_compile(self, fname):
         return fname.endswith('.rs')
 
-    def get_dependency_gen_flags(self, outfile):
+    def get_dependency_gen_args(self, outfile):
         return ['--dep-info', outfile]
 
-    def get_buildtype_flags(self, buildtype):
-        return rust_buildtype_flags[buildtype]
+    def get_buildtype_args(self, buildtype):
+        return rust_buildtype_args[buildtype]
 
 class VisualStudioCCompiler(CCompiler):
-    std_warn_flags = ['/W3']
-    std_opt_flags= ['/O2']
-    always_flags = ['/nologo', '/showIncludes']
+    std_warn_args = ['/W3']
+    std_opt_args= ['/O2']
+    always_args = ['/nologo', '/showIncludes']
 
     def __init__(self, exelist, version, is_cross, exe_wrap):
         CCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
         self.id = 'msvc'
 
-    def get_always_flags(self):
-        return VisualStudioCCompiler.always_flags
+    def get_always_args(self):
+        return VisualStudioCCompiler.always_args
 
-    def get_std_warn_flags(self):
-        return VisualStudioCCompiler.std_warn_flags
+    def get_std_warn_args(self):
+        return VisualStudioCCompiler.std_warn_args
 
-    def get_buildtype_flags(self, buildtype):
-        return msvc_buildtype_flags[buildtype]
+    def get_buildtype_args(self, buildtype):
+        return msvc_buildtype_args[buildtype]
 
-    def get_buildtype_linker_flags(self, buildtype):
-        return msvc_buildtype_linker_flags[buildtype]
+    def get_buildtype_linker_args(self, buildtype):
+        return msvc_buildtype_linker_args[buildtype]
 
     def get_pch_suffix(self):
         return 'pch'
@@ -674,33 +674,33 @@ class VisualStudioCCompiler(CCompiler):
         pchname = self.get_pch_name(header)
         return ['/FI' + base, '/Yu' + base, '/Fp' + os.path.join(pch_dir, pchname)]
 
-    def get_debug_flags(self):
+    def get_debug_args(self):
         return ['/D_DEBUG', '/Zi', '/MDd', '/Ob0', '/RTC1']
 
-    def get_compile_only_flags(self):
+    def get_compile_only_args(self):
         return ['/c']
 
-    def get_output_flags(self, target):
+    def get_output_args(self, target):
         if target.endswith('.exe'):
             return ['/Fe' + target]
         return ['/Fo' + target]
 
-    def get_dependency_gen_flags(self, outtarget, outfile):
+    def get_dependency_gen_args(self, outtarget, outfile):
         return []
 
     def get_linker_exelist(self):
         return ['link'] # FIXME, should have same path as compiler.
 
-    def get_linker_always_flags(self):
+    def get_linker_always_args(self):
         return ['/nologo']
 
-    def get_linker_output_flags(self, outputname):
+    def get_linker_output_args(self, outputname):
         return ['/OUT:' + outputname]
 
-    def get_pic_flags(self):
+    def get_pic_args(self):
         return ['/LD']
 
-    def get_std_shared_lib_link_flags(self):
+    def get_std_shared_lib_link_args(self):
         return ['/DLL']
 
     def gen_pch_args(self, header, source, pchname):
@@ -756,7 +756,7 @@ GCC_STANDARD = 0
 GCC_OSX = 1
 GCC_MINGW = 2
 
-def get_gcc_soname_flags(gcc_type, shlib_name, path):
+def get_gcc_soname_args(gcc_type, shlib_name, path):
     if gcc_type == GCC_STANDARD:
         return ['-Wl,-soname,lib%s.so' % shlib_name]
     elif gcc_type == GCC_OSX:
@@ -765,24 +765,24 @@ def get_gcc_soname_flags(gcc_type, shlib_name, path):
         raise RuntimeError('Not impelented yet.')
 
 class GnuCCompiler(CCompiler):
-    std_warn_flags = ['-Wall', '-Winvalid-pch']
+    std_warn_args = ['-Wall', '-Winvalid-pch']
 
     def __init__(self, exelist, version, gcc_type, is_cross, exe_wrapper=None):
         CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
         self.id = 'gcc'
         self.gcc_type = gcc_type
 
-    def get_always_flags(self):
+    def get_always_args(self):
         return ['-pipe']
 
-    def get_std_warn_flags(self):
-        return GnuCCompiler.std_warn_flags
+    def get_std_warn_args(self):
+        return GnuCCompiler.std_warn_args
 
-    def get_buildtype_flags(self, buildtype):
-        return gnulike_buildtype_flags[buildtype]
+    def get_buildtype_args(self, buildtype):
+        return gnulike_buildtype_args[buildtype]
 
-    def get_buildtype_linker_flags(self, buildtype):
-        return gnulike_buildtype_linker_flags[buildtype]
+    def get_buildtype_linker_args(self, buildtype):
+        return gnulike_buildtype_linker_args[buildtype]
 
     def get_pch_suffix(self):
         return 'gch'
@@ -795,24 +795,24 @@ class GnuCCompiler(CCompiler):
             return []
         return ['-Wl,-rpath,' + ':'.join([os.path.join(build_dir, p) for p in rpath_paths])]
 
-    def get_soname_flags(self, shlib_name, path):
-        return get_gcc_soname_flags(self.gcc_type, shlib_name, path)
+    def get_soname_args(self, shlib_name, path):
+        return get_gcc_soname_args(self.gcc_type, shlib_name, path)
 
 class GnuObjCCompiler(ObjCCompiler):
-    std_warn_flags = ['-Wall', '-Winvalid-pch']
+    std_warn_args = ['-Wall', '-Winvalid-pch']
 
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
         ObjCCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
         self.id = 'gcc'
 
-    def get_std_warn_flags(self):
-        return GnuObjCCompiler.std_warn_flags
+    def get_std_warn_args(self):
+        return GnuObjCCompiler.std_warn_args
 
-    def get_buildtype_flags(self, buildtype):
-        return gnulike_buildtype_flags[buildtype]
+    def get_buildtype_args(self, buildtype):
+        return gnulike_buildtype_args[buildtype]
 
-    def get_buildtype_linker_flags(self, buildtype):
-        return gnulike_buildtype_linker_flags[buildtype]
+    def get_buildtype_linker_args(self, buildtype):
+        return gnulike_buildtype_linker_args[buildtype]
 
     def get_pch_suffix(self):
         return 'gch'
@@ -822,25 +822,25 @@ class GnuObjCCompiler(ObjCCompiler):
             return []
         return ['-Wl,-rpath,' + ':'.join([os.path.join(build_dir, p) for p in rpath_paths])]
 
-    def get_soname_flags(self, shlib_name, path):
-        return get_gcc_soname_flags(self.gcc_type, shlib_name, path)
+    def get_soname_args(self, shlib_name, path):
+        return get_gcc_soname_args(self.gcc_type, shlib_name, path)
 
 class GnuObjCPPCompiler(ObjCPPCompiler):
-    std_warn_flags = ['-Wall', '-Winvalid-pch']
-    std_opt_flags = ['-O2']
+    std_warn_args = ['-Wall', '-Winvalid-pch']
+    std_opt_args = ['-O2']
 
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
         ObjCCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
         self.id = 'gcc'
 
-    def get_std_warn_flags(self):
-        return GnuObjCPPCompiler.std_warn_flags
+    def get_std_warn_args(self):
+        return GnuObjCPPCompiler.std_warn_args
 
-    def get_buildtype_flags(self, buildtype):
-        return gnulike_buildtype_flags[buildtype]
+    def get_buildtype_args(self, buildtype):
+        return gnulike_buildtype_args[buildtype]
 
-    def get_buildtype_linker_flags(self, buildtype):
-        return gnulike_buildtype_linker_flags[buildtype]
+    def get_buildtype_linker_args(self, buildtype):
+        return gnulike_buildtype_linker_args[buildtype]
 
     def get_pch_suffix(self):
         return 'gch'
@@ -850,8 +850,8 @@ class GnuObjCPPCompiler(ObjCPPCompiler):
             return []
         return ['-Wl,-rpath,' + ':'.join([os.path.join(build_dir, p) for p in rpath_paths])]
 
-    def get_soname_flags(self, shlib_name, path):
-        return get_gcc_soname_flags(self.gcc_type, shlib_name, path)
+    def get_soname_args(self, shlib_name, path):
+        return get_gcc_soname_args(self.gcc_type, shlib_name, path)
 
 class ClangObjCCompiler(GnuObjCCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
@@ -864,20 +864,20 @@ class ClangObjCPPCompiler(GnuObjCPPCompiler):
         self.id = 'clang'
 
 class ClangCCompiler(CCompiler):
-    std_warn_flags = ['-Wall', '-Winvalid-pch']
+    std_warn_args = ['-Wall', '-Winvalid-pch']
 
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
         CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
         self.id = 'clang'
 
-    def get_std_warn_flags(self):
-        return ClangCCompiler.std_warn_flags
+    def get_std_warn_args(self):
+        return ClangCCompiler.std_warn_args
 
-    def get_buildtype_flags(self, buildtype):
-        return gnulike_buildtype_flags[buildtype]
+    def get_buildtype_args(self, buildtype):
+        return gnulike_buildtype_args[buildtype]
 
-    def get_buildtype_linker_flags(self, buildtype):
-        return gnulike_buildtype_linker_flags[buildtype]
+    def get_buildtype_linker_args(self, buildtype):
+        return gnulike_buildtype_linker_args[buildtype]
 
     def get_pch_suffix(self):
         return 'pch'
@@ -888,29 +888,29 @@ class ClangCCompiler(CCompiler):
         return ['-Wl,-rpath,' + ':'.join([os.path.join(build_dir, p) for p in rpath_paths])]
 
 class GnuCPPCompiler(CPPCompiler):
-    std_warn_flags = ['-Wall', '-Winvalid-pch']
-    # may need to separate the latter to extra_debug_flags or something
-    std_debug_flags = ['-g']
+    std_warn_args = ['-Wall', '-Winvalid-pch']
+    # may need to separate the latter to extra_debug_args or something
+    std_debug_args = ['-g']
 
     def __init__(self, exelist, version, gcc_type, is_cross, exe_wrap):
         CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
         self.id = 'gcc'
         self.gcc_type = gcc_type
 
-    def get_always_flags(self):
+    def get_always_args(self):
         return ['-pipe']
 
-    def get_debug_flags(self):
-        return GnuCPPCompiler.std_debug_flags
+    def get_debug_args(self):
+        return GnuCPPCompiler.std_debug_args
 
-    def get_std_warn_flags(self):
-        return GnuCPPCompiler.std_warn_flags
+    def get_std_warn_args(self):
+        return GnuCPPCompiler.std_warn_args
 
-    def get_buildtype_flags(self, buildtype):
-        return gnulike_buildtype_flags[buildtype]
+    def get_buildtype_args(self, buildtype):
+        return gnulike_buildtype_args[buildtype]
 
-    def get_buildtype_linker_flags(self, buildtype):
-        return gnulike_buildtype_linker_flags[buildtype]
+    def get_buildtype_linker_args(self, buildtype):
+        return gnulike_buildtype_linker_args[buildtype]
 
     def get_pch_suffix(self):
         return 'gch'
@@ -920,24 +920,24 @@ class GnuCPPCompiler(CPPCompiler):
             return []
         return ['-Wl,-rpath,' + ':'.join([os.path.join(build_dir, p) for p in rpath_paths])]
 
-    def get_soname_flags(self, shlib_name, path):
-        return get_gcc_soname_flags(self.gcc_type, shlib_name, path)
+    def get_soname_args(self, shlib_name, path):
+        return get_gcc_soname_args(self.gcc_type, shlib_name, path)
 
 class ClangCPPCompiler(CPPCompiler):
-    std_warn_flags = ['-Wall', '-Winvalid-pch']
+    std_warn_args = ['-Wall', '-Winvalid-pch']
 
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
         CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
         self.id = 'clang'
 
-    def get_std_warn_flags(self):
-        return ClangCPPCompiler.std_warn_flags
+    def get_std_warn_args(self):
+        return ClangCPPCompiler.std_warn_args
 
-    def get_buildtype_flags(self, buildtype):
-        return gnulike_buildtype_flags[buildtype]
+    def get_buildtype_args(self, buildtype):
+        return gnulike_buildtype_args[buildtype]
 
-    def get_buildtype_linker_flags(self, buildtype):
-        return gnulike_buildtype_linker_flags[buildtype]
+    def get_buildtype_linker_args(self, buildtype):
+        return gnulike_buildtype_linker_args[buildtype]
 
     def get_pch_suffix(self):
         return 'pch'
@@ -948,36 +948,36 @@ class ClangCPPCompiler(CPPCompiler):
         return ['-Wl,-rpath,' + ':'.join([os.path.join(build_dir, p) for p in rpath_paths])]
 
 class VisualStudioLinker():
-    always_flags = ['/NOLOGO']
+    always_args = ['/NOLOGO']
     def __init__(self, exelist):
         self.exelist = exelist
 
     def get_exelist(self):
         return self.exelist
 
-    def get_std_link_flags(self):
+    def get_std_link_args(self):
         return []
 
-    def get_buildtype_linker_flags(self, buildtype):
+    def get_buildtype_linker_args(self, buildtype):
         return []
 
-    def get_output_flags(self, target):
+    def get_output_args(self, target):
         return ['/OUT:' + target]
 
-    def get_coverage_link_flags(self):
+    def get_coverage_link_args(self):
         return []
 
-    def get_always_flags(self):
-        return VisualStudioLinker.always_flags
+    def get_always_args(self):
+        return VisualStudioLinker.always_args
 
-    def get_linker_always_flags(self):
-        return VisualStudioLinker.always_flags
+    def get_linker_always_args(self):
+        return VisualStudioLinker.always_args
 
     def build_rpath_args(self, build_dir, rpath_paths):
         return []
 
 class ArLinker():
-    std_flags = ['csr']
+    std_args = ['csr']
 
     def __init__(self, exelist):
         self.exelist = exelist
@@ -988,22 +988,22 @@ class ArLinker():
     def get_exelist(self):
         return self.exelist
 
-    def get_std_link_flags(self):
-        return self.std_flags
+    def get_std_link_args(self):
+        return self.std_args
 
-    def get_output_flags(self, target):
+    def get_output_args(self, target):
         return [target]
 
-    def get_buildtype_linker_flags(self, buildtype):
+    def get_buildtype_linker_args(self, buildtype):
         return []
 
-    def get_linker_always_flags(self):
+    def get_linker_always_args(self):
         return []
 
-    def get_coverage_link_flags(self):
+    def get_coverage_link_args(self):
         return []
 
-    def get_always_flags(self):
+    def get_always_args(self):
         return []
 
 def exe_exists(arglist):
@@ -1522,19 +1522,19 @@ def get_library_dirs():
         unixdirs.append('/usr/local/lib')
         return unixdirs
 
-def get_flags_from_envvars(lang):
+def get_args_from_envvars(lang):
     if lang == 'c':
-        compile_flags = os.environ.get('CFLAGS', '').split()
-        compile_flags += os.environ.get('CPPFLAGS', '').split()
-        link_flags = compile_flags + os.environ.get('LDFLAGS', '').split()
+        compile_args = os.environ.get('CFLAGS', '').split()
+        link_args = compile_args + os.environ.get('LDFLAGS', '').split()
+        compile_args += os.environ.get('CPPFLAGS', '').split()
     elif lang == 'cpp':
-        compile_flags = os.environ.get('CXXFLAGS', '').split()
-        compile_flags += os.environ.get('CPPFLAGS', '').split()
-        link_flags = compile_flags + os.environ.get('LDFLAGS', '').split()
+        compile_args = os.environ.get('CXXFLAGS', '').split()
+        link_args = compile_args + os.environ.get('LDFLAGS', '').split()
+        compile_args += os.environ.get('CPPFLAGS', '').split()
     else:
-        compile_flags = []
-        link_flags = []
-    return (compile_flags, link_flags)
+        compile_args = []
+        link_args = []
+    return (compile_args, link_args)
 
 class CrossBuildInfo():
     def __init__(self, filename):

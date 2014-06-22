@@ -34,7 +34,7 @@ class PathModel(QAbstractItemModel):
         self.attr_name = ['prefix', 'libdir', 'bindir', 'includedir', 'datadir', \
                           'mandir', 'localedir']
 
-    def flags(self, index):
+    def args(self, index):
         if index.column() == 1:
             editable = PyQt5.QtCore.Qt.ItemIsEditable
         else:
@@ -104,7 +104,7 @@ class TargetModel(QAbstractItemModel):
                 installed = 'No'
             self.targets.append((name, typename, installed, num_sources))
 
-    def flags(self, index):
+    def args(self, index):
         return PyQt5.QtCore.Qt.ItemIsSelectable | PyQt5.QtCore.Qt.ItemIsEnabled
 
     def rowCount(self, index):
@@ -148,8 +148,8 @@ class DependencyModel(QAbstractItemModel):
             name = k
             found = bd.found()
             if found:
-                cflags = str(bd.get_compile_flags())
-                libs = str(bd.get_link_flags())
+                cflags = str(bd.get_compile_args())
+                libs = str(bd.get_link_args())
                 found = 'yes'
             else:
                 cflags = ''
@@ -157,7 +157,7 @@ class DependencyModel(QAbstractItemModel):
                 found = 'no'
             self.deps.append((name, found, cflags, libs))
 
-    def flags(self, index):
+    def args(self, index):
         return PyQt5.QtCore.Qt.ItemIsSelectable | PyQt5.QtCore.Qt.ItemIsEnabled
 
     def rowCount(self, index):
@@ -172,9 +172,9 @@ class DependencyModel(QAbstractItemModel):
         if role != PyQt5.QtCore.Qt.DisplayRole:
             return QVariant()
         if section == 3:
-            return QVariant('Link flags')
+            return QVariant('Link args')
         if section == 2:
-            return QVariant('Compile flags')
+            return QVariant('Compile args')
         if section == 1:
             return QVariant('Found')
         return QVariant('Name')
@@ -201,7 +201,7 @@ class CoreModel(QAbstractItemModel):
         for langname, comp in core_data.cross_compilers.items():
             self.elems.append((langname + ' cross compiler', str(comp.get_exelist())))
 
-    def flags(self, index):
+    def args(self, index):
         return PyQt5.QtCore.Qt.ItemIsSelectable | PyQt5.QtCore.Qt.ItemIsEnabled
 
     def rowCount(self, index):

@@ -226,8 +226,8 @@ class XCodeBackend(backends.Backend):
                     fullpath = os.path.join(self.environment.get_source_dir(), s)
                     fileref = self.filemap[s]
                     fullpath2 = fullpath
-                    compiler_flags = ''
-                    self.ofile.write(templ % (idval, fullpath, fileref, fullpath2, compiler_flags))
+                    compiler_args = ''
+                    self.ofile.write(templ % (idval, fullpath, fileref, fullpath2, compiler_args))
             for o in t.objects:
                 o = os.path.join(t.subdir, o)
                 idval = self.buildmap[o]
@@ -636,18 +636,18 @@ class XCodeBackend(backends.Backend):
                     product_name = target_name + '.' + dylib_version
                 else:
                     product_name = target_name
-                ldargs += target.link_flags
+                ldargs += target.link_args
                 ldstr = ' '.join(ldargs)
                 valid = self.buildconfmap[target_name][buildtype]
-                langflags = {}
+                langargs = {}
                 for lang in self.environment.coredata.compilers:
                     if lang not in langnamemap:
                         continue
-                    gflags = self.build.global_args.get(lang, [])
-                    tflags = target.get_extra_args(lang)
-                    flags = gflags + tflags
-                    if len(flags) > 0:
-                        langflags[langnamemap[lang]] = flags
+                    gargs = self.build.global_args.get(lang, [])
+                    targs = target.get_extra_args(lang)
+                    args = gargs + targs
+                    if len(args) > 0:
+                        langargs[langnamemap[lang]] = args
                 symroot = os.path.join(self.environment.get_build_dir(), target.subdir)
                 self.write_line('%s /* %s */ = {' % (valid, buildtype))
                 self.indent_level+=1
@@ -675,9 +675,9 @@ class XCodeBackend(backends.Backend):
                 self.write_line('LIBRARY_SEARCH_PATHS = "";')
                 if isinstance(target, build.SharedLibrary):
                     self.write_line('LIBRARY_STYLE = DYNAMIC;')
-                for langname, flags in langflags.items():
-                    flagstr = ' '.join(flags)
-                    self.write_line('OTHER_%sFLAGS = "%s";' % (langname, flagstr))
+                for langname, args in langargs.items():
+                    argstr = ' '.join(args)
+                    self.write_line('OTHER_%sFLAGS = "%s";' % (langname, argstr))
                 self.write_line('OTHER_LDFLAGS = "%s";' % ldstr)
                 self.write_line('OTHER_REZFLAGS = "";')
                 self.write_line('PRODUCT_NAME = %s;' % product_name)

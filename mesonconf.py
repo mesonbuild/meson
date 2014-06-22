@@ -132,18 +132,18 @@ class Conf:
                     tgt.set_value(v)
                 else:
                     raise ConfException('Internal error, unknown option type.')
-            elif k.endswith('linkflags'):
+            elif k.endswith('linkargs'):
                 lang = k[:-9]
                 if not lang in self.coredata.external_link_args:
-                    raise ConfException('Unknown language %s in linkflags.' % lang)
+                    raise ConfException('Unknown language %s in linkargs.' % lang)
                 # TODO, currently split on spaces, make it so that user
                 # can pass in an array string.
                 newvalue = v.split()
                 self.coredata.external_link_args[lang] = newvalue
-            elif k.endswith('flags'):
+            elif k.endswith('args'):
                 lang = k[:-5]
                 if not lang in self.coredata.external_args:
-                    raise ConfException('Unknown language %s in compile flags' % lang)
+                    raise ConfException('Unknown language %s in compile args' % lang)
                 # TODO same fix as above
                 newvalue = v.split()
                 self.coredata.external_args[lang] = newvalue
@@ -165,13 +165,13 @@ class Conf:
         carr.append(['unity', 'Unity build', self.coredata.unity])
         self.print_aligned(carr)
         print('')
-        print('Compiler flags\n')
-        for (lang, flags) in self.coredata.external_args.items():
-            print(lang + 'flags', str(flags))
+        print('Compiler arguments\n')
+        for (lang, args) in self.coredata.external_args.items():
+            print(lang + 'args', str(args))
         print('')
-        print('Linker flags\n')
-        for (lang, flags) in self.coredata.external_link_args.items():
-            print(lang + 'linkflags', str(flags))
+        print('Linker args\n')
+        for (lang, args) in self.coredata.external_link_args.items():
+            print(lang + 'linkargs', str(args))
         print('')
         print('Directories\n')
         parr = []

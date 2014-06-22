@@ -422,27 +422,27 @@ class NinjaBackend(backends.Backend):
         commands += class_list
         elem = NinjaBuildElement(outname_rel, jar_rule, [])
         elem.add_dep([os.path.join(self.get_target_private_dir(target), i) for i in class_list])
-        elem.add_item('FLAGS', commands)
+        elem.add_item('ARGS', commands)
         elem.write(outfile)
 
     def generate_single_java_compile(self, subdir, src, target, compiler, outfile):
         buildtype = self.environment.coredata.buildtype
         args = []
         if buildtype == 'debug':
-            args += compiler.get_debug_flags()
-        args += compiler.get_output_flags(self.get_target_private_dir(target))
+            args += compiler.get_debug_args()
+        args += compiler.get_output_args(self.get_target_private_dir(target))
         rel_src = os.path.join(self.build_to_src, subdir, src)
         plain_class_path = src[:-4] + 'class'
         rel_obj = os.path.join(self.get_target_private_dir(target), plain_class_path)
         element = NinjaBuildElement(rel_obj,
                     compiler.get_language() + '_COMPILER', rel_src)
-        element.add_item('FLAGS', args)
+        element.add_item('ARGS', args)
         element.write(outfile)
         return plain_class_path
 
     def generate_java_link(self, outfile):
         rule = 'rule java_LINKER\n'
-        command = ' command = jar $FLAGS\n'
+        command = ' command = jar $ARGS\n'
         description = ' description = Creating jar $out.\n'
         outfile.write(rule)
         outfile.write(command)
@@ -456,10 +456,10 @@ class NinjaBackend(backends.Backend):
                 continue
             vapibase = os.path.basename(s)[:-4] + 'vapi'
             rel_vapi = os.path.join(self.get_target_dir(target), target.get_basename() + '.dir', vapibase)
-            flags = ['--fast-vapi=' + rel_vapi]
+            args = ['--fast-vapi=' + rel_vapi]
             rel_s = os.path.join(self.build_to_src, s)
             element = NinjaBuildElement(rel_vapi, valac.get_language() + '_COMPILER', rel_s)
-            element.add_item('FLAGS', flags)
+            element.add_item('ARGS', args)
             element.write(outfile)
             fastvapis[s] = (vapibase, rel_vapi)
         return fastvapis
@@ -472,25 +472,25 @@ class NinjaBackend(backends.Backend):
         for s in target.get_sources():
             if not s.endswith('.vala'):
                 continue
-            flags = ['-d', self.get_target_private_dir(target)]
+            args = ['-d', self.get_target_private_dir(target)]
             sc = os.path.basename(s)[:-4] + 'c'
-            flags += ['-C', '-o', sc]
+            args += ['-C', '-o', sc]
             vapi_order_deps = []
             for (sourcefile, vapi_info) in fast_vapis.items():
                 if sourcefile == s:
                     continue
                 (vapibase, rel_vapi) = vapi_info
-                flags += ['--use-fast-vapi=' + rel_vapi]
+                args += ['--use-fast-vapi=' + rel_vapi]
                 vapi_order_deps.append(rel_vapi)
             relsc = os.path.join(self.get_target_dir(target), target.get_basename() + '.dir', sc)
             rel_s = os.path.join(self.build_to_src, s)
-            flags += ['--deps', relsc + '.d']
+            args += ['--deps', relsc + '.d']
             for d in target.external_deps:
                 if isinstance(d, dependencies.PkgConfigDependency):
-                    flags += ['--pkg', d.name]
+                    args += ['--pkg', d.name]
             generated_c += [relsc]
             element = NinjaBuildElement(relsc, valac.get_language() + '_COMPILER', rel_s)
-            element.add_item('FLAGS', flags)
+            element.add_item('ARGS', args)
             element.add_orderdep(vapi_order_deps)
             element.write(outfile)
         return generated_c
@@ -503,17 +503,17 @@ class NinjaBackend(backends.Backend):
                 raise InvalidArguments('Rust target %s contains a non-rust source file.' % target.get_basename())
             relsrc.append(os.path.join(self.build_to_src, i))
         target_name = os.path.join(target.subdir, target.get_filename())
-        flags = ['--crate-type']
+        args = ['--crate-type']
         if isinstance(target, build.Executable):
-            flags.append('bin')
+            args.append('bin')
         elif isinstance(target, build.SharedLibrary):
-            flags.append('dylib')
+            args.append('dylib')
         else:
             raise InvalidArguments('Unknown target type for rustc.')
-        flags += rustc.get_buildtype_flags(self.environment.coredata.buildtype)
+        args += rustc.get_buildtype_args(self.environment.coredata.buildtype)
         depfile = target_name + '.d'
-        flags += ['--out-dir', target.subdir, '-o', target.get_filename()]
-        flags += ['--dep-info', depfile]
+        args += ['--out-dir', target.subdir, '-o', target.get_filename()]
+        args += ['--dep-info', depfile]
         orderdeps = [os.path.join(t.subdir, t.get_filename()) for t in target.link_targets]
         linkdirs = {}
         for d in target.link_targets:
@@ -521,11 +521,11 @@ class NinjaBackend(backends.Backend):
         for d in linkdirs.keys():
             if d == '':
                 d = '.'
-            flags += ['-L', d]
+            args += ['-L', d]
         element = NinjaBuildElement(target_name, 'rust_COMPILER', relsrc)
         if len(orderdeps) > 0:
             element.add_orderdep(orderdeps)
-        element.add_item('FLAGS', flags)
+        element.add_item('ARGS', args)
         element.add_item('targetdep', depfile)
         element.write(outfile)
 
@@ -542,9 +542,9 @@ class NinjaBackend(backends.Backend):
         if static_linker is None:
             return
         rule = 'rule STATIC%s_LINKER\n' % crstr
-        command = ' command = %s  $LINK_FLAGS %s $in\n' % \
+        command = ' command = %s  $LINK_ARGS %s $in\n' % \
         (' '.join(static_linker.get_exelist()),
-        ' '.join(static_linker.get_output_flags('$out')))
+        ' '.join(static_linker.get_output_args('$out')))
         description = ' description = Static linking library $out\n\n'
         outfile.write(rule)
         outfile.write(command)
@@ -561,10 +561,10 @@ class NinjaBackend(backends.Backend):
                 if is_cross:
                     crstr = '_CROSS'
                 rule = 'rule %s%s_LINKER\n' % (langname, crstr)
-                command = ' command = %s %s $FLAGS  %s $in $LINK_FLAGS $aliasing\n' % \
+                command = ' command = %s %s $ARGS  %s $in $LINK_ARGS $aliasing\n' % \
                 (execute_wrapper,
                  ' '.join(compiler.get_linker_exelist()),\
-                 ' '.join(compiler.get_linker_output_flags('$out')))
+                 ' '.join(compiler.get_linker_output_args('$out')))
                 description = ' description = Linking target $out'
                 outfile.write(rule)
                 outfile.write(command)
@@ -587,7 +587,7 @@ class NinjaBackend(backends.Backend):
     def generate_java_compile_rule(self, compiler, outfile):
         rule = 'rule %s_COMPILER\n' % compiler.get_language()
         invoc = ' '.join([ninja_quote(i) for i in compiler.get_exelist()])
-        command = ' command = %s $FLAGS $in\n' % invoc
+        command = ' command = %s $ARGS $in\n' % invoc
         description = ' description = Compiling Java object $in.\n'
         outfile.write(rule)
         outfile.write(command)
@@ -597,7 +597,7 @@ class NinjaBackend(backends.Backend):
     def generate_vala_compile_rules(self, compiler, outfile):
         rule = 'rule %s_COMPILER\n' % compiler.get_language()
         invoc = ' '.join([ninja_quote(i) for i in compiler.get_exelist()])
-        command = ' command = %s $FLAGS $in\n' % invoc
+        command = ' command = %s $ARGS $in\n' % invoc
         description = ' description = Compiling Vala source $in.\n'
         restat = ' restat = 1\n' # ValaC does this always to take advantage of it.
         depfile = ' depfile = $out.d\n'
@@ -613,7 +613,7 @@ class NinjaBackend(backends.Backend):
     def generate_rust_compile_rules(self, compiler, outfile):
         rule = 'rule %s_COMPILER\n' % compiler.get_language()
         invoc = ' '.join([ninja_quote(i) for i in compiler.get_exelist()])
-        command = ' command = %s $FLAGS $in\n' % invoc
+        command = ' command = %s $ARGS $in\n' % invoc
         description = ' description = Compiling Rust source $in.\n'
         depfile = ' depfile = $out.d\n'
         depstyle = ' deps = gcc\n'
@@ -642,12 +642,12 @@ class NinjaBackend(backends.Backend):
         else:
             crstr = ''
         rule = 'rule %s%s_COMPILER\n' % (langname, crstr)
-        depflags = compiler.get_dependency_gen_flags('$out', '$DEPFILE')
-        command = " command = %s $FLAGS %s %s %s $in\n" % \
+        depargs = compiler.get_dependency_gen_args('$out', '$DEPFILE')
+        command = " command = %s $ARGS %s %s %s $in\n" % \
             (' '.join(compiler.get_exelist()),\
-             ' '.join([qstr % d for d in depflags]),\
-             ' '.join(compiler.get_output_flags('$out')),\
-             ' '.join(compiler.get_compile_only_flags()))
+             ' '.join([qstr % d for d in depargs]),\
+             ' '.join(compiler.get_output_args('$out')),\
+             ' '.join(compiler.get_compile_only_args()))
         description = ' description = Compiling %s object $out\n' % langname
         if compiler.get_id() == 'msvc':
             deps = ' deps = msvc\n'
@@ -668,16 +668,16 @@ class NinjaBackend(backends.Backend):
         else:
             crstr = ''
         rule = 'rule %s%s_PCH\n' % (langname, crstr)
-        depflags = compiler.get_dependency_gen_flags('$out', '$DEPFILE')
+        depargs = compiler.get_dependency_gen_args('$out', '$DEPFILE')
         if compiler.get_id() == 'msvc':
             output = ''
         else:
-            output = ' '.join(compiler.get_output_flags('$out'))
-        command = " command = %s $FLAGS %s %s %s $in\n" % \
+            output = ' '.join(compiler.get_output_args('$out'))
+        command = " command = %s $ARGS %s %s %s $in\n" % \
             (' '.join(compiler.get_exelist()),\
-             ' '.join([qstr % d for d in depflags]),\
+             ' '.join([qstr % d for d in depargs]),\
              output,\
-             ' '.join(compiler.get_compile_only_flags()))
+             ' '.join(compiler.get_compile_only_args()))
         description = ' description = Precompiling header %s\n' % '$in'
         if compiler.get_id() == 'msvc':
             deps = ' deps = msvc\n'
@@ -744,7 +744,7 @@ class NinjaBackend(backends.Backend):
 
     def generate_single_compile(self, target, outfile, src, is_generated=False, header_deps=[], order_deps=[]):
         compiler = self.get_compiler_for_source(src)
-        commands = self.generate_basic_compiler_flags(target, compiler)
+        commands = self.generate_basic_compiler_args(target, compiler)
         commands.append(compiler.get_include_arg(self.get_target_private_dir(target)))
         if is_generated:
             if '/' in src:
@@ -799,7 +799,7 @@ class NinjaBackend(backends.Backend):
             element.add_orderdep(d)
         element.add_orderdep(pch_dep)
         element.add_item('DEPFILE', dep_file)
-        element.add_item('FLAGS', commands)
+        element.add_item('ARGS', commands)
         element.write(outfile)
         return rel_obj
 
@@ -812,7 +812,7 @@ class NinjaBackend(backends.Backend):
         dst = os.path.join(self.get_target_private_dir(target), pchname)
 
         commands = []
-        commands += self.generate_basic_compiler_flags(target, compiler)
+        commands += self.generate_basic_compiler_args(target, compiler)
         just_name = os.path.split(header)[1]
         commands += compiler.gen_pch_args(just_name, source, dst)
         
@@ -821,7 +821,7 @@ class NinjaBackend(backends.Backend):
 
     def generate_gcc_pch_command(self, target, compiler, pch):
         commands = []
-        commands += self.generate_basic_compiler_flags(target, compiler)
+        commands += self.generate_basic_compiler_args(target, compiler)
         dst = os.path.join(self.get_target_private_dir(target),
                            os.path.split(pch)[-1] + '.' + compiler.get_pch_suffix())
         dep = dst + '.' + compiler.get_depfile_suffix()
@@ -850,7 +850,7 @@ class NinjaBackend(backends.Backend):
             elem = NinjaBuildElement(dst, rulename, src)
             if extradep is not None:
                 elem.add_dep(extradep)
-            elem.add_item('FLAGS', commands)
+            elem.add_item('ARGS', commands)
             elem.add_item('DEPFILE', dep)
             elem.write(outfile)
 
@@ -876,36 +876,36 @@ class NinjaBackend(backends.Backend):
         linker_rule = linker_base + crstr + '_LINKER'
         abspath = os.path.join(self.environment.get_build_dir(), target.subdir)
         commands = []
-        commands += linker.get_linker_always_flags()
-        commands += linker.get_buildtype_linker_flags(self.environment.coredata.buildtype)
+        commands += linker.get_linker_always_args()
+        commands += linker.get_buildtype_linker_args(self.environment.coredata.buildtype)
         if not(isinstance(target, build.StaticLibrary)):
             commands += self.environment.coredata.external_link_args[linker.get_language()]
         if isinstance(target, build.Executable):
-            commands += linker.get_std_exe_link_flags()
+            commands += linker.get_std_exe_link_args()
         elif isinstance(target, build.SharedLibrary):
-            commands += linker.get_std_shared_lib_link_flags()
-            commands += linker.get_pic_flags()
-            commands += linker.get_soname_flags(target.name, abspath)
+            commands += linker.get_std_shared_lib_link_args()
+            commands += linker.get_pic_args()
+            commands += linker.get_soname_args(target.name, abspath)
         elif isinstance(target, build.StaticLibrary):
-            commands += linker.get_std_link_flags()
+            commands += linker.get_std_link_args()
         else:
             raise RuntimeError('Unknown build target type.')
         dependencies = target.get_dependencies()
         commands += self.build_target_link_arguments(linker, dependencies)
-        commands += target.link_flags
+        commands += target.link_args
         # External deps must be last because target link libraries may depend on them.
         if not(isinstance(target, build.StaticLibrary)):
             for dep in target.get_external_deps():
-                commands += dep.get_link_flags()
+                commands += dep.get_link_args()
         commands += linker.build_rpath_args(self.environment.get_build_dir(), target.get_rpaths())
         if self.environment.coredata.coverage:
-            commands += linker.get_coverage_link_flags()
+            commands += linker.get_coverage_link_args()
         dep_targets = [self.get_dependency_filename(t) for t in dependencies]
         dep_targets += [os.path.join(self.environment.source_dir,
                                      target.subdir, t) for t in target.link_depends]
         elem = NinjaBuildElement(outname, linker_rule, obj_list)
         elem.add_dep(dep_targets)
-        elem.add_item('LINK_FLAGS', commands)
+        elem.add_item('LINK_ARGS', commands)
         return elem
 
     def get_dependency_filename(self, t):

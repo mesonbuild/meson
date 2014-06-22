@@ -200,14 +200,14 @@ class ExternalLibraryHolder(InterpreterObject):
     def get_name(self):
         return self.el.name
     
-    def get_compile_flags(self):
-        return self.el.get_compile_flags()
+    def get_compile_args(self):
+        return self.el.get_compile_args()
     
-    def get_link_flags(self):
-        return self.el.get_link_flags()
+    def get_link_args(self):
+        return self.el.get_link_args()
     
-    def get_exe_flags(self):
-        return self.el.get_exe_flags()
+    def get_exe_args(self):
+        return self.el.get_exe_args()
 
 class GeneratorHolder(InterpreterObject):
     def __init__(self, args, kwargs):
@@ -649,7 +649,7 @@ class Interpreter():
         self.coredata = self.environment.get_coredata()
         self.generators = []
         self.visited_subdirs = {}
-        self.global_flags_frozen = False
+        self.global_args_frozen = False
         self.subprojects = {}
         self.subproject_stack = []
 
@@ -863,7 +863,7 @@ class Interpreter():
         abs_subdir = os.path.join(self.build.environment.get_source_dir(), subdir)
         if not os.path.isdir(abs_subdir):
             raise InterpreterException('Subproject directory does not exist.')
-        self.global_flags_frozen = True
+        self.global_args_frozen = True
         mlog.log('\nExecuting subproject ', mlog.bold(dirname), '.\n', sep='')
         subi = Interpreter(self.build, dirname, subdir)
 
@@ -965,9 +965,9 @@ class Interpreter():
                     self.coredata.cross_compilers[lang] = cross_comp
             mlog.log('Using native %s compiler "' % lang, mlog.bold(' '.join(comp.get_exelist())), '". (%s %s)' % (comp.id, comp.version), sep='')
             if not comp.get_language() in self.coredata.external_args:
-                (ext_compile_flags, ext_link_flags) = environment.get_flags_from_envvars(comp.get_language())
-                self.coredata.external_args[comp.get_language()] = ext_compile_flags
-                self.coredata.external_link_args[comp.get_language()] = ext_link_flags
+                (ext_compile_args, ext_link_args) = environment.get_args_from_envvars(comp.get_language())
+                self.coredata.external_args[comp.get_language()] = ext_compile_args
+                self.coredata.external_link_args[comp.get_language()] = ext_link_args
             self.build.add_compiler(comp)
             if is_cross:
                 mlog.log('Using cross %s compiler "' % lang, mlog.bold(' '.join(cross_comp.get_exelist())), '". (%s %s)' % (cross_comp.id, cross_comp.version), sep='')
@@ -1207,9 +1207,9 @@ class Interpreter():
             if not isinstance(a, str):
                 raise InvalidArguments('Argument %s is not a string.' % str(a))
         if self.subproject != '':
-            raise InvalidCode('Global flags can not be set in subprojects because there is no way to make that reliable.')
-        if self.global_flags_frozen:
-            raise InvalidCode('Tried to set global flags after they have become immutable.')
+            raise InvalidCode('Global arguments can not be set in subprojects because there is no way to make that reliable.')
+        if self.global_args_frozen:
+            raise InvalidCode('Tried to set global arguments after they have become immutable.')
         if not 'language' in kwargs:
             raise InvalidCode('Missing language definition in add_global_arguments')
         lang = kwargs['language'].lower()
@@ -1273,7 +1273,7 @@ class Interpreter():
             txt = ' build '
         displayname = os.path.join(l.held_object.subdir, name)
         mlog.log('Creating', txt, 'target ', mlog.bold(displayname), ' with %d files.' % len(sources), sep='')
-        self.global_flags_frozen = True
+        self.global_args_frozen = True
         return l
 
     def check_sources_exist(self, subdir, sources):

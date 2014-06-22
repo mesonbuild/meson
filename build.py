@@ -86,7 +86,7 @@ class Build:
     def get_configure_files(self):
         return self.configure_files
 
-    def get_global_flags(self, compiler):
+    def get_global_args(self, compiler):
         return self.global_args.get(compiler.get_language(), [])
 
     def get_external_args(self, compiler):
@@ -241,12 +241,12 @@ class BuildTarget():
         if not isinstance(cpplist, list):
             cpplist = [cpplist]
         self.add_compiler_args('cpp', cpplist)
-        self.link_flags = kwargs.get('link_flags', [])
-        if not isinstance(self.link_flags, list):
-            self.link_flags = [self.link_flags]
-        for i in self.link_flags:
+        self.link_args = kwargs.get('link_args', [])
+        if not isinstance(self.link_args, list):
+            self.link_args = [self.link_args]
+        for i in self.link_args:
             if not isinstance(i, str):
-                raise InvalidArguments('Link_flags arguments must be strings.')
+                raise InvalidArguments('Link_args arguments must be strings.')
         self.link_depends = kwargs.get('link_depends', [])
         if not isinstance(self.link_depends, list):
             self.link_depends = [self.link_depends]
@@ -393,14 +393,14 @@ class BuildTarget():
             ids.append(a)
         self.include_dirs += ids
 
-    def add_compiler_args(self, language, flags):
-        for a in flags:
+    def add_compiler_args(self, language, args):
+        for a in args:
             if not isinstance(a, str):
                 raise InvalidArguments('A non-string passed to compiler args.')
         if language in self.extra_args:
-            self.extra_args[language] += flags
+            self.extra_args[language] += args
         else:
-            self.extra_args[language] = flags
+            self.extra_args[language] = args
 
     def get_aliaslist(self):
         return []

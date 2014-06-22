@@ -42,10 +42,10 @@ class Dependency():
     def __init__(self):
         self.name = "null"
 
-    def get_compile_flags(self):
+    def get_compile_args(self):
         return []
 
-    def get_link_flags(self):
+    def get_link_args(self):
         return []
 
     def found(self):
@@ -64,7 +64,7 @@ class Dependency():
     def get_generate_rules(self):
         return []
 
-    def get_exe_flags(self):
+    def get_exe_args(self):
         return []
 
 class PkgConfigDependency(Dependency):
@@ -85,7 +85,7 @@ class PkgConfigDependency(Dependency):
             if required:
                 raise DependencyException('Required dependency %s not found.' % name)
             self.modversion = 'none'
-            self.cflags = []
+            self.cargs = []
             self.libs = []
         else:
             mlog.log('Dependency', mlog.bold(name), 'found:', mlog.green('YES'))
@@ -95,8 +95,8 @@ class PkgConfigDependency(Dependency):
                                  stderr=subprocess.PIPE)
             out = p.communicate()[0]
             if p.returncode != 0:
-                raise RuntimeError('Could not generate cflags for %s.' % name)
-            self.cflags = out.decode().split()
+                raise RuntimeError('Could not generate cargs for %s.' % name)
+            self.cargs = out.decode().split()
 
             p = subprocess.Popen(['pkg-config', '--libs', name], stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE)
@@ -108,10 +108,10 @@ class PkgConfigDependency(Dependency):
     def get_modversion(self):
         return self.modversion
 
-    def get_compile_flags(self):
-        return self.cflags
+    def get_compile_args(self):
+        return self.cargs
 
-    def get_link_flags(self):
+    def get_link_args(self):
         return self.libs
 
     def check_pkgconfig(self):
@@ -166,7 +166,7 @@ class ExternalLibrary(Dependency):
     def found(self):
         return self.fullpath is not None
 
-    def get_link_flags(self):
+    def get_link_args(self):
         if self.found():
             return [self.fullpath]
         return []
@@ -215,11 +215,11 @@ class BoostDependency(Dependency):
         else:
             mlog.log("Dependency Boost (%s) found:" % module_str, mlog.red('NO'))
 
-    def get_compile_flags(self):
-        flags = []
+    def get_compile_args(self):
+        args = []
         if self.boost_root is not None:
-            flags.append('-I' + os.path.join(self.boost_root, 'include'))
-        return flags
+            args.append('-I' + os.path.join(self.boost_root, 'include'))
+        return args
 
     def get_requested(self, kwargs):
         modules = 'modules'
@@ -281,21 +281,21 @@ class BoostDependency(Dependency):
                 else:
                     self.lib_modules[name] = True
 
-    def get_link_flags(self):
-        flags = []
+    def get_link_args(self):
+        args = []
         if self.boost_root:
             # FIXME, these are in gcc format, not msvc.
-            # On the other hand, so are the flags that
+            # On the other hand, so are the args that
             # pkg-config returns.
-            flags.append('-L' + os.path.join(self.boost_root, 'lib'))
+            args.append('-L' + os.path.join(self.boost_root, 'lib'))
         for module in self.requested_modules:
             if module in self.lib_modules or module in self.lib_modules_mt:
                 linkcmd = '-lboost_' + module
-                flags.append(linkcmd)
+                args.append(linkcmd)
             elif module + '-mt' in self.lib_modules_mt:
                 linkcmd = '-lboost_' + module + '-mt'
-                flags.append(linkcmd)
-        return flags
+                args.append(linkcmd)
+        return args
 
     def get_sources(self):
         return []
@@ -323,16 +323,16 @@ class GTestDependency(Dependency):
         mainname = os.path.join(self.libdir, self.libmain_name)
         if os.path.exists(libname) and os.path.exists(mainname):
             self.is_found = True
-            self.compile_flags = []
-            self.link_flags = ['-lgtest']
+            self.compile_args = []
+            self.link_args = ['-lgtest']
             if self.main:
-                self.link_flags.append('-lgtest_main')
+                self.link_args.append('-lgtest_main')
             self.sources = []
             mlog.log('Dependency GTest found:', mlog.green('YES'), '(prebuilt)')
         elif os.path.exists(self.src_dir):
             self.is_found = True
-            self.compile_flags = ['-I' + self.src_include_dir]
-            self.link_flags = []
+            self.compile_args = ['-I' + self.src_include_dir]
+            self.link_args = []
             if self.main:
                 self.sources = [self.all_src, self.main_src]
             else:
@@ -342,18 +342,18 @@ class GTestDependency(Dependency):
             mlog.log('Dependency GTest found:', mlog.red('NO'))
             self.is_found = False
         if self.is_found:
-            self.link_flags.append('-lpthread')
+            self.link_args.append('-lpthread')
         return self.is_found
 
-    def get_compile_flags(self):
+    def get_compile_args(self):
         arr = []
         if self.include_dir != '/usr/include':
             arr.append('-I' + self.include_dir)
         arr.append('-I' + self.src_include_dir)
         return arr
 
-    def get_link_flags(self):
-        return self.link_flags
+    def get_link_args(self):
+        return self.link_args
     def get_version(self):
         return '1.something_maybe'
     def get_sources(self):
@@ -374,14 +374,14 @@ class GMockDependency(Dependency):
         fname = os.path.join(self.libdir, self.libname)
         if os.path.exists(fname):
             self.is_found = True
-            self.compile_flags = []
-            self.link_flags = ['-lgmock']
+            self.compile_args = []
+            self.link_args = ['-lgmock']
             self.sources = []
             mlog.log('Dependency GMock found:', mlog.green('YES'), '(prebuilt)')
         elif os.path.exists(self.src_dir):
             self.is_found = True
-            self.compile_flags = ['-I' + self.src_include_dir]
-            self.link_flags = []
+            self.compile_args = ['-I' + self.src_include_dir]
+            self.link_args = []
             if kwargs.get('main', False):
                 self.sources = [self.all_src, self.main_src]
             else:
@@ -395,14 +395,14 @@ class GMockDependency(Dependency):
     def get_version(self):
         return '1.something_maybe'
 
-    def get_compile_flags(self):
-        return self.compile_flags
+    def get_compile_args(self):
+        return self.compile_args
 
     def get_sources(self):
         return self.sources
 
-    def get_link_flags(self):
-        return self.link_flags
+    def get_link_args(self):
+        return self.link_args
 
     def found(self):
         return self.is_found
@@ -501,20 +501,20 @@ class Qt5Dependency(Dependency):
     def get_version(self):
         return self.modules[0].get_version()
 
-    def get_compile_flags(self):
-        flags = []
+    def get_compile_args(self):
+        args = []
         for m in self.modules:
-            flags += m.get_compile_flags()
-        return flags
+            args += m.get_compile_args()
+        return args
 
     def get_sources(self):
         return []
 
-    def get_link_flags(self):
-        flags = []
+    def get_link_args(self):
+        args = []
         for module in self.modules:
-            flags += module.get_link_flags()
-        return flags
+            args += module.get_link_args()
+        return args
 
     def found(self):
         if not self.moc.found():
@@ -543,7 +543,7 @@ class Qt5Dependency(Dependency):
                               'rc_compile', 'Compiling @INFILE@ with the rrc compiler')
         return [moc_rule, mocsrc_rule, ui_rule, rrc_rule]
 
-    def get_exe_flags(self):
+    def get_exe_args(self):
         # Qt5 seems to require this always.
         # Fix this to be more portable, especially to MSVC.
         return ['-fPIE']
@@ -560,29 +560,29 @@ class GnuStepDependency(Dependency):
                               stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         gp.communicate()
         if gp.returncode != 0:
-            self.flags = None
+            self.args = None
             mlog.log('Dependency GnuStep found:', mlog.red('NO'))
             return
         if 'gui' in self.modules:
             arg = '--gui-libs'
         else:
             arg = '--base-libs'
-        fp = subprocess.Popen([confprog, '--objc-flags'],
+        fp = subprocess.Popen([confprog, '--objc-args'],
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (flagtxt, flagerr) = fp.communicate()
         flagtxt = flagtxt.decode()
         flagerr = flagerr.decode()
         if fp.returncode != 0:
-            raise DependencyException('Error getting objc-flags: %s %s' % (flagtxt, flagerr))
-        flags = flagtxt.split()
-        self.flags = self.filter_flags(flags)
+            raise DependencyException('Error getting objc-args: %s %s' % (flagtxt, flagerr))
+        args = flagtxt.split()
+        self.args = self.filter_arsg(args)
         fp = subprocess.Popen([confprog, arg],
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (libtxt, liberr) = fp.communicate()
         libtxt = libtxt.decode()
         liberr = liberr.decode()
         if fp.returncode != 0:
-            raise DependencyException('Error getting objc-lib flags: %s %s' % (libtxt, liberr))
+            raise DependencyException('Error getting objc-lib args: %s %s' % (libtxt, liberr))
         self.libs = self.weird_filter(libtxt.split())
         mlog.log('Dependency GnuStep found:', mlog.green('YES'))
 
@@ -593,11 +593,11 @@ why. As a hack filter out everything that is not a flag."""
         return [e for e in elems if e.startswith('-')]
 
 
-    def filter_flags(self, flags):
-        """gnustep-config returns a bunch of garbage flags such
+    def filter_arsg(self, args):
+        """gnustep-config returns a bunch of garbage args such
         as -O2 and so on. Drop everything that is not needed."""
         result = []
-        for f in flags:
+        for f in args:
             if f.startswith('-D') or f.startswith('-f') or \
             f.startswith('-I') or f == '-pthread' or\
             (f.startswith('-W') and not f == '-Wall'):
@@ -605,14 +605,14 @@ why. As a hack filter out everything that is not a flag."""
         return result
 
     def found(self):
-        return self.flags is not None
+        return self.args is not None
     
-    def get_compile_flags(self):
-        if self.flags is None:
+    def get_compile_args(self):
+        if self.args is None:
             return []
-        return self.flags
+        return self.args
     
-    def get_link_flags(self):
+    def get_link_args(self):
         return self.libs
 
 class AppleFrameworks(Dependency):
@@ -625,12 +625,12 @@ class AppleFrameworks(Dependency):
             raise DependencyException("AppleFrameworks dependency requires at least one module.")
         self.frameworks = modules
     
-    def get_link_flags(self):
-        flags = []
+    def get_link_args(self):
+        args = []
         for f in self.frameworks:
-            flags.append('-framework')
-            flags.append(f)
-        return flags
+            args.append('-framework')
+            args.append(f)
+        return args
 
     def found(self):
         return environment.is_osx()
