@@ -1,1 +1,1 @@
-bin/rustprog
+bin/prog

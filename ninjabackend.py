@@ -505,14 +505,15 @@ class NinjaBackend(backends.Backend):
         target_name = os.path.join(target.subdir, target.get_filename())
         args = ['--crate-type']
         if isinstance(target, build.Executable):
-            args.append('bin')
+            cratetype = 'bin'
         elif isinstance(target, build.SharedLibrary):
-            args.append('dylib')
+            cratetype = 'dylib'
         else:
             raise InvalidArguments('Unknown target type for rustc.')
+        args.append(cratetype)
         args += rustc.get_buildtype_args(self.environment.coredata.buildtype)
         depfile = target_name + '.d'
-        args += ['--out-dir', target.subdir, '-o', target.get_filename()]
+        args += ['--out-dir', target.subdir]
         args += ['--dep-info', depfile]
         orderdeps = [os.path.join(t.subdir, t.get_filename()) for t in target.link_targets]
         linkdirs = {}
@@ -527,6 +528,7 @@ class NinjaBackend(backends.Backend):
             element.add_orderdep(orderdeps)
         element.add_item('ARGS', args)
         element.add_item('targetdep', depfile)
+        element.add_item('cratetype', cratetype)
         element.write(outfile)
 
     def generate_static_link_rules(self, is_cross, outfile):
@@ -613,9 +615,13 @@ class NinjaBackend(backends.Backend):
     def generate_rust_compile_rules(self, compiler, outfile):
         rule = 'rule %s_COMPILER\n' % compiler.get_language()
         invoc = ' '.join([ninja_quote(i) for i in compiler.get_exelist()])
-        command = ' command = %s $ARGS $in\n' % invoc
+        command = ' command = %s %s $out $cratetype %s $ARGS $in\n' % \
+            (ninja_quote(sys.executable),
+             ninja_quote(os.path.join(os.path.split(__file__)[0], "rustrunner.py")),
+                         invoc)
         description = ' description = Compiling Rust source $in.\n'
         depfile = ' depfile = $out.d\n'
+        
         depstyle = ' deps = gcc\n'
         outfile.write(rule)
         outfile.write(command)

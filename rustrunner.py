@@ -28,12 +28,11 @@ def delete_old_crates(target_name, target_type):
     if target_type == 'dylib':
         (base, suffix) = os.path.splitext(target_name)
         crates = glob.glob(base + '-*' + suffix)
-        crates = [(os.stat(i).st_ctime, i) for i in crates]
+        crates = [(os.stat(i).st_mtime, i) for i in crates]
         [os.unlink(c[1]) for c in sorted(crates)[:-1]]
 
 def invoke_rust(rustc_command):
-    return 0
-    #return subprocess.call(rustc_command, shell=False)
+    return subprocess.call(rustc_command, shell=False)
 
 def touch_file(fname):
     try:
@@ -53,6 +52,8 @@ if __name__ == '__main__':
     retval = invoke_rust(rustc_command)
     if retval != 0:
         sys.exit(retval)
-    delete_old_crates(target_name, target_type)
-    touch_file(target_name)
+    if target_type != "bin":
+        delete_old_crates(target_name, target_type)
+        touch_file(target_name)
+
 

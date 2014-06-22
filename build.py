@@ -137,6 +137,7 @@ class BuildTarget():
         self.process_kwargs(kwargs, environment)
         if len(self.sources) == 0 and len(self.generated) == 0:
             raise InvalidArguments('Build target %s has no sources.' % name)
+        self.validate_sources()
 
     def process_objectlist(self, objects):
         assert(isinstance(objects, list))
@@ -163,6 +164,14 @@ class BuildTarget():
                 self.generated.append(s)
             else:
                 raise InvalidArguments('Bad source in target %s.' % self.name)
+
+    def validate_sources(self):
+        if len(self.sources) > 0:
+            first = os.path.split(self.sources[0])[1]
+            (base, suffix) = os.path.splitext(first)
+            if suffix == '.rs':
+                if self.name != base:
+                    raise InvalidArguments('In Rust targets, the first source file must be named projectname.rs.')
 
     def get_original_kwargs(self):
         return self.kwargs

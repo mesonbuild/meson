@@ -1,4 +1,4 @@
 project('rustprog', 'rust')
 
-e = executable('rustprog', 'prog.rs', install : true)
+e = executable('prog', 'prog.rs', install : true)
 test('rusttest', e)
