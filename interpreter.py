@@ -905,7 +905,7 @@ class Interpreter():
         if self.subproject in self.build.projects:
             raise InvalidCode('Second call to project().')
         self.build.projects[self.subproject] = args[0]
-        mlog.log('Project name is "', mlog.bold(args[0]), '".', sep='')
+        mlog.log('Project name: ', mlog.bold(args[0]), sep='')
         self.add_languages(node, args[1:])
         langs = self.coredata.compilers.keys()
         if 'vala' in langs:
@@ -963,14 +963,14 @@ class Interpreter():
                 self.coredata.compilers[lang] = comp
                 if cross_comp is not None:
                     self.coredata.cross_compilers[lang] = cross_comp
-            mlog.log('Using native %s compiler "' % lang, mlog.bold(' '.join(comp.get_exelist())), '". (%s %s)' % (comp.id, comp.version), sep='')
+            mlog.log('Native %s compiler: ' % lang, mlog.bold(' '.join(comp.get_exelist())), ' (%s %s)' % (comp.id, comp.version), sep='')
             if not comp.get_language() in self.coredata.external_args:
                 (ext_compile_args, ext_link_args) = environment.get_args_from_envvars(comp.get_language())
                 self.coredata.external_args[comp.get_language()] = ext_compile_args
                 self.coredata.external_link_args[comp.get_language()] = ext_link_args
             self.build.add_compiler(comp)
             if is_cross:
-                mlog.log('Using cross %s compiler "' % lang, mlog.bold(' '.join(cross_comp.get_exelist())), '". (%s %s)' % (cross_comp.id, cross_comp.version), sep='')
+                mlog.log('Cross %s compiler: ' % lang, mlog.bold(' '.join(cross_comp.get_exelist())), ' (%s %s)' % (cross_comp.id, cross_comp.version), sep='')
                 self.build.add_cross_compiler(cross_comp)
 
     def func_find_program(self, node, args, kwargs):
