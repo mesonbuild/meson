@@ -11,8 +11,8 @@ endif
 nolinkdep = dependency('boost', modules: 'utility')
 linkdep = dependency('boost', modules : ['thread', 'system'])
 
-nolinkexe = executable('nolinkedexe', 'nolinkexe.cc', deps : nolinkdep)
-linkexe = executable('linkedexe', 'linkexe.cc', deps : linkdep)
+nolinkexe = executable('nolinkedexe', 'nolinkexe.cc', dependencies : nolinkdep)
+linkexe = executable('linkedexe', 'linkexe.cc', dependencies : linkdep)
 
 test('Boost nolinktext', nolinkexe)
 test('Boost linktext', linkexe)

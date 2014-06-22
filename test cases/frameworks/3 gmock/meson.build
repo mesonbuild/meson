@@ -6,5 +6,5 @@ project('gmock test', 'cpp')
 gtest = dependency('gtest', main : true)
 gmock = dependency('gmock')
 
-e = executable('gmocktest', 'gmocktest.cc', deps : [gtest, gmock])
+e = executable('gmocktest', 'gmocktest.cc', dependencies : [gtest, gmock])
 test('gmock test', e)

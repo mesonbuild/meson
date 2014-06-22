@@ -5,5 +5,5 @@ gobject = dependency('gobject-2.0')
 gio = dependency('gio-2.0')
 
 e = executable('gioprog', 'gioprog.vala',
-deps : [glib, gobject, gio])
+dependencies : [glib, gobject, gio])
 test('giotest', e)

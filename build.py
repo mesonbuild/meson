@@ -261,7 +261,7 @@ class BuildTarget():
         if not isinstance(inclist, list):
             inclist = [inclist]
         self.add_include_dirs(inclist)
-        deplist = kwargs.get('deps', [])
+        deplist = kwargs.get('dependencies', [])
         if not isinstance(deplist, list):
             deplist = [deplist]
         self.add_external_deps(deplist)

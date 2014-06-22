@@ -5,5 +5,5 @@ if host.name() == 'darwin'
 else
   dep = dependency('gnustep')
 endif
-exe = executable('stringprog', 'stringprog.m', deps : dep)
+exe = executable('stringprog', 'stringprog.m', dependencies : dep)
 test('stringtest', exe)

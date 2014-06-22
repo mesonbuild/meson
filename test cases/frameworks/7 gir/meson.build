@@ -11,7 +11,7 @@ girc = find_program('g-ir-compiler')
 libsources = ['golib.c', 'golib.h']
 
 exe = executable('goprog', libsources, 'prog.c',
-deps : [glib, gobj, gir, gmod])
+dependencies : [glib, gobj, gir, gmod])
 
 test('gobjtest', exe)
 

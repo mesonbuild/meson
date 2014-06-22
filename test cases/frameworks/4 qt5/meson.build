@@ -7,7 +7,7 @@ sources : ['main.cpp', 'mainWindow.cpp'], # Sources that don't need preprocessin
 moc_headers : ['mainWindow.h'],           # These need to be fed through the moc tool before use. 
 ui_files : 'mainWindow.ui',               # XML files that need to be compiled with the uic tol.
 qresources : 'stuff.qrc',                 # Resource file for rcc compiler.
-deps : qt5dep)
+dependencies : qt5dep)
 
 # We need a console test application because some test environments
 # do not have an X server.
@@ -15,7 +15,7 @@ deps : qt5dep)
 qt5core = dependency('qt5', modules : 'Core')
 
 qt5coreapp = executable('q5core', 'q5core.cpp',
-deps : qt5core)
+dependencies : qt5core)
 
 test('qt5test', qt5coreapp)
 
@@ -26,6 +26,6 @@ q5maninclude = executable('q5maninclude',
 sources : 'manualinclude.cpp',
 moc_sources : 'mocinclude.cpp',
 moc_headers : 'manualinclude.h',
-deps : qt5core)
+dependencies : qt5core)
 
 test('q5maninclude', q5maninclude)
