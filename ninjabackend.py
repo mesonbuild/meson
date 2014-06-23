@@ -508,6 +508,8 @@ class NinjaBackend(backends.Backend):
             cratetype = 'bin'
         elif isinstance(target, build.SharedLibrary):
             cratetype = 'dylib'
+        elif isinstance(target, build.StaticLibrary):
+            cratetype = 'lib'
         else:
             raise InvalidArguments('Unknown target type for rustc.')
         args.append(cratetype)

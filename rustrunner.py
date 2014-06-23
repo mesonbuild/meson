@@ -30,6 +30,11 @@ def delete_old_crates(target_name, target_type):
         crates = glob.glob(base + '-*' + suffix)
         crates = [(os.stat(i).st_mtime, i) for i in crates]
         [os.unlink(c[1]) for c in sorted(crates)[:-1]]
+    if target_type == 'lib':
+        (base, suffix) = os.path.splitext(target_name)
+        crates = glob.glob(base + '-*' + '.rlib') # Rust does not use .a
+        crates = [(os.stat(i).st_mtime, i) for i in crates]
+        [os.unlink(c[1]) for c in sorted(crates)[:-1]]
 
 def invoke_rust(rustc_command):
     return subprocess.call(rustc_command, shell=False)
