@@ -15,6 +15,7 @@
 # limitations under the License.
 
 import sys, pickle, os, shutil, subprocess, gzip, platform
+from glob import glob
 
 class InstallData():
     def __init__(self, prefix, depfixer, dep_prefix):
@@ -99,9 +100,25 @@ def is_elf_platform():
         return False
     return True
 
+def check_for_stampfile(fname):
+    '''Some languages e.g. Rust have output files
+    whose names are not known at configure time.
+    Check if this is the case and return the real
+    file instead.'''
+    if fname.endswith('.so') or fname.endswith('.dll'):
+        if os.stat(fname).st_size == 0:
+            (base, suffix) = os.path.splitext(fname)
+            files = glob(base + '-*' + suffix)
+            if len(files) > 1:
+                print("Stale library files in build dir. Can't install.")
+                sys.exit(1)
+            if len(files) == 1:
+                return files[0]
+    return fname
+
 def install_targets(d):
     for t in d.targets:
-        fname = t[0]
+        fname = check_for_stampfile(t[0])
         outdir = os.path.join(d.prefix, t[1])
         aliases = t[2]
         outname = os.path.join(outdir, os.path.split(fname)[-1])
