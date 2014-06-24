@@ -271,9 +271,11 @@ def generate_prebuilt_object():
     if shutil.which('cl'):
         objectfile = objectbase + 'obj'
         raise RuntimeError('MSVC compilation not done yet.')
-        # And neither is MinGW.
     else:
-        objectfile = objectbase + 'o'
+        if is_windows():
+            objectfile = objectbase + 'obj'
+        else:
+            objectfile = objectbase + 'o'
         subprocess.check_call(['cc', '-c', source, '-o', objectfile])
         return objectfile
 
