@@ -270,14 +270,15 @@ def generate_prebuilt_object():
     objectbase = 'test cases/prebuilt object/1 basic/prebuilt.'
     if shutil.which('cl'):
         objectfile = objectbase + 'obj'
-        raise RuntimeError('MSVC compilation not done yet.')
+        cmd = ['cl', '/nologo', '/Fo'+objectfile, '/c', source]
     else:
         if is_windows():
             objectfile = objectbase + 'obj'
         else:
             objectfile = objectbase + 'o'
-        subprocess.check_call(['cc', '-c', source, '-o', objectfile])
-        return objectfile
+        cmd = ['cc', '-c', source, '-o', objectfile]
+    subprocess.check_call(cmd)
+    return objectfile
 
 if __name__ == '__main__':
     script_dir = os.path.split(__file__)[0]
