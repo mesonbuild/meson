@@ -194,8 +194,8 @@ class BuildTarget():
         # This sucks quite badly. Arguments
         # are holders but they can't be pickled
         # so unpack those known.
-        if 'deps' in self.kwargs:
-            self.kwargs['deps'] = self.unpack_holder(self.kwargs['deps'])
+        if 'dependencies' in self.kwargs:
+            self.kwargs['dependencies'] = self.unpack_holder(self.kwargs['dependencies'])
         if 'link_with' in self.kwargs:
             self.kwargs['link_with'] = self.unpack_holder(self.kwargs['link_with'])
 
