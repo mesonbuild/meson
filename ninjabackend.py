@@ -994,7 +994,9 @@ class NinjaBackend(backends.Backend):
         return (src_deps, other_deps)
 
     def generate_ending(self, outfile):
-        targetlist = [self.get_target_filename(t) for t in self.build.get_targets().values()]
+        targetlist = [self.get_target_filename(t) for t in self.build.get_targets().values()\
+                      if not isinstance(t, build.RunTarget)]
+
         elem = NinjaBuildElement('all', 'phony', targetlist)
         elem.write(outfile)
 
