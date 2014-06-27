@@ -702,6 +702,7 @@ class Interpreter():
 
     def run(self):
         self.evaluate_codeblock(self.ast)
+        mlog.log('Build targets in project:', mlog.bold(str(len(self.build.targets))))
 
     def evaluate_codeblock(self, node):
         if node is None:
@@ -1272,7 +1273,6 @@ class Interpreter():
         else:
             txt = ' build '
         displayname = os.path.join(l.held_object.subdir, name)
-        mlog.log('Creating', txt, 'target ', mlog.bold(displayname), ' with %d files.' % len(sources), sep='')
         self.global_args_frozen = True
         return l
 
