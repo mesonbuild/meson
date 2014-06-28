@@ -458,7 +458,8 @@ class Qt5Dependency(Dependency):
                 raise DependencyException('Moc preprocessor is not for Qt 5. Output:\n%s\n%s' %
                                           (stdout, stderr))
             if not qt5toolinfo_printed:
-                mlog.log(' moc:', mlog.green('YES'), '(%s)' % moc_ver)
+                mlog.log(' moc:', mlog.green('YES'), '(%s %s)' % \
+                         (self.moc.fullpath, moc_ver.split()[-1]))
         else:
             if not qt5toolinfo_printed:
                 mlog.log(' moc:', mlog.red('NO'))
@@ -476,7 +477,8 @@ class Qt5Dependency(Dependency):
                 raise DependencyException('Uic compiler is not for Qt 5. Output:\n%s\n%s' %
                                           (stdout, stderr))
             if not qt5toolinfo_printed:
-                mlog.log(' uic:', mlog.green('YES'), '(%s)' % uic_ver)
+                mlog.log(' uic:', mlog.green('YES'), '(%s %s)' % \
+                         (self.uic.fullpath, uic_ver.split()[-1]))
         else:
             if not qt5toolinfo_printed:
                 mlog.log(' uic:', mlog.red('NO'))
@@ -494,7 +496,8 @@ class Qt5Dependency(Dependency):
                 raise DependencyException('Rcc compiler is not for Qt 5. Output:\n%s\n%s' %
                                           (stdout, stderr))
             if not qt5toolinfo_printed:
-                mlog.log(' rcc:', mlog.green('YES'), '(%s)' % rcc_ver)
+                mlog.log(' rcc:', mlog.green('YES'), '(%s %s)'\
+                        % (self.rcc.fullpath, rcc_ver.split()[-1]))
         else:
             if not qt5toolinfo_printed:
                 mlog.log(' rcc:', mlog.red('NO'))
