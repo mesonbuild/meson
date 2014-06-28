@@ -422,7 +422,8 @@ class Qt5Dependency(Dependency):
             self.modules.append(PkgConfigDependency('Qt5' + module, False))
         if len(self.modules) == 0:
             raise DependencyException('No Qt5 modules specified.')
-        mlog.log('Dependency Qt5 tools:')
+        if not qt5toolinfo_printed:
+            mlog.log('Dependency Qt5 tools:')
         self.find_exes()
 
     def find_exes(self):
