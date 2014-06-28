@@ -120,7 +120,8 @@ class PkgConfigDependency(Dependency):
         out = p.communicate()[0]
         if p.returncode != 0:
             raise RuntimeError('Pkg-config executable not found.')
-        mlog.log('Found pkg-config version %s.' % out.decode().strip())
+        mlog.log('Found pkg-config version:', mlog.bold(out.decode().strip()),
+                 '(%s)' % shutil.which('pkg-config'))
         PkgConfigDependency.pkgconfig_found = True
 
     def found(self):
