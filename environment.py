@@ -389,6 +389,21 @@ class ObjCCompiler(CCompiler):
             return True
         return False
 
+    def sanity_check(self, work_dir):
+        source_name = os.path.join(work_dir, 'sanitycheckobjc.m')
+        binary_name = os.path.join(work_dir, 'sanitycheckobjc')
+        ofile = open(source_name, 'w')
+        ofile.write('#import<stdio.h>\nint main(int argc, char **argv) { return 0; }\n')
+        ofile.close()
+        pc = subprocess.Popen(self.exelist + [source_name, '-o', binary_name])
+        pc.wait()
+        if pc.returncode != 0:
+            raise EnvironmentException('ObjC compiler %s can not compile programs.' % self.name_string())
+        pe = subprocess.Popen(binary_name)
+        pe.wait()
+        if pe.returncode != 0:
+            raise EnvironmentException('Executables created by ObjC compiler %s are not runnable.' % self.name_string())
+
 class ObjCPPCompiler(CPPCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrap):
         CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
