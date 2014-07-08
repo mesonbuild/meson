@@ -6,9 +6,15 @@ python = find_program('python3')
 # Code will not be rebuilt if it changes.
 comp = '@0@/@1@'.format(meson.current_source_dir(), 'obj_generator.py')
 
+if host.name() == 'windows'
+  outputname = '@BASENAME@.obj'
+else
+  outputname = '@BASENAME@.o'
+endif
+
 # Generate a header file that needs to be included.
 gen = generator(python,
- output : '@BASENAME@.o',
+ output : outputname,
  arguments : [comp, '@INPUT@', '@OUTPUT@'])
 
 generated = gen.process('source.c')
