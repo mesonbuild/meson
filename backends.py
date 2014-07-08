@@ -224,7 +224,9 @@ class Backend():
         unity_deps = [] # Generated sources that must be built before compiling a Unity target.
         for genlist in target.get_generated_sources():
             for src in genlist.get_outfilelist():
-                if not self.environment.is_header(src):
+                if self.environment.is_object(src):
+                    obj_list.append(os.path.join(self.get_target_dir(target), target.get_basename() + '.dir', src))
+                elif not self.environment.is_header(src):
                     if is_unity:
                         if '/' in src:
                             rel_src = src

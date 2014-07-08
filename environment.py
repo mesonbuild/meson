@@ -1068,6 +1068,7 @@ header_suffixes = ['h', 'hh', 'hpp', 'hxx', 'H']
 cpp_suffixes = ['cc', 'cpp', 'cxx', 'h', 'hh', 'hpp', 'hxx', 'c++']
 c_suffixes = ['c']
 clike_suffixes = c_suffixes + cpp_suffixes
+obj_suffixes = ['o', 'obj']
 
 def is_header(fname):
     suffix = fname.split('.')[-1]
@@ -1076,6 +1077,10 @@ def is_header(fname):
 def is_source(fname):
     suffix = fname.split('.')[-1]
     return suffix in clike_suffixes
+
+def is_object(fname):
+    suffix = fname.split('.')[-1]
+    return suffix in obj_suffixes
 
 class Environment():
     private_dir = 'meson-private'
@@ -1158,9 +1163,12 @@ class Environment():
 
     def is_header(self, fname):
         return is_header(fname)
-    
+
     def is_source(self, fname):
         return is_source(fname)
+
+    def is_object(self, fname):
+        return is_object(fname)
 
     def merge_options(self, options):
         for (name, value) in options.items():
