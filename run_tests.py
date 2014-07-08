@@ -21,6 +21,7 @@ from environment import is_windows
 
 passing_tests = 0
 failing_tests = 0
+print_debug = 'MESON_PRINT_TEST_OUTPUT' in os.environ
 
 test_build_dir = 'work area'
 install_dir = os.path.join(os.path.split(os.path.abspath(__file__))[0], 'install dir')
@@ -102,6 +103,9 @@ def run_and_log(logfile, testdir, should_succeed=True):
     logfile.write('\n\n---\n\nstderr\n\n---\n')
     logfile.write(stde)
     logfile.write('\n\n---\n\n')
+    if print_debug:
+        print(stdo)
+        print(stde, file=sys.stderr)
 
 def run_test(testdir, should_succeed):
     global compile_commands
