@@ -218,7 +218,9 @@ class NinjaBackend(backends.Backend):
         install_script = os.path.join(script_root, 'meson_install.py')
         install_data_file = os.path.join(self.environment.get_scratch_dir(), 'install.dat')
         depfixer = os.path.join(script_root, 'depfixer.py')
-        d = InstallData(self.environment.get_prefix(), depfixer, './') # Fixme
+        d = InstallData(self.environment.get_source_dir(),
+                        self.environment.get_build_dir(),
+                        self.environment.get_prefix(), depfixer, './') # Fixme
         elem = NinjaBuildElement('install', 'CUSTOM_COMMAND', '')
         elem.add_dep('all')
         elem.add_item('DESC', 'Installing files.')
@@ -229,6 +231,7 @@ class NinjaBackend(backends.Backend):
         self.generate_data_install(d)
         self.generate_po_install(d, elem)
         self.generate_pkgconfig_install(d)
+        self.generate_custom_install_script(d)
         elem.write(outfile)
 
         ofile = open(install_data_file, 'wb')
@@ -272,6 +275,10 @@ class NinjaBackend(backends.Backend):
             dstabs = os.path.join(pkgroot, pcfile)
             i = [srcabs, dstabs]
             d.man.append(i)
+
+    def generate_custom_install_script(self, d):
+        d.install_script = self.build.install_script
+    
 
     def generate_header_install(self, d):
         incroot = self.environment.get_includedir()

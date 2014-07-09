@@ -565,7 +565,20 @@ class MesonMain(InterpreterObject):
                              'is_unity' : self.is_unity_method,
                              'current_source_dir' : self.current_source_dir_method,
                              'current_build_dir' : self.current_build_dir_method,
+                             'set_install_script' : self.set_install_script_method,
                              })
+
+    def set_install_script_method(self, args, kwargs):
+        if len(args) != 1:
+            raise InterpreterException('Set_install_script takes exactly one argument.')
+        scriptbase = args[0]
+        if not isinstance(scriptbase, str):
+            raise InterpreterException('Set_install_script argument is not a string.')
+        scriptfile = os.path.join(self.interpreter.environment.source_dir, 
+                                  self.interpreter.subdir, scriptbase)
+        if not os.path.isfile(scriptfile):
+            raise InterpreterException('Can not find install script %s.' % scriptbase)
+        self.build.install_script = scriptfile
 
     def current_source_dir_method(self, args, kwargs):
         src = self.interpreter.environment.source_dir

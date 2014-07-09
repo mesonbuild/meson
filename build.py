@@ -43,6 +43,7 @@ class Build:
         self.pot = []
         self.subprojects = {}
         self.pkgconfig_gens = []
+        self.install_script = None
 
     def has_language(self, language):
         for i in self.compilers:

@@ -18,7 +18,9 @@ import sys, pickle, os, shutil, subprocess, gzip, platform
 from glob import glob
 
 class InstallData():
-    def __init__(self, prefix, depfixer, dep_prefix):
+    def __init__(self, source_dir, build_dir, prefix, depfixer, dep_prefix):
+        self.source_dir = source_dir
+        self.build_dir= build_dir
         self.prefix = prefix
         self.targets = []
         self.depfixer = depfixer
@@ -28,6 +30,7 @@ class InstallData():
         self.data = []
         self.po_package_name = ''
         self.po = []
+        self.install_script = None
 
 def do_install(datafilename):
     ifile = open(datafilename, 'rb')
@@ -44,6 +47,7 @@ def do_install(datafilename):
     install_man(d)
     install_data(d)
     install_po(d)
+    run_install_script(d)
 
 def install_po(d):
     packagename = d.po_package_name
@@ -94,6 +98,19 @@ def install_headers(d):
         shutil.copyfile(fullfilename, outfilename)
         shutil.copystat(fullfilename, outfilename)
 
+def run_install_script(d):
+    if d.install_script is None:
+        return
+    env = {'MESON_SOURCE_ROOT' : d.source_dir,
+           'MESON_BUILD_ROOT' : d.build_dir,
+           'MESON_INSTALL_PREFIX' : d.prefix
+           }
+    script = d.install_script
+    print('Running custom install script %s' % script)
+    child_env = os.environ.copy()
+    child_env.update(env)
+    subprocess.check_call(script, env=child_env)
+
 def is_elf_platform():
     platname = platform.system().lower()
     if platname == 'darwin' or platname == 'windows':
@@ -123,7 +140,6 @@ def check_for_stampfile(fname):
                 sys.exit(1)
             if len(files) == 1:
                 return files[0]
-        
     return fname
 
 def install_targets(d):
