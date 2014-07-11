@@ -299,6 +299,9 @@ class BuildTarget():
             if not(os.path.isfile(trial)):
                 raise InvalidArguments('Tried to add non-existing extra file %s.' % i)
         self.extra_files = extra_files
+        self.install_rpath = kwargs.get('install_rpath', '')
+        if not isinstance(self.install_rpath, str):
+            raise InvalidArguments('Install_rpath is not a string.')
 
     def get_subdir(self):
         return self.subdir
@@ -585,6 +588,7 @@ class CustomTarget:
         self.dependencies = []
         self.process_kwargs(kwargs)
         self.extra_files = []
+        self.install_rpath = ''
 
     def process_kwargs(self, kwargs):
         self.sources = kwargs.get('input', [])

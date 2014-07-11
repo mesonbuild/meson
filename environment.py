@@ -95,8 +95,19 @@ class CCompiler():
     def split_shlib_to_parts(self, fname):
         return (None, fname)
 
-    def build_rpath_args(self, build_dir, rpath_paths):
-        return []
+    # The default behaviour is this, override in
+    # OSX and MSVC.
+    def build_rpath_args(self, build_dir, rpath_paths, install_rpath):
+        if len(rpath_paths) == 0 and len(install_rpath) == 0:
+            return []
+        paths = ':'.join([os.path.join(build_dir, p) for p in rpath_paths])
+        if len(paths) < len(install_rpath):
+            padding = 'X'*(len(install_rpath) - len(paths))
+            if len(paths) == 0:
+                paths = padding
+            else:
+                paths = paths + ':' + padding
+        return ['-Wl,-rpath,' + paths]
 
     def get_id(self):
         return self.id
@@ -457,7 +468,7 @@ class JavaCompiler():
     def split_shlib_to_parts(self, fname):
         return (None, fname)
 
-    def build_rpath_args(self, build_dir, rpath_paths):
+    def build_rpath_args(self, build_dir, rpath_paths, install_rpath):
         return []
 
     def get_id(self):
@@ -805,11 +816,6 @@ class GnuCCompiler(CCompiler):
     def split_shlib_to_parts(self, fname):
         return (os.path.split(fname)[0], fname)
 
-    def build_rpath_args(self, build_dir, rpath_paths):
-        if len(rpath_paths) == 0:
-            return []
-        return ['-Wl,-rpath,' + ':'.join([os.path.join(build_dir, p) for p in rpath_paths])]
-
     def get_soname_args(self, shlib_name, path):
         return get_gcc_soname_args(self.gcc_type, shlib_name, path)
 
@@ -831,11 +837,6 @@ class GnuObjCCompiler(ObjCCompiler):
 
     def get_pch_suffix(self):
         return 'gch'
-
-    def build_rpath_args(self, build_dir, rpath_paths):
-        if len(rpath_paths) == 0:
-            return []
-        return ['-Wl,-rpath,' + ':'.join([os.path.join(build_dir, p) for p in rpath_paths])]
 
     def get_soname_args(self, shlib_name, path):
         return get_gcc_soname_args(self.gcc_type, shlib_name, path)
@@ -859,11 +860,6 @@ class GnuObjCPPCompiler(ObjCPPCompiler):
 
     def get_pch_suffix(self):
         return 'gch'
-
-    def build_rpath_args(self, build_dir, rpath_paths):
-        if len(rpath_paths) == 0:
-            return []
-        return ['-Wl,-rpath,' + ':'.join([os.path.join(build_dir, p) for p in rpath_paths])]
 
     def get_soname_args(self, shlib_name, path):
         return get_gcc_soname_args(self.gcc_type, shlib_name, path)
@@ -897,11 +893,6 @@ class ClangCCompiler(CCompiler):
     def get_pch_suffix(self):
         return 'pch'
 
-    def build_rpath_args(self, build_dir, rpath_paths):
-        if len(rpath_paths) == 0:
-            return []
-        return ['-Wl,-rpath,' + ':'.join([os.path.join(build_dir, p) for p in rpath_paths])]
-
 class GnuCPPCompiler(CPPCompiler):
     std_warn_args = ['-Wall', '-Winvalid-pch']
     # may need to separate the latter to extra_debug_args or something
@@ -930,11 +921,6 @@ class GnuCPPCompiler(CPPCompiler):
     def get_pch_suffix(self):
         return 'gch'
 
-    def build_rpath_args(self, build_dir, rpath_paths):
-        if len(rpath_paths) == 0:
-            return []
-        return ['-Wl,-rpath,' + ':'.join([os.path.join(build_dir, p) for p in rpath_paths])]
-
     def get_soname_args(self, shlib_name, path):
         return get_gcc_soname_args(self.gcc_type, shlib_name, path)
 
@@ -956,11 +942,6 @@ class ClangCPPCompiler(CPPCompiler):
 
     def get_pch_suffix(self):
         return 'pch'
-
-    def build_rpath_args(self, build_dir, rpath_paths):
-        if len(rpath_paths) == 0:
-            return []
-        return ['-Wl,-rpath,' + ':'.join([os.path.join(build_dir, p) for p in rpath_paths])]
 
 class VisualStudioLinker():
     always_args = ['/NOLOGO']
@@ -988,7 +969,7 @@ class VisualStudioLinker():
     def get_linker_always_args(self):
         return VisualStudioLinker.always_args
 
-    def build_rpath_args(self, build_dir, rpath_paths):
+    def build_rpath_args(self, build_dir, rpath_paths, install_rpath):
         return []
 
 class ArLinker():
@@ -997,7 +978,7 @@ class ArLinker():
     def __init__(self, exelist):
         self.exelist = exelist
 
-    def build_rpath_args(self, build_dir, rpath_paths):
+    def build_rpath_args(self, build_dir, rpath_paths, install_rpath):
         return []
 
     def get_exelist(self):

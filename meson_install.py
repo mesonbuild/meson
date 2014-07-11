@@ -18,13 +18,12 @@ import sys, pickle, os, shutil, subprocess, gzip, platform
 from glob import glob
 
 class InstallData():
-    def __init__(self, source_dir, build_dir, prefix, depfixer, dep_prefix):
+    def __init__(self, source_dir, build_dir, prefix, depfixer):
         self.source_dir = source_dir
         self.build_dir= build_dir
         self.prefix = prefix
         self.targets = []
         self.depfixer = depfixer
-        self.dep_prefix = dep_prefix
         self.headers = []
         self.man = []
         self.data = []
@@ -149,6 +148,7 @@ def install_targets(d):
         aliases = t[2]
         outname = os.path.join(outdir, os.path.split(fname)[-1])
         should_strip = t[3]
+        install_rpath = t[4]
         print('Installing %s to %s' % (fname, outname))
         os.makedirs(outdir, exist_ok=True)
         shutil.copyfile(fname, outname)
@@ -170,7 +170,6 @@ def install_targets(d):
                 if not printed_symlink_error:
                     print("Symlink creation does not work on this platform.")
                     printed_symlink_error = True
-        install_rpath = ''
         if is_elf_platform():
             p = subprocess.Popen([d.depfixer, outname, install_rpath], stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE)

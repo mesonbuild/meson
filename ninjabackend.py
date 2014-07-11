@@ -220,7 +220,7 @@ class NinjaBackend(backends.Backend):
         depfixer = os.path.join(script_root, 'depfixer.py')
         d = InstallData(self.environment.get_source_dir(),
                         self.environment.get_build_dir(),
-                        self.environment.get_prefix(), depfixer, './') # Fixme
+                        self.environment.get_prefix(), depfixer)
         elem = NinjaBuildElement('install', 'CUSTOM_COMMAND', '')
         elem.add_dep('all')
         elem.add_item('DESC', 'Installing files.')
@@ -261,7 +261,8 @@ class NinjaBackend(backends.Backend):
                         outdir = bindir
                     else:
                         outdir = libdir
-                i = [self.get_target_filename(t), outdir, t.get_aliaslist(), should_strip]
+                i = [self.get_target_filename(t), outdir, t.get_aliaslist(),\
+                    should_strip, t.install_rpath]
                 d.targets.append(i)
 
     def generate_pkgconfig_install(self, d):
@@ -912,7 +913,8 @@ class NinjaBackend(backends.Backend):
         if not(isinstance(target, build.StaticLibrary)):
             for dep in target.get_external_deps():
                 commands += dep.get_link_args()
-        commands += linker.build_rpath_args(self.environment.get_build_dir(), target.get_rpaths())
+        commands += linker.build_rpath_args(self.environment.get_build_dir(),\
+                                            target.get_rpaths(), target.install_rpath)
         if self.environment.coredata.coverage:
             commands += linker.get_coverage_link_args()
         dep_targets = [self.get_dependency_filename(t) for t in dependencies]
