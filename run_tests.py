@@ -46,7 +46,10 @@ else:
     ninja_command = environment.detect_ninja()
     if ninja_command is None:
         raise RuntimeError('Could not find Ninja executable.')
-    compile_commands = [ninja_command]
+    if print_debug:
+        compile_commands = [ninja_command, '-v']
+    else:
+        compile_commands = [ninja_command]
     test_commands = [ninja_command, 'test']
     install_commands = [ninja_command, 'install']
 
