@@ -20,7 +20,6 @@
 
 import os, sys, glob, shutil, gzip
 from optparse import OptionParser
-from coredata import version
 
 usage_info = '%prog [--prefix PREFIX] [--destdir DESTDIR]'
 
@@ -41,7 +40,7 @@ if options.destdir == '':
 else:
     install_root = os.path.join(options.destdir, options.prefix[1:])
 
-script_dir = os.path.join(install_root, 'share/meson-' + version)
+script_dir = os.path.join(install_root, 'share/meson')
 bin_dir = os.path.join(install_root, 'bin')
 bin_script = os.path.join(script_dir, 'meson.py')
 gui_script = os.path.join(script_dir, 'mesongui.py')
