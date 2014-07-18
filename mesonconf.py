@@ -90,7 +90,7 @@ class Conf:
                 self.coredata.use_pch = self.tobool(v)
             elif k == 'unity':
                 self.coredata.unity = self.tobool(v)
-            elif k == 'installprefix':
+            elif k == 'prefix':
                 if not os.path.isabs(v):
                     raise ConfException('Install prefix %s is not an absolute path.' % v)
                 self.coredata.prefix = v
@@ -175,7 +175,7 @@ class Conf:
         print('')
         print('Directories\n')
         parr = []
-        parr.append(['installprefix', 'Install prefix', self.coredata.prefix])
+        parr.append(['prefix', 'Install prefix', self.coredata.prefix])
         parr.append(['libdir', 'Library directory', self.coredata.libdir])
         parr.append(['bindir', 'Binary directory', self.coredata.bindir])
         parr.append(['includedir', 'Header directory', self.coredata.includedir])
