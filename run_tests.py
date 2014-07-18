@@ -192,6 +192,10 @@ def run_tests():
         javatests = gather_tests('test cases/java')
     else:
         javatests = []
+    if shutil.which('mcs'):
+        cstests = gather_tests('test cases/csharp')
+    else:
+        cstests = []
     if shutil.which('valac'):
         valatests = gather_tests('test cases/vala')
     else:
@@ -236,6 +240,11 @@ def run_tests():
         [run_and_log(logfile, t) for t in javatests]
     else:
         print('\nNot running Java tests.\n')
+    if len(cstests) > 0:
+        print('\nRunning C# tests.\n')
+        [run_and_log(logfile, t) for t in cstests]
+    else:
+        print('\nNot running C# tests.\n')
     if len(valatests) > 0:
         print('\nRunning Vala tests.\n')
         [run_and_log(logfile, t) for t in valatests]
