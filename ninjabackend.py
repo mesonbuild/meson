@@ -442,7 +442,7 @@ class NinjaBackend(backends.Backend):
         compiler = self.get_compiler_for_source(src_list[0])
         assert(compiler.get_language() == 'cs')
         rel_srcs = [os.path.join(self.build_to_src, s) for s in src_list]
-        commands = []
+        commands = target.extra_args.get('cs', [])
         commands += compiler.get_buildtype_args(buildtype)
         if isinstance(target, build.Executable):
             commands.append('-target:exe')

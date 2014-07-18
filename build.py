@@ -251,6 +251,10 @@ class BuildTarget():
         if not isinstance(cpplist, list):
             cpplist = [cpplist]
         self.add_compiler_args('cpp', cpplist)
+        cslist = kwargs.get('cs_args', [])
+        if not isinstance(cslist, list):
+            cslist = [cslist]
+        self.add_compiler_args('cs', cslist)
         self.link_args = kwargs.get('link_args', [])
         if not isinstance(self.link_args, list):
             self.link_args = [self.link_args]
