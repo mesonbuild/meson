@@ -66,6 +66,8 @@ parser.add_option('--disable-pch', action='store_false', dest='use_pch', default
                   help='do not use precompiled headers')
 parser.add_option('--unity', action='store_true', dest='unity', default=False,\
                   help='unity build')
+parser.add_option('--werror', action='store_true', dest='werror', default=False,\
+                  help='Treat warnings as errors')
 parser.add_option('--cross-file', default=None, dest='cross_file',
                   help='file describing cross compilation environment')
 

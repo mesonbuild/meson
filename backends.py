@@ -341,6 +341,8 @@ class Backend():
         commands += compiler.get_buildtype_args(self.environment.coredata.buildtype)
         if self.environment.coredata.coverage:
             commands += compiler.get_coverage_args()
+        if self.environment.coredata.werror:
+            commands += compiler.get_werror_args()
         if isinstance(target, build.SharedLibrary):
             commands += compiler.get_pic_args()
         for dep in target.get_external_deps():

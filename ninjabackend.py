@@ -493,6 +493,8 @@ class NinjaBackend(backends.Backend):
             relsc = os.path.join(self.get_target_dir(target), target.get_basename() + '.dir', sc)
             rel_s = os.path.join(self.build_to_src, s)
             args += ['--deps', relsc + '.d']
+            if self.environment.coredata.werror:
+                args += valac.get_werror_args()
             for d in target.external_deps:
                 if isinstance(d, dependencies.PkgConfigDependency):
                     args += ['--pkg', d.name]

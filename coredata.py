@@ -40,6 +40,7 @@ class CoreData():
         self.use_pch = options.use_pch
         self.unity = options.unity
         self.coverage = options.coverage
+        self.werror = options.werror
         self.user_options = {}
         self.external_args = {} # These are set from "the outside" with e.g. mesonconf
         self.external_link_args = {}

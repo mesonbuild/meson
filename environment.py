@@ -148,6 +148,9 @@ class CCompiler():
     def get_coverage_link_args(self):
         return ['-lgcov']
 
+    def get_werror_args(self):
+        return ['-Werror']
+
     def get_std_exe_link_args(self):
         return []
 
@@ -596,6 +599,9 @@ class ValaCompiler():
 
     def get_exelist(self):
         return self.exelist
+
+    def get_werror_args(self):
+        return ['--fatal-warnings']
 
     def get_language(self):
         return self.language
