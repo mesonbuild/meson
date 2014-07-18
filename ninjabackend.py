@@ -449,7 +449,12 @@ class NinjaBackend(backends.Backend):
         else:
             raise MesonException('Unknown C# target type.')
         commands += compiler.get_output_args(outname_rel)
+        deps = []
+        for l in target.link_targets:
+            commands += compiler.get_link_args(l.get_filename())
+            deps.append(l.get_filename())
         elem = NinjaBuildElement(outname_rel, 'cs_COMPILER', rel_srcs)
+        elem.add_dep(deps)
         elem.add_item('ARGS', commands)
         elem.write(outfile)
 

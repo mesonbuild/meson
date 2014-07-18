@@ -468,6 +468,9 @@ class MonoCompiler():
     def get_linker_always_args(self):
         return []
 
+    def get_link_args(self, fname):
+        return ['-r:' + fname]
+
     def get_soname_args(self, shlib_name, path):
         return []
 
