@@ -510,6 +510,8 @@ class Executable(BuildTarget):
         self.prefix = ''
         self.suffix = environment.get_exe_suffix()
         suffix = environment.get_exe_suffix()
+        if len(self.sources) > 0 and self.sources[0].endswith('.cs'):
+            suffix = 'exe'
         if suffix != '':
             self.filename = self.name + '.' + suffix
         else:
@@ -519,6 +521,8 @@ class Executable(BuildTarget):
 class StaticLibrary(BuildTarget):
     def __init__(self, name, subdir, is_cross, sources, objects, environment, kwargs):
         super().__init__(name, subdir, is_cross, sources, objects, environment, kwargs)
+        if len(self.sources) > 0 and self.sources[0].endswith('.cs'):
+            raise InvalidArguments('Static libraries not supported for C#.')
         self.prefix = environment.get_static_lib_prefix()
         self.suffix = environment.get_static_lib_suffix()
         self.filename = self.prefix + self.name + '.' + self.suffix
@@ -534,8 +538,12 @@ class SharedLibrary(BuildTarget):
         self.version = None
         self.soversion = None
         super().__init__(name, subdir, is_cross, sources, objects, environment, kwargs);
-        self.prefix = environment.get_shared_lib_prefix()
-        self.suffix = environment.get_shared_lib_suffix()
+        if len(self.sources) > 0 and self.sources[0].endswith('.cs'):
+            self.suffix = 'dll'
+            self.prefix = 'lib'
+        else:
+            self.prefix = environment.get_shared_lib_prefix()
+            self.suffix = environment.get_shared_lib_suffix()
         self.importsuffix = environment.get_import_lib_suffix()
 
     def get_shbase(self):
