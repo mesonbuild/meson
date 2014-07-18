@@ -782,9 +782,13 @@ GCC_STANDARD = 0
 GCC_OSX = 1
 GCC_MINGW = 2
 
-def get_gcc_soname_args(gcc_type, shlib_name, path):
+def get_gcc_soname_args(gcc_type, shlib_name, path, soversion):
+    if soversion is None:
+        sostr = ''
+    else:
+        sostr = '.' + soversion
     if gcc_type == GCC_STANDARD:
-        return ['-Wl,-soname,lib%s.so' % shlib_name]
+        return ['-Wl,-soname,lib%s.so%s' % (shlib_name, sostr)]
     elif gcc_type == GCC_OSX:
         return ['-install_name', os.path.join(path, 'lib' + shlib_name + '.dylib')]
     else:
@@ -816,8 +820,8 @@ class GnuCCompiler(CCompiler):
     def split_shlib_to_parts(self, fname):
         return (os.path.split(fname)[0], fname)
 
-    def get_soname_args(self, shlib_name, path):
-        return get_gcc_soname_args(self.gcc_type, shlib_name, path)
+    def get_soname_args(self, shlib_name, path, soversion):
+        return get_gcc_soname_args(self.gcc_type, shlib_name, path, soversion)
 
 class GnuObjCCompiler(ObjCCompiler):
     std_warn_args = ['-Wall', '-Winvalid-pch']
@@ -838,8 +842,8 @@ class GnuObjCCompiler(ObjCCompiler):
     def get_pch_suffix(self):
         return 'gch'
 
-    def get_soname_args(self, shlib_name, path):
-        return get_gcc_soname_args(self.gcc_type, shlib_name, path)
+    def get_soname_args(self, shlib_name, path, soversion):
+        return get_gcc_soname_args(self.gcc_type, shlib_name, path, soversion)
 
 class GnuObjCPPCompiler(ObjCPPCompiler):
     std_warn_args = ['-Wall', '-Winvalid-pch']
@@ -861,8 +865,8 @@ class GnuObjCPPCompiler(ObjCPPCompiler):
     def get_pch_suffix(self):
         return 'gch'
 
-    def get_soname_args(self, shlib_name, path):
-        return get_gcc_soname_args(self.gcc_type, shlib_name, path)
+    def get_soname_args(self, shlib_name, path, soversion):
+        return get_gcc_soname_args(self.gcc_type, shlib_name, path, soversion)
 
 class ClangObjCCompiler(GnuObjCCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
@@ -921,8 +925,8 @@ class GnuCPPCompiler(CPPCompiler):
     def get_pch_suffix(self):
         return 'gch'
 
-    def get_soname_args(self, shlib_name, path):
-        return get_gcc_soname_args(self.gcc_type, shlib_name, path)
+    def get_soname_args(self, shlib_name, path, soversion):
+        return get_gcc_soname_args(self.gcc_type, shlib_name, path, soversion)
 
 class ClangCPPCompiler(CPPCompiler):
     std_warn_args = ['-Wall', '-Winvalid-pch']
@@ -1451,7 +1455,7 @@ class Environment():
 
     def get_source_dir(self):
         return self.source_dir
-    
+
     def get_build_dir(self):
         return self.build_dir
 

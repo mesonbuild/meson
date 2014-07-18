@@ -901,7 +901,11 @@ class NinjaBackend(backends.Backend):
         elif isinstance(target, build.SharedLibrary):
             commands += linker.get_std_shared_lib_link_args()
             commands += linker.get_pic_args()
-            commands += linker.get_soname_args(target.name, abspath)
+            if hasattr(target, 'soversion'):
+                soversion = target.soversion
+            else:
+                soversion = None
+            commands += linker.get_soname_args(target.name, abspath, soversion)
         elif isinstance(target, build.StaticLibrary):
             commands += linker.get_std_link_args()
         else:
