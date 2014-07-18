@@ -438,11 +438,16 @@ class NinjaBackend(backends.Backend):
         subdir = target.get_subdir()
         outname_rel = os.path.join(subdir, fname)
         src_list = target.get_sources()
-        class_list = []
         compiler = self.get_compiler_for_source(src_list[0])
         assert(compiler.get_language() == 'cs')
         rel_srcs = [os.path.join(self.build_to_src, s) for s in src_list]
         commands = []
+        if isinstance(target, build.Executable):
+            commands.append('-target:exe')
+        elif isinstance(target, build.SharedLibrary):
+            commands.append('-target:library')
+        else:
+            raise MesonException('Unknown C# target type.')
         commands += compiler.get_output_args(outname_rel)
         elem = NinjaBuildElement(outname_rel, 'cs_COMPILER', rel_srcs)
         elem.add_item('ARGS', commands)
