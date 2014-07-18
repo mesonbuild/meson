@@ -434,6 +434,7 @@ class NinjaBackend(backends.Backend):
         elem.write(outfile)
 
     def generate_cs_target(self, target, outfile):
+        buildtype = self.environment.coredata.buildtype
         fname = target.get_filename()
         subdir = target.get_subdir()
         outname_rel = os.path.join(subdir, fname)
@@ -442,6 +443,7 @@ class NinjaBackend(backends.Backend):
         assert(compiler.get_language() == 'cs')
         rel_srcs = [os.path.join(self.build_to_src, s) for s in src_list]
         commands = []
+        commands += compiler.get_buildtype_args(buildtype)
         if isinstance(target, build.Executable):
             commands.append('-target:exe')
         elif isinstance(target, build.SharedLibrary):
@@ -453,7 +455,11 @@ class NinjaBackend(backends.Backend):
         for l in target.link_targets:
             commands += compiler.get_link_args(l.get_filename())
             deps.append(l.get_filename())
-        elem = NinjaBuildElement(outname_rel, 'cs_COMPILER', rel_srcs)
+        if '-g' in commands:
+            outputs = [outname_rel, outname_rel + '.mdb']
+        else:
+            outputs = [outname_rel]
+        elem = NinjaBuildElement(outputs, 'cs_COMPILER', rel_srcs)
         elem.add_dep(deps)
         elem.add_item('ARGS', commands)
         elem.write(outfile)

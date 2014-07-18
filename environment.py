@@ -62,6 +62,11 @@ rust_buildtype_args = {'plain' : [],
                         'debugoptimized' : ['-g', '--opt-level', '2'],
                         'release' : ['--opt-level', '3']}
 
+mono_buildtype_args = {'plain' : [],
+                       'debug' : ['-debug'],
+                       'debugoptimized': ['-debug', '-optimize+'],
+                       'release' : ['-optimize+']}
+
 class CCompiler():
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
         if type(exelist) == type(''):
@@ -584,6 +589,9 @@ class MonoCompiler():
 
     def has_function(self, funcname, prefix, env):
         raise EnvironmentException('Mono does not support function checks.')
+
+    def get_buildtype_args(self, buildtype):
+        return mono_buildtype_args[buildtype]
 
 class JavaCompiler():
     def __init__(self, exelist, version):
