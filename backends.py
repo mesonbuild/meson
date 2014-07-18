@@ -191,6 +191,12 @@ class Backend():
                 return True
         return False
 
+    def has_cs(self, target):
+        for s in target.get_sources():
+            if s.endswith('.cs'):
+                return True
+        return False
+
     def generate_target(self, target, outfile):
         if isinstance(target, build.CustomTarget):
             self.generate_custom_target(target, outfile)
@@ -205,6 +211,9 @@ class Backend():
             return
         if 'rust' in self.environment.coredata.compilers.keys() and self.has_rust(target):
             self.generate_rust_target(target, outfile)
+            return
+        if 'cs' in self.environment.coredata.compilers.keys() and self.has_cs(target):
+            self.generate_cs_target(target, outfile)
             return
         if 'vala' in self.environment.coredata.compilers.keys() and self.has_vala(target):
             gen_src_deps += self.generate_vala_compile(target, outfile)

@@ -445,6 +445,143 @@ class ObjCPPCompiler(CPPCompiler):
         if pe.returncode != 0:
             raise EnvironmentException('Executables created by ObjC++ compiler %s are not runnable.' % self.name_string())
 
+class MonoCompiler():
+    def __init__(self, exelist, version):
+        if type(exelist) == type(''):
+            self.exelist = [exelist]
+        elif type(exelist) == type([]):
+            self.exelist = exelist
+        else:
+            raise TypeError('Unknown argument to Mono compiler')
+        self.version = version
+        self.language = 'cs'
+        self.default_suffix = 'cs'
+        self.id = 'mono'
+        self.monorunner = 'mono'
+
+    def get_always_args(self):
+        return []
+
+    def get_output_args(self, fname):
+        return ['-out:' + fname]
+
+    def get_linker_always_args(self):
+        return []
+
+    def get_soname_args(self, shlib_name, path):
+        return []
+
+    def get_werror_args(self):
+        return ['-warnaserror']
+
+    def split_shlib_to_parts(self, fname):
+        return (None, fname)
+
+    def build_rpath_args(self, build_dir, rpath_paths, install_rpath):
+        return []
+
+    def get_id(self):
+        return self.id
+
+    def get_dependency_gen_args(self, outtarget, outfile):
+        return []
+
+    def get_language(self):
+        return self.language
+
+    def get_default_suffix(self):
+        return self.default_suffix
+
+    def get_exelist(self):
+        return self.exelist[:]
+
+    def get_linker_exelist(self):
+        return self.exelist[:]
+
+    def get_compile_only_args(self):
+        return []
+
+    def get_linker_output_args(self, outputname):
+        return []
+
+    def get_debug_args(self):
+        return ['-g']
+
+    def get_coverage_args(self):
+        return []
+
+    def get_coverage_link_args(self):
+        return []
+
+    def get_std_exe_link_args(self):
+        return []
+
+    def get_include_arg(self, path):
+        return ''
+
+    def get_std_shared_lib_link_args(self):
+        return []
+
+    def can_compile(self, filename):
+        suffix = filename.split('.')[-1]
+        if suffix == 'cs':
+            return True
+        return False
+
+    def get_pic_args(self):
+        return []
+
+    def name_string(self):
+        return ' '.join(self.exelist)
+
+    def get_pch_use_args(self, pch_dir, header):
+        return []
+
+    def get_pch_name(self, header_name):
+        return ''
+
+    def sanity_check(self, work_dir):
+        src = 'sanity.cs'
+        obj = 'sanity.exe'
+        source_name = os.path.join(work_dir, src)
+        ofile = open(source_name, 'w')
+        ofile.write('''public class Sanity {
+    static public void Main () {
+    }
+}
+''')
+        ofile.close()
+        pc = subprocess.Popen(self.exelist + [src], cwd=work_dir)
+        pc.wait()
+        if pc.returncode != 0:
+            raise EnvironmentException('Mono compiler %s can not compile programs.' % self.name_string())
+        cmdlist = [self.monorunner, obj]
+        pe = subprocess.Popen(cmdlist, cwd=work_dir)
+        pe.wait()
+        if pe.returncode != 0:
+            raise EnvironmentException('Executables created by Mono compiler %s are not runnable.' % self.name_string())
+
+    def needs_static_linker(self):
+        return False
+
+    def has_header(self, hname):
+        raise EnvironmentException('Mono does not support header checks.')
+
+    def compiles(self, code):
+        raise EnvironmentException('Mono does not support compile checks.')
+
+    def run(self, code):
+        raise EnvironmentException('Mono does not support run checks.')
+
+    def sizeof(self, element, prefix, env):
+        raise EnvironmentException('Mono does not support sizeof checks.')
+
+    def alignment(self, typename, env):
+        raise EnvironmentException('Mono does not support alignment checks.')
+
+    def has_function(self, funcname, prefix, env):
+        raise EnvironmentException('Mono does not support function checks.')
+
 class JavaCompiler():
     def __init__(self, exelist, version):
         if type(exelist) == type(''):
@@ -467,6 +604,9 @@ class JavaCompiler():
 
     def get_soname_args(self, shlib_name, path):
         return []
+
+    def get_werror_args(self):
+        return ['-Werror']
 
     def split_shlib_to_parts(self, fname):
         return (None, fname)
@@ -1367,6 +1507,24 @@ class Environment():
             version = 'unknown version'
         if 'javac' in err:
             return JavaCompiler(exelist, version)
+        raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
+
+    def detect_cs_compiler(self):
+        exelist = ['mcs']
+        try:
+            p = subprocess.Popen(exelist + ['--version'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        except OSError:
+            raise EnvironmentException('Could not execute C# compiler "%s"' % ' '.join(exelist))
+        (out, err) = p.communicate()
+        out = out.decode()
+        err = err.decode()
+        vmatch = re.search(Environment.version_regex, out)
+        if vmatch:
+            version = vmatch.group(0)
+        else:
+            version = 'unknown version'
+        if 'Mono' in out:
+            return MonoCompiler(exelist, version)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
 
     def detect_vala_compiler(self):

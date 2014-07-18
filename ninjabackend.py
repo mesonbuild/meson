@@ -433,6 +433,21 @@ class NinjaBackend(backends.Backend):
         elem.add_item('ARGS', commands)
         elem.write(outfile)
 
+    def generate_cs_target(self, target, outfile):
+        fname = target.get_filename()
+        subdir = target.get_subdir()
+        outname_rel = os.path.join(subdir, fname)
+        src_list = target.get_sources()
+        class_list = []
+        compiler = self.get_compiler_for_source(src_list[0])
+        assert(compiler.get_language() == 'cs')
+        rel_srcs = [os.path.join(self.build_to_src, s) for s in src_list]
+        commands = []
+        commands += compiler.get_output_args(outname_rel)
+        elem = NinjaBuildElement(outname_rel, 'cs_COMPILER', rel_srcs)
+        elem.add_item('ARGS', commands)
+        elem.write(outfile)
+
     def generate_single_java_compile(self, subdir, src, target, compiler, outfile):
         buildtype = self.environment.coredata.buildtype
         args = []
@@ -569,7 +584,8 @@ class NinjaBackend(backends.Backend):
         for (complist, is_cross) in ctypes:
             for compiler in complist:
                 langname = compiler.get_language()
-                if langname == 'java' or langname == 'vala' or langname == 'rust':
+                if langname == 'java' or langname == 'vala' or\
+                 langname == 'rust' or langname == 'cs':
                     continue
                 crstr = ''
                 if is_cross:
@@ -603,6 +619,16 @@ class NinjaBackend(backends.Backend):
         invoc = ' '.join([ninja_quote(i) for i in compiler.get_exelist()])
         command = ' command = %s $ARGS $in\n' % invoc
         description = ' description = Compiling Java object $in.\n'
+        outfile.write(rule)
+        outfile.write(command)
+        outfile.write(description)
+        outfile.write('\n')
+
+    def generate_cs_compile_rule(self, compiler, outfile):
+        rule = 'rule %s_COMPILER\n' % compiler.get_language()
+        invoc = ' '.join([ninja_quote(i) for i in compiler.get_exelist()])
+        command = ' command = %s $ARGS $in\n' % invoc
+        description = ' description = Compiling cs target $out.\n'
         outfile.write(rule)
         outfile.write(command)
         outfile.write(description)
@@ -646,6 +672,10 @@ class NinjaBackend(backends.Backend):
         if langname == 'java':
             if not is_cross:
                 self.generate_java_compile_rule(compiler, outfile)
+            return
+        if langname == 'cs':
+            if not is_cross:
+                self.generate_cs_compile_rule(compiler, outfile)
             return
         if langname == 'vala':
             if not is_cross:

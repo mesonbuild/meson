@@ -963,6 +963,10 @@ class Interpreter():
                     comp = self.environment.detect_java_compiler()
                     if is_cross:
                         cross_comp = comp # Java is platform independent.
+                elif lang == 'cs':
+                    comp = self.environment.detect_cs_compiler()
+                    if is_cross:
+                        cross_comp = comp # C# is platform independent.
                 elif lang == 'vala':
                     comp = self.environment.detect_vala_compiler()
                     if is_cross:
