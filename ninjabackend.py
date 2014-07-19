@@ -71,7 +71,7 @@ class NinjaBuildElement():
         # This allows Ninja to skip unnecessary rebuilds.
         line = 'build %s: %s %s' % (' '.join([ninja_quote(i) for i in self.outfilenames]),\
                                     self.rule,
-                                    ' '.join([ninja_quote(i) for i in sorted(self.infilenames)]))
+                                    ' '.join([ninja_quote(i) for i in self.infilenames]))
         if len(self.deps) > 0:
             line += ' | ' + ' '.join([ninja_quote(x) for x in self.deps])
         if len(self.orderdeps) > 0:

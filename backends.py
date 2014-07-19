@@ -277,7 +277,8 @@ class Backend():
             for src in self.generate_unity_files(target, unity_src):
                 obj_list.append(self.generate_single_compile(target, outfile, src, True, unity_deps + header_deps))
         linker = self.determine_linker(target, src_list)
-        elem = self.generate_link(target, outfile, outname, obj_list, linker)
+        # Sort object list to preserve command line over multiple invocations.
+        elem = self.generate_link(target, outfile, outname, sorted(obj_list), linker)
         self.generate_shlib_aliases(target, self.get_target_dir(target), outfile, elem)
         self.processed_targets[name] = True
 
