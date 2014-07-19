@@ -141,7 +141,7 @@ class Conf:
                 newvalue = v.split()
                 self.coredata.external_link_args[lang] = newvalue
             elif k.endswith('args'):
-                lang = k[:-5]
+                lang = k[:-4]
                 if not lang in self.coredata.external_args:
                     raise ConfException('Unknown language %s in compile args' % lang)
                 # TODO same fix as above
