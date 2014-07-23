@@ -133,7 +133,7 @@ class Conf:
                 else:
                     raise ConfException('Internal error, unknown option type.')
             elif k.endswith('linkargs'):
-                lang = k[:-9]
+                lang = k[:-8]
                 if not lang in self.coredata.external_link_args:
                     raise ConfException('Unknown language %s in linkargs.' % lang)
                 # TODO, currently split on spaces, make it so that user
