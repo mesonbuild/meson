@@ -139,7 +139,7 @@ class NinjaBackend(backends.Backend):
     def generate_custom_target(self, target, outfile):
         ofilename = os.path.join(target.subdir, target.output)
         deps = [os.path.join(i.get_subdir(), i.get_filename()) for i in target.get_dependencies()]
-        srcs = [os.path.join(self.build_to_src, i) for i in  target.sources]
+        srcs = [os.path.join(self.build_to_src, target.subdir, i) for i in  target.sources]
         deps +=  srcs
         elem = NinjaBuildElement(ofilename, 'CUSTOM_COMMAND', deps)
         cmd = []
