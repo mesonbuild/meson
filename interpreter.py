@@ -210,8 +210,9 @@ class ExternalLibraryHolder(InterpreterObject):
         return self.el.get_exe_args()
 
 class GeneratorHolder(InterpreterObject):
-    def __init__(self, args, kwargs):
+    def __init__(self, interpreter, args, kwargs):
         super().__init__()
+        self.interpreter = interpreter
         self.generator = build.Generator(args, kwargs)
         self.methods.update({'process' : self.process_method})
 
@@ -226,7 +227,7 @@ class GeneratorHolder(InterpreterObject):
             if not isinstance(a, str):
                 raise InvalidArguments('A non-string object in "process" arguments.')
         gl = GeneratedListHolder(self)
-        [gl.add_file(a) for a in args]
+        [gl.add_file(os.path.join(self.interpreter.subdir, a)) for a in args]
         return gl
 
 class GeneratedListHolder(InterpreterObject):
@@ -1085,7 +1086,7 @@ class Interpreter():
         return tg
 
     def func_generator(self, node, args, kwargs):
-        gen = GeneratorHolder(args, kwargs)
+        gen = GeneratorHolder(self, args, kwargs)
         self.generators.append(gen)
         return gen
 
