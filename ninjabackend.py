@@ -20,7 +20,7 @@ import dependencies
 from meson_install import InstallData
 from build import InvalidArguments
 from coredata import MesonException
-import os, sys, shutil, pickle
+import os, sys, shutil, pickle, re
 
 if environment.is_windows():
     quote_char = '"'
@@ -769,6 +769,20 @@ class NinjaBackend(backends.Backend):
                 self.generate_pch_rule_for(langname, compiler, qstr, True, outfile)
         outfile.write('\n')
 
+    def replace_outputs(self, args, private_dir, output_list):
+        newargs = []
+        regex = re.compile('@OUTPUT(\d+)@')
+        for arg in args:
+            m = regex.search(arg)
+            while m is not None:
+                index = int(m.group(1))
+                src = '@OUTPUT%d@' % index
+                arg = arg.replace(src, os.path.join(private_dir, output_list[index]))
+                m = regex.search(arg)
+            newargs.append(arg)
+        return newargs
+
+
     def generate_custom_generator_rules(self, target, outfile):
         for genlist in target.get_generated_sources():
             generator = genlist.get_generator()
@@ -788,8 +802,8 @@ class NinjaBackend(backends.Backend):
                 exe_file = exe.get_command()
             base_args = generator.get_arglist()
             for i in range(len(infilelist)):
-                if len(infilelist) == len(outfilelist):
-                    sole_output = os.path.join(self.get_target_private_dir(target), outfilelist[i])
+                if len(generator.outputs) == 1:
+                    sole_output = os.path.join(self.get_target_private_dir(target), outfilelist[0])
                 else:
                     sole_output = ''
                 curfile = infilelist[i]
@@ -798,6 +812,7 @@ class NinjaBackend(backends.Backend):
                 outfiles = [os.path.join(self.get_target_private_dir(target), of) for of in outfiles]
                 args = [x.replace("@INPUT@", infilename).replace('@OUTPUT@', sole_output)\
                         for x in base_args]
+                args = self.replace_outputs(args, self.get_target_private_dir(target), outfilelist)
                 args = [x.replace("@SOURCE_DIR@", self.environment.get_source_dir()).replace("@BUILD_DIR@", self.get_target_private_dir(target))
                         for x in args]
                 cmdlist = [exe_file] + args
