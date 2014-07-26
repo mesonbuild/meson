@@ -137,21 +137,21 @@ class NinjaBackend(backends.Backend):
         os.replace(tempfilename, outfilename)
 
     def generate_custom_target(self, target, outfile):
-        ofilename = os.path.join(target.subdir, target.output)
+        ofilenames = [os.path.join(target.subdir, i) for i in target.output]
         deps = [os.path.join(i.get_subdir(), i.get_filename()) for i in target.get_dependencies()]
         srcs = [os.path.join(self.build_to_src, target.subdir, i) for i in  target.sources]
         deps +=  srcs
-        elem = NinjaBuildElement(ofilename, 'CUSTOM_COMMAND', deps)
+        elem = NinjaBuildElement(ofilenames, 'CUSTOM_COMMAND', deps)
         cmd = []
         for i in target.command:
             if i == '@INPUT@':
                 cmd += srcs
             elif i == '@OUTPUT@':
-                cmd.append(ofilename)
+                cmd.append += ofilenames
             else:
                 cmd.append(i)
         elem.add_item('COMMAND', cmd)
-        elem.add_item('description', 'Generating %s with a custom command.' % ofilename)
+        elem.add_item('description', 'Generating %s with a custom command.' % target.name)
         elem.write(outfile)
         self.processed_targets[target.name] = True
 
@@ -782,9 +782,10 @@ class NinjaBackend(backends.Backend):
             newargs.append(arg)
         return newargs
 
-
     def generate_custom_generator_rules(self, target, outfile):
         for genlist in target.get_generated_sources():
+            if isinstance(genlist, build.CustomTarget):
+                continue # Customtarget has already written its output rules
             generator = genlist.get_generator()
             exe = generator.get_exe()
             if self.environment.is_cross_build() and \
@@ -827,7 +828,9 @@ class NinjaBackend(backends.Backend):
         compiler = self.get_compiler_for_source(src)
         commands = self.generate_basic_compiler_args(target, compiler)
         commands.append(compiler.get_include_arg(self.get_target_private_dir(target)))
-        if is_generated:
+        if isinstance(src, backends.RawFilename):
+            rel_src = src.fname
+        elif is_generated:
             if '/' in src:
                 rel_src = src
             else:
@@ -838,6 +841,8 @@ class NinjaBackend(backends.Backend):
             src_filename = os.path.basename(src)
         else:
             src_filename = src
+        if isinstance(src, backends.RawFilename):
+            src_filename = src.fname
         obj_basename = src_filename.replace('/', '_').replace('\\', '_')
         rel_obj = os.path.join(self.get_target_private_dir(target), obj_basename)
         rel_obj += '.' + self.environment.get_object_suffix()
@@ -871,11 +876,15 @@ class NinjaBackend(backends.Backend):
 
         element = NinjaBuildElement(rel_obj, compiler_name, rel_src)
         for d in header_deps:
-            if not '/' in d:
+            if isinstance(d, backends.RawFilename):
+                d = d.fname
+            elif not '/' in d:
                 d = os.path.join(self.get_target_private_dir(target), d)
             element.add_dep(d)
         for d in order_deps:
-            if not '/' in d:
+            if isinstance(d, backends.RawFilename):
+                d = d.fname
+            elif not '/' in d :
                 d = os.path.join(self.get_target_private_dir(target), d)
             element.add_orderdep(d)
         element.add_orderdep(pch_dep)

@@ -159,9 +159,11 @@ class BuildTarget():
             # Holder unpacking. Ugly.
             if hasattr(s, 'glist'):
                 s = s.glist
+            if hasattr(s, 'held_object'):
+                s = s.held_object
             if isinstance(s, str):
                 self.sources.append(s)
-            elif isinstance(s, GeneratedList):
+            elif isinstance(s, GeneratedList) or isinstance(s, CustomTarget):
                 self.generated.append(s)
             else:
                 raise InvalidArguments('Bad source in target %s.' % self.name)
@@ -609,10 +611,13 @@ class CustomTarget:
         if 'output' not in kwargs:
             raise InvalidArguments('Missing keyword argument "output".')
         self.output = kwargs['output']
-        if not(isinstance(self.output, str)):
-            raise InvalidArguments('Output argument not a string.')
-        if '/' in self.output:
-            raise InvalidArguments('Output must not contain a path segment.')
+        if not isinstance(self.output, list):
+            self.output = [self.output]
+        for i in self.output:
+            if not(isinstance(i, str)):
+                raise InvalidArguments('Output argument not a string.')
+            if '/' in i:
+                raise InvalidArguments('Output must not contain a path segment.')
         if 'command' not in kwargs:
             raise InvalidArguments('Missing keyword argument "command".')
         cmd = kwargs['command']

@@ -85,6 +85,16 @@ def do_conf_file(src, dst, confdata):
     open(dst_tmp, 'w').writelines(result)
     replace_if_different(dst, dst_tmp)
 
+class RawFilename():
+    def __init__(self, fname):
+        self.fname = fname
+
+    def split(self, c):
+        return self.fname.split(c)
+
+    def startswith(self, s):
+        return self.fname.startswith(s)
+
 class TestSerialisation:
     def __init__(self, name, fname, is_cross, exe_wrapper, is_parallel, cmd_args, env):
         self.name = name
@@ -121,7 +131,10 @@ class Backend():
 
     def get_target_filename(self, target):
         targetdir = self.get_target_dir(target)
-        filename = os.path.join(targetdir, target.get_filename())
+        fname = target.get_filename()
+        if isinstance(fname, list):
+            fname = fname[0] # HORROR, HORROR! Fix this.
+        filename = os.path.join(targetdir, fname)
         return filename
 
     def get_target_dir(self, target):
@@ -231,8 +244,21 @@ class Backend():
         header_deps = gen_other_deps
         unity_src = []
         unity_deps = [] # Generated sources that must be built before compiling a Unity target.
-        for genlist in target.get_generated_sources():
-            for src in genlist.get_outfilelist():
+        for gensource in target.get_generated_sources():
+            if isinstance(gensource, build.CustomTarget):
+                for src in gensource.output:
+                    src = os.path.join(gensource.subdir, src)
+                    if self.environment.is_header(src):
+                        header_deps.append(RawFilename(src))
+                    elif self.environment.is_source(src):
+                        if is_unity:
+                            unity_deps.append(os.path.join(self.environment.get_build_dir(), RawFilename(src)))
+                        else:
+                            obj_list.append(self.generate_single_compile(target, outfile, RawFilename(src), True))
+                    else:
+                        pass # perhaps print warning about the unknown file?
+                break # just to cut down on indentation size
+            for src in gensource.get_outfilelist():
                 if self.environment.is_object(src):
                     obj_list.append(os.path.join(self.get_target_dir(target), target.get_basename() + '.dir', src))
                 elif not self.environment.is_header(src):
