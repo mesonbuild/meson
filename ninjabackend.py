@@ -136,9 +136,15 @@ class NinjaBackend(backends.Backend):
         outfile.close()
         os.replace(tempfilename, outfilename)
 
+    def hackety_hack(self, hack):
+        if isinstance(hack, list):
+            return hack[0]
+        return hack
+
     def generate_custom_target(self, target, outfile):
         ofilenames = [os.path.join(target.subdir, i) for i in target.output]
-        deps = [os.path.join(i.get_subdir(), i.get_filename()) for i in target.get_dependencies()]
+        # FIXME, should not grab element at zero but rather expand all.
+        deps = [os.path.join(i.get_subdir(), self.hackety_hack(i.get_filename())) for i in target.get_dependencies()]
         srcs = [os.path.join(self.build_to_src, target.subdir, i) for i in  target.sources]
         deps +=  srcs
         elem = NinjaBuildElement(ofilenames, 'CUSTOM_COMMAND', deps)
@@ -147,7 +153,7 @@ class NinjaBackend(backends.Backend):
             if i == '@INPUT@':
                 cmd += srcs
             elif i == '@OUTPUT@':
-                cmd.append += ofilenames
+                cmd += ofilenames
             else:
                 cmd.append(i)
         elem.add_item('COMMAND', cmd)

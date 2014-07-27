@@ -637,8 +637,11 @@ class CustomTarget:
                 self.dependencies.append(c)
                 # GIR scanner will attempt to execute this binary but
                 # it assumes that it is in path, so always give it a full path.
-                totarget = os.path.join('.', c.get_subdir(), c.get_filename())
-                final_cmd.append(totarget)
+                tmp = c.get_filename()
+                if isinstance(tmp, str):
+                    tmp =[tmp]
+                totarget = [os.path.join('.', c.get_subdir(), i) for i in tmp]
+                final_cmd += totarget
             elif isinstance(c, list):
                 # Hackety hack, only supports one level of flattening. Should really
                 # work to arbtrary depth.
