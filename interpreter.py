@@ -63,9 +63,9 @@ class TryRunResultHolder(InterpreterObject):
 
 class RunProcess(InterpreterObject):
 
-    def __init__(self, command_array, source_dir, build_dir, subdir):
+    def __init__(self, command_array, source_dir, build_dir, subdir, in_builddir=False):
         super().__init__()
-        pc = self.run_command(command_array, source_dir, build_dir, subdir)
+        pc = self.run_command(command_array, source_dir, build_dir, subdir, in_builddir)
         (stdout, stderr) = pc.communicate()
         self.returncode = pc.returncode
         self.stdout = stdout.decode().replace('\r\n', '\n')
@@ -75,12 +75,15 @@ class RunProcess(InterpreterObject):
                              'stderr' : self.stderr_method,
                              })
         
-    def run_command(self, command_array, source_dir, build_dir, subdir):
+    def run_command(self, command_array, source_dir, build_dir, subdir, in_builddir):
         cmd_name = command_array[0]
         env = {'MESON_SOURCE_ROOT' : source_dir,
                'MESON_BUILD_ROOT' : build_dir,
                'MESON_SUBDIR' : subdir}
-        cwd = os.path.join(source_dir, subdir)
+        if in_builddir:
+            cwd = os.path.join(build_dir, subdir)
+        else:
+            cwd = os.path.join(source_dir, subdir)
         child_env = os.environ.copy()
         child_env.update(env)
         try:
@@ -806,7 +809,11 @@ class Interpreter():
             if not isinstance(i, str):
                 raise InterpreterException('Run_command arguments must be strings.')
         args = [cmd] + cargs
-        return RunProcess(args, self.environment.source_dir, self.environment.build_dir, self.subdir)
+        in_builddir = kwargs.get('in_builddir', False)
+        if not isinstance(in_builddir, bool):
+            raise InterpreterException('in_builddir must be boolean.')
+        return RunProcess(args, self.environment.source_dir, self.environment.build_dir,
+                          self.subdir, in_builddir)
 
     def func_gettext(self, nodes, args, kwargs):
         if len(args) != 1:
