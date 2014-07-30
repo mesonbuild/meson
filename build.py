@@ -308,6 +308,16 @@ class BuildTarget():
         self.install_rpath = kwargs.get('install_rpath', '')
         if not isinstance(self.install_rpath, str):
             raise InvalidArguments('Install_rpath is not a string.')
+        resources = kwargs.get('resources', [])
+        if not isinstance(resources, list):
+            resources = [resources]
+        for r in resources:
+            if not isinstance(r, str):
+                raise InvalidArguments('Resource argument is not a string.')
+            trial = os.path.join(environment.get_source_dir(), self.subdir, r)
+            if not os.path.isfile(trial):
+                raise InvalidArguments('Tried to add non-existing resource %s.' % r)
+        self.resources = resources
 
     def get_subdir(self):
         return self.subdir

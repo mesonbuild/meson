@@ -441,6 +441,27 @@ class NinjaBackend(backends.Backend):
         elem.add_item('ARGS', commands)
         elem.write(outfile)
 
+    def generate_cs_resource_tasks(self, target, outfile):
+        args = []
+        deps = []
+        for r in target.resources:
+            rel_sourcefile = os.path.join(self.build_to_src, target.subdir, r)
+            if r.endswith('.resources'):
+                a = '-resource:' + rel_sourcefile
+            elif r.endswith('.txt') or r.endswith('.resx'):
+                ofilebase = os.path.splitext(os.path.basename(r))[0] + '.resources'
+                ofilename = os.path.join(self.get_target_dir(target), target.get_basename() + '.dir', ofilebase)
+                elem = NinjaBuildElement(ofilename, "CUSTOM_COMMAND", rel_sourcefile)
+                elem.add_item('COMMAND', ['resgen', rel_sourcefile, ofilename])
+                elem.add_item('DESC', 'Compiling resource %s.' % rel_sourcefile)
+                elem.write(outfile)
+                deps.append(ofilename)
+                a = '-resource:' + ofilename
+            else:
+                raise InvalidArguments('Unknown resource file %s.' % r)
+            args.append(a)
+        return (args, deps)
+
     def generate_cs_target(self, target, outfile):
         buildtype = self.environment.coredata.buildtype
         fname = target.get_filename()
@@ -450,6 +471,7 @@ class NinjaBackend(backends.Backend):
         compiler = self.get_compiler_for_source(src_list[0])
         assert(compiler.get_language() == 'cs')
         rel_srcs = [os.path.join(self.build_to_src, s) for s in src_list]
+        deps = []
         commands = target.extra_args.get('cs', [])
         commands += compiler.get_buildtype_args(buildtype)
         if isinstance(target, build.Executable):
@@ -458,8 +480,10 @@ class NinjaBackend(backends.Backend):
             commands.append('-target:library')
         else:
             raise MesonException('Unknown C# target type.')
+        (resource_args, resource_deps) = self.generate_cs_resource_tasks(target, outfile)
+        commands += resource_args
+        deps += resource_deps
         commands += compiler.get_output_args(outname_rel)
-        deps = []
         for l in target.link_targets:
             commands += compiler.get_link_args(l.get_filename())
             deps.append(l.get_filename())
