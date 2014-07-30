@@ -1,10 +1,12 @@
 Meson is project to create the best possible next-generation
 build system.
 
+
 Dependencies
 
 Python 3.3: http://python.org
 Ninja:      http://martine.github.com/ninja/
+
 
 Installing from source
 
@@ -19,7 +21,8 @@ Install step:   [sudo] ./install_meson.py --prefix /your/prefix --destdir /destd
 The default value of prefix is /usr/local. The default value of destdir
 is empty. 
 
-Running:
+
+Running
 
 Meson requires that you have a source directory and a build directory
 and that these two are different. In your source root must exist a file
@@ -43,6 +46,13 @@ DESTDIR=/destdir/path ninja install
 
 DESTDIR can be omitted. If you are installing to system directories,
 you may need to run this command with sudo.
+
+
+Contributing
+
+We love community contributions. There are two simple ways to submit your
+patches. The preferred way is to send a github pull request. You can
+also send patches as emails to the Meson mailing list.
 
 
 Further info
