@@ -67,6 +67,18 @@ mono_buildtype_args = {'plain' : [],
                        'debugoptimized': ['-debug', '-optimize+'],
                        'release' : ['-optimize+']}
 
+def build_unix_rpath_args(build_dir, rpath_paths, install_rpath):
+        if len(rpath_paths) == 0 and len(install_rpath) == 0:
+            return []
+        paths = ':'.join([os.path.join(build_dir, p) for p in rpath_paths])
+        if len(paths) < len(install_rpath):
+            padding = 'X'*(len(install_rpath) - len(paths))
+            if len(paths) == 0:
+                paths = padding
+            else:
+                paths = paths + ':' + padding
+        return ['-Wl,-rpath,' + paths]
+
 class CCompiler():
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
         if type(exelist) == type(''):
@@ -103,16 +115,7 @@ class CCompiler():
     # The default behaviour is this, override in
     # OSX and MSVC.
     def build_rpath_args(self, build_dir, rpath_paths, install_rpath):
-        if len(rpath_paths) == 0 and len(install_rpath) == 0:
-            return []
-        paths = ':'.join([os.path.join(build_dir, p) for p in rpath_paths])
-        if len(paths) < len(install_rpath):
-            padding = 'X'*(len(install_rpath) - len(paths))
-            if len(paths) == 0:
-                paths = padding
-            else:
-                paths = paths + ':' + padding
-        return ['-Wl,-rpath,' + paths]
+        return build_unix_rpath_args(build_dir, rpath_paths, install_rpath)
 
     def get_id(self):
         return self.id
@@ -131,7 +134,7 @@ class CCompiler():
 
     def get_exelist(self):
         return self.exelist[:]
-    
+
     def get_linker_exelist(self):
         return self.exelist[:]
 
@@ -1104,6 +1107,110 @@ class ClangCPPCompiler(CPPCompiler):
     def get_pch_suffix(self):
         return 'pch'
 
+class GnuFortranCompiler():
+    std_warn_args = ['-Wall']
+
+    def __init__(self, exelist, version, gcc_type, is_cross, exe_wrapper=None):
+        super().__init__()
+        self.exelist = exelist
+        self.version = version
+        self.gcc_type = gcc_type
+        self.is_cross = is_cross
+        self.exe_wrapper = exe_wrapper
+        self.id = 'gcc'
+        self.language = 'fortran'
+
+    def get_id(self):
+        return self.id
+
+    def get_exelist(self):
+        return self.exelist
+
+    def get_language(self):
+        return self.language
+
+    def needs_static_linker(self):
+        return True
+
+    def sanity_check(self, work_dir):
+        source_name = os.path.join(work_dir, 'sanitycheckf.f95')
+        binary_name = os.path.join(work_dir, 'sanitycheckf')
+        ofile = open(source_name, 'w')
+        ofile.write('''program prog
+     print *, "Fortran compilation is working."
+end program prog
+''')
+        ofile.close()
+        pc = subprocess.Popen(self.exelist + [source_name, '-o', binary_name])
+        pc.wait()
+        if pc.returncode != 0:
+            raise EnvironmentException('Compiler %s can not compile programs.' % self.name_string())
+        if self.is_cross:
+            if self.exe_wrapper is None:
+                # Can't check if the binaries run so we have to assume they do
+                return
+            cmdlist = self.exe_wrapper + [binary_name]
+        else:
+            cmdlist = [binary_name]
+        pe = subprocess.Popen(cmdlist)
+        pe.wait()
+        if pe.returncode != 0:
+            raise EnvironmentException('Executables created by Fortran compiler %s are not runnable.' % self.name_string())
+
+    def get_always_args(self):
+        return ['-pipe']
+
+    def get_linker_always_args(self):
+        return []
+
+    def get_std_warn_args(self):
+        return GnuFortranCompiler.std_warn_args
+
+    def get_buildtype_args(self, buildtype):
+        return gnulike_buildtype_args[buildtype]
+
+    def get_buildtype_linker_args(self, buildtype):
+        return gnulike_buildtype_linker_args[buildtype]
+
+    def split_shlib_to_parts(self, fname):
+        return (os.path.split(fname)[0], fname)
+
+    def get_soname_args(self, shlib_name, path, soversion):
+        return get_gcc_soname_args(self.gcc_type, shlib_name, path, soversion)
+
+    def get_dependency_gen_args(self, outtarget, outfile):
+        return ['-cpp', '-MMD', '-MQ', outtarget]
+
+    def get_output_args(self, target):
+        return ['-o', target]
+
+    def get_compile_only_args(self):
+        return ['-c']
+
+    def get_linker_exelist(self):
+        return self.exelist[:]
+
+    def get_linker_output_args(self, outputname):
+        return ['-o', outputname]
+
+    def can_compile(self, src):
+        if src.lower().endswith('.f95'):
+            return True
+        return False
+
+    def get_include_arg(self, path):
+        return '-I' + path
+
+    def get_depfile_suffix(self):
+        return 'd'
+
+    def get_std_exe_link_args(self):
+        return []
+
+    def build_rpath_args(self, build_dir, rpath_paths, install_rpath):
+        return build_unix_rpath_args(build_dir, rpath_paths, install_rpath)
+
+
 class VisualStudioLinker():
     always_args = ['/NOLOGO']
     def __init__(self, exelist):
@@ -1273,6 +1380,7 @@ class Environment():
             self.default_cpp = ['c++']
         self.default_objc = ['cc']
         self.default_objcpp = ['c++']
+        self.default_fortran = ['gfortran']
         self.default_static_linker = 'ar'
         self.vs_static_linker = 'lib'
 
@@ -1384,6 +1492,43 @@ class Environment():
                 # everything else to stdout. Why? Lord only knows.
                 version = re.search(Environment.version_regex, err).group()
                 return VisualStudioCCompiler([compiler], version, is_cross, exe_wrap)
+        raise EnvironmentException('Unknown compiler(s): "' + ', '.join(compilers) + '"')
+
+    def detect_fortran_compiler(self, want_cross):
+        evar = 'FC'
+        if self.is_cross_build() and want_cross:
+            compilers = [self.cross_info['fortran']]
+            ccache = []
+            is_cross = True
+            exe_wrap = self.cross_info.get('exe_wrapper', None)
+        elif evar in os.environ:
+            compilers = os.environ[evar].split()
+            ccache = []
+            is_cross = False
+            exe_wrap = None
+        else:
+            compilers = self.default_fortran
+            ccache = self.detect_ccache()
+            is_cross = False
+            exe_wrap = None
+        for compiler in compilers:
+            try:
+                arg = '--version'
+                p = subprocess.Popen([compiler] + [arg], stdout=subprocess.PIPE,
+                                     stderr=subprocess.PIPE)
+            except OSError:
+                continue
+            (out, err) = p.communicate()
+            out = out.decode()
+            err = err.decode()
+            vmatch = re.search(Environment.version_regex, out)
+            if vmatch:
+                version = vmatch.group(0)
+            else:
+                version = 'unknown version'
+            if 'GNU Fortran' in out:
+                gcc_type = GCC_STANDARD
+                return GnuFortranCompiler([compiler], version, gcc_type, is_cross, exe_wrap)
         raise EnvironmentException('Unknown compiler(s): "' + ', '.join(compilers) + '"')
 
     def get_scratch_dir(self):

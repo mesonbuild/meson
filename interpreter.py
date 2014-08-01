@@ -983,6 +983,10 @@ class Interpreter():
                     comp = self.environment.detect_rust_compiler()
                     if is_cross:
                         cross_comp = comp # FIXME, probably not correct.
+                elif lang == 'fortran':
+                    comp = self.environment.detect_fortran_compiler(False)
+                    if is_cross:
+                        cross_comp = self.environment.detect_fortran_compiler(True)
                 else:
                     raise InvalidCode('Tried to use unknown language "%s".' % lang)
                 comp.sanity_check(self.environment.get_scratch_dir())
