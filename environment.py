@@ -1194,7 +1194,8 @@ end program prog
         return ['-o', outputname]
 
     def can_compile(self, src):
-        if src.lower().endswith('.f95'):
+        suffix = os.path.splitext(src)[1].lower()
+        if suffix == '.f' or suffix == '.f95':
             return True
         return False
 
