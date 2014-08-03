@@ -1152,7 +1152,7 @@ end program prog
             cmdlist = self.exe_wrapper + [binary_name]
         else:
             cmdlist = [binary_name]
-        pe = subprocess.Popen(cmdlist)
+        pe = subprocess.Popen(cmdlist, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         pe.wait()
         if pe.returncode != 0:
             raise EnvironmentException('Executables created by Fortran compiler %s are not runnable.' % self.name_string())
@@ -1211,6 +1211,8 @@ end program prog
     def build_rpath_args(self, build_dir, rpath_paths, install_rpath):
         return build_unix_rpath_args(build_dir, rpath_paths, install_rpath)
 
+    def module_name_to_filename(self, module_name):
+        return module_name.lower() + '.mod'
 
 class VisualStudioLinker():
     always_args = ['/NOLOGO']

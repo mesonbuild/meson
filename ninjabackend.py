@@ -854,7 +854,26 @@ class NinjaBackend(backends.Backend):
                 elem.add_item('COMMAND', cmdlist)
                 elem.write(outfile)
 
+    def get_fortran_deps(self, compiler, src, target):
+        module_files = []
+        use_files = []
+        modre = re.compile(r"\s*module\s+(\w+)", re.IGNORECASE)
+        usere = re.compile(r"\s*use\s+(\w+)", re.IGNORECASE)
+        dirname = os.path.join(self.get_target_dir(target), target.get_basename() + '.dir')
+        for line in open(src):
+            modmatch = modre.match(line)
+            usematch = usere.match(line)
+            if modmatch is not None:
+                fname = compiler.module_name_to_filename(modmatch.group(1))
+                module_files.append(os.path.join(dirname, fname))
+            if usematch is not None:
+                fname = compiler.module_name_to_filename(usematch.group(1))
+                use_files.append(os.path.join(dirname, fname))
+        return (module_files, use_files)
+
     def generate_single_compile(self, target, outfile, src, is_generated=False, header_deps=[], order_deps=[]):
+        extra_outputs = []
+        extra_deps = []
         compiler = self.get_compiler_for_source(src)
         commands = self.generate_basic_compiler_args(target, compiler)
         commands.append(compiler.get_include_arg(self.get_target_private_dir(target)))
@@ -865,8 +884,10 @@ class NinjaBackend(backends.Backend):
                 rel_src = src
             else:
                 rel_src = os.path.join(self.get_target_private_dir(target), src)
+                abs_src = os.path.join(self.environment.get_source_dir(), rel_src)
         else:
             rel_src = os.path.join(self.build_to_src, target.get_source_subdir(), src)
+            abs_src = os.path.join(self.environment.get_build_dir(), rel_src)
         if os.path.isabs(src):
             src_filename = os.path.basename(src)
         else:
@@ -903,8 +924,12 @@ class NinjaBackend(backends.Backend):
         if target.is_cross:
             crstr = '_CROSS'
         compiler_name = '%s%s_COMPILER' % (compiler.get_language(), crstr)
+        if compiler.get_language() == 'fortran':
+            # Currently check only current file. We may need to change this
+            # to do the scanning for the entire target at once.
+            (extra_outputs, extra_deps) = self.get_fortran_deps(compiler, abs_src, target)
 
-        element = NinjaBuildElement(rel_obj, compiler_name, rel_src)
+        element = NinjaBuildElement([rel_obj] + extra_outputs, compiler_name, rel_src)
         for d in header_deps:
             if isinstance(d, backends.RawFilename):
                 d = d.fname
@@ -918,6 +943,7 @@ class NinjaBackend(backends.Backend):
                 d = os.path.join(self.get_target_private_dir(target), d)
             element.add_orderdep(d)
         element.add_orderdep(pch_dep)
+        element.add_orderdep(extra_deps)
         element.add_item('DEPFILE', dep_file)
         element.add_item('ARGS', commands)
         element.write(outfile)
