@@ -208,6 +208,10 @@ def run_tests():
         objctests = gather_tests('test cases/objc')
     else:
         objctests = []
+    if shutil.which('gfortran'):
+        fortrantests = gather_tests('test cases/fortran')
+    else:
+        fortrantests = []
     try:
         os.mkdir(test_build_dir)
     except OSError:
@@ -260,6 +264,11 @@ def run_tests():
         [run_and_log(logfile, t) for t in objctests]
     else:
         print('\nNo Objective C tests on this platform.\n')
+    if len(fortrantests) > 0:
+        print('\nRunning Fortran tests.\n')
+        [run_and_log(logfile, t) for t in fortrantests]
+    else:
+        print('\nNo Fortran tests on this platform.\n')
 
 def check_file(fname):
     linenum = 1

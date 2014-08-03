@@ -85,16 +85,6 @@ def do_conf_file(src, dst, confdata):
     open(dst_tmp, 'w').writelines(result)
     replace_if_different(dst, dst_tmp)
 
-class RawFilename():
-    def __init__(self, fname):
-        self.fname = fname
-
-    def split(self, c):
-        return self.fname.split(c)
-
-    def startswith(self, s):
-        return self.fname.startswith(s)
-
 class TestSerialisation:
     def __init__(self, name, fname, is_cross, exe_wrapper, is_parallel, cmd_args, env):
         self.name = name
@@ -210,104 +200,6 @@ class Backend():
                 return True
         return False
 
-    def generate_target(self, target, outfile):
-        if isinstance(target, build.CustomTarget):
-            self.generate_custom_target(target, outfile)
-        if isinstance(target, build.RunTarget):
-            self.generate_run_target(target, outfile)
-        name = target.get_basename()
-        gen_src_deps = []
-        if name in self.processed_targets:
-            return
-        if isinstance(target, build.Jar):
-            self.generate_jar_target(target, outfile)
-            return
-        if 'rust' in self.environment.coredata.compilers.keys() and self.has_rust(target):
-            self.generate_rust_target(target, outfile)
-            return
-        if 'cs' in self.environment.coredata.compilers.keys() and self.has_cs(target):
-            self.generate_cs_target(target, outfile)
-            return
-        if 'vala' in self.environment.coredata.compilers.keys() and self.has_vala(target):
-            gen_src_deps += self.generate_vala_compile(target, outfile)
-        # The following deals with C/C++ compilation.
-        (gen_src, gen_other_deps) = self.process_dep_gens(outfile, target)
-        gen_src_deps += gen_src
-        self.process_target_dependencies(target, outfile)
-        self.generate_custom_generator_rules(target, outfile)
-        outname = self.get_target_filename(target)
-        obj_list = []
-        use_pch = self.environment.coredata.use_pch
-        is_unity = self.environment.coredata.unity
-        if use_pch and target.has_pch():
-            self.generate_pch(target, outfile)
-        header_deps = gen_other_deps
-        unity_src = []
-        unity_deps = [] # Generated sources that must be built before compiling a Unity target.
-        for gensource in target.get_generated_sources():
-            if isinstance(gensource, build.CustomTarget):
-                for src in gensource.output:
-                    src = os.path.join(gensource.subdir, src)
-                    if self.environment.is_header(src):
-                        header_deps.append(RawFilename(src))
-                    elif self.environment.is_source(src):
-                        if is_unity:
-                            unity_deps.append(os.path.join(self.environment.get_build_dir(), RawFilename(src)))
-                        else:
-                            obj_list.append(self.generate_single_compile(target, outfile, RawFilename(src), True))
-                    else:
-                        pass # perhaps print warning about the unknown file?
-                break # just to cut down on indentation size
-            for src in gensource.get_outfilelist():
-                if self.environment.is_object(src):
-                    obj_list.append(os.path.join(self.get_target_dir(target), target.get_basename() + '.dir', src))
-                elif not self.environment.is_header(src):
-                    if is_unity:
-                        if '/' in src:
-                            rel_src = src
-                        else:
-                            rel_src = os.path.join(self.get_target_private_dir(target), src)
-                        unity_deps.append(rel_src)
-                        abs_src = os.path.join(self.environment.get_build_dir(), rel_src)
-                        unity_src.append(abs_src)
-                    else:
-                        obj_list.append(self.generate_single_compile(target, outfile, src, True))
-                else:
-                    header_deps.append(src)
-        src_list = []
-        for src in gen_src_deps:
-                src_list.append(src)
-                if is_unity:
-                    unity_src.append(os.path.join(self.environment.get_build_dir(), src))
-                    header_deps.append(src)
-                else:
-                    # Generated targets are ordered deps because the must exist
-                    # before the sources compiling them are used. After the first
-                    # compile we get precise dependency info from dep files.
-                    # This should work in all cases. If it does not, then just
-                    # move them from orderdeps to proper deps.
-                    obj_list.append(self.generate_single_compile(target, outfile, src, True, [], header_deps))
-        for src in target.get_sources():
-            if src.endswith('.vala'):
-                continue
-            if not self.environment.is_header(src):
-                src_list.append(src)
-                if is_unity:
-                    abs_src = os.path.join(self.environment.get_source_dir(),
-                                           target.get_subdir(), src)
-                    unity_src.append(abs_src)
-                else:
-                    obj_list.append(self.generate_single_compile(target, outfile, src, False, [], header_deps))
-        obj_list += self.flatten_object_list(target)
-        if is_unity:
-            for src in self.generate_unity_files(target, unity_src):
-                obj_list.append(self.generate_single_compile(target, outfile, src, True, unity_deps + header_deps))
-        linker = self.determine_linker(target, src_list)
-        # Sort object list to preserve command line over multiple invocations.
-        elem = self.generate_link(target, outfile, outname, sorted(obj_list), linker)
-        self.generate_shlib_aliases(target, self.get_target_dir(target), outfile, elem)
-        self.processed_targets[name] = True
-
     def determine_linker(self, target, src):
         if isinstance(target, build.StaticLibrary):
             return self.build.static_linker
@@ -343,12 +235,6 @@ class Backend():
                                    targetdir, os.path.basename(osrc) + suffix)
             result.append(objname)
         return result
-
-    def process_target_dependencies(self, target, outfile):
-        for t in target.get_dependencies():
-            tname = t.get_basename()
-            if not tname in self.processed_targets:
-                self.generate_target(t, outfile)
 
     def get_pch_include_args(self, compiler, target):
         args = []

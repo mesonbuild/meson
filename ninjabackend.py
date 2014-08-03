@@ -32,6 +32,15 @@ else:
 def ninja_quote(text):
     return text.replace(' ', '$ ').replace(':', '$:')
 
+class RawFilename():
+    def __init__(self, fname):
+        self.fname = fname
+
+    def split(self, c):
+        return self.fname.split(c)
+
+    def startswith(self, s):
+        return self.fname.startswith(s)
 
 class NinjaBuildElement():
     def __init__(self, outfilenames, rule, infilenames):
@@ -105,6 +114,7 @@ class NinjaBackend(backends.Backend):
         super().__init__(build, interp)
         self.source_suffix_in_objs = True
         self.ninja_filename = 'build.ninja'
+        self.fortran_deps = {}
 
     def generate(self):
         outfilename = os.path.join(self.environment.get_build_dir(), self.ninja_filename)
@@ -135,6 +145,111 @@ class NinjaBackend(backends.Backend):
         # fully created.
         outfile.close()
         os.replace(tempfilename, outfilename)
+
+    def generate_target(self, target, outfile):
+        if isinstance(target, build.CustomTarget):
+            self.generate_custom_target(target, outfile)
+        if isinstance(target, build.RunTarget):
+            self.generate_run_target(target, outfile)
+        name = target.get_basename()
+        gen_src_deps = []
+        if name in self.processed_targets:
+            return
+        if isinstance(target, build.Jar):
+            self.generate_jar_target(target, outfile)
+            return
+        if 'rust' in self.environment.coredata.compilers.keys() and self.has_rust(target):
+            self.generate_rust_target(target, outfile)
+            return
+        if 'cs' in self.environment.coredata.compilers.keys() and self.has_cs(target):
+            self.generate_cs_target(target, outfile)
+            return
+        if 'vala' in self.environment.coredata.compilers.keys() and self.has_vala(target):
+            gen_src_deps += self.generate_vala_compile(target, outfile)
+        self.scan_fortran_module_outputs(target)
+        # The following deals with C/C++ compilation.
+        (gen_src, gen_other_deps) = self.process_dep_gens(outfile, target)
+        gen_src_deps += gen_src
+        self.process_target_dependencies(target, outfile)
+        self.generate_custom_generator_rules(target, outfile)
+        outname = self.get_target_filename(target)
+        obj_list = []
+        use_pch = self.environment.coredata.use_pch
+        is_unity = self.environment.coredata.unity
+        if use_pch and target.has_pch():
+            self.generate_pch(target, outfile)
+        header_deps = gen_other_deps
+        unity_src = []
+        unity_deps = [] # Generated sources that must be built before compiling a Unity target.
+        for gensource in target.get_generated_sources():
+            if isinstance(gensource, build.CustomTarget):
+                for src in gensource.output:
+                    src = os.path.join(gensource.subdir, src)
+                    if self.environment.is_header(src):
+                        header_deps.append(RawFilename(src))
+                    elif self.environment.is_source(src):
+                        if is_unity:
+                            unity_deps.append(os.path.join(self.environment.get_build_dir(), RawFilename(src)))
+                        else:
+                            obj_list.append(self.generate_single_compile(target, outfile, RawFilename(src), True))
+                    else:
+                        pass # perhaps print warning about the unknown file?
+                break # just to cut down on indentation size
+            for src in gensource.get_outfilelist():
+                if self.environment.is_object(src):
+                    obj_list.append(os.path.join(self.get_target_dir(target), target.get_basename() + '.dir', src))
+                elif not self.environment.is_header(src):
+                    if is_unity:
+                        if '/' in src:
+                            rel_src = src
+                        else:
+                            rel_src = os.path.join(self.get_target_private_dir(target), src)
+                        unity_deps.append(rel_src)
+                        abs_src = os.path.join(self.environment.get_build_dir(), rel_src)
+                        unity_src.append(abs_src)
+                    else:
+                        obj_list.append(self.generate_single_compile(target, outfile, src, True))
+                else:
+                    header_deps.append(src)
+        src_list = []
+        for src in gen_src_deps:
+                src_list.append(src)
+                if is_unity:
+                    unity_src.append(os.path.join(self.environment.get_build_dir(), src))
+                    header_deps.append(src)
+                else:
+                    # Generated targets are ordered deps because the must exist
+                    # before the sources compiling them are used. After the first
+                    # compile we get precise dependency info from dep files.
+                    # This should work in all cases. If it does not, then just
+                    # move them from orderdeps to proper deps.
+                    obj_list.append(self.generate_single_compile(target, outfile, src, True, [], header_deps))
+        for src in target.get_sources():
+            if src.endswith('.vala'):
+                continue
+            if not self.environment.is_header(src):
+                src_list.append(src)
+                if is_unity:
+                    abs_src = os.path.join(self.environment.get_source_dir(),
+                                           target.get_subdir(), src)
+                    unity_src.append(abs_src)
+                else:
+                    obj_list.append(self.generate_single_compile(target, outfile, src, False, [], header_deps))
+        obj_list += self.flatten_object_list(target)
+        if is_unity:
+            for src in self.generate_unity_files(target, unity_src):
+                obj_list.append(self.generate_single_compile(target, outfile, src, True, unity_deps + header_deps))
+        linker = self.determine_linker(target, src_list)
+        # Sort object list to preserve command line over multiple invocations.
+        elem = self.generate_link(target, outfile, outname, sorted(obj_list), linker)
+        self.generate_shlib_aliases(target, self.get_target_dir(target), outfile, elem)
+        self.processed_targets[name] = True
+
+    def process_target_dependencies(self, target, outfile):
+        for t in target.get_dependencies():
+            tname = t.get_basename()
+            if not tname in self.processed_targets:
+                self.generate_target(t, outfile)
 
     def hackety_hack(self, hack):
         if isinstance(hack, list):
@@ -854,30 +969,62 @@ class NinjaBackend(backends.Backend):
                 elem.add_item('COMMAND', cmdlist)
                 elem.write(outfile)
 
-    def get_fortran_deps(self, compiler, src, target):
-        module_files = []
-        use_files = []
+    def scan_fortran_module_outputs(self, target):
+        compiler = None
+        for c in self.build.compilers:
+            if c.get_language() == 'fortran':
+                compiler = c
+                break
+        if compiler is None:
+            self.fortran_deps[target.get_basename()] = {}
+            return
         modre = re.compile(r"\s*module\s+(\w+)", re.IGNORECASE)
+        module_files = {}
+        for s in target.get_sources():
+            # FIXME, does not work for generated Fortran sources,
+            # but those are really rare. I hope.
+            if not compiler.can_compile(s):
+                continue
+            for line in open(os.path.join(self.environment.get_source_dir(), target.subdir, s)):
+                modmatch = modre.match(line)
+                if modmatch is not None:
+                    modname = modmatch.group(1)
+                    if modname in module_files:
+                        raise InvalidArguments('Namespace collision: module %s defined in two files %s and %s.' %
+                                               (modname, module_files[modname], s))
+                    module_files[modname] = s
+        self.fortran_deps[target.get_basename()] = module_files
+
+    def get_fortran_deps(self, compiler, src, target):
+        use_files = []
         usere = re.compile(r"\s*use\s+(\w+)", re.IGNORECASE)
         dirname = os.path.join(self.get_target_dir(target), target.get_basename() + '.dir')
+        tdeps= self.fortran_deps[target.get_basename()]
         for line in open(src):
-            modmatch = modre.match(line)
             usematch = usere.match(line)
-            if modmatch is not None:
-                fname = compiler.module_name_to_filename(modmatch.group(1))
-                module_files.append(os.path.join(dirname, fname))
             if usematch is not None:
-                fname = compiler.module_name_to_filename(usematch.group(1))
-                use_files.append(os.path.join(dirname, fname))
-        return (module_files, use_files)
+                usename = usematch.group(1)
+                if usename not in tdeps:
+                    raise InvalidArguments('Module %s in file %s not provided by any other source file.' %
+                                           (usename, src))
+                mod_source_file = tdeps[usename]
+                # WORKAROUND, we should set up a file level dependency to the
+                # module file and mark it as an output of this target. However
+                # we can't do that as Ninja does not support dependency tracking
+                # if a rule has more than one output. Thus we add an order dep
+                # to the source file's object file. This works because the
+                # mod file and object file are created at the same time.
+                # fname = compiler.module_name_to_filename(usematch.group(1))
+                object_base = os.path.join(os.path.split(mod_source_file)[1] + '.o')
+                use_files.append(os.path.join(dirname, object_base))
+        return use_files
 
     def generate_single_compile(self, target, outfile, src, is_generated=False, header_deps=[], order_deps=[]):
-        extra_outputs = []
-        extra_deps = []
+        extra_orderdeps = []
         compiler = self.get_compiler_for_source(src)
         commands = self.generate_basic_compiler_args(target, compiler)
         commands.append(compiler.get_include_arg(self.get_target_private_dir(target)))
-        if isinstance(src, backends.RawFilename):
+        if isinstance(src, RawFilename):
             rel_src = src.fname
         elif is_generated:
             if '/' in src:
@@ -892,7 +1039,7 @@ class NinjaBackend(backends.Backend):
             src_filename = os.path.basename(src)
         else:
             src_filename = src
-        if isinstance(src, backends.RawFilename):
+        if isinstance(src, RawFilename):
             src_filename = src.fname
         obj_basename = src_filename.replace('/', '_').replace('\\', '_')
         rel_obj = os.path.join(self.get_target_private_dir(target), obj_basename)
@@ -925,25 +1072,23 @@ class NinjaBackend(backends.Backend):
             crstr = '_CROSS'
         compiler_name = '%s%s_COMPILER' % (compiler.get_language(), crstr)
         if compiler.get_language() == 'fortran':
-            # Currently check only current file. We may need to change this
-            # to do the scanning for the entire target at once.
-            (extra_outputs, extra_deps) = self.get_fortran_deps(compiler, abs_src, target)
+            extra_orderdeps = self.get_fortran_deps(compiler, abs_src, target)
 
-        element = NinjaBuildElement([rel_obj] + extra_outputs, compiler_name, rel_src)
+        element = NinjaBuildElement(rel_obj, compiler_name, rel_src)
         for d in header_deps:
-            if isinstance(d, backends.RawFilename):
+            if isinstance(d, RawFilename):
                 d = d.fname
             elif not '/' in d:
                 d = os.path.join(self.get_target_private_dir(target), d)
             element.add_dep(d)
         for d in order_deps:
-            if isinstance(d, backends.RawFilename):
+            if isinstance(d, RawFilename):
                 d = d.fname
             elif not '/' in d :
                 d = os.path.join(self.get_target_private_dir(target), d)
             element.add_orderdep(d)
         element.add_orderdep(pch_dep)
-        element.add_orderdep(extra_deps)
+        element.add_orderdep(extra_orderdeps)
         element.add_item('DEPFILE', dep_file)
         element.add_item('ARGS', commands)
         element.write(outfile)
