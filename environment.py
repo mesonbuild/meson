@@ -890,7 +890,8 @@ class VisualStudioCCompiler(CCompiler):
         return ['/DLL']
 
     def gen_pch_args(self, header, source, pchname):
-        return ['/Yc' + header, '/Fp' + pchname]
+        objname = os.path.splitext(pchname)[0] + '.obj'
+        return (objname, ['/Yc' + header, '/Fp' + pchname, '/Fo' + objname ])
 
     def sanity_check(self, work_dir):
         source_name = os.path.join(work_dir, 'sanitycheckc.c')

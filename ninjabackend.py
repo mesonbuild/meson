@@ -177,7 +177,9 @@ class NinjaBackend(backends.Backend):
         use_pch = self.environment.coredata.use_pch
         is_unity = self.environment.coredata.unity
         if use_pch and target.has_pch():
-            self.generate_pch(target, outfile)
+            pch_objects = self.generate_pch(target, outfile)
+        else:
+            pch_objects = []
         header_deps = gen_other_deps
         unity_src = []
         unity_deps = [] # Generated sources that must be built before compiling a Unity target.
@@ -241,7 +243,7 @@ class NinjaBackend(backends.Backend):
                 obj_list.append(self.generate_single_compile(target, outfile, src, True, unity_deps + header_deps))
         linker = self.determine_linker(target, src_list)
         # Sort object list to preserve command line over multiple invocations.
-        elem = self.generate_link(target, outfile, outname, sorted(obj_list), linker)
+        elem = self.generate_link(target, outfile, outname, sorted(obj_list), linker, pch_objects)
         self.generate_shlib_aliases(target, self.get_target_dir(target), outfile, elem)
         self.processed_targets[name] = True
 
@@ -1105,10 +1107,10 @@ class NinjaBackend(backends.Backend):
         commands = []
         commands += self.generate_basic_compiler_args(target, compiler)
         just_name = os.path.split(header)[1]
-        commands += compiler.gen_pch_args(just_name, source, dst)
-        
+        (objname, pch_args) = compiler.gen_pch_args(just_name, source, dst)
+        commands += pch_args
         dep = dst + '.' + compiler.get_depfile_suffix()
-        return (commands, dep, dst)
+        return (commands, dep, dst, [objname])
 
     def generate_gcc_pch_command(self, target, compiler, pch):
         commands = []
@@ -1116,10 +1118,11 @@ class NinjaBackend(backends.Backend):
         dst = os.path.join(self.get_target_private_dir(target),
                            os.path.split(pch)[-1] + '.' + compiler.get_pch_suffix())
         dep = dst + '.' + compiler.get_depfile_suffix()
-        return (commands, dep, dst)
+        return (commands, dep, dst, []) # Gcc does not create an object file during pch generation.
 
     def generate_pch(self, target, outfile):
         cstr = ''
+        pch_objects = []
         if target.is_cross:
             cstr = '_CROSS'
         for lang in ['c', 'cpp']:
@@ -1131,12 +1134,13 @@ class NinjaBackend(backends.Backend):
             compiler = self.get_compiler_for_lang(lang)
             if compiler.id == 'msvc':
                 src = os.path.join(self.build_to_src, target.get_source_subdir(), pch[-1])
-                (commands, dep, dst) = self.generate_msvc_pch_command(target, compiler, pch)
+                (commands, dep, dst, objs) = self.generate_msvc_pch_command(target, compiler, pch)
                 extradep = os.path.join(self.build_to_src, target.get_source_subdir(), pch[0])
             else:
                 src = os.path.join(self.build_to_src, target.get_source_subdir(), pch[0])
-                (commands, dep, dst) = self.generate_gcc_pch_command(target, compiler, pch[0])
+                (commands, dep, dst, objs) = self.generate_gcc_pch_command(target, compiler, pch[0])
                 extradep = None
+            pch_objects += objs
             rulename = compiler.get_language() + cstr + '_PCH'
             elem = NinjaBuildElement(dst, rulename, src)
             if extradep is not None:
@@ -1144,6 +1148,7 @@ class NinjaBackend(backends.Backend):
             elem.add_item('ARGS', commands)
             elem.add_item('DEPFILE', dep)
             elem.write(outfile)
+        return pch_objects
 
     def generate_shsym(self, outfile, target):
         target_name = self.get_target_filename(target)
@@ -1154,7 +1159,7 @@ class NinjaBackend(backends.Backend):
             elem.add_item('CROSS', '--cross-host=' + self.environment.cross_info['name'])
         elem.write(outfile)
 
-    def generate_link(self, target, outfile, outname, obj_list, linker):
+    def generate_link(self, target, outfile, outname, obj_list, linker, extra_args=[]):
         if isinstance(target, build.StaticLibrary):
             linker_base = 'STATIC'
         else:
@@ -1196,6 +1201,7 @@ class NinjaBackend(backends.Backend):
                                             target.get_rpaths(), target.install_rpath)
         if self.environment.coredata.coverage:
             commands += linker.get_coverage_link_args()
+        commands += extra_args
         dep_targets = [self.get_dependency_filename(t) for t in dependencies]
         dep_targets += [os.path.join(self.environment.source_dir,
                                      target.subdir, t) for t in target.link_depends]
