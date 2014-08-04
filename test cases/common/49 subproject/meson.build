@@ -9,5 +9,5 @@ endif
 inc = sub.get_variable('i')
 lib = sub.get_variable('l')
 
-e = executable('user', 'user.c', include_dirs : inc, link_with : lib, install : true)
+e = executable('user', 'user.c', include_directories : inc, link_with : lib, install : true)
 test('subdirtest', e)

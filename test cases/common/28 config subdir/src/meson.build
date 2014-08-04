@@ -1,2 +1,2 @@
-exe = executable('prog', 'prog.c', include_dirs : inc)
+exe = executable('prog', 'prog.c', include_directories : inc)
 test('subdir config', exe)

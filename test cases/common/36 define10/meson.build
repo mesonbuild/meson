@@ -8,5 +8,5 @@ configure_file(input : 'config.h.in',
  output : 'config.h',
   configuration : conf)
 
-exe = executable('prog', 'prog.c', include_dirs : include_directories('.'))
+exe = executable('prog', 'prog.c', include_directories : include_directories('.'))
 test('10test', exe)

@@ -273,7 +273,7 @@ class BuildTarget():
             self.set_version(kwargs['version'])
         if 'soversion' in kwargs:
             self.set_soversion(kwargs['soversion'])
-        inclist = kwargs.get('include_dirs', [])
+        inclist = kwargs.get('include_directories', [])
         if not isinstance(inclist, list):
             inclist = [inclist]
         self.add_include_dirs(inclist)

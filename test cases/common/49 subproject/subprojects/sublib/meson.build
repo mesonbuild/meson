@@ -5,6 +5,6 @@ if not is_subproject()
 endif
 
 i = include_directories('include')
-l = shared_library('sublib', 'sublib.c', include_dirs : i, install : true)
-t = executable('simpletest', 'simpletest.c', include_dirs : i, link_with : l)
+l = shared_library('sublib', 'sublib.c', include_directories : i, install : true)
+t = executable('simpletest', 'simpletest.c', include_directories : i, link_with : l)
 test('plain', t)

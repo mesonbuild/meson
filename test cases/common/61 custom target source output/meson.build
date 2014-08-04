@@ -6,6 +6,6 @@ command : [find_program('generator.py'), meson.current_build_dir()],
 )
 
 e = executable('prog', 'main.c', ct,
-include_dirs : include_directories('.')
+include_directories : include_directories('.')
 )
 test('gentest', e)
