@@ -1017,7 +1017,8 @@ class NinjaBackend(backends.Backend):
                 # to the source file's object file. This works because the
                 # mod file and object file are created at the same time.
                 # fname = compiler.module_name_to_filename(usematch.group(1))
-                object_base = os.path.join(os.path.split(mod_source_file)[1] + '.o')
+                object_base = os.path.join(os.path.split(mod_source_file)[1] + '.' +
+                                           self.environment.get_object_suffix())
                 use_files.append(os.path.join(dirname, object_base))
         return use_files
 
