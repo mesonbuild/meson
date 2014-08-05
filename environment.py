@@ -894,18 +894,19 @@ class VisualStudioCCompiler(CCompiler):
         return (objname, ['/Yc' + header, '/Fp' + pchname, '/Fo' + objname ])
 
     def sanity_check(self, work_dir):
-        source_name = os.path.join(work_dir, 'sanitycheckc.c')
-        binary_name = os.path.join(work_dir, 'sanitycheckc')
-        ofile = open(source_name, 'w')
+        source_name = 'sanitycheckc.c'
+        binary_name = 'sanitycheckc'
+        ofile = open(os.path.join(work_dir, source_name), 'w')
         ofile.write('int main(int argc, char **argv) { return 0; }\n')
         ofile.close()
         pc = subprocess.Popen(self.exelist + [source_name, '/Fe' + binary_name],
                               stdout=subprocess.DEVNULL,
-                              stderr=subprocess.DEVNULL)
+                              stderr=subprocess.DEVNULL,
+                              cwd=work_dir)
         pc.wait()
         if pc.returncode != 0:
             raise EnvironmentException('Compiler %s can not compile programs.' % self.name_string())
-        pe = subprocess.Popen(binary_name)
+        pe = subprocess.Popen(os.path.join(work_dir, binary_name))
         pe.wait()
         if pe.returncode != 0:
             raise EnvironmentException('Executables created by C++ compiler %s are not runnable.' % self.name_string())
@@ -923,18 +924,19 @@ class VisualStudioCPPCompiler(VisualStudioCCompiler):
         return False
 
     def sanity_check(self, work_dir):
-        source_name = os.path.join(work_dir, 'sanitycheckcpp.cpp')
-        binary_name = os.path.join(work_dir, 'sanitycheckcpp')
-        ofile = open(source_name, 'w')
+        source_name = 'sanitycheckcpp.cpp'
+        binary_name = 'sanitycheckcpp'
+        ofile = open(os.path.join(work_dir, source_name), 'w')
         ofile.write('class BreakPlainC;int main(int argc, char **argv) { return 0; }\n')
         ofile.close()
         pc = subprocess.Popen(self.exelist + [source_name, '/Fe' + binary_name],
                               stdout=subprocess.DEVNULL,
-                              stderr=subprocess.DEVNULL)
+                              stderr=subprocess.DEVNULL,
+                              cwd=work_dir)
         pc.wait()
         if pc.returncode != 0:
             raise EnvironmentException('Compiler %s can not compile programs.' % self.name_string())
-        pe = subprocess.Popen(binary_name)
+        pe = subprocess.Popen(os.path.join(work_dir, binary_name))
         pe.wait()
         if pe.returncode != 0:
             raise EnvironmentException('Executables created by C++ compiler %s are not runnable.' % self.name_string())
