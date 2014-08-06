@@ -1,5 +1,5 @@
-#include <stdio.h>
 #include "golib.h"
+#include <stdio.h>
 
 G_DEFINE_TYPE (MesonSample, meson_sample, G_TYPE_OBJECT)
 

@@ -1,5 +1,5 @@
-#include<QCoreApplication>
 #include"manualinclude.h"
+#include<QCoreApplication>
 
 ManualInclude::ManualInclude() {
 }
