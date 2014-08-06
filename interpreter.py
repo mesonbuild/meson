@@ -639,7 +639,8 @@ class Interpreter():
         self.source_root = build.environment.get_source_dir()
         option_file = os.path.join(self.source_root, self.subdir, 'meson_options.txt')
         if os.path.exists(option_file):
-            oi = optinterpreter.OptionInterpreter(self.subproject)
+            oi = optinterpreter.OptionInterpreter(self.subproject,\
+                                                  self.build.environment.cmd_line_options)
             oi.process(option_file)
             self.build.environment.merge_options(oi.options)
         mesonfile = os.path.join(self.source_root, self.subdir, environment.build_filename)

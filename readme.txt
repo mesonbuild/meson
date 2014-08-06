@@ -4,8 +4,8 @@ build system.
 
 Dependencies
 
-Python 3.3: http://python.org
-Ninja:      http://martine.github.com/ninja/
+Python   http://python.org (version 3.3 or newer)
+Ninja    http://martine.github.com/ninja/
 
 
 Installing from source

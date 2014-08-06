@@ -70,6 +70,8 @@ parser.add_option('--werror', action='store_true', dest='werror', default=False,
                   help='Treat warnings as errors')
 parser.add_option('--cross-file', default=None, dest='cross_file',
                   help='file describing cross compilation environment')
+parser.add_option('-D', action='append', type='string', dest='projectoptions', default=[],
+                  help='Set project options.')
 
 class MesonApp():
 

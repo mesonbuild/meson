@@ -39,6 +39,9 @@ class UserOption:
         super().__init__()
         self.description = kwargs.get('description', '')
 
+    def parse_string(self, valuestring):
+        return valuestring
+
 class UserStringOption(UserOption):
     def __init__(self, kwargs):
         super().__init__(kwargs)
@@ -58,6 +61,13 @@ class UserBooleanOption(UserOption):
         if not isinstance(newvalue, bool):
             raise OptionException('Value of boolean option is not boolean.')
         self.value = newvalue
+
+    def parse_string(self, valuestring):
+        if valuestring == 'false':
+            return False
+        if valuestring == 'true':
+            return True
+        raise OptionException('Value %s is not a boolean.' % valuestring)
 
 class UserComboOption(UserOption):
     def __init__(self, kwargs):
@@ -83,10 +93,14 @@ option_types = {'string' : UserStringOption,
                 }
 
 class OptionInterpreter:
-    def __init__(self, subproject):
+    def __init__(self, subproject, command_line_options):
         self.options = {}
         self.subproject = subproject
-    
+        self.cmd_line_options = {}
+        for o in command_line_options:
+            (key, value) = o.split('=', 1)
+            self.cmd_line_options[key] = value
+
     def process(self, option_file):
         try:
             ast = mparser.Parser(open(option_file, 'r').read()).parse()
@@ -159,4 +173,6 @@ class OptionInterpreter:
         opt = option_types[opt_type](kwargs)
         if opt.description == '':
             opt.description = opt_name
+        if opt_name in self.cmd_line_options:
+            opt.set_value(opt.parse_string(self.cmd_line_options[opt_name]))
         self.options[opt_name] = opt

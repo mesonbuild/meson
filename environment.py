@@ -1376,6 +1376,7 @@ class Environment():
             self.cross_info = CrossBuildInfo(self.coredata.cross_file)
         else:
             self.cross_info = None
+        self.cmd_line_options = options.projectoptions
 
         # List of potential compilers.
         if is_windows():
