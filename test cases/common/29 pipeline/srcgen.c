@@ -26,6 +26,7 @@ int main(int argc, char **argv) {
     ofile = fopen(ofilename, "w");
     if(!ofile) {
         fprintf(stderr, "Could not open target file %s\n", ofilename);
+        fclose(ifile);
         return 1;
     }
     bytes = fread(arr, 1, ARRSIZE, ifile);
