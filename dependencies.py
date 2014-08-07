@@ -388,7 +388,7 @@ class GMockDependency(Dependency):
             else:
                 self.sources = [self.all_src]
             mlog.log('Dependency GMock found:', mlog.green('YES'), '(building self)')
-            
+
         else:
             mlog.log('Dependency GMock found:', mlog.red('NO'))
             self.is_found = False
@@ -611,12 +611,12 @@ why. As a hack filter out everything that is not a flag."""
 
     def found(self):
         return self.args is not None
-    
+
     def get_compile_args(self):
         if self.args is None:
             return []
         return self.args
-    
+
     def get_link_args(self):
         return self.libs
 
@@ -629,7 +629,7 @@ class AppleFrameworks(Dependency):
         if len(modules) == 0:
             raise DependencyException("AppleFrameworks dependency requires at least one module.")
         self.frameworks = modules
-    
+
     def get_link_args(self):
         args = []
         for f in self.frameworks:

@@ -404,7 +404,7 @@ class NinjaBackend(backends.Backend):
 
     def generate_custom_install_script(self, d):
         d.install_script = self.build.install_script
-    
+
 
     def generate_header_install(self, d):
         incroot = self.environment.get_includedir()
@@ -824,7 +824,7 @@ class NinjaBackend(backends.Backend):
                          invoc)
         description = ' description = Compiling Rust source $in.\n'
         depfile = ' depfile = $out.d\n'
-        
+
         depstyle = ' deps = gcc\n'
         outfile.write(rule)
         outfile.write(command)

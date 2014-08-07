@@ -57,7 +57,7 @@ def run_single_test(wrap, test):
     else:
         if test.is_cross:
             if test.exe_runner is None:
-                # Can not run test on cross compiled executable 
+                # Can not run test on cross compiled executable
                 # because there is no execute wrapper.
                 cmd = None
             else:

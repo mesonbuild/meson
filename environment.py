@@ -1290,7 +1290,7 @@ def find_coverage_tools():
     gcovr_exe = 'gcovr'
     lcov_exe = 'lcov'
     genhtml_exe = 'genhtml'
-    
+
     if not exe_exists([gcovr_exe, '--version']):
         gcovr_exe = None
     if not exe_exists([lcov_exe, '--version']):
@@ -1423,7 +1423,7 @@ class Environment():
 
     def get_script_dir(self):
         return os.path.dirname(self.meson_script_file)
-    
+
     def get_log_dir(self):
         return self.log_dir
 
@@ -1470,7 +1470,7 @@ class Environment():
             exe_wrap = None
         for compiler in compilers:
             try:
-                basename = os.path.basename(compiler).lower() 
+                basename = os.path.basename(compiler).lower()
                 if basename == 'cl' or basename == 'cl.exe':
                     arg = '/?'
                 else:
@@ -1563,7 +1563,7 @@ class Environment():
             is_cross = False
             exe_wrap = None
         for compiler in compilers:
-            basename = os.path.basename(compiler).lower() 
+            basename = os.path.basename(compiler).lower()
             if basename == 'cl' or basename == 'cl.exe':
                 arg = '/?'
             else:

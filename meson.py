@@ -81,7 +81,7 @@ class MesonApp():
             raise RuntimeError('--prefix must be an absolute path.')
         self.meson_script_file = script_file
         self.options = options
-    
+
     def has_build_file(self, dirname):
         fname = os.path.join(dirname, environment.build_filename)
         return os.path.exists(fname)

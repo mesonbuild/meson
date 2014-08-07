@@ -48,13 +48,13 @@ class TryRunResultHolder(InterpreterObject):
                              'stdout' : self.stdout_method,
                              'stderr' : self.stderr_method,
                              })
-        
+
     def returncode_method(self, args, kwargs):
         return self.res.returncode
 
     def compiled_method(self, args, kwargs):
         return self.res.compiled
-    
+
     def stdout_method(self, args, kwargs):
         return self.res.stdout
 
@@ -74,7 +74,7 @@ class RunProcess(InterpreterObject):
                              'stdout' : self.stdout_method,
                              'stderr' : self.stderr_method,
                              })
-        
+
     def run_command(self, command_array, source_dir, build_dir, subdir, in_builddir):
         cmd_name = command_array[0]
         env = {'MESON_SOURCE_ROOT' : source_dir,
@@ -202,13 +202,13 @@ class ExternalLibraryHolder(InterpreterObject):
 
     def get_name(self):
         return self.el.name
-    
+
     def get_compile_args(self):
         return self.el.get_compile_args()
-    
+
     def get_link_args(self):
         return self.el.get_link_args()
-    
+
     def get_exe_args(self):
         return self.el.get_exe_args()
 
@@ -264,7 +264,7 @@ class Host(InterpreterObject):
         if self.environment.is_cross_build():
             return self.environment.cross_info.get('name')
         return platform.system().lower()
-    
+
     def is_big_endian_method(self, args, kwargs):
         return sys.byteorder != 'little'
 
@@ -289,7 +289,7 @@ class Headers(InterpreterObject):
 
     def get_subdir(self):
         return self.subdir
-    
+
     def get_sources(self):
         return self.sources
 
@@ -399,10 +399,10 @@ class Test(InterpreterObject):
         self.is_parallel = is_parallel
         self.cmd_args = cmd_args
         self.env = env
-        
+
     def get_exe(self):
         return self.exe
-    
+
     def get_name(self):
         return self.name
 
@@ -492,7 +492,7 @@ class CompilerHolder(InterpreterObject):
             hadtxt = mlog.green('YES')
         else:
             hadtxt = mlog.red('NO')
-        mlog.log('Checking whether type "', mlog.bold(typename), 
+        mlog.log('Checking whether type "', mlog.bold(typename),
                  '" has member "', mlog.bold(membername), '": ', hadtxt, sep='')
         return had
 
@@ -578,7 +578,7 @@ class MesonMain(InterpreterObject):
         scriptbase = args[0]
         if not isinstance(scriptbase, str):
             raise InterpreterException('Set_install_script argument is not a string.')
-        scriptfile = os.path.join(self.interpreter.environment.source_dir, 
+        scriptfile = os.path.join(self.interpreter.environment.source_dir,
                                   self.interpreter.subdir, scriptbase)
         if not os.path.isfile(scriptfile):
             raise InterpreterException('Can not find install script %s.' % scriptbase)
@@ -672,7 +672,7 @@ class Interpreter():
         self.subproject_stack = []
 
     def build_func_dict(self):
-        self.funcs = {'project' : self.func_project, 
+        self.funcs = {'project' : self.func_project,
                       'message' : self.func_message,
                       'error' : self.func_error,
                       'executable': self.func_executable,
@@ -796,7 +796,7 @@ class Interpreter():
             if wanted != None:
                 if not isinstance(actual, wanted):
                     raise InvalidArguments('Incorrect argument type.')
-                
+
     def func_run_command(self, node, args, kwargs):
         if len(args) < 1:
             raise InterpreterException('Not enough arguments')
@@ -1142,7 +1142,7 @@ class Interpreter():
         h = Headers(args, kwargs)
         self.build.headers.append(h)
         return h
-    
+
     def func_man(self, node, args, kwargs):
         for a in args:
             if not isinstance(a, str):
@@ -1150,7 +1150,7 @@ class Interpreter():
         m = Man(args, kwargs)
         self.build.man.append(m)
         return m
-    
+
     def func_subdir(self, node, args, kwargs):
         if len(kwargs) > 0:
             raise InvalidArguments('subdir command takes no keyword arguments.')
@@ -1194,7 +1194,7 @@ class Interpreter():
         data = Data(args[0], args[1:], kwargs)
         self.build.data.append(data)
         return data
-    
+
     def func_configure_file(self, node, args, kwargs):
         if len(args) > 0:
             raise InterpreterException("configure_file takes only keyword arguments.")
@@ -1330,7 +1330,7 @@ class Interpreter():
             isinstance(value, list):
             return True
         return False
-    
+
     def assignment(self, node):
         assert(isinstance(node, mparser.AssignmentNode))
         var_name = node.var_name
@@ -1434,7 +1434,7 @@ class Interpreter():
             raise InvalidArguments('Variable "%s" is not callable.' % object_name)
         (args, kwargs) = self.reduce_arguments(args)
         return obj.method_call(method_name, args, kwargs)
-    
+
     def evaluate_if(self, node):
         assert(isinstance(node, mparser.IfClauseNode))
         for i in node.ifs:
@@ -1503,7 +1503,7 @@ class Interpreter():
         if not isinstance(r, bool):
             raise InterpreterException('Second argument to "or" is not a boolean.')
         return r
-    
+
     def evaluate_notstatement(self, cur):
         v = self.evaluate_statement(cur.value)
         if isinstance(v, mparser.BooleanNode):

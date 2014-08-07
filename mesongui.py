@@ -18,7 +18,7 @@ import sys, os, pickle, time, shutil
 import build, coredata, environment, optinterpreter
 from PyQt5 import uic
 from PyQt5.QtWidgets import QApplication, QMainWindow, QHeaderView
-from PyQt5.QtWidgets import QComboBox, QCheckBox 
+from PyQt5.QtWidgets import QComboBox, QCheckBox
 from PyQt5.QtCore import QAbstractItemModel, QModelIndex, QVariant, QTimer
 import PyQt5.QtCore
 import PyQt5.QtWidgets
@@ -45,7 +45,7 @@ class PathModel(QAbstractItemModel):
         if index.isValid():
             return 0
         return len(self.names)
-    
+
     def columnCount(self, index):
         return 2
 
@@ -111,7 +111,7 @@ class TargetModel(QAbstractItemModel):
         if index.isValid():
             return 0
         return len(self.targets)
-    
+
     def columnCount(self, index):
         return 4
 
@@ -164,7 +164,7 @@ class DependencyModel(QAbstractItemModel):
         if index.isValid():
             return 0
         return len(self.deps)
-    
+
     def columnCount(self, index):
         return 4
 
@@ -471,7 +471,7 @@ class MesonGui():
 
     def clean(self, foo):
         self.run_process(['clean'])
-    
+
     def save(self, foo):
         pickle.dump(self.coredata, open(self.coredata_file, 'wb'))
 

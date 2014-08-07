@@ -29,11 +29,11 @@ def initialize(logdir):
 
 class AnsiDecorator():
     plain_code = "\033[0m"
-    
+
     def __init__(self, text, code):
         self.text = text
         self.code = code
-    
+
     def get_text(self, with_codes):
         if with_codes:
             return self.code + self.text + AnsiDecorator.plain_code

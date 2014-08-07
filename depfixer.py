@@ -105,7 +105,7 @@ class Elf():
         self.parse_header()
         self.parse_sections()
         self.parse_dynamic()
-    
+
     def detect_elf_type(self):
         data = self.bf.read(5)
         if data[1:4] != b'ELF':

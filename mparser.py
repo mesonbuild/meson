@@ -30,7 +30,7 @@ class Token:
         self.lineno = lineno
         self.colno = colno
         self.value = value
-    
+
     def __eq__(self, other):
         if isinstance(other, str):
             return self.tid == other
@@ -273,7 +273,7 @@ class ArgumentNode():
 # comparison, plus and multiplication would go here
 # 5 negation
 # 6 funcall, method call
-# 7 parentheses 
+# 7 parentheses
 # 8 plain token
 
 class Parser:

@@ -466,7 +466,7 @@ class Generator():
             if not isinstance(a, str):
                 raise InvalidArguments('A non-string object in "arguments" keyword argument.')
         self.arglist = args
-        
+
         if 'output' not in kwargs:
             raise InvalidArguments('Generator must have "output" keyword argument.')
         outputs = kwargs['output']
@@ -749,7 +749,7 @@ class ConfigureFile():
 
     def get_sources(self):
         return self.sources
-    
+
     def get_subdir(self):
         return self.subdir
 
