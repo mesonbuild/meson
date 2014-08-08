@@ -1012,6 +1012,11 @@ class NinjaBackend(backends.Backend):
                     raise InvalidArguments('Module %s in file %s not provided by any other source file.' %
                                            (usename, src))
                 mod_source_file = tdeps[usename]
+                # Check if a source uses a module it exports itself.
+                # Potential bug if multiple targets have a file with
+                # the same name.
+                if mod_source_file == os.path.split(src)[1]:
+                    continue
                 # WORKAROUND, we should set up a file level dependency to the
                 # module file and mark it as an output of this target. However
                 # we can't do that as Ninja does not support dependency tracking
