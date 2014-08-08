@@ -991,6 +991,8 @@ class NinjaBackend(backends.Backend):
                 modmatch = modre.match(line)
                 if modmatch is not None:
                     modname = modmatch.group(1)
+                    if modname.lower() == 'procedure': # MODULE PROCEDURE construct
+                        continue
                     if modname in module_files:
                         raise InvalidArguments('Namespace collision: module %s defined in two files %s and %s.' %
                                                (modname, module_files[modname], s))
