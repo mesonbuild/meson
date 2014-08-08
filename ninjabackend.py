@@ -1009,8 +1009,14 @@ class NinjaBackend(backends.Backend):
             if usematch is not None:
                 usename = usematch.group(1)
                 if usename not in tdeps:
-                    raise InvalidArguments('Module %s in file %s not provided by any other source file.' %
-                                           (usename, src))
+                    # The module is not provided by any source file. This is due to
+                    # a) missing file/typo/etc
+                    # b) using a module provided by the compiler, such as OpenMP
+                    # There's no easy way to tell which is which (that I know of)
+                    # so just ignore this and go on. Ideally we would print a
+                    # warning message to the user but this is a common occurrance,
+                    # which would lead to lots of distracting noise.
+                    continue
                 mod_source_file = tdeps[usename]
                 # Check if a source uses a module it exports itself.
                 # Potential bug if multiple targets have a file with
