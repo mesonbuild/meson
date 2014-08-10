@@ -17,6 +17,7 @@
 import sys, os, subprocess, time, datetime, pickle, multiprocessing, json
 import concurrent.futures as conc
 from optparse import OptionParser
+import platform
 
 tests_failed = False
 
@@ -50,10 +51,17 @@ def write_json_log(jsonlogfile, test_name, result):
               'returncode' : result.returncode}
     jsonlogfile.write(json.dumps(result) + '\n')
 
+def run_with_mono(fname):
+    if fname.endswith('.exe') and not platform.system().lower() == 'windows':
+        return True
+    return False
+
 def run_single_test(wrap, test):
     global tests_failed
     if test.fname.endswith('.jar'):
         cmd = ['java', '-jar', test.fname]
+    elif run_with_mono(test.fname):
+        cmd = ['mono', test.fname]
     else:
         if test.is_cross:
             if test.exe_runner is None:
