@@ -1,4 +1,4 @@
-# Copyright 2012 Jussi Pakkanen
+# Copyright 2012-2014 Jussi Pakkanen
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
