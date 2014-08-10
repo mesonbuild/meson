@@ -35,6 +35,22 @@ class RunResult():
         self.stdout = stdout
         self.stderr = stderr
 
+def is_osx():
+    return platform.system().lower() == 'darwin'
+
+def is_linux():
+    return platform.system().lower() == 'linux'
+
+def is_windows():
+    return platform.system().lower() == 'windows'
+
+def is_debianlike():
+    try:
+        open('/etc/debian_version', 'r')
+        return True
+    except FileNotFoundError:
+        return False
+
 gnulike_buildtype_args = {'plain' : [],
                            'debug' : ['-g'],
                            'debugoptimized' : ['-O2', '-g'],
@@ -46,11 +62,20 @@ msvc_buildtype_args = {'plain' : [],
                         'debugoptimized' : ["/MD", "/Zi", "/O2", "/Ob1", "/D"],
                         'release' : ["/MD", "/O2", "/Ob2"]}
 
-gnulike_buildtype_linker_args = {'plain' : [],
-                                  'debug' : [],
-                                  'debugoptimized' : [],
-                                  'release' : ['-Wl,-O1'],
-                                  }
+gnulike_buildtype_linker_args = {}
+
+if is_osx():
+    gnulike_buildtype_linker_args.update({'plain' : [],
+                                          'debug' : [],
+                                          'debugoptimized' : [],
+                                          'release' : [],
+                                          })
+else:
+    gnulike_buildtype_linker_args.update({'plain' : [],
+                                          'debug' : [],
+                                          'debugoptimized' : [],
+                                          'release' : ['-Wl,-O1'],
+                                          })
 
 msvc_buildtype_linker_args = {'plain' : [],
                                'debug' : [],
@@ -1305,22 +1330,6 @@ def find_valgrind():
         valgrind_exe = None
     return valgrind_exe
 
-def is_osx():
-    return platform.system().lower() == 'darwin'
-
-def is_linux():
-    return platform.system().lower() == 'linux'
-
-def is_windows():
-    return platform.system().lower() == 'windows'
-
-def is_debianlike():
-    try:
-        open('/etc/debian_version', 'r')
-        return True
-    except FileNotFoundError:
-        return False
-
 def detect_ninja():
     for n in ['ninja', 'ninja-build']:
         # Plain 'ninja' or 'ninja -h' yields an error
@@ -1505,17 +1514,14 @@ class Environment():
         evar = 'FC'
         if self.is_cross_build() and want_cross:
             compilers = [self.cross_info['fortran']]
-            ccache = []
             is_cross = True
             exe_wrap = self.cross_info.get('exe_wrapper', None)
         elif evar in os.environ:
             compilers = os.environ[evar].split()
-            ccache = []
             is_cross = False
             exe_wrap = None
         else:
             compilers = self.default_fortran
-            ccache = self.detect_ccache()
             is_cross = False
             exe_wrap = None
         for compiler in compilers:
