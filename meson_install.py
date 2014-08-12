@@ -165,7 +165,12 @@ def install_targets(d):
         printed_symlink_error = False
         for alias in aliases:
             try:
-                os.symlink(fname, os.path.join(outdir, alias))
+                symlinkfilename = os.path.join(outdir, alias)
+                try:
+                    os.unlink(symlinkfilename)
+                except FileNotFoundError:
+                    pass
+                os.symlink(fname, symlinkfilename)
             except NotImplementedError:
                 if not printed_symlink_error:
                     print("Symlink creation does not work on this platform.")
