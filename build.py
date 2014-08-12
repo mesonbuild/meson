@@ -639,6 +639,11 @@ class SharedLibrary(BuildTarget):
         return aliases
 
 class CustomTarget:
+    known_kwargs = {'input' : True,
+                    'output' : True,
+                    'command' : True,
+                    'install' : True,
+                    'install_dir' : True}
     def __init__(self, name, subdir, kwargs):
         self.name = name
         self.subdir = subdir
@@ -646,6 +651,13 @@ class CustomTarget:
         self.process_kwargs(kwargs)
         self.extra_files = []
         self.install_rpath = ''
+        unknowns = []
+        for k in kwargs:
+            if k not in CustomTarget.known_kwargs:
+                unknowns.append(k)
+        if len(unknowns) > 0:
+            mlog.log(mlog.bold('Warning:'), 'Unknown keyword arguments in target %s: %s' %
+                     (self.name, ', '.join(unknowns)))
 
     def process_kwargs(self, kwargs):
         self.sources = kwargs.get('input', [])
@@ -758,6 +770,7 @@ class RunTarget:
 
     def get_filename(self):
         return self.name
+
 class Jar(BuildTarget):
     def __init__(self, name, subdir, is_cross, sources, objects, environment, kwargs):
         super().__init__(name, subdir, is_cross, sources, objects, environment, kwargs);
