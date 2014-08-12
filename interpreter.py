@@ -1136,6 +1136,7 @@ class Interpreter():
         mlog.debug('Adding test "', mlog.bold(args[0]), '".', sep='')
 
     def func_headers(self, node, args, kwargs):
+        args = self.flatten(args)
         for a in args:
             if not isinstance(a, str):
                 raise InvalidArguments('Argument %s is not a string.' % str(a))
