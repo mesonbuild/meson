@@ -1557,7 +1557,8 @@ class Environment():
 
                 version = 'unknown version'
                 vmatch = re.search(Environment.version_regex, out)
-                if vmatch: version = vmatch.group(0)
+                if vmatch:
+                    version = vmatch.group(0)
 
                 if 'GNU Fortran' in out:
                   return GnuFortranCompiler([compiler], version, GCC_STANDARD, is_cross, exe_wrap)
