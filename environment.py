@@ -1135,17 +1135,15 @@ class ClangCPPCompiler(CPPCompiler):
     def get_pch_suffix(self):
         return 'pch'
 
-class GnuFortranCompiler():
+class FortranCompiler():
     std_warn_args = ['-Wall']
 
-    def __init__(self, exelist, version, gcc_type, is_cross, exe_wrapper=None):
+    def __init__(self, exelist, version,is_cross, exe_wrapper=None):
         super().__init__()
         self.exelist = exelist
         self.version = version
-        self.gcc_type = gcc_type
         self.is_cross = is_cross
         self.exe_wrapper = exe_wrapper
-        self.id = 'gcc'
         self.language = 'fortran'
 
     def get_id(self):
@@ -1242,16 +1240,21 @@ end program prog
     def module_name_to_filename(self, module_name):
         return module_name.lower() + '.mod'
 
-
-class G95FortranCompiler(GnuFortranCompiler):
+class GnuFortranCompiler(FortranCompiler):
     def __init__(self, exelist, version, gcc_type, is_cross, exe_wrapper=None):
-      GnuFortranCompiler.__init__(self, exelist, version, gcc_type, is_cross, exe_wrapper=None)
-      self.id = 'g95'
+        super().__init__(exelist, version, is_cross, exe_wrapper=None)
+        self.gcc_type = gcc_type
+        self.id = 'gcc'
 
-class SunFortranCompiler(GnuFortranCompiler):
-    def __init__(self, exelist, version, gcc_type, is_cross, exe_wrapper=None):
-      GnuFortranCompiler.__init__(self, exelist, version, gcc_type, is_cross, exe_wrapper=None)
-      self.id = 'sun'
+class G95FortranCompiler(FortranCompiler):
+    def __init__(self, exelist, version, is_cross, exe_wrapper=None):
+        super().__init__(exelist, version, is_cross, exe_wrapper=None)
+        self.id = 'g95'
+
+class SunFortranCompiler(FortranCompiler):
+    def __init__(self, exelist, version, is_cross, exe_wrapper=None):
+        super().__init__(exelist, version, is_cross, exe_wrapper=None)
+        self.id = 'sun'
 
     def get_dependency_gen_args(self, outtarget, outfile):
         return ['-fpp']
@@ -1413,7 +1416,7 @@ class Environment():
             self.default_cpp = ['c++']
         self.default_objc = ['cc']
         self.default_objcpp = ['c++']
-        self.default_fortran = ['gfortran']
+        self.default_fortran = ['gfortran', 'g95', 'f95', 'f90', 'f77']
         self.default_static_linker = 'ar'
         self.vs_static_linker = 'lib'
 
@@ -1556,20 +1559,18 @@ class Environment():
                 vmatch = re.search(Environment.version_regex, out)
                 if vmatch: version = vmatch.group(0)
 
-                gcc_type = GCC_STANDARD
-
                 if 'GNU Fortran' in out:
-                  return GnuFortranCompiler([compiler], version, gcc_type, is_cross, exe_wrap)
+                  return GnuFortranCompiler([compiler], version, GCC_STANDARD, is_cross, exe_wrap)
 
                 if 'G95' in out:
-                  return G95FortranCompiler([compiler], version, gcc_type, is_cross, exe_wrap)
+                  return G95FortranCompiler([compiler], version, is_cross, exe_wrap)
 
                 if 'Sun Fortran' in err:
                   version = 'unknown version'
                   vmatch = re.search(Environment.version_regex, err)
                   if vmatch:
                       version = vmatch.group(0)
-                  return SunFortranCompiler([compiler], version, gcc_type, is_cross, exe_wrap)
+                  return SunFortranCompiler([compiler], version, is_cross, exe_wrap)
 
         raise EnvironmentException('Unknown compiler(s): "' + ', '.join(compilers) + '"')
 
