@@ -1242,6 +1242,23 @@ end program prog
     def module_name_to_filename(self, module_name):
         return module_name.lower() + '.mod'
 
+
+class G95FortranCompiler(GnuFortranCompiler):
+    def __init__(self, exelist, version, gcc_type, is_cross, exe_wrapper=None):
+      GnuFortranCompiler.__init__(self, exelist, version, gcc_type, is_cross, exe_wrapper=None)
+      self.id = 'g95'
+
+class SunFortranCompiler(GnuFortranCompiler):
+    def __init__(self, exelist, version, gcc_type, is_cross, exe_wrapper=None):
+      GnuFortranCompiler.__init__(self, exelist, version, gcc_type, is_cross, exe_wrapper=None)
+      self.id = 'sun'
+
+    def get_dependency_gen_args(self, outtarget, outfile):
+        return ['-fpp']
+
+    def get_always_args(self):
+        return ['']
+
 class VisualStudioLinker():
     always_args = ['/NOLOGO']
     def __init__(self, exelist):
@@ -1525,23 +1542,35 @@ class Environment():
             is_cross = False
             exe_wrap = None
         for compiler in compilers:
-            try:
-                arg = '--version'
-                p = subprocess.Popen([compiler] + [arg], stdout=subprocess.PIPE,
+            for arg in ['--version', '-V']:
+                try:
+                   p = subprocess.Popen([compiler] + [arg], stdout=subprocess.PIPE,
                                      stderr=subprocess.PIPE)
-            except OSError:
-                continue
-            (out, err) = p.communicate()
-            out = out.decode()
-            err = err.decode()
-            vmatch = re.search(Environment.version_regex, out)
-            if vmatch:
-                version = vmatch.group(0)
-            else:
+                except OSError:
+                   continue
+                (out, err) = p.communicate()
+                out = out.decode()
+                err = err.decode()
+
                 version = 'unknown version'
-            if 'GNU Fortran' in out:
+                vmatch = re.search(Environment.version_regex, out)
+                if vmatch: version = vmatch.group(0)
+
                 gcc_type = GCC_STANDARD
-                return GnuFortranCompiler([compiler], version, gcc_type, is_cross, exe_wrap)
+
+                if 'GNU Fortran' in out:
+                  return GnuFortranCompiler([compiler], version, gcc_type, is_cross, exe_wrap)
+
+                if 'G95' in out:
+                  return G95FortranCompiler([compiler], version, gcc_type, is_cross, exe_wrap)
+
+                if 'Sun Fortran' in err:
+                  version = 'unknown version'
+                  vmatch = re.search(Environment.version_regex, err)
+                  if vmatch:
+                      version = vmatch.group(0)
+                  return SunFortranCompiler([compiler], version, gcc_type, is_cross, exe_wrap)
+
         raise EnvironmentException('Unknown compiler(s): "' + ', '.join(compilers) + '"')
 
     def get_scratch_dir(self):
