@@ -1228,6 +1228,9 @@ end program prog
     def get_include_arg(self, path):
         return '-I' + path
 
+    def get_module_outdir_arg(self, path):
+        return '-J' + path
+
     def get_depfile_suffix(self):
         return 'd'
 

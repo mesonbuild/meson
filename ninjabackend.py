@@ -1089,6 +1089,7 @@ class NinjaBackend(backends.Backend):
         compiler_name = '%s%s_COMPILER' % (compiler.get_language(), crstr)
         if compiler.get_language() == 'fortran':
             extra_orderdeps = self.get_fortran_deps(compiler, abs_src, target)
+            commands.append(compiler.get_module_outdir_arg(os.path.join(self.get_target_dir(target), target.get_basename() + '.dir')))
 
         element = NinjaBuildElement(rel_obj, compiler_name, rel_src)
         for d in header_deps:
