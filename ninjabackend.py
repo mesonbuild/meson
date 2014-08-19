@@ -833,6 +833,18 @@ class NinjaBackend(backends.Backend):
         outfile.write(depstyle)
         outfile.write('\n')
 
+    def generate_fortran_dep_hack(self, outfile):
+        rule = '''# Workaround for these issues:
+# https://groups.google.com/forum/#!topic/ninja-build/j-2RfBIOd_8
+# https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485
+rule FORTRAN_DEP_HACK
+ command = echo
+ description = Dep hack
+ restat = 1
+
+'''
+        outfile.write(rule)
+
     def generate_compile_rule_for(self, langname, compiler, qstr, is_cross, outfile):
         if langname == 'java':
             if not is_cross:
@@ -850,6 +862,8 @@ class NinjaBackend(backends.Backend):
             if not is_cross:
                 self.generate_rust_compile_rules(compiler, outfile)
             return
+        if langname == 'fortran':
+            self.generate_fortran_dep_hack(outfile)
         if is_cross:
             crstr = '_CROSS'
         else:
@@ -1000,7 +1014,7 @@ class NinjaBackend(backends.Backend):
         self.fortran_deps[target.get_basename()] = module_files
 
     def get_fortran_deps(self, compiler, src, target):
-        use_files = []
+        mod_files = []
         usere = re.compile(r"\s*use\s+(\w+)", re.IGNORECASE)
         dirname = os.path.join(self.get_target_dir(target), target.get_basename() + '.dir')
         tdeps= self.fortran_deps[target.get_basename()]
@@ -1023,17 +1037,9 @@ class NinjaBackend(backends.Backend):
                 # the same name.
                 if mod_source_file == os.path.split(src)[1]:
                     continue
-                # WORKAROUND, we should set up a file level dependency to the
-                # module file and mark it as an output of this target. However
-                # we can't do that as Ninja does not support dependency tracking
-                # if a rule has more than one output. Thus we add an order dep
-                # to the source file's object file. This works because the
-                # mod file and object file are created at the same time.
-                # fname = compiler.module_name_to_filename(usematch.group(1))
-                object_base = os.path.join(os.path.split(mod_source_file)[1] + '.' +
-                                           self.environment.get_object_suffix())
-                use_files.append(os.path.join(dirname, object_base))
-        return use_files
+                mod_name = compiler.module_name_to_filename(usematch.group(1))
+                mod_files.append(os.path.join(dirname, mod_name))
+        return mod_files
 
     def generate_single_compile(self, target, outfile, src, is_generated=False, header_deps=[], order_deps=[]):
         extra_orderdeps = []
@@ -1087,8 +1093,17 @@ class NinjaBackend(backends.Backend):
         if target.is_cross:
             crstr = '_CROSS'
         compiler_name = '%s%s_COMPILER' % (compiler.get_language(), crstr)
+        extra_deps = []
         if compiler.get_language() == 'fortran':
-            extra_orderdeps = self.get_fortran_deps(compiler, abs_src, target)
+            extra_deps += self.get_fortran_deps(compiler, abs_src, target)
+            # Dependency hack. Remove once multiple outputs in Ninja is fixed:
+            # https://groups.google.com/forum/#!topic/ninja-build/j-2RfBIOd_8
+            for modname, srcfile in self.fortran_deps[target.get_basename()].items():
+                modfile = os.path.join(self.get_target_dir(target), target.get_basename() + '.dir',
+                                       compiler.module_name_to_filename(modname))
+                if srcfile == src:
+                    depelem = NinjaBuildElement(modfile, 'FORTRAN_DEP_HACK', rel_obj)
+                    depelem.write(outfile)
             commands.append(compiler.get_module_outdir_arg(os.path.join(self.get_target_dir(target), target.get_basename() + '.dir')))
 
         element = NinjaBuildElement(rel_obj, compiler_name, rel_src)
@@ -1097,6 +1112,8 @@ class NinjaBackend(backends.Backend):
                 d = d.fname
             elif not '/' in d:
                 d = os.path.join(self.get_target_private_dir(target), d)
+            element.add_dep(d)
+        for d in extra_deps:
             element.add_dep(d)
         for d in order_deps:
             if isinstance(d, RawFilename):

@@ -1205,7 +1205,10 @@ end program prog
         return get_gcc_soname_args(self.gcc_type, shlib_name, path, soversion)
 
     def get_dependency_gen_args(self, outtarget, outfile):
-        return ['-cpp', '-MMD', '-MQ', outtarget]
+        # Disabled until this is fixed:
+        # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=62162
+        #return ['-cpp', '-MMD', '-MQ', outtarget]
+        return []
 
     def get_output_args(self, target):
         return ['-o', target]
