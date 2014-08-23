@@ -27,19 +27,22 @@ parser.add_option('--wrapper', default=None, dest='wrapper',
 parser.add_option('--wd', default=None, dest='wd',
                   help='directory to cd into before running')
 class TestRun():
-    def __init__(self, res, returncode, duration, stdo, stde):
+    def __init__(self, res, returncode, duration, stdo, stde, cmd):
         self.res = res
         self.returncode = returncode
         self.duration = duration
         self.stdo = stdo
         self.stde = stde
+        self.cmd = cmd
 
-def write_log(logfile, test_name, result_str, stdo, stde):
+def write_log(logfile, test_name, result_str, result):
     logfile.write(result_str + '\n\n')
-    logfile.write('--- "%s" stdout ---\n' % test_name)
-    logfile.write(stdo)
+    logfile.write('--- command ---\n')
+    logfile.write(' '.join(result.cmd))
+    logfile.write('\n--- "%s" stdout ---\n' % test_name)
+    logfile.write(result.stdo)
     logfile.write('\n--- "%s" stderr ---\n' % test_name)
-    logfile.write(stde)
+    logfile.write(result.stde)
     logfile.write('\n-------\n\n')
 
 def write_json_log(jsonlogfile, test_name, result):
@@ -48,7 +51,8 @@ def write_json_log(jsonlogfile, test_name, result):
               'stderr' : result.stde,
               'result' : result.res,
               'duration' : result.duration,
-              'returncode' : result.returncode}
+              'returncode' : result.returncode,
+              'command' : result.cmd}
     jsonlogfile.write(json.dumps(result) + '\n')
 
 def run_with_mono(fname):
@@ -98,7 +102,7 @@ def run_single_test(wrap, test):
             res = 'FAIL'
             tests_failed = True
         returncode = p.returncode
-    return TestRun(res, returncode, duration, stdo, stde)
+    return TestRun(res, returncode, duration, stdo, stde, cmd)
 
 def print_stats(numlen, tests, name, result, i, logfile, jsonlogfile):
     startpad = ' '*(numlen - len('%d' % (i+1)))
@@ -108,7 +112,7 @@ def print_stats(numlen, tests, name, result, i, logfile, jsonlogfile):
     result_str = '%s %s%s%s%s(%5.2f s)' % \
         (num, name, padding1, result.res, padding2, result.duration)
     print(result_str)
-    write_log(logfile, name, result_str, result.stdo, result.stde)
+    write_log(logfile, name, result_str, result)
     write_json_log(jsonlogfile, name, result)
 
 def drain_futures(futures):
