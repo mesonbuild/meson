@@ -72,6 +72,8 @@ def run_single_test(wrap, test):
                 cmd = [test.exe_runner, test.fname]
         else:
             cmd = [test.fname]
+    if len(wrap) > 0 and 'valgrind' in wrap[0]:
+        wrap += test.valgrind_args
     if cmd is None:
         res = 'SKIP'
         duration = 0.0

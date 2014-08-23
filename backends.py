@@ -86,7 +86,8 @@ def do_conf_file(src, dst, confdata):
     replace_if_different(dst, dst_tmp)
 
 class TestSerialisation:
-    def __init__(self, name, fname, is_cross, exe_wrapper, is_parallel, cmd_args, env):
+    def __init__(self, name, fname, is_cross, exe_wrapper, is_parallel, cmd_args, env,
+                 valgrind_args):
         self.name = name
         self.fname = fname
         self.is_cross = is_cross
@@ -94,6 +95,7 @@ class TestSerialisation:
         self.is_parallel = is_parallel
         self.cmd_args = cmd_args
         self.env = env
+        self.valgrind_args = valgrind_args
 
 # This class contains the basic functionality that is needed by all backends.
 # Feel free to move stuff in and out of it as you see fit.
@@ -308,7 +310,7 @@ class Backend():
             else:
                 exe_wrapper = None
             ts = TestSerialisation(t.get_name(), fname, is_cross, exe_wrapper,
-                                   t.is_parallel, t.cmd_args, t.env)
+                                   t.is_parallel, t.cmd_args, t.env, t.valgrind_args)
             arr.append(ts)
         pickle.dump(arr, datafile)
 

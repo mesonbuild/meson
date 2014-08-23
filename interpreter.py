@@ -392,13 +392,14 @@ class RunTargetHolder(InterpreterObject):
         self.held_object = build.RunTarget(name, command, args, subdir)
 
 class Test(InterpreterObject):
-    def __init__(self, name, exe, is_parallel, cmd_args, env):
+    def __init__(self, name, exe, is_parallel, cmd_args, env, valgrind_args):
         InterpreterObject.__init__(self)
         self.name = name
         self.exe = exe
         self.is_parallel = is_parallel
         self.cmd_args = cmd_args
         self.env = env
+        self.valgrind_args = valgrind_args
 
     def get_exe(self):
         return self.exe
@@ -1131,7 +1132,13 @@ class Interpreter():
             if ' ' in k:
                 raise InterpreterException('Env var key must not have spaces in it.')
             env[k] = val
-        t = Test(args[0], args[1].held_object, par, cmd_args, env)
+        valgrind_args = kwargs.get('valgrind_args', [])
+        if not isinstance(valgrind_args, list):
+            valgrind_args = [valgrind_args]
+        for a in valgrind_args:
+            if not isinstance(a, str):
+                raise InterpreterException('Valgrind_arg not a string.')
+        t = Test(args[0], args[1].held_object, par, cmd_args, env, valgrind_args)
         self.build.tests.append(t)
         mlog.debug('Adding test "', mlog.bold(args[0]), '".', sep='')
 
