@@ -146,6 +146,18 @@ class NinjaBackend(backends.Backend):
         outfile.close()
         os.replace(tempfilename, outfilename)
 
+    # Get all generated headers. Any source file might need them so
+    # we need to add an order dependency to them.
+    def get_generated_headers(self, target):
+        header_deps = []
+        for gensource in target.get_generated_sources():
+            if isinstance(gensource, build.CustomTarget):
+                continue
+            for src in gensource.get_outfilelist():
+                if self.environment.is_header(src):
+                    header_deps.append(src)
+        return header_deps
+
     def generate_target(self, target, outfile):
         if isinstance(target, build.CustomTarget):
             self.generate_custom_target(target, outfile)
@@ -183,17 +195,19 @@ class NinjaBackend(backends.Backend):
         header_deps = gen_other_deps
         unity_src = []
         unity_deps = [] # Generated sources that must be built before compiling a Unity target.
+        header_deps += self.get_generated_headers(target)
         for gensource in target.get_generated_sources():
             if isinstance(gensource, build.CustomTarget):
                 for src in gensource.output:
                     src = os.path.join(gensource.subdir, src)
                     if self.environment.is_header(src):
                         header_deps.append(RawFilename(src))
-                    elif self.environment.is_source(src):
+                    if self.environment.is_source(src) and not self.environment.is_header(src):
                         if is_unity:
                             unity_deps.append(os.path.join(self.environment.get_build_dir(), RawFilename(src)))
                         else:
-                            obj_list.append(self.generate_single_compile(target, outfile, RawFilename(src), True))
+                            obj_list.append(self.generate_single_compile(target, outfile, RawFilename(src), True,
+                                                                         header_deps))
                     else:
                         pass # perhaps print warning about the unknown file?
                 break # just to cut down on indentation size
@@ -210,9 +224,8 @@ class NinjaBackend(backends.Backend):
                         abs_src = os.path.join(self.environment.get_build_dir(), rel_src)
                         unity_src.append(abs_src)
                     else:
-                        obj_list.append(self.generate_single_compile(target, outfile, src, True))
-                else:
-                    header_deps.append(src)
+                        obj_list.append(self.generate_single_compile(target, outfile, src, True,
+                                                                     header_deps=header_deps))
         src_list = []
         for src in gen_src_deps:
                 src_list.append(src)
@@ -1042,6 +1055,10 @@ rule FORTRAN_DEP_HACK
         return mod_files
 
     def generate_single_compile(self, target, outfile, src, is_generated=False, header_deps=[], order_deps=[]):
+        if(isinstance(src, str) and src.endswith('.h')):
+            raise RuntimeError('Fug')
+        if isinstance(src, RawFilename) and src.fname.endswith('.h'):
+            raise RuntimeError('Fug')
         extra_orderdeps = []
         compiler = self.get_compiler_for_source(src)
         commands = self.generate_basic_compiler_args(target, compiler)
