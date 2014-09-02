@@ -131,6 +131,7 @@ class BuildTarget():
                     'cs_args' : True,
                     'link_args' : True,
                     'link_depends': True,
+                    'link_with' : True,
                     'include_directories': True,
                     'dependencies' : True,
                     'install_dir' : True,
@@ -362,7 +363,12 @@ class BuildTarget():
         return self.extra_args.get(language, [])
 
     def get_dependencies(self):
-        return self.link_targets
+        transitive_deps = []
+        for t in self.link_targets:
+            transitive_deps.append(t)
+            if isinstance(t, StaticLibrary):
+                transitive_deps += t.get_dependencies()
+        return transitive_deps
 
     def get_basename(self):
         return self.name

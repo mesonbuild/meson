@@ -1302,6 +1302,7 @@ class ArLinker():
 
     def __init__(self, exelist):
         self.exelist = exelist
+        self.id = 'ar'
 
     def build_rpath_args(self, build_dir, rpath_paths, install_rpath):
         return []

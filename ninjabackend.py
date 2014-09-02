@@ -1239,7 +1239,13 @@ rule FORTRAN_DEP_HACK
             commands += linker.get_std_link_args()
         else:
             raise RuntimeError('Unknown build target type.')
-        dependencies = target.get_dependencies()
+        # Link arguments of static libraries are not put in the command line of
+        # the library. They are instead appended to the command line where
+        # the static library is used.
+        if linker_base == 'STATIC':
+            dependencies = []
+        else:
+            dependencies = target.get_dependencies()
         commands += self.build_target_link_arguments(linker, dependencies)
         commands += target.link_args
         # External deps must be last because target link libraries may depend on them.
