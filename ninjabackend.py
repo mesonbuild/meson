@@ -1252,6 +1252,10 @@ rule FORTRAN_DEP_HACK
         if not(isinstance(target, build.StaticLibrary)):
             for dep in target.get_external_deps():
                 commands += dep.get_link_args()
+        for d in target.get_dependencies():
+            if isinstance(d, build.StaticLibrary):
+                for dep in d.get_external_deps():
+                    commands += dep.get_link_args()
         commands += linker.build_rpath_args(self.environment.get_build_dir(),\
                                             target.get_rpaths(), target.install_rpath)
         if self.environment.coredata.coverage:
