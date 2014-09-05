@@ -241,7 +241,7 @@ class Backend():
     def get_pch_include_args(self, compiler, target):
         args = []
         pchpath = self.get_target_private_dir(target)
-        includearg = compiler.get_include_arg(pchpath)
+        includeargs = compiler.get_include_args(pchpath)
         for lang in ['c', 'cpp']:
             p = target.get_pch(lang)
             if len(p) == 0:
@@ -250,7 +250,7 @@ class Backend():
                 header = p[0]
                 args += compiler.get_pch_use_args(pchpath, header)
         if len(args) > 0:
-            args = [includearg] + args
+            args = includeargs + args
         return args
 
     def generate_basic_compiler_args(self, target, compiler):

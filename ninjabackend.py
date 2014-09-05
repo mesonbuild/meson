@@ -1062,7 +1062,7 @@ rule FORTRAN_DEP_HACK
         extra_orderdeps = []
         compiler = self.get_compiler_for_source(src)
         commands = self.generate_basic_compiler_args(target, compiler)
-        commands.append(compiler.get_include_arg(self.get_target_private_dir(target)))
+        commands += compiler.get_include_args(self.get_target_private_dir(target))
         if isinstance(src, RawFilename):
             rel_src = src.fname
         elif is_generated:
@@ -1100,10 +1100,10 @@ rule FORTRAN_DEP_HACK
             for d in i.get_incdirs():
                 expdir =  os.path.join(basedir, d)
                 fulldir = os.path.join(self.environment.get_source_dir(), expdir)
-                barg = compiler.get_include_arg(expdir)
-                sarg = compiler.get_include_arg(fulldir)
-                commands.append(barg)
-                commands.append(sarg)
+                bargs = compiler.get_include_args(expdir)
+                sargs = compiler.get_include_args(fulldir)
+                commands += bargs
+                commands += sargs
         if self.environment.coredata.use_pch:
             commands += self.get_pch_include_args(compiler, target)
         crstr = ''
@@ -1121,7 +1121,7 @@ rule FORTRAN_DEP_HACK
                 if srcfile == src:
                     depelem = NinjaBuildElement(modfile, 'FORTRAN_DEP_HACK', rel_obj)
                     depelem.write(outfile)
-            commands.append(compiler.get_module_outdir_arg(os.path.join(self.get_target_dir(target), target.get_basename() + '.dir')))
+            commands += compiler.get_module_outdir_args(os.path.join(self.get_target_dir(target), target.get_basename() + '.dir'))
 
         element = NinjaBuildElement(rel_obj, compiler_name, rel_src)
         for d in header_deps:

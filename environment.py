@@ -187,8 +187,8 @@ class CCompiler():
     def get_std_exe_link_args(self):
         return []
 
-    def get_include_arg(self, path):
-        return '-I' + path
+    def get_include_args(self, path):
+        return ['-I' + path]
 
     def get_std_shared_lib_link_args(self):
         return ['-shared']
@@ -552,8 +552,8 @@ class MonoCompiler():
     def get_std_exe_link_args(self):
         return []
 
-    def get_include_arg(self, path):
-        return ''
+    def get_include_args(self, path):
+        return []
 
     def get_std_shared_lib_link_args(self):
         return []
@@ -694,8 +694,8 @@ class JavaCompiler():
     def get_std_exe_link_args(self):
         return []
 
-    def get_include_arg(self, path):
-        return ''
+    def get_include_args(self, path):
+        return []
 
     def get_std_shared_lib_link_args(self):
         return []
@@ -1228,11 +1228,11 @@ end program prog
             return True
         return False
 
-    def get_include_arg(self, path):
-        return '-I' + path
+    def get_include_args(self, path):
+        return ['-I' + path]
 
-    def get_module_outdir_arg(self, path):
-        return '-J' + path
+    def get_module_outdir_args(self, path):
+        return ['-J' + path]
 
     def get_depfile_suffix(self):
         return 'd'
