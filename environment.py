@@ -1159,7 +1159,7 @@ class FortranCompiler():
         return True
 
     def sanity_check(self, work_dir):
-        source_name = os.path.join(work_dir, 'sanitycheckf.f95')
+        source_name = os.path.join(work_dir, 'sanitycheckf.f90')
         binary_name = os.path.join(work_dir, 'sanitycheckf')
         ofile = open(source_name, 'w')
         ofile.write('''program prog
@@ -1190,7 +1190,7 @@ end program prog
         return []
 
     def get_std_warn_args(self):
-        return GnuFortranCompiler.std_warn_args
+        return FortranCompiler.std_warn_args
 
     def get_buildtype_args(self, buildtype):
         return gnulike_buildtype_args[buildtype]
@@ -1257,6 +1257,9 @@ class G95FortranCompiler(FortranCompiler):
         super().__init__(exelist, version, is_cross, exe_wrapper=None)
         self.id = 'g95'
 
+    def get_module_outdir_args(self, path):
+        return ['-fmod='+path]
+
 class SunFortranCompiler(FortranCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
         super().__init__(exelist, version, is_cross, exe_wrapper=None)
@@ -1266,7 +1269,35 @@ class SunFortranCompiler(FortranCompiler):
         return ['-fpp']
 
     def get_always_args(self):
-        return ['']
+        return []
+
+    def get_std_warn_args(self):
+        return []
+
+    def get_module_outdir_args(self, path):
+        return ['-moddir='+path]
+
+class IntelFortranCompiler(FortranCompiler):
+    std_warn_args = ['-warn', 'all']
+    
+    def __init__(self, exelist, version, is_cross, exe_wrapper=None):
+        super().__init__(exelist, version, is_cross, exe_wrapper=None)
+        self.id = 'intel'
+        
+    def get_module_outdir_args(self, path):
+        return ['-module', path]
+
+    def get_always_args(self):
+        return []
+
+    def can_compile(self, src):
+        suffix = os.path.splitext(src)[1].lower()
+        if suffix == '.f' or suffix == '.f90':
+            return True
+        return False
+
+    def get_std_warn_args(self):
+        return IntelFortranCompiler.std_warn_args
 
 class VisualStudioLinker():
     always_args = ['/NOLOGO']
@@ -1579,6 +1610,9 @@ class Environment():
                   if vmatch:
                       version = vmatch.group(0)
                   return SunFortranCompiler([compiler], version, is_cross, exe_wrap)
+
+                if 'ifort (IFORT)' in out:
+                  return IntelFortranCompiler([compiler], version, is_cross, exe_wrap)
 
         raise EnvironmentException('Unknown compiler(s): "' + ', '.join(compilers) + '"')
 
