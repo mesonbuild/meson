@@ -18,6 +18,38 @@ import dependencies
 import mlog
 import copy, os
 
+
+known_basic_kwargs = {'ui_files': True,
+                      'moc_headers' : True,
+                      'qresources' : True,
+                      'moc_sources' : True,
+                      'install' : True,
+                      'c_pch' : True,
+                      'cpp_pch' : True,
+                      'c_args' : True,
+                      'cpp_args' : True,
+                      'cs_args' : True,
+                      'link_args' : True,
+                      'link_depends': True,
+                      'link_with' : True,
+                      'include_directories': True,
+                      'dependencies' : True,
+                      'install_dir' : True,
+                      'main_class' : True,
+                      'gui_app' : True,
+                      'extra_files' : True,
+                      'install_rpath' : True,
+                      'resources' : True,
+                      'sources' : True,
+                      'objects' : True,
+                      'native' : True,
+                      }
+
+known_shlib_kwargs = known_basic_kwargs.copy()
+known_shlib_kwargs.update({'version' : True,
+                           'soversion' : True})
+
+
 class InvalidArguments(coredata.MesonException):
     pass
 
@@ -118,32 +150,6 @@ class ExtractedObjects():
         self.srclist = srclist
 
 class BuildTarget():
-    # All keyword arguments that we know how to handle.
-    known_kwargs = {'ui_files': True,
-                    'moc_headers' : True,
-                    'qresources' : True,
-                    'moc_sources' : True,
-                    'install' : True,
-                    'c_pch' : True,
-                    'cpp_pch' : True,
-                    'c_args' : True,
-                    'cpp_args' : True,
-                    'cs_args' : True,
-                    'link_args' : True,
-                    'link_depends': True,
-                    'link_with' : True,
-                    'include_directories': True,
-                    'dependencies' : True,
-                    'install_dir' : True,
-                    'main_class' : True,
-                    'gui_app' : True,
-                    'extra_files' : True,
-                    'install_rpath' : True,
-                    'resources' : True,
-                    'sources' : True,
-                    'objects' : True,
-                    }
-
     def __init__(self, name, subdir, is_cross, sources, objects, environment, kwargs):
         self.name = name
         self.subdir = subdir
@@ -163,16 +169,24 @@ class BuildTarget():
         self.process_sourcelist(sources)
         self.process_objectlist(objects)
         self.process_kwargs(kwargs, environment)
+        self.check_unknown_kwargs(kwargs)
+        if len(self.sources) == 0 and len(self.generated) == 0:
+            raise InvalidArguments('Build target %s has no sources.' % name)
+        self.validate_sources()
+
+    def check_unknown_kwargs(self, kwargs):
+        # Override this method in derived classes that have more
+        # keywords.
+        self.check_unknown_kwargs_int(kwargs, known_basic_kwargs)
+
+    def check_unknown_kwargs_int(self, kwargs, known_kwargs):
         unknowns = []
         for k in kwargs:
-            if not k in BuildTarget.known_kwargs:
+            if not k in known_kwargs:
                 unknowns.append(k)
         if len(unknowns) > 0:
             mlog.log(mlog.bold('Warning:'), 'Unknown keyword argument(s) in target %s: %s.' %
                      (self.name, ', '.join(unknowns)))
-        if len(self.sources) == 0 and len(self.generated) == 0:
-            raise InvalidArguments('Build target %s has no sources.' % name)
-        self.validate_sources()
 
     def process_objectlist(self, objects):
         assert(isinstance(objects, list))
@@ -600,6 +614,9 @@ class SharedLibrary(BuildTarget):
             self.prefix = environment.get_shared_lib_prefix()
             self.suffix = environment.get_shared_lib_suffix()
         self.importsuffix = environment.get_import_lib_suffix()
+
+    def check_unknown_kwargs(self, kwargs):
+        self.check_unknown_kwargs_int(kwargs, known_shlib_kwargs)
 
     def get_shbase(self):
         return self.prefix + self.name + '.' + self.suffix
