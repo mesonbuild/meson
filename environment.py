@@ -1299,6 +1299,74 @@ class IntelFortranCompiler(FortranCompiler):
     def get_std_warn_args(self):
         return IntelFortranCompiler.std_warn_args
 
+class PathScaleFortranCompiler(FortranCompiler):
+    std_warn_args = ['-fullwarn']
+
+    def __init__(self, exelist, version, is_cross, exe_wrapper=None):
+        super().__init__(exelist, version, is_cross, exe_wrapper=None)
+        self.id = 'pathscale'
+
+    def get_module_outdir_args(self, path):
+        return ['-module', path]
+
+    def get_always_args(self):
+        return []
+
+    def can_compile(self, src):
+        suffix = os.path.splitext(src)[1].lower()
+        if suffix == '.f' or suffix == '.f90' or suffix == '.f95':
+            return True
+        return False
+
+    def get_std_warn_args(self):
+        return PathScaleFortranCompiler.std_warn_args
+
+class PGIFortranCompiler(FortranCompiler):
+    std_warn_args = ['-Minform=inform']
+
+    def __init__(self, exelist, version, is_cross, exe_wrapper=None):
+        super().__init__(exelist, version, is_cross, exe_wrapper=None)
+        self.id = 'pgi'
+
+    def get_module_outdir_args(self, path):
+        return ['-module', path]
+
+    def get_always_args(self):
+        return []
+
+    def can_compile(self, src):
+        suffix = os.path.splitext(src)[1].lower()
+        if suffix == '.f' or suffix == '.f90' or suffix == '.f95':
+            return True
+        return False
+
+    def get_std_warn_args(self):
+        return PGIFortranCompiler.std_warn_args
+
+
+class Open64FortranCompiler(FortranCompiler):
+    std_warn_args = ['-fullwarn']
+
+    def __init__(self, exelist, version, is_cross, exe_wrapper=None):
+        super().__init__(exelist, version, is_cross, exe_wrapper=None)
+        self.id = 'open64'
+
+    def get_module_outdir_args(self, path):
+        return ['-module', path]
+
+    def get_always_args(self):
+        return []
+
+    def can_compile(self, src):
+        suffix = os.path.splitext(src)[1].lower()
+        if suffix == '.f' or suffix == '.f90' or suffix == '.f95':
+            return True
+        return False
+
+    def get_std_warn_args(self):
+        return Open64FortranCompiler.std_warn_args
+
+
 class VisualStudioLinker():
     always_args = ['/NOLOGO']
     def __init__(self, exelist):
@@ -1613,6 +1681,15 @@ class Environment():
 
                 if 'ifort (IFORT)' in out:
                   return IntelFortranCompiler([compiler], version, is_cross, exe_wrap)
+                
+                if 'PathScale EKOPath(tm)' in err:
+                  return PathScaleFortranCompiler([compiler], version, is_cross, exe_wrap)
+
+                if 'pgf90' in out:
+                  return PGIFortranCompiler([compiler], version, is_cross, exe_wrap)
+
+                if 'Open64 Compiler Suite' in err:
+                  return Open64FortranCompiler([compiler], version, is_cross, exe_wrap)
 
         raise EnvironmentException('Unknown compiler(s): "' + ', '.join(compilers) + '"')
 
