@@ -738,9 +738,10 @@ class Interpreter():
             try:
                 self.evaluate_statement(cur)
             except Exception as e:
-                e.lineno = cur.lineno
-                e.colno = cur.colno
-                e.file = os.path.join(self.subdir, 'meson.build')
+                if not(hasattr(e, 'lineno')):
+                    e.lineno = cur.lineno
+                    e.colno = cur.colno
+                    e.file = os.path.join(self.subdir, 'meson.build')
                 raise e
             i += 1 # In THE FUTURE jump over blocks and stuff.
 
@@ -1438,10 +1439,33 @@ class Interpreter():
             obj = obj.get_value()
         if isinstance(obj, str):
             return self.string_method_call(obj, method_name, args)
+        if isinstance(obj, list):
+            return self.array_method_call(obj, method_name, self.reduce_arguments(args)[0])
         if not isinstance(obj, InterpreterObject):
             raise InvalidArguments('Variable "%s" is not callable.' % object_name)
         (args, kwargs) = self.reduce_arguments(args)
         return obj.method_call(method_name, args, kwargs)
+
+    def array_method_call(self, obj, method_name, args):
+        if method_name == 'contains':
+            return self.check_contains(obj, args)
+        raise InterpreterException('Arrays do not have a method called "%s".' % method_name)
+
+    def check_contains(self, obj, args):
+        if len(args) != 1:
+            raise InterpreterException('Contains method takes exactly one argument.')
+        item = args[0]
+        for element in obj:
+            if isinstance(element, list):
+                found = self.check_contains(element, args)
+                if found:
+                    return True
+            try:
+                if element == item:
+                    return True
+            except Exception:
+                pass
+        return False
 
     def evaluate_if(self, node):
         assert(isinstance(node, mparser.IfClauseNode))
