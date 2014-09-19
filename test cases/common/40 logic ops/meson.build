@@ -75,3 +75,15 @@ else
   error('Negation failed.')
 endif
 
+
+if f or f or f or f or f or f or f or f or t
+  message('Ok.')
+else
+  error('Chain of ors failed.')
+endif
+
+if t and t and t and t and t and t and t and t and f
+  error('Chain of ands failed.')
+else
+  message('Ok.')
+endif

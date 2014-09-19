@@ -318,14 +318,14 @@ class Parser:
 
     def e2(self):
         left = self.e3()
-        if self.accept('or'):
-            return OrNode(left.lineno, left.colno, left, self.e3())
+        while self.accept('or'):
+            left = OrNode(left.lineno, left.colno, left, self.e3())
         return left
 
     def e3(self):
         left = self.e4()
-        if self.accept('and'):
-            return AndNode(left.lineno, left.colno, left, self.e4())
+        while self.accept('and'):
+            left = AndNode(left.lineno, left.colno, left, self.e4())
         return left
 
     def e4(self):
