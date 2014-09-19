@@ -280,6 +280,10 @@ class NinjaBackend(backends.Backend):
         elem = NinjaBuildElement(ofilenames, 'CUSTOM_COMMAND', deps)
         cmd = []
         for i in target.command:
+            for (j, src) in enumerate(srcs):
+                i = i.replace('@INPUT%d@' % j, src)
+            for (j, res) in enumerate(ofilenames):
+                i = i.replace('@OUTPUT%d@' % j, res)
             if i == '@INPUT@':
                 cmd += srcs
             elif i == '@OUTPUT@':
