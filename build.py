@@ -710,7 +710,7 @@ class CustomTarget:
             if isinstance(c, str):
                 final_cmd.append(c)
             elif isinstance(c, dependencies.ExternalProgram):
-                final_cmd.append(c.get_command())
+                final_cmd += c.get_command()
             elif isinstance(c, BuildTarget) or isinstance(c, CustomTarget):
                 self.dependencies.append(c)
                 # GIR scanner will attempt to execute this binary but

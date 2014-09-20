@@ -200,8 +200,6 @@ class NinjaBackend(backends.Backend):
             if isinstance(gensource, build.CustomTarget):
                 for src in gensource.output:
                     src = os.path.join(gensource.subdir, src)
-                    if self.environment.is_header(src):
-                        header_deps.append(RawFilename(src))
                     if self.environment.is_source(src) and not self.environment.is_header(src):
                         if is_unity:
                             unity_deps.append(os.path.join(self.environment.get_build_dir(), RawFilename(src)))
@@ -209,7 +207,10 @@ class NinjaBackend(backends.Backend):
                             obj_list.append(self.generate_single_compile(target, outfile, RawFilename(src), True,
                                                                          header_deps))
                     else:
-                        pass # perhaps print warning about the unknown file?
+                        # Assume anything not specifically a source file is a header. This is because
+                        # people generate files with weird suffixes (.inc, .fh) that they then include
+                        # in their source files.
+                        header_deps.append(RawFilename(src))
                 break # just to cut down on indentation size
             for src in gensource.get_outfilelist():
                 if self.environment.is_object(src):
@@ -275,7 +276,7 @@ class NinjaBackend(backends.Backend):
         ofilenames = [os.path.join(target.subdir, i) for i in target.output]
         # FIXME, should not grab element at zero but rather expand all.
         deps = [os.path.join(i.get_subdir(), self.hackety_hack(i.get_filename())) for i in target.get_dependencies()]
-        srcs = [os.path.join(self.build_to_src, target.subdir, i) for i in  target.sources]
+        srcs = [os.path.join(self.build_to_src, target.subdir, i) for i in target.sources]
         deps +=  srcs
         elem = NinjaBuildElement(ofilenames, 'CUSTOM_COMMAND', deps)
         cmd = []
@@ -976,9 +977,9 @@ rule FORTRAN_DEP_HACK
             infilelist = genlist.get_infilelist()
             outfilelist = genlist.get_outfilelist()
             if isinstance(exe, build.BuildTarget):
-                exe_file = os.path.join(self.environment.get_build_dir(), self.get_target_filename(exe))
+                exe_arr = [os.path.join(self.environment.get_build_dir(), self.get_target_filename(exe))]
             else:
-                exe_file = exe.get_command()
+                exe_arr = exe.get_command()
             base_args = generator.get_arglist()
             for i in range(len(infilelist)):
                 if len(generator.outputs) == 1:
@@ -994,7 +995,7 @@ rule FORTRAN_DEP_HACK
                 args = self.replace_outputs(args, self.get_target_private_dir(target), outfilelist)
                 args = [x.replace("@SOURCE_DIR@", self.environment.get_source_dir()).replace("@BUILD_DIR@", self.get_target_private_dir(target))
                         for x in args]
-                cmdlist = [exe_file] + args
+                cmdlist = exe_arr + args
                 elem = NinjaBuildElement(outfiles, 'CUSTOM_COMMAND', infilename)
                 elem.add_item('DESC', 'Generating $out')
                 if isinstance(exe, build.BuildTarget):

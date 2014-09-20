@@ -25,6 +25,7 @@ import os, stat, glob, subprocess, shutil
 from coredata import MesonException
 import environment
 import mlog
+from environment import is_windows
 
 class DependencyException(MesonException):
     def __init__(self, *args, **kwargs):
@@ -131,21 +132,32 @@ class ExternalProgram():
     def __init__(self, name, fullpath=None, silent=False, search_dir=None):
         self.name = name
         if fullpath is not None:
-            self.fullpath = fullpath
+            self.fullpath = [fullpath]
         else:
-            self.fullpath = shutil.which(name)
-            if self.fullpath is None and search_dir is not None:
+            self.fullpath = [shutil.which(name)]
+            if self.fullpath[0] is None and search_dir is not None:
                 trial = os.path.join(search_dir, name)
                 if os.access(trial, os.X_OK):
-                    self.fullpath = trial
+                    self.fullpath = [trial]
+                # Now getting desperate. Maybe it is a script file that is a) not chmodded
+                # executable or b) we are on windows so they can't be directly executed.
+                try:
+                    first_line = open(trial).readline().strip()
+                    if first_line.startswith('#!'):
+                        commands = first_line[2:].split('#')[0].strip().split()
+                        if environment.is_windows():
+                            commands[0] = commands[0].split('/')[-1] # Windows does not have /usr/bin.
+                        self.fullpath = commands + [trial]
+                except Exception:
+                    pass
         if not silent:
             if self.found():
-                mlog.log('Program', mlog.bold(name), 'found:', mlog.green('YES'), '(%s)' % self.fullpath)
+                mlog.log('Program', mlog.bold(name), 'found:', mlog.green('YES'), '(%s)' % ' '.join(self.fullpath))
             else:
                 mlog.log('Program', mlog.bold(name), 'found:', mlog.red('NO'))
 
     def found(self):
-        return self.fullpath is not None
+        return self.fullpath[0] is not None
 
     def get_command(self):
         return self.fullpath
@@ -445,7 +457,7 @@ class Qt5Dependency(Dependency):
         # Moc and rcc return a non-zero result when doing so.
         # What kind of an idiot thought that was a good idea?
         if self.moc.found():
-            mp = subprocess.Popen([self.moc.get_command(), '-v'],
+            mp = subprocess.Popen(self.moc.get_command() + ['-v'],
                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             (stdout, stderr) = mp.communicate()
             stdout = stdout.decode().strip()
@@ -458,13 +470,13 @@ class Qt5Dependency(Dependency):
                 raise DependencyException('Moc preprocessor is not for Qt 5. Output:\n%s\n%s' %
                                           (stdout, stderr))
             if not qt5toolinfo_printed:
-                mlog.log(' moc:', mlog.green('YES'), '(%s %s)' % \
-                         (self.moc.fullpath, moc_ver.split()[-1]))
+                mlog.log(' moc:', mlog.green('YES'), '(%s, %s)' % \
+                         (' '.join(self.moc.fullpath), moc_ver.split()[-1]))
         else:
             if not qt5toolinfo_printed:
                 mlog.log(' moc:', mlog.red('NO'))
         if self.uic.found():
-            up = subprocess.Popen([self.uic.get_command(), '-v'],
+            up = subprocess.Popen(self.uic.get_command() + ['-v'],
                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             (stdout, stderr) = up.communicate()
             stdout = stdout.decode().strip()
@@ -477,13 +489,13 @@ class Qt5Dependency(Dependency):
                 raise DependencyException('Uic compiler is not for Qt 5. Output:\n%s\n%s' %
                                           (stdout, stderr))
             if not qt5toolinfo_printed:
-                mlog.log(' uic:', mlog.green('YES'), '(%s %s)' % \
-                         (self.uic.fullpath, uic_ver.split()[-1]))
+                mlog.log(' uic:', mlog.green('YES'), '(%s, %s)' % \
+                         (' '.join(self.uic.fullpath), uic_ver.split()[-1]))
         else:
             if not qt5toolinfo_printed:
                 mlog.log(' uic:', mlog.red('NO'))
         if self.rcc.found():
-            rp = subprocess.Popen([self.rcc.get_command(), '-v'],
+            rp = subprocess.Popen(self.rcc.get_command() + ['-v'],
                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             (stdout, stderr) = rp.communicate()
             stdout = stdout.decode().strip()
@@ -496,8 +508,8 @@ class Qt5Dependency(Dependency):
                 raise DependencyException('Rcc compiler is not for Qt 5. Output:\n%s\n%s' %
                                           (stdout, stderr))
             if not qt5toolinfo_printed:
-                mlog.log(' rcc:', mlog.green('YES'), '(%s %s)'\
-                        % (self.rcc.fullpath, rcc_ver.split()[-1]))
+                mlog.log(' rcc:', mlog.green('YES'), '(%s, %s)'\
+                        % (' '.join(self.rcc.fullpath), rcc_ver.split()[-1]))
         else:
             if not qt5toolinfo_printed:
                 mlog.log(' rcc:', mlog.red('NO'))
@@ -534,16 +546,16 @@ class Qt5Dependency(Dependency):
         return True
 
     def get_generate_rules(self):
-        moc_rule = CustomRule([self.moc.get_command(), '$mocargs', '@INFILE@', '-o', '@OUTFILE@'],
+        moc_rule = CustomRule(self.moc.get_command() + ['$mocargs', '@INFILE@', '-o', '@OUTFILE@'],
                               'moc_@BASENAME@.cpp', 'moc_headers', 'moc_hdr_compile',
                               'Compiling header @INFILE@ with the moc preprocessor')
-        mocsrc_rule = CustomRule([self.moc.get_command(), '$mocargs', '@INFILE@', '-o', '@OUTFILE@'],
+        mocsrc_rule = CustomRule(self.moc.get_command() + ['$mocargs', '@INFILE@', '-o', '@OUTFILE@'],
                               '@BASENAME@.moc', 'moc_sources', 'moc_src_compile',
                               'Compiling source @INFILE@ with the moc preprocessor')
-        ui_rule = CustomRule([self.uic.get_command(), '@INFILE@', '-o', '@OUTFILE@'],
+        ui_rule = CustomRule(self.uic.get_command() + ['@INFILE@', '-o', '@OUTFILE@'],
                               'ui_@BASENAME@.h', 'ui_files', 'ui_compile',
                               'Compiling @INFILE@ with the ui compiler')
-        rrc_rule = CustomRule([self.rcc.get_command(), '@INFILE@', '-o', '@OUTFILE@',
+        rrc_rule = CustomRule(self.rcc.get_command() + ['@INFILE@', '-o', '@OUTFILE@',
                                '${rcc_args}'], '@BASENAME@.cpp','qresources',
                               'rc_compile', 'Compiling @INFILE@ with the rrc compiler')
         return [moc_rule, mocsrc_rule, ui_rule, rrc_rule]

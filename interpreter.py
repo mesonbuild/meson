@@ -811,7 +811,9 @@ class Interpreter():
         for i in cargs:
             if not isinstance(i, str):
                 raise InterpreterException('Run_command arguments must be strings.')
-        args = [cmd] + cargs
+        if not isinstance(cmd, list):
+            cmd = [cmd]
+        args = cmd + cargs
         in_builddir = kwargs.get('in_builddir', False)
         if not isinstance(in_builddir, bool):
             raise InterpreterException('in_builddir must be boolean.')
