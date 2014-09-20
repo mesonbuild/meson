@@ -431,12 +431,15 @@ class BuildTarget():
         [self.add_external_dep(dep) for dep in args]
 
     def link(self, target):
-        if hasattr(target, 'held_object'):
-            target = target.held_object
-        if not isinstance(target, StaticLibrary) and \
-        not isinstance(target, SharedLibrary):
-            raise InvalidArguments('Link target is not library.')
-        self.link_targets.append(target)
+        if not isinstance(target, list):
+            target = [target]
+        for t in target:
+            if hasattr(t, 'held_object'):
+                t = t.held_object
+            if not isinstance(t, StaticLibrary) and \
+            not isinstance(t, SharedLibrary):
+                raise InvalidArguments('Link target is not library.')
+            self.link_targets.append(t)
 
     def set_generated(self, genlist):
         for g in genlist:
