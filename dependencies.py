@@ -139,17 +139,18 @@ class ExternalProgram():
                 trial = os.path.join(search_dir, name)
                 if os.access(trial, os.X_OK):
                     self.fullpath = [trial]
-                # Now getting desperate. Maybe it is a script file that is a) not chmodded
-                # executable or b) we are on windows so they can't be directly executed.
-                try:
-                    first_line = open(trial).readline().strip()
-                    if first_line.startswith('#!'):
-                        commands = first_line[2:].split('#')[0].strip().split()
-                        if environment.is_windows():
-                            commands[0] = commands[0].split('/')[-1] # Windows does not have /usr/bin.
-                        self.fullpath = commands + [trial]
-                except Exception:
-                    pass
+                else:
+                    # Now getting desperate. Maybe it is a script file that is a) not chmodded
+                    # executable or b) we are on windows so they can't be directly executed.
+                    try:
+                        first_line = open(trial).readline().strip()
+                        if first_line.startswith('#!'):
+                            commands = first_line[2:].split('#')[0].strip().split()
+                            if environment.is_windows():
+                                commands[0] = commands[0].split('/')[-1] # Windows does not have /usr/bin.
+                            self.fullpath = commands + [trial]
+                    except Exception:
+                        pass
         if not silent:
             if self.found():
                 mlog.log('Program', mlog.bold(name), 'found:', mlog.green('YES'), '(%s)' % ' '.join(self.fullpath))
