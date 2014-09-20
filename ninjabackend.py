@@ -211,22 +211,22 @@ class NinjaBackend(backends.Backend):
                         # people generate files with weird suffixes (.inc, .fh) that they then include
                         # in their source files.
                         header_deps.append(RawFilename(src))
-                break # just to cut down on indentation size
-            for src in gensource.get_outfilelist():
-                if self.environment.is_object(src):
-                    obj_list.append(os.path.join(self.get_target_dir(target), target.get_basename() + '.dir', src))
-                elif not self.environment.is_header(src):
-                    if is_unity:
-                        if '/' in src:
-                            rel_src = src
+            else:
+                for src in gensource.get_outfilelist():
+                    if self.environment.is_object(src):
+                        obj_list.append(os.path.join(self.get_target_dir(target), target.get_basename() + '.dir', src))
+                    elif not self.environment.is_header(src):
+                        if is_unity:
+                            if '/' in src:
+                                rel_src = src
+                            else:
+                                rel_src = os.path.join(self.get_target_private_dir(target), src)
+                            unity_deps.append(rel_src)
+                            abs_src = os.path.join(self.environment.get_build_dir(), rel_src)
+                            unity_src.append(abs_src)
                         else:
-                            rel_src = os.path.join(self.get_target_private_dir(target), src)
-                        unity_deps.append(rel_src)
-                        abs_src = os.path.join(self.environment.get_build_dir(), rel_src)
-                        unity_src.append(abs_src)
-                    else:
-                        obj_list.append(self.generate_single_compile(target, outfile, src, True,
-                                                                     header_deps=header_deps))
+                            obj_list.append(self.generate_single_compile(target, outfile, src, True,
+                                                                         header_deps=header_deps))
         src_list = []
         for src in gen_src_deps:
                 src_list.append(src)
