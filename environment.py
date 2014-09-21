@@ -2007,6 +2007,8 @@ def get_library_dirs():
         # I just don't know what the correct solution is.
         if plat == 'i686':
             plat = 'i386'
+        if plat.startswith('arm'):
+            plat = 'arm'
         unixdirs += glob('/usr/lib/' + plat + '*')
         if os.path.exists('/usr/lib64'):
             unixdirs.append('/usr/lib64')
