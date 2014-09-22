@@ -131,7 +131,7 @@ class CCompiler():
     def get_linker_always_args(self):
         return []
 
-    def get_soname_args(self, shlib_name, path):
+    def get_soname_args(self, shlib_name, path, soversion):
         return []
 
     def split_shlib_to_parts(self, fname):
@@ -504,7 +504,7 @@ class MonoCompiler():
     def get_link_args(self, fname):
         return ['-r:' + fname]
 
-    def get_soname_args(self, shlib_name, path):
+    def get_soname_args(self, shlib_name, path, soversion):
         return []
 
     def get_werror_args(self):
@@ -641,7 +641,7 @@ class JavaCompiler():
     def get_linker_always_args(self):
         return []
 
-    def get_soname_args(self, shlib_name, path):
+    def get_soname_args(self, shlib_name, path, soversion):
         return []
 
     def get_werror_args(self):
@@ -935,6 +935,9 @@ class VisualStudioCCompiler(CCompiler):
         pe.wait()
         if pe.returncode != 0:
             raise EnvironmentException('Executables created by C++ compiler %s are not runnable.' % self.name_string())
+
+    def build_rpath_args(self, build_dir, rpath_paths, install_rpath):
+        return []
 
 class VisualStudioCPPCompiler(VisualStudioCCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrap):
