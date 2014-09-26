@@ -106,6 +106,15 @@ def run_install_script(d):
            }
     script = d.install_script
     print('Running custom install script %s' % script)
+    suffix = os.path.splitext(script)[1].lower()
+    if platform.system().lower() == 'windows' and suffix != 'bat':
+        first_line = open(script).readline().strip()
+        if first_line.startswith('#!'):
+            commands = first_line[2:].split('#')[0].strip().split()
+            commands[0] = shutil.which(commands[0].split('/')[-1])
+            if commands[0] is None:
+                raise RuntimeError("Don't know how to run script %s." % script)
+            script = commands + [script]
     child_env = os.environ.copy()
     child_env.update(env)
     subprocess.check_call(script, env=child_env)
