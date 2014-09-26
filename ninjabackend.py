@@ -852,16 +852,20 @@ class NinjaBackend(backends.Backend):
         outfile.write('\n')
 
     def generate_fortran_dep_hack(self, outfile):
-        rule = '''# Workaround for these issues:
+        if environment.is_windows():
+            cmd = 'cmd /C ""'
+        else:
+            cmd = 'true'
+        template = '''# Workaround for these issues:
 # https://groups.google.com/forum/#!topic/ninja-build/j-2RfBIOd_8
 # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485
 rule FORTRAN_DEP_HACK
- command = echo
+ command = %s
  description = Dep hack
  restat = 1
 
 '''
-        outfile.write(rule)
+        outfile.write(template % cmd)
 
     def generate_compile_rule_for(self, langname, compiler, qstr, is_cross, outfile):
         if langname == 'java':
