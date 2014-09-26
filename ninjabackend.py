@@ -1079,12 +1079,12 @@ rule FORTRAN_DEP_HACK
         else:
             rel_src = os.path.join(self.build_to_src, target.get_source_subdir(), src)
             abs_src = os.path.join(self.environment.get_build_dir(), rel_src)
-        if os.path.isabs(src):
+        if isinstance(src, RawFilename):
+            src_filename = src.fname
+        elif os.path.isabs(src):
             src_filename = os.path.basename(src)
         else:
             src_filename = src
-        if isinstance(src, RawFilename):
-            src_filename = src.fname
         obj_basename = src_filename.replace('/', '_').replace('\\', '_')
         rel_obj = os.path.join(self.get_target_private_dir(target), obj_basename)
         rel_obj += '.' + self.environment.get_object_suffix()

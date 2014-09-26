@@ -137,7 +137,11 @@ class ExternalProgram():
             self.fullpath = [shutil.which(name)]
             if self.fullpath[0] is None and search_dir is not None:
                 trial = os.path.join(search_dir, name)
-                if os.access(trial, os.X_OK):
+                suffix = os.path.splitext(trial)[-1].lower()
+                if environment.is_windows() and (suffix == 'exe' or suffix == 'com'\
+                                          or suffix == 'bat'):
+                    self.fullpath = [trial]
+                elif not environment.is_windows() and os.access(trial, os.X_OK):
                     self.fullpath = [trial]
                 else:
                     # Now getting desperate. Maybe it is a script file that is a) not chmodded
