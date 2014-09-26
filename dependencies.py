@@ -137,7 +137,7 @@ class ExternalProgram():
             self.fullpath = [shutil.which(name)]
             if self.fullpath[0] is None and search_dir is not None:
                 trial = os.path.join(search_dir, name)
-                suffix = os.path.splitext(trial)[-1].lower()
+                suffix = os.path.splitext(trial)[-1].lower()[1:]
                 if environment.is_windows() and (suffix == 'exe' or suffix == 'com'\
                                           or suffix == 'bat'):
                     self.fullpath = [trial]
