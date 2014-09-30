@@ -1019,6 +1019,9 @@ class GnuCCompiler(CCompiler):
     def get_soname_args(self, shlib_name, path, soversion):
         return get_gcc_soname_args(self.gcc_type, shlib_name, path, soversion)
 
+    def can_compile(self, filename):
+        return super().can_compile(filename) or filename.split('.')[-1] == 's' # Gcc can do asm, too.
+
 class GnuObjCCompiler(ObjCCompiler):
     std_warn_args = ['-Wall', '-Winvalid-pch']
 
@@ -1092,6 +1095,9 @@ class ClangCCompiler(CCompiler):
 
     def get_pch_suffix(self):
         return 'pch'
+
+    def can_compile(self, filename):
+        return super().can_compile(filename) or filename.split('.')[-1] == 's' # Clang can do asm, too.
 
 class GnuCPPCompiler(CPPCompiler):
     std_warn_args = ['-Wall', '-Winvalid-pch']
