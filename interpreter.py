@@ -568,6 +568,7 @@ class MesonMain(InterpreterObject):
                              'is_cross_build' : self.is_cross_build_method,
                              'has_exe_wrapper' : self.has_exe_wrapper_method,
                              'is_unity' : self.is_unity_method,
+                             'is_subproject' : self.is_subproject_method,
                              'current_source_dir' : self.current_source_dir_method,
                              'current_build_dir' : self.current_build_dir_method,
                              'set_install_script' : self.set_install_script_method,
@@ -630,6 +631,9 @@ class MesonMain(InterpreterObject):
 
     def is_unity_method(self, args, kwargs):
         return self.build.environment.coredata.unity
+
+    def is_subproject_method(self, args, kwargs):
+        return self.interpreter.subproject != ''
 
 class Interpreter():
 
@@ -700,7 +704,6 @@ class Interpreter():
                       'option' : self.func_option,
                       'get_option' : self.func_get_option,
                       'subproject' : self.func_subproject,
-                      'is_subproject' : self.func_is_subproject,
                       'pkgconfig_gen' : self.func_pkgconfig_gen,
                       }
 
@@ -866,9 +869,6 @@ class Interpreter():
             raise InterpreterException('Description is not a string.')
         p = build.PkgConfigGenerator(libs, subdirs, name, description, version, filebase)
         self.build.pkgconfig_gens.append(p)
-
-    def func_is_subproject(self, nodes, args, kwargs):
-        return self.subproject != ''
 
     def func_subproject(self, nodes, args, kwargs):
         if len(args) != 1:

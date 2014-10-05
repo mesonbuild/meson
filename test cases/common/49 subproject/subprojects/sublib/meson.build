@@ -1,6 +1,6 @@
 project('subproject', 'c')
 
-if not is_subproject()
+if not meson.is_subproject()
   error('Claimed to be master project even though we are a subproject.')
 endif
 
