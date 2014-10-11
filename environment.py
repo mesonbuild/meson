@@ -1380,6 +1380,28 @@ class Open64FortranCompiler(FortranCompiler):
     def get_std_warn_args(self):
         return Open64FortranCompiler.std_warn_args
 
+class NAGFortranCompiler(FortranCompiler):
+    std_warn_args = []
+
+    def __init__(self, exelist, version, is_cross, exe_wrapper=None):
+        super().__init__(exelist, version, is_cross, exe_wrapper=None)
+        self.id = 'nagfor'
+
+    def get_module_outdir_args(self, path):
+        return ['-mdir', path]
+
+    def get_always_args(self):
+        return []
+
+    def can_compile(self, src):
+        suffix = os.path.splitext(src)[1].lower()
+        if suffix == '.f' or suffix == '.f90' or suffix == '.f95':
+            return True
+        return False
+
+    def get_std_warn_args(self):
+        return NAGFortranCompiler.std_warn_args
+
 
 class VisualStudioLinker():
     always_args = ['/NOLOGO']
@@ -1704,6 +1726,9 @@ class Environment():
 
                 if 'Open64 Compiler Suite' in err:
                   return Open64FortranCompiler([compiler], version, is_cross, exe_wrap)
+
+                if 'NAG Fortran' in err:
+                  return NAGFortranCompiler([compiler], version, is_cross, exe_wrap)
 
         raise EnvironmentException('Unknown compiler(s): "' + ', '.join(compilers) + '"')
 
