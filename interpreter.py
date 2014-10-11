@@ -691,6 +691,7 @@ class Interpreter():
                       'test' : self.func_test,
                       'install_headers' : self.func_install_headers,
                       'headers' : self.func_headers,
+                      'install_man' : self.func_install_man,
                       'man' : self.func_man,
                       'subdir' : self.func_subdir,
                       'data' : self.func_data,
@@ -1160,6 +1161,10 @@ class Interpreter():
         return h
 
     def func_man(self, node, args, kwargs):
+        mlog.log(mlog.bold('Warning! '), 'Function man() is deprecated, please use install_man() instead.')
+        return self.func_install_man(node, args, kwargs)
+
+    def func_install_man(self, node, args, kwargs):
         for a in args:
             if not isinstance(a, str):
                 raise InvalidArguments('Argument %s is not a string.' % str(a))
