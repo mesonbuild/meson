@@ -1,2 +1,2 @@
 project('data install test', 'c')
-data('progname', sources : 'datafile.dat')
+install_data('progname', sources : 'datafile.dat')

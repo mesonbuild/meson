@@ -694,6 +694,7 @@ class Interpreter():
                       'install_man' : self.func_install_man,
                       'man' : self.func_man,
                       'subdir' : self.func_subdir,
+                      'install_data' : self.func_install_data,
                       'data' : self.func_data,
                       'configure_file' : self.func_configure_file,
                       'include_directories' : self.func_include_directories,
@@ -1207,6 +1208,10 @@ class Interpreter():
         self.subdir = prev_subdir
 
     def func_data(self, node, args, kwargs):
+        mlog.log(mlog.bold('Warning! '), 'Function data() is deprecated, please use install_data() instead.')
+        return self.func_install_data(node, args, kwargs)
+
+    def func_install_data(self, node, args, kwargs):
         if len(args ) < 1:
             raise InvalidArguments('Data function must have at least one argument: the subdirectory.')
         for a in args:
