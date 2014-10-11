@@ -689,6 +689,7 @@ class Interpreter():
                       'run_target' : self.func_run_target,
                       'generator' : self.func_generator,
                       'test' : self.func_test,
+                      'install_headers' : self.func_install_headers,
                       'headers' : self.func_headers,
                       'man' : self.func_man,
                       'subdir' : self.func_subdir,
@@ -1146,6 +1147,10 @@ class Interpreter():
         mlog.debug('Adding test "', mlog.bold(args[0]), '".', sep='')
 
     def func_headers(self, node, args, kwargs):
+        mlog.log(mlog.bold('Warning! '), 'Function headers() is deprecated, please use install_headers() instead.')
+        return self.func_install_headers(node, args, kwargs)
+
+    def func_install_headers(self, node, args, kwargs):
         args = self.flatten(args)
         for a in args:
             if not isinstance(a, str):
