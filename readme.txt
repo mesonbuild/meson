@@ -1,4 +1,4 @@
-Meson is project to create the best possible next-generation
+Meson® is project to create the best possible next-generation
 build system.
 
 
@@ -61,3 +61,5 @@ Further info
 The home page of Meson can be found here:
 
 https://jpakkane.github.io/meson/
+
+Meson is a registered trademark of Jussi Pakkanen
