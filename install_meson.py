@@ -80,6 +80,18 @@ try:
 except OSError:
     pass
 print('Creating symlinks %s and %s.' % (bin_name, gui_name))
+try:
+    os.unlink(bin_name)
+except FileNotFoundError:
+    pass
+try:
+    os.unlink(gui_name)
+except FileNotFoundError:
+    pass
+try:
+    os.unlink(conf_name)
+except FileNotFoundError:
+    pass
 os.symlink(symlink_value, bin_name)
 os.symlink(guisymlink_value, gui_name)
 os.symlink(confsymlink_value, conf_name)
