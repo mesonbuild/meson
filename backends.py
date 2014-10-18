@@ -286,6 +286,11 @@ class Backend():
                 if fname.endswith('dll'):
                     fname = fname[:-3] + 'lib'
             args.append(fname)
+            # If you have executable e that links to shared lib s1 that links to shared library s2
+            # you have to specify s2 as well as s1 when linking e even if e does not directly use
+            # s2. Gcc handles this case fine but Clang does not for some reason. Thus we need to
+            # explictly specify all libraries every time.
+            args += self.build_target_link_arguments(compiler, d.get_dependencies())
         return args
 
     def generate_configure_files(self):
