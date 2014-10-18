@@ -6,3 +6,4 @@ Meson was originally designed and created by Jussi Pakkanen.
 The following people have submitted patches for the project
 
 Peter Koval
+Masashi Fujita

@@ -1099,6 +1099,13 @@ class ClangCCompiler(CCompiler):
     def can_compile(self, filename):
         return super().can_compile(filename) or filename.split('.')[-1] == 's' # Clang can do asm, too.
 
+    def get_pch_use_args(self, pch_dir, header):
+        # Workaround for Clang bug http://llvm.org/bugs/show_bug.cgi?id=15136
+        # This flag is internal to Clang (or at least not documented on the man page)
+        # so it might change semantics at any time.
+        return ['-include-pch', os.path.join (pch_dir, self.get_pch_name (header))]
+
+
 class GnuCPPCompiler(CPPCompiler):
     std_warn_args = ['-Wall', '-Winvalid-pch']
     # may need to separate the latter to extra_debug_args or something
@@ -1148,6 +1155,12 @@ class ClangCPPCompiler(CPPCompiler):
 
     def get_pch_suffix(self):
         return 'pch'
+
+    def get_pch_use_args(self, pch_dir, header):
+        # Workaround for Clang bug http://llvm.org/bugs/show_bug.cgi?id=15136
+        # This flag is internal to Clang (or at least not documented on the man page)
+        # so it might change semantics at any time.
+        return ['-include-pch', os.path.join (pch_dir, self.get_pch_name (header))]
 
 class FortranCompiler():
     std_warn_args = ['-Wall']
