@@ -690,12 +690,9 @@ class Interpreter():
                       'generator' : self.func_generator,
                       'test' : self.func_test,
                       'install_headers' : self.func_install_headers,
-                      'headers' : self.func_headers,
                       'install_man' : self.func_install_man,
-                      'man' : self.func_man,
                       'subdir' : self.func_subdir,
                       'install_data' : self.func_install_data,
-                      'data' : self.func_data,
                       'configure_file' : self.func_configure_file,
                       'include_directories' : self.func_include_directories,
                       'add_global_arguments' : self.func_add_global_arguments,
@@ -1148,10 +1145,6 @@ class Interpreter():
         self.build.tests.append(t)
         mlog.debug('Adding test "', mlog.bold(args[0]), '".', sep='')
 
-    def func_headers(self, node, args, kwargs):
-        mlog.log(mlog.bold('Warning! '), 'Function headers() is deprecated, please use install_headers() instead.')
-        return self.func_install_headers(node, args, kwargs)
-
     def func_install_headers(self, node, args, kwargs):
         args = self.flatten(args)
         for a in args:
@@ -1160,10 +1153,6 @@ class Interpreter():
         h = Headers(args, kwargs)
         self.build.headers.append(h)
         return h
-
-    def func_man(self, node, args, kwargs):
-        mlog.log(mlog.bold('Warning! '), 'Function man() is deprecated, please use install_man() instead.')
-        return self.func_install_man(node, args, kwargs)
 
     def func_install_man(self, node, args, kwargs):
         for a in args:
@@ -1206,10 +1195,6 @@ class Interpreter():
             raise me
         self.evaluate_codeblock(codeblock)
         self.subdir = prev_subdir
-
-    def func_data(self, node, args, kwargs):
-        mlog.log(mlog.bold('Warning! '), 'Function data() is deprecated, please use install_data() instead.')
-        return self.func_install_data(node, args, kwargs)
 
     def func_install_data(self, node, args, kwargs):
         if len(args ) < 1:
