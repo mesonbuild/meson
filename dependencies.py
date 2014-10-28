@@ -132,7 +132,10 @@ class ExternalProgram():
     def __init__(self, name, fullpath=None, silent=False, search_dir=None):
         self.name = name
         if fullpath is not None:
-            self.fullpath = [fullpath]
+            if not isinstance(fullpath, list):
+                self.fullpath = [fullpath]
+            else:
+                self.fullpath = fullpath
         else:
             self.fullpath = [shutil.which(name)]
             if self.fullpath[0] is None and search_dir is not None:
@@ -448,13 +451,13 @@ class Qt5Dependency(Dependency):
         # The binaries have different names on different
         # distros. Joy.
         global qt5toolinfo_printed
-        self.moc = ExternalProgram('moc', silent=True)
+        self.moc = ExternalProgram('moc', ['moc', '-qt5'], silent=True)
         if not self.moc.found():
             self.moc = ExternalProgram('moc-qt5', silent=True)
-        self.uic = ExternalProgram('uic', silent=True)
+        self.uic = ExternalProgram('uic', ['uic', '-qt5'], silent=True)
         if not self.uic.found():
             self.uic = ExternalProgram('uic-qt5', silent=True)
-        self.rcc = ExternalProgram('rcc', silent=True)
+        self.rcc = ExternalProgram('rcc', ['rcc', '-qt5'], silent=True)
         if not self.rcc.found():
             self.rcc = ExternalProgram('rcc-qt5', silent=True)
 
