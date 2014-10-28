@@ -206,6 +206,8 @@ class NinjaBackend(backends.Backend):
                         else:
                             obj_list.append(self.generate_single_compile(target, outfile, RawFilename(src), True,
                                                                          header_deps))
+                    elif self.environment.is_object(src):
+                        obj_list.append(src)
                     else:
                         # Assume anything not specifically a source file is a header. This is because
                         # people generate files with weird suffixes (.inc, .fh) that they then include
