@@ -451,13 +451,13 @@ class Qt5Dependency(Dependency):
         # The binaries have different names on different
         # distros. Joy.
         global qt5toolinfo_printed
-        self.moc = ExternalProgram('moc', ['moc', '-qt5'], silent=True)
+        self.moc = ExternalProgram('moc', ['moc'], silent=True)
         if not self.moc.found():
             self.moc = ExternalProgram('moc-qt5', silent=True)
-        self.uic = ExternalProgram('uic', ['uic', '-qt5'], silent=True)
+        self.uic = ExternalProgram('uic', ['uic'], silent=True)
         if not self.uic.found():
             self.uic = ExternalProgram('uic-qt5', silent=True)
-        self.rcc = ExternalProgram('rcc', ['rcc', '-qt5'], silent=True)
+        self.rcc = ExternalProgram('rcc', ['rcc'], silent=True)
         if not self.rcc.found():
             self.rcc = ExternalProgram('rcc-qt5', silent=True)
 
