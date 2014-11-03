@@ -77,6 +77,7 @@ class Build:
         self.subprojects = {}
         self.pkgconfig_gens = []
         self.install_script = None
+        self.install_dirs = []
 
     def has_language(self, language):
         for i in self.compilers:
@@ -119,6 +120,9 @@ class Build:
 
     def get_configure_files(self):
         return self.configure_files
+
+    def get_install_subdirs(self):
+        return self.install_dirs
 
     def get_global_args(self, compiler):
         return self.global_args.get(compiler.get_language(), [])

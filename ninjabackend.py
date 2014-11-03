@@ -377,6 +377,7 @@ class NinjaBackend(backends.Backend):
         self.generate_po_install(d, elem)
         self.generate_pkgconfig_install(d)
         self.generate_custom_install_script(d)
+        self.generate_subdir_install(d)
         elem.write(outfile)
 
         ofile = open(install_data_file, 'wb')
@@ -465,6 +466,12 @@ class NinjaBackend(backends.Backend):
                 dstabs = os.path.join(subdir, f)
                 i = [srcabs, dstabs]
                 d.data.append(i)
+
+    def generate_subdir_install(self, d):
+        for sd in self.build.get_install_subdirs():
+            src_dir = os.path.join(self.environment.get_source_dir(), sd.source_subdir, sd.installable_subdir)
+            dst_dir = os.path.join(self.environment.get_prefix(), sd.install_dir)
+            d.install_subdirs.append([src_dir, dst_dir])
 
     def generate_tests(self, outfile):
         self.serialise_tests()

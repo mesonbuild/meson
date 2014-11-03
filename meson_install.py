@@ -30,6 +30,7 @@ class InstallData():
         self.po_package_name = ''
         self.po = []
         self.install_script = None
+        self.install_subdirs = []
 
 def do_install(datafilename):
     ifile = open(datafilename, 'rb')
@@ -41,12 +42,22 @@ def do_install(datafilename):
         else:
             subdir = d.prefix
         d.prefix = os.path.join(os.environ[destdir_var], subdir)
+    install_subdirs(d) # Must be first, because it needs to delete the old subtree.
     install_targets(d)
     install_headers(d)
     install_man(d)
     install_data(d)
     install_po(d)
     run_install_script(d)
+
+def install_subdirs(d):
+    for (src_dir, dst_dir) in d.install_subdirs:
+        # Python's copytree works in strange ways.
+        last_level = os.path.split(src_dir)[-1]
+        final_dst = os.path.join(dst_dir, last_level)
+        shutil.rmtree(final_dst, ignore_errors=True)
+        shutil.copytree(src_dir, final_dst, symlinks=True)
+        print('Installing subdir %s to %s.' % (src_dir, dst_dir))
 
 def install_po(d):
     packagename = d.po_package_name

@@ -1,0 +1,2 @@
+share/sub1/data1.dat
+share/sub1/sub2/data2.dat

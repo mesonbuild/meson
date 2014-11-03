@@ -326,6 +326,13 @@ class Data(InterpreterObject):
     def get_custom_install_dir(self):
         return self.custom_install_dir
 
+class InstallDir(InterpreterObject):
+    def __init__(self, source_subdir, installable_subdir, install_dir):
+        InterpreterObject.__init__(self)
+        self.source_subdir = source_subdir
+        self.installable_subdir = installable_subdir
+        self.install_dir = install_dir
+
 class Man(InterpreterObject):
 
     def __init__(self, source_subdir, sources, kwargs):
@@ -705,6 +712,7 @@ class Interpreter():
                       'install_man' : self.func_install_man,
                       'subdir' : self.func_subdir,
                       'install_data' : self.func_install_data,
+                      'install_subdir' : self.func_install_subdir,
                       'configure_file' : self.func_configure_file,
                       'include_directories' : self.func_include_directories,
                       'add_global_arguments' : self.func_add_global_arguments,
@@ -1217,6 +1225,21 @@ class Interpreter():
         data = Data(self.subdir, args[0], args[1:], kwargs)
         self.build.data.append(data)
         return data
+
+    def func_install_subdir(self, node, args, kwargs):
+        if len(args ) != 1:
+            raise InvalidArguments('Install_subdir requires exactly one argument.')
+        for a in args:
+            if not isinstance(a, str):
+                raise InvalidArguments('Argument %s is not a string.' % str(a))
+        if not 'install_dir' in kwargs:
+            raise InvalidArguments('Missing keyword argument install_dir')
+        install_dir = kwargs['install_dir']
+        if not isinstance(install_dir, str):
+            raise InvalidArguments('Keyword argument install_dir not a string.')
+        idir = InstallDir(self.subdir, args[0], install_dir)
+        self.build.install_dirs.append(idir)
+        return idir
 
     def func_configure_file(self, node, args, kwargs):
         if len(args) > 0:
