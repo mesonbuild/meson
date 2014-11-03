@@ -1,2 +1,3 @@
 share/man/man1/foo.1.gz
 share/man/man2/bar.2.gz
+share/man/man1/vanishing.1.gz

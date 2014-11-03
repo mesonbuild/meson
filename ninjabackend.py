@@ -448,7 +448,7 @@ class NinjaBackend(backends.Backend):
                 subdir = m.get_custom_install_dir()
                 if subdir is None:
                     subdir = os.path.join(manroot, 'man' + num)
-                srcabs = os.path.join(self.environment.get_source_dir(), f)
+                srcabs = os.path.join(self.environment.get_source_dir(), m.get_source_subdir(), f)
                 dstabs = os.path.join(subdir, f + '.gz')
                 i = [srcabs, dstabs]
                 d.man.append(i)

@@ -324,8 +324,9 @@ class Data(InterpreterObject):
 
 class Man(InterpreterObject):
 
-    def __init__(self, sources, kwargs):
+    def __init__(self, source_subdir, sources, kwargs):
         InterpreterObject.__init__(self)
+        self.source_subdir = source_subdir
         self.sources = sources
         self.validate_sources()
         if len(kwargs) > 1:
@@ -345,6 +346,9 @@ class Man(InterpreterObject):
 
     def get_sources(self):
         return self.sources
+
+    def get_source_subdir(self):
+        return self.source_subdir
 
 class GeneratedObjectsHolder(InterpreterObject):
     def __init__(self, held_object):
@@ -1162,7 +1166,7 @@ class Interpreter():
         for a in args:
             if not isinstance(a, str):
                 raise InvalidArguments('Argument %s is not a string.' % str(a))
-        m = Man(args, kwargs)
+        m = Man(self.subdir, args, kwargs)
         self.build.man.append(m)
         return m
 
