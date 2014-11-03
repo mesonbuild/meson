@@ -433,9 +433,9 @@ class NinjaBackend(backends.Backend):
         for h in headers:
             outdir = h.get_custom_install_dir()
             if outdir is None:
-                outdir = os.path.join(incroot, h.get_subdir())
+                outdir = os.path.join(incroot, h.get_install_subdir())
             for f in h.get_sources():
-                abspath = os.path.join(self.environment.get_source_dir(), f) # FIXME
+                abspath = os.path.join(self.environment.get_source_dir(), h.get_source_subdir(), f)
                 i = [abspath, outdir]
                 d.headers.append(i)
 

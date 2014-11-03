@@ -275,20 +275,24 @@ class IncludeDirsHolder(InterpreterObject):
 
 class Headers(InterpreterObject):
 
-    def __init__(self, sources, kwargs):
+    def __init__(self, src_subdir, sources, kwargs):
         InterpreterObject.__init__(self)
         self.sources = sources
-        self.subdir = kwargs.get('subdir', '')
+        self.source_subdir = src_subdir
+        self.install_subdir = kwargs.get('subdir', '')
         self.custom_install_dir = kwargs.get('install_dir', None)
         if self.custom_install_dir is not None:
             if not isinstance(self.custom_install_dir, str):
                 raise InterpreterException('Custom_install_dir must be a string.')
 
-    def set_subdir(self, subdir):
-        self.subdir = subdir
+    def set_install_subdir(self, subdir):
+        self.install_subdir = subdir
 
-    def get_subdir(self):
-        return self.subdir
+    def get_install_subdir(self):
+        return self.install_subdir
+
+    def get_source_subdir(self):
+        return self.source_subdir
 
     def get_sources(self):
         return self.sources
@@ -1150,7 +1154,7 @@ class Interpreter():
         for a in args:
             if not isinstance(a, str):
                 raise InvalidArguments('Argument %s is not a string.' % str(a))
-        h = Headers(args, kwargs)
+        h = Headers(self.subdir, args, kwargs)
         self.build.headers.append(h)
         return h
 

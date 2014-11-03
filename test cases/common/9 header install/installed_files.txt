@@ -1,2 +1,3 @@
 include/rootdir.h
 include/subdir/subdir.h
+include/vanished.h
