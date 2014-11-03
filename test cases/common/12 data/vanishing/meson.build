@@ -1,0 +1,1 @@
+install_data('progname', sources : 'vanishing.dat')

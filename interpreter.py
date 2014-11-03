@@ -301,9 +301,10 @@ class Headers(InterpreterObject):
         return self.custom_install_dir
 
 class Data(InterpreterObject):
-    def __init__(self, subdir, sources, kwargs):
+    def __init__(self, source_subdir, subdir, sources, kwargs):
         InterpreterObject.__init__(self)
-        self.subdir = subdir
+        self.source_subdir = source_subdir
+        self.install_subdir = subdir
         self.sources = sources
         kwsource = kwargs.get('sources', [])
         if not isinstance(kwsource, list):
@@ -313,8 +314,11 @@ class Data(InterpreterObject):
         if self.custom_install_dir is not None and not isinstance(self.custom_install_dir, str):
             raise InterpreterException('Custom_install_dir must be a string.')
 
-    def get_subdir(self):
-        return self.subdir
+    def get_install_subdir(self):
+        return self.install_subdir
+
+    def get_source_subdir(self):
+        return self.source_subdir
 
     def get_sources(self):
         return self.sources
@@ -1210,7 +1214,7 @@ class Interpreter():
         for a in args:
             if not isinstance(a, str):
                 raise InvalidArguments('Argument %s is not a string.' % str(a))
-        data = Data(args[0], args[1:], kwargs)
+        data = Data(self.subdir, args[0], args[1:], kwargs)
         self.build.data.append(data)
         return data
 

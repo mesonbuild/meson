@@ -1,1 +1,2 @@
 share/progname/datafile.dat
+share/progname/vanishing.dat
