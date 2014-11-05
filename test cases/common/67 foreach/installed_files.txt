@@ -1,0 +1,3 @@
+bin/prog1
+bin/prog2
+bin/prog3

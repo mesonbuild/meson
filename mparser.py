@@ -17,6 +17,8 @@
 import re
 import sys
 from coredata import MesonException
+from array import array
+from orca.messages import itemsFound
 
 class ParseException(MesonException):
     def __init__(self, text, lineno, colno):
@@ -39,7 +41,7 @@ class Token:
 class Lexer:
     def __init__(self):
         self.keywords = {'true', 'false', 'if', 'else', 'elif',
-                         'endif', 'and', 'or', 'not'}
+                         'endif', 'and', 'or', 'not', 'foreach', 'endforeach'}
         self.token_specification = [
             # Need to be sorted longest to shortest.
             ('ignore', re.compile(r'[ \t]')),
@@ -213,6 +215,14 @@ class AssignmentNode:
         self.var_name = var_name
         assert(isinstance(var_name, str))
         self.value = value
+
+class ForeachClauseNode():
+    def __init__(self, lineno, colno, varname, items, block):
+        self.lineno = lineno
+        self.colno = colno
+        self.varname = varname
+        self.items = items
+        self.block = block
 
 class IfClauseNode():
     def __init__(self, lineno, colno):
@@ -417,6 +427,15 @@ class Parser:
             return self.method_call(method)
         return method
 
+    def foreachblock(self):
+        t = self.current
+        self.expect('id')
+        varname = t
+        self.expect('colon')
+        items = self.statement()
+        block = self.codeblock()
+        return ForeachClauseNode(varname.lineno, varname.colno, varname, items, block)
+
     def ifblock(self):
         condition = self.statement()
         clause = IfClauseNode(condition.lineno, condition.colno)
@@ -444,6 +463,10 @@ class Parser:
         if self.accept('if'):
             block = self.ifblock()
             self.expect('endif')
+            return block
+        if self.accept('foreach'):
+            block = self.foreachblock()
+            self.expect('endforeach')
             return block
         return self.statement()
 

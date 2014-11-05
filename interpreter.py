@@ -807,6 +807,8 @@ class Interpreter():
             return self.evaluate_orstatement(cur)
         elif isinstance(cur, mparser.NotNode):
             return self.evaluate_notstatement(cur)
+        elif isinstance(cur, mparser.ForeachClauseNode):
+            return self.evaluate_foreach(cur)
         else:
             raise InvalidCode("Unknown statement.")
 
@@ -1486,6 +1488,13 @@ class Interpreter():
     def array_method_call(self, obj, method_name, args):
         if method_name == 'contains':
             return self.check_contains(obj, args)
+        elif method_name == 'get':
+            index = args[0]
+            if not isinstance(index, int):
+                raise InvalidArguments('Array index must be a number.')
+            if index < 0 or index >= len(obj):
+                raise InvalidArguments('Array index %s is out of bounds for array of size %d.' % (index, len(obj)))
+            return obj[index]
         raise InterpreterException('Arrays do not have a method called "%s".' % method_name)
 
     def check_contains(self, obj, args):
@@ -1516,6 +1525,16 @@ class Interpreter():
                 return
         if not isinstance(node.elseblock, mparser.EmptyNode):
             self.evaluate_codeblock(node.elseblock)
+
+    def evaluate_foreach(self, node):
+        assert(isinstance(node, mparser.ForeachClauseNode))
+        varname = node.varname.value
+        items = self.evaluate_statement(node.items)
+        if not isinstance(items, list):
+            raise InvalidArguments('Items of foreach loop is not an array')
+        for item in items:
+            self.set_variable(varname, item)
+            self.evaluate_codeblock(node.block)
 
     def is_elementary_type(self, v):
         if isinstance(v, int) or isinstance(v, str) or isinstance(v, bool):
