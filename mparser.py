@@ -17,8 +17,6 @@
 import re
 import sys
 from coredata import MesonException
-from array import array
-from orca.messages import itemsFound
 
 class ParseException(MesonException):
     def __init__(self, text, lineno, colno):
