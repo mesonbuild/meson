@@ -69,14 +69,16 @@ class Dependency():
         return []
 
 class PkgConfigDependency(Dependency):
-    pkgconfig_found = False
+    pkgconfig_found = None
 
     def __init__(self, name, required):
         Dependency.__init__(self)
         self.name = name
-        if not PkgConfigDependency.pkgconfig_found:
+        if PkgConfigDependency.pkgconfig_found is None:
             self.check_pkgconfig()
 
+        if not PkgConfigDependency.pkgconfig_found:
+            raise DependencyException('Pkg-config not found.')
         self.is_found = False
         p = subprocess.Popen(['pkg-config', '--modversion', name], stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE)
@@ -116,14 +118,19 @@ class PkgConfigDependency(Dependency):
         return self.libs
 
     def check_pkgconfig(self):
-        p = subprocess.Popen(['pkg-config', '--version'], stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE)
-        out = p.communicate()[0]
-        if p.returncode != 0:
-            raise RuntimeError('Pkg-config executable not found.')
-        mlog.log('Found pkg-config version:', mlog.bold(out.decode().strip()),
-                 '(%s)' % shutil.which('pkg-config'))
-        PkgConfigDependency.pkgconfig_found = True
+        try:
+            p = subprocess.Popen(['pkg-config', '--version'], stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE)
+            out = p.communicate()[0]
+            if p.returncode == 0:
+                mlog.log('Found pkg-config:', mlog.bold(shutil.which('pkg-config')),
+                         '(%s)' % out.decode().strip())
+                PkgConfigDependency.pkgconfig_found = True
+                return
+        except Exception:
+            pass
+        PkgConfigDependency.pkgconfig_found = False
+        mlog.log('Found Pkg-config:', mlog.red('NO'))
 
     def found(self):
         return self.is_found
