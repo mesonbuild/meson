@@ -236,9 +236,7 @@ class BuildTarget():
             d = [d]
         newd = []
         for i in d:
-            if hasattr(i, 'el'):
-                newd.append(i.el)
-            elif hasattr(i, 'held_object'):
+            if hasattr(i, 'held_object'):
                 newd.append(i.held_object)
             else:
                 newd.append(i)
@@ -420,8 +418,8 @@ class BuildTarget():
 
     def add_external_deps(self, deps):
         for dep in deps:
-            if hasattr(dep, 'el'):
-                dep = dep.el
+            if hasattr(dep, 'held_object'):
+                dep = dep.held_object
             if not isinstance(dep, dependencies.Dependency):
                 raise InvalidArguments('Argument is not an external dependency')
             self.external_deps.append(dep)
@@ -504,8 +502,6 @@ class Generator():
             exe = args[0].held_object
             if not isinstance(exe, Executable):
                 raise InvalidArguments('First generator argument must be an executable.')
-        elif hasattr(args[0], 'ep'):
-            exe = args[0].ep
         else:
             raise InvalidArguments('First generator argument must be an executable object.')
         self.exe = exe
@@ -710,8 +706,6 @@ class CustomTarget:
             cmd = [cmd]
         final_cmd = []
         for i, c in enumerate(cmd):
-            if hasattr(c, 'ep'):
-                c = c.ep
             if hasattr(c, 'held_object'):
                 c = c.held_object
             if isinstance(c, str):

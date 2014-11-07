@@ -170,47 +170,47 @@ class ConfigurationDataHolder(InterpreterObject):
 class ExternalProgramHolder(InterpreterObject):
     def __init__(self, ep):
         InterpreterObject.__init__(self)
-        self.ep = ep
+        self.held_object = ep
         self.methods.update({'found': self.found_method})
 
     def found_method(self, args, kwargs):
         return self.found()
 
     def found(self):
-        return self.ep.found()
+        return self.held_object.found()
 
     def get_command(self):
-        return self.ep.fullpath
+        return self.held_object.fullpath
 
     def get_name(self):
-        return self.ep.name
+        return self.held_object.name
 
 class ExternalLibraryHolder(InterpreterObject):
     def __init__(self, el):
         InterpreterObject.__init__(self)
-        self.el = el
+        self.held_object = el
         self.methods.update({'found': self.found_method})
 
     def found(self):
-        return self.el.found()
+        return self.held_object.found()
 
     def found_method(self, args, kwargs):
         return self.found()
 
     def get_filename(self):
-        return self.el.fullpath
+        return self.held_object.fullpath
 
     def get_name(self):
-        return self.el.name
+        return self.held_object.name
 
     def get_compile_args(self):
-        return self.el.get_compile_args()
+        return self.held_object.get_compile_args()
 
     def get_link_args(self):
-        return self.el.get_link_args()
+        return self.held_object.get_link_args()
 
     def get_exe_args(self):
-        return self.el.get_exe_args()
+        return self.held_object.get_exe_args()
 
 class GeneratorHolder(InterpreterObject):
     def __init__(self, interpreter, args, kwargs):
