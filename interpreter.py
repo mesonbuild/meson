@@ -216,7 +216,7 @@ class GeneratorHolder(InterpreterObject):
     def __init__(self, interpreter, args, kwargs):
         super().__init__()
         self.interpreter = interpreter
-        self.generator = build.Generator(args, kwargs)
+        self.held_object = build.Generator(args, kwargs)
         self.methods.update({'process' : self.process_method})
 
     def process_method(self, args, kwargs):
@@ -236,10 +236,10 @@ class GeneratorHolder(InterpreterObject):
 class GeneratedListHolder(InterpreterObject):
     def __init__(self, generator):
         super().__init__()
-        self.glist = build.GeneratedList(generator)
+        self.held_object = build.GeneratedList(generator)
 
     def add_file(self, a):
-        self.glist.add_file(a)
+        self.held_object.add_file(a)
 
 class Build(InterpreterObject):
     def __init__(self):
@@ -271,7 +271,7 @@ class Host(InterpreterObject):
 class IncludeDirsHolder(InterpreterObject):
     def __init__(self, curdir, dirs, kwargs):
         super().__init__()
-        self.includedirs = build.IncludeDirs(curdir, dirs, kwargs)
+        self.held_object = build.IncludeDirs(curdir, dirs, kwargs)
 
 class Headers(InterpreterObject):
 

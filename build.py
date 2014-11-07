@@ -209,8 +209,6 @@ class BuildTarget():
             sources = [sources]
         for s in sources:
             # Holder unpacking. Ugly.
-            if hasattr(s, 'glist'):
-                s = s.glist
             if hasattr(s, 'held_object'):
                 s = s.held_object
             if isinstance(s, str):
@@ -473,8 +471,8 @@ class BuildTarget():
         ids = []
         for a in args:
             # FIXME same hack, forcibly unpack from holder.
-            if hasattr(a, 'includedirs'):
-                a = a.includedirs
+            if hasattr(a, 'held_object'):
+                a = a.held_object
             if not isinstance(a, IncludeDirs):
                 raise InvalidArguments('Include directory to be added is not an include directory object.')
             ids.append(a)
@@ -551,8 +549,8 @@ class Generator():
 
 class GeneratedList():
     def __init__(self, generator):
-        if hasattr(generator, 'generator'):
-            generator = generator.generator
+        if hasattr(generator, 'held_object'):
+            generator = generator.held_object
         self.generator = generator
         self.infilelist = []
         self.outfilelist = []
