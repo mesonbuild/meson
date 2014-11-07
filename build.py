@@ -498,7 +498,7 @@ class Generator():
 
         if hasattr(args[0], 'held_object'):
             exe = args[0].held_object
-            if not isinstance(exe, Executable):
+            if not isinstance(exe, Executable) and not isinstance(exe, dependencies.ExternalProgram):
                 raise InvalidArguments('First generator argument must be an executable.')
         else:
             raise InvalidArguments('First generator argument must be an executable object.')
