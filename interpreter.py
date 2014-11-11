@@ -1428,6 +1428,13 @@ class Interpreter():
                 return obj.split(s)
             else:
                 return obj.split()
+        elif method_name == 'tr':
+            (posargs, _) = self.reduce_arguments(args)
+            if len(posargs) != 2:
+                raise InterpreterException('Tr() must have exactly two arguments.')
+            if not isinstance(posargs[0], str) or not isinstance(posargs[1], str):
+                raise InterpreterException('Tr() arguments must be strings')
+            return obj.translate(str.maketrans(posargs[0], posargs[1]))
         raise InterpreterException('Unknown method "%s" for a string.' % method_name)
 
     def to_native(self, arg):
