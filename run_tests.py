@@ -15,7 +15,7 @@
 # limitations under the License.
 
 from glob import glob
-import os, subprocess, shutil, sys, platform
+import os, subprocess, shutil, sys, platform, signal
 import environment
 from environment import is_windows
 
@@ -26,6 +26,17 @@ print_debug = 'MESON_PRINT_TEST_OUTPUT' in os.environ
 test_build_dir = 'work area'
 install_dir = os.path.join(os.path.split(os.path.abspath(__file__))[0], 'install dir')
 meson_command = './meson.py'
+
+class StopException(Exception):
+    def __init__(self):
+        super(Exception, self).__init__('Stopped by user')
+
+stop = False
+def stop_handler(signal, frame):
+    global stop
+    stop = True
+signal.signal(signal.SIGINT, stop_handler)
+signal.signal(signal.SIGTERM, stop_handler)
 
 #unity_flags = ['--unity']
 unity_flags = []
@@ -93,7 +104,7 @@ def validate_install(srcdir, installdir):
     return ''
 
 def run_and_log(logfile, testdir, should_succeed=True):
-    global passing_tests, failing_tests
+    global passing_tests, failing_tests, stop
     (msg, stdo, stde) = run_test(testdir, should_succeed)
     if msg != '':
         print('Fail:', msg)
@@ -109,6 +120,8 @@ def run_and_log(logfile, testdir, should_succeed=True):
     if print_debug:
         print(stdo)
         print(stde, file=sys.stderr)
+    if stop:
+        raise StopException()
 
 def run_test(testdir, should_succeed):
     global compile_commands
@@ -309,7 +322,10 @@ if __name__ == '__main__':
         os.chdir(script_dir)
     check_format()
     pbfile = generate_prebuilt_object()
-    run_tests()
+    try:
+        run_tests()
+    except StopException:
+        pass
     os.unlink(pbfile)
     print('\nTotal passed tests:', passing_tests)
     print('Total failed tests:', failing_tests)
