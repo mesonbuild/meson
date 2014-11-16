@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 # Copyright 2014 Jussi Pakkanen
+# Copyright 2014 Robin McCorkell
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -56,6 +57,10 @@ class Lexer:
             ('string', re.compile("'[^']*?'")),
             ('comma', re.compile(r',')),
             ('dot', re.compile(r'\.')),
+            ('plus', re.compile(r'\+')),
+            ('dash', re.compile(r'-')),
+            ('star', re.compile(r'\*')),
+            ('fslash', re.compile(r'/')),
             ('colon', re.compile(r':')),
             ('equal', re.compile(r'==')),
             ('nequal', re.compile(r'\!=')),
@@ -177,6 +182,14 @@ class ComparisonNode:
         self.right = right
         self.ctype = ctype
 
+class ArithmeticNode:
+    def __init__(self, lineno, colno, operation, left, right):
+        self.lineno = lineno
+        self.colno = colno
+        self.left = left
+        self.right = right
+        self.operation = operation
+
 class NotNode:
     def __init__(self, lineno, colno, value):
         self.lineno = lineno
@@ -277,12 +290,12 @@ class ArgumentNode():
 # 1 assignment
 # 2 or
 # 3 and
-# 4 equality
-# comparison, plus and multiplication would go here
-# 5 negation
-# 6 funcall, method call
-# 7 parentheses
-# 8 plain token
+# 4 comparison
+# 5 arithmetic
+# 6 negation
+# 7 funcall, method call
+# 8 parentheses
+# 9 plain token
 
 class Parser:
     def __init__(self, code):
@@ -345,12 +358,39 @@ class Parser:
         return left
 
     def e5(self):
-        if self.accept('not'):
-            return NotNode(self.current.lineno, self.current.colno, self.e6())
-        return self.e6()
+        return self.e5add()
+
+    def e5add(self):
+        left = self.e5sub()
+        if self.accept('plus'):
+            return ArithmeticNode(left.lineno, left.colno, 'add', left, self.e5add())
+        return left
+
+    def e5sub(self):
+        left = self.e5mul()
+        if self.accept('dash'):
+            return ArithmeticNode(left.lineno, left.colno, 'sub', left, self.e5sub())
+        return left
+
+    def e5mul(self):
+        left = self.e5div()
+        if self.accept('star'):
+            return ArithmeticNode(left.lineno, left.colno, 'mul', left, self.e5mul())
+        return left
+
+    def e5div(self):
+        left = self.e6()
+        if self.accept('fslash'):
+            return ArithmeticNode(left.lineno, left.colno, 'div', left, self.e5div())
+        return left
 
     def e6(self):
-        left = self.e7()
+        if self.accept('not'):
+            return NotNode(self.current.lineno, self.current.colno, self.e7())
+        return self.e7()
+
+    def e7(self):
+        left = self.e8()
         if self.accept('lparen'):
             args = self.args()
             self.expect('rparen')
@@ -362,7 +402,7 @@ class Parser:
             left = self.method_call(left)
         return left
 
-    def e7(self):
+    def e8(self):
         if self.accept('lparen'):
             e = self.statement()
             self.expect('rparen')
@@ -372,9 +412,9 @@ class Parser:
             self.expect('rbracket')
             return ArrayNode(args)
         else:
-            return self.e8()
+            return self.e9()
 
-    def e8(self):
+    def e9(self):
         t = self.current
         if self.accept('true'):
             return BooleanNode(t, True);
@@ -413,7 +453,7 @@ class Parser:
         return a
 
     def method_call(self, source_object):
-        methodname = self.e8()
+        methodname = self.e9()
         if not(isinstance(methodname, IdNode)):
             raise ParseException('Method name must be plain id',
                                  self.current.lineno, self.current.colno)

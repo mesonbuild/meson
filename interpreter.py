@@ -1,4 +1,5 @@
 # Copyright 2012-2014 Jussi Pakkanen
+# Copyright 2014 Robin McCorkell
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -800,15 +801,19 @@ class Interpreter():
         elif isinstance(cur, mparser.ArrayNode):
             return self.evaluate_arraystatement(cur)
         elif isinstance(cur, mparser.NumberNode):
-            return cur
+            return cur.value
         elif isinstance(cur, mparser.AndNode):
             return self.evaluate_andstatement(cur)
         elif isinstance(cur, mparser.OrNode):
             return self.evaluate_orstatement(cur)
         elif isinstance(cur, mparser.NotNode):
             return self.evaluate_notstatement(cur)
+        elif isinstance(cur, mparser.ArithmeticNode):
+            return self.evaluate_arithmeticstatement(cur)
         elif isinstance(cur, mparser.ForeachClauseNode):
             return self.evaluate_foreach(cur)
+        elif self.is_elementary_type(cur):
+            return cur
         else:
             raise InvalidCode("Unknown statement.")
 
@@ -1397,37 +1402,17 @@ class Interpreter():
         self.set_variable(var_name, value)
         return value
 
-    def reduce_single(self, arg):
-        if isinstance(arg, mparser.IdNode):
-            return self.get_variable(arg.value)
-        elif isinstance(arg, str):
-            return arg
-        elif isinstance(arg, mparser.StringNode):
-            return arg.value
-        elif isinstance(arg, mparser.FunctionNode):
-            return self.function_call(arg)
-        elif isinstance(arg, mparser.MethodNode):
-            return self.method_call(arg)
-        elif isinstance(arg, mparser.BooleanNode):
-            return arg.value
-        elif isinstance(arg, mparser.ArrayNode):
-            return [self.reduce_single(curarg) for curarg in arg.args.arguments]
-        elif isinstance(arg, mparser.NumberNode):
-            return arg.value
-        else:
-            raise InvalidCode('Irreducible argument.')
-
     def reduce_arguments(self, args):
         assert(isinstance(args, mparser.ArgumentNode))
         if args.incorrect_order():
             raise InvalidArguments('All keyword arguments must be after positional arguments.')
-        reduced_pos = [self.reduce_single(arg) for arg in args.arguments]
+        reduced_pos = [self.evaluate_statement(arg) for arg in args.arguments]
         reduced_kw = {}
         for key in args.kwargs.keys():
             if not isinstance(key, str):
                 raise InvalidArguments('Keyword argument name is not a string.')
             a = args.kwargs[key]
-            reduced_kw[key] = self.reduce_single(a)
+            reduced_kw[key] = self.evaluate_statement(a)
         return (reduced_pos, reduced_kw)
 
     def string_method_call(self, obj, method_name, args):
@@ -1461,7 +1446,7 @@ class Interpreter():
         if isinstance(args, mparser.ArgumentNode):
             args = args.arguments
         for (i, arg) in enumerate(args):
-            arg = self.to_native(self.reduce_single(arg))
+            arg = self.to_native(self.evaluate_statement(arg))
             if isinstance(arg, bool): # Python boolean is upper case.
                 arg = str(arg).lower()
             templ = templ.replace('@{}@'.format(i), str(arg))
@@ -1541,7 +1526,7 @@ class Interpreter():
             self.evaluate_codeblock(node.block)
 
     def is_elementary_type(self, v):
-        if isinstance(v, int) or isinstance(v, str) or isinstance(v, bool):
+        if isinstance(v, (int, float, str, bool, list)):
             return True
         return False
 
@@ -1556,9 +1541,6 @@ class Interpreter():
             val2 = v2
         else:
             val2 = v2.value
-        if type(val1) != type(val2):
-            raise InterpreterException('Comparison of different types %s and %s.' %
-                                       (str(type(val1)), str(type(val2))))
         if node.ctype == '==':
             return val1 == val2
         elif node.ctype == '!=':
@@ -1603,6 +1585,24 @@ class Interpreter():
         if not isinstance(v, bool):
             raise InterpreterException('Argument to "not" is not a boolean.')
         return not v
+
+    def evaluate_arithmeticstatement(self, cur):
+        l = self.to_native(self.evaluate_statement(cur.left))
+        r = self.to_native(self.evaluate_statement(cur.right))
+        if isinstance(l, str) or isinstance(r, str):
+            l = str(l)
+            r = str(r)
+
+        if cur.operation == 'add':
+            return l + r
+        elif cur.operation == 'sub':
+            return l - r
+        elif cur.operation == 'mul':
+            return l * r
+        elif cur.operation == 'div':
+            return l // r
+        else:
+            raise InvalidCode('You broke me.')
 
     def evaluate_arraystatement(self, cur):
         (arguments, kwargs) = self.reduce_arguments(cur.args)
