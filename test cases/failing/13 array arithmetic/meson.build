@@ -1,3 +1,3 @@
-project('array arithmetic')
+project('array arithmetic', 'c')
 
-foo = ['a', 'b'] * ['6', '4']
+foo = ['a', 'b'] * 3

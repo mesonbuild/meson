@@ -1589,17 +1589,23 @@ class Interpreter():
     def evaluate_arithmeticstatement(self, cur):
         l = self.to_native(self.evaluate_statement(cur.left))
         r = self.to_native(self.evaluate_statement(cur.right))
-        if isinstance(l, str) or isinstance(r, str):
-            l = str(l)
-            r = str(r)
 
         if cur.operation == 'add':
-            return l + r
+            try:
+                return l + r
+            except Exception as e:
+                raise InvalidCode('Invalid use of addition: ' + str(e))
         elif cur.operation == 'sub':
+            if not isinstance(l, int) or not isinstance(r, int):
+                raise InvalidCode('Subtraction works only with integers.')
             return l - r
         elif cur.operation == 'mul':
+            if not isinstance(l, int) or not isinstance(r, int):
+                raise InvalidCode('Multiplication works only with integers.')
             return l * r
         elif cur.operation == 'div':
+            if not isinstance(l, int) or not isinstance(r, int):
+                raise InvalidCode('Division works only with integers.')
             return l // r
         else:
             raise InvalidCode('You broke me.')

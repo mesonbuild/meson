@@ -1,3 +1,3 @@
-project('string arithmetic')
+project('string arithmetic', 'c')
 
-foo = 'a' / 'b'
+foo = 'a' + 3
