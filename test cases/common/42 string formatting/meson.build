@@ -20,3 +20,15 @@ subs2 = '42'
 if templ2.format(subs2) != '42'
   error('String formatting with variables is broken.')
 endif
+
+if 'foobarfoobar'.tr('r', 'z') != 'foobazfoobaz'
+  error('String translate is broken')
+endif
+if 'stringtranslate'.tr('abcde', 'fghij') != 'stringtrfnslftj'
+  error('String translate is broken')
+endif
+
+trtempl = 'foobarbarfoo'
+if trtempl.tr('ro', 'ab') != 'fbbbaabaafbb'
+  error('String translate with variables is broken')
+endif
