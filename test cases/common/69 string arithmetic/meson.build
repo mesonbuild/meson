@@ -8,13 +8,9 @@ if 'foo' + 'bar' + 'baz' != 'foobarbaz'
   error('Many-string concatenation is broken')
 endif
 
-if 'foobar' + 5 != 'foobar5' or 5 + 'foobar' != '5foobar'
-  error('String-number concatenation is broken')
-endif
+a = 'a'
+b = 'b'
 
-if (5 + 3) + 'foobar' != '8foobar'
-  error('String-number addition then concatenation broken')
-endif
-if 5 + (3 + 'foobar') != '53foobar'
-  error('String-number concatenation then addition broken')
+if a + b + 'c' != 'abc'
+  error('String concat with variables is broken.')
 endif
