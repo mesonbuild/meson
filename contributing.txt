@@ -1,0 +1,40 @@
+Contributing to the Meson build system
+
+There are two simple ways to submit your patches. The preferred way is to
+send a github pull request. You can also send patches as emails to the Meson
+mailing list. Remember to add your name to the list of contributors
+in authors.txt.
+
+
+Coding style
+
+Meson follows the basic Python coding style. Additional rules are the
+following:
+
+- indent 4 spaces, no tabs ever
+- indent meson.build files with two spaces
+- try to keep the code as simple as possible
+- contact the mailing list before embarking on large scale projects
+  to avoid wasted effort
+
+
+What not to contribute?
+
+There are a few things that people seem to want to add to Meson but which
+are not there by design and will not be added either.
+
+The first one is defining your own functions or a generalised for loop.
+These are bad because they would make Meson's DSL Turing complete. The 
+second feature is a Make backend.
+
+The FAQ has specific information why these two features will not be
+added to Meson: https://github.com/jpakkane/meson/wiki/FAQ
+
+Merge requests adding either of these two features will be automatically
+rejected. Please save everyone's time (especially your own) and don't start
+working on these features.
+
+
+Do I need to sign a CLA?
+
+No. All contributions are welcome.

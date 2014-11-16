@@ -50,10 +50,8 @@ you may need to run this command with sudo.
 
 Contributing
 
-We love community contributions. There are two simple ways to submit your
-patches. The preferred way is to send a github pull request. You can
-also send patches as emails to the Meson mailing list. Remember to add
-your name to the list of contributors in authors.txt.
+We love code contributions. See the contributing.txt file for
+details.
 
 
 Further info
