@@ -11,3 +11,7 @@ endif
 if get_option('combo_opt') != 'combo'
   error('Incorrect value to combo option.')
 endif
+
+if get_option('includedir') != 'include'
+  error('Incorrect value in builtin option.')
+endif

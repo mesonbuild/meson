@@ -932,6 +932,10 @@ class Interpreter():
             raise InterpreterException('Argument of get_option must be a string.')
         if self.subproject != '':
             optname = self.subproject + '-' + optname
+        try:
+            return self.environment.get_coredata().get_builtin_option(optname)
+        except RuntimeError:
+            pass
         if optname not in self.environment.coredata.user_options:
             raise InterpreterException('Tried to access unknown option "%s".' % optname)
         return self.environment.coredata.user_options[optname].value

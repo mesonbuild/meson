@@ -55,6 +55,33 @@ class CoreData():
         self.ext_progs = {}
         self.ext_libs = {}
 
+    def get_builtin_option(self, optname):
+        if optname == 'type':
+            return self.buildtype
+        if optname == 'strip':
+            return self.strip
+        if optname == 'coverage':
+            return self.coverage
+        if optname == 'pch':
+            return self.use_pch
+        if optname == 'unity':
+            return self.unity
+        if optname == 'prefix':
+            return self.prefix
+        if optname == 'libdir':
+            return self.libdir
+        if optname == 'bindir':
+            return self.bindir
+        if optname == 'includedir':
+            return self.includedir
+        if optname == 'datadir':
+            return self.datadir
+        if optname == 'mandir':
+            return self.mandir
+        if optname == 'localedir':
+            return self.localedir
+        raise RuntimeError('Tried to get unknown builtin option %s' % optname)
+
 def load(filename):
     obj = pickle.load(open(filename, 'rb'))
     if not isinstance(obj, CoreData):
