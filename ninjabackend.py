@@ -901,9 +901,14 @@ rule FORTRAN_DEP_HACK
             crstr = ''
         rule = 'rule %s%s_COMPILER\n' % (langname, crstr)
         depargs = compiler.get_dependency_gen_args('$out', '$DEPFILE')
+        quoted_depargs = []
+        for d in depargs:
+            if d != '$out' and d != '$in':
+                d = qstr % d
+            quoted_depargs.append(d)
         command = " command = %s $ARGS %s %s %s $in\n" % \
             (' '.join(compiler.get_exelist()),\
-             ' '.join([qstr % d for d in depargs]),\
+             ' '.join(quoted_depargs),\
              ' '.join(compiler.get_output_args('$out')),\
              ' '.join(compiler.get_compile_only_args()))
         description = ' description = Compiling %s object $out\n' % langname
@@ -927,13 +932,18 @@ rule FORTRAN_DEP_HACK
             crstr = ''
         rule = 'rule %s%s_PCH\n' % (langname, crstr)
         depargs = compiler.get_dependency_gen_args('$out', '$DEPFILE')
+        quoted_depargs = []
+        for d in depargs:
+            if d != '$out' and d != '$in':
+                d = qstr % d
+            quoted_depargs.append(d)
         if compiler.get_id() == 'msvc':
             output = ''
         else:
             output = ' '.join(compiler.get_output_args('$out'))
         command = " command = %s $ARGS %s %s %s $in\n" % \
             (' '.join(compiler.get_exelist()),\
-             ' '.join([qstr % d for d in depargs]),\
+             ' '.join(quoted_depargs),\
              output,\
              ' '.join(compiler.get_compile_only_args()))
         description = ' description = Precompiling header %s\n' % '$in'
