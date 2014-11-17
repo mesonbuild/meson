@@ -16,6 +16,8 @@ following:
 - try to keep the code as simple as possible
 - contact the mailing list before embarking on large scale projects
   to avoid wasted effort
+- all new features must come with a test (or several if it is
+  a big feature)
 
 
 What not to contribute?
