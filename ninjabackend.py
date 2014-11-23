@@ -127,6 +127,7 @@ class NinjaBackend(backends.Backend):
         outfile.write('# Do not edit by hand.\n\n')
         outfile.write('ninja_required_version = 1.3.4\n\n')
         self.generate_rules(outfile)
+        self.generate_phony(outfile)
         outfile.write('# Build rules for targets\n\n')
         [self.generate_target(t, outfile) for t in self.build.get_targets().values()]
         if len(self.build.pot) > 0:
@@ -480,13 +481,13 @@ class NinjaBackend(backends.Backend):
         test_script = os.path.join(script_root, 'meson_test.py')
         test_data = os.path.join(self.environment.get_scratch_dir(), 'meson_test_setup.dat')
         cmd = [sys.executable, test_script, test_data]
-        elem = NinjaBuildElement('test', 'CUSTOM_COMMAND', 'all')
+        elem = NinjaBuildElement('test', 'CUSTOM_COMMAND', ['all', 'PHONY'])
         elem.add_item('COMMAND', cmd)
         elem.add_item('DESC', 'Running test suite.')
         elem.write(outfile)
 
         if valgrind:
-            velem = NinjaBuildElement('test-valgrind', 'CUSTOM_COMMAND', 'all')
+            velem = NinjaBuildElement('test-valgrind', 'CUSTOM_COMMAND', ['all', 'PHONY'])
             velem.add_item('COMMAND', cmd + ['--wrapper=' + valgrind])
             velem.add_item('DESC', 'Running test suite under Valgrind.')
             velem.write(outfile)
@@ -554,6 +555,11 @@ class NinjaBackend(backends.Backend):
         outfile.write(rule)
         outfile.write(command)
         outfile.write(desc)
+        outfile.write('\n')
+
+    def generate_phony(self, outfile):
+        outfile.write('# Phony build target, always out of date\n')
+        outfile.write('build PHONY: phony\n')
         outfile.write('\n')
 
     def generate_jar_target(self, target, outfile):
@@ -1317,14 +1323,14 @@ rule FORTRAN_DEP_HACK
         elem.write(outfile)
 
     def generate_gcov_clean(self, outfile):
-            gcno_elem = NinjaBuildElement('clean-gcno', 'CUSTOM_COMMAND', '')
+            gcno_elem = NinjaBuildElement('clean-gcno', 'CUSTOM_COMMAND', 'PHONY')
             script_root = self.environment.get_script_dir()
             clean_script = os.path.join(script_root, 'delwithsuffix.py')
             gcno_elem.add_item('COMMAND', [sys.executable, clean_script, '.', 'gcno'])
             gcno_elem.add_item('description', 'Deleting gcno files')
             gcno_elem.write(outfile)
 
-            gcda_elem = NinjaBuildElement('clean-gcda', 'CUSTOM_COMMAND', '')
+            gcda_elem = NinjaBuildElement('clean-gcda', 'CUSTOM_COMMAND', 'PHONY')
             script_root = self.environment.get_script_dir()
             clean_script = os.path.join(script_root, 'delwithsuffix.py')
             gcda_elem.add_item('COMMAND', [sys.executable, clean_script, '.', 'gcda'])
@@ -1387,7 +1393,7 @@ rule FORTRAN_DEP_HACK
         ninja_command = environment.detect_ninja()
         if ninja_command is None:
             raise RuntimeError('Could not detect ninja command')
-        elem = NinjaBuildElement('clean', 'CUSTOM_COMMAND', '')
+        elem = NinjaBuildElement('clean', 'CUSTOM_COMMAND', 'PHONY')
         elem.add_item('COMMAND', [ninja_command, '-t', 'clean'])
         elem.add_item('description', 'Cleaning')
         if self.environment.coredata.coverage:
