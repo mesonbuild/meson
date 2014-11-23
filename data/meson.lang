@@ -14,6 +14,11 @@
   <definitions>
     <context id="meson">
       <include>
+        <context id="string-multiline" style-ref="def:string">
+          <start>'''</start>
+          <end>'''</end>
+        </context>
+        
         <context id="string" end-at-line-end="true" style-ref="def:string">
           <start>'</start>
           <end>'</end>
