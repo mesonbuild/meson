@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<language id="meson" _name="Meson" version="2.0" _section="Source">
+  <metadata>
+    <property name="globs">meson.build</property>
+  </metadata>
+
+  <styles>
+    <style id="comment" _name="Comment" map-to="def:comment" />
+    <style id="string" _name="String" map-to="def:string" />
+    <style id="keyword" _name="Keyword" map-to="def:keyword" />
+  </styles>
+
+  <definitions>
+    <context id="meson">
+      <include>
+        <context id="string" end-at-line-end="true" style-ref="def:string">
+          <start>'</start>
+          <end>'</end>
+        </context>
+
+        <context id="comment" style-ref="def:comment">
+          <start>#</start>
+          <end>$</end>
+        </context>
+
+        <context id="keywords" style-ref="keyword">
+          <keyword>if</keyword>
+          <keyword>endif</keyword>
+          <keyword>foreach</keyword>
+          <keyword>endforeach</keyword>
+        </context>
+      </include>
+
+    </context>
+  </definitions>
+</language>
