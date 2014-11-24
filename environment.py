@@ -1507,10 +1507,8 @@ def find_valgrind():
 
 def detect_ninja():
     for n in ['ninja', 'ninja-build']:
-        # Plain 'ninja' or 'ninja -h' yields an error
-        # code. Thanks a bunch, guys.
         try:
-            p = subprocess.Popen([n, '-t', 'list'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            p = subprocess.Popen([n, '--version'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         except FileNotFoundError:
             continue
         p.communicate()
