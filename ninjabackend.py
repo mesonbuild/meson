@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import backends
-import environment
+import environment, mesonlib
 import build
 import mlog
 import dependencies
@@ -22,7 +22,7 @@ from build import InvalidArguments
 from coredata import MesonException
 import os, sys, shutil, pickle, re
 
-if environment.is_windows():
+if mesonlib.is_windows():
     quote_char = '"'
     execute_wrapper = 'cmd /c'
 else:
@@ -870,7 +870,7 @@ class NinjaBackend(backends.Backend):
         outfile.write('\n')
 
     def generate_fortran_dep_hack(self, outfile):
-        if environment.is_windows():
+        if mesonlib.is_windows():
             cmd = 'cmd /C ""'
         else:
             cmd = 'true'

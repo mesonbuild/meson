@@ -17,7 +17,7 @@
 from glob import glob
 import os, subprocess, shutil, sys, platform, signal
 import environment
-from environment import is_windows
+import mesonlib
 
 passing_tests = 0
 failing_tests = 0
@@ -47,7 +47,7 @@ if msbuild_exe is not None:
     compile_commands = ['msbuild']
     test_commands = ['msbuild', 'RUN_TESTS.vcxproj']
     install_commands = []
-elif environment.is_osx():
+elif mesonlib.is_osx():
     backend_flags = ['--backend=xcode']
     compile_commands = ['xcodebuild']
     test_commands = ['xcodebuild', '-target', 'RUN_TESTS']
@@ -186,22 +186,22 @@ def run_tests():
     commontests = gather_tests('test cases/common')
     failtests = gather_tests('test cases/failing')
     objtests = gather_tests('test cases/prebuilt object')
-    if environment.is_linux():
+    if mesonlib.is_linux():
         cpuid = platform.machine()
         if cpuid != 'x86_64' and cpuid != 'i386' and cpuid != 'i686':
             # Don't have a prebuilt object file for those so skip.
             objtests = []
-    if environment.is_osx():
+    if mesonlib.is_osx():
         platformtests = gather_tests('test cases/osx')
-    elif environment.is_windows():
+    elif mesonlib.is_windows():
         platformtests = gather_tests('test cases/windows')
     else:
         platformtests = gather_tests('test cases/linuxlike')
-    if not environment.is_osx() and not environment.is_windows():
+    if not mesonlib.is_osx() and not mesonlib.is_windows():
         frameworktests = gather_tests('test cases/frameworks')
     else:
         frameworktests = []
-    if not environment.is_osx() and shutil.which('javac'):
+    if not mesonlib.is_osx() and shutil.which('javac'):
         javatests = gather_tests('test cases/java')
     else:
         javatests = []
@@ -217,7 +217,7 @@ def run_tests():
         rusttests = gather_tests('test cases/rust')
     else:
         rusttests = []
-    if not environment.is_windows():
+    if not mesonlib.is_windows():
         objctests = gather_tests('test cases/objc')
     else:
         objctests = []
@@ -308,7 +308,7 @@ def generate_prebuilt_object():
         objectfile = objectbase + 'obj'
         cmd = ['cl', '/nologo', '/Fo'+objectfile, '/c', source]
     else:
-        if is_windows():
+        if mesonlib.is_windows():
             objectfile = objectbase + 'obj'
         else:
             objectfile = objectbase + 'o'

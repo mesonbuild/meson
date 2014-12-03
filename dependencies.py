@@ -25,7 +25,7 @@ import os, stat, glob, subprocess, shutil
 from coredata import MesonException
 import environment
 import mlog
-from environment import is_windows
+import mesonlib
 
 class DependencyException(MesonException):
     def __init__(self, *args, **kwargs):
@@ -148,10 +148,10 @@ class ExternalProgram():
             if self.fullpath[0] is None and search_dir is not None:
                 trial = os.path.join(search_dir, name)
                 suffix = os.path.splitext(trial)[-1].lower()[1:]
-                if environment.is_windows() and (suffix == 'exe' or suffix == 'com'\
+                if mesonlib.is_windows() and (suffix == 'exe' or suffix == 'com'\
                                           or suffix == 'bat'):
                     self.fullpath = [trial]
-                elif not environment.is_windows() and os.access(trial, os.X_OK):
+                elif not mesonlib.is_windows() and os.access(trial, os.X_OK):
                     self.fullpath = [trial]
                 else:
                     # Now getting desperate. Maybe it is a script file that is a) not chmodded
@@ -160,7 +160,7 @@ class ExternalProgram():
                         first_line = open(trial).readline().strip()
                         if first_line.startswith('#!'):
                             commands = first_line[2:].split('#')[0].strip().split()
-                            if environment.is_windows():
+                            if mesonlib.is_windows():
                                 commands[0] = commands[0].split('/')[-1] # Windows does not have /usr/bin.
                             self.fullpath = commands + [trial]
                     except Exception:
@@ -665,7 +665,7 @@ class AppleFrameworks(Dependency):
         return args
 
     def found(self):
-        return environment.is_osx()
+        return mesonlib.is_osx()
 
 def get_dep_identifier(name, kwargs):
     elements = [name]

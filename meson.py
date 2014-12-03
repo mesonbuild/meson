@@ -17,7 +17,7 @@
 from optparse import OptionParser
 import sys, stat, traceback, pickle
 import os.path
-import environment, interpreter
+import environment, interpreter, mesonlib
 import build
 import mlog, coredata
 
@@ -35,7 +35,7 @@ backendlist = ['ninja', 'vs2010', 'xcode']
 backend_help = 'backend to use, one of: %s' % ', '.join(backendlist)
 backend_help += ' (default: %default)'
 
-if environment.is_windows():
+if mesonlib.is_windows():
     def_prefix = 'c:/'
 else:
     def_prefix = '/usr/local'
