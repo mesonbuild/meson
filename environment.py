@@ -2078,6 +2078,14 @@ def get_args_from_envvars(lang):
         compile_args = os.environ.get('CXXFLAGS', '').split()
         link_args = compile_args + os.environ.get('LDFLAGS', '').split()
         compile_args += os.environ.get('CPPFLAGS', '').split()
+    elif lang == 'objc':
+        compile_args = os.environ.get('OBJCFLAGS', '').split()
+        link_args = compile_args + os.environ.get('LDFLAGS', '').split()
+        compile_args += os.environ.get('CPPFLAGS', '').split()
+    elif lang == 'objcpp':
+        compile_args = os.environ.get('OBJCXXFLAGS', '').split()
+        link_args = compile_args + os.environ.get('LDFLAGS', '').split()
+        compile_args += os.environ.get('CPPFLAGS', '').split()
     elif lang == 'fortran':
         compile_args = os.environ.get('FFLAGS', '').split()
         link_args = compile_args + os.environ.get('LDFLAGS', '').split()
