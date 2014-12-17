@@ -199,17 +199,6 @@ class ExternalLibrary(Dependency):
             return [self.fullpath]
         return []
 
-def find_external_dependency(name, kwargs):
-    required = kwargs.get('required', True)
-    if not isinstance(required, bool):
-        raise DependencyException('Keyword "required" must be a boolean.')
-    if name in packages:
-        dep = packages[name](kwargs)
-        if required and not dep.found():
-            raise DependencyException('Dependency "%s" not found' % name)
-        return dep
-    return PkgConfigDependency(name, required)
-
 class BoostDependency(Dependency):
     def __init__(self, kwargs):
         Dependency.__init__(self)
@@ -667,6 +656,35 @@ class AppleFrameworks(Dependency):
     def found(self):
         return mesonlib.is_osx()
 
+class ExtraFrameworkDependency(Dependency):
+    def __init__(self, name, required):
+        Dependency.__init__(self)
+        self.name = None
+        self.detect(name)
+
+    def detect(self, name):
+        lname = name.lower()
+        paths = ['/Library/Frameworks']
+        for p in paths:
+            for d in os.listdir(p):
+                fullpath = os.path.join(p, d)
+                if lname != d.split('.')[0].lower():
+                    continue
+                if not stat.S_ISDIR(os.stat(fullpath).st_mode):
+                    continue
+                self.path = p
+                self.name = d
+                return
+
+    def get_compile_args(self):
+        return ['-I' + os.path.join(self.path, self.name, 'Headers')]
+
+    def get_link_args(self):
+        return ['-F' + self.path, '-framework', self.name.split('.')[0]]
+
+    def found(self):
+        return self.name is not None
+
 def get_dep_identifier(name, kwargs):
     elements = [name]
     modlist = kwargs.get('modules', [])
@@ -675,6 +693,29 @@ def get_dep_identifier(name, kwargs):
     for module in modlist:
         elements.append(module)
     return '/'.join(elements)
+
+def find_external_dependency(name, kwargs):
+    required = kwargs.get('required', True)
+    if not isinstance(required, bool):
+        raise DependencyException('Keyword "required" must be a boolean.')
+    if name in packages:
+        dep = packages[name](kwargs)
+        if required and not dep.found():
+            raise DependencyException('Dependency "%s" not found' % name)
+        return dep
+    pkg_exc = None
+    pkgdep = None
+    try:
+        pgkdep = PkgConfigDependency(name, required)
+        if pkgdep.found():
+            return pkgdep
+    except Exception as e:
+        pkg_exc = e
+    if mesonlib.is_osx():
+        return ExtraFrameworkDependency(name, required)
+    if pkg_exc is not None:
+        raise pkg_exc
+    return pkgdep
 
 # This has to be at the end so the classes it references
 # are defined.
