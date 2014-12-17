@@ -706,7 +706,7 @@ def find_external_dependency(name, kwargs):
     pkg_exc = None
     pkgdep = None
     try:
-        pgkdep = PkgConfigDependency(name, required)
+        pkgdep = PkgConfigDependency(name, required)
         if pkgdep.found():
             return pkgdep
     except Exception as e:
