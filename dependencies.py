@@ -661,6 +661,10 @@ class ExtraFrameworkDependency(Dependency):
         Dependency.__init__(self)
         self.name = None
         self.detect(name)
+        if self.found():
+            mlog.log('Dependency', mlog.bold(name), 'found:', mlog.green('YES'), os.path.join(self.path, self.name))
+        else:
+            mlog.log('Dependency', name, 'found:', mlog.red('NO'))
 
     def detect(self, name):
         lname = name.lower()
