@@ -14,7 +14,7 @@
 
 import mparser
 import coredata
-import os
+import os, re
 
 forbidden_option_names = {'type': True,
                           'strip': True,
@@ -33,6 +33,8 @@ forbidden_option_names = {'type': True,
 
 class OptionException(coredata.MesonException):
     pass
+
+optname_regex = re.compile('[^a-zA-Z0-9_-]')
 
 class UserOption:
     def __init__(self, kwargs):
@@ -166,10 +168,12 @@ class OptionInterpreter:
         opt_name = posargs[0]
         if not isinstance(opt_name, str):
             raise OptionException('Positional argument must be a string.')
+        if optname_regex.search(opt_name) is not None:
+            raise OptionException('Option names can only contain letters, numbers or dashes.')
         if opt_name in forbidden_option_names:
             raise OptionException('Option name %s is reserved.' % opt_name)
         if self.subproject != '':
-            opt_name = self.subproject + '-' + opt_name
+            opt_name = self.subproject + ':' + opt_name
         opt = option_types[opt_type](kwargs)
         if opt.description == '':
             opt.description = opt_name

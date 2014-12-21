@@ -935,7 +935,7 @@ class Interpreter():
         if not isinstance(optname, str):
             raise InterpreterException('Argument of get_option must be a string.')
         if self.subproject != '':
-            optname = self.subproject + '-' + optname
+            optname = self.subproject + ':' + optname
         try:
             return self.environment.get_coredata().get_builtin_option(optname)
         except RuntimeError:
