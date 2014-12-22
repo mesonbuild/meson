@@ -652,8 +652,7 @@ class NinjaBackend(backends.Backend):
     def generate_single_java_compile(self, subdir, src, target, compiler, outfile):
         buildtype = self.environment.coredata.buildtype
         args = []
-        if buildtype == 'debug':
-            args += compiler.get_debug_args()
+        args += compiler.get_buildtype_args(self.environment.coredata.buildtype)
         args += compiler.get_output_args(self.get_target_private_dir(target))
         rel_src = os.path.join(self.build_to_src, subdir, src)
         plain_class_path = src[:-4] + 'class'

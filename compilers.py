@@ -175,9 +175,6 @@ class CCompiler():
     def get_linker_output_args(self, outputname):
         return ['-o', outputname]
 
-    def get_debug_args(self):
-        return ['-g']
-
     def get_coverage_args(self):
         return ['--coverage']
 
@@ -543,9 +540,6 @@ class MonoCompiler():
     def get_linker_output_args(self, outputname):
         return []
 
-    def get_debug_args(self):
-        return ['-g']
-
     def get_coverage_args(self):
         return []
 
@@ -684,9 +678,6 @@ class JavaCompiler():
 
     def get_linker_output_args(self, outputname):
         return []
-
-    def get_debug_args(self):
-        return ['-g']
 
     def get_coverage_args(self):
         return []
@@ -892,9 +883,6 @@ class VisualStudioCCompiler(CCompiler):
         base = os.path.split(header)[-1]
         pchname = self.get_pch_name(header)
         return ['/FI' + base, '/Yu' + base, '/Fp' + os.path.join(pch_dir, pchname)]
-
-    def get_debug_args(self):
-        return ['/D_DEBUG', '/Zi', '/MDd', '/Ob0', '/RTC1']
 
     def get_compile_only_args(self):
         return ['/c']
@@ -1121,9 +1109,6 @@ class GnuCPPCompiler(CPPCompiler):
 
     def get_always_args(self):
         return ['-pipe']
-
-    def get_debug_args(self):
-        return GnuCPPCompiler.std_debug_args
 
     def get_std_warn_args(self):
         return GnuCPPCompiler.std_warn_args
