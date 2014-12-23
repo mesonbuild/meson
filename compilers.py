@@ -70,6 +70,11 @@ msvc_buildtype_linker_args = {'plain' : [],
                                'debugoptimized' : [],
                                'release' : []}
 
+java_buildtype_args = {'plain' : [],
+                       'debug' : ['-g'],
+                       'debugoptimized' : ['-g'],
+                       'release' : []}
+
 rust_buildtype_args = {'plain' : [],
                         'debug' : ['-g'],
                         'debugoptimized' : ['-g', '--opt-level', '2'],
@@ -711,6 +716,9 @@ class JavaCompiler():
 
     def get_pch_name(self, header_name):
         return ''
+
+    def get_buildtype_args(self, buildtype):
+        return java_buildtype_args[buildtype]
 
     def sanity_check(self, work_dir):
         src = 'SanityCheck.java'
