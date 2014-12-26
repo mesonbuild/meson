@@ -990,7 +990,7 @@ def get_gcc_soname_args(gcc_type, shlib_name, path, soversion):
         raise RuntimeError('Not impelented yet.')
 
 class GnuCCompiler(CCompiler):
-    std_warn_args = ['-Wall', '-Winvalid-pch']
+    std_warn_args = ['-Wall', '-Wpedantic', '-Winvalid-pch']
 
     def __init__(self, exelist, version, gcc_type, is_cross, exe_wrapper=None):
         CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
@@ -1022,7 +1022,7 @@ class GnuCCompiler(CCompiler):
         return super().can_compile(filename) or filename.split('.')[-1] == 's' # Gcc can do asm, too.
 
 class GnuObjCCompiler(ObjCCompiler):
-    std_warn_args = ['-Wall', '-Winvalid-pch']
+    std_warn_args = ['-Wall', '-Wpedantic', '-Winvalid-pch']
 
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
         ObjCCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
@@ -1044,7 +1044,7 @@ class GnuObjCCompiler(ObjCCompiler):
         return get_gcc_soname_args(self.gcc_type, shlib_name, path, soversion)
 
 class GnuObjCPPCompiler(ObjCPPCompiler):
-    std_warn_args = ['-Wall', '-Winvalid-pch']
+    std_warn_args = ['-Wall', '-Wpedantic', '-Winvalid-pch']
     std_opt_args = ['-O2']
 
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
@@ -1077,7 +1077,7 @@ class ClangObjCPPCompiler(GnuObjCPPCompiler):
         self.id = 'clang'
 
 class ClangCCompiler(CCompiler):
-    std_warn_args = ['-Wall', '-Winvalid-pch']
+    std_warn_args = ['-Wall', '-Wpedantic', '-Winvalid-pch']
 
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
         CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
@@ -1106,7 +1106,7 @@ class ClangCCompiler(CCompiler):
 
 
 class GnuCPPCompiler(CPPCompiler):
-    std_warn_args = ['-Wall', '-Winvalid-pch']
+    std_warn_args = ['-Wall', '-Wpedantic', '-Winvalid-pch']
     # may need to separate the latter to extra_debug_args or something
     std_debug_args = ['-g']
 
@@ -1134,7 +1134,7 @@ class GnuCPPCompiler(CPPCompiler):
         return get_gcc_soname_args(self.gcc_type, shlib_name, path, soversion)
 
 class ClangCPPCompiler(CPPCompiler):
-    std_warn_args = ['-Wall', '-Winvalid-pch']
+    std_warn_args = ['-Wall', '-Wpedantic', '-Winvalid-pch']
 
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
         CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
