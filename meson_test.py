@@ -134,13 +134,16 @@ def run_tests(options, datafilename):
     jsonlogfile = open(jsonlogfilename, 'w')
     logfile.write('Log of Meson test suite run on %s.\n\n' % datetime.datetime.now().isoformat())
     tests = pickle.load(open(datafilename, 'rb'))
+    if len(tests) == 0:
+        print('No tests defined.')
+        return
     numlen = len('%d' % len(tests))
     varname = 'MESON_TESTTHREADS'
     if varname in os.environ:
         try:
             num_workers = int(os.environ[varname])
         except ValueError:
-            write_log('Invalid value in %s, using 1 thread.' % varname)
+            print('Invalid value in %s, using 1 thread.' % varname)
             num_workers = 1
     else:
         num_workers = multiprocessing.cpu_count()
