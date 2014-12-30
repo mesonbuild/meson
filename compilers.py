@@ -1106,7 +1106,7 @@ class ClangCCompiler(CCompiler):
 
 
 class GnuCPPCompiler(CPPCompiler):
-    std_warn_args = ['-Wall', '-Wpedantic', '-Winvalid-pch']
+    std_warn_args = ['-Wall', '-Wpedantic', '-Winvalid-pch', '-Wnon-virtual-dtor']
     # may need to separate the latter to extra_debug_args or something
     std_debug_args = ['-g']
 
@@ -1134,7 +1134,7 @@ class GnuCPPCompiler(CPPCompiler):
         return get_gcc_soname_args(self.gcc_type, shlib_name, path, soversion)
 
 class ClangCPPCompiler(CPPCompiler):
-    std_warn_args = ['-Wall', '-Wpedantic', '-Winvalid-pch']
+    std_warn_args = ['-Wall', '-Wpedantic', '-Winvalid-pch', '-Wnon-virtual-dtor']
 
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
         CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
