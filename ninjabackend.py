@@ -306,6 +306,7 @@ class NinjaBackend(backends.Backend):
                target.subdir, target.command] + target.args
         elem.add_item('COMMAND', cmd)
         elem.add_item('description', 'Running external command %s.' % target.name)
+        elem.add_item('pool', 'console')
         elem.write(outfile)
         self.processed_targets[target.name] = True
 
