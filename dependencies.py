@@ -135,6 +135,72 @@ class PkgConfigDependency(Dependency):
     def found(self):
         return self.is_found
 
+class WxDependency(Dependency):
+    wx_found = None
+
+    def __init__(self, kwargs):
+        Dependency.__init__(self)
+        if WxDependency.wx_found is None:
+            self.check_wxconfig()
+
+        if not WxDependency.wx_found:
+            raise DependencyException('Wx-config not found.')
+        self.is_found = False
+        p = subprocess.Popen(['wx-config', '--version'], stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE)
+        out = p.communicate()[0]
+        if p.returncode != 0:
+            mlog.log('Dependency wxwidgets found:', mlog.red('NO'))
+            self.cargs = []
+            self.libs = []
+            self.is_found = False
+        else:
+            mlog.log('Dependency wxwidgets found:', mlog.green('YES'))
+            self.is_found = True
+            self.modversion = out.decode().strip()
+            # wx-config seems to have a cflags as well but since it requires C++,
+            # this should be good, at least for now.
+            p = subprocess.Popen(['wx-config', '--cxxflags'], stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE)
+            out = p.communicate()[0]
+            if p.returncode != 0:
+                raise RuntimeError('Could not generate cargs for wxwidgets.')
+            self.cargs = out.decode().split()
+
+            p = subprocess.Popen(['wx-config', '--libs'], stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE)
+            out = p.communicate()[0]
+            if p.returncode != 0:
+                raise RuntimeError('Could not generate libs for wxwidgets.')
+            self.libs = out.decode().split()
+
+    def get_modversion(self):
+        return self.modversion
+
+    def get_compile_args(self):
+        return self.cargs
+
+    def get_link_args(self):
+        return self.libs
+
+    def check_wxconfig(self):
+        try:
+            p = subprocess.Popen(['wx-config', '--version'], stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE)
+            out = p.communicate()[0]
+            if p.returncode == 0:
+                mlog.log('Found wx-config:', mlog.bold(shutil.which('wx-config')),
+                         '(%s)' % out.decode().strip())
+                WxDependency.wx_found = True
+                return
+        except Exception:
+            pass
+        WxDependency.wxconfig_found = False
+        mlog.log('Found wx-config:', mlog.red('NO'))
+
+    def found(self):
+        return self.is_found
+
 class ExternalProgram():
     def __init__(self, name, fullpath=None, silent=False, search_dir=None):
         self.name = name
@@ -730,4 +796,5 @@ packages = {'boost': BoostDependency,
             'Qt5': Qt5Dependency, # Qt people sure do love their upper case.
             'gnustep': GnuStepDependency,
             'appleframeworks': AppleFrameworks,
+            'wxwidgets' : WxDependency,
             }
