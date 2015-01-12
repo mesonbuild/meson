@@ -7,7 +7,7 @@ EVT_MENU(wxID_ABOUT, MyFrame::OnAbout)
 wxEND_EVENT_TABLE()
 
 bool MyApp::OnInit() {
-  MyFrame *frame = new MyFrame( "Hello World", wxPoint(50, 50), wxSize(450, 340) );
+  MyFrame *frame = new MyFrame("Hello World", wxPoint(50, 50), wxSize(450, 340));
   frame->Show( true );
   return true;
 }
@@ -22,11 +22,11 @@ MyFrame::MyFrame(const wxString& title, const wxPoint& pos, const wxSize& size)
   wxMenu *menuHelp = new wxMenu;
   menuHelp->Append(wxID_ABOUT);
   wxMenuBar *menuBar = new wxMenuBar;
-  menuBar->Append( menuFile, "&File" );
-  menuBar->Append( menuHelp, "&Help" );
-  SetMenuBar( menuBar );
+  menuBar->Append(menuFile, "&File");
+  menuBar->Append(menuHelp, "&Help");
+  SetMenuBar(menuBar);
   CreateStatusBar();
-  SetStatusText( "Welcome to wxWidgets!" );
+  SetStatusText("This is status." );
 }
 
 void MyFrame::OnExit(wxCommandEvent& event) {
@@ -34,12 +34,11 @@ void MyFrame::OnExit(wxCommandEvent& event) {
 }
 
 void MyFrame::OnAbout(wxCommandEvent& event) {
-  wxMessageBox( "This is a wxWidgets' Hello world sample",
-                "About Hello World", wxOK | wxICON_INFORMATION );
+  wxMessageBox( "Some text", wxOK | wxICON_INFORMATION );
 }
 
 void MyFrame::OnHello(wxCommandEvent& event) {
-  wxLogMessage("Hello world from wxWidgets!");
+  wxLogMessage("Some more text.");
 }
 
 #if 0
