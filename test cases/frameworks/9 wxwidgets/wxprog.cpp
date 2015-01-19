@@ -34,7 +34,7 @@ void MyFrame::OnExit(wxCommandEvent& event) {
 }
 
 void MyFrame::OnAbout(wxCommandEvent& event) {
-  wxMessageBox( "Some text", wxOK | wxICON_INFORMATION );
+  //wxMessageBox("Some text", wxOK | wxICON_INFORMATION);
 }
 
 void MyFrame::OnHello(wxCommandEvent& event) {
