@@ -1,4 +1,4 @@
-# Copyright 2012-2014 The Meson development team
+# Copyright 2012-2015 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
 
 import pickle, os, uuid
 
-version = '0.22.0-research'
+version = '0.22.0'
 
 # This class contains all data that must persist over multiple
 # invocations of Meson. It is roughly the same thing as
