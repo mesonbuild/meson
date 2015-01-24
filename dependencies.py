@@ -266,6 +266,11 @@ class ExternalLibrary(Dependency):
         return []
 
 class BoostDependency(Dependency):
+    # Some boost libraries have different names for
+    # their sources and libraries. This dict maps
+    # between the two.
+    name2lib = {'test' : 'unit_test_framework'}
+
     def __init__(self, kwargs):
         Dependency.__init__(self)
         self.name = 'boost'
@@ -372,12 +377,21 @@ class BoostDependency(Dependency):
             # pkg-config returns.
             args.append('-L' + os.path.join(self.boost_root, 'lib'))
         for module in self.requested_modules:
+            module = BoostDependency.name2lib.get(module, module)
             if module in self.lib_modules or module in self.lib_modules_mt:
                 linkcmd = '-lboost_' + module
                 args.append(linkcmd)
+                # FIXME a hack, but Boost's testing framework has a lot of
+                # different options and it's hard to determine what to do
+                # without feedback from actual users. Update this
+                # as we get more bug reports.
+                if module == 'unit_testing_framework':
+                    args.append('-lboost_test_exec_monitor')
             elif module + '-mt' in self.lib_modules_mt:
                 linkcmd = '-lboost_' + module + '-mt'
                 args.append(linkcmd)
+                if module == 'unit_testing_framework':
+                    args.append('-lboost_test_exec_monitor-mt')
         return args
 
     def get_sources(self):

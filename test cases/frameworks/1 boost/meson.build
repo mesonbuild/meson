@@ -10,9 +10,12 @@ endif
 
 nolinkdep = dependency('boost', modules: 'utility')
 linkdep = dependency('boost', modules : ['thread', 'system'])
+testdep = dependency('boost', modules : 'test')
 
 nolinkexe = executable('nolinkedexe', 'nolinkexe.cc', dependencies : nolinkdep)
 linkexe = executable('linkedexe', 'linkexe.cc', dependencies : linkdep)
+unitexe = executable('utf', 'unit_test.cpp', dependencies: testdep)
 
 test('Boost nolinktext', nolinkexe)
 test('Boost linktext', linkexe)
+test('Boost UTF test', unitexe)
