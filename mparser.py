@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-
 # Copyright 2014 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -516,13 +514,3 @@ class Parser:
                 block.lines.append(curline)
             cond = self.accept('eol')
         return block
-
-if __name__ == '__main__':
-    for code in sys.argv[1:]:
-        parser = Parser(open(code).read())
-        try:
-            print(code)
-            parser.parse()
-        except ParseException as e:
-            print('Error', e.text, 'line', e.lineno, 'column', e.colno)
-
