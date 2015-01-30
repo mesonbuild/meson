@@ -566,7 +566,11 @@ def get_library_dirs():
         if mesonlib.is_osx():
             return ['/usr/lib'] # Fix me as well.
         # The following is probably Debian/Ubuntu specific.
-        unixdirs = ['/usr/lib', '/lib']
+        # /usr/local/lib is first because it contains stuff
+        # installed by the sysadmin and is probably more up-to-date
+        # than /usr/lib. If you feel that this search order is
+        # problematic, please raise the issue on the mailing list.
+        unixdirs = ['/usr/local/lib', '/usr/lib', '/lib']
         plat = subprocess.check_output(['uname', '-m']).decode().strip()
         # This is a terrible hack. I admit it and I'm really sorry.
         # I just don't know what the correct solution is.
@@ -581,7 +585,6 @@ def get_library_dirs():
         if os.path.exists('/lib64'):
             unixdirs.append('/lib64')
         unixdirs += glob('/lib/' + plat + '*')
-        unixdirs.append('/usr/local/lib')
         return unixdirs
 
 def get_args_from_envvars(lang):
