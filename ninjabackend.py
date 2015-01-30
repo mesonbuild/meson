@@ -1100,6 +1100,10 @@ rule FORTRAN_DEP_HACK
         compiler = self.get_compiler_for_source(src)
         commands = self.generate_basic_compiler_args(target, compiler)
         commands += compiler.get_include_args(self.get_target_private_dir(target))
+        for d in target.external_deps:
+            if d.need_threads():
+                commands += compiler.thread_flags()
+                break
         if isinstance(src, RawFilename):
             rel_src = src.fname
         elif is_generated:
@@ -1284,6 +1288,9 @@ rule FORTRAN_DEP_HACK
         else:
             dependencies = target.get_dependencies()
         commands += self.build_target_link_arguments(linker, dependencies)
+        for d in target.external_deps:
+            if d.need_threads():
+                commands += linker.thread_link_flags()
         commands += target.link_args
         # External deps must be last because target link libraries may depend on them.
         if not(isinstance(target, build.StaticLibrary)):

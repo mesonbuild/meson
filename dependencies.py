@@ -66,6 +66,9 @@ class Dependency():
     def get_exe_args(self):
         return []
 
+    def need_threads(self):
+        return False
+
 class PkgConfigDependency(Dependency):
     pkgconfig_found = None
 
@@ -395,6 +398,9 @@ class BoostDependency(Dependency):
     def get_sources(self):
         return []
 
+    def need_threads(self):
+        return 'thread' in self.requested_modules
+
 class GTestDependency(Dependency):
     def __init__(self, kwargs):
         Dependency.__init__(self)
@@ -436,8 +442,6 @@ class GTestDependency(Dependency):
         else:
             mlog.log('Dependency GTest found:', mlog.red('NO'))
             self.is_found = False
-        if self.is_found:
-            self.link_args.append('-lpthread')
         return self.is_found
 
     def get_compile_args(self):
@@ -453,6 +457,9 @@ class GTestDependency(Dependency):
         return '1.something_maybe'
     def get_sources(self):
         return self.sources
+
+    def need_threads(self):
+        return True
 
 class GMockDependency(Dependency):
     def __init__(self, kwargs):

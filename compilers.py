@@ -395,6 +395,12 @@ void bar() {
 '''
         return self.compiles(templ % (prefix, typename, membername))
 
+    def thread_flags(self):
+        return ['-pthread']
+
+    def thread_link_flags(self):
+        return ['-pthread']
+
 class CPPCompiler(CCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrap):
         CCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
@@ -941,6 +947,13 @@ class VisualStudioCCompiler(CCompiler):
             raise EnvironmentException('Executables created by C++ compiler %s are not runnable.' % self.name_string())
 
     def build_rpath_args(self, build_dir, rpath_paths, install_rpath):
+        return []
+
+    # FIXME, no idea what these should be.
+    def thread_flags(self):
+        return []
+
+    def thread_link_flags(self):
         return []
 
 class VisualStudioCPPCompiler(VisualStudioCCompiler):
