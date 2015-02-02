@@ -1454,6 +1454,9 @@ class VisualStudioLinker():
     def build_rpath_args(self, build_dir, rpath_paths, install_rpath):
         return []
 
+    def thread_link_flags(self):
+        return []
+
 class ArLinker():
     std_args = ['csr']
 
@@ -1485,3 +1488,5 @@ class ArLinker():
     def get_always_args(self):
         return []
 
+    def thread_link_flags(self):
+        return []
