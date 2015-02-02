@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import mlog
-import glob, urllib.request, os, hashlib, shutil
+import urllib.request, os, hashlib, shutil
 
 class PackageDefinition:
     def __init__(self, fname):
@@ -46,6 +46,8 @@ class Resolver:
         fname = os.path.join(self.subdir_root, packagename + '.wrap')
         if not os.path.isfile(fname):
             return None
+        if not os.path.isdir(self.cachedir):
+            os.mkdir(self.cachedir)
         p = PackageDefinition(fname)
         self.download(p, packagename)
         self.extract_package(p)
@@ -63,30 +65,29 @@ class Resolver:
     def download(self, p, packagename):
         ofname = os.path.join(self.cachedir, p.get('source_filename'))
         if os.path.exists(ofname):
-            print('Using', packagename, 'from cache.')
+            mlog.log('Using', mlog.bold(packagename), 'from cache.')
             return
         srcurl = p.get('source_url')
-        print('Dowloading', packagename, 'from', srcurl)
+        mlog.log('Dowloading', mlog.bold(packagename), 'from', srcurl)
         (srcdata, dhash) = self.get_data(srcurl)
         expected = p.get('source_hash')
         if dhash != expected:
             raise RuntimeError('Incorrect hash for source %s:\n %s expected\n %s actual.' % (packagename, expected, dhash))
         if p.has_patch():
             purl = p.get('patch_url')
-            print('Downloading patch from', purl)
+            mlog.log('Downloading patch from', mlog.bold(purl))
             (pdata, phash) = self.get_data(purl)
             expected = p.get('patch_hash')
             if phash != expected:
                 raise RuntimeError('Incorrect hash for patch %s:\n %s expected\n %s actual.' % (packagename, expected, phash))
             open(os.path.join(self.cachedir, p.get('patch_filename')), 'wb').write(pdata)
         else:
-            print('Package does not require patch.')
+            mlog.log('Package does not require patch.')
         open(ofname, 'wb').write(srcdata)
 
     def extract_package(self, package):
         if os.path.isdir(os.path.join(self.subdir_root, package.get('directory'))):
             return
-        print(os.path.join(self.cachedir, package.get('source_filename')))
         shutil.unpack_archive(os.path.join(self.cachedir, package.get('source_filename')), self.subdir_root)
         if package.has_patch():
             shutil.unpack_archive(os.path.join(self.cachedir, package.get('patch_filename')), self.subdir_root)
