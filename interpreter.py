@@ -19,6 +19,7 @@ import dependencies
 import mlog
 import build
 import optinterpreter
+import wrap
 import os, sys, platform, subprocess, shutil, uuid
 
 class InterpreterException(coredata.MesonException):
@@ -915,7 +916,12 @@ class Interpreter():
         subdir = os.path.join('subprojects', dirname)
         abs_subdir = os.path.join(self.build.environment.get_source_dir(), subdir)
         if not os.path.isdir(abs_subdir):
-            raise InterpreterException('Subproject directory does not exist.')
+            r = wrap.Resolver(os.path.join(self.build.environment.get_source_dir(), 'subprojects'))
+            resolved = r.resolve(dirname)
+            if resolved is None:
+                raise InterpreterException('Subproject directory does not exist and can not be downloaded.')
+            subdir = os.path.join('subprojects', resolved)
+            abs_subdir = os.path.join(self.build.environment.get_source_dir(), 'subprojects', subdir)
         self.global_args_frozen = True
         mlog.log('\nExecuting subproject ', mlog.bold(dirname), '.\n', sep='')
         subi = Interpreter(self.build, dirname, subdir)

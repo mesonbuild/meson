@@ -1,0 +1,10 @@
+[mesonwrap]
+directory = sqlite-amalgamation-3080802
+
+source_url = http://sqlite.com/2015/sqlite-amalgamation-3080802.zip
+source_filename = sqlite-amalgamation-3080802.zip
+source_hash = 5ebeea0dfb75d090ea0e7ff84799b2a7a1550db3fe61eb5f6f61c2e971e57663
+
+patch_url = https://dl.dropboxusercontent.com/u/37517477/sqlite-meson.tar.gz
+patch_filename = sqlite-meson.tar.gz
+patch_hash = 8c9d00702d5fe4a6bf25a36b821a332f6b2dfd117c66fe818b88b23d604635e9
