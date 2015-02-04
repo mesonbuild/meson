@@ -1,2 +1,2 @@
-bin/user
-lib/libsublib.so
+usr/bin/user
+usr/lib/libsublib.so

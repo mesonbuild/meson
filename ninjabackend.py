@@ -415,15 +415,14 @@ class NinjaBackend(backends.Backend):
                 d.targets.append(i)
 
     def generate_pkgconfig_install(self, d):
-        pkgroot = os.path.join(self.environment.coredata.prefix,
-                               self.environment.coredata.libdir, 'pkgconfig')
+        pkgroot = os.path.join(self.environment.coredata.libdir, 'pkgconfig')
 
         for p in self.build.pkgconfig_gens:
             pcfile = p.filebase + '.pc'
             srcabs = os.path.join(self.environment.get_scratch_dir(),
                                   pcfile)
-            dstabs = os.path.join(pkgroot, pcfile)
-            i = [srcabs, dstabs]
+            dstrel = os.path.join(pkgroot, pcfile)
+            i = [srcabs, dstrel]
             d.man.append(i)
 
     def generate_custom_install_script(self, d):

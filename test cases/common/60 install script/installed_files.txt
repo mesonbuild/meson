@@ -1,2 +1,2 @@
-bin/prog
-diiba/daaba/file.dat
+usr/bin/prog
+usr/diiba/daaba/file.dat

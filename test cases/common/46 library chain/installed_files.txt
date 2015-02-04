@@ -1,4 +1,4 @@
-bin/prog
-lib/liblib1.so
-lib/liblib2.so
-lib/liblib3.so
+usr/bin/prog
+usr/lib/liblib1.so
+usr/lib/liblib2.so
+usr/lib/liblib3.so

@@ -1,1 +1,1 @@
-typelibdir/Meson-1.0.typelib
+usr/typelibdir/Meson-1.0.typelib

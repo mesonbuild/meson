@@ -1,1 +1,1 @@
-bin/prog.exe
+usr/bin/prog.exe

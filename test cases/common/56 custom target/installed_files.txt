@@ -1,1 +1,1 @@
-subdir/data.dat
+usr/subdir/data.dat

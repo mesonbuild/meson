@@ -1,4 +1,4 @@
-dib/dab/dub/prog
-some/dir/sample.h
-woman/prog.1.gz
-meow/datafile.cat
+usr/dib/dab/dub/prog
+usr/some/dir/sample.h
+usr/woman/prog.1.gz
+usr/meow/datafile.cat

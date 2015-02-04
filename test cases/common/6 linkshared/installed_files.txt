@@ -1,2 +1,2 @@
-bin/prog
-lib/libmylib.so
+usr/bin/prog
+usr/lib/libmylib.so

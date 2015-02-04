@@ -37,11 +37,11 @@ def do_install(datafilename):
     d = pickle.load(ifile)
     destdir_var = 'DESTDIR'
     if destdir_var in os.environ:
-        if d.prefix[0] == '/':
-            subdir = d.prefix[1:]
-        else:
-            subdir = d.prefix
-        d.prefix = os.path.join(os.environ[destdir_var], subdir)
+        d.destdir = os.environ[destdir_var]
+    else:
+        d.destdir = ''
+    d.fullprefix = d.destdir + d.prefix
+
     install_subdirs(d) # Must be first, because it needs to delete the old subtree.
     install_targets(d)
     install_headers(d)
@@ -52,6 +52,7 @@ def do_install(datafilename):
 
 def install_subdirs(d):
     for (src_dir, dst_dir) in d.install_subdirs:
+        dst_dir = d.destdir + dst_dir
         # Python's copytree works in strange ways.
         last_level = os.path.split(src_dir)[-1]
         final_dst = os.path.join(dst_dir, last_level)
@@ -65,7 +66,7 @@ def install_po(d):
         srcfile = f[0]
         localedir = f[1]
         languagename = f[2]
-        outfile = os.path.join(d.prefix, localedir, languagename, 'LC_MESSAGES',
+        outfile = os.path.join(d.fullprefix, localedir, languagename, 'LC_MESSAGES',
                                packagename + '.mo')
         os.makedirs(os.path.split(outfile)[0], exist_ok=True)
         shutil.copyfile(srcfile, outfile)
@@ -75,9 +76,13 @@ def install_po(d):
 def install_data(d):
     for i in d.data:
         fullfilename = i[0]
-        outfilerel = i[1]
-        outdir = os.path.join(d.prefix, os.path.split(outfilerel)[0])
-        outfilename = os.path.join(outdir, os.path.split(outfilerel)[1])
+        outfilename = i[1]
+        if os.path.isabs(outfilename):
+            outdir = d.destdir + os.path.split(outfilename)[0]
+            outfilename = d.destdir + outfilename
+        else:
+            outdir = os.path.join(d.fullprefix, os.path.split(outfilename)[0])
+            outfilename = os.path.join(outdir, os.path.split(outfilename)[1])
         os.makedirs(outdir, exist_ok=True)
         print('Installing %s to %s.' % (fullfilename, outdir))
         shutil.copyfile(fullfilename, outfilename)
@@ -86,7 +91,7 @@ def install_data(d):
 def install_man(d):
     for m in d.man:
         outfileroot = m[1]
-        outfilename = os.path.join(d.prefix, outfileroot)
+        outfilename = os.path.join(d.fullprefix, outfileroot)
         full_source_filename = m[0]
         outdir = os.path.split(outfilename)[0]
         os.makedirs(outdir, exist_ok=True)
@@ -100,7 +105,7 @@ def install_man(d):
 def install_headers(d):
     for t in d.headers:
         fullfilename = t[0]
-        outdir = os.path.join(d.prefix, t[1])
+        outdir = os.path.join(d.fullprefix, t[1])
         fname = os.path.split(fullfilename)[1]
         outfilename = os.path.join(outdir, fname)
         print('Installing %s to %s' % (fname, outdir))
@@ -164,7 +169,7 @@ def check_for_stampfile(fname):
 def install_targets(d):
     for t in d.targets:
         fname = check_for_stampfile(t[0])
-        outdir = os.path.join(d.prefix, t[1])
+        outdir = os.path.join(d.fullprefix, t[1])
         aliases = t[2]
         outname = os.path.join(outdir, os.path.split(fname)[-1])
         should_strip = t[3]

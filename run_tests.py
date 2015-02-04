@@ -130,7 +130,7 @@ def run_test(testdir, should_succeed):
     os.mkdir(test_build_dir)
     os.mkdir(install_dir)
     print('Running test: ' + testdir)
-    gen_command = [sys.executable, meson_command, '--prefix', install_dir, testdir, test_build_dir]\
+    gen_command = [sys.executable, meson_command, '--prefix', '/usr', testdir, test_build_dir]\
         + unity_flags + backend_flags
     p = subprocess.Popen(gen_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     (stdo, stde) = p.communicate()
@@ -165,7 +165,9 @@ def run_test(testdir, should_succeed):
         print("Skipping install test")
         return ('', '', '')
     else:
-        pi = subprocess.Popen(install_commands, cwd=test_build_dir,
+        env = os.environ.copy()
+        env['DESTDIR'] = install_dir
+        pi = subprocess.Popen(install_commands, cwd=test_build_dir, env=env,
                           stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (o, e) = pi.communicate()
         stdo += o.decode('utf-8')
