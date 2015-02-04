@@ -52,11 +52,16 @@ def do_install(datafilename):
 
 def install_subdirs(d):
     for (src_dir, dst_dir) in d.install_subdirs:
-        dst_dir = d.destdir + dst_dir
+        if os.path.isabs(dst_dir):
+            dst_dir = d.destdir + dst_dir
+        else:
+            dst_dir = d.fullprefix + dst_dir
         # Python's copytree works in strange ways.
         last_level = os.path.split(src_dir)[-1]
         final_dst = os.path.join(dst_dir, last_level)
-        shutil.rmtree(final_dst, ignore_errors=True)
+# Don't do rmtree because final_dst might point to e.g. /var/www
+# We might need to revert to walking the directory tree by hand.
+#        shutil.rmtree(final_dst, ignore_errors=True)
         shutil.copytree(src_dir, final_dst, symlinks=True)
         print('Installing subdir %s to %s.' % (src_dir, dst_dir))
 
