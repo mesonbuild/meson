@@ -667,7 +667,8 @@ class CustomTarget:
                     'output' : True,
                     'command' : True,
                     'install' : True,
-                    'install_dir' : True}
+                    'install_dir' : True,
+                    'build_always' : True}
     def __init__(self, name, subdir, kwargs):
         self.name = name
         self.subdir = subdir
@@ -740,6 +741,7 @@ class CustomTarget:
                 raise InvalidArguments('"install_dir" must be a string.')
         else:
             self.install = False
+        self.build_always = kwargs.get('build_always', False)
 
     def get_basename(self):
         return self.name
