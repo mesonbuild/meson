@@ -726,6 +726,8 @@ class Interpreter():
                       'get_option' : self.func_get_option,
                       'subproject' : self.func_subproject,
                       'pkgconfig_gen' : self.func_pkgconfig_gen,
+                      'vcs_info' : self.func_vcs_info,
+                      'vcs_configure' : self.func_vcs_configure,
                       }
 
     def get_build_def_files(self):
@@ -828,6 +830,13 @@ class Interpreter():
             if wanted != None:
                 if not isinstance(actual, wanted):
                     raise InvalidArguments('Incorrect argument type.')
+
+    def validate_target_name(self, name):
+        if name in coredata.forbidden_target_names:
+            raise InvalidArguments('Target name "%s" is reserved for Meson\'s internal use. Please rename.'\
+                                   % name)
+        if name in self.build.targets:
+            raise InvalidCode('Tried to create target "%s", but a target of that name already exists.' % name)
 
     def func_run_command(self, node, args, kwargs):
         if len(args) < 1:
@@ -1115,6 +1124,57 @@ class Interpreter():
                                    % name)
         if name in self.build.targets:
             raise InvalidCode('Tried to create target "%s", but a target of that name already exists.' % name)
+        tg = CustomTargetHolder(name, self.subdir, kwargs)
+        self.build.targets[name] = tg.held_object
+        return tg
+
+    def func_vcs_info(self, nodes, args, kwargs):
+        # required: none; optional: name, vcs_cmd, vcs_dir, output, build_always
+        name = args[0] if len(args) > 0 else 'vcs_info'
+        self.validate_target_name(name)
+        vcs_dir = kwargs.pop('vcs_dir', self.environment.get_source_dir())
+        vcs_cmd = None
+
+        vcs_systems = [
+            dict(name = 'git',       cmd = 'git', get_rev = 'git describe', dep = '.git/logs/HEAD', get_root = 'git rev-parse --show-toplevel'),
+            dict(name = 'mercurial', cmd = 'hg',  get_rev = 'hg id -n',     dep = '.hg/dirstate',   get_root = 'hg root'),
+#            dict(name = 'subversion', cmd = 'svn',  get_rev = 'svn info',     dep = '.svn/wc.db',   get_root = 'svn info'),
+        ]
+        for vcs in vcs_systems:
+            if vcs['cmd'] and shutil.which(vcs['cmd']):
+                vcs_root = subprocess.Popen(vcs['get_root'], shell=True, cwd=vcs_dir, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).communicate()[0].decode().strip()
+                vcs_dep = os.path.join(vcs_root, vcs['dep'])
+                if os.path.exists(vcs_dep):
+                    vcs_cmd = vcs['get_rev']
+                    kwargs['input'] = vcs_dep
+                    mlog.log('Found %s repository at %s' % (vcs['name'], vcs_root))
+                    break
+
+        vcs_cmd = kwargs.pop('vcs_cmd', vcs_cmd )
+        if not vcs_cmd:
+            raise InvalidArguments('Could not autodetect vcs system and no custom vcs_cmd was specified.')
+        kwargs.setdefault('output', name)
+        script = os.path.join(self.environment.get_script_dir(), 'meson_vcs_info.py')
+        kwargs['command'] = [script, 'update', vcs_cmd, vcs_dir, '@OUTPUT0@']
+        tg = CustomTargetHolder(name, self.subdir, kwargs)
+        self.build.targets[name] = tg.held_object
+        return tg
+
+    def func_vcs_configure(self, nodes, args, kwargs):
+        # required: name, input, vcs_info; optional: output, config_var_name
+        name = args[0]
+        self.validate_target_name(name)
+        kwargs.setdefault('input', args[1] if len(args)>1 else None)
+        vcs_info = kwargs.pop('vcs_info', None)
+        if not vcs_info:
+            raise InvalidArguments('Missing argument "vcs_info".')
+        if not isinstance(vcs_info, CustomTargetHolder):
+            raise InterpreterException('Argument "vcs_info" is not of type vcs_info')
+        vcs_info = vcs_info.held_object
+        config_var_name = kwargs.pop('config_var_name', 'VCS_INFO')
+        kwargs.setdefault('output', name)
+        script = os.path.join(self.environment.get_script_dir(), 'meson_vcs_info.py')
+        kwargs['command'] = [script, 'configure', vcs_info, config_var_name, '@INPUT0@', '@OUTPUT0@']
         tg = CustomTargetHolder(name, self.subdir, kwargs)
         self.build.targets[name] = tg.held_object
         return tg
