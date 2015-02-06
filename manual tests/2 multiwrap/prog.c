@@ -2,8 +2,10 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<png.h>
-#include<unistd.h>
 #include<string.h>
+#if !defined(_MSC_VER)
+#include<unistd.h>
+#endif
 
 static void *l_alloc (void *ud, void *ptr, size_t osize,
         size_t nsize) {
