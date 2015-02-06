@@ -8,4 +8,4 @@ source_hash = 02f96b6bad5a381d36d7ba7a5d9be3b06f7fe6c274da00707509c23592a073ad
 
 patch_url = https://dl.dropboxusercontent.com/u/37517477/libpng-meson.tar.gz
 patch_filename = libpng-meson.tar.gz
-patch_hash = 59366b68ee0b2d60e7fb4aaf570aa3a745052e248b50e1857e23df15e25e0234
+patch_hash = b91d1abb19711a5aaa4b8581000df0e15420e46d9ce6ecf688e33144ea688f06
