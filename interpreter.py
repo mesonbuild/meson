@@ -922,6 +922,7 @@ class Interpreter():
                 raise InterpreterException('Subproject directory does not exist and can not be downloaded.')
             subdir = os.path.join('subprojects', resolved)
             abs_subdir = os.path.join(self.build.environment.get_source_dir(), 'subprojects', subdir)
+        os.makedirs(os.path.join(self.build.environment.get_build_dir(), subdir), exist_ok=True)
         self.global_args_frozen = True
         mlog.log('\nExecuting subproject ', mlog.bold(dirname), '.\n', sep='')
         subi = Interpreter(self.build, dirname, subdir)

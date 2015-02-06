@@ -79,7 +79,7 @@ class Resolver:
             (pdata, phash) = self.get_data(purl)
             expected = p.get('patch_hash')
             if phash != expected:
-                raise RuntimeError('Incorrect hash for patch %s:\n %s expected\n %s actual.' % (packagename, expected, phash))
+                raise RuntimeError('Incorrect hash for patch %s:\n %s expected\n %s actual' % (packagename, expected, phash))
             open(os.path.join(self.cachedir, p.get('patch_filename')), 'wb').write(pdata)
         else:
             mlog.log('Package does not require patch.')
