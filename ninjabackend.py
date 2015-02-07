@@ -281,6 +281,8 @@ class NinjaBackend(backends.Backend):
         deps = [os.path.join(i.get_subdir(), self.hackety_hack(i.get_filename())) for i in target.get_dependencies()]
         srcs = [os.path.join(self.build_to_src, target.subdir, i) for i in target.sources]
         deps +=  srcs
+        if target.build_always:
+            deps.append('PHONY')
         elem = NinjaBuildElement(ofilenames, 'CUSTOM_COMMAND', deps)
         cmd = []
         for i in target.command:
