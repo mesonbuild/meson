@@ -1,4 +1,4 @@
-# Copyright 2012-2014 The Meson development team
+# Copyright 2012-2015 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -726,6 +726,7 @@ class Interpreter():
                       'get_option' : self.func_get_option,
                       'subproject' : self.func_subproject,
                       'pkgconfig_gen' : self.func_pkgconfig_gen,
+                      'vcs_tag' : self.func_vcs_tag,
                       }
 
     def get_build_def_files(self):
@@ -1104,6 +1105,16 @@ class Interpreter():
 
     def func_jar(self, node, args, kwargs):
         return self.build_target(node, args, kwargs, JarHolder)
+
+    def func_vcs_tag(self, node, args, kwargs):
+        fallback = kwargs.get('fallback', None)
+        if not isinstance(fallback, str):
+            raise InterpreterException('Keyword argument must exist and be a string.')
+        del kwargs['fallback']
+        scriptfile = os.path.join(os.path.split(__file__)[0], 'vcstagger.py')
+        kwargs['command'] = [sys.executable, scriptfile, '@INPUT@', '@OUTPUT@', fallback]
+        kwargs['build_always'] = True
+        return self.func_custom_target(node, ['vcstag'], kwargs)
 
     def func_custom_target(self, node, args, kwargs):
         if len(args) != 1:
