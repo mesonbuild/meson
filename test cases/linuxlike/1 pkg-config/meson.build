@@ -2,7 +2,7 @@ project('external dependency', 'c')
 
 # Zlib is probably on all dev machines.
 
-dep = dependency('zlib')
+dep = dependency('zlib', version : '>=1.2.8')
 exe = executable('zlibprog', 'prog.c', dependencies : dep)
 
 test('zlibtest', exe)

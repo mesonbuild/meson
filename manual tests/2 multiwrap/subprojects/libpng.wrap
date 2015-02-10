@@ -1,0 +1,11 @@
+[mesonwrap]
+
+directory = libpng-1.6.16
+
+source_url = ftp://ftp.simplesystems.org/pub/libpng/png/src/libpng16/libpng-1.6.16.tar.gz
+source_filename = libpng-1.6.16.tar.gz
+source_hash = 02f96b6bad5a381d36d7ba7a5d9be3b06f7fe6c274da00707509c23592a073ad
+
+patch_url = https://dl.dropboxusercontent.com/u/37517477/libpng-meson.tar.gz
+patch_filename = libpng-meson.tar.gz
+patch_hash = b91d1abb19711a5aaa4b8581000df0e15420e46d9ce6ecf688e33144ea688f06

@@ -14,7 +14,7 @@
 
 """A library of random helper functionality."""
 
-import platform, subprocess
+import platform, subprocess, operator
 
 def is_osx():
     return platform.system().lower() == 'darwin'
@@ -41,3 +41,31 @@ def exe_exists(arglist):
     except FileNotFoundError:
         pass
     return False
+
+def version_compare(vstr1, vstr2):
+    if vstr2.startswith('>='):
+        cmpop = operator.ge
+        vstr2 = vstr2[2:]
+    elif vstr2.startswith('<='):
+        cmpop = operator.le
+        vstr2 = vstr2[2:]
+    elif vstr2.startswith('!='):
+        cmpop = operator.ne
+        vstr2 = vstr2[2:]
+    elif vstr2.startswith('=='):
+        cmpop = operator.eq
+        vstr2 = vstr2[2:]
+    elif vstr2.startswith('='):
+        cmpop = operator.eq
+        vstr2 = vstr2[1:]
+    elif vstr2.startswith('>'):
+        cmpop = operator.gt
+        vstr2 = vstr2[1:]
+    elif vstr2.startswith('<'):
+        cmpop = operator.lt
+        vstr2 = vstr2[1:]
+    else:
+        cmpop = operator.eq
+    varr1 = [int(x) for x in vstr1.split('.')]
+    varr2 = [int(x) for x in vstr2.split('.')]
+    return cmpop(varr1, varr2)

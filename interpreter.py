@@ -1,4 +1,4 @@
-# Copyright 2012-2014 The Meson development team
+# Copyright 2012-2015 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -726,8 +726,7 @@ class Interpreter():
                       'get_option' : self.func_get_option,
                       'subproject' : self.func_subproject,
                       'pkgconfig_gen' : self.func_pkgconfig_gen,
-                      'vcs_info' : self.func_vcs_info,
-                      'vcs_configure' : self.func_vcs_configure,
+                      'vcs_tag' : self.func_vcs_tag,
                       }
 
     def get_build_def_files(self):
@@ -931,6 +930,7 @@ class Interpreter():
                 raise InterpreterException('Subproject directory does not exist and can not be downloaded.')
             subdir = os.path.join('subprojects', resolved)
             abs_subdir = os.path.join(self.build.environment.get_source_dir(), 'subprojects', subdir)
+        os.makedirs(os.path.join(self.build.environment.get_build_dir(), subdir), exist_ok=True)
         self.global_args_frozen = True
         mlog.log('\nExecuting subproject ', mlog.bold(dirname), '.\n', sep='')
         subi = Interpreter(self.build, dirname, subdir)
@@ -1112,6 +1112,16 @@ class Interpreter():
 
     def func_jar(self, node, args, kwargs):
         return self.build_target(node, args, kwargs, JarHolder)
+
+    def func_vcs_tag(self, node, args, kwargs):
+        fallback = kwargs.get('fallback', None)
+        if not isinstance(fallback, str):
+            raise InterpreterException('Keyword argument must exist and be a string.')
+        del kwargs['fallback']
+        scriptfile = os.path.join(os.path.split(__file__)[0], 'vcstagger.py')
+        kwargs['command'] = [sys.executable, scriptfile, '@INPUT@', '@OUTPUT@', fallback]
+        kwargs['build_always'] = True
+        return self.func_custom_target(node, ['vcstag'], kwargs)
 
     def func_custom_target(self, node, args, kwargs):
         if len(args) != 1:

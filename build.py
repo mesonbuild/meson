@@ -742,6 +742,8 @@ class CustomTarget:
         else:
             self.install = False
         self.build_always = kwargs.get('build_always', False)
+        if not isinstance(self.build_always, bool):
+            raise InvalidArguments('Argument build_always must be a boolean.')
 
     def get_basename(self):
         return self.name

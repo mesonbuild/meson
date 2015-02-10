@@ -1,0 +1,10 @@
+[mesonwrap]
+directory = zlib-1.2.8
+
+source_url = http://zlib.net/zlib-1.2.8.tar.gz
+source_filename = zlib-1.2.8.tar.gz
+source_hash = 36658cb768a54c1d4dec43c3116c27ed893e88b02ecfcb44f2166f9c0b7f2a0d
+
+patch_url = https://dl.dropboxusercontent.com/u/37517477/zlib128-meson.tar.gz
+patch_filename = zlib128-meson.tar.gz
+patch_hash = 03c868bf22d7e35c978e8b9572c4aea1181606c15c3dd19f0713a8479fe27edc

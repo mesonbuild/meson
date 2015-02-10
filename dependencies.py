@@ -72,7 +72,8 @@ class Dependency():
 class PkgConfigDependency(Dependency):
     pkgconfig_found = None
 
-    def __init__(self, name, required):
+    def __init__(self, name, kwargs):
+        required = kwargs.get('required', True)
         Dependency.__init__(self)
         self.name = name
         if PkgConfigDependency.pkgconfig_found is None:
@@ -92,9 +93,19 @@ class PkgConfigDependency(Dependency):
             self.cargs = []
             self.libs = []
         else:
-            mlog.log('Dependency', mlog.bold(name), 'found:', mlog.green('YES'))
-            self.is_found = True
             self.modversion = out.decode().strip()
+            mlog.log('Dependency', mlog.bold(name), 'found:', mlog.green('YES'), self.modversion)
+            version_requirement = kwargs.get('version', None)
+            if version_requirement is None:
+                self.is_found = True
+            else:
+                if not isinstance(version_requirement, str):
+                    raise DependencyException('Version argument must be string.')
+                self.is_found = mesonlib.version_compare(self.modversion, version_requirement)
+                if not self.is_found and required:
+                    raise DependencyException('Invalid version of a dependency, needed %s %s found %s.' % (name, version_requirement, self.modversion))
+            if not self.is_found:
+                return
             p = subprocess.Popen(['pkg-config', '--cflags', name], stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE)
             out = p.communicate()[0]
@@ -521,7 +532,7 @@ class Qt5Dependency(Dependency):
         if isinstance(mods, str):
             mods = [mods]
         for module in mods:
-            self.modules.append(PkgConfigDependency('Qt5' + module, False))
+            self.modules.append(PkgConfigDependency('Qt5' + module, kwargs))
         if len(self.modules) == 0:
             raise DependencyException('No Qt5 modules specified.')
         if not qt5toolinfo_printed:
@@ -795,7 +806,7 @@ def find_external_dependency(name, kwargs):
     pkg_exc = None
     pkgdep = None
     try:
-        pkgdep = PkgConfigDependency(name, required)
+        pkgdep = PkgConfigDependency(name, kwargs)
         if pkgdep.found():
             return pkgdep
     except Exception as e:
