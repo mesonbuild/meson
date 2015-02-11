@@ -830,13 +830,6 @@ class Interpreter():
                 if not isinstance(actual, wanted):
                     raise InvalidArguments('Incorrect argument type.')
 
-    def validate_target_name(self, name):
-        if name in coredata.forbidden_target_names:
-            raise InvalidArguments('Target name "%s" is reserved for Meson\'s internal use. Please rename.'\
-                                   % name)
-        if name in self.build.targets:
-            raise InvalidCode('Tried to create target "%s", but a target of that name already exists.' % name)
-
     def func_run_command(self, node, args, kwargs):
         if len(args) < 1:
             raise InterpreterException('Not enough arguments')
@@ -1113,15 +1106,50 @@ class Interpreter():
     def func_jar(self, node, args, kwargs):
         return self.build_target(node, args, kwargs, JarHolder)
 
+    def detect_vcs(self, source_dir):
+        vcs_systems = [
+            dict(name = 'git',        cmd = 'git', repo_dir = '.git', get_rev = 'git describe --dirty=+', rev_regex = '(.*)', dep = '.git/logs/HEAD'),
+            dict(name = 'mercurial',  cmd = 'hg',  repo_dir = '.hg',  get_rev = 'hg id -n',               rev_regex = '(.*)', dep = '.hg/dirstate'),
+            dict(name = 'subversion', cmd = 'svn', repo_dir = '.svn', get_rev = 'svn info',               rev_regex = 'Revision: (.*)', dep = '.svn/wc.db'),
+            dict(name = 'bazaar',     cmd = 'bzr', repo_dir = '.bzr', get_rev = 'bzr revno',              rev_regex = '(.*)', dep = '.bzr'),
+        ]
+
+        segs = source_dir.replace('\\', '/').split('/')
+        for i in range(len(segs), -1, -1):
+            curdir = '/'.join(segs[:i])
+            for vcs in vcs_systems:
+                if os.path.isdir(os.path.join(curdir, vcs['repo_dir'])) and shutil.which(vcs['cmd']):
+                    vcs['wc_dir'] = curdir
+                    return vcs
+        return None
+
     def func_vcs_tag(self, node, args, kwargs):
-        fallback = kwargs.get('fallback', None)
+        fallback = kwargs.pop('fallback', None)
         if not isinstance(fallback, str):
             raise InterpreterException('Keyword argument must exist and be a string.')
-        del kwargs['fallback']
-        scriptfile = os.path.join(os.path.split(__file__)[0], 'vcstagger.py')
-        kwargs['command'] = [sys.executable, scriptfile, '@INPUT@', '@OUTPUT@', fallback]
-        kwargs['build_always'] = True
-        return self.func_custom_target(node, ['vcstag'], kwargs)
+        replace_string = kwargs.pop('replace_string', '@VCS_TAG@')
+        regex_selector = '(.*)' # default regex selector for custom command: use complete output
+        vcs_cmd = kwargs.get('command', None)
+        if vcs_cmd and not isinstance(vcs_cmd, list):
+            vcs_cmd = [vcs_cmd]
+        # source_dir = os.path.split(os.path.abspath(kwargs.get('infile')))[0]
+        source_dir = os.path.join(self.environment.get_source_dir(), self.subdir)
+        if vcs_cmd:
+            # Is the command an executable in path or maybe a script in the source tree?
+            vcs_cmd[0] = shutil.which(vcs_cmd[0]) or os.path.join(source_dir, vcs_cmd[0])
+        else:
+            vcs = self.detect_vcs(source_dir)
+            if vcs:
+                mlog.log('Found %s repository at %s' % (vcs['name'], vcs['wc_dir']))
+                vcs_cmd = vcs['get_rev'].split()
+                regex_selector = vcs['rev_regex']
+            else:
+                vcs_cmd = [' '] # executing this cmd will fail in vcstagger.py and force to use the fallback string
+        scriptfile = os.path.join(self.environment.get_script_dir(), 'vcstagger.py')
+        # vcstagger.py parameters: infile, outfile, fallback, source_dir, replace_string, regex_selector, command...
+        kwargs['command'] = [sys.executable, scriptfile, '@INPUT0@', '@OUTPUT0@', fallback, source_dir, replace_string, regex_selector] + vcs_cmd
+        kwargs.setdefault('build_always', True)
+        return self.func_custom_target(node, [kwargs['output']], kwargs)
 
     def func_custom_target(self, node, args, kwargs):
         if len(args) != 1:
@@ -1134,57 +1162,6 @@ class Interpreter():
                                    % name)
         if name in self.build.targets:
             raise InvalidCode('Tried to create target "%s", but a target of that name already exists.' % name)
-        tg = CustomTargetHolder(name, self.subdir, kwargs)
-        self.build.targets[name] = tg.held_object
-        return tg
-
-    def func_vcs_info(self, nodes, args, kwargs):
-        # required: none; optional: name, vcs_cmd, vcs_dir, output, build_always
-        name = args[0] if len(args) > 0 else 'vcs_info'
-        self.validate_target_name(name)
-        vcs_dir = kwargs.pop('vcs_dir', self.environment.get_source_dir())
-        vcs_cmd = None
-
-        vcs_systems = [
-            dict(name = 'git',       cmd = 'git', get_rev = 'git describe', dep = '.git/logs/HEAD', get_root = 'git rev-parse --show-toplevel'),
-            dict(name = 'mercurial', cmd = 'hg',  get_rev = 'hg id -n',     dep = '.hg/dirstate',   get_root = 'hg root'),
-#            dict(name = 'subversion', cmd = 'svn',  get_rev = 'svn info',     dep = '.svn/wc.db',   get_root = 'svn info'),
-        ]
-        for vcs in vcs_systems:
-            if vcs['cmd'] and shutil.which(vcs['cmd']):
-                vcs_root = subprocess.Popen(vcs['get_root'], shell=True, cwd=vcs_dir, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).communicate()[0].decode().strip()
-                vcs_dep = os.path.join(vcs_root, vcs['dep'])
-                if os.path.exists(vcs_dep):
-                    vcs_cmd = vcs['get_rev']
-                    kwargs['input'] = vcs_dep
-                    mlog.log('Found %s repository at %s' % (vcs['name'], vcs_root))
-                    break
-
-        vcs_cmd = kwargs.pop('vcs_cmd', vcs_cmd )
-        if not vcs_cmd:
-            raise InvalidArguments('Could not autodetect vcs system and no custom vcs_cmd was specified.')
-        kwargs.setdefault('output', name)
-        script = os.path.join(self.environment.get_script_dir(), 'meson_vcs_info.py')
-        kwargs['command'] = [script, 'update', vcs_cmd, vcs_dir, '@OUTPUT0@']
-        tg = CustomTargetHolder(name, self.subdir, kwargs)
-        self.build.targets[name] = tg.held_object
-        return tg
-
-    def func_vcs_configure(self, nodes, args, kwargs):
-        # required: name, input, vcs_info; optional: output, config_var_name
-        name = args[0]
-        self.validate_target_name(name)
-        kwargs.setdefault('input', args[1] if len(args)>1 else None)
-        vcs_info = kwargs.pop('vcs_info', None)
-        if not vcs_info:
-            raise InvalidArguments('Missing argument "vcs_info".')
-        if not isinstance(vcs_info, CustomTargetHolder):
-            raise InterpreterException('Argument "vcs_info" is not of type vcs_info')
-        vcs_info = vcs_info.held_object
-        config_var_name = kwargs.pop('config_var_name', 'VCS_INFO')
-        kwargs.setdefault('output', name)
-        script = os.path.join(self.environment.get_script_dir(), 'meson_vcs_info.py')
-        kwargs['command'] = [script, 'configure', vcs_info, config_var_name, '@INPUT0@', '@OUTPUT0@']
         tg = CustomTargetHolder(name, self.subdir, kwargs)
         self.build.targets[name] = tg.held_object
         return tg

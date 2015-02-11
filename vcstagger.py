@@ -14,49 +14,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys, os, subprocess
+import sys, os, subprocess, re
 
-def tag(infile, outfile, fallback):
-    tagid = get_string(infile, fallback)
-    newdata = open(infile).read().replace('@VCS_TAG@', tagid)
+def config_vcs_tag(infile, outfile, fallback, source_dir, replace_string, regex_selector, cmd):
     try:
-        olddata = open(outfile).read()
-        if olddata == newdata:
-            return
+        output = subprocess.check_output(cmd, cwd=source_dir)
+        new_string = re.search(regex_selector, output.decode()).group(1).strip()
     except Exception:
-        pass
-    open(outfile, 'w').write(newdata)
+        new_string = fallback
 
-def get_string(infile, fallback):
-    absfile = os.path.join(os.getcwd(), infile)
-    directory = os.path.split(absfile)[0]
-    segs = directory.replace('\\', '/').split('/')
-    for i in range(len(segs), -1, -1):
-        curdir = '/'.join(segs[:i])
-        if os.path.isdir(os.path.join(curdir, '.git')):
-            output = subprocess.check_output(['git', 'describe'],
-                                             cwd = directory)
-            return output.decode().strip()
-        elif os.path.isdir(os.path.join(curdir, '.hg')):
-            output = subprocess.check_output(['hg', 'identify'],
-                                             cwd=directory)
-            return output.decode().strip()
-        elif os.path.isdir(os.path.join(curdir, '.bzr')):
-            output = subprocess.check_output(['bzr', 'revno'],
-                                             cwd=directory)
-            return output.decode().strip()
-        elif os.path.isdir(os.path.join(curdir, '.svn')):
-            output = subprocess.check_output(['svn', 'info'],
-                                             cwd=directory)
-            for line in output.decode().split('\n'):
-                (k, v) = line.split(':', 1)
-                if k.strip() == 'Revision':
-                    return v.strip()
-            raise RuntimeError('Svn output malformed.')
-    return fallback
+    new_data = open(infile).read().replace(replace_string, new_string)
+    if (not os.path.exists(outfile)) or (open(outfile).read() != new_data):
+        open(outfile, 'w').write(new_data)
 
 if __name__ == '__main__':
-    infile = sys.argv[1]
-    outfile = sys.argv[2]
-    fallback = sys.argv[3]
-    tag(infile, outfile, fallback)
+    infile, outfile, fallback, source_dir, replace_string, regex_selector = sys.argv[1:7]
+    command = sys.argv[7:]
+    config_vcs_tag(infile, outfile, fallback, source_dir, replace_string, regex_selector, command)
