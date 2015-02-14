@@ -20,6 +20,7 @@ import mlog
 import build
 import optinterpreter
 import wrap
+import mesonlib
 import os, sys, platform, subprocess, shutil, uuid
 
 class InterpreterException(coredata.MesonException):
@@ -1106,23 +1107,6 @@ class Interpreter():
     def func_jar(self, node, args, kwargs):
         return self.build_target(node, args, kwargs, JarHolder)
 
-    def detect_vcs(self, source_dir):
-        vcs_systems = [
-            dict(name = 'git',        cmd = 'git', repo_dir = '.git', get_rev = 'git describe --dirty=+', rev_regex = '(.*)', dep = '.git/logs/HEAD'),
-            dict(name = 'mercurial',  cmd = 'hg',  repo_dir = '.hg',  get_rev = 'hg id -n',               rev_regex = '(.*)', dep = '.hg/dirstate'),
-            dict(name = 'subversion', cmd = 'svn', repo_dir = '.svn', get_rev = 'svn info',               rev_regex = 'Revision: (.*)', dep = '.svn/wc.db'),
-            dict(name = 'bazaar',     cmd = 'bzr', repo_dir = '.bzr', get_rev = 'bzr revno',              rev_regex = '(.*)', dep = '.bzr'),
-        ]
-
-        segs = source_dir.replace('\\', '/').split('/')
-        for i in range(len(segs), -1, -1):
-            curdir = '/'.join(segs[:i])
-            for vcs in vcs_systems:
-                if os.path.isdir(os.path.join(curdir, vcs['repo_dir'])) and shutil.which(vcs['cmd']):
-                    vcs['wc_dir'] = curdir
-                    return vcs
-        return None
-
     def func_vcs_tag(self, node, args, kwargs):
         fallback = kwargs.pop('fallback', None)
         if not isinstance(fallback, str):
@@ -1138,7 +1122,7 @@ class Interpreter():
             # Is the command an executable in path or maybe a script in the source tree?
             vcs_cmd[0] = shutil.which(vcs_cmd[0]) or os.path.join(source_dir, vcs_cmd[0])
         else:
-            vcs = self.detect_vcs(source_dir)
+            vcs = mesonlib.detect_vcs(source_dir)
             if vcs:
                 mlog.log('Found %s repository at %s' % (vcs['name'], vcs['wc_dir']))
                 vcs_cmd = vcs['get_rev'].split()

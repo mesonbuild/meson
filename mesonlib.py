@@ -14,7 +14,7 @@
 
 """A library of random helper functionality."""
 
-import platform, subprocess, operator
+import platform, subprocess, operator, os, shutil
 
 def is_osx():
     return platform.system().lower() == 'darwin'
@@ -41,6 +41,23 @@ def exe_exists(arglist):
     except FileNotFoundError:
         pass
     return False
+
+def detect_vcs(source_dir):
+    vcs_systems = [
+        dict(name = 'git',        cmd = 'git', repo_dir = '.git', get_rev = 'git describe --dirty=+', rev_regex = '(.*)', dep = '.git/logs/HEAD'),
+        dict(name = 'mercurial',  cmd = 'hg',  repo_dir = '.hg',  get_rev = 'hg id -n',               rev_regex = '(.*)', dep = '.hg/dirstate'),
+        dict(name = 'subversion', cmd = 'svn', repo_dir = '.svn', get_rev = 'svn info',               rev_regex = 'Revision: (.*)', dep = '.svn/wc.db'),
+        dict(name = 'bazaar',     cmd = 'bzr', repo_dir = '.bzr', get_rev = 'bzr revno',              rev_regex = '(.*)', dep = '.bzr'),
+    ]
+
+    segs = source_dir.replace('\\', '/').split('/')
+    for i in range(len(segs), -1, -1):
+        curdir = '/'.join(segs[:i])
+        for vcs in vcs_systems:
+            if os.path.isdir(os.path.join(curdir, vcs['repo_dir'])) and shutil.which(vcs['cmd']):
+                vcs['wc_dir'] = curdir
+                return vcs
+    return None
 
 def version_compare(vstr1, vstr2):
     if vstr2.startswith('>='):
