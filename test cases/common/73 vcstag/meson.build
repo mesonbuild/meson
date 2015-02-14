@@ -5,7 +5,7 @@ output : 'vcstag.c',
 fallback : '1.0.0')
 
 version_src_custom = vcs_tag(input : 'vcstag.c.in',
-output : 'vcstag-cusom.c',
+output : 'vcstag-custom.c',
 command : ['git', 'show-ref', '-s', 'refs/heads/master'],
 fallback : '1.0.0')
 
