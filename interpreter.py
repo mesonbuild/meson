@@ -20,6 +20,7 @@ import mlog
 import build
 import optinterpreter
 import wrap
+import mesonlib
 import os, sys, platform, subprocess, shutil, uuid
 
 class InterpreterException(coredata.MesonException):
@@ -1107,14 +1108,32 @@ class Interpreter():
         return self.build_target(node, args, kwargs, JarHolder)
 
     def func_vcs_tag(self, node, args, kwargs):
-        fallback = kwargs.get('fallback', None)
+        fallback = kwargs.pop('fallback', None)
         if not isinstance(fallback, str):
             raise InterpreterException('Keyword argument must exist and be a string.')
-        del kwargs['fallback']
-        scriptfile = os.path.join(os.path.split(__file__)[0], 'vcstagger.py')
-        kwargs['command'] = [sys.executable, scriptfile, '@INPUT@', '@OUTPUT@', fallback]
-        kwargs['build_always'] = True
-        return self.func_custom_target(node, ['vcstag'], kwargs)
+        replace_string = kwargs.pop('replace_string', '@VCS_TAG@')
+        regex_selector = '(.*)' # default regex selector for custom command: use complete output
+        vcs_cmd = kwargs.get('command', None)
+        if vcs_cmd and not isinstance(vcs_cmd, list):
+            vcs_cmd = [vcs_cmd]
+        # source_dir = os.path.split(os.path.abspath(kwargs.get('infile')))[0]
+        source_dir = os.path.join(self.environment.get_source_dir(), self.subdir)
+        if vcs_cmd:
+            # Is the command an executable in path or maybe a script in the source tree?
+            vcs_cmd[0] = shutil.which(vcs_cmd[0]) or os.path.join(source_dir, vcs_cmd[0])
+        else:
+            vcs = mesonlib.detect_vcs(source_dir)
+            if vcs:
+                mlog.log('Found %s repository at %s' % (vcs['name'], vcs['wc_dir']))
+                vcs_cmd = vcs['get_rev'].split()
+                regex_selector = vcs['rev_regex']
+            else:
+                vcs_cmd = [' '] # executing this cmd will fail in vcstagger.py and force to use the fallback string
+        scriptfile = os.path.join(self.environment.get_script_dir(), 'vcstagger.py')
+        # vcstagger.py parameters: infile, outfile, fallback, source_dir, replace_string, regex_selector, command...
+        kwargs['command'] = [sys.executable, scriptfile, '@INPUT0@', '@OUTPUT0@', fallback, source_dir, replace_string, regex_selector] + vcs_cmd
+        kwargs.setdefault('build_always', True)
+        return self.func_custom_target(node, [kwargs['output']], kwargs)
 
     def func_custom_target(self, node, args, kwargs):
         if len(args) != 1:
