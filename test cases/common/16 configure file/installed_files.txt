@@ -1,0 +1,1 @@
+usr/share/appdir/config2.h

@@ -303,8 +303,9 @@ class Headers(InterpreterObject):
         return self.custom_install_dir
 
 class Data(InterpreterObject):
-    def __init__(self, source_subdir, sources, kwargs):
+    def __init__(self, in_sourcetree, source_subdir, sources, kwargs):
         InterpreterObject.__init__(self)
+        self.in_sourcetree = in_sourcetree
         self.source_subdir = source_subdir
         self.sources = sources
         kwsource = kwargs.get('sources', [])
@@ -1269,7 +1270,7 @@ class Interpreter():
         for a in args:
             if not isinstance(a, str):
                 raise InvalidArguments('Argument %s is not a string.' % str(a))
-        data = Data(self.subdir, args, kwargs)
+        data = Data(True, self.subdir, args, kwargs)
         self.build.data.append(data)
         return data
 
@@ -1295,9 +1296,9 @@ class Interpreter():
             raise InterpreterException('Required keyword argument "input" not defined.')
         if not 'output' in kwargs:
             raise InterpreterException('Required keyword argument "output" not defined.')
+        inputfile = kwargs['input']
+        output = kwargs['output']
         if 'configuration' in kwargs:
-            inputfile = kwargs['input']
-            output = kwargs['output']
             conf = kwargs['configuration']
             if not isinstance(conf, ConfigurationDataHolder):
                 raise InterpreterException('Argument "configuration" is not of type configuration_data')
@@ -1314,6 +1315,8 @@ class Interpreter():
                                            (res.stdout, res.stderr))
         else:
             raise InterpreterException('Configure_file must have either "configuration" or "command".')
+        if isinstance(kwargs.get('install_dir', None), str):
+            self.build.data.append(Data(False, self.subdir, [output], kwargs))
 
     def func_include_directories(self, node, args, kwargs):
         absbase = os.path.join(self.environment.get_source_dir(), self.subdir)

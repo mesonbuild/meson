@@ -464,7 +464,11 @@ class NinjaBackend(backends.Backend):
         for de in data:
             subdir = de.get_install_dir()
             for f in de.get_sources():
-                srcabs = os.path.join(self.environment.get_source_dir(), de.get_source_subdir(), f)
+                if de.in_sourcetree:
+                    srcprefix = self.environment.get_source_dir()
+                else:
+                    srcprefix = self.environment.get_build_dir()
+                srcabs = os.path.join(srcprefix, de.get_source_subdir(), f)
                 dstabs = os.path.join(subdir, f)
                 i = [srcabs, dstabs]
                 d.data.append(i)

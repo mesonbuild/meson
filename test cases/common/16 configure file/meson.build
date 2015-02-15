@@ -22,7 +22,8 @@ ofile = '@0@/config2.h'.format(meson.current_build_dir())
 
 configure_file(input : 'dummy.dat',
 output : 'config2.h',
-command : [genprog, scriptfile,  ifile, ofile])
+command : [genprog, scriptfile,  ifile, ofile],
+install_dir : 'share/appdir')
 
 test('inctest2', executable('prog2', 'prog2.c',
 include_directories : include_directories('.')))
