@@ -42,7 +42,7 @@ else:
 
 parser.add_option('--prefix', default=def_prefix, dest='prefix',
                   help='the installation prefix (default: %default)')
-parser.add_option('--libdir', default='lib', dest='libdir',
+parser.add_option('--libdir', default=mesonlib.default_libdir(), dest='libdir',
                   help='the installation subdir of libraries (default: %default)')
 parser.add_option('--bindir', default='bin', dest='bindir',
                   help='the installation subdir of executables (default: %default)')

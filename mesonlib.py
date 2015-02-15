@@ -86,3 +86,9 @@ def version_compare(vstr1, vstr2):
     varr1 = [int(x) for x in vstr1.split('.')]
     varr2 = [int(x) for x in vstr2.split('.')]
     return cmpop(varr1, varr2)
+
+def default_libdir():
+    if os.path.isfile('/etc/debian_version'):
+        archpath = subprocess.check_output(['dpkg-architecture', '-qDEB_HOST_MULTIARCH']).decode().strip()
+        return 'lib/' + archpath
+    return 'lib'
