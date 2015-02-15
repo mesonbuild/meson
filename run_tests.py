@@ -130,7 +130,7 @@ def run_test(testdir, should_succeed):
     os.mkdir(test_build_dir)
     os.mkdir(install_dir)
     print('Running test: ' + testdir)
-    gen_command = [sys.executable, meson_command, '--prefix', '/usr', testdir, test_build_dir]\
+    gen_command = [sys.executable, meson_command, '--prefix', '/usr', '--libdir', 'lib', testdir, test_build_dir]\
         + unity_flags + backend_flags
     p = subprocess.Popen(gen_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     (stdo, stde) = p.communicate()

@@ -45,7 +45,7 @@ def run_test(testdir, should_succeed=True):
     os.mkdir(test_build_dir)
     os.mkdir(install_dir)
     print('Running test: ' + testdir)
-    gen_command = [sys.executable, meson_command, '--prefix', install_dir, testdir, test_build_dir] + extra_flags
+    gen_command = [sys.executable, meson_command, '--prefix', install_dir, '--libdir', 'lib', testdir, test_build_dir] + extra_flags
     p = subprocess.Popen(gen_command)
     p.wait()
     if not should_succeed:
