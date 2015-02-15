@@ -1,4 +1,4 @@
 project('data install test', 'c')
-install_data('progname', sources : 'datafile.dat')
-install_data('dummy', sources : 'etcfile.dat', install_dir : '/etc')
+install_data(sources : 'datafile.dat', install_dir : 'share/progname')
+install_data(sources : 'etcfile.dat', install_dir : '/etc')
 subdir('vanishing')

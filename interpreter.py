@@ -303,17 +303,19 @@ class Headers(InterpreterObject):
         return self.custom_install_dir
 
 class Data(InterpreterObject):
-    def __init__(self, source_subdir, subdir, sources, kwargs):
+    def __init__(self, source_subdir, sources, kwargs):
         InterpreterObject.__init__(self)
         self.source_subdir = source_subdir
-        self.install_subdir = subdir
         self.sources = sources
         kwsource = kwargs.get('sources', [])
         if not isinstance(kwsource, list):
             kwsource = [kwsource]
         self.sources += kwsource
-        self.custom_install_dir = kwargs.get('install_dir', None)
-        if self.custom_install_dir is not None and not isinstance(self.custom_install_dir, str):
+        for s in self.sources:
+            if not isinstance(s, str):
+                raise InterpreterException('Install file name must be a string.')
+        self.install_dir = kwargs.get('install_dir', None)
+        if not isinstance(self.install_dir, str):
             raise InterpreterException('Custom_install_dir must be a string.')
 
     def get_install_subdir(self):
@@ -325,8 +327,8 @@ class Data(InterpreterObject):
     def get_sources(self):
         return self.sources
 
-    def get_custom_install_dir(self):
-        return self.custom_install_dir
+    def get_install_dir(self):
+        return self.install_dir
 
 class InstallDir(InterpreterObject):
     def __init__(self, source_subdir, installable_subdir, install_dir):
@@ -1264,12 +1266,10 @@ class Interpreter():
         self.subdir = prev_subdir
 
     def func_install_data(self, node, args, kwargs):
-        if len(args ) < 1:
-            raise InvalidArguments('Data function must have at least one argument: the subdirectory.')
         for a in args:
             if not isinstance(a, str):
                 raise InvalidArguments('Argument %s is not a string.' % str(a))
-        data = Data(self.subdir, args[0], args[1:], kwargs)
+        data = Data(self.subdir, args, kwargs)
         self.build.data.append(data)
         return data
 

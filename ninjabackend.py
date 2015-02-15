@@ -462,9 +462,7 @@ class NinjaBackend(backends.Backend):
         dataroot = self.environment.get_datadir()
         data = self.build.get_data()
         for de in data:
-            subdir = de.get_custom_install_dir()
-            if subdir is None:
-                subdir = os.path.join(dataroot, de.get_install_subdir())
+            subdir = de.get_install_dir()
             for f in de.get_sources():
                 srcabs = os.path.join(self.environment.get_source_dir(), de.get_source_subdir(), f)
                 dstabs = os.path.join(subdir, f)
