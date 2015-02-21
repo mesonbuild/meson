@@ -21,7 +21,7 @@ import build
 import optinterpreter
 import wrap
 import mesonlib
-import os, sys, platform, subprocess, shutil, uuid
+import os, sys, platform, subprocess, shutil, uuid, re
 
 class InterpreterException(coredata.MesonException):
     pass
@@ -786,16 +786,18 @@ class Interpreter():
         if len(args) != 2:
             raise InvalidCode('Set_variable takes two arguments.')
         varname = args[0]
-        if not isinstance(varname, str):
-            raise InvalidCode('First argument to set_variable must be a string.')
         value = self.to_native(args[1])
         self.set_variable(varname, value)
 
     def set_variable(self, varname, variable):
         if variable is None:
             raise InvalidCode('Can not assign None to variable.')
+        if not isinstance(varname, str):
+            raise InvalidCode('First argument to set_variable must be a string.')
         if not self.is_assignable(variable):
             raise InvalidCode('Assigned value not of assignable type.')
+        if re.fullmatch('[_a-zA-Z][_0-9a-zA-Z]*', varname) is None:
+            raise InvalidCode('Invalid variable name: ' + varname)
         if varname in self.builtin:
             raise InvalidCode('Tried to overwrite internal variable "%s"' % varname)
         self.variables[varname] = variable
