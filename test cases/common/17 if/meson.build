@@ -1,7 +1,7 @@
 project('if test', 'c')
 
 var1 = true
-var2 = false
+set_variable('var2', false)
 
 if var1
   exe = executable('prog', 'prog.c')

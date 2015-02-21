@@ -731,6 +731,7 @@ class Interpreter():
                       'subproject' : self.func_subproject,
                       'pkgconfig_gen' : self.func_pkgconfig_gen,
                       'vcs_tag' : self.func_vcs_tag,
+                      'set_variable' : self.func_set_variable,
                       }
 
     def get_build_def_files(self):
@@ -781,7 +782,20 @@ class Interpreter():
             return self.variables[varname]
         raise InvalidCode('Unknown variable "%s".' % varname)
 
+    def func_set_variable(self, node, args, kwargs):
+        if len(args) != 2:
+            raise InvalidCode('Set_variable takes two arguments.')
+        varname = args[0]
+        if not isinstance(varname, str):
+            raise InvalidCode('First argument to set_variable must be a string.')
+        value = self.to_native(args[1])
+        self.set_variable(varname, value)
+
     def set_variable(self, varname, variable):
+        if variable is None:
+            raise InvalidCode('Can not assign None to variable.')
+        if not self.is_assignable(variable):
+            raise InvalidCode('Assigned value not of assignable type.')
         if varname in self.builtin:
             raise InvalidCode('Tried to overwrite internal variable "%s"' % varname)
         self.variables[varname] = variable
@@ -1433,8 +1447,6 @@ class Interpreter():
         if not isinstance(var_name, str):
             raise InvalidArguments('Tried to assign value to a non-variable.')
         value = self.evaluate_statement(node.value)
-        if value is None:
-            raise InvalidCode('Can not assign None to variable.')
         value = self.to_native(value)
         if not self.is_assignable(value):
             raise InvalidCode('Tried to assign an invalid value to variable.')
