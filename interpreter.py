@@ -169,6 +169,15 @@ class ConfigurationDataHolder(InterpreterObject):
 # Interpreter objects can not be pickled so we must have
 # these wrappers.
 
+class DependencyHolder(InterpreterObject):
+    def __init__(self, dep):
+        InterpreterObject.__init__(self)
+        self.held_object = dep
+        self.methods.update({'found' : self.found_method})
+
+    def found_method(self, args, kwargs):
+        return self.held_object.found()
+
 class ExternalProgramHolder(InterpreterObject):
     def __init__(self, ep):
         InterpreterObject.__init__(self)
@@ -1112,7 +1121,7 @@ class Interpreter():
         if not dep.found():
             dep = dependencies.find_external_dependency(name, kwargs)
         self.coredata.deps[identifier] = dep
-        return dep
+        return DependencyHolder(dep)
 
     def func_executable(self, node, args, kwargs):
         return self.build_target(node, args, kwargs, ExecutableHolder)
