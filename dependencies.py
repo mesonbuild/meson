@@ -367,7 +367,7 @@ class BoostDependency(Dependency):
     def detect_lib_modules(self):
         globber = 'libboost_*.so' # FIXME, make platform independent.
         if self.boost_root is None:
-            libdirs = environment.get_library_dirs()
+            libdirs = mesonlib.get_library_dirs()
         else:
             libdirs = [os.path.join(self.boost_root, 'lib')]
         for libdir in libdirs:
@@ -417,7 +417,6 @@ class GTestDependency(Dependency):
         Dependency.__init__(self)
         self.main = kwargs.get('main', False)
         self.name = 'gtest'
-        self.libdir = '/usr/lib'
         self.libname = 'libgtest.so'
         self.libmain_name = 'libgtest_main.so'
         self.include_dir = '/usr/include'
@@ -431,9 +430,15 @@ class GTestDependency(Dependency):
         return self.is_found
 
     def detect(self):
-        libname = os.path.join(self.libdir, self.libname)
-        mainname = os.path.join(self.libdir, self.libmain_name)
-        if os.path.exists(libname) and os.path.exists(mainname):
+        trial_dirs = mesonlib.get_library_dirs()
+        glib_found = False
+        gmain_found = False
+        for d in trial_dirs:
+            if os.path.isfile(os.path.join(d, self.libname)):
+                glib_found = True
+            if os.path.isfile(os.path.join(d, self.libmain_name)):
+                gmain_found = True
+        if glib_found and gmain_found:
             self.is_found = True
             self.compile_args = []
             self.link_args = ['-lgtest']
@@ -478,32 +483,36 @@ class GMockDependency(Dependency):
         # GMock may be a library or just source.
         # Work with both.
         self.name = 'gmock'
-        self.libdir = '/usr/lib'
         self.libname = 'libgmock.so'
-        self.src_include_dir = '/usr/src/gmock'
-        self.src_dir = '/usr/src/gmock/src'
-        self.all_src = os.path.join(self.src_dir, 'gmock-all.cc')
-        self.main_src = os.path.join(self.src_dir, 'gmock_main.cc')
-        fname = os.path.join(self.libdir, self.libname)
-        if os.path.exists(fname):
+        trial_dirs = mesonlib.get_library_dirs()
+        gmock_found = False
+        for d in trial_dirs:
+            if os.path.isfile(os.path.join(d, self.libname)):
+                gmock_found = True
+        if gmock_found:
             self.is_found = True
             self.compile_args = []
             self.link_args = ['-lgmock']
             self.sources = []
             mlog.log('Dependency GMock found:', mlog.green('YES'), '(prebuilt)')
-        elif os.path.exists(self.src_dir):
-            self.is_found = True
-            self.compile_args = ['-I' + self.src_include_dir]
-            self.link_args = []
-            if kwargs.get('main', False):
-                self.sources = [self.all_src, self.main_src]
-            else:
-                self.sources = [self.all_src]
-            mlog.log('Dependency GMock found:', mlog.green('YES'), '(building self)')
+            return
 
-        else:
-            mlog.log('Dependency GMock found:', mlog.red('NO'))
-            self.is_found = False
+        for d in ['/usr/src/gmock/src', '/usr/src/gmock']:
+            if os.path.exists(d):
+                self.is_found = True
+                self.compile_args = ['-I' + d]
+                self.link_args = []
+                all_src = os.path.join(d, 'gmock-all.cc')
+                main_src = os.path.join(d, 'gmock_main.cc')
+                if kwargs.get('main', False):
+                    self.sources = [all_src, main_src]
+                else:
+                    self.sources = [all_src]
+                mlog.log('Dependency GMock found:', mlog.green('YES'), '(building self)')
+                return
+
+        mlog.log('Dependency GMock found:', mlog.red('NO'))
+        self.is_found = False
 
     def get_version(self):
         return '1.something_maybe'

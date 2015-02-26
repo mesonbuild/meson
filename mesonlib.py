@@ -15,6 +15,7 @@
 """A library of random helper functionality."""
 
 import platform, subprocess, operator, os, shutil
+from glob import glob
 
 def is_osx():
     return platform.system().lower() == 'darwin'
@@ -92,3 +93,30 @@ def default_libdir():
         archpath = subprocess.check_output(['dpkg-architecture', '-qDEB_HOST_MULTIARCH']).decode().strip()
         return 'lib/' + archpath
     return 'lib'
+
+def get_library_dirs():
+    if is_windows():
+        return ['C:/mingw/lib'] # Fixme
+    if is_osx():
+        return ['/usr/lib'] # Fix me as well.
+    # The following is probably Debian/Ubuntu specific.
+    # /usr/local/lib is first because it contains stuff
+    # installed by the sysadmin and is probably more up-to-date
+    # than /usr/lib. If you feel that this search order is
+    # problematic, please raise the issue on the mailing list.
+    unixdirs = ['/usr/local/lib', '/usr/lib', '/lib']
+    plat = subprocess.check_output(['uname', '-m']).decode().strip()
+    # This is a terrible hack. I admit it and I'm really sorry.
+    # I just don't know what the correct solution is.
+    if plat == 'i686':
+        plat = 'i386'
+    if plat.startswith('arm'):
+        plat = 'arm'
+    unixdirs += glob('/usr/lib/' + plat + '*')
+    if os.path.exists('/usr/lib64'):
+        unixdirs.append('/usr/lib64')
+    unixdirs += glob('/lib/' + plat + '*')
+    if os.path.exists('/lib64'):
+        unixdirs.append('/lib64')
+    unixdirs += glob('/lib/' + plat + '*')
+    return unixdirs

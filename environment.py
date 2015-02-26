@@ -548,7 +548,7 @@ class Environment():
         return self.coredata.datadir
 
     def find_library(self, libname):
-        dirs = self.get_library_dirs()
+        dirs = mesonlib.get_library_dirs()
         suffixes = [self.get_shared_lib_suffix(), self.get_static_lib_suffix()]
         prefix = self.get_shared_lib_prefix()
         for d in dirs:
@@ -557,35 +557,6 @@ class Environment():
                 if os.path.isfile(trial):
                     return trial
 
-    def get_library_dirs(self):
-        return get_library_dirs()
-
-def get_library_dirs():
-        if mesonlib.is_windows():
-            return ['C:/mingw/lib'] # Fixme
-        if mesonlib.is_osx():
-            return ['/usr/lib'] # Fix me as well.
-        # The following is probably Debian/Ubuntu specific.
-        # /usr/local/lib is first because it contains stuff
-        # installed by the sysadmin and is probably more up-to-date
-        # than /usr/lib. If you feel that this search order is
-        # problematic, please raise the issue on the mailing list.
-        unixdirs = ['/usr/local/lib', '/usr/lib', '/lib']
-        plat = subprocess.check_output(['uname', '-m']).decode().strip()
-        # This is a terrible hack. I admit it and I'm really sorry.
-        # I just don't know what the correct solution is.
-        if plat == 'i686':
-            plat = 'i386'
-        if plat.startswith('arm'):
-            plat = 'arm'
-        unixdirs += glob('/usr/lib/' + plat + '*')
-        if os.path.exists('/usr/lib64'):
-            unixdirs.append('/usr/lib64')
-        unixdirs += glob('/lib/' + plat + '*')
-        if os.path.exists('/lib64'):
-            unixdirs.append('/lib64')
-        unixdirs += glob('/lib/' + plat + '*')
-        return unixdirs
 
 def get_args_from_envvars(lang):
     if lang == 'c':
