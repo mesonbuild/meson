@@ -689,9 +689,15 @@ class GnuStepDependency(Dependency):
 
     def detect(self):
         confprog = 'gnustep-config'
-        gp = subprocess.Popen([confprog, '--help'],
-                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        gp.communicate()
+        try:
+            gp = subprocess.Popen([confprog, '--help'],
+                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            
+            gp.communicate()
+        except FileNotFoundError:
+            self.args = None
+            mlog.log('Dependency GnuStep found:', mlog.red('NO'), '(no gnustep-config)')
+            return
         if gp.returncode != 0:
             self.args = None
             mlog.log('Dependency GnuStep found:', mlog.red('NO'))
