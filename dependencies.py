@@ -165,11 +165,16 @@ class WxDependency(Dependency):
             mlog.log('Dependency wxwidgets found:', mlog.red('NO'))
             self.cargs = []
             self.libs = []
-            self.is_found = False
         else:
+            self.modversion = out.decode().strip()
+            version_req = kwargs.get('version', None)
+            if version_req is not None:
+                if not mesonlib.version_compare(self.modversion, version_req):
+                    mlog.log('Wxwidgets version %s does not fullfill requirement %s' %\
+                             (self.modversion, version_req))
+                    return
             mlog.log('Dependency wxwidgets found:', mlog.green('YES'))
             self.is_found = True
-            self.modversion = out.decode().strip()
             # wx-config seems to have a cflags as well but since it requires C++,
             # this should be good, at least for now.
             p = subprocess.Popen([self.wxc, '--cxxflags'], stdout=subprocess.PIPE,
