@@ -158,7 +158,7 @@ class WxDependency(Dependency):
         if not WxDependency.wx_found:
             raise DependencyException('Wx-config not found.')
         self.is_found = False
-        p = subprocess.Popen(['wx-config', '--version'], stdout=subprocess.PIPE,
+        p = subprocess.Popen([self.wxc, '--version'], stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE)
         out = p.communicate()[0]
         if p.returncode != 0:
@@ -172,14 +172,14 @@ class WxDependency(Dependency):
             self.modversion = out.decode().strip()
             # wx-config seems to have a cflags as well but since it requires C++,
             # this should be good, at least for now.
-            p = subprocess.Popen(['wx-config', '--cxxflags'], stdout=subprocess.PIPE,
+            p = subprocess.Popen([self.wxc, '--cxxflags'], stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE)
             out = p.communicate()[0]
             if p.returncode != 0:
                 raise RuntimeError('Could not generate cargs for wxwidgets.')
             self.cargs = out.decode().split()
 
-            p = subprocess.Popen(['wx-config', '--libs'], stdout=subprocess.PIPE,
+            p = subprocess.Popen([self.wxc, '--libs'], stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE)
             out = p.communicate()[0]
             if p.returncode != 0:
@@ -196,17 +196,19 @@ class WxDependency(Dependency):
         return self.libs
 
     def check_wxconfig(self):
-        try:
-            p = subprocess.Popen(['wx-config', '--version'], stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE)
-            out = p.communicate()[0]
-            if p.returncode == 0:
-                mlog.log('Found wx-config:', mlog.bold(shutil.which('wx-config')),
-                         '(%s)' % out.decode().strip())
-                WxDependency.wx_found = True
-                return
-        except Exception:
-            pass
+        for wxc in ['wx-config-3.0', 'wx-config']:
+            try:
+                p = subprocess.Popen([wxc, '--version'], stdout=subprocess.PIPE,
+                                     stderr=subprocess.PIPE)
+                out = p.communicate()[0]
+                if p.returncode == 0:
+                    mlog.log('Found wx-config:', mlog.bold(shutil.which(wxc)),
+                             '(%s)' % out.decode().strip())
+                    self.wxc = wxc
+                    WxDependency.wx_found = True
+                    return
+            except Exception:
+                pass
         WxDependency.wxconfig_found = False
         mlog.log('Found wx-config:', mlog.red('NO'))
 
