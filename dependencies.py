@@ -223,6 +223,7 @@ class WxDependency(Dependency):
 class ExternalProgram():
     def __init__(self, name, fullpath=None, silent=False, search_dir=None):
         self.name = name
+        self.fullpath = None
         if fullpath is not None:
             if not isinstance(fullpath, list):
                 self.fullpath = [fullpath]
@@ -559,13 +560,13 @@ class Qt5Dependency(Dependency):
         # The binaries have different names on different
         # distros. Joy.
         global qt5toolinfo_printed
-        self.moc = ExternalProgram('moc', ['moc'], silent=True)
+        self.moc = ExternalProgram('moc', silent=True)
         if not self.moc.found():
             self.moc = ExternalProgram('moc-qt5', silent=True)
-        self.uic = ExternalProgram('uic', ['uic'], silent=True)
+        self.uic = ExternalProgram('uic', silent=True)
         if not self.uic.found():
             self.uic = ExternalProgram('uic-qt5', silent=True)
-        self.rcc = ExternalProgram('rcc', ['rcc'], silent=True)
+        self.rcc = ExternalProgram('rcc', silent=True)
         if not self.rcc.found():
             self.rcc = ExternalProgram('rcc-qt5', silent=True)
 
