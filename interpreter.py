@@ -21,6 +21,7 @@ import build
 import optinterpreter
 import wrap
 import mesonlib
+import glib
 import os, sys, platform, subprocess, shutil, uuid, re
 
 class InterpreterException(coredata.MesonException):
@@ -742,6 +743,7 @@ class Interpreter():
                       'vcs_tag' : self.func_vcs_tag,
                       'set_variable' : self.func_set_variable,
                       }
+        glib._add_funcs(self)
 
     def get_build_def_files(self):
         return self.build_def_files
