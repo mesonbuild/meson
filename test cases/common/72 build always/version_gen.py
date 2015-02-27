@@ -6,19 +6,20 @@ def generate(infile, outfile, fallback):
     workdir = os.path.split(infile)[0]
     if workdir == '':
         workdir = '.'
-    p = subprocess.Popen(['git', 'describe'], cwd=workdir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    (stdo, _) = p.communicate()
-    # If we are working off an extracted tarball, git version number is not available.
-    if p.returncode == 0:
-        version = stdo.decode().strip()
-    else:
-        version = fallback
+    version = fallback
+    try:
+        p = subprocess.Popen(['git', 'describe'], cwd=workdir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        (stdo, _) = p.communicate()
+        if p.returncode == 0:
+            version = stdo.decode().strip()
+    except:
+        pass
     newdata = open(infile).read().replace('@VERSION@', version)
     try:
         olddata = open(outfile).read()
         if olddata == newdata:
             return
-    except Exception:
+    except:
         pass
     open(outfile, 'w').write(newdata)
 
