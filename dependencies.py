@@ -508,7 +508,9 @@ class GMockDependency(Dependency):
         for d in ['/usr/src/gmock/src', '/usr/src/gmock']:
             if os.path.exists(d):
                 self.is_found = True
-                self.compile_args = ['-I' + d]
+                # Yes, we need both because there are multiple
+                # versions of gmock that do different things.
+                self.compile_args = ['-I/usr/src/gmock', '-I/usr/src/gmock/src']
                 self.link_args = []
                 all_src = os.path.join(d, 'gmock-all.cc')
                 main_src = os.path.join(d, 'gmock_main.cc')
