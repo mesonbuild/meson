@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright 2014 The Meson development team
+# Copyright 2014-2015 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,20 +23,21 @@ project files and don't need this info."""
 
 import json, pickle
 import coredata, build, optinterpreter
-from optparse import OptionParser
+import argparse
 import sys, os
 
-parser = OptionParser()
-parser.add_option('--targets', action='store_true', dest='list_targets', default=False,
+parser = argparse.ArgumentParser()
+parser.add_argument('--targets', action='store_true', dest='list_targets', default=False,
                   help='List top level targets.')
-parser.add_option('--target-files', action='store', dest='target_files', default=None,
+parser.add_argument('--target-files', action='store', dest='target_files', default=None,
                   help='List source files for a given target.')
-parser.add_option('--buildsystem-files', action='store_true', dest='buildsystem_files', default=False,
+parser.add_argument('--buildsystem-files', action='store_true', dest='buildsystem_files', default=False,
                   help='List files that make up the build system.')
-parser.add_option('--buildoptions', action='store_true', dest='buildoptions', default=False,
+parser.add_argument('--buildoptions', action='store_true', dest='buildoptions', default=False,
                   help='List all build options.')
-parser.add_option('--tests', action='store_true', dest='tests', default=False,
+parser.add_argument('--tests', action='store_true', dest='tests', default=False,
                   help='List all unit tests.')
+parser.add_argument('args', nargs='+')
 
 def list_targets(coredata, builddata):
     tlist = []
@@ -141,12 +142,12 @@ def list_tests(testdata):
     print(json.dumps(result))
 
 if __name__ == '__main__':
-    (options, args) = parser.parse_args()
-    if len(args) > 1:
+    options = parser.parse_args()
+    if len(options.args) > 1:
         print('Too many arguments')
         sys.exit(1)
-    elif len(args) == 1:
-        bdir = args[0]
+    elif len(options.args) == 1:
+        bdir = options.args[0]
     else:
         bdir = ''
     corefile = os.path.join(bdir, 'meson-private/coredata.dat')
