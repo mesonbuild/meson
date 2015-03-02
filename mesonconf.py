@@ -16,16 +16,15 @@
 
 import sys, os
 import pickle
-from optparse import OptionParser
+import argparse
 import coredata, optinterpreter
 from meson import build_types
 
-usage_info = '%prog [build dir] [set commands]'
+parser = argparse.ArgumentParser()
 
-parser = OptionParser(usage=usage_info, version=coredata.version)
-
-parser.add_option('-D', action='append', default=[], dest='sets',
+parser.add_argument('-D', action='append', default=[], dest='sets',
                   help='Set an option to the given value.')
+parser.add_argument('directory', nargs='+')
 
 class ConfException(Exception):
     def __init__(self, *args, **kwargs):
@@ -198,16 +197,16 @@ class Conf:
             self.print_aligned(optarr)
 
 if __name__ == '__main__':
-    (options, args) = parser.parse_args(sys.argv)
-    if len(args) > 2:
+    options = parser.parse_args()
+    if len(options.directory) > 1:
         print(args)
         print('%s <build directory>' % sys.argv[0])
         print('If you omit the build directory, the current directory is substituted.')
         sys.exit(1)
-    if len(args) == 1:
+    if len(options.directory) == 0:
         builddir = os.getcwd()
     else:
-        builddir = args[-1]
+        builddir = options.directory[0]
     try:
         c = Conf(builddir)
         if len(options.sets) > 0:
