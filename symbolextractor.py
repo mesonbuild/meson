@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright 2013 The Meson development team
+# Copyright 2013-2015 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,14 +23,13 @@
 # http://cgit.freedesktop.org/libreoffice/core/commit/?id=3213cd54b76bc80a6f0516aac75a48ff3b2ad67c
 
 import sys, subprocess, platform
-from optparse import OptionParser
+import argparse
 
-usage_info = '%prog [options] <shared library> <symbol file>'
+parser = argparse.ArgumentParser()
 
-parser = OptionParser(usage=usage_info)
-
-parser.add_option('--cross-host', default=None, dest='cross_host',
+parser.add_argument('--cross-host', default=None, dest='cross_host',
                   help='cross compilation host platform')
+parser.add_argument('args', nargs='+')
 
 def dummy_syms(outfilename):
     """Just touch it so relinking happens always."""
@@ -93,10 +92,10 @@ def gen_symbols(libfilename, outfilename, cross_host):
         dummy_syms(outfilename)
 
 if __name__ == '__main__':
-    (options, args) = parser.parse_args(sys.argv)
-    if len(args) != 3:
+    options = parser.parse_args()
+    if len(options.args) != 2:
         print(sys.argv[0], '<shared library file> <output file>')
         sys.exit(1)
-    libfile = sys.argv[1]
-    outfile = sys.argv[2]
+    libfile = options.args[0]
+    outfile = options.args[1]
     gen_symbols(libfile, outfile, options.cross_host)
