@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright 2013-2014 The Meson development team
+# Copyright 2013-2015 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,16 +16,19 @@
 
 import sys, os, subprocess, time, datetime, pickle, multiprocessing, json
 import concurrent.futures as conc
-from optparse import OptionParser
+import argparse
 import platform
 
 tests_failed = False
 
-parser = OptionParser()
-parser.add_option('--wrapper', default=None, dest='wrapper',
+parser = argparse.ArgumentParser()
+parser.add_argument('--wrapper', default=None, dest='wrapper',
                   help='wrapper to run tests with (e.g. valgrind)')
-parser.add_option('--wd', default=None, dest='wd',
+parser.add_argument('--wd', default=None, dest='wd',
                   help='directory to cd into before running')
+parser.add_argument('args', nargs='+')
+
+
 class TestRun():
     def __init__(self, res, returncode, duration, stdo, stde, cmd):
         self.res = res
@@ -162,13 +165,13 @@ def run_tests(options, datafilename):
     print('\nFull log written to %s.' % logfilename)
 
 if __name__ == '__main__':
-    (options, args) = parser.parse_args(sys.argv)
-    if len(args) != 2:
+    options = parser.parse_args()
+    if len(options.args) != 1:
         print('Test runner for Meson. Do not run on your own, mmm\'kay?')
         print('%s [data file]' % sys.argv[0])
     if options.wd is not None:
         os.chdir(options.wd)
-    datafile = args[1]
+    datafile = options.args[0]
     run_tests(options, datafile)
     if tests_failed:
         sys.exit(1)
