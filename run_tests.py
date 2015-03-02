@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright 2012-2014 The Meson development team
+# Copyright 2012-2015 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,6 +18,8 @@ from glob import glob
 import os, subprocess, shutil, sys, platform, signal
 import environment
 import mesonlib
+from optparse import OptionParser
+from meson import backendlist
 
 passing_tests = 0
 failing_tests = 0
@@ -40,29 +42,36 @@ signal.signal(signal.SIGTERM, stop_handler)
 
 #unity_flags = ['--unity']
 unity_flags = []
-msbuild_exe = shutil.which('msbuild')
 
-if msbuild_exe is not None:
-    backend_flags = ['--backend=vs2010']
-    compile_commands = ['msbuild']
-    test_commands = ['msbuild', 'RUN_TESTS.vcxproj']
-    install_commands = []
-elif mesonlib.is_osx():
-    backend_flags = ['--backend=xcode']
-    compile_commands = ['xcodebuild']
-    test_commands = ['xcodebuild', '-target', 'RUN_TESTS']
-    install_commands = []
-else:
-    backend_flags = []
-    ninja_command = environment.detect_ninja()
-    if ninja_command is None:
-        raise RuntimeError('Could not find Ninja executable.')
-    if print_debug:
-        compile_commands = [ninja_command, '-v']
+backend_flags = None
+compile_commands = None
+test_commands = None
+install_commands = None
+
+def setup_commands(backend):
+    global backend_flags, compile_commands, test_commands, install_commands
+    msbuild_exe = shutil.which('msbuild')
+    if backend == 'vs2010' or (backend is None and msbuild_exe is not None):
+        backend_flags = ['--backend=vs2010']
+        compile_commands = ['msbuild']
+        test_commands = ['msbuild', 'RUN_TESTS.vcxproj']
+        install_commands = []
+    elif backend == 'xcode' or (backend is None and mesonlib.is_osx()):
+        backend_flags = ['--backend=xcode']
+        compile_commands = ['xcodebuild']
+        test_commands = ['xcodebuild', '-target', 'RUN_TESTS']
+        install_commands = []
     else:
-        compile_commands = [ninja_command]
-    test_commands = [ninja_command, 'test']
-    install_commands = [ninja_command, 'install']
+        backend_flags = []
+        ninja_command = environment.detect_ninja()
+        if ninja_command is None:
+            raise RuntimeError('Could not find Ninja executable.')
+        if print_debug:
+            compile_commands = [ninja_command, '-v']
+        else:
+            compile_commands = [ninja_command]
+        test_commands = [ninja_command, 'test']
+        install_commands = [ninja_command, 'install']
 
 def platform_fix_filename(fname):
     if platform.system() == 'Darwin':
@@ -319,6 +328,12 @@ def generate_prebuilt_object():
     return objectfile
 
 if __name__ == '__main__':
+    parser = OptionParser()
+    parser.add_option('--backend', default=None, dest='backend',
+                      choices = backendlist)
+    (options, args) = parser.parse_args(sys.argv)
+    setup_commands(options.backend)
+
     script_dir = os.path.split(__file__)[0]
     if script_dir != '':
         os.chdir(script_dir)
