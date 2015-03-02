@@ -18,7 +18,8 @@ from glob import glob
 import os, subprocess, shutil, sys, platform, signal
 import environment
 import mesonlib
-from optparse import OptionParser
+import argparse
+
 from meson import backendlist
 
 passing_tests = 0
@@ -328,10 +329,10 @@ def generate_prebuilt_object():
     return objectfile
 
 if __name__ == '__main__':
-    parser = OptionParser()
-    parser.add_option('--backend', default=None, dest='backend',
+    parser = argparse.ArgumentParser(description="Run the test suite of Meson.")
+    parser.add_argument('--backend', default=None, dest='backend',
                       choices = backendlist)
-    (options, args) = parser.parse_args(sys.argv)
+    options = parser.parse_args()
     setup_commands(options.backend)
 
     script_dir = os.path.split(__file__)[0]
