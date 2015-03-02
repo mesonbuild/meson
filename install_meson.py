@@ -19,18 +19,16 @@
 # either becaust that would be just silly.
 
 import os, sys, glob, shutil, gzip
-from optparse import OptionParser
+import argparse
 
-usage_info = '%prog [--prefix PREFIX] [--destdir DESTDIR]'
+parser = argparse.ArgumentParser()
 
-parser = OptionParser(usage=usage_info)
+parser.add_argument('--prefix', default='/usr/local', dest='prefix',
+                  help='the installation prefix (default: %(default)s)')
+parser.add_argument('--destdir', default='', dest='destdir',
+                  help='the destdir (default: %(default)s)')
 
-parser.add_option('--prefix', default='/usr/local', dest='prefix',
-                  help='the installation prefix (default: %default)')
-parser.add_option('--destdir', default='', dest='destdir',
-                  help='the destdir (default: %default)')
-
-(options, args) = parser.parse_args(sys.argv)
+options = parser.parse_args()
 if options.prefix[0] != '/':
     print('Error, prefix must be an absolute path.')
     sys.exit(1)
