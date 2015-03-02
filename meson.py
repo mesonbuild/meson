@@ -14,8 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from optparse import OptionParser
-import sys, stat, traceback, pickle
+import sys, stat, traceback, pickle, argparse
 import os.path
 import environment, interpreter, mesonlib
 import build
@@ -23,55 +22,49 @@ import mlog, coredata
 
 from coredata import MesonException
 
-usage_info = '%prog [options] source_dir build_dir'
-
-parser = OptionParser(usage=usage_info, version=coredata.version)
-
-build_types = ['plain', 'debug', 'debugoptimized', 'release']
-buildtype_help = 'build type, one of: %s' % ', '.join(build_types)
-buildtype_help += ' (default: %default)'
+parser = argparse.ArgumentParser()
 
 backendlist = ['ninja', 'vs2010', 'xcode']
-backend_help = 'backend to use, one of: %s' % ', '.join(backendlist)
-backend_help += ' (default: %default)'
+build_types = ['plain', 'debug', 'debugoptimized', 'release']
 
 if mesonlib.is_windows():
     def_prefix = 'c:/'
 else:
     def_prefix = '/usr/local'
 
-parser.add_option('--prefix', default=def_prefix, dest='prefix',
-                  help='the installation prefix (default: %default)')
-parser.add_option('--libdir', default=mesonlib.default_libdir(), dest='libdir',
-                  help='the installation subdir of libraries (default: %default)')
-parser.add_option('--bindir', default='bin', dest='bindir',
-                  help='the installation subdir of executables (default: %default)')
-parser.add_option('--includedir', default='include', dest='includedir',
-                  help='relative path of installed headers (default: %default)')
-parser.add_option('--datadir', default='share', dest='datadir',
-                  help='relative path to the top of data file subdirectory (default: %default)')
-parser.add_option('--mandir' , default='share/man', dest='mandir',
-                  help='relative path of man files (default: %default)')
-parser.add_option('--localedir', default='share/locale', dest='localedir',
-                  help='relative path of locale data (default: %default)')
-parser.add_option('--backend', default='ninja', dest='backend', choices=backendlist,
-                  help=backend_help)
-parser.add_option('--buildtype', default='debug', type='choice', choices=build_types, dest='buildtype',
-                  help=buildtype_help)
-parser.add_option('--strip', action='store_true', dest='strip', default=False,\
-                  help='strip targets on install (default: %default)')
-parser.add_option('--enable-gcov', action='store_true', dest='coverage', default=False,\
+parser.add_argument('--prefix', default=def_prefix, dest='prefix',
+                  help='the installation prefix (default: %(default)s)')
+parser.add_argument('--libdir', default=mesonlib.default_libdir(), dest='libdir',
+                  help='the installation subdir of libraries (default: %(default)s)')
+parser.add_argument('--bindir', default='bin', dest='bindir',
+                  help='the installation subdir of executables (default: %(default)s)')
+parser.add_argument('--includedir', default='include', dest='includedir',
+                  help='relative path of installed headers (default: %(default)s)')
+parser.add_argument('--datadir', default='share', dest='datadir',
+                  help='relative path to the top of data file subdirectory (default: %(default)s)')
+parser.add_argument('--mandir' , default='share/man', dest='mandir',
+                  help='relative path of man files (default: %(default)s)')
+parser.add_argument('--localedir', default='share/locale', dest='localedir',
+                  help='relative path of locale data (default: %(default)s)')
+parser.add_argument('--backend', default='ninja', dest='backend', choices=backendlist,
+                  help='backend to use (default: %(default)s)')
+parser.add_argument('--buildtype', default='debug', choices=build_types, dest='buildtype',
+                  help='build type go use (default: %(default)s)')
+parser.add_argument('--strip', action='store_true', dest='strip', default=False,\
+                  help='strip targets on install (default: %(default)s)')
+parser.add_argument('--enable-gcov', action='store_true', dest='coverage', default=False,\
                   help='measure test coverage')
-parser.add_option('--disable-pch', action='store_false', dest='use_pch', default=True,\
+parser.add_argument('--disable-pch', action='store_false', dest='use_pch', default=True,\
                   help='do not use precompiled headers')
-parser.add_option('--unity', action='store_true', dest='unity', default=False,\
+parser.add_argument('--unity', action='store_true', dest='unity', default=False,\
                   help='unity build')
-parser.add_option('--werror', action='store_true', dest='werror', default=False,\
+parser.add_argument('--werror', action='store_true', dest='werror', default=False,\
                   help='Treat warnings as errors')
-parser.add_option('--cross-file', default=None, dest='cross_file',
+parser.add_argument('--cross-file', default=None, dest='cross_file',
                   help='file describing cross compilation environment')
-parser.add_option('-D', action='append', type='string', dest='projectoptions', default=[],
+parser.add_argument('-D', action='append', dest='projectoptions', default=[],
                   help='Set project options.')
+parser.add_argument('directories', nargs='+')
 
 class MesonApp():
 
@@ -150,19 +143,20 @@ itself as required.'''
         pickle.dump(b, open(dumpfile, 'wb'))
 
 if __name__ == '__main__':
-    (options, args) = parser.parse_args(sys.argv)
+    options = parser.parse_args()
+    args = options.directories
     if args[-1] == 'secret-handshake':
         args = args[:-1]
         handshake = True
     else:
         handshake = False
-    if len(args) == 1 or len(args) > 3:
+    if len(args) == 0 or len(args) > 2:
         print('%s <source directory> <build directory>' % sys.argv[0])
         print('If you omit either directory, the current directory is substituted.')
         sys.exit(1)
-    dir1 = args[1]
-    if len(args) > 2:
-        dir2 = args[2]
+    dir1 = args[0]
+    if len(args) > 1:
+        dir2 = args[1]
     else:
         dir2 = '.'
     this_file = os.path.abspath(__file__)
