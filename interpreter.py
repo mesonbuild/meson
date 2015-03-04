@@ -22,6 +22,7 @@ import optinterpreter
 import wrap
 import mesonlib
 import os, sys, platform, subprocess, shutil, uuid, re
+import importlib
 
 class InterpreterException(coredata.MesonException):
     pass
@@ -592,6 +593,19 @@ class CompilerHolder(InterpreterObject):
         mlog.log('Has header "%s":' % string, h)
         return haz
 
+class ModuleHolder(InterpreterObject):
+    def __init__(self, modname):
+        InterpreterObject.__init__(self)
+        self.modname = modname
+        self.m = importlib.import_module('modules.' + modname)
+
+    def method_call(self, method_name, args, kwargs):
+        try:
+            fn = getattr(self.m, method_name)
+        except AttributeError:
+            raise InvalidArguments('Module %s does not have method %s.' % (self.modname, method_name))
+        fn(args, kwargs)
+
 class MesonMain(InterpreterObject):
     def __init__(self, build, interpreter):
         InterpreterObject.__init__(self)
@@ -708,6 +722,7 @@ class Interpreter():
         self.global_args_frozen = False
         self.subprojects = {}
         self.subproject_stack = []
+        self.modules = {}
 
     def build_func_dict(self):
         self.funcs = {'project' : self.func_project,
@@ -741,6 +756,7 @@ class Interpreter():
                       'pkgconfig_gen' : self.func_pkgconfig_gen,
                       'vcs_tag' : self.func_vcs_tag,
                       'set_variable' : self.func_set_variable,
+                      'import' : self.func_import,
                       }
 
     def get_build_def_files(self):
@@ -797,6 +813,16 @@ class Interpreter():
         varname = args[0]
         value = self.to_native(args[1])
         self.set_variable(varname, value)
+
+    def func_import(self, node, args, kwargs):
+        if len(args) != 1:
+            raise InvalidCode('Import takes one argument.')
+        modname = args[0]
+        if not isinstance(modname, str):
+            raise InvalidCode('Argument to import was not a string')
+        if not modname in self.modules:
+            self.modules[modname] = ModuleHolder(modname) 
+        return self.modules[modname]
 
     def set_variable(self, varname, variable):
         if variable is None:

@@ -39,6 +39,7 @@ else:
     install_root = os.path.join(options.destdir, options.prefix[1:])
 
 script_dir = os.path.join(install_root, 'share/meson')
+module_dir = os.path.join(script_dir, 'modules')
 bin_dir = os.path.join(install_root, 'bin')
 bin_script = os.path.join(script_dir, 'meson.py')
 gui_script = os.path.join(script_dir, 'mesongui.py')
@@ -97,3 +98,10 @@ print('Installing manfiles to %s.' % man_dir)
 open(out_manfile, 'wb').write(gzip.compress(open(in_manfile, 'rb').read()))
 open(out_confmanfile, 'wb').write(gzip.compress(open(in_confmanfile, 'rb').read()))
 open(out_guimanfile, 'wb').write(gzip.compress(open(in_guimanfile, 'rb').read()))
+
+print('Installing modules to %s.' % module_dir)
+if os.path.exists('modules/__pycache__'):
+    shutil.rmtree('modules/__pycache__')
+if os.path.exists(module_dir):
+    shutil.rmtree(module_dir)
+shutil.copytree('modules', module_dir)
