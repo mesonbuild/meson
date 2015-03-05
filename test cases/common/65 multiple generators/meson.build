@@ -9,5 +9,5 @@ input : 'data2.dat',
 command : [comp, '@INPUT0@', meson.current_build_dir()])
 
 exe = executable('prog', 'main.cpp', generated, generated2,
-include_directories : include_directories('subdir', '.'))
+include_directories : include_directories('subdir'))
 test('generated test', exe)

@@ -11,7 +11,7 @@ configure_file(input : 'config.h.in',
 output : 'config.h',
 configuration : conf)
 
-e = executable('inctest', 'prog.c', include_directories : include_directories('.'))
+e = executable('inctest', 'prog.c')
 test('inctest', e)
 
 # Now generate a header file with an external script.
@@ -25,5 +25,4 @@ output : 'config2.h',
 command : [genprog, scriptfile,  ifile, ofile],
 install_dir : 'share/appdir')
 
-test('inctest2', executable('prog2', 'prog2.c',
-include_directories : include_directories('.')))
+test('inctest2', executable('prog2', 'prog2.c'))

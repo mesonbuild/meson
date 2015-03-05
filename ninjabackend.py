@@ -1103,6 +1103,11 @@ rule FORTRAN_DEP_HACK
         compiler = self.get_compiler_for_source(src)
         commands = self.generate_basic_compiler_args(target, compiler)
         commands += compiler.get_include_args(self.get_target_private_dir(target))
+        curdir = target.get_subdir()
+        commands += compiler.get_include_args(os.path.join(self.build_to_src, curdir))
+        if curdir ==  '':
+            curdir = '.'
+        commands += compiler.get_include_args(curdir)
         for d in target.external_deps:
             if d.need_threads():
                 commands += compiler.thread_flags()

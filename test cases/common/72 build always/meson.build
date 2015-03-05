@@ -11,5 +11,4 @@ command : [vgen, '@INPUT@', '@OUTPUT@', version],
 build_always : true,
 )
 
-executable('versionprinter', 'main.c', version_src,
-include_directories : include_directories('.'))
+executable('versionprinter', 'main.c', version_src)

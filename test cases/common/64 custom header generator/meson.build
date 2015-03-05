@@ -7,6 +7,5 @@ output : 'myheader.lh', # Suffix not .h to ensure this works with custom suffixe
 input : 'input.def',
 command : [gen, '@INPUT0@', '@OUTPUT0@'])
 
-prog = executable('prog', 'prog.c', generated_h,
-include_directories : include_directories('.'))
+prog = executable('prog', 'prog.c', generated_h)
 test('gentest', prog)
