@@ -411,8 +411,8 @@ class JarHolder(BuildTargetHolder):
         super().__init__(build.Jar, name, subdir, is_cross, sources, objects, environment, kwargs)
 
 class CustomTargetHolder(InterpreterObject):
-    def __init__(self, name, subdir, kwargs):
-        self.held_object = build.CustomTarget(name, subdir, kwargs)
+    def __init__(self, object_to_hold):
+        self.held_object = object_to_hold
 
     def is_cross(self):
         return self.held_object.is_cross()
@@ -593,18 +593,27 @@ class CompilerHolder(InterpreterObject):
         mlog.log('Has header "%s":' % string, h)
         return haz
 
+class ModuleState:
+    pass
+
 class ModuleHolder(InterpreterObject):
-    def __init__(self, modname):
+    def __init__(self, modname, interpreter):
         InterpreterObject.__init__(self)
         self.modname = modname
         self.m = importlib.import_module('modules.' + modname)
+        self.interpreter = interpreter
 
     def method_call(self, method_name, args, kwargs):
         try:
             fn = getattr(self.m, method_name)
         except AttributeError:
             raise InvalidArguments('Module %s does not have method %s.' % (self.modname, method_name))
-        fn(args, kwargs)
+        state = ModuleState()
+        state.build_to_src = os.path.relpath(self.interpreter.environment.get_source_dir(),
+                                            self.interpreter.environment.get_build_dir())
+        state.subdir = self.interpreter.subdir
+        value = fn(state, args, kwargs)
+        return self.interpreter.module_method_callback(value)
 
 class MesonMain(InterpreterObject):
     def __init__(self, build, interpreter):
@@ -759,6 +768,28 @@ class Interpreter():
                       'import' : self.func_import,
                       }
 
+    def module_method_callback(self, invalues):
+        unwrap_single = False
+        if invalues is None:
+            return
+        if not isinstance(invalues, list):
+            unwrap_single = True
+            invalues = [invalues]
+        outvalues = []
+        for v in invalues:
+            if isinstance(v, build.CustomTarget):
+                if v.name in self.build.targets:
+                    raise InterpreterException('Tried to create target %s which already exists.' % v.name)
+                self.build.targets[v.name] = v
+                outvalues.append(CustomTargetHolder(v))
+            elif isinstance(v, int) or isinstance(v, str):
+                outvalues.append(v)
+            else:
+                raise InterpreterException('Module returned a value of unknown type.')
+        if len(outvalues) == 1 and unwrap_single:
+            return outvalues[0]
+        return outvalues
+
     def get_build_def_files(self):
         return self.build_def_files
 
@@ -821,7 +852,7 @@ class Interpreter():
         if not isinstance(modname, str):
             raise InvalidCode('Argument to import was not a string')
         if not modname in self.modules:
-            self.modules[modname] = ModuleHolder(modname) 
+            self.modules[modname] = ModuleHolder(modname, self) 
         return self.modules[modname]
 
     def set_variable(self, varname, variable):
@@ -1200,7 +1231,7 @@ class Interpreter():
                                    % name)
         if name in self.build.targets:
             raise InvalidCode('Tried to create target "%s", but a target of that name already exists.' % name)
-        tg = CustomTargetHolder(name, self.subdir, kwargs)
+        tg = CustomTargetHolder(build.CustomTarget(name, self.subdir, kwargs))
         self.build.targets[name] = tg.held_object
         return tg
 

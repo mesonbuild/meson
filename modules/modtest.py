@@ -12,5 +12,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-def print_hello(args, kwargs):
+def print_hello(state, args, kwargs):
     print('Hello from a Meson module')
