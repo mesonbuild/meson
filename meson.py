@@ -143,13 +143,15 @@ itself as required.'''
         pickle.dump(b, open(dumpfile, 'wb'))
 
 if __name__ == '__main__':
-    options = parser.parse_args()
-    args = options.directories
+    args = sys.argv[:]
     if args[-1] == 'secret-handshake':
         args = args[:-1]
         handshake = True
     else:
         handshake = False
+    options = parser.parse_args(args[1:])
+    print(options.directories)
+    args = options.directories
     if len(args) == 0 or len(args) > 2:
         print('%s <source directory> <build directory>' % sys.argv[0])
         print('If you omit either directory, the current directory is substituted.')
