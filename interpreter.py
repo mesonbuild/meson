@@ -21,6 +21,7 @@ import build
 import optinterpreter
 import wrap
 import mesonlib
+import glib
 import os, sys, platform, subprocess, shutil, uuid, re
 import importlib
 
@@ -767,6 +768,7 @@ class Interpreter():
                       'set_variable' : self.func_set_variable,
                       'import' : self.func_import,
                       }
+        glib._add_funcs(self)
 
     def module_method_callback(self, invalues):
         unwrap_single = False
