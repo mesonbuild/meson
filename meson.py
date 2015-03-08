@@ -150,7 +150,6 @@ if __name__ == '__main__':
     else:
         handshake = False
     options = parser.parse_args(args[1:])
-    print(options.directories)
     args = options.directories
     if len(args) == 0 or len(args) > 2:
         print('%s <source directory> <build directory>' % sys.argv[0])
