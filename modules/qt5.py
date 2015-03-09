@@ -134,7 +134,15 @@ class Qt5Module():
             moc_output = build.GeneratedList(moc_gen)
             [moc_output.add_file(os.path.join(state.subdir, a)) for a in moc_sources]
             sources.append(moc_output)
-        return build.Executable(name, state.subdir, state.environment.is_cross_build(), sources, objects,
+        if state.environment.is_cross_build():
+            if kwargs.get('native', False):
+                is_cross = False
+            else:
+                is_cross = True
+        else:
+            is_cross = False
+
+        return build.Executable(name, state.subdir, is_cross, sources, objects,
                                 state.environment, kwargs)
 
 def initialize():
