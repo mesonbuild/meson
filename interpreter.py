@@ -407,8 +407,8 @@ class SharedLibraryHolder(BuildTargetHolder):
         super().__init__(target)
 
 class JarHolder(BuildTargetHolder):
-    def __init__(self, name, subdir, is_cross, sources, objects, environment, kwargs):
-        super().__init__(build.Jar, name, subdir, is_cross, sources, objects, environment, kwargs)
+    def __init__(self, target):
+        super().__init__(target)
 
 class CustomTargetHolder(InterpreterObject):
     def __init__(self, object_to_hold):
@@ -1482,13 +1482,16 @@ class Interpreter():
         if name in self.build.targets:
             raise InvalidCode('Tried to create target "%s", but a target of that name already exists.' % name)
         self.check_sources_exist(os.path.join(self.source_root, self.subdir), sources)
-        if isinstance(targetholder, ExecutableHolder):
+        if targetholder is ExecutableHolder:
             targetclass = build.Executable
-        elif isinstance(targetholder, SharedLibraryHolder):
+        elif targetholder is SharedLibraryHolder:
             targetclass = build.SharedLibrary
-        elif isinstance(targetholder, StaticLibraryHolder):
+        elif targetholder is StaticLibraryHolder:
             targetclass = build.StaticLibrary
+        elif targetholder is JarHolder:
+            targetclass = build.Jar
         else:
+            print(targetholder)
             raise RuntimeError('Unreachable code')
         target = targetclass(name, self.subdir, is_cross, sources, objs, self.environment, kwargs)
         l = targetholder(target)
