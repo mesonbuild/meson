@@ -1,4 +1,4 @@
-# Copyright 2012-2015 The Meson development team
+# Copyright 2015 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,5 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-def print_hello(state, args, kwargs):
-    print('Hello from a Meson module')
+class TestModule:
+
+    def get_rules(self):
+        return []
+
+    def print_hello(self, state, args, kwargs):
+        print('Hello from a Meson module')
+
+def initialize():
+    return TestModule()

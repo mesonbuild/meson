@@ -382,9 +382,9 @@ class GeneratedObjectsHolder(InterpreterObject):
         self.held_object = held_object
 
 class BuildTargetHolder(InterpreterObject):
-    def __init__(self, targetttype, name, subdir, is_cross, sources, objects, environment, kwargs):
+    def __init__(self, target):
         super().__init__()
-        self.held_object = targetttype(name, subdir, is_cross, sources, objects, environment, kwargs)
+        self.held_object = target
         self.methods.update({'extract_objects' : self.extract_objects_method})
 
     def is_cross(self):
@@ -395,16 +395,16 @@ class BuildTargetHolder(InterpreterObject):
         return GeneratedObjectsHolder(gobjs)
 
 class ExecutableHolder(BuildTargetHolder):
-    def __init__(self, name, subdir, is_cross, sources, objects, environment, kwargs):
-        super().__init__(build.Executable, name, subdir, is_cross, sources, objects, environment, kwargs)
+    def __init__(self, target):
+        super().__init__(target)
 
 class StaticLibraryHolder(BuildTargetHolder):
-    def __init__(self, name, subdir, is_cross, sources, objects, environment, kwargs):
-        super().__init__(build.StaticLibrary, name, subdir, is_cross, sources, objects, environment, kwargs)
+    def __init__(self, target):
+        super().__init__(target)
 
 class SharedLibraryHolder(BuildTargetHolder):
-    def __init__(self, name, subdir, is_cross, sources, objects, environment, kwargs):
-        super().__init__(build.SharedLibrary, name, subdir, is_cross, sources, objects, environment, kwargs)
+    def __init__(self, target):
+        super().__init__(target)
 
 class JarHolder(BuildTargetHolder):
     def __init__(self, name, subdir, is_cross, sources, objects, environment, kwargs):
@@ -600,7 +600,7 @@ class ModuleHolder(InterpreterObject):
     def __init__(self, modname, interpreter):
         InterpreterObject.__init__(self)
         self.modname = modname
-        self.m = importlib.import_module('modules.' + modname)
+        self.m = importlib.import_module('modules.' + modname).initialize()
         self.interpreter = interpreter
 
     def method_call(self, method_name, args, kwargs):
@@ -612,6 +612,7 @@ class ModuleHolder(InterpreterObject):
         state.build_to_src = os.path.relpath(self.interpreter.environment.get_source_dir(),
                                             self.interpreter.environment.get_build_dir())
         state.subdir = self.interpreter.subdir
+        state.environment = self.interpreter.environment
         value = fn(state, args, kwargs)
         return self.interpreter.module_method_callback(value)
 
@@ -784,6 +785,11 @@ class Interpreter():
                 outvalues.append(CustomTargetHolder(v))
             elif isinstance(v, int) or isinstance(v, str):
                 outvalues.append(v)
+            elif isinstance(v, build.Executable):
+                if v.name in self.build.targets:
+                    raise InterpreterException('Tried to create target %s which already exists.' % v.name)
+                self.build.targets[v.name] = v
+                outvalues.append(ExecutableHolder(v))
             else:
                 raise InterpreterException('Module returned a value of unknown type.')
         if len(outvalues) == 1 and unwrap_single:
@@ -852,7 +858,9 @@ class Interpreter():
         if not isinstance(modname, str):
             raise InvalidCode('Argument to import was not a string')
         if not modname in self.modules:
-            self.modules[modname] = ModuleHolder(modname, self) 
+            mh = mh = ModuleHolder(modname, self)
+            self.modules[modname] = mh
+            self.build.modules[modname] = mh.m
         return self.modules[modname]
 
     def set_variable(self, varname, variable):
@@ -1434,6 +1442,8 @@ class Interpreter():
             return args
         if isinstance(args, InterpreterObject):
             return args
+        if isinstance(args, int):
+            return args
         result = []
         for a in args:
             if isinstance(a, list):
@@ -1445,7 +1455,7 @@ class Interpreter():
                 result.append(a)
         return result
 
-    def build_target(self, node, args, kwargs, targetclass):
+    def build_target(self, node, args, kwargs, targetholder):
         args = self.flatten(args)
         name = args[0]
         sources = args[1:]
@@ -1472,15 +1482,19 @@ class Interpreter():
         if name in self.build.targets:
             raise InvalidCode('Tried to create target "%s", but a target of that name already exists.' % name)
         self.check_sources_exist(os.path.join(self.source_root, self.subdir), sources)
-        l = targetclass(name, self.subdir, is_cross, sources, objs, self.environment, kwargs)
+        if isinstance(targetholder, ExecutableHolder):
+            targetclass = build.Executable
+        elif isinstance(targetholder, SharedLibraryHolder):
+            targetclass = build.SharedLibrary
+        elif isinstance(targetholder, StaticLibraryHolder):
+            targetclass = build.StaticLibrary
+        else:
+            raise RuntimeError('Unreachable code')
+        target = targetclass(name, self.subdir, is_cross, sources, objs, self.environment, kwargs)
+        l = targetholder(target)
         self.build.targets[name] = l.held_object
         if name not in self.coredata.target_guids:
             self.coredata.target_guids[name] = str(uuid.uuid4()).upper()
-        if self.environment.is_cross_build() and l.is_cross:
-            txt = ' cross build '
-        else:
-            txt = ' build '
-        displayname = os.path.join(l.held_object.subdir, name)
         self.global_args_frozen = True
         return l
 

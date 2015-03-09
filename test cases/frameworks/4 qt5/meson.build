@@ -1,8 +1,9 @@
 project('qt5 build test', 'cpp')
 
+qt5 = import('qt5')
 qt5dep = dependency('qt5', modules : 'Widgets')
 
-q5exe = executable('qt5app',
+q5exe = qt5.executable('qt5app',
 sources : ['main.cpp', 'mainWindow.cpp'], # Sources that don't need preprocessing.
 moc_headers : ['mainWindow.h'],           # These need to be fed through the moc tool before use. 
 ui_files : 'mainWindow.ui',               # XML files that need to be compiled with the uic tol.
@@ -14,7 +15,7 @@ dependencies : qt5dep)
 
 qt5core = dependency('qt5', modules : 'Core')
 
-qt5coreapp = executable('q5core', 'q5core.cpp',
+qt5coreapp = qt5.executable('q5core', 'q5core.cpp',
 dependencies : qt5core)
 
 test('qt5test', qt5coreapp)
@@ -22,7 +23,7 @@ test('qt5test', qt5coreapp)
 # The build system needs to include the cpp files from
 # headers but the user must manually include moc
 # files from sources.
-q5maninclude = executable('q5maninclude',
+q5maninclude = qt5.executable('q5maninclude',
 sources : 'manualinclude.cpp',
 moc_sources : 'mocinclude.cpp',
 moc_headers : 'manualinclude.h',

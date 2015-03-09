@@ -19,11 +19,7 @@ import mlog
 import copy, os
 
 
-known_basic_kwargs = {'ui_files': True,
-                      'moc_headers' : True,
-                      'qresources' : True,
-                      'moc_sources' : True,
-                      'install' : True,
+known_basic_kwargs = {'install' : True,
                       'c_pch' : True,
                       'cpp_pch' : True,
                       'c_args' : True,
@@ -78,6 +74,7 @@ class Build:
         self.pkgconfig_gens = []
         self.install_script = None
         self.install_dirs = []
+        self.modules = {}
 
     def has_language(self, language):
         for i in self.compilers:

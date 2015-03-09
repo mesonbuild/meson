@@ -21,7 +21,6 @@
 
 import os, stat, glob, subprocess, shutil
 from coredata import MesonException
-import environment
 import mlog
 import mesonlib
 
@@ -57,11 +56,6 @@ class Dependency():
 
     def get_name(self):
         return self.name
-
-    # Rules for commands to execute before compilation
-    # such as Qt's moc preprocessor.
-    def get_generate_rules(self):
-        return []
 
     def get_exe_args(self):
         return []
@@ -663,21 +657,6 @@ class Qt5Dependency(Dependency):
             if not i.found():
                 return False
         return True
-
-    def get_generate_rules(self):
-        moc_rule = CustomRule(self.moc.get_command() + ['$mocargs', '@INFILE@', '-o', '@OUTFILE@'],
-                              'moc_@BASENAME@.cpp', 'moc_headers', 'moc_hdr_compile',
-                              'Compiling header @INFILE@ with the moc preprocessor')
-        mocsrc_rule = CustomRule(self.moc.get_command() + ['$mocargs', '@INFILE@', '-o', '@OUTFILE@'],
-                              '@BASENAME@.moc', 'moc_sources', 'moc_src_compile',
-                              'Compiling source @INFILE@ with the moc preprocessor')
-        ui_rule = CustomRule(self.uic.get_command() + ['@INFILE@', '-o', '@OUTFILE@'],
-                              'ui_@BASENAME@.h', 'ui_files', 'ui_compile',
-                              'Compiling @INFILE@ with the ui compiler')
-        rrc_rule = CustomRule(self.rcc.get_command() + ['@INFILE@', '-o', '@OUTFILE@',
-                               '${rcc_args}'], '@BASENAME@.cpp','qresources',
-                              'rc_compile', 'Compiling @INFILE@ with the rrc compiler')
-        return [moc_rule, mocsrc_rule, ui_rule, rrc_rule]
 
     def get_exe_args(self):
         # Qt5 seems to require this always.
