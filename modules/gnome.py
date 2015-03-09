@@ -21,9 +21,7 @@ import subprocess
 from coredata import MesonException
 
 class GnomeModule:
-    def get_rules(self, ):
-        return []
-    
+
     def compile_resources(self, state, args, kwargs):
         cmd = ['glib-compile-resources', '@INPUT@', '--generate']
         if 'source_dir' in kwargs:

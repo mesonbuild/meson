@@ -14,9 +14,6 @@
 
 class TestModule:
 
-    def get_rules(self):
-        return []
-
     def print_hello(self, state, args, kwargs):
         print('Hello from a Meson module')
 

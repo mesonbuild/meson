@@ -533,8 +533,6 @@ class GMockDependency(Dependency):
     def found(self):
         return self.is_found
 
-qt5toolinfo_printed = False
-
 class Qt5Dependency(Dependency):
     def __init__(self, kwargs):
         Dependency.__init__(self)
@@ -548,85 +546,6 @@ class Qt5Dependency(Dependency):
             self.modules.append(PkgConfigDependency('Qt5' + module, kwargs))
         if len(self.modules) == 0:
             raise DependencyException('No Qt5 modules specified.')
-        if not qt5toolinfo_printed:
-            mlog.log('Dependency Qt5 tools:')
-        self.find_exes()
-
-    def find_exes(self):
-        # The binaries have different names on different
-        # distros. Joy.
-        global qt5toolinfo_printed
-        self.moc = ExternalProgram('moc', silent=True)
-        if not self.moc.found():
-            self.moc = ExternalProgram('moc-qt5', silent=True)
-        self.uic = ExternalProgram('uic', silent=True)
-        if not self.uic.found():
-            self.uic = ExternalProgram('uic-qt5', silent=True)
-        self.rcc = ExternalProgram('rcc', silent=True)
-        if not self.rcc.found():
-            self.rcc = ExternalProgram('rcc-qt5', silent=True)
-
-        # Moc, uic and rcc write their version strings to stderr.
-        # Moc and rcc return a non-zero result when doing so.
-        # What kind of an idiot thought that was a good idea?
-        if self.moc.found():
-            mp = subprocess.Popen(self.moc.get_command() + ['-v'],
-                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            (stdout, stderr) = mp.communicate()
-            stdout = stdout.decode().strip()
-            stderr = stderr.decode().strip()
-            if 'Qt 5' in stderr:
-                moc_ver = stderr
-            elif '5.' in stdout:
-                moc_ver = stdout
-            else:
-                raise DependencyException('Moc preprocessor is not for Qt 5. Output:\n%s\n%s' %
-                                          (stdout, stderr))
-            if not qt5toolinfo_printed:
-                mlog.log(' moc:', mlog.green('YES'), '(%s, %s)' % \
-                         (' '.join(self.moc.fullpath), moc_ver.split()[-1]))
-        else:
-            if not qt5toolinfo_printed:
-                mlog.log(' moc:', mlog.red('NO'))
-        if self.uic.found():
-            up = subprocess.Popen(self.uic.get_command() + ['-v'],
-                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            (stdout, stderr) = up.communicate()
-            stdout = stdout.decode().strip()
-            stderr = stderr.decode().strip()
-            if 'version 5.' in stderr:
-                uic_ver = stderr
-            elif '5.' in stdout:
-                uic_ver = stdout
-            else:
-                raise DependencyException('Uic compiler is not for Qt 5. Output:\n%s\n%s' %
-                                          (stdout, stderr))
-            if not qt5toolinfo_printed:
-                mlog.log(' uic:', mlog.green('YES'), '(%s, %s)' % \
-                         (' '.join(self.uic.fullpath), uic_ver.split()[-1]))
-        else:
-            if not qt5toolinfo_printed:
-                mlog.log(' uic:', mlog.red('NO'))
-        if self.rcc.found():
-            rp = subprocess.Popen(self.rcc.get_command() + ['-v'],
-                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            (stdout, stderr) = rp.communicate()
-            stdout = stdout.decode().strip()
-            stderr = stderr.decode().strip()
-            if 'version 5.' in stderr:
-                rcc_ver = stderr
-            elif '5.' in stdout:
-                rcc_ver = stdout
-            else:
-                raise DependencyException('Rcc compiler is not for Qt 5. Output:\n%s\n%s' %
-                                          (stdout, stderr))
-            if not qt5toolinfo_printed:
-                mlog.log(' rcc:', mlog.green('YES'), '(%s, %s)'\
-                        % (' '.join(self.rcc.fullpath), rcc_ver.split()[-1]))
-        else:
-            if not qt5toolinfo_printed:
-                mlog.log(' rcc:', mlog.red('NO'))
-        qt5toolinfo_printed = True
 
     def get_version(self):
         return self.modules[0].get_version()
@@ -647,12 +566,6 @@ class Qt5Dependency(Dependency):
         return args
 
     def found(self):
-        if not self.moc.found():
-            return False
-        if not self.uic.found():
-            return False
-        if not self.rcc.found():
-            return False
         for i in self.modules:
             if not i.found():
                 return False

@@ -492,13 +492,12 @@ class Generator():
     def __init__(self, args, kwargs):
         if len(args) != 1:
             raise InvalidArguments('Generator requires one and only one positional argument')
-
-        if hasattr(args[0], 'held_object'):
-            exe = args[0].held_object
-            if not isinstance(exe, Executable) and not isinstance(exe, dependencies.ExternalProgram):
-                raise InvalidArguments('First generator argument must be an executable.')
-        else:
-            raise InvalidArguments('First generator argument must be an executable object.')
+        
+        exe = args[0]
+        if hasattr(exe, 'held_object'):
+            exe = exe.held_object
+        if not isinstance(exe, Executable) and not isinstance(exe, dependencies.ExternalProgram):
+            raise InvalidArguments('First generator argument must be an executable.')
         self.exe = exe
         self.process_kwargs(kwargs)
 

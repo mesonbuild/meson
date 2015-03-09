@@ -499,23 +499,6 @@ class NinjaBackend(backends.Backend):
             velem.add_item('pool', 'console')
             velem.write(outfile)
 
-    def generate_module_rules(self, outfile):
-        outfile.write('# Rules coming from modules.\n\n')
-        for mod in self.build.modules.values():
-            for rule in mod.get_rules():
-                outfile.write('rule %s\n' % rule.name)
-                command = ' '.join([ninja_quote(x) for x in rule.cmd_list])
-                command = command.replace('@INFILE@', '$in').replace('@OUTFILE@', '$out')
-                command = command.replace('@SOURCE_ROOT@', self.environment.get_source_dir())
-                command = command.replace('@BUILD_ROOT@', self.environment.get_build_dir())
-                outfile.write(' command = %s\n' % command)
-                desc = rule.description.replace('@INFILE@', '$in')
-                outfile.write(' description = %s\n' % desc)
-                if rule.src_keyword in self.dep_rules:
-                    raise InvalidArguments('Multiple rules for keyword %s.' % rule.src_keyword)
-                self.dep_rules[rule.src_keyword] = rule
-            outfile.write('\n')
-
     def generate_rules(self, outfile):
         outfile.write('# Rules for compiling.\n\n')
         self.generate_compile_rules(outfile)
@@ -524,7 +507,6 @@ class NinjaBackend(backends.Backend):
             self.generate_static_link_rules(True, outfile)
         self.generate_static_link_rules(False, outfile)
         self.generate_dynamic_link_rules(outfile)
-        self.generate_module_rules(outfile)
         outfile.write('# Other rules\n\n')
         outfile.write('rule CUSTOM_COMMAND\n')
         outfile.write(' command = $COMMAND\n')
@@ -1373,24 +1355,11 @@ rule FORTRAN_DEP_HACK
                 outfilename = os.path.join(self.get_target_private_dir(target), outname)
                 infilename = os.path.join(self.build_to_src, target.get_source_subdir(), src)
                 elem = NinjaBuildElement(outfilename, rule.name, infilename)
-                if rule.name == 'rc_compile':
-                    elem.add_item('rcc_args', ['--name', basename])
-                if rule.name == 'moc_hdr_compile' or rule.name == 'moc_src_compile':
-                    elem.add_item('mocargs', ['-I', target.subdir])
                 elem.write(outfile)
                 if self.is_compilable_file(outfilename):
-                    if rule.name == 'moc_hdr_compile' or rule.name == 'moc_src_compile':
-                        manual_mocs = target.get_original_kwargs().get('manual_moc_include', [])
-                        if src in manual_mocs:
-                            other_deps.append(outfilename)
-                        else:
-                            src_deps.append(outfilename)
-                    else:
-                        src_deps.append(outfilename)
+                    src_deps.append(outfilename)
                 else:
                     other_deps.append(outfilename)
-                if rule.name == 'moc_src_compile': #HACK
-                    src_deps.append(infilename)
         return (src_deps, other_deps)
 
     def generate_ending(self, outfile):

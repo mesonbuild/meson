@@ -3,6 +3,10 @@ project('qt5 build test', 'cpp')
 qt5 = import('qt5')
 qt5dep = dependency('qt5', modules : 'Widgets')
 
+if meson.get_compiler('cpp').get_id() != 'msvc'
+  add_global_arguments('-std=c++11', language : 'cpp')
+endif
+
 q5exe = qt5.executable('qt5app',
 sources : ['main.cpp', 'mainWindow.cpp'], # Sources that don't need preprocessing.
 moc_headers : ['mainWindow.h'],           # These need to be fed through the moc tool before use. 
@@ -25,7 +29,7 @@ test('qt5test', qt5coreapp)
 # files from sources.
 q5maninclude = qt5.executable('q5maninclude',
 sources : 'manualinclude.cpp',
-moc_sources : 'mocinclude.cpp',
+moc_sources : 'manualinclude.cpp',
 moc_headers : 'manualinclude.h',
 dependencies : qt5core)
 

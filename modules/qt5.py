@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import dependencies, mlog, subprocess
+import dependencies, mlog
+import os, subprocess
 import build
 from coredata import MesonException
 
 class Qt5Module():
     
     def __init__(self):
-
         mlog.log('Detecting Qt tools.')
         # The binaries have different names on different
         # distros. Joy.
@@ -87,33 +87,53 @@ class Qt5Module():
         else:
             mlog.log(' rcc:', mlog.red('NO'))
 
-    def get_rules(self):
-        global moc, uic, rcc
-        moc_rule = dependencies.CustomRule(self.moc.get_command() + ['$mocargs', '@INFILE@', '-o', '@OUTFILE@'],
-                              'moc_@BASENAME@.cpp', 'moc_headers', 'moc_hdr_compile',
-                              'Compiling header @INFILE@ with the moc preprocessor')
-        mocsrc_rule = dependencies.CustomRule(self.moc.get_command() + ['$mocargs', '@INFILE@', '-o', '@OUTFILE@'],
-                              '@BASENAME@.moc', 'moc_sources', 'moc_src_compile',
-                              'Compiling source @INFILE@ with the moc preprocessor')
-        ui_rule = dependencies.CustomRule(self.uic.get_command() + ['@INFILE@', '-o', '@OUTFILE@'],
-                              'ui_@BASENAME@.h', 'ui_files', 'ui_compile',
-                              'Compiling @INFILE@ with the ui compiler')
-        rrc_rule = dependencies.CustomRule(self.rcc.get_command() + ['@INFILE@', '-o', '@OUTFILE@',
-                               '${rcc_args}'], '@BASENAME@.cpp','qresources',
-                              'rc_compile', 'Compiling @INFILE@ with the rrc compiler')
-        return [moc_rule, mocsrc_rule, ui_rule, rrc_rule]
-
     def executable(self, state, args, kwargs):
         rcc_files = kwargs.pop('qresources', [])
-        uic_files = kwargs.pop('ui_files', [])
+        if not isinstance(rcc_files, list):
+            rcc_files = [rcc_files]
+        ui_files = kwargs.pop('ui_files', [])
+        if not isinstance(ui_files, list):
+            ui_files = [ui_files]
         moc_headers = kwargs.pop('moc_headers', [])
+        if not isinstance(moc_headers, list):
+            moc_headers = [moc_headers]
         moc_sources = kwargs.pop('moc_sources', [])
+        if not isinstance(moc_sources, list):
+            moc_sources = [moc_sources]
         name = args[0]
         srctmp = kwargs.pop('sources', [])
         if not isinstance(srctmp, list):
             srctmp = [srctmp]
         sources = args[1:] + srctmp
         objects = []
+        if len(rcc_files) > 0:
+            rcc_kwargs = {'output' : '@BASENAME@.cpp',
+                          'arguments' : ['@INPUT@', '-o', '@OUTPUT@']}
+            rcc_gen = build.Generator([self.rcc], rcc_kwargs)
+            rcc_output = build.GeneratedList(rcc_gen)
+            [rcc_output.add_file(os.path.join(state.subdir, a)) for a in rcc_files]
+            sources.append(rcc_output)
+        if len(ui_files) > 0:
+            ui_kwargs = {'output' : 'ui_@BASENAME@.h',
+                         'arguments' : ['-o', '@OUTPUT@', '@INPUT@']}
+            ui_gen = build.Generator([self.uic], ui_kwargs)
+            ui_output = build.GeneratedList(ui_gen)
+            [ui_output.add_file(os.path.join(state.subdir, a)) for a in ui_files]
+            sources.append(ui_output)
+        if len(moc_headers) > 0:
+            moc_kwargs = {'output' : 'moc_@BASENAME@.cpp',
+                          'arguments' : ['@INPUT@', '-o', '@OUTPUT@']}
+            moc_gen = build.Generator([self.moc], moc_kwargs)
+            moc_output = build.GeneratedList(moc_gen)
+            [moc_output.add_file(os.path.join(state.subdir, a)) for a in moc_headers]
+            sources.append(moc_output)
+        if len(moc_sources) > 0:
+            moc_kwargs = {'output' : '@BASENAME@.moc',
+                          'arguments' : ['@INPUT@', '-o', '@OUTPUT@']}
+            moc_gen = build.Generator([self.moc], moc_kwargs)
+            moc_output = build.GeneratedList(moc_gen)
+            [moc_output.add_file(os.path.join(state.subdir, a)) for a in moc_sources]
+            sources.append(moc_output)
         return build.Executable(name, state.subdir, state.environment.is_cross_build(), sources, objects,
                                 state.environment, kwargs)
 

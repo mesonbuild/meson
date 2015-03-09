@@ -21,7 +21,7 @@ from coredata import MesonException
 about. To support a new compiler, add its information below.
 Also add corresponding autodetection code in environment.py."""
 
-header_suffixes = ['h', 'hh', 'hpp', 'hxx', 'H']
+header_suffixes = ['h', 'hh', 'hpp', 'hxx', 'H', 'moc']
 cpp_suffixes = ['cc', 'cpp', 'cxx', 'h', 'hh', 'hpp', 'hxx', 'c++']
 c_suffixes = ['c']
 clike_suffixes = c_suffixes + cpp_suffixes
