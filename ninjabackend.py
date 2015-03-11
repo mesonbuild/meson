@@ -995,7 +995,7 @@ rule FORTRAN_DEP_HACK
             base_args = generator.get_arglist()
             for i in range(len(infilelist)):
                 if len(generator.outputs) == 1:
-                    sole_output = os.path.join(self.get_target_private_dir(target), outfilelist[0])
+                    sole_output = os.path.join(self.get_target_private_dir(target), outfilelist[i])
                 else:
                     sole_output = ''
                 curfile = infilelist[i]
