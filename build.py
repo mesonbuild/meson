@@ -203,12 +203,15 @@ class BuildTarget():
     def process_sourcelist(self, sources):
         if not isinstance(sources, list):
             sources = [sources]
+        added_sources = {} # If the same source is defined multiple times, use it only once.
         for s in sources:
             # Holder unpacking. Ugly.
             if hasattr(s, 'held_object'):
                 s = s.held_object
             if isinstance(s, str):
-                self.sources.append(s)
+                if not s in added_sources:
+                    self.sources.append(s)
+                    added_sources[s] = True
             elif isinstance(s, GeneratedList) or isinstance(s, CustomTarget):
                 self.generated.append(s)
             else:
