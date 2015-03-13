@@ -87,7 +87,7 @@ class Qt5Module():
         else:
             mlog.log(' rcc:', mlog.red('NO'))
 
-    def executable(self, state, args, kwargs):
+    def preprocess(self, state, args, kwargs):
         rcc_files = kwargs.pop('qresources', [])
         if not isinstance(rcc_files, list):
             rcc_files = [rcc_files]
@@ -100,12 +100,10 @@ class Qt5Module():
         moc_sources = kwargs.pop('moc_sources', [])
         if not isinstance(moc_sources, list):
             moc_sources = [moc_sources]
-        name = args[0]
         srctmp = kwargs.pop('sources', [])
         if not isinstance(srctmp, list):
             srctmp = [srctmp]
         sources = args[1:] + srctmp
-        objects = []
         if len(rcc_files) > 0:
             rcc_kwargs = {'output' : '@BASENAME@.cpp',
                           'arguments' : ['@INPUT@', '-o', '@OUTPUT@']}
@@ -134,16 +132,7 @@ class Qt5Module():
             moc_output = build.GeneratedList(moc_gen)
             [moc_output.add_file(os.path.join(state.subdir, a)) for a in moc_sources]
             sources.append(moc_output)
-        if state.environment.is_cross_build():
-            if kwargs.get('native', False):
-                is_cross = False
-            else:
-                is_cross = True
-        else:
-            is_cross = False
-
-        return build.Executable(name, state.subdir, is_cross, sources, objects,
-                                state.environment, kwargs)
+        return sources
 
 def initialize():
     return Qt5Module()

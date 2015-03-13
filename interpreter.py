@@ -246,9 +246,12 @@ class GeneratorHolder(InterpreterObject):
         return gl
 
 class GeneratedListHolder(InterpreterObject):
-    def __init__(self, generator):
+    def __init__(self, arg1):
         super().__init__()
-        self.held_object = build.GeneratedList(generator)
+        if isinstance(arg1, build.Generator):
+            self.held_object = build.GeneratedList(arg1)
+        else:
+            self.held_object = arg1
 
     def add_file(self, a):
         self.held_object.add_file(a)
@@ -790,7 +793,12 @@ class Interpreter():
                     raise InterpreterException('Tried to create target %s which already exists.' % v.name)
                 self.build.targets[v.name] = v
                 outvalues.append(ExecutableHolder(v))
+            elif isinstance(v, list):
+                outvalues.append(self.module_method_callback(v))
+            elif isinstance(v, build.GeneratedList):
+                outvalues.append(GeneratedListHolder(v))
             else:
+                print(v)
                 raise InterpreterException('Module returned a value of unknown type.')
         if len(outvalues) == 1 and unwrap_single:
             return outvalues[0]
