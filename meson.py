@@ -64,7 +64,9 @@ parser.add_argument('--cross-file', default=None, dest='cross_file',
                   help='file describing cross compilation environment')
 parser.add_argument('-D', action='append', dest='projectoptions', default=[],
                   help='Set project options.')
-parser.add_argument('directories', nargs='+')
+parser.add_argument('-v', action='store_true', dest='print_version', default=False,
+                    help='Print version.')
+parser.add_argument('directories', nargs='*')
 
 class MesonApp():
 
@@ -150,6 +152,9 @@ if __name__ == '__main__':
     else:
         handshake = False
     options = parser.parse_args(args[1:])
+    if options.print_version:
+        print(coredata.version)
+        sys.exit(0)
     args = options.directories
     if len(args) == 0 or len(args) > 2:
         print('%s <source directory> <build directory>' % sys.argv[0])
