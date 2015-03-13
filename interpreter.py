@@ -248,8 +248,8 @@ class GeneratorHolder(InterpreterObject):
 class GeneratedListHolder(InterpreterObject):
     def __init__(self, arg1):
         super().__init__()
-        if isinstance(arg1, build.Generator):
-            self.held_object = build.GeneratedList(arg1)
+        if isinstance(arg1, GeneratorHolder):
+            self.held_object = build.GeneratedList(arg1.held_object)
         else:
             self.held_object = arg1
 
