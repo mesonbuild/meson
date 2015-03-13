@@ -10,7 +10,7 @@ endif
 q5exe = executable('qt5app',
 sources : ['main.cpp', 'mainWindow.cpp', # Sources that don't need preprocessing.
 qt5.preprocess(moc_headers : ['mainWindow.h'],           # These need to be fed through the moc tool before use. 
-	                         ui_files : 'mainWindow.ui', # XML files that need to be compiled with the uic tol.
+                             ui_files : 'mainWindow.ui', # XML files that need to be compiled with the uic tol.
                              qresources : 'stuff.qrc',   # Resource file for rcc compiler.
 )],
 dependencies : qt5dep)

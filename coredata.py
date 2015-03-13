@@ -54,6 +54,7 @@ class CoreData():
         self.deps = {}
         self.ext_progs = {}
         self.ext_libs = {}
+        self.modules = {}
 
     def get_builtin_option(self, optname):
         if optname == 'type':

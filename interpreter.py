@@ -600,15 +600,15 @@ class ModuleState:
     pass
 
 class ModuleHolder(InterpreterObject):
-    def __init__(self, modname, interpreter):
+    def __init__(self, modname, module, interpreter):
         InterpreterObject.__init__(self)
         self.modname = modname
-        self.m = importlib.import_module('modules.' + modname).initialize()
+        self.held_object = module
         self.interpreter = interpreter
 
     def method_call(self, method_name, args, kwargs):
         try:
-            fn = getattr(self.m, method_name)
+            fn = getattr(self.held_object, method_name)
         except AttributeError:
             raise InvalidArguments('Module %s does not have method %s.' % (self.modname, method_name))
         state = ModuleState()
@@ -735,7 +735,6 @@ class Interpreter():
         self.global_args_frozen = False
         self.subprojects = {}
         self.subproject_stack = []
-        self.modules = {}
 
     def build_func_dict(self):
         self.funcs = {'project' : self.func_project,
@@ -865,11 +864,10 @@ class Interpreter():
         modname = args[0]
         if not isinstance(modname, str):
             raise InvalidCode('Argument to import was not a string')
-        if not modname in self.modules:
-            mh = mh = ModuleHolder(modname, self)
-            self.modules[modname] = mh
-            self.build.modules[modname] = mh.m
-        return self.modules[modname]
+        if not modname in self.environment.coredata.modules:
+            module = importlib.import_module('modules.' + modname).initialize()
+            self.environment.coredata.modules[modname] = module
+        return ModuleHolder(modname, self.environment.coredata.modules[modname], self)
 
     def set_variable(self, varname, variable):
         if variable is None:

@@ -74,7 +74,6 @@ class Build:
         self.pkgconfig_gens = []
         self.install_script = None
         self.install_dirs = []
-        self.modules = {}
 
     def has_language(self, language):
         for i in self.compilers:
