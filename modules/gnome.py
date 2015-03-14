@@ -89,6 +89,24 @@ class GnomeModule:
         target_g = build.CustomTarget(targetname, state.subdir, kwargs)
         return target_g
 
+    def gdbus_codegen(self, state, args, kwargs):
+        if len(args) != 2:
+            raise MesonException('Gdbus_codegen takes two arguments, name and xml file.')
+        namebase = args[0]
+        xml_file = args[1]
+        cmd = ['gdbus-codegen']
+        if 'interface_prefix' in kwargs:
+            cmd += ['--interface-prefix', kwargs.pop('interface_prefix')]
+        if 'namespace' in kwargs:
+            cmd += ['--c-namespace', kwargs.pop('namespace')]
+        cmd += ['--generate-c-code', os.path.join(state.subdir, namebase), '@INPUT@']
+        outputs = [namebase + '.c', namebase + '.h']
+        custom_kwargs = {'input' : xml_file,
+                         'output' : outputs,
+                         'command' : cmd
+                         }
+        return build.CustomTarget(namebase + '-gdbus', state.subdir, custom_kwargs)
+
 def initialize():
     mlog.log('Warning, glib compiled dependencies will not work until this upstream issue is fixed:',
              mlog.bold('https://bugzilla.gnome.org/show_bug.cgi?id=745754'))
