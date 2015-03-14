@@ -26,7 +26,7 @@ class GnomeModule:
     def compile_resources(self, state, args, kwargs):
         cmd = ['glib-compile-resources', '@INPUT@', '--generate']
         if 'source_dir' in kwargs:
-            d = os.path.join(state.build_to_src, kwargs.pop('source_dir'))
+            d = os.path.join(state.build_to_src, state.subdir, kwargs.pop('source_dir'))
             cmd += ['--sourcedir', d]
         if 'c_name' in kwargs:
             cmd += ['--c-name', kwargs.pop('c_name')]

@@ -9,7 +9,7 @@ int main(int argc, char **argv) {
     GVariant *value;
 
     GError *error = NULL;
-    src = g_settings_schema_source_new_from_directory(".",
+    src = g_settings_schema_source_new_from_directory("schemas",
             g_settings_schema_source_get_default(), TRUE, &error);
     if(error) {
         fprintf(stderr, "Fail: %s\n", error->message);
