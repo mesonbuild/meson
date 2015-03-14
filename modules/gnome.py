@@ -19,6 +19,7 @@ import build
 import os
 import subprocess
 from coredata import MesonException
+import mlog
 
 class GnomeModule:
 
@@ -72,5 +73,23 @@ class GnomeModule:
         typelib_target = build.CustomTarget(typelib_name, state.subdir, kwargs)
         return [scan_target, typelib_target]
 
+    def compile_schemas(self, state, args, kwargs):
+        if len(args) != 0:
+            raise MesonException('Compile_schemas does not take positional arguments.')
+        srcdir = os.path.join(state.build_to_src, state.subdir)
+        outdir = state.subdir
+        cmd = ['glib-compile-schemas', '--targetdir', outdir, srcdir]
+        kwargs['command'] = cmd
+        kwargs['input'] = []
+        kwargs['output'] = 'gschemas.compiled'
+        if state.subdir == '':
+            targetname = 'gsettings-compile'
+        else:
+            targetname = 'gsettings-compile-' + state.subdir
+        target_g = build.CustomTarget(targetname, state.subdir, kwargs)
+        return target_g
+
 def initialize():
+    mlog.log('Warning, glib compiled dependencies will not work until this upstream issue is fixed:',
+             mlog.bold('https://bugzilla.gnome.org/show_bug.cgi?id=745754'))
     return GnomeModule()
