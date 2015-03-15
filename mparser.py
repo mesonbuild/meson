@@ -131,6 +131,9 @@ class IdNode:
         self.value = token.value
         assert(isinstance(self.value, str))
 
+    def __str__(self):
+        return "Id node: '%s' (%d, %d)." % (self.value, self.lineno, self.colno)
+
 class NumberNode:
     def __init__(self, token):
         self.lineno = token.lineno
@@ -144,6 +147,9 @@ class StringNode:
         self.colno = token.colno
         self.value = token.value
         assert(isinstance(self.value, str))
+
+    def __str__(self):
+        return "String node: '%s' (%d, %d)." % (self.value, self.lineno, self.colno)
 
 class ArrayNode:
     def __init__(self, args):
@@ -255,16 +261,18 @@ class ArgumentNode():
         self.order_error = False
 
     def prepend(self, statement):
+        if self.num_kwargs() > 0:
+            self.order_error = True
         if not isinstance(statement, EmptyNode):
             self.arguments = [statement] + self.arguments
 
     def append(self, statement):
+        if self.num_kwargs() > 0:
+            self.order_error = True
         if not isinstance(statement, EmptyNode):
             self.arguments = self.arguments + [statement]
 
     def set_kwarg(self, name, value):
-        if self.num_args() > 0:
-            self.order_error = True
         self.kwargs[name] = value
 
     def num_args(self):
@@ -427,26 +435,22 @@ class Parser:
 
     def args(self):
         s = self.statement()
-        if isinstance(s, EmptyNode):
-            ArgumentNode(s)
+        a = ArgumentNode(s)
 
-        if self.accept('comma'):
-            rest = self.args()
-            rest.prepend(s)
-            return rest
-        if self.accept('colon'):
-            if not isinstance(s, IdNode):
-                raise ParseException('Keyword argument must be a plain identifier.',
-                                     s.lineno, s.colno)
-            value = self.statement()
+        while not isinstance(s, EmptyNode):
             if self.accept('comma'):
-                a = self.args()
+                a.append(s)
+            elif self.accept('colon'):
+                if not isinstance(s, IdNode):
+                    raise ParseException('Keyword argument must be a plain identifier.',
+                                         s.lineno, s.colno)
+                a.set_kwarg(s.value, self.statement())
+                if not self.accept('comma'):
+                    return a
             else:
-                a = ArgumentNode(self.current)
-            a.set_kwarg(s.value, value)
-            return a
-        a = ArgumentNode(self.current)
-        a.append(s)
+                a.append(s)
+                return a
+            s = self.statement()
         return a
 
     def method_call(self, source_object):
