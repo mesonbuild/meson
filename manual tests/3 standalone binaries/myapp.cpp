@@ -17,7 +17,7 @@ int main(int argc, char **argv) {
   std::unique_ptr<SDL_Window, void(*)(SDL_Window*)> window(SDL_CreateWindow( "My application", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 640, 480, SDL_WINDOW_SHOWN), SDL_DestroyWindow);
   screenSurface = SDL_GetWindowSurface(window.get());
 
-  // Use iostream etc to make sure we have not screwed
+  // Use iostream to make sure we have not screwed
   // up libstdc++ linking.
   message = "Window created.";
   message += " Starting main loop.";
