@@ -3,7 +3,7 @@
 curdir=`pwd`
 rm -rf buildtmp
 mkdir buildtmp
-~/meson/meson.py buildtmp --buildtype=release --prefix=/tmp/myapp --libdir=lib
+LDFLAGS=-static-libstdc++ ~/meson/meson.py buildtmp --buildtype=release --prefix=/tmp/myapp --libdir=lib
 ninja -C buildtmp install
 rm -rf buildtmp
 cd /tmp/

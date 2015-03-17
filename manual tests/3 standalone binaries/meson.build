@@ -1,8 +1,8 @@
-project('myapp', 'c')
+project('myapp', 'cpp')
 
 sdl = dependency('sdl2')
 
-if meson.get_compiler('c').get_id() != 'msvc'
+if meson.get_compiler('cpp').get_id() != 'msvc'
   add_global_arguments('-std=c++11', language : 'cpp')
 endif
 
@@ -25,6 +25,6 @@ if host.name() == 'linux'
 endif
 
 
-prog = executable('myapp', 'myapp.c',
+prog = executable('myapp', 'myapp.cpp',
 dependencies : sdl,
 install : true)
