@@ -2,7 +2,7 @@
 
 rm -rf buildtmp
 mkdir buildtmp
-~/meson/meson.py buildtmp --prefix=/tmp/myapp.app --bindir=Contents/MacOS
+~/meson/meson.py buildtmp --buildtype=release  --prefix=/tmp/myapp.app --bindir=Contents/MacOS
 ninja -C buildtmp install
 rm -rf buildtmp
 mkdir -p mnttmp

@@ -2,6 +2,10 @@ project('myapp', 'c')
 
 sdl = dependency('sdl2')
 
+if meson.get_compiler('c').get_id() != 'msvc'
+  add_global_arguments('-std=c++11', language : 'cpp')
+endif
+
 if host.name() == 'darwin'
   install_data('myapp.sh',
   install_dir : 'Contents/MacOS')
