@@ -24,7 +24,7 @@ parser = argparse.ArgumentParser()
 
 parser.add_argument('-D', action='append', default=[], dest='sets',
                   help='Set an option to the given value.')
-parser.add_argument('directory', nargs='+')
+parser.add_argument('directory', nargs='*')
 
 class ConfException(Exception):
     def __init__(self, *args, **kwargs):
