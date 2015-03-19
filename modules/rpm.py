@@ -27,6 +27,7 @@ class RPMModule:
         devel_subpkg = False
         files = []
         files_devel = []
+        to_delete = []
         for target in state.targets.values():
             if isinstance(target, build.Executable) and target.need_install:
                 files.append('%%{_bindir}/%s' % target.get_filename())
@@ -39,10 +40,9 @@ class RPMModule:
                         files.append('%%{_libdir}/%s' % alias)
                 so_installed = True
             elif isinstance(target, build.StaticLibrary) and target.need_install:
-                files.append('%%{_libdir}/%s' % target.get_filename())
-                mlog.log('Warning, installing static libs (',
-                         mlog.bold(target.get_filename()),
-                         ') not recommended')
+                to_delete.append('%%{buildroot}%%{_libdir}/%s' % target.get_filename())
+                mlog.log('Ignoring', mlog.bold(target.get_filename()),
+                         'because packaging static libs not recommended')
         if len(files_devel) > 0:
             devel_subpkg = True
         fn = open('%s.spec' % proj, 'w+')
@@ -81,6 +81,8 @@ class RPMModule:
         fn.write('pushd build\n')
         fn.write('  DESTDIR=%{buildroot} ninja-build -v install\n')
         fn.write('popd\n')
+        if len(to_delete) > 0:
+            fn.write('rm -rf %s\n' % ' '.join(to_delete))
         fn.write('\n')
         fn.write('%files\n')
         for f in files:
