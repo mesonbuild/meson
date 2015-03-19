@@ -1,0 +1,69 @@
+# Copyright 2015 The Meson development team
+
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+
+#     http://www.apache.org/licenses/LICENSE-2.0
+
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+'''This module provides helper functions for RPM related
+functionality such as generating RPM spec file.'''
+
+import build
+import mlog
+
+class RPMModule:
+
+    def generate_spec(self, state, args, kwargs):
+        proj = state.project_name.replace(' ', '_').replace('\t', '_')
+        fn = open('%s.spec' % proj, 'w+')
+        fn.write('Name: %s\n' % proj)
+        fn.write('\n')
+        for dep in state.environment.coredata.deps:
+            fn.write('BuildRequires: pkgconfig(%s)\n' % dep)
+        for lib in state.environment.coredata.ext_libs.values():
+            fn.write('BuildRequires: %s # FIXME\n' % lib.fullpath)
+            mlog.log('Warning, replace', mlog.bold(lib.fullpath), 'with real package.',
+                     'You can use following command to find package which contains this lib:',
+                     mlog.bold('dnf provides %s' % lib.fullpath))
+        for prog in state.environment.coredata.ext_progs.values():
+            fn.write('BuildRequires: %s\n' % ' '.join(prog.fullpath))
+        fn.write('BuildRequires: meson\n')
+        fn.write('\n')
+        fn.write('%prep\n')
+        fn.write('%autosetup\n')
+        fn.write('rm -rf build && mkdir build\n')
+        fn.write('\n')
+        fn.write('%build\n')
+        fn.write('pushd build\n')
+        fn.write('  meson ..\n')
+        fn.write('  ninja-build -v\n')
+        fn.write('popd\n')
+        fn.write('\n')
+        fn.write('%isntall\n')
+        fn.write('pushd build\n')
+        fn.write('  DESTDIR=%{buildroot} ninja-build -v install\n')
+        fn.write('popd\n')
+        fn.write('\n')
+        fn.write('%files\n')
+        for target in state.targets.values():
+            if isinstance(target, build.Executable) and target.need_install:
+                fn.write('%%{_bindir}/%s\n' % target.filename)
+            elif isinstance(target, build.SharedLibrary) and target.need_install:
+                fn.write('%%{_libdir}/%s\n' % target.filename)
+            elif isinstance(target, build.StaticLibrary) and target.need_install:
+                fn.write('%%{_libdir}/%s\n' % target.filename)
+                mlog.log('Warning, installing static libs (',
+                         mlog.bold(target.filename),
+                         ') not recommended')
+        fn.write('\n')
+        fn.close()
+
+def initialize():
+    return RPMModule()
