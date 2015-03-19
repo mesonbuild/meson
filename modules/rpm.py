@@ -22,6 +22,28 @@ class RPMModule:
 
     def generate_spec(self, state, args, kwargs):
         proj = state.project_name.replace(' ', '_').replace('\t', '_')
+        so_installed = False
+        devel_subpkg = False
+        files = []
+        files_devel = []
+        for target in state.targets.values():
+            if isinstance(target, build.Executable) and target.need_install:
+                files.append('%%{_bindir}/%s' % target.get_filename())
+            elif isinstance(target, build.SharedLibrary) and target.need_install:
+                files.append('%%{_libdir}/%s' % target.get_filename())
+                for alias in target.get_aliaslist():
+                    if alias.endswith('.so'):
+                        files_devel.append('%%{_libdir}/%s' % alias)
+                    else:
+                        files.append('%%{_libdir}/%s' % alias)
+                so_installed = True
+            elif isinstance(target, build.StaticLibrary) and target.need_install:
+                files.append('%%{_libdir}/%s' % target.get_filename())
+                mlog.log('Warning, installing static libs (',
+                         mlog.bold(target.get_filename()),
+                         ') not recommended')
+        if len(files_devel) > 0:
+            devel_subpkg = True
         fn = open('%s.spec' % proj, 'w+')
         fn.write('Name: %s\n' % proj)
         fn.write('\n')
@@ -36,6 +58,14 @@ class RPMModule:
             fn.write('BuildRequires: %s\n' % ' '.join(prog.fullpath))
         fn.write('BuildRequires: meson\n')
         fn.write('\n')
+        fn.write('%description\n')
+        fn.write('\n')
+        if devel_subpkg:
+            fn.write('%package devel\n')
+            fn.write('Requires: %{name}%{?_isa} = %{version}-%{release}\n')
+            fn.write('\n')
+            fn.write('%description devel\n')
+            fn.write('\n')
         fn.write('%prep\n')
         fn.write('%autosetup\n')
         fn.write('rm -rf build && mkdir build\n')
@@ -52,16 +82,18 @@ class RPMModule:
         fn.write('popd\n')
         fn.write('\n')
         fn.write('%files\n')
-        for target in state.targets.values():
-            if isinstance(target, build.Executable) and target.need_install:
-                fn.write('%%{_bindir}/%s\n' % target.filename)
-            elif isinstance(target, build.SharedLibrary) and target.need_install:
-                fn.write('%%{_libdir}/%s\n' % target.filename)
-            elif isinstance(target, build.StaticLibrary) and target.need_install:
-                fn.write('%%{_libdir}/%s\n' % target.filename)
-                mlog.log('Warning, installing static libs (',
-                         mlog.bold(target.filename),
-                         ') not recommended')
+        for f in files:
+            fn.write('%s\n' % f)
+        fn.write('\n')
+        if devel_subpkg:
+            fn.write('%files devel\n')
+            for f in files_devel:
+                fn.write('%s\n' % f)
+        fn.write('\n')
+        if so_installed:
+                fn.write('%post -p /sbin/ldconfig\n')
+                fn.write('\n')
+                fn.write('%postun -p /sbin/ldconfig\n')
         fn.write('\n')
         fn.close()
 
