@@ -76,7 +76,7 @@ class RPMModule:
         fn.write('  ninja-build -v\n')
         fn.write('popd\n')
         fn.write('\n')
-        fn.write('%isntall\n')
+        fn.write('%install\n')
         fn.write('pushd build\n')
         fn.write('  DESTDIR=%{buildroot} ninja-build -v install\n')
         fn.write('popd\n')
