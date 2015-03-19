@@ -49,8 +49,7 @@ class Resolver:
         if not os.path.isdir(self.cachedir):
             os.mkdir(self.cachedir)
         p = PackageDefinition(fname)
-        self.download(p, packagename)
-        self.extract_package(p)
+        self.fetch_package(p, packagename)
         return p.get('directory')
 
     def get_data(self, url):
@@ -61,6 +60,26 @@ class Resolver:
         h.update(data)
         hashvalue = h.hexdigest()
         return (data, hashvalue)
+
+    def fetch_package(self, p, packagename):
+        srcurl = p.get('source_url')
+
+        if srcurl.startswith('git'):
+            self.download_git(p, srcurl)
+        else:
+            self.download(p, packagename)
+            self.extract_package(p)
+
+    def download_git(self, p, srcurl):
+        dest_dir = os.path.join(self.subdir_root, p.get('directory'))
+        if os.path.isdir(dest_dir):
+            return
+
+        # This assumes that git command is available on system
+        os.system('git clone "%s" "%s"' % (srcurl, dest_dir))
+
+        srchash = p.get('source_hash')
+        os.system('cd "%s" && git checkout "%s"' % (dest_dir, srchash))
 
     def download(self, p, packagename):
         ofname = os.path.join(self.cachedir, p.get('source_filename'))
