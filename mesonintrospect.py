@@ -44,7 +44,12 @@ def list_targets(coredata, builddata):
     for target in builddata.get_targets().values():
         t = {}
         t['name'] = target.get_basename()
-        t['filename'] = os.path.join(target.subdir, target.get_filename())
+        fname = target.get_filename()
+        if isinstance(fname, list):
+            fname = [os.path.join(target.subdir, x) for x in fname]
+        else:
+            fname = os.path.join(target.subdir, fname)
+        t['filename'] = fname
         if isinstance(target, build.Executable):
             typename = 'executable'
         elif isinstance(target, build.SharedLibrary):
