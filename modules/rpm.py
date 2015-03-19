@@ -16,6 +16,7 @@
 functionality such as generating RPM spec file.'''
 
 import build
+import datetime
 import mlog
 
 class RPMModule:
@@ -94,6 +95,10 @@ class RPMModule:
                 fn.write('%post -p /sbin/ldconfig\n')
                 fn.write('\n')
                 fn.write('%postun -p /sbin/ldconfig\n')
+        fn.write('\n')
+        fn.write('%changelog\n')
+        fn.write('* %s meson <meson@example.com> - \n' % datetime.date.today().strftime('%a %b %d %Y'))
+        fn.write('- \n')
         fn.write('\n')
         fn.close()
 
