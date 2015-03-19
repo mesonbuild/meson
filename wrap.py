@@ -72,7 +72,7 @@ class Resolver:
 
     def download_git(self, p, srcurl):
         dest_dir = os.path.join(self.subdir_root, p.get('directory'))
-        if not os.path.isdir(dest_dir):
+        if os.path.isdir(dest_dir):
             return
 
         # This assumes that git command is available on system
