@@ -65,9 +65,11 @@ class RPMModule:
         fn.write('\n')
         if devel_subpkg:
             fn.write('%package devel\n')
+            fn.write('Summary: Development files for %{name}\n')
             fn.write('Requires: %{name}%{?_isa} = %{version}-%{release}\n')
             fn.write('\n')
             fn.write('%description devel\n')
+            fn.write('Development files for %{name}\n')
             fn.write('\n')
         fn.write('%prep\n')
         fn.write('%autosetup\n')
