@@ -96,7 +96,7 @@ class RPMModule:
             fn.write('Requires: %{name}%{?_isa} = %{version}-%{release}\n')
             fn.write('\n')
             fn.write('%description devel\n')
-            fn.write('Development files for %{name}\n')
+            fn.write('Development files for %{name}.\n')
             fn.write('\n')
         fn.write('%prep\n')
         fn.write('%autosetup\n')
