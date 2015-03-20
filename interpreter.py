@@ -617,6 +617,7 @@ class ModuleHolder(InterpreterObject):
         state.subdir = self.interpreter.subdir
         state.environment = self.interpreter.environment
         state.project_name = self.interpreter.build.project_name
+        state.compilers = self.interpreter.build.compilers
         state.targets = self.interpreter.build.targets
         value = fn(state, args, kwargs)
         return self.interpreter.module_method_callback(value)

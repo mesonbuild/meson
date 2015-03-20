@@ -16,6 +16,7 @@
 functionality such as generating RPM spec file.'''
 
 import build
+import compilers
 import datetime
 import mlog
 import os
@@ -23,6 +24,24 @@ import os
 class RPMModule:
 
     def generate_spec_template(self, state, args, kwargs):
+        compiler_deps = set()
+        for compiler in state.compilers:
+            if isinstance(compiler, compilers.ValaCompiler):
+                compiler_deps.add('vala')
+            elif isinstance(compiler, compilers.GnuFortranCompiler):
+                compiler_deps.add('gcc-gfortran')
+            elif isinstance(compiler, compilers.GnuObjCCompiler):
+                compiler_deps.add('gcc-objc')
+            elif compiler == compilers.GnuObjCPPCompiler:
+                compiler_deps.add('gcc-objc++')
+            elif isinstance(compiler, compilers.GnuCCompiler) or \
+                    isinstance(compiler, compilers.GnuCPPCompiler):
+                # Installed by default
+                pass
+            else:
+                mlog.log('RPM spec file will not created, generating not allowed for:',
+                         mlog.bold(compiler.get_id()))
+                return
         proj = state.project_name.replace(' ', '_').replace('\t', '_')
         so_installed = False
         devel_subpkg = False
@@ -50,6 +69,8 @@ class RPMModule:
                   'w+')
         fn.write('Name: %s\n' % proj)
         fn.write('\n')
+        for compiler in compiler_deps:
+            fn.write('BuildRequires: %s\n' % compiler)
         for dep in state.environment.coredata.deps:
             fn.write('BuildRequires: pkgconfig(%s)\n' % dep)
         for lib in state.environment.coredata.ext_libs.values():
