@@ -68,6 +68,12 @@ class RPMModule:
         fn = open('%s.spec' % os.path.join(state.environment.get_build_dir(), proj),
                   'w+')
         fn.write('Name: %s\n' % proj)
+        fn.write('Version: # FIXME\n')
+        fn.write('Release: 1%{?dist}\n')
+        fn.write('Summary: # FIXME\n')
+        fn.write('License: # FIXME\n')
+        fn.write('\n')
+        fn.write('Source0: %{name}-%{version}.tar.xz # FIXME\n')
         fn.write('\n')
         for compiler in compiler_deps:
             fn.write('BuildRequires: %s\n' % compiler)
@@ -135,6 +141,7 @@ class RPMModule:
         fn.write('- \n')
         fn.write('\n')
         fn.close()
+        mlog.log('Please, look at RPM spec file and fix FIXME\'s')
 
 def initialize():
     return RPMModule()
