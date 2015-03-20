@@ -1015,14 +1015,11 @@ class Interpreter():
         if dirname == self.subprojects:
             return self.subprojects[dirname]
         subdir = os.path.join('subprojects', dirname)
-        abs_subdir = os.path.join(self.build.environment.get_source_dir(), subdir)
-        if not os.path.isdir(abs_subdir):
-            r = wrap.Resolver(os.path.join(self.build.environment.get_source_dir(), 'subprojects'))
-            resolved = r.resolve(dirname)
-            if resolved is None:
-                raise InterpreterException('Subproject directory does not exist and can not be downloaded.')
-            subdir = os.path.join('subprojects', resolved)
-            abs_subdir = os.path.join(self.build.environment.get_source_dir(), 'subprojects', subdir)
+        r = wrap.Resolver(os.path.join(self.build.environment.get_source_dir(), 'subprojects'))
+        resolved = r.resolve(dirname)
+        if resolved is None:
+            raise InterpreterException('Subproject directory does not exist and can not be downloaded.')
+        subdir = os.path.join('subprojects', resolved)
         os.makedirs(os.path.join(self.build.environment.get_build_dir(), subdir), exist_ok=True)
         self.global_args_frozen = True
         mlog.log('\nExecuting subproject ', mlog.bold(dirname), '.\n', sep='')

@@ -1,4 +1,4 @@
-[mesonwrap]
+[wrap-file]
 directory = lua-5.3.0
 
 source_url = http://www.lua.org/ftp/lua-5.3.0.tar.gz

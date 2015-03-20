@@ -14,13 +14,19 @@
 
 import mlog
 import urllib.request, os, hashlib, shutil
+import subprocess
 
 class PackageDefinition:
     def __init__(self, fname):
         self.values = {}
         ifile = open(fname)
         first = ifile.readline().strip()
-        if first != '[mesonwrap]':
+
+        if first == '[wrap-file]':
+            self.type = 'file'
+        elif first == '[wrap-git]':
+            self.type = 'git'
+        else:
             raise RuntimeError('Invalid format of package file')
         for line in ifile:
             line = line.strip()
@@ -45,12 +51,35 @@ class Resolver:
     def resolve(self, packagename):
         fname = os.path.join(self.subdir_root, packagename + '.wrap')
         if not os.path.isfile(fname):
+            if os.path.isdir(dirname):
+                # No wrap file but dir exists -> user put it there manually.
+                return packagename 
             return None
-        if not os.path.isdir(self.cachedir):
-            os.mkdir(self.cachedir)
         p = PackageDefinition(fname)
-        self.download(p, packagename)
-        self.extract_package(p)
+        if p.type == 'file':
+            if not os.path.isdir(self.cachedir):
+                os.mkdir(self.cachedir)
+            self.download(p, packagename)
+            self.extract_package(p)
+        elif p.type == 'git':
+            checkoutdir = os.path.join(self.subdir_root, p.get('directory'))
+            revno = p.get('revision')
+            is_there = os.path.isdir(checkoutdir)
+            if is_there:
+                if revno.lower() == 'head':
+                    subprocess.check_call(['git', 'pull'], cwd=checkoutdir)
+                else:
+                    subprocess.check_call(['git', 'fetch'], cwd=checkoutdir)
+                    subprocess.check_call(['git', 'checkout', revno],
+                                          cwd=checkoutdir)
+            else:
+                subprocess.check_call(['git', 'clone', p.get('url'), p.get('directory')],
+                                      cwd=self.subdir_root)
+                if revno.lower() != 'head':
+                    subprocess.check_call(['git', 'checkout', revno],
+                                          cwd=checkoutdir)
+        else:
+            raise RuntimeError('Unreachable code.')
         return p.get('directory')
 
     def get_data(self, url):

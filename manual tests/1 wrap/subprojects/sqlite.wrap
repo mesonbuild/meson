@@ -1,4 +1,4 @@
-[mesonwrap]
+[wrap-file]
 directory = sqlite-amalgamation-3080802
 
 source_url = http://sqlite.com/2015/sqlite-amalgamation-3080802.zip

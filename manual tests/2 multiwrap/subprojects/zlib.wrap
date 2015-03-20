@@ -1,4 +1,4 @@
-[mesonwrap]
+[wrap-file]
 directory = zlib-1.2.8
 
 source_url = http://zlib.net/zlib-1.2.8.tar.gz

@@ -1,5 +1,4 @@
-[mesonwrap]
-
+[wrap-file]
 directory = libpng-1.6.16
 
 source_url = ftp://ftp.simplesystems.org/pub/libpng/png/src/libpng16/libpng-1.6.16.tar.gz
