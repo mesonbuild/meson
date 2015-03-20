@@ -126,9 +126,9 @@ class RPMModule:
                 fn.write('%s\n' % f)
         fn.write('\n')
         if so_installed:
-                fn.write('%post -p /sbin/ldconfig\n')
-                fn.write('\n')
-                fn.write('%postun -p /sbin/ldconfig\n')
+            fn.write('%post -p /sbin/ldconfig\n')
+            fn.write('\n')
+            fn.write('%postun -p /sbin/ldconfig\n')
         fn.write('\n')
         fn.write('%changelog\n')
         fn.write('* %s meson <meson@example.com> - \n' % datetime.date.today().strftime('%a %b %d %Y'))
