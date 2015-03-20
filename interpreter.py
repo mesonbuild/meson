@@ -619,6 +619,7 @@ class ModuleHolder(InterpreterObject):
         state.project_name = self.interpreter.build.project_name
         state.compilers = self.interpreter.build.compilers
         state.targets = self.interpreter.build.targets
+        state.headers = self.interpreter.build.get_headers()
         value = fn(state, args, kwargs)
         return self.interpreter.module_method_callback(value)
 

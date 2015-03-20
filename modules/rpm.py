@@ -62,6 +62,10 @@ class RPMModule:
                 to_delete.append('%%{buildroot}%%{_libdir}/%s' % target.get_filename())
                 mlog.log('Warning, removing', mlog.bold(target.get_filename()),
                          'from package because packaging static libs not recommended')
+        for header in state.headers:
+            for hdr_src in header.get_sources():
+                files_devel.append('%%{_includedir}/%s' % os.path.join(
+                        header.get_install_subdir(), hdr_src))
         if len(files_devel) > 0:
             devel_subpkg = True
         fn = open('%s.spec' % os.path.join(state.environment.get_build_dir(), proj),
