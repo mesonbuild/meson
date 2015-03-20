@@ -18,6 +18,7 @@ functionality such as generating RPM spec file.'''
 import build
 import datetime
 import mlog
+import os
 
 class RPMModule:
 
@@ -45,7 +46,8 @@ class RPMModule:
                          'because packaging static libs not recommended')
         if len(files_devel) > 0:
             devel_subpkg = True
-        fn = open('%s.spec' % proj, 'w+')
+        fn = open('%s.spec' % os.path.join(state.environment.get_build_dir(), proj),
+                  'w+')
         fn.write('Name: %s\n' % proj)
         fn.write('\n')
         for dep in state.environment.coredata.deps:
