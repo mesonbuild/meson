@@ -88,6 +88,11 @@ class RPMModule:
         if len(to_delete) > 0:
             fn.write('rm -rf %s\n' % ' '.join(to_delete))
         fn.write('\n')
+        fn.write('%check\n')
+        fn.write('pushd rpmbuilddir\n')
+        fn.write('  ninja-build -v test\n')
+        fn.write('popd\n')
+        fn.write('\n')
         fn.write('%files\n')
         for f in files:
             fn.write('%s\n' % f)
