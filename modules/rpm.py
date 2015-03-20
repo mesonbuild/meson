@@ -42,8 +42,8 @@ class RPMModule:
                 so_installed = True
             elif isinstance(target, build.StaticLibrary) and target.need_install:
                 to_delete.append('%%{buildroot}%%{_libdir}/%s' % target.get_filename())
-                mlog.log('Ignoring', mlog.bold(target.get_filename()),
-                         'because packaging static libs not recommended')
+                mlog.log('Warning, removing', mlog.bold(target.get_filename()),
+                         'from package because packaging static libs not recommended')
         if len(files_devel) > 0:
             devel_subpkg = True
         fn = open('%s.spec' % os.path.join(state.environment.get_build_dir(), proj),
