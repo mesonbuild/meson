@@ -44,33 +44,33 @@ class RPMModule:
         proj = state.project_name.replace(' ', '_').replace('\t', '_')
         so_installed = False
         devel_subpkg = False
-        files = []
-        files_devel = []
-        to_delete = []
+        files = set()
+        files_devel = set()
+        to_delete = set()
         for target in state.targets.values():
             if isinstance(target, build.Executable) and target.need_install:
-                files.append('%%{_bindir}/%s' % target.get_filename())
+                files.add('%%{_bindir}/%s' % target.get_filename())
             elif isinstance(target, build.SharedLibrary) and target.need_install:
-                files.append('%%{_libdir}/%s' % target.get_filename())
+                files.add('%%{_libdir}/%s' % target.get_filename())
                 for alias in target.get_aliaslist():
                     if alias.endswith('.so'):
-                        files_devel.append('%%{_libdir}/%s' % alias)
+                        files_devel.add('%%{_libdir}/%s' % alias)
                     else:
-                        files.append('%%{_libdir}/%s' % alias)
+                        files.add('%%{_libdir}/%s' % alias)
                 so_installed = True
             elif isinstance(target, build.StaticLibrary) and target.need_install:
-                to_delete.append('%%{buildroot}%%{_libdir}/%s' % target.get_filename())
+                to_delete.add('%%{buildroot}%%{_libdir}/%s' % target.get_filename())
                 mlog.log('Warning, removing', mlog.bold(target.get_filename()),
                          'from package because packaging static libs not recommended')
         for header in state.headers:
             if len(header.get_install_subdir()) > 0:
-                files_devel.append('%%{_includedir}/%s/' % header.get_install_subdir())
+                files_devel.add('%%{_includedir}/%s/' % header.get_install_subdir())
             else:
                 for hdr_src in header.get_sources():
-                    files_devel.append('%%{_includedir}/%s' % hdr_src)
+                    files_devel.add('%%{_includedir}/%s' % hdr_src)
         for man in state.man:
             for man_file in man.get_sources():
-                files.append('%%{_mandir}/man%u/%s.*' % (int(man_file.split('.')[-1]), man_file))
+                files.add('%%{_mandir}/man%u/%s.*' % (int(man_file.split('.')[-1]), man_file))
         if len(files_devel) > 0:
             devel_subpkg = True
         fn = open('%s.spec' % os.path.join(state.environment.get_build_dir(), proj),
