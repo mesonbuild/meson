@@ -21,7 +21,7 @@ import mlog
 
 class RPMModule:
 
-    def generate_spec(self, state, args, kwargs):
+    def generate_spec_template(self, state, args, kwargs):
         proj = state.project_name.replace(' ', '_').replace('\t', '_')
         so_installed = False
         devel_subpkg = False

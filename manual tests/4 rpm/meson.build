@@ -10,4 +10,4 @@ executable('mesontest-bin', 'main.c',
            link_with : lib,
            install : true)
 
-rpm.generate_spec()
+rpm.generate_spec_template()
