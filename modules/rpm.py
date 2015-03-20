@@ -13,7 +13,7 @@
 # limitations under the License.
 
 '''This module provides helper functions for RPM related
-functionality such as generating RPM spec file.'''
+functionality such as generating template RPM spec file.'''
 
 import build
 import compilers
