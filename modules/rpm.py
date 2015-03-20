@@ -34,8 +34,7 @@ class RPMModule:
                 compiler_deps.add('gcc-objc')
             elif compiler == compilers.GnuObjCPPCompiler:
                 compiler_deps.add('gcc-objc++')
-            elif isinstance(compiler, compilers.GnuCCompiler) or \
-                    isinstance(compiler, compilers.GnuCPPCompiler):
+            elif isinstance(compiler, (compilers.GnuCCompiler, compilers.GnuCPPCompiler)):
                 # Installed by default
                 pass
             else:
