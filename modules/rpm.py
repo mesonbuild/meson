@@ -68,6 +68,9 @@ class RPMModule:
             else:
                 for hdr_src in header.get_sources():
                     files_devel.append('%%{_includedir}/%s' % hdr_src)
+        for man in state.man:
+            for man_file in man.get_sources():
+                files.append('%%{_mandir}/man%u/%s.*' % (int(man_file.split('.')[-1]), man_file))
         if len(files_devel) > 0:
             devel_subpkg = True
         fn = open('%s.spec' % os.path.join(state.environment.get_build_dir(), proj),
