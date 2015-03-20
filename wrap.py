@@ -69,9 +69,10 @@ class Resolver:
                 if revno.lower() == 'head':
                     subprocess.check_call(['git', 'pull'], cwd=checkoutdir)
                 else:
-                    subprocess.check_call(['git', 'fetch'], cwd=checkoutdir)
-                    subprocess.check_call(['git', 'checkout', revno],
-                                          cwd=checkoutdir)
+                    if subprocess.call(['git', 'checkout', revno], cwd=checkoutdir) != 0:
+                        subprocess.check_call(['git', 'fetch'], cwd=checkoutdir)
+                        subprocess.check_call(['git', 'checkout', revno],
+                                              cwd=checkoutdir)
             else:
                 subprocess.check_call(['git', 'clone', p.get('url'), p.get('directory')],
                                       cwd=self.subdir_root)
