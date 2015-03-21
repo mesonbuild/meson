@@ -110,5 +110,6 @@ shutil.copytree('modules', module_dir)
 if os.path.exists(os.path.join('/usr', rpmmacros_dir)):
     print('Installing RPM macros to %s.' % rpmmacros_dir)
     outfilename = os.path.join(rpmmacros_dir, 'macros.meson')
+    os.makedirs(rpmmacros_dir, exist_ok=True)
     shutil.copyfile('macros.meson', outfilename)
     shutil.copystat('macros.meson', outfilename)
