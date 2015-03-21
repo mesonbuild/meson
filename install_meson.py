@@ -54,6 +54,7 @@ in_guimanfile = 'man/mesongui.1'
 out_guimanfile = os.path.join(man_dir, 'mesongui.1.gz')
 in_confmanfile = 'man/mesonconf.1'
 out_confmanfile = os.path.join(man_dir, 'mesonconf.1.gz')
+rpmmacros_dir = os.path.join(install_root, 'lib/rpm/macros.d')
 
 symlink_value = os.path.relpath(bin_script, os.path.dirname(bin_name))
 guisymlink_value = os.path.relpath(gui_script, os.path.dirname(gui_name))
@@ -105,3 +106,8 @@ if os.path.exists('modules/__pycache__'):
 if os.path.exists(module_dir):
     shutil.rmtree(module_dir)
 shutil.copytree('modules', module_dir)
+
+print('Installing RPM macros to %s.' % rpmmacros_dir)
+outfilename = os.path.join(rpmmacros_dir, 'macros.meson')
+shutil.copyfile('macros.meson', outfilename)
+shutil.copystat('macros.meson', outfilename)

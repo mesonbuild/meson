@@ -616,6 +616,12 @@ class ModuleHolder(InterpreterObject):
                                             self.interpreter.environment.get_build_dir())
         state.subdir = self.interpreter.subdir
         state.environment = self.interpreter.environment
+        state.project_name = self.interpreter.build.project_name
+        state.compilers = self.interpreter.build.compilers
+        state.targets = self.interpreter.build.targets
+        state.headers = self.interpreter.build.get_headers()
+        state.man = self.interpreter.build.get_man()
+        state.pkgconfig_gens = self.interpreter.build.pkgconfig_gens
         value = fn(state, args, kwargs)
         return self.interpreter.module_method_callback(value)
 
