@@ -621,6 +621,7 @@ class ModuleHolder(InterpreterObject):
         state.targets = self.interpreter.build.targets
         state.headers = self.interpreter.build.get_headers()
         state.man = self.interpreter.build.get_man()
+        state.pkgconfig_gens = self.interpreter.build.pkgconfig_gens
         value = fn(state, args, kwargs)
         return self.interpreter.module_method_callback(value)
 

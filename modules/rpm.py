@@ -71,6 +71,8 @@ class RPMModule:
         for man in state.man:
             for man_file in man.get_sources():
                 files.add('%%{_mandir}/man%u/%s.*' % (int(man_file.split('.')[-1]), man_file))
+        for pkgconfig in state.pkgconfig_gens:
+            files_devel.add('%%{_libdir}/pkgconfig/%s.pc' % pkgconfig.filebase)
         if len(files_devel) > 0:
             devel_subpkg = True
         fn = open('%s.spec' % os.path.join(state.environment.get_build_dir(), proj),
