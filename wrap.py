@@ -63,26 +63,30 @@ class Resolver:
             self.download(p, packagename)
             self.extract_package(p)
         elif p.type == 'git':
-            checkoutdir = os.path.join(self.subdir_root, p.get('directory'))
-            revno = p.get('revision')
-            is_there = os.path.isdir(checkoutdir)
-            if is_there:
-                if revno.lower() == 'head':
-                    subprocess.check_call(['git', 'pull'], cwd=checkoutdir)
-                else:
-                    if subprocess.call(['git', 'checkout', revno], cwd=checkoutdir) != 0:
-                        subprocess.check_call(['git', 'fetch'], cwd=checkoutdir)
-                        subprocess.check_call(['git', 'checkout', revno],
-                                              cwd=checkoutdir)
-            else:
-                subprocess.check_call(['git', 'clone', p.get('url'), p.get('directory')],
-                                      cwd=self.subdir_root)
-                if revno.lower() != 'head':
-                    subprocess.check_call(['git', 'checkout', revno],
-                                          cwd=checkoutdir)
+            self.get_git(p)
         else:
             raise RuntimeError('Unreachable code.')
         return p.get('directory')
+
+    def get_git(self, p):
+        checkoutdir = os.path.join(self.subdir_root, p.get('directory'))
+        revno = p.get('revision')
+        is_there = os.path.isdir(checkoutdir)
+        if is_there:
+            if revno.lower() == 'head':
+                subprocess.check_call(['git', 'pull'], cwd=checkoutdir)
+            else:
+                if subprocess.call(['git', 'checkout', revno], cwd=checkoutdir) != 0:
+                    subprocess.check_call(['git', 'fetch'], cwd=checkoutdir)
+                    subprocess.check_call(['git', 'checkout', revno],
+                                          cwd=checkoutdir)
+        else:
+            subprocess.check_call(['git', 'clone', p.get('url'),
+                                   p.get('directory')], cwd=self.subdir_root)
+            if revno.lower() != 'head':
+                subprocess.check_call(['git', 'checkout', revno],
+                                      cwd=checkoutdir)
+
 
     def get_data(self, url):
         u = urllib.request.urlopen(url)
