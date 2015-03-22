@@ -8,8 +8,7 @@ gnome.generate_gir(girexe,
 sources : libsources,
 nsversion : '1.0',
 namespace : 'Meson',
-install : true,
-install_dir : 'typelibdir',
+install : true
 )
 
 test('gobject introspection', girexe)

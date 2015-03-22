@@ -70,6 +70,7 @@ class GnomeModule:
         typelib_cmd = ['g-ir-compiler', scan_target, '--output', '@OUTPUT@']
         kwargs['output'] = typelib_output
         kwargs['command'] = typelib_cmd
+        kwargs['install_dir'] = os.path.join(state.environment.get_libdir(), 'girepository-1.0')
         typelib_target = build.CustomTarget(typelib_name, state.subdir, kwargs)
         return [scan_target, typelib_target]
 

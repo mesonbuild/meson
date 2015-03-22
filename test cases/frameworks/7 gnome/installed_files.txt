@@ -1,2 +1,2 @@
-usr/typelibdir/Meson-1.0.typelib
+usr/lib/girepository-1.0/Meson-1.0.typelib
 usr/share/glib-2.0/schemas/com.github.meson.gschema.xml
