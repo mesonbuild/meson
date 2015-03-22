@@ -66,7 +66,7 @@ class GnomeModule:
         if kwargs.get('install'):
             scankwargs['install'] = kwargs['install']
             scankwargs['install_dir'] = os.path.join(state.environment.get_datadir(), 'gir-1.0')
-        scan_target = build.CustomTarget(scan_name, state.subdir, scankwargs)
+        scan_target = GirTarget(scan_name, state.subdir, scankwargs)
         
         typelib_name = girtarget.name + '-typelib'
         typelib_output = '%s-%s.typelib' % (ns, nsversion)
@@ -74,7 +74,7 @@ class GnomeModule:
         kwargs['output'] = typelib_output
         kwargs['command'] = typelib_cmd
         kwargs['install_dir'] = os.path.join(state.environment.get_libdir(), 'girepository-1.0')
-        typelib_target = build.CustomTarget(typelib_name, state.subdir, kwargs)
+        typelib_target = TypelibTarget(typelib_name, state.subdir, kwargs)
         return [scan_target, typelib_target]
 
     def compile_schemas(self, state, args, kwargs):
@@ -115,3 +115,11 @@ def initialize():
     mlog.log('Warning, glib compiled dependencies will not work until this upstream issue is fixed:',
              mlog.bold('https://bugzilla.gnome.org/show_bug.cgi?id=745754'))
     return GnomeModule()
+
+class GirTarget(build.CustomTarget):
+    def __init__(self, name, subdir, kwargs):
+        super().__init__(name, subdir, kwargs)
+
+class TypelibTarget(build.CustomTarget):
+    def __init__(self, name, subdir, kwargs):
+        super().__init__(name, subdir, kwargs)
