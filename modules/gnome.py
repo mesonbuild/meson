@@ -63,6 +63,9 @@ class GnomeModule:
         scankwargs = {'output' : girfile,
                       'input' : libsources,
                       'command' : scan_command}
+        if kwargs.get('install'):
+            scankwargs['install'] = kwargs['install']
+            scankwargs['install_dir'] = os.path.join(state.environment.get_datadir(), 'gir-1.0')
         scan_target = build.CustomTarget(scan_name, state.subdir, scankwargs)
         
         typelib_name = girtarget.name + '-typelib'
