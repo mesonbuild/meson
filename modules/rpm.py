@@ -149,7 +149,7 @@ class RPMModule:
         fn.write('- \n')
         fn.write('\n')
         fn.close()
-        mlog.log('Please, look at RPM spec file and fix FIXME\'s')
+        mlog.log('RPM spec template written to %s.spec.\n' % proj)
 
 def initialize():
     return RPMModule()
