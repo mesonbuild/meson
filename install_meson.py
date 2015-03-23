@@ -44,9 +44,11 @@ bin_dir = os.path.join(install_root, 'bin')
 bin_script = os.path.join(script_dir, 'meson.py')
 gui_script = os.path.join(script_dir, 'mesongui.py')
 conf_script = os.path.join(script_dir, 'mesonconf.py')
+intro_script = os.path.join(script_dir, 'mesonintrospect.py')
 bin_name = os.path.join(bin_dir, 'meson')
 gui_name = os.path.join(bin_dir, 'mesongui')
 conf_name = os.path.join(bin_dir, 'mesonconf')
+intro_name = os.path.join(bin_dir, 'mesonintrospect')
 man_dir = os.path.join(install_root, 'share/man/man1')
 in_manfile = 'man/meson.1'
 out_manfile = os.path.join(man_dir, 'meson.1.gz')
@@ -54,11 +56,14 @@ in_guimanfile = 'man/mesongui.1'
 out_guimanfile = os.path.join(man_dir, 'mesongui.1.gz')
 in_confmanfile = 'man/mesonconf.1'
 out_confmanfile = os.path.join(man_dir, 'mesonconf.1.gz')
+in_intromanfile = 'man/mesonintrospect.1'
+out_intromanfile = os.path.join(man_dir, 'mesonintrospect.1.gz')
 rpmmacros_dir = os.path.join(install_root, 'lib/rpm/macros.d')
 
 symlink_value = os.path.relpath(bin_script, os.path.dirname(bin_name))
 guisymlink_value = os.path.relpath(gui_script, os.path.dirname(gui_name))
 confsymlink_value = os.path.relpath(conf_script, os.path.dirname(conf_name))
+introsymlink_value = os.path.relpath(intro_script, os.path.dirname(intro_name))
 files = glob.glob('*.py')
 files += glob.glob('*.ui')
 
@@ -79,7 +84,7 @@ try:
     os.remove(bin_name)
 except OSError:
     pass
-print('Creating symlinks %s and %s.' % (bin_name, gui_name))
+print('Creating symlinks.')
 try:
     os.unlink(bin_name)
 except FileNotFoundError:
@@ -92,13 +97,19 @@ try:
     os.unlink(conf_name)
 except FileNotFoundError:
     pass
+try:
+    os.unlink(intro_name)
+except FileNotFoundError:
+    pass
 os.symlink(symlink_value, bin_name)
 os.symlink(guisymlink_value, gui_name)
 os.symlink(confsymlink_value, conf_name)
+os.symlink(introsymlink_value, intro_name)
 print('Installing manfiles to %s.' % man_dir)
 open(out_manfile, 'wb').write(gzip.compress(open(in_manfile, 'rb').read()))
 open(out_confmanfile, 'wb').write(gzip.compress(open(in_confmanfile, 'rb').read()))
 open(out_guimanfile, 'wb').write(gzip.compress(open(in_guimanfile, 'rb').read()))
+open(out_intromanfile, 'wb').write(gzip.compress(open(in_intromanfile, 'rb').read()))
 
 print('Installing modules to %s.' % module_dir)
 if os.path.exists('modules/__pycache__'):
