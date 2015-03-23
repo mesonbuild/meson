@@ -100,7 +100,10 @@ class RPMModule:
                      'You can use following command to find package which contains this lib:',
                      mlog.bold('dnf provides %s' % lib.fullpath))
         for prog in state.environment.coredata.ext_progs.values():
-            fn.write('BuildRequires: %s\n' % ' '.join(prog.fullpath))
+            if not prog.found():
+                fn.write('BuildRequires: /usr/bin/%s # FIXME\n' % prog.get_name())
+            else:
+                fn.write('BuildRequires: %s\n' % ' '.join(prog.fullpath))
         fn.write('BuildRequires: meson\n')
         fn.write('\n')
         fn.write('%description\n')
