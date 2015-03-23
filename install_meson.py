@@ -111,5 +111,5 @@ if os.path.exists('/usr/bin/rpm'):
     print('Installing RPM macros to %s.' % rpmmacros_dir)
     outfilename = os.path.join(rpmmacros_dir, 'macros.meson')
     os.makedirs(rpmmacros_dir, exist_ok=True)
-    shutil.copyfile('macros.meson', outfilename)
-    shutil.copystat('macros.meson', outfilename)
+    shutil.copyfile('data/macros.meson', outfilename)
+    shutil.copystat('data/macros.meson', outfilename)
