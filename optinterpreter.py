@@ -28,6 +28,7 @@ forbidden_option_names = {'type': True,
                           'datadir' : True,
                           'mandir' : True,
                           'localedir' : True,
+                          'localstatedir' : True,
                           'werror' : True,
                           }
 

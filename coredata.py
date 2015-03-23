@@ -34,6 +34,7 @@ class CoreData():
         self.datadir = options.datadir
         self.mandir = options.mandir
         self.localedir = options.localedir
+        self.localstatedir = options.localstatedir
         self.backend = options.backend
         self.buildtype = options.buildtype
         self.strip = options.strip
@@ -81,6 +82,8 @@ class CoreData():
             return self.mandir
         if optname == 'localedir':
             return self.localedir
+        if optname == 'localstatedir':
+            return self.localstatedir
         raise RuntimeError('Tried to get unknown builtin option %s' % optname)
 
 def load(filename):

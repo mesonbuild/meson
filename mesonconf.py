@@ -117,6 +117,10 @@ class Conf:
                 if os.path.isabs(v):
                     raise ConfException('Locale dir %s must not be an absolute path.' % v)
                 self.coredata.localedir = v
+            elif k == 'localstatedir':
+                if os.path.isabs(v):
+                    raise ConfException('Localstate dir %s must not be an absolute path.' % v)
+                self.coredata.localstatedir = v
             elif k in self.coredata.user_options:
                 tgt = self.coredata.user_options[k]
                 if isinstance(tgt, optinterpreter.UserBooleanOption):
@@ -181,6 +185,7 @@ class Conf:
         parr.append(['datadir', 'Data directory', self.coredata.datadir])
         parr.append(['mandir', 'Man page directory', self.coredata.mandir])
         parr.append(['localedir', 'Locale file directory', self.coredata.localedir])
+        parr.append(['localstatedir', 'Localstate file directory', self.coredata.localstatedir])
         self.print_aligned(parr)
         print('')
         if len(self.coredata.user_options) == 0:

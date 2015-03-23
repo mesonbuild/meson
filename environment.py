@@ -547,6 +547,9 @@ class Environment():
     def get_datadir(self):
         return self.coredata.datadir
 
+    def get_localstatedir(self):
+        return self.coredata.localstatedir
+
     def find_library(self, libname):
         dirs = mesonlib.get_library_dirs()
         suffixes = [self.get_shared_lib_suffix(), self.get_static_lib_suffix()]
