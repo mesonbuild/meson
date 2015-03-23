@@ -99,7 +99,8 @@ def run_single_test(wrap, test):
         duration = endtime - starttime
         stdo = stdo.decode()
         stde = stde.decode()
-        if p.returncode == 0:
+        if (not test.should_fail and p.returncode == 0) or \
+            (test.should_fail and p.returncode != 0):
             res = 'OK'
         else:
             res = 'FAIL'

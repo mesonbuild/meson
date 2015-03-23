@@ -429,13 +429,14 @@ class RunTargetHolder(InterpreterObject):
         self.held_object = build.RunTarget(name, command, args, subdir)
 
 class Test(InterpreterObject):
-    def __init__(self, name, exe, is_parallel, cmd_args, env, valgrind_args):
+    def __init__(self, name, exe, is_parallel, cmd_args, env, should_fail, valgrind_args):
         InterpreterObject.__init__(self)
         self.name = name
         self.exe = exe
         self.is_parallel = is_parallel
         self.cmd_args = cmd_args
         self.env = env
+        self.should_fail = should_fail
         self.valgrind_args = valgrind_args
 
     def get_exe(self):
@@ -1310,7 +1311,10 @@ class Interpreter():
         for a in valgrind_args:
             if not isinstance(a, str):
                 raise InterpreterException('Valgrind_arg not a string.')
-        t = Test(args[0], args[1].held_object, par, cmd_args, env, valgrind_args)
+        should_fail = kwargs.get('should_fail', False)
+        if not isinstance(should_fail, bool):
+            raise InterpreterException('Keyword argument should_fail must be a boolean.')
+        t = Test(args[0], args[1].held_object, par, cmd_args, env, should_fail, valgrind_args)
         self.build.tests.append(t)
         mlog.debug('Adding test "', mlog.bold(args[0]), '".', sep='')
 
