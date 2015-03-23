@@ -58,8 +58,16 @@ class GnomeModule:
         scan_name = girtarget.name + '-gir'
         scan_command = ['g-ir-scanner', '@INPUT@', '--program', girtarget]
         scan_command += pkgargs
-        scan_command += ['--include=GObject-2.0', '--namespace='+ns,
-                         '--nsversion=' + nsversion, '--output', '@OUTPUT@']
+        scan_command += ['--namespace='+ns, '--nsversion=' + nsversion,
+                         '--output', '@OUTPUT@']
+        if 'includes' in kwargs:
+            includes = kwargs.pop('includes')
+            if isinstance(includes, str):
+                scan_command += ['--include=%s' % includes]
+            elif isinstance(includes, list):
+                scan_command += ['--include=%s' % inc for inc in includes]
+            else:
+                raise MesonException('Gir includes must be str or list')
         scankwargs = {'output' : girfile,
                       'input' : libsources,
                       'command' : scan_command}
