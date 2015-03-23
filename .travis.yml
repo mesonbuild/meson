@@ -2,7 +2,8 @@ language: cpp
 compiler:
   - gcc
 before_install:
-  - sudo apt-get install python3 gobjc gobjc++ libboost-dev libboost-thread-dev qt5-default
+  - sudo apt-get update
+  - sudo apt-get install -y python python3 gobjc gobjc++ gnustep-make libboost-dev libboost-thread-dev qt5-default qtbase5-dev-tools qtbase5-dev libgtest-dev google-mock gobject-introspection libgirepository1.0-dev flex bison protobuf-compiler libprotobuf-dev zlib1g-dev
 before_script:
   - wget https://github.com/martine/ninja/archive/v1.5.3.zip
   - unzip v1.5.3.zip
