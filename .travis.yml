@@ -1,0 +1,11 @@
+language: cpp
+compiler:
+  - gcc
+before_install:
+  - sudo apt-get install python3 gobjc gobjc++ libboost-dev libboost-thread-dev qt5-default
+before_script:
+  - wget https://github.com/martine/ninja/archive/v1.5.3.zip
+  - unzip v1.5.3.zip
+  - cd ninja-1.5.3 && ./configure --bootstrap && cd ..
+  - export PATH=$PWD/ninja-1.5.3:$PATH
+script: ./run_tests.py
