@@ -80,8 +80,7 @@ class RPMModule:
             files_devel.add('%%{_libdir}/pkgconfig/%s.pc' % pkgconfig.filebase)
         if len(files_devel) > 0:
             devel_subpkg = True
-        fn = open('%s.spec' % os.path.join(state.environment.get_build_dir(), proj),
-                  'w+')
+        fn = open('%s.spec' % os.path.join(state.environment.get_build_dir(), proj), 'w+')
         fn.write('Name: %s\n' % proj)
         fn.write('Version: # FIXME\n')
         fn.write('Release: 1%{?dist}\n')
@@ -146,7 +145,7 @@ class RPMModule:
             fn.write('%files devel\n')
             for f in files_devel:
                 fn.write('%s\n' % f)
-        fn.write('\n')
+            fn.write('\n')
         if so_installed:
             fn.write('%post -p /sbin/ldconfig\n')
             fn.write('\n')
