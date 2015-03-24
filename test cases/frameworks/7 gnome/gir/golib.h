@@ -1,6 +1,10 @@
 #ifndef GOLIB_H
 #define GOLIB_H
 
+#if !defined (MESON_TEST)
+#error "MESON_TEST not defined."
+#endif
+
 #include <glib.h>
 #include <glib-object.h>
 

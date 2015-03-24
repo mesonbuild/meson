@@ -7,6 +7,7 @@ glib = dependency('glib-2.0')
 gobj = dependency('gobject-2.0')
 gir = dependency('gobject-introspection-1.0')
 gmod = dependency('gmodule-2.0')
+add_global_arguments('-DMESON_TEST', language : 'c')
 
 subdir('resources')
 subdir('gir')

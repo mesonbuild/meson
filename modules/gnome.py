@@ -68,6 +68,10 @@ class GnomeModule:
                 scan_command += ['--include=%s' % inc for inc in includes]
             else:
                 raise MesonException('Gir includes must be str or list')
+        if state.global_args.get('c'):
+            scan_command += ['--cflags-begin']
+            scan_command += state.global_args['c']
+            scan_command += ['--cflags-end']
         scankwargs = {'output' : girfile,
                       'input' : libsources,
                       'command' : scan_command}
