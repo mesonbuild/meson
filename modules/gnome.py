@@ -47,16 +47,15 @@ class GnomeModule:
         girtarget = args[0]
         while hasattr(girtarget, 'held_object'):
             girtarget = girtarget.held_object
-        if not isinstance(girtarget, build.Executable):
-            raise MesonException('Gir target must be an executable')
+        if not (isinstance(girtarget, build.Executable) or isinstance(girtarget, build.SharedLibrary)):
+            raise MesonException('Gir target must be an executable or shared library')
         pkgstr = subprocess.check_output(['pkg-config', '--cflags', 'gobject-introspection-1.0'])
         pkgargs = pkgstr.decode().strip().split()
         ns = kwargs.pop('namespace')
         nsversion = kwargs.pop('nsversion')
         libsources = kwargs.pop('sources')
         girfile = '%s-%s.gir' % (ns, nsversion)
-        scan_name = girtarget.name + '-gir'
-        scan_command = ['g-ir-scanner', '@INPUT@', '--program', girtarget]
+        scan_command = ['g-ir-scanner', '@INPUT@']
         scan_command += pkgargs
         scan_command += ['--namespace='+ns, '--nsversion=' + nsversion,
                          '--output', '@OUTPUT@']
@@ -72,15 +71,18 @@ class GnomeModule:
             scan_command += ['--cflags-begin']
             scan_command += state.global_args['c']
             scan_command += ['--cflags-end']
+        if isinstance(girtarget, build.Executable):
+            scan_command += ['--program', girtarget]
+        elif isinstance(girtarget, build.SharedLibrary):
+            scan_command += ['--library', girtarget.get_basename()]
         scankwargs = {'output' : girfile,
                       'input' : libsources,
                       'command' : scan_command}
         if kwargs.get('install'):
             scankwargs['install'] = kwargs['install']
             scankwargs['install_dir'] = os.path.join(state.environment.get_datadir(), 'gir-1.0')
-        scan_target = GirTarget(scan_name, state.subdir, scankwargs)
+        scan_target = GirTarget(girfile, state.subdir, scankwargs)
         
-        typelib_name = girtarget.name + '-typelib'
         typelib_output = '%s-%s.typelib' % (ns, nsversion)
         typelib_cmd = ['g-ir-compiler', scan_target, '--output', '@OUTPUT@']
         kwargs['output'] = typelib_output
@@ -88,7 +90,7 @@ class GnomeModule:
         # Note that this can't be libdir, because e.g. on Debian it points to
         # lib/x86_64-linux-gnu but the girepo dir is always under lib.
         kwargs['install_dir'] = 'lib/girepository-1.0'
-        typelib_target = TypelibTarget(typelib_name, state.subdir, kwargs)
+        typelib_target = TypelibTarget(typelib_output, state.subdir, kwargs)
         return [scan_target, typelib_target]
 
     def compile_schemas(self, state, args, kwargs):
