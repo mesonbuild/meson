@@ -258,7 +258,7 @@ def run_tests():
                 (msg, stdo, stde) = run_test(t, name != 'failing')
                 log_text_file(logfile, t, msg, stdo, stde)
                 current_test = ET.SubElement(current_suite, 'testcase', {'name' : os.path.split(t)[-1],
-                                                                         'classname' : 'dummy'})
+                                                                         'classname' : name})
                 if msg != '':
                     ET.SubElement(current_test, 'failure', {'message' : msg})
                 stdoel = ET.SubElement(current_test, 'system-out')
