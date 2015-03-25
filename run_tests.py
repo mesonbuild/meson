@@ -19,6 +19,7 @@ import os, subprocess, shutil, sys, platform, signal
 import environment
 import mesonlib
 import argparse
+import xml.etree.ElementTree as ET
 
 from meson import backendlist
 
@@ -237,6 +238,7 @@ def detect_tests_to_run():
 def run_tests():
     all_tests = detect_tests_to_run()
     logfile = open('meson-test-run.txt', 'w')
+    junit_root = ET.Element('testsuites')
     try:
         os.mkdir(test_build_dir)
     except OSError:
@@ -250,10 +252,20 @@ def run_tests():
         if len(test_cases) == 0:
             print('\nNot running %s tests.\n' % name)
         else:
+            current_suite = ET.SubElement(junit_root, 'testsuite', {'name' : name})
             print('\nRunning %s tests.\n' % name)
             for t in test_cases:
                 (msg, stdo, stde) = run_test(t, name != 'failing')
                 log_text_file(logfile, t, msg, stdo, stde)
+                current_test = ET.SubElement(current_suite, 'testcase', {'name' : os.path.split(t)[-1]})
+                if msg != '':
+                    failure = ET.SubElement(current_test, 'failure')
+                    failure.text = msg
+                stdoel = ET.SubElement(current_test, 'system-out')
+                stdoel.text = stdo
+                stdeel = ET.SubElement(current_test, 'system-err')
+                stdeel.text = stde
+    ET.ElementTree(element=junit_root).write('meson-test-run.xml', xml_declaration=True, encoding='UTF-8')
 
 def check_file(fname):
     linenum = 1
