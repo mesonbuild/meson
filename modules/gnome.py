@@ -71,6 +71,16 @@ class GnomeModule:
             scan_command += ['--cflags-begin']
             scan_command += state.global_args['c']
             scan_command += ['--cflags-end']
+        if kwargs.get('symbol_prefix'):
+            sym_prefix = kwargs.pop('symbol_prefix')
+            if not isinstance(sym_prefix, str):
+                raise MesonException('Gir symbol prefix must be str')
+            scan_command += ['--symbol-prefix=%s' % sym_prefix]
+        if kwargs.get('identifier_prefix'):
+            identifier_prefix = kwargs.pop('identifier_prefix')
+            if not isinstance(identifier_prefix, str):
+                raise MesonException('Gir identifier prefix must be str')
+            scan_command += ['--identifier-prefix=%s' % identifier_prefix]
         if isinstance(girtarget, build.Executable):
             scan_command += ['--program', girtarget]
         elif isinstance(girtarget, build.SharedLibrary):
