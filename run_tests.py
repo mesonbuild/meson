@@ -212,7 +212,7 @@ def detect_tests_to_run():
     if not mesonlib.is_osx() and shutil.which('javac'):
         all_tests.append(('java', gather_tests('test cases/java')))
     else:
-        all_tests.append(('java'), [])
+        all_tests.append(('java', []))
     if shutil.which('mcs'):
         all_tests.append(('C#', gather_tests('test cases/csharp')))
     else:
