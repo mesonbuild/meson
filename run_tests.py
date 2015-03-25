@@ -113,9 +113,8 @@ def validate_install(srcdir, installdir):
         return 'Found extra file %s.' % fname
     return ''
 
-def run_and_log(logfile, testdir, should_succeed=True):
+def log_text_file(logfile, testdir, msg, stdo, stde):
     global passing_tests, failing_tests, stop
-    (msg, stdo, stde) = run_test(testdir, should_succeed)
     if msg != '':
         print('Fail:', msg)
         failing_tests += 1
@@ -193,50 +192,51 @@ def gather_tests(testdir):
     tests = [os.path.join(testdir, t[1]) for t in testlist]
     return tests
 
-def run_tests():
-    logfile = open('meson-test-run.txt', 'w')
-    commontests = gather_tests('test cases/common')
-    failtests = gather_tests('test cases/failing')
-    objtests = gather_tests('test cases/prebuilt object')
-    if mesonlib.is_linux():
-        cpuid = platform.machine()
-        if cpuid != 'x86_64' and cpuid != 'i386' and cpuid != 'i686':
-            # Don't have a prebuilt object file for those so skip.
-            objtests = []
+def detect_tests_to_run():
+    all_tests = []
+    all_tests.append(('common', gather_tests('test cases/common')))
+    all_tests.append(('failing', gather_tests('test cases/failing')))
+    all_tests.append(('prebuilt object', gather_tests('test cases/prebuilt object')))
+
     if mesonlib.is_osx():
-        platformtests = gather_tests('test cases/osx')
+        all_tests.append(('platform', gather_tests('test cases/osx')))
     elif mesonlib.is_windows():
-        platformtests = gather_tests('test cases/windows')
+        all_tests.append(('platform', gather_tests('test cases/windows')))
     else:
-        platformtests = gather_tests('test cases/linuxlike')
+        all_tests.append(('platform', gather_tests('test cases/linuxlike')))
     if not mesonlib.is_osx() and not mesonlib.is_windows():
-        frameworktests = gather_tests('test cases/frameworks')
+        all_tests.append(('framework', gather_tests('test cases/frameworks')))
     else:
-        frameworktests = []
+        all_tests.append(('framework', []))
     if not mesonlib.is_osx() and shutil.which('javac'):
-        javatests = gather_tests('test cases/java')
+        all_tests.append(('java', gather_tests('test cases/java')))
     else:
-        javatests = []
+        all_tests.append(('java'), [])
     if shutil.which('mcs'):
-        cstests = gather_tests('test cases/csharp')
+        all_tests.append(('C#', gather_tests('test cases/csharp')))
     else:
-        cstests = []
+        all_tests.append(('C#', []))
     if shutil.which('valac'):
-        valatests = gather_tests('test cases/vala')
+        all_tests.append(('vala', gather_tests('test cases/vala')))
     else:
-        valatests = []
+        all_tests.append(('vala', []))
     if shutil.which('rustc'):
-        rusttests = gather_tests('test cases/rust')
+        all_tests.append(('rust', gather_tests('test cases/rust')))
     else:
-        rusttests = []
+        all_tests.append(('rust', []))
     if not mesonlib.is_windows():
-        objctests = gather_tests('test cases/objc')
+        all_tests.append(('objective c', gather_tests('test cases/objc')))
     else:
-        objctests = []
+        all_tests.append(('objective c', []))
     if shutil.which('gfortran'):
-        fortrantests = gather_tests('test cases/fortran')
+        all_tests.append(('fortran', gather_tests('test cases/fortran')))
     else:
-        fortrantests = []
+        all_tests.append(('fortran', []))
+    return all_tests
+
+def run_tests():
+    all_tests = detect_tests_to_run()
+    logfile = open('meson-test-run.txt', 'w')
     try:
         os.mkdir(test_build_dir)
     except OSError:
@@ -245,55 +245,15 @@ def run_tests():
         os.mkdir(install_dir)
     except OSError:
         pass
-    print('\nRunning common tests.\n')
-    [run_and_log(logfile, t) for t in commontests]
-    print('\nRunning failing tests.\n')
-    [run_and_log(logfile, t, False) for t in failtests]
-    if len(objtests) > 0:
-        print('\nRunning object inclusion tests.\n')
-        [run_and_log(logfile, t) for t in objtests]
-    else:
-        print('\nNo object inclusion tests.\n')
-    if len(platformtests) > 0:
-        print('\nRunning platform dependent tests.\n')
-        [run_and_log(logfile, t) for t in platformtests]
-    else:
-        print('\nNo platform specific tests.\n')
-    if len(frameworktests) > 0:
-        print('\nRunning framework tests.\n')
-        [run_and_log(logfile, t) for t in frameworktests]
-    else:
-        print('\nNo framework tests on this platform.\n')
-    if len(javatests) > 0:
-        print('\nRunning java tests.\n')
-        [run_and_log(logfile, t) for t in javatests]
-    else:
-        print('\nNot running Java tests.\n')
-    if len(cstests) > 0:
-        print('\nRunning C# tests.\n')
-        [run_and_log(logfile, t) for t in cstests]
-    else:
-        print('\nNot running C# tests.\n')
-    if len(valatests) > 0:
-        print('\nRunning Vala tests.\n')
-        [run_and_log(logfile, t) for t in valatests]
-    else:
-        print('\nNot running Vala tests.\n')
-    if len(rusttests) > 0:
-        print('\nRunning Rust tests.\n')
-        [run_and_log(logfile, t) for t in rusttests]
-    else:
-        print('\nNot running Rust tests.\n')
-    if len(objctests) > 0:
-        print('\nRunning Objective C tests.\n')
-        [run_and_log(logfile, t) for t in objctests]
-    else:
-        print('\nNo Objective C tests on this platform.\n')
-    if len(fortrantests) > 0:
-        print('\nRunning Fortran tests.\n')
-        [run_and_log(logfile, t) for t in fortrantests]
-    else:
-        print('\nNo Fortran tests on this platform.\n')
+
+    for name, test_cases in all_tests:
+        if len(test_cases) == 0:
+            print('\nNot running %s tests.\n' % name)
+        else:
+            print('\nRunning %s tests.\n' % name)
+            for t in test_cases:
+                (msg, stdo, stde) = run_test(t, name != 'failing')
+                log_text_file(logfile, t, msg, stdo, stde)
 
 def check_file(fname):
     linenum = 1
