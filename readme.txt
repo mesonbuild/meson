@@ -15,7 +15,7 @@ extracted tarball.  Installing it system-wide is simple.
 
 Configure step: None
 Compile step:   None
-Unit test step: ./run_tests.py
+Unit test step: nosetests-3.4 -v .
 Install step:   [sudo] ./install_meson.py --prefix /your/prefix --destdir /destdir/path
 
 The default value of prefix is /usr/local. The default value of destdir

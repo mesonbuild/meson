@@ -1,45 +1,21 @@
-#!/usr/bin/env python3
-
-# Copyright 2012-2015 The Meson development team
-
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+from nose.tools import *
 
 from glob import glob
-import os, subprocess, shutil, sys, platform, signal
+from functools import partial, update_wrapper
+import os
+import platform
+import shutil
+import subprocess
+import sys
+
 import environment
 import mesonlib
-import argparse
 
-from meson import backendlist
-
-passing_tests = 0
-failing_tests = 0
 print_debug = 'MESON_PRINT_TEST_OUTPUT' in os.environ
 
 test_build_dir = 'work area'
 install_dir = os.path.join(os.path.split(os.path.abspath(__file__))[0], 'install dir')
 meson_command = './meson.py'
-
-class StopException(Exception):
-    def __init__(self):
-        super(Exception, self).__init__('Stopped by user')
-
-stop = False
-def stop_handler(signal, frame):
-    global stop
-    stop = True
-signal.signal(signal.SIGINT, stop_handler)
-signal.signal(signal.SIGTERM, stop_handler)
 
 #unity_flags = ['--unity']
 unity_flags = []
@@ -49,6 +25,9 @@ compile_commands = None
 test_commands = None
 install_commands = None
 
+pbfile = None
+
+@nottest
 def setup_commands(backend):
     global backend_flags, compile_commands, test_commands, install_commands
     msbuild_exe = shutil.which('msbuild')
@@ -74,6 +53,7 @@ def setup_commands(backend):
         test_commands = [ninja_command, 'test']
         install_commands = [ninja_command, 'install']
 
+@nottest
 def platform_fix_filename(fname):
     if platform.system() == 'Darwin':
         if fname.endswith('.so'):
@@ -88,6 +68,7 @@ def platform_fix_filename(fname):
             return fname[:-1] + 'lib'
     return fname
 
+@nottest
 def validate_install(srcdir, installdir):
     if platform.system() == 'Windows':
         # Don't really know how Windows installs should work
@@ -97,8 +78,9 @@ def validate_install(srcdir, installdir):
     expected = {}
     found = {}
     if os.path.exists(info_file):
-        for line in open(info_file):
-            expected[platform_fix_filename(line.strip())] = True
+        with open(info_file) as f:
+            for line in f:
+                expected[platform_fix_filename(line.strip())] = True
     for root, _, files in os.walk(installdir):
         for fname in files:
             found_name = os.path.join(root, fname)[len(installdir)+1:]
@@ -113,33 +95,13 @@ def validate_install(srcdir, installdir):
         return 'Found extra file %s.' % fname
     return ''
 
-def run_and_log(logfile, testdir, should_succeed=True):
-    global passing_tests, failing_tests, stop
-    (msg, stdo, stde) = run_test(testdir, should_succeed)
-    if msg != '':
-        print('Fail:', msg)
-        failing_tests += 1
-    else:
-        print('Success')
-        passing_tests += 1
-    logfile.write('%s\nstdout\n\n---\n' % testdir)
-    logfile.write(stdo)
-    logfile.write('\n\n---\n\nstderr\n\n---\n')
-    logfile.write(stde)
-    logfile.write('\n\n---\n\n')
-    if print_debug:
-        print(stdo)
-        print(stde, file=sys.stderr)
-    if stop:
-        raise StopException()
-
+@nottest
 def run_test(testdir, should_succeed):
     global compile_commands
     shutil.rmtree(test_build_dir)
     shutil.rmtree(install_dir)
     os.mkdir(test_build_dir)
     os.mkdir(install_dir)
-    print('Running test: ' + testdir)
     gen_command = [sys.executable, meson_command, '--prefix', '/usr', '--libdir', 'lib', testdir, test_build_dir]\
         + unity_flags + backend_flags
     p = subprocess.Popen(gen_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -178,7 +140,7 @@ def run_test(testdir, should_succeed):
         env = os.environ.copy()
         env['DESTDIR'] = install_dir
         pi = subprocess.Popen(install_commands, cwd=test_build_dir, env=env,
-                          stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (o, e) = pi.communicate()
         stdo += o.decode('utf-8')
         stde += e.decode('utf-8')
@@ -186,6 +148,7 @@ def run_test(testdir, should_succeed):
             return ('Running install failed.', stdo, stde)
         return (validate_install(testdir, install_dir), stdo, stde)
 
+@nottest
 def gather_tests(testdir):
     tests = [t.replace('\\', '/').split('/', 2)[2] for t in glob(os.path.join(testdir, '*'))]
     testlist = [(int(t.split()[0]), t) for t in tests]
@@ -193,8 +156,59 @@ def gather_tests(testdir):
     tests = [os.path.join(testdir, t[1]) for t in testlist]
     return tests
 
-def run_tests():
-    logfile = open('meson-test-run.txt', 'w')
+@nottest
+def check_file(fname):
+    linenum = 1
+    for line in open(fname, 'rb').readlines():
+        if b'\t' in line:
+            print("File %s contains a literal tab on line %d. Only spaces are permitted." % (fname, linenum))
+            sys.exit(1)
+        if b'\r' in line:
+            print("File %s contains DOS line ending on line %d. Only unix-style line endings are permitted." % (fname, linenum))
+            sys.exit(1)
+        linenum += 1
+
+@nottest
+def check_format():
+    for (root, _, files) in os.walk('.'):
+        for file in files:
+            if file.endswith('.py') or file.endswith('.build'):
+                fullname = os.path.join(root, file)
+                check_file(fullname)
+@nottest
+def generate_prebuilt_object():
+    source = 'test cases/prebuilt object/1 basic/source.c'
+    objectbase = 'test cases/prebuilt object/1 basic/prebuilt.'
+    if shutil.which('cl'):
+        objectfile = objectbase + 'obj'
+        cmd = ['cl', '/nologo', '/Fo'+objectfile, '/c', source]
+    else:
+        if mesonlib.is_windows():
+            objectfile = objectbase + 'obj'
+        else:
+            objectfile = objectbase + 'o'
+        cmd = ['cc', '-c', source, '-o', objectfile]
+    subprocess.check_call(cmd)
+    return objectfile
+
+def setup():
+    global pbfile
+    pbfile = generate_prebuilt_object()
+
+def teardown():
+    global pbfile
+    if pbfile:
+        os.unlink(pbfile)
+        pbfile = None
+
+@with_setup(setup, teardown)
+def test_generator():
+    setup_commands('MESON_BACKEND' in os.environ)
+    script_dir = os.path.split(__file__)[0]
+    if script_dir != '':
+        os.chdir(script_dir)
+    check_format()
+    tests = []
     commontests = gather_tests('test cases/common')
     failtests = gather_tests('test cases/failing')
     objtests = gather_tests('test cases/prebuilt object')
@@ -245,107 +259,64 @@ def run_tests():
         os.mkdir(install_dir)
     except OSError:
         pass
-    print('\nRunning common tests.\n')
-    [run_and_log(logfile, t) for t in commontests]
-    print('\nRunning failing tests.\n')
-    [run_and_log(logfile, t, False) for t in failtests]
+    print('Running common tests.')
+    tests += [tuple([x, True]) for x in commontests]
+    print('Running failing tests.')
+    tests += [tuple([x, False]) for x in failtests]
     if len(objtests) > 0:
-        print('\nRunning object inclusion tests.\n')
-        [run_and_log(logfile, t) for t in objtests]
+        print('Running object inclusion tests.')
+        tests += [tuple([x, True]) for x in objtests]
     else:
-        print('\nNo object inclusion tests.\n')
+        print('No object inclusion tests.')
     if len(platformtests) > 0:
-        print('\nRunning platform dependent tests.\n')
-        [run_and_log(logfile, t) for t in platformtests]
+        print('Running platform dependent tests.')
+        tests += [tuple([x, True]) for x in platformtests]
     else:
-        print('\nNo platform specific tests.\n')
+        print('No platform specific tests.')
     if len(frameworktests) > 0:
-        print('\nRunning framework tests.\n')
-        [run_and_log(logfile, t) for t in frameworktests]
+        print('Running framework tests.')
+        tests += [tuple([x, True]) for x in frameworktests]
     else:
-        print('\nNo framework tests on this platform.\n')
+        print('No framework tests on this platform.')
     if len(javatests) > 0:
-        print('\nRunning java tests.\n')
-        [run_and_log(logfile, t) for t in javatests]
+        print('Running java tests.')
+        tests += [tuple([x, True]) for x in javatests]
     else:
-        print('\nNot running Java tests.\n')
+        print('Not running Java tests.')
     if len(cstests) > 0:
-        print('\nRunning C# tests.\n')
-        [run_and_log(logfile, t) for t in cstests]
+        print('Running C# tests.')
+        tests += [tuple([x, True]) for x in cstests]
     else:
-        print('\nNot running C# tests.\n')
+        print('Not running C# tests.')
     if len(valatests) > 0:
-        print('\nRunning Vala tests.\n')
-        [run_and_log(logfile, t) for t in valatests]
+        print('Running Vala tests.')
+        tests += [tuple([x, True]) for x in valatests]
     else:
-        print('\nNot running Vala tests.\n')
+        print('Not running Vala tests.')
     if len(rusttests) > 0:
-        print('\nRunning Rust tests.\n')
-        [run_and_log(logfile, t) for t in rusttests]
+        print('Running Rust tests.')
+        tests += [tuple([x, True]) for x in rusttests]
     else:
-        print('\nNot running Rust tests.\n')
+        print('Not running Rust tests.')
     if len(objctests) > 0:
-        print('\nRunning Objective C tests.\n')
-        [run_and_log(logfile, t) for t in objctests]
+        print('Running Objective C tests.')
+        tests += [tuple([x, True]) for x in objctests]
     else:
-        print('\nNo Objective C tests on this platform.\n')
+        print('No Objective C tests on this platform.')
     if len(fortrantests) > 0:
-        print('\nRunning Fortran tests.\n')
-        [run_and_log(logfile, t) for t in fortrantests]
+        print('Running Fortran tests.')
+        tests += [tuple([x, True]) for x in fortrantests]
     else:
-        print('\nNo Fortran tests on this platform.\n')
+        print('No Fortran tests on this platform.')
+    for test in tests:
+        f = partial(check, test[0], test[1])
+        update_wrapper(f, check)
+        f.description = test[0].replace('.', '_')
+        test_generator.__name__ = f.description
+        yield f
 
-def check_file(fname):
-    linenum = 1
-    for line in open(fname, 'rb').readlines():
-        if b'\t' in line:
-            print("File %s contains a literal tab on line %d. Only spaces are permitted." % (fname, linenum))
-            sys.exit(1)
-        if b'\r' in line:
-            print("File %s contains DOS line ending on line %d. Only unix-style line endings are permitted." % (fname, linenum))
-            sys.exit(1)
-        linenum += 1
-
-def check_format():
-    for (root, _, files) in os.walk('.'):
-        for file in files:
-            if file.endswith('.py') or file.endswith('.build'):
-                fullname = os.path.join(root, file)
-                check_file(fullname)
-
-def generate_prebuilt_object():
-    source = 'test cases/prebuilt object/1 basic/source.c'
-    objectbase = 'test cases/prebuilt object/1 basic/prebuilt.'
-    if shutil.which('cl'):
-        objectfile = objectbase + 'obj'
-        cmd = ['cl', '/nologo', '/Fo'+objectfile, '/c', source]
-    else:
-        if mesonlib.is_windows():
-            objectfile = objectbase + 'obj'
-        else:
-            objectfile = objectbase + 'o'
-        cmd = ['cc', '-c', source, '-o', objectfile]
-    subprocess.check_call(cmd)
-    return objectfile
-
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="Run the test suite of Meson.")
-    parser.add_argument('--backend', default=None, dest='backend',
-                      choices = backendlist)
-    options = parser.parse_args()
-    setup_commands(options.backend)
-
-    script_dir = os.path.split(__file__)[0]
-    if script_dir != '':
-        os.chdir(script_dir)
-    check_format()
-    pbfile = generate_prebuilt_object()
-    try:
-        run_tests()
-    except StopException:
-        pass
-    os.unlink(pbfile)
-    print('\nTotal passed tests:', passing_tests)
-    print('Total failed tests:', failing_tests)
-    sys.exit(failing_tests)
-
+def check(testpath, should_succeed):
+    (msg, stdo, stde) = run_test(testpath, should_succeed)
+    print(stdo)
+    print(stde, file=sys.stderr)
+    assert msg == ''
