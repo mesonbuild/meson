@@ -257,7 +257,11 @@ def run_tests():
             for t in test_cases:
                 (msg, stdo, stde) = run_test(t, name != 'failing')
                 log_text_file(logfile, t, msg, stdo, stde)
-                current_test = ET.SubElement(current_suite, 'testcase', {'name' : os.path.split(t)[-1],
+                # Jenkins screws us over by automatically sorting test cases by name
+                # and getting it wrong by not doing logical number sorting.
+                (testnum, testbase) = os.path.split(t)[-1].split(' ', 1)
+                testname = '%.3d %s' % (int(testnum), testbase)
+                current_test = ET.SubElement(current_suite, 'testcase', {'name' : testname,
                                                                          'classname' : name})
                 if msg != '':
                     ET.SubElement(current_test, 'failure', {'message' : msg})
