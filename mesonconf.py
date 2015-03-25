@@ -76,7 +76,7 @@ class Conf:
             if '=' not in o:
                 raise ConfException('Value "%s" not of type "a=b".' % o)
             (k, v) = o.split('=', 1)
-            if k == 'type':
+            if k == 'buildtype':
                 if v not in build_types:
                     raise ConfException('Invalid build type %s.' % v)
                 self.coredata.buildtype = v
@@ -157,7 +157,7 @@ class Conf:
         print('')
         print('Core options\n')
         carr = []
-        carr.append(['type', 'Build type', self.coredata.buildtype])
+        carr.append(['buildtype', 'Build type', self.coredata.buildtype])
         carr.append(['strip', 'Strip on install', self.coredata.strip])
         carr.append(['coverage', 'Coverage report', self.coredata.coverage])
         carr.append(['pch', 'Precompiled headers', self.coredata.use_pch])

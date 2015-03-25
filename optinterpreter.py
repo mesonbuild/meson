@@ -16,7 +16,7 @@ import mparser
 import coredata
 import os, re
 
-forbidden_option_names = {'type': True,
+forbidden_option_names = {'buildtype': True,
                           'strip': True,
                           'coverage': True,
                           'pch': True,
