@@ -1,4 +1,4 @@
-# Copyright 2014 The Meson development team
+# Copyright 2014-2015 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import re
-import sys
 from coredata import MesonException
 
 class ParseException(MesonException):
@@ -51,7 +50,7 @@ class Lexer:
             ('rparen', re.compile(r'\)')),
             ('lbracket', re.compile(r'\[')),
             ('rbracket', re.compile(r'\]')),
-            ('string', re.compile("'[^']*?'")),
+            ('string', re.compile(r"'([^'\\]|(\\.))*'")),
             ('comma', re.compile(r',')),
             ('dot', re.compile(r'\.')),
             ('plus', re.compile(r'\+')),
@@ -93,7 +92,8 @@ class Lexer:
                     elif tid == 'rbracket':
                         bracket_count -= 1
                     elif tid == 'string':
-                        value = match_text[1:-1]
+                        value = match_text[1:-1].replace(r"\'", "'").replace(r" \\ ".strip(), r" \ ".strip())\
+                        .replace("\\n", "\n")
                     elif tid == 'multiline_string':
                         tid = 'string'
                         value = match_text[3:-3]
