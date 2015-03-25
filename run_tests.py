@@ -252,15 +252,15 @@ def run_tests():
         if len(test_cases) == 0:
             print('\nNot running %s tests.\n' % name)
         else:
-            current_suite = ET.SubElement(junit_root, 'testsuite', {'name' : name})
+            current_suite = ET.SubElement(junit_root, 'testsuite', {'name' : name, 'tests' : str(len(test_cases))})
             print('\nRunning %s tests.\n' % name)
             for t in test_cases:
                 (msg, stdo, stde) = run_test(t, name != 'failing')
                 log_text_file(logfile, t, msg, stdo, stde)
-                current_test = ET.SubElement(current_suite, 'testcase', {'name' : os.path.split(t)[-1]})
+                current_test = ET.SubElement(current_suite, 'testcase', {'name' : os.path.split(t)[-1],
+                                                                         'classname' : 'dummy'})
                 if msg != '':
-                    failure = ET.SubElement(current_test, 'failure')
-                    failure.text = msg
+                    ET.SubElement(current_test, 'failure', {'message' : msg})
                 stdoel = ET.SubElement(current_test, 'system-out')
                 stdoel.text = stdo
                 stdeel = ET.SubElement(current_test, 'system-err')
