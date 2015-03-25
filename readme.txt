@@ -54,6 +54,11 @@ We love code contributions. See the contributing.txt file for
 details.
 
 
+IRC
+
+The irc channel for Meson is #mesonbuild over at freenode.
+
+
 Further info
 
 The home page of Meson can be found here:
