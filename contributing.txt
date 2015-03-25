@@ -20,13 +20,25 @@ following:
   a big feature)
 
 
+External dependencies
+
+The goal of Meson is to be as easily usable as possible. The user
+experience thould be "get Python3, run", even on
+Windows. Unfortunately this means that we can't have dependencies on
+projects outside of Python's standard library. This applies only to
+core functionality, though. For additional helper programs etc the use
+of external dependencies may be ok. If you feel that you are dealing
+with this kind of case, please raise the issue on the mailing list
+first.
+
+
 What not to contribute?
 
 There are a few things that people seem to want to add to Meson but which
 are not there by design and will not be added either.
 
 The first one is defining your own functions or a generalised for loop.
-These are bad because they would make Meson's DSL Turing complete. The 
+These are bad because they would make Meson's DSL Turing complete. The
 second feature is a Make backend.
 
 The FAQ has specific information why these two features will not be
