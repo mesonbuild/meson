@@ -57,7 +57,7 @@ class GnomeModule:
         girfile = '%s-%s.gir' % (ns, nsversion)
         scan_command = ['g-ir-scanner', '@INPUT@']
         scan_command += pkgargs
-        scan_command += ['--namespace='+ns, '--nsversion=' + nsversion,
+        scan_command += ['--namespace='+ns, '--nsversion=' + nsversion, '--warn-all',
                          '--output', '@OUTPUT@']
         if 'includes' in kwargs:
             includes = kwargs.pop('includes')
