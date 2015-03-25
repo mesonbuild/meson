@@ -26,6 +26,7 @@ from meson import backendlist
 
 passing_tests = 0
 failing_tests = 0
+skipped_tests = 0
 print_debug = 'MESON_PRINT_TEST_OUTPUT' in os.environ
 
 test_build_dir = 'work area'
@@ -196,44 +197,23 @@ def gather_tests(testdir):
 
 def detect_tests_to_run():
     all_tests = []
-    all_tests.append(('common', gather_tests('test cases/common')))
-    all_tests.append(('failing', gather_tests('test cases/failing')))
-    all_tests.append(('prebuilt object', gather_tests('test cases/prebuilt object')))
+    all_tests.append(('common', gather_tests('test cases/common'), False))
+    all_tests.append(('failing', gather_tests('test cases/failing'), False))
+    all_tests.append(('prebuilt object', gather_tests('test cases/prebuilt object'), False))
 
     if mesonlib.is_osx():
-        all_tests.append(('platform', gather_tests('test cases/osx')))
+        all_tests.append(('platform', gather_tests('test cases/osx'), False))
     elif mesonlib.is_windows():
-        all_tests.append(('platform', gather_tests('test cases/windows')))
+        all_tests.append(('platform', gather_tests('test cases/windows'), False))
     else:
-        all_tests.append(('platform', gather_tests('test cases/linuxlike')))
-    if not mesonlib.is_osx() and not mesonlib.is_windows():
-        all_tests.append(('framework', gather_tests('test cases/frameworks')))
-    else:
-        all_tests.append(('framework', []))
-    if not mesonlib.is_osx() and shutil.which('javac'):
-        all_tests.append(('java', gather_tests('test cases/java')))
-    else:
-        all_tests.append(('java', []))
-    if shutil.which('mcs'):
-        all_tests.append(('C#', gather_tests('test cases/csharp')))
-    else:
-        all_tests.append(('C#', []))
-    if shutil.which('valac'):
-        all_tests.append(('vala', gather_tests('test cases/vala')))
-    else:
-        all_tests.append(('vala', []))
-    if shutil.which('rustc'):
-        all_tests.append(('rust', gather_tests('test cases/rust')))
-    else:
-        all_tests.append(('rust', []))
-    if not mesonlib.is_windows():
-        all_tests.append(('objective c', gather_tests('test cases/objc')))
-    else:
-        all_tests.append(('objective c', []))
-    if shutil.which('gfortran'):
-        all_tests.append(('fortran', gather_tests('test cases/fortran')))
-    else:
-        all_tests.append(('fortran', []))
+        all_tests.append(('platform', gather_tests('test cases/linuxlike'), False))
+    all_tests.append(('framework', gather_tests('test cases/frameworks'), False if not mesonlib.is_osx() and not mesonlib.is_windows() else True))
+    all_tests.append(('java', gather_tests('test cases/java'), False if not mesonlib.is_osx() and shutil.which('javac') else True))
+    all_tests.append(('C#', gather_tests('test cases/csharp'), False if shutil.which('mcs') else True))
+    all_tests.append(('vala', gather_tests('test cases/vala'), False if shutil.which('valac') else True))
+    all_tests.append(('rust', gather_tests('test cases/rust'), False if shutil.which('rustc') else True))
+    all_tests.append(('objective c', gather_tests('test cases/objc'), False if not mesonlib.is_windows() else True))
+    all_tests.append(('fortran', gather_tests('test cases/fortran'), False if shutil.which('gfortran') else True))
     return all_tests
 
 def run_tests():
@@ -249,21 +229,28 @@ def run_tests():
     except OSError:
         pass
 
-    for name, test_cases in all_tests:
-        if len(test_cases) == 0:
+    for name, test_cases, skipped in all_tests:
+        current_suite = ET.SubElement(junit_root, 'testsuite', {'name' : name, 'tests' : str(len(test_cases))})
+        if skipped:
             print('\nNot running %s tests.\n' % name)
         else:
-            current_suite = ET.SubElement(junit_root, 'testsuite', {'name' : name, 'tests' : str(len(test_cases))})
             print('\nRunning %s tests.\n' % name)
-            for t in test_cases:
+        for t in test_cases:
+            # Jenkins screws us over by automatically sorting test cases by name
+            # and getting it wrong by not doing logical number sorting.
+            (testnum, testbase) = os.path.split(t)[-1].split(' ', 1)
+            testname = '%.3d %s' % (int(testnum), testbase)
+            if skipped:
+                current_test = ET.SubElement(current_suite, 'testcase', {'name' : testname,
+                                                                         'classname' : name})
+                ET.SubElement(current_test, 'skipped', {})
+                global skipped_tests
+                skipped_tests += 1
+            else:
                 ts = time.time()
                 (msg, stdo, stde) = run_test(t, name != 'failing')
                 te = time.time()
                 log_text_file(logfile, t, msg, stdo, stde)
-                # Jenkins screws us over by automatically sorting test cases by name
-                # and getting it wrong by not doing logical number sorting.
-                (testnum, testbase) = os.path.split(t)[-1].split(' ', 1)
-                testname = '%.3d %s' % (int(testnum), testbase)
                 current_test = ET.SubElement(current_suite, 'testcase', {'name' : testname,
                                                                          'classname' : name,
                                                                          'time' : '%.3f' % (te - ts)})
@@ -327,5 +314,6 @@ if __name__ == '__main__':
     os.unlink(pbfile)
     print('\nTotal passed tests:', passing_tests)
     print('Total failed tests:', failing_tests)
+    print('Total skipped tests:', skipped_tests)
     sys.exit(failing_tests)
 
