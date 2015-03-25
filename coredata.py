@@ -57,7 +57,7 @@ class CoreData():
         self.modules = {}
 
     def get_builtin_option(self, optname):
-        if optname == 'type':
+        if optname == 'buildtype':
             return self.buildtype
         if optname == 'strip':
             return self.strip
