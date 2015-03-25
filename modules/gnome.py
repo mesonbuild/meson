@@ -81,6 +81,14 @@ class GnomeModule:
             if not isinstance(identifier_prefix, str):
                 raise MesonException('Gir identifier prefix must be str')
             scan_command += ['--identifier-prefix=%s' % identifier_prefix]
+        if kwargs.get('export_packages'):
+            pkgs = kwargs.pop('export_packages')
+            if isinstance(pkgs, str):
+                scan_command += ['--pkg-export=%s' % pkgs]
+            elif isinstance(pkgs, list):
+                scan_command += ['--pkg-export=%s' % pkg for pkg in pkgs]
+            else:
+                raise MesonException('Gir export packages must be str or list')
         if isinstance(girtarget, build.Executable):
             scan_command += ['--program', girtarget]
         elif isinstance(girtarget, build.SharedLibrary):
