@@ -20,6 +20,7 @@ import environment
 import mesonlib
 import argparse
 import xml.etree.ElementTree as ET
+import time
 
 from meson import backendlist
 
@@ -255,14 +256,17 @@ def run_tests():
             current_suite = ET.SubElement(junit_root, 'testsuite', {'name' : name, 'tests' : str(len(test_cases))})
             print('\nRunning %s tests.\n' % name)
             for t in test_cases:
+                ts = time.time()
                 (msg, stdo, stde) = run_test(t, name != 'failing')
+                te = time.time()
                 log_text_file(logfile, t, msg, stdo, stde)
                 # Jenkins screws us over by automatically sorting test cases by name
                 # and getting it wrong by not doing logical number sorting.
                 (testnum, testbase) = os.path.split(t)[-1].split(' ', 1)
                 testname = '%.3d %s' % (int(testnum), testbase)
                 current_test = ET.SubElement(current_suite, 'testcase', {'name' : testname,
-                                                                         'classname' : name})
+                                                                         'classname' : name,
+                                                                         'time' : '%.3f' % (te - ts)})
                 if msg != '':
                     ET.SubElement(current_test, 'failure', {'message' : msg})
                 stdoel = ET.SubElement(current_test, 'system-out')
