@@ -1,0 +1,692 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Porting from Autotools &mdash; Meson 0.23-research documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.23-research',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="Meson 0.23-research documentation" href="index.html" />
+    <link rel="prev" title="Welcome to Meson’s documentation!" href="index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="index.html" title="Welcome to Meson’s documentation!"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">Meson 0.23-research documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="porting-from-autotools">
+<h1>Porting from Autotools<a class="headerlink" href="#porting-from-autotools" title="Permalink to this headline">¶</a></h1>
+<p>I will take
+<a class="reference external" href="https://github.com/hughsie/appstream-glib/">appstream-glib</a> as
+example project. Appstream-Glib contains some libraries,
+gobject-introspection, tests, man pages, i18n, bash-completion with
+optional flags to build/notbuild support for some things.</p>
+<div class="section" id="configure-ac">
+<h2>Configure.ac<a class="headerlink" href="#configure-ac" title="Permalink to this headline">¶</a></h2>
+<p>First of all, I&#8217;ll take <tt class="docutils literal"><span class="pre">configure.ac</span></tt> and will try to write the same
+in <tt class="docutils literal"><span class="pre">meson.build</span></tt>.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">AC_PREREQ</span><span class="p">(</span><span class="mf">2.63</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Meson doesn&#8217;t provide the same function, so just ignore this.</p>
+<div class="section" id="defining-variables">
+<h3>Defining variables<a class="headerlink" href="#defining-variables" title="Permalink to this headline">¶</a></h3>
+<p><tt class="docutils literal"><span class="pre">configure.ac</span></tt>:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">m4_define</span><span class="p">([</span><span class="n">as_major_version</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="n">m4_define</span><span class="p">([</span><span class="n">as_minor_version</span><span class="p">],</span> <span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+<span class="n">m4_define</span><span class="p">([</span><span class="n">as_micro_version</span><span class="p">],</span> <span class="p">[</span><span class="mi">6</span><span class="p">])</span>
+<span class="n">m4_define</span><span class="p">([</span><span class="n">as_version</span><span class="p">],</span>
+          <span class="p">[</span><span class="n">as_major_version</span><span class="o">.</span><span class="n">as_minor_version</span><span class="o">.</span><span class="n">as_micro_version</span><span class="p">])</span>
+</pre></div>
+</div>
+<p><tt class="docutils literal"><span class="pre">meson.build</span></tt>:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">as_major_version</span> <span class="o">=</span> <span class="s">&#39;0&#39;</span>
+<span class="n">as_minor_version</span> <span class="o">=</span> <span class="s">&#39;3&#39;</span>
+<span class="n">as_micro_version</span> <span class="o">=</span> <span class="s">&#39;6&#39;</span>
+<span class="n">as_version</span> <span class="o">=</span> <span class="s">&#39;@0@.@1@.@2@&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">as_major_version</span><span class="p">,</span> <span class="n">as_minor_version</span><span class="p">,</span> <span class="n">as_micro_version</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="initializing-project-and-setting-compilers">
+<h3>Initializing project and setting compilers<a class="headerlink" href="#initializing-project-and-setting-compilers" title="Permalink to this headline">¶</a></h3>
+<p><tt class="docutils literal"><span class="pre">configure.ac</span></tt>:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">AC_INIT</span><span class="p">([</span><span class="n">appstream</span><span class="o">-</span><span class="n">glib</span><span class="p">],[</span><span class="n">as_version</span><span class="p">])</span>
+<span class="n">AC_PROG_CC</span>
+</pre></div>
+</div>
+<p><tt class="docutils literal"><span class="pre">meson.build</span></tt>:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">project</span><span class="p">(</span><span class="s">&#39;appstream-glib&#39;</span><span class="p">,</span> <span class="s">&#39;c&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Meson doesn&#8217;t support version tags for project, because it&#8217;s unnecessary
+garbage.</p>
+</div>
+<div class="section" id="ac-subst">
+<h3>AC_SUBST<a class="headerlink" href="#ac-subst" title="Permalink to this headline">¶</a></h3>
+<p><tt class="docutils literal"><span class="pre">configure.ac</span></tt>:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">AC_SUBST</span><span class="p">(</span><span class="n">AS_MAJOR_VERSION</span><span class="p">)</span>
+<span class="n">AC_SUBST</span><span class="p">(</span><span class="n">AS_MINOR_VERSION</span><span class="p">)</span>
+<span class="n">AC_SUBST</span><span class="p">(</span><span class="n">AS_MICRO_VERSION</span><span class="p">)</span>
+<span class="n">AC_SUBST</span><span class="p">(</span><span class="n">AS_VERSION</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>You don&#8217;t want to do the same in meson, because there no 2 type of files
+(Makefile, configure). All variables which you will use in meson needs
+to be defined once.</p>
+</div>
+<div class="section" id="auto-headers">
+<h3>Auto headers<a class="headerlink" href="#auto-headers" title="Permalink to this headline">¶</a></h3>
+<p><tt class="docutils literal"><span class="pre">configure.ac</span></tt>:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">AC_CONFIG_HEADERS</span><span class="p">([</span><span class="n">config</span><span class="o">.</span><span class="n">h</span><span class="p">])</span>
+</pre></div>
+</div>
+<p><tt class="docutils literal"><span class="pre">meson.build</span></tt>:</p>
+<div class="highlight-python"><div class="highlight"><pre>conf = configuration_data()
+conf.set(&#39;VERSION&#39;, as_version)
+configure_file(input : &#39;config.h.in&#39;,
+               output : &#39;config.h&#39;,
+               configuration : conf)
+</pre></div>
+</div>
+<p><tt class="docutils literal"><span class="pre">config.h.in</span></tt>:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="c">#mesondefine VERSION</span>
+</pre></div>
+</div>
+<p>Meson doesn&#8217;t support autoheaders, you need to manually specify what do
+you want to see in header file, write <tt class="docutils literal"><span class="pre">configuration_data()</span></tt> object
+and use <tt class="docutils literal"><span class="pre">configure_file()</span></tt>.</p>
+</div>
+<div class="section" id="finding-programs">
+<h3>Finding programs<a class="headerlink" href="#finding-programs" title="Permalink to this headline">¶</a></h3>
+<p><tt class="docutils literal"><span class="pre">configure.ac</span></tt>:</p>
+<div class="highlight-python"><div class="highlight"><pre>AC_PATH_PROG(GPERF, [gperf], [no])
+if test x$GPERF != xno ; then
+        AC_DEFINE(HAVE_GPERF,[1], [Use gperf])
+fi
+AM_CONDITIONAL(HAVE_GPERF, [test x$GPERF != xno])
+</pre></div>
+</div>
+<p><tt class="docutils literal"><span class="pre">meson.build</span></tt>:</p>
+<div class="highlight-python"><div class="highlight"><pre>gperf = find_program(&#39;gperf&#39;, required : false)
+if gperf.found()
+  conf.set(&#39;HAVE_GPERF&#39;, 1)
+endif
+</pre></div>
+</div>
+</div>
+<div class="section" id="finding-pkgconfig-modules">
+<h3>Finding pkgconfig modules<a class="headerlink" href="#finding-pkgconfig-modules" title="Permalink to this headline">¶</a></h3>
+<p><tt class="docutils literal"><span class="pre">configure.ac</span></tt>:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">PKG_CHECK_MODULES</span><span class="p">(</span><span class="n">SOUP</span><span class="p">,</span> <span class="n">libsoup</span><span class="o">-</span><span class="mf">2.4</span> <span class="o">&gt;=</span> <span class="mf">2.24</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><tt class="docutils literal"><span class="pre">meson.build</span></tt>:</p>
+<div class="highlight-python"><div class="highlight"><pre>soup = dependency(&#39;libsoup-2.4&#39;, version : &#39;&gt;= 2.24&#39;)
+</pre></div>
+</div>
+</div>
+<div class="section" id="arguments">
+<h3>Arguments<a class="headerlink" href="#arguments" title="Permalink to this headline">¶</a></h3>
+<p><tt class="docutils literal"><span class="pre">configure.ac</span></tt>:</p>
+<div class="highlight-python"><div class="highlight"><pre>AC_ARG_ENABLE(dep11, AS_HELP_STRING([--enable-dep11],[enable DEP-11]),
+              enable_dep11=$enableval,enable_dep11=yes)
+AM_CONDITIONAL(HAVE_DEP11, test x$enable_dep11 = xyes)
+if test x$enable_dep11 = xyes; then
+  AC_CHECK_HEADER(yaml.h, [], [AC_MSG_ERROR([No yaml.h])])
+  YAML_LIBS=&quot;-lyaml&quot;
+  AC_SUBST(YAML_LIBS)
+  AC_DEFINE(AS_BUILD_DEP11,1,[Build DEP-11 code])
+fi
+</pre></div>
+</div>
+<p><tt class="docutils literal"><span class="pre">meson.build</span></tt>:</p>
+<div class="highlight-python"><div class="highlight"><pre>if get_option(&#39;enable-dep11&#39;)
+  yaml = dependency(&#39;yaml-0.1&#39;)
+  conf.set(&#39;AS_BUILD_DEP11&#39;, 1)
+else
+  yaml = dependency(&#39;yaml-0.1&#39;, required : false)
+endif
+</pre></div>
+</div>
+<p><tt class="docutils literal"><span class="pre">meson_options.txt</span></tt>:</p>
+<div class="highlight-python"><div class="highlight"><pre>option(&#39;enable-dep11&#39;, type : &#39;boolean&#39;, value : true, description : &#39;enable DEP-11&#39;)
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="makefile-am">
+<h2>Makefile.am<a class="headerlink" href="#makefile-am" title="Permalink to this headline">¶</a></h2>
+<p>Next step is <tt class="docutils literal"><span class="pre">Makefile.am</span></tt>. In meson you don&#8217;t need to have other
+file, you still use <tt class="docutils literal"><span class="pre">meson.build</span></tt>.</p>
+<div class="section" id="sub-directories">
+<h3>Sub directories<a class="headerlink" href="#sub-directories" title="Permalink to this headline">¶</a></h3>
+<p><tt class="docutils literal"><span class="pre">Makefile.am</span></tt>:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">SUBDIRS</span> <span class="o">=</span>                                         \
+        <span class="n">libappstream</span><span class="o">-</span><span class="n">glib</span>
+</pre></div>
+</div>
+<p><tt class="docutils literal"><span class="pre">meson.build</span></tt>:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">subdir</span><span class="p">(</span><span class="s">&#39;libappstream-glib&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="cleanfiles-extra-dist-etc">
+<h3>*CLEANFILES, EXTRA_DIST, etc.<a class="headerlink" href="#cleanfiles-extra-dist-etc" title="Permalink to this headline">¶</a></h3>
+<p><tt class="docutils literal"><span class="pre">Makefile.am</span></tt>:</p>
+<div class="highlight-python"><div class="highlight"><pre>DISTCLEANFILES =                                        \
+        appstream-glib-*.tar.xz
+
+MAINTAINERCLEANFILES =                                  \
+        *~                                              \
+        ABOUT-NLS                                       \
+        aclocal.m4                                      \
+        ChangeLog                                       \
+        compile                                         \
+        config.guess                                    \
+        config.h.*                                      \
+        config.rpath
+
+EXTRA_DIST =                                            \
+        COPYING                                         \
+        MAINTAINERS                                     \
+        AUTHORS                                         \
+        README.md                                       \
+        NEWS                                            \
+        autogen.sh                                      \
+        config.h
+</pre></div>
+</div>
+<p>In meson you don&#8217;t need have <tt class="docutils literal"><span class="pre">*CLEANFILES</span></tt>, because in meson you are
+building in temporary directory (usually called <tt class="docutils literal"><span class="pre">build</span></tt>), you manually
+removing it. You also not need to use <tt class="docutils literal"><span class="pre">EXTRA_DIST</span></tt>, because you will
+make tarballs via <tt class="docutils literal"><span class="pre">git</span> <span class="pre">archive</span></tt> or something like this.</p>
+</div>
+<div class="section" id="glib-compile-resources">
+<h3>glib-compile-resources<a class="headerlink" href="#glib-compile-resources" title="Permalink to this headline">¶</a></h3>
+<p><tt class="docutils literal"><span class="pre">Makefile.am</span></tt>:</p>
+<div class="highlight-python"><div class="highlight"><pre>as-resources.c: appstream-glib.gresource.xml                    \
+                as-stock-icons.txt                              \
+                as-license-ids.txt                              \
+                as-blacklist-ids.txt                            \
+                as-category-ids.txt                             \
+                as-environment-ids.txt
+        $(AM_V_GEN)                                             \
+        glib-compile-resources                                  \
+                --sourcedir=$(srcdir)                           \
+                --sourcedir=$(top_builddir)/data                \
+                --target=$@                                     \
+                --generate-source                               \
+                --c-name as                                     \
+                $(srcdir)/appstream-glib.gresource.xml
+as-resources.h: appstream-glib.gresource.xml                    \
+                as-stock-icons.txt                              \
+                as-license-ids.txt                              \
+                as-blacklist-ids.txt                            \
+                as-category-ids.txt                             \
+                as-environment-ids.txt
+        $(AM_V_GEN)                                             \
+        glib-compile-resources                                  \
+                --sourcedir=$(srcdir)                           \
+                --sourcedir=$(top_builddir)/data                \
+                --target=$@                                     \
+                --generate-header                               \
+                --c-name as                                     \
+                $(srcdir)/appstream-glib.gresource.xml
+
+BUILT_SOURCES =                                                 \
+        as-resources.c                                          \
+        as-resources.h
+</pre></div>
+</div>
+<p><tt class="docutils literal"><span class="pre">meson.build</span></tt>:</p>
+<div class="highlight-python"><div class="highlight"><pre>asresources = gnome.compile_resources(
+  &#39;as-resources&#39;, &#39;appstream-glib.gresource.xml&#39;,
+  source_dir : &#39;.&#39;,
+  c_name : &#39;as&#39;)
+</pre></div>
+</div>
+</div>
+<div class="section" id="headers">
+<h3>Headers<a class="headerlink" href="#headers" title="Permalink to this headline">¶</a></h3>
+<p><tt class="docutils literal"><span class="pre">Makefile.am</span></tt>:</p>
+<div class="highlight-python"><div class="highlight"><pre>libappstream_glib_includedir = $(includedir)/libappstream-glib
+libappstream_glib_include_HEADERS =                             \
+        appstream-glib.h                                        \
+        as-app.h                                                \
+        as-bundle.h                                             \
+        as-enums.h                                              \
+        as-icon.h                                               \
+        as-image.h                                              \
+        as-inf.h                                                \
+        as-node.h                                               \
+        as-problem.h                                            \
+        as-provide.h                                            \
+        as-release.h                                            \
+        as-screenshot.h                                         \
+        as-store.h                                              \
+        as-tag.h                                                \
+        as-utils.h                                              \
+        as-version.h
+</pre></div>
+</div>
+<p><tt class="docutils literal"><span class="pre">meson.build</span></tt>:</p>
+<div class="highlight-python"><div class="highlight"><pre>headers = [
+  &#39;appstream-glib.h&#39;,
+  &#39;as-app.h&#39;,
+  &#39;as-bundle.h&#39;,
+  &#39;as-enums.h&#39;,
+  &#39;as-icon.h&#39;,
+  &#39;as-image.h&#39;,
+  &#39;as-inf.h&#39;,
+  &#39;as-node.h&#39;,
+  &#39;as-problem.h&#39;,
+  &#39;as-provide.h&#39;,
+  &#39;as-release.h&#39;,
+  &#39;as-screenshot.h&#39;,
+  &#39;as-store.h&#39;,
+  &#39;as-tag.h&#39;,
+  &#39;as-utils.h&#39;,
+  &#39;as-version.h&#39;]
+install_headers(headers, subdir : &#39;libappstream-glib&#39;)
+</pre></div>
+</div>
+</div>
+<div class="section" id="libraries">
+<h3>Libraries<a class="headerlink" href="#libraries" title="Permalink to this headline">¶</a></h3>
+<p><tt class="docutils literal"><span class="pre">Makefile.am</span></tt>:</p>
+<div class="highlight-python"><div class="highlight"><pre>lib_LTLIBRARIES =                                               \
+        libappstream-glib.la
+libappstream_glib_la_SOURCES =                                  \
+        as-app.c                                                \
+        as-app-desktop.c                                        \
+        as-app-inf.c                                            \
+        as-app-private.h                                        \
+        as-app-validate.c                                       \
+        as-bundle.c                                             \
+        as-bundle-private.h                                     \
+        as-cleanup.h                                            \
+        as-enums.c                                              \
+        as-icon.c                                               \
+        as-icon-private.h                                       \
+        as-image.c                                              \
+        as-image-private.h                                      \
+        as-inf.c                                                \
+        as-inf.h                                                \
+        as-node.c                                               \
+        as-node-private.h                                       \
+        as-problem.c                                            \
+        as-problem.h                                            \
+        as-provide.c                                            \
+        as-provide-private.h                                    \
+        as-release.c                                            \
+        as-release-private.h                                    \
+        as-resources.c                                          \
+        as-resources.h                                          \
+        as-screenshot.c                                         \
+        as-screenshot-private.h                                 \
+        as-store.c                                              \
+        as-tag.c                                                \
+        as-utils.c                                              \
+        as-utils-private.h                                      \
+        as-version.h                                            \
+        as-yaml.c                                               \
+        as-yaml.h
+
+libappstream_glib_la_LIBADD =                                   \
+        $(GLIB_LIBS)                                            \
+        $(GDKPIXBUF_LIBS)                                       \
+        $(LIBARCHIVE_LIBS)                                      \
+        $(SOUP_LIBS)                                            \
+        $(YAML_LIBS)
+
+libappstream_glib_la_LDFLAGS =                                  \
+        -version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE)    \
+        -export-dynamic                                         \
+        -no-undefined                                           \
+        -export-symbols-regex &#39;^as_.*&#39;
+</pre></div>
+</div>
+<p><tt class="docutils literal"><span class="pre">meson.build</span></tt>:</p>
+<div class="highlight-python"><div class="highlight"><pre>sources = [
+  &#39;as-app.c&#39;,
+  &#39;as-app-desktop.c&#39;,
+  &#39;as-app-inf.c&#39;,
+  &#39;as-app-private.h&#39;,
+  &#39;as-app-validate.c&#39;,
+  &#39;as-bundle.c&#39;,
+  &#39;as-bundle-private.h&#39;,
+  &#39;as-cleanup.h&#39;,
+  &#39;as-enums.c&#39;,
+  &#39;as-icon.c&#39;,
+  &#39;as-icon-private.h&#39;,
+  &#39;as-image.c&#39;,
+  &#39;as-image-private.h&#39;,
+  &#39;as-inf.c&#39;,
+  &#39;as-inf.h&#39;,
+  &#39;as-node.c&#39;,
+  &#39;as-node-private.h&#39;,
+  &#39;as-problem.c&#39;,
+  &#39;as-problem.h&#39;,
+  &#39;as-provide.c&#39;,
+  &#39;as-provide-private.h&#39;,
+  &#39;as-release.c&#39;,
+  &#39;as-release-private.h&#39;,
+  asresources,
+  &#39;as-screenshot.c&#39;,
+  &#39;as-screenshot-private.h&#39;,
+  &#39;as-store.c&#39;,
+  &#39;as-tag.c&#39;,
+  &#39;as-utils.c&#39;,
+  &#39;as-utils-private.h&#39;,
+  &#39;as-version.h&#39;,
+  &#39;as-yaml.c&#39;,
+  &#39;as-yaml.h&#39;]
+
+deps = [glib, gdkpixbuf, libarchive, soup, yaml]
+
+mapfile = &#39;appstream-glib.map&#39;
+vflag = &#39;-Wl,--version-script,@0@/@1@&#39;.format(meson.current_source_dir(), mapfile)
+asglib = shared_library(
+  &#39;appstream-glib&#39;, sources,
+  soversion : lt_current,
+  version : lt_version,
+  dependencies : deps,
+  include_directories : include_directories(&#39;@0@/..&#39;.format(meson.current_build_dir())),
+  link_args : [&#39;-Wl,--no-undefined&#39;, vflag],
+  link_depends : mapfile,
+  install : true)
+</pre></div>
+</div>
+<p><tt class="docutils literal"><span class="pre">appstream-glib.map</span></tt>:</p>
+<div class="highlight-python"><div class="highlight"><pre>{
+global:
+    as_*;
+local:
+    *;
+};
+</pre></div>
+</div>
+</div>
+<div class="section" id="custom-targets">
+<h3>Custom targets<a class="headerlink" href="#custom-targets" title="Permalink to this headline">¶</a></h3>
+<p><tt class="docutils literal"><span class="pre">Makefile.am</span></tt>:</p>
+<div class="highlight-python"><div class="highlight"><pre>if HAVE_GPERF
+as-tag-private.h: as-tag.gperf
+        $(AM_V_GEN) gperf &lt; $&lt; &gt; $@
+
+libappstream_glib_la_SOURCES += as-tag-private.h
+BUILT_SOURCES += as-tag-private.h
+endif
+</pre></div>
+</div>
+<p><tt class="docutils literal"><span class="pre">meson.build</span></tt>:</p>
+<div class="highlight-python"><div class="highlight"><pre>if gperf.found()
+  astagpriv = custom_target(&#39;gperf as-tag&#39;,
+                            output : &#39;as-tag-private.h&#39;,
+                            input : &#39;as-tag.gperf&#39;,
+                            command : [gperf, &#39;@INPUT@&#39;, &#39;--output-file&#39;, &#39;@OUTPUT@&#39;])
+  sources = sources + [astagpriv]
+endif
+</pre></div>
+</div>
+</div>
+<div class="section" id="global-cflags">
+<h3>Global CFLAGS<a class="headerlink" href="#global-cflags" title="Permalink to this headline">¶</a></h3>
+<p><tt class="docutils literal"><span class="pre">Makefile.am</span></tt>:</p>
+<div class="highlight-python"><div class="highlight"><pre>AM_CPPFLAGS =                                                   \
+        -DAS_COMPILATION                                        \
+        -DLOCALSTATEDIR=\&quot;&quot;$(localstatedir)&quot;\&quot;                  \
+        -DG_LOG_DOMAIN=\&quot;As\&quot;
+</pre></div>
+</div>
+<p><tt class="docutils literal"><span class="pre">meson.build</span></tt>:</p>
+<div class="highlight-python"><div class="highlight"><pre>add_global_arguments(&#39;-DG_LOG_DOMAIN=&quot;As&quot;&#39;, language : &#39;c&#39;)
+add_global_arguments(&#39;-DAS_COMPILATION&#39;, language : &#39;c&#39;)
+add_global_arguments(&#39;-DLOCALSTATEDIR=&quot;/var&quot;&#39;, language : &#39;c&#39;)
+</pre></div>
+</div>
+</div>
+<div class="section" id="tests">
+<h3>Tests<a class="headerlink" href="#tests" title="Permalink to this headline">¶</a></h3>
+<p><tt class="docutils literal"><span class="pre">Makefile.am</span></tt>:</p>
+<div class="highlight-python"><div class="highlight"><pre>check_PROGRAMS =                                                \
+        as-self-test
+as_self_test_SOURCES =                                          \
+        as-self-test.c
+as_self_test_LDADD =                                            \
+        $(GLIB_LIBS)                                            \
+        $(GDKPIXBUF_LIBS)                                       \
+        $(LIBARCHIVE_LIBS)                                      \
+        $(SOUP_LIBS)                                            \
+        $(YAML_LIBS)                                            \
+        $(lib_LTLIBRARIES)
+as_self_test_CFLAGS = -DTESTDATADIR=\&quot;&quot;$(top_srcdir)/data/tests&quot;\&quot;
+
+TESTS = as-self-test
+</pre></div>
+</div>
+<p><tt class="docutils literal"><span class="pre">meson.build</span></tt>:</p>
+<div class="highlight-python"><div class="highlight"><pre>selftest = executable(
+  &#39;as-self-test&#39;, &#39;as-self-test.c&#39;,
+  include_directories : include_directories(&#39;@0@/..&#39;.format(meson.current_build_dir())),
+  dependencies : deps,
+  c_args : &#39;-DTESTDATADIR=&quot;@0@/../data/tests&quot;&#39;.format(meson.current_source_dir()),
+  link_with : asglib)
+test(&#39;as-self-test&#39;, selftest)
+</pre></div>
+</div>
+</div>
+<div class="section" id="gobject-introspection">
+<h3>GObject Introspection<a class="headerlink" href="#gobject-introspection" title="Permalink to this headline">¶</a></h3>
+<p><tt class="docutils literal"><span class="pre">Makefile.am</span></tt>:</p>
+<div class="highlight-python"><div class="highlight"><pre>introspection_sources =                                         \
+        as-app.c                                                \
+        as-app-validate.c                                       \
+        as-app.h                                                \
+        as-bundle.c                                             \
+        as-bundle.h                                             \
+        as-enums.c                                              \
+        as-enums.h                                              \
+        as-icon.c                                               \
+        as-icon.h                                               \
+        as-image.c                                              \
+        as-image.h                                              \
+        as-inf.c                                                \
+        as-inf.h                                                \
+        as-node.c                                               \
+        as-node.h                                               \
+        as-problem.c                                            \
+        as-problem.h                                            \
+        as-provide.c                                            \
+        as-provide.h                                            \
+        as-release.c                                            \
+        as-release.h                                            \
+        as-screenshot.c                                         \
+        as-screenshot.h                                         \
+        as-store.c                                              \
+        as-store.h                                              \
+        as-tag.c                                                \
+        as-tag.h                                                \
+        as-utils.c                                              \
+        as-utils.h                                              \
+        as-version.h
+
+AppStreamGlib-1.0.gir: libappstream-glib.la
+AppStreamGlib_1_0_gir_INCLUDES = GObject-2.0 Gio-2.0 GdkPixbuf-2.0
+AppStreamGlib_1_0_gir_CFLAGS = $(AM_CPPFLAGS)
+AppStreamGlib_1_0_gir_SCANNERFLAGS = --identifier-prefix=As \
+                                --symbol-prefix=as_ \
+                                --warn-all \
+                                --add-include-path=$(srcdir)
+AppStreamGlib_1_0_gir_EXPORT_PACKAGES = appstream-glib
+AppStreamGlib_1_0_gir_LIBS = libappstream-glib.la
+AppStreamGlib_1_0_gir_FILES = $(introspection_sources)
+INTROSPECTION_GIRS += AppStreamGlib-1.0.gir
+
+girdir = $(datadir)/gir-1.0
+gir_DATA = $(INTROSPECTION_GIRS)
+
+typelibdir = $(libdir)/girepository-1.0
+typelib_DATA = $(INTROSPECTION_GIRS:.gir=.typelib)
+
+CLEANFILES += $(gir_DATA) $(typelib_DATA)
+</pre></div>
+</div>
+<p><tt class="docutils literal"><span class="pre">meson.build</span></tt>:</p>
+<div class="highlight-python"><div class="highlight"><pre>introspection_sources = [
+  &#39;as-app.c&#39;,
+  &#39;as-app-validate.c&#39;,
+  &#39;as-app.h&#39;,
+  &#39;as-bundle.c&#39;,
+  &#39;as-bundle.h&#39;,
+  &#39;as-enums.c&#39;,
+  &#39;as-enums.h&#39;,
+  &#39;as-icon.c&#39;,
+  &#39;as-icon.h&#39;,
+  &#39;as-image.c&#39;,
+  &#39;as-image.h&#39;,
+  &#39;as-inf.c&#39;,
+  &#39;as-inf.h&#39;,
+  &#39;as-node.c&#39;,
+  &#39;as-node.h&#39;,
+  &#39;as-problem.c&#39;,
+  &#39;as-problem.h&#39;,
+  &#39;as-provide.c&#39;,
+  &#39;as-provide.h&#39;,
+  &#39;as-release.c&#39;,
+  &#39;as-release.h&#39;,
+  &#39;as-screenshot.c&#39;,
+  &#39;as-screenshot.h&#39;,
+  &#39;as-store.c&#39;,
+  &#39;as-store.h&#39;,
+  &#39;as-tag.c&#39;,
+  &#39;as-tag.h&#39;,
+  &#39;as-utils.c&#39;,
+  &#39;as-utils.h&#39;]
+  &#39;as-version.h&#39;]
+
+gnome.generate_gir(asglib,
+  sources : introspection_sources,
+  nsversion : &#39;1.0&#39;,
+  namespace : &#39;AppStreamGlib&#39;,
+  symbol_prefix : &#39;as_&#39;,
+  identifier_prefix : &#39;As&#39;,
+  export_packages : &#39;appstream-glib&#39;,
+  includes : [&#39;GObject-2.0&#39;, &#39;Gio-2.0&#39;, &#39;GdkPixbuf-2.0&#39;],
+  install : true
+)
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Porting from Autotools</a><ul>
+<li><a class="reference internal" href="#configure-ac">Configure.ac</a><ul>
+<li><a class="reference internal" href="#defining-variables">Defining variables</a></li>
+<li><a class="reference internal" href="#initializing-project-and-setting-compilers">Initializing project and setting compilers</a></li>
+<li><a class="reference internal" href="#ac-subst">AC_SUBST</a></li>
+<li><a class="reference internal" href="#auto-headers">Auto headers</a></li>
+<li><a class="reference internal" href="#finding-programs">Finding programs</a></li>
+<li><a class="reference internal" href="#finding-pkgconfig-modules">Finding pkgconfig modules</a></li>
+<li><a class="reference internal" href="#arguments">Arguments</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#makefile-am">Makefile.am</a><ul>
+<li><a class="reference internal" href="#sub-directories">Sub directories</a></li>
+<li><a class="reference internal" href="#cleanfiles-extra-dist-etc">*CLEANFILES, EXTRA_DIST, etc.</a></li>
+<li><a class="reference internal" href="#glib-compile-resources">glib-compile-resources</a></li>
+<li><a class="reference internal" href="#headers">Headers</a></li>
+<li><a class="reference internal" href="#libraries">Libraries</a></li>
+<li><a class="reference internal" href="#custom-targets">Custom targets</a></li>
+<li><a class="reference internal" href="#global-cflags">Global CFLAGS</a></li>
+<li><a class="reference internal" href="#tests">Tests</a></li>
+<li><a class="reference internal" href="#gobject-introspection">GObject Introspection</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="index.html"
+                        title="previous chapter">Welcome to Meson&#8217;s documentation!</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/porting-from-autotools.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="index.html" title="Welcome to Meson’s documentation!"
+             >previous</a> |</li>
+        <li><a href="index.html">Meson 0.23-research documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, Jussi Pakkanen.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.
+    </div>
+  </body>
+</html>
