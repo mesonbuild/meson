@@ -1402,6 +1402,10 @@ class Interpreter():
             raise InterpreterException('Required keyword argument "output" not defined.')
         inputfile = kwargs['input']
         output = kwargs['output']
+        if not isinstance(inputfile, str):
+            raise InterpreterException('Input must be a string.')
+        if not isinstance(output, str):
+            raise InterpreterException('Output must be a string.')
         if 'configuration' in kwargs:
             conf = kwargs['configuration']
             if not isinstance(conf, ConfigurationDataHolder):
@@ -1421,6 +1425,12 @@ class Interpreter():
             raise InterpreterException('Configure_file must have either "configuration" or "command".')
         if isinstance(kwargs.get('install_dir', None), str):
             self.build.data.append(Data(False, self.subdir, [output], kwargs))
+        # FIXME, HORROR, this is a massive hack to get this working. The correct
+        # solution is to finally do the refactoring where source files are no
+        # longer strings but actual objects. This is a major undertaking
+        # and will only be done after the next release.
+        outputfile = os.path.join(self.environment.build_dir, self.subdir, output)
+        return outputfile
 
     def func_include_directories(self, node, args, kwargs):
         absbase = os.path.join(self.environment.get_source_dir(), self.subdir)
