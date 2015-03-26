@@ -47,7 +47,7 @@ class GnomeModule:
         girtarget = args[0]
         while hasattr(girtarget, 'held_object'):
             girtarget = girtarget.held_object
-        if not (isinstance(girtarget, build.Executable) or isinstance(girtarget, build.SharedLibrary)):
+        if not isinstance(girtarget, (build.Executable, build.SharedLibrary)):
             raise MesonException('Gir target must be an executable or shared library')
         pkgstr = subprocess.check_output(['pkg-config', '--cflags', 'gobject-introspection-1.0'])
         pkgargs = pkgstr.decode().strip().split()
