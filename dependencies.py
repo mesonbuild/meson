@@ -73,9 +73,13 @@ class PkgConfigDependency(Dependency):
         if PkgConfigDependency.pkgconfig_found is None:
             self.check_pkgconfig()
 
-        if not PkgConfigDependency.pkgconfig_found:
-            raise DependencyException('Pkg-config not found.')
         self.is_found = False
+        if not PkgConfigDependency.pkgconfig_found:
+            if required:
+                raise DependencyException('Pkg-config not found.')
+            self.cargs = []
+            self.libs = []
+            return
         p = subprocess.Popen(['pkg-config', '--modversion', name], stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE)
         out = p.communicate()[0]
