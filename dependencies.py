@@ -242,6 +242,8 @@ class ExternalProgram():
                             commands = first_line[2:].split('#')[0].strip().split()
                             if mesonlib.is_windows():
                                 commands[0] = commands[0].split('/')[-1] # Windows does not have /usr/bin.
+                                if commands[0] == 'env':
+                                    commands = commands[1:]
                             self.fullpath = commands + [trial]
                     except Exception:
                         pass
