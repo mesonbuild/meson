@@ -65,10 +65,10 @@ def run_with_mono(fname):
 
 def run_single_test(wrap, test):
     global tests_failed
-    if test.fname.endswith('.jar'):
-        cmd = ['java', '-jar', test.fname]
-    elif run_with_mono(test.fname):
-        cmd = ['mono', test.fname]
+    if test.fname[0].endswith('.jar'):
+        cmd = ['java', '-jar'] + test.fname
+    elif run_with_mono(test.fname[0]):
+        cmd = ['mono'] + test.fname
     else:
         if test.is_cross:
             if test.exe_runner is None:
@@ -76,9 +76,9 @@ def run_single_test(wrap, test):
                 # because there is no execute wrapper.
                 cmd = None
             else:
-                cmd = [test.exe_runner, test.fname]
+                cmd = [test.exe_runner] + test.fname
         else:
-            cmd = [test.fname]
+            cmd = test.fname
     if len(wrap) > 0 and 'valgrind' in wrap[0]:
         wrap += test.valgrind_args
     if cmd is None:

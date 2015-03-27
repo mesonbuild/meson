@@ -15,6 +15,7 @@
 import mparser
 import os, re, pickle
 import build
+import dependencies
 from coredata import MesonException
 
 def do_replacement(regex, line, confdata):
@@ -309,7 +310,11 @@ class Backend():
     def write_test_file(self, datafile):
         arr = []
         for t in self.build.get_tests():
-            fname = os.path.join(self.environment.get_build_dir(), self.get_target_filename(t.get_exe()))
+            exe = t.get_exe()
+            if isinstance(exe, dependencies.ExternalProgram):
+                fname = exe.fullpath
+            else:
+                fname = [os.path.join(self.environment.get_build_dir(), self.get_target_filename(t.get_exe()))]
             is_cross = self.environment.is_cross_build()
             if is_cross:
                 exe_wrapper = self.environment.cross_info.get('exe_wrapper', None)

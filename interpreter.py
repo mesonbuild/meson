@@ -1281,7 +1281,7 @@ class Interpreter():
             raise InterpreterException('Incorrect number of arguments')
         if not isinstance(args[0], str):
             raise InterpreterException('First argument of test must be a string.')
-        if not isinstance(args[1], ExecutableHolder) and not isinstance(args[1], JarHolder):
+        if not isinstance(args[1], (ExecutableHolder, JarHolder, ExternalProgramHolder)):
             raise InterpreterException('Second argument must be executable.')
         par = kwargs.get('is_parallel', True)
         if not isinstance(par, bool):
