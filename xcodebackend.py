@@ -74,7 +74,6 @@ class XCodeBackend(backends.Backend):
         self.generate_target_dependency_map()
         self.generate_pbxdep_map()
         self.generate_containerproxy_map()
-        self.generate_configure_files()
         self.generate_pkgconfig_files()
         self.proj_dir = os.path.join(self.environment.get_build_dir(), self.build.project_name + '.xcodeproj')
         os.makedirs(self.proj_dir, exist_ok=True)

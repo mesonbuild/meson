@@ -62,7 +62,6 @@ class Vs2010Backend(backends.Backend):
         return all_output_files
 
     def generate(self):
-        self.generate_configure_files()
         self.generate_pkgconfig_files()
         sln_filename = os.path.join(self.environment.get_build_dir(), self.build.project_name + '.sln')
         projlist = self.generate_projects()

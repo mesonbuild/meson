@@ -14,8 +14,11 @@
 
 """A library of random helper functionality."""
 
-import platform, subprocess, operator, os, shutil
+import platform, subprocess, operator, os, shutil, re
+
 from glob import glob
+
+from coredata import MesonException
 
 def is_osx():
     return platform.system().lower() == 'darwin'
@@ -120,3 +123,71 @@ def get_library_dirs():
         unixdirs.append('/lib64')
     unixdirs += glob('/lib/' + plat + '*')
     return unixdirs
+
+
+def do_replacement(regex, line, confdata):
+    match = re.search(regex, line)
+    while match:
+        varname = match.group(1)
+        if varname in confdata.keys():
+            var = confdata.get(varname)
+            if isinstance(var, str):
+                pass
+            elif isinstance(var, int):
+                var = str(var)
+            else:
+                raise RuntimeError('Tried to replace a variable with something other than a string or int.')
+        else:
+            var = ''
+        line = line.replace('@' + varname + '@', var)
+        match = re.search(regex, line)
+    return line
+
+def do_mesondefine(line, confdata):
+    arr = line.split()
+    if len(arr) != 2:
+        raise MesonException('#mesondefine does not contain exactly two tokens: %s', line.strip())
+    varname = arr[1]
+    try:
+        v = confdata.get(varname)
+    except KeyError:
+        return '/* undef %s */\n' % varname
+    if isinstance(v, bool):
+        if v:
+            return '#define %s\n' % varname
+        else:
+            return '#undef %s\n' % varname
+    elif isinstance(v, int):
+        return '#define %s %d\n' % (varname, v)
+    elif isinstance(v, str):
+        return '#define %s %s\n' % (varname, v)
+    else:
+        raise MesonException('#mesondefine argument "%s" is of unknown type.' % varname)
+
+
+def do_conf_file(src, dst, confdata):
+    data = open(src).readlines()
+    regex = re.compile('@(.*?)@')
+    result = []
+    for line in data:
+        if line.startswith('#mesondefine'):
+            line = do_mesondefine(line, confdata)
+        else:
+            line = do_replacement(regex, line, confdata)
+        result.append(line)
+    dst_tmp = dst + '~'
+    open(dst_tmp, 'w').writelines(result)
+    replace_if_different(dst, dst_tmp)
+
+
+def replace_if_different(dst, dst_tmp):
+    # If contents are identical, don't touch the file to prevent
+    # unnecessary rebuilds.
+    try:
+        if open(dst, 'r').read() == open(dst_tmp, 'r').read():
+            os.unlink(dst_tmp)
+            return
+    except FileNotFoundError:
+        pass
+    os.replace(dst_tmp, dst)
+

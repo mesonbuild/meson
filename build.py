@@ -68,7 +68,6 @@ class Build:
         self.data = []
         self.static_linker = None
         self.static_cross_linker = None
-        self.configure_files = []
         self.pot = []
         self.subprojects = {}
         self.pkgconfig_gens = []

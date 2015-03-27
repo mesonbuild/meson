@@ -12,79 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import mparser
-import os, re, pickle
+import os, pickle
 import build
 import dependencies
+import mesonlib
 from coredata import MesonException
-
-def do_replacement(regex, line, confdata):
-    match = re.search(regex, line)
-    while match:
-        varname = match.group(1)
-        if varname in confdata.keys():
-            var = confdata.get(varname)
-            if isinstance(var, str):
-                pass
-            elif isinstance(var, mparser.StringNode):
-                var = var.value
-            elif isinstance(var, int):
-                var = str(var)
-            else:
-                raise RuntimeError('Tried to replace a variable with something other than a string or int.')
-        else:
-            var = ''
-        line = line.replace('@' + varname + '@', var)
-        match = re.search(regex, line)
-    return line
-
-def do_mesondefine(line, confdata):
-    arr = line.split()
-    if len(arr) != 2:
-        raise build.InvalidArguments('#mesondefine does not contain exactly two tokens: %s', line.strip())
-    varname = arr[1]
-    try:
-        v = confdata.get(varname)
-    except KeyError:
-        return '/* undef %s */\n' % varname
-    if isinstance(v, mparser.BooleanNode):
-        v = v.value
-    if isinstance(v, bool):
-        if v:
-            return '#define %s\n' % varname
-        else:
-            return '#undef %s\n' % varname
-    elif isinstance(v, int):
-        return '#define %s %d\n' % (varname, v)
-    elif isinstance(v, str):
-        return '#define %s %s\n' % (varname, v)
-    else:
-        raise build.InvalidArguments('#mesondefine argument "%s" is of unknown type.' % varname)
-
-def replace_if_different(dst, dst_tmp):
-    # If contents are identical, don't touch the file to prevent
-    # unnecessary rebuilds.
-    try:
-        if open(dst, 'r').read() == open(dst_tmp, 'r').read():
-            os.unlink(dst_tmp)
-            return
-    except FileNotFoundError:
-        pass
-    os.replace(dst_tmp, dst)
-
-def do_conf_file(src, dst, confdata):
-    data = open(src).readlines()
-    regex = re.compile('@(.*?)@')
-    result = []
-    for line in data:
-        if line.startswith('#mesondefine'):
-            line = do_mesondefine(line, confdata)
-        else:
-            line = do_replacement(regex, line, confdata)
-        result.append(line)
-    dst_tmp = dst + '~'
-    open(dst_tmp, 'w').writelines(result)
-    replace_if_different(dst, dst_tmp)
 
 class TestSerialisation:
     def __init__(self, name, fname, is_cross, exe_wrapper, is_parallel, cmd_args, env,
@@ -160,7 +92,7 @@ class Backend():
             ofile = langlist[language]
             ofile.write('#include<%s>\n' % src)
         [x.close() for x in langlist.values()]
-        [replace_if_different(x, x + '.tmp') for x in abs_files]
+        [mesonlib.replace_if_different(x, x + '.tmp') for x in abs_files]
         return result
 
     def relpath(self, todir, fromdir):
@@ -294,18 +226,6 @@ class Backend():
             # explictly specify all libraries every time.
             args += self.build_target_link_arguments(compiler, d.get_dependencies())
         return args
-
-    def generate_configure_files(self):
-        for cf in self.build.get_configure_files():
-            infile = os.path.join(self.environment.get_source_dir(),
-                                  cf.get_subdir(),
-                                  cf.get_source_name())
-            outdir = os.path.join(self.environment.get_build_dir(),
-                                   cf.get_subdir())
-            os.makedirs(outdir, exist_ok=True)
-            outfile = os.path.join(outdir, cf.get_target_name())
-            confdata = cf.get_configuration_data()
-            do_conf_file(infile, outfile, confdata)
 
     def write_test_file(self, datafile):
         arr = []

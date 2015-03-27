@@ -7,11 +7,15 @@ conf.set('other', 'string 2')
 conf.set('second', ' bonus')
 conf.set('BE_TRUE', true)
 
-configure_file(input : 'config.h.in',
+cfile = configure_file(input : 'config.h.in',
 output : 'config.h',
 configuration : conf)
 
-e = executable('inctest', 'prog.c')
+e = executable('inctest', 'prog.c',
+# Note that you should NOT do this. Don't add generated headers here
+# This tests that we do the right thing even if people add in conf files
+# to their sources.
+cfile)
 test('inctest', e)
 
 # Now generate a header file with an external script.

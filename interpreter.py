@@ -1412,8 +1412,10 @@ class Interpreter():
 
             conffile = os.path.join(self.subdir, inputfile)
             self.build_def_files.append(conffile)
-            c = ConfigureFileHolder(self.subdir, inputfile, output, conf.held_object)
-            self.build.configure_files.append(c.held_object)
+            os.makedirs(os.path.join(self.environment.build_dir, self.subdir), exist_ok=True)
+            ifile_abs = os.path.join(self.environment.source_dir, self.subdir, inputfile)
+            ofile_abs = os.path.join(self.environment.build_dir, self.subdir, output)
+            mesonlib.do_conf_file(ifile_abs, ofile_abs, conf.held_object)
             conf.mark_used()
         elif 'command' in kwargs:
             res = self.func_run_command(node, kwargs['command'], {})
