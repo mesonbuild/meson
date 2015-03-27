@@ -1081,7 +1081,8 @@ rule FORTRAN_DEP_HACK
         commands = self.generate_basic_compiler_args(target, compiler)
         commands += compiler.get_include_args(self.get_target_private_dir(target))
         curdir = target.get_subdir()
-        commands += compiler.get_include_args(os.path.join(self.build_to_src, curdir))
+        tmppath = os.path.normpath(os.path.join(self.build_to_src, curdir))
+        commands += compiler.get_include_args(tmppath)
         if curdir ==  '':
             curdir = '.'
         commands += compiler.get_include_args(curdir)
