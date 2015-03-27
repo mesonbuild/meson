@@ -1220,8 +1220,7 @@ class Interpreter():
         vcs_cmd = kwargs.get('command', None)
         if vcs_cmd and not isinstance(vcs_cmd, list):
             vcs_cmd = [vcs_cmd]
-        # source_dir = os.path.split(os.path.abspath(kwargs.get('infile')))[0]
-        source_dir = os.path.join(self.environment.get_source_dir(), self.subdir)
+        source_dir = os.path.normpath(os.path.join(self.environment.get_source_dir(), self.subdir))
         if vcs_cmd:
             # Is the command an executable in path or maybe a script in the source tree?
             vcs_cmd[0] = shutil.which(vcs_cmd[0]) or os.path.join(source_dir, vcs_cmd[0])
