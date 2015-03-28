@@ -95,6 +95,8 @@ def default_libdir():
     if os.path.isfile('/etc/debian_version'):
         archpath = subprocess.check_output(['dpkg-architecture', '-qDEB_HOST_MULTIARCH']).decode().strip()
         return 'lib/' + archpath
+    if os.path.isdir('/usr/lib64'):
+        return 'lib64'
     return 'lib'
 
 def get_library_dirs():
