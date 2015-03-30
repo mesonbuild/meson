@@ -14,7 +14,7 @@
 
 import pickle, os, uuid
 
-version = '0.23.0'
+version = '0.24.0-research'
 
 # This class contains all data that must persist over multiple
 # invocations of Meson. It is roughly the same thing as
