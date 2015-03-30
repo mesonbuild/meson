@@ -111,9 +111,9 @@ def run_single_test(wrap, test):
 def print_stats(numlen, tests, name, result, i, logfile, jsonlogfile):
     startpad = ' '*(numlen - len('%d' % (i+1)))
     num = '%s%d/%d' % (startpad, i+1, len(tests))
-    padding1 = ' '*(40-len(name))
+    padding1 = ' '*(38-len(name))
     padding2 = ' '*(5-len(result.res))
-    result_str = '%s %s%s%s%s(%5.2f s)' % \
+    result_str = '%s %s  %s%s%s(%5.2f s)' % \
         (num, name, padding1, result.res, padding2, result.duration)
     print(result_str)
     write_log(logfile, name, result_str, result)
