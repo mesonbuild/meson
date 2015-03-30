@@ -675,6 +675,51 @@ class AppleFrameworks(Dependency):
     def found(self):
         return mesonlib.is_osx()
 
+# There are three different ways of depending on SDL2:
+# sdl2-config, pkg-config and OSX framework
+class SDL2Dependency(Dependency):
+    def __init__(self, kwargs):
+        Dependency.__init__(self)
+        self.is_found = False
+        self.cargs = []
+        self.linkargs = []
+        sdlconf = shutil.which('sdl2-config')
+        if sdlconf:
+            pc = subprocess.Popen(['sdl2-config', '--cflags'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+            (stdo, _) = pc.communicate()
+            self.cargs = stdo.decode().split()
+            pc = subprocess.Popen(['sdl2-config', '--libs'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+            (stdo, _) = pc.communicate()
+            self.linkargs = stdo.decode().split()
+            self.is_found = True
+            mlog.log('Dependency', mlog.bold('sdl2'), 'found:', mlog.green('YES'), '(%s)' % sdlconf)
+            return
+        try:
+            pcdep = PkgConfigDependency('sdl2', kwargs)
+            if pcdep.found():
+                self.is_found = True
+                self.cargs = pcdep.get_compile_args()
+                self.linkargs = pcdep.get_link_args()
+                return
+        except Exception:
+            pass
+        if mesonlib.is_osx():
+            fwdep = ExtraFrameworkDependency('sdl2', kwargs.get('required', True))
+            if fwdep.found():
+                self.is_found = True
+                self.cargs = fwdep.get_compile_args()
+                self.linkargs = fwdep.get_link_args()
+                return
+
+    def get_compile_args(self):
+        return self.cargs
+
+    def get_link_args(self):
+        return self.linkargs
+
+    def found(self):
+        return self.is_found
+
 class ExtraFrameworkDependency(Dependency):
     def __init__(self, name, required):
         Dependency.__init__(self)
@@ -750,4 +795,5 @@ packages = {'boost': BoostDependency,
             'gnustep': GnuStepDependency,
             'appleframeworks': AppleFrameworks,
             'wxwidgets' : WxDependency,
+            'sdl2' : SDL2Dependency,
             }
