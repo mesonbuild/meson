@@ -687,10 +687,10 @@ class SDL2Dependency(Dependency):
         if sdlconf:
             pc = subprocess.Popen(['sdl2-config', '--cflags'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
             (stdo, _) = pc.communicate()
-            self.cargs = stdo.decode().split()
+            self.cargs = stdo.decode().strip().split()
             pc = subprocess.Popen(['sdl2-config', '--libs'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
             (stdo, _) = pc.communicate()
-            self.linkargs = stdo.decode().split()
+            self.linkargs = stdo.decode().strip().split()
             self.is_found = True
             mlog.log('Dependency', mlog.bold('sdl2'), 'found:', mlog.green('YES'), '(%s)' % sdlconf)
             return
