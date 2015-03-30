@@ -766,8 +766,9 @@ def find_external_dependency(name, kwargs):
     required = kwargs.get('required', True)
     if not isinstance(required, bool):
         raise DependencyException('Keyword "required" must be a boolean.')
-    if name in packages:
-        dep = packages[name](kwargs)
+    lname = name.lower()
+    if lname in packages:
+        dep = packages[lname](kwargs)
         if required and not dep.found():
             raise DependencyException('Dependency "%s" not found' % name)
         return dep
@@ -791,7 +792,6 @@ packages = {'boost': BoostDependency,
             'gtest': GTestDependency,
             'gmock': GMockDependency,
             'qt5': Qt5Dependency,
-            'Qt5': Qt5Dependency, # Qt people sure do love their upper case.
             'gnustep': GnuStepDependency,
             'appleframeworks': AppleFrameworks,
             'wxwidgets' : WxDependency,
