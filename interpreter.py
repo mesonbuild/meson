@@ -1451,7 +1451,7 @@ class Interpreter():
         if self.subproject != '':
             raise InvalidCode('Global arguments can not be set in subprojects because there is no way to make that reliable.')
         if self.global_args_frozen:
-            raise InvalidCode('Tried to set global arguments after they have become immutable.')
+            raise InvalidCode('Tried to set global arguments after a build target has been declared.\nThis is not permitted. Please declare all global arguments before your targets.')
         if not 'language' in kwargs:
             raise InvalidCode('Missing language definition in add_global_arguments')
         lang = kwargs['language'].lower()
