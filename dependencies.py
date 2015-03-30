@@ -710,6 +710,7 @@ class SDL2Dependency(Dependency):
                 self.cargs = fwdep.get_compile_args()
                 self.linkargs = fwdep.get_link_args()
                 return
+        mlog.log('Dependency', mlog.bold('sdl2'), 'found:', mlog.red('NO'))
 
     def get_compile_args(self):
         return self.cargs
