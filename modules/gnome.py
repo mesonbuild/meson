@@ -89,6 +89,13 @@ class GnomeModule:
                 scan_command += ['--pkg-export=%s' % pkg for pkg in pkgs]
             else:
                 raise MesonException('Gir export packages must be str or list')
+        inc_dirs = None
+        if kwargs.get('include_directories'):
+            inc_dirs = kwargs.pop('include_directories')
+            if isinstance(inc_dirs.held_object, build.IncludeDirs):
+                scan_command += ['--add-include-path=%s' % inc for inc in inc_dirs.held_object.get_incdirs()]
+            else:
+                raise MesonException('Gir include dirs should be include_directories()')
         if isinstance(girtarget, build.Executable):
             scan_command += ['--program', girtarget]
         elif isinstance(girtarget, build.SharedLibrary):
@@ -103,6 +110,8 @@ class GnomeModule:
         
         typelib_output = '%s-%s.typelib' % (ns, nsversion)
         typelib_cmd = ['g-ir-compiler', scan_target, '--output', '@OUTPUT@']
+        if inc_dirs:
+            typelib_cmd += ['--includedir=%s' % inc for inc in inc_dirs.held_object.get_incdirs()]
         kwargs['output'] = typelib_output
         kwargs['command'] = typelib_cmd
         # Note that this can't be libdir, because e.g. on Debian it points to
