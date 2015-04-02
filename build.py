@@ -248,14 +248,17 @@ class BuildTarget():
         if 'link_with' in self.kwargs:
             self.kwargs['link_with'] = self.unpack_holder(self.kwargs['link_with'])
 
-    def extract_objects(self, srclist):
+    def extract_objects(self, srcargs):
         obj_src = []
-        for src in srclist:
-            if not isinstance(src, str):
-                raise coredata.MesonException('Extraction arguments must be strings.')
-            if src not in self.sources:
-                raise coredata.MesonException('Tried to extract unknown source %s.' % src)
-            obj_src.append(src)
+        for srclist in srcargs:
+            if not isinstance(srclist, list):
+                srclist = [srclist]
+            for src in srclist:
+                if not isinstance(src, str):
+                    raise coredata.MesonException('Extraction arguments must be strings.')
+                if src not in self.sources:
+                    raise coredata.MesonException('Tried to extract unknown source %s.' % src)
+                obj_src.append(src)
         return ExtractedObjects(self, obj_src)
 
     def get_rpaths(self):
