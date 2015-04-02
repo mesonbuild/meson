@@ -283,6 +283,12 @@ class NinjaBackend(backends.Backend):
         if target.build_always:
             deps.append('PHONY')
         elem = NinjaBuildElement(ofilenames, 'CUSTOM_COMMAND', deps)
+        for d in target.extra_depends:
+            tmp = d.get_filename()
+            if not isinstance(tmp, list):
+                tmp = [tmp]
+            for fname in tmp:
+                elem.add_dep(os.path.join(d.get_subdir(), fname))
         cmd = []
         for i in target.command:
             for (j, src) in enumerate(srcs):

@@ -668,11 +668,14 @@ class CustomTarget:
                     'command' : True,
                     'install' : True,
                     'install_dir' : True,
-                    'build_always' : True}
+                    'build_always' : True,
+                    'depends' : True}
+
     def __init__(self, name, subdir, kwargs):
         self.name = name
         self.subdir = subdir
         self.dependencies = []
+        self.extra_depends = []
         self.process_kwargs(kwargs)
         self.extra_files = []
         self.install_rpath = ''
@@ -744,6 +747,15 @@ class CustomTarget:
         self.build_always = kwargs.get('build_always', False)
         if not isinstance(self.build_always, bool):
             raise InvalidArguments('Argument build_always must be a boolean.')
+        extra_deps = kwargs.get('depends', [])
+        if not isinstance(extra_deps, list):
+            extra_deps = [extra_deps]
+        for ed in extra_deps:
+            while hasattr(ed, 'held_object'):
+                ed = ed.held_object
+            if not isinstance(ed, CustomTarget) and not isinstance(ed, BuildTarget):
+                raise InvalidArguments('Can only depend on toplevel targets.')
+            self.extra_depends.append(ed)
 
     def get_basename(self):
         return self.name
