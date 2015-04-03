@@ -593,7 +593,6 @@ class GnuStepDependency(Dependency):
         try:
             gp = subprocess.Popen([confprog, '--help'],
                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            
             gp.communicate()
         except FileNotFoundError:
             self.args = None
@@ -782,7 +781,10 @@ def find_external_dependency(name, kwargs):
     except Exception as e:
         pkg_exc = e
     if mesonlib.is_osx():
-        return ExtraFrameworkDependency(name, required)
+        fwdep = ExtraFrameworkDependency(name, required)
+        if required and not fwdep.found():
+            raise DependencyException('Dependency "%s" nod found' % name)
+        return fwdep
     if pkg_exc is not None:
         raise pkg_exc
     return pkgdep
