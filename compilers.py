@@ -1003,12 +1003,18 @@ def get_gcc_soname_args(gcc_type, shlib_name, path, soversion):
         raise RuntimeError('Not impelented yet.')
 
 class GnuCCompiler(CCompiler):
-    std_warn_args = ['-Wall', '-Wpedantic', '-Winvalid-pch']
+    std_warn_args = []
+    old_warn = ['-Wall', '-pedantic', '-Winvalid-pch']
+    new_warn = ['-Wall', '-Wpedantic', '-Winvalid-pch']
 
     def __init__(self, exelist, version, gcc_type, is_cross, exe_wrapper=None):
         CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
         self.id = 'gcc'
         self.gcc_type = gcc_type
+        if mesonlib.version_compare(version, ">=4.9.0"):
+            GnuCCompiler.std_warn_args= GnuCCompiler.new_warn
+        else:
+            GnuCCompiler.std_warn_args = GnuCCompiler.old_warn
 
     def get_always_args(self):
         return ['-pipe']
@@ -1119,7 +1125,9 @@ class ClangCCompiler(CCompiler):
 
 
 class GnuCPPCompiler(CPPCompiler):
-    std_warn_args = ['-Wall', '-Wpedantic', '-Winvalid-pch', '-Wnon-virtual-dtor']
+    std_warn_args = []
+    new_warn = ['-Wall', '-Wpedantic', '-Winvalid-pch', '-Wnon-virtual-dtor']
+    old_warn = ['-Wall', '-pedantic', '-Winvalid-pch', '-Wnon-virtual-dtor']
     # may need to separate the latter to extra_debug_args or something
     std_debug_args = ['-g']
 
@@ -1127,6 +1135,10 @@ class GnuCPPCompiler(CPPCompiler):
         CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
         self.id = 'gcc'
         self.gcc_type = gcc_type
+        if mesonlib.version_compare(version, ">=4.9.0"):
+            GnuCPPCompiler.std_warn_args= GnuCPPCompiler.new_warn
+        else:
+            GnuCPPCompiler.std_warn_args = GnuCPPCompiler.old_warn
 
     def get_always_args(self):
         return ['-pipe']
