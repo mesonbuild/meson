@@ -64,6 +64,8 @@ def detect_vcs(source_dir):
     return None
 
 def version_compare(vstr1, vstr2):
+    if '-' in vstr1:
+        vstr1 = vstr1.split('-')[0]
     if vstr2.startswith('>='):
         cmpop = operator.ge
         vstr2 = vstr2[2:]
