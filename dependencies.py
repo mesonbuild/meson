@@ -745,10 +745,14 @@ class ExtraFrameworkDependency(Dependency):
                 return
 
     def get_compile_args(self):
-        return ['-I' + os.path.join(self.path, self.name, 'Headers')]
+        if self.found():
+            return ['-I' + os.path.join(self.path, self.name, 'Headers')]
+        return []
 
     def get_link_args(self):
-        return ['-F' + self.path, '-framework', self.name.split('.')[0]]
+        if self.found():
+            return ['-F' + self.path, '-framework', self.name.split('.')[0]]
+        return []
 
     def found(self):
         return self.name is not None
