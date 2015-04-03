@@ -39,6 +39,7 @@ class CustomRule:
 class Dependency():
     def __init__(self):
         self.name = "null"
+        self.is_found = False
 
     def get_compile_args(self):
         return []
@@ -47,7 +48,7 @@ class Dependency():
         return []
 
     def found(self):
-        return False
+        return self.is_found
 
     def get_sources(self):
         """Source files that need to be added to the target.
@@ -674,6 +675,25 @@ class AppleFrameworks(Dependency):
     def found(self):
         return mesonlib.is_osx()
 
+class GLDependency(Dependency):
+    def __init__(self, kwargs):
+        Dependency.__init__(self)
+        self.is_found = False
+        self.cargs = []
+        self.linkargs = []
+        if mesonlib.is_osx():
+            self.is_found = True
+            self.linkargs = ['-framework', 'OpenGL']
+            return
+        pcdep = PkgConfigDependency('gl', kwargs)
+        if pcdep.found():
+            self.is_found = True
+            self.cargs = pcdep.get_compile_args()
+            self.linkargs = pcdep.get_link_args()
+
+    def get_link_args(self):
+        return self.linkargs
+
 # There are three different ways of depending on SDL2:
 # sdl2-config, pkg-config and OSX framework
 class SDL2Dependency(Dependency):
@@ -803,4 +823,5 @@ packages = {'boost': BoostDependency,
             'appleframeworks': AppleFrameworks,
             'wxwidgets' : WxDependency,
             'sdl2' : SDL2Dependency,
+            'gl' : GLDependency,
             }
