@@ -681,15 +681,21 @@ class GLDependency(Dependency):
         self.is_found = False
         self.cargs = []
         self.linkargs = []
+        try:
+            pcdep = PkgConfigDependency('gl', kwargs)
+            if pcdep.found():
+                self.is_found = True
+                self.cargs = pcdep.get_compile_args()
+                self.linkargs = pcdep.get_link_args()
+        except Exception:
+            pass
         if mesonlib.is_osx():
             self.is_found = True
             self.linkargs = ['-framework', 'OpenGL']
             return
-        pcdep = PkgConfigDependency('gl', kwargs)
-        if pcdep.found():
+        if mesonlib.is_windows():
             self.is_found = True
-            self.cargs = pcdep.get_compile_args()
-            self.linkargs = pcdep.get_link_args()
+            return
 
     def get_link_args(self):
         return self.linkargs
@@ -807,10 +813,11 @@ def find_external_dependency(name, kwargs):
     if mesonlib.is_osx():
         fwdep = ExtraFrameworkDependency(name, required)
         if required and not fwdep.found():
-            raise DependencyException('Dependency "%s" nod found' % name)
+            raise DependencyException('Dependency "%s" not found' % name)
         return fwdep
     if pkg_exc is not None:
         raise pkg_exc
+    mlog.log('Dependency', mlog.bold(name), 'found:', mlog.red('NO'))
     return pkgdep
 
 # This has to be at the end so the classes it references
