@@ -1032,6 +1032,7 @@ class Interpreter():
         self.global_args_frozen = True
         mlog.log('\nExecuting subproject ', mlog.bold(dirname), '.\n', sep='')
         subi = Interpreter(self.build, dirname, subdir)
+        subi.subprojects = self.subprojects
 
         subi.subproject_stack = self.subproject_stack + [dirname]
         subi.run()

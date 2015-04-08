@@ -1,5 +1,8 @@
 project('A', 'c')
 
+# Same as the previous test but use C and B in
+# the opposite order.
+
 C = subproject('C')
 c = C.get_variable('c')
 
