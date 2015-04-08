@@ -998,6 +998,7 @@ rule FORTRAN_DEP_HACK
             else:
                 exe_arr = exe.get_command()
             base_args = generator.get_arglist()
+            extra_dependencies = [os.path.join(self.build_to_src, i) for i in genlist.extra_depends]
             for i in range(len(infilelist)):
                 if len(generator.outputs) == 1:
                     sole_output = os.path.join(self.get_target_private_dir(target), outfilelist[i])
@@ -1014,6 +1015,8 @@ rule FORTRAN_DEP_HACK
                         for x in args]
                 cmdlist = exe_arr + args
                 elem = NinjaBuildElement(outfiles, 'CUSTOM_COMMAND', infilename)
+                if len(extra_dependencies) > 0:
+                    elem.add_dep(extra_dependencies)
                 elem.add_item('DESC', 'Generating $out')
                 if isinstance(exe, build.BuildTarget):
                     elem.add_dep(self.get_target_filename(exe))

@@ -16,6 +16,7 @@ import dependencies, mlog
 import os, subprocess
 import build
 from coredata import MesonException
+import xml.etree.ElementTree as ET
 
 class Qt5Module():
     
@@ -87,6 +88,22 @@ class Qt5Module():
         else:
             mlog.log(' rcc:', mlog.red('NO'))
 
+    def parse_qrc(self, state, fname):
+        abspath = os.path.join(state.environment.source_dir, state.subdir, fname)
+        try:
+            tree = ET.parse(abspath)
+            root = tree.getroot()
+            result = []
+            for child in root[0]:
+                if child.tag != 'file':
+                    mlog.log("Warning, malformed rcc file: ", os.path.join(state.subdir, fname))
+                    break
+                else:
+                    result.append(os.path.join(state.subdir, child.text))
+            return result
+        except Exception:
+            return []
+
     def preprocess(self, state, args, kwargs):
         rcc_files = kwargs.pop('qresources', [])
         if not isinstance(rcc_files, list):
@@ -109,6 +126,10 @@ class Qt5Module():
                           'arguments' : ['@INPUT@', '-o', '@OUTPUT@']}
             rcc_gen = build.Generator([self.rcc], rcc_kwargs)
             rcc_output = build.GeneratedList(rcc_gen)
+            qrc_deps = []
+            for i in rcc_files:
+                qrc_deps += self.parse_qrc(state, i)
+            rcc_output.extra_depends = qrc_deps
             [rcc_output.add_file(os.path.join(state.subdir, a)) for a in rcc_files]
             sources.append(rcc_output)
         if len(ui_files) > 0:
@@ -135,4 +156,6 @@ class Qt5Module():
         return sources
 
 def initialize():
+    mlog.log('Warning, rcc dependencies will not work properly until this upstream issue is fixed:',
+             mlog.bold('https://bugreports.qt.io/browse/QTBUG-45460'))
     return Qt5Module()

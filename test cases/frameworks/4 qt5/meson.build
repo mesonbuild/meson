@@ -7,12 +7,14 @@ if meson.get_compiler('cpp').get_id() != 'msvc'
   add_global_arguments('-std=c++11', language : 'cpp')
 endif
 
+prep = qt5.preprocess(moc_headers : ['mainWindow.h'], # These need to be fed through the moc tool before use. 
+                      ui_files : 'mainWindow.ui',     # XML files that need to be compiled with the uic tol.
+                      qresources : 'stuff.qrc',       # Resource file for rcc compiler.
+)
+
 q5exe = executable('qt5app',
 sources : ['main.cpp', 'mainWindow.cpp', # Sources that don't need preprocessing.
-qt5.preprocess(moc_headers : ['mainWindow.h'],           # These need to be fed through the moc tool before use. 
-                             ui_files : 'mainWindow.ui', # XML files that need to be compiled with the uic tol.
-                             qresources : 'stuff.qrc',   # Resource file for rcc compiler.
-)],
+prep],
 dependencies : qt5dep)
 
 # We need a console test application because some test environments

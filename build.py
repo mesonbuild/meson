@@ -555,6 +555,7 @@ class GeneratedList():
         self.infilelist = []
         self.outfilelist = []
         self.outmap = {}
+        self.extra_depends = []
 
     def add_file(self, newfile):
         self.infilelist.append(newfile)
