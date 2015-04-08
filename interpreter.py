@@ -1020,7 +1020,7 @@ class Interpreter():
             fullstack = self.subproject_stack + [dirname]
             incpath = ' => '.join(fullstack)
             raise InterpreterException('Recursive include of subprojects: %s.' % incpath)
-        if dirname == self.subprojects:
+        if dirname in self.subprojects:
             return self.subprojects[dirname]
         subdir = os.path.join('subprojects', dirname)
         r = wrap.Resolver(os.path.join(self.build.environment.get_source_dir(), 'subprojects'))
@@ -1037,6 +1037,7 @@ class Interpreter():
         subi.run()
         mlog.log('\nSubproject', mlog.bold(dirname), 'finished.')
         self.build.subprojects[dirname] = True
+        self.subprojects.update(subi.subprojects)
         self.subprojects[dirname] = SubprojectHolder(subi)
         self.build_def_files += subi.build_def_files
         return self.subprojects[dirname]

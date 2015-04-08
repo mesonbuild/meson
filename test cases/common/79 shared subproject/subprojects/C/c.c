@@ -1,5 +1,3 @@
-char
-func_c()
-{
-	return 'c';
+char func_c() {
+    return 'c';
 }
