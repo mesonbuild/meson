@@ -143,7 +143,11 @@ class Vs2010Backend(backends.Backend):
     def target_to_build_root(self, target):
         if target.subdir == '':
             return ''
-        return '/'.join(['..']*(len(os.path.split(target.subdir))-1))
+
+        directories = os.path.split(target.subdir)
+        directories = list(filter(bool,directories)) #Filter out empty strings
+
+        return '/'.join(['..']*len(directories))
 
     def special_quote(self, arr):
         return ['&quot;%s&quot;' % i for i in arr]
