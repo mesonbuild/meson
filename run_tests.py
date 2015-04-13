@@ -215,7 +215,7 @@ def detect_tests_to_run():
 
 def run_tests():
     all_tests = detect_tests_to_run()
-    logfile = open('meson-test-run.txt', 'w')
+    logfile = open('meson-test-run.txt', 'w', encoding="utf_8")
     junit_root = ET.Element('testsuites')
     try:
         os.mkdir(test_build_dir)
