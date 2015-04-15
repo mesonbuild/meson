@@ -4,7 +4,7 @@ build system.
 
 Dependencies
 
-Python   http://python.org (version 3.3 or newer)
+Python   http://python.org (version 3.4 or newer)
 Ninja    http://martine.github.com/ninja/
 
 
