@@ -174,6 +174,7 @@ class WxDependency(Dependency):
                     return
             mlog.log('Dependency wxwidgets found:', mlog.green('YES'))
             self.is_found = True
+            self.requested_modules = self.get_requested(kwargs)
             # wx-config seems to have a cflags as well but since it requires C++,
             # this should be good, at least for now.
             p = subprocess.Popen([self.wxc, '--cxxflags'], stdout=subprocess.PIPE,
@@ -183,12 +184,24 @@ class WxDependency(Dependency):
                 raise RuntimeError('Could not generate cargs for wxwidgets.')
             self.cargs = out.decode().split()
 
-            p = subprocess.Popen([self.wxc, '--libs'], stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE)
+            p = subprocess.Popen([self.wxc, '--libs'] + self.requested_modules,
+                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             out = p.communicate()[0]
             if p.returncode != 0:
                 raise RuntimeError('Could not generate libs for wxwidgets.')
             self.libs = out.decode().split()
+
+    def get_requested(self, kwargs):
+        modules = 'modules'
+        if not modules in kwargs:
+            return []
+        candidates = kwargs[modules]
+        if isinstance(candidates, str):
+            return [candidates]
+        for c in candidates:
+            if not isinstance(c, str):
+                raise DependencyException('wxwidgets module argument is not a string.')
+        return candidates
 
     def get_modversion(self):
         return self.modversion
