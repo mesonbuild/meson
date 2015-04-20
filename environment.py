@@ -77,7 +77,7 @@ class Environment():
 
         # List of potential compilers.
         if mesonlib.is_windows():
-            self.default_c = ['cl', 'cc']
+            self.default_c = ['cl', 'cc', 'gcc']
             self.default_cpp = ['cl', 'c++']
         else:
             self.default_c = ['cc']

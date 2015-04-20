@@ -288,7 +288,13 @@ def generate_prebuilt_object():
             objectfile = objectbase + 'obj'
         else:
             objectfile = objectbase + 'o'
-        cmd = ['cc', '-c', source, '-o', objectfile]
+        if shutil.which('cc'):
+            cmd = 'cc'
+        elif shutil.which('gcc'):
+            cmd = 'gcc'
+        else:
+            raise RuntimeError("Could not find C compiler.")
+        cmd = [cmd, '-c', source, '-o', objectfile]
     subprocess.check_call(cmd)
     return objectfile
 
