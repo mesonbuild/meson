@@ -17,7 +17,7 @@ import environment
 import dependencies
 import mlog
 import copy, os
-
+from mesonlib import File
 
 known_basic_kwargs = {'install' : True,
                       'c_pch' : True,
@@ -207,7 +207,7 @@ class BuildTarget():
             # Holder unpacking. Ugly.
             if hasattr(s, 'held_object'):
                 s = s.held_object
-            if isinstance(s, str):
+            if isinstance(s, str) or isinstance(s, File): # FIXME, accept only File objects
                 if not s in added_sources:
                     self.sources.append(s)
                     added_sources[s] = True
@@ -218,7 +218,10 @@ class BuildTarget():
 
     def validate_sources(self):
         if len(self.sources) > 0:
-            first = os.path.split(self.sources[0])[1]
+            firstname = self.sources[0]
+            if isinstance(firstname, File):
+                firstname = firstname.fname
+            first = os.path.split(firstname)[1]
             (base, suffix) = os.path.splitext(first)
             if suffix == '.rs':
                 if self.name != base:

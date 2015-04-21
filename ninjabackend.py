@@ -17,6 +17,7 @@ import environment, mesonlib
 import build
 import mlog
 import dependencies
+from mesonlib import File
 from meson_install import InstallData
 from build import InvalidArguments
 from coredata import MesonException
@@ -1107,9 +1108,14 @@ rule FORTRAN_DEP_HACK
                 rel_src = os.path.join(self.get_target_private_dir(target), src)
                 abs_src = os.path.join(self.environment.get_source_dir(), rel_src)
         else:
-            rel_src = os.path.join(self.build_to_src, target.get_source_subdir(), src)
+            if isinstance(src, File): # FIXME, accept only Files.
+                rel_src = src.rel_to_builddir(self.build_to_src)
+            else:
+                rel_src = os.path.join(self.build_to_src, target.get_source_subdir(), src)
             abs_src = os.path.join(self.environment.get_build_dir(), rel_src)
         if isinstance(src, RawFilename):
+            src_filename = src.fname
+        elif isinstance(src, File):
             src_filename = src.fname
         elif os.path.isabs(src):
             src_filename = os.path.basename(src)

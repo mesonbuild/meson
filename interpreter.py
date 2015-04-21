@@ -22,6 +22,8 @@ import optinterpreter
 import wrap
 import mesonlib
 import os, sys, platform, subprocess, shutil, uuid, re
+from mesonlib import File
+
 import importlib
 
 class InterpreterException(coredata.MesonException):
@@ -777,6 +779,7 @@ class Interpreter():
                       'vcs_tag' : self.func_vcs_tag,
                       'set_variable' : self.func_set_variable,
                       'import' : self.func_import,
+                      'file' : self.func_file,
                       }
 
     def module_method_callback(self, invalues):
@@ -876,6 +879,15 @@ class Interpreter():
             module = importlib.import_module('modules.' + modname).initialize()
             self.environment.coredata.modules[modname] = module
         return ModuleHolder(modname, self.environment.coredata.modules[modname], self)
+
+    def func_file(self, node, args, kwargs):
+        if len(args) != 1:
+            raise InvalidCode('File takes one argument.')
+        fname = args[0]
+        if not isinstance(fname, str):
+            raise InvalidCode('Argument to import was not a string')
+        fobj = File.from_source_file(self.environment.source_dir, self.subdir, fname)
+        return fobj
 
     def set_variable(self, varname, variable):
         if variable is None:
@@ -1549,7 +1561,8 @@ class Interpreter():
             isinstance(value, dependencies.Dependency) or\
             isinstance(value, str) or\
             isinstance(value, int) or \
-            isinstance(value, list):
+            isinstance(value, list) or \
+            isinstance(value, File):
             return True
         return False
 

@@ -1,4 +1,4 @@
-# Copyright 2012-2014 The Meson development team
+# Copyright 2012-2015 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,6 +19,34 @@ import platform, subprocess, operator, os, shutil, re
 from glob import glob
 
 from coredata import MesonException
+
+class File:
+    def __init__(self, is_built, subdir, fname):
+        self.is_built = is_built
+        self.subdir = subdir
+        self.fname = fname
+
+    @staticmethod
+    def from_source_file(source_root, subdir, fname):
+        if not os.path.isfile(os.path.join(source_root, subdir, fname)):
+            raise MesonException('File %s does not exist.' % fname)
+        return File(False, subdir, fname)
+
+    @staticmethod
+    def from_built_file(subdir, fname):
+        return File(True, subdir, fname)
+    
+    def rel_to_builddir(self, build_to_src):
+        if self.is_built:
+            return os.path.join(self.subdir, self.fname)
+        else:
+            return os.path.join(build_to_src, self.subdir, self.fname)
+
+    def endswith(self, ending):
+        return self.fname.endswith(ending)
+
+    def split(self, s):
+        return self.fname.split(s)
 
 def is_osx():
     return platform.system().lower() == 'darwin'

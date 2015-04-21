@@ -28,14 +28,20 @@ clike_suffixes = c_suffixes + cpp_suffixes
 obj_suffixes = ['o', 'obj']
 
 def is_header(fname):
+    if hasattr(fname, 'fname'):
+        fname = fname.fname
     suffix = fname.split('.')[-1]
     return suffix in header_suffixes
 
 def is_source(fname):
+    if hasattr(fname, 'fname'):
+        fname = fname.fname
     suffix = fname.split('.')[-1]
     return suffix in clike_suffixes
 
 def is_object(fname):
+    if hasattr(fname, 'fname'):
+        fname = fname.fname
     suffix = fname.split('.')[-1]
     return suffix in obj_suffixes
 
