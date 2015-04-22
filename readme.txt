@@ -63,6 +63,6 @@ Further info
 
 The home page of Meson can be found here:
 
-https://jpakkane.github.io/meson/
+http://mesonbuild.com
 
 Meson is a registered trademark of Jussi Pakkanen
