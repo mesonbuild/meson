@@ -1,9 +1,9 @@
 #include<stdio.h>
 
-int func(); /* Files in different subdirs return different values. */
+int func();
 
 int main(int argc, char **argv) {
-    if(func() == 0) {
+    if(func() == 2) {
         printf("Iz success.\n");
     } else {
         printf("Iz fail.\n");
