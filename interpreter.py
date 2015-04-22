@@ -46,6 +46,16 @@ def noKwargs(f):
         return f(self, node, args, kwargs)
     return wrapped
 
+def stringArgs(f):
+    @wraps(f)
+    def wrapped(self, node, args, kwargs):
+        assert(isinstance(args, list))
+        for s in args:
+            if not isinstance(s, str):
+                raise InvalidArguments('Arguments must be strings.')
+        return f(self, node, args, kwargs)
+    return wrapped
+
 class InterpreterObject():
     def __init__(self):
         self.methods = {}
@@ -247,8 +257,6 @@ class GeneratorHolder(InterpreterObject):
     def process_method(self, args, kwargs):
         if len(kwargs) > 0:
             raise InvalidArguments('Process does not take keyword arguments.')
-        if isinstance(args, str):
-            args = [args]
         if not isinstance(args, list):
             raise InvalidArguments('Argument to "process" must be a string or a list of strings.')
         for a in args:
@@ -970,13 +978,13 @@ class Interpreter():
         cargs = args[1:]
         if isinstance(cmd, ExternalProgramHolder):
             cmd = cmd.get_command()
-        elif not isinstance(cmd, str):
+        elif isinstance(cmd, str):
+            cmd = [cmd]
+        else:
             raise InterpreterException('First argument is of incorrect type.')
         for i in cargs:
             if not isinstance(i, str):
                 raise InterpreterException('Run_command arguments must be strings.')
-        if not isinstance(cmd, list):
-            cmd = [cmd]
         args = cmd + cargs
         in_builddir = kwargs.get('in_builddir', False)
         if not isinstance(in_builddir, bool):
@@ -984,12 +992,11 @@ class Interpreter():
         return RunProcess(args, self.environment.source_dir, self.environment.build_dir,
                           self.subdir, in_builddir)
 
+    @stringArgs
     def func_gettext(self, nodes, args, kwargs):
         if len(args) != 1:
             raise InterpreterException('Gettext requires one positional argument (package name).')
         packagename = args[0]
-        if not isinstance(packagename, str):
-            raise InterpreterException('Gettext argument is not a string.')
         languages = kwargs.get('languages', None)
         if not isinstance(languages, list):
             raise InterpreterException('Argument languages must be a list of strings.')
@@ -1031,13 +1038,12 @@ class Interpreter():
         p = build.PkgConfigGenerator(libs, subdirs, name, description, version, filebase)
         self.build.pkgconfig_gens.append(p)
 
+    @stringArgs
     @noKwargs
     def func_subproject(self, nodes, args, kwargs):
         if len(args) != 1:
             raise InterpreterException('Subproject takes exactly one argument')
         dirname = args[0]
-        if not isinstance(dirname, str):
-            raise InterpreterException('Subproject argument must be a string')
         if self.subdir != '':
             segs = os.path.split(self.subdir)
             if len(segs) != 2 or segs[0] != 'subprojects':
@@ -1069,13 +1075,12 @@ class Interpreter():
         self.build_def_files += subi.build_def_files
         return self.subprojects[dirname]
 
+    @stringArgs
     @noKwargs
     def func_get_option(self, nodes, args, kwargs):
         if len(args) != 1:
             raise InterpreterException('Argument required for get_option.')
         optname = args[0]
-        if not isinstance(optname, str):
-            raise InterpreterException('Argument of get_option must be a string.')
         if self.subproject != '':
             optname = self.subproject + ':' + optname
         try:
@@ -1092,13 +1097,11 @@ class Interpreter():
             raise InterpreterException('configuration_data takes no arguments')
         return ConfigurationDataHolder()
 
+    @stringArgs
     @noKwargs
     def func_project(self, node, args, kwargs):
         if len(args)< 2:
             raise InvalidArguments('Not enough arguments to project(). Needs at least the project name and one language')
-        for a in args:
-            if not isinstance(a, str):
-                raise InvalidArguments('Argument %s is not a string.' % str(a))
         if self.subproject == '':
             self.build.project_name = args[0]
         if self.subproject in self.build.projects:
@@ -1269,12 +1272,11 @@ class Interpreter():
         kwargs.setdefault('build_always', True)
         return self.func_custom_target(node, [kwargs['output']], kwargs)
 
+    @stringArgs
     def func_custom_target(self, node, args, kwargs):
         if len(args) != 1:
             raise InterpreterException('Incorrect number of arguments')
         name = args[0]
-        if not isinstance(name, str):
-            raise InterpreterException('Argument must be a string.')
         if name in coredata.forbidden_target_names:
             raise InvalidArguments('Target name "%s" is reserved for Meson\'s internal use. Please rename.'\
                                    % name)
@@ -1284,13 +1286,11 @@ class Interpreter():
         self.build.targets[name] = tg.held_object
         return tg
 
+    @stringArgs
     @noKwargs
     def func_run_target(self, node, args, kwargs):
         if len(args) < 2:
             raise InterpreterException('Incorrect number of arguments')
-        for i in args:
-            if not isinstance(i, str):
-                raise InvalidArguments('Argument is not a string')
         name = args[0]
         if name in coredata.forbidden_target_names:
             raise InvalidArguments('Target name "%s" is reserved for Meson\'s internal use. Please rename.'\
@@ -1350,19 +1350,14 @@ class Interpreter():
         self.build.tests.append(t)
         mlog.debug('Adding test "', mlog.bold(args[0]), '".', sep='')
 
+    @stringArgs
     def func_install_headers(self, node, args, kwargs):
-        args = self.flatten(args)
-        for a in args:
-            if not isinstance(a, str):
-                raise InvalidArguments('Argument %s is not a string.' % str(a))
         h = Headers(self.subdir, args, kwargs)
         self.build.headers.append(h)
         return h
 
+    @stringArgs
     def func_install_man(self, node, args, kwargs):
-        for a in args:
-            if not isinstance(a, str):
-                raise InvalidArguments('Argument %s is not a string.' % str(a))
         m = Man(self.subdir, args, kwargs)
         self.build.man.append(m)
         return m
@@ -1400,20 +1395,16 @@ class Interpreter():
         self.evaluate_codeblock(codeblock)
         self.subdir = prev_subdir
 
+    @stringArgs
     def func_install_data(self, node, args, kwargs):
-        for a in args:
-            if not isinstance(a, str):
-                raise InvalidArguments('Argument %s is not a string.' % str(a))
         data = Data(True, self.subdir, args, kwargs)
         self.build.data.append(data)
         return data
 
+    @stringArgs
     def func_install_subdir(self, node, args, kwargs):
         if len(args ) != 1:
             raise InvalidArguments('Install_subdir requires exactly one argument.')
-        for a in args:
-            if not isinstance(a, str):
-                raise InvalidArguments('Argument %s is not a string.' % str(a))
         if not 'install_dir' in kwargs:
             raise InvalidArguments('Missing keyword argument install_dir')
         install_dir = kwargs['install_dir']
@@ -1464,22 +1455,19 @@ class Interpreter():
         outputfile = os.path.join(self.environment.build_dir, self.subdir, output)
         return outputfile
 
+    @stringArgs
     @noKwargs
     def func_include_directories(self, node, args, kwargs):
         absbase = os.path.join(self.environment.get_source_dir(), self.subdir)
         for a in args:
-            if not isinstance(a, str):
-                raise InvalidArguments('Argument %s is not a string.' % str(a))
             absdir = os.path.join(absbase, a)
             if not os.path.isdir(absdir):
                 raise InvalidArguments('Include dir %s does not exist.' % a)
         i = IncludeDirsHolder(self.subdir, args)
         return i
 
+    @stringArgs
     def func_add_global_arguments(self, node, args, kwargs):
-        for a in args:
-            if not isinstance(a, str):
-                raise InvalidArguments('Argument %s is not a string.' % str(a))
         if self.subproject != '':
             raise InvalidCode('Global arguments can not be set in subprojects because there is no way to make that reliable.')
         if self.global_args_frozen:
@@ -1526,7 +1514,6 @@ class Interpreter():
         return results
 
     def build_target(self, node, args, kwargs, targetholder):
-        args = self.flatten(args)
         name = args[0]
         sources = args[1:]
         if self.environment.is_cross_build():
@@ -1584,7 +1571,7 @@ class Interpreter():
         func_name = node.func_name
         (posargs, kwargs) = self.reduce_arguments(node.args)
         if func_name in self.funcs:
-            return self.funcs[func_name](node, posargs, kwargs)
+            return self.funcs[func_name](node, self.flatten(posargs), kwargs)
         else:
             raise InvalidCode('Unknown function "%s".' % func_name)
 
@@ -1621,6 +1608,8 @@ class Interpreter():
                 raise InvalidArguments('Keyword argument name is not a string.')
             a = args.kwargs[key]
             reduced_kw[key] = self.evaluate_statement(a)
+        if not isinstance(reduced_pos, list):
+            reduced_pos = [reduced_pos]
         return (reduced_pos, reduced_kw)
 
     def string_method_call(self, obj, method_name, args):
