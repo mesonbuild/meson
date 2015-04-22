@@ -16,6 +16,7 @@ import os, sys
 import backends, build
 import xml.etree.ElementTree as ET
 import xml.dom.minidom
+from coredata import MesonException
 
 class Vs2010Backend(backends.Backend):
     def __init__(self, build, interp):
@@ -221,6 +222,10 @@ class Vs2010Backend(backends.Backend):
         opt = ET.SubElement(clconf, 'Optimization')
         opt.text = 'disabled'
         inc_dirs = [proj_to_src_dir, self.get_target_private_dir(target)]
+        cur_dir = target.subdir
+        if cur_dir == '':
+            cur_dir= '.'
+        inc_dirs.append(cur_dir)
         extra_args = []
         # SUCKS, VS can not handle per-language type flags, so just use
         # them all.
