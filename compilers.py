@@ -1277,6 +1277,8 @@ end program prog
         return ['-o', outputname]
 
     def can_compile(self, src):
+        if hasattr(src, 'fname'):
+            src = src.fname
         suffix = os.path.splitext(src)[1].lower()
         if suffix == '.f' or suffix == '.f95' or suffix == '.f90':
             return True

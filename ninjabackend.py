@@ -610,7 +610,7 @@ class NinjaBackend(backends.Backend):
         src_list = target.get_sources()
         compiler = self.get_compiler_for_source(src_list[0])
         assert(compiler.get_language() == 'cs')
-        rel_srcs = [os.path.join(self.build_to_src, s) for s in src_list]
+        rel_srcs = [s.rel_to_builddir(self.build_to_src) for s in src_list]
         deps = []
         commands = target.extra_args.get('cs', [])
         commands += compiler.get_buildtype_args(buildtype)
@@ -637,12 +637,11 @@ class NinjaBackend(backends.Backend):
         elem.write(outfile)
 
     def generate_single_java_compile(self, subdir, src, target, compiler, outfile):
-        buildtype = self.environment.coredata.buildtype
         args = []
         args += compiler.get_buildtype_args(self.environment.coredata.buildtype)
         args += compiler.get_output_args(self.get_target_private_dir(target))
-        rel_src = os.path.join(self.build_to_src, subdir, src)
-        plain_class_path = src[:-4] + 'class'
+        rel_src = src.rel_to_builddir(self.build_to_src)
+        plain_class_path = src.fname[:-4] + 'class'
         rel_obj = os.path.join(self.get_target_private_dir(target), plain_class_path)
         element = NinjaBuildElement(rel_obj,
                     compiler.get_language() + '_COMPILER', rel_src)
@@ -664,10 +663,10 @@ class NinjaBackend(backends.Backend):
         for s in target.get_sources():
             if not s.endswith('.vala'):
                 continue
-            vapibase = os.path.basename(s)[:-4] + 'vapi'
+            vapibase = os.path.basename(s.fname)[:-4] + 'vapi'
             rel_vapi = os.path.join(self.get_target_dir(target), target.get_basename() + '.dir', vapibase)
             args = ['--fast-vapi=' + rel_vapi]
-            rel_s = os.path.join(self.build_to_src, s)
+            rel_s = s.rel_to_builddir(self.build_to_src)
             element = NinjaBuildElement(rel_vapi, valac.get_language() + '_COMPILER', rel_s)
             element.add_item('ARGS', args)
             element.write(outfile)
@@ -683,7 +682,7 @@ class NinjaBackend(backends.Backend):
             if not s.endswith('.vala'):
                 continue
             args = ['-d', self.get_target_private_dir(target)]
-            sc = os.path.basename(s)[:-4] + 'c'
+            sc = os.path.basename(s.fname)[:-4] + 'c'
             args += ['-C', '-o', sc]
             vapi_order_deps = []
             for (sourcefile, vapi_info) in fast_vapis.items():
@@ -693,7 +692,7 @@ class NinjaBackend(backends.Backend):
                 args += ['--use-fast-vapi=' + rel_vapi]
                 vapi_order_deps.append(rel_vapi)
             relsc = os.path.join(self.get_target_dir(target), target.get_basename() + '.dir', sc)
-            rel_s = os.path.join(self.build_to_src, s)
+            rel_s = s.rel_to_builddir(self.build_to_src)
             args += ['--deps', relsc + '.d']
             if self.environment.coredata.werror:
                 args += valac.get_werror_args()
@@ -1040,7 +1039,7 @@ rule FORTRAN_DEP_HACK
             # but those are really rare. I hope.
             if not compiler.can_compile(s):
                 continue
-            for line in open(os.path.join(self.environment.get_source_dir(), target.subdir, s)):
+            for line in open(os.path.join(self.environment.get_source_dir(), s.subdir, s.fname)):
                 modmatch = modre.match(line)
                 if modmatch is not None:
                     modname = modmatch.group(1)
@@ -1074,7 +1073,7 @@ rule FORTRAN_DEP_HACK
                 # Check if a source uses a module it exports itself.
                 # Potential bug if multiple targets have a file with
                 # the same name.
-                if mod_source_file == os.path.split(src)[1]:
+                if mod_source_file.fname == os.path.split(src)[1]:
                     continue
                 mod_name = compiler.module_name_to_filename(usematch.group(1))
                 mod_files.append(os.path.join(dirname, mod_name))
