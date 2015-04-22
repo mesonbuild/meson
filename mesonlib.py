@@ -48,6 +48,12 @@ class File:
     def split(self, s):
         return self.fname.split(s)
 
+    def __eq__(self, other):
+        return (self.fname, self.subdir, self.is_built) == (other.fname, other.subdir, other.is_built)
+
+    def __hash__(self):
+        return hash((self.fname, self.subdir, self.is_built))
+
 def is_osx():
     return platform.system().lower() == 'darwin'
 

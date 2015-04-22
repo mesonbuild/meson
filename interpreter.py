@@ -1494,6 +1494,19 @@ class Interpreter():
                 result.append(a)
         return result
 
+    def source_strings_to_files(self, sources):
+        results = []
+        for s in sources:
+            if isinstance(s, File) or isinstance(s, GeneratedListHolder) or \
+            isinstance(s, CustomTargetHolder):
+                pass
+            elif isinstance(s, str): # FIXME do not allow plain strings.
+                s = File.from_source_file(self.environment.source_dir, self.subdir, s)
+            else:
+                raise RuntimeError("Unreachable code")
+            results.append(s)
+        return results
+
     def build_target(self, node, args, kwargs, targetholder):
         args = self.flatten(args)
         name = args[0]
@@ -1515,6 +1528,7 @@ class Interpreter():
         except KeyError:
             kw_src = []
         sources += kw_src
+        sources = self.source_strings_to_files(sources)
         objs = self.flatten(kwargs.get('objects', []))
         if not isinstance(objs, list):
             objs = [objs]

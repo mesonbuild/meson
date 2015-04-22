@@ -167,6 +167,8 @@ class Backend():
         for osrc in extobj.srclist:
             if not self.source_suffix_in_objs:
                 osrc = '.'.join(osrc.split('.')[:-1])
+            if hasattr(osrc, 'fname'): # FIXME allow only strings.
+                osrc = osrc.fname
             objname = os.path.join(proj_dir_to_build_root,
                                    targetdir, os.path.basename(osrc) + suffix)
             result.append(objname)

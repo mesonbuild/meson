@@ -259,6 +259,7 @@ class BuildTarget():
             for src in srclist:
                 if not isinstance(src, str):
                     raise coredata.MesonException('Extraction arguments must be strings.')
+                src = File(False, self.subdir, src)
                 if src not in self.sources:
                     raise coredata.MesonException('Tried to extract unknown source %s.' % src)
                 obj_src.append(src)
