@@ -129,13 +129,11 @@ class Build:
         return self.external_link_args.get(compiler.get_language(), [])
 
 class IncludeDirs():
-    def __init__(self, curdir, dirs, kwargs):
+    def __init__(self, curdir, dirs):
         self.curdir = curdir
         self.incdirs = dirs
         # Interpreter has validated that all given directories
         # actually exist.
-        if len(kwargs) > 0:
-            raise InvalidArguments('Includedirs function does not take keyword arguments.')
 
     def get_curdir(self):
         return self.curdir

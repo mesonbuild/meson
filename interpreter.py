@@ -23,6 +23,7 @@ import wrap
 import mesonlib
 import os, sys, platform, subprocess, shutil, uuid, re
 from mesonlib import File
+from functools import wraps
 
 import importlib
 
@@ -34,6 +35,16 @@ class InvalidCode(InterpreterException):
 
 class InvalidArguments(InterpreterException):
     pass
+
+# Decorators for method calls.
+
+def noKwargs(f):
+    @wraps(f)
+    def wrapped(self, node, args, kwargs):
+        if len(kwargs) != 0:
+            raise InvalidArguments('Function does not take keyword arguments.')
+        return f(self, node, args, kwargs)
+    return wrapped
 
 class InterpreterObject():
     def __init__(self):
@@ -286,9 +297,9 @@ class Host(InterpreterObject):
         return sys.byteorder != 'little'
 
 class IncludeDirsHolder(InterpreterObject):
-    def __init__(self, curdir, dirs, kwargs):
+    def __init__(self, curdir, dirs):
         super().__init__()
-        self.held_object = build.IncludeDirs(curdir, dirs, kwargs)
+        self.held_object = build.IncludeDirs(curdir, dirs)
 
 class Headers(InterpreterObject):
 
@@ -869,6 +880,7 @@ class Interpreter():
         value = self.to_native(args[1])
         self.set_variable(varname, value)
 
+    @noKwargs
     def func_import(self, node, args, kwargs):
         if len(args) != 1:
             raise InvalidCode('Import takes one argument.')
@@ -880,6 +892,7 @@ class Interpreter():
             self.environment.coredata.modules[modname] = module
         return ModuleHolder(modname, self.environment.coredata.modules[modname], self)
 
+    @noKwargs
     def func_file(self, node, args, kwargs):
         if len(args) != 1:
             raise InvalidCode('File takes one argument.')
@@ -1018,6 +1031,7 @@ class Interpreter():
         p = build.PkgConfigGenerator(libs, subdirs, name, description, version, filebase)
         self.build.pkgconfig_gens.append(p)
 
+    @noKwargs
     def func_subproject(self, nodes, args, kwargs):
         if len(args) != 1:
             raise InterpreterException('Subproject takes exactly one argument')
@@ -1055,6 +1069,7 @@ class Interpreter():
         self.build_def_files += subi.build_def_files
         return self.subprojects[dirname]
 
+    @noKwargs
     def func_get_option(self, nodes, args, kwargs):
         if len(args) != 1:
             raise InterpreterException('Argument required for get_option.')
@@ -1071,16 +1086,16 @@ class Interpreter():
             raise InterpreterException('Tried to access unknown option "%s".' % optname)
         return self.environment.coredata.user_options[optname].value
 
+    @noKwargs
     def func_configuration_data(self, node, args, kwargs):
         if len(args) != 0:
             raise InterpreterException('configuration_data takes no arguments')
         return ConfigurationDataHolder()
 
+    @noKwargs
     def func_project(self, node, args, kwargs):
         if len(args)< 2:
             raise InvalidArguments('Not enough arguments to project(). Needs at least the project name and one language')
-        if len(kwargs) > 0:
-            raise InvalidArguments('Project() does not take keyword arguments.')
         for a in args:
             if not isinstance(a, str):
                 raise InvalidArguments('Argument %s is not a string.' % str(a))
@@ -1096,10 +1111,12 @@ class Interpreter():
             if not 'c' in langs:
                 raise InterpreterException('Compiling Vala requires a C compiler')
 
+    @noKwargs
     def func_message(self, node, args, kwargs):
         self.validate_arguments(args, 1, [str])
         mlog.log(mlog.bold('Message:'), args[0])
 
+    @noKwargs
     def func_error(self, node, args, kwargs):
         self.validate_arguments(args, 1, [str])
         raise InterpreterException('Error encountered: ' + args[0])
@@ -1267,6 +1284,7 @@ class Interpreter():
         self.build.targets[name] = tg.held_object
         return tg
 
+    @noKwargs
     def func_run_target(self, node, args, kwargs):
         if len(args) < 2:
             raise InterpreterException('Incorrect number of arguments')
@@ -1349,9 +1367,8 @@ class Interpreter():
         self.build.man.append(m)
         return m
 
+    @noKwargs
     def func_subdir(self, node, args, kwargs):
-        if len(kwargs) > 0:
-            raise InvalidArguments('subdir command takes no keyword arguments.')
         self.validate_arguments(args, 1, [str])
         if '..' in args[0]:
             raise InvalidArguments('Subdir contains ..')
@@ -1447,6 +1464,7 @@ class Interpreter():
         outputfile = os.path.join(self.environment.build_dir, self.subdir, output)
         return outputfile
 
+    @noKwargs
     def func_include_directories(self, node, args, kwargs):
         absbase = os.path.join(self.environment.get_source_dir(), self.subdir)
         for a in args:
@@ -1455,7 +1473,7 @@ class Interpreter():
             absdir = os.path.join(absbase, a)
             if not os.path.isdir(absdir):
                 raise InvalidArguments('Include dir %s does not exist.' % a)
-        i = IncludeDirsHolder(self.subdir, args, kwargs)
+        i = IncludeDirsHolder(self.subdir, args)
         return i
 
     def func_add_global_arguments(self, node, args, kwargs):
