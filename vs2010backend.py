@@ -287,15 +287,15 @@ class Vs2010Backend(backends.Backend):
         if len(headers) + len(gen_hdrs) > 0:
             inc_hdrs = ET.SubElement(root, 'ItemGroup')
             for h in headers:
-                relpath = os.path.join(proj_to_src_dir, h)
+                relpath = h.rel_to_builddir(proj_to_src_root)
                 ET.SubElement(inc_hdrs, 'CLInclude', Include=relpath)
             for h in gen_hdrs:
-                relpath = self.relpath(h, target.subdir)
+                relpath = h.rel_to_builddir(proj_to_src_root)
                 ET.SubElement(inc_hdrs, 'CLInclude', Include = relpath)
         if len(sources) + len(gen_src) > 0:
             inc_src = ET.SubElement(root, 'ItemGroup')
             for s in sources:
-                relpath = os.path.join(proj_to_src_dir, s)
+                relpath = s.rel_to_builddir(proj_to_src_root)
                 ET.SubElement(inc_src, 'CLCompile', Include=relpath)
             for s in gen_src:
                 relpath =  self.relpath(s, target.subdir)
