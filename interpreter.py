@@ -38,6 +38,13 @@ class InvalidArguments(InterpreterException):
 
 # Decorators for method calls.
 
+def check_stringlist(a, msg='Arguments must be strings.'):
+    if not isinstance(a, list):
+        raise InvalidArguments('Argument not a list.')
+    for s in a:
+        if not isinstance(s, str):
+            raise InvalidArguments(msg)
+
 def noKwargs(f):
     @wraps(f)
     def wrapped(self, node, args, kwargs):
@@ -50,9 +57,7 @@ def stringArgs(f):
     @wraps(f)
     def wrapped(self, node, args, kwargs):
         assert(isinstance(args, list))
-        for s in args:
-            if not isinstance(s, str):
-                raise InvalidArguments('Arguments must be strings.')
+        check_stringlist(args)
         return f(self, node, args, kwargs)
     return wrapped
 
@@ -257,11 +262,7 @@ class GeneratorHolder(InterpreterObject):
     def process_method(self, args, kwargs):
         if len(kwargs) > 0:
             raise InvalidArguments('Process does not take keyword arguments.')
-        if not isinstance(args, list):
-            raise InvalidArguments('Argument to "process" must be a string or a list of strings.')
-        for a in args:
-            if not isinstance(a, str):
-                raise InvalidArguments('A non-string object in "process" arguments.')
+        check_stringlist(args)
         gl = GeneratedListHolder(self)
         [gl.add_file(os.path.join(self.interpreter.subdir, a)) for a in args]
         return gl
@@ -346,9 +347,7 @@ class Data(InterpreterObject):
         if not isinstance(kwsource, list):
             kwsource = [kwsource]
         self.sources += kwsource
-        for s in self.sources:
-            if not isinstance(s, str):
-                raise InterpreterException('Install file name must be a string.')
+        check_stringlist(self.sources)
         self.install_dir = kwargs.get('install_dir', None)
         if not isinstance(self.install_dir, str):
             raise InterpreterException('Custom_install_dir must be a string.')
@@ -505,9 +504,8 @@ class CompilerHolder(InterpreterObject):
     def alignment_method(self, args, kwargs):
         if len(args) != 1:
             raise InterpreterException('Alignment method takes exactly one positional argument.')
+        check_stringlist(args)
         typename = args[0]
-        if not isinstance(typename, str):
-            raise InterpreterException('First argument is not a string.')
         result = self.compiler.alignment(typename, self.environment)
         mlog.log('Checking for alignment of "', mlog.bold(typename), '": ', result, sep='')
         return result
@@ -515,12 +513,11 @@ class CompilerHolder(InterpreterObject):
     def run_method(self, args, kwargs):
         if len(args) != 1:
             raise InterpreterException('Run method takes exactly one positional argument.')
+        check_stringlist(args)
         code = args[0]
         testname = kwargs.get('name', '')
         if not isinstance(testname, str):
             raise InterpreterException('Testname argument must be a string.')
-        if not isinstance(code, str):
-            raise InterpreterException('First argument is not a string.')
         result = self.compiler.run(code)
         if len(testname) > 0:
             if not result.compiled:
@@ -538,12 +535,9 @@ class CompilerHolder(InterpreterObject):
     def has_member_method(self, args, kwargs):
         if len(args) != 2:
             raise InterpreterException('Has_member takes exactly two arguments.')
+        check_stringlist(args)
         typename = args[0]
-        if not isinstance(typename, str):
-            raise InterpreterException('Name of type must be a string.')
         membername = args[1]
-        if not isinstance(membername, str):
-            raise InterpreterException('Name of member must be a string.')
         prefix = kwargs.get('prefix', '')
         if not isinstance(prefix, str):
             raise InterpreterException('Prefix argument of has_function must be a string.')
@@ -559,9 +553,8 @@ class CompilerHolder(InterpreterObject):
     def has_function_method(self, args, kwargs):
         if len(args) != 1:
             raise InterpreterException('Has_function takes exactly one argument.')
+        check_stringlist(args)
         funcname = args[0]
-        if not isinstance(funcname, str):
-            raise InterpreterException('Argument to has_function must be a string.')
         prefix = kwargs.get('prefix', '')
         if not isinstance(prefix, str):
             raise InterpreterException('Prefix argument of has_function must be a string.')
@@ -576,9 +569,8 @@ class CompilerHolder(InterpreterObject):
     def sizeof_method(self, args, kwargs):
         if len(args) != 1:
             raise InterpreterException('Sizeof takes exactly one argument.')
+        check_stringlist(args)
         element = args[0]
-        if not isinstance(element, str):
-            raise InterpreterException('Argument to sizeof must be a string.')
         prefix = kwargs.get('prefix', '')
         if not isinstance(prefix, str):
             raise InterpreterException('Prefix argument of sizeof must be a string.')
@@ -589,12 +581,11 @@ class CompilerHolder(InterpreterObject):
     def compiles_method(self, args, kwargs):
         if len(args) != 1:
             raise InterpreterException('compiles method takes exactly one argument.')
+        check_stringlist(args)
         string = args[0]
         testname = kwargs.get('name', '')
         if not isinstance(testname, str):
             raise InterpreterException('Testname argument must be a string.')
-        if not isinstance(string, str):
-            raise InterpreterException('Argument to compiles() must be a string')
         result = self.compiler.compiles(string)
         if len(testname) > 0:
             if result:
@@ -607,9 +598,8 @@ class CompilerHolder(InterpreterObject):
     def has_header_method(self, args, kwargs):
         if len(args) != 1:
             raise InterpreterException('has_header method takes exactly one argument.')
+        check_stringlist(args)
         string = args[0]
-        if not isinstance(string, str):
-            raise InterpreterException('Argument to has_header() must be a string')
         haz = self.compiler.has_header(string)
         if haz:
             h = mlog.green('YES')
@@ -666,9 +656,8 @@ class MesonMain(InterpreterObject):
     def set_install_script_method(self, args, kwargs):
         if len(args) != 1:
             raise InterpreterException('Set_install_script takes exactly one argument.')
+        check_stringlist(args)
         scriptbase = args[0]
-        if not isinstance(scriptbase, str):
-            raise InterpreterException('Set_install_script argument is not a string.')
         scriptfile = os.path.join(self.interpreter.environment.source_dir,
                                   self.interpreter.subdir, scriptbase)
         if not os.path.isfile(scriptfile):
@@ -888,25 +877,23 @@ class Interpreter():
         value = self.to_native(args[1])
         self.set_variable(varname, value)
 
+    @stringArgs
     @noKwargs
     def func_import(self, node, args, kwargs):
         if len(args) != 1:
             raise InvalidCode('Import takes one argument.')
         modname = args[0]
-        if not isinstance(modname, str):
-            raise InvalidCode('Argument to import was not a string')
         if not modname in self.environment.coredata.modules:
             module = importlib.import_module('modules.' + modname).initialize()
             self.environment.coredata.modules[modname] = module
         return ModuleHolder(modname, self.environment.coredata.modules[modname], self)
 
+    @stringArgs
     @noKwargs
     def func_file(self, node, args, kwargs):
         if len(args) != 1:
             raise InvalidCode('File takes one argument.')
         fname = args[0]
-        if not isinstance(fname, str):
-            raise InvalidCode('Argument to import was not a string')
         fobj = File.from_source_file(self.environment.source_dir, self.subdir, fname)
         return fobj
 
@@ -982,9 +969,7 @@ class Interpreter():
             cmd = [cmd]
         else:
             raise InterpreterException('First argument is of incorrect type.')
-        for i in cargs:
-            if not isinstance(i, str):
-                raise InterpreterException('Run_command arguments must be strings.')
+        check_stringlist(cargs, 'Run_command arguments must be strings.')
         args = cmd + cargs
         in_builddir = kwargs.get('in_builddir', False)
         if not isinstance(in_builddir, bool):
@@ -998,8 +983,7 @@ class Interpreter():
             raise InterpreterException('Gettext requires one positional argument (package name).')
         packagename = args[0]
         languages = kwargs.get('languages', None)
-        if not isinstance(languages, list):
-            raise InterpreterException('Argument languages must be a list of strings.')
+        check_stringlist(languages, 'Argument languages must be a list of strings.')
         # TODO: check that elements are strings
         if len(self.build.pot) > 0:
             raise InterpreterException('More than one gettext definition currently not supported.')
