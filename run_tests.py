@@ -16,8 +16,11 @@
 
 from glob import glob
 import os, subprocess, shutil, sys, platform, signal
+from io import StringIO
+import sys
 import environment
 import mesonlib
+import meson
 import argparse
 import xml.etree.ElementTree as ET
 import time
@@ -144,6 +147,16 @@ def log_text_file(logfile, testdir, msg, stdo, stde):
     if stop:
         raise StopException()
 
+def run_test_inprocess(commandlist):
+    old_stdout = sys.stdout
+    sys.stdout = mystdout = StringIO()
+    old_stderr = sys.stderr
+    sys.stderr = mystderr = StringIO()
+    returncode = meson.run(commandlist)
+    sys.stdout = old_stdout
+    sys.stderr = old_stderr
+    return (returncode, mystdout.getvalue(), mystderr.getvalue())
+
 def run_test(testdir, should_succeed):
     global compile_commands
     shutil.rmtree(test_build_dir)
@@ -152,18 +165,15 @@ def run_test(testdir, should_succeed):
     os.mkdir(install_dir)
     print('Running test: ' + testdir)
     gen_start = time.time()
-    gen_command = [sys.executable, meson_command, '--prefix', '/usr', '--libdir', 'lib', testdir, test_build_dir]\
+    gen_command = [meson_command, '--prefix', '/usr', '--libdir', 'lib', testdir, test_build_dir]\
         + unity_flags + backend_flags
-    p = subprocess.Popen(gen_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    (stdo, stde) = p.communicate()
+    (returncode, stdo, stde) = run_test_inprocess(gen_command)
     gen_time = time.time() - gen_start
-    stdo = stdo.decode('utf-8')
-    stde = stde.decode('utf-8')
     if not should_succeed:
-        if p.returncode != 0:
+        if returncode != 0:
             return TestResult('', stdo, stde, gen_time)
         return TestResult('Test that should have failed succeeded', stdo, stde, gen_time)
-    if p.returncode != 0:
+    if returncode != 0:
         return TestResult('Generating the build system failed.', stdo, stde, gen_time)
     if 'msbuild' in compile_commands[0]:
         sln_name = glob(os.path.join(test_build_dir, '*.sln'))[0]
