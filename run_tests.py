@@ -151,12 +151,12 @@ def run_test(testdir, should_succeed):
     os.mkdir(test_build_dir)
     os.mkdir(install_dir)
     print('Running test: ' + testdir)
-    gen_start = time.clock()
+    gen_start = time.time()
     gen_command = [sys.executable, meson_command, '--prefix', '/usr', '--libdir', 'lib', testdir, test_build_dir]\
         + unity_flags + backend_flags
     p = subprocess.Popen(gen_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     (stdo, stde) = p.communicate()
-    gen_time = time.clock() - gen_start
+    gen_time = time.time() - gen_start
     stdo = stdo.decode('utf-8')
     stde = stde.decode('utf-8')
     if not should_succeed:
@@ -170,20 +170,20 @@ def run_test(testdir, should_succeed):
         comp = compile_commands + [os.path.split(sln_name)[-1]]
     else:
         comp = compile_commands
-    build_start = time.clock()
+    build_start = time.time()
     pc = subprocess.Popen(comp, cwd=test_build_dir,
                           stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     (o, e) = pc.communicate()
-    build_time = time.clock() - build_start
+    build_time = time.time() - build_start
     stdo += o.decode('utf-8')
     stde += e.decode('utf-8')
     if pc.returncode != 0:
         return TestResult('Compiling source code failed.', stdo, stde, gen_time, build_time)
-    test_start = time.clock()
+    test_start = time.time()
     pt = subprocess.Popen(test_commands, cwd=test_build_dir,
                           stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     (o, e) = pt.communicate()
-    test_time = time.clock() - test_start
+    test_time = time.time() - test_start
     stdo += o.decode('utf-8')
     stde += e.decode('utf-8')
     if pt.returncode != 0:
@@ -232,6 +232,9 @@ def run_tests():
     all_tests = detect_tests_to_run()
     logfile = open('meson-test-run.txt', 'w', encoding="utf_8")
     junit_root = ET.Element('testsuites')
+    conf_time = 0
+    build_time = 0
+    test_time = 0
     try:
         os.mkdir(test_build_dir)
     except OSError:
@@ -262,6 +265,9 @@ def run_tests():
                 ts = time.time()
                 result = run_test(t, name != 'failing')
                 te = time.time()
+                conf_time += result.conftime
+                build_time += result.buildtime
+                test_time += result.testtime
                 log_text_file(logfile, t, result.msg, result.stdo, result.stde)
                 current_test = ET.SubElement(current_suite, 'testcase', {'name' : testname,
                                                                          'classname' : name,
@@ -272,6 +278,9 @@ def run_tests():
                 stdoel.text = result.stdo
                 stdeel = ET.SubElement(current_test, 'system-err')
                 stdeel.text = result.stde
+    print("\nTotal configuration time: %.2fs" % conf_time)
+    print("Total build time: %.2fs" % build_time)
+    print("Total test time: %.2fs" % test_time)
     ET.ElementTree(element=junit_root).write('meson-test-run.xml', xml_declaration=True, encoding='UTF-8')
 
 def check_file(fname):
