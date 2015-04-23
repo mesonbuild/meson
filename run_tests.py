@@ -24,6 +24,15 @@ import time
 
 from meson import backendlist
 
+class TestResult:
+    def __init__(self, msg, stdo, stde, conftime=0, buildtime=0, testtime=0):
+        self.msg = msg
+        self.stdo = stdo
+        self.stde = stde
+        self.conftime = conftime
+        self.buildtime = buildtime
+        self.testtime = testtime
+
 passing_tests = 0
 failing_tests = 0
 skipped_tests = 0
@@ -142,40 +151,46 @@ def run_test(testdir, should_succeed):
     os.mkdir(test_build_dir)
     os.mkdir(install_dir)
     print('Running test: ' + testdir)
+    gen_start = time.clock()
     gen_command = [sys.executable, meson_command, '--prefix', '/usr', '--libdir', 'lib', testdir, test_build_dir]\
         + unity_flags + backend_flags
     p = subprocess.Popen(gen_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     (stdo, stde) = p.communicate()
+    gen_time = time.clock() - gen_start
     stdo = stdo.decode('utf-8')
     stde = stde.decode('utf-8')
     if not should_succeed:
         if p.returncode != 0:
-            return ('', stdo, stde)
-        return ('Test that should have failed succeeded', stdo, stde)
+            return TestResult('', stdo, stde, gen_time)
+        return TestResult('Test that should have failed succeeded', stdo, stde, gen_time)
     if p.returncode != 0:
-        return ('Generating the build system failed.', stdo, stde)
+        return TestResult('Generating the build system failed.', stdo, stde, gen_time)
     if 'msbuild' in compile_commands[0]:
         sln_name = glob(os.path.join(test_build_dir, '*.sln'))[0]
         comp = compile_commands + [os.path.split(sln_name)[-1]]
     else:
         comp = compile_commands
+    build_start = time.clock()
     pc = subprocess.Popen(comp, cwd=test_build_dir,
                           stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     (o, e) = pc.communicate()
+    build_time = time.clock() - build_start
     stdo += o.decode('utf-8')
     stde += e.decode('utf-8')
     if pc.returncode != 0:
-        return ('Compiling source code failed.', stdo, stde)
+        return TestResult('Compiling source code failed.', stdo, stde, gen_time, build_time)
+    test_start = time.clock()
     pt = subprocess.Popen(test_commands, cwd=test_build_dir,
                           stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     (o, e) = pt.communicate()
+    test_time = time.clock() - test_start
     stdo += o.decode('utf-8')
     stde += e.decode('utf-8')
     if pt.returncode != 0:
-        return ('Running unit tests failed.', stdo, stde)
+        return TestResult('Running unit tests failed.', stdo, stde, gen_time, build_time, test_time)
     if len(install_commands) == 0:
         print("Skipping install test")
-        return ('', '', '')
+        return TestResult('', '', '', gen_time, build_time, test_time)
     else:
         env = os.environ.copy()
         env['DESTDIR'] = install_dir
@@ -185,8 +200,8 @@ def run_test(testdir, should_succeed):
         stdo += o.decode('utf-8')
         stde += e.decode('utf-8')
         if pi.returncode != 0:
-            return ('Running install failed.', stdo, stde)
-        return (validate_install(testdir, install_dir), stdo, stde)
+            return TestResult('Running install failed.', stdo, stde, gen_time, build_time, test_time)
+        return TestResult(validate_install(testdir, install_dir), stdo, stde, gen_time, build_time, test_time)
 
 def gather_tests(testdir):
     tests = [t.replace('\\', '/').split('/', 2)[2] for t in glob(os.path.join(testdir, '*'))]
@@ -245,18 +260,18 @@ def run_tests():
                 skipped_tests += 1
             else:
                 ts = time.time()
-                (msg, stdo, stde) = run_test(t, name != 'failing')
+                result = run_test(t, name != 'failing')
                 te = time.time()
-                log_text_file(logfile, t, msg, stdo, stde)
+                log_text_file(logfile, t, result.msg, result.stdo, result.stde)
                 current_test = ET.SubElement(current_suite, 'testcase', {'name' : testname,
                                                                          'classname' : name,
                                                                          'time' : '%.3f' % (te - ts)})
-                if msg != '':
-                    ET.SubElement(current_test, 'failure', {'message' : msg})
+                if result.msg != '':
+                    ET.SubElement(current_test, 'failure', {'message' : result.msg})
                 stdoel = ET.SubElement(current_test, 'system-out')
-                stdoel.text = stdo
+                stdoel.text = result.stdo
                 stdeel = ET.SubElement(current_test, 'system-err')
-                stdeel.text = stde
+                stdeel.text = result.stde
     ET.ElementTree(element=junit_root).write('meson-test-run.xml', xml_declaration=True, encoding='UTF-8')
 
 def check_file(fname):
