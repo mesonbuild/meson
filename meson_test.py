@@ -165,8 +165,8 @@ def run_tests(options, datafilename):
     drain_futures(futures)
     print('\nFull log written to %s.' % logfilename)
 
-if __name__ == '__main__':
-    options = parser.parse_args()
+def run(args):
+    options = parser.parse_args(args)
     if len(options.args) != 1:
         print('Test runner for Meson. Do not run on your own, mmm\'kay?')
         print('%s [data file]' % sys.argv[0])
@@ -175,5 +175,8 @@ if __name__ == '__main__':
     datafile = options.args[0]
     run_tests(options, datafile)
     if tests_failed:
-        sys.exit(1)
+        return 1
+    return 0
 
+if __name__ == '__main__':
+    sys.exit(run(sys.argv[1:]))

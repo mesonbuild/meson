@@ -20,7 +20,7 @@ from io import StringIO
 import sys
 import environment
 import mesonlib
-import meson
+import meson, meson_test
 import argparse
 import xml.etree.ElementTree as ET
 import time
@@ -147,7 +147,7 @@ def log_text_file(logfile, testdir, msg, stdo, stde):
     if stop:
         raise StopException()
 
-def run_test_inprocess(commandlist):
+def run_configure_inprocess(commandlist):
     old_stdout = sys.stdout
     sys.stdout = mystdout = StringIO()
     old_stderr = sys.stderr
@@ -156,6 +156,20 @@ def run_test_inprocess(commandlist):
     sys.stdout = old_stdout
     sys.stderr = old_stderr
     return (returncode, mystdout.getvalue(), mystderr.getvalue())
+
+def run_test_inprocess(testdir):
+    old_stdout = sys.stdout
+    sys.stdout = mystdout = StringIO()
+    old_stderr = sys.stderr
+    sys.stderr = mystderr = StringIO()
+    old_cwd = os.getcwd()
+    os.chdir(testdir)
+    returncode = meson_test.run(['meson-private/meson_test_setup.dat'])
+    sys.stdout = old_stdout
+    sys.stderr = old_stderr
+    os.chdir(old_cwd)
+    return (returncode, mystdout.getvalue(), mystderr.getvalue())
+
 
 def run_test(testdir, should_succeed):
     global compile_commands
@@ -167,7 +181,7 @@ def run_test(testdir, should_succeed):
     gen_start = time.time()
     gen_command = [meson_command, '--prefix', '/usr', '--libdir', 'lib', testdir, test_build_dir]\
         + unity_flags + backend_flags
-    (returncode, stdo, stde) = run_test_inprocess(gen_command)
+    (returncode, stdo, stde) = run_configure_inprocess(gen_command)
     gen_time = time.time() - gen_start
     if not should_succeed:
         if returncode != 0:
@@ -190,13 +204,14 @@ def run_test(testdir, should_succeed):
     if pc.returncode != 0:
         return TestResult('Compiling source code failed.', stdo, stde, gen_time, build_time)
     test_start = time.time()
-    pt = subprocess.Popen(test_commands, cwd=test_build_dir,
-                          stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    (o, e) = pt.communicate()
+    # Note that we don't test that running e.g. 'ninja test' actually
+    # works. One hopes that this is a common enough happening that
+    # it is picked up immediately on development.
+    (returncode, tstdo, tstde) = run_test_inprocess(test_build_dir)
     test_time = time.time() - test_start
-    stdo += o.decode('utf-8')
-    stde += e.decode('utf-8')
-    if pt.returncode != 0:
+    stdo += tstdo
+    stde += tstde
+    if returncode != 0:
         return TestResult('Running unit tests failed.', stdo, stde, gen_time, build_time, test_time)
     if len(install_commands) == 0:
         print("Skipping install test")
