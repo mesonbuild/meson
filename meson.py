@@ -88,7 +88,6 @@ class MesonApp():
             raise RuntimeError('%s is not a directory' % dir1)
         if not stat.S_ISDIR(os.stat(ndir2).st_mode):
             raise RuntimeError('%s is not a directory' % dir2)
-        self.options = options
         if os.path.samefile(dir1, dir2):
             raise RuntimeError('Source and build directories must not be the same. Create a pristine build directory.')
         if self.has_build_file(ndir1):
@@ -115,12 +114,12 @@ itself as required.'''
         return (src_dir, build_dir)
 
     def generate(self):
-        env = environment.Environment(self.source_dir, self.build_dir, self.meson_script_file, options)
+        env = environment.Environment(self.source_dir, self.build_dir, self.meson_script_file, self.options)
         mlog.initialize(env.get_log_dir())
         mlog.log(mlog.bold('The Meson build system'))
         mlog.log('Version:', coredata.version)
-        mlog.log('Source dir:', mlog.bold(app.source_dir))
-        mlog.log('Build dir:', mlog.bold(app.build_dir))
+        mlog.log('Source dir:', mlog.bold(self.source_dir))
+        mlog.log('Build dir:', mlog.bold(self.build_dir))
         if env.is_cross_build():
             mlog.log('Build type:', mlog.bold('cross build'))
         else:
@@ -128,13 +127,13 @@ itself as required.'''
         b = build.Build(env)
         intr = interpreter.Interpreter(b)
         intr.run()
-        if options.backend == 'ninja':
+        if self.options.backend == 'ninja':
             import ninjabackend
             g = ninjabackend.NinjaBackend(b, intr)
-        elif options.backend == 'vs2010':
+        elif self.options.backend == 'vs2010':
             import vs2010backend
             g = vs2010backend.Vs2010Backend(b, intr)
-        elif options.backend == 'xcode':
+        elif self.options.backend == 'xcode':
             import xcodebackend
             g = xcodebackend.XCodeBackend(b, intr)
         else:
@@ -144,8 +143,7 @@ itself as required.'''
         dumpfile = os.path.join(env.get_scratch_dir(), 'build.dat')
         pickle.dump(b, open(dumpfile, 'wb'))
 
-if __name__ == '__main__':
-    args = sys.argv[:]
+def run(args):
     if args[-1] == 'secret-handshake':
         args = args[:-1]
         handshake = True
@@ -154,12 +152,12 @@ if __name__ == '__main__':
     options = parser.parse_args(args[1:])
     if options.print_version:
         print(coredata.version)
-        sys.exit(0)
+        return 0
     args = options.directories
     if len(args) == 0 or len(args) > 2:
         print('%s <source directory> <build directory>' % sys.argv[0])
         print('If you omit either directory, the current directory is substituted.')
-        sys.exit(1)
+        return 1
     dir1 = args[0]
     if len(args) > 1:
         dir2 = args[1]
@@ -172,6 +170,7 @@ if __name__ == '__main__':
             this_file = os.path.join(os.path.dirname(this_file), resolved)
         else:
             this_file = resolved
+
     try:
         app = MesonApp(dir1, dir2, this_file, handshake, options)
     except Exception as e:
@@ -179,7 +178,7 @@ if __name__ == '__main__':
         # to stdout.
         print('Error during basic setup:\n')
         print(e)
-        sys.exit(1)
+        return 1
     try:
         app.generate()
     except Exception as e:
@@ -191,5 +190,8 @@ if __name__ == '__main__':
             mlog.log(e)
         else:
             traceback.print_exc()
-        sys.exit(1)
+        return 1
+    return 0
 
+if __name__ == '__main__':
+    sys.exit(run(sys.argv[:]))
