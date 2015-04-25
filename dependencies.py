@@ -28,14 +28,6 @@ class DependencyException(MesonException):
     def __init__(self, *args, **kwargs):
         MesonException.__init__(self, *args, **kwargs)
 
-class CustomRule:
-    def __init__(self, cmd_list, name_templ, src_keyword, name, description):
-        self.cmd_list = cmd_list
-        self.name_templ = name_templ
-        self.src_keyword = src_keyword
-        self.name = name
-        self.description = description
-
 class Dependency():
     def __init__(self):
         self.name = "null"
