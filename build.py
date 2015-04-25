@@ -205,7 +205,7 @@ class BuildTarget():
             # Holder unpacking. Ugly.
             if hasattr(s, 'held_object'):
                 s = s.held_object
-            if isinstance(s, str) or isinstance(s, File): # FIXME, accept only File objects
+            if isinstance(s, File):
                 if not s in added_sources:
                     self.sources.append(s)
                     added_sources[s] = True
