@@ -444,8 +444,8 @@ class GTestDependency(Dependency):
         self.include_dir = '/usr/include'
         self.src_include_dir = '/usr/src/gtest'
         self.src_dir = '/usr/src/gtest/src'
-        self.all_src = os.path.join(self.src_dir, 'gtest-all.cc')
-        self.main_src = os.path.join(self.src_dir, 'gtest_main.cc')
+        self.all_src = mesonlib.File.from_absolute_file(os.path.join(self.src_dir, 'gtest-all.cc'))
+        self.main_src = mesonlib.File.from_absolute_file(os.path.join(self.src_dir, 'gtest_main.cc'))
         self.detect()
 
     def found(self):
@@ -526,8 +526,8 @@ class GMockDependency(Dependency):
                 # versions of gmock that do different things.
                 self.compile_args = ['-I/usr/src/gmock', '-I/usr/src/gmock/src']
                 self.link_args = []
-                all_src = os.path.join(d, 'gmock-all.cc')
-                main_src = os.path.join(d, 'gmock_main.cc')
+                all_src = mesonlib.File.from_absolute_file(os.path.join(d, 'gmock-all.cc'))
+                main_src = mesonlib.File.from_absolute_file(os.path.join(d, 'gmock_main.cc'))
                 if kwargs.get('main', False):
                     self.sources = [all_src, main_src]
                 else:

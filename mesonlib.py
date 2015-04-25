@@ -35,7 +35,11 @@ class File:
     @staticmethod
     def from_built_file(subdir, fname):
         return File(True, subdir, fname)
-    
+
+    @staticmethod
+    def from_absolute_file(fname):
+        return File(False, '', fname)
+
     def rel_to_builddir(self, build_to_src):
         if self.is_built:
             return os.path.join(self.subdir, self.fname)
