@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import backends, build
+import mesonlib
 import uuid, os, sys
 
 class XCodeBackend(backends.Backend):
@@ -103,8 +104,8 @@ class XCodeBackend(backends.Backend):
         self.target_filemap = {}
         for name, t in self.build.targets.items():
             for s in t.sources:
-                if isinstance(s, str):
-                    s = os.path.join(t.subdir, s)
+                if isinstance(s, mesonlib.File):
+                    s = os.path.join(s.subdir, s.fname)
                     self.filemap[s] = self.gen_id()
             for o in t.objects:
                 if isinstance(o, str):
@@ -116,9 +117,8 @@ class XCodeBackend(backends.Backend):
         self.buildmap = {}
         for t in self.build.targets.values():
             for s in t.sources:
-                if isinstance(s, str):
-                    s = os.path.join(t.subdir, s)
-                    self.buildmap[s] = self.gen_id()
+                s = os.path.join(s.subdir, s.fname)
+                self.buildmap[s] = self.gen_id()
             for o in t.objects:
                 o = os.path.join(t.subdir, o)
                 if isinstance(o, str):
@@ -363,7 +363,7 @@ class XCodeBackend(backends.Backend):
             self.write_line('children = (')
             self.indent_level+=1
             for s in self.build.targets[t].sources:
-                s = os.path.join(self.build.targets[t].subdir, s)
+                s = os.path.join(s.subdir, s.fname)
                 if isinstance(s, str):
                     self.write_line('%s /* %s */,' % (self.filemap[s], s))
             for o in self.build.targets[t].objects:
@@ -505,7 +505,7 @@ class XCodeBackend(backends.Backend):
             self.write_line('files = (')
             self.indent_level+=1
             for s in self.build.targets[name].sources:
-                s = os.path.join(self.build.targets[name].subdir, s)
+                s = os.path.join(s.subdir, s.fname)
                 if not self.environment.is_header(s):
                     self.write_line('%s /* %s */,' % (self.buildmap[s], os.path.join(self.environment.get_source_dir(), s)))
             self.indent_level-=1
