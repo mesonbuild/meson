@@ -1490,7 +1490,7 @@ class Interpreter():
             if isinstance(s, File) or isinstance(s, GeneratedListHolder) or \
             isinstance(s, CustomTargetHolder):
                 pass
-            elif isinstance(s, str): # FIXME do not allow plain strings.
+            elif isinstance(s, str):
                 s = File.from_source_file(self.environment.source_dir, self.subdir, s)
             else:
                 raise RuntimeError("Unreachable code")

@@ -1107,10 +1107,10 @@ rule FORTRAN_DEP_HACK
                 rel_src = os.path.join(self.get_target_private_dir(target), src)
                 abs_src = os.path.join(self.environment.get_source_dir(), rel_src)
         else:
-            if isinstance(src, File): # FIXME, accept only Files.
+            if isinstance(src, File):
                 rel_src = src.rel_to_builddir(self.build_to_src)
             else:
-                rel_src = os.path.join(self.build_to_src, target.get_source_subdir(), src)
+                raise build.InvaliArguments('Invalid source type.')
             abs_src = os.path.join(self.environment.get_build_dir(), rel_src)
         if isinstance(src, RawFilename):
             src_filename = src.fname
