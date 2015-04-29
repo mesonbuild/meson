@@ -600,7 +600,7 @@ class Qt4Dependency(Dependency):
         for module in mods:
             self.modules.append(PkgConfigDependency('Qt' + module, kwargs))
         if len(self.modules) == 0:
-            raise DependencyException('No Qt5 modules specified.')
+            raise DependencyException('No Qt4 modules specified.')
 
     def get_version(self):
         return self.modules[0].get_version()

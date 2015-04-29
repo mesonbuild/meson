@@ -18,8 +18,7 @@ import build
 from coredata import MesonException
 import xml.etree.ElementTree as ET
 
-class Qt5Module():
-    
+class Qt4Module():
     def __init__(self):
         mlog.log('Detecting Qt tools.')
         # The binaries have different names on different
@@ -152,4 +151,4 @@ class Qt5Module():
 def initialize():
     mlog.log('Warning, rcc dependencies will not work properly until this upstream issue is fixed:',
              mlog.bold('https://bugreports.qt.io/browse/QTBUG-45460'))
-    return Qt5Module()
+    return Qt4Module()
