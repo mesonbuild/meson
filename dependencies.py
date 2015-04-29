@@ -588,6 +588,44 @@ class Qt5Dependency(Dependency):
         # Fix this to be more portable, especially to MSVC.
         return ['-fPIE']
 
+class Qt4Dependency(Dependency):
+    def __init__(self, kwargs):
+        Dependency.__init__(self)
+        self.name = 'qt4'
+        self.root = '/usr'
+        self.modules = []
+        mods = kwargs.get('modules', [])
+        if isinstance(mods, str):
+            mods = [mods]
+        for module in mods:
+            self.modules.append(PkgConfigDependency('Qt' + module, kwargs))
+        if len(self.modules) == 0:
+            raise DependencyException('No Qt5 modules specified.')
+
+    def get_version(self):
+        return self.modules[0].get_version()
+
+    def get_compile_args(self):
+        args = []
+        for m in self.modules:
+            args += m.get_compile_args()
+        return args
+
+    def get_sources(self):
+        return []
+
+    def get_link_args(self):
+        args = []
+        for module in self.modules:
+            args += module.get_link_args()
+        return args
+
+    def found(self):
+        for i in self.modules:
+            if not i.found():
+                return False
+        return True
+
 class GnuStepDependency(Dependency):
     def __init__(self, kwargs):
         Dependency.__init__(self)
@@ -831,6 +869,7 @@ packages = {'boost': BoostDependency,
             'gtest': GTestDependency,
             'gmock': GMockDependency,
             'qt5': Qt5Dependency,
+            'qt4': Qt4Dependency,
             'gnustep': GnuStepDependency,
             'appleframeworks': AppleFrameworks,
             'wxwidgets' : WxDependency,
