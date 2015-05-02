@@ -1,4 +1,4 @@
-project('qt5 build test', 'cpp')
+project('qt4 build test', 'cpp')
 
 # This is a manual test rather than an automatic one
 # because during Debian package builds only Qt4 or Qt5

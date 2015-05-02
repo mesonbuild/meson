@@ -12,7 +12,7 @@ int main(int argc, char **argv) {
   if(qi2.width() != 640) {
       return 1;
   }
-  win->setWindowTitle("Meson Qt5 build test");
+  win->setWindowTitle("Meson Qt4 build test");
 
   win->show();
   return app.exec();
