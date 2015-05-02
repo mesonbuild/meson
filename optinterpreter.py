@@ -51,7 +51,7 @@ class UserStringOption(UserOption):
 
     def set_value(self, newvalue):
         if not isinstance(newvalue, str):
-            raise OptionException('Value of string option is not a string.')
+            raise OptionException('Value "%s" for string option "%s" is not a string.' % (str(newvalue), self.name))
         self.value = newvalue
 
 class UserBooleanOption(UserOption):
@@ -61,7 +61,7 @@ class UserBooleanOption(UserOption):
 
     def set_value(self, newvalue):
         if not isinstance(newvalue, bool):
-            raise OptionException('Value of boolean option is not boolean.')
+            raise OptionException('Value "%s" for boolean option "%s" is not a boolean.' % (valuestring, self.name))
         self.value = newvalue
 
     def parse_string(self, valuestring):
@@ -69,7 +69,7 @@ class UserBooleanOption(UserOption):
             return False
         if valuestring == 'true':
             return True
-        raise OptionException('Value %s is not a boolean.' % valuestring)
+        raise OptionException('Value "%s" for boolean option "%s" is not a boolean.' % (valuestring, self.name))
 
 class UserComboOption(UserOption):
     def __init__(self, kwargs):
@@ -86,7 +86,8 @@ class UserComboOption(UserOption):
 
     def set_value(self, newvalue):
         if newvalue not in self.choices:
-            raise OptionException('Combo value must be one of the choices.')
+            optionsstring = ', '.join(['"%s"' % (item,) for item in self.choices])
+            raise OptionException('Value "%s" for combo option "%s" is not one of the choices. Possible choices are: %s.' % (newvalue, self.name, optionsstring))
         self.value = newvalue
 
 option_types = {'string' : UserStringOption,
@@ -175,6 +176,7 @@ class OptionInterpreter:
         if self.subproject != '':
             opt_name = self.subproject + ':' + opt_name
         opt = option_types[opt_type](kwargs)
+        opt.name = opt_name
         if opt.description == '':
             opt.description = opt_name
         if opt_name in self.cmd_line_options:
