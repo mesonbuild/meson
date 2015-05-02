@@ -787,7 +787,7 @@ class Interpreter():
                       'vcs_tag' : self.func_vcs_tag,
                       'set_variable' : self.func_set_variable,
                       'import' : self.func_import,
-                      'file' : self.func_file,
+                      'files' : self.func_files,
                       }
 
     def module_method_callback(self, invalues):
@@ -890,12 +890,8 @@ class Interpreter():
 
     @stringArgs
     @noKwargs
-    def func_file(self, node, args, kwargs):
-        if len(args) != 1:
-            raise InvalidCode('File takes one argument.')
-        fname = args[0]
-        fobj = File.from_source_file(self.environment.source_dir, self.subdir, fname)
-        return fobj
+    def func_files(self, node, args, kwargs):
+        return [File.from_source_file(self.environment.source_dir, self.subdir, fname) for fname in args]
 
     def set_variable(self, varname, variable):
         if variable is None:
