@@ -803,6 +803,9 @@ class RunTarget:
     def get_generated_sources(self):
         return []
 
+    def get_sources(self):
+        return []
+
     def get_subdir(self):
         return self.subdir
 
