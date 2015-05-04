@@ -559,7 +559,7 @@ class Qt5Dependency(Dependency):
         if len(mods) == 0:
             raise DependencyException('No Qt5 modules specified.')
         if shutil.which('pkg-config') is not None:
-            self.pkgconf_detect()
+            self.pkgconfig_detect(mods, kwargs)
         elif shutil.which('qmake') is not None:
             self.qmake_detect(mods, kwargs)
         if not self.is_found:
@@ -571,11 +571,10 @@ class Qt5Dependency(Dependency):
         modules = []
         for module in mods:
             modules.append(PkgConfigDependency('Qt5' + module, kwargs))
-        self.version = modules[0].get_version()
         for m in modules:
             self.cargs += m.get_compile_args()
             self.largs += m.get_link_args()
-
+        self.is_found = True
 
     def qmake_detect(self, mods, kwargs):
         pc = subprocess.Popen(['qmake', '-v'], stdout=subprocess.PIPE,
