@@ -598,11 +598,15 @@ class Qt5Dependency(Dependency):
         incdir = qvars['QT_INSTALL_HEADERS']
         self.cargs.append('-I' + incdir)
         libdir = qvars['QT_INSTALL_LIBS']
+        bindir = qvars['QT_INSTALL_BINS']
         #self.largs.append('-L' + libdir)
         for module in mods:
             mincdir = os.path.join(incdir, 'Qt' + module)
-            libfile = os.path.join(libdir, 'Qt5' + module + '.lib')
             self.cargs.append('-I' + mincdir)
+            libfile = os.path.join(libdir, 'Qt5' + module + '.lib')
+            if not os.path.isfile(libfile):
+                # MinGW links directly to .dll, not to .lib.
+                libfile = os.path.join(bindir, 'Qt5' + module + '.dll')
             self.largs.append(libfile)
         self.is_found = True
 
