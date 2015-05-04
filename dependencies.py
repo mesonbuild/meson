@@ -550,38 +550,76 @@ class Qt5Dependency(Dependency):
         Dependency.__init__(self)
         self.name = 'qt5'
         self.root = '/usr'
-        self.modules = []
         mods = kwargs.get('modules', [])
+        self.cargs = []
+        self.largs= []
+        self.is_found = False
         if isinstance(mods, str):
             mods = [mods]
-        for module in mods:
-            self.modules.append(PkgConfigDependency('Qt5' + module, kwargs))
-        if len(self.modules) == 0:
+        if len(mods) == 0:
             raise DependencyException('No Qt5 modules specified.')
+        if shutil.which('pkg-config') is not None:
+            self.pkgconf_detect()
+        elif shutil.which('qmake') is not None:
+            self.qmake_detect(mods, kwargs)
+        if not self.is_found:
+            mlog.log('Qt5 dependency found: ', mlog.red('NO'))
+        else:
+            mlog.log('Qt5 dependency found: ', mlog.green('YES'))
+
+    def pkgconfig_detect(self, mods, kwargs):
+        modules = []
+        for module in mods:
+            modules.append(PkgConfigDependency('Qt5' + module, kwargs))
+        self.version = modules[0].get_version()
+        for m in modules:
+            self.cargs += m.get_compile_args()
+            self.largs += m.get_link_args()
+
+
+    def qmake_detect(self, mods, kwargs):
+        pc = subprocess.Popen(['qmake', '-v'], stdout=subprocess.PIPE,
+                              stderr=subprocess.PIPE)
+        (stdo, _) = pc.communicate()
+        if pc.returncode != 0:
+            return
+        stdo = stdo.decode()
+        if not 'version 5' in stdo:
+            mlog.log('QMake is not for Qt5.')
+            return
+        (stdo, _) = subprocess.Popen(['qmake', '-query'], stdout=subprocess.PIPE).communicate()
+        qvars = {}
+        for line in stdo.decode().split('\n'):
+            line = line.strip()
+            if line == '':
+                continue
+            (k, v) = tuple(line.split(':', 1))
+            qvars[k] = v
+        incdir = qvars['QT_INSTALL_HEADERS']
+        self.cargs.append('-I' + incdir)
+        libdir = qvars['QT_INSTALL_LIBS']
+        #self.largs.append('-L' + libdir)
+        for module in mods:
+            mincdir = os.path.join(incdir, 'Qt' + module)
+            libfile = os.path.join(libdir, 'Qt5' + module + '.lib')
+            self.cargs.append('-I' + mincdir)
+            self.largs.append(libfile)
+        self.is_found = True
 
     def get_version(self):
-        return self.modules[0].get_version()
+        return self.version
 
     def get_compile_args(self):
-        args = []
-        for m in self.modules:
-            args += m.get_compile_args()
-        return args
+        return self.cargs
 
     def get_sources(self):
         return []
 
     def get_link_args(self):
-        args = []
-        for module in self.modules:
-            args += module.get_link_args()
-        return args
+        return self.largs
 
     def found(self):
-        for i in self.modules:
-            if not i.found():
-                return False
-        return True
+        return self.is_found
 
     def get_exe_args(self):
         # Qt5 seems to require this always.
