@@ -594,6 +594,8 @@ class Qt5Dependency(Dependency):
                 continue
             (k, v) = tuple(line.split(':', 1))
             qvars[k] = v
+        if mesonlib.is_osx():
+            return self.framework_detect(qvars, mods, kwargs)
         incdir = qvars['QT_INSTALL_HEADERS']
         self.cargs.append('-I' + incdir)
         libdir = qvars['QT_INSTALL_LIBS']
@@ -608,6 +610,18 @@ class Qt5Dependency(Dependency):
                 libfile = os.path.join(bindir, 'Qt5' + module + '.dll')
             self.largs.append(libfile)
         self.is_found = True
+
+    def framework_detect(self, qvars, modules, kwargs):
+        libdir = qvars['QT_INSTALL_LIBS']
+        for m in modules:
+            fname = 'Qt' + m
+            fwdep = ExtraFrameworkDependency(fname, kwargs.get('required', True), libdir)
+            self.cargs.append('-F' + libdir)
+            if fwdep.found():
+                self.is_found = True
+                self.cargs += fwdep.get_compile_args()
+                self.largs += fwdep.get_link_args()
+
 
     def get_version(self):
         return self.version
@@ -831,18 +845,21 @@ class SDL2Dependency(Dependency):
         return self.is_found
 
 class ExtraFrameworkDependency(Dependency):
-    def __init__(self, name, required):
+    def __init__(self, name, required, path=None):
         Dependency.__init__(self)
         self.name = None
-        self.detect(name)
+        self.detect(name, path)
         if self.found():
             mlog.log('Dependency', mlog.bold(name), 'found:', mlog.green('YES'), os.path.join(self.path, self.name))
         else:
             mlog.log('Dependency', name, 'found:', mlog.red('NO'))
 
-    def detect(self, name):
+    def detect(self, name, path):
         lname = name.lower()
-        paths = ['/Library/Frameworks']
+        if path is None:
+            paths = ['/Library/Frameworks']
+        else:
+            paths = [path]
         for p in paths:
             for d in os.listdir(p):
                 fullpath = os.path.join(p, d)
