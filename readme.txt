@@ -31,11 +31,11 @@ called 'meson.build'. To generate the build system run this command:
 meson <source directory> <build directory>
 
 You can omit either of the two directories, and Meson will substitute
-the current directory and autodetect what you mean. This mean that you
-can do things like this:
+the current directory and autodetect what you mean. This allows you to
+do things like this:
 
-cd source_root; mkdir build; cd build; meson.py ..
-cd source_root; mkdir build; meson.py build
+cd source_root; mkdir build; cd build; meson ..
+cd source_root; mkdir build; meson build
 
 To compile, cd into your build directory and type 'ninja'. To run unit
 tests, type 'ninja test'.
