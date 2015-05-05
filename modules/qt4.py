@@ -83,6 +83,7 @@ class Qt4Module():
 
     def parse_qrc(self, state, fname):
         abspath = os.path.join(state.environment.source_dir, state.subdir, fname)
+        relative_part = os.path.split(fname)[0]
         try:
             tree = ET.parse(abspath)
             root = tree.getroot()
@@ -92,7 +93,7 @@ class Qt4Module():
                     mlog.log("Warning, malformed rcc file: ", os.path.join(state.subdir, fname))
                     break
                 else:
-                    result.append(os.path.join(state.subdir, child.text))
+                    result.append(os.path.join(state.subdir, relative_part, child.text))
             return result
         except Exception:
             return []
