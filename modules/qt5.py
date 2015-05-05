@@ -24,15 +24,15 @@ class Qt5Module():
         mlog.log('Detecting Qt tools.')
         # The binaries have different names on different
         # distros. Joy.
-        self.moc = dependencies.ExternalProgram('moc', silent=True)
+        self.moc = dependencies.ExternalProgram('moc-qt5', silent=True)
         if not self.moc.found():
-            self.moc = dependencies.ExternalProgram('moc-qt5', silent=True)
-        self.uic = dependencies.ExternalProgram('uic', silent=True)
+            self.moc = dependencies.ExternalProgram('moc', silent=True)
+        self.uic = dependencies.ExternalProgram('uic-qt5', silent=True)
         if not self.uic.found():
-            self.uic = dependencies.ExternalProgram('uic-qt5', silent=True)
-        self.rcc = dependencies.ExternalProgram('rcc', silent=True)
+            self.uic = dependencies.ExternalProgram('uic', silent=True)
+        self.rcc = dependencies.ExternalProgram('rcc-qt5', silent=True)
         if not self.rcc.found():
-            self.rcc = dependencies.ExternalProgram('rcc-qt5', silent=True)
+            self.rcc = dependencies.ExternalProgram('rcc', silent=True)
         # Moc, uic and rcc write their version strings to stderr.
         # Moc and rcc return a non-zero result when doing so.
         # What kind of an idiot thought that was a good idea?
