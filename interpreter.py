@@ -41,9 +41,8 @@ class InvalidArguments(InterpreterException):
 def check_stringlist(a, msg='Arguments must be strings.'):
     if not isinstance(a, list):
         raise InvalidArguments('Argument not a list.')
-    for s in a:
-        if not isinstance(s, str):
-            raise InvalidArguments(msg)
+    if not all(isinstance(s, str) for s in a):
+        raise InvalidArguments(msg)
 
 def noKwargs(f):
     @wraps(f)
@@ -60,6 +59,15 @@ def stringArgs(f):
         check_stringlist(args)
         return f(self, node, args, kwargs)
     return wrapped
+
+def stringifyUserArguments(args):
+    if isinstance(args, list):
+        return '[%s]' % ', '.join([stringifyUserArguments(x) for x in args])
+    elif isinstance(args, int):
+        return str(args)
+    elif isinstance(args, str):
+        return "'%s'" % args
+    raise InvalidArguments('Function accepts only strings, integers, lists and lists thereof.')
 
 class InterpreterObject():
     def __init__(self):
@@ -1096,8 +1104,24 @@ class Interpreter():
 
     @noKwargs
     def func_message(self, node, args, kwargs):
-        self.validate_arguments(args, 1, [str])
-        mlog.log(mlog.bold('Message:'), args[0])
+        # reduce arguments again to avoid flattening posargs
+        (posargs, kwargs) = self.reduce_arguments(node.args)
+        if len(posargs) != 1:
+            raise InvalidArguments('Expected 1 argument, got %d' % len(posargs))
+
+        arg = posargs[0]
+        if isinstance(arg, list):
+            argstr =  stringifyUserArguments(arg)
+        elif isinstance(arg, str):
+            argstr = arg
+        elif isinstance(arg, int):
+            argstr = str(arg)
+        else:
+            raise InvalidArguments('Function accepts only strings, integers, lists and lists thereof.')
+
+        mlog.log(mlog.bold('Message:'), argstr)
+        return
+
 
     @noKwargs
     def func_error(self, node, args, kwargs):
