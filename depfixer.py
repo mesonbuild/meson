@@ -113,8 +113,10 @@ class Elf():
     def detect_elf_type(self):
         data = self.bf.read(6)
         if data[1:4] != b'ELF':
+            # This script gets called to non-elf targets too
+            # so just ignore them.
             print('File "%s" is not an ELF file.' % self.bfile)
-            sys.exit(1)
+            sys.exit(0)
         if data[4] == 1:
             ptrsize = 32
         elif data[4] == 2:
