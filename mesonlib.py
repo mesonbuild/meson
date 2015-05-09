@@ -132,9 +132,11 @@ def version_compare(vstr1, vstr2):
     return cmpop(varr1, varr2)
 
 def default_libdir():
-    if os.path.isfile('/etc/debian_version'):
+    try:
         archpath = subprocess.check_output(['dpkg-architecture', '-qDEB_HOST_MULTIARCH']).decode().strip()
         return 'lib/' + archpath
+    except FileNotFoundError:
+        pass
     if os.path.isdir('/usr/lib64'):
         return 'lib64'
     return 'lib'
