@@ -70,7 +70,7 @@ def run_single_test(wrap, test):
     global tests_failed
     if test.fname[0].endswith('.jar'):
         cmd = ['java', '-jar'] + test.fname
-    elif run_with_mono(test.fname[0]):
+    elif not test.is_cross and run_with_mono(test.fname[0]):
         cmd = ['mono'] + test.fname
     else:
         if test.is_cross:
