@@ -41,7 +41,7 @@ class Lexer:
             # Need to be sorted longest to shortest.
             ('ignore', re.compile(r'[ \t]')),
             ('id', re.compile('[_a-zA-Z][_0-9a-zA-Z]*')),
-            ('number', re.compile(r'-?\d+')),
+            ('number', re.compile(r'\d+')),
             ('eol_cont', re.compile(r'\\\n')),
             ('eol', re.compile(r'\n')),
             ('multiline_string', re.compile(r"'''(.|\n)*?'''", re.M)),
@@ -114,6 +114,7 @@ class Lexer:
                         else:
                             value = match_text
                     yield Token(tid, curline, col, value)
+                    break
             if not matched:
                 raise ParseException('lexer', lineno, col)
 
@@ -244,6 +245,12 @@ class IfClauseNode():
         self.colno = colno
         self.ifs = []
         self.elseblock = EmptyNode()
+
+class UMinusNode():
+    def __init__(self, lineno, colno, value):
+        self.lineno = lineno
+        self.colno = colno
+        self.value = value
 
 class IfNode():
     def __init__(self, lineno, colno, condition, block):
@@ -392,6 +399,8 @@ class Parser:
     def e6(self):
         if self.accept('not'):
             return NotNode(self.current.lineno, self.current.colno, self.e7())
+        if self.accept('dash'):
+            return UMinusNode(self.current.lineno, self.current.colno, self.e7())
         return self.e7()
 
     def e7(self):

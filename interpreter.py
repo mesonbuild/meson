@@ -945,6 +945,8 @@ class Interpreter():
             return self.evaluate_orstatement(cur)
         elif isinstance(cur, mparser.NotNode):
             return self.evaluate_notstatement(cur)
+        elif isinstance(cur, mparser.UMinusNode):
+            return self.evaluate_uminusstatement(cur)
         elif isinstance(cur, mparser.ArithmeticNode):
             return self.evaluate_arithmeticstatement(cur)
         elif isinstance(cur, mparser.ForeachClauseNode):
@@ -1790,6 +1792,14 @@ class Interpreter():
         if not isinstance(v, bool):
             raise InterpreterException('Argument to "not" is not a boolean.')
         return not v
+
+    def evaluate_uminusstatement(self, cur):
+        v = self.evaluate_statement(cur.value)
+        if isinstance(v, mparser.NumberNode):
+            v = v.value
+        if not isinstance(v, int):
+            raise InterpreterException('Argument to negation is not an integer.')
+        return -v
 
     def evaluate_arithmeticstatement(self, cur):
         l = self.to_native(self.evaluate_statement(cur.left))

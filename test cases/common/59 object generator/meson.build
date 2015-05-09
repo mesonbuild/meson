@@ -12,7 +12,7 @@ else
   outputname = '@BASENAME@.o'
 endif
 
-cc = meson.get_compiler('c').cmd_array().get(0-1)
+cc = meson.get_compiler('c').cmd_array().get(-1)
 # Generate an object file manually.
 gen = generator(python,
  output : outputname,
