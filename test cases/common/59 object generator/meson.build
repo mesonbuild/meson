@@ -12,10 +12,11 @@ else
   outputname = '@BASENAME@.o'
 endif
 
-# Generate a header file that needs to be included.
+cc = meson.get_compiler('c').cmd_array().get(0-1)
+# Generate an object file manually.
 gen = generator(python,
  output : outputname,
- arguments : [comp, '@INPUT@', '@OUTPUT@'])
+ arguments : [comp, cc, '@INPUT@', '@OUTPUT@'])
 
 generated = gen.process('source.c')
 

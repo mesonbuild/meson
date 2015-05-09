@@ -1,8 +1,8 @@
 name = 'windows'
 exe_wrapper = 'wine' # A command used to run generated executables.
-c = '/usr/bin/i586-mingw32msvc-gcc'
-cpp = '/usr/bin/i586-mingw32msvc-g++'
-ar = '/usr/i586-mingw32msvc/bin/ar'
-strip = '/usr/i586-mingw32msvc/bin/strip'
+c = '/usr/bin/i686-w64-mingw32-gcc'
+cpp = '/usr/bin/i686-w64-mingw32-gcc'
+ar = '/usr/bin/i686-w64-mingw32-ar'
+strip = '/usr/bin/i686-w64-mingw32-strip'
 
-root = '/usr/i586-mingw32msvc'
+root = '/usr/i686-w64-mingw32'

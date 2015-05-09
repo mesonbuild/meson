@@ -503,11 +503,15 @@ class CompilerHolder(InterpreterObject):
                              'has_function' : self.has_function_method,
                              'has_member' : self.has_member_method,
                              'alignment' : self.alignment_method,
-                             'version' : self.version_method
+                             'version' : self.version_method,
+                             'cmd_array' : self.cmd_array_method,
                              })
 
     def version_method(self, args, kwargs):
         return self.compiler.version
+
+    def cmd_array_method(self, args, kwargs):
+        return self.compiler.exelist
 
     def alignment_method(self, args, kwargs):
         if len(args) != 1:
@@ -1682,7 +1686,7 @@ class Interpreter():
             index = args[0]
             if not isinstance(index, int):
                 raise InvalidArguments('Array index must be a number.')
-            if index < 0 or index >= len(obj):
+            if index < -len(obj) or index >= len(obj):
                 raise InvalidArguments('Array index %s is out of bounds for array of size %d.' % (index, len(obj)))
             return obj[index]
         raise InterpreterException('Arrays do not have a method called "%s".' % method_name)

@@ -41,7 +41,7 @@ class Lexer:
             # Need to be sorted longest to shortest.
             ('ignore', re.compile(r'[ \t]')),
             ('id', re.compile('[_a-zA-Z][_0-9a-zA-Z]*')),
-            ('number', re.compile(r'\d+')),
+            ('number', re.compile(r'-?\d+')),
             ('eol_cont', re.compile(r'\\\n')),
             ('eol', re.compile(r'\n')),
             ('multiline_string', re.compile(r"'''(.|\n)*?'''", re.M)),

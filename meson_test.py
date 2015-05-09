@@ -41,7 +41,10 @@ class TestRun():
 def write_log(logfile, test_name, result_str, result):
     logfile.write(result_str + '\n\n')
     logfile.write('--- command ---\n')
-    logfile.write(' '.join(result.cmd))
+    if result.cmd is None:
+        logfile.write('NONE')
+    else:
+        logfile.write(' '.join(result.cmd))
     logfile.write('\n--- "%s" stdout ---\n' % test_name)
     logfile.write(result.stdo)
     logfile.write('\n--- "%s" stderr ---\n' % test_name)

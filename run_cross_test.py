@@ -45,7 +45,7 @@ def run_test(testdir, should_succeed=True):
     os.mkdir(test_build_dir)
     os.mkdir(install_dir)
     print('Running test: ' + testdir)
-    gen_command = [sys.executable, meson_command, '--prefix', install_dir, '--libdir', 'lib', testdir, test_build_dir] + extra_flags
+    gen_command = [sys.executable, meson_command, '--prefix', '/usr', '--libdir', 'lib', testdir, test_build_dir] + extra_flags
     p = subprocess.Popen(gen_command)
     p.wait()
     if not should_succeed:
@@ -62,7 +62,9 @@ def run_test(testdir, should_succeed=True):
     pt.wait()
     if pt.returncode != 0:
         raise RuntimeError('Running unit tests failed.')
-    pi = subprocess.Popen(install_commands, cwd=test_build_dir)
+    install_env = os.environ.copy()
+    install_env['DESTDIR'] = install_dir
+    pi = subprocess.Popen(install_commands, cwd=test_build_dir, env=install_env)
     pi.wait()
     if pi.returncode != 0:
         raise RuntimeError('Running install failed.')
