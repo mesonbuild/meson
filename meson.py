@@ -46,6 +46,8 @@ parser.add_argument('--mandir' , default='share/man', dest='mandir',
                   help='relative path of man files (default: %(default)s)')
 parser.add_argument('--localedir', default='share/locale', dest='localedir',
                   help='relative path of locale data (default: %(default)s)')
+parser.add_argument('--localstatedir', default='var', dest='localstatedir',
+                  help='relative path of data files which the programs modify while they run (default: %(default)s)')
 parser.add_argument('--backend', default='ninja', dest='backend', choices=backendlist,
                   help='backend to use (default: %(default)s)')
 parser.add_argument('--buildtype', default='debug', choices=build_types, dest='buildtype',

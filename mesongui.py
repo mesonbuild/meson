@@ -32,7 +32,7 @@ class PathModel(QAbstractItemModel):
         self.names = ['Prefix', 'Library dir', 'Binary dir', 'Include dir', 'Data dir',\
                       'Man dir', 'Locale dir']
         self.attr_name = ['prefix', 'libdir', 'bindir', 'includedir', 'datadir', \
-                          'mandir', 'localedir']
+                          'mandir', 'localedir', 'localstatedir']
 
     def args(self, index):
         if index.column() == 1:
