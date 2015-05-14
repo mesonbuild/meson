@@ -52,12 +52,21 @@ def init_datasizes(self, ptrsize, is_le):
 class DynamicEntry():
     def __init__(self, ifile, ptrsize, is_le):
         init_datasizes(self, ptrsize, is_le)
+        self.ptrsize = ptrsize
         if ptrsize == 64:
             self.d_tag = struct.unpack(self.Sxword, ifile.read(self.SxwordSize))[0];
             self.val = struct.unpack(self.XWord, ifile.read(self.XWordSize))[0];
         else:
             self.d_tag = struct.unpack(self.Sword, ifile.read(self.SwordSize))[0]
             self.val = struct.unpack(self.Word, ifile.read(self.WordSize))[0]
+
+    def write(self, ofile):
+        if self.ptrsize == 64:
+            ofile.write(struct.pack(self.Sxword, self.d_tag))
+            ofile.write(struct.pack(self.XWord, self.val))
+        else:
+            ofile.write(struct.pack(self.Sword, self.d_tag))
+            ofile.write(struct.pack(self.Word, self.val))
 
 class SectionHeader():
     def __init__(self, ifile, ptrsize, is_le):
@@ -259,6 +268,21 @@ class Elf():
         self.bf.seek(rp_off)
         self.bf.write(new_rpath)
         self.bf.write(b'\0'*(len(old_rpath) - len(new_rpath) + 1))
+        if len(new_rpath) == 0:
+            self.remove_rpath_entry()
+
+    def remove_rpath_entry(self):
+        sec = self.find_section(b'.dynamic')
+        for (i, entry) in enumerate(self.dynamic):
+            if entry.d_tag == DT_RPATH:
+                rpentry = self.dynamic[i]
+                rpentry.d_tag = 0
+                self.dynamic = self.dynamic[:i] + self.dynamic[i+1:] + [rpentry]
+                break;
+        self.bf.seek(sec.sh_offset)
+        for entry in self.dynamic:
+            entry.write(self.bf)
+        return None
 
 if __name__ == '__main__':
     if len(sys.argv) < 2 or len(sys.argv) > 3:
