@@ -105,7 +105,10 @@ class GnomeModule:
         if isinstance(girtarget, build.Executable):
             scan_command += ['--program', girtarget]
         elif isinstance(girtarget, build.SharedLibrary):
-            scan_command += ['--library', girtarget.get_basename()]
+            libname = girtarget.get_basename()
+            if girtarget.soversion:
+                libname += "-%s" % girtarget.soversion
+            scan_command += ['--library', libname]
         scankwargs = {'output' : girfile,
                       'input' : libsources,
                       'command' : scan_command}
