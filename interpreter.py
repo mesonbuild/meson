@@ -723,15 +723,16 @@ class MesonMain(InterpreterObject):
         return self.build.environment.coredata.unity
 
     def is_subproject_method(self, args, kwargs):
-        return self.interpreter.subproject != ''
+        return self.interpreter.is_subproject()
 
 class Interpreter():
 
-    def __init__(self, build, subproject='', subdir=''):
+    def __init__(self, build, subproject='', subdir='', subproject_dir='subprojects'):
         self.build = build
         self.subproject = subproject
         self.subdir = subdir
         self.source_root = build.environment.get_source_dir()
+        self.subproject_dir = subproject_dir
         option_file = os.path.join(self.source_root, self.subdir, 'meson_options.txt')
         if os.path.exists(option_file):
             oi = optinterpreter.OptionInterpreter(self.subproject,\
@@ -1040,7 +1041,7 @@ class Interpreter():
         dirname = args[0]
         if self.subdir != '':
             segs = os.path.split(self.subdir)
-            if len(segs) != 2 or segs[0] != 'subprojects':
+            if len(segs) != 2 or segs[0] != self.subproject_dir:
                 raise InterpreterException('Subprojects must be defined at the root directory.')
         if dirname in self.subproject_stack:
             fullstack = self.subproject_stack + [dirname]
@@ -1048,16 +1049,16 @@ class Interpreter():
             raise InterpreterException('Recursive include of subprojects: %s.' % incpath)
         if dirname in self.subprojects:
             return self.subprojects[dirname]
-        subdir = os.path.join('subprojects', dirname)
-        r = wrap.Resolver(os.path.join(self.build.environment.get_source_dir(), 'subprojects'))
+        subdir = os.path.join(self.subproject_dir, dirname)
+        r = wrap.Resolver(os.path.join(self.build.environment.get_source_dir(), self.subproject_dir))
         resolved = r.resolve(dirname)
         if resolved is None:
             raise InterpreterException('Subproject directory does not exist and can not be downloaded.')
-        subdir = os.path.join('subprojects', resolved)
+        subdir = os.path.join(self.subproject_dir, resolved)
         os.makedirs(os.path.join(self.build.environment.get_build_dir(), subdir), exist_ok=True)
         self.global_args_frozen = True
         mlog.log('\nExecuting subproject ', mlog.bold(dirname), '.\n', sep='')
-        subi = Interpreter(self.build, dirname, subdir)
+        subi = Interpreter(self.build, dirname, subdir, self.subproject_dir)
         subi.subprojects = self.subprojects
 
         subi.subproject_stack = self.subproject_stack + [dirname]
@@ -1075,7 +1076,7 @@ class Interpreter():
         if len(args) != 1:
             raise InterpreterException('Argument required for get_option.')
         optname = args[0]
-        if self.subproject != '':
+        if self.is_subproject():
             optname = self.subproject + ':' + optname
         try:
             return self.environment.get_coredata().get_builtin_option(optname)
@@ -1092,14 +1093,19 @@ class Interpreter():
         return ConfigurationDataHolder()
 
     @stringArgs
-    @noKwargs
     def func_project(self, node, args, kwargs):
         if len(args)< 2:
             raise InvalidArguments('Not enough arguments to project(). Needs at least the project name and one language')
-        if self.subproject == '':
+        if list(kwargs.keys()) != ['subproject_dir'] and len(kwargs) != 0:
+            raise InvalidArguments('project() only accepts the keyword argument "subproject_dir"')
+
+        if not self.is_subproject():
             self.build.project_name = args[0]
         if self.subproject in self.build.projects:
             raise InvalidCode('Second call to project().')
+        if not self.is_subproject() and 'subproject_dir' in kwargs:
+            self.subproject_dir = kwargs['subproject_dir']
+
         self.build.projects[self.subproject] = args[0]
         mlog.log('Project name: ', mlog.bold(args[0]), sep='')
         self.add_languages(node, args[1:])
@@ -1377,7 +1383,7 @@ class Interpreter():
         self.validate_arguments(args, 1, [str])
         if '..' in args[0]:
             raise InvalidArguments('Subdir contains ..')
-        if self.subdir == '' and args[0] == 'subprojects':
+        if self.subdir == '' and args[0] == self.subproject_dir:
             raise InvalidArguments('Must not go into subprojects dir with subdir(), use subproject() instead.')
         prev_subdir = self.subdir
         subdir = os.path.join(prev_subdir, args[0])
@@ -1830,3 +1836,6 @@ class Interpreter():
         if len(kwargs) > 0:
             raise InvalidCode('Keyword arguments are invalid in array construction.')
         return arguments
+
+    def is_subproject(self):
+        return self.subproject != ''
