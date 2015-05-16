@@ -19,6 +19,8 @@
 # Currently one file, should probably be split into a
 # package before this gets too big.
 
+import re
+import platform
 import os, stat, glob, subprocess, shutil
 from coredata import MesonException
 import mlog
@@ -58,6 +60,9 @@ class Dependency():
 
 class PkgConfigDependency(Dependency):
     pkgconfig_found = None
+
+    __libtool_pat = re.compile("dlname='([A-z0-9\.\-\+]+)'\n")
+
 
     def __init__(self, name, kwargs):
         required = kwargs.get('required', True)
@@ -109,7 +114,21 @@ class PkgConfigDependency(Dependency):
             out = p.communicate()[0]
             if p.returncode != 0:
                 raise RuntimeError('Could not generate libs for %s.' % name)
-            self.libs = out.decode().split()
+            self.libs = []
+            for lib in out.decode().split():
+                if lib.endswith(".la"):
+                    shared_libname = self.__extract_libtool_shlib(lib)
+                    shared_lib = os.path.join(os.path.dirname(lib), shared_libname)
+                    if not os.path.exists(shared_lib):
+                        shared_lib = os.path.join(os.path.dirname(lib), ".libs", shared_libname)
+
+                    if not os.path.exists(shared_lib):
+                        raise RuntimeError('Got a libtools specific "%s" dependencies'
+                                           'but we could not compute the actual shared'
+                                           'library path' % lib)
+                    lib = shared_lib
+
+                self.libs.append(lib)
 
     def get_modversion(self):
         return self.modversion
@@ -137,6 +156,37 @@ class PkgConfigDependency(Dependency):
 
     def found(self):
         return self.is_found
+
+    def __extract_dlname_field(self, la_file):
+        f = open(la_file)
+        data = f.read()
+        f.close()
+        m = self.__libtool_pat.search(data)
+        if m:
+            return m.groups()[0]
+        else:
+            return None
+
+    def __extract_libtool_shlib(self, la_file):
+        '''
+        Returns the path to the shared library
+        corresponding to this .la file
+        '''
+        dlname = self.__extract_dlname_field(la_file)
+        if dlname is None:
+            return None
+
+        # Darwin uses absolute paths where possible; since the libtool files never
+        # contain absolute paths, use the libdir field
+        if platform.system() == 'Darwin':
+            dlbasename = os.path.basename(dlname)
+            libdir = self._extract_libdir_field(la_file)
+            if libdir is None:
+                return dlbasename
+            return libdir + '/' + dlbasename
+        # From the comments in extract_libtool(), older libtools had
+        # a path rather than the raw dlname
+        return os.path.basename(dlname)
 
 class WxDependency(Dependency):
     wx_found = None
