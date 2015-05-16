@@ -1228,7 +1228,18 @@ class Interpreter():
         if libname in self.coredata.ext_libs and\
            self.coredata.ext_libs[libname].found():
             return ExternalLibraryHolder(self.coredata.ext_libs[libname])
-        result = self.environment.find_library(libname)
+        if 'dirs' in kwargs:
+            search_dirs = kwargs['dirs']
+            if not isinstance(search_dirs, list):
+                search_dirs = [search_dirs]
+            for i in search_dirs:
+                if not isinstance(i, str):
+                    raise InvalidCode('Directory entry is not a string.')
+                if not os.path.isabs(i):
+                    raise InvalidCode('Search directory %s is not an absolute path.' % i)
+        else:
+            search_dirs = None
+        result = self.environment.find_library(libname, search_dirs)
         extlib = dependencies.ExternalLibrary(libname, result)
         libobj = ExternalLibraryHolder(extlib)
         self.coredata.ext_libs[libname] = extlib
