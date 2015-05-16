@@ -144,6 +144,11 @@ itself as required.'''
         pickle.dump(b, open(dumpfile, 'wb'))
 
 def run(args):
+    if sys.version_info < (3, 4):
+        print('Meson works correctly only with python 3.4+.')
+        print('You have python %s.' % sys.version)
+        print('Please update your environment')
+        return 1
     if args[-1] == 'secret-handshake':
         args = args[:-1]
         handshake = True
