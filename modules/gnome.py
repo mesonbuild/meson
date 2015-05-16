@@ -55,10 +55,16 @@ class GnomeModule:
         nsversion = kwargs.pop('nsversion')
         libsources = kwargs.pop('sources')
         girfile = '%s-%s.gir' % (ns, nsversion)
+
         scan_command = ['g-ir-scanner', '@INPUT@']
         scan_command += pkgargs
         scan_command += ['--namespace='+ns, '--nsversion=' + nsversion, '--warn-all',
                          '--output', '@OUTPUT@']
+
+        for incdirs in girtarget.include_dirs:
+            for incdir in incdirs.get_incdirs():
+                scan_command += ['-I%s' % os.path.join(state.environment.get_source_dir(), incdir)]
+
         if 'includes' in kwargs:
             includes = kwargs.pop('includes')
             if isinstance(includes, str):
@@ -99,7 +105,10 @@ class GnomeModule:
         if isinstance(girtarget, build.Executable):
             scan_command += ['--program', girtarget]
         elif isinstance(girtarget, build.SharedLibrary):
-            scan_command += ['--library', girtarget.get_basename()]
+            libname = girtarget.get_basename()
+            if girtarget.soversion:
+                libname += "-%s" % girtarget.soversion
+            scan_command += ['--library', libname]
         scankwargs = {'output' : girfile,
                       'input' : libsources,
                       'command' : scan_command}
