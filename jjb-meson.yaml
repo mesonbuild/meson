@@ -1,0 +1,60 @@
+- scm:
+    name: meson
+    scm:
+      - git:
+          url: https://github.com/jpakkane/meson
+          branches:
+            - origin/master
+
+- scm:
+    name: meson-request
+    scm:
+      - git:
+          url: https://github.com/jpakkane/meson
+          refspec: +refs/pull/*:refs/remotes/origin/pr/*
+          branches:
+            - ${sha1}
+
+- job:
+    name: 'meson'
+    properties:
+      - github:
+          url: https://github.com/jpakkane/meson/
+    scm:
+      - meson
+    triggers:
+      - github
+    builders:
+      - shell: "./run_tests.py"
+    publishers:
+      - junit:
+          results: meson-test-run.xml
+      - github-notifier
+      - email:
+          recipients: i.gnatenko.brain@gmail.com jpakkane@gmail.com
+
+- job:
+    name: 'meson-request'
+    properties:
+      - github:
+          url: https://github.com/jpakkane/meson/
+    parameters:
+      - string:
+          name: ${sha1}
+    scm:
+      - meson-request
+    triggers:
+      - github-pull-request:
+          admin-list:
+            - jpakkane
+            - ignatenkobrain
+          github-hooks: true
+          permit-all: true
+    builders:
+      - shell: "./run_tests.py"
+    publishers:
+      - junit:
+          results: meson-test-run.xml
+      - github-notifier
+      - email:
+          recipients: i.gnatenko.brain@gmail.com jpakkane@gmail.com
