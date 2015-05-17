@@ -27,6 +27,11 @@ def initialize(logdir):
     log_dir = logdir
     log_file = open(os.path.join(logdir, 'meson-log.txt'), 'w')
 
+def shutdown():
+    global log_file
+    if log_file is not None:
+        log_file.close()
+
 class AnsiDecorator():
     plain_code = "\033[0m"
 

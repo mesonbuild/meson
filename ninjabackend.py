@@ -777,9 +777,8 @@ class NinjaBackend(backends.Backend):
                 if is_cross:
                     crstr = '_CROSS'
                 rule = 'rule %s%s_LINKER\n' % (langname, crstr)
-                command = ' command = %s %s $ARGS  %s $in $LINK_ARGS $aliasing\n' % \
-                (execute_wrapper,
-                 ' '.join(compiler.get_linker_exelist()),\
+                command = ' command = %s $ARGS  %s $in $LINK_ARGS $aliasing\n' % \
+                (' '.join(compiler.get_linker_exelist()),\
                  ' '.join(compiler.get_linker_output_args('$out')))
                 description = ' description = Linking target $out'
                 outfile.write(rule)

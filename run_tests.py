@@ -20,6 +20,7 @@ from io import StringIO
 import sys
 import environment
 import mesonlib
+import mlog
 import meson, meson_test
 import argparse
 import xml.etree.ElementTree as ET
@@ -173,6 +174,7 @@ def run_test_inprocess(testdir):
 
 def run_test(testdir, should_succeed):
     global compile_commands
+    mlog.shutdown() # Close the log file because otherwise Windows wets itself.
     shutil.rmtree(test_build_dir)
     shutil.rmtree(install_dir)
     os.mkdir(test_build_dir)

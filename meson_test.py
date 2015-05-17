@@ -169,6 +169,8 @@ def run_tests(options, datafilename):
     print('\nFull log written to %s.' % logfilename)
 
 def run(args):
+    global tests_failed
+    tests_failed = False
     options = parser.parse_args(args)
     if len(options.args) != 1:
         print('Test runner for Meson. Do not run on your own, mmm\'kay?')
