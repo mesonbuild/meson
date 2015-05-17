@@ -21,7 +21,7 @@ from coredata import MesonException
 about. To support a new compiler, add its information below.
 Also add corresponding autodetection code in environment.py."""
 
-header_suffixes = ['h', 'hh', 'hpp', 'hxx', 'H', 'moc']
+header_suffixes = ['h', 'hh', 'hpp', 'hxx', 'H', 'moc', 'vapi']
 cpp_suffixes = ['cc', 'cpp', 'cxx', 'h', 'hh', 'hpp', 'hxx', 'c++']
 c_suffixes = ['c']
 clike_suffixes = c_suffixes + cpp_suffixes
@@ -813,7 +813,7 @@ class ValaCompiler():
             raise EnvironmentException('Vala compiler %s can not compile programs.' % self.name_string())
 
     def can_compile(self, fname):
-        return fname.endswith('.vala')
+        return fname.endswith('.vala') or fname.endswith('.vapi')
 
 class RustCompiler():
     def __init__(self, exelist, version):

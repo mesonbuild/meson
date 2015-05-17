@@ -673,12 +673,24 @@ class NinjaBackend(backends.Backend):
             fastvapis[s] = (vapibase, rel_vapi)
         return fastvapis
 
+    def split_vala_sources(self, sources):
+        src = []
+        vapi_src = []
+        for s in sources:
+            if s.endswith('.vapi'):
+                vapi_src.append(s)
+            else:
+                src.append(s)
+        return (src, vapi_src)
+
     def generate_vala_compile(self, target, outfile):
         """Vala is compiled into C. Set up all necessary build steps here."""
         valac = self.environment.coredata.compilers['vala']
         fast_vapis = self.generate_fastvapi_compile(target, valac, outfile)
         generated_c = []
-        for s in target.get_sources():
+        (src, vapi_src) = self.split_vala_sources(target.get_sources())
+        vapi_src = [x.rel_to_builddir(self.build_to_src) for x in vapi_src]
+        for s in src:
             if not s.endswith('.vala'):
                 continue
             args = ['-d', self.get_target_private_dir(target)]
@@ -699,6 +711,7 @@ class NinjaBackend(backends.Backend):
             for d in target.external_deps:
                 if isinstance(d, dependencies.PkgConfigDependency):
                     args += ['--pkg', d.name]
+            args += vapi_src
             generated_c += [relsc]
             element = NinjaBuildElement(relsc, valac.get_language() + '_COMPILER', rel_s)
             element.add_item('ARGS', args)
@@ -1109,7 +1122,7 @@ rule FORTRAN_DEP_HACK
             if isinstance(src, File):
                 rel_src = src.rel_to_builddir(self.build_to_src)
             else:
-                raise build.InvaliArguments('Invalid source type.')
+                raise build.InvalidArguments('Invalid source type.')
             abs_src = os.path.join(self.environment.get_build_dir(), rel_src)
         if isinstance(src, RawFilename):
             src_filename = src.fname
