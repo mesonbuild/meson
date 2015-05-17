@@ -53,6 +53,8 @@ class Backend():
         for i in self.build.compilers:
             if i.can_compile(src):
                 return i
+        if isinstance(src, mesonlib.File):
+            src = src.fname
         raise RuntimeError('No specified compiler can handle file ' + src)
 
     def get_target_filename(self, target):
