@@ -801,14 +801,13 @@ class ValaCompiler():
 
     def sanity_check(self, work_dir):
         src = 'valatest.vala'
-        obj = 'valatest.c'
         source_name = os.path.join(work_dir, src)
         ofile = open(source_name, 'w')
         ofile.write('''class SanityCheck : Object {
 }
 ''')
         ofile.close()
-        pc = subprocess.Popen(self.exelist + ['-C', '-o', obj, src], cwd=work_dir)
+        pc = subprocess.Popen(self.exelist + ['-C', '-c', src], cwd=work_dir)
         pc.wait()
         if pc.returncode != 0:
             raise EnvironmentException('Vala compiler %s can not compile programs.' % self.name_string())

@@ -683,7 +683,7 @@ class NinjaBackend(backends.Backend):
                 continue
             args = ['-d', self.get_target_private_dir(target)]
             sc = os.path.basename(s.fname)[:-4] + 'c'
-            args += ['-C', '-o', sc]
+            args += ['-C']
             vapi_order_deps = []
             for (sourcefile, vapi_info) in fast_vapis.items():
                 if sourcefile == s:
