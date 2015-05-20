@@ -1043,7 +1043,7 @@ class GnuCCompiler(CCompiler):
         return get_gcc_soname_args(self.gcc_type, shlib_name, path, soversion)
 
     def can_compile(self, filename):
-        return super().can_compile(filename) or filename.split('.')[-1] == 's' # Gcc can do asm, too.
+        return super().can_compile(filename) or filename.split('.')[-1].lower() == 's' # Gcc can do asm, too.
 
 class GnuObjCCompiler(ObjCCompiler):
     std_warn_args = ['-Wall', '-Wpedantic', '-Winvalid-pch']
@@ -1120,7 +1120,7 @@ class ClangCCompiler(CCompiler):
         return 'pch'
 
     def can_compile(self, filename):
-        return super().can_compile(filename) or filename.split('.')[-1] == 's' # Clang can do asm, too.
+        return super().can_compile(filename) or filename.split('.')[-1].lower() == 's' # Clang can do asm, too.
 
     def get_pch_use_args(self, pch_dir, header):
         # Workaround for Clang bug http://llvm.org/bugs/show_bug.cgi?id=15136
