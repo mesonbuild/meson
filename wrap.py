@@ -15,6 +15,7 @@
 import mlog
 import urllib.request, os, hashlib, shutil
 import subprocess
+import sys
 
 class PackageDefinition:
     def __init__(self, fname):
@@ -121,6 +122,13 @@ class Resolver:
         open(ofname, 'wb').write(srcdata)
 
     def extract_package(self, package):
+        if sys.version_info < (3, 5):
+            try:
+                import lzma
+                del lzma
+                shutil.register_unpack_format('xztar', ['.tar.xz', '.txz'], shutil._unpack_tarfile, [], "xz'ed tar-file")
+            except ImportError:
+                pass
         if os.path.isdir(os.path.join(self.subdir_root, package.get('directory'))):
             return
         shutil.unpack_archive(os.path.join(self.cachedir, package.get('source_filename')), self.subdir_root)
