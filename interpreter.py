@@ -502,6 +502,7 @@ class CompilerHolder(InterpreterObject):
                              'run' : self.run_method,
                              'has_function' : self.has_function_method,
                              'has_member' : self.has_member_method,
+                             'has_type' : self.has_type_method,
                              'alignment' : self.alignment_method,
                              'version' : self.version_method,
                              'cmd_array' : self.cmd_array_method,
@@ -576,6 +577,22 @@ class CompilerHolder(InterpreterObject):
         else:
             hadtxt = mlog.red('NO')
         mlog.log('Checking for function "', mlog.bold(funcname), '": ', hadtxt, sep='')
+        return had
+
+    def has_type_method(self, args, kwargs):
+        if len(args) != 1:
+            raise InterpreterException('Has_type takes exactly one argument.')
+        check_stringlist(args)
+        typename = args[0]
+        prefix = kwargs.get('prefix', '')
+        if not isinstance(prefix, str):
+            raise InterpreterException('Prefix argument of has_type must be a string.')
+        had = self.compiler.has_type(typename, prefix)
+        if had:
+            hadtxt = mlog.green('YES')
+        else:
+            hadtxt = mlog.red('NO')
+        mlog.log('Checking for type "', mlog.bold(typename), '": ', hadtxt, sep='')
         return had
 
     def sizeof_method(self, args, kwargs):
