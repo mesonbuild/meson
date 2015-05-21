@@ -82,7 +82,6 @@ class PkgConfigDependency(Dependency):
                                  stderr=subprocess.PIPE)
         out = p.communicate()[0]
         if p.returncode != 0:
-            mlog.log('Dependency', name, 'found:', mlog.red('NO'))
             if required:
                 raise DependencyException('Required dependency %s not found.' % name)
             self.modversion = 'none'
