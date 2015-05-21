@@ -688,9 +688,14 @@ class Qt5Dependency(Dependency):
         return self.is_found
 
     def get_exe_args(self):
-        # Qt5 seems to require this always.
+        # Originally this was -fPIE but nowadays the default
+        # for upstream and distros seems to be -reduce-relocations
+        # which requires -fPIC. This may cause a performance
+        # penalty when using self-built Qt or on platforms
+        # where -fPIC is not required. If this is an issue
+        # for you, patches are welcome.
         # Fix this to be more portable, especially to MSVC.
-        return ['-fPIE']
+        return ['-fPIC']
 
 class Qt4Dependency(Dependency):
     def __init__(self, kwargs):
