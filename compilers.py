@@ -401,6 +401,14 @@ void bar() {
 '''
         return self.compiles(templ % (prefix, typename, membername))
 
+    def has_type(self, typename, prefix):
+        templ = '''%s
+void bar() {
+    sizeof(%s);
+};
+'''
+        return self.compiles(templ % (prefix, typename))
+
     def thread_flags(self):
         return ['-pthread']
 
