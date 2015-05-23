@@ -27,7 +27,11 @@ class RPMModule:
     def generate_spec_template(self, state, args, kwargs):
         compiler_deps = set()
         for compiler in state.compilers:
-            if isinstance(compiler, compilers.ValaCompiler):
+            if isinstance(compiler, compilers.GnuCCompiler):
+                compiler_deps.add('gcc')
+            elif isinstance(compiler, compilers.GnuCPPCompiler):
+                compiler_deps.add('gcc-c++')
+            elif isinstance(compiler, compilers.ValaCompiler):
                 compiler_deps.add('vala')
             elif isinstance(compiler, compilers.GnuFortranCompiler):
                 compiler_deps.add('gcc-gfortran')
@@ -35,9 +39,6 @@ class RPMModule:
                 compiler_deps.add('gcc-objc')
             elif compiler == compilers.GnuObjCPPCompiler:
                 compiler_deps.add('gcc-objc++')
-            elif isinstance(compiler, (compilers.GnuCCompiler, compilers.GnuCPPCompiler)):
-                # Installed by default
-                pass
             else:
                 mlog.log('RPM spec file will not created, generating not allowed for:',
                          mlog.bold(compiler.get_id()))
