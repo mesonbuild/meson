@@ -13,4 +13,4 @@ subdir('resources')
 subdir('gir')
 subdir('schemas')
 subdir('gdbus')
-
+subdir('gtk-doc')
