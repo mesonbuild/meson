@@ -196,9 +196,9 @@ class Backend():
         commands += compiler.get_always_args()
         commands += self.build.get_global_args(compiler)
         commands += self.environment.coredata.external_args[compiler.get_language()]
-        commands += target.get_extra_args(compiler.get_language())
         if self.environment.coredata.buildtype != 'plain':
             commands += compiler.get_std_warn_args()
+        commands += target.get_extra_args(compiler.get_language())
         commands += compiler.get_buildtype_args(self.environment.coredata.buildtype)
         if self.environment.coredata.coverage:
             commands += compiler.get_coverage_args()
