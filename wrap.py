@@ -126,7 +126,10 @@ class Resolver:
             try:
                 import lzma
                 del lzma
-                shutil.register_unpack_format('xztar', ['.tar.xz', '.txz'], shutil._unpack_tarfile, [], "xz'ed tar-file")
+                try:
+                    shutil.register_unpack_format('xztar', ['.tar.xz', '.txz'], shutil._unpack_tarfile, [], "xz'ed tar-file")
+                except shutil.RegistryError:
+                    pass
             except ImportError:
                 pass
         if os.path.isdir(os.path.join(self.subdir_root, package.get('directory'))):
