@@ -132,8 +132,18 @@ class Resolver:
                     pass
             except ImportError:
                 pass
-        if os.path.isdir(os.path.join(self.subdir_root, package.get('directory'))):
+        target_dir = os.path.join(self.subdir_root, package.get('directory'))
+        if os.path.isdir(target_dir):
             return
-        shutil.unpack_archive(os.path.join(self.cachedir, package.get('source_filename')), self.subdir_root)
+        extract_dir = self.subdir_root
+        # Some upstreams ship packages that do not have a leading directory.
+        # Create one for them.
+        try:
+            package.get('lead_directory_missing')
+            os.mkdir(target_dir)
+            extract_dir = target_dir
+        except KeyError:
+            pass
+        shutil.unpack_archive(os.path.join(self.cachedir, package.get('source_filename')), extract_dir)
         if package.has_patch():
             shutil.unpack_archive(os.path.join(self.cachedir, package.get('patch_filename')), self.subdir_root)
