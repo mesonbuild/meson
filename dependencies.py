@@ -64,9 +64,13 @@ class PkgConfigDependency(Dependency):
     __libtool_pat = re.compile("dlname='([A-z0-9\.\-\+]+)'\n")
 
 
-    def __init__(self, name, kwargs):
-        required = kwargs.get('required', True)
+    def __init__(self, name, environment, kwargs):
         Dependency.__init__(self)
+        required = kwargs.get('required', True)
+        if 'native' in kwargs and environment.is_cross_build():
+            want_cross = not kwargs['native']
+        else:
+            want_cross = environment.is_cross_build()
         self.name = name
         if PkgConfigDependency.pkgconfig_found is None:
             self.check_pkgconfig()
@@ -78,18 +82,27 @@ class PkgConfigDependency(Dependency):
             self.cargs = []
             self.libs = []
             return
-        p = subprocess.Popen(['pkg-config', '--modversion', name], stdout=subprocess.PIPE,
+        if environment.is_cross_build() and want_cross:
+            if "pkgconfig" not in environment.cross_info:
+                raise DependencyException('Pkg-config binary missing from cross file.')
+            pkgbin = environment.cross_info['pkgconfig']
+            type_string = 'Cross'
+        else:
+            pkgbin = 'pkg-config'
+            type_string = 'Native'
+        p = subprocess.Popen([pkgbin, '--modversion', name], stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE)
         out = p.communicate()[0]
         if p.returncode != 0:
             if required:
-                raise DependencyException('Required dependency %s not found.' % name)
+                raise DependencyException('%s dependency %s not found.' % (type_string, name))
             self.modversion = 'none'
             self.cargs = []
             self.libs = []
         else:
             self.modversion = out.decode().strip()
-            mlog.log('Dependency', mlog.bold(name), 'found:', mlog.green('YES'), self.modversion)
+            mlog.log('%s dependency' % type_string, mlog.bold(name), 'found:',
+                     mlog.green('YES'), self.modversion)
             version_requirement = kwargs.get('version', None)
             if version_requirement is None:
                 self.is_found = True
@@ -101,14 +114,14 @@ class PkgConfigDependency(Dependency):
                     raise DependencyException('Invalid version of a dependency, needed %s %s found %s.' % (name, version_requirement, self.modversion))
             if not self.is_found:
                 return
-            p = subprocess.Popen(['pkg-config', '--cflags', name], stdout=subprocess.PIPE,
+            p = subprocess.Popen([pkgbin, '--cflags', name], stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE)
             out = p.communicate()[0]
             if p.returncode != 0:
                 raise RuntimeError('Could not generate cargs for %s.' % name)
             self.cargs = out.decode().split()
 
-            p = subprocess.Popen(['pkg-config', '--libs', name], stdout=subprocess.PIPE,
+            p = subprocess.Popen([pkgbin, '--libs', name], stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE)
             out = p.communicate()[0]
             if p.returncode != 0:
@@ -190,7 +203,7 @@ class PkgConfigDependency(Dependency):
 class WxDependency(Dependency):
     wx_found = None
 
-    def __init__(self, kwargs):
+    def __init__(self, environment, kwargs):
         Dependency.__init__(self)
         if WxDependency.wx_found is None:
             self.check_wxconfig()
@@ -346,7 +359,7 @@ class BoostDependency(Dependency):
     # between the two.
     name2lib = {'test' : 'unit_test_framework'}
 
-    def __init__(self, kwargs):
+    def __init__(self, environment, kwargs):
         Dependency.__init__(self)
         self.name = 'boost'
         try:
@@ -476,7 +489,7 @@ class BoostDependency(Dependency):
         return 'thread' in self.requested_modules
 
 class GTestDependency(Dependency):
-    def __init__(self, kwargs):
+    def __init__(self, environment, kwargs):
         Dependency.__init__(self)
         self.main = kwargs.get('main', False)
         self.name = 'gtest'
@@ -541,7 +554,7 @@ class GTestDependency(Dependency):
         return True
 
 class GMockDependency(Dependency):
-    def __init__(self, kwargs):
+    def __init__(self, environment, kwargs):
         Dependency.__init__(self)
         # GMock may be a library or just source.
         # Work with both.
@@ -595,7 +608,7 @@ class GMockDependency(Dependency):
         return self.is_found
 
 class Qt5Dependency(Dependency):
-    def __init__(self, kwargs):
+    def __init__(self, environment, kwargs):
         Dependency.__init__(self)
         self.name = 'qt5'
         self.root = '/usr'
@@ -607,19 +620,23 @@ class Qt5Dependency(Dependency):
             mods = [mods]
         if len(mods) == 0:
             raise DependencyException('No Qt5 modules specified.')
-        if shutil.which('pkg-config') is not None:
-            self.pkgconfig_detect(mods, kwargs)
+        type_text = 'native'
+        if environment.is_cross_build() and kwargs.get('native', False):
+            type_text = 'cross'
+            self.pkgconfig_detect(mods, environment, kwargs)
+        elif not environment.is_cross_build() and shutil.which('pkg-config') is not None:
+            self.pkgconfig_detect(mods, environment, kwargs)
         elif shutil.which('qmake') is not None:
             self.qmake_detect(mods, kwargs)
         if not self.is_found:
-            mlog.log('Qt5 dependency found: ', mlog.red('NO'))
+            mlog.log('Qt5 %s dependency found: ' % type_text, mlog.red('NO'))
         else:
-            mlog.log('Qt5 dependency found: ', mlog.green('YES'))
+            mlog.log('Qt5 %s dependency found: ' % type_text, mlog.green('YES'))
 
-    def pkgconfig_detect(self, mods, kwargs):
+    def pkgconfig_detect(self, mods, environment, kwargs):
         modules = []
         for module in mods:
-            modules.append(PkgConfigDependency('Qt5' + module, kwargs))
+            modules.append(PkgConfigDependency('Qt5' + module, environment, kwargs))
         for m in modules:
             self.cargs += m.get_compile_args()
             self.largs += m.get_link_args()
@@ -698,7 +715,7 @@ class Qt5Dependency(Dependency):
         return ['-fPIC']
 
 class Qt4Dependency(Dependency):
-    def __init__(self, kwargs):
+    def __init__(self, environment, kwargs):
         Dependency.__init__(self)
         self.name = 'qt4'
         self.root = '/usr'
@@ -707,7 +724,7 @@ class Qt4Dependency(Dependency):
         if isinstance(mods, str):
             mods = [mods]
         for module in mods:
-            self.modules.append(PkgConfigDependency('Qt' + module, kwargs))
+            self.modules.append(PkgConfigDependency('Qt' + module, environment, kwargs))
         if len(self.modules) == 0:
             raise DependencyException('No Qt4 modules specified.')
 
@@ -736,7 +753,7 @@ class Qt4Dependency(Dependency):
         return True
 
 class GnuStepDependency(Dependency):
-    def __init__(self, kwargs):
+    def __init__(self, environment, kwargs):
         Dependency.__init__(self)
         self.modules = kwargs.get('modules', [])
         self.detect()
@@ -828,7 +845,7 @@ class AppleFrameworks(Dependency):
         return mesonlib.is_osx()
 
 class GLDependency(Dependency):
-    def __init__(self, kwargs):
+    def __init__(self, environment, kwargs):
         Dependency.__init__(self)
         self.is_found = False
         self.cargs = []
@@ -855,7 +872,7 @@ class GLDependency(Dependency):
 # There are three different ways of depending on SDL2:
 # sdl2-config, pkg-config and OSX framework
 class SDL2Dependency(Dependency):
-    def __init__(self, kwargs):
+    def __init__(self, environment, kwargs):
         Dependency.__init__(self)
         self.is_found = False
         self.cargs = []
@@ -947,20 +964,20 @@ def get_dep_identifier(name, kwargs):
         elements.append(module)
     return '/'.join(elements)
 
-def find_external_dependency(name, kwargs):
+def find_external_dependency(name, environment, kwargs):
     required = kwargs.get('required', True)
     if not isinstance(required, bool):
         raise DependencyException('Keyword "required" must be a boolean.')
     lname = name.lower()
     if lname in packages:
-        dep = packages[lname](kwargs)
+        dep = packages[lname](environment, kwargs)
         if required and not dep.found():
             raise DependencyException('Dependency "%s" not found' % name)
         return dep
     pkg_exc = None
     pkgdep = None
     try:
-        pkgdep = PkgConfigDependency(name, kwargs)
+        pkgdep = PkgConfigDependency(name, environment, kwargs)
         if pkgdep.found():
             return pkgdep
     except Exception as e:

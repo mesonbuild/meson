@@ -1273,7 +1273,7 @@ class Interpreter():
         else:
             dep = dependencies.Dependency() # Returns always false for dep.found()
         if not dep.found():
-            dep = dependencies.find_external_dependency(name, kwargs)
+            dep = dependencies.find_external_dependency(name, self.environment, kwargs)
         self.coredata.deps[identifier] = dep
         return DependencyHolder(dep)
 
