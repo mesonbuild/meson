@@ -793,6 +793,7 @@ class Interpreter():
                       'static_library' : self.func_static_lib,
                       'shared_library' : self.func_shared_lib,
                       'jar' : self.func_jar,
+                      'build_target': self.func_build_target,
                       'custom_target' : self.func_custom_target,
                       'run_target' : self.func_run_target,
                       'generator' : self.func_generator,
@@ -1288,6 +1289,21 @@ class Interpreter():
 
     def func_jar(self, node, args, kwargs):
         return self.build_target(node, args, kwargs, JarHolder)
+
+    def func_build_target(self, node, args, kwargs):
+        if 'target_type' not in kwargs:
+            raise InterpreterException('Missing target_type keyword argument')
+        target_type = kwargs.pop('target_type')
+        if target_type == 'executable':
+            return self.func_executable(node, args, kwargs)
+        elif target_type == 'shared_library':
+            return self.func_shared_lib(node, args, kwargs)
+        elif target_type == 'static_library':
+            return self.func_static_lib(node, args, kwargs)
+        elif target_type == 'jar':
+            return self.func_jar(node, args, kwargs)
+        else:
+            raise InterpreterException('Unknown target_type.')
 
     def func_vcs_tag(self, node, args, kwargs):
         fallback = kwargs.pop('fallback', None)
