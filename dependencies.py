@@ -90,6 +90,8 @@ class PkgConfigDependency(Dependency):
         else:
             pkgbin = 'pkg-config'
             type_string = 'Native'
+
+        self.pkgbin = pkgbin
         p = subprocess.Popen([pkgbin, '--modversion', name], stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE)
         out = p.communicate()[0]
@@ -141,6 +143,20 @@ class PkgConfigDependency(Dependency):
                     lib = shared_lib
 
                 self.libs.append(lib)
+
+    def get_variable(self, variable_name):
+        p = subprocess.Popen([self.pkgbin, '--variable=%s' %
+            variable_name, self.name], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        out = p.communicate()[0]
+        if p.returncode != 0:
+            if required:
+                raise DependencyException('%s dependency %s not found.' %
+                        (type_string, self.name))
+        else:
+            variable = out.decode().strip()
+        mlog.debug ("return of subprocess : ", variable)
+
+        return variable
 
     def get_modversion(self):
         return self.modversion
