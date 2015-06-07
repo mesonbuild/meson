@@ -95,6 +95,17 @@ class GnomeModule:
                 scan_command += ['--pkg-export=%s' % pkg for pkg in pkgs]
             else:
                 raise MesonException('Gir export packages must be str or list')
+
+        deps = None
+        if 'dependencies' in kwargs:
+            deps = kwargs.pop('dependencies')
+            if not isinstance (deps, list):
+                deps = [deps]
+            for dep in deps:
+                girdir = dep.held_object.get_variable ("girdir")
+                if girdir:
+                    scan_command += ["--add-include-path=%s" % girdir]
+
         inc_dirs = None
         if kwargs.get('include_directories'):
             inc_dirs = kwargs.pop('include_directories')
@@ -121,7 +132,14 @@ class GnomeModule:
         typelib_output = '%s-%s.typelib' % (ns, nsversion)
         typelib_cmd = ['g-ir-compiler', scan_target, '--output', '@OUTPUT@']
         if inc_dirs:
-            typelib_cmd += ['--includedir=%s' % inc for inc in inc_dirs.held_object.get_incdirs()]
+            typelib_cmd += ['--includedir=%s' % inc for inc in
+                    inc_dirs.held_object.get_incdirs()]
+        if deps:
+            for dep in deps:
+                girdir = dep.held_object.get_variable ("girdir")
+                if girdir:
+                    typelib_cmd += ["--includedir=%s" % girdir]
+
         kwargs['output'] = typelib_output
         kwargs['command'] = typelib_cmd
         # Note that this can't be libdir, because e.g. on Debian it points to
