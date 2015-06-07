@@ -105,6 +105,7 @@ class GnomeModule:
         if isinstance(girtarget, build.Executable):
             scan_command += ['--program', girtarget]
         elif isinstance(girtarget, build.SharedLibrary):
+            scan_command += ["-L", os.path.join (state.environment.get_build_dir(), girtarget.subdir)]
             libname = girtarget.get_basename()
             if girtarget.soversion:
                 libname += "-%s" % girtarget.soversion
