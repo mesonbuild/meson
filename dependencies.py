@@ -825,7 +825,7 @@ why. As a hack filter out everything that is not a flag."""
         return self.libs
 
 class AppleFrameworks(Dependency):
-    def __init__(self, kwargs):
+    def __init__(self, environment, kwargs):
         Dependency.__init__(self)
         modules = kwargs.get('modules', [])
         if isinstance(modules, str):

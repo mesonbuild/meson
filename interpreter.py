@@ -679,6 +679,8 @@ class MesonMain(InterpreterObject):
                              'is_subproject' : self.is_subproject_method,
                              'current_source_dir' : self.current_source_dir_method,
                              'current_build_dir' : self.current_build_dir_method,
+                             'source_root' : self.source_root_method,
+                             'build_root' : self.build_root_method,
                              'set_install_script' : self.set_install_script_method,
                              })
 
@@ -706,6 +708,12 @@ class MesonMain(InterpreterObject):
         if sub == '':
             return src
         return os.path.join(src, sub)
+
+    def source_root_method(self, args, kwargs):
+        return self.interpreter.environment.source_dir
+
+    def build_root_method(self, args, kwargs):
+        return self.interpreter.environment.build_dir
 
     def has_exe_wrapper_method(self, args, kwargs):
         if self.is_cross_build_method(None, None):
