@@ -50,6 +50,7 @@ class Lexer:
             ('rparen', re.compile(r'\)')),
             ('lbracket', re.compile(r'\[')),
             ('rbracket', re.compile(r'\]')),
+            ('dblquote', re.compile(r'"')),
             ('string', re.compile(r"'([^'\\]|(\\.))*'")),
             ('comma', re.compile(r',')),
             ('dot', re.compile(r'\.')),
@@ -91,6 +92,8 @@ class Lexer:
                         bracket_count += 1
                     elif tid == 'rbracket':
                         bracket_count -= 1
+                    elif tid == 'dblquote':
+                        raise ParseException('Double quotes are not supported. Use single quotes.', lineno, col)
                     elif tid == 'string':
                         value = match_text[1:-1].replace(r"\'", "'").replace(r" \\ ".strip(), r" \ ".strip())\
                         .replace("\\n", "\n")
