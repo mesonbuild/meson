@@ -1,4 +1,4 @@
-# Copyright 2013-2014 The Meson development team
+# Copyright 2013-2015 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -145,8 +145,8 @@ class PkgConfigDependency(Dependency):
                 self.libs.append(lib)
 
     def get_variable(self, variable_name):
-        p = subprocess.Popen([self.pkgbin, '--variable=%s' %
-            variable_name, self.name], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p = subprocess.Popen([self.pkgbin, '--variable=%s' % variable_name, self.name],
+                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out = p.communicate()[0]
         if p.returncode != 0:
             if required:
@@ -154,7 +154,7 @@ class PkgConfigDependency(Dependency):
                         (type_string, self.name))
         else:
             variable = out.decode().strip()
-        mlog.debug ("return of subprocess : ", variable)
+        mlog.debug('return of subprocess : %s' % variable)
 
         return variable
 
