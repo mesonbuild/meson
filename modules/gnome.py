@@ -123,7 +123,9 @@ class GnomeModule:
             scan_command += ['--library', libname]
         scankwargs = {'output' : girfile,
                       'input' : libsources,
-                      'command' : scan_command}
+                      'command' : scan_command,
+                      'depends' : girtarget,
+                     }
         if kwargs.get('install'):
             scankwargs['install'] = kwargs['install']
             scankwargs['install_dir'] = os.path.join(state.environment.get_datadir(), 'gir-1.0')
