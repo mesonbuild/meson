@@ -170,7 +170,13 @@ class Backend():
             osrc_base = osrc.fname
             if not self.source_suffix_in_objs:
                 osrc_base = '.'.join(osrc.split('.')[:-1])
-            objbase = os.path.join(osrc.subdir, osrc.fname).replace('/', '_').replace('\\', '_')
+            # If extracting in a subproject, the subproject
+            # name gets duplicated in the file name.
+            pathsegs = osrc.subdir.split(os.sep)
+            if pathsegs[0] == 'subprojects':
+                pathsegs = pathsegs[2:]
+            fixedpath = os.sep.join(pathsegs)
+            objbase = os.path.join(fixedpath, osrc.fname).replace('/', '_').replace('\\', '_')
             objname = os.path.join(proj_dir_to_build_root,
                                    targetdir, os.path.basename(objbase) + suffix)
             result.append(objname)
