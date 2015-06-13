@@ -118,8 +118,6 @@ class GnomeModule:
         elif isinstance(girtarget, build.SharedLibrary):
             scan_command += ["-L", os.path.join (state.environment.get_build_dir(), girtarget.subdir)]
             libname = girtarget.get_basename()
-            if girtarget.soversion:
-                libname += "-%s" % girtarget.soversion
             scan_command += ['--library', libname]
         scankwargs = {'output' : girfile,
                       'input' : libsources,
