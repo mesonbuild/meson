@@ -55,6 +55,7 @@ class GnomeModule:
         nsversion = kwargs.pop('nsversion')
         libsources = kwargs.pop('sources')
         girfile = '%s-%s.gir' % (ns, nsversion)
+        depends = [girtarget]
 
         scan_command = ['g-ir-scanner', '@INPUT@']
         scan_command += pkgargs
@@ -64,6 +65,17 @@ class GnomeModule:
         for incdirs in girtarget.include_dirs:
             for incdir in incdirs.get_incdirs():
                 scan_command += ['-I%s' % os.path.join(state.environment.get_source_dir(), incdir)]
+
+        if 'link_with' in kwargs:
+            link_with = kwargs.pop('link_with')
+            for link in link_with:
+                lib = link.held_object
+                scan_command += ['-l%s' % lib.name]
+                if isinstance(lib, build.SharedLibrary):
+                    scan_command += ['-L%s' %
+                            os.path.join(state.environment.get_build_dir(),
+                                lib.subdir)]
+                    depends.append(lib)
 
         if 'includes' in kwargs:
             includes = kwargs.pop('includes')
@@ -118,13 +130,11 @@ class GnomeModule:
         elif isinstance(girtarget, build.SharedLibrary):
             scan_command += ["-L", os.path.join (state.environment.get_build_dir(), girtarget.subdir)]
             libname = girtarget.get_basename()
-            if girtarget.soversion:
-                libname += "-%s" % girtarget.soversion
             scan_command += ['--library', libname]
         scankwargs = {'output' : girfile,
                       'input' : libsources,
                       'command' : scan_command,
-                      'depends' : girtarget,
+                      'depends' : depends,
                      }
         if kwargs.get('install'):
             scankwargs['install'] = kwargs['install']
