@@ -986,8 +986,8 @@ class Interpreter():
     def validate_arguments(self, args, argcount, arg_types):
         if argcount is not None:
             if argcount != len(args):
-                raise InvalidArguments('Expected %d arguments, got %d',
-                                       argcount, len(args))
+                raise InvalidArguments('Expected %d arguments, got %d.' %
+                                       (argcount, len(args)))
         for i in range(min(len(args), len(arg_types))):
             wanted = arg_types[i]
             actual = args[i]
