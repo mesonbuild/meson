@@ -1577,7 +1577,7 @@ class Interpreter():
             elif isinstance(s, str):
                 s = File.from_source_file(self.environment.source_dir, self.subdir, s)
             else:
-                raise RuntimeError("Unreachable code")
+                raise InterpreterException("Argument list is invalid.")
             results.append(s)
         return results
 
