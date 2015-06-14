@@ -58,6 +58,13 @@ class Dependency():
     def need_threads(self):
         return False
 
+class InternalDependency():
+    def __init__(self, incdirs, libraries, sources):
+        super().__init__()
+        self.include_directories = incdirs
+        self.libraries = libraries
+        self.sources = sources
+
 class PkgConfigDependency(Dependency):
     pkgconfig_found = None
 

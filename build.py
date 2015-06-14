@@ -421,11 +421,16 @@ class BuildTarget():
         for dep in deps:
             if hasattr(dep, 'held_object'):
                 dep = dep.held_object
-            if not isinstance(dep, dependencies.Dependency):
-                raise InvalidArguments('Argument is not an external dependency')
-            self.external_deps.append(dep)
-            if isinstance(dep, dependencies.Dependency):
+            if isinstance(dep, dependencies.InternalDependency):
+                self.sources += dep.sources
+                self.add_include_dirs(dep.include_directories)
+                for l in dep.libraries:
+                    self.link(l)
+            elif isinstance(dep, dependencies.Dependency):
+                self.external_deps.append(dep)
                 self.process_sourcelist(dep.get_sources())
+            else:
+                raise InvalidArguments('Argument is not an external dependency')
 
     def get_external_deps(self):
         return self.external_deps

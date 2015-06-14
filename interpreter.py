@@ -22,7 +22,6 @@ import optinterpreter
 import wrap
 import mesonlib
 import os, sys, platform, subprocess, shutil, uuid, re
-from mesonlib import File
 from functools import wraps
 
 import importlib
@@ -43,6 +42,14 @@ def check_stringlist(a, msg='Arguments must be strings.'):
         raise InvalidArguments('Argument not a list.')
     if not all(isinstance(s, str) for s in a):
         raise InvalidArguments(msg)
+
+def noPosargs(f):
+    @wraps(f)
+    def wrapped(self, node, args, kwargs):
+        if len(args) != 0:
+            raise InvalidArguments('Function does not take positional arguments.')
+        return f(self, node, args, kwargs)
+    return wrapped
 
 def noKwargs(f):
     @wraps(f)
@@ -214,6 +221,15 @@ class DependencyHolder(InterpreterObject):
 
     def found_method(self, args, kwargs):
         return self.held_object.found()
+
+class InternalDependencyHolder(InterpreterObject):
+    def __init__(self, dep):
+        InterpreterObject.__init__(self)
+        self.held_object = dep
+        self.methods.update({'found' : self.found_method})
+
+    def found_method(self, args, kwargs):
+        return True
 
 class ExternalProgramHolder(InterpreterObject):
     def __init__(self, ep):
@@ -827,6 +843,7 @@ class Interpreter():
                       'set_variable' : self.func_set_variable,
                       'import' : self.func_import,
                       'files' : self.func_files,
+                      'declare_dependency': self.func_declare_dependency,
                       }
 
     def module_method_callback(self, invalues):
@@ -930,7 +947,22 @@ class Interpreter():
     @stringArgs
     @noKwargs
     def func_files(self, node, args, kwargs):
-        return [File.from_source_file(self.environment.source_dir, self.subdir, fname) for fname in args]
+        return [mesonlib.File.from_source_file(self.environment.source_dir, self.subdir, fname) for fname in args]
+
+    @noPosargs
+    def func_declare_dependency(self, node, args, kwargs):
+        incs = kwargs.get('include_directories', [])
+        if not isinstance(incs, list):
+            incs = [incs]
+        libs = kwargs.get('link_with', [])
+        if not isinstance(libs, list):
+            libs = [libs]
+        sources = kwargs.get('sources', [])
+        if not isinstance(sources, list):
+            sources = [sources]
+        sources = self.source_strings_to_files(self.flatten(sources))
+        dep = dependencies.InternalDependency(incs, libs, sources)
+        return InternalDependencyHolder(dep)
 
     def set_variable(self, varname, variable):
         if variable is None:
@@ -1571,13 +1603,13 @@ class Interpreter():
     def source_strings_to_files(self, sources):
         results = []
         for s in sources:
-            if isinstance(s, File) or isinstance(s, GeneratedListHolder) or \
+            if isinstance(s, mesonlib.File) or isinstance(s, GeneratedListHolder) or \
             isinstance(s, CustomTargetHolder):
                 pass
             elif isinstance(s, str):
-                s = File.from_source_file(self.environment.source_dir, self.subdir, s)
+                s = mesonlib.File.from_source_file(self.environment.source_dir, self.subdir, s)
             else:
-                raise InterpreterException("Argument list is invalid.")
+                raise InterpreterException("Source item is not string or File-type object.")
             results.append(s)
         return results
 
