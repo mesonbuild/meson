@@ -978,7 +978,7 @@ def get_dep_identifier(name, kwargs):
         modlist = [modlist]
     for module in modlist:
         elements.append(module)
-    return '/'.join(elements)
+    return '/'.join(elements) + '/main' + str(kwargs.get('main', False))
 
 def find_external_dependency(name, environment, kwargs):
     required = kwargs.get('required', True)
