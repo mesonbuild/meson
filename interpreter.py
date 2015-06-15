@@ -1635,6 +1635,7 @@ class Interpreter():
         sources += kw_src
         sources = self.source_strings_to_files(sources)
         objs = self.flatten(kwargs.get('objects', []))
+        kwargs['dependencies'] = self.flatten(kwargs.get('dependencies', []))
         if not isinstance(objs, list):
             objs = [objs]
         if name in self.build.targets:
