@@ -1650,7 +1650,7 @@ class Interpreter():
         elif targetholder is JarHolder:
             targetclass = build.Jar
         else:
-            print(targetholder)
+            mlog.debug('Unknown target type:', str(targetholder))
             raise RuntimeError('Unreachable code')
         target = targetclass(name, self.subdir, is_cross, sources, objs, self.environment, kwargs)
         l = targetholder(target)
@@ -1770,7 +1770,18 @@ class Interpreter():
         if not isinstance(obj, InterpreterObject):
             raise InvalidArguments('Variable "%s" is not callable.' % object_name)
         (args, kwargs) = self.reduce_arguments(args)
+        if method_name == 'extract_objects':
+            self.validate_extraction(obj.held_object)
         return obj.method_call(method_name, args, kwargs)
+
+    def validate_extraction(self, buildtarget):
+        if self.subproject_dir == '':
+            if buildtarget.subdir.startswith(self.subproject_dir):
+                raise InterpreterException('Tried to extract objects from a subproject target.')
+        else:
+            lead = '/'.join(self.subdir.split('/')[0:2])
+            if not buildtarget.subdir.startswith(lead):
+                raise InterpreterException('Tried to extract objects from a different subproject target.')
 
     def array_method_call(self, obj, method_name, args):
         if method_name == 'contains':
