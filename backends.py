@@ -176,12 +176,9 @@ class Backend():
             if pathsegs[0] == 'subprojects':
                 pathsegs = pathsegs[2:]
             fixedpath = os.sep.join(pathsegs)
-            print('fname', osrc.fname)
             objbase = osrc.fname.replace('/', '_').replace('\\', '_')
-            print('objbase', objbase)
             objname = os.path.join(proj_dir_to_build_root,
                                    targetdir, os.path.basename(objbase) + suffix)
-            print('objname', objname)
             result.append(objname)
         return result
 
