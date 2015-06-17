@@ -1780,7 +1780,7 @@ class Interpreter():
             if buildtarget.subdir.startswith(self.subproject_dir):
                 raise InterpreterException('Tried to extract objects from a subproject target.')
         else:
-            if not buildtarget.subdir.startswith(lead):
+            if not buildtarget.subdir.startswith(self.subproject_dir):
                 raise InterpreterException('Tried to extract objects from the main project from a subproject.')
             if self.subdir.split('/')[1] != buildtarget.subdir.split('/')[1]:
                 raise InterpreterException('Tried to extract objects from a different subproject.')
