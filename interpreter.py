@@ -1774,14 +1774,16 @@ class Interpreter():
             self.validate_extraction(obj.held_object)
         return obj.method_call(method_name, args, kwargs)
 
+    # Only permit object extraction from the same subproject
     def validate_extraction(self, buildtarget):
-        if self.subproject_dir == '':
+        if not self.subdir.startswith(self.subproject_dir):
             if buildtarget.subdir.startswith(self.subproject_dir):
                 raise InterpreterException('Tried to extract objects from a subproject target.')
         else:
-            lead = '/'.join(self.subdir.split('/')[0:2])
             if not buildtarget.subdir.startswith(lead):
-                raise InterpreterException('Tried to extract objects from a different subproject target.')
+                raise InterpreterException('Tried to extract objects from the main project from a subproject.')
+            if self.subdir.split('/')[1] != buildtarget.subdir.split('/')[1]:
+                raise InterpreterException('Tried to extract objects from a different subproject.')
 
     def array_method_call(self, obj, method_name, args):
         if method_name == 'contains':
