@@ -73,7 +73,7 @@ class PkgConfigDependency(Dependency):
 
     def __init__(self, name, environment, kwargs):
         Dependency.__init__(self)
-        required = kwargs.get('required', True)
+        self.required = kwargs.get('required', True)
         if 'native' in kwargs and environment.is_cross_build():
             want_cross = not kwargs['native']
         else:
@@ -84,7 +84,7 @@ class PkgConfigDependency(Dependency):
 
         self.is_found = False
         if not PkgConfigDependency.pkgconfig_found:
-            if required:
+            if self.required:
                 raise DependencyException('Pkg-config not found.')
             self.cargs = []
             self.libs = []
@@ -103,7 +103,7 @@ class PkgConfigDependency(Dependency):
                                  stderr=subprocess.PIPE)
         out = p.communicate()[0]
         if p.returncode != 0:
-            if required:
+            if self.required:
                 raise DependencyException('%s dependency %s not found.' % (type_string, name))
             self.modversion = 'none'
             self.cargs = []
@@ -119,7 +119,7 @@ class PkgConfigDependency(Dependency):
                 if not isinstance(version_requirement, str):
                     raise DependencyException('Version argument must be string.')
                 self.is_found = mesonlib.version_compare(self.modversion, version_requirement)
-                if not self.is_found and required:
+                if not self.is_found and self.required:
                     raise DependencyException('Invalid version of a dependency, needed %s %s found %s.' % (name, version_requirement, self.modversion))
             if not self.is_found:
                 return
@@ -156,7 +156,7 @@ class PkgConfigDependency(Dependency):
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out = p.communicate()[0]
         if p.returncode != 0:
-            if required:
+            if self.required:
                 raise DependencyException('%s dependency %s not found.' %
                         (type_string, self.name))
         else:
