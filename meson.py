@@ -33,37 +33,37 @@ else:
     def_prefix = '/usr/local'
 
 parser.add_argument('--prefix', default=def_prefix, dest='prefix',
-                  help='the installation prefix (default: %(default)s)')
+                    help='the installation prefix (default: %(default)s)')
 parser.add_argument('--libdir', default=mesonlib.default_libdir(), dest='libdir',
-                  help='the installation subdir of libraries (default: %(default)s)')
+                    help='the installation subdir of libraries (default: %(default)s)')
 parser.add_argument('--bindir', default='bin', dest='bindir',
-                  help='the installation subdir of executables (default: %(default)s)')
+                    help='the installation subdir of executables (default: %(default)s)')
 parser.add_argument('--includedir', default='include', dest='includedir',
-                  help='relative path of installed headers (default: %(default)s)')
+                    help='relative path of installed headers (default: %(default)s)')
 parser.add_argument('--datadir', default='share', dest='datadir',
-                  help='relative path to the top of data file subdirectory (default: %(default)s)')
-parser.add_argument('--mandir' , default='share/man', dest='mandir',
-                  help='relative path of man files (default: %(default)s)')
+                    help='relative path to the top of data file subdirectory (default: %(default)s)')
+parser.add_argument('--mandir', default='share/man', dest='mandir',
+                    help='relative path of man files (default: %(default)s)')
 parser.add_argument('--localedir', default='share/locale', dest='localedir',
-                  help='relative path of locale data (default: %(default)s)')
+                    help='relative path of locale data (default: %(default)s)')
 parser.add_argument('--backend', default='ninja', dest='backend', choices=backendlist,
-                  help='backend to use (default: %(default)s)')
+                    help='backend to use (default: %(default)s)')
 parser.add_argument('--buildtype', default='debug', choices=build_types, dest='buildtype',
-                  help='build type go use (default: %(default)s)')
+                    help='build type go use (default: %(default)s)')
 parser.add_argument('--strip', action='store_true', dest='strip', default=False,\
-                  help='strip targets on install (default: %(default)s)')
+                    help='strip targets on install (default: %(default)s)')
 parser.add_argument('--enable-gcov', action='store_true', dest='coverage', default=False,\
-                  help='measure test coverage')
+                    help='measure test coverage')
 parser.add_argument('--disable-pch', action='store_false', dest='use_pch', default=True,\
-                  help='do not use precompiled headers')
+                    help='do not use precompiled headers')
 parser.add_argument('--unity', action='store_true', dest='unity', default=False,\
-                  help='unity build')
+                    help='unity build')
 parser.add_argument('--werror', action='store_true', dest='werror', default=False,\
-                  help='Treat warnings as errors')
+                    help='Treat warnings as errors')
 parser.add_argument('--cross-file', default=None, dest='cross_file',
-                  help='file describing cross compilation environment')
+                    help='file describing cross compilation environment')
 parser.add_argument('-D', action='append', dest='projectoptions', default=[],
-                  help='Set project options.')
+                    help='Set project options.')
 parser.add_argument('-v', action='store_true', dest='print_version', default=False,
                     help='Print version.')
 parser.add_argument('directories', nargs='*')
