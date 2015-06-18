@@ -93,10 +93,10 @@ class PkgConfigDependency(Dependency):
             if "pkgconfig" not in environment.cross_info:
                 raise DependencyException('Pkg-config binary missing from cross file.')
             pkgbin = environment.cross_info['pkgconfig']
-            type_string = 'Cross'
+            self.type_string = 'Cross'
         else:
             pkgbin = 'pkg-config'
-            type_string = 'Native'
+            self.type_string = 'Native'
 
         self.pkgbin = pkgbin
         p = subprocess.Popen([pkgbin, '--modversion', name],
@@ -105,13 +105,13 @@ class PkgConfigDependency(Dependency):
         out = p.communicate()[0]
         if p.returncode != 0:
             if self.required:
-                raise DependencyException('%s dependency %s not found.' % (type_string, name))
+                raise DependencyException('%s dependency %s not found.' % (self.type_string, name))
             self.modversion = 'none'
             self.cargs = []
             self.libs = []
         else:
             self.modversion = out.decode().strip()
-            mlog.log('%s dependency' % type_string, mlog.bold(name), 'found:',
+            mlog.log('%s dependency' % self.type_string, mlog.bold(name), 'found:',
                      mlog.green('YES'), self.modversion)
             version_requirement = kwargs.get('version', None)
             if version_requirement is None:
@@ -161,7 +161,7 @@ class PkgConfigDependency(Dependency):
         if p.returncode != 0:
             if self.required:
                 raise DependencyException('%s dependency %s not found.' %
-                                          (type_string, self.name))
+                                          (self.type_string, self.name))
         else:
             variable = out.decode().strip()
         mlog.debug('return of subprocess : %s' % variable)
