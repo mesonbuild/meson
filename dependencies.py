@@ -68,9 +68,6 @@ class InternalDependency():
 class PkgConfigDependency(Dependency):
     pkgconfig_found = None
 
-    __libtool_pat = re.compile("dlname='([A-z0-9\.\-\+]+)'\n")
-
-
     def __init__(self, name, environment, kwargs):
         Dependency.__init__(self)
         self.required = kwargs.get('required', True)
@@ -664,6 +661,8 @@ class Qt5Dependency(Dependency):
             self.pkgconfig_detect(mods, environment, kwargs)
         elif shutil.which('qmake') is not None:
             self.qmake_detect(mods, kwargs)
+        else:
+            self.version = 'none'
         if not self.is_found:
             mlog.log('Qt5 %s dependency found: ' % type_text, mlog.red('NO'))
         else:
@@ -677,6 +676,7 @@ class Qt5Dependency(Dependency):
             self.cargs += m.get_compile_args()
             self.largs += m.get_link_args()
         self.is_found = True
+        self.version = modules[0].modversion
 
     def qmake_detect(self, mods, kwargs):
         pc = subprocess.Popen(['qmake', '-v'], stdout=subprocess.PIPE,
@@ -688,6 +688,7 @@ class Qt5Dependency(Dependency):
         if not 'version 5' in stdo:
             mlog.log('QMake is not for Qt5.')
             return
+        self.version = re.search('5(\.\d+)+', stdo).match(0)
         (stdo, _) = subprocess.Popen(['qmake', '-query'], stdout=subprocess.PIPE).communicate()
         qvars = {}
         for line in stdo.decode().split('\n'):
