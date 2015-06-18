@@ -124,9 +124,7 @@ class OptionInterpreter:
                 raise e
 
     def reduce_single(self, arg):
-        if isinstance(arg, mparser.IdNode):
-            return self.get_variable(arg.value)
-        elif isinstance(arg, str):
+        if isinstance(arg, str):
             return arg
         elif isinstance(arg, mparser.StringNode):
             return arg.value
