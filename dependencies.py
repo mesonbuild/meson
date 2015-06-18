@@ -99,8 +99,9 @@ class PkgConfigDependency(Dependency):
             type_string = 'Native'
 
         self.pkgbin = pkgbin
-        p = subprocess.Popen([pkgbin, '--modversion', name], stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE)
+        p = subprocess.Popen([pkgbin, '--modversion', name],
+                             stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE)
         out = p.communicate()[0]
         if p.returncode != 0:
             if self.required:
@@ -120,7 +121,9 @@ class PkgConfigDependency(Dependency):
                     raise DependencyException('Version argument must be string.')
                 self.is_found = mesonlib.version_compare(self.modversion, version_requirement)
                 if not self.is_found and self.required:
-                    raise DependencyException('Invalid version of a dependency, needed %s %s found %s.' % (name, version_requirement, self.modversion))
+                    raise DependencyException(
+                        'Invalid version of a dependency, needed %s %s found %s.' %
+                        (name, version_requirement, self.modversion))
             if not self.is_found:
                 return
             p = subprocess.Popen([pkgbin, '--cflags', name], stdout=subprocess.PIPE,
@@ -158,7 +161,7 @@ class PkgConfigDependency(Dependency):
         if p.returncode != 0:
             if self.required:
                 raise DependencyException('%s dependency %s not found.' %
-                        (type_string, self.name))
+                                          (type_string, self.name))
         else:
             variable = out.decode().strip()
         mlog.debug('return of subprocess : %s' % variable)
@@ -234,8 +237,9 @@ class WxDependency(Dependency):
         if not WxDependency.wx_found:
             raise DependencyException('Wx-config not found.')
         self.is_found = False
-        p = subprocess.Popen([self.wxc, '--version'], stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE)
+        p = subprocess.Popen([self.wxc, '--version'],
+                             stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE)
         out = p.communicate()[0]
         if p.returncode != 0:
             mlog.log('Dependency wxwidgets found:', mlog.red('NO'))
@@ -254,7 +258,8 @@ class WxDependency(Dependency):
             self.requested_modules = self.get_requested(kwargs)
             # wx-config seems to have a cflags as well but since it requires C++,
             # this should be good, at least for now.
-            p = subprocess.Popen([self.wxc, '--cxxflags'], stdout=subprocess.PIPE,
+            p = subprocess.Popen([self.wxc, '--cxxflags'],
+                                 stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE)
             out = p.communicate()[0]
             if p.returncode != 0:
@@ -336,7 +341,8 @@ class ExternalProgram():
                         if first_line.startswith('#!'):
                             commands = first_line[2:].split('#')[0].strip().split()
                             if mesonlib.is_windows():
-                                commands[0] = commands[0].split('/')[-1] # Windows does not have /usr/bin.
+                                # Windows does not have /usr/bin.
+                                commands[0] = commands[0].split('/')[-1]
                                 if commands[0] == 'env':
                                     commands = commands[1:]
                             self.fullpath = commands + [trial]
@@ -344,7 +350,8 @@ class ExternalProgram():
                         pass
         if not silent:
             if self.found():
-                mlog.log('Program', mlog.bold(name), 'found:', mlog.green('YES'), '(%s)' % ' '.join(self.fullpath))
+                mlog.log('Program', mlog.bold(name), 'found:', mlog.green('YES'),
+                         '(%s)' % ' '.join(self.fullpath))
             else:
                 mlog.log('Program', mlog.bold(name), 'found:', mlog.red('NO'))
 
@@ -364,7 +371,8 @@ class ExternalLibrary(Dependency):
         self.fullpath = fullpath
         if not silent:
             if self.found():
-                mlog.log('Library', mlog.bold(name), 'found:', mlog.green('YES'), '(%s)' % self.fullpath)
+                mlog.log('Library', mlog.bold(name), 'found:', mlog.green('YES'),
+                         '(%s)' % self.fullpath)
             else:
                 mlog.log('Library', mlog.bold(name), 'found:', mlog.red('NO'))
 
@@ -521,8 +529,10 @@ class GTestDependency(Dependency):
         self.include_dir = '/usr/include'
         self.src_include_dir = '/usr/src/gtest'
         self.src_dir = '/usr/src/gtest/src'
-        self.all_src = mesonlib.File.from_absolute_file(os.path.join(self.src_dir, 'gtest-all.cc'))
-        self.main_src = mesonlib.File.from_absolute_file(os.path.join(self.src_dir, 'gtest_main.cc'))
+        self.all_src = mesonlib.File.from_absolute_file(
+            os.path.join(self.src_dir, 'gtest-all.cc'))
+        self.main_src = mesonlib.File.from_absolute_file(
+            os.path.join(self.src_dir, 'gtest_main.cc'))
         self.detect()
 
     def found(self):
@@ -637,7 +647,7 @@ class Qt5Dependency(Dependency):
         self.root = '/usr'
         mods = kwargs.get('modules', [])
         self.cargs = []
-        self.largs= []
+        self.largs = []
         self.is_found = False
         if isinstance(mods, str):
             mods = [mods]
@@ -800,7 +810,7 @@ class GnuStepDependency(Dependency):
         else:
             arg = '--base-libs'
         fp = subprocess.Popen([confprog, '--objc-flags'],
-                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (flagtxt, flagerr) = fp.communicate()
         flagtxt = flagtxt.decode()
         flagerr = flagerr.decode()
@@ -809,7 +819,7 @@ class GnuStepDependency(Dependency):
         args = flagtxt.split()
         self.args = self.filter_arsg(args)
         fp = subprocess.Popen([confprog, arg],
-                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (libtxt, liberr) = fp.communicate()
         libtxt = libtxt.decode()
         liberr = liberr.decode()
@@ -902,10 +912,14 @@ class SDL2Dependency(Dependency):
         self.linkargs = []
         sdlconf = shutil.which('sdl2-config')
         if sdlconf:
-            pc = subprocess.Popen(['sdl2-config', '--cflags'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+            pc = subprocess.Popen(['sdl2-config', '--cflags'],
+                                  stdout=subprocess.PIPE,
+                                  stderr=subprocess.DEVNULL)
             (stdo, _) = pc.communicate()
             self.cargs = stdo.decode().strip().split()
-            pc = subprocess.Popen(['sdl2-config', '--libs'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+            pc = subprocess.Popen(['sdl2-config', '--libs'],
+                                  stdout=subprocess.PIPE,
+                                  stderr=subprocess.DEVNULL)
             (stdo, _) = pc.communicate()
             self.linkargs = stdo.decode().strip().split()
             self.is_found = True
@@ -944,7 +958,8 @@ class ExtraFrameworkDependency(Dependency):
         self.name = None
         self.detect(name, path)
         if self.found():
-            mlog.log('Dependency', mlog.bold(name), 'found:', mlog.green('YES'), os.path.join(self.path, self.name))
+            mlog.log('Dependency', mlog.bold(name), 'found:', mlog.green('YES'),
+                     os.path.join(self.path, self.name))
         else:
             mlog.log('Dependency', name, 'found:', mlog.red('NO'))
 
@@ -1027,4 +1042,4 @@ packages = {'boost': BoostDependency,
             'wxwidgets' : WxDependency,
             'sdl2' : SDL2Dependency,
             'gl' : GLDependency,
-            }
+           }
