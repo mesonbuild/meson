@@ -141,7 +141,7 @@ class PkgConfigDependency(Dependency):
             self.libs = []
             for lib in out.decode().split():
                 if lib.endswith(".la"):
-                    shared_libname = self.__extract_libtool_shlib(lib)
+                    shared_libname = self.extract_libtool_shlib(lib)
                     shared_lib = os.path.join(os.path.dirname(lib), shared_libname)
                     if not os.path.exists(shared_lib):
                         shared_lib = os.path.join(os.path.dirname(lib), ".libs", shared_libname)
@@ -195,33 +195,36 @@ class PkgConfigDependency(Dependency):
     def found(self):
         return self.is_found
 
-    def __extract_dlname_field(self, la_file):
-        f = open(la_file)
-        data = f.read()
-        f.close()
-        m = self.__libtool_pat.search(data)
-        if m:
-            return m.groups()[0]
-        else:
-            return None
+    def extract_field(self, la_file, fieldname):
+        for line in open(la_file):
+            arr = line.strip().split('=')
+            if arr[0] == fieldname:
+                return arr[1][1:-1]
+        return None
 
-    def __extract_libtool_shlib(self, la_file):
+    def extract_dlname_field(self, la_file):
+        return self.extract_field(la_file, 'dlname')
+
+    def extract_libdir_field(self, la_file):
+        return self.extract_field(la_file, 'libdir')
+
+    def extract_libtool_shlib(self, la_file):
         '''
         Returns the path to the shared library
         corresponding to this .la file
         '''
-        dlname = self.__extract_dlname_field(la_file)
+        dlname = self.extract_dlname_field(la_file)
         if dlname is None:
             return None
 
         # Darwin uses absolute paths where possible; since the libtool files never
         # contain absolute paths, use the libdir field
-        if platform.system() == 'Darwin':
+        if mesonlib.is_osx():
             dlbasename = os.path.basename(dlname)
-            libdir = self._extract_libdir_field(la_file)
+            libdir = self.extract_libdir_field(la_file)
             if libdir is None:
                 return dlbasename
-            return libdir + '/' + dlbasename
+            return os.path.join(libdir, dlbasename)
         # From the comments in extract_libtool(), older libtools had
         # a path rather than the raw dlname
         return os.path.basename(dlname)
