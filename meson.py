@@ -137,7 +137,7 @@ itself as required.'''
             import xcodebackend
             g = xcodebackend.XCodeBackend(b, intr)
         else:
-            raise RuntimeError('Unknown backend "%s".' % options.backend)
+            raise RuntimeError('Unknown backend "%s".' % self.options.backend)
         g.generate()
         env.generating_finished()
         dumpfile = os.path.join(env.get_scratch_dir(), 'build.dat')
