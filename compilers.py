@@ -15,6 +15,7 @@
 import subprocess, os.path
 import tempfile
 import mesonlib
+import mlog
 from coredata import MesonException
 
 """This file contains the data files of all compilers Meson knows
@@ -251,6 +252,7 @@ int someSymbolHereJustForFun;
         return self.compiles(templ % hname)
 
     def compiles(self, code):
+        mlog.debug('Running compile test:\n\n', code)
         suflen = len(self.default_suffix)
         (fd, srcname) = tempfile.mkstemp(suffix='.'+self.default_suffix)
         os.close(fd)
@@ -260,8 +262,12 @@ int someSymbolHereJustForFun;
         commands = self.get_exelist()
         commands += self.get_compile_only_args()
         commands.append(srcname)
-        p = subprocess.Popen(commands, cwd=os.path.split(srcname)[0], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        p.communicate()
+        p = subprocess.Popen(commands, cwd=os.path.split(srcname)[0], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        (stde, stdo) = p.communicate()
+        stde = stde.decode()
+        stdo = stdo.decode()
+        mlog.debug('Compiler stdout:\n', stdo)
+        mlog.debug('Compiler stderr:\n', stde)
         os.remove(srcname)
         try:
             trial = srcname[:-suflen] + 'o'
@@ -275,6 +281,7 @@ int someSymbolHereJustForFun;
         return p.returncode == 0
 
     def run(self, code):
+        mlog.debug('Running code:\n\n', code)
         if self.is_cross and self.exe_wrapper is None:
             raise CrossNoRunException('Can not run test applications in this cross environment.')
         (fd, srcname) = tempfile.mkstemp(suffix='.'+self.default_suffix)
@@ -286,8 +293,12 @@ int someSymbolHereJustForFun;
         commands = self.get_exelist()
         commands.append(srcname)
         commands += self.get_output_args(exename)
-        p = subprocess.Popen(commands, cwd=os.path.split(srcname)[0], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        p.communicate()
+        p = subprocess.Popen(commands, cwd=os.path.split(srcname)[0], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        (stdo, stde) = p.communicate()
+        stde = stde.decode()
+        stdo = stdo.decode()
+        mlog.debug('Compiler stdout:\n', stdo)
+        mlog.debug('Compiler stderr:\n', stde)
         os.remove(srcname)
         if p.returncode != 0:
             return RunResult(False)
@@ -297,8 +308,12 @@ int someSymbolHereJustForFun;
             cmdlist = exename
         pe = subprocess.Popen(cmdlist, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (so, se) = pe.communicate()
+        so = so.decode()
+        se = se.decode()
+        mlog.debug('Program stdout:\n', so)
+        mlog.debug('Program stderr:\n', se)
         os.remove(exename)
-        return RunResult(True, pe.returncode, so.decode(), se.decode())
+        return RunResult(True, pe.returncode, so, se)
 
     def sizeof(self, element, prefix, env):
         templ = '''#include<stdio.h>
