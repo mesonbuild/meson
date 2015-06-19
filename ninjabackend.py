@@ -643,8 +643,7 @@ class NinjaBackend(backends.Backend):
         rel_src = src.rel_to_builddir(self.build_to_src)
         plain_class_path = src.fname[:-4] + 'class'
         rel_obj = os.path.join(self.get_target_private_dir(target), plain_class_path)
-        element = NinjaBuildElement(rel_obj,
-                    compiler.get_language() + '_COMPILER', rel_src)
+        element = NinjaBuildElement(rel_obj, compiler.get_language() + '_COMPILER', rel_src)
         element.add_item('ARGS', args)
         element.write(outfile)
         return plain_class_path
@@ -772,7 +771,7 @@ class NinjaBackend(backends.Backend):
         rule = 'rule STATIC%s_LINKER\n' % crstr
         command = ' command = %s  $LINK_ARGS %s $in\n' % \
         (' '.join(static_linker.get_exelist()),
-        ' '.join(static_linker.get_output_args('$out')))
+         ' '.join(static_linker.get_output_args('$out')))
         description = ' description = Static linking library $out\n\n'
         outfile.write(rule)
         outfile.write(command)
