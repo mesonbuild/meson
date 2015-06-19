@@ -93,7 +93,7 @@ class TryRunResultHolder(InterpreterObject):
                              'compiled' : self.compiled_method,
                              'stdout' : self.stdout_method,
                              'stderr' : self.stderr_method,
-                             })
+                            })
 
     def returncode_method(self, args, kwargs):
         return self.res.returncode
@@ -119,7 +119,7 @@ class RunProcess(InterpreterObject):
         self.methods.update({'returncode' : self.returncode_method,
                              'stdout' : self.stdout_method,
                              'stderr' : self.stderr_method,
-                             })
+                            })
 
     def run_command(self, command_array, source_dir, build_dir, subdir, in_builddir):
         cmd_name = command_array[0]
@@ -174,7 +174,7 @@ class ConfigurationDataHolder(InterpreterObject):
         self.held_object = build.ConfigurationData()
         self.methods.update({'set': self.set_method,
                              'set10': self.set10_method,
-                             })
+                            })
 
     def is_used(self):
         return self.used
@@ -306,7 +306,7 @@ class Build(InterpreterObject):
     def __init__(self):
         InterpreterObject.__init__(self)
         self.methods.update({'name' : self.get_name_method,
-                             })
+                            })
 
     def get_name_method(self, args, kwargs):
         return platform.system().lower()
@@ -319,7 +319,7 @@ class Host(InterpreterObject):
         self.environment = envir
         self.methods.update({'name' : self.get_name_method,
                              'is_big_endian' : self.is_big_endian_method,
-                             })
+                            })
 
     def get_name_method(self, args, kwargs):
         if self.environment.is_cross_build():
@@ -494,9 +494,8 @@ class SubprojectHolder(InterpreterObject):
     def __init__(self, subinterpreter):
         super().__init__()
         self.subinterpreter = subinterpreter
-        self.methods.update({
-                             'get_variable' : self.get_variable_method,
-                             })
+        self.methods.update({'get_variable' : self.get_variable_method,
+                            })
 
     def get_variable_method(self, args, kwargs):
         if len(args) != 1:
@@ -522,7 +521,7 @@ class CompilerHolder(InterpreterObject):
                              'alignment' : self.alignment_method,
                              'version' : self.version_method,
                              'cmd_array' : self.cmd_array_method,
-                             })
+                            })
 
     def version_method(self, args, kwargs):
         return self.compiler.version
@@ -670,7 +669,7 @@ class ModuleHolder(InterpreterObject):
             raise InvalidArguments('Module %s does not have method %s.' % (self.modname, method_name))
         state = ModuleState()
         state.build_to_src = os.path.relpath(self.interpreter.environment.get_source_dir(),
-                                            self.interpreter.environment.get_build_dir())
+                                             self.interpreter.environment.get_build_dir())
         state.subdir = self.interpreter.subdir
         state.environment = self.interpreter.environment
         state.project_name = self.interpreter.build.project_name
@@ -698,7 +697,7 @@ class MesonMain(InterpreterObject):
                              'source_root' : self.source_root_method,
                              'build_root' : self.build_root_method,
                              'set_install_script' : self.set_install_script_method,
-                             })
+                            })
 
     def set_install_script_method(self, args, kwargs):
         if len(args) != 1:
@@ -844,7 +843,7 @@ class Interpreter():
                       'import' : self.func_import,
                       'files' : self.func_files,
                       'declare_dependency': self.func_declare_dependency,
-                      }
+                     }
 
     def module_method_callback(self, invalues):
         unwrap_single = False
