@@ -61,7 +61,7 @@ class UserBooleanOption(UserOption):
 
     def set_value(self, newvalue):
         if not isinstance(newvalue, bool):
-            raise OptionException('Value "%s" for boolean option "%s" is not a boolean.' % (valuestring, self.name))
+            raise OptionException('Value "%s" for boolean option "%s" is not a boolean.' % (str(newvalue), self.name))
         self.value = newvalue
 
     def parse_string(self, valuestring):
