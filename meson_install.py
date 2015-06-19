@@ -124,7 +124,7 @@ def run_install_script(d):
     env = {'MESON_SOURCE_ROOT' : d.source_dir,
            'MESON_BUILD_ROOT' : d.build_dir,
            'MESON_INSTALL_PREFIX' : d.prefix
-           }
+          }
     script = d.install_script
     print('Running custom install script %s' % script)
     suffix = os.path.splitext(script)[1].lower()
@@ -206,8 +206,9 @@ def install_targets(d):
                     print("Symlink creation does not work on this platform.")
                     printed_symlink_error = True
         if is_elf_platform():
-            p = subprocess.Popen([d.depfixer, outname, install_rpath], stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE)
+            p = subprocess.Popen([d.depfixer, outname, install_rpath],
+                                 stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE)
             (stdo, stde) = p.communicate()
             if p.returncode != 0:
                 print('Could not fix dependency info.\n')
