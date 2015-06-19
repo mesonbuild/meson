@@ -47,15 +47,14 @@ def is_object(fname):
     return suffix in obj_suffixes
 
 gnulike_buildtype_args = {'plain' : [],
-                           'debug' : ['-g'],
-                           'debugoptimized' : ['-O2', '-g'],
-                           'release' : ['-O3'],
-                           }
+                          'debug' : ['-g'],
+                          'debugoptimized' : ['-O2', '-g'],
+                          'release' : ['-O3']}
 
 msvc_buildtype_args = {'plain' : [],
-                        'debug' : ["/MDd", "/Zi", "/Ob0", "/Od", "/RTC1"],
-                        'debugoptimized' : ["/MD", "/Zi", "/O2", "/Ob1", "/D"],
-                        'release' : ["/MD", "/O2", "/Ob2"]}
+                       'debug' : ["/MDd", "/Zi", "/Ob0", "/Od", "/RTC1"],
+                       'debugoptimized' : ["/MD", "/Zi", "/O2", "/Ob1", "/D"],
+                       'release' : ["/MD", "/O2", "/Ob2"]}
 
 gnulike_buildtype_linker_args = {}
 
@@ -64,18 +63,18 @@ if mesonlib.is_osx():
                                           'debug' : [],
                                           'debugoptimized' : [],
                                           'release' : [],
-                                          })
+                                         })
 else:
     gnulike_buildtype_linker_args.update({'plain' : [],
                                           'debug' : [],
                                           'debugoptimized' : [],
                                           'release' : ['-Wl,-O1'],
-                                          })
+                                         })
 
 msvc_buildtype_linker_args = {'plain' : [],
-                               'debug' : [],
-                               'debugoptimized' : [],
-                               'release' : []}
+                              'debug' : [],
+                              'debugoptimized' : [],
+                              'release' : []}
 
 java_buildtype_args = {'plain' : [],
                        'debug' : ['-g'],
@@ -83,9 +82,9 @@ java_buildtype_args = {'plain' : [],
                        'release' : []}
 
 rust_buildtype_args = {'plain' : [],
-                        'debug' : ['-g'],
-                        'debugoptimized' : ['-g', '--opt-level', '2'],
-                        'release' : ['--opt-level', '3']}
+                       'debug' : ['-g'],
+                       'debugoptimized' : ['-g', '--opt-level', '2'],
+                       'release' : ['--opt-level', '3']}
 
 mono_buildtype_args = {'plain' : [],
                        'debug' : ['-debug'],
