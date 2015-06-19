@@ -222,7 +222,7 @@ def run_test(testdir, should_succeed):
         env = os.environ.copy()
         env['DESTDIR'] = install_dir
         pi = subprocess.Popen(install_commands, cwd=test_build_dir, env=env,
-                          stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (o, e) = pi.communicate()
         stdo += o.decode('utf-8')
         stde += e.decode('utf-8')
@@ -352,7 +352,7 @@ def generate_prebuilt_object():
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Run the test suite of Meson.")
     parser.add_argument('--backend', default=None, dest='backend',
-                      choices = backendlist)
+                        choices = backendlist)
     options = parser.parse_args()
     setup_commands(options.backend)
 
