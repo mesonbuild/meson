@@ -24,9 +24,9 @@ import argparse
 parser = argparse.ArgumentParser()
 
 parser.add_argument('--prefix', default='/usr/local', dest='prefix',
-                  help='the installation prefix (default: %(default)s)')
+                    help='the installation prefix (default: %(default)s)')
 parser.add_argument('--destdir', default='', dest='destdir',
-                  help='the destdir (default: %(default)s)')
+                    help='the destdir (default: %(default)s)')
 
 options = parser.parse_args()
 if options.prefix[0] != '/':
