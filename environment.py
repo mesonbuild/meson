@@ -215,8 +215,9 @@ class Environment():
         for compiler in compilers:
             for arg in ['--version', '-V']:
                 try:
-                   p = subprocess.Popen([compiler] + [arg], stdout=subprocess.PIPE,
-                                     stderr=subprocess.PIPE)
+                   p = subprocess.Popen([compiler] + [arg],
+                                        stdout=subprocess.PIPE,
+                                        stderr=subprocess.PIPE)
                 except OSError:
                    continue
                 (out, err) = p.communicate()
