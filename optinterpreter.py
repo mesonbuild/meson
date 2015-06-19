@@ -29,7 +29,7 @@ forbidden_option_names = {'buildtype': True,
                           'mandir' : True,
                           'localedir' : True,
                           'werror' : True,
-                          }
+                         }
 
 class OptionException(coredata.MesonException):
     pass
@@ -93,7 +93,7 @@ class UserComboOption(UserOption):
 option_types = {'string' : UserStringOption,
                 'boolean' : UserBooleanOption,
                 'combo' : UserComboOption,
-                }
+               }
 
 class OptionInterpreter:
     def __init__(self, subproject, command_line_options):
