@@ -28,15 +28,15 @@ import sys, os
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--targets', action='store_true', dest='list_targets', default=False,
-                  help='List top level targets.')
+                    help='List top level targets.')
 parser.add_argument('--target-files', action='store', dest='target_files', default=None,
-                  help='List source files for a given target.')
+                    help='List source files for a given target.')
 parser.add_argument('--buildsystem-files', action='store_true', dest='buildsystem_files', default=False,
-                  help='List files that make up the build system.')
+                    help='List files that make up the build system.')
 parser.add_argument('--buildoptions', action='store_true', dest='buildoptions', default=False,
-                  help='List all build options.')
+                    help='List all build options.')
 parser.add_argument('--tests', action='store_true', dest='tests', default=False,
-                  help='List all unit tests.')
+                    help='List all unit tests.')
 parser.add_argument('args', nargs='+')
 
 def list_targets(coredata, builddata):
