@@ -177,8 +177,8 @@ class Vs2010Backend(backends.Backend):
         else:
             raise MesonException('Unknown target type for %s' % target_name)
         root = ET.Element('Project', {'DefaultTargets' : "Build",
-                        'ToolsVersion' : '4.0',
-                         'xmlns' : 'http://schemas.microsoft.com/developer/msbuild/2003'})
+                                      'ToolsVersion' : '4.0',
+                                      'xmlns' : 'http://schemas.microsoft.com/developer/msbuild/2003'})
         confitems = ET.SubElement(root, 'ItemGroup', {'Label' : 'ProjectConfigurations'})
         prjconf = ET.SubElement(confitems, 'ProjectConfiguration', {'Include' : 'Debug|Win32'})
         p = ET.SubElement(prjconf, 'Configuration')
@@ -322,8 +322,8 @@ class Vs2010Backend(backends.Backend):
         platform = "Win32"
         project_name = target_name
         root = ET.Element('Project', {'DefaultTargets' : "Build",
-                        'ToolsVersion' : '4.0',
-                         'xmlns' : 'http://schemas.microsoft.com/developer/msbuild/2003'})
+                                      'ToolsVersion' : '4.0',
+                                      'xmlns' : 'http://schemas.microsoft.com/developer/msbuild/2003'})
         confitems = ET.SubElement(root, 'ItemGroup', {'Label' : 'ProjectConfigurations'})
         prjconf = ET.SubElement(confitems, 'ProjectConfiguration', {'Include' : 'Debug|Win32'})
         p = ET.SubElement(prjconf, 'Configuration')
