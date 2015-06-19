@@ -48,7 +48,7 @@ meson_command = './meson.py'
 
 class StopException(Exception):
     def __init__(self):
-        super(Exception, self).__init__('Stopped by user')
+        super().__init__('Stopped by user')
 
 stop = False
 def stop_handler(signal, frame):
