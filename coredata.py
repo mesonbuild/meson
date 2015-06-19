@@ -110,7 +110,7 @@ forbidden_target_names = {'clean': None,
                           'test-valgrind': None,
                           'install': None,
                           'build.ninja': None,
-                          }
+                         }
 
 class MesonException(Exception):
     def __init__(self, *args, **kwargs):
