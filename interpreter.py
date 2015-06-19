@@ -1682,7 +1682,7 @@ class Interpreter():
             isinstance(value, str) or\
             isinstance(value, int) or \
             isinstance(value, list) or \
-            isinstance(value, File):
+            isinstance(value, mesonlib.File):
             return True
         return False
 
