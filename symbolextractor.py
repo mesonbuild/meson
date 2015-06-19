@@ -28,7 +28,7 @@ import argparse
 parser = argparse.ArgumentParser()
 
 parser.add_argument('--cross-host', default=None, dest='cross_host',
-                  help='cross compilation host platform')
+                    help='cross compilation host platform')
 parser.add_argument('args', nargs='+')
 
 def dummy_syms(outfilename):
