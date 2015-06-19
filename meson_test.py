@@ -23,9 +23,9 @@ tests_failed = False
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--wrapper', default=None, dest='wrapper',
-                  help='wrapper to run tests with (e.g. valgrind)')
+                    help='wrapper to run tests with (e.g. valgrind)')
 parser.add_argument('--wd', default=None, dest='wd',
-                  help='directory to cd into before running')
+                    help='directory to cd into before running')
 parser.add_argument('args', nargs='+')
 
 
