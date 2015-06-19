@@ -39,7 +39,7 @@ known_basic_kwargs = {'install' : True,
                       'sources' : True,
                       'objects' : True,
                       'native' : True,
-                      }
+                     }
 
 known_shlib_kwargs = known_basic_kwargs.copy()
 known_shlib_kwargs.update({'version' : True,
