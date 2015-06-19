@@ -16,6 +16,8 @@ import backends, build
 import mesonlib
 import uuid, os, sys
 
+from coredata import MesonException
+
 class XCodeBackend(backends.Backend):
     def __init__(self, build, interp):
         super().__init__(build, interp)
