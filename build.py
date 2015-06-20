@@ -422,9 +422,6 @@ class BuildTarget():
     def get_external_deps(self):
         return self.external_deps
 
-    def add_dep(self, args):
-        [self.add_external_dep(dep) for dep in args]
-
     def link(self, target):
         if not isinstance(target, list):
             target = [target]
