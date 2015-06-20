@@ -376,9 +376,6 @@ class Data(InterpreterObject):
         if not isinstance(self.install_dir, str):
             raise InterpreterException('Custom_install_dir must be a string.')
 
-    def get_install_subdir(self):
-        return self.install_subdir
-
     def get_source_subdir(self):
         return self.source_subdir
 
