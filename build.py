@@ -119,9 +119,6 @@ class Build:
     def get_global_args(self, compiler):
         return self.global_args.get(compiler.get_language(), [])
 
-    def get_external_link_args(self, compiler):
-        return self.external_link_args.get(compiler.get_language(), [])
-
 class IncludeDirs():
     def __init__(self, curdir, dirs):
         self.curdir = curdir
