@@ -37,16 +37,17 @@ class OptionException(coredata.MesonException):
 optname_regex = re.compile('[^a-zA-Z0-9_-]')
 
 class UserOption:
-    def __init__(self, kwargs):
+    def __init__(self, name, kwargs):
         super().__init__()
         self.description = kwargs.get('description', '')
+        self.name = name
 
     def parse_string(self, valuestring):
         return valuestring
 
 class UserStringOption(UserOption):
-    def __init__(self, kwargs):
-        super().__init__(kwargs)
+    def __init__(self, name, kwargs):
+        super().__init__(name, kwargs)
         self.set_value(kwargs.get('value', ''))
 
     def set_value(self, newvalue):
@@ -55,8 +56,8 @@ class UserStringOption(UserOption):
         self.value = newvalue
 
 class UserBooleanOption(UserOption):
-    def __init__(self, kwargs):
-        super().__init__(kwargs)
+    def __init__(self, name, kwargs):
+        super().__init__(name, kwargs)
         self.set_value(kwargs.get('value', 'true'))
 
     def set_value(self, newvalue):
@@ -72,8 +73,8 @@ class UserBooleanOption(UserOption):
         raise OptionException('Value "%s" for boolean option "%s" is not a boolean.' % (valuestring, self.name))
 
 class UserComboOption(UserOption):
-    def __init__(self, kwargs):
-        super().__init__(kwargs)
+    def __init__(self, name, kwargs):
+        super().__init__(name, kwargs)
         if 'choices' not in kwargs:
             raise OptionException('Combo option missing "choices" keyword.')
         self.choices = kwargs['choices']
@@ -173,8 +174,7 @@ class OptionInterpreter:
             raise OptionException('Option name %s is reserved.' % opt_name)
         if self.subproject != '':
             opt_name = self.subproject + ':' + opt_name
-        opt = option_types[opt_type](kwargs)
-        opt.name = opt_name
+        opt = option_types[opt_type](opt_name, kwargs)
         if opt.description == '':
             opt.description = opt_name
         if opt_name in self.cmd_line_options:
