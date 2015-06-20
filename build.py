@@ -311,10 +311,6 @@ class BuildTarget():
         for i in self.link_depends:
             if not isinstance(i, str):
                 raise InvalidArguments('Link_depends arguments must be strings.')
-        if 'version' in kwargs:
-            self.set_version(kwargs['version'])
-        if 'soversion' in kwargs:
-            self.set_soversion(kwargs['soversion'])
         inclist = kwargs.get('include_directories', [])
         if not isinstance(inclist, list):
             inclist = [inclist]
@@ -615,6 +611,13 @@ class SharedLibrary(BuildTarget):
             self.suffix = environment.get_shared_lib_suffix()
         self.importsuffix = environment.get_import_lib_suffix()
 
+    def process_kwargs(self, kwargs, environment):
+        super().process_kwargs(kwargs, environment)
+        if 'version' in kwargs:
+            self.set_version(kwargs['version'])
+        if 'soversion' in kwargs:
+            self.set_soversion(kwargs['soversion'])
+
     def check_unknown_kwargs(self, kwargs):
         self.check_unknown_kwargs_int(kwargs, known_shlib_kwargs)
 
@@ -642,7 +645,6 @@ class SharedLibrary(BuildTarget):
 
     def set_version(self, version):
         if not isinstance(version, str):
-            print(version)
             raise InvalidArguments('Shared library version is not a string.')
         self.version = version
 
