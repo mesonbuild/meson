@@ -113,9 +113,6 @@ class Build:
     def get_data(self):
         return self.data
 
-    def get_configure_files(self):
-        return self.configure_files
-
     def get_install_subdirs(self):
         return self.install_dirs
 
