@@ -832,9 +832,6 @@ class ConfigureFile():
     def get_configuration_data(self):
         return self.configuration_data
 
-    def get_sources(self):
-        return self.sources
-
     def get_subdir(self):
         return self.subdir
 
