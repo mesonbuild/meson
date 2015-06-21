@@ -23,35 +23,36 @@ DT_RPATH = 15
 DT_STRTAB = 5
 DT_SONAME = 14
 
-def init_datasizes(self, ptrsize, is_le):
-    if is_le:
-        p = '<'
-    else:
-        p = '>'
-    self.Half = p+'h'
-    self.HalfSize = 2
-    self.Word = p+'I'
-    self.WordSize = 4
-    self.Sword = p+'i'
-    self.SwordSize = 4
-    if ptrsize == 64:
-        self.Addr = p+'Q'
-        self.AddrSize = 8
-        self.Off = p+'Q'
-        self.OffSize = 8
-        self.XWord = p+'Q'
-        self.XWordSize = 8
-        self.Sxword = p+'q'
-        self.SxwordSize = 8
-    else:
-        self.Addr = p+'I'
-        self.AddrSize = 4
-        self.Off = p+'I'
-        self.OffSize = 4
+class DataSizes():
+    def __init__(self, ptrsize, is_le):
+        if is_le:
+            p = '<'
+        else:
+            p = '>'
+        self.Half = p+'h'
+        self.HalfSize = 2
+        self.Word = p+'I'
+        self.WordSize = 4
+        self.Sword = p+'i'
+        self.SwordSize = 4
+        if ptrsize == 64:
+            self.Addr = p+'Q'
+            self.AddrSize = 8
+            self.Off = p+'Q'
+            self.OffSize = 8
+            self.XWord = p+'Q'
+            self.XWordSize = 8
+            self.Sxword = p+'q'
+            self.SxwordSize = 8
+        else:
+            self.Addr = p+'I'
+            self.AddrSize = 4
+            self.Off = p+'I'
+            self.OffSize = 4
 
-class DynamicEntry():
+class DynamicEntry(DataSizes):
     def __init__(self, ifile, ptrsize, is_le):
-        init_datasizes(self, ptrsize, is_le)
+        super().__init__(ptrsize, is_le)
         self.ptrsize = ptrsize
         if ptrsize == 64:
             self.d_tag = struct.unpack(self.Sxword, ifile.read(self.SxwordSize))[0];
@@ -68,9 +69,9 @@ class DynamicEntry():
             ofile.write(struct.pack(self.Sword, self.d_tag))
             ofile.write(struct.pack(self.Word, self.val))
 
-class SectionHeader():
+class SectionHeader(DataSizes):
     def __init__(self, ifile, ptrsize, is_le):
-        init_datasizes(self, ptrsize, is_le)
+        super().__init__(ptrsize, is_le)
         if ptrsize == 64:
             is_64 = True
         else:
@@ -108,13 +109,12 @@ class SectionHeader():
         else:
             self.sh_entsize = struct.unpack(self.Word, ifile.read(self.WordSize))[0]
 
-class Elf():
-
+class Elf(DataSizes):
     def __init__(self, bfile):
         self.bfile = bfile
         self.bf = open(bfile, 'r+b')
         (self.ptrsize, self.is_le) = self.detect_elf_type()
-        init_datasizes(self, self.ptrsize, self.is_le)
+        super().__init__(self.ptrsize, self.is_le)
         self.parse_header()
         self.parse_sections()
         self.parse_dynamic()
