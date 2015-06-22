@@ -855,6 +855,9 @@ class RustCompiler():
     def needs_static_linker(self):
         return False
 
+    def name_string(self):
+        return ' '.join(self.exelist)
+
     def get_exelist(self):
         return self.exelist
 
