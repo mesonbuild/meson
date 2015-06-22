@@ -1234,6 +1234,7 @@ class FortranCompiler():
         self.language = 'fortran'
         # Not really correct but I don't have Fortran compilers to test with. Sorry.
         self.gcc_type = GCC_STANDARD
+        self.id = "IMPLEMENTATION CLASSES MUST SET THIS"
 
     def get_id(self):
         return self.id
