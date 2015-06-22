@@ -1230,6 +1230,9 @@ class FortranCompiler():
     def get_id(self):
         return self.id
 
+    def name_string(self):
+        return ' '.join(self.exelist)
+
     def get_exelist(self):
         return self.exelist
 
