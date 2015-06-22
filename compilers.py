@@ -1079,6 +1079,9 @@ class GnuObjCCompiler(ObjCCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
         ObjCCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
         self.id = 'gcc'
+        # Not really correct, but GNU objc is only used on non-OSX non-win. File a bug
+        # if this breaks your use case.
+        self.gcc_type = GCC_STANDARD
 
     def get_std_warn_args(self):
         return GnuObjCCompiler.std_warn_args
@@ -1102,6 +1105,9 @@ class GnuObjCPPCompiler(ObjCPPCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
         ObjCCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
         self.id = 'gcc'
+        # Not really correct, but GNU objc is only used on non-OSX non-win. File a bug
+        # if this breaks your use case.
+        self.gcc_type = GCC_STANDARD
 
     def get_std_warn_args(self):
         return GnuObjCPPCompiler.std_warn_args
