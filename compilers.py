@@ -1033,7 +1033,7 @@ def get_gcc_soname_args(gcc_type, shlib_name, path, soversion):
     elif gcc_type == GCC_OSX:
         return ['-install_name', os.path.join(path, 'lib' + shlib_name + '.dylib')]
     else:
-        raise RuntimeError('Not impelented yet.')
+        raise RuntimeError('Not implemented yet.')
 
 class GnuCCompiler(CCompiler):
     std_warn_args = []
@@ -1232,6 +1232,8 @@ class FortranCompiler():
         self.is_cross = is_cross
         self.exe_wrapper = exe_wrapper
         self.language = 'fortran'
+        # Not really correct but I don't have Fortran compilers to test with. Sorry.
+        self.gcc_type = GCC_STANDARD
 
     def get_id(self):
         return self.id
