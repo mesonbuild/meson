@@ -809,6 +809,9 @@ class ValaCompiler():
         self.id = 'unknown'
         self.language = 'vala'
 
+    def name_string(self):
+        return ' '.join(self.exelist)
+
     def needs_static_linker(self):
         return False # Because compiles into C.
 
