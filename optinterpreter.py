@@ -16,20 +16,7 @@ import mparser
 import coredata
 import os, re
 
-forbidden_option_names = {'buildtype': True,
-                          'strip': True,
-                          'coverage': True,
-                          'pch': True,
-                          'unity': True,
-                          'prefix': True,
-                          'libdir' : True,
-                          'bindir' : True,
-                          'includedir' : True,
-                          'datadir' : True,
-                          'mandir' : True,
-                          'localedir' : True,
-                          'werror' : True,
-                         }
+forbidden_option_names = coredata.builtin_options
 
 class OptionException(coredata.MesonException):
     pass

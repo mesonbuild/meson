@@ -16,6 +16,20 @@ import pickle, os, uuid
 
 version = '0.25.0-research'
 
+builtin_options = {'buildtype': True,
+                          'strip': True,
+                          'coverage': True,
+                          'pch': True,
+                          'unity': True,
+                          'prefix': True,
+                          'libdir' : True,
+                          'bindir' : True,
+                          'includedir' : True,
+                          'datadir' : True,
+                          'mandir' : True,
+                          'localedir' : True,
+                          'werror' : True,
+                         }
 # This class contains all data that must persist over multiple
 # invocations of Meson. It is roughly the same thing as
 # cmakecache.

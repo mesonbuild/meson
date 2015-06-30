@@ -1130,7 +1130,7 @@ class Interpreter():
         if len(args) != 1:
             raise InterpreterException('Argument required for get_option.')
         optname = args[0]
-        if self.is_subproject():
+        if optname not in coredata.builtin_options and self.is_subproject():
             optname = self.subproject + ':' + optname
         try:
             return self.environment.get_coredata().get_builtin_option(optname)
