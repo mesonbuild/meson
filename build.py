@@ -409,7 +409,7 @@ class BuildTarget():
             if hasattr(dep, 'held_object'):
                 dep = dep.held_object
             if isinstance(dep, dependencies.InternalDependency):
-                self.sources += dep.sources
+                self.process_sourcelist(dep.sources)
                 self.add_include_dirs(dep.include_directories)
                 for l in dep.libraries:
                     self.link(l)
