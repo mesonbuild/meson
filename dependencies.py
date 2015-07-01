@@ -110,17 +110,17 @@ class PkgConfigDependency(Dependency):
             self.modversion = out.decode().strip()
             mlog.log('%s dependency' % self.type_string, mlog.bold(name), 'found:',
                      mlog.green('YES'), self.modversion)
-            version_requirement = kwargs.get('version', None)
-            if version_requirement is None:
+            self.version_requirement = kwargs.get('version', None)
+            if self.version_requirement is None:
                 self.is_found = True
             else:
-                if not isinstance(version_requirement, str):
+                if not isinstance(self.version_requirement, str):
                     raise DependencyException('Version argument must be string.')
-                self.is_found = mesonlib.version_compare(self.modversion, version_requirement)
+                self.is_found = mesonlib.version_compare(self.modversion, self.version_requirement)
                 if not self.is_found and self.required:
                     raise DependencyException(
                         'Invalid version of a dependency, needed %s %s found %s.' %
-                        (name, version_requirement, self.modversion))
+                        (name, self.version_requirement, self.modversion))
             if not self.is_found:
                 return
             p = subprocess.Popen([pkgbin, '--cflags', name], stdout=subprocess.PIPE,
