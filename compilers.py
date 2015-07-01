@@ -837,8 +837,9 @@ class ValaCompiler():
         if pc.returncode != 0:
             raise EnvironmentException('Vala compiler %s can not compile programs.' % self.name_string())
 
-    def can_compile(self, fname):
-        return fname.endswith('.vala') or fname.endswith('.vapi')
+    def can_compile(self, filename):
+        suffix = filename.split('.')[-1]
+        return suffix in ('vala', 'vapi')
 
 class RustCompiler():
     def __init__(self, exelist, version):
