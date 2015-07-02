@@ -709,8 +709,9 @@ class NinjaBackend(backends.Backend):
                 args += valac.get_werror_args()
             for d in target.external_deps:
                 if isinstance(d, dependencies.PkgConfigDependency):
-                    if d.name == 'glib-2.0' and d.version_requirement is not None:
-                        args += ['--target-glib', d.version_requirement[2:]]
+                    if d.name == 'glib-2.0' and d.version_requirement is not None \
+                        and d.version_requirement.startswith(('>=', '==')):
+                            args += ['--target-glib', d.version_requirement[2:]]
                     args += ['--pkg', d.name]
             args += vapi_src
             generated_c += [relsc]
