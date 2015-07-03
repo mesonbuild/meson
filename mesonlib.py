@@ -58,6 +58,17 @@ class File:
     def __hash__(self):
         return hash((self.fname, self.subdir, self.is_built))
 
+def flatten(item):
+    if not isinstance(item, list):
+        return item
+    result = []
+    for i in item:
+        if isinstance(i, list):
+            result += flatten(i)
+        else:
+            result.append(i)
+    return result
+
 def is_osx():
     return platform.system().lower() == 'darwin'
 

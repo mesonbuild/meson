@@ -17,7 +17,7 @@ import environment
 import dependencies
 import mlog
 import copy, os
-from mesonlib import File
+from mesonlib import File, flatten
 
 known_basic_kwargs = {'install' : True,
                       'c_pch' : True,
@@ -476,8 +476,9 @@ class BuildTarget():
         self.include_dirs += ids
 
     def add_compiler_args(self, language, args):
+        args = flatten(args)
         for a in args:
-            if not isinstance(a, str):
+            if not isinstance(a, (str, File)):
                 raise InvalidArguments('A non-string passed to compiler args.')
         if language in self.extra_args:
             self.extra_args[language] += args

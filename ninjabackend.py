@@ -689,6 +689,7 @@ class NinjaBackend(backends.Backend):
         generated_c = []
         (src, vapi_src) = self.split_vala_sources(target.get_sources())
         vapi_src = [x.rel_to_builddir(self.build_to_src) for x in vapi_src]
+        extra_dep_files = []
         for s in src:
             if not s.endswith('.vala'):
                 continue
@@ -714,11 +715,22 @@ class NinjaBackend(backends.Backend):
                             args += ['--target-glib', d.version_requirement[2:]]
                     args += ['--pkg', d.name]
             args += vapi_src
-            args += target.extra_args.get('vala', [])
+            extra_args = []
+
+            for a in target.extra_args.get('vala', []):
+                if isinstance(a, File):
+                    relname = a.rel_to_builddir(self.build_to_src)
+                    extra_dep_files.append(relname)
+                    extra_args.append(relname)
+                else:
+                    extra_args.append(a)
+            print(extra_args)
+            args += extra_args
             generated_c += [relsc]
             element = NinjaBuildElement(relsc, valac.get_language() + '_COMPILER', rel_s)
             element.add_item('ARGS', args)
             element.add_orderdep(vapi_order_deps)
+            element.add_dep(extra_dep_files)
             element.write(outfile)
         return generated_c
 
