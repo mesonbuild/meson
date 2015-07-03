@@ -714,6 +714,7 @@ class NinjaBackend(backends.Backend):
                             args += ['--target-glib', d.version_requirement[2:]]
                     args += ['--pkg', d.name]
             args += vapi_src
+            args += target.extra_args.get('vala', [])
             generated_c += [relsc]
             element = NinjaBuildElement(relsc, valac.get_language() + '_COMPILER', rel_s)
             element.add_item('ARGS', args)
