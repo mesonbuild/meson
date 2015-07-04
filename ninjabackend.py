@@ -724,7 +724,6 @@ class NinjaBackend(backends.Backend):
                     extra_args.append(relname)
                 else:
                     extra_args.append(a)
-            print(extra_args)
             args += extra_args
             generated_c += [relsc]
             element = NinjaBuildElement(relsc, valac.get_language() + '_COMPILER', rel_s)
