@@ -585,6 +585,8 @@ class Executable(BuildTarget):
         else:
             self.filename = self.name
 
+    def type_suffix(self):
+        return "@exe"
 
 class StaticLibrary(BuildTarget):
     def __init__(self, name, subdir, is_cross, sources, objects, environment, kwargs):
@@ -600,6 +602,9 @@ class StaticLibrary(BuildTarget):
 
     def get_osx_filename(self):
         return self.get_filename()
+
+    def type_suffix(self):
+        return "@sta"
 
 class SharedLibrary(BuildTarget):
     def __init__(self, name, subdir, is_cross, sources, objects, environment, kwargs):
@@ -665,6 +670,9 @@ class SharedLibrary(BuildTarget):
         if self.version is not None:
             aliases.append(self.get_shbase())
         return aliases
+
+    def type_suffix(self):
+        return "@sha"
 
 class CustomTarget:
     known_kwargs = {'input' : True,
@@ -788,6 +796,9 @@ class CustomTarget:
     def get_generated_sources(self):
         return []
 
+    def type_suffix(self):
+        return "@cus"
+
 class RunTarget:
     def __init__(self, name, command, args, subdir):
         self.name = name
@@ -816,6 +827,9 @@ class RunTarget:
     def get_filename(self):
         return self.name
 
+    def type_suffix(self):
+        return "@run"
+
 class Jar(BuildTarget):
     def __init__(self, name, subdir, is_cross, sources, objects, environment, kwargs):
         super().__init__(name, subdir, is_cross, sources, objects, environment, kwargs);
@@ -826,6 +840,9 @@ class Jar(BuildTarget):
 
     def get_main_class(self):
         return self.main_class
+
+    def type_suffix(self):
+        return "@jar"
 
 class ConfigureFile():
 

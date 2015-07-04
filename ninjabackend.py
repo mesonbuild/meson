@@ -164,7 +164,7 @@ class NinjaBackend(backends.Backend):
             self.generate_custom_target(target, outfile)
         if isinstance(target, build.RunTarget):
             self.generate_run_target(target, outfile)
-        name = target.get_basename()
+        name = target.get_basename() + target.type_suffix()
         gen_src_deps = []
         if name in self.processed_targets:
             return
@@ -266,7 +266,7 @@ class NinjaBackend(backends.Backend):
 
     def process_target_dependencies(self, target, outfile):
         for t in target.get_dependencies():
-            tname = t.get_basename()
+            tname = t.get_basename() + t.type_suffix()
             if not tname in self.processed_targets:
                 self.generate_target(t, outfile)
 
@@ -305,7 +305,7 @@ class NinjaBackend(backends.Backend):
         elem.add_item('COMMAND', cmd)
         elem.add_item('description', 'Generating %s with a custom command.' % target.name)
         elem.write(outfile)
-        self.processed_targets[target.name] = True
+        self.processed_targets[target.name + target.type_suffix()] = True
 
     def generate_run_target(self, target, outfile):
         runnerscript = os.path.join(self.environment.get_script_dir(), 'commandrunner.py')
@@ -316,7 +316,7 @@ class NinjaBackend(backends.Backend):
         elem.add_item('description', 'Running external command %s.' % target.name)
         elem.add_item('pool', 'console')
         elem.write(outfile)
-        self.processed_targets[target.name] = True
+        self.processed_targets[target.name + target.type_suffix()] = True
 
     def generate_po(self, outfile):
         for p in self.build.pot:

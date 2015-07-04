@@ -1373,13 +1373,8 @@ class Interpreter():
         if len(args) != 1:
             raise InterpreterException('Incorrect number of arguments')
         name = args[0]
-        if name in coredata.forbidden_target_names:
-            raise InvalidArguments('Target name "%s" is reserved for Meson\'s internal use. Please rename.'\
-                                   % name)
-        if name in self.build.targets:
-            raise InvalidCode('Tried to create target "%s", but a target of that name already exists.' % name)
         tg = CustomTargetHolder(build.CustomTarget(name, self.subdir, kwargs))
-        self.build.targets[name] = tg.held_object
+        self.add_target(name, tg.held_object)
         return tg
 
     @stringArgs
@@ -1388,15 +1383,10 @@ class Interpreter():
         if len(args) < 2:
             raise InterpreterException('Incorrect number of arguments')
         name = args[0]
-        if name in coredata.forbidden_target_names:
-            raise InvalidArguments('Target name "%s" is reserved for Meson\'s internal use. Please rename.'\
-                                   % name)
-        if name in self.build.targets:
-            raise InvalidCode('Tried to create target "%s", but a target of that name already exists.' % name)
         command = args[1]
         cmd_args = args[2:]
         tg = RunTargetHolder(name, command, cmd_args, self.subdir)
-        self.build.targets[name] = tg.held_object
+        self.add_target(name, tg.held_object)
         return tg
 
     def func_generator(self, node, args, kwargs):
@@ -1609,6 +1599,19 @@ class Interpreter():
             results.append(s)
         return results
 
+    def add_target(self, name, tobj):
+        if name in coredata.forbidden_target_names:
+            raise InvalidArguments('Target name "%s" is reserved for Meson\'s internal use. Please rename.'\
+                                   % name)
+        # To permit an executable and a shared library to have the
+        # same name, such as "foo.exe" and "libfoo.a".
+        idname = name + tobj.type_suffix()
+        if idname in self.build.targets:
+            raise InvalidCode('Tried to create target "%s", but a target of that name already exists.' % name)
+        self.build.targets[idname] = tobj
+        if idname not in self.coredata.target_guids:
+            self.coredata.target_guids[idname] = str(uuid.uuid4()).upper()
+
     def build_target(self, node, args, kwargs, targetholder):
         name = args[0]
         sources = args[1:]
@@ -1619,9 +1622,6 @@ class Interpreter():
                 is_cross = True
         else:
             is_cross = False
-        if name in coredata.forbidden_target_names:
-            raise InvalidArguments('Target name "%s" is reserved for Meson\'s internal use. Please rename.'\
-                                   % name)
         try:
             kw_src = self.flatten(kwargs['sources'])
             if not isinstance(kw_src, list):
@@ -1634,8 +1634,6 @@ class Interpreter():
         kwargs['dependencies'] = self.flatten(kwargs.get('dependencies', []))
         if not isinstance(objs, list):
             objs = [objs]
-        if name in self.build.targets:
-            raise InvalidCode('Tried to create target "%s", but a target of that name already exists.' % name)
         self.check_sources_exist(os.path.join(self.source_root, self.subdir), sources)
         if targetholder is ExecutableHolder:
             targetclass = build.Executable
@@ -1650,9 +1648,7 @@ class Interpreter():
             raise RuntimeError('Unreachable code')
         target = targetclass(name, self.subdir, is_cross, sources, objs, self.environment, kwargs)
         l = targetholder(target)
-        self.build.targets[name] = l.held_object
-        if name not in self.coredata.target_guids:
-            self.coredata.target_guids[name] = str(uuid.uuid4()).upper()
+        self.add_target(name, l.held_object)
         self.global_args_frozen = True
         return l
 
