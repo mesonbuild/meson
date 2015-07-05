@@ -71,7 +71,7 @@ class Backend():
         return dirname
 
     def get_target_private_dir(self, target):
-        dirname = os.path.join(self.get_target_dir(target), target.get_basename() + '.dir')
+        dirname = os.path.join(self.get_target_dir(target), target.get_basename() + target.type_suffix())
         os.makedirs(os.path.join(self.environment.get_build_dir(), dirname), exist_ok=True)
         return dirname
 

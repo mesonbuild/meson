@@ -217,7 +217,7 @@ class NinjaBackend(backends.Backend):
             else:
                 for src in gensource.get_outfilelist():
                     if self.environment.is_object(src):
-                        obj_list.append(os.path.join(self.get_target_dir(target), target.get_basename() + '.dir', src))
+                        obj_list.append(os.path.join(self.get_target_private_dir(target), src))
                     elif not self.environment.is_header(src):
                         if is_unity:
                             if '/' in src:
@@ -590,7 +590,7 @@ class NinjaBackend(backends.Backend):
                 a = '-resource:' + rel_sourcefile
             elif r.endswith('.txt') or r.endswith('.resx'):
                 ofilebase = os.path.splitext(os.path.basename(r))[0] + '.resources'
-                ofilename = os.path.join(self.get_target_dir(target), target.get_basename() + '.dir', ofilebase)
+                ofilename = os.path.join(self.get_target_private_dir(target), ofilebase)
                 elem = NinjaBuildElement(ofilename, "CUSTOM_COMMAND", rel_sourcefile)
                 elem.add_item('COMMAND', ['resgen', rel_sourcefile, ofilename])
                 elem.add_item('DESC', 'Compiling resource %s.' % rel_sourcefile)
@@ -663,7 +663,7 @@ class NinjaBackend(backends.Backend):
             if not s.endswith('.vala'):
                 continue
             vapibase = os.path.basename(s.fname)[:-4] + 'vapi'
-            rel_vapi = os.path.join(self.get_target_dir(target), target.get_basename() + '.dir', vapibase)
+            rel_vapi = os.path.join(self.get_target_private_dir(target), vapibase)
             args = ['--fast-vapi=' + rel_vapi]
             rel_s = s.rel_to_builddir(self.build_to_src)
             element = NinjaBuildElement(rel_vapi, valac.get_language() + '_COMPILER', rel_s)
@@ -703,7 +703,7 @@ class NinjaBackend(backends.Backend):
                 (vapibase, rel_vapi) = vapi_info
                 args += ['--use-fast-vapi=' + rel_vapi]
                 vapi_order_deps.append(rel_vapi)
-            relsc = os.path.join(self.get_target_dir(target), target.get_basename() + '.dir', sc)
+            relsc = os.path.join(self.get_target_private_dir(target), sc)
             rel_s = s.rel_to_builddir(self.build_to_src)
             args += ['--deps', relsc + '.d']
             if self.environment.coredata.werror:
@@ -815,7 +815,7 @@ class NinjaBackend(backends.Backend):
         scriptdir = self.environment.get_script_dir()
         outfile.write('\n')
         symrule = 'rule SHSYM\n'
-        symcmd = ' command = "%s" "%s" "%s" "%s" $CROSS\n' % (ninja_quote(sys.executable),
+        symcmd = ' command = "%s" "%s" %s %s $CROSS\n' % (ninja_quote(sys.executable),
                                          ninja_quote(os.path.join(scriptdir, 'symbolextractor.py')),
                                          '$in', '$out')
         synstat = ' restat = 1\n'
@@ -1080,7 +1080,7 @@ rule FORTRAN_DEP_HACK
     def get_fortran_deps(self, compiler, src, target):
         mod_files = []
         usere = re.compile(r"\s*use\s+(\w+)", re.IGNORECASE)
-        dirname = os.path.join(self.get_target_dir(target), target.get_basename() + '.dir')
+        dirname = self.get_target_private_dir(target)
         tdeps= self.fortran_deps[target.get_basename()]
         for line in open(src):
             usematch = usere.match(line)
@@ -1182,12 +1182,12 @@ rule FORTRAN_DEP_HACK
             # Dependency hack. Remove once multiple outputs in Ninja is fixed:
             # https://groups.google.com/forum/#!topic/ninja-build/j-2RfBIOd_8
             for modname, srcfile in self.fortran_deps[target.get_basename()].items():
-                modfile = os.path.join(self.get_target_dir(target), target.get_basename() + '.dir',
+                modfile = os.path.join(self.get_target_private_dir(target),
                                        compiler.module_name_to_filename(modname))
                 if srcfile == src:
                     depelem = NinjaBuildElement(modfile, 'FORTRAN_DEP_HACK', rel_obj)
                     depelem.write(outfile)
-            commands += compiler.get_module_outdir_args(os.path.join(self.get_target_dir(target), target.get_basename() + '.dir'))
+            commands += compiler.get_module_outdir_args(self.get_target_private_dir(target))
 
         element = NinjaBuildElement(rel_obj, compiler_name, rel_src)
         for d in header_deps:
