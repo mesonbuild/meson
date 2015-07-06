@@ -18,11 +18,33 @@ import urllib.request, json
 import sys, os
 import configparser
 import shutil
+from glob import glob
 
 API_ROOT = 'http://wrapdb.mesonbuild.com/v1/'
 
+help_templ = '''This program allows you to manage your Wrap dependencies
+using the online wrap database http://wrapdb.mesonbuild.com.
+
+Run this command in your top level source directory.
+
+Usage:
+
+%s <command> [options]
+
+Commands:
+
+ list - show all available projects
+ search - search the db by name
+ install - install the specified project
+ update - update the project to its newest available release
+ info - show available versions of a project
+ status - show installed and available versions of your projects
+
+'''
+
+
 def print_help():
-    print("Help here")
+    print(help_templ % sys.argv[0])
 
 def get_result(urlstring):
     u = urllib.request.urlopen(urlstring)
@@ -63,13 +85,13 @@ def install(name):
         print('Subprojects dir not found. Run this script in your source root directory.')
         sys.exit(1)
     if os.path.isdir(os.path.join('subprojects', name)):
-        print('Subproject directory already exists.')
+        print('Subproject directory for this project already exists.')
         sys.exit(1)
     wrapfile = os.path.join('subprojects', name + '.wrap')
     if os.path.exists(wrapfile):
         print('Wrap file already exists.')
         sys.exit(1)
-    (brach, revision) = get_latest_version(name)
+    (branch, revision) = get_latest_version(name)
     u = urllib.request.urlopen(API_ROOT + 'projects/%s/%s/%s/get_wrap' % (name, branch, revision))
     data = u.read()
     open(wrapfile, 'wb').write(data)
@@ -122,6 +144,25 @@ def info(name):
     for v in versions:
         print(' ', v['branch'], v['revision'])
 
+def status():
+    print('Subproject status')
+    for w in glob('subprojects/*.wrap'):
+        name = os.path.split(w)[1][:-5]
+        try:
+            (latest_branch, latest_revision) = get_latest_version(name)
+        except Exception:
+            print('', name, 'not available in wrapdb.')
+            continue
+        try:
+            (current_branch, current_revision, _, _, _) = get_current_version(w)
+        except Exception:
+            print('Wrap file not from wrapdb.')
+            continue
+        if current_branch == latest_branch and current_revision == latest_revision:
+            print('', name, 'up to date. Branch %s, revision %d.' % (current_branch, current_revision))
+        else:
+            print('', name, 'not up to date. Have %s %d, but %s %d is available.' % (current_branch, current_revision, latest_branch, latest_revision))
+
 if __name__ == '__main__':
     if len(sys.argv) < 2 or sys.argv[1] == '-h' or sys.argv[1] == '--help':
         print_help()
@@ -150,6 +191,8 @@ if __name__ == '__main__':
             print('info requires exactly one argument.')
             sys.exit(1)
         info(args[0])
+    elif command == 'status':
+        status()
     else:
         print('Unknown command', command)
         sys.exit(1)
