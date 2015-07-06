@@ -67,14 +67,11 @@ def list_projects():
         print(p)
 
 def search(name):
-    # FIXME, add search to server side
-    projects = get_projectlist()
-    for p in projects:
-        if name in p:
-            print(p)
+    jd = get_result(API_ROOT + 'query/byname/' + name)
+    for p in jd['projects']:
+        print(p)
 
 def get_latest_version(name):
-    # FIXME, use server's newest logic once it is working.
     jd = get_result(API_ROOT + 'query/get_latest/' + name)
     branch = jd['branch']
     revision = jd['revision']
