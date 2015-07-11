@@ -198,7 +198,7 @@ class Conf:
 
 if __name__ == '__main__':
     options = parser.parse_args()
-    if len(options.directory) < 1:
+    if len(options.directory) > 1:
         print('%s <build directory>' % sys.argv[0])
         print('If you omit the build directory, the current directory is substituted.')
         sys.exit(1)
