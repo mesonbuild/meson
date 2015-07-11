@@ -888,11 +888,12 @@ class GLDependency(Dependency):
         self.cargs = []
         self.linkargs = []
         try:
-            pcdep = PkgConfigDependency('gl', kwargs)
+            pcdep = PkgConfigDependency('gl', environment, kwargs)
             if pcdep.found():
                 self.is_found = True
                 self.cargs = pcdep.get_compile_args()
                 self.linkargs = pcdep.get_link_args()
+                return
         except Exception:
             pass
         if mesonlib.is_osx():
