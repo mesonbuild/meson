@@ -688,7 +688,7 @@ class Qt5Dependency(Dependency):
         if not 'version 5' in stdo:
             mlog.log('QMake is not for Qt5.')
             return
-        self.version = re.search('5(\.\d+)+', stdo).match(0)
+        self.version = re.search('5(\.\d+)+', stdo).group(0)
         (stdo, _) = subprocess.Popen(['qmake', '-query'], stdout=subprocess.PIPE).communicate()
         qvars = {}
         for line in stdo.decode().split('\n'):
