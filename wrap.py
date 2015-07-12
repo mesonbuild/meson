@@ -90,13 +90,35 @@ class Resolver:
 
 
     def get_data(self, url):
-        u = urllib.request.urlopen(url)
-        data = u.read()
-        u.close()
+        blocksize = 10*1024
+        resp = urllib.request.urlopen(url)
+        dlsize = int(resp.info()['Content-Length'])
+        print('Download size:', dlsize)
+        print('Downloading: ', end='')
+        sys.stdout.flush()
+        printed_dots = 0
+        blocks = []
+        downloaded = 0
+        while True:
+            block = resp.read(blocksize)
+            if block == b'':
+                break
+            downloaded += len(block)
+            blocks.append(block)
+            ratio = int(downloaded/dlsize * 10)
+            while printed_dots < ratio:
+                print('.', end='')
+                sys.stdout.flush()
+                printed_dots += 1
+        print('')
+        resp.close()
+        return b''.join(blocks)
+
+    def get_hash(self, data):
         h = hashlib.sha256()
         h.update(data)
         hashvalue = h.hexdigest()
-        return (data, hashvalue)
+        return hashvalue
 
     def download(self, p, packagename):
         ofname = os.path.join(self.cachedir, p.get('source_filename'))
@@ -104,15 +126,17 @@ class Resolver:
             mlog.log('Using', mlog.bold(packagename), 'from cache.')
             return
         srcurl = p.get('source_url')
-        mlog.log('Dowloading', mlog.bold(packagename), 'from', srcurl)
-        (srcdata, dhash) = self.get_data(srcurl)
+        mlog.log('Dowloading', mlog.bold(packagename), 'from', mlog.bold(srcurl))
+        srcdata = self.get_data(srcurl)
+        dhash = self.get_hash(srcdata)
         expected = p.get('source_hash')
         if dhash != expected:
             raise RuntimeError('Incorrect hash for source %s:\n %s expected\n %s actual.' % (packagename, expected, dhash))
         if p.has_patch():
             purl = p.get('patch_url')
             mlog.log('Downloading patch from', mlog.bold(purl))
-            (pdata, phash) = self.get_data(purl)
+            pdata = self.get_data(purl)
+            phash = self.get_hash(pdata)
             expected = p.get('patch_hash')
             if phash != expected:
                 raise RuntimeError('Incorrect hash for patch %s:\n %s expected\n %s actual' % (packagename, expected, phash))
