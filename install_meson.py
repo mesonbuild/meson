@@ -68,7 +68,7 @@ symlink_value = os.path.relpath(bin_script, os.path.dirname(bin_name))
 guisymlink_value = os.path.relpath(gui_script, os.path.dirname(gui_name))
 confsymlink_value = os.path.relpath(conf_script, os.path.dirname(conf_name))
 introsymlink_value = os.path.relpath(intro_script, os.path.dirname(intro_name))
-wrapsymlink_value = os.path.relpath(intro_script, os.path.dirname(intro_name))
+wrapsymlink_value = os.path.relpath(wraptool_script, os.path.dirname(wraptool_name))
 
 files = glob.glob('*.py')
 files += glob.glob('*.ui')
