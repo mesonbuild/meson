@@ -1045,13 +1045,17 @@ class GnuCCompiler(CCompiler):
         CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
         self.id = 'gcc'
         self.gcc_type = gcc_type
-        if mesonlib.version_compare(version, ">=4.9.0"):
+        self.version = version
+        if mesonlib.version_compare(self.version, ">=4.9.0"):
             GnuCCompiler.std_warn_args= GnuCCompiler.new_warn
         else:
             GnuCCompiler.std_warn_args = GnuCCompiler.old_warn
 
     def get_always_args(self):
-        return ['-pipe']
+        args = ['-pipe']
+        if mesonlib.version_compare(self.version, ">=4.9.0"):
+            args += ['-fcolor-diagnostics=always']
+        return args
 
     def get_std_warn_args(self):
         return GnuCCompiler.std_warn_args
@@ -1175,13 +1179,17 @@ class GnuCPPCompiler(CPPCompiler):
         CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
         self.id = 'gcc'
         self.gcc_type = gcc_type
-        if mesonlib.version_compare(version, ">=4.9.0"):
+        self.version = version
+        if mesonlib.version_compare(self.version, ">=4.9.0"):
             GnuCPPCompiler.std_warn_args= GnuCPPCompiler.new_warn
         else:
             GnuCPPCompiler.std_warn_args = GnuCPPCompiler.old_warn
 
     def get_always_args(self):
-        return ['-pipe']
+        args = ['-pipe']
+        if mesonlib.version_compare(self.version, ">=4.9.0"):
+            args += ['-fcolor-diagnostics=always']
+        return args
 
     def get_std_warn_args(self):
         return GnuCPPCompiler.std_warn_args
