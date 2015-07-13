@@ -69,13 +69,13 @@ def flatten(item):
             result.append(i)
     return result
 
-def is_osx():
+def is_osx(): # pragma: no cover
     return platform.system().lower() == 'darwin'
 
-def is_linux():
+def is_linux(): # pragma: no cover
     return platform.system().lower() == 'linux'
 
-def is_windows():
+def is_windows(): # pragma: no cover
     return platform.system().lower() == 'windows'
 
 def is_debianlike():
