@@ -159,7 +159,9 @@ class BuildTarget():
         self.process_objectlist(objects)
         self.process_kwargs(kwargs, environment)
         self.check_unknown_kwargs(kwargs)
-        if len(self.sources) == 0 and len(self.generated) == 0:
+        if len(self.sources) == 0 and \
+            len(self.generated) == 0 and \
+            len(self.objects) == 0:
             raise InvalidArguments('Build target %s has no sources.' % name)
         self.validate_sources()
 
@@ -254,6 +256,9 @@ class BuildTarget():
                     raise coredata.MesonException('Tried to extract unknown source %s.' % src)
                 obj_src.append(src)
         return ExtractedObjects(self, obj_src)
+
+    def extract_all_objects(self):
+        return ExtractedObjects(self, self.sources)
 
     def get_rpaths(self):
         return self.get_transitive_rpaths()
