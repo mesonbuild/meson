@@ -17,6 +17,8 @@ import urllib.request, os, hashlib, shutil
 import subprocess
 import sys
 
+from wraptool import build_ssl_context
+
 class PackageDefinition:
     def __init__(self, fname):
         self.values = {}
@@ -91,7 +93,10 @@ class Resolver:
 
     def get_data(self, url):
         blocksize = 10*1024
-        resp = urllib.request.urlopen(url)
+        if url.startswith('https://wrapdb.mesonbuild.com'):
+            resp = urllib.request.urlopen(url, context=build_ssl_context())
+        else:
+            resp = urllib.request.urlopen(url)
         dlsize = int(resp.info()['Content-Length'])
         print('Download size:', dlsize)
         print('Downloading: ', end='')
