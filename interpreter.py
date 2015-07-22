@@ -475,7 +475,7 @@ class RunTargetHolder(InterpreterObject):
         self.held_object = build.RunTarget(name, command, args, subdir)
 
 class Test(InterpreterObject):
-    def __init__(self, name, exe, is_parallel, cmd_args, env, should_fail, valgrind_args):
+    def __init__(self, name, exe, is_parallel, cmd_args, env, should_fail, valgrind_args, timeout):
         InterpreterObject.__init__(self)
         self.name = name
         self.exe = exe
@@ -484,6 +484,7 @@ class Test(InterpreterObject):
         self.env = env
         self.should_fail = should_fail
         self.valgrind_args = valgrind_args
+        self.timeout = timeout
 
     def get_exe(self):
         return self.exe
@@ -1437,7 +1438,10 @@ class Interpreter():
         should_fail = kwargs.get('should_fail', False)
         if not isinstance(should_fail, bool):
             raise InterpreterException('Keyword argument should_fail must be a boolean.')
-        t = Test(args[0], args[1].held_object, par, cmd_args, env, should_fail, valgrind_args)
+        timeout = kwargs.get('timeout', 30)
+        if not isinstance(timeout, int):
+            raise InterpreterException('Timeout must be an integer.')
+        t = Test(args[0], args[1].held_object, par, cmd_args, env, should_fail, valgrind_args, timeout)
         self.build.tests.append(t)
         mlog.debug('Adding test "', mlog.bold(args[0]), '".', sep='')
 

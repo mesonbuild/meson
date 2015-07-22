@@ -97,12 +97,21 @@ def run_single_test(wrap, test):
         child_env.update(test.env)
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                              env=child_env)
-        (stdo, stde) = p.communicate()
+        timed_out = False
+        try:
+            (stdo, stde) = p.communicate(timeout=test.timeout)
+        except subprocess.TimeoutExpired:
+            timed_out = True
+            p.kill()
+            (stdo, stde) = p.communicate()
         endtime = time.time()
         duration = endtime - starttime
         stdo = stdo.decode()
         stde = stde.decode()
-        if (not test.should_fail and p.returncode == 0) or \
+        if timed_out:
+            res = 'TIMEOUT'
+            tests_failed = True
+        elif (not test.should_fail and p.returncode == 0) or \
             (test.should_fail and p.returncode != 0):
             res = 'OK'
         else:

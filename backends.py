@@ -20,7 +20,7 @@ from coredata import MesonException
 
 class TestSerialisation:
     def __init__(self, name, fname, is_cross, exe_wrapper, is_parallel, cmd_args, env,
-                 should_fail, valgrind_args):
+                 should_fail, valgrind_args, timeout):
         self.name = name
         self.fname = fname
         self.is_cross = is_cross
@@ -30,6 +30,7 @@ class TestSerialisation:
         self.env = env
         self.should_fail = should_fail
         self.valgrind_args = valgrind_args
+        self.timeout = timeout
 
 # This class contains the basic functionality that is needed by all backends.
 # Feel free to move stuff in and out of it as you see fit.
@@ -251,7 +252,8 @@ class Backend():
             else:
                 exe_wrapper = None
             ts = TestSerialisation(t.get_name(), fname, is_cross, exe_wrapper,
-                                   t.is_parallel, t.cmd_args, t.env, t.should_fail, t.valgrind_args)
+                                   t.is_parallel, t.cmd_args, t.env, t.should_fail, t.valgrind_args,
+                                   t.timeout)
             arr.append(ts)
         pickle.dump(arr, datafile)
 
