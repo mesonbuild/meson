@@ -77,8 +77,6 @@ class NinjaBuildElement():
         self.elems.append((name, elems))
 
     def write(self, outfile):
-        # Sort inputs so the command line does not change.
-        # This allows Ninja to skip unnecessary rebuilds.
         line = 'build %s: %s %s' % (' '.join([ninja_quote(i) for i in self.outfilenames]),\
                                     self.rule,
                                     ' '.join([ninja_quote(i) for i in self.infilenames]))
@@ -259,8 +257,7 @@ class NinjaBackend(backends.Backend):
             for src in self.generate_unity_files(target, unity_src):
                 obj_list.append(self.generate_single_compile(target, outfile, src, True, unity_deps + header_deps))
         linker = self.determine_linker(target, src_list)
-        # Sort object list to preserve command line over multiple invocations.
-        elem = self.generate_link(target, outfile, outname, sorted(obj_list), linker, pch_objects)
+        elem = self.generate_link(target, outfile, outname, obj_list, linker, pch_objects)
         self.generate_shlib_aliases(target, self.get_target_dir(target), outfile, elem)
         self.processed_targets[name] = True
 
