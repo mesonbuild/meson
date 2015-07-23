@@ -1037,7 +1037,6 @@ def get_gcc_soname_args(gcc_type, shlib_name, path, soversion):
         raise RuntimeError('Not implemented yet.')
 
 class GnuCCompiler(CCompiler):
-    std_warn_args = []
     old_warn = ['-Wall', '-pedantic', '-Winvalid-pch']
     new_warn = ['-Wall', '-Wpedantic', '-Winvalid-pch']
 
@@ -1046,15 +1045,15 @@ class GnuCCompiler(CCompiler):
         self.id = 'gcc'
         self.gcc_type = gcc_type
         if mesonlib.version_compare(version, ">=4.9.0"):
-            GnuCCompiler.std_warn_args= GnuCCompiler.new_warn
+            self.warn_args= GnuCCompiler.new_warn
         else:
-            GnuCCompiler.std_warn_args = GnuCCompiler.old_warn
+            self.warn_args = GnuCCompiler.old_warn
 
     def get_always_args(self):
         return ['-pipe']
 
     def get_std_warn_args(self):
-        return GnuCCompiler.std_warn_args
+        return self.warn_args
 
     def get_buildtype_args(self, buildtype):
         return gnulike_buildtype_args[buildtype]
@@ -1165,7 +1164,6 @@ class ClangCCompiler(CCompiler):
 
 
 class GnuCPPCompiler(CPPCompiler):
-    std_warn_args = []
     new_warn = ['-Wall', '-Wpedantic', '-Winvalid-pch', '-Wnon-virtual-dtor']
     old_warn = ['-Wall', '-pedantic', '-Winvalid-pch', '-Wnon-virtual-dtor']
     # may need to separate the latter to extra_debug_args or something
@@ -1176,15 +1174,15 @@ class GnuCPPCompiler(CPPCompiler):
         self.id = 'gcc'
         self.gcc_type = gcc_type
         if mesonlib.version_compare(version, ">=4.9.0"):
-            GnuCPPCompiler.std_warn_args= GnuCPPCompiler.new_warn
+            self.warn_args= GnuCPPCompiler.new_warn
         else:
-            GnuCPPCompiler.std_warn_args = GnuCPPCompiler.old_warn
+            self.warn_args = GnuCPPCompiler.old_warn
 
     def get_always_args(self):
         return ['-pipe']
 
     def get_std_warn_args(self):
-        return GnuCPPCompiler.std_warn_args
+        return self.warn_args
 
     def get_buildtype_args(self, buildtype):
         return gnulike_buildtype_args[buildtype]
