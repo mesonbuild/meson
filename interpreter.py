@@ -832,6 +832,7 @@ class Interpreter():
                       'configure_file' : self.func_configure_file,
                       'include_directories' : self.func_include_directories,
                       'add_global_arguments' : self.func_add_global_arguments,
+                      'add_languages' : self.func_add_languages,
                       'find_program' : self.func_find_program,
                       'find_library' : self.func_find_library,
                       'configuration_data' : self.func_configuration_data,
@@ -1173,6 +1174,11 @@ class Interpreter():
         if 'vala' in langs:
             if not 'c' in langs:
                 raise InterpreterException('Compiling Vala requires a C compiler')
+
+    @noKwargs
+    @stringArgs
+    def func_add_languages(self, node, args, kwargs):
+        self.add_languages(node, args)
 
     @noKwargs
     def func_message(self, node, args, kwargs):
