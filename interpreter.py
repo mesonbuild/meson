@@ -302,12 +302,28 @@ class GeneratedListHolder(InterpreterObject):
     def add_file(self, a):
         self.held_object.add_file(a)
 
-class Build(InterpreterObject):
+class BuildMachine(InterpreterObject):
     def __init__(self):
         InterpreterObject.__init__(self)
         self.methods.update({'name' : self.name_method,
                              'endian' : self.endian_method,
                             })
+
+    # Python is inconsistent in its platform module.
+    # It returns different values for the same cpu.
+    # For x86 it might return 'x86', 'i686' or somesuch.
+    # Do some canonicalization.
+    def cpu_method(self, args, kwargs):
+        trial = platform.machine().lower()
+        if trial.startswith('i') and trial.endswith('86'):
+            return 'x86'
+        # This might be wrong. Maybe we should return the more
+        # specific string such as 'armv7l'. Need to get user
+        # feedback first.
+        if trial.startswith('arm'):
+            return 'arm'
+        # Add fixes here as bugs are reported.
+        return trial
 
     def name_method(self, args, kwargs):
         return platform.system().lower()
@@ -803,7 +819,7 @@ class Interpreter():
         self.sanity_check_ast()
         self.variables = {}
         self.builtin = {}
-        self.builtin['build_machine'] = Build()
+        self.builtin['build_machine'] = BuildMachine()
         if not self.build.environment.is_cross_build():
             self.builtin['host_machine'] = self.builtin['build_machine']
             self.builtin['target_machine'] = self.builtin['build_machine']
