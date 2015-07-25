@@ -248,7 +248,7 @@ class Backend():
                 fname = [os.path.join(self.environment.get_build_dir(), self.get_target_filename(t.get_exe()))]
             is_cross = self.environment.is_cross_build()
             if is_cross:
-                exe_wrapper = self.environment.cross_info.get('exe_wrapper', None)
+                exe_wrapper = self.environment.cross_info.config['binaries'].get('exe_wrapper', None)
             else:
                 exe_wrapper = None
             ts = TestSerialisation(t.get_name(), fname, is_cross, exe_wrapper,

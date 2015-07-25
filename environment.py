@@ -16,6 +16,7 @@ import re
 import coredata
 from glob import glob
 from compilers import *
+import configparser
 
 build_filename = 'meson.build'
 
@@ -90,7 +91,7 @@ class Environment():
 
         cross = self.is_cross_build()
         if (not cross and mesonlib.is_windows()) \
-        or (cross and self.cross_info['name'] == 'windows'):
+        or (cross and self.cross_info.has_host() and self.cross_info.config['hostmachine']['name'] == 'windows'):
             self.exe_suffix = 'exe'
             self.import_lib_suffix = 'lib'
             self.shared_lib_suffix = 'dll'
@@ -101,7 +102,7 @@ class Environment():
         else:
             self.exe_suffix = ''
             if (not cross and mesonlib.is_osx()) or \
-            (cross and self.cross_info['name'] == 'darwin'):
+            (cross and self.cross_info.has_host() and self.cross_info.config['hostmachine']['name'] == 'darwin'):
                 self.shared_lib_suffix = 'dylib'
             else:
                 self.shared_lib_suffix = 'so'
@@ -151,10 +152,10 @@ class Environment():
     def detect_c_compiler(self, want_cross):
         evar = 'CC'
         if self.is_cross_build() and want_cross:
-            compilers = [self.cross_info['c']]
+            compilers = [self.cross_info.config['binaries']['c']]
             ccache = []
             is_cross = True
-            exe_wrap = self.cross_info.get('exe_wrapper', None)
+            exe_wrap = self.cross_info.config['binaries'].get('exe_wrapper', None)
         elif evar in os.environ:
             compilers = os.environ[evar].split()
             ccache = []
@@ -269,10 +270,10 @@ class Environment():
     def detect_cpp_compiler(self, want_cross):
         evar = 'CXX'
         if self.is_cross_build() and want_cross:
-            compilers = [self.cross_info['cpp']]
+            compilers = [self.cross_info.config['binaries']['cpp']]
             ccache = []
             is_cross = True
-            exe_wrap = self.cross_info.get('exe_wrapper', None)
+            exe_wrap = self.cross_info.config['binaries'].get('exe_wrapper', None)
         elif evar in os.environ:
             compilers = os.environ[evar].split()
             ccache = []
@@ -447,7 +448,7 @@ class Environment():
 
     def detect_static_linker(self, compiler):
         if compiler.is_cross:
-            linker = self.cross_info['ar']
+            linker = self.cross_info.config['binaries']['ar']
         else:
             evar = 'AR'
             if evar in os.environ:
@@ -587,49 +588,42 @@ def get_args_from_envvars(lang):
 
 class CrossBuildInfo():
     def __init__(self, filename):
-        self.items = {}
+        self.config = {}
         self.parse_datafile(filename)
-        if not 'name' in self:
-            raise EnvironmentException('Cross file must specify "name" (e.g. "linux", "darwin" or "windows".')
+        if not 'properties' in self.config:
+            raise EnvironmentError('Cross file is missing "properties".')
+        if not 'binaries' in self.config:
+            raise EnvironmentError('Cross file is missing "binaries".')
 
     def ok_type(self, i):
         return isinstance(i, str) or isinstance(i, int) or isinstance(i, bool)
 
     def parse_datafile(self, filename):
+        config = configparser.ConfigParser()
+        config.read(filename)
         # This is a bit hackish at the moment.
-        for i, line in enumerate(open(filename)):
-            linenum = i+1
-            line = line.strip()
-            if line == '':
-                continue
-            if '=' not in line:
-                raise EnvironmentException('Malformed line in cross file %s:%d.' % (filename, linenum))
-            (varname, value) = line.split('=', 1)
-            varname = varname.strip()
-            if ' ' in varname or '\t' in varname or "'" in varname or '"' in varname:
-                raise EnvironmentException('Malformed variable name in cross file %s:%d.' % (filename, linenum))
-            try:
-                res = eval(value, {'true' : True, 'false' : False})
-            except Exception:
-                raise EnvironmentException('Malformed line in cross file %s:%d.' % (filename, linenum))
-            if self.ok_type(res):
-                self.items[varname] = res
-            elif isinstance(res, list):
-                for i in res:
-                    if not self.ok_type(i):
-                        raise EnvironmentException('Malformed line in cross file %s:%d.' % (filename, linenum))
-                self.items[varname] = res
-            else:
-                raise EnvironmentException('Malformed line in cross file %s:%d.' % (filename, linenum))
+        for s in config.sections():
+            self.config[s] = {}
+            for entry in config[s]:
+                value = config[s][entry]
+                if ' ' in entry or '\t' in entry or "'" in entry or '"' in entry:
+                    raise EnvironmentException('Malformed variable name %s in cross file..' % varname)
+                try:
+                    res = eval(value, {'true' : True, 'false' : False})
+                except Exception:
+                    raise EnvironmentException('Malformed value in cross file variable %s.' % varname)
+                if self.ok_type(res):
+                    self.config[s][entry] = res
+                elif isinstance(res, list):
+                    for i in res:
+                        if not self.ok_type(i):
+                            raise EnvironmentException('Malformed value in cross file variable %s.' % varname)
+                    self.items[varname] = res
+                else:
+                    raise EnvironmentException('Malformed value in cross file variable %s.' % varname)
 
-    def __getitem__(self, ind):
-        try:
-            return self.items[ind]
-        except KeyError:
-            raise EnvironmentException('Cross file does not specify variable "%s".' % ind)
+    def has_host(self):
+        return 'hostmachine' in self.config
 
-    def __contains__(self, item):
-        return item in self.items
-
-    def get(self, *args, **kwargs):
-        return self.items.get(*args, **kwargs)
+    def has_target(self):
+        return 'targetmachine' in self.config

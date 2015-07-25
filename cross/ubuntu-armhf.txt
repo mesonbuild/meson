@@ -1,11 +1,14 @@
-name = 'linux'
+[binaries]
+# we could set exe_wrapper = qemu-arm-static but to test the case
+# when cross compiled binaries can't be built we don't do that
 c = '/usr/bin/arm-linux-gnueabihf-gcc'
 cpp = '/usr/bin/arm-linux-gnueabihf-g++'
 ar = '/usr/arm-linux-gnueabihf/bin/ar'
 strip = '/usr/arm-linux-gnueabihf/bin/strip'
-
-root = '/usr/arm-linux-gnueabihf'
 pkgconfig = '/usr/bin/arm-linux-gnueabihf-pkg-config'
+
+[properties]
+root = '/usr/arm-linux-gnueabihf'
 
 sizeof_int = 4
 sizeof_wchar_t = 4
@@ -17,3 +20,7 @@ alignment_double = 4 # Don't know if this is correct...
 
 has_function_printf = true
 has_function_hfkerhisadf = false
+
+[hostmachine]
+name = 'linux'
+cpu = 'arm'

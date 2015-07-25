@@ -323,7 +323,7 @@ class Host(InterpreterObject):
 
     def get_name_method(self, args, kwargs):
         if self.environment.is_cross_build():
-            return self.environment.cross_info.get('name')
+            return self.environment.cross_info.config['hostmachine']['name']
         return platform.system().lower()
 
     def is_big_endian_method(self, args, kwargs):
@@ -735,7 +735,7 @@ class MesonMain(InterpreterObject):
 
     def has_exe_wrapper_method(self, args, kwargs):
         if self.is_cross_build_method(None, None):
-            return 'exe_wrap' in  self.build.environment.cross_info
+            return 'exe_wrap' in self.build.environment.cross_info.config['binaries']
         return True # This is semantically confusing.
 
     def is_cross_build_method(self, args, kwargs):

@@ -1,8 +1,20 @@
-name = 'windows'
+# Something crazy: compiling on Linux a crosscompiler that
+# runs on Windows and generates code for iOS.
+
+[binaries]
 exe_wrapper = 'wine' # A command used to run generated executables.
 c = '/usr/bin/i686-w64-mingw32-gcc'
 cpp = '/usr/bin/i686-w64-mingw32-g++'
 ar = '/usr/bin/i686-w64-mingw32-ar'
 strip = '/usr/bin/i686-w64-mingw32-strip'
 
+[properties]
 root = '/usr/i686-w64-mingw32'
+
+[hostmachine]
+name = 'windows'
+cpu = 'x86'
+
+[targetmachine]
+name='darwin'
+cpu='arm'
