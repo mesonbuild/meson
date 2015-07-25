@@ -126,6 +126,9 @@ itself as required.'''
             mlog.log('Build type:', mlog.bold('native build'))
         b = build.Build(env)
         intr = interpreter.Interpreter(b)
+        if env.is_cross_build():
+            mlog.log('Host machine cpu:', mlog.bold(intr.builtin['host_machine'].info['cpu']))
+            mlog.log('Target machine cpu:', mlog.bold(intr.builtin['target_machine'].info['cpu']))
         intr.run()
         if self.options.backend == 'ninja':
             import ninjabackend

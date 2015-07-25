@@ -91,7 +91,7 @@ class Environment():
 
         cross = self.is_cross_build()
         if (not cross and mesonlib.is_windows()) \
-        or (cross and self.cross_info.has_host() and self.cross_info.config['hostmachine']['name'] == 'windows'):
+        or (cross and self.cross_info.has_host() and self.cross_info.config['host_machine']['name'] == 'windows'):
             self.exe_suffix = 'exe'
             self.import_lib_suffix = 'lib'
             self.shared_lib_suffix = 'dll'
@@ -102,7 +102,7 @@ class Environment():
         else:
             self.exe_suffix = ''
             if (not cross and mesonlib.is_osx()) or \
-            (cross and self.cross_info.has_host() and self.cross_info.config['hostmachine']['name'] == 'darwin'):
+            (cross and self.cross_info.has_host() and self.cross_info.config['host_machine']['name'] == 'darwin'):
                 self.shared_lib_suffix = 'dylib'
             else:
                 self.shared_lib_suffix = 'so'
@@ -623,7 +623,7 @@ class CrossBuildInfo():
                     raise EnvironmentException('Malformed value in cross file variable %s.' % varname)
 
     def has_host(self):
-        return 'hostmachine' in self.config
+        return 'host_machine' in self.config
 
     def has_target(self):
-        return 'targetmachine' in self.config
+        return 'target_machine' in self.config

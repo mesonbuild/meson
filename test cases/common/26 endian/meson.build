@@ -1,6 +1,6 @@
 project('endian check', 'c')
 
-if host.is_big_endian()
+if host_machine.endian() == 'big'
   add_global_arguments('-DIS_BE', language : 'c')
 endif
 

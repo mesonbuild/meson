@@ -170,7 +170,7 @@ class ConfigureFileHolder(InterpreterObject):
 class ConfigurationDataHolder(InterpreterObject):
     def __init__(self):
         super().__init__()
-        self.used = False # These objects become immutable after use in configure_file.
+        self.used = False  # These objects become immutable after use in configure_file.
         self.held_object = build.ConfigurationData()
         self.methods.update({'set': self.set_method,
                              'set10': self.set10_method,
@@ -305,29 +305,35 @@ class GeneratedListHolder(InterpreterObject):
 class Build(InterpreterObject):
     def __init__(self):
         InterpreterObject.__init__(self)
-        self.methods.update({'name' : self.get_name_method,
+        self.methods.update({'name' : self.name_method,
+                             'endian' : self.endian_method,
                             })
 
-    def get_name_method(self, args, kwargs):
+    def name_method(self, args, kwargs):
         return platform.system().lower()
 
-# This currently returns data for the current environment.
-# It should return info for the target host.
-class Host(InterpreterObject):
-    def __init__(self, envir):
+    def endian_method(self, args, kwargs):
+        return sys.byteorder
+
+# This class will provide both host_machine and
+# target_machine
+class CrossMachineInfo(InterpreterObject):
+    def __init__(self, cross_info):
         InterpreterObject.__init__(self)
-        self.environment = envir
-        self.methods.update({'name' : self.get_name_method,
-                             'is_big_endian' : self.is_big_endian_method,
+        self.info = cross_info
+        self.methods.update({'name' : self.name_method,
+                             'cpu' : self.cpu_method,
+                             'endian' : self.endian_method,
                             })
 
-    def get_name_method(self, args, kwargs):
-        if self.environment.is_cross_build():
-            return self.environment.cross_info.config['hostmachine']['name']
-        return platform.system().lower()
+    def name_method(self, args, kwargs):
+        return self.info['name']
 
-    def is_big_endian_method(self, args, kwargs):
-        return sys.byteorder != 'little'
+    def cpu_method(self, args, kwargs):
+        return self.info['cpu']
+
+    def endian_method(self, args, kwargs):
+        return self.info['endian']
 
 class IncludeDirsHolder(InterpreterObject):
     def __init__(self, curdir, dirs):
@@ -736,7 +742,7 @@ class MesonMain(InterpreterObject):
     def has_exe_wrapper_method(self, args, kwargs):
         if self.is_cross_build_method(None, None):
             return 'exe_wrap' in self.build.environment.cross_info.config['binaries']
-        return True # This is semantically confusing.
+        return True  # This is semantically confusing.
 
     def is_cross_build_method(self, args, kwargs):
         return self.build.environment.is_cross_build()
@@ -778,7 +784,7 @@ class Interpreter():
         self.subproject_dir = subproject_dir
         option_file = os.path.join(self.source_root, self.subdir, 'meson_options.txt')
         if os.path.exists(option_file):
-            oi = optinterpreter.OptionInterpreter(self.subproject,\
+            oi = optinterpreter.OptionInterpreter(self.subproject, \
                                                   self.build.environment.cmd_line_options)
             oi.process(option_file)
             self.build.environment.merge_options(oi.options)
@@ -797,8 +803,20 @@ class Interpreter():
         self.sanity_check_ast()
         self.variables = {}
         self.builtin = {}
-        self.builtin['build'] = Build()
-        self.builtin['host'] = Host(build.environment)
+        self.builtin['build_machine'] = Build()
+        if not self.build.environment.is_cross_build():
+            self.builtin['host_machine'] = self.builtin['build_machine']
+            self.builtin['target_machine'] = self.builtin['build_machine']
+        else:
+            cross_info = self.build.environment.cross_info
+            if cross_info.has_host():
+                self.builtin['host_machine'] = CrossMachineInfo(cross_info.config['host_machine'])
+            else:
+                self.builtin['host_machine'] = self.builtin['build_machine']
+            if cross_info.has_target():
+                self.builtin['target_machine'] = CrossMachineInfo(cross_info.config['target_machine'])
+            else:
+                self.builtin['target_machine'] = self.builtin['host_machine']
         self.builtin['meson'] = MesonMain(build, self)
         self.environment = build.environment
         self.build_func_dict()
@@ -920,7 +938,7 @@ class Interpreter():
                     e.colno = cur.colno
                     e.file = os.path.join(self.subdir, 'meson.build')
                 raise e
-            i += 1 # In THE FUTURE jump over blocks and stuff.
+            i += 1  # In THE FUTURE jump over blocks and stuff.
 
     def get_variable(self, varname):
         if varname in self.builtin:
@@ -1021,7 +1039,7 @@ class Interpreter():
     def validate_arguments(self, args, argcount, arg_types):
         if argcount is not None:
             if argcount != len(args):
-                raise InvalidArguments('Expected %d arguments, got %d.' %
+                raise InvalidArguments('Expected %d arguments, got %d.' % 
                                        (argcount, len(args)))
         for i in range(min(len(args), len(arg_types))):
             wanted = arg_types[i]
@@ -1155,7 +1173,7 @@ class Interpreter():
 
     @stringArgs
     def func_project(self, node, args, kwargs):
-        if len(args)< 2:
+        if len(args) < 2:
             raise InvalidArguments('Not enough arguments to project(). Needs at least the project name and one language')
         if list(kwargs.keys()) != ['subproject_dir'] and len(kwargs) != 0:
             raise InvalidArguments('project() only accepts the keyword argument "subproject_dir"')
@@ -1189,7 +1207,7 @@ class Interpreter():
 
         arg = posargs[0]
         if isinstance(arg, list):
-            argstr =  stringifyUserArguments(arg)
+            argstr = stringifyUserArguments(arg)
         elif isinstance(arg, str):
             argstr = arg
         elif isinstance(arg, int):
@@ -1234,19 +1252,19 @@ class Interpreter():
                 elif lang == 'java':
                     comp = self.environment.detect_java_compiler()
                     if is_cross:
-                        cross_comp = comp # Java is platform independent.
+                        cross_comp = comp  # Java is platform independent.
                 elif lang == 'cs':
                     comp = self.environment.detect_cs_compiler()
                     if is_cross:
-                        cross_comp = comp # C# is platform independent.
+                        cross_comp = comp  # C# is platform independent.
                 elif lang == 'vala':
                     comp = self.environment.detect_vala_compiler()
                     if is_cross:
-                        cross_comp = comp # Vala is too (I think).
+                        cross_comp = comp  # Vala is too (I think).
                 elif lang == 'rust':
                     comp = self.environment.detect_rust_compiler()
                     if is_cross:
-                        cross_comp = comp # FIXME, probably not correct.
+                        cross_comp = comp  # FIXME, probably not correct.
                 elif lang == 'fortran':
                     comp = self.environment.detect_fortran_compiler(False)
                     if is_cross:
@@ -1320,7 +1338,7 @@ class Interpreter():
         if identifier in self.coredata.deps:
             dep = self.coredata.deps[identifier]
         else:
-            dep = dependencies.Dependency() # Returns always false for dep.found()
+            dep = dependencies.Dependency()  # Returns always false for dep.found()
         if not dep.found():
             dep = dependencies.find_external_dependency(name, self.environment, kwargs)
         self.coredata.deps[identifier] = dep
@@ -1358,7 +1376,7 @@ class Interpreter():
         if not isinstance(fallback, str):
             raise InterpreterException('Keyword argument must exist and be a string.')
         replace_string = kwargs.pop('replace_string', '@VCS_TAG@')
-        regex_selector = '(.*)' # default regex selector for custom command: use complete output
+        regex_selector = '(.*)'  # default regex selector for custom command: use complete output
         vcs_cmd = kwargs.get('command', None)
         if vcs_cmd and not isinstance(vcs_cmd, list):
             vcs_cmd = [vcs_cmd]
@@ -1373,7 +1391,7 @@ class Interpreter():
                 vcs_cmd = vcs['get_rev'].split()
                 regex_selector = vcs['rev_regex']
             else:
-                vcs_cmd = [' '] # executing this cmd will fail in vcstagger.py and force to use the fallback string
+                vcs_cmd = [' ']  # executing this cmd will fail in vcstagger.py and force to use the fallback string
         scriptfile = os.path.join(self.environment.get_script_dir(), 'vcstagger.py')
         # vcstagger.py parameters: infile, outfile, fallback, source_dir, replace_string, regex_selector, command...
         kwargs['command'] = [sys.executable, scriptfile, '@INPUT0@', '@OUTPUT0@', fallback, source_dir, replace_string, regex_selector] + vcs_cmd
@@ -1504,7 +1522,7 @@ class Interpreter():
 
     @stringArgs
     def func_install_subdir(self, node, args, kwargs):
-        if len(args ) != 1:
+        if len(args) != 1:
             raise InvalidArguments('Install_subdir requires exactly one argument.')
         if not 'install_dir' in kwargs:
             raise InvalidArguments('Missing keyword argument install_dir')
@@ -1543,7 +1561,7 @@ class Interpreter():
         elif 'command' in kwargs:
             res = self.func_run_command(node, kwargs['command'], {})
             if res.returncode != 0:
-                raise InterpreterException('Running configure command failed.\n%s\n%s' %
+                raise InterpreterException('Running configure command failed.\n%s\n%s' % 
                                            (res.stdout, res.stderr))
         else:
             raise InterpreterException('Configure_file must have either "configuration" or "command".')
@@ -1670,7 +1688,7 @@ class Interpreter():
     def check_sources_exist(self, subdir, sources):
         for s in sources:
             if not isinstance(s, str):
-                continue # This means a generated source and they always exist.
+                continue  # This means a generated source and they always exist.
             fname = os.path.join(subdir, s)
             if not os.path.isfile(fname):
                 raise InterpreterException('Tried to add non-existing source %s.' % s)
@@ -1752,7 +1770,7 @@ class Interpreter():
             args = args.arguments
         for (i, arg) in enumerate(args):
             arg = self.to_native(self.evaluate_statement(arg))
-            if isinstance(arg, bool): # Python boolean is upper case.
+            if isinstance(arg, bool):  # Python boolean is upper case.
                 arg = str(arg).lower()
             templ = templ.replace('@{}@'.format(i), str(arg))
         return templ

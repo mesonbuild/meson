@@ -1,5 +1,5 @@
 # Something crazy: compiling on Linux a crosscompiler that
-# runs on Windows and generates code for iOS.
+# runs on Windows and generates code for OSX.
 
 [binaries]
 exe_wrapper = 'wine' # A command used to run generated executables.
@@ -11,10 +11,12 @@ strip = '/usr/bin/i686-w64-mingw32-strip'
 [properties]
 root = '/usr/i686-w64-mingw32'
 
-[hostmachine]
+[host_machine]
 name = 'windows'
 cpu = 'x86'
+endian = 'little'
 
-[targetmachine]
+[target_machine]
 name='darwin'
 cpu='arm'
+endian = 'little'

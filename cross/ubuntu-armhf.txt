@@ -1,6 +1,6 @@
 [binaries]
 # we could set exe_wrapper = qemu-arm-static but to test the case
-# when cross compiled binaries can't be built we don't do that
+# when cross compiled binaries can't be run we don't do that
 c = '/usr/bin/arm-linux-gnueabihf-gcc'
 cpp = '/usr/bin/arm-linux-gnueabihf-g++'
 ar = '/usr/arm-linux-gnueabihf/bin/ar'
@@ -21,6 +21,7 @@ alignment_double = 4 # Don't know if this is correct...
 has_function_printf = true
 has_function_hfkerhisadf = false
 
-[hostmachine]
+[host_machine]
 name = 'linux'
 cpu = 'arm'
+endian = 'little'
