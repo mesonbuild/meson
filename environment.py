@@ -590,10 +590,14 @@ class CrossBuildInfo():
     def __init__(self, filename):
         self.config = {}
         self.parse_datafile(filename)
+        if 'target_machine' in self.config:
+            return
+        if not 'host_machine' in self.config:
+            raise coredata.MesonException('Cross info file must have either host or a target machine.')
         if not 'properties' in self.config:
-            raise EnvironmentError('Cross file is missing "properties".')
+            raise coredata.MesonException('Cross file is missing "properties".')
         if not 'binaries' in self.config:
-            raise EnvironmentError('Cross file is missing "binaries".')
+            raise coredata.MesonException('Cross file is missing "binaries".')
 
     def ok_type(self, i):
         return isinstance(i, str) or isinstance(i, int) or isinstance(i, bool)
@@ -627,3 +631,8 @@ class CrossBuildInfo():
 
     def has_target(self):
         return 'target_machine' in self.config
+
+    # Wehn compiling a cross compiler we use the native compiler for everything.
+    # But not when cross compiling a cross compiler.
+    def need_cross_compiler(self):
+        return 'host_machine' in self.config

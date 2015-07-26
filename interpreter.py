@@ -756,7 +756,7 @@ class MesonMain(InterpreterObject):
         return self.interpreter.environment.build_dir
 
     def has_exe_wrapper_method(self, args, kwargs):
-        if self.is_cross_build_method(None, None):
+        if self.is_cross_build_method(None, None) and 'binaries' in self.build.environment.cross_info.config:
             return 'exe_wrap' in self.build.environment.cross_info.config['binaries']
         return True  # This is semantically confusing.
 
@@ -1241,7 +1241,7 @@ class Interpreter():
         raise InterpreterException('Error encountered: ' + args[0])
 
     def add_languages(self, node, args):
-        is_cross = self.environment.is_cross_build()
+        need_cross_compiler = self.environment.is_cross_build() and self.environment.cross_info.need_cross_compiler()
         for lang in args:
             lang = lang.lower()
             if lang in self.coredata.compilers:
@@ -1251,39 +1251,39 @@ class Interpreter():
                 cross_comp = None
                 if lang == 'c':
                     comp = self.environment.detect_c_compiler(False)
-                    if is_cross:
+                    if need_cross_compiler:
                         cross_comp = self.environment.detect_c_compiler(True)
                 elif lang == 'cpp':
                     comp = self.environment.detect_cpp_compiler(False)
-                    if is_cross:
+                    if need_cross_compiler:
                         cross_comp = self.environment.detect_cpp_compiler(True)
                 elif lang == 'objc':
                     comp = self.environment.detect_objc_compiler(False)
-                    if is_cross:
+                    if need_cross_compiler:
                         cross_comp = self.environment.detect_objc_compiler(True)
                 elif lang == 'objcpp':
                     comp = self.environment.detect_objcpp_compiler(False)
-                    if is_cross:
+                    if need_cross_compiler:
                         cross_comp = self.environment.detect_objcpp_compiler(True)
                 elif lang == 'java':
                     comp = self.environment.detect_java_compiler()
-                    if is_cross:
+                    if need_cross_compiler:
                         cross_comp = comp  # Java is platform independent.
                 elif lang == 'cs':
                     comp = self.environment.detect_cs_compiler()
-                    if is_cross:
+                    if need_cross_compiler:
                         cross_comp = comp  # C# is platform independent.
                 elif lang == 'vala':
                     comp = self.environment.detect_vala_compiler()
-                    if is_cross:
+                    if need_cross_compiler:
                         cross_comp = comp  # Vala is too (I think).
                 elif lang == 'rust':
                     comp = self.environment.detect_rust_compiler()
-                    if is_cross:
+                    if need_cross_compiler:
                         cross_comp = comp  # FIXME, probably not correct.
                 elif lang == 'fortran':
                     comp = self.environment.detect_fortran_compiler(False)
-                    if is_cross:
+                    if need_cross_compiler:
                         cross_comp = self.environment.detect_fortran_compiler(True)
                 else:
                     raise InvalidCode('Tried to use unknown language "%s".' % lang)
@@ -1297,9 +1297,11 @@ class Interpreter():
                 self.coredata.external_args[comp.get_language()] = ext_compile_args
                 self.coredata.external_link_args[comp.get_language()] = ext_link_args
             self.build.add_compiler(comp)
-            if is_cross:
+            if need_cross_compiler:
                 mlog.log('Cross %s compiler: ' % lang, mlog.bold(' '.join(cross_comp.get_exelist())), ' (%s %s)' % (cross_comp.id, cross_comp.version), sep='')
                 self.build.add_cross_compiler(cross_comp)
+            if self.environment.is_cross_build() and not need_cross_compiler:
+                self.build.add_cross_compiler(comp)
 
     def func_find_program(self, node, args, kwargs):
         self.validate_arguments(args, 1, [str])
