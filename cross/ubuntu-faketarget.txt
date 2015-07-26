@@ -7,6 +7,6 @@
 # binaries directly.
 
 [target_machine]
-name='linux'
-cpu='mips'
-endian='little'
+name = 'linux'
+cpu = 'mips'
+endian = 'little'

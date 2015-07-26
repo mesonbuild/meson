@@ -170,7 +170,7 @@ class ConfigureFileHolder(InterpreterObject):
 class ConfigurationDataHolder(InterpreterObject):
     def __init__(self):
         super().__init__()
-        self.used = False  # These objects become immutable after use in configure_file.
+        self.used = False # These objects become immutable after use in configure_file.
         self.held_object = build.ConfigurationData()
         self.methods.update({'set': self.set_method,
                              'set10': self.set10_method,
@@ -954,7 +954,7 @@ class Interpreter():
                     e.colno = cur.colno
                     e.file = os.path.join(self.subdir, 'meson.build')
                 raise e
-            i += 1  # In THE FUTURE jump over blocks and stuff.
+            i += 1 # In THE FUTURE jump over blocks and stuff.
 
     def get_variable(self, varname):
         if varname in self.builtin:
@@ -1055,7 +1055,7 @@ class Interpreter():
     def validate_arguments(self, args, argcount, arg_types):
         if argcount is not None:
             if argcount != len(args):
-                raise InvalidArguments('Expected %d arguments, got %d.' % 
+                raise InvalidArguments('Expected %d arguments, got %d.' %
                                        (argcount, len(args)))
         for i in range(min(len(args), len(arg_types))):
             wanted = arg_types[i]
@@ -1579,7 +1579,7 @@ class Interpreter():
         elif 'command' in kwargs:
             res = self.func_run_command(node, kwargs['command'], {})
             if res.returncode != 0:
-                raise InterpreterException('Running configure command failed.\n%s\n%s' % 
+                raise InterpreterException('Running configure command failed.\n%s\n%s' %
                                            (res.stdout, res.stderr))
         else:
             raise InterpreterException('Configure_file must have either "configuration" or "command".')
@@ -1706,7 +1706,7 @@ class Interpreter():
     def check_sources_exist(self, subdir, sources):
         for s in sources:
             if not isinstance(s, str):
-                continue  # This means a generated source and they always exist.
+                continue # This means a generated source and they always exist.
             fname = os.path.join(subdir, s)
             if not os.path.isfile(fname):
                 raise InterpreterException('Tried to add non-existing source %s.' % s)
@@ -1788,7 +1788,7 @@ class Interpreter():
             args = args.arguments
         for (i, arg) in enumerate(args):
             arg = self.to_native(self.evaluate_statement(arg))
-            if isinstance(arg, bool):  # Python boolean is upper case.
+            if isinstance(arg, bool): # Python boolean is upper case.
                 arg = str(arg).lower()
             templ = templ.replace('@{}@'.format(i), str(arg))
         return templ
