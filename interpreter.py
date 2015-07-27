@@ -1268,15 +1268,15 @@ class Interpreter():
                 elif lang == 'java':
                     comp = self.environment.detect_java_compiler()
                     if need_cross_compiler:
-                        cross_comp = comp  # Java is platform independent.
+                        cross_comp = comp # Java is platform independent.
                 elif lang == 'cs':
                     comp = self.environment.detect_cs_compiler()
                     if need_cross_compiler:
-                        cross_comp = comp  # C# is platform independent.
+                        cross_comp = comp # C# is platform independent.
                 elif lang == 'vala':
                     comp = self.environment.detect_vala_compiler()
                     if need_cross_compiler:
-                        cross_comp = comp  # Vala is too (I think).
+                        cross_comp = comp # Vala is too (I think).
                 elif lang == 'rust':
                     comp = self.environment.detect_rust_compiler()
                     if need_cross_compiler:
