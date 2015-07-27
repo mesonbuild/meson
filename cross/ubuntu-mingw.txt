@@ -17,6 +17,6 @@ cpu = 'x86'
 endian = 'little'
 
 [target_machine]
-name='darwin'
-cpu='arm'
+name = 'darwin'
+cpu = 'arm'
 endian = 'little'
