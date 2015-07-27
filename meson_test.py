@@ -95,6 +95,8 @@ def run_single_test(wrap, test):
         starttime = time.time()
         child_env = os.environ.copy()
         child_env.update(test.env)
+        if len(test.extra_paths) > 0:
+            child_env['PATH'] = child_env['PATH'] + ';'.join([''] + test.extra_paths)
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                              env=child_env)
         timed_out = False

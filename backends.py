@@ -20,7 +20,7 @@ from coredata import MesonException
 
 class TestSerialisation:
     def __init__(self, name, fname, is_cross, exe_wrapper, is_parallel, cmd_args, env,
-                 should_fail, valgrind_args, timeout):
+                 should_fail, valgrind_args, timeout, extra_paths):
         self.name = name
         self.fname = fname
         self.is_cross = is_cross
@@ -31,6 +31,7 @@ class TestSerialisation:
         self.should_fail = should_fail
         self.valgrind_args = valgrind_args
         self.timeout = timeout
+        self.extra_paths = extra_paths
 
 # This class contains the basic functionality that is needed by all backends.
 # Feel free to move stuff in and out of it as you see fit.
@@ -238,6 +239,17 @@ class Backend():
             args += self.build_target_link_arguments(compiler, d.get_dependencies())
         return args
 
+    def determine_windows_extra_paths(self, target):
+        '''On Windows there is no such thing as an rpath.
+        We must determine all locations of DLLs that this exe
+        links to and return them so they can be used in unit
+        tests.'''
+        if not isinstance(target, build.Executable):
+            print(target)
+            return []
+        prospectives = target.get_transitive_rpaths()
+        return [os.path.join(self.environment.get_build_dir(), i) for i in prospectives if len(i) > 0]
+
     def write_test_file(self, datafile):
         arr = []
         for t in self.build.get_tests():
@@ -251,9 +263,13 @@ class Backend():
                 exe_wrapper = self.environment.cross_info.get('exe_wrapper', None)
             else:
                 exe_wrapper = None
+            if mesonlib.is_windows():
+                extra_paths = self.determine_windows_extra_paths(exe)
+            else:
+                extra_paths = []
             ts = TestSerialisation(t.get_name(), fname, is_cross, exe_wrapper,
                                    t.is_parallel, t.cmd_args, t.env, t.should_fail, t.valgrind_args,
-                                   t.timeout)
+                                   t.timeout, extra_paths)
             arr.append(ts)
         pickle.dump(arr, datafile)
 
