@@ -5,6 +5,7 @@ if not meson.is_subproject()
 endif
 
 i = include_directories('include')
-l = shared_library('sublib', 'sublib.c', include_directories : i, install : true)
+l = shared_library('sublib', 'sublib.c', include_directories : i, install : true,
+ c_args : '-DBUILDING_SUB=2')
 t = executable('simpletest', 'simpletest.c', include_directories : i, link_with : l)
 test('plain', t)

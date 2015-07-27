@@ -1,5 +1,5 @@
 #include<subdefs.h>
 
-int subfunc() {
+int DLL_PUBLIC subfunc() {
     return 42;
 }
