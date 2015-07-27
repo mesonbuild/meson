@@ -1280,7 +1280,7 @@ class Interpreter():
                 elif lang == 'rust':
                     comp = self.environment.detect_rust_compiler()
                     if need_cross_compiler:
-                        cross_comp = comp  # FIXME, probably not correct.
+                        cross_comp = comp # FIXME, probably not correct.
                 elif lang == 'fortran':
                     comp = self.environment.detect_fortran_compiler(False)
                     if need_cross_compiler:
@@ -1356,7 +1356,7 @@ class Interpreter():
         if identifier in self.coredata.deps:
             dep = self.coredata.deps[identifier]
         else:
-            dep = dependencies.Dependency()  # Returns always false for dep.found()
+            dep = dependencies.Dependency() # Returns always false for dep.found()
         if not dep.found():
             dep = dependencies.find_external_dependency(name, self.environment, kwargs)
         self.coredata.deps[identifier] = dep
@@ -1394,7 +1394,7 @@ class Interpreter():
         if not isinstance(fallback, str):
             raise InterpreterException('Keyword argument must exist and be a string.')
         replace_string = kwargs.pop('replace_string', '@VCS_TAG@')
-        regex_selector = '(.*)'  # default regex selector for custom command: use complete output
+        regex_selector = '(.*)' # default regex selector for custom command: use complete output
         vcs_cmd = kwargs.get('command', None)
         if vcs_cmd and not isinstance(vcs_cmd, list):
             vcs_cmd = [vcs_cmd]
@@ -1409,7 +1409,7 @@ class Interpreter():
                 vcs_cmd = vcs['get_rev'].split()
                 regex_selector = vcs['rev_regex']
             else:
-                vcs_cmd = [' ']  # executing this cmd will fail in vcstagger.py and force to use the fallback string
+                vcs_cmd = [' '] # executing this cmd will fail in vcstagger.py and force to use the fallback string
         scriptfile = os.path.join(self.environment.get_script_dir(), 'vcstagger.py')
         # vcstagger.py parameters: infile, outfile, fallback, source_dir, replace_string, regex_selector, command...
         kwargs['command'] = [sys.executable, scriptfile, '@INPUT0@', '@OUTPUT0@', fallback, source_dir, replace_string, regex_selector] + vcs_cmd
