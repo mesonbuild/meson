@@ -326,7 +326,7 @@ int main(int argc, char **argv) {
         varname = 'sizeof ' + element
         varname = varname.replace(' ', '_')
         if self.is_cross:
-            val = env.cross_info.get(varname)
+            val = env.cross_info.config['properties'][varname]
             if val is not None:
                 if isinstance(val, int):
                     return val
@@ -363,7 +363,7 @@ int main(int argc, char **argv) {
         varname = 'alignment ' + typename
         varname = varname.replace(' ', '_')
         if self.is_cross:
-            val = env.cross_info.get(varname)
+            val = env.cross_info.config['properties'][varname]
             if val is not None:
                 if isinstance(val, int):
                     return val
@@ -399,7 +399,7 @@ int main(int argc, char **argv) {
         varname = 'has function ' + funcname
         varname = varname.replace(' ', '_')
         if self.is_cross:
-            val = env.cross_info.get(varname)
+            val = env.cross_info.config['properties'].get(varname, None)
             if val is not None:
                 if isinstance(val, bool):
                     return val

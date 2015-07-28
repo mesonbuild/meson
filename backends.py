@@ -258,9 +258,9 @@ class Backend():
                 fname = exe.fullpath
             else:
                 fname = [os.path.join(self.environment.get_build_dir(), self.get_target_filename(t.get_exe()))]
-            is_cross = self.environment.is_cross_build()
+            is_cross = self.environment.is_cross_build() and self.environment.cross_info.need_cross_compiler()
             if is_cross:
-                exe_wrapper = self.environment.cross_info.get('exe_wrapper', None)
+                exe_wrapper = self.environment.cross_info.config['binaries'].get('exe_wrapper', None)
             else:
                 exe_wrapper = None
             if mesonlib.is_windows():

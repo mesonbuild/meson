@@ -9,7 +9,7 @@ project('grabber', 'c')
 # acceptable to you, then we're certainly not going to stop you. Just don't
 # file bugs when it fails. :)
 
-if build.name() == 'windows'
+if build_machine.name() == 'windows'
   c = run_command('grabber.bat')
   grabber = find_program('grabber2.bat')
 else

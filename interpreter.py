@@ -302,32 +302,54 @@ class GeneratedListHolder(InterpreterObject):
     def add_file(self, a):
         self.held_object.add_file(a)
 
-class Build(InterpreterObject):
+class BuildMachine(InterpreterObject):
     def __init__(self):
         InterpreterObject.__init__(self)
-        self.methods.update({'name' : self.get_name_method,
+        self.methods.update({'name' : self.name_method,
+                             'endian' : self.endian_method,
                             })
 
-    def get_name_method(self, args, kwargs):
+    # Python is inconsistent in its platform module.
+    # It returns different values for the same cpu.
+    # For x86 it might return 'x86', 'i686' or somesuch.
+    # Do some canonicalization.
+    def cpu_method(self, args, kwargs):
+        trial = platform.machine().lower()
+        if trial.startswith('i') and trial.endswith('86'):
+            return 'x86'
+        # This might be wrong. Maybe we should return the more
+        # specific string such as 'armv7l'. Need to get user
+        # feedback first.
+        if trial.startswith('arm'):
+            return 'arm'
+        # Add fixes here as bugs are reported.
+        return trial
+
+    def name_method(self, args, kwargs):
         return platform.system().lower()
 
-# This currently returns data for the current environment.
-# It should return info for the target host.
-class Host(InterpreterObject):
-    def __init__(self, envir):
+    def endian_method(self, args, kwargs):
+        return sys.byteorder
+
+# This class will provide both host_machine and
+# target_machine
+class CrossMachineInfo(InterpreterObject):
+    def __init__(self, cross_info):
         InterpreterObject.__init__(self)
-        self.environment = envir
-        self.methods.update({'name' : self.get_name_method,
-                             'is_big_endian' : self.is_big_endian_method,
+        self.info = cross_info
+        self.methods.update({'name' : self.name_method,
+                             'cpu' : self.cpu_method,
+                             'endian' : self.endian_method,
                             })
 
-    def get_name_method(self, args, kwargs):
-        if self.environment.is_cross_build():
-            return self.environment.cross_info.get('name')
-        return platform.system().lower()
+    def name_method(self, args, kwargs):
+        return self.info['name']
 
-    def is_big_endian_method(self, args, kwargs):
-        return sys.byteorder != 'little'
+    def cpu_method(self, args, kwargs):
+        return self.info['cpu']
+
+    def endian_method(self, args, kwargs):
+        return self.info['endian']
 
 class IncludeDirsHolder(InterpreterObject):
     def __init__(self, curdir, dirs):
@@ -734,9 +756,9 @@ class MesonMain(InterpreterObject):
         return self.interpreter.environment.build_dir
 
     def has_exe_wrapper_method(self, args, kwargs):
-        if self.is_cross_build_method(None, None):
-            return 'exe_wrap' in  self.build.environment.cross_info
-        return True # This is semantically confusing.
+        if self.is_cross_build_method(None, None) and 'binaries' in self.build.environment.cross_info.config:
+            return 'exe_wrap' in self.build.environment.cross_info.config['binaries']
+        return True  # This is semantically confusing.
 
     def is_cross_build_method(self, args, kwargs):
         return self.build.environment.is_cross_build()
@@ -778,7 +800,7 @@ class Interpreter():
         self.subproject_dir = subproject_dir
         option_file = os.path.join(self.source_root, self.subdir, 'meson_options.txt')
         if os.path.exists(option_file):
-            oi = optinterpreter.OptionInterpreter(self.subproject,\
+            oi = optinterpreter.OptionInterpreter(self.subproject, \
                                                   self.build.environment.cmd_line_options)
             oi.process(option_file)
             self.build.environment.merge_options(oi.options)
@@ -797,8 +819,20 @@ class Interpreter():
         self.sanity_check_ast()
         self.variables = {}
         self.builtin = {}
-        self.builtin['build'] = Build()
-        self.builtin['host'] = Host(build.environment)
+        self.builtin['build_machine'] = BuildMachine()
+        if not self.build.environment.is_cross_build():
+            self.builtin['host_machine'] = self.builtin['build_machine']
+            self.builtin['target_machine'] = self.builtin['build_machine']
+        else:
+            cross_info = self.build.environment.cross_info
+            if cross_info.has_host():
+                self.builtin['host_machine'] = CrossMachineInfo(cross_info.config['host_machine'])
+            else:
+                self.builtin['host_machine'] = self.builtin['build_machine']
+            if cross_info.has_target():
+                self.builtin['target_machine'] = CrossMachineInfo(cross_info.config['target_machine'])
+            else:
+                self.builtin['target_machine'] = self.builtin['host_machine']
         self.builtin['meson'] = MesonMain(build, self)
         self.environment = build.environment
         self.build_func_dict()
@@ -1155,7 +1189,7 @@ class Interpreter():
 
     @stringArgs
     def func_project(self, node, args, kwargs):
-        if len(args)< 2:
+        if len(args) < 2:
             raise InvalidArguments('Not enough arguments to project(). Needs at least the project name and one language')
         if list(kwargs.keys()) != ['subproject_dir'] and len(kwargs) != 0:
             raise InvalidArguments('project() only accepts the keyword argument "subproject_dir"')
@@ -1189,7 +1223,7 @@ class Interpreter():
 
         arg = posargs[0]
         if isinstance(arg, list):
-            argstr =  stringifyUserArguments(arg)
+            argstr = stringifyUserArguments(arg)
         elif isinstance(arg, str):
             argstr = arg
         elif isinstance(arg, int):
@@ -1207,7 +1241,7 @@ class Interpreter():
         raise InterpreterException('Error encountered: ' + args[0])
 
     def add_languages(self, node, args):
-        is_cross = self.environment.is_cross_build()
+        need_cross_compiler = self.environment.is_cross_build() and self.environment.cross_info.need_cross_compiler()
         for lang in args:
             lang = lang.lower()
             if lang in self.coredata.compilers:
@@ -1217,39 +1251,39 @@ class Interpreter():
                 cross_comp = None
                 if lang == 'c':
                     comp = self.environment.detect_c_compiler(False)
-                    if is_cross:
+                    if need_cross_compiler:
                         cross_comp = self.environment.detect_c_compiler(True)
                 elif lang == 'cpp':
                     comp = self.environment.detect_cpp_compiler(False)
-                    if is_cross:
+                    if need_cross_compiler:
                         cross_comp = self.environment.detect_cpp_compiler(True)
                 elif lang == 'objc':
                     comp = self.environment.detect_objc_compiler(False)
-                    if is_cross:
+                    if need_cross_compiler:
                         cross_comp = self.environment.detect_objc_compiler(True)
                 elif lang == 'objcpp':
                     comp = self.environment.detect_objcpp_compiler(False)
-                    if is_cross:
+                    if need_cross_compiler:
                         cross_comp = self.environment.detect_objcpp_compiler(True)
                 elif lang == 'java':
                     comp = self.environment.detect_java_compiler()
-                    if is_cross:
+                    if need_cross_compiler:
                         cross_comp = comp # Java is platform independent.
                 elif lang == 'cs':
                     comp = self.environment.detect_cs_compiler()
-                    if is_cross:
+                    if need_cross_compiler:
                         cross_comp = comp # C# is platform independent.
                 elif lang == 'vala':
                     comp = self.environment.detect_vala_compiler()
-                    if is_cross:
+                    if need_cross_compiler:
                         cross_comp = comp # Vala is too (I think).
                 elif lang == 'rust':
                     comp = self.environment.detect_rust_compiler()
-                    if is_cross:
+                    if need_cross_compiler:
                         cross_comp = comp # FIXME, probably not correct.
                 elif lang == 'fortran':
                     comp = self.environment.detect_fortran_compiler(False)
-                    if is_cross:
+                    if need_cross_compiler:
                         cross_comp = self.environment.detect_fortran_compiler(True)
                 else:
                     raise InvalidCode('Tried to use unknown language "%s".' % lang)
@@ -1263,9 +1297,11 @@ class Interpreter():
                 self.coredata.external_args[comp.get_language()] = ext_compile_args
                 self.coredata.external_link_args[comp.get_language()] = ext_link_args
             self.build.add_compiler(comp)
-            if is_cross:
+            if need_cross_compiler:
                 mlog.log('Cross %s compiler: ' % lang, mlog.bold(' '.join(cross_comp.get_exelist())), ' (%s %s)' % (cross_comp.id, cross_comp.version), sep='')
                 self.build.add_cross_compiler(cross_comp)
+            if self.environment.is_cross_build() and not need_cross_compiler:
+                self.build.add_cross_compiler(comp)
 
     def func_find_program(self, node, args, kwargs):
         self.validate_arguments(args, 1, [str])
@@ -1504,7 +1540,7 @@ class Interpreter():
 
     @stringArgs
     def func_install_subdir(self, node, args, kwargs):
-        if len(args ) != 1:
+        if len(args) != 1:
             raise InvalidArguments('Install_subdir requires exactly one argument.')
         if not 'install_dir' in kwargs:
             raise InvalidArguments('Missing keyword argument install_dir')

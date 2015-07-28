@@ -773,7 +773,10 @@ class NinjaBackend(backends.Backend):
             if not is_cross:
                 self.generate_java_link(outfile)
         if is_cross:
-            static_linker = self.build.static_cross_linker
+            if self.environment.cross_info.need_cross_compiler():
+                static_linker = self.build.static_cross_linker
+            else:
+                static_linker = self.build.static_linker
             crstr = '_CROSS'
         else:
             static_linker = self.build.static_linker
@@ -790,7 +793,15 @@ class NinjaBackend(backends.Backend):
         outfile.write(description)
 
     def generate_dynamic_link_rules(self, outfile):
-        ctypes = [(self.build.compilers, False), (self.build.cross_compilers, True)]
+        ctypes = [(self.build.compilers, False)]
+        if self.environment.is_cross_build():
+            if self.environment.cross_info.need_cross_compiler():
+                ctypes.append((self.build.cross_compilers, True))
+            else:
+                # Native compiler masquerades as the cross compiler.
+                ctypes.append((self.build.compilers, True))
+        else:
+            ctypes.append((self.build.cross_compilers, True))
         for (complist, is_cross) in ctypes:
             for compiler in complist:
                 langname = compiler.get_language()
@@ -982,7 +993,13 @@ rule FORTRAN_DEP_HACK
             self.generate_compile_rule_for(langname, compiler, qstr, False, outfile)
             self.generate_pch_rule_for(langname, compiler, qstr, False, outfile)
         if self.environment.is_cross_build():
-            for compiler in self.build.cross_compilers:
+            # In case we are going a target-only build, make the native compilers
+            # masquerade as cross compilers.
+            if self.environment.cross_info.need_cross_compiler():
+                cclist = self.build.cross_compilers
+            else:
+                cclist = self.build.compilers
+            for compiler in cclist:
                 langname = compiler.get_language()
                 self.generate_compile_rule_for(langname, compiler, qstr, True, outfile)
                 self.generate_pch_rule_for(langname, compiler, qstr, True, outfile)
@@ -1267,8 +1284,8 @@ rule FORTRAN_DEP_HACK
         targetdir = self.get_target_private_dir(target)
         symname = os.path.join(targetdir, target_name + '.symbols')
         elem = NinjaBuildElement(symname, 'SHSYM', target_name)
-        if self.environment.is_cross_build():
-            elem.add_item('CROSS', '--cross-host=' + self.environment.cross_info['name'])
+        if self.environment.is_cross_build() and self.environment.cross_info.need_cross_compiler():
+            elem.add_item('CROSS', '--cross-host=' + self.environment.cross_info.config['host_machine']['name'])
         elem.write(outfile)
 
     def generate_link(self, target, outfile, outname, obj_list, linker, extra_args=[]):
