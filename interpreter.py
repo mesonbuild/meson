@@ -908,6 +908,10 @@ class Interpreter():
                 outvalues.append(self.module_method_callback(v))
             elif isinstance(v, build.GeneratedList):
                 outvalues.append(GeneratedListHolder(v))
+            elif isinstance(v, build.RunTarget):
+                if v.name in self.build.targets:
+                    raise InterpreterException('Tried to create target %s which already exists.' % v.name)
+                self.build.targets[v.name] = v
             else:
                 print(v)
                 raise InterpreterException('Module returned a value of unknown type.')

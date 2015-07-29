@@ -16,7 +16,7 @@
 functionality such as gobject-introspection and gresources.'''
 
 import build
-import os
+import os, sys
 import subprocess
 from coredata import MesonException
 import mlog
@@ -175,6 +175,24 @@ class GnomeModule:
             targetname = 'gsettings-compile-' + state.subdir
         target_g = build.CustomTarget(targetname, state.subdir, kwargs)
         return target_g
+
+    def gtkdoc(self, state, args, kwargs):
+        if len(args) != 1:
+            raise MesonException('Gtkdoc must have one positional argument.')
+        modulename = args[0]
+        if not isinstance(modulename, str):
+            raise MesonException('Gtkdoc arg must be string.')
+        if not 'src_dir' in kwargs:
+            raise MesonException('Keyword argument src_dir missing.')
+        src_dir = kwargs['src_dir']
+        targetname = modulename + '-doc'
+        command = os.path.normpath(os.path.join(os.path.split(__file__)[0], "../gtkdochelper.py"))
+        args = [state.environment.get_source_dir(),
+                state.environment.get_build_dir(),
+                state.subdir,
+                os.path.normpath(os.path.join(state.subdir, src_dir)),
+                modulename]
+        return build.RunTarget(targetname, command, args, state.subdir)
 
     def gdbus_codegen(self, state, args, kwargs):
         if len(args) != 2:
