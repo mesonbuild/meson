@@ -192,7 +192,10 @@ class GnomeModule:
                 state.subdir,
                 os.path.normpath(os.path.join(state.subdir, src_dir)),
                 modulename]
-        return build.RunTarget(targetname, command, args, state.subdir)
+        res = [build.RunTarget(targetname, command, args, state.subdir)]
+        if kwargs.get('install', True):
+            res.append(build.InstallScript([command] + args))
+        return res
 
     def gdbus_codegen(self, state, args, kwargs):
         if len(args) != 2:

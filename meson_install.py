@@ -29,7 +29,7 @@ class InstallData():
         self.data = []
         self.po_package_name = ''
         self.po = []
-        self.install_script = None
+        self.install_scripts = []
         self.install_subdirs = []
 
 def do_install(datafilename):
@@ -119,26 +119,28 @@ def install_headers(d):
         shutil.copystat(fullfilename, outfilename)
 
 def run_install_script(d):
-    if d.install_script is None:
-        return
     env = {'MESON_SOURCE_ROOT' : d.source_dir,
            'MESON_BUILD_ROOT' : d.build_dir,
            'MESON_INSTALL_PREFIX' : d.prefix
           }
-    script = d.install_script
-    print('Running custom install script %s' % script)
-    suffix = os.path.splitext(script)[1].lower()
-    if platform.system().lower() == 'windows' and suffix != '.bat':
-        first_line = open(script).readline().strip()
-        if first_line.startswith('#!'):
-            commands = first_line[2:].split('#')[0].strip().split()
-            commands[0] = shutil.which(commands[0].split('/')[-1])
-            if commands[0] is None:
-                raise RuntimeError("Don't know how to run script %s." % script)
-            script = commands + [script]
     child_env = os.environ.copy()
     child_env.update(env)
-    subprocess.check_call(script, env=child_env)
+
+    for i in d.install_scripts:
+        script = i.cmd_arr[0]
+        print('Running custom install script %s' % script)
+        suffix = os.path.splitext(script)[1].lower()
+        if platform.system().lower() == 'windows' and suffix != '.bat':
+            first_line = open(script).readline().strip()
+            if first_line.startswith('#!'):
+                commands = first_line[2:].split('#')[0].strip().split()
+                commands[0] = shutil.which(commands[0].split('/')[-1])
+                if commands[0] is None:
+                    raise RuntimeError("Don't know how to run script %s." % script)
+                final_command = commands + [script] + i.cmd_arr[1:]
+        else:
+            final_command = i.cmd_arr
+        subprocess.check_call(final_command, env=child_env)
 
 def is_elf_platform():
     platname = platform.system().lower()

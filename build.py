@@ -72,7 +72,7 @@ class Build:
         self.pot = []
         self.subprojects = {}
         self.pkgconfig_gens = []
-        self.install_script = None
+        self.install_scripts = []
         self.install_dirs = []
 
     def has_language(self, language):
@@ -894,3 +894,8 @@ class PkgConfigGenerator():
         self.description = description
         self.version = version
         self.filebase = filebase
+
+class InstallScript:
+    def __init__(self, cmd_arr):
+        assert(isinstance(cmd_arr, list))
+        self.cmd_arr = cmd_arr

@@ -1,3 +1,3 @@
 gnome = import('gnome')
 
-gnome.gtkdoc('foobar', src_dir : '../include')
+gnome.gtkdoc('foobar', src_dir : '../include', install : true)

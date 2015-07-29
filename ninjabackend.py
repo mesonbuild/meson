@@ -431,8 +431,7 @@ class NinjaBackend(backends.Backend):
             d.man.append(i)
 
     def generate_custom_install_script(self, d):
-        d.install_script = self.build.install_script
-
+        d.install_scripts = self.build.install_scripts
 
     def generate_header_install(self, d):
         incroot = self.environment.get_includedir()
