@@ -306,6 +306,7 @@ class BuildMachine(InterpreterObject):
     def __init__(self):
         InterpreterObject.__init__(self)
         self.methods.update({'name' : self.name_method,
+                             'cpu' : self.cpu_method,
                              'endian' : self.endian_method,
                             })
 
