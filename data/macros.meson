@@ -1,11 +1,12 @@
 %__meson /usr/bin/meson
 
-%meson \
-  CFLAGS="${CFLAGS:-%optflags}" ; export CFLAGS ; \
-  CXXFLAGS="${CXXFLAGS:-%optflags}" ; export CXXFLAGS ; \
-  FFLAGS="${FFLAGS:-%optflags%{?_fmoddir: -I%_fmoddir}}" ; export FFLAGS ; \
-  FCFLAGS="${FCFLAGS:-%optflags%{?_fmoddir: -I%_fmoddir}}" ; export FCFLAGS ; \
-  %{?__global_ldflags:LDFLAGS="${LDFLAGS:-%__global_ldflags}" ; export LDFLAGS ;} \
-  %__meson \\\
+%meson() %{expand:\
+  CFLAGS="%{optflags}" ; \
+  CXXFLAGS="%{optflags}" ; \
+  FFLAGS="%{optflags} -I%{_fmoddir}" ; \
+  FCFLAGS="%{optflags} -I%{_fmoddir}" ; \
+  LDFLAGS="%{__global_ldflags}" ; \
+  %__meson %{?1} \\\
         --prefix=%{_prefix} \\\
-        --buildtype=plain
+        --buildtype=plain \
+}
