@@ -17,7 +17,7 @@ import sys, os
 import subprocess
 import shutil
 
-def build_gtkdoc(source_root, build_root, doc_subdir, src_subdir, module):
+def build_gtkdoc(source_root, build_root, doc_subdir, src_subdir, main_sgml, module):
     abs_src = os.path.join(source_root, src_subdir)
     abs_out = os.path.join(build_root, doc_subdir)
     htmldir = os.path.join(abs_out, 'html')
@@ -25,18 +25,30 @@ def build_gtkdoc(source_root, build_root, doc_subdir, src_subdir, module):
                            '--module=' + module,
                            '--source-dir=' + abs_src,
                            '--output-dir=.'], cwd=abs_out)
-    subprocess.check_call(['gtkdoc-mkdb',
-                           '--module=' + module,
-                           '--output-format=xml',
-                           '--source-dir=' + abs_src], cwd=abs_out)
+    mkdb_cmd = ['gtkdoc-mkdb',
+                '--module=' + module,
+                '--output-format=xml',
+                '--sgml-mode',
+                '--source-dir=' + abs_src]
+    sgml_abs = os.path.join(source_root, doc_subdir, main_sgml)
+    if len(main_sgml) > 0:
+        mkdb_cmd.append('--main-sgml-file=' + sgml_abs)
+    subprocess.check_call(mkdb_cmd, cwd=abs_out)
     shutil.rmtree(htmldir, ignore_errors=True)
     try:
         os.mkdir(htmldir)
     except Exception:
         pass
-    subprocess.check_call(['gtkdoc-mkhtml',
-                           module,
-                           '../%s-docs.xml' % module], cwd=htmldir)
+    mkhtml_cmd = ['gtkdoc-mkhtml', module]
+    if len(main_sgml) > 0:
+        # Workaround for
+        # https://bugzilla.gnome.org/show_bug.cgi?id=753145
+        plainfile = os.path.split(sgml_abs)[1]
+        shutil.copy(sgml_abs, os.path.join(abs_out, plainfile))
+        mkhtml_cmd.append('../' + plainfile)
+    else:
+        mkhtml_cmd.append('../%s-docs.xml' % module)
+    subprocess.check_call(mkhtml_cmd, cwd=htmldir, shell=False)
     subprocess.check_call(['gtkdoc-fixxref',
                            '--module=' + module,
                            '--module-dir=html'], cwd=abs_out)
@@ -53,12 +65,12 @@ if __name__ == '__main__':
 #    doc_subdir = 'doc'
 #    src_subdir = 'include'
 #    module = 'foobar'
-    if len(sys.argv) != 6:
+    if len(sys.argv) != 7:
         print(sys.argv)
         print("Bad arguments.")
         sys.exit(1)
-    (source_root, build_root, doc_subdir, src_subdir, module) = sys.argv[1:]
-    build_gtkdoc(source_root, build_root, doc_subdir, src_subdir, module)
+    (source_root, build_root, doc_subdir, src_subdir, main_sgml, module) = sys.argv[1:]
+    build_gtkdoc(source_root, build_root, doc_subdir, src_subdir, main_sgml, module)
 
     if 'MESON_INSTALL_PREFIX' in os.environ:
         if 'DESTDIR' in os.environ:

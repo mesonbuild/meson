@@ -1,8 +1,6 @@
-usr/share/gtk-doc/html/foobar/api-index-full.html
-usr/share/gtk-doc/html/foobar/ch01.html
-usr/share/gtk-doc/html/foobar/deprecated-api-index.html
 usr/share/gtk-doc/html/foobar/foobar.devhelp2
 usr/share/gtk-doc/html/foobar/foobar-foo.html
+usr/share/gtk-doc/html/foobar/foobar.html
 usr/share/gtk-doc/html/foobar/home.png
 usr/share/gtk-doc/html/foobar/index.html
 usr/share/gtk-doc/html/foobar/index.sgml
