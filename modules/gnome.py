@@ -184,9 +184,16 @@ class GnomeModule:
             raise MesonException('Gtkdoc arg must be string.')
         if not 'src_dir' in kwargs:
             raise MesonException('Keyword argument src_dir missing.')
-        main_sgml = kwargs.get('main_sgml', '')
-        if not isinstance(main_sgml, str):
+        main_file = kwargs.get('main_sgml', '')
+        if not isinstance(main_file, str):
             raise MesonException('Main sgml keyword argument must be a string.')
+        main_xml = kwargs.get('main_xml', '')
+        if not isinstance(main_xml, str):
+            raise MesonException('Main xml keyword argument must be a string.')
+        if main_xml != '':
+            if main_file != '':
+                raise MesonException('You can only specify main_xml or main_sgml, not both.')
+            main_file = main_xml
         src_dir = kwargs['src_dir']
         targetname = modulename + '-doc'
         command = os.path.normpath(os.path.join(os.path.split(__file__)[0], "../gtkdochelper.py"))
@@ -194,7 +201,7 @@ class GnomeModule:
                 state.environment.get_build_dir(),
                 state.subdir,
                 os.path.normpath(os.path.join(state.subdir, src_dir)),
-                main_sgml,
+                main_file,
                 modulename]
         res = [build.RunTarget(targetname, command, args, state.subdir)]
         if kwargs.get('install', True):

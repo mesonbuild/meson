@@ -17,7 +17,7 @@ import sys, os
 import subprocess
 import shutil
 
-def build_gtkdoc(source_root, build_root, doc_subdir, src_subdir, main_sgml, module):
+def build_gtkdoc(source_root, build_root, doc_subdir, src_subdir, main_file, module):
     abs_src = os.path.join(source_root, src_subdir)
     abs_out = os.path.join(build_root, doc_subdir)
     htmldir = os.path.join(abs_out, 'html')
@@ -25,14 +25,19 @@ def build_gtkdoc(source_root, build_root, doc_subdir, src_subdir, main_sgml, mod
                            '--module=' + module,
                            '--source-dir=' + abs_src,
                            '--output-dir=.'], cwd=abs_out)
+    if main_file.endswith('sgml'):
+        modeflag = '--sgml-mode'
+    else:
+        modeflag = '--xml-mode'
     mkdb_cmd = ['gtkdoc-mkdb',
                 '--module=' + module,
                 '--output-format=xml',
-                '--sgml-mode',
+                modeflag,
                 '--source-dir=' + abs_src]
-    sgml_abs = os.path.join(source_root, doc_subdir, main_sgml)
+    main_abs = os.path.join(source_root, doc_subdir, main_file)
     if len(main_sgml) > 0:
-        mkdb_cmd.append('--main-sgml-file=' + sgml_abs)
+        # Yes, this is the flag even if the file is in xml.
+        mkdb_cmd.append('--main-sgml-file=' + main_abs)
     subprocess.check_call(mkdb_cmd, cwd=abs_out)
     shutil.rmtree(htmldir, ignore_errors=True)
     try:
@@ -40,11 +45,11 @@ def build_gtkdoc(source_root, build_root, doc_subdir, src_subdir, main_sgml, mod
     except Exception:
         pass
     mkhtml_cmd = ['gtkdoc-mkhtml', module]
-    if len(main_sgml) > 0:
+    if len(main_file) > 0:
         # Workaround for
         # https://bugzilla.gnome.org/show_bug.cgi?id=753145
-        plainfile = os.path.split(sgml_abs)[1]
-        shutil.copy(sgml_abs, os.path.join(abs_out, plainfile))
+        plainfile = os.path.split(main_abs)[1]
+        shutil.copy(main_abs, os.path.join(abs_out, plainfile))
         mkhtml_cmd.append('../' + plainfile)
     else:
         mkhtml_cmd.append('../%s-docs.xml' % module)
