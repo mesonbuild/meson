@@ -722,10 +722,10 @@ class MesonMain(InterpreterObject):
                              'current_build_dir' : self.current_build_dir_method,
                              'source_root' : self.source_root_method,
                              'build_root' : self.build_root_method,
-                             'set_install_script' : self.set_install_script_method,
+                             'add_install_script' : self.add_install_script_method,
                             })
 
-    def set_install_script_method(self, args, kwargs):
+    def add_install_script_method(self, args, kwargs):
         if len(args) != 1:
             raise InterpreterException('Set_install_script takes exactly one argument.')
         check_stringlist(args)
@@ -734,7 +734,7 @@ class MesonMain(InterpreterObject):
                                   self.interpreter.subdir, scriptbase)
         if not os.path.isfile(scriptfile):
             raise InterpreterException('Can not find install script %s.' % scriptbase)
-        self.build.install_script = scriptfile
+        self.build.install_scripts.append(build.InstallScript([scriptfile]))
 
     def current_source_dir_method(self, args, kwargs):
         src = self.interpreter.environment.source_dir
@@ -909,6 +909,12 @@ class Interpreter():
                 outvalues.append(self.module_method_callback(v))
             elif isinstance(v, build.GeneratedList):
                 outvalues.append(GeneratedListHolder(v))
+            elif isinstance(v, build.RunTarget):
+                if v.name in self.build.targets:
+                    raise InterpreterException('Tried to create target %s which already exists.' % v.name)
+                self.build.targets[v.name] = v
+            elif isinstance(v, build.InstallScript):
+                self.build.install_scripts.append(v)
             else:
                 print(v)
                 raise InterpreterException('Module returned a value of unknown type.')

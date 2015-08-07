@@ -1,0 +1,13 @@
+usr/share/gtk-doc/html/foobar/foobar.devhelp2
+usr/share/gtk-doc/html/foobar/foobar-foo.html
+usr/share/gtk-doc/html/foobar/foobar.html
+usr/share/gtk-doc/html/foobar/home.png
+usr/share/gtk-doc/html/foobar/index.html
+usr/share/gtk-doc/html/foobar/index.sgml
+usr/share/gtk-doc/html/foobar/left-insensitive.png
+usr/share/gtk-doc/html/foobar/left.png
+usr/share/gtk-doc/html/foobar/right-insensitive.png
+usr/share/gtk-doc/html/foobar/right.png
+usr/share/gtk-doc/html/foobar/style.css
+usr/share/gtk-doc/html/foobar/up-insensitive.png
+usr/share/gtk-doc/html/foobar/up.png
