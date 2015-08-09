@@ -71,14 +71,16 @@ def list_targets(coredata, builddata):
     print(json.dumps(tlist))
 
 def list_target_files(target_name, coredata, builddata):
-    try:
-        t = builddata.targets[target_name]
-        sources = t.sources + t.extra_files
-        subdir = t.subdir
-    except KeyError:
+    sources = None
+    subdir = None
+    for t in builddata.get_targets().values():
+        if t.get_basename() == target_name:
+            sources = t.sources + t.extra_files
+            subdir = t.subdir
+    if sources is None:
         print("Unknown target %s." % target_name)
         sys.exit(1)
-    sources = [os.path.join(subdir, i) for i in sources]
+    sources = [os.path.join(subdir, i.fname) for i in sources]
     print(json.dumps(sources))
 
 def list_buildoptions(coredata, builddata):
