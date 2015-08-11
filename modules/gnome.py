@@ -62,12 +62,19 @@ class GnomeModule:
         scan_command += ['--namespace='+ns, '--nsversion=' + nsversion, '--warn-all',
                          '--output', '@OUTPUT@']
 
+        extra_args = kwargs.get('extra_args', [])
+        if not isinstance(extra_args, list):
+            extra_args = [extra_args]
+        scan_command += extra_args
+
         for incdirs in girtarget.include_dirs:
             for incdir in incdirs.get_incdirs():
                 scan_command += ['-I%s' % os.path.join(state.environment.get_source_dir(), incdir)]
 
         if 'link_with' in kwargs:
             link_with = kwargs.pop('link_with')
+            if not isinstance(link_with, list):
+                link_with = [link_with]
             for link in link_with:
                 lib = link.held_object
                 scan_command += ['-l%s' % lib.name]
@@ -121,10 +128,13 @@ class GnomeModule:
         inc_dirs = None
         if kwargs.get('include_directories'):
             inc_dirs = kwargs.pop('include_directories')
-            if isinstance(inc_dirs.held_object, build.IncludeDirs):
-                scan_command += ['--add-include-path=%s' % inc for inc in inc_dirs.held_object.get_incdirs()]
-            else:
-                raise MesonException('Gir include dirs should be include_directories()')
+            if not isinstance(inc_dirs, list):
+                inc_dirs = [inc_dirs]
+            for id in inc_dirs:
+                if isinstance(id.held_object, build.IncludeDirs):
+                    scan_command += ['--add-include-path=%s' % inc for inc in id.held_object.get_incdirs()]
+                else:
+                    raise MesonException('Gir include dirs should be include_directories()')
         if isinstance(girtarget, build.Executable):
             scan_command += ['--program', girtarget]
         elif isinstance(girtarget, build.SharedLibrary):
@@ -144,8 +154,9 @@ class GnomeModule:
         typelib_output = '%s-%s.typelib' % (ns, nsversion)
         typelib_cmd = ['g-ir-compiler', scan_target, '--output', '@OUTPUT@']
         if inc_dirs:
-            typelib_cmd += ['--includedir=%s' % inc for inc in
-                    inc_dirs.held_object.get_incdirs()]
+            for id in inc_dirs:
+                typelib_cmd += ['--includedir=%s' % inc for inc in
+                                id.held_object.get_incdirs()]
         if deps:
             for dep in deps:
                 girdir = dep.held_object.get_variable ("girdir")
