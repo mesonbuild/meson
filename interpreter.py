@@ -1663,7 +1663,7 @@ class Interpreter():
                                    % name)
         # To permit an executable and a shared library to have the
         # same name, such as "foo.exe" and "libfoo.a".
-        idname = name + tobj.type_suffix()
+        idname = tobj.get_id()
         if idname in self.build.targets:
             raise InvalidCode('Tried to create target "%s", but a target of that name already exists.' % name)
         self.build.targets[idname] = tobj
@@ -1704,7 +1704,7 @@ class Interpreter():
         else:
             mlog.debug('Unknown target type:', str(targetholder))
             raise RuntimeError('Unreachable code')
-        target = targetclass(name, self.subdir, is_cross, sources, objs, self.environment, kwargs)
+        target = targetclass(name, self.subdir, self.subproject, is_cross, sources, objs, self.environment, kwargs)
         l = targetholder(target)
         self.add_target(name, l.held_object)
         self.global_args_frozen = True

@@ -162,7 +162,7 @@ class NinjaBackend(backends.Backend):
             self.generate_custom_target(target, outfile)
         if isinstance(target, build.RunTarget):
             self.generate_run_target(target, outfile)
-        name = target.get_basename() + target.type_suffix()
+        name = target.get_id()
         gen_src_deps = []
         if name in self.processed_targets:
             return

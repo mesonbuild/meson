@@ -139,9 +139,10 @@ class ExtractedObjects():
         self.srclist = srclist
 
 class BuildTarget():
-    def __init__(self, name, subdir, is_cross, sources, objects, environment, kwargs):
+    def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
         self.name = name
         self.subdir = subdir
+        self.subproject = subproject # Can not be calculated from subdir as subproject dirname can be changed per project.
         self.is_cross = is_cross
         self.sources = []
         self.objects = []
@@ -164,6 +165,9 @@ class BuildTarget():
             len(self.objects) == 0:
             raise InvalidArguments('Build target %s has no sources.' % name)
         self.validate_sources()
+
+    def get_id(self):
+        return self.subproject + ':' + self.name + self.type_suffix()
 
     def check_unknown_kwargs(self, kwargs):
         # Override this method in derived classes that have more
@@ -578,8 +582,8 @@ class GeneratedList():
         return self.generator
 
 class Executable(BuildTarget):
-    def __init__(self, name, subdir, is_cross, sources, objects, environment, kwargs):
-        super().__init__(name, subdir, is_cross, sources, objects, environment, kwargs)
+    def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
+        super().__init__(name, subdir, subproject, is_cross, sources, objects, environment, kwargs)
         self.prefix = ''
         self.suffix = environment.get_exe_suffix()
         suffix = environment.get_exe_suffix()
@@ -594,8 +598,8 @@ class Executable(BuildTarget):
         return "@exe"
 
 class StaticLibrary(BuildTarget):
-    def __init__(self, name, subdir, is_cross, sources, objects, environment, kwargs):
-        super().__init__(name, subdir, is_cross, sources, objects, environment, kwargs)
+    def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
+        super().__init__(name, subdir, subproject, is_cross, sources, objects, environment, kwargs)
         if len(self.sources) > 0 and self.sources[0].endswith('.cs'):
             raise InvalidArguments('Static libraries not supported for C#.')
         self.prefix = environment.get_static_lib_prefix()
@@ -612,10 +616,10 @@ class StaticLibrary(BuildTarget):
         return "@sta"
 
 class SharedLibrary(BuildTarget):
-    def __init__(self, name, subdir, is_cross, sources, objects, environment, kwargs):
+    def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
         self.version = None
         self.soversion = None
-        super().__init__(name, subdir, is_cross, sources, objects, environment, kwargs);
+        super().__init__(name, subdir, subproject, is_cross, sources, objects, environment, kwargs);
         if len(self.sources) > 0 and self.sources[0].endswith('.cs'):
             self.suffix = 'dll'
             self.prefix = 'lib'
@@ -703,6 +707,9 @@ class CustomTarget:
         if len(unknowns) > 0:
             mlog.log(mlog.bold('Warning:'), 'Unknown keyword arguments in target %s: %s' %
                      (self.name, ', '.join(unknowns)))
+
+    def get_id(self):
+        return self.name + self.type_suffix()
 
     def process_kwargs(self, kwargs):
         self.sources = kwargs.get('input', [])
@@ -811,6 +818,9 @@ class RunTarget:
         self.args = args
         self.subdir = subdir
 
+    def get_id(self):
+        return self.name + self.type_suffix()
+
     def get_basename(self):
         return self.name
 
@@ -836,8 +846,8 @@ class RunTarget:
         return "@run"
 
 class Jar(BuildTarget):
-    def __init__(self, name, subdir, is_cross, sources, objects, environment, kwargs):
-        super().__init__(name, subdir, is_cross, sources, objects, environment, kwargs);
+    def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
+        super().__init__(name, subdir, subproject, is_cross, sources, objects, environment, kwargs);
         for s in self.sources:
             if not s.endswith('.java'):
                 raise InvalidArguments('Jar source %s is not a java file.' % s)

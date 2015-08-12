@@ -41,9 +41,10 @@ parser.add_argument('args', nargs='+')
 
 def list_targets(coredata, builddata):
     tlist = []
-    for target in builddata.get_targets().values():
+    for (idname, target) in builddata.get_targets().items():
         t = {}
         t['name'] = target.get_basename()
+        t['id'] = idname
         fname = target.get_filename()
         if isinstance(fname, list):
             fname = [os.path.join(target.subdir, x) for x in fname]
@@ -78,7 +79,7 @@ def list_target_files(target_name, coredata, builddata):
     except KeyError:
         print("Unknown target %s." % target_name)
         sys.exit(1)
-    sources = [os.path.join(subdir, i) for i in sources]
+    sources = [os.path.join(i.subdir, i.fname) for i in sources]
     print(json.dumps(sources))
 
 def list_buildoptions(coredata, builddata):
