@@ -1577,7 +1577,8 @@ class Interpreter():
                 raise InterpreterException('Argument "configuration" is not of type configuration_data')
 
             conffile = os.path.join(self.subdir, inputfile)
-            self.build_def_files.append(conffile)
+            if conffile not in self.build_def_files:
+                self.build_def_files.append(conffile)
             os.makedirs(os.path.join(self.environment.build_dir, self.subdir), exist_ok=True)
             ifile_abs = os.path.join(self.environment.source_dir, self.subdir, inputfile)
             ofile_abs = os.path.join(self.environment.build_dir, self.subdir, output)

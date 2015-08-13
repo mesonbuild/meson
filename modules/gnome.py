@@ -62,7 +62,7 @@ class GnomeModule:
         scan_command += ['--namespace='+ns, '--nsversion=' + nsversion, '--warn-all',
                          '--output', '@OUTPUT@']
 
-        extra_args = kwargs.get('extra_args', [])
+        extra_args = kwargs.pop('extra_args', [])
         if not isinstance(extra_args, list):
             extra_args = [extra_args]
         scan_command += extra_args
