@@ -232,6 +232,7 @@ def do_conf_file(src, dst, confdata):
         result.append(line)
     dst_tmp = dst + '~'
     open(dst_tmp, 'w').writelines(result)
+    shutil.copymode(src, dst_tmp)
     replace_if_different(dst, dst_tmp)
 
 

@@ -1595,12 +1595,7 @@ class Interpreter():
             raise InterpreterException('Configure_file must have either "configuration" or "command".')
         if isinstance(kwargs.get('install_dir', None), str):
             self.build.data.append(Data(False, self.subdir, [output], kwargs))
-        # FIXME, HORROR, this is a massive hack to get this working. The correct
-        # solution is to finally do the refactoring where source files are no
-        # longer strings but actual objects. This is a major undertaking
-        # and will only be done after the next release.
-        outputfile = os.path.join(self.environment.build_dir, self.subdir, output)
-        return outputfile
+        return mesonlib.File.from_built_file(self.subdir, output)
 
     @stringArgs
     @noKwargs

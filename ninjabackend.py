@@ -276,7 +276,12 @@ class NinjaBackend(backends.Backend):
         ofilenames = [os.path.join(target.subdir, i) for i in target.output]
         # FIXME, should not grab element at zero but rather expand all.
         deps = [os.path.join(i.get_subdir(), self.hackety_hack(i.get_filename())) for i in target.get_dependencies()]
-        srcs = [os.path.join(self.build_to_src, target.subdir, i) for i in target.sources]
+        srcs = []
+        for i in target.sources:
+            if isinstance(i, str):
+                srcs.append(os.path.join(self.build_to_src, target.subdir, i))
+            else:
+                srcs.append(i.rel_to_builddir(self.build_to_src))
         deps +=  srcs
         if target.build_always:
             deps.append('PHONY')
