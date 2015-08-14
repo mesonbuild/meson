@@ -53,6 +53,7 @@ class Lexer:
             ('dblquote', re.compile(r'"')),
             ('string', re.compile(r"'([^'\\]|(\\.))*'")),
             ('comma', re.compile(r',')),
+            ('plusassign', re.compile(r'\+=')),
             ('dot', re.compile(r'\.')),
             ('plus', re.compile(r'\+')),
             ('dash', re.compile(r'-')),
@@ -234,6 +235,14 @@ class AssignmentNode:
         assert(isinstance(var_name, str))
         self.value = value
 
+class PlusAssignmentNode:
+    def __init__(self, lineno, colno, var_name, value):
+        self.lineno = lineno
+        self.colno = colno
+        self.var_name = var_name
+        assert(isinstance(var_name, str))
+        self.value = value
+
 class ForeachClauseNode():
     def __init__(self, lineno, colno, varname, items, block):
         self.lineno = lineno
@@ -344,7 +353,12 @@ class Parser:
 
     def e1(self):
         left = self.e2()
-        if self.accept('assign'):
+        if self.accept('plusassign'):
+            value = self.e1()
+            if not isinstance(left, IdNode):
+                raise ParseException('Plusassignment target must be an id.', left.lineno, left.colno)
+            return PlusAssignmentNode(left.lineno, left.colno, left.value, value)
+        elif self.accept('assign'):
             value = self.e1()
             if not isinstance(left, IdNode):
                 raise ParseException('Assignment target must be an id.',

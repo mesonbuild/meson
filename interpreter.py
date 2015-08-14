@@ -1054,6 +1054,8 @@ class Interpreter():
             return self.evaluate_arithmeticstatement(cur)
         elif isinstance(cur, mparser.ForeachClauseNode):
             return self.evaluate_foreach(cur)
+        elif isinstance(cur, mparser.PlusAssignmentNode):
+            return self.evaluate_plusassign(cur)
         elif self.is_elementary_type(cur):
             return cur
         else:
@@ -1839,6 +1841,8 @@ class Interpreter():
     def array_method_call(self, obj, method_name, args):
         if method_name == 'contains':
             return self.check_contains(obj, args)
+        elif method_name == 'length':
+            return len(obj)
         elif method_name == 'get':
             index = args[0]
             if not isinstance(index, int):
@@ -1886,6 +1890,23 @@ class Interpreter():
         for item in items:
             self.set_variable(varname, item)
             self.evaluate_codeblock(node.block)
+
+    def evaluate_plusassign(self, node):
+        assert(isinstance(node, mparser.PlusAssignmentNode))
+        varname = node.var_name
+        addition = self.evaluate_statement(node.value)
+        # Remember that all variables are immutable. We must always create a
+        # full new variable and then assign it.
+        old_variable = self.get_variable(varname)
+        if not isinstance(old_variable, list):
+            raise InvalidArguments('The += operator currently only works with arrays.')
+        # Add other data types here.
+        else:
+            if isinstance(addition, list):
+                new_value = old_variable + addition
+            else:
+                new_value = old_variable + [addition]
+        self.set_variable(varname, new_value)
 
     def is_elementary_type(self, v):
         if isinstance(v, (int, float, str, bool, list)):
