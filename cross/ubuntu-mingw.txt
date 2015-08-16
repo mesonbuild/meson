@@ -12,11 +12,11 @@ strip = '/usr/bin/i686-w64-mingw32-strip'
 root = '/usr/i686-w64-mingw32'
 
 [host_machine]
-name = 'windows'
+system = 'windows'
 cpu = 'x86'
 endian = 'little'
 
 [target_machine]
-name = 'darwin'
+system = 'darwin'
 cpu = 'arm'
 endian = 'little'

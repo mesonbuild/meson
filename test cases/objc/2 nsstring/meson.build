@@ -1,6 +1,6 @@
 project('nsstring', 'objc')
 
-if host_machine.name() == 'darwin'
+if host_machine.system() == 'darwin'
   dep = dependency('appleframeworks', modules : 'foundation')
 else
   dep = dependency('gnustep')

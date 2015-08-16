@@ -1,6 +1,6 @@
 project('run command', 'c')
 
-if build_machine.name() == 'windows'
+if build_machine.system() == 'windows'
   c = run_command('cmd', '/c', 'echo', 'hello')
 else
   c = run_command('echo', 'hello')
@@ -24,7 +24,7 @@ endif
 
 # Now the same with a script.
 
-if build_machine.name() == 'windows'
+if build_machine.system() == 'windows'
   cs = run_command('scripts/hello.bat')
 else
   cs = run_command('scripts/hello.sh')
