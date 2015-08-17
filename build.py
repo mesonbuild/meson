@@ -147,6 +147,7 @@ class BuildTarget():
         self.sources = []
         self.objects = []
         self.external_deps = []
+        self.internal_deps = []
         self.include_dirs = []
         self.link_targets = []
         self.link_depends = []
@@ -423,6 +424,7 @@ class BuildTarget():
             if hasattr(dep, 'held_object'):
                 dep = dep.held_object
             if isinstance(dep, dependencies.InternalDependency):
+                self.internal_deps.append(dep) # We don't need this for codegen, only for dep manifest.
                 self.process_sourcelist(dep.sources)
                 self.add_include_dirs(dep.include_directories)
                 for l in dep.libraries:

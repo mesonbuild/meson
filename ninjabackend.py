@@ -116,6 +116,7 @@ class NinjaBackend(backends.Backend):
         self.fortran_deps = {}
 
     def generate(self):
+        self.generate_dep_manifests()
         outfilename = os.path.join(self.environment.get_build_dir(), self.ninja_filename)
         tempfilename = outfilename + '~'
         outfile = open(tempfilename, 'w')

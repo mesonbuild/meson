@@ -59,8 +59,10 @@ class Dependency():
         return False
 
 class InternalDependency():
-    def __init__(self, incdirs, libraries, sources):
+    def __init__(self, name, version, incdirs, libraries, sources):
         super().__init__()
+        self.name = name
+        self.version = version
         self.include_directories = incdirs
         self.libraries = libraries
         self.sources = sources

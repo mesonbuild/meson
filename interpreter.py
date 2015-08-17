@@ -993,8 +993,12 @@ class Interpreter():
     def func_files(self, node, args, kwargs):
         return [mesonlib.File.from_source_file(self.environment.source_dir, self.subdir, fname) for fname in args]
 
-    @noPosargs
+    @stringArgs
     def func_declare_dependency(self, node, args, kwargs):
+        if len(args) != 1:
+            raise InterpreterException('Declare_dependency takes one argument.')
+        name = args[0]
+        version = kwargs.get('version', 'unknown')
         incs = kwargs.get('include_directories', [])
         if not isinstance(incs, list):
             incs = [incs]
@@ -1005,7 +1009,7 @@ class Interpreter():
         if not isinstance(sources, list):
             sources = [sources]
         sources = self.source_strings_to_files(self.flatten(sources))
-        dep = dependencies.InternalDependency(incs, libs, sources)
+        dep = dependencies.InternalDependency(name, version, incs, libs, sources)
         return InternalDependencyHolder(dep)
 
     def set_variable(self, varname, variable):
