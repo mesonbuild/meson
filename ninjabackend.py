@@ -408,19 +408,25 @@ class NinjaBackend(backends.Backend):
                 d.po.append((src_file, self.environment.coredata.localedir, lang))
                 elem.add_dep(rel_src)
 
-    def generate_target_install(self, d):
-        libdir = self.environment.get_libdir()
-        bindir = self.environment.get_bindir()
+    def target_install_dir(self, t):
+        outdir = t.get_custom_install_dir()
+        if outdir is None:
+            if isinstance(t, build.Executable):
+                outdir = self.environment.get_bindir()
+            else:
+                outdir = self.environment.get_libdir()
+        return outdir
 
+    def generate_target_install(self, d):
         should_strip = self.environment.coredata.strip
         for t in self.build.get_targets().values():
             if t.should_install():
-                outdir = t.get_custom_install_dir()
-                if outdir is None:
-                    if isinstance(t, build.Executable):
-                        outdir = bindir
-                    else:
-                        outdir = libdir
+                outdir = self.target_install_dir(t)
+                if isinstance(t, build.Executable) and self.build.install_dependency_manifests:
+                    mf_src = self.get_target_filename(t) + '.dependencies.json'
+                    mf_dst = os.path.join(outdir, os.path.split(mf_src)[1])
+                    i = [mf_src, mf_dst]
+                    d.data.append(i)
                 i = [self.get_target_filename(t), outdir, t.get_aliaslist(),\
                     should_strip, t.install_rpath]
                 d.targets.append(i)
@@ -467,7 +473,6 @@ class NinjaBackend(backends.Backend):
                 d.man.append(i)
 
     def generate_data_install(self, d):
-        dataroot = self.environment.get_datadir()
         data = self.build.get_data()
         for de in data:
             subdir = de.get_install_dir()

@@ -74,6 +74,7 @@ class Build:
         self.pkgconfig_gens = []
         self.install_scripts = []
         self.install_dirs = []
+        self.install_dependency_manifests = False
 
     def has_language(self, language):
         for i in self.compilers:

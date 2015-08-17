@@ -311,8 +311,8 @@ class Backend():
     def generate_dep_manifests(self):
         for t in self.build.targets.values():
             if isinstance(t, build.Executable):
-                fname = t.name + '.depmf'
-                ofname = os.path.join(self.environment.get_build_dir(), t.subdir, fname + '.dependencies.json')
+                fname = t.name + '.dependencies.json'
+                ofname = os.path.join(self.environment.get_build_dir(), t.subdir, fname)
                 mf = {'version': 1,
                       'type' : 'dependency manifest'}
                 mf['dependencies'] = self.transitive_internal_deps(t)

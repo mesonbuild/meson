@@ -723,7 +723,11 @@ class MesonMain(InterpreterObject):
                              'source_root' : self.source_root_method,
                              'build_root' : self.build_root_method,
                              'add_install_script' : self.add_install_script_method,
+                             'install_dependency_manifests': self.install_dependency_manifests_method,
                             })
+
+    def install_dependency_manifests_method(self, args, kwargs):
+        self.build.install_dependency_manifests = True
 
     def add_install_script_method(self, args, kwargs):
         if len(args) != 1:

@@ -22,8 +22,8 @@ class InstallData():
         self.source_dir = source_dir
         self.build_dir= build_dir
         self.prefix = prefix
-        self.targets = []
         self.depfixer = depfixer
+        self.targets = []
         self.headers = []
         self.man = []
         self.data = []
@@ -35,11 +35,7 @@ class InstallData():
 def do_install(datafilename):
     ifile = open(datafilename, 'rb')
     d = pickle.load(ifile)
-    destdir_var = 'DESTDIR'
-    if destdir_var in os.environ:
-        d.destdir = os.environ[destdir_var]
-    else:
-        d.destdir = ''
+    d.destdir = os.environ.get('DESTDIR', '')
     d.fullprefix = d.destdir + d.prefix
 
     install_subdirs(d) # Must be first, because it needs to delete the old subtree.
