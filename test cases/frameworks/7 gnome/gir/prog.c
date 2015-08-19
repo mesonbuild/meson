@@ -1,24 +1,23 @@
-#include"golib.h"
+#include <girepository.h>
 
-#include<girepository.h>
+#include "meson-sample.h"
 
-int main(int argc, char *argv[]) {
-    GOptionContext *ctx;
-    GError *error = NULL;
-    MesonSample *i;
+gint
+main (gint   argc,
+      gchar *argv[])
+{
+  g_autoptr(GError) error = NULL;
 
-    ctx = g_option_context_new(NULL);
-    g_option_context_add_group(ctx, g_irepository_get_option_group ());
+  g_autoptr(GOptionContext) ctx = g_option_context_new (NULL);
+  g_option_context_add_group (ctx, g_irepository_get_option_group ());
 
-    if (!g_option_context_parse(ctx, &argc, &argv, &error)) {
-        g_print("sample: %s\n", error->message);
-        return 1;
-    }
+  if (!g_option_context_parse (ctx, &argc, &argv, &error)) {
+    g_print ("sample: %s\n", error->message);
+    return 1;
+  }
 
-    i = meson_sample_new();
-    meson_sample_func(i);
-    g_object_unref(G_OBJECT(i));
+  g_autoptr(MesonSample) i = meson_sample_new ("Hello, meson!");
+  meson_sample_print (i);
 
-    return 0;
+  return 0;
 }
-

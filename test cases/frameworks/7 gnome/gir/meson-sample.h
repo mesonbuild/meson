@@ -1,0 +1,21 @@
+#ifndef MESON_SAMPLE_H
+#define MESON_SAMPLE_H
+
+#if !defined (MESON_TEST)
+#error "MESON_TEST not defined."
+#endif
+
+#include <glib-object.h>
+
+G_BEGIN_DECLS
+
+#define MESON_TYPE_SAMPLE (meson_sample_get_type())
+
+G_DECLARE_FINAL_TYPE (MesonSample, meson_sample, MESON, SAMPLE, GObject)
+
+MesonSample *meson_sample_new   (const gchar *msg);
+void         meson_sample_print (MesonSample *self);
+
+G_END_DECLS
+
+#endif /* MESON_SAMPLE_H */
