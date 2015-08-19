@@ -208,10 +208,20 @@ class GnomeModule:
         src_dir = kwargs['src_dir']
         targetname = modulename + '-doc'
         command = os.path.normpath(os.path.join(os.path.split(__file__)[0], "../gtkdochelper.py"))
+        if hasattr(src_dir, 'held_object'):
+            src_dir= src_dir.held_object
+            if not isinstance(src_dir, build.IncludeDirs):
+                raise MesonException('Invalidt keyword argument for src_dir.')
+            incdirs = src_dir.get_incdirs()
+            if len(incdirs) != 1:
+                raise MesonException('Argument src_dir has more than one directory specified.')
+            header_dir = os.path.join(state.environment.get_source_dir(), src_dir.get_curdir(), incdirs[0])
+        else:
+            header_dir = os.path.normpath(os.path.join(state.subdir, src_dir))
         args = [state.environment.get_source_dir(),
                 state.environment.get_build_dir(),
                 state.subdir,
-                os.path.normpath(os.path.join(state.subdir, src_dir)),
+                header_dir,
                 main_file,
                 modulename]
         res = [build.RunTarget(targetname, command, args, state.subdir)]
