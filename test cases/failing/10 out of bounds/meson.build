@@ -1,4 +1,4 @@
 project('out of bounds', 'c')
 
 x = []
-y = x.get(0)
+y = x[0]

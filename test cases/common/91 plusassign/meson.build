@@ -8,7 +8,7 @@ if x.length() != 1
   error('Incorrect append')
 endif
 
-if x.get(0) != 'a'
+if x[0] != 'a'
   error('Incorrect append 2.')
 endif
 
@@ -20,7 +20,7 @@ if y.length() != 1
   error('Immutability broken.')
 endif
 
-if y.get(0) != 'a'
+if y[0] != 'a'
   error('Immutability broken 2.')
 endif
 
@@ -28,11 +28,11 @@ if x.length() != 2
   error('Incorrect append 3')
 endif
 
-if x.get(0) != 'a'
+if x[0] != 'a'
   error('Incorrect append 4.')
 endif
 
-if x.get(1) != 'b'
+if x[1] != 'b'
   error('Incorrect append 5.')
 endif
 

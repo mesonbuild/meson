@@ -1056,6 +1056,8 @@ class Interpreter():
             return self.evaluate_foreach(cur)
         elif isinstance(cur, mparser.PlusAssignmentNode):
             return self.evaluate_plusassign(cur)
+        elif isinstance(cur, mparser.IndexNode):
+            return self.evaluate_indexing(cur)
         elif self.is_elementary_type(cur):
             return cur
         else:
@@ -1902,6 +1904,18 @@ class Interpreter():
             else:
                 new_value = old_variable + [addition]
         self.set_variable(varname, new_value)
+
+    def evaluate_indexing(self, node):
+        assert(isinstance(node, mparser.IndexNode))
+        iobject = self.evaluate_statement(node.iobject)
+        if not isinstance(iobject, list):
+            raise InterpreterException('Tried to index a non-array object.')
+        index = self.evaluate_statement(node.index)
+        if not isinstance(index, int):
+            raise InterpreterException('Index value is not an integer.')
+        if index < -len(iobject) or index >= len(iobject):
+            raise InterpreterException('Index %d out of bounds of array of size %d.' % (index, len(iobject)))
+        return iobject[index]
 
     def is_elementary_type(self, v):
         if isinstance(v, (int, float, str, bool, list)):

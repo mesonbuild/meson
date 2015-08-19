@@ -210,6 +210,13 @@ class CodeBlockNode:
         self.colno = colno
         self.lines = []
 
+class IndexNode:
+    def __init__(self, iobject, index):
+        self.iobject = iobject
+        self.index = index
+        self.lineno = iobject.lineno
+        self.colno = iobject.colno
+
 class MethodNode:
     def __init__(self, lineno, colno, source_object, name, args):
         self.lineno = lineno
@@ -429,8 +436,15 @@ class Parser:
                 raise ParseException('Function call must be applied to plain id',
                                      left.lineno, left.colno)
             left = FunctionNode(left.lineno, left.colno, left.value, args)
-        while self.accept('dot'):
-            left = self.method_call(left)
+        go_again = True
+        while go_again:
+            go_again = False
+            if self.accept('dot'):
+                go_again = True
+                left = self.method_call(left)
+            if self.accept('lbracket'):
+                go_again = True
+                left = self.index_call(left)
         return left
 
     def e8(self):
@@ -491,6 +505,11 @@ class Parser:
         if self.accept('dot'):
             return self.method_call(method)
         return method
+
+    def index_call(self, source_object):
+        index_statement = self.statement()
+        self.expect('rbracket')
+        return IndexNode(source_object, index_statement)
 
     def foreachblock(self):
         t = self.current
