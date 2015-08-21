@@ -1289,7 +1289,7 @@ rule FORTRAN_DEP_HACK
         symname = os.path.join(targetdir, target_name + '.symbols')
         elem = NinjaBuildElement(symname, 'SHSYM', target_name)
         if self.environment.is_cross_build() and self.environment.cross_info.need_cross_compiler():
-            elem.add_item('CROSS', '--cross-host=' + self.environment.cross_info.config['host_machine']['name'])
+            elem.add_item('CROSS', '--cross-host=' + self.environment.cross_info.config['host_machine']['system'])
         elem.write(outfile)
 
     def generate_link(self, target, outfile, outname, obj_list, linker, extra_args=[]):

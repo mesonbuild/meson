@@ -1,6 +1,6 @@
 project('find program', 'c')
 
-if build_machine.name() == 'windows'
+if build_machine.system() == 'windows'
   # Things Windows does not provide:
   #  - an executable to copy files without prompting
   #  - working command line quoting

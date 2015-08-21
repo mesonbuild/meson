@@ -22,6 +22,6 @@ has_function_printf = true
 has_function_hfkerhisadf = false
 
 [host_machine]
-name = 'linux'
+system = 'linux'
 cpu = 'arm'
 endian = 'little'

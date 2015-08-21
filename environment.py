@@ -91,7 +91,7 @@ class Environment():
 
         cross = self.is_cross_build()
         if (not cross and mesonlib.is_windows()) \
-        or (cross and self.cross_info.has_host() and self.cross_info.config['host_machine']['name'] == 'windows'):
+        or (cross and self.cross_info.has_host() and self.cross_info.config['host_machine']['system'] == 'windows'):
             self.exe_suffix = 'exe'
             self.import_lib_suffix = 'lib'
             self.shared_lib_suffix = 'dll'
@@ -102,7 +102,7 @@ class Environment():
         else:
             self.exe_suffix = ''
             if (not cross and mesonlib.is_osx()) or \
-            (cross and self.cross_info.has_host() and self.cross_info.config['host_machine']['name'] == 'darwin'):
+            (cross and self.cross_info.has_host() and self.cross_info.config['host_machine']['system'] == 'darwin'):
                 self.shared_lib_suffix = 'dylib'
             else:
                 self.shared_lib_suffix = 'so'

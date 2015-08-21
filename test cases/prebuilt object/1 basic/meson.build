@@ -9,7 +9,7 @@
 
 project('prebuilt object', 'c')
 
-if host_machine.name() == 'windows'
+if host_machine.system() == 'windows'
   prebuilt = 'prebuilt.obj'
 else
   prebuilt = 'prebuilt.o'

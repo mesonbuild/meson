@@ -6,7 +6,7 @@ python = find_program('python3')
 # Code will not be rebuilt if it changes.
 comp = '@0@/@1@'.format(meson.current_source_dir(), 'obj_generator.py')
 
-if host_machine.name() == 'windows'
+if host_machine.system() == 'windows'
   outputname = '@BASENAME@.obj'
 else
   outputname = '@BASENAME@.o'

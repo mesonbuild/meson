@@ -305,7 +305,7 @@ class GeneratedListHolder(InterpreterObject):
 class BuildMachine(InterpreterObject):
     def __init__(self):
         InterpreterObject.__init__(self)
-        self.methods.update({'name' : self.name_method,
+        self.methods.update({'system' : self.system_method,
                              'cpu' : self.cpu_method,
                              'endian' : self.endian_method,
                             })
@@ -326,7 +326,7 @@ class BuildMachine(InterpreterObject):
         # Add fixes here as bugs are reported.
         return trial
 
-    def name_method(self, args, kwargs):
+    def system_method(self, args, kwargs):
         return platform.system().lower()
 
     def endian_method(self, args, kwargs):
@@ -338,13 +338,13 @@ class CrossMachineInfo(InterpreterObject):
     def __init__(self, cross_info):
         InterpreterObject.__init__(self)
         self.info = cross_info
-        self.methods.update({'name' : self.name_method,
+        self.methods.update({'system' : self.system_method,
                              'cpu' : self.cpu_method,
                              'endian' : self.endian_method,
                             })
 
-    def name_method(self, args, kwargs):
-        return self.info['name']
+    def system_method(self, args, kwargs):
+        return self.info['system']
 
     def cpu_method(self, args, kwargs):
         return self.info['cpu']
