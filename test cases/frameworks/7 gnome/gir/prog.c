@@ -16,8 +16,8 @@ main (gint   argc,
     return 1;
   }
 
-  g_autoptr(MesonSample) i = meson_sample_new ("Hello, meson!");
-  meson_sample_print (i);
+  g_autoptr(MesonSample) i = meson_sample_new ("Hello, meson/c!");
+  meson_sample_print_message (i);
 
   return 0;
 }

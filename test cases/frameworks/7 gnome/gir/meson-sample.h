@@ -13,8 +13,8 @@ G_BEGIN_DECLS
 
 G_DECLARE_FINAL_TYPE (MesonSample, meson_sample, MESON, SAMPLE, GObject)
 
-MesonSample *meson_sample_new   (const gchar *msg);
-void         meson_sample_print (MesonSample *self);
+MesonSample *meson_sample_new           (const gchar *msg);
+void         meson_sample_print_message (MesonSample *self);
 
 G_END_DECLS
 

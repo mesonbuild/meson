@@ -1,13 +1,21 @@
 libsources = ['meson-sample.c', 'meson-sample.h']
 
+girlib = shared_library(
+  'girlib',
+  sources : libsources,
+  dependencies : gobj,
+  install : true
+)
+
 girexe = executable(
   'girprog',
-  sources : [libsources, 'prog.c'],
-  dependencies : [glib, gobj, gir]
+  sources : 'prog.c',
+  dependencies : [glib, gobj, gir],
+  link_with : girlib
 )
 
 gnome.generate_gir(
-  girexe,
+  girlib,
   sources : libsources,
   nsversion : '1.0',
   namespace : 'Meson',
@@ -17,4 +25,8 @@ gnome.generate_gir(
   install : true
 )
 
-test('gobject introspection', girexe)
+test('gobject introspection/c', girexe)
+test('gobject introspection/py', find_program('prog.py'),
+     env : ['GI_TYPELIB_PATH=@0@'.format(meson.current_build_dir()),
+            'LD_LIBRARY_PATH=@0@'.format(meson.current_build_dir()),
+     ])

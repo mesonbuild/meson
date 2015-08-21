@@ -17,6 +17,14 @@ enum {
 
 static GParamSpec *gParamSpecs [LAST_PROP];
 
+/**
+ * meson_sample_new:
+ * @msg: The message to set.
+ *
+ * Allocates a new #MesonSample.
+ *
+ * Returns: (transfer full): a #MesonSample.
+ */
 MesonSample *
 meson_sample_new (const gchar *msg)
 {
@@ -99,8 +107,16 @@ meson_sample_init (MesonSample *self)
 {
 }
 
+/**
+ * meson_sample_print_message:
+ * @self: a #MesonSample.
+ *
+ * Prints the message.
+ *
+ * Returns: Nothing.
+ */
 void
-meson_sample_print (MesonSample *self)
+meson_sample_print_message (MesonSample *self)
 {
   g_return_if_fail (MESON_IS_SAMPLE (self));
 
