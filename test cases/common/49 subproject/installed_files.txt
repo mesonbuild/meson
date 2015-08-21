@@ -1,2 +1,3 @@
 usr/bin/user
 usr/lib/libsublib.so
+usr/share/sublib/sublib.depmf

@@ -1,7 +1,11 @@
-project('subproject', 'c')
+project('subproject', 'c', version : '1.0.0')
 
 if not meson.is_subproject()
   error('Claimed to be master project even though we are a subproject.')
+endif
+
+if meson.project_version() != '1.0.0'
+  error('Incorrect version string in subproject.')
 endif
 
 i = include_directories('include')

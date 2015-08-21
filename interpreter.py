@@ -723,6 +723,8 @@ class MesonMain(InterpreterObject):
                              'source_root' : self.source_root_method,
                              'build_root' : self.build_root_method,
                              'add_install_script' : self.add_install_script_method,
+                             'install_dependency_manifest': self.install_dependency_manifest_method,
+                             'project_version': self.project_version_method,
                             })
 
     def add_install_script_method(self, args, kwargs):
@@ -790,6 +792,16 @@ class MesonMain(InterpreterObject):
 
     def is_subproject_method(self, args, kwargs):
         return self.interpreter.is_subproject()
+
+    def install_dependency_manifest_method(self, args, kwargs):
+        if len(args) != 1:
+            raise InterpreterException('Must specify manifest install file name')
+        if not isinstance(args[0], str):
+            raise InterpreterException('Argument must be a string.')
+        self.build.dep_manifest_name = args[0]
+
+    def project_version_method(self, args, kwargs):
+        return self.build.dep_manifest[self.interpreter.active_projectname]
 
 class Interpreter():
 
@@ -1168,7 +1180,9 @@ class Interpreter():
         subi.subprojects = self.subprojects
 
         subi.subproject_stack = self.subproject_stack + [dirname]
+        current_active = self.active_projectname
         subi.run()
+        self.active_projectname = current_active
         mlog.log('\nSubproject', mlog.bold(dirname), 'finished.')
         self.build.subprojects[dirname] = True
         self.subprojects.update(subi.subprojects)
@@ -1202,11 +1216,11 @@ class Interpreter():
     def func_project(self, node, args, kwargs):
         if len(args) < 2:
             raise InvalidArguments('Not enough arguments to project(). Needs at least the project name and one language')
-        if list(kwargs.keys()) != ['subproject_dir'] and len(kwargs) != 0:
-            raise InvalidArguments('project() only accepts the keyword argument "subproject_dir"')
 
         if not self.is_subproject():
             self.build.project_name = args[0]
+        self.active_projectname = args[0]
+        self.build.dep_manifest[args[0]] = kwargs.get('version', 'undefined')
         if self.subproject in self.build.projects:
             raise InvalidCode('Second call to project().')
         if not self.is_subproject() and 'subproject_dir' in kwargs:

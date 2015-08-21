@@ -16,6 +16,7 @@ import os, pickle
 import build
 import dependencies
 import mesonlib
+import json
 from coredata import MesonException
 
 class TestSerialisation:
@@ -303,3 +304,14 @@ class Backend():
                 ofile.write(' ')
             ofile.write('\n')
 
+
+    def generate_depmf_install(self, d):
+        if self.build.dep_manifest_name is None:
+            return
+        ifilename = os.path.join(self.environment.get_build_dir(), 'depmf.json')
+        ofilename = os.path.join(self.environment.get_prefix(), self.build.dep_manifest_name)
+        mfobj = {'type': 'dependency manifest',
+                 'version': '1.0'}
+        mfobj['projects'] = self.build.dep_manifest
+        open(ifilename, 'w').write(json.dumps(mfobj))
+        d.data.append([ifilename, ofilename])

@@ -383,6 +383,7 @@ class NinjaBackend(backends.Backend):
         elem.add_item('DESC', 'Installing files.')
         elem.add_item('COMMAND', [sys.executable, install_script, install_data_file])
         elem.add_item('pool', 'console')
+        self.generate_depmf_install(d)
         self.generate_target_install(d)
         self.generate_header_install(d)
         self.generate_man_install(d)
