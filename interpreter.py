@@ -1467,7 +1467,7 @@ class Interpreter():
         if not isinstance(cmd_args, list):
             cmd_args = [cmd_args]
         for i in cmd_args:
-            if not isinstance(i, str):
+            if not isinstance(i, (str, mesonlib.File)):
                 raise InterpreterException('Command line arguments must be strings')
         envlist = kwargs.get('env', [])
         if not isinstance(envlist, list):

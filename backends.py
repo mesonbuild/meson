@@ -267,8 +267,13 @@ class Backend():
                 extra_paths = self.determine_windows_extra_paths(exe)
             else:
                 extra_paths = []
+            cmd_args = []
+            for a in t.cmd_args:
+                if isinstance(a, mesonlib.File):
+                    a = os.path.join(self.environment.get_build_dir(), a.rel_to_builddir(self.build_to_src))
+                cmd_args.append(a)
             ts = TestSerialisation(t.get_name(), fname, is_cross, exe_wrapper,
-                                   t.is_parallel, t.cmd_args, t.env, t.should_fail, t.valgrind_args,
+                                   t.is_parallel, cmd_args, t.env, t.should_fail, t.valgrind_args,
                                    t.timeout, extra_paths)
             arr.append(ts)
         pickle.dump(arr, datafile)
