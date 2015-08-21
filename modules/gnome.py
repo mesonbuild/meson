@@ -59,7 +59,7 @@ class GnomeModule:
 
         scan_command = ['g-ir-scanner', '@INPUT@']
         scan_command += pkgargs
-        scan_command += ['--namespace='+ns, '--nsversion=' + nsversion, '--warn-all',
+        scan_command += ['--no-libtool', '--namespace='+ns, '--nsversion=' + nsversion, '--warn-all',
                          '--output', '@OUTPUT@']
 
         extra_args = kwargs.pop('extra_args', [])
