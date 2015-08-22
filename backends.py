@@ -16,6 +16,7 @@ import os, pickle
 import build
 import dependencies
 import mesonlib
+import json
 from coredata import MesonException
 
 class TestSerialisation:
@@ -303,3 +304,21 @@ class Backend():
                 ofile.write(' ')
             ofile.write('\n')
 
+    def transitive_internal_deps(self, target):
+        deps = {}
+        for i in target.internal_deps:
+            if isinstance(i, dependencies.InternalDependency):
+                deps[i.name] = i.version
+        for l in target.link_targets:
+            deps.update(self.transitive_internal_deps(l))
+        return deps
+
+    def generate_dep_manifests(self):
+        for t in self.build.targets.values():
+            if isinstance(t, build.Executable):
+                fname = t.name + '.dependencies.json'
+                ofname = os.path.join(self.environment.get_build_dir(), t.subdir, fname)
+                mf = {'version': 1,
+                      'type' : 'dependency manifest'}
+                mf['dependencies'] = self.transitive_internal_deps(t)
+                open(ofname, 'w').write(json.dumps(mf) + '\n')
