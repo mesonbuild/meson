@@ -57,6 +57,7 @@ class Build:
 
     def __init__(self, environment):
         self.project_name = 'name of master project'
+        self.project_version = None
         self.environment = environment
         self.projects = {}
         self.targets = {}
@@ -74,6 +75,8 @@ class Build:
         self.pkgconfig_gens = []
         self.install_scripts = []
         self.install_dirs = []
+        self.dep_manifest_name = None
+        self.dep_manifest = {}
 
     def has_language(self, language):
         for i in self.compilers:
