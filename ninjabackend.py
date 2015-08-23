@@ -1225,10 +1225,23 @@ rule FORTRAN_DEP_HACK
             element.add_orderdep(d)
         element.add_orderdep(pch_dep)
         element.add_orderdep(extra_orderdeps)
+        for i in self.get_fortran_orderdeps(target, compiler):
+            element.add_orderdep(i)
         element.add_item('DEPFILE', dep_file)
         element.add_item('ARGS', commands)
         element.write(outfile)
         return rel_obj
+
+    # Fortran is a bit weird (again). When you link against a library, just compiling a source file
+    # requires the mod files that are output when single files are built. To do this right we would need to
+    # scan all inputs and write out explicit deps for each file. That is stoo slow and too much effort so
+    # instead just have an ordered dependendy on the library. This ensures all reqquired mod files are created.
+    # The real deps are then detected via dep file generation from the compiler. This breaks on compilers that
+    # produce incorrect dep files but such is life.
+    def get_fortran_orderdeps(self, target, compiler):
+        if compiler.language != 'fortran':
+            return []
+        return [os.path.join(lt.subdir, lt.filename) for lt in target.link_targets]
 
     def generate_msvc_pch_command(self, target, compiler, pch):
         if len(pch) != 2:

@@ -220,6 +220,12 @@ class Backend():
             if isinstance(target, build.Executable):
                 commands += dep.get_exe_args()
 
+        # Fortran rquires extra include directives.
+        if compiler.language == 'fortran':
+            for lt in target.link_targets:
+                priv_dir = os.path.join(lt.subdir, lt.get_basename() + lt.type_suffix())
+                incflag = compiler.get_include_args(priv_dir)
+                commands += incflag
         return commands
 
     def build_target_link_arguments(self, compiler, deps):
