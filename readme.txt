@@ -59,6 +59,12 @@ IRC
 The irc channel for Meson is #mesonbuild over at freenode.
 
 
+Code Coverage/Testing
+
+coverage3 run_tests.py
+coverage3 report
+
+
 Further info
 
 The home page of Meson can be found here:

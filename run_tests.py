@@ -353,8 +353,24 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Run the test suite of Meson.")
     parser.add_argument('--backend', default=None, dest='backend',
                         choices = backendlist)
+    parser.add_argument('--with-coverage', action='store_true', dest='coverage',
+                        help='Collect code coverage (requires nose)')
     options = parser.parse_args()
     setup_commands(options.backend)
+
+    try:
+        import nose
+        if options.coverage:
+            os.environ['NOSE_WITH_COVERAGE'] = '1'
+            os.environ['NOSE_COVER_PACKAGE'] = os.path.dirname(os.path.abspath(__file__))
+        os.environ['NOSE_NOCAPTURE'] = '1'
+        try:
+            os.unlink('.coverage')
+        except FileNotFoundError:
+            pass
+        nose.run()
+    except ImportError:
+        print('Can not find nose package (it is needed for unit-tests). Skipping.')
 
     script_dir = os.path.split(__file__)[0]
     if script_dir != '':
@@ -370,4 +386,3 @@ if __name__ == '__main__':
     print('Total failed tests:', failing_tests)
     print('Total skipped tests:', skipped_tests)
     sys.exit(failing_tests)
-

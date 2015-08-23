@@ -5,6 +5,7 @@ __pycache__
 /install dir
 /work area
 
+/.coverage
 /meson-test-run.txt
 /meson-test-run.xml
 
