@@ -37,6 +37,8 @@ parser.add_argument('--buildoptions', action='store_true', dest='buildoptions', 
                     help='List all build options.')
 parser.add_argument('--tests', action='store_true', dest='tests', default=False,
                     help='List all unit tests.')
+parser.add_argument('--dependencies', action='store_true', dest='dependencies', default=False,
+                    help='list external dependencies.')
 parser.add_argument('args', nargs='+')
 
 def list_targets(coredata, builddata):
@@ -137,6 +139,15 @@ def list_buildsystem_files(coredata, builddata):
                 filelist.append(os.path.relpath(os.path.join(root, f), src_dir))
     print(json.dumps(filelist))
 
+def list_deps(coredata):
+    result = {}
+    for d in coredata.deps.values():
+        if d.found():
+            args = {'compile_args': d.get_compile_args(),
+                    'link_args': d.get_link_args()}
+            result[d.name] = args
+    print(json.dumps(result))
+
 def list_tests(testdata):
     result = []
     for t in testdata:
@@ -172,6 +183,8 @@ if __name__ == '__main__':
         list_buildoptions(coredata, builddata)
     elif options.tests:
         list_tests(testdata)
+    elif options.dependencies:
+        list_deps(coredata)
     else:
         print('No command specified')
         sys.exit(1)
