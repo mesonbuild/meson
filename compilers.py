@@ -239,6 +239,8 @@ class CCompiler():
             cmdlist = self.exe_wrapper + [binary_name]
         else:
             cmdlist = [binary_name]
+        mlog.debug('Running C test binary, cross is %s.' % str(self.is_cross))
+        mlog.debug('Command: ' + ' '.join(cmdlist))
         pe = subprocess.Popen(cmdlist)
         pe.wait()
         if pe.returncode != 0:
