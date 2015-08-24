@@ -5,16 +5,17 @@ deps = [
   dependency('gobject-2.0'),
   dependency('gtk+-3.0'),
 ]
-res = gnome.compile_resources(
-  'my', 'my-resources.xml',
+res = files('my-resources.xml')
+gres = gnome.compile_resources(
+  'my', res,
   source_dir : '.',
 )
 executable(
   'demo',
   sources : [
     'mywidget.vala',
-    res,
+    gres,
   ],
   dependencies : deps,
-  vala_args : '--gresources=@0@/my-resources.xml'.format(meson.current_source_dir()),
+  vala_args : ['--gresources', res],
 )
