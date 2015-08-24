@@ -16,5 +16,5 @@ executable(
     res,
   ],
   dependencies : deps,
-  vala_args : ['--gresources', res]),
+  vala_args : '--gresources=@0@/my-resources.xml'.format(meson.current_source_dir()),
 )
