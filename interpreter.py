@@ -699,7 +699,7 @@ class ModuleHolder(InterpreterObject):
         state.subdir = self.interpreter.subdir
         state.environment = self.interpreter.environment
         state.project_name = self.interpreter.build.project_name
-        state.project_version = self.interpreter.build.project_version
+        state.project_version = self.interpreter.build.dep_manifest[self.interpreter.active_projectname]
         state.compilers = self.interpreter.build.compilers
         state.targets = self.interpreter.build.targets
         state.headers = self.interpreter.build.get_headers()
@@ -1168,7 +1168,6 @@ class Interpreter():
             raise InterpreterException('Recursive include of subprojects: %s.' % incpath)
         if dirname in self.subprojects:
             return self.subprojects[dirname]
-        subdir = os.path.join(self.subproject_dir, dirname)
         r = wrap.Resolver(os.path.join(self.build.environment.get_source_dir(), self.subproject_dir))
         resolved = r.resolve(dirname)
         if resolved is None:
