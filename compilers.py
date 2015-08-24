@@ -223,6 +223,9 @@ class CCompiler():
         return os.path.split(header_name)[-1] + '.' + self.get_pch_suffix()
 
     def sanity_check(self, work_dir):
+        mlog.debug('Sanity testing C compiler:', ' '.join(self.exelist))
+        mlog.debug('Is cross compiler: %s.' % str(self.is_cross))
+
         source_name = os.path.join(work_dir, 'sanitycheckc.c')
         binary_name = os.path.join(work_dir, 'sanitycheckc')
         ofile = open(source_name, 'w')
@@ -239,8 +242,7 @@ class CCompiler():
             cmdlist = self.exe_wrapper + [binary_name]
         else:
             cmdlist = [binary_name]
-        mlog.debug('Running C test binary, cross is %s.' % str(self.is_cross))
-        mlog.debug('Command: ' + ' '.join(cmdlist))
+        mlog.debug('Running test binary command: ' + ' '.join(cmdlist))
         pe = subprocess.Popen(cmdlist)
         pe.wait()
         if pe.returncode != 0:

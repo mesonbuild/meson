@@ -1315,6 +1315,7 @@ class Interpreter():
                 comp.sanity_check(self.environment.get_scratch_dir())
                 self.coredata.compilers[lang] = comp
                 if cross_comp is not None:
+                    cross_comp.sanity_check(self.environment.get_scratch_dir())
                     self.coredata.cross_compilers[lang] = cross_comp
             mlog.log('Native %s compiler: ' % lang, mlog.bold(' '.join(comp.get_exelist())), ' (%s %s)' % (comp.id, comp.version), sep='')
             if not comp.get_language() in self.coredata.external_args:

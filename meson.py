@@ -15,6 +15,7 @@
 # limitations under the License.
 
 import sys, stat, traceback, pickle, argparse
+import datetime
 import os.path
 import environment, interpreter, mesonlib
 import build
@@ -116,6 +117,7 @@ itself as required.'''
     def generate(self):
         env = environment.Environment(self.source_dir, self.build_dir, self.meson_script_file, self.options)
         mlog.initialize(env.get_log_dir())
+        mlog.debug('Build started at', datetime.datetime.now().isoformat())
         mlog.log(mlog.bold('The Meson build system'))
         mlog.log('Version:', coredata.version)
         mlog.log('Source dir:', mlog.bold(self.source_dir))
