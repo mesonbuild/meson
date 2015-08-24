@@ -227,7 +227,11 @@ class CCompiler():
         mlog.debug('Is cross compiler: %s.' % str(self.is_cross))
 
         source_name = os.path.join(work_dir, 'sanitycheckc.c')
-        binary_name = os.path.join(work_dir, 'sanitycheckc')
+        if self.is_cross:
+            binname = 'sanitycheckc_cross'
+        else:
+            binname = 'sanitycheckc'
+        binary_name = os.path.join(work_dir, binname)
         ofile = open(source_name, 'w')
         ofile.write('int main(int argc, char **argv) { int class=0; return class; }\n')
         ofile.close()

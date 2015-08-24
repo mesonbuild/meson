@@ -699,6 +699,7 @@ class ModuleHolder(InterpreterObject):
         state.subdir = self.interpreter.subdir
         state.environment = self.interpreter.environment
         state.project_name = self.interpreter.build.project_name
+        state.project_version = self.interpreter.build.project_version
         state.compilers = self.interpreter.build.compilers
         state.targets = self.interpreter.build.targets
         state.headers = self.interpreter.build.get_headers()
