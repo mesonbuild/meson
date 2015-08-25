@@ -22,7 +22,8 @@
 # This file is basically a reimplementation of
 # http://cgit.freedesktop.org/libreoffice/core/commit/?id=3213cd54b76bc80a6f0516aac75a48ff3b2ad67c
 
-import sys, subprocess, platform
+import sys, subprocess
+import mesonlib
 import argparse
 
 parser = argparse.ArgumentParser()
@@ -84,9 +85,9 @@ def gen_symbols(libfilename, outfilename, cross_host):
         # toolset but there are more important things
         # to do.
         dummy_syms(outfilename)
-    elif platform.system() == 'Linux':
+    elif mesonlib.is_linux():
         linux_syms(libfilename, outfilename)
-    elif platform.system() == 'Darwin':
+    elif mesonlib.is_osx():
         osx_syms(libfilename, outfilename)
     else:
         dummy_syms(outfilename)

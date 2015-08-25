@@ -15,7 +15,7 @@
 # limitations under the License.
 
 from glob import glob
-import os, subprocess, shutil, sys, platform, signal
+import os, subprocess, shutil, sys, signal
 from io import StringIO
 import sys
 import environment
@@ -91,11 +91,11 @@ def setup_commands(backend):
         install_commands = [ninja_command, 'install']
 
 def platform_fix_filename(fname):
-    if platform.system() == 'Darwin':
+    if mesonlib.is_osx():
         if fname.endswith('.so'):
             return fname[:-2] + 'dylib'
         return fname.replace('.so.', '.dylib.')
-    elif platform.system() == 'Windows':
+    elif mesonlib.is_windows():
         if fname.endswith('.so'):
             (p, f) = os.path.split(fname)
             f = f[3:-2] + 'dll'
@@ -105,7 +105,7 @@ def platform_fix_filename(fname):
     return fname
 
 def validate_install(srcdir, installdir):
-    if platform.system() == 'Windows':
+    if mesonlib.is_windows():
         # Don't really know how Windows installs should work
         # so skip.
         return ''

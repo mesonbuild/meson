@@ -19,6 +19,7 @@ import datetime
 import os.path
 import environment, interpreter, mesonlib
 import build
+import platform
 import mlog, coredata
 
 from coredata import MesonException
@@ -118,6 +119,8 @@ itself as required.'''
         env = environment.Environment(self.source_dir, self.build_dir, self.meson_script_file, self.options)
         mlog.initialize(env.get_log_dir())
         mlog.debug('Build started at', datetime.datetime.now().isoformat())
+        mlog.debug('Python binary:', sys.executable)
+        mlog.debug('Python system:', platform.system())
         mlog.log(mlog.bold('The Meson build system'))
         mlog.log('Version:', coredata.version)
         mlog.log('Source dir:', mlog.bold(self.source_dir))

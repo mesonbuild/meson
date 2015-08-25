@@ -76,7 +76,8 @@ def is_linux():
     return platform.system().lower() == 'linux'
 
 def is_windows():
-    return platform.system().lower() == 'windows'
+    platname = platform.system().lower()
+    return platname == 'windows' or 'mingw' in platname
 
 def is_debianlike():
     try:
