@@ -370,6 +370,12 @@ class NinjaBackend(backends.Backend):
         if not added_rule:
             mlog.log(mlog.red('Warning:'), 'coverage requested but neither gcovr nor lcov/genhtml found.')
 
+    def detect_pythonbin(self):
+        # Under msys2 Python lies about where sys.executable is.
+        if 'MSYSTEM' in os.environ:
+            return os.path.join(os.environ['WD'], 'python3')
+        return sys.executable
+
     def generate_install(self, outfile):
         script_root = self.environment.get_script_dir()
         install_script = os.path.join(script_root, 'meson_install.py')
@@ -381,7 +387,7 @@ class NinjaBackend(backends.Backend):
         elem = NinjaBuildElement('install', 'CUSTOM_COMMAND', '')
         elem.add_dep('all')
         elem.add_item('DESC', 'Installing files.')
-        elem.add_item('COMMAND', [sys.executable, install_script, install_data_file])
+        elem.add_item('COMMAND', [self.detect_pythonbin(), install_script, install_data_file])
         elem.add_item('pool', 'console')
         self.generate_depmf_install(d)
         self.generate_target_install(d)
