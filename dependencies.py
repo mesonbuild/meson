@@ -87,9 +87,9 @@ class PkgConfigDependency(Dependency):
             self.libs = []
             return
         if environment.is_cross_build() and want_cross:
-            if "pkgconfig" not in environment.cross_info:
+            if "pkgconfig" not in environment.cross_info.config["binaries"]:
                 raise DependencyException('Pkg-config binary missing from cross file.')
-            pkgbin = environment.cross_info['pkgconfig']
+            pkgbin = environment.cross_info.config["binaries"]['pkgconfig']
             self.type_string = 'Cross'
         else:
             pkgbin = 'pkg-config'
