@@ -18,7 +18,7 @@ import sys, os
 import pickle
 import argparse
 import coredata, optinterpreter
-from meson import build_types
+from meson import build_types, warning_levels
 
 parser = argparse.ArgumentParser()
 
@@ -80,6 +80,10 @@ class Conf:
                 if v not in build_types:
                     raise ConfException('Invalid build type %s.' % v)
                 self.coredata.buildtype = v
+            elif k == 'warnlevel':
+                if not v in warning_levels:
+                    raise ConfException('Invalid warning level %s.' % v)
+                self.coredata.warning_level = v
             elif k == 'strip':
                 self.coredata.strip = self.tobool(v)
             elif k == 'coverage':
@@ -158,6 +162,7 @@ class Conf:
         print('Core options\n')
         carr = []
         carr.append(['buildtype', 'Build type', self.coredata.buildtype])
+        carr.append(['warnlevel', 'Warning level', self.coredata.warning_level])
         carr.append(['strip', 'Strip on install', self.coredata.strip])
         carr.append(['coverage', 'Coverage report', self.coredata.coverage])
         carr.append(['pch', 'Precompiled headers', self.coredata.use_pch])

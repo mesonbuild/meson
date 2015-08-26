@@ -145,6 +145,9 @@ class CCompiler():
     def get_linker_always_args(self):
         return []
 
+    def get_warn_args(self, level):
+        return self.warn_args[level]
+
     def get_soname_args(self, shlib_name, path, soversion):
         return []
 
@@ -913,12 +916,12 @@ class VisualStudioCCompiler(CCompiler):
             self.always_args = VisualStudioCCompiler.vs2013_always_args
         else:
             self.always_args = VisualStudioCCompiler.vs2010_always_args
+        self.std_warn_args = {'1': ['/W2'],
+                              '2': ['/W3'],
+                              '3': ['/w4']}
 
     def get_always_args(self):
         return self.always_args
-
-    def get_std_warn_args(self):
-        return self.std_warn_args
 
     def get_buildtype_args(self, buildtype):
         return msvc_buildtype_args[buildtype]
@@ -1045,23 +1048,16 @@ def get_gcc_soname_args(gcc_type, shlib_name, path, soversion):
         raise RuntimeError('Not implemented yet.')
 
 class GnuCCompiler(CCompiler):
-    old_warn = ['-Wall', '-pedantic', '-Winvalid-pch']
-    new_warn = ['-Wall', '-Wpedantic', '-Winvalid-pch']
-
     def __init__(self, exelist, version, gcc_type, is_cross, exe_wrapper=None):
         CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
         self.id = 'gcc'
         self.gcc_type = gcc_type
-        if mesonlib.version_compare(version, ">=4.9.0"):
-            self.warn_args= GnuCCompiler.new_warn
-        else:
-            self.warn_args = GnuCCompiler.old_warn
+        self.warn_args = {'1': ['-Wall', '-Winvalid-pch'],
+                          '2': ['-Wall', '-Wpedantic', '-Winvalid-pch'],
+                          '3' : ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch']}
 
     def get_always_args(self):
         return ['-pipe']
-
-    def get_std_warn_args(self):
-        return self.warn_args
 
     def get_buildtype_args(self, buildtype):
         return gnulike_buildtype_args[buildtype]
@@ -1082,7 +1078,7 @@ class GnuCCompiler(CCompiler):
         return super().can_compile(filename) or filename.split('.')[-1].lower() == 's' # Gcc can do asm, too.
 
 class GnuObjCCompiler(ObjCCompiler):
-    std_warn_args = ['-Wall', '-Wpedantic', '-Winvalid-pch']
+    std_opt_args = ['-O2']
 
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
         ObjCCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
@@ -1090,9 +1086,9 @@ class GnuObjCCompiler(ObjCCompiler):
         # Not really correct, but GNU objc is only used on non-OSX non-win. File a bug
         # if this breaks your use case.
         self.gcc_type = GCC_STANDARD
-
-    def get_std_warn_args(self):
-        return GnuObjCCompiler.std_warn_args
+        self.warn_args = {'1': ['-Wall', '-Winvalid-pch'],
+                          '2': ['-Wall', '-Wpedantic', '-Winvalid-pch'],
+                          '3' : ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch']}
 
     def get_buildtype_args(self, buildtype):
         return gnulike_buildtype_args[buildtype]
@@ -1107,7 +1103,6 @@ class GnuObjCCompiler(ObjCCompiler):
         return get_gcc_soname_args(self.gcc_type, shlib_name, path, soversion)
 
 class GnuObjCPPCompiler(ObjCPPCompiler):
-    std_warn_args = ['-Wall', '-Wpedantic', '-Winvalid-pch']
     std_opt_args = ['-O2']
 
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
@@ -1116,9 +1111,9 @@ class GnuObjCPPCompiler(ObjCPPCompiler):
         # Not really correct, but GNU objc is only used on non-OSX non-win. File a bug
         # if this breaks your use case.
         self.gcc_type = GCC_STANDARD
-
-    def get_std_warn_args(self):
-        return GnuObjCPPCompiler.std_warn_args
+        self.warn_args = {'1': ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor'],
+                          '2': ['-Wall', '-Wpedantic', '-Winvalid-pch', '-Wnon-virtual-dtor'],
+                          '3' : ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor']}
 
     def get_buildtype_args(self, buildtype):
         return gnulike_buildtype_args[buildtype]
@@ -1148,9 +1143,9 @@ class ClangCCompiler(CCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
         CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
         self.id = 'clang'
-
-    def get_std_warn_args(self):
-        return ClangCCompiler.std_warn_args
+        self.warn_args = {'1': ['-Wall', '-Winvalid-pch'],
+                          '2': ['-Wall', '-Wpedantic', '-Winvalid-pch'],
+                          '3' : ['-Weverything']}
 
     def get_buildtype_args(self, buildtype):
         return gnulike_buildtype_args[buildtype]
@@ -1172,8 +1167,6 @@ class ClangCCompiler(CCompiler):
 
 
 class GnuCPPCompiler(CPPCompiler):
-    new_warn = ['-Wall', '-Wpedantic', '-Winvalid-pch', '-Wnon-virtual-dtor']
-    old_warn = ['-Wall', '-pedantic', '-Winvalid-pch', '-Wnon-virtual-dtor']
     # may need to separate the latter to extra_debug_args or something
     std_debug_args = ['-g']
 
@@ -1181,16 +1174,12 @@ class GnuCPPCompiler(CPPCompiler):
         CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
         self.id = 'gcc'
         self.gcc_type = gcc_type
-        if mesonlib.version_compare(version, ">=4.9.0"):
-            self.warn_args= GnuCPPCompiler.new_warn
-        else:
-            self.warn_args = GnuCPPCompiler.old_warn
+        self.warn_args = {'1': ['-Wall', '-Winvalid-pch'],
+                          '2': ['-Wall', '-Wpedantic', '-Winvalid-pch', '-Wnon-virtual-dtor'],
+                          '3': ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor']}
 
     def get_always_args(self):
         return ['-pipe']
-
-    def get_std_warn_args(self):
-        return self.warn_args
 
     def get_buildtype_args(self, buildtype):
         return gnulike_buildtype_args[buildtype]
@@ -1205,14 +1194,12 @@ class GnuCPPCompiler(CPPCompiler):
         return get_gcc_soname_args(self.gcc_type, shlib_name, path, soversion)
 
 class ClangCPPCompiler(CPPCompiler):
-    std_warn_args = ['-Wall', '-Wpedantic', '-Winvalid-pch', '-Wnon-virtual-dtor']
-
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
         CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
         self.id = 'clang'
-
-    def get_std_warn_args(self):
-        return ClangCPPCompiler.std_warn_args
+        self.warn_args = {'1': ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor'],
+                          '2': ['-Wall', '-Wpedantic', '-Winvalid-pch', '-Wnon-virtual-dtor'],
+                          '3': ['-Weverything']}
 
     def get_buildtype_args(self, buildtype):
         return gnulike_buildtype_args[buildtype]
@@ -1230,8 +1217,6 @@ class ClangCPPCompiler(CPPCompiler):
         return ['-include-pch', os.path.join (pch_dir, self.get_pch_name (header))]
 
 class FortranCompiler():
-    std_warn_args = ['-Wall']
-
     def __init__(self, exelist, version,is_cross, exe_wrapper=None):
         super().__init__()
         self.exelist = exelist
@@ -1289,7 +1274,7 @@ end program prog
     def get_linker_always_args(self):
         return []
 
-    def get_std_warn_args(self):
+    def get_std_warn_args(self, level):
         return FortranCompiler.std_warn_args
 
     def get_buildtype_args(self, buildtype):
@@ -1348,6 +1333,10 @@ end program prog
     def module_name_to_filename(self, module_name):
         return module_name.lower() + '.mod'
 
+    def get_warn_args(self, level):
+        return ['-Wall']
+
+
 class GnuFortranCompiler(FortranCompiler):
     def __init__(self, exelist, version, gcc_type, is_cross, exe_wrapper=None):
         super().__init__(exelist, version, is_cross, exe_wrapper=None)
@@ -1373,7 +1362,7 @@ class SunFortranCompiler(FortranCompiler):
     def get_always_args(self):
         return []
 
-    def get_std_warn_args(self):
+    def get_warn_args(self):
         return []
 
     def get_module_outdir_args(self, path):
@@ -1398,7 +1387,7 @@ class IntelFortranCompiler(FortranCompiler):
             return True
         return False
 
-    def get_std_warn_args(self):
+    def get_warn_args(self, level):
         return IntelFortranCompiler.std_warn_args
 
 class PathScaleFortranCompiler(FortranCompiler):
@@ -1420,7 +1409,7 @@ class PathScaleFortranCompiler(FortranCompiler):
             return True
         return False
 
-    def get_std_warn_args(self):
+    def get_std_warn_args(self, level):
         return PathScaleFortranCompiler.std_warn_args
 
 class PGIFortranCompiler(FortranCompiler):
@@ -1442,7 +1431,7 @@ class PGIFortranCompiler(FortranCompiler):
             return True
         return False
 
-    def get_std_warn_args(self):
+    def get_warn_args(self, level):
         return PGIFortranCompiler.std_warn_args
 
 
@@ -1465,7 +1454,7 @@ class Open64FortranCompiler(FortranCompiler):
             return True
         return False
 
-    def get_std_warn_args(self):
+    def get_warn_args(self, level):
         return Open64FortranCompiler.std_warn_args
 
 class NAGFortranCompiler(FortranCompiler):
@@ -1487,7 +1476,7 @@ class NAGFortranCompiler(FortranCompiler):
             return True
         return False
 
-    def get_std_warn_args(self):
+    def get_warn_args(self, level):
         return NAGFortranCompiler.std_warn_args
 
 
