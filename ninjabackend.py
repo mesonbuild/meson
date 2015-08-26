@@ -1190,9 +1190,9 @@ rule FORTRAN_DEP_HACK
             basedir = i.get_curdir()
             for d in i.get_incdirs():
                 expdir =  os.path.join(basedir, d)
-                fulldir = os.path.join(self.environment.get_source_dir(), expdir)
+                srctreedir = os.path.join(self.build_to_src, expdir)
                 bargs = compiler.get_include_args(expdir)
-                sargs = compiler.get_include_args(fulldir)
+                sargs = compiler.get_include_args(srctreedir)
                 commands += bargs
                 commands += sargs
         if self.environment.coredata.use_pch:
