@@ -1062,7 +1062,8 @@ rule FORTRAN_DEP_HACK
                 args = [x.replace("@INPUT@", infilename).replace('@OUTPUT@', sole_output)\
                         for x in base_args]
                 args = self.replace_outputs(args, self.get_target_private_dir(target), outfilelist)
-                args = [x.replace("@SOURCE_DIR@", self.environment.get_source_dir()).replace("@BUILD_DIR@", self.get_target_private_dir(target))
+                relout = os.path.join(target.subdir, target.get_basename() + target.type_suffix())
+                args = [x.replace("@SOURCE_DIR@", self.build_to_src).replace("@BUILD_DIR@", relout)
                         for x in args]
                 cmdlist = exe_arr + args
                 elem = NinjaBuildElement(outfiles, 'CUSTOM_COMMAND', infilename)
