@@ -1056,7 +1056,7 @@ rule FORTRAN_DEP_HACK
                 else:
                     sole_output = ''
                 curfile = infilelist[i]
-                infilename = os.path.join(self.environment.get_source_dir(), curfile)
+                infilename = os.path.join(self.build_to_src, curfile)
                 outfiles = genlist.get_outputs_for(curfile)
                 outfiles = [os.path.join(self.get_target_private_dir(target), of) for of in outfiles]
                 args = [x.replace("@INPUT@", infilename).replace('@OUTPUT@', sole_output)\
