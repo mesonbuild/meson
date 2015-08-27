@@ -21,6 +21,8 @@ import subprocess
 from coredata import MesonException
 import mlog
 
+girwarning_printed = False
+
 class GnomeModule:
 
     def compile_resources(self, state, args, kwargs):
@@ -49,7 +51,14 @@ class GnomeModule:
             girtarget = girtarget.held_object
         if not isinstance(girtarget, (build.Executable, build.SharedLibrary)):
             raise MesonException('Gir target must be an executable or shared library')
-        pkgstr = subprocess.check_output(['pkg-config', '--cflags', 'gobject-introspection-1.0'])
+        try:
+            pkgstr = subprocess.check_output(['pkg-config', '--cflags', 'gobject-introspection-1.0'])
+        except Exception:
+            global girwarning_printed
+            if not girwarning_printed:
+                mlog.log(mlog.bold('Warning:'), 'gobject-introspection dependency was not found, disabling gir generation.')
+                girwarning_printed = True
+            return []
         pkgargs = pkgstr.decode().strip().split()
         ns = kwargs.pop('namespace')
         nsversion = kwargs.pop('nsversion')
