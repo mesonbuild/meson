@@ -902,6 +902,7 @@ class GLDependency(Dependency):
             return
         if mesonlib.is_windows():
             self.is_found = True
+            self.linkargs = ['-lopengl32']
             return
 
     def get_link_args(self):
