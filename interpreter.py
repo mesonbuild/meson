@@ -1540,7 +1540,7 @@ class Interpreter():
         self.visited_subdirs[subdir] = True
         self.subdir = subdir
         try:
-            os.mkdir(os.path.join(self.environment.build_dir, subdir))
+            os.makedirs(os.path.join(self.environment.build_dir, subdir))
         except FileExistsError:
             pass
         buildfilename = os.path.join(self.subdir, environment.build_filename)
