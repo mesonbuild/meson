@@ -1057,6 +1057,11 @@ class GnuCCompiler(CCompiler):
         else:
             self.warn_args = GnuCCompiler.old_warn
 
+    def get_pic_args(self):
+        if self.gcc_type == GCC_MINGW:
+            return [] # On Window gcc defaults to fpic being always on.
+        return ['-fPIC']
+
     def get_always_args(self):
         return ['-pipe']
 
