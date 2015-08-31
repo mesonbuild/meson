@@ -630,6 +630,7 @@ class SharedLibrary(BuildTarget):
             self.prefix = environment.get_shared_lib_prefix()
             self.suffix = environment.get_shared_lib_suffix()
         self.importsuffix = environment.get_import_lib_suffix()
+        self.filename = self.prefix + self.name + '.' + self.suffix
 
     def process_kwargs(self, kwargs, environment):
         super().process_kwargs(kwargs, environment)

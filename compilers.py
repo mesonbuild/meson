@@ -1260,6 +1260,14 @@ class FortranCompiler():
     def get_language(self):
         return self.language
 
+    def get_pic_args(self):
+        if self.gcc_type == GCC_MINGW:
+            return [] # On Windows gcc defaults to fpic being always on.
+        return ['-fPIC']
+
+    def get_std_shared_lib_link_args(self):
+        return ['-shared']
+
     def needs_static_linker(self):
         return True
 
