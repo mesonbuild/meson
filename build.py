@@ -267,13 +267,13 @@ class BuildTarget():
     def extract_all_objects(self):
         return ExtractedObjects(self, self.sources)
 
-    def get_rpaths(self):
-        return self.get_transitive_rpaths()
+    def get_all_link_deps(self):
+        return self.get_transitive_link_deps()
 
-    def get_transitive_rpaths(self):
+    def get_transitive_link_deps(self):
         result = []
         for i in self.link_targets:
-            result += i.get_rpaths()
+            result += i.get_all_link_deps()
         return result
 
     def get_custom_install_dir(self):
@@ -648,8 +648,8 @@ class SharedLibrary(BuildTarget):
     def get_import_filename(self):
         return self.prefix + self.name + '.' + self.importsuffix
 
-    def get_rpaths(self):
-        return [self.subdir] + self.get_transitive_rpaths()
+    def get_all_link_deps(self):
+        return [self] + self.get_transitive_link_deps()
 
     def get_filename(self):
         '''Works on all platforms except OSX, which does its own thing.'''
@@ -744,13 +744,7 @@ class CustomTarget:
                 final_cmd += c.get_command()
             elif isinstance(c, BuildTarget) or isinstance(c, CustomTarget):
                 self.dependencies.append(c)
-                # GIR scanner will attempt to execute this binary but
-                # it assumes that it is in path, so always give it a full path.
-                tmp = c.get_filename()
-                if isinstance(tmp, str):
-                    tmp =[tmp]
-                totarget = [os.path.join('.', c.get_subdir(), i) for i in tmp]
-                final_cmd += totarget
+                final_cmd.append(c)
             elif isinstance(c, list):
                 # Hackety hack, only supports one level of flattening. Should really
                 # work to arbtrary depth.

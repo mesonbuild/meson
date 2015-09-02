@@ -198,7 +198,7 @@ class NinjaBackend(backends.Backend):
         for gensource in target.get_generated_sources():
             if isinstance(gensource, build.CustomTarget):
                 for src in gensource.output:
-                    src = os.path.join(gensource.subdir, src)
+                    src = os.path.join(self.get_target_dir(gensource), src)
                     if self.environment.is_source(src) and not self.environment.is_header(src):
                         if is_unity:
                             unity_deps.append(os.path.join(self.environment.get_build_dir(), RawFilename(src)))
@@ -267,15 +267,14 @@ class NinjaBackend(backends.Backend):
             if not tname in self.processed_targets:
                 self.generate_target(t, outfile)
 
-    def hackety_hack(self, hack):
-        if isinstance(hack, list):
-            return hack[0]
-        return hack
-
     def generate_custom_target(self, target, outfile):
-        ofilenames = [os.path.join(target.subdir, i) for i in target.output]
-        # FIXME, should not grab element at zero but rather expand all.
-        deps = [os.path.join(i.get_subdir(), self.hackety_hack(i.get_filename())) for i in target.get_dependencies()]
+        ofilenames = [os.path.join(self.get_target_dir(target), i) for i in target.output]
+        deps = []
+        for i in target.get_dependencies():
+            # FIXME, should not grab element at zero but rather expand all.
+            if isinstance(i, list):
+                i = i[0]
+            deps.append(os.path.join(self.get_target_dir(i), i.get_filename()[0]))
         srcs = []
         for i in target.sources:
             if isinstance(i, str):
@@ -291,9 +290,14 @@ class NinjaBackend(backends.Backend):
             if not isinstance(tmp, list):
                 tmp = [tmp]
             for fname in tmp:
-                elem.add_dep(os.path.join(d.get_subdir(), fname))
+                elem.add_dep(os.path.join(self.get_target_dir(d), fname))
         cmd = []
         for i in target.command:
+            if isinstance(i, build.CustomTarget):
+                # GIR scanner will attempt to execute this binary but
+                # it assumes that it is in path, so always give it a full path.
+                tmp = i.get_filename()[0]
+                i = os.path.join(self.get_target_dir(i), tmp)
             for (j, src) in enumerate(srcs):
                 i = i.replace('@INPUT%d@' % j, src)
             for (j, res) in enumerate(ofilenames):
@@ -302,8 +306,11 @@ class NinjaBackend(backends.Backend):
                 cmd += srcs
             elif i == '@OUTPUT@':
                 cmd += ofilenames
+            elif i == '@OUTDIR@':
+                cmd.append(self.get_target_dir(target))
             else:
                 cmd.append(i)
+
         elem.add_item('COMMAND', cmd)
         elem.add_item('description', 'Generating %s with a custom command.' % target.name)
         elem.write(outfile)
@@ -1190,6 +1197,14 @@ rule FORTRAN_DEP_HACK
                 sargs = compiler.get_include_args(srctreedir)
                 commands += bargs
                 commands += sargs
+        custom_target_include_dirs = []
+        for i in target.generated:
+            if isinstance(i, build.CustomTarget):
+                idir = self.get_target_dir(i)
+                if idir not in custom_target_include_dirs:
+                    custom_target_include_dirs.append(idir)
+        for i in custom_target_include_dirs:
+            commands+= compiler.get_include_args(i)
         if self.environment.coredata.use_pch:
             commands += self.get_pch_include_args(compiler, target)
         crstr = ''
@@ -1359,7 +1374,7 @@ rule FORTRAN_DEP_HACK
                     for dep in d.get_external_deps():
                         commands += dep.get_link_args()
         commands += linker.build_rpath_args(self.environment.get_build_dir(),\
-                                            target.get_rpaths(), target.install_rpath)
+                                            self.determine_rpath_dirs(target), target.install_rpath)
         if self.environment.coredata.coverage:
             commands += linker.get_coverage_link_args()
         commands += extra_args
@@ -1370,6 +1385,15 @@ rule FORTRAN_DEP_HACK
         elem.add_dep(dep_targets)
         elem.add_item('LINK_ARGS', commands)
         return elem
+
+    def determine_rpath_dirs(self, target):
+        link_deps = target.get_all_link_deps()
+        result = []
+        for ld in link_deps:
+            prospective = self.get_target_dir(ld)
+            if not prospective in result:
+                result.append(prospective)
+        return result
 
     def get_dependency_filename(self, t):
         if isinstance(t, build.SharedLibrary):

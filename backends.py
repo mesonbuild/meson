@@ -69,7 +69,8 @@ class Backend():
         return filename
 
     def get_target_dir(self, target):
-        dirname = target.get_subdir()
+#        dirname = target.get_subdir()
+        dirname = 'meson-out'
         os.makedirs(os.path.join(self.environment.get_build_dir(), dirname), exist_ok=True)
         return dirname
 
@@ -257,8 +258,15 @@ class Backend():
         if not isinstance(target, build.Executable):
             print(target)
             return []
-        prospectives = target.get_transitive_rpaths()
-        return [os.path.join(self.environment.get_build_dir(), i) for i in prospectives if len(i) > 0]
+        prospectives = target.get_transitive_link_deps()
+        result = []
+        for ld in prospectives:
+            if ld == '' or ld == '.':
+                continue
+            dirseg = os.path.join(self.environment.get_build_dir(), self.get_target_dir())
+            if dirseg not in result:
+                result.append(dirseg)
+        return result
 
     def write_test_file(self, datafile):
         arr = []
