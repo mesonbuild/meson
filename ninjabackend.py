@@ -306,8 +306,8 @@ class NinjaBackend(backends.Backend):
                 cmd += srcs
             elif i == '@OUTPUT@':
                 cmd += ofilenames
-            elif i == '@OUTDIR@':
-                cmd.append(self.get_target_dir(target))
+            elif '@OUTDIR@' in i:
+                cmd.append(i.replace('@OUTDIR@', self.get_target_dir(target)))
             else:
                 cmd.append(i)
 
@@ -1063,7 +1063,7 @@ rule FORTRAN_DEP_HACK
                 args = [x.replace("@INPUT@", infilename).replace('@OUTPUT@', sole_output)\
                         for x in base_args]
                 args = self.replace_outputs(args, self.get_target_private_dir_abs(target), outfilelist)
-                relout = os.path.join(target.subdir, target.get_basename() + target.type_suffix())
+                relout = self.get_target_private_dir(target)
                 args = [x.replace("@SOURCE_DIR@", self.build_to_src).replace("@BUILD_DIR@", relout)
                         for x in args]
                 cmdlist = exe_arr + args

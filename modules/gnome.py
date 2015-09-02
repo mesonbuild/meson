@@ -139,9 +139,9 @@ class GnomeModule:
             inc_dirs = kwargs.pop('include_directories')
             if not isinstance(inc_dirs, list):
                 inc_dirs = [inc_dirs]
-            for id in inc_dirs:
-                if isinstance(id.held_object, build.IncludeDirs):
-                    scan_command += ['--add-include-path=%s' % inc for inc in id.held_object.get_incdirs()]
+            for ind in inc_dirs:
+                if isinstance(ind.held_object, build.IncludeDirs):
+                    scan_command += ['--add-include-path=%s' % inc for inc in ind.held_object.get_incdirs()]
                 else:
                     raise MesonException('Gir include dirs should be include_directories()')
         if isinstance(girtarget, build.Executable):
@@ -248,7 +248,7 @@ class GnomeModule:
             cmd += ['--interface-prefix', kwargs.pop('interface_prefix')]
         if 'namespace' in kwargs:
             cmd += ['--c-namespace', kwargs.pop('namespace')]
-        cmd += ['--generate-c-code', os.path.join(state.subdir, namebase), '@INPUT@']
+        cmd += ['--generate-c-code', '@OUTDIR@/' + namebase, '@INPUT@']
         outputs = [namebase + '.c', namebase + '.h']
         custom_kwargs = {'input' : xml_file,
                          'output' : outputs,

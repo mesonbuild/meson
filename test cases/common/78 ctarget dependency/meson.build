@@ -16,5 +16,5 @@ command : [g1, '@INPUT@', '@OUTPUT@'])
 
 custom_target('output',
 output : 'output.dat',
-command : [g2, '@OUTPUT@'],
+command : [g2, '@OUTDIR@', '@OUTPUT@'],
 depends : c1)
