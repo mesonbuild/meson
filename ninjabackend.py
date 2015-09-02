@@ -312,7 +312,7 @@ class NinjaBackend(backends.Backend):
     def generate_run_target(self, target, outfile):
         runnerscript = os.path.join(self.environment.get_script_dir(), 'commandrunner.py')
         elem = NinjaBuildElement(target.name, 'CUSTOM_COMMAND', [])
-        cmd = [self.detect_pythonbin(), runnerscript, self.environment.get_source_dir(), self.environment.get_build_dir(),
+        cmd = [sys.executable, runnerscript, self.environment.get_source_dir(), self.environment.get_build_dir(),
                target.subdir, target.command] + target.args
         elem.add_item('COMMAND', cmd)
         elem.add_item('description', 'Running external command %s.' % target.name)
@@ -370,12 +370,6 @@ class NinjaBackend(backends.Backend):
         if not added_rule:
             mlog.log(mlog.red('Warning:'), 'coverage requested but neither gcovr nor lcov/genhtml found.')
 
-    def detect_pythonbin(self):
-        # Under msys2 Python lies about where sys.executable is.
-        if 'MSYSTEM' in os.environ:
-            return os.path.join(os.environ['WD'], 'python3')
-        return sys.executable
-
     def generate_install(self, outfile):
         script_root = self.environment.get_script_dir()
         install_script = os.path.join(script_root, 'meson_install.py')
@@ -387,7 +381,7 @@ class NinjaBackend(backends.Backend):
         elem = NinjaBuildElement('install', 'CUSTOM_COMMAND', '')
         elem.add_dep('all')
         elem.add_item('DESC', 'Installing files.')
-        elem.add_item('COMMAND', [self.detect_pythonbin(), install_script, install_data_file])
+        elem.add_item('COMMAND', [sys.executable, install_script, install_data_file])
         elem.add_item('pool', 'console')
         self.generate_depmf_install(d)
         self.generate_target_install(d)
@@ -499,7 +493,7 @@ class NinjaBackend(backends.Backend):
         script_root = self.environment.get_script_dir()
         test_script = os.path.join(script_root, 'meson_test.py')
         test_data = os.path.join(self.environment.get_scratch_dir(), 'meson_test_setup.dat')
-        cmd = [self.detect_pythonbin(), test_script, test_data]
+        cmd = [sys.executable, test_script, test_data]
         elem = NinjaBuildElement('test', 'CUSTOM_COMMAND', ['all', 'PHONY'])
         elem.add_item('COMMAND', cmd)
         elem.add_item('DESC', 'Running test suite.')
@@ -527,7 +521,7 @@ class NinjaBackend(backends.Backend):
         outfile.write(' description = $DESC\n')
         outfile.write(' restat = 1\n\n')
         outfile.write('rule REGENERATE_BUILD\n')
-        c = (quote_char + ninja_quote(self.detect_pythonbin()) + quote_char,
+        c = (quote_char + ninja_quote(sys.executable) + quote_char,
              quote_char + ninja_quote(self.environment.get_build_command())  + quote_char,
              quote_char + ninja_quote(self.environment.get_source_dir())  + quote_char,
              quote_char + ninja_quote(self.environment.get_build_dir())  + quote_char)
@@ -834,7 +828,7 @@ class NinjaBackend(backends.Backend):
         scriptdir = self.environment.get_script_dir()
         outfile.write('\n')
         symrule = 'rule SHSYM\n'
-        symcmd = ' command = "%s" "%s" %s %s $CROSS\n' % (ninja_quote(self.detect_pythonbin()),
+        symcmd = ' command = "%s" "%s" %s %s $CROSS\n' % (ninja_quote(sys.executable),
                                          ninja_quote(os.path.join(scriptdir, 'symbolextractor.py')),
                                          '$in', '$out')
         synstat = ' restat = 1\n'
@@ -885,7 +879,7 @@ class NinjaBackend(backends.Backend):
         rule = 'rule %s_COMPILER\n' % compiler.get_language()
         invoc = ' '.join([ninja_quote(i) for i in compiler.get_exelist()])
         command = ' command = %s %s $out $cratetype %s $ARGS $in\n' % \
-            (ninja_quote(self.detect_pythonbin()),
+            (ninja_quote(sys.executable),
              ninja_quote(os.path.join(os.path.split(__file__)[0], "rustrunner.py")),
                          invoc)
         description = ' description = Compiling Rust source $in.\n'
@@ -1400,14 +1394,14 @@ rule FORTRAN_DEP_HACK
             gcno_elem = NinjaBuildElement('clean-gcno', 'CUSTOM_COMMAND', 'PHONY')
             script_root = self.environment.get_script_dir()
             clean_script = os.path.join(script_root, 'delwithsuffix.py')
-            gcno_elem.add_item('COMMAND', [self.detect_pythonbin(), clean_script, '.', 'gcno'])
+            gcno_elem.add_item('COMMAND', [sys.executable, clean_script, '.', 'gcno'])
             gcno_elem.add_item('description', 'Deleting gcno files')
             gcno_elem.write(outfile)
 
             gcda_elem = NinjaBuildElement('clean-gcda', 'CUSTOM_COMMAND', 'PHONY')
             script_root = self.environment.get_script_dir()
             clean_script = os.path.join(script_root, 'delwithsuffix.py')
-            gcda_elem.add_item('COMMAND', [self.detect_pythonbin(), clean_script, '.', 'gcda'])
+            gcda_elem.add_item('COMMAND', [sys.executable, clean_script, '.', 'gcda'])
             gcda_elem.add_item('description', 'Deleting gcda files')
             gcda_elem.write(outfile)
 
