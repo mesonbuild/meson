@@ -74,7 +74,10 @@ class Backend():
         return dirname
 
     def get_target_private_dir(self, target):
-        dirname = os.path.join(self.get_target_dir(target), target.get_basename() + target.type_suffix())
+        return os.path.join(self.get_target_dir(target), target.get_basename() + target.type_suffix())
+
+    def get_target_private_dir_abs(self, target):
+        dirname = self.get_target_private_dir(target)
         os.makedirs(os.path.join(self.environment.get_build_dir(), dirname), exist_ok=True)
         return dirname
 
@@ -87,7 +90,7 @@ class Backend():
             language = comp.get_language()
             suffix = '.' + comp.get_default_suffix()
             if language not in langlist:
-                outfilename = os.path.join(self.get_target_private_dir(target), target.name + '-unity' + suffix)
+                outfilename = os.path.join(self.get_target_private_dir_abs(target), target.name + '-unity' + suffix)
                 outfileabs = os.path.join(self.environment.get_build_dir(), outfilename)
                 outfileabs_tmp = outfileabs + '.tmp'
                 abs_files.append(outfileabs)
@@ -167,7 +170,7 @@ class Backend():
 
     def determine_ext_objs(self, extobj, proj_dir_to_build_root=''):
         result = []
-        targetdir = self.get_target_private_dir(extobj.target)
+        targetdir = self.get_target_private_dir_abs(extobj.target)
         suffix = '.' + self.environment.get_object_suffix()
         for osrc in extobj.srclist:
             osrc_base = osrc.fname
@@ -187,7 +190,7 @@ class Backend():
 
     def get_pch_include_args(self, compiler, target):
         args = []
-        pchpath = self.get_target_private_dir(target)
+        pchpath = self.get_target_private_dir_abs(target)
         includeargs = compiler.get_include_args(pchpath)
         for lang in ['c', 'cpp']:
             p = target.get_pch(lang)

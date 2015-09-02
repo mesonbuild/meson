@@ -215,13 +215,13 @@ class NinjaBackend(backends.Backend):
             else:
                 for src in gensource.get_outfilelist():
                     if self.environment.is_object(src):
-                        obj_list.append(os.path.join(self.get_target_private_dir(target), src))
+                        obj_list.append(os.path.join(self.get_target_private_dir_abs(target), src))
                     elif not self.environment.is_header(src):
                         if is_unity:
                             if '/' in src:
                                 rel_src = src
                             else:
-                                rel_src = os.path.join(self.get_target_private_dir(target), src)
+                                rel_src = os.path.join(self.get_target_private_dir_abs(target), src)
                             unity_deps.append(rel_src)
                             abs_src = os.path.join(self.environment.get_build_dir(), rel_src)
                             unity_src.append(abs_src)
@@ -576,10 +576,10 @@ class NinjaBackend(backends.Backend):
         if e != '':
             commands.append(main_class)
         commands.append(self.get_target_filename(target))
-        commands += ['-C', self.get_target_private_dir(target)]
+        commands += ['-C', self.get_target_private_dir_abs(target)]
         commands += class_list
         elem = NinjaBuildElement(outname_rel, jar_rule, [])
-        elem.add_dep([os.path.join(self.get_target_private_dir(target), i) for i in class_list])
+        elem.add_dep([os.path.join(self.get_target_private_dir_abs(target), i) for i in class_list])
         elem.add_item('ARGS', commands)
         elem.write(outfile)
 
@@ -592,7 +592,7 @@ class NinjaBackend(backends.Backend):
                 a = '-resource:' + rel_sourcefile
             elif r.endswith('.txt') or r.endswith('.resx'):
                 ofilebase = os.path.splitext(os.path.basename(r))[0] + '.resources'
-                ofilename = os.path.join(self.get_target_private_dir(target), ofilebase)
+                ofilename = os.path.join(self.get_target_private_dir_abs(target), ofilebase)
                 elem = NinjaBuildElement(ofilename, "CUSTOM_COMMAND", rel_sourcefile)
                 elem.add_item('COMMAND', ['resgen', rel_sourcefile, ofilename])
                 elem.add_item('DESC', 'Compiling resource %s.' % rel_sourcefile)
@@ -641,10 +641,10 @@ class NinjaBackend(backends.Backend):
     def generate_single_java_compile(self, subdir, src, target, compiler, outfile):
         args = []
         args += compiler.get_buildtype_args(self.environment.coredata.buildtype)
-        args += compiler.get_output_args(self.get_target_private_dir(target))
+        args += compiler.get_output_args(self.get_target_private_dir_abs(target))
         rel_src = src.rel_to_builddir(self.build_to_src)
         plain_class_path = src.fname[:-4] + 'class'
-        rel_obj = os.path.join(self.get_target_private_dir(target), plain_class_path)
+        rel_obj = os.path.join(self.get_target_private_dir_abs(target), plain_class_path)
         element = NinjaBuildElement(rel_obj, compiler.get_language() + '_COMPILER', rel_src)
         element.add_item('ARGS', args)
         element.write(outfile)
@@ -665,7 +665,7 @@ class NinjaBackend(backends.Backend):
             if not s.endswith('.vala'):
                 continue
             vapibase = os.path.basename(s.fname)[:-4] + 'vapi'
-            rel_vapi = os.path.join(self.get_target_private_dir(target), vapibase)
+            rel_vapi = os.path.join(self.get_target_private_dir_abs(target), vapibase)
             args = ['--fast-vapi=' + rel_vapi]
             rel_s = s.rel_to_builddir(self.build_to_src)
             element = NinjaBuildElement(rel_vapi, valac.get_language() + '_COMPILER', rel_s)
@@ -695,7 +695,7 @@ class NinjaBackend(backends.Backend):
         for s in src:
             if not s.endswith('.vala'):
                 continue
-            args = ['-d', self.get_target_private_dir(target)]
+            args = ['-d', self.get_target_private_dir_abs(target)]
             sc = os.path.basename(s.fname)[:-4] + 'c'
             args += ['-C']
             vapi_order_deps = []
@@ -705,7 +705,7 @@ class NinjaBackend(backends.Backend):
                 (vapibase, rel_vapi) = vapi_info
                 args += ['--use-fast-vapi=' + rel_vapi]
                 vapi_order_deps.append(rel_vapi)
-            relsc = os.path.join(self.get_target_private_dir(target), sc)
+            relsc = os.path.join(self.get_target_private_dir_abs(target), sc)
             rel_s = s.rel_to_builddir(self.build_to_src)
             args += ['--deps', relsc + '.d']
             if self.environment.coredata.werror:
@@ -1046,16 +1046,16 @@ rule FORTRAN_DEP_HACK
             extra_dependencies = [os.path.join(self.build_to_src, i) for i in genlist.extra_depends]
             for i in range(len(infilelist)):
                 if len(generator.outputs) == 1:
-                    sole_output = os.path.join(self.get_target_private_dir(target), outfilelist[i])
+                    sole_output = os.path.join(self.get_target_private_dir_abs(target), outfilelist[i])
                 else:
                     sole_output = ''
                 curfile = infilelist[i]
                 infilename = os.path.join(self.build_to_src, curfile)
                 outfiles = genlist.get_outputs_for(curfile)
-                outfiles = [os.path.join(self.get_target_private_dir(target), of) for of in outfiles]
+                outfiles = [os.path.join(self.get_target_private_dir_abs(target), of) for of in outfiles]
                 args = [x.replace("@INPUT@", infilename).replace('@OUTPUT@', sole_output)\
                         for x in base_args]
-                args = self.replace_outputs(args, self.get_target_private_dir(target), outfilelist)
+                args = self.replace_outputs(args, self.get_target_private_dir_abs(target), outfilelist)
                 relout = os.path.join(target.subdir, target.get_basename() + target.type_suffix())
                 args = [x.replace("@SOURCE_DIR@", self.build_to_src).replace("@BUILD_DIR@", relout)
                         for x in args]
@@ -1100,7 +1100,7 @@ rule FORTRAN_DEP_HACK
     def get_fortran_deps(self, compiler, src, target):
         mod_files = []
         usere = re.compile(r"\s*use\s+(\w+)", re.IGNORECASE)
-        dirname = self.get_target_private_dir(target)
+        dirname = self.get_target_private_dir_abs(target)
         tdeps= self.fortran_deps[target.get_basename()]
         for line in open(src):
             usematch = usere.match(line)
@@ -1133,7 +1133,7 @@ rule FORTRAN_DEP_HACK
         extra_orderdeps = []
         compiler = self.get_compiler_for_source(src)
         commands = self.generate_basic_compiler_args(target, compiler)
-        commands += compiler.get_include_args(self.get_target_private_dir(target))
+        commands += compiler.get_include_args(self.get_target_private_dir_abs(target))
         curdir = target.get_subdir()
         tmppath = os.path.normpath(os.path.join(self.build_to_src, curdir))
         commands += compiler.get_include_args(tmppath)
@@ -1150,7 +1150,7 @@ rule FORTRAN_DEP_HACK
             if '/' in src:
                 rel_src = src
             else:
-                rel_src = os.path.join(self.get_target_private_dir(target), src)
+                rel_src = os.path.join(self.get_target_private_dir_abs(target), src)
                 abs_src = os.path.join(self.environment.get_source_dir(), rel_src)
         else:
             if isinstance(src, File):
@@ -1167,7 +1167,7 @@ rule FORTRAN_DEP_HACK
         else:
             src_filename = src
         obj_basename = src_filename.replace('/', '_').replace('\\', '_')
-        rel_obj = os.path.join(self.get_target_private_dir(target), obj_basename)
+        rel_obj = os.path.join(self.get_target_private_dir_abs(target), obj_basename)
         rel_obj += '.' + self.environment.get_object_suffix()
         dep_file = rel_obj + '.' + compiler.get_depfile_suffix()
         if self.environment.coredata.use_pch:
@@ -1178,7 +1178,7 @@ rule FORTRAN_DEP_HACK
             pch_dep = []
         else:
             arr = []
-            i = os.path.join(self.get_target_private_dir(target), compiler.get_pch_name(pchlist[0]))
+            i = os.path.join(self.get_target_private_dir_abs(target), compiler.get_pch_name(pchlist[0]))
             arr.append(i)
             pch_dep = arr
         for i in target.get_include_dirs():
@@ -1202,19 +1202,19 @@ rule FORTRAN_DEP_HACK
             # Dependency hack. Remove once multiple outputs in Ninja is fixed:
             # https://groups.google.com/forum/#!topic/ninja-build/j-2RfBIOd_8
             for modname, srcfile in self.fortran_deps[target.get_basename()].items():
-                modfile = os.path.join(self.get_target_private_dir(target),
+                modfile = os.path.join(self.get_target_private_dir_abs(target),
                                        compiler.module_name_to_filename(modname))
                 if srcfile == src:
                     depelem = NinjaBuildElement(modfile, 'FORTRAN_DEP_HACK', rel_obj)
                     depelem.write(outfile)
-            commands += compiler.get_module_outdir_args(self.get_target_private_dir(target))
+            commands += compiler.get_module_outdir_args(self.get_target_private_dir_abs(target))
 
         element = NinjaBuildElement(rel_obj, compiler_name, rel_src)
         for d in header_deps:
             if isinstance(d, RawFilename):
                 d = d.fname
             elif not '/' in d:
-                d = os.path.join(self.get_target_private_dir(target), d)
+                d = os.path.join(self.get_target_private_dir_abs(target), d)
             element.add_dep(d)
         for d in extra_deps:
             element.add_dep(d)
@@ -1222,7 +1222,7 @@ rule FORTRAN_DEP_HACK
             if isinstance(d, RawFilename):
                 d = d.fname
             elif not '/' in d :
-                d = os.path.join(self.get_target_private_dir(target), d)
+                d = os.path.join(self.get_target_private_dir_abs(target), d)
             element.add_orderdep(d)
         element.add_orderdep(pch_dep)
         element.add_orderdep(extra_orderdeps)
@@ -1250,7 +1250,7 @@ rule FORTRAN_DEP_HACK
         header = pch[0]
         source = pch[1]
         pchname = compiler.get_pch_name(header)
-        dst = os.path.join(self.get_target_private_dir(target), pchname)
+        dst = os.path.join(self.get_target_private_dir_abs(target), pchname)
 
         commands = []
         commands += self.generate_basic_compiler_args(target, compiler)
@@ -1263,7 +1263,7 @@ rule FORTRAN_DEP_HACK
     def generate_gcc_pch_command(self, target, compiler, pch):
         commands = []
         commands += self.generate_basic_compiler_args(target, compiler)
-        dst = os.path.join(self.get_target_private_dir(target),
+        dst = os.path.join(self.get_target_private_dir_abs(target),
                            os.path.split(pch)[-1] + '.' + compiler.get_pch_suffix())
         dep = dst + '.' + compiler.get_depfile_suffix()
         return (commands, dep, dst, []) # Gcc does not create an object file during pch generation.
@@ -1300,7 +1300,7 @@ rule FORTRAN_DEP_HACK
 
     def generate_shsym(self, outfile, target):
         target_name = self.get_target_filename(target)
-        targetdir = self.get_target_private_dir(target)
+        targetdir = self.get_target_private_dir_abs(target)
         symname = os.path.join(targetdir, target_name + '.symbols')
         elem = NinjaBuildElement(symname, 'SHSYM', target_name)
         if self.environment.is_cross_build() and self.environment.cross_info.need_cross_compiler():
@@ -1373,7 +1373,7 @@ rule FORTRAN_DEP_HACK
 
     def get_dependency_filename(self, t):
         if isinstance(t, build.SharedLibrary):
-            return os.path.join(self.get_target_private_dir(t), self.get_target_filename(t) + '.symbols')
+            return os.path.join(self.get_target_private_dir_abs(t), self.get_target_filename(t) + '.symbols')
         return self.get_target_filename(t)
 
     def generate_shlib_aliases(self, target, outdir, outfile, elem):
@@ -1425,7 +1425,7 @@ rule FORTRAN_DEP_HACK
                 plainname = os.path.split(src)[1]
                 basename = plainname.split('.')[0]
                 outname = rule.name_templ.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname)
-                outfilename = os.path.join(self.get_target_private_dir(target), outname)
+                outfilename = os.path.join(self.get_target_private_dir_abs(target), outname)
                 infilename = os.path.join(self.build_to_src, target.get_source_subdir(), src)
                 elem = NinjaBuildElement(outfilename, rule.name, infilename)
                 elem.write(outfile)
