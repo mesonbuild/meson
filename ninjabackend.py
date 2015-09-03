@@ -564,7 +564,7 @@ class NinjaBackend(backends.Backend):
     def generate_jar_target(self, target, outfile):
         fname = target.get_filename()
         subdir = target.get_subdir()
-        outname_rel = os.path.join(subdir, fname)
+        outname_rel = os.path.join(self.get_target_dir(target), fname)
         src_list = target.get_sources()
         class_list = []
         compiler = self.get_compiler_for_source(src_list[0])
@@ -577,7 +577,7 @@ class NinjaBackend(backends.Backend):
         if main_class != '':
             e = 'e'
         for src in src_list:
-            class_list.append(self.generate_single_java_compile(subdir, src, target, compiler, outfile))
+            class_list.append(self.generate_single_java_compile(src, target, compiler, outfile))
         jar_rule = 'java_LINKER'
         commands = [c+m+e+f]
         if e != '':
@@ -586,7 +586,7 @@ class NinjaBackend(backends.Backend):
         commands += ['-C', self.get_target_private_dir_abs(target)]
         commands += class_list
         elem = NinjaBuildElement(outname_rel, jar_rule, [])
-        elem.add_dep([os.path.join(self.get_target_private_dir_abs(target), i) for i in class_list])
+        elem.add_dep([os.path.join(self.get_target_private_dir(target), i) for i in class_list])
         elem.add_item('ARGS', commands)
         elem.write(outfile)
 
@@ -599,7 +599,7 @@ class NinjaBackend(backends.Backend):
                 a = '-resource:' + rel_sourcefile
             elif r.endswith('.txt') or r.endswith('.resx'):
                 ofilebase = os.path.splitext(os.path.basename(r))[0] + '.resources'
-                ofilename = os.path.join(self.get_target_private_dir_abs(target), ofilebase)
+                ofilename = os.path.join(self.get_target_private_dir(target), ofilebase)
                 elem = NinjaBuildElement(ofilename, "CUSTOM_COMMAND", rel_sourcefile)
                 elem.add_item('COMMAND', ['resgen', rel_sourcefile, ofilename])
                 elem.add_item('DESC', 'Compiling resource %s.' % rel_sourcefile)
@@ -614,8 +614,7 @@ class NinjaBackend(backends.Backend):
     def generate_cs_target(self, target, outfile):
         buildtype = self.environment.coredata.buildtype
         fname = target.get_filename()
-        subdir = target.get_subdir()
-        outname_rel = os.path.join(subdir, fname)
+        outname_rel = os.path.join(self.get_target_dir(target), fname)
         src_list = target.get_sources()
         compiler = self.get_compiler_for_source(src_list[0])
         assert(compiler.get_language() == 'cs')
@@ -634,8 +633,9 @@ class NinjaBackend(backends.Backend):
         deps += resource_deps
         commands += compiler.get_output_args(outname_rel)
         for l in target.link_targets:
-            commands += compiler.get_link_args(l.get_filename())
-            deps.append(l.get_filename())
+            lname = os.path.join(self.get_target_dir(l), l.get_filename())
+            commands += compiler.get_link_args(lname)
+            deps.append(lname)
         if '-g' in commands:
             outputs = [outname_rel, outname_rel + '.mdb']
         else:
@@ -645,10 +645,10 @@ class NinjaBackend(backends.Backend):
         elem.add_item('ARGS', commands)
         elem.write(outfile)
 
-    def generate_single_java_compile(self, subdir, src, target, compiler, outfile):
+    def generate_single_java_compile(self, src, target, compiler, outfile):
         args = []
         args += compiler.get_buildtype_args(self.environment.coredata.buildtype)
-        args += compiler.get_output_args(self.get_target_private_dir_abs(target))
+        args += compiler.get_output_args(self.get_target_private_dir(target))
         rel_src = src.rel_to_builddir(self.build_to_src)
         plain_class_path = src.fname[:-4] + 'class'
         rel_obj = os.path.join(self.get_target_private_dir_abs(target), plain_class_path)
@@ -1140,7 +1140,7 @@ rule FORTRAN_DEP_HACK
         extra_orderdeps = []
         compiler = self.get_compiler_for_source(src)
         commands = self.generate_basic_compiler_args(target, compiler)
-        commands += compiler.get_include_args(self.get_target_private_dir_abs(target))
+        commands += compiler.get_include_args(self.get_target_private_dir(target))
         curdir = target.get_subdir()
         tmppath = os.path.normpath(os.path.join(self.build_to_src, curdir))
         commands += compiler.get_include_args(tmppath)
@@ -1174,7 +1174,7 @@ rule FORTRAN_DEP_HACK
         else:
             src_filename = src
         obj_basename = src_filename.replace('/', '_').replace('\\', '_')
-        rel_obj = os.path.join(self.get_target_private_dir_abs(target), obj_basename)
+        rel_obj = os.path.join(self.get_target_private_dir(target), obj_basename)
         rel_obj += '.' + self.environment.get_object_suffix()
         dep_file = rel_obj + '.' + compiler.get_depfile_suffix()
         if self.environment.coredata.use_pch:
@@ -1217,7 +1217,7 @@ rule FORTRAN_DEP_HACK
             # Dependency hack. Remove once multiple outputs in Ninja is fixed:
             # https://groups.google.com/forum/#!topic/ninja-build/j-2RfBIOd_8
             for modname, srcfile in self.fortran_deps[target.get_basename()].items():
-                modfile = os.path.join(self.get_target_private_dir_abs(target),
+                modfile = os.path.join(self.get_target_private_dir(target),
                                        compiler.module_name_to_filename(modname))
                 if srcfile == src:
                     depelem = NinjaBuildElement(modfile, 'FORTRAN_DEP_HACK', rel_obj)
@@ -1251,13 +1251,13 @@ rule FORTRAN_DEP_HACK
     # Fortran is a bit weird (again). When you link against a library, just compiling a source file
     # requires the mod files that are output when single files are built. To do this right we would need to
     # scan all inputs and write out explicit deps for each file. That is stoo slow and too much effort so
-    # instead just have an ordered dependendy on the library. This ensures all reqquired mod files are created.
+    # instead just have an ordered dependendy on the library. This ensures all required mod files are created.
     # The real deps are then detected via dep file generation from the compiler. This breaks on compilers that
     # produce incorrect dep files but such is life.
     def get_fortran_orderdeps(self, target, compiler):
         if compiler.language != 'fortran':
             return []
-        return [os.path.join(lt.subdir, lt.filename) for lt in target.link_targets]
+        return [os.path.join(self.get_target_dir(lt), lt.filename) for lt in target.link_targets]
 
     def generate_msvc_pch_command(self, target, compiler, pch):
         if len(pch) != 2:
