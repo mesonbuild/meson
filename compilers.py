@@ -1045,17 +1045,14 @@ def get_gcc_soname_args(gcc_type, shlib_name, path, soversion):
         raise RuntimeError('Not implemented yet.')
 
 class GnuCCompiler(CCompiler):
-    old_warn = ['-Wall', '-pedantic', '-Winvalid-pch']
-    new_warn = ['-Wall', '-Wpedantic', '-Winvalid-pch']
+    std_warn_args = ['-Wall', '-Winvalid-pch']
 
     def __init__(self, exelist, version, gcc_type, is_cross, exe_wrapper=None):
         CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
         self.id = 'gcc'
         self.gcc_type = gcc_type
-        if mesonlib.version_compare(version, ">=4.9.0"):
-            self.warn_args= GnuCCompiler.new_warn
-        else:
-            self.warn_args = GnuCCompiler.old_warn
+        mlog.debug('Compiler version: %s' % version)
+        self.warn_args = GnuCCompiler.std_warn_args
 
     def get_pic_args(self):
         if self.gcc_type == GCC_MINGW:
@@ -1087,7 +1084,7 @@ class GnuCCompiler(CCompiler):
         return super().can_compile(filename) or filename.split('.')[-1].lower() == 's' # Gcc can do asm, too.
 
 class GnuObjCCompiler(ObjCCompiler):
-    std_warn_args = ['-Wall', '-Wpedantic', '-Winvalid-pch']
+    std_warn_args = ['-Wall', '-Winvalid-pch']
 
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
         ObjCCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
@@ -1112,7 +1109,7 @@ class GnuObjCCompiler(ObjCCompiler):
         return get_gcc_soname_args(self.gcc_type, shlib_name, path, soversion)
 
 class GnuObjCPPCompiler(ObjCPPCompiler):
-    std_warn_args = ['-Wall', '-Wpedantic', '-Winvalid-pch']
+    std_warn_args = ['-Wall', '-Winvalid-pch']
     std_opt_args = ['-O2']
 
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
@@ -1148,7 +1145,7 @@ class ClangObjCPPCompiler(GnuObjCPPCompiler):
         self.id = 'clang'
 
 class ClangCCompiler(CCompiler):
-    std_warn_args = ['-Wall', '-Wpedantic', '-Winvalid-pch']
+    std_warn_args = ['-Wall', '-Winvalid-pch']
 
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
         CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
@@ -1177,8 +1174,8 @@ class ClangCCompiler(CCompiler):
 
 
 class GnuCPPCompiler(CPPCompiler):
-    new_warn = ['-Wall', '-Wpedantic', '-Winvalid-pch', '-Wnon-virtual-dtor']
-    old_warn = ['-Wall', '-pedantic', '-Winvalid-pch', '-Wnon-virtual-dtor']
+    new_warn = ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor']
+    old_warn = ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor']
     # may need to separate the latter to extra_debug_args or something
     std_debug_args = ['-g']
 
@@ -1210,7 +1207,7 @@ class GnuCPPCompiler(CPPCompiler):
         return get_gcc_soname_args(self.gcc_type, shlib_name, path, soversion)
 
 class ClangCPPCompiler(CPPCompiler):
-    std_warn_args = ['-Wall', '-Wpedantic', '-Winvalid-pch', '-Wnon-virtual-dtor']
+    std_warn_args = ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor']
 
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
         CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
