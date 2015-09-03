@@ -258,7 +258,8 @@ class NinjaBackend(backends.Backend):
                 obj_list.append(self.generate_single_compile(target, outfile, src, True, unity_deps + header_deps))
         linker = self.determine_linker(target, src_list)
         elem = self.generate_link(target, outfile, outname, obj_list, linker, pch_objects)
-        self.generate_shlib_aliases(target, self.get_target_dir(target), outfile, elem)
+        self.generate_shlib_aliases(target, self.get_target_dir(target))
+        elem.write(outfile)
         self.processed_targets[name] = True
 
     def process_target_dependencies(self, target, outfile):
@@ -1376,19 +1377,20 @@ rule FORTRAN_DEP_HACK
             return os.path.join(self.get_target_private_dir(t), self.get_target_filename(t) + '.symbols')
         return self.get_target_filename(t)
 
-    def generate_shlib_aliases(self, target, outdir, outfile, elem):
+    def generate_shlib_aliases(self, target, outdir):
         basename = target.get_filename()
         aliases = target.get_aliaslist()
         aliascmd = []
         if shutil.which('ln'):
             for alias in aliases:
-                aliasfile = os.path.join(outdir, alias)
-                cmd = ["&&", 'ln', '-s', '-f', basename, aliasfile]
-                aliascmd += cmd
+                aliasfile = os.path.join(self.environment.get_build_dir(), outdir, alias)
+                try:
+                    os.remove(aliasfile)
+                except Exception:
+                    pass
+                os.symlink(basename, aliasfile)
         else:
-            mlog.log("Library versioning disabled because host does not support symlinks.")
-        elem.add_item('aliasing', aliascmd)
-        elem.write(outfile)
+            mlog.debug("Library versioning disabled because host does not support symlinks.")
 
     def generate_gcov_clean(self, outfile):
             gcno_elem = NinjaBuildElement('clean-gcno', 'CUSTOM_COMMAND', 'PHONY')
