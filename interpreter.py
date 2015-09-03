@@ -453,7 +453,9 @@ class BuildTargetHolder(InterpreterObject):
         super().__init__()
         self.held_object = target
         self.methods.update({'extract_objects' : self.extract_objects_method,
-                             'extract_all_objects' : self.extract_all_objects_method})
+                             'extract_all_objects' : self.extract_all_objects_method,
+                             'get_id': self.get_id_method,
+                             })
 
     def is_cross(self):
         return self.held_object.is_cross()
@@ -465,6 +467,9 @@ class BuildTargetHolder(InterpreterObject):
     def extract_all_objects_method(self, args, kwargs):
         gobjs = self.held_object.extract_all_objects()
         return GeneratedObjectsHolder(gobjs)
+
+    def get_id_method(self, args, kwargs):
+        return self.held_object.get_id()
 
 class ExecutableHolder(BuildTargetHolder):
     def __init__(self, target):

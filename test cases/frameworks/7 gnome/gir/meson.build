@@ -27,6 +27,6 @@ gnome.generate_gir(
 
 test('gobject introspection/c', girexe)
 test('gobject introspection/py', find_program('prog.py'),
-     env : ['GI_TYPELIB_PATH=@0@'.format(meson.current_build_dir()),
-            'LD_LIBRARY_PATH=@0@'.format(meson.current_build_dir()),
+     env : ['GI_TYPELIB_PATH=meson-out', # HACK to get this running.
+            'LD_LIBRARY_PATH=meson-out',
      ])

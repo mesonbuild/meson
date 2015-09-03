@@ -147,7 +147,7 @@ class GnomeModule:
         if isinstance(girtarget, build.Executable):
             scan_command += ['--program', girtarget]
         elif isinstance(girtarget, build.SharedLibrary):
-            scan_command += ["-L", os.path.join (state.environment.get_build_dir(), girtarget.subdir)]
+            scan_command += ["-L@PRIVATE_OUTDIR_ABS_%s@" % girtarget.get_id()]
             libname = girtarget.get_basename()
             scan_command += ['--library', libname]
         scankwargs = {'output' : girfile,
@@ -163,9 +163,9 @@ class GnomeModule:
         typelib_output = '%s-%s.typelib' % (ns, nsversion)
         typelib_cmd = ['g-ir-compiler', scan_target, '--output', '@OUTPUT@']
         if inc_dirs:
-            for id in inc_dirs:
+            for incd in inc_dirs:
                 typelib_cmd += ['--includedir=%s' % inc for inc in
-                                id.held_object.get_incdirs()]
+                                incd.held_object.get_incdirs()]
         if deps:
             for dep in deps:
                 girdir = dep.held_object.get_variable ("girdir")

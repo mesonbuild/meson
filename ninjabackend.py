@@ -306,9 +306,20 @@ class NinjaBackend(backends.Backend):
                 cmd += srcs
             elif i == '@OUTPUT@':
                 cmd += ofilenames
-            elif '@OUTDIR@' in i:
-                cmd.append(i.replace('@OUTDIR@', self.get_target_dir(target)))
             else:
+                if '@OUTDIR@' in i:
+                    i = i.replace('@OUTDIR@', self.get_target_dir(target))
+                elif '@PRIVATE_OUTDIR_' in i:
+                    match = re.search('@PRIVATE_OUTDIR_(ABS_)?([a-zA-Z@:]*)@', i)
+                    source = match.group(0)
+                    if match.group(1) is None:
+                        lead_dir = ''
+                    else:
+                        lead_dir = self.environment.get_build_dir()
+                    target_id = match.group(2)
+                    i = i.replace(source,
+                                  os.path.join(lead_dir,
+                                               self.get_target_dir(self.build.targets[target_id])))
                 cmd.append(i)
 
         elem.add_item('COMMAND', cmd)
