@@ -815,11 +815,17 @@ class NinjaBackend(backends.Backend):
                  langname == 'rust' or langname == 'cs':
                     continue
                 crstr = ''
+                cross_args = []
                 if is_cross:
                     crstr = '_CROSS'
+                    try:
+                        cross_args = self.environment.cross_info.config['properties'][langname + '_link_args']
+                    except KeyError:
+                        pass
                 rule = 'rule %s%s_LINKER\n' % (langname, crstr)
-                command = ' command = %s $ARGS  %s $in $LINK_ARGS $aliasing\n' % \
+                command = ' command = %s %s $ARGS  %s $in $LINK_ARGS $aliasing\n' % \
                 (' '.join(compiler.get_linker_exelist()),\
+                 ' '.join(cross_args),\
                  ' '.join(compiler.get_linker_output_args('$out')))
                 description = ' description = Linking target $out'
                 outfile.write(rule)
@@ -940,8 +946,15 @@ rule FORTRAN_DEP_HACK
             if d != '$out' and d != '$in':
                 d = qstr % d
             quoted_depargs.append(d)
-        command = " command = %s $ARGS %s %s %s $in\n" % \
+        cross_args = []
+        if is_cross:
+            try:
+                cross_args = self.environment.cross_info.config['properties'][langname + '_args']
+            except KeyError:
+                pass
+        command = " command = %s %s $ARGS %s %s %s $in\n" % \
             (' '.join(compiler.get_exelist()),\
+             ' '.join(cross_args),
              ' '.join(quoted_depargs),\
              ' '.join(compiler.get_output_args('$out')),\
              ' '.join(compiler.get_compile_only_args()))
@@ -966,6 +979,13 @@ rule FORTRAN_DEP_HACK
             crstr = ''
         rule = 'rule %s%s_PCH\n' % (langname, crstr)
         depargs = compiler.get_dependency_gen_args('$out', '$DEPFILE')
+        cross_args = []
+        if is_cross:
+            try:
+                cross_args = self.environment.cross_info.config['properties'][langname + '_args']
+            except KeyError:
+                pass
+
         quoted_depargs = []
         for d in depargs:
             if d != '$out' and d != '$in':
@@ -975,8 +995,9 @@ rule FORTRAN_DEP_HACK
             output = ''
         else:
             output = ' '.join(compiler.get_output_args('$out'))
-        command = " command = %s $ARGS %s %s %s $in\n" % \
+        command = " command = %s %s $ARGS %s %s %s $in\n" % \
             (' '.join(compiler.get_exelist()),\
+             ' '.join(cross_args),\
              ' '.join(quoted_depargs),\
              output,\
              ' '.join(compiler.get_compile_only_args()))

@@ -632,7 +632,7 @@ class CrossBuildInfo():
                     for i in res:
                         if not self.ok_type(i):
                             raise EnvironmentException('Malformed value in cross file variable %s.' % varname)
-                    self.items[varname] = res
+                    self.config[s][entry] = res
                 else:
                     raise EnvironmentException('Malformed value in cross file variable %s.' % varname)
 
