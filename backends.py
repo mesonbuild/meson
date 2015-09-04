@@ -204,7 +204,7 @@ class Backend():
         commands = []
         commands += compiler.get_always_args()
         if self.environment.coredata.buildtype != 'plain':
-            commands += compiler.get_std_warn_args()
+            commands += compiler.get_warn_args(self.environment.coredata.warning_level)
         commands += self.build.get_global_args(compiler)
         commands += self.environment.coredata.external_args[compiler.get_language()]
         commands += target.get_extra_args(compiler.get_language())

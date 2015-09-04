@@ -17,19 +17,21 @@ import pickle, os, uuid
 version = '0.26.0-research'
 
 builtin_options = {'buildtype': True,
-                          'strip': True,
-                          'coverage': True,
-                          'pch': True,
-                          'unity': True,
-                          'prefix': True,
-                          'libdir' : True,
-                          'bindir' : True,
-                          'includedir' : True,
-                          'datadir' : True,
-                          'mandir' : True,
-                          'localedir' : True,
-                          'werror' : True,
-                         }
+                   'strip': True,
+                   'coverage': True,
+                   'pch': True,
+                   'unity': True,
+                   'prefix': True,
+                   'libdir' : True,
+                   'bindir' : True,
+                   'includedir' : True,
+                   'datadir' : True,
+                   'mandir' : True,
+                   'localedir' : True,
+                   'werror' : True,
+                   'warning_level': True,
+                   }
+
 # This class contains all data that must persist over multiple
 # invocations of Meson. It is roughly the same thing as
 # cmakecache.
@@ -54,6 +56,7 @@ class CoreData():
         self.use_pch = options.use_pch
         self.unity = options.unity
         self.coverage = options.coverage
+        self.warning_level = options.warning_level
         self.werror = options.werror
         self.user_options = {}
         self.external_args = {} # These are set from "the outside" with e.g. mesonconf
