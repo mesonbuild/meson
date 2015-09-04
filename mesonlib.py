@@ -113,9 +113,13 @@ def detect_vcs(source_dir):
                 return vcs
     return None
 
+numpart = re.compile('[0-9.]+')
+
 def version_compare(vstr1, vstr2):
-    if '-' in vstr1:
-        vstr1 = vstr1.split('-')[0]
+    match = numpart.match(vstr1.strip())
+    if match is None:
+        raise MesonException('Unconparable version string %s.' % vstr1)
+    vstr1 = match.group(0)
     if vstr2.startswith('>='):
         cmpop = operator.ge
         vstr2 = vstr2[2:]
