@@ -10,10 +10,6 @@ pkgconfig = '/usr/bin/arm-linux-gnueabihf-pkg-config'
 [properties]
 root = '/usr/arm-linux-gnueabihf'
 
-alignment_char = 1
-alignment_void* = 4
-alignment_double = 4 # Don't know if this is correct...
-
 has_function_printf = true
 has_function_hfkerhisadf = false
 

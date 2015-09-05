@@ -16,10 +16,6 @@ cpp_args = ['-arch', 'armv7', '-miphoneos-version-min=8.0', '-isysroot', '/Appli
 c_link_args = ['-arch', 'armv7', '-miphoneos-version-min=8.0', '-isysroot', '/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS8.4.sdk']
 cpp_link_args = ['-arch', 'armv7', '-miphoneos-version-min=8.0', '-isysroot', '/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS8.4.sdk']
 
-alignment_char = 1
-alignment_void* = 4
-alignment_double = 4 # Don't know if this is correct...
-
 has_function_printf = true
 has_function_hfkerhisadf = false
 
