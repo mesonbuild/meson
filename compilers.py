@@ -261,8 +261,7 @@ int someSymbolHereJustForFun;
 '''
         return self.compiles(templ % hname)
 
-    def compiles(self, code):
-        mlog.debug('Running compile test:\n\n', code)
+    def compiles(self, code, extra_args = []):
         suflen = len(self.default_suffix)
         (fd, srcname) = tempfile.mkstemp(suffix='.'+self.default_suffix)
         os.close(fd)
@@ -270,8 +269,12 @@ int someSymbolHereJustForFun;
         ofile.write(code)
         ofile.close()
         commands = self.get_exelist()
+        commands += extra_args
         commands += self.get_compile_only_args()
         commands.append(srcname)
+        mlog.debug('Running compile test.')
+        mlog.debug('Command line: ', ' '.join(commands))
+        mlog.debug('Code:\n', code)
         p = subprocess.Popen(commands, cwd=os.path.split(srcname)[0], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (stde, stdo) = p.communicate()
         stde = stde.decode()
@@ -325,7 +328,24 @@ int someSymbolHereJustForFun;
         os.remove(exename)
         return RunResult(True, pe.returncode, so, se)
 
+    def cross_sizeof(self, element, prefix, env):
+        templ = '''%s
+int temparray[%d-sizeof(%s)];
+'''
+        extra_args = []
+        try:
+            extra_args = env.cross_info.config['properties'][self.language + '_args']
+        except KeyError:
+            pass
+        for i in range(1, 1024):
+            code = templ % (prefix, i, element)
+            if self.compiles(code, extra_args):
+                return i
+        raise EnvironmentException('Cross checking sizeof overflowed.')
+
     def sizeof(self, element, prefix, env):
+        if self.is_cross:
+            return self.cross_sizeof(element, prefix, env)
         templ = '''#include<stdio.h>
 %s
 
@@ -334,23 +354,7 @@ int main(int argc, char **argv) {
     return 0;
 };
 '''
-        varname = 'sizeof ' + element
-        varname = varname.replace(' ', '_')
-        if self.is_cross:
-            val = env.cross_info.config['properties'][varname]
-            if val is not None:
-                if isinstance(val, int):
-                    return val
-                raise EnvironmentException('Cross variable {0} is not an integer.'.format(varname))
-        cross_failed = False
-        try:
-            res = self.run(templ % (prefix, element))
-        except CrossNoRunException:
-            cross_failed = True
-        if cross_failed:
-            message = '''Can not determine size of {0} because cross compiled binaries are not runnable.
-Please define the corresponding variable {1} in your cross compilation definition file.'''.format(element, varname)
-            raise EnvironmentException(message)
+        res = self.run(templ % (prefix, element))
         if not res.compiled:
             raise EnvironmentException('Could not compile sizeof test.')
         if res.returncode != 0:
@@ -414,7 +418,7 @@ int main(int argc, char **argv) {
             if val is not None:
                 if isinstance(val, bool):
                     return val
-                raise EnvironmentException('Cross variable {0} is not an boolean.'.format(varname))
+                raise EnvironmentException('Cross variable {0} is not a boolean.'.format(varname))
         return self.compiles(templ % (prefix, funcname))
 
     def has_member(self, typename, membername, prefix):
