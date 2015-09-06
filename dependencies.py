@@ -393,6 +393,7 @@ class BoostDependency(Dependency):
     def __init__(self, environment, kwargs):
         Dependency.__init__(self)
         self.name = 'boost'
+        self.libdir = ''
         try:
             self.boost_root = os.environ['BOOST_ROOT']
             if not os.path.isabs(self.boost_root):
@@ -400,9 +401,14 @@ class BoostDependency(Dependency):
         except KeyError:
             self.boost_root = None
         if self.boost_root is None:
-            self.incdir = '/usr/include/boost'
+            if mesonlib.is_windows():
+                self.boost_root = self.detect_win_root()
+                self.incdir = os.path.join(self.boost_root, 'boost')
+            else:
+                self.incdir = '/usr/include/boost'
         else:
             self.incdir = os.path.join(self.boost_root, 'include/boost')
+        mlog.debug('Boost library root dir is', self.boost_root)
         self.src_modules = {}
         self.lib_modules = {}
         self.lib_modules_mt = {}
@@ -422,10 +428,20 @@ class BoostDependency(Dependency):
         else:
             mlog.log("Dependency Boost (%s) found:" % module_str, mlog.red('NO'))
 
+    def detect_win_root(self):
+        globtext = 'c:\\local\\boost_*'
+        files = glob.glob(globtext)
+        if len(files) > 0:
+            return files[0]
+        return 'C:\\'
+
     def get_compile_args(self):
         args = []
         if self.boost_root is not None:
-            args.append('-I' + os.path.join(self.boost_root, 'include'))
+            if mesonlib.is_windows():
+                args.append('-I' + self.boost_root)
+            else:
+                args.append('-I' + os.path.join(self.boost_root, 'include'))
         return args
 
     def get_requested(self, kwargs):
@@ -472,6 +488,28 @@ class BoostDependency(Dependency):
                 self.src_modules[os.path.split(entry)[-1]] = True
 
     def detect_lib_modules(self):
+        if mesonlib.is_windows():
+            return self.detect_lib_modules_win()
+        return self.detect_lib_modules_nix()
+
+    def detect_lib_modules_win(self):
+        if mesonlib.is_32bit():
+            gl = 'lib32*'
+        else:
+            gl = 'lib64*'
+        libdir = glob.glob(os.path.join(self.boost_root, gl))
+        if len(libdir) == 0:
+            return
+        libdir = libdir[0]
+        self.libdir = libdir
+        globber = 'boost_*-gd-*.lib' # FIXME
+        for entry in glob.glob(os.path.join(libdir, globber)):
+            (_, fname) = os.path.split(entry)
+            base = fname.split('_', 1)[1]
+            modname = base.split('-', 1)[0]
+            self.lib_modules_mt[modname] = fname
+
+    def detect_lib_modules_nix(self):
         globber = 'libboost_*.so' # FIXME, make platform independent.
         if self.boost_root is None:
             libdirs = mesonlib.get_library_dirs()
@@ -488,12 +526,24 @@ class BoostDependency(Dependency):
                 else:
                     self.lib_modules[name] = True
 
-    def get_link_args(self):
+    def get_win_link_args(self):
         args = []
         if self.boost_root:
             # FIXME, these are in gcc format, not msvc.
             # On the other hand, so are the args that
             # pkg-config returns.
+            args.append('/LIBPATH:' + self.libdir)
+        for module in self.requested_modules:
+            module = BoostDependency.name2lib.get(module, module)
+            if module in self.lib_modules_mt:
+                args.append(self.lib_modules_mt[module])
+        return args
+
+    def get_link_args(self):
+        if mesonlib.is_windows():
+            return self.get_win_link_args()
+        args = []
+        if self.boost_root:
             args.append('-L' + os.path.join(self.boost_root, 'lib'))
         for module in self.requested_modules:
             module = BoostDependency.name2lib.get(module, module)

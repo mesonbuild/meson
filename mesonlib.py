@@ -14,7 +14,7 @@
 
 """A library of random helper functionality."""
 
-import platform, subprocess, operator, os, shutil, re
+import platform, subprocess, operator, os, shutil, re, sys
 
 from glob import glob
 
@@ -78,6 +78,9 @@ def is_linux():
 def is_windows():
     platname = platform.system().lower()
     return platname == 'windows' or 'mingw' in platname
+
+def is_32bit():
+    return not(sys.maxsize > 2**32)
 
 def is_debianlike():
     try:

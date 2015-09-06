@@ -925,9 +925,9 @@ class VisualStudioCCompiler(CCompiler):
             self.always_args = VisualStudioCCompiler.vs2013_always_args
         else:
             self.always_args = VisualStudioCCompiler.vs2010_always_args
-        self.std_warn_args = {'1': ['/W2'],
-                              '2': ['/W3'],
-                              '3': ['/w4']}
+        self.warn_args = {'1': ['/W2'],
+                          '2': ['/W3'],
+                          '3': ['/w4']}
 
     def get_always_args(self):
         return self.always_args

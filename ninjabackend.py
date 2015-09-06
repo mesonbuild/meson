@@ -1401,7 +1401,6 @@ rule FORTRAN_DEP_HACK
     def generate_shlib_aliases(self, target, outdir):
         basename = target.get_filename()
         aliases = target.get_aliaslist()
-        aliascmd = []
         if not mesonlib.is_windows():
             for alias in aliases:
                 aliasfile = os.path.join(self.environment.get_build_dir(), outdir, alias)
