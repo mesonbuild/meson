@@ -1402,7 +1402,7 @@ rule FORTRAN_DEP_HACK
         basename = target.get_filename()
         aliases = target.get_aliaslist()
         aliascmd = []
-        if shutil.which('ln'):
+        if not mesonlib.is_windows():
             for alias in aliases:
                 aliasfile = os.path.join(self.environment.get_build_dir(), outdir, alias)
                 try:
