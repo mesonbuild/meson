@@ -20,3 +20,4 @@ Mathieu Duponchelle
 Jouni Roivas
 Rafaël Kooi
 Marko Raatikainen
+German Diago Gomez
