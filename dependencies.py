@@ -510,7 +510,14 @@ class BoostDependency(Dependency):
             self.lib_modules_mt[modname] = fname
 
     def detect_lib_modules_nix(self):
-        globber = 'libboost_*.so' # FIXME, make platform independent.
+        import platform
+        libsuffix = None
+        if platform.system() == 'Darwin':
+            libsuffix = 'dylib'
+        elif platform.system() == 'Linux':
+            libsuffix = 'so'
+
+        globber = 'libboost_*.{}'.format(libsuffix)
         if self.boost_root is None:
             libdirs = mesonlib.get_library_dirs()
         else:
