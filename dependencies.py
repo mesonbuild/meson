@@ -510,11 +510,10 @@ class BoostDependency(Dependency):
             self.lib_modules_mt[modname] = fname
 
     def detect_lib_modules_nix(self):
-        import platform
         libsuffix = None
-        if platform.system() == 'Darwin':
+        if mesonlib.is_osx():
             libsuffix = 'dylib'
-        elif platform.system() == 'Linux':
+        else:
             libsuffix = 'so'
 
         globber = 'libboost_*.{}'.format(libsuffix)
