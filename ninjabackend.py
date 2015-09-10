@@ -312,9 +312,32 @@ class NinjaBackend(backends.Backend):
 
     def generate_run_target(self, target, outfile):
         runnerscript = os.path.join(self.environment.get_script_dir(), 'commandrunner.py')
-        elem = NinjaBuildElement(target.name, 'CUSTOM_COMMAND', [])
-        cmd = [sys.executable, runnerscript, self.environment.get_source_dir(), self.environment.get_build_dir(),
-               target.subdir, target.command] + target.args
+        deps = []
+        arg_strings = []
+        for i in target.args:
+            if isinstance(i, str):
+                arg_strings.append(i)
+            elif isinstance(i, build.BuildTarget):
+                deps.append(self.get_target_filename(i))
+            else:
+                raise MesonException('Unreachable code.')
+        elem = NinjaBuildElement(target.name, 'CUSTOM_COMMAND', deps)
+        cmd = [sys.executable, runnerscript, self.environment.get_source_dir(), self.environment.get_build_dir(), target.subdir]
+        texe = target.command
+        try:
+            texe = texe.held_object
+        except AttributeError:
+            pass
+        if isinstance(texe, build.Executable):
+            deps.append(self.get_target_filename(texe))
+            if self.environment.is_cross_build() \
+                and wrapper is not self.environment.cross_info.config['binaries'].get('exe_wrapper', None):
+                cmd += [self.environment.cross_info.config['binaries']['exe_wrapper'], self.get_target_filename(texe)]
+            else:
+                cmd += [os.path.join(self.environment.get_build_dir(), self.get_target_filename(texe))]
+        else:
+            cmd.append(target.command)
+        cmd += target.args
         elem.add_item('COMMAND', cmd)
         elem.add_item('description', 'Running external command %s.' % target.name)
         elem.add_item('pool', 'console')
