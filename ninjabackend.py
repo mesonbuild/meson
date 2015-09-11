@@ -331,7 +331,7 @@ class NinjaBackend(backends.Backend):
         if isinstance(texe, build.Executable):
             deps.append(self.get_target_filename(texe))
             if self.environment.is_cross_build() \
-                and wrapper is not self.environment.cross_info.config['binaries'].get('exe_wrapper', None):
+                and self.environment.cross_info.config['binaries'].get('exe_wrapper', None) is not None:
                 cmd += [self.environment.cross_info.config['binaries']['exe_wrapper'], self.get_target_filename(texe)]
             else:
                 cmd += [os.path.join(self.environment.get_build_dir(), self.get_target_filename(texe))]
