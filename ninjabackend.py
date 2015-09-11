@@ -114,6 +114,13 @@ class NinjaBackend(backends.Backend):
         self.source_suffix_in_objs = True
         self.ninja_filename = 'build.ninja'
         self.fortran_deps = {}
+        self.all_outputs = {}
+
+    def check_outputs(self, elem):
+        for n in elem.outfilenames:
+            if n in self.all_outputs:
+                raise MesonException('Multiple producers for Ninja target "%s". Please rename your targets.' % n)
+            self.all_outputs[n] = True
 
     def generate(self):
         outfilename = os.path.join(self.environment.get_build_dir(), self.ninja_filename)
@@ -308,6 +315,7 @@ class NinjaBackend(backends.Backend):
         elem.add_item('COMMAND', cmd)
         elem.add_item('description', 'Generating %s with a custom command.' % target.name)
         elem.write(outfile)
+        self.check_outputs(elem)
         self.processed_targets[target.name + target.type_suffix()] = True
 
     def generate_run_target(self, target, outfile):
@@ -342,6 +350,7 @@ class NinjaBackend(backends.Backend):
         elem.add_item('description', 'Running external command %s.' % target.name)
         elem.add_item('pool', 'console')
         elem.write(outfile)
+        self.check_outputs(elem)
         self.processed_targets[target.name + target.type_suffix()] = True
 
     def generate_po(self, outfile):
@@ -354,6 +363,7 @@ class NinjaBackend(backends.Backend):
             elem.add_item('FILELIST', os.path.join(self.environment.get_source_dir(), input_file))
             elem.add_item('OUTDIR', os.path.join(self.environment.get_source_dir(), subdir))
             elem.write(outfile)
+            self.check_outputs(elem)
             for l in languages:
                 infile = os.path.join(self.environment.get_source_dir(), subdir, l + '.po')
                 outfilename = os.path.join(subdir, l + '.gmo')
@@ -361,6 +371,7 @@ class NinjaBackend(backends.Backend):
                 lelem.add_item('INFILE', infile)
                 lelem.add_item('OUTFILE', outfilename)
                 lelem.write(outfile)
+                self.check_outputs(lelem)
 
     def generate_coverage_rules(self, outfile):
         (gcovr_exe, lcov_exe, genhtml_exe) = environment.find_coverage_tools()
@@ -377,6 +388,7 @@ class NinjaBackend(backends.Backend):
                                       '-o', os.path.join(self.environment.get_log_dir(), 'coverage.txt')])
             elem.add_item('DESC', 'Generating text coverage report.')
             elem.write(outfile)
+            self.check_outputs(elem)
         if lcov_exe and genhtml_exe:
             added_rule = True
             phony_elem = NinjaBuildElement('coverage-html', 'phony', 'coveragereport/index.html')
@@ -390,6 +402,7 @@ class NinjaBackend(backends.Backend):
                        '--legend', '--show-details', 'coverage.info']
             elem.add_item('COMMAND', command)
             elem.add_item('DESC', 'Generating HTML coverage report.')
+            self.check_outputs(elem)
             elem.write(outfile)
         if not added_rule:
             mlog.log(mlog.red('Warning:'), 'coverage requested but neither gcovr nor lcov/genhtml found.')
@@ -417,6 +430,7 @@ class NinjaBackend(backends.Backend):
         self.generate_custom_install_script(d)
         self.generate_subdir_install(d)
         elem.write(outfile)
+        self.check_outputs(elem)
 
         ofile = open(install_data_file, 'wb')
         pickle.dump(d, ofile)
@@ -523,6 +537,7 @@ class NinjaBackend(backends.Backend):
         elem.add_item('DESC', 'Running test suite.')
         elem.add_item('pool', 'console')
         elem.write(outfile)
+        self.check_outputs(elem)
 
         if valgrind:
             velem = NinjaBuildElement('test-valgrind', 'CUSTOM_COMMAND', ['all', 'PHONY'])
@@ -530,6 +545,7 @@ class NinjaBackend(backends.Backend):
             velem.add_item('DESC', 'Running test suite under Valgrind.')
             velem.add_item('pool', 'console')
             velem.write(outfile)
+            self.check_outputs(elem)
 
     def generate_rules(self, outfile):
         outfile.write('# Rules for compiling.\n\n')
@@ -606,6 +622,7 @@ class NinjaBackend(backends.Backend):
         elem.add_dep([os.path.join(self.get_target_private_dir(target), i) for i in class_list])
         elem.add_item('ARGS', commands)
         elem.write(outfile)
+        self.check_outputs(elem)
 
     def generate_cs_resource_tasks(self, target, outfile):
         args = []
@@ -621,6 +638,7 @@ class NinjaBackend(backends.Backend):
                 elem.add_item('COMMAND', ['resgen', rel_sourcefile, ofilename])
                 elem.add_item('DESC', 'Compiling resource %s.' % rel_sourcefile)
                 elem.write(outfile)
+                self.check_outputs(elem)
                 deps.append(ofilename)
                 a = '-resource:' + ofilename
             else:
@@ -660,6 +678,7 @@ class NinjaBackend(backends.Backend):
         elem = NinjaBuildElement(outputs, 'cs_COMPILER', rel_srcs)
         elem.add_dep(deps)
         elem.add_item('ARGS', commands)
+        self.check_outputs(elem)
         elem.write(outfile)
 
     def generate_single_java_compile(self, subdir, src, target, compiler, outfile):
@@ -672,6 +691,7 @@ class NinjaBackend(backends.Backend):
         element = NinjaBuildElement(rel_obj, compiler.get_language() + '_COMPILER', rel_src)
         element.add_item('ARGS', args)
         element.write(outfile)
+        self.check_outputs(element)
         return plain_class_path
 
     def generate_java_link(self, outfile):
@@ -695,6 +715,7 @@ class NinjaBackend(backends.Backend):
             element = NinjaBuildElement(rel_vapi, valac.get_language() + '_COMPILER', rel_s)
             element.add_item('ARGS', args)
             element.write(outfile)
+            self.check_outputs(element)
             fastvapis[s] = (vapibase, rel_vapi)
         return fastvapis
 
@@ -757,6 +778,7 @@ class NinjaBackend(backends.Backend):
             element.add_orderdep(vapi_order_deps)
             element.add_dep(extra_dep_files)
             element.write(outfile)
+            self.check_outputs(element)
         return generated_c
 
     def generate_rust_target(self, target, outfile):
@@ -796,6 +818,7 @@ class NinjaBackend(backends.Backend):
         element.add_item('targetdep', depfile)
         element.add_item('cratetype', cratetype)
         element.write(outfile)
+        self.check_outputs(element)
 
     def generate_static_link_rules(self, is_cross, outfile):
         if self.build.has_language('java'):
@@ -1113,6 +1136,7 @@ rule FORTRAN_DEP_HACK
                     elem.add_dep(self.get_target_filename(exe))
                 elem.add_item('COMMAND', cmdlist)
                 elem.write(outfile)
+                self.check_outputs(elem)
 
     def scan_fortran_module_outputs(self, target):
         compiler = None
@@ -1252,6 +1276,7 @@ rule FORTRAN_DEP_HACK
                 if srcfile == src:
                     depelem = NinjaBuildElement(modfile, 'FORTRAN_DEP_HACK', rel_obj)
                     depelem.write(outfile)
+                    self.check_outputs(depelem)
             commands += compiler.get_module_outdir_args(self.get_target_private_dir(target))
 
         element = NinjaBuildElement(rel_obj, compiler_name, rel_src)
@@ -1276,6 +1301,7 @@ rule FORTRAN_DEP_HACK
         element.add_item('DEPFILE', dep_file)
         element.add_item('ARGS', commands)
         element.write(outfile)
+        self.check_outputs(element)
         return rel_obj
 
     # Fortran is a bit weird (again). When you link against a library, just compiling a source file
@@ -1341,6 +1367,7 @@ rule FORTRAN_DEP_HACK
             elem.add_item('ARGS', commands)
             elem.add_item('DEPFILE', dep)
             elem.write(outfile)
+            self.check_outputs(elem)
         return pch_objects
 
     def generate_shsym(self, outfile, target):
@@ -1351,6 +1378,7 @@ rule FORTRAN_DEP_HACK
         if self.environment.is_cross_build() and self.environment.cross_info.need_cross_compiler():
             elem.add_item('CROSS', '--cross-host=' + self.environment.cross_info.config['host_machine']['system'])
         elem.write(outfile)
+        self.check_outputs(elem)
 
     def generate_link(self, target, outfile, outname, obj_list, linker, extra_args=[]):
         if isinstance(target, build.StaticLibrary):
@@ -1414,6 +1442,7 @@ rule FORTRAN_DEP_HACK
         elem = NinjaBuildElement(outname, linker_rule, obj_list)
         elem.add_dep(dep_targets)
         elem.add_item('LINK_ARGS', commands)
+        self.check_outputs(elem)
         return elem
 
     def get_dependency_filename(self, t):
@@ -1442,6 +1471,7 @@ rule FORTRAN_DEP_HACK
             gcno_elem.add_item('COMMAND', [sys.executable, clean_script, '.', 'gcno'])
             gcno_elem.add_item('description', 'Deleting gcno files')
             gcno_elem.write(outfile)
+            self.check_outputs(elem, gcno_elem)
 
             gcda_elem = NinjaBuildElement('clean-gcda', 'CUSTOM_COMMAND', 'PHONY')
             script_root = self.environment.get_script_dir()
@@ -1449,6 +1479,7 @@ rule FORTRAN_DEP_HACK
             gcda_elem.add_item('COMMAND', [sys.executable, clean_script, '.', 'gcda'])
             gcda_elem.add_item('description', 'Deleting gcda files')
             gcda_elem.write(outfile)
+            self.check_outputs(gcda_elem)
 
     def is_compilable_file(self, filename):
         if filename.endswith('.cpp') or\
@@ -1474,6 +1505,7 @@ rule FORTRAN_DEP_HACK
                 infilename = os.path.join(self.build_to_src, target.get_source_subdir(), src)
                 elem = NinjaBuildElement(outfilename, rule.name, infilename)
                 elem.write(outfile)
+                self.check_outputs(elem)
                 if self.is_compilable_file(outfilename):
                     src_deps.append(outfilename)
                 else:
@@ -1486,6 +1518,7 @@ rule FORTRAN_DEP_HACK
 
         elem = NinjaBuildElement('all', 'phony', targetlist)
         elem.write(outfile)
+        self.check_outputs(elem)
 
         default = 'default all\n\n'
         outfile.write(default)
@@ -1501,6 +1534,7 @@ rule FORTRAN_DEP_HACK
             elem.add_dep('clean-gcda')
             elem.add_dep('clean-gcno')
         elem.write(outfile)
+        self.check_outputs(elem)
 
         deps = [os.path.join(self.build_to_src, df) \
                 for df in self.interpreter.get_build_def_files()]
@@ -1520,3 +1554,4 @@ rule FORTRAN_DEP_HACK
 
         elem = NinjaBuildElement(deps, 'phony', '')
         elem.write(outfile)
+        self.check_outputs(elem)
