@@ -545,7 +545,7 @@ class NinjaBackend(backends.Backend):
             velem.add_item('DESC', 'Running test suite under Valgrind.')
             velem.add_item('pool', 'console')
             velem.write(outfile)
-            self.check_outputs(elem)
+            self.check_outputs(velem)
 
     def generate_rules(self, outfile):
         outfile.write('# Rules for compiling.\n\n')
