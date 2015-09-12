@@ -403,7 +403,7 @@ class BoostDependency(Dependency):
         if self.boost_root is None:
             if mesonlib.is_windows():
                 self.boost_root = self.detect_win_root()
-                self.incdir = os.path.join(self.boost_root, 'boost')
+                self.incdir = self.boost_root
             else:
                 self.incdir = '/usr/include'
         else:
