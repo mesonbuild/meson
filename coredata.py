@@ -14,7 +14,7 @@
 
 import pickle, os, uuid
 
-version = '0.26.0-research'
+version = '0.26.0'
 
 builtin_options = {'buildtype': True,
                    'strip': True,
