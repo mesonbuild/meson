@@ -405,9 +405,10 @@ class BoostDependency(Dependency):
                 self.boost_root = self.detect_win_root()
                 self.incdir = os.path.join(self.boost_root, 'boost')
             else:
-                self.incdir = '/usr/include/boost'
+                self.incdir = '/usr/include'
         else:
-            self.incdir = os.path.join(self.boost_root, 'include/boost')
+            self.incdir = os.path.join(self.boost_root, 'include')
+        self.boost_inc_subdir = os.path.join(self.incdir, 'boost')
         mlog.debug('Boost library root dir is', self.boost_root)
         self.src_modules = {}
         self.lib_modules = {}
@@ -442,13 +443,12 @@ class BoostDependency(Dependency):
                 args.append('-I' + self.boost_root)
             else:
                 args.append('-I' + os.path.join(self.boost_root, 'include'))
+        else:
+            args.append('-I' + self.incdir)
         return args
 
     def get_requested(self, kwargs):
-        modules = 'modules'
-        if not modules in kwargs:
-            raise DependencyException('Boost dependency must specify "%s" keyword.' % modules)
-        candidates = kwargs[modules]
+        candidates = kwargs.get('modules', [])
         if isinstance(candidates, str):
             return [candidates]
         for c in candidates:
@@ -469,7 +469,7 @@ class BoostDependency(Dependency):
 
     def detect_version(self):
         try:
-            ifile = open(os.path.join(self.incdir, 'version.hpp'))
+            ifile = open(os.path.join(self.boost_inc_subdir, 'version.hpp'))
         except FileNotFoundError:
             self.version = None
             return
@@ -482,8 +482,8 @@ class BoostDependency(Dependency):
         self.version = None
 
     def detect_src_modules(self):
-        for entry in os.listdir(self.incdir):
-            entry = os.path.join(self.incdir, entry)
+        for entry in os.listdir(self.boost_inc_subdir):
+            entry = os.path.join(self.boost_inc_subdir, entry)
             if stat.S_ISDIR(os.stat(entry).st_mode):
                 self.src_modules[os.path.split(entry)[-1]] = True
 
