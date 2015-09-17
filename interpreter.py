@@ -1462,11 +1462,18 @@ class Interpreter():
         self.add_target(name, tg.held_object)
         return tg
 
-    @stringArgs
     @noKwargs
     def func_run_target(self, node, args, kwargs):
         if len(args) < 2:
             raise InterpreterException('Incorrect number of arguments')
+        for i in args:
+            try:
+                i = i.held_object
+            except AttributeError:
+                pass
+            if not isinstance(i, (str, build.BuildTarget)):
+                mlog.debug('Wrong type:', str(i))
+                raise InterpreterException('Invalid argument to run_target.')
         name = args[0]
         command = args[1]
         cmd_args = args[2:]

@@ -145,6 +145,9 @@ class CCompiler():
     def get_linker_always_args(self):
         return []
 
+    def get_warn_args(self, level):
+        return self.warn_args[level]
+
     def get_soname_args(self, shlib_name, path, soversion):
         return []
 
@@ -260,8 +263,7 @@ int someSymbolHereJustForFun;
 '''
         return self.compiles(templ % hname)
 
-    def compiles(self, code):
-        mlog.debug('Running compile test:\n\n', code)
+    def compiles(self, code, extra_args = []):
         suflen = len(self.default_suffix)
         (fd, srcname) = tempfile.mkstemp(suffix='.'+self.default_suffix)
         os.close(fd)
@@ -269,8 +271,12 @@ int someSymbolHereJustForFun;
         ofile.write(code)
         ofile.close()
         commands = self.get_exelist()
+        commands += extra_args
         commands += self.get_compile_only_args()
         commands.append(srcname)
+        mlog.debug('Running compile test.')
+        mlog.debug('Command line: ', ' '.join(commands))
+        mlog.debug('Code:\n', code)
         p = subprocess.Popen(commands, cwd=os.path.split(srcname)[0], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (stde, stdo) = p.communicate()
         stde = stde.decode()
@@ -324,7 +330,24 @@ int someSymbolHereJustForFun;
         os.remove(exename)
         return RunResult(True, pe.returncode, so, se)
 
+    def cross_sizeof(self, element, prefix, env):
+        templ = '''%s
+int temparray[%d-sizeof(%s)];
+'''
+        extra_args = []
+        try:
+            extra_args = env.cross_info.config['properties'][self.language + '_args']
+        except KeyError:
+            pass
+        for i in range(1, 1024):
+            code = templ % (prefix, i, element)
+            if self.compiles(code, extra_args):
+                return i
+        raise EnvironmentException('Cross checking sizeof overflowed.')
+
     def sizeof(self, element, prefix, env):
+        if self.is_cross:
+            return self.cross_sizeof(element, prefix, env)
         templ = '''#include<stdio.h>
 %s
 
@@ -333,30 +356,35 @@ int main(int argc, char **argv) {
     return 0;
 };
 '''
-        varname = 'sizeof ' + element
-        varname = varname.replace(' ', '_')
-        if self.is_cross:
-            val = env.cross_info.config['properties'][varname]
-            if val is not None:
-                if isinstance(val, int):
-                    return val
-                raise EnvironmentException('Cross variable {0} is not an integer.'.format(varname))
-        cross_failed = False
-        try:
-            res = self.run(templ % (prefix, element))
-        except CrossNoRunException:
-            cross_failed = True
-        if cross_failed:
-            message = '''Can not determine size of {0} because cross compiled binaries are not runnable.
-Please define the corresponding variable {1} in your cross compilation definition file.'''.format(element, varname)
-            raise EnvironmentException(message)
+        res = self.run(templ % (prefix, element))
         if not res.compiled:
             raise EnvironmentException('Could not compile sizeof test.')
         if res.returncode != 0:
             raise EnvironmentException('Could not run sizeof test binary.')
         return int(res.stdout)
 
+    def cross_alignment(self, typename, env):
+        templ = '''#include<stddef.h>
+struct tmp {
+  char c;
+  %s target;
+};
+
+int testarray[%d-offsetof(struct tmp, target)];
+'''
+        try:
+            extra_args = env.cross_info.config['properties'][self.language + '_args']
+        except KeyError:
+            pass
+        for i in range(1, 1024):
+            code = templ % (typename, i)
+            if self.compiles(code, extra_args):
+                return i
+        raise EnvironmentException('Cross checking offsetof overflowed.')
+
     def alignment(self, typename, env):
+        if self.is_cross:
+            return self.cross_alignment(typename, env)
         templ = '''#include<stdio.h>
 #include<stddef.h>
 
@@ -370,23 +398,7 @@ int main(int argc, char **argv) {
   return 0;
 }
 '''
-        varname = 'alignment ' + typename
-        varname = varname.replace(' ', '_')
-        if self.is_cross:
-            val = env.cross_info.config['properties'][varname]
-            if val is not None:
-                if isinstance(val, int):
-                    return val
-                raise EnvironmentException('Cross variable {0} is not an integer.'.format(varname))
-        cross_failed = False
-        try:
-            res = self.run(templ % typename)
-        except CrossNoRunException:
-            cross_failed = True
-        if cross_failed:
-            message = '''Can not determine alignment of {0} because cross compiled binaries are not runnable.
-Please define the corresponding variable {1} in your cross compilation definition file.'''.format(typename, varname)
-            raise EnvironmentException(message)
+        res = self.run(templ % typename)
         if not res.compiled:
             raise EnvironmentException('Could not compile alignment test.')
         if res.returncode != 0:
@@ -413,7 +425,7 @@ int main(int argc, char **argv) {
             if val is not None:
                 if isinstance(val, bool):
                     return val
-                raise EnvironmentException('Cross variable {0} is not an boolean.'.format(varname))
+                raise EnvironmentException('Cross variable {0} is not a boolean.'.format(varname))
         return self.compiles(templ % (prefix, funcname))
 
     def has_member(self, typename, membername, prefix):
@@ -915,12 +927,12 @@ class VisualStudioCCompiler(CCompiler):
             self.always_args = VisualStudioCCompiler.vs2013_always_args
         else:
             self.always_args = VisualStudioCCompiler.vs2010_always_args
+        self.warn_args = {'1': ['/W2'],
+                          '2': ['/W3'],
+                          '3': ['/w4']}
 
     def get_always_args(self):
         return self.always_args
-
-    def get_std_warn_args(self):
-        return self.std_warn_args
 
     def get_buildtype_args(self, buildtype):
         return msvc_buildtype_args[buildtype]
@@ -1039,7 +1051,8 @@ def get_gcc_soname_args(gcc_type, shlib_name, path, soversion):
         sostr = ''
     else:
         sostr = '.' + soversion
-    if gcc_type == GCC_STANDARD:
+    if gcc_type == GCC_STANDARD or gcc_type == GCC_MINGW:
+        # Might not be correct for mingw but seems to work.
         return ['-Wl,-soname,lib%s.so%s' % (shlib_name, sostr)]
     elif gcc_type == GCC_OSX:
         return ['-install_name', os.path.join(path, 'lib' + shlib_name + '.dylib')]
@@ -1047,17 +1060,13 @@ def get_gcc_soname_args(gcc_type, shlib_name, path, soversion):
         raise RuntimeError('Not implemented yet.')
 
 class GnuCCompiler(CCompiler):
-    old_warn = ['-Wall', '-pedantic', '-Winvalid-pch']
-    new_warn = ['-Wall', '-Wpedantic', '-Winvalid-pch']
-
     def __init__(self, exelist, version, gcc_type, is_cross, exe_wrapper=None):
         CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
         self.id = 'gcc'
         self.gcc_type = gcc_type
-        if mesonlib.version_compare(version, ">=4.9.0"):
-            self.warn_args= GnuCCompiler.new_warn
-        else:
-            self.warn_args = GnuCCompiler.old_warn
+        self.warn_args = {'1': ['-Wall', '-Winvalid-pch'],
+                          '2': ['-Wall', '-Wpedantic', '-Winvalid-pch'],
+                          '3' : ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch']}
 
     def get_pic_args(self):
         if self.gcc_type == GCC_MINGW:
@@ -1066,9 +1075,6 @@ class GnuCCompiler(CCompiler):
 
     def get_always_args(self):
         return ['-pipe']
-
-    def get_std_warn_args(self):
-        return self.warn_args
 
     def get_buildtype_args(self, buildtype):
         return gnulike_buildtype_args[buildtype]
@@ -1089,7 +1095,7 @@ class GnuCCompiler(CCompiler):
         return super().can_compile(filename) or filename.split('.')[-1].lower() == 's' # Gcc can do asm, too.
 
 class GnuObjCCompiler(ObjCCompiler):
-    std_warn_args = ['-Wall', '-Wpedantic', '-Winvalid-pch']
+    std_opt_args = ['-O2']
 
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
         ObjCCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
@@ -1097,9 +1103,9 @@ class GnuObjCCompiler(ObjCCompiler):
         # Not really correct, but GNU objc is only used on non-OSX non-win. File a bug
         # if this breaks your use case.
         self.gcc_type = GCC_STANDARD
-
-    def get_std_warn_args(self):
-        return GnuObjCCompiler.std_warn_args
+        self.warn_args = {'1': ['-Wall', '-Winvalid-pch'],
+                          '2': ['-Wall', '-Wpedantic', '-Winvalid-pch'],
+                          '3' : ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch']}
 
     def get_buildtype_args(self, buildtype):
         return gnulike_buildtype_args[buildtype]
@@ -1114,7 +1120,6 @@ class GnuObjCCompiler(ObjCCompiler):
         return get_gcc_soname_args(self.gcc_type, shlib_name, path, soversion)
 
 class GnuObjCPPCompiler(ObjCPPCompiler):
-    std_warn_args = ['-Wall', '-Wpedantic', '-Winvalid-pch']
     std_opt_args = ['-O2']
 
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
@@ -1123,9 +1128,9 @@ class GnuObjCPPCompiler(ObjCPPCompiler):
         # Not really correct, but GNU objc is only used on non-OSX non-win. File a bug
         # if this breaks your use case.
         self.gcc_type = GCC_STANDARD
-
-    def get_std_warn_args(self):
-        return GnuObjCPPCompiler.std_warn_args
+        self.warn_args = {'1': ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor'],
+                          '2': ['-Wall', '-Wpedantic', '-Winvalid-pch', '-Wnon-virtual-dtor'],
+                          '3' : ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor']}
 
     def get_buildtype_args(self, buildtype):
         return gnulike_buildtype_args[buildtype]
@@ -1155,9 +1160,9 @@ class ClangCCompiler(CCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
         CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
         self.id = 'clang'
-
-    def get_std_warn_args(self):
-        return ClangCCompiler.std_warn_args
+        self.warn_args = {'1': ['-Wall', '-Winvalid-pch'],
+                          '2': ['-Wall', '-Wpedantic', '-Winvalid-pch'],
+                          '3' : ['-Weverything']}
 
     def get_buildtype_args(self, buildtype):
         return gnulike_buildtype_args[buildtype]
@@ -1179,8 +1184,6 @@ class ClangCCompiler(CCompiler):
 
 
 class GnuCPPCompiler(CPPCompiler):
-    new_warn = ['-Wall', '-Wpedantic', '-Winvalid-pch', '-Wnon-virtual-dtor']
-    old_warn = ['-Wall', '-pedantic', '-Winvalid-pch', '-Wnon-virtual-dtor']
     # may need to separate the latter to extra_debug_args or something
     std_debug_args = ['-g']
 
@@ -1188,16 +1191,12 @@ class GnuCPPCompiler(CPPCompiler):
         CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
         self.id = 'gcc'
         self.gcc_type = gcc_type
-        if mesonlib.version_compare(version, ">=4.9.0"):
-            self.warn_args= GnuCPPCompiler.new_warn
-        else:
-            self.warn_args = GnuCPPCompiler.old_warn
+        self.warn_args = {'1': ['-Wall', '-Winvalid-pch'],
+                          '2': ['-Wall', '-Wpedantic', '-Winvalid-pch', '-Wnon-virtual-dtor'],
+                          '3': ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor']}
 
     def get_always_args(self):
         return ['-pipe']
-
-    def get_std_warn_args(self):
-        return self.warn_args
 
     def get_buildtype_args(self, buildtype):
         return gnulike_buildtype_args[buildtype]
@@ -1212,14 +1211,12 @@ class GnuCPPCompiler(CPPCompiler):
         return get_gcc_soname_args(self.gcc_type, shlib_name, path, soversion)
 
 class ClangCPPCompiler(CPPCompiler):
-    std_warn_args = ['-Wall', '-Wpedantic', '-Winvalid-pch', '-Wnon-virtual-dtor']
-
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
         CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
         self.id = 'clang'
-
-    def get_std_warn_args(self):
-        return ClangCPPCompiler.std_warn_args
+        self.warn_args = {'1': ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor'],
+                          '2': ['-Wall', '-Wpedantic', '-Winvalid-pch', '-Wnon-virtual-dtor'],
+                          '3': ['-Weverything']}
 
     def get_buildtype_args(self, buildtype):
         return gnulike_buildtype_args[buildtype]
@@ -1237,8 +1234,6 @@ class ClangCPPCompiler(CPPCompiler):
         return ['-include-pch', os.path.join (pch_dir, self.get_pch_name (header))]
 
 class FortranCompiler():
-    std_warn_args = ['-Wall']
-
     def __init__(self, exelist, version,is_cross, exe_wrapper=None):
         super().__init__()
         self.exelist = exelist
@@ -1304,7 +1299,7 @@ end program prog
     def get_linker_always_args(self):
         return []
 
-    def get_std_warn_args(self):
+    def get_std_warn_args(self, level):
         return FortranCompiler.std_warn_args
 
     def get_buildtype_args(self, buildtype):
@@ -1363,6 +1358,10 @@ end program prog
     def module_name_to_filename(self, module_name):
         return module_name.lower() + '.mod'
 
+    def get_warn_args(self, level):
+        return ['-Wall']
+
+
 class GnuFortranCompiler(FortranCompiler):
     def __init__(self, exelist, version, gcc_type, is_cross, exe_wrapper=None):
         super().__init__(exelist, version, is_cross, exe_wrapper=None)
@@ -1388,7 +1387,7 @@ class SunFortranCompiler(FortranCompiler):
     def get_always_args(self):
         return []
 
-    def get_std_warn_args(self):
+    def get_warn_args(self):
         return []
 
     def get_module_outdir_args(self, path):
@@ -1413,7 +1412,7 @@ class IntelFortranCompiler(FortranCompiler):
             return True
         return False
 
-    def get_std_warn_args(self):
+    def get_warn_args(self, level):
         return IntelFortranCompiler.std_warn_args
 
 class PathScaleFortranCompiler(FortranCompiler):
@@ -1435,7 +1434,7 @@ class PathScaleFortranCompiler(FortranCompiler):
             return True
         return False
 
-    def get_std_warn_args(self):
+    def get_std_warn_args(self, level):
         return PathScaleFortranCompiler.std_warn_args
 
 class PGIFortranCompiler(FortranCompiler):
@@ -1457,7 +1456,7 @@ class PGIFortranCompiler(FortranCompiler):
             return True
         return False
 
-    def get_std_warn_args(self):
+    def get_warn_args(self, level):
         return PGIFortranCompiler.std_warn_args
 
 
@@ -1480,7 +1479,7 @@ class Open64FortranCompiler(FortranCompiler):
             return True
         return False
 
-    def get_std_warn_args(self):
+    def get_warn_args(self, level):
         return Open64FortranCompiler.std_warn_args
 
 class NAGFortranCompiler(FortranCompiler):
@@ -1502,7 +1501,7 @@ class NAGFortranCompiler(FortranCompiler):
             return True
         return False
 
-    def get_std_warn_args(self):
+    def get_warn_args(self, level):
         return NAGFortranCompiler.std_warn_args
 
 

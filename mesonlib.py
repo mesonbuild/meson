@@ -14,7 +14,7 @@
 
 """A library of random helper functionality."""
 
-import platform, subprocess, operator, os, shutil, re
+import platform, subprocess, operator, os, shutil, re, sys
 
 from glob import glob
 
@@ -79,6 +79,9 @@ def is_windows():
     platname = platform.system().lower()
     return platname == 'windows' or 'mingw' in platname
 
+def is_32bit():
+    return not(sys.maxsize > 2**32)
+
 def is_debianlike():
     try:
         open('/etc/debian_version', 'r')
@@ -113,9 +116,13 @@ def detect_vcs(source_dir):
                 return vcs
     return None
 
+numpart = re.compile('[0-9.]+')
+
 def version_compare(vstr1, vstr2):
-    if '-' in vstr1:
-        vstr1 = vstr1.split('-')[0]
+    match = numpart.match(vstr1.strip())
+    if match is None:
+        raise MesonException('Unconparable version string %s.' % vstr1)
+    vstr1 = match.group(0)
     if vstr2.startswith('>='):
         cmpop = operator.ge
         vstr2 = vstr2[2:]

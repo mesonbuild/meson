@@ -189,7 +189,12 @@ class Environment():
                 return GnuCCompiler(ccache + [compiler], version, GCC_OSX, is_cross, exe_wrap)
             if (out.startswith('cc') or 'gcc' in out) and \
                 'Free Software Foundation' in out:
-                return GnuCCompiler(ccache + [compiler], version, GCC_STANDARD, is_cross, exe_wrap)
+                lowerout = out.lower()
+                if 'mingw' in lowerout or 'msys' in lowerout or 'mingw' in compiler.lower():
+                    gtype = GCC_MINGW
+                else:
+                    gtype = GCC_STANDARD
+                return GnuCCompiler(ccache + [compiler], version, gtype, is_cross, exe_wrap)
             if 'clang' in out:
                 return ClangCCompiler(ccache + [compiler], version, is_cross, exe_wrap)
             if 'Microsoft' in out:
@@ -308,7 +313,12 @@ class Environment():
                 return GnuCPPCompiler(ccache + [compiler], version, GCC_OSX, is_cross, exe_wrap)
             if (out.startswith('c++ ') or 'g++' in out or 'GCC' in out) and \
                 'Free Software Foundation' in out:
-                return GnuCPPCompiler(ccache + [compiler], version, GCC_STANDARD, is_cross, exe_wrap)
+                lowerout = out.lower()
+                if 'mingw' in lowerout or 'msys' in lowerout or 'mingw' in compiler.lower():
+                    gtype = GCC_MINGW
+                else:
+                    gtype = GCC_STANDARD
+                return GnuCPPCompiler(ccache + [compiler], version, gtype, is_cross, exe_wrap)
             if 'clang' in out:
                 return ClangCPPCompiler(ccache + [compiler], version, is_cross, exe_wrap)
             if 'Microsoft' in out:
@@ -622,7 +632,7 @@ class CrossBuildInfo():
                     for i in res:
                         if not self.ok_type(i):
                             raise EnvironmentException('Malformed value in cross file variable %s.' % varname)
-                    self.items[varname] = res
+                    self.config[s][entry] = res
                 else:
                     raise EnvironmentException('Malformed value in cross file variable %s.' % varname)
 

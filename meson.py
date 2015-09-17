@@ -29,6 +29,15 @@ parser = argparse.ArgumentParser()
 backendlist = ['ninja', 'vs2010', 'xcode']
 build_types = ['plain', 'debug', 'debugoptimized', 'release']
 layouts = ['mirror', 'flat']
+warning_levels = ['1', '2', '3']
+
+default_warning = '1'
+try:
+    warn_candidate = os.environ['MESON_WARN_LEVEL']
+    if warn_candidate in warning_levels:
+        default_warning = warn_candidate
+except KeyError:
+    pass
 
 if mesonlib.is_windows():
     def_prefix = 'c:/'
@@ -65,6 +74,8 @@ parser.add_argument('--werror', action='store_true', dest='werror', default=Fals
                     help='Treat warnings as errors')
 parser.add_argument('--layout', choices=layouts, dest='layout', default='mirror',\
                     help='Build directory layout.')
+parser.add_argument('--warnlevel', default=default_warning, dest='warning_level', choices=warning_levels,\
+                    help='Level of compiler warnings to use (larger is more, default is %(default)s)')
 parser.add_argument('--cross-file', default=None, dest='cross_file',
                     help='file describing cross compilation environment')
 parser.add_argument('-D', action='append', dest='projectoptions', default=[],
