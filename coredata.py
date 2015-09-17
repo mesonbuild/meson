@@ -17,19 +17,20 @@ import pickle, os, uuid
 version = '0.26.0-research'
 
 builtin_options = {'buildtype': True,
-                          'strip': True,
-                          'coverage': True,
-                          'pch': True,
-                          'unity': True,
-                          'prefix': True,
-                          'libdir' : True,
-                          'bindir' : True,
-                          'includedir' : True,
-                          'datadir' : True,
-                          'mandir' : True,
-                          'localedir' : True,
-                          'werror' : True,
-                         }
+                   'strip': True,
+                   'coverage': True,
+                   'pch': True,
+                   'unity': True,
+                   'prefix': True,
+                   'libdir' : True,
+                   'bindir' : True,
+                   'includedir' : True,
+                   'datadir' : True,
+                   'mandir' : True,
+                   'localedir' : True,
+                   'werror' : True,
+                   'layout' : True,
+                  }
 # This class contains all data that must persist over multiple
 # invocations of Meson. It is roughly the same thing as
 # cmakecache.
@@ -55,6 +56,7 @@ class CoreData():
         self.unity = options.unity
         self.coverage = options.coverage
         self.werror = options.werror
+        self.layout = options.layout
         self.user_options = {}
         self.external_args = {} # These are set from "the outside" with e.g. mesonconf
         self.external_link_args = {}
@@ -95,6 +97,8 @@ class CoreData():
             return self.mandir
         if optname == 'localedir':
             return self.localedir
+        if optname == 'layout':
+            return self.layout
         raise RuntimeError('Tried to get unknown builtin option %s' % optname)
 
 def load(filename):

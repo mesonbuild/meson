@@ -68,8 +68,10 @@ class Backend():
         return filename
 
     def get_target_dir(self, target):
-#        dirname = target.get_subdir()
-        dirname = 'meson-out'
+        if self.environment.coredata.layout == 'mirror':
+            dirname = target.get_subdir()
+        else:
+            dirname = 'meson-out'
         os.makedirs(os.path.join(self.environment.get_build_dir(), dirname), exist_ok=True)
         return dirname
 

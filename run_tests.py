@@ -172,7 +172,7 @@ def run_test_inprocess(testdir):
     return (returncode, mystdout.getvalue(), mystderr.getvalue())
 
 
-def run_test(testdir, should_succeed):
+def run_test(testdir, extra_args, should_succeed):
     global compile_commands
     mlog.shutdown() # Close the log file because otherwise Windows wets itself.
     shutil.rmtree(test_build_dir)
@@ -182,7 +182,7 @@ def run_test(testdir, should_succeed):
     print('Running test: ' + testdir)
     gen_start = time.time()
     gen_command = [meson_command, '--prefix', '/usr', '--libdir', 'lib', testdir, test_build_dir]\
-        + unity_flags + backend_flags
+        + unity_flags + backend_flags + extra_args
     (returncode, stdo, stde) = run_configure_inprocess(gen_command)
     gen_time = time.time() - gen_start
     if not should_succeed:
@@ -255,7 +255,7 @@ def detect_tests_to_run():
     all_tests.append(('fortran', gather_tests('test cases/fortran'), False if shutil.which('gfortran') else True))
     return all_tests
 
-def run_tests():
+def run_tests(extra_args):
     all_tests = detect_tests_to_run()
     logfile = open('meson-test-run.txt', 'w', encoding="utf_8")
     junit_root = ET.Element('testsuites')
@@ -290,7 +290,7 @@ def run_tests():
                 skipped_tests += 1
             else:
                 ts = time.time()
-                result = run_test(t, name != 'failing')
+                result = run_test(t, extra_args, name != 'failing')
                 te = time.time()
                 conf_time += result.conftime
                 build_time += result.buildtime
@@ -351,6 +351,8 @@ def generate_prebuilt_object():
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Run the test suite of Meson.")
+    parser.add_argument('extra_args', nargs='*',
+                   help='arguments that are passed directly to Meson (remember to have -- before these).')
     parser.add_argument('--backend', default=None, dest='backend',
                         choices = backendlist)
     options = parser.parse_args()
@@ -362,7 +364,7 @@ if __name__ == '__main__':
     check_format()
     pbfile = generate_prebuilt_object()
     try:
-        run_tests()
+        run_tests(options.extra_args)
     except StopException:
         pass
     os.unlink(pbfile)

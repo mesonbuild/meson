@@ -199,6 +199,8 @@ class CCompiler():
         return []
 
     def get_include_args(self, path):
+        if path == '':
+            path = '.'
         return ['-I' + path]
 
     def get_std_shared_lib_link_args(self):

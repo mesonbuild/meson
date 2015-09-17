@@ -28,6 +28,7 @@ parser = argparse.ArgumentParser()
 
 backendlist = ['ninja', 'vs2010', 'xcode']
 build_types = ['plain', 'debug', 'debugoptimized', 'release']
+layouts = ['mirror', 'flat']
 
 if mesonlib.is_windows():
     def_prefix = 'c:/'
@@ -62,6 +63,8 @@ parser.add_argument('--unity', action='store_true', dest='unity', default=False,
                     help='unity build')
 parser.add_argument('--werror', action='store_true', dest='werror', default=False,\
                     help='Treat warnings as errors')
+parser.add_argument('--layout', choices=layouts, dest='layout', default='mirror',\
+                    help='Build directory layout.')
 parser.add_argument('--cross-file', default=None, dest='cross_file',
                     help='file describing cross compilation environment')
 parser.add_argument('-D', action='append', dest='projectoptions', default=[],

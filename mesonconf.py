@@ -18,7 +18,7 @@ import sys, os
 import pickle
 import argparse
 import coredata, optinterpreter
-from meson import build_types
+from meson import build_types, layouts
 
 parser = argparse.ArgumentParser()
 
@@ -80,6 +80,10 @@ class Conf:
                 if v not in build_types:
                     raise ConfException('Invalid build type %s.' % v)
                 self.coredata.buildtype = v
+            elif k == 'layout':
+                if v not in layouts:
+                    raise ConfException('Invalid layout type %s.' % v)
+                self.coredata.layout = v
             elif k == 'strip':
                 self.coredata.strip = self.tobool(v)
             elif k == 'coverage':
