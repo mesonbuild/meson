@@ -109,13 +109,14 @@ class NinjaBuildElement():
 
 class NinjaBackend(backends.Backend):
 
-    def __init__(self, build, interp):
-        super().__init__(build, interp)
+    def __init__(self, build):
+        super().__init__(build)
         self.source_suffix_in_objs = True
         self.ninja_filename = 'build.ninja'
         self.fortran_deps = {}
 
-    def generate(self):
+    def generate(self, interp):
+        self.interpreter = interp
         outfilename = os.path.join(self.environment.get_build_dir(), self.ninja_filename)
         tempfilename = outfilename + '~'
         outfile = open(tempfilename, 'w')
@@ -485,7 +486,6 @@ class NinjaBackend(backends.Backend):
                 d.man.append(i)
 
     def generate_data_install(self, d):
-        dataroot = self.environment.get_datadir()
         data = self.build.get_data()
         for de in data:
             subdir = de.get_install_dir()

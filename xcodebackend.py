@@ -19,8 +19,8 @@ import uuid, os, sys
 from coredata import MesonException
 
 class XCodeBackend(backends.Backend):
-    def __init__(self, build, interp):
-        super().__init__(build, interp)
+    def __init__(self, build):
+        super().__init__(build)
         self.project_uid = self.environment.coredata.guid.replace('-', '')[:24]
         self.project_conflist = self.gen_id()
         self.indent = '       '
@@ -61,7 +61,8 @@ class XCodeBackend(backends.Backend):
         if not text.endswith('\n'):
             self.ofile.write('\n')
 
-    def generate(self):
+    def generate(self, interp):
+        self.interpreter = interp
         self.serialise_tests()
         self.generate_filemap()
         self.generate_buildmap()

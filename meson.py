@@ -130,24 +130,24 @@ itself as required.'''
         else:
             mlog.log('Build type:', mlog.bold('native build'))
         b = build.Build(env)
-        intr = interpreter.Interpreter(b)
-        mlog.log('Build machine cpu:', mlog.bold(intr.builtin['build_machine'].cpu_method([], {})))
         if env.is_cross_build():
             mlog.log('Host machine cpu:', mlog.bold(intr.builtin['host_machine'].cpu_method([], {})))
             mlog.log('Target machine cpu:', mlog.bold(intr.builtin['target_machine'].cpu_method([], {})))
-        intr.run()
         if self.options.backend == 'ninja':
             import ninjabackend
-            g = ninjabackend.NinjaBackend(b, intr)
+            g = ninjabackend.NinjaBackend(b)
         elif self.options.backend == 'vs2010':
             import vs2010backend
-            g = vs2010backend.Vs2010Backend(b, intr)
+            g = vs2010backend.Vs2010Backend(b)
         elif self.options.backend == 'xcode':
             import xcodebackend
-            g = xcodebackend.XCodeBackend(b, intr)
+            g = xcodebackend.XCodeBackend(b)
         else:
             raise RuntimeError('Unknown backend "%s".' % self.options.backend)
-        g.generate()
+        intr = interpreter.Interpreter(b, g)
+        mlog.log('Build machine cpu:', mlog.bold(intr.builtin['build_machine'].cpu_method([], {})))
+        intr.run()
+        g.generate(intr)
         env.generating_finished()
         dumpfile = os.path.join(env.get_scratch_dir(), 'build.dat')
         pickle.dump(b, open(dumpfile, 'wb'))

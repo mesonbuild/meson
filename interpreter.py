@@ -449,16 +449,21 @@ class GeneratedObjectsHolder(InterpreterObject):
         self.held_object = held_object
 
 class BuildTargetHolder(InterpreterObject):
-    def __init__(self, target):
+    def __init__(self, target, interp):
         super().__init__()
         self.held_object = target
+        self.interpreter = interp
         self.methods.update({'extract_objects' : self.extract_objects_method,
                              'extract_all_objects' : self.extract_all_objects_method,
                              'get_id': self.get_id_method,
+                             'outdir' : self.outdir_method,
                              })
 
     def is_cross(self):
         return self.held_object.is_cross()
+
+    def outdir_method(self, args, kwargs):
+        return self.interpreter.backend.get_target_dir(self.held_object)
 
     def extract_objects_method(self, args, kwargs):
         gobjs = self.held_object.extract_objects(args)
@@ -472,20 +477,20 @@ class BuildTargetHolder(InterpreterObject):
         return self.held_object.get_id()
 
 class ExecutableHolder(BuildTargetHolder):
-    def __init__(self, target):
-        super().__init__(target)
+    def __init__(self, target, interp):
+        super().__init__(target, interp)
 
 class StaticLibraryHolder(BuildTargetHolder):
-    def __init__(self, target):
-        super().__init__(target)
+    def __init__(self, target, interp):
+        super().__init__(target, interp)
 
 class SharedLibraryHolder(BuildTargetHolder):
-    def __init__(self, target):
-        super().__init__(target)
+    def __init__(self, target, interp):
+        super().__init__(target, interp)
 
 class JarHolder(BuildTargetHolder):
-    def __init__(self, target):
-        super().__init__(target)
+    def __init__(self, target, interp):
+        super().__init__(target, interp)
 
 class CustomTargetHolder(InterpreterObject):
     def __init__(self, object_to_hold):
@@ -811,8 +816,9 @@ class MesonMain(InterpreterObject):
 
 class Interpreter():
 
-    def __init__(self, build, subproject='', subdir='', subproject_dir='subprojects'):
+    def __init__(self, build, backend, subproject='', subdir='', subproject_dir='subprojects'):
         self.build = build
+        self.backend = backend
         self.subproject = subproject
         self.subdir = subdir
         self.source_root = build.environment.get_source_dir()
@@ -1181,7 +1187,7 @@ class Interpreter():
         os.makedirs(os.path.join(self.build.environment.get_build_dir(), subdir), exist_ok=True)
         self.global_args_frozen = True
         mlog.log('\nExecuting subproject ', mlog.bold(dirname), '.\n', sep='')
-        subi = Interpreter(self.build, dirname, subdir, self.subproject_dir)
+        subi = Interpreter(self.build, self.backend, dirname, subdir, self.subproject_dir)
         subi.subprojects = self.subprojects
 
         subi.subproject_stack = self.subproject_stack + [dirname]
@@ -1725,7 +1731,7 @@ class Interpreter():
             mlog.debug('Unknown target type:', str(targetholder))
             raise RuntimeError('Unreachable code')
         target = targetclass(name, self.subdir, self.subproject, is_cross, sources, objs, self.environment, kwargs)
-        l = targetholder(target)
+        l = targetholder(target, self)
         self.add_target(name, l.held_object)
         self.global_args_frozen = True
         return l

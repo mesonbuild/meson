@@ -37,10 +37,9 @@ class TestSerialisation:
 # This class contains the basic functionality that is needed by all backends.
 # Feel free to move stuff in and out of it as you see fit.
 class Backend():
-    def __init__(self, build, interp):
+    def __init__(self, build):
         self.build = build
         self.environment = build.environment
-        self.interpreter = interp
         self.processed_targets = {}
         self.dep_rules = {}
         self.build_to_src = os.path.relpath(self.environment.get_source_dir(),

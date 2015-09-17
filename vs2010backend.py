@@ -19,8 +19,8 @@ import xml.dom.minidom
 from coredata import MesonException
 
 class Vs2010Backend(backends.Backend):
-    def __init__(self, build, interp):
-        super().__init__(build, interp)
+    def __init__(self, build):
+        super().__init__(build)
         self.project_file_version = '10.0.30319.1'
         # foo.c compiles to foo.obj, not foo.c.obj
         self.source_suffix_in_obj = False
@@ -62,7 +62,8 @@ class Vs2010Backend(backends.Backend):
         ET.SubElement(pg, 'CustomBuildBeforeTargets').text = 'ClCompile'
         return all_output_files
 
-    def generate(self):
+    def generate(self, interp):
+        self.interpreter = interp
         self.generate_pkgconfig_files()
         sln_filename = os.path.join(self.environment.get_build_dir(), self.build.project_name + '.sln')
         projlist = self.generate_projects()
