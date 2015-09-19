@@ -144,9 +144,6 @@ itself as required.'''
         else:
             mlog.log('Build type:', mlog.bold('native build'))
         b = build.Build(env)
-        if env.is_cross_build():
-            mlog.log('Host machine cpu:', mlog.bold(intr.builtin['host_machine'].cpu_method([], {})))
-            mlog.log('Target machine cpu:', mlog.bold(intr.builtin['target_machine'].cpu_method([], {})))
         if self.options.backend == 'ninja':
             import ninjabackend
             g = ninjabackend.NinjaBackend(b)
@@ -158,7 +155,11 @@ itself as required.'''
             g = xcodebackend.XCodeBackend(b)
         else:
             raise RuntimeError('Unknown backend "%s".' % self.options.backend)
+
         intr = interpreter.Interpreter(b, g)
+        if env.is_cross_build():
+            mlog.log('Host machine cpu:', mlog.bold(intr.builtin['host_machine'].cpu_method([], {})))
+            mlog.log('Target machine cpu:', mlog.bold(intr.builtin['target_machine'].cpu_method([], {})))
         mlog.log('Build machine cpu:', mlog.bold(intr.builtin['build_machine'].cpu_method([], {})))
         intr.run()
         g.generate(intr)
