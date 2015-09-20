@@ -86,31 +86,13 @@ for f in files:
     outfilename = os.path.join(script_dir, f)
     shutil.copyfile(f, outfilename)
     shutil.copystat(f, outfilename)
-try:
-    os.remove(bin_name)
-except OSError:
-    pass
+
 print('Creating symlinks.')
-try:
-    os.unlink(bin_name)
-except FileNotFoundError:
-    pass
-try:
-    os.unlink(gui_name)
-except FileNotFoundError:
-    pass
-try:
-    os.unlink(conf_name)
-except FileNotFoundError:
-    pass
-try:
-    os.unlink(intro_name)
-except FileNotFoundError:
-    pass
-try:
-    os.unlink(wraptool_name)
-except FileNotFoundError:
-    pass
+for i in [bin_name, gui_name, conf_name, intro_name, wraptool_name]:
+    try:
+        os.unlink(i)
+    except FileNotFoundError:
+        pass
 os.symlink(symlink_value, bin_name)
 os.symlink(guisymlink_value, gui_name)
 os.symlink(confsymlink_value, conf_name)
