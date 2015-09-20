@@ -122,13 +122,20 @@ class Vs2010Backend(backends.Backend):
 
     def generate_projects(self):
         projlist = []
+        comp = None
+        for l, c in self.environment.coredata.compilers.items():
+            if l == 'c' or l == 'cpp':
+                comp = c
+                break
+        if comp is None:
+            raise RuntimeError('C and C++ compilers missing.')
         for name, target in self.build.targets.items():
             outdir = os.path.join(self.environment.get_build_dir(), self.get_target_dir(target))
             fname = name + '.vcxproj'
             relname = os.path.join(target.subdir, fname)
             projfile = os.path.join(outdir, fname)
             uuid = self.environment.coredata.target_guids[name]
-            self.gen_vcxproj(target, projfile, uuid)
+            self.gen_vcxproj(target, projfile, uuid, comp)
             projlist.append((name, relname, uuid))
         return projlist
 
@@ -154,16 +161,11 @@ class Vs2010Backend(backends.Backend):
     def special_quote(self, arr):
         return ['&quot;%s&quot;' % i for i in arr]
 
-    def gen_vcxproj(self, target, ofname, guid):
-        down = self.target_to_build_root(target)
-        proj_to_src_root = os.path.join(down, self.build_to_src)
-        proj_to_src_dir = os.path.join(proj_to_src_root, target.subdir)
-        (sources, headers) = self.split_sources(target.sources)
+    def gen_custom_target_vcxproj(self, target, ofname, guid):
+        raise NotImplementedError('Custom target not implemented yet. Sorry.')
+
+    def gen_vcxproj(self, target, ofname, guid, compiler):
         entrypoint = 'WinMainCRTStartup'
-        buildtype = 'Debug'
-        platform = "Win32"
-        project_name = target.name
-        target_name = target.name
         subsystem = 'Windows'
         if isinstance(target, build.Executable):
             conftype = 'Application'
@@ -175,8 +177,18 @@ class Vs2010Backend(backends.Backend):
         elif isinstance(target, build.SharedLibrary):
             conftype = 'DynamicLibrary'
             entrypoint = '_DllMainCrtStartup'
+        elif isinstance(target, build.CustomTarget):
+            self.gen_custom_target_vcxproj(target, ofname, guid)
         else:
-            raise MesonException('Unknown target type for %s' % target_name)
+            raise MesonException('Unknown target type for %s' % target.get_basename())
+        down = self.target_to_build_root(target)
+        proj_to_src_root = os.path.join(down, self.build_to_src)
+        proj_to_src_dir = os.path.join(proj_to_src_root, target.subdir)
+        (sources, headers) = self.split_sources(target.sources)
+        buildtype = self.environment.coredata.buildtype
+        platform = "Win32"
+        project_name = target.name
+        target_name = target.name
         root = ET.Element('Project', {'DefaultTargets' : "Build",
                                       'ToolsVersion' : '4.0',
                                       'xmlns' : 'http://schemas.microsoft.com/developer/msbuild/2003'})
@@ -230,6 +242,7 @@ class Vs2010Backend(backends.Backend):
         extra_args = []
         # SUCKS, VS can not handle per-language type flags, so just use
         # them all.
+        extra_args += compiler.get_buildtype_args(self.environment.coredata.buildtype)
         for l in self.build.global_args.values():
             for a in l:
                 extra_args.append(a)
@@ -319,7 +332,7 @@ class Vs2010Backend(backends.Backend):
         open(ofname, 'w').write(txt.replace('&amp;quot;', '&quot;'))
 
     def gen_testproj(self, target_name, ofname):
-        buildtype = 'Debug'
+        buildtype = self.environment.coredata.buildtype
         platform = "Win32"
         project_name = target_name
         root = ET.Element('Project', {'DefaultTargets' : "Build",
