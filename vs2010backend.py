@@ -123,7 +123,7 @@ class Vs2010Backend(backends.Backend):
     def generate_projects(self):
         projlist = []
         for name, target in self.build.targets.items():
-            outdir = os.path.join(self.environment.get_build_dir(), target.subdir)
+            outdir = os.path.join(self.environment.get_build_dir(), self.get_target_dir(target))
             fname = name + '.vcxproj'
             relname = os.path.join(target.subdir, fname)
             projfile = os.path.join(outdir, fname)

@@ -170,7 +170,13 @@ class BuildTarget():
         self.validate_sources()
 
     def get_id(self):
-        return self.subproject + ':' + self.name + self.type_suffix()
+        # This ID must also be a valid file name on all OSs.
+        # It should also avoid shell metacharacters for obvious
+        # reasons.
+        base = self.name + self.type_suffix()
+        if self.subproject == '':
+            return base
+        return self.subproject + '@@' + base
 
     def check_unknown_kwargs(self, kwargs):
         # Override this method in derived classes that have more
