@@ -87,13 +87,13 @@ class Vs2010Backend(backends.Backend):
             ofile.write(prj_line)
             all_deps = {}
             for ldep in self.build.targets[p[0]].link_targets:
-                all_deps[ldep.get_basename()] = True
+                all_deps[ldep.get_id()] = True
             for objdep in self.get_obj_target_deps(self.build.targets[p[0]].objects):
                 all_deps[objdep] = True
             for gendep in self.build.targets[p[0]].generated:
                 gen_exe = gendep.generator.get_exe()
                 if isinstance(gen_exe, build.Executable):
-                    all_deps[gen_exe.get_basename()] = True
+                    all_deps[gen_exe.get_id()] = True
             if len(all_deps) > 0:
                 ofile.write('\tProjectSection(ProjectDependencies) = postProject\n')
                 for dep in all_deps.keys():
@@ -263,7 +263,7 @@ class Vs2010Backend(backends.Backend):
         link = ET.SubElement(compiles, 'Link')
         additional_links = []
         for t in target.link_targets:
-            lobj = self.build.targets[t.get_basename()]
+            lobj = self.build.targets[t.get_id()]
             rel_path = self.relpath(lobj.subdir, target.subdir)
             linkname = os.path.join(rel_path, lobj.get_import_filename())
             additional_links.append(linkname)
