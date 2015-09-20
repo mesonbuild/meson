@@ -257,14 +257,13 @@ class Backend():
         links to and return them so they can be used in unit
         tests.'''
         if not isinstance(target, build.Executable):
-            print(target)
             return []
         prospectives = target.get_transitive_link_deps()
         result = []
         for ld in prospectives:
             if ld == '' or ld == '.':
                 continue
-            dirseg = os.path.join(self.environment.get_build_dir(), self.get_target_dir())
+            dirseg = os.path.join(self.environment.get_build_dir(), self.get_target_dir(ld))
             if dirseg not in result:
                 result.append(dirseg)
         return result
