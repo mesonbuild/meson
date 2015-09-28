@@ -319,7 +319,7 @@ class NinjaBackend(backends.Backend):
                 if '@OUTDIR@' in i:
                     i = i.replace('@OUTDIR@', self.get_target_dir(target))
                 elif '@PRIVATE_OUTDIR_' in i:
-                    match = re.search('@PRIVATE_OUTDIR_(ABS_)?([a-zA-Z@:]*)@', i)
+                    match = re.search('@PRIVATE_OUTDIR_(ABS_)?([-a-zA-Z0-9.@:]*)@', i)
                     source = match.group(0)
                     if match.group(1) is None:
                         lead_dir = ''
