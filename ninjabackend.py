@@ -85,6 +85,12 @@ class NinjaBuildElement():
         if len(self.orderdeps) > 0:
             line += ' || ' + ' '.join([ninja_quote(x) for x in self.orderdeps])
         line += '\n'
+        # This needs to be done to make these strings
+        # pass through arbitrary shells. Backslash is a
+        # quote character so it can break at any time.
+        # Because of this always use forward slashes,
+        # it is a path separator even on Windows.
+        line = line.replace('\\', '/')
         outfile.write(line)
 
         for e in self.elems:
@@ -104,6 +110,7 @@ class NinjaBuildElement():
                 newelems.append(templ % ninja_quote(i))
             line += ' '.join(newelems)
             line += '\n'
+            line = line.replace('\\', '/')
             outfile.write(line)
         outfile.write('\n')
 
@@ -857,7 +864,14 @@ class NinjaBackend(backends.Backend):
         if static_linker is None:
             return
         rule = 'rule STATIC%s_LINKER\n' % crstr
-        command = ' command = %s  $LINK_ARGS %s $in\n' % \
+        if mesonlib.is_windows():
+            command_templ = ''' command = %s @$out.rsp
+ rspfile = $out.rsp
+ rspfile_content = $LINK_ARGS %s $in
+'''
+        else:
+            command_templ = ' command = %s $LINK_ARGS %s $in\n'
+        command = command_templ %\
         (' '.join(static_linker.get_exelist()),
          ' '.join(static_linker.get_output_args('$out')))
         description = ' description = Static linking library $out\n\n'
@@ -890,7 +904,14 @@ class NinjaBackend(backends.Backend):
                     except KeyError:
                         pass
                 rule = 'rule %s%s_LINKER\n' % (langname, crstr)
-                command = ' command = %s %s $ARGS  %s $in $LINK_ARGS $aliasing\n' % \
+                if mesonlib.is_windows():
+                    command_template = ''' command = %s @$out.rsp
+ rspfile = $out.rsp
+ rspfile_content = %s $ARGS  %s $in $LINK_ARGS $aliasing
+'''
+                else:
+                    command_template = ' command = %s %s $ARGS  %s $in $LINK_ARGS $aliasing\n'
+                command = command_template % \
                 (' '.join(compiler.get_linker_exelist()),\
                  ' '.join(cross_args),\
                  ' '.join(compiler.get_linker_output_args('$out')))
