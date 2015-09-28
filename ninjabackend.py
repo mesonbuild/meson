@@ -1040,7 +1040,14 @@ rule FORTRAN_DEP_HACK
                 cross_args = self.environment.cross_info.config['properties'][langname + '_args']
             except KeyError:
                 pass
-        command = " command = %s %s $ARGS %s %s %s $in\n" % \
+        if mesonlib.is_windows():
+            command_template = ''' command = %s @$out.rsp
+ rspfile = $out.rsp
+ rspfile_content = %s $ARGS %s %s %s $in
+'''
+        else:
+            command_template = ' command = %s %s $ARGS %s %s %s $in\n'
+        command = command_template % \
             (' '.join(compiler.get_exelist()),\
              ' '.join(cross_args),
              ' '.join(quoted_depargs),\
