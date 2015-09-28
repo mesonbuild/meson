@@ -345,8 +345,11 @@ class NinjaBackend(backends.Backend):
             if isinstance(i, str):
                 arg_strings.append(i)
             elif isinstance(i, build.BuildTarget):
-                deps.append(self.get_target_filename(i))
+                relfname = self.get_target_filename(i)
+                deps.append(relfname)
+                arg_strings.append(os.path.join(self.environment.get_build_dir(), relfname))
             else:
+                mlog.debug(str(i))
                 raise MesonException('Unreachable code.')
         elem = NinjaBuildElement(target.name, 'CUSTOM_COMMAND', deps)
         cmd = [sys.executable, runnerscript, self.environment.get_source_dir(), self.environment.get_build_dir(), target.subdir]
@@ -364,7 +367,7 @@ class NinjaBackend(backends.Backend):
             cmd.append(abs_exe)
         else:
             cmd.append(target.command)
-        cmd += target.args
+        cmd += arg_strings
         elem.add_item('COMMAND', cmd)
         elem.add_item('description', 'Running external command %s.' % target.name)
         elem.add_item('pool', 'console')
