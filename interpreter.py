@@ -39,8 +39,10 @@ class InvalidArguments(InterpreterException):
 
 def check_stringlist(a, msg='Arguments must be strings.'):
     if not isinstance(a, list):
+        mlog.debug('Not a list:', str(a))
         raise InvalidArguments('Argument not a list.')
     if not all(isinstance(s, str) for s in a):
+        mlog.debug('Element not a string:', str(a))
         raise InvalidArguments(msg)
 
 def noPosargs(f):
@@ -1857,7 +1859,7 @@ class Interpreter():
         (args, kwargs) = self.reduce_arguments(args)
         if method_name == 'extract_objects':
             self.validate_extraction(obj.held_object)
-        return obj.method_call(method_name, args, kwargs)
+        return obj.method_call(method_name, self.flatten(args), kwargs)
 
     # Only permit object extraction from the same subproject
     def validate_extraction(self, buildtarget):

@@ -9,7 +9,7 @@ gen = generator(e1, \
  output  : '@BASENAME@.c', # Line continuation inside arguments should work without needing a "\".
  arguments : ['@INPUT@', '@OUTPUT@'])
 
-generated = gen.process('input_src.dat')
+generated = gen.process(['input_src.dat'])
 
 e2 = executable('prog', 'prog.c', generated)
 
