@@ -1308,6 +1308,8 @@ rule FORTRAN_DEP_HACK
                 sargs = compiler.get_include_args(srctreedir)
                 commands += bargs
                 commands += sargs
+            for d in i.get_extra_build_dirs():
+                commands += compiler.get_include_args(d)
         custom_target_include_dirs = []
         for i in target.generated:
             if isinstance(i, build.CustomTarget):

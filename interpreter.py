@@ -355,9 +355,9 @@ class CrossMachineInfo(InterpreterObject):
         return self.info['endian']
 
 class IncludeDirsHolder(InterpreterObject):
-    def __init__(self, curdir, dirs):
+    def __init__(self, idobj):
         super().__init__()
-        self.held_object = build.IncludeDirs(curdir, dirs)
+        self.held_object = idobj
 
 class Headers(InterpreterObject):
 
@@ -459,10 +459,15 @@ class BuildTargetHolder(InterpreterObject):
                              'extract_all_objects' : self.extract_all_objects_method,
                              'get_id': self.get_id_method,
                              'outdir' : self.outdir_method,
+                             'private_dir_include' : self.private_dir_include_method,
                              })
 
     def is_cross(self):
         return self.held_object.is_cross()
+
+    def private_dir_include_method(self, args, kwargs):
+        return IncludeDirsHolder(build.IncludeDirs('', [],
+                    [self.interpreter.backend.get_target_private_dir(self.held_object)]))
 
     def outdir_method(self, args, kwargs):
         return self.interpreter.backend.get_target_dir(self.held_object)
@@ -1644,7 +1649,7 @@ class Interpreter():
             absdir = os.path.join(absbase, a)
             if not os.path.isdir(absdir):
                 raise InvalidArguments('Include dir %s does not exist.' % a)
-        i = IncludeDirsHolder(self.subdir, args)
+        i = IncludeDirsHolder(build.IncludeDirs(self.subdir, args))
         return i
 
     @stringArgs

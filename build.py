@@ -124,17 +124,24 @@ class Build:
         return self.global_args.get(compiler.get_language(), [])
 
 class IncludeDirs():
-    def __init__(self, curdir, dirs):
+    def __init__(self, curdir, dirs, extra_build_dirs=None):
         self.curdir = curdir
         self.incdirs = dirs
         # Interpreter has validated that all given directories
         # actually exist.
+        if extra_build_dirs is None:
+            self.extra_build_dirs = []
+        else:
+            self.extra_build_dirs = extra_build_dirs
 
     def get_curdir(self):
         return self.curdir
 
     def get_incdirs(self):
         return self.incdirs
+
+    def get_extra_build_dirs(self):
+        return self.extra_build_dirs
 
 class ExtractedObjects():
     def __init__(self, target, srclist):
@@ -545,7 +552,7 @@ class Generator():
             if not isinstance(rule, str):
                 raise InvalidArguments('"output" may only contain strings.')
             if not '@BASENAME@' in rule and not '@PLAINNAME@' in rule:
-                raise InvalidArguments('"outputs" must contain @BASENAME@ or @PLAINNAME@.')
+                raise InvalidArguments('Every element of "output" must contain @BASENAME@ or @PLAINNAME@.')
             if '/' in rule or '\\' in rule:
                 raise InvalidArguments('"outputs" must not contain a directory separator.')
         if len(outputs) > 1:
