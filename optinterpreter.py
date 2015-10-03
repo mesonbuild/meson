@@ -1,4 +1,4 @@
-# Copyright 2013-2014 The Meson development team
+# Copyright 2013-2015 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import mparser
-import coredata
+import coredata, mesonlib
 import os, re
 
 forbidden_option_names = coredata.builtin_options
@@ -23,64 +23,27 @@ class OptionException(coredata.MesonException):
 
 optname_regex = re.compile('[^a-zA-Z0-9_-]')
 
-class UserOption:
-    def __init__(self, name, kwargs):
-        super().__init__()
-        self.description = kwargs.get('description', '')
-        self.name = name
+def StringParser(name, description, kwargs):
+    return mesonlib.UserStringOption(name, description,
+                                     kwargs.get('value', ''))
 
-    def parse_string(self, valuestring):
-        return valuestring
+def BooleanParser(name, description, kwargs):
+    return mesonlib.UserBooleanOption(name, description, kwargs.get('value', True))
 
-class UserStringOption(UserOption):
-    def __init__(self, name, kwargs):
-        super().__init__(name, kwargs)
-        self.set_value(kwargs.get('value', ''))
+def ComboParser(name, description, kwargs):
+    if 'choices' not in kwargs:
+        raise OptionException('Combo option missing "choices" keyword.')
+    choices = kwargs['choices']
+    if not isinstance(choices, list):
+        raise OptionException('Combo choices must be an array.')
+    for i in choices:
+        if not isinstance(i, str):
+            raise OptionException('Combo choice elements must be strings.')
+    return mesonlib.UserComboOption(name, description, choices, kwargs.get('value', choices[0]))
 
-    def set_value(self, newvalue):
-        if not isinstance(newvalue, str):
-            raise OptionException('Value "%s" for string option "%s" is not a string.' % (str(newvalue), self.name))
-        self.value = newvalue
-
-class UserBooleanOption(UserOption):
-    def __init__(self, name, kwargs):
-        super().__init__(name, kwargs)
-        self.set_value(kwargs.get('value', 'true'))
-
-    def set_value(self, newvalue):
-        if not isinstance(newvalue, bool):
-            raise OptionException('Value "%s" for boolean option "%s" is not a boolean.' % (str(newvalue), self.name))
-        self.value = newvalue
-
-    def parse_string(self, valuestring):
-        if valuestring == 'false':
-            return False
-        if valuestring == 'true':
-            return True
-        raise OptionException('Value "%s" for boolean option "%s" is not a boolean.' % (valuestring, self.name))
-
-class UserComboOption(UserOption):
-    def __init__(self, name, kwargs):
-        super().__init__(name, kwargs)
-        if 'choices' not in kwargs:
-            raise OptionException('Combo option missing "choices" keyword.')
-        self.choices = kwargs['choices']
-        if not isinstance(self.choices, list):
-            raise OptionException('Combo choices must be an array.')
-        for i in self.choices:
-            if not isinstance(i, str):
-                raise OptionException('Combo choice elements must be strings.')
-        self.value = kwargs.get('value', self.choices[0])
-
-    def set_value(self, newvalue):
-        if newvalue not in self.choices:
-            optionsstring = ', '.join(['"%s"' % (item,) for item in self.choices])
-            raise OptionException('Value "%s" for combo option "%s" is not one of the choices. Possible choices are: %s.' % (newvalue, self.name, optionsstring))
-        self.value = newvalue
-
-option_types = {'string' : UserStringOption,
-                'boolean' : UserBooleanOption,
-                'combo' : UserComboOption,
+option_types = {'string' : StringParser,
+                'boolean' : BooleanParser,
+                'combo' : ComboParser,
                }
 
 class OptionInterpreter:
@@ -161,7 +124,7 @@ class OptionInterpreter:
             raise OptionException('Option name %s is reserved.' % opt_name)
         if self.subproject != '':
             opt_name = self.subproject + ':' + opt_name
-        opt = option_types[opt_type](opt_name, kwargs)
+        opt = option_types[opt_type](opt_name, kwargs.get('description', ''), kwargs)
         if opt.description == '':
             opt.description = opt_name
         if opt_name in self.cmd_line_options:

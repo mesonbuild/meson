@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright 2014 The Meson development team
+# Copyright 2014-2015 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 import sys, os
 import pickle
 import argparse
-import coredata, optinterpreter
+import coredata, mesonlib
 from meson import build_types, layouts, warning_levels
 
 parser = argparse.ArgumentParser()
@@ -127,15 +127,15 @@ class Conf:
                 self.coredata.localedir = v
             elif k in self.coredata.user_options:
                 tgt = self.coredata.user_options[k]
-                if isinstance(tgt, optinterpreter.UserBooleanOption):
+                if isinstance(tgt, mesonlib.UserBooleanOption):
                     tgt.set_value(self.tobool(v))
-                elif isinstance(tgt, optinterpreter.UserComboOption):
+                elif isinstance(tgt, mesonlib.UserComboOption):
                     try:
                         tgt.set_value(v)
-                    except optinterpreter.OptionException:
+                    except coredata.MesonException:
                         raise ConfException('Value of %s must be one of %s.' %
                                             (k, tgt.choices))
-                elif isinstance(tgt, optinterpreter.UserStringOption):
+                elif isinstance(tgt, mesonlib.UserStringOption):
                     tgt.set_value(v)
                 else:
                     raise ConfException('Internal error, unknown option type.')
