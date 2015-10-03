@@ -169,7 +169,10 @@ class NinjaBackend(backends.Backend):
                 continue
             for src in gensource.get_outfilelist():
                 if self.environment.is_header(src):
-                    header_deps.append(src)
+                    header_deps.append(os.path.join(self.get_target_private_dir(target), src))
+        for dep in target.link_targets:
+            if isinstance(dep, (build.StaticLibrary, build.SharedLibrary)):
+                header_deps += self.get_generated_headers(dep)
         return header_deps
 
     def generate_target(self, target, outfile):
