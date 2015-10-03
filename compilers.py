@@ -118,8 +118,8 @@ class RunResult():
         self.stdout = stdout
         self.stderr = stderr
 
-class CCompiler():
-    def __init__(self, exelist, version, is_cross, exe_wrapper=None):
+class Compiler():
+    def __init__(self, exelist, version):
         if type(exelist) == type(''):
             self.exelist = [exelist]
         elif type(exelist) == type([]):
@@ -127,6 +127,16 @@ class CCompiler():
         else:
             raise TypeError('Unknown argument to CCompiler')
         self.version = version
+
+    def get_always_args(self):
+        return []
+
+    def get_linker_always_args(self):
+        return []
+
+class CCompiler(Compiler):
+    def __init__(self, exelist, version, is_cross, exe_wrapper=None):
+        super().__init__(exelist, version)
         self.language = 'c'
         self.default_suffix = 'c'
         self.id = 'unknown'
@@ -140,9 +150,6 @@ class CCompiler():
         return True # When compiling static libraries, so yes.
 
     def get_always_args(self):
-        return []
-
-    def get_linker_always_args(self):
         return []
 
     def get_warn_args(self, level):
@@ -539,28 +546,16 @@ class ObjCPPCompiler(CPPCompiler):
         if pe.returncode != 0:
             raise EnvironmentException('Executables created by ObjC++ compiler %s are not runnable.' % self.name_string())
 
-class MonoCompiler():
+class MonoCompiler(Compiler):
     def __init__(self, exelist, version):
-        if type(exelist) == type(''):
-            self.exelist = [exelist]
-        elif type(exelist) == type([]):
-            self.exelist = exelist
-        else:
-            raise TypeError('Unknown argument to Mono compiler')
-        self.version = version
+        super().__init__(exelist, version)
         self.language = 'cs'
         self.default_suffix = 'cs'
         self.id = 'mono'
         self.monorunner = 'mono'
 
-    def get_always_args(self):
-        return []
-
     def get_output_args(self, fname):
         return ['-out:' + fname]
-
-    def get_linker_always_args(self):
-        return []
 
     def get_link_args(self, fname):
         return ['-r:' + fname]
@@ -679,25 +674,13 @@ class MonoCompiler():
     def get_buildtype_args(self, buildtype):
         return mono_buildtype_args[buildtype]
 
-class JavaCompiler():
+class JavaCompiler(Compiler):
     def __init__(self, exelist, version):
-        if type(exelist) == type(''):
-            self.exelist = [exelist]
-        elif type(exelist) == type([]):
-            self.exelist = exelist
-        else:
-            raise TypeError('Unknown argument to JavaCompiler')
-        self.version = version
+        super().__init__(exelist, version)
         self.language = 'java'
         self.default_suffix = 'java'
         self.id = 'unknown'
         self.javarunner = 'java'
-
-    def get_always_args(self):
-        return []
-
-    def get_linker_always_args(self):
-        return []
 
     def get_soname_args(self, shlib_name, path, soversion):
         return []
@@ -819,14 +802,9 @@ class JavaCompiler():
     def has_function(self, funcname, prefix, env):
         raise EnvironmentException('Java does not support function checks.')
 
-class ValaCompiler():
+class ValaCompiler(Compiler):
     def __init__(self, exelist, version):
-        if isinstance(exelist, str):
-            self.exelist = [exelist]
-        elif type(exelist) == type([]):
-            self.exelist = exelist
-        else:
-            raise TypeError('Unknown argument to Vala compiler')
+        super().__init__(exelist, version)
         self.version = version
         self.id = 'unknown'
         self.language = 'vala'
@@ -863,15 +841,9 @@ class ValaCompiler():
         suffix = filename.split('.')[-1]
         return suffix in ('vala', 'vapi')
 
-class RustCompiler():
+class RustCompiler(Compiler):
     def __init__(self, exelist, version):
-        if isinstance(exelist, str):
-            self.exelist = [exelist]
-        elif type(exelist) == type([]):
-            self.exelist = exelist
-        else:
-            raise TypeError('Unknown argument to Rust compiler')
-        self.version = version
+        super().__init__(exelist, version)
         self.id = 'unknown'
         self.language = 'rust'
 
@@ -1233,11 +1205,9 @@ class ClangCPPCompiler(CPPCompiler):
         # so it might change semantics at any time.
         return ['-include-pch', os.path.join (pch_dir, self.get_pch_name (header))]
 
-class FortranCompiler():
-    def __init__(self, exelist, version,is_cross, exe_wrapper=None):
-        super().__init__()
-        self.exelist = exelist
-        self.version = version
+class FortranCompiler(Compiler):
+    def __init__(self, exelist, version, is_cross, exe_wrapper=None):
+        super().__init__(exelist, version)
         self.is_cross = is_cross
         self.exe_wrapper = exe_wrapper
         self.language = 'fortran'
@@ -1292,12 +1262,6 @@ end program prog
         pe.wait()
         if pe.returncode != 0:
             raise EnvironmentException('Executables created by Fortran compiler %s are not runnable.' % self.name_string())
-
-    def get_always_args(self):
-        return ['-pipe']
-
-    def get_linker_always_args(self):
-        return []
 
     def get_std_warn_args(self, level):
         return FortranCompiler.std_warn_args
@@ -1368,6 +1332,9 @@ class GnuFortranCompiler(FortranCompiler):
         self.gcc_type = gcc_type
         self.id = 'gcc'
 
+    def get_always_args(self):
+        return ['-pipe']
+
 class G95FortranCompiler(FortranCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
         super().__init__(exelist, version, is_cross, exe_wrapper=None)
@@ -1375,6 +1342,9 @@ class G95FortranCompiler(FortranCompiler):
 
     def get_module_outdir_args(self, path):
         return ['-fmod='+path]
+
+    def get_always_args(self):
+        return ['-pipe']
 
 class SunFortranCompiler(FortranCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
@@ -1403,9 +1373,6 @@ class IntelFortranCompiler(FortranCompiler):
     def get_module_outdir_args(self, path):
         return ['-module', path]
 
-    def get_always_args(self):
-        return []
-
     def can_compile(self, src):
         suffix = os.path.splitext(src)[1].lower()
         if suffix == '.f' or suffix == '.f90':
@@ -1424,9 +1391,6 @@ class PathScaleFortranCompiler(FortranCompiler):
 
     def get_module_outdir_args(self, path):
         return ['-module', path]
-
-    def get_always_args(self):
-        return []
 
     def can_compile(self, src):
         suffix = os.path.splitext(src)[1].lower()
@@ -1447,9 +1411,6 @@ class PGIFortranCompiler(FortranCompiler):
     def get_module_outdir_args(self, path):
         return ['-module', path]
 
-    def get_always_args(self):
-        return []
-
     def can_compile(self, src):
         suffix = os.path.splitext(src)[1].lower()
         if suffix == '.f' or suffix == '.f90' or suffix == '.f95':
@@ -1469,9 +1430,6 @@ class Open64FortranCompiler(FortranCompiler):
 
     def get_module_outdir_args(self, path):
         return ['-module', path]
-
-    def get_always_args(self):
-        return []
 
     def can_compile(self, src):
         suffix = os.path.splitext(src)[1].lower()
