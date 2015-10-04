@@ -1,8 +1,6 @@
 project('boosttest', 'cpp')
 
-if meson.get_compiler('cpp').get_id() != 'msvc'
-  add_global_arguments('-std=c++11', language : 'cpp')
-else
+if meson.get_compiler('cpp').get_id() == 'msvc'
   add_global_arguments('/EHsc', language : 'cpp')
 endif
 

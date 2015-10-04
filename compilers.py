@@ -134,6 +134,15 @@ class Compiler():
     def get_linker_always_args(self):
         return []
 
+    def get_options(self):
+        return {} # build afresh every time
+
+    def get_option_compile_args(self, options):
+        return []
+
+    def get_option_link_args(self, options):
+        return []
+
 class CCompiler(Compiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
         super().__init__(exelist, version)
@@ -1066,6 +1075,21 @@ class GnuCCompiler(CCompiler):
     def can_compile(self, filename):
         return super().can_compile(filename) or filename.split('.')[-1].lower() == 's' # Gcc can do asm, too.
 
+    def get_options(self):
+        return {'c_std' : mesonlib.UserComboOption('c_std', 'C language standard to use',
+                                                   ['none', 'c89', 'c99', 'c11', 'gnu89', 'gnu99', 'gnu11'],
+                                                   'c11')}
+
+    def get_option_compile_args(self, options):
+        args = []
+        std = options['c_std']
+        if std.value != 'none':
+            args.append('-std=' + std.value)
+        return args
+
+    def get_option_link_args(self, options):
+        return []
+
 class GnuObjCCompiler(ObjCCompiler):
     std_opt_args = ['-O2']
 
@@ -1154,6 +1178,20 @@ class ClangCCompiler(CCompiler):
         # so it might change semantics at any time.
         return ['-include-pch', os.path.join (pch_dir, self.get_pch_name (header))]
 
+    def get_options(self):
+        return {'c_std' : mesonlib.UserComboOption('c_std', 'C language standard to use',
+                                                   ['none', 'c89', 'c99', 'c11'],
+                                                   'c11')}
+
+    def get_option_compile_args(self, options):
+        args = []
+        std = options['c_std']
+        if std.value != 'none':
+            args.append('-std=' + std.value)
+        return args
+
+    def get_option_link_args(self, options):
+        return []
 
 class GnuCPPCompiler(CPPCompiler):
     # may need to separate the latter to extra_debug_args or something
@@ -1182,6 +1220,21 @@ class GnuCPPCompiler(CPPCompiler):
     def get_soname_args(self, shlib_name, path, soversion):
         return get_gcc_soname_args(self.gcc_type, shlib_name, path, soversion)
 
+    def get_options(self):
+        return {'cpp_std' : mesonlib.UserComboOption('cpp_std', 'C language standard to use',
+                                                   ['none', 'c++03', 'c++11', 'c++1y'],
+                                                   'c++11')}
+
+    def get_option_compile_args(self, options):
+        args = []
+        std = options['cpp_std']
+        if std.value != 'none':
+            args.append('-std=' + std.value)
+        return args
+
+    def get_option_link_args(self, options):
+        return []
+
 class ClangCPPCompiler(CPPCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
         CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
@@ -1204,6 +1257,21 @@ class ClangCPPCompiler(CPPCompiler):
         # This flag is internal to Clang (or at least not documented on the man page)
         # so it might change semantics at any time.
         return ['-include-pch', os.path.join (pch_dir, self.get_pch_name (header))]
+
+    def get_options(self):
+        return {'c_std' : mesonlib.UserComboOption('cpp_std', 'C++ language standard to use',
+                                                   ['none', 'c++03', 'c++11', 'c++1y'],
+                                                   'c++11')}
+
+    def get_option_compile_args(self, options):
+        args = []
+        std = options['cpp_std']
+        if std.value != 'none':
+            args.append('-std=' + std.value)
+        return args
+
+    def get_option_link_args(self, options):
+        return []
 
 class FortranCompiler(Compiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
@@ -1495,6 +1563,9 @@ class VisualStudioLinker():
     def thread_link_flags(self):
         return []
 
+    def get_option_link_args(self, options):
+        return []
+
 class ArLinker():
     std_args = ['csr']
 
@@ -1527,4 +1598,7 @@ class ArLinker():
         return []
 
     def thread_link_flags(self):
+        return []
+
+    def get_option_link_args(self, options):
         return []
