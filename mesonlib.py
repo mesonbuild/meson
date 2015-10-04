@@ -279,10 +279,17 @@ class UserBooleanOption(UserOption):
         super().__init__(name, description)
         self.set_value(value)
 
+    def tobool(self, thing):
+        if isinstance(thing, bool):
+            return thing
+        if thing.lower() == 'true':
+            return True
+        if thing.lower() == 'false':
+            return False
+        raise MesonException('Value %s is not boolean (true or false).' % thing)
+
     def set_value(self, newvalue):
-        if not isinstance(newvalue, bool):
-            raise MesonException('Value "%s" for boolean option "%s" is not a boolean.' % (str(newvalue), self.name))
-        self.value = newvalue
+        self.value = self.tobool(newvalue)
 
     def parse_string(self, valuestring):
         if valuestring == 'false':

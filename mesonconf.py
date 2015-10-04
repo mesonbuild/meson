@@ -64,13 +64,6 @@ class Conf:
             f = '%s%s %s%s' % (name, namepad, descr, descrpad)
             print(f, value)
 
-    def tobool(self, thing):
-        if thing.lower() == 'true':
-            return True
-        if thing.lower() == 'false':
-            return False
-        raise ConfException('Value %s is not boolean (true or false).' % thing)
-
     def set_options(self, options):
         for o in options:
             if '=' not in o:
@@ -127,18 +120,10 @@ class Conf:
                 self.coredata.localedir = v
             elif k in self.coredata.user_options:
                 tgt = self.coredata.user_options[k]
-                if isinstance(tgt, mesonlib.UserBooleanOption):
-                    tgt.set_value(self.tobool(v))
-                elif isinstance(tgt, mesonlib.UserComboOption):
-                    try:
-                        tgt.set_value(v)
-                    except coredata.MesonException:
-                        raise ConfException('Value of %s must be one of %s.' %
-                                            (k, tgt.choices))
-                elif isinstance(tgt, mesonlib.UserStringOption):
-                    tgt.set_value(v)
-                else:
-                    raise ConfException('Internal error, unknown option type.')
+                tgt.set_value(v)
+            elif k in self.coredata.compiler_options:
+                tgt = self.coredata.compiler_options[k]
+                tgt.set_value(v)
             elif k.endswith('linkargs'):
                 lang = k[:-8]
                 if not lang in self.coredata.external_link_args:
@@ -181,6 +166,17 @@ class Conf:
         for (lang, args) in self.coredata.external_link_args.items():
             print(lang + 'linkargs', str(args))
         print('')
+        okeys = sorted(self.coredata.compiler_options.keys())
+        if len(okeys) == 0:
+            print('No compiler options\n')
+        else:
+            print('Compiler options\n')
+            coarr = []
+            for k in okeys:
+                o = self.coredata.compiler_options[k]
+                coarr.append([k, o.description, o.value])
+            self.print_aligned(coarr)
+        print('')
         print('Directories\n')
         parr = []
         parr.append(['prefix', 'Install prefix', self.coredata.prefix])
@@ -193,7 +189,7 @@ class Conf:
         self.print_aligned(parr)
         print('')
         if len(self.coredata.user_options) == 0:
-            print('This project does not have any options')
+            print('This project does not have user options')
         else:
             print('Project options\n')
             options = self.coredata.user_options

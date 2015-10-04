@@ -17,6 +17,22 @@ import coredata, mesonlib
 import os, re
 
 forbidden_option_names = coredata.builtin_options
+forbidden_prefixes = {'c_': True,
+                      'cpp_': True,
+                      'rust_': True,
+                      'fortran_': True,
+                      'objc_': True,
+                      'objcpp_': True,
+                      'vala_': True,
+                      'csharp_': True
+                      }
+
+def is_invalid_name(name):
+    if name in forbidden_option_names:
+        return True
+    if name in forbidden_prefixes:
+        return True
+    return False
 
 class OptionException(coredata.MesonException):
     pass
@@ -120,7 +136,7 @@ class OptionInterpreter:
             raise OptionException('Positional argument must be a string.')
         if optname_regex.search(opt_name) is not None:
             raise OptionException('Option names can only contain letters, numbers or dashes.')
-        if opt_name in forbidden_option_names:
+        if is_invalid_name(opt_name):
             raise OptionException('Option name %s is reserved.' % opt_name)
         if self.subproject != '':
             opt_name = self.subproject + ':' + opt_name
