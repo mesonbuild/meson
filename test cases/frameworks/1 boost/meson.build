@@ -1,9 +1,5 @@
 project('boosttest', 'cpp')
 
-if meson.get_compiler('cpp').get_id() == 'msvc'
-  add_global_arguments('/EHsc', language : 'cpp')
-endif
-
 # We want to have multiple separate configurations of Boost
 # within one project. The need to be independent of each other.
 # Use one without a library dependency and one with it.

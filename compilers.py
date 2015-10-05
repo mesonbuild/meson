@@ -1023,6 +1023,22 @@ class VisualStudioCPPCompiler(VisualStudioCCompiler):
         if pe.returncode != 0:
             raise EnvironmentException('Executables created by C++ compiler %s are not runnable.' % self.name_string())
 
+    def get_options(self):
+        return {'cpp_eh' : mesonlib.UserComboOption('cpp_eh',
+                                                    'C++ exception handling type.',
+                                                    ['none', 'a', 's', 'sc'],
+                                                    'sc')}
+
+    def get_option_compile_args(self, options):
+        args = []
+        std = options['cpp_eh']
+        if std.value != 'none':
+            args.append('/EH' + std.value)
+        return args
+
+    def get_option_link_args(self, options):
+        return []
+
 GCC_STANDARD = 0
 GCC_OSX = 1
 GCC_MINGW = 2
@@ -1259,7 +1275,7 @@ class ClangCPPCompiler(CPPCompiler):
         return ['-include-pch', os.path.join (pch_dir, self.get_pch_name (header))]
 
     def get_options(self):
-        return {'c_std' : mesonlib.UserComboOption('cpp_std', 'C++ language standard to use',
+        return {'cpp_std' : mesonlib.UserComboOption('cpp_std', 'C++ language standard to use',
                                                    ['none', 'c++03', 'c++11', 'c++1y'],
                                                    'c++11')}
 
