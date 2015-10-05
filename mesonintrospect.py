@@ -22,7 +22,7 @@ Currently only works for the Ninja backend. Others use generated
 project files and don't need this info."""
 
 import json, pickle
-import coredata, build, optinterpreter
+import coredata, build, mesonlib
 import argparse
 import sys, os
 
@@ -107,7 +107,11 @@ def list_buildoptions(coredata, builddata):
              'description' : 'Unity build',
              'name' : 'unity'}
     optlist = [buildtype, strip, coverage, pch, unity]
-    options = coredata.user_options
+    add_keys(optlist, coredata.user_options)
+    add_keys(optlist, coredata.compiler_options)
+    print(json.dumps(optlist))
+
+def add_keys(optlist, options):
     keys = list(options.keys())
     keys.sort()
     for key in keys:
@@ -115,11 +119,11 @@ def list_buildoptions(coredata, builddata):
         optdict = {}
         optdict['name'] = key
         optdict['value'] = opt.value
-        if isinstance(opt, optinterpreter.UserStringOption):
+        if isinstance(opt, mesonlib.UserStringOption):
             typestr = 'string'
-        elif isinstance(opt, optinterpreter.UserBooleanOption):
+        elif isinstance(opt, mesonlib.UserBooleanOption):
             typestr = 'boolean'
-        elif isinstance(opt, optinterpreter.UserComboOption):
+        elif isinstance(opt, mesonlib.UserComboOption):
             optdict['choices'] = opt.choices
             typestr = 'combo'
         else:
@@ -127,7 +131,6 @@ def list_buildoptions(coredata, builddata):
         optdict['type'] = typestr
         optdict['description'] = opt.description
         optlist.append(optdict)
-    print(json.dumps(optlist))
 
 def list_buildsystem_files(coredata, builddata):
     src_dir = builddata.environment.get_source_dir()
