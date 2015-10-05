@@ -910,6 +910,8 @@ class Interpreter():
                       'pkgconfig_gen' : self.func_pkgconfig_gen,
                       'vcs_tag' : self.func_vcs_tag,
                       'set_variable' : self.func_set_variable,
+                      'is_variable' : self.func_is_variable,
+                      'get_variable' : self.func_get_variable,
                       'import' : self.func_import,
                       'files' : self.func_files,
                       'declare_dependency': self.func_declare_dependency,
@@ -1007,6 +1009,29 @@ class Interpreter():
         varname = args[0]
         value = self.to_native(args[1])
         self.set_variable(varname, value)
+
+    @noKwargs
+    def func_get_variable(self, node, args, kwargs):
+        if len(args)<1 or len(args)>2:
+            raise InvalidCode('Get_variable takes one or two arguments.')
+        varname = args[0]
+        if not isinstance(varname, str):
+            raise InterpreterException('First argument must be a string.')
+        try:
+            return self.variables[varname]
+        except KeyError:
+            pass
+        if len(args) == 2:
+            return args[1]
+        raise InterpreterException('Tried to get unknown variable "%s".' % varname)
+
+    @stringArgs
+    @noKwargs
+    def func_is_variable(self, node, args, kwargs):
+        if len(args) != 1:
+            raise InvalidCode('Is_variable takes two arguments.')
+        varname = args[0]
+        return varname in self.variables
 
     @stringArgs
     @noKwargs
