@@ -1209,15 +1209,20 @@ class Interpreter():
         if len(args) != 1:
             raise InterpreterException('Argument required for get_option.')
         optname = args[0]
-        if optname not in coredata.builtin_options and self.is_subproject():
-            optname = self.subproject + ':' + optname
         try:
             return self.environment.get_coredata().get_builtin_option(optname)
         except RuntimeError:
             pass
-        if optname not in self.environment.coredata.user_options:
+        try:
+            return self.environment.coredata.compiler_options[optname].value
+        except KeyError:
+            pass
+        if optname not in coredata.builtin_options and self.is_subproject():
+            optname = self.subproject + ':' + optname
+        try:
+            return self.environment.coredata.user_options[optname].value
+        except KeyError:
             raise InterpreterException('Tried to access unknown option "%s".' % optname)
-        return self.environment.coredata.user_options[optname].value
 
     @noKwargs
     def func_configuration_data(self, node, args, kwargs):
