@@ -818,7 +818,7 @@ class NinjaBackend(backends.Backend):
         for i in target.get_sources():
             if not rustc.can_compile(i):
                 raise InvalidArguments('Rust target %s contains a non-rust source file.' % target.get_basename())
-            relsrc.append(os.path.join(self.build_to_src, i))
+            relsrc.append(i.rel_to_builddir(self.build_to_src))
         target_name = os.path.join(target.subdir, target.get_filename())
         args = ['--crate-type']
         if isinstance(target, build.Executable):
@@ -833,7 +833,7 @@ class NinjaBackend(backends.Backend):
         args += rustc.get_buildtype_args(self.environment.coredata.buildtype)
         depfile = target_name + '.d'
         args += ['--out-dir', target.subdir]
-        args += ['--dep-info', depfile]
+        args += ['--emit', 'dep-info', '--emit', 'link']
         orderdeps = [os.path.join(t.subdir, t.get_filename()) for t in target.link_targets]
         linkdirs = {}
         for d in target.link_targets:
