@@ -1,1 +1,1 @@
-bin/prog
+usr/bin/prog

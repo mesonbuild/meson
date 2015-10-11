@@ -824,14 +824,14 @@ class NinjaBackend(backends.Backend):
         if isinstance(target, build.Executable):
             cratetype = 'bin'
         elif isinstance(target, build.SharedLibrary):
-            cratetype = 'dylib'
+            cratetype = 'rlib'
         elif isinstance(target, build.StaticLibrary):
-            cratetype = 'lib'
+            cratetype = 'rlib'
         else:
             raise InvalidArguments('Unknown target type for rustc.')
         args.append(cratetype)
         args += rustc.get_buildtype_args(self.environment.coredata.buildtype)
-        depfile = target_name + '.d'
+        depfile = target.name + '.d'
         args += ['--out-dir', target.subdir]
         args += ['--emit', 'dep-info', '--emit', 'link']
         orderdeps = [os.path.join(t.subdir, t.get_filename()) for t in target.link_targets]
@@ -976,12 +976,9 @@ class NinjaBackend(backends.Backend):
     def generate_rust_compile_rules(self, compiler, outfile):
         rule = 'rule %s_COMPILER\n' % compiler.get_language()
         invoc = ' '.join([ninja_quote(i) for i in compiler.get_exelist()])
-        command = ' command = %s %s $out $cratetype %s $ARGS $in\n' % \
-            (ninja_quote(sys.executable),
-             ninja_quote(os.path.join(os.path.split(__file__)[0], "rustrunner.py")),
-                         invoc)
+        command = ' command = %s $ARGS $in\n' % invoc
         description = ' description = Compiling Rust source $in.\n'
-        depfile = ' depfile = $out.d\n'
+        depfile = ' depfile = $targetdep\n'
 
         depstyle = ' deps = gcc\n'
         outfile.write(rule)
@@ -1375,7 +1372,7 @@ rule FORTRAN_DEP_HACK
     def get_fortran_orderdeps(self, target, compiler):
         if compiler.language != 'fortran':
             return []
-        return [os.path.join(self.get_target_dir(lt), lt.filename) for lt in target.link_targets]
+        return [os.path.join(self.get_target_dir(lt), lt.get_filename()) for lt in target.link_targets]
 
     def generate_msvc_pch_command(self, target, compiler, pch):
         if len(pch) != 2:

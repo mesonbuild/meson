@@ -620,6 +620,8 @@ class StaticLibrary(BuildTarget):
             raise InvalidArguments('Static libraries not supported for C#.')
         self.prefix = environment.get_static_lib_prefix()
         self.suffix = environment.get_static_lib_suffix()
+        if len(self.sources) > 0 and self.sources[0].endswith('.rs'):
+            self.suffix = 'rlib'
         self.filename = self.prefix + self.name + '.' + self.suffix
 
     def get_import_filename(self):
@@ -642,6 +644,8 @@ class SharedLibrary(BuildTarget):
         else:
             self.prefix = environment.get_shared_lib_prefix()
             self.suffix = environment.get_shared_lib_suffix()
+        if len(self.sources) > 0 and self.sources[0].endswith('.rs'):
+            self.suffix = 'rlib'
         self.importsuffix = environment.get_import_lib_suffix()
         self.filename = self.prefix + self.name + '.' + self.suffix
 

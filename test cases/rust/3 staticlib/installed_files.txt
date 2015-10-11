@@ -1,2 +1,2 @@
-bin/prog
-lib/libstuff-e4d2ee75-1.0.rlib
+usr/bin/prog
+usr/lib/libstuff.rlib
