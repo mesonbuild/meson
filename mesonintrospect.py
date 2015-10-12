@@ -126,6 +126,8 @@ def add_keys(optlist, options):
         elif isinstance(opt, mesonlib.UserComboOption):
             optdict['choices'] = opt.choices
             typestr = 'combo'
+        elif isinstance(opt, mesonlib.UserStringArrayOption):
+            typestr = 'stringarray'
         else:
             raise RuntimeError("Unknown option type")
         optdict['type'] = typestr

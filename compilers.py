@@ -91,6 +91,13 @@ mono_buildtype_args = {'plain' : [],
                        'debugoptimized': ['-debug', '-optimize+'],
                        'release' : ['-optimize+']}
 
+gnu_winlibs = ['-lkernel32', '-luser32', '-lgdi32', '-lwinspool', '-lshell32',
+               '-lole32', '-loleaut32', '-luuid', '-lcomdlg32', '-ladvapi32']
+
+msvc_winlibs = ['kernel32.lib', 'user32.lib', 'gdi32.lib',
+                'winspool.lib', 'shell32.lib', 'ole32.lib', 'oleaut32.lib',
+                'uuid.lib', 'comdlg32.lib', 'advapi32.lib']
+
 def build_unix_rpath_args(build_dir, rpath_paths, install_rpath):
         if len(rpath_paths) == 0 and len(install_rpath) == 0:
             return []
@@ -901,6 +908,7 @@ class VisualStudioCCompiler(CCompiler):
     vs2010_always_args = ['/nologo', '/showIncludes']
     vs2013_always_args = ['/nologo', '/showIncludes', '/FS']
 
+
     def __init__(self, exelist, version, is_cross, exe_wrap):
         CCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
         self.id = 'msvc'
@@ -993,6 +1001,15 @@ class VisualStudioCCompiler(CCompiler):
     def thread_link_flags(self):
         return []
 
+    def get_options(self):
+        return {'c_winlibs' : mesonlib.UserStringArrayOption('c_winlibs',
+                                                             'Windows libs to link against.',
+                                                             msvc_winlibs)
+                }
+
+    def get_option_link_args(self, options):
+        return options['c_winlibs'].value
+
 class VisualStudioCPPCompiler(VisualStudioCCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrap):
         VisualStudioCCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
@@ -1027,7 +1044,11 @@ class VisualStudioCPPCompiler(VisualStudioCCompiler):
         return {'cpp_eh' : mesonlib.UserComboOption('cpp_eh',
                                                     'C++ exception handling type.',
                                                     ['none', 'a', 's', 'sc'],
-                                                    'sc')}
+                                                    'sc'),
+                'cpp_winlibs' : mesonlib.UserStringArrayOption('cpp_winlibs',
+                                                               'Windows libs to link against.',
+                                                               msvc_winlibs)
+                }
 
     def get_option_compile_args(self, options):
         args = []
@@ -1037,7 +1058,7 @@ class VisualStudioCPPCompiler(VisualStudioCCompiler):
         return args
 
     def get_option_link_args(self, options):
-        return []
+        return options['cpp_winlibs'].value
 
 GCC_STANDARD = 0
 GCC_OSX = 1
@@ -1055,6 +1076,7 @@ def get_gcc_soname_args(gcc_type, shlib_name, path, soversion):
         return ['-install_name', os.path.join(path, 'lib' + shlib_name + '.dylib')]
     else:
         raise RuntimeError('Not implemented yet.')
+
 
 class GnuCCompiler(CCompiler):
     def __init__(self, exelist, version, gcc_type, is_cross, exe_wrapper=None):
@@ -1092,9 +1114,15 @@ class GnuCCompiler(CCompiler):
         return super().can_compile(filename) or filename.split('.')[-1].lower() == 's' # Gcc can do asm, too.
 
     def get_options(self):
-        return {'c_std' : mesonlib.UserComboOption('c_std', 'C language standard to use',
+        opts = {'c_std' : mesonlib.UserComboOption('c_std', 'C language standard to use',
                                                    ['none', 'c89', 'c99', 'c11', 'gnu89', 'gnu99', 'gnu11'],
                                                    'c11')}
+        if self.gcc_type == GCC_MINGW:
+            opts.update({
+                'c_winlibs': mesonlib.UserStringArrayOption('c_winlibs', 'Standard Win libraries to link against',
+                                                            gnu_winlibs),
+                })
+        return opts
 
     def get_option_compile_args(self, options):
         args = []
@@ -1104,6 +1132,8 @@ class GnuCCompiler(CCompiler):
         return args
 
     def get_option_link_args(self, options):
+        if self.gcc_type == GCC_MINGW:
+            return options['c_winlibs'].value
         return []
 
 class GnuObjCCompiler(ObjCCompiler):
@@ -1207,6 +1237,8 @@ class ClangCCompiler(CCompiler):
         return args
 
     def get_option_link_args(self, options):
+        if self.gcc_type == GCC_MINGW:
+            return options['c_winlibs'].value
         return []
 
 class GnuCPPCompiler(CPPCompiler):
@@ -1237,9 +1269,15 @@ class GnuCPPCompiler(CPPCompiler):
         return get_gcc_soname_args(self.gcc_type, shlib_name, path, soversion)
 
     def get_options(self):
-        return {'cpp_std' : mesonlib.UserComboOption('cpp_std', 'C language standard to use',
-                                                   ['none', 'c++03', 'c++11', 'c++1y'],
-                                                   'c++11')}
+        opts = {'cpp_std' : mesonlib.UserComboOption('cpp_std', 'C language standard to use',
+                                                     ['none', 'c++03', 'c++11', 'c++1y'],
+                                                     'c++11')}
+        if self.gcc_type == GCC_MINGW:
+            opts.update({
+                'cpp_winlibs': mesonlib.UserStringArrayOption('c_winlibs', 'Standard Win libraries to link against',
+                                                              gnu_winlibs),
+                })
+        return opts
 
     def get_option_compile_args(self, options):
         args = []
@@ -1249,6 +1287,8 @@ class GnuCPPCompiler(CPPCompiler):
         return args
 
     def get_option_link_args(self, options):
+        if self.gcc_type == GCC_MINGW:
+            return options['cpp_winlibs'].value
         return []
 
 class ClangCPPCompiler(CPPCompiler):

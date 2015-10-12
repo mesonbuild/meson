@@ -314,3 +314,20 @@ class UserComboOption(UserOption):
             optionsstring = ', '.join(['"%s"' % (item,) for item in self.choices])
             raise MesonException('Value "%s" for combo option "%s" is not one of the choices. Possible choices are: %s.' % (newvalue, self.name, optionsstring))
         self.value = newvalue
+
+class UserStringArrayOption(UserOption):
+    def __init__(self, name, description, value):
+        super().__init__(name, description)
+        self.set_value(value)
+
+    def set_value(self, newvalue):
+        if isinstance(newvalue, str):
+            if not newvalue.startswith('['):
+                raise MesonException('Valuestring does not define an array: ' + newvalue)
+            newvalue = eval(newvalue, {}, {}) # Yes, it is unsafe.
+        if not isinstance(newvalue, list):
+            raise MesonException('String array value is not an array.')
+        for i in newvalue:
+            if not isinstance(i, str):
+                raise MesonException('String array element not a string.')
+        self.value = newvalue
