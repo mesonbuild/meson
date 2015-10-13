@@ -1,12 +1,12 @@
 project('myapp', 'cpp')
 
-sdl = dependency('sdl2', required : host.name() != 'windows')
+sdl = dependency('sdl2', required : host_machine.system() != 'windows')
 
 if meson.get_compiler('cpp').get_id() != 'msvc'
   add_global_arguments('-std=c++11', language : 'cpp')
 endif
 
-if host.name() == 'darwin'
+if host_machine.system() == 'darwin'
   install_data('myapp.sh',
   install_dir : 'Contents/MacOS')
 
@@ -19,14 +19,14 @@ if host.name() == 'darwin'
   meson.set_install_script('osx_bundler.sh')
 endif
 
-if host.name() == 'linux'
+if host_machine.system() == 'linux'
   install_data('myapp.sh', install_dir : '.')
   meson.set_install_script('linux_bundler.sh')
 endif
 
 extra_link_args = []
 
-if host.name() == 'windows'
+if host_machine.system() == 'windows'
   str = '-I@0@/@1@'.format(meson.current_build_dir(), 'SDL2-2.0.3/include')
   add_global_arguments(str, language : 'cpp')
   extra_link_args = ['/SUBSYSTEM:CONSOLE', 'SDL2main.lib', 'SDL2.lib']
