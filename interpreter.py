@@ -686,12 +686,19 @@ class CompilerHolder(InterpreterObject):
         if len(args) != 1:
             raise InterpreterException('has_header method takes exactly one argument.')
         check_stringlist(args)
+        conf = kwargs.get('configuration', None)
+        if conf is not None and not isinstance(conf, ConfigurationDataHolder):
+            raise InterpreterException('Second argument must be configuration_data.')
         string = args[0]
         haz = self.compiler.has_header(string)
         if haz:
             h = mlog.green('YES')
         else:
             h = mlog.red('NO')
+        if conf:
+            havehdr = 'HAVE_' + str(string).upper().replace('\\', '_').replace('/', '_').replace('.', '_')
+            define = kwargs.get('define', havehdr)
+            conf.held_object.values[define] = 1 if haz else 0
         mlog.log('Has header "%s":' % string, h)
         return haz
 
