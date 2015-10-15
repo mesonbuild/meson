@@ -1269,6 +1269,11 @@ class Interpreter():
         if not self.is_subproject() and 'subproject_dir' in kwargs:
             self.subproject_dir = kwargs['subproject_dir']
 
+        if 'meson_version' in kwargs:
+            cv = coredata.version
+            pv = kwargs['meson_version']
+            if not mesonlib.version_compare(cv, pv):
+                raise InterpreterException('Meson version is %s but project requires %s.' % (cv, pv))
         self.build.projects[self.subproject] = args[0]
         mlog.log('Project name: ', mlog.bold(args[0]), sep='')
         self.add_languages(node, args[1:])
