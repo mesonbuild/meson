@@ -21,6 +21,7 @@ has_function_hfkerhisadf = false
 
 [host_machine]
 system = 'ios'
+cpu_family = 'arm'
 cpu = 'armv7'
 endian = 'little'
 

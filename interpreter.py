@@ -308,6 +308,7 @@ class BuildMachine(InterpreterObject):
     def __init__(self):
         InterpreterObject.__init__(self)
         self.methods.update({'system' : self.system_method,
+                             'cpu_family' : self.cpu_family_method,
                              'cpu' : self.cpu_method,
                              'endian' : self.endian_method,
                             })
@@ -316,17 +317,17 @@ class BuildMachine(InterpreterObject):
     # It returns different values for the same cpu.
     # For x86 it might return 'x86', 'i686' or somesuch.
     # Do some canonicalization.
-    def cpu_method(self, args, kwargs):
+    def cpu_family_method(self, args, kwargs):
         trial = platform.machine().lower()
         if trial.startswith('i') and trial.endswith('86'):
             return 'x86'
-        # This might be wrong. Maybe we should return the more
-        # specific string such as 'armv7l'. Need to get user
-        # feedback first.
         if trial.startswith('arm'):
             return 'arm'
         # Add fixes here as bugs are reported.
         return trial
+
+    def cpu_method(self, args, kwargs):
+        return platform.machine().lower()
 
     def system_method(self, args, kwargs):
         return platform.system().lower()
@@ -342,6 +343,7 @@ class CrossMachineInfo(InterpreterObject):
         self.info = cross_info
         self.methods.update({'system' : self.system_method,
                              'cpu' : self.cpu_method,
+                             'cpu_family' : self.cpu_family_method,
                              'endian' : self.endian_method,
                             })
 
@@ -350,6 +352,9 @@ class CrossMachineInfo(InterpreterObject):
 
     def cpu_method(self, args, kwargs):
         return self.info['cpu']
+
+    def cpu_family_method(self, args, kwargs):
+        return self.info['cpu_family']
 
     def endian_method(self, args, kwargs):
         return self.info['endian']

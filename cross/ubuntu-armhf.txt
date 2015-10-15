@@ -15,5 +15,6 @@ has_function_hfkerhisadf = false
 
 [host_machine]
 system = 'linux'
-cpu = 'arm'
+cpu_family = 'arm'
+cpu = 'armv7' # Not sure if correct.
 endian = 'little'

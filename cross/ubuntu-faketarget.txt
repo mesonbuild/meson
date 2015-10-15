@@ -8,5 +8,6 @@
 
 [target_machine]
 system = 'linux'
+cpu_family = 'mips'
 cpu = 'mips'
 endian = 'little'
