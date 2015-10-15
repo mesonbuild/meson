@@ -1,6 +1,6 @@
 project('subproj user', 'c', version : '2.3.4')
 
-sub = subproject('sublib')
+sub = subproject('sublib', version : '1.0.0')
 
 if meson.project_version() != '2.3.4'
   error('Incorrect master project version string:' + meson.project_version())

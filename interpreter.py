@@ -1196,7 +1196,6 @@ class Interpreter():
         self.build.pkgconfig_gens.append(p)
 
     @stringArgs
-    @noKwargs
     def func_subproject(self, nodes, args, kwargs):
         if len(args) != 1:
             raise InterpreterException('Subproject takes exactly one argument')
@@ -1225,6 +1224,11 @@ class Interpreter():
         subi.subproject_stack = self.subproject_stack + [dirname]
         current_active = self.active_projectname
         subi.run()
+        if 'version' in kwargs:
+            pv = subi.project_version
+            wanted = kwargs['version']
+            if not mesonlib.version_compare(pv, wanted):
+                raise InterpreterException('Subproject %s version is %s but %s required.' % (dirname, pv, wanted))
         self.active_projectname = current_active
         mlog.log('\nSubproject', mlog.bold(dirname), 'finished.')
         self.build.subprojects[dirname] = True
@@ -1268,7 +1272,8 @@ class Interpreter():
         if not self.is_subproject():
             self.build.project_name = args[0]
         self.active_projectname = args[0]
-        self.build.dep_manifest[args[0]] = kwargs.get('version', 'undefined')
+        self.project_version = kwargs.get('version', 'undefined')
+        self.build.dep_manifest[args[0]] = self.project_version
         if self.subproject in self.build.projects:
             raise InvalidCode('Second call to project().')
         if not self.is_subproject() and 'subproject_dir' in kwargs:
