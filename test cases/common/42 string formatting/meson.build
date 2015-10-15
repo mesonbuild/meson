@@ -20,3 +20,23 @@ subs2 = '42'
 if templ2.format(subs2) != '42'
   error('String formatting with variables is broken.')
 endif
+
+long = 'abcde'
+prefix = 'abc'
+suffix = 'cde'
+
+if not long.startswith(prefix)
+  error('Prefix.')
+endif
+
+if long.startswith(suffix)
+  error('Not prefix.')
+endif
+
+if not long.endswith(suffix)
+  error('Suffix.')
+endif
+
+if long.endswith(prefix)
+  error('Not suffix.')
+endif

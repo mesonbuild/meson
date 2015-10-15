@@ -1832,12 +1832,12 @@ class Interpreter():
 
     def string_method_call(self, obj, method_name, args):
         obj = self.to_native(obj)
+        (posargs, _) = self.reduce_arguments(args)
         if method_name == 'strip':
             return obj.strip()
         elif method_name == 'format':
             return self.format_string(obj, args)
         elif method_name == 'split':
-            (posargs, _) = self.reduce_arguments(args)
             if len(posargs) > 1:
                 raise InterpreterException('Split()  must have at most one argument.')
             elif len(posargs) == 1:
@@ -1847,6 +1847,13 @@ class Interpreter():
                 return obj.split(s)
             else:
                 return obj.split()
+        elif method_name == 'startswith' or method_name == 'endswith':
+            s = posargs[0]
+            if not isinstance(s, str):
+                raise InterpreterException('Argument must be a string.')
+            if method_name == 'startswith':
+                return obj.startswith(s)
+            return obj.endswith(s)
         raise InterpreterException('Unknown method "%s" for a string.' % method_name)
 
     def to_native(self, arg):
