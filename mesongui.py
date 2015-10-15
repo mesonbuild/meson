@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright 2013 The Meson development team
+# Copyright 2013-2015 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@
 # limitations under the License.
 
 import sys, os, pickle, time, shutil
-import build, coredata, environment, optinterpreter
+import build, coredata, environment, mesonlib
 from PyQt5 import uic
 from PyQt5.QtWidgets import QApplication, QMainWindow, QHeaderView
 from PyQt5.QtWidgets import QComboBox, QCheckBox
@@ -272,14 +272,14 @@ class OptionForm:
         self.opt_widgets = []
         for key in keys:
             opt = options[key]
-            if isinstance(opt, optinterpreter.UserStringOption):
+            if isinstance(opt, mesonlib.UserStringOption):
                 w = PyQt5.QtWidgets.QLineEdit(opt.value)
                 w.textChanged.connect(self.user_option_changed)
-            elif isinstance(opt, optinterpreter.UserBooleanOption):
+            elif isinstance(opt, mesonlib.UserBooleanOption):
                 w = QCheckBox('')
                 w.setChecked(opt.value)
                 w.stateChanged.connect(self.user_option_changed)
-            elif isinstance(opt, optinterpreter.UserComboOption):
+            elif isinstance(opt, mesonlib.UserComboOption):
                 w = QComboBox()
                 for i in opt.choices:
                     w.addItem(i)

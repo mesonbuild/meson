@@ -255,3 +255,79 @@ def replace_if_different(dst, dst_tmp):
         pass
     os.replace(dst_tmp, dst)
 
+class UserOption:
+    def __init__(self, name, description):
+        super().__init__()
+        self.name = name
+        self.description = description
+
+    def parse_string(self, valuestring):
+        return valuestring
+
+class UserStringOption(UserOption):
+    def __init__(self, name, description, value):
+        super().__init__(name, description)
+        self.set_value(value)
+
+    def set_value(self, newvalue):
+        if not isinstance(newvalue, str):
+            raise MesonException('Value "%s" for string option "%s" is not a string.' % (str(newvalue), self.name))
+        self.value = newvalue
+
+class UserBooleanOption(UserOption):
+    def __init__(self, name, description, value):
+        super().__init__(name, description)
+        self.set_value(value)
+
+    def tobool(self, thing):
+        if isinstance(thing, bool):
+            return thing
+        if thing.lower() == 'true':
+            return True
+        if thing.lower() == 'false':
+            return False
+        raise MesonException('Value %s is not boolean (true or false).' % thing)
+
+    def set_value(self, newvalue):
+        self.value = self.tobool(newvalue)
+
+    def parse_string(self, valuestring):
+        if valuestring == 'false':
+            return False
+        if valuestring == 'true':
+            return True
+        raise MesonException('Value "%s" for boolean option "%s" is not a boolean.' % (valuestring, self.name))
+
+class UserComboOption(UserOption):
+    def __init__(self, name, description, choices, value):
+        super().__init__(name, description)
+        self.choices = choices
+        if not isinstance(self.choices, list):
+            raise MesonException('Combo choices must be an array.')
+        for i in self.choices:
+            if not isinstance(i, str):
+                raise MesonException('Combo choice elements must be strings.')
+        self.set_value(value)
+
+    def set_value(self, newvalue):
+        if newvalue not in self.choices:
+            optionsstring = ', '.join(['"%s"' % (item,) for item in self.choices])
+            raise MesonException('Value "%s" for combo option "%s" is not one of the choices. Possible choices are: %s.' % (newvalue, self.name, optionsstring))
+        self.value = newvalue
+
+class UserStringArrayOption(UserOption):
+    def __init__(self, name, description, value):
+        super().__init__(name, description)
+        self.set_value(value)
+
+    def set_value(self, newvalue):
+        if isinstance(newvalue, str):
+            if not newvalue.startswith('['):
+                raise MesonException('Valuestring does not define an array: ' + newvalue)
+            newvalue = eval(newvalue, {}, {}) # Yes, it is unsafe.
+        if not isinstance(newvalue, list):
+            raise MesonException('String array value is not an array.')
+        for i in newvalue:
+            if not isinstance(i, str):
+                raise MesonException('String array element not a string.')
+        self.value = newvalue

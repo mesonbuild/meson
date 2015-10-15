@@ -1239,15 +1239,20 @@ class Interpreter():
         if len(args) != 1:
             raise InterpreterException('Argument required for get_option.')
         optname = args[0]
-        if optname not in coredata.builtin_options and self.is_subproject():
-            optname = self.subproject + ':' + optname
         try:
             return self.environment.get_coredata().get_builtin_option(optname)
         except RuntimeError:
             pass
-        if optname not in self.environment.coredata.user_options:
+        try:
+            return self.environment.coredata.compiler_options[optname].value
+        except KeyError:
+            pass
+        if optname not in coredata.builtin_options and self.is_subproject():
+            optname = self.subproject + ':' + optname
+        try:
+            return self.environment.coredata.user_options[optname].value
+        except KeyError:
             raise InterpreterException('Tried to access unknown option "%s".' % optname)
-        return self.environment.coredata.user_options[optname].value
 
     @noKwargs
     def func_configuration_data(self, node, args, kwargs):
@@ -1365,6 +1370,13 @@ class Interpreter():
                 if cross_comp is not None:
                     cross_comp.sanity_check(self.environment.get_scratch_dir())
                     self.coredata.cross_compilers[lang] = cross_comp
+                new_options = comp.get_options()
+                optprefix = lang + '_'
+                for i in new_options:
+                    if not i.startswith(optprefix):
+                        raise InterpreterException('Internal error, %s has incorrect prefix.' % i)
+                new_options.update(self.coredata.compiler_options)
+                self.coredata.compiler_options = new_options
             mlog.log('Native %s compiler: ' % lang, mlog.bold(' '.join(comp.get_exelist())), ' (%s %s)' % (comp.id, comp.version), sep='')
             if not comp.get_language() in self.coredata.external_args:
                 (ext_compile_args, ext_link_args) = environment.get_args_from_envvars(comp.get_language())

@@ -3,10 +3,6 @@ project('qt5 build test', 'cpp')
 qt5 = import('qt5')
 qt5dep = dependency('qt5', modules : ['Core', 'Gui', 'Widgets'])
 
-if meson.get_compiler('cpp').get_id() != 'msvc'
-  add_global_arguments('-std=c++11', language : 'cpp')
-endif
-
 prep = qt5.preprocess(
 moc_headers : ['mainWindow.h'], # These need to be fed through the moc tool before use. 
 ui_files : 'mainWindow.ui',     # XML files that need to be compiled with the uic tol.
