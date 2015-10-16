@@ -151,8 +151,9 @@ class Compiler():
         return []
 
 class CCompiler(Compiler):
-    def __init__(self, exelist, version, is_cross, exe_wrapper=None):
+    def __init__(self, exelist, version, is_cross, exe_wrapper=None, linkers=None):
         super().__init__(exelist, version)
+        self.linkerlist = linkers
         self.language = 'c'
         self.default_suffix = 'c'
         self.id = 'unknown'
@@ -201,7 +202,10 @@ class CCompiler(Compiler):
         return self.exelist[:]
 
     def get_linker_exelist(self):
-        return self.exelist[:]
+        if (self.linkerlist is None) or (len(self.linkerlist) is 0):
+            return self.exelist[:]
+        else:
+            return self.linkerlist[:]
 
     def get_compile_only_args(self):
         return ['-c']
@@ -263,13 +267,20 @@ class CCompiler(Compiler):
         ofile = open(source_name, 'w')
         ofile.write('int main(int argc, char **argv) { int class=0; return class; }\n')
         ofile.close()
-        pc = subprocess.Popen(self.exelist + [source_name, '-o', binary_name])
+        cmdlist = self.exelist + [source_name]
+        if self.is_cross and (self.exe_wrapper is None):
+            # Compile only as there is no execution wrapper
+            binary_name += '.o'
+            cmdlist += ['-c']
+        cmdlist += ['-o', binary_name]
+        mlog.debug('Compile test command: ' + ' '.join(cmdlist))
+        pc = subprocess.Popen(cmdlist)
         pc.wait()
         if pc.returncode != 0:
             raise EnvironmentException('Compiler %s can not compile programs.' % self.name_string())
         if self.is_cross:
             if self.exe_wrapper is None:
-                # Can't check if the binaries run so we have to assume they do
+                mlog.debug('Cross compile and no exe_wrapper, do not run and assume OK')
                 return
             cmdlist = self.exe_wrapper + [binary_name]
         else:
@@ -1079,8 +1090,8 @@ def get_gcc_soname_args(gcc_type, shlib_name, path, soversion):
 
 
 class GnuCCompiler(CCompiler):
-    def __init__(self, exelist, version, gcc_type, is_cross, exe_wrapper=None):
-        CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
+    def __init__(self, exelist, version, gcc_type, is_cross, exe_wrapper=None, linkers=None):
+        CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, linkers)
         self.id = 'gcc'
         self.gcc_type = gcc_type
         self.warn_args = {'1': ['-Wall', '-Winvalid-pch'],
