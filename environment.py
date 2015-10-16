@@ -151,8 +151,10 @@ class Environment():
 
     def detect_c_compiler(self, want_cross):
         evar = 'CC'
+        linkerList = None
         if self.is_cross_build() and want_cross:
             compilers = [self.cross_info.config['binaries']['c']]
+            linkerList = [self.cross_info.config['binaries']['ld']]
             ccache = []
             is_cross = True
             exe_wrap = self.cross_info.config['binaries'].get('exe_wrapper', None)
@@ -194,7 +196,7 @@ class Environment():
                     gtype = GCC_MINGW
                 else:
                     gtype = GCC_STANDARD
-                return GnuCCompiler(ccache + [compiler], version, gtype, is_cross, exe_wrap)
+                return GnuCCompiler(ccache + [compiler], version, gtype, is_cross, exe_wrap, linkers=linkerList)
             if 'clang' in out:
                 return ClangCCompiler(ccache + [compiler], version, is_cross, exe_wrap)
             if 'Microsoft' in out:

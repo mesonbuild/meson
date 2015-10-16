@@ -611,7 +611,7 @@ class Executable(BuildTarget):
             self.filename = self.name
 
     def type_suffix(self):
-        return "@exe"
+        return "-exe"
 
 class StaticLibrary(BuildTarget):
     def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
@@ -631,7 +631,7 @@ class StaticLibrary(BuildTarget):
         return self.get_filename()
 
     def type_suffix(self):
-        return "@sta"
+        return "-sta"
 
 class SharedLibrary(BuildTarget):
     def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
@@ -702,7 +702,7 @@ class SharedLibrary(BuildTarget):
         return aliases
 
     def type_suffix(self):
-        return "@sha"
+        return "-sha"
 
 class CustomTarget:
     known_kwargs = {'input' : True,
@@ -824,7 +824,7 @@ class CustomTarget:
         return []
 
     def type_suffix(self):
-        return "@cus"
+        return "-cus"
 
 class RunTarget:
     def __init__(self, name, command, args, subdir):
@@ -858,7 +858,7 @@ class RunTarget:
         return self.name
 
     def type_suffix(self):
-        return "@run"
+        return "-run"
 
 class Jar(BuildTarget):
     def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
@@ -872,7 +872,7 @@ class Jar(BuildTarget):
         return self.main_class
 
     def type_suffix(self):
-        return "@jar"
+        return "-jar"
 
 class ConfigureFile():
 

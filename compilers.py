@@ -151,8 +151,9 @@ class Compiler():
         return []
 
 class CCompiler(Compiler):
-    def __init__(self, exelist, version, is_cross, exe_wrapper=None):
+    def __init__(self, exelist, version, is_cross, exe_wrapper=None, linkers=None):
         super().__init__(exelist, version)
+        self.linkerlist = linkers
         self.language = 'c'
         self.default_suffix = 'c'
         self.id = 'unknown'
@@ -201,7 +202,10 @@ class CCompiler(Compiler):
         return self.exelist[:]
 
     def get_linker_exelist(self):
-        return self.exelist[:]
+        if (self.linkerlist is None) or (len(self.linkerlist) is 0):
+            return self.exelist[:]
+        else:
+            return self.linkerlist[:]
 
     def get_compile_only_args(self):
         return ['-c']
@@ -1086,8 +1090,8 @@ def get_gcc_soname_args(gcc_type, shlib_name, path, soversion):
 
 
 class GnuCCompiler(CCompiler):
-    def __init__(self, exelist, version, gcc_type, is_cross, exe_wrapper=None):
-        CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
+    def __init__(self, exelist, version, gcc_type, is_cross, exe_wrapper=None, linkers=None):
+        CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, linkers)
         self.id = 'gcc'
         self.gcc_type = gcc_type
         self.warn_args = {'1': ['-Wall', '-Winvalid-pch'],
