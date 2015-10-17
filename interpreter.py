@@ -1526,7 +1526,7 @@ class Interpreter():
                 i = i.held_object
             except AttributeError:
                 pass
-            if not isinstance(i, (str, build.BuildTarget)):
+            if not isinstance(i, (str, build.BuildTarget, build.CustomTarget)):
                 mlog.debug('Wrong type:', str(i))
                 raise InterpreterException('Invalid argument to run_target.')
             cleaned_args.append(i)

@@ -263,7 +263,16 @@ class CCompiler(Compiler):
         ofile = open(source_name, 'w')
         ofile.write('int main(int argc, char **argv) { int class=0; return class; }\n')
         ofile.close()
-        pc = subprocess.Popen(self.exelist + [source_name, '-o', binary_name])
+        if self.is_cross and self.exe_wrapper is None:
+            # Linking cross built apps is painful. You can't really
+            # tell if you should use -nostdlib or not and for example
+            # on OSX the compiler binary is the same but you need
+            # a ton of compiler flags to differentiate between
+            # arm and x86_64. So just compile.
+            extra_flags = ['-c']
+        else:
+            extra_flags = []
+        pc = subprocess.Popen(self.exelist + extra_flags + [source_name, '-o', binary_name])
         pc.wait()
         if pc.returncode != 0:
             raise EnvironmentException('Compiler %s can not compile programs.' % self.name_string())

@@ -354,13 +354,13 @@ class NinjaBackend(backends.Backend):
         for i in target.args:
             if isinstance(i, str):
                 arg_strings.append(i)
-            elif isinstance(i, build.BuildTarget):
+            elif isinstance(i, (build.BuildTarget, build.CustomTarget)):
                 relfname = self.get_target_filename(i)
                 deps.append(relfname)
                 arg_strings.append(os.path.join(self.environment.get_build_dir(), relfname))
             else:
                 mlog.debug(str(i))
-                raise MesonException('Unreachable code.')
+                raise MesonException('Unreachable code in generate_run_target.')
         elem = NinjaBuildElement(target.name, 'CUSTOM_COMMAND', deps)
         cmd = [sys.executable, runnerscript, self.environment.get_source_dir(), self.environment.get_build_dir(), target.subdir]
         texe = target.command
