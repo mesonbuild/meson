@@ -42,7 +42,55 @@ class GnomeModule:
         kwargs['output'] = output_h
         target_h = build.CustomTarget(args[0] + '_h', state.subdir, kwargs)
         return [target_c, target_h]
-    
+
+    def generate_doc_from_gir (self, state, args, kwargs):
+        if len (args) != 1:
+            raise MesonException ('you need to pass the result of generate_gir')
+        if not 'output_dir' in kwargs:
+            raise MesonException ('you need to specify an output directory')
+
+        output_dir = kwargs.pop ('output_dir')
+        girfile = args[0][0].held_object
+        path_to_gir = os.path.join (state.environment.get_build_dir(),
+                girfile.subdir, girfile.name)
+
+        command = ['g-ir-doc-tool', path_to_gir]
+        command += ['-o', os.path.join(state.subdir, output_dir)]
+
+        if 'link_to_gtk_doc' in kwargs:
+            link_to_gtk = kwargs.pop('link_to_gtk_doc')
+            mlog.log ("link to gtk : ", link_to_gtk)
+            if link_to_gtk:
+                command += ['--link-to-gtk-doc']
+        else:
+            command += ['--link-to-gtk-doc']
+
+        if 'online_links' in kwargs:
+            use_online_links = kwargs.pop('online_links')
+            if use_online_links:
+                command += ['--online-links']
+
+        if 'language' in kwargs:
+            language = kwargs.pop('language')
+            command += ['-l%s' % language]
+
+        if 'dependencies' in kwargs:
+            deps = kwargs.pop('dependencies')
+            if not isinstance (deps, list):
+                deps = [deps]
+            for dep in deps:
+                girdir = dep.held_object.get_variable ("girdir")
+                if girdir:
+                    command += ["-I=%s" % girdir]
+
+        kwargs['depends'] = os.path.join(args[0][0])
+        kwargs['command'] = command
+        kwargs['output'] = 'index.page'
+        doc_target = GirDocTarget(os.path.join(output_dir, kwargs['output']),
+                os.path.join(state.subdir, output_dir), kwargs)
+
+        return doc_target
+
     def generate_gir(self, state, args, kwargs):
         if len(args) != 1:
             raise MesonException('Gir takes one argument')
@@ -150,6 +198,7 @@ class GnomeModule:
             scan_command += ["-L@PRIVATE_OUTDIR_ABS_%s@" % girtarget.get_id()]
             libname = girtarget.get_basename()
             scan_command += ['--library', libname]
+
         scankwargs = {'output' : girfile,
                       'input' : libsources,
                       'command' : scan_command,
@@ -260,6 +309,10 @@ def initialize():
     mlog.log('Warning, glib compiled dependencies will not work until this upstream issue is fixed:',
              mlog.bold('https://bugzilla.gnome.org/show_bug.cgi?id=745754'))
     return GnomeModule()
+
+class GirDocTarget(build.CustomTarget):
+    def __init__(self, name, subdir, kwargs):
+        super().__init__(name, subdir, kwargs)
 
 class GirTarget(build.CustomTarget):
     def __init__(self, name, subdir, kwargs):
