@@ -12,9 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import re
-import coredata
-from glob import glob
+import os, re, subprocess
+import coredata, mesonlib
 from compilers import *
 import configparser
 
@@ -68,13 +67,15 @@ class Environment():
         try:
             cdf = os.path.join(self.get_build_dir(), Environment.coredata_file)
             self.coredata = coredata.load(cdf)
+            self.first_invocation = False
         except FileNotFoundError:
             self.coredata = coredata.CoreData(options)
+            self.first_invocation = True
         if self.coredata.cross_file:
             self.cross_info = CrossBuildInfo(self.coredata.cross_file)
         else:
             self.cross_info = None
-        self.cmd_line_options = options.projectoptions
+        self.cmd_line_options = options
 
         # List of potential compilers.
         if mesonlib.is_windows():

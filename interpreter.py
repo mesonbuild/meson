@@ -843,7 +843,7 @@ class Interpreter():
         option_file = os.path.join(self.source_root, self.subdir, 'meson_options.txt')
         if os.path.exists(option_file):
             oi = optinterpreter.OptionInterpreter(self.subproject, \
-                                                  self.build.environment.cmd_line_options)
+                                                  self.build.environment.cmd_line_options.projectoptions)
             oi.process(option_file)
             self.build.environment.merge_options(oi.options)
         mesonfile = os.path.join(self.source_root, self.subdir, environment.build_filename)
@@ -925,6 +925,7 @@ class Interpreter():
                       'import' : self.func_import,
                       'files' : self.func_files,
                       'declare_dependency': self.func_declare_dependency,
+                      'assert': self.func_assert,
                      }
 
     def module_method_callback(self, invalues):
@@ -1073,6 +1074,18 @@ class Interpreter():
         sources = self.source_strings_to_files(self.flatten(sources))
         dep = dependencies.InternalDependency(incs, libs, sources)
         return InternalDependencyHolder(dep)
+
+    @noKwargs
+    def func_assert(self, node, args, kwargs):
+        if len(args) != 2:
+            raise InterpreterException('Assert takes exactly two arguments')
+        value, message = args
+        if not isinstance(value, bool):
+            raise InterpreterException('Assert value not bool.')
+        if not isinstance(message, str):
+            raise InterpreterException('Assert message not a string.')
+        if not value:
+            raise InterpreterException('Assert failed: ' + message)
 
     def set_variable(self, varname, variable):
         if variable is None:
@@ -1274,6 +1287,24 @@ class Interpreter():
             raise InterpreterException('configuration_data takes no arguments')
         return ConfigurationDataHolder()
 
+    def parse_default_options(self, default_options):
+        if not isinstance(default_options, list):
+            default_options = [default_options]
+        for option in default_options:
+            if not isinstance(option, str):
+                mlog.debug(option)
+                raise InterpreterException('Default options must be strings')
+            if '=' not in option:
+                raise InterpreterException('All default options must be of type key=value.')
+            key, value = option.split('=', 1)
+            if hasattr(self.coredata, key):
+                if not hasattr(self.environment.cmd_line_options, value):
+                    setattr(self.coredata, key, value)
+                # If this was set on the command line, do not override.
+            else:
+                self.environment.cmd_line_options.projectoptions.insert(0, option)
+
+
     @stringArgs
     def func_project(self, node, args, kwargs):
         if len(args) < 2:
@@ -1281,6 +1312,8 @@ class Interpreter():
 
         if not self.is_subproject():
             self.build.project_name = args[0]
+            if self.environment.first_invocation and 'default_options' in kwargs:
+                self.parse_default_options(kwargs['default_options'])
         self.active_projectname = args[0]
         self.project_version = kwargs.get('version', 'undefined')
         self.build.dep_manifest[args[0]] = self.project_version
@@ -1310,7 +1343,7 @@ class Interpreter():
     @noKwargs
     def func_message(self, node, args, kwargs):
         # reduce arguments again to avoid flattening posargs
-        (posargs, kwargs) = self.reduce_arguments(node.args)
+        (posargs, _) = self.reduce_arguments(node.args)
         if len(posargs) != 1:
             raise InvalidArguments('Expected 1 argument, got %d' % len(posargs))
 
@@ -1390,6 +1423,11 @@ class Interpreter():
                 for i in new_options:
                     if not i.startswith(optprefix):
                         raise InterpreterException('Internal error, %s has incorrect prefix.' % i)
+                    cmd_prefix = i + '='
+                    for cmd_arg in self.environment.cmd_line_options.projectoptions:
+                        if cmd_arg.startswith(cmd_prefix):
+                            value = cmd_arg.split('=', 1)[1]
+                            new_options[i].value = value
                 new_options.update(self.coredata.compiler_options)
                 self.coredata.compiler_options = new_options
             mlog.log('Native %s compiler: ' % lang, mlog.bold(' '.join(comp.get_exelist())), ' (%s %s)' % (comp.id, comp.version), sep='')
