@@ -26,9 +26,10 @@ parser.add_argument('--subdir', dest='subdir')
 parser.add_argument('--headerdir', dest='headerdir')
 parser.add_argument('--mainfile', dest='mainfile')
 parser.add_argument('--modulename', dest='modulename')
+parser.add_argument('--htmlargs', dest='htmlargs', default='')
 
-
-def build_gtkdoc(source_root, build_root, doc_subdir, src_subdir, main_file, module):
+def build_gtkdoc(source_root, build_root, doc_subdir, src_subdir,
+                 main_file, module, html_args):
     abs_src = os.path.join(source_root, src_subdir)
     abs_out = os.path.join(build_root, doc_subdir)
     htmldir = os.path.join(abs_out, 'html')
@@ -55,7 +56,7 @@ def build_gtkdoc(source_root, build_root, doc_subdir, src_subdir, main_file, mod
         os.mkdir(htmldir)
     except Exception:
         pass
-    mkhtml_cmd = ['gtkdoc-mkhtml', module]
+    mkhtml_cmd = ['gtkdoc-mkhtml', module] + html_args
     if len(main_file) > 0:
         # Workaround for
         # https://bugzilla.gnome.org/show_bug.cgi?id=753145
@@ -77,12 +78,17 @@ def install_gtkdoc(build_root, doc_subdir, install_prefix, datadir, module):
 
 if __name__ == '__main__':
     options = parser.parse_args(sys.argv[1:])
+    if len(options.htmlargs) >0:
+        htmlargs = options.htmlargs.split('@@')
+    else:
+        htmlargs = []
     build_gtkdoc(options.sourcedir,
                  options.builddir,
                  options.subdir,
                  options.headerdir,
                  options.mainfile,
-                 options.modulename)
+                 options.modulename,
+                 htmlargs)
 
     if 'MESON_INSTALL_PREFIX' in os.environ:
         if 'DESTDIR' in os.environ:

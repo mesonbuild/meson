@@ -233,6 +233,17 @@ class GnomeModule:
                 '--headerdir=' + header_dir,
                 '--mainfile=' + main_file,
                 '--modulename=' + modulename]
+        try:
+            html_args = kwargs['html_args']
+            if not isinstance(html_args, list):
+                html_args = [html_args]
+            for i in html_args:
+                if not isinstance(i, str):
+                    raise MesonException('html_args values must be strings.')
+        except KeyError:
+            html_args = []
+        if len(html_args) > 0:
+            args.append('--htmlargs=' + '@@'.join(html_args))
         res = [build.RunTarget(targetname, command, args, state.subdir)]
         if kwargs.get('install', True):
             res.append(build.InstallScript([command] + args))
