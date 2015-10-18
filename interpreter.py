@@ -340,6 +340,11 @@ class BuildMachine(InterpreterObject):
 class CrossMachineInfo(InterpreterObject):
     def __init__(self, cross_info):
         InterpreterObject.__init__(self)
+        minimum_cross_info = {'cpu', 'cpu_family', 'endian', 'system'}
+        if set(cross_info) < minimum_cross_info:
+            raise InterpreterException(
+                'Machine info is currently {}\n'.format(cross_info) +
+                'but is missing {}.'.format(minimum_cross_info - set(cross_info)))
         self.info = cross_info
         self.methods.update({'system' : self.system_method,
                              'cpu' : self.cpu_method,
