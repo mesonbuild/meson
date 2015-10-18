@@ -27,16 +27,18 @@ parser.add_argument('--headerdir', dest='headerdir')
 parser.add_argument('--mainfile', dest='mainfile')
 parser.add_argument('--modulename', dest='modulename')
 parser.add_argument('--htmlargs', dest='htmlargs', default='')
+parser.add_argument('--scanargs', dest='scanargs', default='')
 
 def build_gtkdoc(source_root, build_root, doc_subdir, src_subdir,
-                 main_file, module, html_args):
+                 main_file, module, html_args, scan_args):
     abs_src = os.path.join(source_root, src_subdir)
     abs_out = os.path.join(build_root, doc_subdir)
     htmldir = os.path.join(abs_out, 'html')
     subprocess.check_call(['gtkdoc-scan',
                            '--module=' + module,
                            '--source-dir=' + abs_src,
-                           '--output-dir=.'], cwd=abs_out)
+                           '--output-dir=.'] + scan_args,
+                          cwd=abs_out)
     if main_file.endswith('sgml'):
         modeflag = '--sgml-mode'
     else:
@@ -78,17 +80,22 @@ def install_gtkdoc(build_root, doc_subdir, install_prefix, datadir, module):
 
 if __name__ == '__main__':
     options = parser.parse_args(sys.argv[1:])
-    if len(options.htmlargs) >0:
+    if len(options.htmlargs) > 0:
         htmlargs = options.htmlargs.split('@@')
     else:
         htmlargs = []
+    if len(options.scanargs) > 0:
+        scanargs = options.scanargs.split('@@')
+    else:
+        scanargs = []
     build_gtkdoc(options.sourcedir,
                  options.builddir,
                  options.subdir,
                  options.headerdir,
                  options.mainfile,
                  options.modulename,
-                 htmlargs)
+                 htmlargs,
+                 scanargs)
 
     if 'MESON_INSTALL_PREFIX' in os.environ:
         if 'DESTDIR' in os.environ:

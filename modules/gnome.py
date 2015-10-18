@@ -233,21 +233,26 @@ class GnomeModule:
                 '--headerdir=' + header_dir,
                 '--mainfile=' + main_file,
                 '--modulename=' + modulename]
-        try:
-            html_args = kwargs['html_args']
-            if not isinstance(html_args, list):
-                html_args = [html_args]
-            for i in html_args:
-                if not isinstance(i, str):
-                    raise MesonException('html_args values must be strings.')
-        except KeyError:
-            html_args = []
-        if len(html_args) > 0:
-            args.append('--htmlargs=' + '@@'.join(html_args))
+        args += self.unpack_args('--htmlargs=', 'html_args', kwargs)
+        args += self.unpack_args('--scanargs=', 'scan_args', kwargs)
         res = [build.RunTarget(targetname, command, args, state.subdir)]
         if kwargs.get('install', True):
             res.append(build.InstallScript([command] + args))
         return res
+
+    def unpack_args(self, arg, kwarg_name, kwargs):
+        try:
+            new_args = kwargs[kwarg_name]
+            if not isinstance(new_args, list):
+                new_args = [new_args]
+            for i in new_args:
+                if not isinstance(i, str):
+                    raise MesonException('html_args values must be strings.')
+        except KeyError:
+            return[]
+        if len(html_args) > 0:
+            return ['--htmlargs=' + '@@'.join(new_args)]
+        return []
 
     def gdbus_codegen(self, state, args, kwargs):
         if len(args) != 2:
