@@ -16,6 +16,17 @@
 import sys, os
 import subprocess
 import shutil
+import argparse
+
+parser = argparse.ArgumentParser()
+
+parser.add_argument('--sourcedir', dest='sourcedir')
+parser.add_argument('--builddir', dest='builddir')
+parser.add_argument('--subdir', dest='subdir')
+parser.add_argument('--headerdir', dest='headerdir')
+parser.add_argument('--mainfile', dest='mainfile')
+parser.add_argument('--modulename', dest='modulename')
+
 
 def build_gtkdoc(source_root, build_root, doc_subdir, src_subdir, main_file, module):
     abs_src = os.path.join(source_root, src_subdir)
@@ -35,7 +46,7 @@ def build_gtkdoc(source_root, build_root, doc_subdir, src_subdir, main_file, mod
                 modeflag,
                 '--source-dir=' + abs_src]
     main_abs = os.path.join(source_root, doc_subdir, main_file)
-    if len(main_sgml) > 0:
+    if len(main_file) > 0:
         # Yes, this is the flag even if the file is in xml.
         mkdb_cmd.append('--main-sgml-file=' + main_abs)
     subprocess.check_call(mkdb_cmd, cwd=abs_out)
@@ -65,21 +76,21 @@ def install_gtkdoc(build_root, doc_subdir, install_prefix, datadir, module):
     shutil.copytree(source, final_destination)
 
 if __name__ == '__main__':
-#    source_root = '/home/jpakkane/workspace/meson/test cases/frameworks/10 gtk-doc'
-#    build_root = '/home/jpakkane/workspace/meson/work area'
-#    doc_subdir = 'doc'
-#    src_subdir = 'include'
-#    module = 'foobar'
-    if len(sys.argv) != 7:
-        print(sys.argv)
-        print("Bad arguments.")
-        sys.exit(1)
-    (source_root, build_root, doc_subdir, src_subdir, main_sgml, module) = sys.argv[1:]
-    build_gtkdoc(source_root, build_root, doc_subdir, src_subdir, main_sgml, module)
+    options = parser.parse_args(sys.argv[1:])
+    build_gtkdoc(options.sourcedir,
+                 options.builddir,
+                 options.subdir,
+                 options.headerdir,
+                 options.mainfile,
+                 options.modulename)
 
     if 'MESON_INSTALL_PREFIX' in os.environ:
         if 'DESTDIR' in os.environ:
             installdir = os.environ['DESTDIR'] + os.environ['MESON_INSTALL_PREFIX']
         else:
             installdir = os.environ['MESON_INSTALL_PREFIX']
-        install_gtkdoc(build_root, doc_subdir, installdir, 'share/gtk-doc/html', module)
+        install_gtkdoc(options.builddir,
+                       options.subdir,
+                       installdir,
+                       'share/gtk-doc/html',
+                       options.modulename)

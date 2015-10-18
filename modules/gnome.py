@@ -227,12 +227,12 @@ class GnomeModule:
             header_dir = os.path.join(state.environment.get_source_dir(), src_dir.get_curdir(), incdirs[0])
         else:
             header_dir = os.path.normpath(os.path.join(state.subdir, src_dir))
-        args = [state.environment.get_source_dir(),
-                state.environment.get_build_dir(),
-                state.subdir,
-                header_dir,
-                main_file,
-                modulename]
+        args = ['--sourcedir=' + state.environment.get_source_dir(),
+                '--builddir=' + state.environment.get_build_dir(),
+                '--subdir=' + state.subdir,
+                '--headerdir=' + header_dir,
+                '--mainfile=' + main_file,
+                '--modulename=' + modulename]
         res = [build.RunTarget(targetname, command, args, state.subdir)]
         if kwargs.get('install', True):
             res.append(build.InstallScript([command] + args))
