@@ -38,6 +38,12 @@ class TestRun():
         self.stde = stde
         self.cmd = cmd
 
+def decode(stream):
+    try:
+        return stream.decode('utf-8')
+    except UnicodeDecodeError:
+        return stream.decode('iso-8859-1', errors='ignore')
+
 def write_log(logfile, test_name, result_str, result):
     logfile.write(result_str + '\n\n')
     logfile.write('--- command ---\n')
@@ -108,8 +114,8 @@ def run_single_test(wrap, test):
             (stdo, stde) = p.communicate()
         endtime = time.time()
         duration = endtime - starttime
-        stdo = stdo.decode()
-        stde = stde.decode()
+        stdo = decode(stdo)
+        stde = decode(stde)
         if timed_out:
             res = 'TIMEOUT'
             tests_failed = True
