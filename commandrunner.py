@@ -50,4 +50,6 @@ if __name__ == '__main__':
     subdir = sys.argv[3]
     command = sys.argv[4]
     arguments = sys.argv[5:]
-    sys.exit(run_command(src_dir, build_dir, subdir, command, arguments).returncode)
+    pc = run_command(src_dir, build_dir, subdir, command, arguments)
+    pc.wait()
+    sys.exit(pc.returncode)
