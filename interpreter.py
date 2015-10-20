@@ -680,11 +680,12 @@ class CompilerHolder(InterpreterObject):
         if len(args) != 1:
             raise InterpreterException('compiles method takes exactly one argument.')
         check_stringlist(args)
-        string = args[0]
+        code = args[0]
         testname = kwargs.get('name', '')
         if not isinstance(testname, str):
             raise InterpreterException('Testname argument must be a string.')
-        result = self.compiler.compiles(string)
+        args = mesonlib.stringlistify(kwargs.get('args', []))
+        result = self.compiler.compiles(code, args)
         if len(testname) > 0:
             if result:
                 h = mlog.green('YES')
@@ -697,13 +698,12 @@ class CompilerHolder(InterpreterObject):
         if len(args) != 1:
             raise InterpreterException('links method takes exactly one argument.')
         check_stringlist(args)
-        string = args[0]
+        code = args[0]
         testname = kwargs.get('name', '')
         if not isinstance(testname, str):
             raise InterpreterException('Testname argument must be a string.')
-        args = kwargs.get('args', [])
-        args = mesonlib.stringlistify(args)
-        result = self.compiler.links(string, args)
+        args = mesonlib.stringlistify(kwargs.get('args', []))
+        result = self.compiler.links(code, args)
         if len(testname) > 0:
             if result:
                 h = mlog.green('YES')

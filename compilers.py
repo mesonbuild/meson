@@ -156,6 +156,9 @@ class Compiler():
     def compiles(self, code):
         raise EnvironmentException('Language %s does not support compile checks.' % self.language)
 
+    def links(self, code):
+        raise EnvironmentException('Language %s does not support link checks.' % self.language)
+
     def run(self, code):
         raise EnvironmentException('Language %s does not support run checks.' % self.language)
 
