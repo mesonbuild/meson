@@ -227,16 +227,32 @@ class GnomeModule:
             header_dir = os.path.join(state.environment.get_source_dir(), src_dir.get_curdir(), incdirs[0])
         else:
             header_dir = os.path.normpath(os.path.join(state.subdir, src_dir))
-        args = [state.environment.get_source_dir(),
-                state.environment.get_build_dir(),
-                state.subdir,
-                header_dir,
-                main_file,
-                modulename]
+        args = ['--sourcedir=' + state.environment.get_source_dir(),
+                '--builddir=' + state.environment.get_build_dir(),
+                '--subdir=' + state.subdir,
+                '--headerdir=' + header_dir,
+                '--mainfile=' + main_file,
+                '--modulename=' + modulename]
+        args += self.unpack_args('--htmlargs=', 'html_args', kwargs)
+        args += self.unpack_args('--scanargs=', 'scan_args', kwargs)
         res = [build.RunTarget(targetname, command, args, state.subdir)]
         if kwargs.get('install', True):
             res.append(build.InstallScript([command] + args))
         return res
+
+    def unpack_args(self, arg, kwarg_name, kwargs):
+        try:
+            new_args = kwargs[kwarg_name]
+            if not isinstance(new_args, list):
+                new_args = [new_args]
+            for i in new_args:
+                if not isinstance(i, str):
+                    raise MesonException('html_args values must be strings.')
+        except KeyError:
+            return[]
+        if len(html_args) > 0:
+            return ['--htmlargs=' + '@@'.join(new_args)]
+        return []
 
     def gdbus_codegen(self, state, args, kwargs):
         if len(args) != 2:
