@@ -255,6 +255,16 @@ def replace_if_different(dst, dst_tmp):
         pass
     os.replace(dst_tmp, dst)
 
+def stringlistify(item):
+    if isinstance(item, str):
+        item = [item]
+    if not isinstance(item, list):
+        raise MesonException('Item is not an array')
+    for i in item:
+        if not isinstance(i, str):
+            raise MesonException('List item not a string.')
+    return item
+
 class UserOption:
     def __init__(self, name, description):
         super().__init__()

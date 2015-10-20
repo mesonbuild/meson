@@ -132,7 +132,7 @@ class Compiler():
         elif type(exelist) == type([]):
             self.exelist = exelist
         else:
-            raise TypeError('Unknown argument to CCompiler')
+            raise TypeError('Unknown argument to Compiler')
         self.version = version
 
     def get_always_args(self):
@@ -149,6 +149,24 @@ class Compiler():
 
     def get_option_link_args(self, options):
         return []
+
+    def has_header(self, hname):
+        raise EnvironmentException('Language %s does not support header checks.' % self.language)
+
+    def compiles(self, code):
+        raise EnvironmentException('Language %s does not support compile checks.' % self.language)
+
+    def run(self, code):
+        raise EnvironmentException('Language %s does not support run checks.' % self.language)
+
+    def sizeof(self, element, prefix, env):
+        raise EnvironmentException('Language %s does not support sizeof checks.' % self.language)
+
+    def alignment(self, typename, env):
+        raise EnvironmentException('Language %s does not support alignment checks.' % self.language)
+
+    def has_function(self, funcname, prefix, env):
+        raise EnvironmentException('Language %s does not support function checks.' % self.language)
 
 class CCompiler(Compiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
@@ -295,18 +313,11 @@ int someSymbolHereJustForFun;
 '''
         return self.compiles(templ % hname)
 
-    def compiles(self, code, extra_args = []):
-        suflen = len(self.default_suffix)
-        (fd, srcname) = tempfile.mkstemp(suffix='.'+self.default_suffix)
-        os.close(fd)
-        ofile = open(srcname, 'w')
-        ofile.write(code)
-        ofile.close()
+    def compile(self, code, srcname, extra_args=[]):
         commands = self.get_exelist()
         commands += extra_args
-        commands += self.get_compile_only_args()
         commands.append(srcname)
-        mlog.debug('Running compile test.')
+        mlog.debug('Running compile:')
         mlog.debug('Command line: ', ' '.join(commands))
         mlog.debug('Code:\n', code)
         p = subprocess.Popen(commands, cwd=os.path.split(srcname)[0], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -316,6 +327,17 @@ int someSymbolHereJustForFun;
         mlog.debug('Compiler stdout:\n', stdo)
         mlog.debug('Compiler stderr:\n', stde)
         os.remove(srcname)
+        return p
+
+    def compiles(self, code, extra_args = []):
+        suflen = len(self.default_suffix)
+        (fd, srcname) = tempfile.mkstemp(suffix='.'+self.default_suffix)
+        os.close(fd)
+        ofile = open(srcname, 'w')
+        ofile.write(code)
+        ofile.close()
+        extra_args = extra_args + self.get_compile_only_args()
+        p = self.compile(code, srcname, extra_args)
         try:
             trial = srcname[:-suflen] + 'o'
             os.remove(trial)
@@ -323,6 +345,23 @@ int someSymbolHereJustForFun;
             pass
         try:
             os.remove(srcname[:-suflen] + 'obj')
+        except FileNotFoundError:
+            pass
+        return p.returncode == 0
+
+    def links(self, code, extra_args = []):
+        suflen = len(self.default_suffix)
+        (fd, srcname) = tempfile.mkstemp(suffix='.'+self.default_suffix)
+        os.close(fd)
+        (fd, dstname) = tempfile.mkstemp()
+        os.close(fd)
+        ofile = open(srcname, 'w')
+        ofile.write(code)
+        ofile.close()
+        extra_args = extra_args + self.get_output_args(dstname)
+        p = self.compile(code, srcname, extra_args)
+        try:
+            os.remove(dstname)
         except FileNotFoundError:
             pass
         return p.returncode == 0
@@ -678,24 +717,6 @@ class MonoCompiler(Compiler):
     def needs_static_linker(self):
         return False
 
-    def has_header(self, hname):
-        raise EnvironmentException('Mono does not support header checks.')
-
-    def compiles(self, code):
-        raise EnvironmentException('Mono does not support compile checks.')
-
-    def run(self, code):
-        raise EnvironmentException('Mono does not support run checks.')
-
-    def sizeof(self, element, prefix, env):
-        raise EnvironmentException('Mono does not support sizeof checks.')
-
-    def alignment(self, typename, env):
-        raise EnvironmentException('Mono does not support alignment checks.')
-
-    def has_function(self, funcname, prefix, env):
-        raise EnvironmentException('Mono does not support function checks.')
-
     def get_buildtype_args(self, buildtype):
         return mono_buildtype_args[buildtype]
 
@@ -808,24 +829,6 @@ class JavaCompiler(Compiler):
 
     def needs_static_linker(self):
         return False
-
-    def has_header(self, hname):
-        raise EnvironmentException('Java does not support header checks.')
-
-    def compiles(self, code):
-        raise EnvironmentException('Java does not support compile checks.')
-
-    def run(self, code):
-        raise EnvironmentException('Java does not support run checks.')
-
-    def sizeof(self, element, prefix, env):
-        raise EnvironmentException('Java does not support sizeof checks.')
-
-    def alignment(self, typename, env):
-        raise EnvironmentException('Java does not support alignment checks.')
-
-    def has_function(self, funcname, prefix, env):
-        raise EnvironmentException('Java does not support function checks.')
 
 class ValaCompiler(Compiler):
     def __init__(self, exelist, version):

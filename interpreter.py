@@ -564,6 +564,7 @@ class CompilerHolder(InterpreterObject):
         self.compiler = compiler
         self.environment = env
         self.methods.update({'compiles': self.compiles_method,
+                             'links': self.links_method,
                              'get_id': self.get_id_method,
                              'sizeof': self.sizeof_method,
                              'has_header': self.has_header_method,
@@ -690,6 +691,25 @@ class CompilerHolder(InterpreterObject):
             else:
                 h = mlog.red('NO')
             mlog.log('Checking if "', mlog.bold(testname), '" compiles : ', h, sep='')
+        return result
+
+    def links_method(self, args, kwargs):
+        if len(args) != 1:
+            raise InterpreterException('links method takes exactly one argument.')
+        check_stringlist(args)
+        string = args[0]
+        testname = kwargs.get('name', '')
+        if not isinstance(testname, str):
+            raise InterpreterException('Testname argument must be a string.')
+        args = kwargs.get('args', [])
+        args = mesonlib.stringlistify(args)
+        result = self.compiler.links(string, args)
+        if len(testname) > 0:
+            if result:
+                h = mlog.green('YES')
+            else:
+                h = mlog.red('NO')
+            mlog.log('Checking if "', mlog.bold(testname), '" links : ', h, sep='')
         return result
 
     def has_header_method(self, args, kwargs):
