@@ -95,11 +95,14 @@ def build_ssl_context():
     ctx.load_verify_locations(cadata=wrapdb_certificate)
     return ctx
 
-def get_result(urlstring):
+def open_wrapdburl(urlstring):
     if has_ssl:
-        u = urllib.request.urlopen(urlstring, context=build_ssl_context())
+        return urllib.request.urlopen(urlstring, context=build_ssl_context())
     else:
-        u = urllib.request.urlopen(urlstring)
+        return urllib.request.urlopen(urlstring)
+
+def get_result(urlstring):
+    u = open_wrapdburl(urlstring)
     data = u.read().decode('utf-8')
     jd = json.loads(data)
     if jd['output'] != 'ok':
@@ -141,7 +144,7 @@ def install(name):
         print('Wrap file already exists.')
         sys.exit(1)
     (branch, revision) = get_latest_version(name)
-    u = urllib.request.urlopen(API_ROOT + 'projects/%s/%s/%s/get_wrap' % (name, branch, revision))
+    u = open_wrapdburl(API_ROOT + 'projects/%s/%s/%s/get_wrap' % (name, branch, revision))
     data = u.read()
     open(wrapfile, 'wb').write(data)
     print('Installed', name, 'branch', branch, 'revision', revision)
@@ -169,7 +172,7 @@ def update(name):
     if new_branch == branch and new_revision == revision:
         print('Project', name, 'is already up to date.')
         sys.exit(0)
-    u = urllib.request.urlopen(API_ROOT + 'projects/%s/%s/%d/get_wrap' % (name, new_branch, new_revision))
+    u = open_wrapdburl(API_ROOT + 'projects/%s/%s/%d/get_wrap' % (name, new_branch, new_revision))
     data = u.read()
     shutil.rmtree(os.path.join('subprojects', subdir), ignore_errors=True)
     try:
