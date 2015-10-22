@@ -150,25 +150,25 @@ class Compiler():
     def get_option_link_args(self, options):
         return []
 
-    def has_header(self, hname):
+    def has_header(self, *args, **kwargs):
         raise EnvironmentException('Language %s does not support header checks.' % self.language)
 
-    def compiles(self, code):
+    def compiles(self, *args, **kwargs):
         raise EnvironmentException('Language %s does not support compile checks.' % self.language)
 
-    def links(self, code):
+    def links(self, *args, **kwargs):
         raise EnvironmentException('Language %s does not support link checks.' % self.language)
 
-    def run(self, code):
+    def run(self, *args, **kwargs):
         raise EnvironmentException('Language %s does not support run checks.' % self.language)
 
-    def sizeof(self, element, prefix, env):
+    def sizeof(self, *args, **kwargs):
         raise EnvironmentException('Language %s does not support sizeof checks.' % self.language)
 
-    def alignment(self, typename, env):
+    def alignment(self, *args, **kwargs):
         raise EnvironmentException('Language %s does not support alignment checks.' % self.language)
 
-    def has_function(self, funcname, prefix, env):
+    def has_function(self, *args, **kwargs):
         raise EnvironmentException('Language %s does not support function checks.' % self.language)
 
 class CCompiler(Compiler):
@@ -310,11 +310,11 @@ class CCompiler(Compiler):
         if pe.returncode != 0:
             raise EnvironmentException('Executables created by C compiler %s are not runnable.' % self.name_string())
 
-    def has_header(self, hname):
+    def has_header(self, hname, extra_args=[]):
         templ = '''#include<%s>
 int someSymbolHereJustForFun;
 '''
-        return self.compiles(templ % hname)
+        return self.compiles(templ % hname, extra_args)
 
     def compile(self, code, srcname, extra_args=[]):
         commands = self.get_exelist()
@@ -369,7 +369,7 @@ int someSymbolHereJustForFun;
             pass
         return p.returncode == 0
 
-    def run(self, code):
+    def run(self, code, extra_args=[]):
         mlog.debug('Running code:\n\n', code)
         if self.is_cross and self.exe_wrapper is None:
             raise CrossNoRunException('Can not run test applications in this cross environment.')
@@ -380,6 +380,7 @@ int someSymbolHereJustForFun;
         ofile.close()
         exename = srcname + '.exe' # Is guaranteed to be executable on every platform.
         commands = self.get_exelist()
+        commands += extra_args
         commands.append(srcname)
         commands += self.get_output_args(exename)
         p = subprocess.Popen(commands, cwd=os.path.split(srcname)[0], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -404,13 +405,12 @@ int someSymbolHereJustForFun;
         os.remove(exename)
         return RunResult(True, pe.returncode, so, se)
 
-    def cross_sizeof(self, element, prefix, env):
+    def cross_sizeof(self, element, prefix, env, extra_args=[]):
         templ = '''%s
 int temparray[%d-sizeof(%s)];
 '''
-        extra_args = []
         try:
-            extra_args = env.cross_info.config['properties'][self.language + '_args']
+            extra_args += env.cross_info.config['properties'][self.language + '_args']
         except KeyError:
             pass
         for i in range(1, 1024):
@@ -419,9 +419,9 @@ int temparray[%d-sizeof(%s)];
                 return i
         raise EnvironmentException('Cross checking sizeof overflowed.')
 
-    def sizeof(self, element, prefix, env):
+    def sizeof(self, element, prefix, env, extra_args=[]):
         if self.is_cross:
-            return self.cross_sizeof(element, prefix, env)
+            return self.cross_sizeof(element, prefix, env, extra_args)
         templ = '''#include<stdio.h>
 %s
 
@@ -430,14 +430,14 @@ int main(int argc, char **argv) {
     return 0;
 };
 '''
-        res = self.run(templ % (prefix, element))
+        res = self.run(templ % (prefix, element), extra_args)
         if not res.compiled:
             raise EnvironmentException('Could not compile sizeof test.')
         if res.returncode != 0:
             raise EnvironmentException('Could not run sizeof test binary.')
         return int(res.stdout)
 
-    def cross_alignment(self, typename, env):
+    def cross_alignment(self, typename, env, extra_args=[]):
         templ = '''#include<stddef.h>
 struct tmp {
   char c;
@@ -447,7 +447,7 @@ struct tmp {
 int testarray[%d-offsetof(struct tmp, target)];
 '''
         try:
-            extra_args = env.cross_info.config['properties'][self.language + '_args']
+            extra_args += env.cross_info.config['properties'][self.language + '_args']
         except KeyError:
             pass
         for i in range(1, 1024):
@@ -456,9 +456,9 @@ int testarray[%d-offsetof(struct tmp, target)];
                 return i
         raise EnvironmentException('Cross checking offsetof overflowed.')
 
-    def alignment(self, typename, env):
+    def alignment(self, typename, env, extra_args=[]):
         if self.is_cross:
-            return self.cross_alignment(typename, env)
+            return self.cross_alignment(typename, env, extra_args)
         templ = '''#include<stdio.h>
 #include<stddef.h>
 
@@ -472,7 +472,7 @@ int main(int argc, char **argv) {
   return 0;
 }
 '''
-        res = self.run(templ % typename)
+        res = self.run(templ % typename, extra_args)
         if not res.compiled:
             raise EnvironmentException('Could not compile alignment test.')
         if res.returncode != 0:
@@ -482,7 +482,7 @@ int main(int argc, char **argv) {
             raise EnvironmentException('Could not determine alignment of %s. Sorry. You might want to file a bug.' % typename)
         return align
 
-    def has_function(self, funcname, prefix, env):
+    def has_function(self, funcname, prefix, env, extra_args=[]):
         # This fails (returns true) if funcname is a ptr or a variable.
         # The correct check is a lot more difficult.
         # Fix this to do that eventually.
@@ -500,24 +500,24 @@ int main(int argc, char **argv) {
                 if isinstance(val, bool):
                     return val
                 raise EnvironmentException('Cross variable {0} is not a boolean.'.format(varname))
-        return self.compiles(templ % (prefix, funcname))
+        return self.compiles(templ % (prefix, funcname), extra_args)
 
-    def has_member(self, typename, membername, prefix):
+    def has_member(self, typename, membername, prefix, extra_args=[]):
         templ = '''%s
 void bar() {
     %s foo;
     foo.%s;
 };
 '''
-        return self.compiles(templ % (prefix, typename, membername))
+        return self.compiles(templ % (prefix, typename, membername), extra_args)
 
-    def has_type(self, typename, prefix):
+    def has_type(self, typename, prefix, extra_args):
         templ = '''%s
 void bar() {
     sizeof(%s);
 };
 '''
-        return self.compiles(templ % (prefix, typename))
+        return self.compiles(templ % (prefix, typename), extra_args)
 
     def thread_flags(self):
         return ['-pthread']

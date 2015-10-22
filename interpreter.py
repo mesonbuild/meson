@@ -588,7 +588,8 @@ class CompilerHolder(InterpreterObject):
             raise InterpreterException('Alignment method takes exactly one positional argument.')
         check_stringlist(args)
         typename = args[0]
-        result = self.compiler.alignment(typename, self.environment)
+        extra_args = mesonlib.stringlistify(kwargs.get('args', []))
+        result = self.compiler.alignment(typename, self.environment, extra_args)
         mlog.log('Checking for alignment of "', mlog.bold(typename), '": ', result, sep='')
         return result
 
@@ -600,7 +601,8 @@ class CompilerHolder(InterpreterObject):
         testname = kwargs.get('name', '')
         if not isinstance(testname, str):
             raise InterpreterException('Testname argument must be a string.')
-        result = self.compiler.run(code)
+        extra_args = mesonlib.stringlistify(kwargs.get('args', []))
+        result = self.compiler.run(code, extra_args)
         if len(testname) > 0:
             if not result.compiled:
                 h = mlog.red('DID NOT COMPILE')
@@ -623,7 +625,8 @@ class CompilerHolder(InterpreterObject):
         prefix = kwargs.get('prefix', '')
         if not isinstance(prefix, str):
             raise InterpreterException('Prefix argument of has_function must be a string.')
-        had = self.compiler.has_member(typename, membername, prefix)
+        extra_args = mesonlib.stringlistify(kwargs.get('args', []))
+        had = self.compiler.has_member(typename, membername, prefix, extra_args)
         if had:
             hadtxt = mlog.green('YES')
         else:
@@ -640,7 +643,8 @@ class CompilerHolder(InterpreterObject):
         prefix = kwargs.get('prefix', '')
         if not isinstance(prefix, str):
             raise InterpreterException('Prefix argument of has_function must be a string.')
-        had = self.compiler.has_function(funcname, prefix, self.environment)
+        extra_args = mesonlib.stringlistify(kwargs.get('args', []))
+        had = self.compiler.has_function(funcname, prefix, self.environment, extra_args)
         if had:
             hadtxt = mlog.green('YES')
         else:
@@ -656,7 +660,8 @@ class CompilerHolder(InterpreterObject):
         prefix = kwargs.get('prefix', '')
         if not isinstance(prefix, str):
             raise InterpreterException('Prefix argument of has_type must be a string.')
-        had = self.compiler.has_type(typename, prefix)
+        extra_args = mesonlib.stringlistify(kwargs.get('args', []))
+        had = self.compiler.has_type(typename, prefix, extra_args)
         if had:
             hadtxt = mlog.green('YES')
         else:
@@ -672,7 +677,8 @@ class CompilerHolder(InterpreterObject):
         prefix = kwargs.get('prefix', '')
         if not isinstance(prefix, str):
             raise InterpreterException('Prefix argument of sizeof must be a string.')
-        esize = self.compiler.sizeof(element, prefix, self.environment)
+        extra_args = mesonlib.stringlistify(kwargs.get('args', []))
+        esize = self.compiler.sizeof(element, prefix, self.environment, extra_args)
         mlog.log('Checking for size of "%s": %d' % (element, esize))
         return esize
 
@@ -684,8 +690,8 @@ class CompilerHolder(InterpreterObject):
         testname = kwargs.get('name', '')
         if not isinstance(testname, str):
             raise InterpreterException('Testname argument must be a string.')
-        args = mesonlib.stringlistify(kwargs.get('args', []))
-        result = self.compiler.compiles(code, args)
+        extra_args = mesonlib.stringlistify(kwargs.get('args', []))
+        result = self.compiler.compiles(code, extra_args)
         if len(testname) > 0:
             if result:
                 h = mlog.green('YES')
@@ -702,8 +708,8 @@ class CompilerHolder(InterpreterObject):
         testname = kwargs.get('name', '')
         if not isinstance(testname, str):
             raise InterpreterException('Testname argument must be a string.')
-        args = mesonlib.stringlistify(kwargs.get('args', []))
-        result = self.compiler.links(code, args)
+        extra_args = mesonlib.stringlistify(kwargs.get('args', []))
+        result = self.compiler.links(code, extra_args)
         if len(testname) > 0:
             if result:
                 h = mlog.green('YES')
@@ -717,7 +723,8 @@ class CompilerHolder(InterpreterObject):
             raise InterpreterException('has_header method takes exactly one argument.')
         check_stringlist(args)
         string = args[0]
-        haz = self.compiler.has_header(string)
+        extra_args = mesonlib.stringlistify(kwargs.get('args', []))
+        haz = self.compiler.has_header(string, extra_args)
         if haz:
             h = mlog.green('YES')
         else:
