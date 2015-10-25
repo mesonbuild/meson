@@ -154,7 +154,7 @@ def default_libdir():
     try:
         archpath = subprocess.check_output(['dpkg-architecture', '-qDEB_HOST_MULTIARCH']).decode().strip()
         return 'lib/' + archpath
-    except FileNotFoundError:
+    except:
         pass
     if os.path.isdir('/usr/lib64'):
         return 'lib64'
