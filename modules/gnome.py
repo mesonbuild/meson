@@ -20,6 +20,7 @@ import os, sys
 import subprocess
 from coredata import MesonException
 import mlog
+import xml.etree.ElementTree as ET
 
 girwarning_printed = False
 
@@ -36,13 +37,38 @@ class GnomeModule:
         kwargs['command'] = cmd
         output_c = args[0] + '.c'
         output_h = args[0] + '.h'
-        kwargs['input'] = args[1]
+        resfile = args[1]
+        kwargs['depend_files'] = self.parse_gresource_xml(state, resfile)
+        kwargs['input'] = resfile
         kwargs['output'] = output_c
         target_c = build.CustomTarget(args[0]+'_c', state.subdir, kwargs)
         kwargs['output'] = output_h
         target_h = build.CustomTarget(args[0] + '_h', state.subdir, kwargs)
         return [target_c, target_h]
-    
+
+    def parse_gresource_xml(self, state, fname):
+        abspath = os.path.join(state.environment.source_dir, state.subdir, fname)
+        relative_part = os.path.split(fname)[0]
+        resdir = os.path.join(state.subdir, 'data')
+        try:
+            tree = ET.parse(abspath)
+            root = tree.getroot()
+            result = []
+            for child in root[0]:
+                if child.tag != 'file':
+                    mlog.log("Warning, malformed rcc file: ", os.path.join(state.subdir, fname))
+                    break
+                else:
+                    relfname = os.path.join(resdir, child.text)
+                    absfname = os.path.join(state.environment.source_dir, relfname)
+                    if os.path.isfile(absfname):
+                        result.append(relfname)
+                    else:
+                        mlog.log('Warning, resource file points to nonexisting file %s.' % relfname)
+            return result
+        except Exception:
+            return []
+
     def generate_gir(self, state, args, kwargs):
         if len(args) != 1:
             raise MesonException('Gir takes one argument')

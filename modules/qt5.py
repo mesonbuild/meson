@@ -19,7 +19,7 @@ from coredata import MesonException
 import xml.etree.ElementTree as ET
 
 class Qt5Module():
-    
+
     def __init__(self):
         mlog.log('Detecting Qt tools.')
         # The binaries have different names on different

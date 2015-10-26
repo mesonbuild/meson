@@ -300,10 +300,15 @@ class NinjaBackend(backends.Backend):
                 srcs.append(os.path.join(self.build_to_src, target.subdir, i))
             else:
                 srcs.append(i.rel_to_builddir(self.build_to_src))
-        deps +=  srcs
         if target.build_always:
             deps.append('PHONY')
-        elem = NinjaBuildElement(ofilenames, 'CUSTOM_COMMAND', deps)
+        elem = NinjaBuildElement(ofilenames, 'CUSTOM_COMMAND', srcs)
+        for i in target.depend_files:
+            if isinstance(i, mesonlib.File):
+                deps.append(i.rel_to_builddir(self.build_to_src))
+            else:
+                deps.append(os.path.join(self.build_to_src, i))
+        elem.add_dep(deps)
         for d in target.extra_depends:
             tmp = d.get_filename()
             if not isinstance(tmp, list):

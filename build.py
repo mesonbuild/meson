@@ -711,13 +711,16 @@ class CustomTarget:
                     'install' : True,
                     'install_dir' : True,
                     'build_always' : True,
-                    'depends' : True}
+                    'depends' : True,
+                    'depend_files' : True,
+                    }
 
     def __init__(self, name, subdir, kwargs):
         self.name = name
         self.subdir = subdir
         self.dependencies = []
         self.extra_depends = []
+        self.depend_files = [] # Files that this target depends on but are not on the command line.
         self.process_kwargs(kwargs)
         self.extra_files = []
         self.install_rpath = ''
@@ -795,6 +798,15 @@ class CustomTarget:
             if not isinstance(ed, CustomTarget) and not isinstance(ed, BuildTarget):
                 raise InvalidArguments('Can only depend on toplevel targets.')
             self.extra_depends.append(ed)
+        depend_files = kwargs.get('depend_files', [])
+        if not isinstance(depend_files, list):
+            depend_files = [depend_files]
+        for i in depend_files:
+            if isinstance(i, (File, str)):
+                self.depend_files.append(i)
+            else:
+                mlog.debug(i)
+                raise InvalidArguments('Unknown type in depend_files.')
 
     def get_basename(self):
         return self.name
