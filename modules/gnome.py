@@ -30,8 +30,11 @@ class GnomeModule:
     def compile_resources(self, state, args, kwargs):
         cmd = ['glib-compile-resources', '@INPUT@', '--generate']
         if 'source_dir' in kwargs:
-            d = os.path.join(state.build_to_src, state.subdir, kwargs.pop('source_dir'))
+            resource_loc = os.path.join(state.subdir, kwargs.pop('source_dir'))
+            d = os.path.join(state.build_to_src, resource_loc)
             cmd += ['--sourcedir', d]
+        else:
+            resource_loc = state.subdir
         if 'c_name' in kwargs:
             cmd += ['--c-name', kwargs.pop('c_name')]
         cmd += ['--target', '@OUTPUT@']
@@ -39,7 +42,7 @@ class GnomeModule:
         output_c = args[0] + '.c'
         output_h = args[0] + '.h'
         resfile = args[1]
-        kwargs['depend_files'] = self.parse_gresource_xml(state, resfile)
+        kwargs['depend_files'] = self.parse_gresource_xml(state, resfile, resource_loc)
         kwargs['input'] = resfile
         kwargs['output'] = output_c
         target_c = build.CustomTarget(args[0]+'_c', state.subdir, kwargs)
@@ -47,7 +50,7 @@ class GnomeModule:
         target_h = build.CustomTarget(args[0] + '_h', state.subdir, kwargs)
         return [target_c, target_h]
 
-    def parse_gresource_xml(self, state, fobj):
+    def parse_gresource_xml(self, state, fobj, resource_loc):
         if isinstance(fobj, File):
             fname = fobj.fname
             subdir = fobj.subdir
@@ -56,7 +59,6 @@ class GnomeModule:
             subdir = state.subdir
         abspath = os.path.join(state.environment.source_dir, state.subdir, fname)
         relative_part = os.path.split(fname)[0]
-        resdir = os.path.join(subdir, 'data')
         try:
             tree = ET.parse(abspath)
             root = tree.getroot()
@@ -66,7 +68,7 @@ class GnomeModule:
                     mlog.log("Warning, malformed rcc file: ", os.path.join(state.subdir, fname))
                     break
                 else:
-                    relfname = os.path.join(resdir, child.text)
+                    relfname = os.path.join(resource_loc, child.text)
                     absfname = os.path.join(state.environment.source_dir, relfname)
                     if os.path.isfile(absfname):
                         result.append(relfname)
