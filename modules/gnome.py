@@ -21,6 +21,7 @@ import subprocess
 from coredata import MesonException
 import mlog
 import xml.etree.ElementTree as ET
+from mesonlib import File
 
 girwarning_printed = False
 
@@ -46,10 +47,16 @@ class GnomeModule:
         target_h = build.CustomTarget(args[0] + '_h', state.subdir, kwargs)
         return [target_c, target_h]
 
-    def parse_gresource_xml(self, state, fname):
+    def parse_gresource_xml(self, state, fobj):
+        if isinstance(fobj, File):
+            fname = fobj.fname
+            subdir = fobj.subdir
+        else:
+            fname = fobj
+            subdir = state.subdir
         abspath = os.path.join(state.environment.source_dir, state.subdir, fname)
         relative_part = os.path.split(fname)[0]
-        resdir = os.path.join(state.subdir, 'data')
+        resdir = os.path.join(subdir, 'data')
         try:
             tree = ET.parse(abspath)
             root = tree.getroot()
