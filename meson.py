@@ -31,13 +31,7 @@ build_types = ['plain', 'debug', 'debugoptimized', 'release']
 layouts = ['mirror', 'flat']
 warning_levels = ['1', '2', '3']
 
-default_warning = '1'
-try:
-    warn_candidate = os.environ['MESON_WARN_LEVEL']
-    if warn_candidate in warning_levels:
-        default_warning = warn_candidate
-except KeyError:
-    pass
+default_warning = '2'
 
 if mesonlib.is_windows():
     def_prefix = 'c:/'
