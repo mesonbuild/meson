@@ -318,8 +318,8 @@ int someSymbolHereJustForFun;
 
     def compile(self, code, srcname, extra_args=[]):
         commands = self.get_exelist()
-        commands += extra_args
         commands.append(srcname)
+        commands += extra_args
         mlog.debug('Running compile:')
         mlog.debug('Command line: ', ' '.join(commands))
         mlog.debug('Code:\n', code)
