@@ -1262,6 +1262,9 @@ class Interpreter():
         if len(args) != 1:
             raise InterpreterException('Subproject takes exactly one argument')
         dirname = args[0]
+        return self.do_subproject(dirname, kwargs)
+
+    def do_subproject(self, dirname, kwargs):
         if self.subdir != '':
             segs = os.path.split(self.subdir)
             if len(segs) != 2 or segs[0] != self.subproject_dir:
@@ -1537,9 +1540,23 @@ class Interpreter():
         else:
             dep = dependencies.Dependency() # Returns always false for dep.found()
         if not dep.found():
-            dep = dependencies.find_external_dependency(name, self.environment, kwargs)
+            try:
+                dep = dependencies.find_external_dependency(name, self.environment, kwargs)
+            except dependencies.DependencyException:
+                if 'fallback' in kwargs:
+                    return self.dependency_fallback(kwargs)
+                raise
         self.coredata.deps[identifier] = dep
         return DependencyHolder(dep)
+
+    def dependency_fallback(self, kwargs):
+        fbinfo = kwargs['fallback']
+        check_stringlist(fbinfo)
+        if len(fbinfo) != 2:
+            raise InterpreterException('Fallback info must have exactly two items.')
+        dirname, varname = fbinfo
+        self.do_subproject(dirname, kwargs)
+        return self.subprojects[dirname].get_variable_method([varname], {})
 
     def func_executable(self, node, args, kwargs):
         return self.build_target(node, args, kwargs, ExecutableHolder)
