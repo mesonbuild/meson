@@ -933,7 +933,7 @@ class Interpreter():
                       'dependency' : self.func_dependency,
                       'static_library' : self.func_static_lib,
                       'shared_library' : self.func_shared_lib,
-                      'default_library' : self.func_default_library,
+                      'library' : self.func_library,
                       'jar' : self.func_jar,
                       'build_target': self.func_build_target,
                       'custom_target' : self.func_custom_target,
@@ -1569,7 +1569,7 @@ class Interpreter():
     def func_shared_lib(self, node, args, kwargs):
         return self.build_target(node, args, kwargs, SharedLibraryHolder)
 
-    def func_default_library(self, node, args, kwargs):
+    def func_library(self, node, args, kwargs):
         if self.coredata.get_builtin_option('default_library') == 'shared':
             return self.func_shared_lib(node, args, kwargs)
         return self.func_static_lib(node, args, kwargs)
@@ -1587,6 +1587,8 @@ class Interpreter():
             return self.func_shared_lib(node, args, kwargs)
         elif target_type == 'static_library':
             return self.func_static_lib(node, args, kwargs)
+        elif target_type == 'library':
+            return self.func_library(node, args, kwargs)
         elif target_type == 'jar':
             return self.func_jar(node, args, kwargs)
         else:
