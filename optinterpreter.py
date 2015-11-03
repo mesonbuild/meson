@@ -40,11 +40,11 @@ class OptionException(coredata.MesonException):
 optname_regex = re.compile('[^a-zA-Z0-9_-]')
 
 def StringParser(name, description, kwargs):
-    return mesonlib.UserStringOption(name, description,
+    return coredata.UserStringOption(name, description,
                                      kwargs.get('value', ''))
 
 def BooleanParser(name, description, kwargs):
-    return mesonlib.UserBooleanOption(name, description, kwargs.get('value', True))
+    return coredata.UserBooleanOption(name, description, kwargs.get('value', True))
 
 def ComboParser(name, description, kwargs):
     if 'choices' not in kwargs:
@@ -55,7 +55,7 @@ def ComboParser(name, description, kwargs):
     for i in choices:
         if not isinstance(i, str):
             raise OptionException('Combo choice elements must be strings.')
-    return mesonlib.UserComboOption(name, description, choices, kwargs.get('value', choices[0]))
+    return coredata.UserComboOption(name, description, choices, kwargs.get('value', choices[0]))
 
 option_types = {'string' : StringParser,
                 'boolean' : BooleanParser,
