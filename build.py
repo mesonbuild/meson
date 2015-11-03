@@ -461,6 +461,8 @@ class BuildTarget():
             if not isinstance(t, StaticLibrary) and \
             not isinstance(t, SharedLibrary):
                 raise InvalidArguments('Link target is not library.')
+            if self.is_cross != t.is_cross:
+                raise InvalidArguments('Tried to mix cross built and native libraries in target %s.' % self.name)
             self.link_targets.append(t)
 
     def set_generated(self, genlist):
