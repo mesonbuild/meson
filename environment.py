@@ -543,22 +543,22 @@ class Environment():
         return self.object_suffix
 
     def get_prefix(self):
-        return self.coredata.prefix
+        return self.coredata.get_builtin_option('prefix')
 
     def get_libdir(self):
-        return self.coredata.libdir
+        return self.coredata.get_builtin_option('libdir')
 
     def get_bindir(self):
-        return self.coredata.bindir
+        return self.coredata.get_builtin_option('bindir')
 
     def get_includedir(self):
-        return self.coredata.includedir
+        return self.coredata.get_builtin_option('includedir')
 
     def get_mandir(self):
-        return self.coredata.mandir
+        return self.coredata.get_builtin_option('mandir')
 
     def get_datadir(self):
-        return self.coredata.datadir
+        return self.coredata.get_builtin_option('datadir')
 
     def find_library(self, libname, dirs):
         if dirs is None:

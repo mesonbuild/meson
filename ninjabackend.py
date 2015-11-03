@@ -150,7 +150,7 @@ class NinjaBackend(backends.Backend):
         self.generate_tests(outfile)
         outfile.write('# Install rules\n\n')
         self.generate_install(outfile)
-        if self.environment.coredata.coverage:
+        if self.environment.coredata.get_builtin_option('coverage'):
             outfile.write('# Coverage rules\n\n')
             self.generate_coverage_rules(outfile)
         outfile.write('# Suffix\n\n')
@@ -203,8 +203,8 @@ class NinjaBackend(backends.Backend):
         self.generate_custom_generator_rules(target, outfile)
         outname = self.get_target_filename(target)
         obj_list = []
-        use_pch = self.environment.coredata.use_pch
-        is_unity = self.environment.coredata.unity
+        use_pch = self.environment.coredata.get_builtin_option('use_pch')
+        is_unity = self.environment.coredata.get_builtin_option('unity')
         if use_pch and target.has_pch():
             pch_objects = self.generate_pch(target, outfile)
         else:
@@ -480,14 +480,14 @@ class NinjaBackend(backends.Backend):
             for lang in languages:
                 rel_src =  os.path.join(subdir, lang + '.gmo')
                 src_file = os.path.join(self.environment.get_build_dir(), rel_src)
-                d.po.append((src_file, self.environment.coredata.localedir, lang))
+                d.po.append((src_file, self.environment.coredata.get_builtin_option('localedir'), lang))
                 elem.add_dep(rel_src)
 
     def generate_target_install(self, d):
         libdir = self.environment.get_libdir()
         bindir = self.environment.get_bindir()
 
-        should_strip = self.environment.coredata.strip
+        should_strip = self.environment.coredata.get_builtin_option('strip')
         for t in self.build.get_targets().values():
             if t.should_install():
                 outdir = t.get_custom_install_dir()
@@ -501,7 +501,7 @@ class NinjaBackend(backends.Backend):
                 d.targets.append(i)
 
     def generate_pkgconfig_install(self, d):
-        pkgroot = os.path.join(self.environment.coredata.libdir, 'pkgconfig')
+        pkgroot = os.path.join(self.environment.coredata.get_builtin_option('libdir'), 'pkgconfig')
 
         for p in self.build.pkgconfig_gens:
             pcfile = p.filebase + '.pc'
@@ -683,7 +683,7 @@ class NinjaBackend(backends.Backend):
         return (args, deps)
 
     def generate_cs_target(self, target, outfile):
-        buildtype = self.environment.coredata.buildtype
+        buildtype = self.environment.coredata.get_builtin_option('buildtype')
         fname = target.get_filename()
         outname_rel = os.path.join(self.get_target_dir(target), fname)
         src_list = target.get_sources()
@@ -719,7 +719,7 @@ class NinjaBackend(backends.Backend):
 
     def generate_single_java_compile(self, src, target, compiler, outfile):
         args = []
-        args += compiler.get_buildtype_args(self.environment.coredata.buildtype)
+        args += compiler.get_buildtype_args(self.environment.coredata.get_builtin_option('buildtype'))
         args += compiler.get_output_args(self.get_target_private_dir(target))
         rel_src = src.rel_to_builddir(self.build_to_src)
         plain_class_path = src.fname[:-4] + 'class'
@@ -789,7 +789,7 @@ class NinjaBackend(backends.Backend):
             relsc = os.path.join(self.get_target_private_dir_abs(target), sc)
             rel_s = s.rel_to_builddir(self.build_to_src)
             args += ['--deps', relsc + '.d']
-            if self.environment.coredata.werror:
+            if self.environment.coredata.get_builtin_option('werror'):
                 args += valac.get_werror_args()
             for d in target.external_deps:
                 if isinstance(d, dependencies.PkgConfigDependency):
@@ -1293,7 +1293,7 @@ rule FORTRAN_DEP_HACK
         rel_obj = os.path.join(self.get_target_private_dir(target), obj_basename)
         rel_obj += '.' + self.environment.get_object_suffix()
         dep_file = rel_obj + '.' + compiler.get_depfile_suffix()
-        if self.environment.coredata.use_pch:
+        if self.environment.coredata.get_builtin_option('use_pch'):
             pchlist = target.get_pch(compiler.language)
         else:
             pchlist = []
@@ -1323,7 +1323,7 @@ rule FORTRAN_DEP_HACK
                     custom_target_include_dirs.append(idir)
         for i in custom_target_include_dirs:
             commands+= compiler.get_include_args(i)
-        if self.environment.coredata.use_pch:
+        if self.environment.coredata.get_builtin_option('use_pch'):
             commands += self.get_pch_include_args(compiler, target)
         crstr = ''
         if target.is_cross:
@@ -1458,7 +1458,7 @@ rule FORTRAN_DEP_HACK
         abspath = os.path.join(self.environment.get_build_dir(), target.subdir)
         commands = []
         commands += linker.get_linker_always_args()
-        commands += linker.get_buildtype_linker_args(self.environment.coredata.buildtype)
+        commands += linker.get_buildtype_linker_args(self.environment.coredata.get_builtin_option('buildtype'))
         commands += linker.get_option_link_args(self.environment.coredata.compiler_options)
         if not(isinstance(target, build.StaticLibrary)):
             commands += self.environment.coredata.external_link_args[linker.get_language()]
@@ -1498,7 +1498,7 @@ rule FORTRAN_DEP_HACK
                         commands += dep.get_link_args()
         commands += linker.build_rpath_args(self.environment.get_build_dir(),\
                                             self.determine_rpath_dirs(target), target.install_rpath)
-        if self.environment.coredata.coverage:
+        if self.environment.coredata.get_builtin_option('coverage'):
             commands += linker.get_coverage_link_args()
         commands += extra_args
         dep_targets = [self.get_dependency_filename(t) for t in dependencies]
@@ -1603,7 +1603,7 @@ rule FORTRAN_DEP_HACK
         elem = NinjaBuildElement('clean', 'CUSTOM_COMMAND', 'PHONY')
         elem.add_item('COMMAND', [ninja_command, '-t', 'clean'])
         elem.add_item('description', 'Cleaning')
-        if self.environment.coredata.coverage:
+        if self.environment.coredata.get_builtin_option('coverage'):
             self.generate_gcov_clean(outfile)
             elem.add_dep('clean-gcda')
             elem.add_dep('clean-gcno')

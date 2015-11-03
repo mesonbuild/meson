@@ -44,22 +44,8 @@ class CoreData():
         self.test_guid = str(uuid.uuid4()).upper()
         self.target_guids = {}
         self.version = version
-        self.prefix = options.prefix
-        self.libdir = options.libdir
-        self.bindir = options.bindir
-        self.includedir = options.includedir
-        self.datadir = options.datadir
-        self.mandir = options.mandir
-        self.localedir = options.localedir
-        self.backend = options.backend
-        self.buildtype = options.buildtype
-        self.strip = options.strip
-        self.use_pch = options.use_pch
-        self.unity = options.unity
-        self.coverage = options.coverage
-        self.warning_level = options.warning_level
-        self.werror = options.werror
-        self.layout = options.layout
+        self.builtin_options = {}
+        self.init_builtins(options)
         self.user_options = {}
         self.compiler_options = {}
         self.external_args = {} # These are set from "the outside" with e.g. mesonconf
@@ -76,34 +62,35 @@ class CoreData():
         self.ext_libs = {}
         self.modules = {}
 
+    def init_builtins(self, options):
+        self.builtin_options['prefix'] = options.prefix
+        self.builtin_options['libdir'] = options.libdir
+        self.builtin_options['bindir'] = options.bindir
+        self.builtin_options['includedir'] = options.includedir
+        self.builtin_options['datadir'] = options.datadir
+        self.builtin_options['mandir'] = options.mandir
+        self.builtin_options['localedir'] = options.localedir
+        self.builtin_options['backend'] = options.backend
+        self.builtin_options['buildtype'] = options.buildtype
+        self.builtin_options['strip'] = options.strip
+        self.builtin_options['use_pch'] = options.use_pch
+        self.builtin_options['unity'] = options.unity
+        self.builtin_options['coverage'] = options.coverage
+        self.builtin_options['warning_level'] = options.warning_level
+        self.builtin_options['werror'] = options.werror
+        self.builtin_options['layout'] = options.layout
+        self.builtin_options['default_library'] = options.default_library
+
     def get_builtin_option(self, optname):
-        if optname == 'buildtype':
-            return self.buildtype
-        if optname == 'strip':
-            return self.strip
-        if optname == 'coverage':
-            return self.coverage
-        if optname == 'pch':
-            return self.use_pch
-        if optname == 'unity':
-            return self.unity
-        if optname == 'prefix':
-            return self.prefix
-        if optname == 'libdir':
-            return self.libdir
-        if optname == 'bindir':
-            return self.bindir
-        if optname == 'includedir':
-            return self.includedir
-        if optname == 'datadir':
-            return self.datadir
-        if optname == 'mandir':
-            return self.mandir
-        if optname == 'localedir':
-            return self.localedir
-        if optname == 'layout':
-            return self.layout
+        if optname in self.builtin_options:
+            return self.builtin_options[optname]
         raise RuntimeError('Tried to get unknown builtin option %s' % optname)
+
+    def set_builtin_option(self, optname, value):
+        if optname in self.builtin_options:
+            self.builtin_options[optname] = value
+        else:
+            raise RuntimeError('Tried to set unknown builtin option %s' % optname)
 
 def load(filename):
     obj = pickle.load(open(filename, 'rb'))
