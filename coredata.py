@@ -57,9 +57,17 @@ class UserStringOption(UserOption):
         super().__init__(name, description)
         self.set_value(value)
 
-    def set_value(self, newvalue):
-        if not isinstance(newvalue, str):
+    def validate(self, value):
+        if not isinstance(value, str):
             raise MesonException('Value "%s" for string option "%s" is not a string.' % (str(newvalue), self.name))
+        if self.name == 'prefix' and not os.path.isabs(value):
+            raise MesonException('Prefix option must be an absolute path.')
+        if self.name in ('libdir', 'bindir', 'includedir', 'datadir', 'mandir', 'localedir') \
+            and os.path.isabs(value):
+            raise MesonException('Option %s must not be an absolute path.' % self.name)
+
+    def set_value(self, newvalue):
+        self.validate(newvalue)
         self.value = newvalue
 
 class UserBooleanOption(UserOption):
@@ -178,6 +186,9 @@ class CoreData():
             self.builtin_options[optname].set_value(value)
         else:
             raise RuntimeError('Tried to set unknown builtin option %s' % optname)
+
+    def is_builtin_option(self, optname):
+        return optname in self.builtin_options
 
 def load(filename):
     obj = pickle.load(open(filename, 'rb'))

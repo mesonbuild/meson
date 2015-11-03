@@ -26,7 +26,7 @@ parser.add_argument('-D', action='append', default=[], dest='sets',
                     help='Set an option to the given value.')
 parser.add_argument('directory', nargs='*')
 
-class ConfException(Exception):
+class ConfException(coredata.MesonException):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -69,58 +69,8 @@ class Conf:
             if '=' not in o:
                 raise ConfException('Value "%s" not of type "a=b".' % o)
             (k, v) = o.split('=', 1)
-            if k == 'buildtype':
-                if v not in build_types:
-                    raise ConfException('Invalid build type %s.' % v)
-                self.coredata.set_builtin_option('buildtype', v)
-            elif k == 'layout':
-                if v not in layouts:
-                    raise ConfException('Invalid layout type %s.' % v)
-                self.coredata.set_builtin_option('layout', v)
-            elif k == 'warnlevel':
-                if not v in warning_levels:
-                    raise ConfException('Invalid warning level %s.' % v)
-                self.coredata.set_builtin_option('warning_level', v)
-            elif k == 'strip':
-                self.coredata.set_builtin_option('strip', self.tobool(v))
-            elif k == 'coverage':
-                self.coredata.set_builtin_option('coverage', self.tobool(v))
-            elif k == 'pch':
-                self.coredata.set_builtin_option('use_pch', self.tobool(v))
-            elif k == 'unity':
-                self.coredata.set_builtin_option('unity', self.tobool(v))
-            elif k == 'default_library':
-                if v != 'shared' and v != 'static':
-                    raise ConfException('Invalid value for default_library')
-                self.coredata.set_builtin_option('default_library', v)
-            elif k == 'prefix':
-                if not os.path.isabs(v):
-                    raise ConfException('Install prefix %s is not an absolute path.' % v)
-                self.coredata.set_builtin_option('prefix', v)
-            elif k == 'libdir':
-                if os.path.isabs(v):
-                    raise ConfException('Library dir %s must not be an absolute path.' % v)
-                self.coredata.set_builtin_option('libdir', v)
-            elif k == 'bindir':
-                if os.path.isabs(v):
-                    raise ConfException('Binary dir %s must not be an absolute path.' % v)
-                self.coredata.set_builtin_option('bindir',v)
-            elif k == 'includedir':
-                if os.path.isabs(v):
-                    raise ConfException('Include dir %s must not be an absolute path.' % v)
-                self.coredata.set_builtin_option('includedir', v)
-            elif k == 'datadir':
-                if os.path.isabs(v):
-                    raise ConfException('Data dir %s must not be an absolute path.' % v)
-                self.coredata.set_builtin_option('datadir', v)
-            elif k == 'mandir':
-                if os.path.isabs(v):
-                    raise ConfException('Man dir %s must not be an absolute path.' % v)
-                self.coredata.set_builtin_option('mandir', v)
-            elif k == 'localedir':
-                if os.path.isabs(v):
-                    raise ConfException('Locale dir %s must not be an absolute path.' % v)
-                self.coredata.set_builtin_option('localedir', v)
+            if self.coredata.is_builtin_option(k):
+                self.coredata.set_builtin_option(k, v)
             elif k in self.coredata.user_options:
                 tgt = self.coredata.user_options[k]
                 tgt.set_value(v)
@@ -154,10 +104,10 @@ class Conf:
         print('Core options\n')
         carr = []
         carr.append(['buildtype', 'Build type', self.coredata.get_builtin_option('buildtype')])
-        carr.append(['warnlevel', 'Warning level', self.coredata.get_builtin_option('warning_level')])
+        carr.append(['warning_level', 'Warning level', self.coredata.get_builtin_option('warning_level')])
         carr.append(['strip', 'Strip on install', self.coredata.get_builtin_option('strip')])
         carr.append(['coverage', 'Coverage report', self.coredata.get_builtin_option('coverage')])
-        carr.append(['pch', 'Precompiled headers', self.coredata.get_builtin_option('use_pch')])
+        carr.append(['use_pch', 'Precompiled headers', self.coredata.get_builtin_option('use_pch')])
         carr.append(['unity', 'Unity build', self.coredata.get_builtin_option('unity')])
         carr.append(['default_library', 'Default library type', self.coredata.get_builtin_option('default_library')])
         self.print_aligned(carr)
@@ -222,7 +172,7 @@ if __name__ == '__main__':
             c.save()
         else:
             c.print_conf()
-    except ConfException as e:
+    except coredata.MesonException as e:
         print('Meson configurator encountered an error:\n')
         print(e)
 
