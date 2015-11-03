@@ -66,7 +66,7 @@ parser.add_argument('--werror', action='store_true', dest='werror', default=Fals
 parser.add_argument('--layout', choices=layouts, dest='layout', default='mirror',\
                     help='Build directory layout.')
 parser.add_argument('--default-library', choices=libtypelist, dest='default_library',
-                    default='static', help='Default library type.')
+                    default='shared', help='Default library type.')
 parser.add_argument('--warnlevel', default=default_warning, dest='warning_level', choices=warning_levels,\
                     help='Level of compiler warnings to use (larger is more, default is %(default)s)')
 parser.add_argument('--cross-file', default=None, dest='cross_file',
