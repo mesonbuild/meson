@@ -127,6 +127,7 @@ class Vs2010Backend(backends.Backend):
         test_line = prj_templ % (self.environment.coredata.guid,
                                  'RUN_TESTS', 'RUN_TESTS.vcxproj', self.environment.coredata.test_guid)
         ofile.write(test_line)
+        ofile.write('EndProject\n')
         regen_line = prj_templ % (self.environment.coredata.guid,
                                  'REGEN', 'REGEN.vcxproj', self.environment.coredata.regen_guid)
         ofile.write(regen_line)
@@ -348,6 +349,10 @@ class Vs2010Backend(backends.Backend):
                 relpath =  self.relpath(s, target.subdir)
                 ET.SubElement(inc_src, 'CLCompile', Include=relpath)
         ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.targets')
+        # Reference the regen target.
+        ig = ET.SubElement(root, 'ItemGroup')
+        pref = ET.SubElement(ig, 'ProjectReference', Include=os.path.join(self.environment.get_build_dir(), 'REGEN.vcxproj'))
+        ET.SubElement(pref, 'Project').text = self.environment.coredata.regen_guid
         tree = ET.ElementTree(root)
         tree.write(ofname, encoding='utf-8', xml_declaration=True)
         # ElementTree can not do prettyprinting so do it manually
