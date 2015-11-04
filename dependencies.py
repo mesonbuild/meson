@@ -59,11 +59,12 @@ class Dependency():
         return False
 
 class InternalDependency():
-    def __init__(self, incdirs, libraries, sources):
+    def __init__(self, incdirs, libraries, sources, ext_deps):
         super().__init__()
         self.include_directories = incdirs
         self.libraries = libraries
         self.sources = sources
+        self.ext_deps = ext_deps
 
 class PkgConfigDependency(Dependency):
     pkgconfig_found = None

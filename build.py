@@ -435,6 +435,8 @@ class BuildTarget():
         return self.include_dirs
 
     def add_external_deps(self, deps):
+        if not isinstance(deps, list):
+            deps = [deps]
         for dep in deps:
             if hasattr(dep, 'held_object'):
                 dep = dep.held_object
@@ -443,6 +445,7 @@ class BuildTarget():
                 self.add_include_dirs(dep.include_directories)
                 for l in dep.libraries:
                     self.link(l)
+                self.add_external_deps(dep.ext_deps)
             elif isinstance(dep, dependencies.Dependency):
                 self.external_deps.append(dep)
                 self.process_sourcelist(dep.get_sources())

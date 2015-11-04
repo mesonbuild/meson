@@ -1111,7 +1111,19 @@ class Interpreter():
         if not isinstance(sources, list):
             sources = [sources]
         sources = self.source_strings_to_files(self.flatten(sources))
-        dep = dependencies.InternalDependency(incs, libs, sources)
+        deps = kwargs.get('dependencies', [])
+        if not isinstance(deps, list):
+            deps = [deps]
+        final_deps = []
+        for d in deps:
+            try:
+                d = d.held_object
+            except Exception:
+                pass
+            if not isinstance(d, (dependencies.Dependency, dependencies.ExternalLibrary)):
+                raise InterpreterException('Dependencies must be external deps')
+            final_deps.append(d)
+        dep = dependencies.InternalDependency(incs, libs, sources, deps)
         return InternalDependencyHolder(dep)
 
     @noKwargs

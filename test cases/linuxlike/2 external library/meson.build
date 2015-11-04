@@ -22,3 +22,8 @@ assert(not cc.links(nolinkcode, name : 'Failing link'), 'Linking succeeded when 
 
 e = executable('zprog', 'prog.c', dependencies : zlib)
 test('libtest', e)
+
+# Test that ext deps work via an internal dep.
+intdep = declare_dependency(dependencies : zlib)
+exe2 = executable('zprog2', 'prog.c', dependencies : intdep)
+test('libtest2', exe2)
