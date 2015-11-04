@@ -1,4 +1,4 @@
-# Copyright 2014 The Meson development team
+# Copyright 2014-2015 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -68,6 +68,7 @@ class Vs2010Backend(backends.Backend):
         sln_filename = os.path.join(self.environment.get_build_dir(), self.build.project_name + '.sln')
         projlist = self.generate_projects()
         self.gen_testproj('RUN_TESTS', os.path.join(self.environment.get_build_dir(), 'RUN_TESTS.vcxproj'))
+        self.gen_regenproj('REGEN', os.path.join(self.environment.get_build_dir(), 'REGEN.vcxproj'))
         self.generate_solution(sln_filename, projlist)
 
     def get_obj_target_deps(self, obj_list):
@@ -94,22 +95,28 @@ class Vs2010Backend(backends.Backend):
                 gen_exe = gendep.generator.get_exe()
                 if isinstance(gen_exe, build.Executable):
                     all_deps[gen_exe.get_id()] = True
-            if len(all_deps) > 0:
-                ofile.write('\tProjectSection(ProjectDependencies) = postProject\n')
-                for dep in all_deps.keys():
-                    guid = self.environment.coredata.target_guids[dep]
-                    ofile.write('\t\t{%s} = {%s}\n' % (guid, guid))
-                ofile.write('EndProjectSection\n')
+            ofile.write('\tProjectSection(ProjectDependencies) = postProject\n')
+            regen_guid = self.environment.coredata.regen_guid
+            ofile.write('\t\t{%s} = {%s}\n' % (regen_guid, regen_guid))
+            for dep in all_deps.keys():
+                guid = self.environment.coredata.target_guids[dep]
+                ofile.write('\t\t{%s} = {%s}\n' % (guid, guid))
+            ofile.write('EndProjectSection\n')
             ofile.write('EndProject\n')
         test_line = prj_templ % (self.environment.coredata.guid,
                                  'RUN_TESTS', 'RUN_TESTS.vcxproj', self.environment.coredata.test_guid)
         ofile.write(test_line)
+        regen_line = prj_templ % (self.environment.coredata.guid,
+                                 'REGEN', 'REGEN.vcxproj', self.environment.coredata.regen_guid)
+        ofile.write(regen_line)
         ofile.write('EndProject\n')
         ofile.write('Global\n')
         ofile.write('\tGlobalSection(SolutionConfigurationPlatforms) = preSolution\n')
         ofile.write('\t\tDebug|Win32 = Debug|Win32\n')
         ofile.write('\tEndGlobalSection\n')
         ofile.write('\tGlobalSection(ProjectConfigurationPlatforms) = postSolution\n')
+        ofile.write('\t\t{%s}.Debug|Win32.ActiveCfg = Debug|Win32\n' % regen_guid)
+        ofile.write('\t\t{%s}.Debug|Win32.Build.0 = Debug|Win32\n' % regen_guid)
         for p in projlist:
             ofile.write('\t\t{%s}.Debug|Win32.ActiveCfg = Debug|Win32\n' % p[2])
             ofile.write('\t\t{%s}.Debug|Win32.Build.0 = Debug|Win32\n' % p[2])
@@ -330,6 +337,70 @@ class Vs2010Backend(backends.Backend):
         # requires quoted but not fixed elements. Enter horrible hack.
         txt = open(ofname, 'r').read()
         open(ofname, 'w').write(txt.replace('&amp;quot;', '&quot;'))
+
+    def gen_regenproj(self, project_name, ofname):
+        buildtype = self.environment.coredata.buildtype
+        platform = "Win32"
+        root = ET.Element('Project', {'DefaultTargets': 'Build',
+                                      'ToolsVersion' : '4.0',
+                                      'xmlns' : 'http://schemas.microsoft.com/developer/msbuild/2003'})
+        confitems = ET.SubElement(root, 'ItemGroup', {'Label' : 'ProjectConfigurations'})
+        prjconf = ET.SubElement(confitems, 'ProjectConfiguration', {'Include' : 'Debug|Win32'})
+        p = ET.SubElement(prjconf, 'Configuration')
+        p.text= buildtype
+        pl = ET.SubElement(prjconf, 'Platform')
+        pl.text = platform
+        globalgroup = ET.SubElement(root, 'PropertyGroup', Label='Globals')
+        guidelem = ET.SubElement(globalgroup, 'ProjectGuid')
+        guidelem.text = self.environment.coredata.test_guid
+        kw = ET.SubElement(globalgroup, 'Keyword')
+        kw.text = 'Win32Proj'
+        p = ET.SubElement(globalgroup, 'Platform')
+        p.text= platform
+        pname= ET.SubElement(globalgroup, 'ProjectName')
+        pname.text = project_name
+        ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.Default.props')
+        type_config = ET.SubElement(root, 'PropertyGroup', Label='Configuration')
+        ET.SubElement(type_config, 'ConfigurationType')
+        ET.SubElement(type_config, 'CharacterSet').text = 'MultiByte'
+        ET.SubElement(type_config, 'UseOfMfc').text = 'false'
+        ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.props')
+        direlem = ET.SubElement(root, 'PropertyGroup')
+        fver = ET.SubElement(direlem, '_ProjectFileVersion')
+        fver.text = self.project_file_version
+        outdir = ET.SubElement(direlem, 'OutDir')
+        outdir.text = '.\\'
+        intdir = ET.SubElement(direlem, 'IntDir')
+        intdir.text = 'test-temp\\'
+        tname = ET.SubElement(direlem, 'TargetName')
+        tname.text = project_name
+
+        action = ET.SubElement(root, 'ItemDefinitionGroup')
+        midl = ET.SubElement(action, 'Midl')
+        ET.SubElement(midl, "AdditionalIncludeDirectories").text = '%(AdditionalIncludeDirectories)'
+        ET.SubElement(midl, "OutputDirectory").text = '$(IntDir)'
+        ET.SubElement(midl, 'HeaderFileName').text = '%(Filename).h'
+        ET.SubElement(midl, 'TypeLibraryName').text = '%(Filename).tlb'
+        ET.SubElement(midl, 'InterfaceIdentifierFilename').text = '%(Filename)_i.c'
+        ET.SubElement(midl, 'ProxyFileName').text = '%(Filename)_p.c'
+        postbuild = ET.SubElement(action, 'PostBuildEvent')
+        ET.SubElement(postbuild, 'Message')
+        script_root = self.environment.get_script_dir()
+        regen_script = os.path.join(script_root, 'regen_checker.py')
+        private_dir = self.environment.get_scratch_dir()
+        cmd_templ = '''setlocal
+"%s" "%s" "%s"
+if %%errorlevel%% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %%errorlevel%% & goto :cmDone
+:cmErrorLevel
+exit /b %%1
+:cmDone
+if %%errorlevel%% neq 0 goto :VCEnd'''
+        ET.SubElement(postbuild, 'Command').text = cmd_templ % (sys.executable, regen_script, private_dir)
+        ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.targets')
+        tree = ET.ElementTree(root)
+        tree.write(ofname, encoding='utf-8', xml_declaration=True)
 
     def gen_testproj(self, target_name, ofname):
         buildtype = self.environment.coredata.buildtype
