@@ -338,7 +338,10 @@ class Vs2010Backend(backends.Backend):
                 relpath = h.rel_to_builddir(proj_to_src_root)
                 ET.SubElement(inc_hdrs, 'CLInclude', Include=relpath)
             for h in gen_hdrs:
-                relpath = h.rel_to_builddir(proj_to_src_root)
+                if isinstance(h, str):
+                    relpath = h
+                else:
+                    relpath = h.rel_to_builddir(proj_to_src_root)
                 ET.SubElement(inc_hdrs, 'CLInclude', Include = relpath)
         if len(sources) + len(gen_src) > 0:
             inc_src = ET.SubElement(root, 'ItemGroup')
