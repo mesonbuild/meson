@@ -137,8 +137,8 @@ class Vs2010Backend(backends.Backend):
         ofile.write('\t\tDebug|Win32 = Debug|Win32\n')
         ofile.write('\tEndGlobalSection\n')
         ofile.write('\tGlobalSection(ProjectConfigurationPlatforms) = postSolution\n')
-        ofile.write('\t\t{%s}.Debug|Win32.ActiveCfg = Debug|Win32\n' % regen_guid)
-        ofile.write('\t\t{%s}.Debug|Win32.Build.0 = Debug|Win32\n' % regen_guid)
+        ofile.write('\t\t{%s}.Debug|Win32.ActiveCfg = Debug|Win32\n' % self.environment.coredata.regen_guid)
+        ofile.write('\t\t{%s}.Debug|Win32.Build.0 = Debug|Win32\n' % self.environment.coredata.regen_guid)
         for p in projlist:
             ofile.write('\t\t{%s}.Debug|Win32.ActiveCfg = Debug|Win32\n' % p[2])
             ofile.write('\t\t{%s}.Debug|Win32.Build.0 = Debug|Win32\n' % p[2])
