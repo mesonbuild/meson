@@ -236,7 +236,7 @@ class NinjaBackend(backends.Backend):
                         obj_list.append(os.path.join(self.get_target_private_dir_abs(target), src))
                     elif not self.environment.is_header(src):
                         if is_unity:
-                            if '/' in src:
+                            if self.has_dir_part(src):
                                 rel_src = src
                             else:
                                 rel_src = os.path.join(self.get_target_private_dir_abs(target), src)
@@ -1270,7 +1270,7 @@ rule FORTRAN_DEP_HACK
         if isinstance(src, RawFilename):
             rel_src = src.fname
         elif is_generated:
-            if '/' in src:
+            if self.has_dir_part(src):
                 rel_src = src
             else:
                 rel_src = os.path.join(self.get_target_private_dir_abs(target), src)
@@ -1347,7 +1347,7 @@ rule FORTRAN_DEP_HACK
         for d in header_deps:
             if isinstance(d, RawFilename):
                 d = d.fname
-            elif not '/' in d:
+            elif not self.has_dir_part(d):
                 d = os.path.join(self.get_target_private_dir_abs(target), d)
             element.add_dep(d)
         for d in extra_deps:
@@ -1355,7 +1355,7 @@ rule FORTRAN_DEP_HACK
         for d in order_deps:
             if isinstance(d, RawFilename):
                 d = d.fname
-            elif not '/' in d :
+            elif not self.has_dir_part(d):
                 d = os.path.join(self.get_target_private_dir_abs(target), d)
             element.add_orderdep(d)
         element.add_orderdep(pch_dep)
@@ -1367,6 +1367,9 @@ rule FORTRAN_DEP_HACK
         element.write(outfile)
         self.check_outputs(element)
         return rel_obj
+
+    def has_dir_part(self, fname):
+        return '/' in fname or '\\' in fname
 
     # Fortran is a bit weird (again). When you link against a library, just compiling a source file
     # requires the mod files that are output when single files are built. To do this right we would need to
