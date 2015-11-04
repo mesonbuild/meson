@@ -1123,7 +1123,7 @@ class Interpreter():
             if not isinstance(d, (dependencies.Dependency, dependencies.ExternalLibrary)):
                 raise InterpreterException('Dependencies must be external deps')
             final_deps.append(d)
-        dep = dependencies.InternalDependency(incs, libs, sources, deps)
+        dep = dependencies.InternalDependency(incs, libs, sources, final_deps)
         return InternalDependencyHolder(dep)
 
     @noKwargs
