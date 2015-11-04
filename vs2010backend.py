@@ -79,6 +79,10 @@ class Vs2010Backend(backends.Backend):
         self.gen_regenproj('REGEN', os.path.join(self.environment.get_build_dir(), 'REGEN.vcxproj'))
         self.generate_solution(sln_filename, projlist)
         self.generate_regen_info(sln_filename)
+        open(os.path.join(self.environment.get_scratch_dir(), 'regen.stamp'), 'wb')
+        rulefile = os.path.join(self.environment.get_scratch_dir(), 'regen.rule')
+        if not os.path.exists(rulefile):
+            open(rulefile, 'w').write("# For some reason this needs to be here.")
 
     def generate_regen_info(self, sln_filename):
         deps = self.get_regen_filelist()
@@ -378,7 +382,7 @@ class Vs2010Backend(backends.Backend):
         pname.text = project_name
         ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.Default.props')
         type_config = ET.SubElement(root, 'PropertyGroup', Label='Configuration')
-        ET.SubElement(type_config, 'ConfigurationType')
+        ET.SubElement(type_config, 'ConfigurationType').text = "Utility"
         ET.SubElement(type_config, 'CharacterSet').text = 'MultiByte'
         ET.SubElement(type_config, 'UseOfMfc').text = 'false'
         ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.props')
@@ -400,8 +404,6 @@ class Vs2010Backend(backends.Backend):
         ET.SubElement(midl, 'TypeLibraryName').text = '%(Filename).tlb'
         ET.SubElement(midl, 'InterfaceIdentifierFilename').text = '%(Filename)_i.c'
         ET.SubElement(midl, 'ProxyFileName').text = '%(Filename)_p.c'
-        postbuild = ET.SubElement(action, 'PostBuildEvent')
-        ET.SubElement(postbuild, 'Message')
         script_root = self.environment.get_script_dir()
         regen_script = os.path.join(script_root, 'regen_checker.py')
         private_dir = self.environment.get_scratch_dir()
@@ -414,8 +416,18 @@ endlocal & call :cmErrorLevel %%errorlevel%% & goto :cmDone
 exit /b %%1
 :cmDone
 if %%errorlevel%% neq 0 goto :VCEnd'''
-        ET.SubElement(postbuild, 'Command').text = cmd_templ % (sys.executable, regen_script, private_dir)
+        igroup = ET.SubElement(root, 'ItemGroup')
+        custombuild = ET.SubElement(igroup, 'CustomBuild', Include='meson-private/regen.rule')
+        message = ET.SubElement(custombuild, 'Message')
+        message.text = 'Checking whether solution needs to be regenerated.'
+        ET.SubElement(custombuild, 'Command').text = cmd_templ % \
+            (sys.executable, regen_script, private_dir)
+        ET.SubElement(custombuild, 'Outputs').text = os.path.join(self.environment.get_scratch_dir(), 'regen.stamp')
+        deps = self.get_regen_filelist()
+        depstr = ';'.join([os.path.join(self.environment.get_source_dir(), d) for d in deps])
+        ET.SubElement(custombuild, 'AdditionalInputs').text = depstr
         ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.targets')
+        ET.SubElement(root, 'ImportGroup', Label='ExtensionTargets')
         tree = ET.ElementTree(root)
         tree.write(ofname, encoding='utf-8', xml_declaration=True)
 
