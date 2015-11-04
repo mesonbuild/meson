@@ -14,11 +14,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys
-
-print('I am a script that checks whether VS solution should be regenerated.')
-print('Currently I do nothing.')
+import sys, os
+import pickle, subprocess
 
 # This could also be used for XCode.
 
-sys.exit(0)
+def need_regen(regeninfo):
+    sln_time = os.stat(os.path.join(regeninfo.build_dir, regeninfo.solutionfile)).st_mtime
+    for i in regeninfo.depfiles:
+        curfile = os.path.join(regeninfo.build_dir, i)
+        curtime = os.stat(curfile).st_mtime
+        if curtime > sln_time:
+            return True
+    return False
+
+def regen(regeninfo):
+    scriptdir = os.path.split(__file__)[0]
+    mesonscript = os.path.join(scriptdir, 'meson.py')
+    cmd = [sys.executable, mesonscript, regeninfo.build_dir, regeninfo.source_dir,
+           '--backend=vs2010', 'secret-handshake']
+    subprocess.check_call(cmd)
+
+if __name__ == '__main__':
+    regeninfo = pickle.load(open(os.path.join(sys.argv[1], 'regeninfo.dump'), 'rb'))
+    if need_regen(regeninfo):
+        regen(regeninfo)
+    sys.exit(0)

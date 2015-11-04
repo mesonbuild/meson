@@ -21,7 +21,7 @@ from mesonlib import File
 from meson_install import InstallData
 from build import InvalidArguments
 from coredata import MesonException
-import os, sys, shutil, pickle, re
+import os, sys, pickle, re
 
 if mesonlib.is_windows():
     quote_char = '"'
@@ -1613,18 +1613,7 @@ rule FORTRAN_DEP_HACK
         elem.write(outfile)
         self.check_outputs(elem)
 
-        deps = [os.path.join(self.build_to_src, df) \
-                for df in self.interpreter.get_build_def_files()]
-        if self.environment.is_cross_build():
-            deps.append(os.path.join(self.build_to_src,
-                                     self.environment.coredata.cross_file))
-        deps.append('meson-private/coredata.dat')
-        if os.path.exists(os.path.join(self.environment.get_source_dir(), 'meson_options.txt')):
-            deps.append(os.path.join(self.build_to_src, 'meson_options.txt'))
-        for sp in self.build.subprojects.keys():
-            fname = os.path.join(self.environment.get_source_dir(), sp, 'meson_options.txt')
-            if os.path.isfile(fname):
-                deps.append(os.path.join(self.build_to_src, sp, 'meson_options.txt'))
+        deps = self.get_regen_filelist()
         elem = NinjaBuildElement('build.ninja', 'REGENERATE_BUILD', deps)
         elem.add_item('pool', 'console')
         elem.write(outfile)

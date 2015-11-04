@@ -333,3 +333,20 @@ class Backend():
         mfobj['projects'] = self.build.dep_manifest
         open(ifilename, 'w').write(json.dumps(mfobj))
         d.data.append([ifilename, ofilename])
+
+    def get_regen_filelist(self):
+        '''List of all files whose alteration means that the build
+        definition needs to be regenerated.'''
+        deps = [os.path.join(self.build_to_src, df) \
+                for df in self.interpreter.get_build_def_files()]
+        if self.environment.is_cross_build():
+            deps.append(os.path.join(self.build_to_src,
+                                     self.environment.coredata.cross_file))
+        deps.append('meson-private/coredata.dat')
+        if os.path.exists(os.path.join(self.environment.get_source_dir(), 'meson_options.txt')):
+            deps.append(os.path.join(self.build_to_src, 'meson_options.txt'))
+        for sp in self.build.subprojects.keys():
+            fname = os.path.join(self.environment.get_source_dir(), sp, 'meson_options.txt')
+            if os.path.isfile(fname):
+                deps.append(os.path.join(self.build_to_src, sp, 'meson_options.txt'))
+        return deps
