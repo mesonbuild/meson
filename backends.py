@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os, pickle
+import os, pickle, re
 import build
 import dependencies
 import mesonlib
@@ -350,3 +350,43 @@ class Backend():
             if os.path.isfile(fname):
                 deps.append(os.path.join(self.build_to_src, sp, 'meson_options.txt'))
         return deps
+
+    def eval_custom_target_command(self, target):
+        ofilenames = [os.path.join(self.get_target_dir(target), i) for i in target.output]
+        srcs = []
+        for i in target.sources:
+            if isinstance(i, str):
+                srcs.append(os.path.join(self.build_to_src, target.subdir, i))
+            else:
+                srcs.append(i.rel_to_builddir(self.build_to_src))
+        cmd = []
+        for i in target.command:
+            if isinstance(i, build.CustomTarget):
+                # GIR scanner will attempt to execute this binary but
+                # it assumes that it is in path, so always give it a full path.
+                tmp = i.get_filename()[0]
+                i = os.path.join(self.get_target_dir(i), tmp)
+            for (j, src) in enumerate(srcs):
+                i = i.replace('@INPUT%d@' % j, src)
+            for (j, res) in enumerate(ofilenames):
+                i = i.replace('@OUTPUT%d@' % j, res)
+            if i == '@INPUT@':
+                cmd += srcs
+            elif i == '@OUTPUT@':
+                cmd += ofilenames
+            else:
+                if '@OUTDIR@' in i:
+                    i = i.replace('@OUTDIR@', self.get_target_dir(target))
+                elif '@PRIVATE_OUTDIR_' in i:
+                    match = re.search('@PRIVATE_OUTDIR_(ABS_)?([-a-zA-Z0-9.@:]*)@', i)
+                    source = match.group(0)
+                    if match.group(1) is None:
+                        lead_dir = ''
+                    else:
+                        lead_dir = self.environment.get_build_dir()
+                    target_id = match.group(2)
+                    i = i.replace(source,
+                                  os.path.join(lead_dir,
+                                               self.get_target_dir(self.build.targets[target_id])))
+                cmd.append(i)
+        return (srcs, ofilenames, cmd)

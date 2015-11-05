@@ -15,6 +15,7 @@
 import os, sys
 import pickle
 import backends, build
+import mlog
 import xml.etree.ElementTree as ET
 import xml.dom.minidom
 from coredata import MesonException
@@ -37,35 +38,38 @@ class Vs2010Backend(backends.Backend):
         idgroup = ET.SubElement(parent_node, 'ItemDefinitionGroup')
         all_output_files = []
         for genlist in target.get_generated_sources():
-            generator = genlist.get_generator()
-            exe = generator.get_exe()
-            infilelist = genlist.get_infilelist()
-            outfilelist = genlist.get_outfilelist()
-            if isinstance(exe, build.BuildTarget):
-                exe_file = os.path.join(self.environment.get_build_dir(), self.get_target_filename(exe))
+            if isinstance(genlist, build.CustomTarget):
+                all_output_files += [os.path.join(self.get_target_dir(genlist), i) for i in genlist.output]
             else:
-                exe_file = exe.get_command()
-            base_args = generator.get_arglist()
-            for i in range(len(infilelist)):
-                if len(infilelist) == len(outfilelist):
-                    sole_output = os.path.join(self.get_target_private_dir_abs(target), outfilelist[i])
+                generator = genlist.get_generator()
+                exe = generator.get_exe()
+                infilelist = genlist.get_infilelist()
+                outfilelist = genlist.get_outfilelist()
+                if isinstance(exe, build.BuildTarget):
+                    exe_file = os.path.join(self.environment.get_build_dir(), self.get_target_filename(exe))
                 else:
-                    sole_output = ''
-                curfile = infilelist[i]
-                infilename = os.path.join(self.environment.get_source_dir(), curfile)
-                outfiles = genlist.get_outputs_for(curfile)
-                outfiles = [os.path.join(self.get_target_private_dir_abs(target), of) for of in outfiles]
-                all_output_files += outfiles
-                args = [x.replace("@INPUT@", infilename).replace('@OUTPUT@', sole_output)\
-                        for x in base_args]
-                args = [x.replace("@SOURCE_DIR@", self.environment.get_source_dir()).replace("@BUILD_DIR@", self.get_target_private_dir_abs(target))
-                        for x in args]
-                fullcmd = [exe_file] + args
-                cbs = ET.SubElement(idgroup, 'CustomBuildStep')
-                ET.SubElement(cbs, 'Command').text = ' '.join(self.special_quote(fullcmd))
-                ET.SubElement(cbs, 'Inputs').text = infilename
-                ET.SubElement(cbs, 'Outputs').text = ';'.join(outfiles)
-                ET.SubElement(cbs, 'Message').text = 'Generating sources from %s.' % infilename
+                    exe_file = exe.get_command()
+                base_args = generator.get_arglist()
+                for i in range(len(infilelist)):
+                    if len(infilelist) == len(outfilelist):
+                        sole_output = os.path.join(self.get_target_private_dir_abs(target), outfilelist[i])
+                    else:
+                        sole_output = ''
+                    curfile = infilelist[i]
+                    infilename = os.path.join(self.environment.get_source_dir(), curfile)
+                    outfiles = genlist.get_outputs_for(curfile)
+                    outfiles = [os.path.join(self.get_target_private_dir_abs(target), of) for of in outfiles]
+                    all_output_files += outfiles
+                    args = [x.replace("@INPUT@", infilename).replace('@OUTPUT@', sole_output)\
+                            for x in base_args]
+                    args = [x.replace("@SOURCE_DIR@", self.environment.get_source_dir()).replace("@BUILD_DIR@", self.get_target_private_dir_abs(target))
+                            for x in args]
+                    fullcmd = [exe_file] + args
+                    cbs = ET.SubElement(idgroup, 'CustomBuildStep')
+                    ET.SubElement(cbs, 'Command').text = ' '.join(self.special_quote(fullcmd))
+                    ET.SubElement(cbs, 'Inputs').text = infilename
+                    ET.SubElement(cbs, 'Outputs').text = ';'.join(outfiles)
+                    ET.SubElement(cbs, 'Message').text = 'Generating sources from %s.' % infilename
         pg = ET.SubElement(parent_node, 'PropertyGroup')
         ET.SubElement(pg, 'CustomBuildBeforeTargets').text = 'ClCompile'
         return all_output_files
@@ -99,6 +103,26 @@ class Vs2010Backend(backends.Backend):
                 result[o.target.get_basename()] = True
         return result.keys()
 
+    def determine_deps(self, p):
+        all_deps = {}
+        target = self.build.targets[p[0]]
+        if isinstance(target, build.CustomTarget):
+            for d in target.dependencies:
+                all_deps[d.get_id()] = True
+            return all_deps
+        for ldep in target.link_targets:
+            all_deps[ldep.get_id()] = True
+        for objdep in self.get_obj_target_deps(target.objects):
+            all_deps[objdep] = True
+        for gendep in target.generated:
+            if isinstance(gendep, build.CustomTarget):
+                all_deps[gendep.get_id()] = True
+            else:
+                gen_exe = gendep.generator.get_exe()
+                if isinstance(gen_exe, build.Executable):
+                    all_deps[gen_exe.get_id()] = True
+        return all_deps
+
     def generate_solution(self, sln_filename, projlist):
         ofile = open(sln_filename, 'w')
         ofile.write('Microsoft Visual Studio Solution File, Format Version 11.00\n')
@@ -107,15 +131,7 @@ class Vs2010Backend(backends.Backend):
         for p in projlist:
             prj_line = prj_templ % (self.environment.coredata.guid, p[0], p[1], p[2])
             ofile.write(prj_line)
-            all_deps = {}
-            for ldep in self.build.targets[p[0]].link_targets:
-                all_deps[ldep.get_id()] = True
-            for objdep in self.get_obj_target_deps(self.build.targets[p[0]].objects):
-                all_deps[objdep] = True
-            for gendep in self.build.targets[p[0]].generated:
-                gen_exe = gendep.generator.get_exe()
-                if isinstance(gen_exe, build.Executable):
-                    all_deps[gen_exe.get_id()] = True
+            all_deps = self.determine_deps(p)
             ofile.write('\tProjectSection(ProjectDependencies) = postProject\n')
             regen_guid = self.environment.coredata.regen_guid
             ofile.write('\t\t{%s} = {%s}\n' % (regen_guid, regen_guid))
@@ -191,9 +207,57 @@ class Vs2010Backend(backends.Backend):
         return ['&quot;%s&quot;' % i for i in arr]
 
     def gen_custom_target_vcxproj(self, target, ofname, guid):
-        raise NotImplementedError('Custom target not implemented yet. Sorry.')
+        buildtype = self.environment.coredata.buildtype
+        platform = "Win32"
+        project_name = target.name
+        root = ET.Element('Project', {'DefaultTargets' : "Build",
+                                      'ToolsVersion' : '4.0',
+                                      'xmlns' : 'http://schemas.microsoft.com/developer/msbuild/2003'})
+        confitems = ET.SubElement(root, 'ItemGroup', {'Label' : 'ProjectConfigurations'})
+        prjconf = ET.SubElement(confitems, 'ProjectConfiguration', {'Include' : 'Debug|Win32'})
+        p = ET.SubElement(prjconf, 'Configuration')
+        p.text= buildtype
+        pl = ET.SubElement(prjconf, 'Platform')
+        pl.text = platform
+        globalgroup = ET.SubElement(root, 'PropertyGroup', Label='Globals')
+        guidelem = ET.SubElement(globalgroup, 'ProjectGuid')
+        guidelem.text = self.environment.coredata.test_guid
+        kw = ET.SubElement(globalgroup, 'Keyword')
+        kw.text = 'Win32Proj'
+        p = ET.SubElement(globalgroup, 'Platform')
+        p.text= platform
+        pname= ET.SubElement(globalgroup, 'ProjectName')
+        pname.text = project_name
+        ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.Default.props')
+        type_config = ET.SubElement(root, 'PropertyGroup', Label='Configuration')
+        ET.SubElement(type_config, 'ConfigurationType')
+        ET.SubElement(type_config, 'CharacterSet').text = 'MultiByte'
+        ET.SubElement(type_config, 'UseOfMfc').text = 'false'
+        ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.props')
+        direlem = ET.SubElement(root, 'PropertyGroup')
+        fver = ET.SubElement(direlem, '_ProjectFileVersion')
+        fver.text = self.project_file_version
+        outdir = ET.SubElement(direlem, 'OutDir')
+        outdir.text = '.\\'
+        intdir = ET.SubElement(direlem, 'IntDir')
+        intdir.text = 'test-temp\\'
+        tname = ET.SubElement(direlem, 'TargetName')
+        tname.text = target.name
+        action = ET.SubElement(root, 'ItemDefinitionGroup')
+        customstep = ET.SubElement(action, 'CustomBuildStep')
+        (srcs, ofilenames, cmd) = self.eval_custom_target_command(target)
+        cmd_templ = '''"%s" '''*len(cmd)
+        ET.SubElement(customstep, 'Command').text = cmd_templ % tuple(cmd)
+        ET.SubElement(customstep, 'Outputs').text = ';'.join([os.path.join(self.environment.get_build_dir(), i)\
+                                                              for i in ofilenames])
+        ET.SubElement(customstep, 'Inputs').text = ';'.join([os.path.join(self.environment.get_build_dir(), i) \
+                                                             for i in srcs])
+        ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.targets')
+        tree = ET.ElementTree(root)
+        tree.write(ofname, encoding='utf-8', xml_declaration=True)
 
     def gen_vcxproj(self, target, ofname, guid, compiler):
+        mlog.debug('Generating vcxproj %s.' % target.name)
         entrypoint = 'WinMainCRTStartup'
         subsystem = 'Windows'
         if isinstance(target, build.Executable):
@@ -207,7 +271,7 @@ class Vs2010Backend(backends.Backend):
             conftype = 'DynamicLibrary'
             entrypoint = '_DllMainCrtStartup'
         elif isinstance(target, build.CustomTarget):
-            self.gen_custom_target_vcxproj(target, ofname, guid)
+            return self.gen_custom_target_vcxproj(target, ofname, guid)
         else:
             raise MesonException('Unknown target type for %s' % target.get_basename())
         down = self.target_to_build_root(target)
