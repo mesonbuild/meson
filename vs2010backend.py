@@ -15,6 +15,7 @@
 import os, sys
 import pickle
 import backends, build
+import dependencies
 import mlog
 import xml.etree.ElementTree as ET
 import xml.dom.minidom
@@ -110,6 +111,11 @@ class Vs2010Backend(backends.Backend):
             for d in target.dependencies:
                 all_deps[d.get_id()] = True
             return all_deps
+        if isinstance(target, build.RunTarget):
+            for d in [target.command] + target.args:
+                if isinstance(d, build.BuildTarget):
+                    all_deps[d.get_id()] = True
+                return all_deps
         for ldep in target.link_targets:
             all_deps[ldep.get_id()] = True
         for objdep in self.get_obj_target_deps(target.objects):
@@ -157,7 +163,8 @@ class Vs2010Backend(backends.Backend):
         ofile.write('\t\t{%s}.Debug|Win32.Build.0 = Debug|Win32\n' % self.environment.coredata.regen_guid)
         for p in projlist:
             ofile.write('\t\t{%s}.Debug|Win32.ActiveCfg = Debug|Win32\n' % p[2])
-            ofile.write('\t\t{%s}.Debug|Win32.Build.0 = Debug|Win32\n' % p[2])
+            if not isinstance(self.build.targets[p[0]], build.RunTarget):
+                ofile.write('\t\t{%s}.Debug|Win32.Build.0 = Debug|Win32\n' % p[2])
         ofile.write('\t\t{%s}.Debug|Win32.ActiveCfg = Debug|Win32\n' % self.environment.coredata.test_guid)
         ofile.write('\tEndGlobalSection\n')
         ofile.write('\tGlobalSection(SolutionProperties) = preSolution\n')
@@ -206,7 +213,7 @@ class Vs2010Backend(backends.Backend):
     def special_quote(self, arr):
         return ['&quot;%s&quot;' % i for i in arr]
 
-    def gen_custom_target_vcxproj(self, target, ofname, guid):
+    def create_basic_crap(self, target):
         buildtype = self.environment.coredata.buildtype
         platform = "Win32"
         project_name = target.name
@@ -243,6 +250,32 @@ class Vs2010Backend(backends.Backend):
         intdir.text = 'test-temp\\'
         tname = ET.SubElement(direlem, 'TargetName')
         tname.text = target.name
+        return root
+
+    def gen_run_target_vcxproj(self, target, ofname, guid):
+        root = self.create_basic_crap(target)
+        action = ET.SubElement(root, 'ItemDefinitionGroup')
+        customstep = ET.SubElement(action, 'PostBuildEvent')
+        cmd_raw = [target.command] + target.args
+        cmd = [sys.executable, os.path.join(self.environment.get_script_dir(), 'commandrunner.py'),
+               self.environment.get_build_dir(), self.environment.get_source_dir(),
+               self.get_target_dir(target)]
+        for i in cmd_raw:
+            if isinstance(i, build.BuildTarget):
+                cmd.append(os.path.join(self.environment.get_build_dir(), self.get_target_filename(i)))
+            elif isinstance(i, dependencies.ExternalProgram):
+                cmd += i.fullpath
+            else:
+                cmd.append(i)
+        cmd_templ = '''"%s" '''*len(cmd)
+        ET.SubElement(customstep, 'Command').text = cmd_templ % tuple(cmd)
+        ET.SubElement(customstep, 'Message').text = 'Running custom command.'
+        ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.targets')
+        tree = ET.ElementTree(root)
+        tree.write(ofname, encoding='utf-8', xml_declaration=True)
+
+    def gen_custom_target_vcxproj(self, target, ofname, guid):
+        root = self.create_basic_crap(target)
         action = ET.SubElement(root, 'ItemDefinitionGroup')
         customstep = ET.SubElement(action, 'CustomBuildStep')
         (srcs, ofilenames, cmd) = self.eval_custom_target_command(target, True)
@@ -272,6 +305,8 @@ class Vs2010Backend(backends.Backend):
             entrypoint = '_DllMainCrtStartup'
         elif isinstance(target, build.CustomTarget):
             return self.gen_custom_target_vcxproj(target, ofname, guid)
+        elif isinstance(target, build.RunTarget):
+            return self.gen_run_target_vcxproj(target, ofname, guid)
         else:
             raise MesonException('Unknown target type for %s' % target.get_basename())
         down = self.target_to_build_root(target)
