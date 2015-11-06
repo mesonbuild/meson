@@ -382,12 +382,21 @@ class Vs2010Backend(backends.Backend):
         # SUCKS, VS can not handle per-language type flags, so just use
         # them all.
         extra_args += compiler.get_buildtype_args(self.buildtype)
+        for l in self.environment.coredata.external_args.values():
+            for a in l:
+                extra_args.append(a)
         for l in self.build.global_args.values():
             for a in l:
                 extra_args.append(a)
         for l in target.extra_args.values():
             for a in l:
                 extra_args.append(a)
+        # FIXME all the internal flags of VS (optimization etc) are represented
+        # by their own XML elements. In theory we should split all flags to those
+        # that have an XML element and those that don't and serialise them
+        # properly. This is a crapton of work for no real gain, so just dump them
+        # here.
+        extra_args = compiler.get_option_compile_args(self.environment.coredata.compiler_options)
         if len(extra_args) > 0:
             extra_args.append('%(AdditionalOptions)')
             ET.SubElement(clconf, "AdditionalOptions").text = ' '.join(extra_args)
@@ -413,6 +422,19 @@ class Vs2010Backend(backends.Backend):
         resourcecompile = ET.SubElement(compiles, 'ResourceCompile')
         ET.SubElement(resourcecompile, 'PreprocessorDefinitions')
         link = ET.SubElement(compiles, 'Link')
+        # Put all language args here, too.
+        extra_link_args = compiler.get_option_link_args(self.environment.coredata.compiler_options)
+        extra_link_args += compiler.get_buildtype_linker_args(self.buildtype)
+        for l in self.environment.coredata.external_link_args.values():
+            for a in l:
+                extra_link_args.append(a)
+        for l in target.link_args:
+            for a in l:
+                extra_link_args.append(a)
+        if len(extra_args) > 0:
+            extra_args.append('%(AdditionalOptions)')
+            ET.SubElement(link, "AdditionalOptions").text = ' '.join(extra_args)
+
         additional_links = []
         for t in target.link_targets:
             lobj = self.build.targets[t.get_id()]
