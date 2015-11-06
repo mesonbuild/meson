@@ -77,6 +77,8 @@ class Vs2010Backend(backends.Backend):
 
     def generate(self, interp):
         self.interpreter = interp
+        self.platform = 'Win32'
+        self.buildtype = self.environment.coredata.get_builtin_option('buildtype')
         self.generate_pkgconfig_files()
         sln_filename = os.path.join(self.environment.get_build_dir(), self.build.project_name + '.sln')
         projlist = self.generate_projects()
@@ -214,8 +216,6 @@ class Vs2010Backend(backends.Backend):
         return ['&quot;%s&quot;' % i for i in arr]
 
     def create_basic_crap(self, target):
-        buildtype = self.environment.coredata.buildtype
-        platform = "Win32"
         project_name = target.name
         root = ET.Element('Project', {'DefaultTargets' : "Build",
                                       'ToolsVersion' : '4.0',
@@ -223,16 +223,16 @@ class Vs2010Backend(backends.Backend):
         confitems = ET.SubElement(root, 'ItemGroup', {'Label' : 'ProjectConfigurations'})
         prjconf = ET.SubElement(confitems, 'ProjectConfiguration', {'Include' : 'Debug|Win32'})
         p = ET.SubElement(prjconf, 'Configuration')
-        p.text= buildtype
+        p.text= self.buildtype
         pl = ET.SubElement(prjconf, 'Platform')
-        pl.text = platform
+        pl.text = self.platform
         globalgroup = ET.SubElement(root, 'PropertyGroup', Label='Globals')
         guidelem = ET.SubElement(globalgroup, 'ProjectGuid')
         guidelem.text = self.environment.coredata.test_guid
         kw = ET.SubElement(globalgroup, 'Keyword')
         kw.text = 'Win32Proj'
         p = ET.SubElement(globalgroup, 'Platform')
-        p.text= platform
+        p.text= self.platform
         pname= ET.SubElement(globalgroup, 'ProjectName')
         pname.text = project_name
         ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.Default.props')
@@ -313,7 +313,7 @@ class Vs2010Backend(backends.Backend):
         proj_to_src_root = os.path.join(down, self.build_to_src)
         proj_to_src_dir = os.path.join(proj_to_src_root, target.subdir)
         (sources, headers) = self.split_sources(target.sources)
-        buildtype = self.environment.coredata.buildtype
+        buildtype = self.buildtype
         platform = "Win32"
         project_name = target.name
         target_name = target.name
@@ -370,7 +370,7 @@ class Vs2010Backend(backends.Backend):
         extra_args = []
         # SUCKS, VS can not handle per-language type flags, so just use
         # them all.
-        extra_args += compiler.get_buildtype_args(self.environment.coredata.buildtype)
+        extra_args += compiler.get_buildtype_args(self.buildtype)
         for l in self.build.global_args.values():
             for a in l:
                 extra_args.append(a)
@@ -467,24 +467,22 @@ class Vs2010Backend(backends.Backend):
         open(ofname, 'w').write(txt.replace('&amp;quot;', '&quot;'))
 
     def gen_regenproj(self, project_name, ofname):
-        buildtype = self.environment.coredata.buildtype
-        platform = "Win32"
         root = ET.Element('Project', {'DefaultTargets': 'Build',
                                       'ToolsVersion' : '4.0',
                                       'xmlns' : 'http://schemas.microsoft.com/developer/msbuild/2003'})
         confitems = ET.SubElement(root, 'ItemGroup', {'Label' : 'ProjectConfigurations'})
         prjconf = ET.SubElement(confitems, 'ProjectConfiguration', {'Include' : 'Debug|Win32'})
         p = ET.SubElement(prjconf, 'Configuration')
-        p.text= buildtype
+        p.text= self.buildtype
         pl = ET.SubElement(prjconf, 'Platform')
-        pl.text = platform
+        pl.text = self.platform
         globalgroup = ET.SubElement(root, 'PropertyGroup', Label='Globals')
         guidelem = ET.SubElement(globalgroup, 'ProjectGuid')
         guidelem.text = self.environment.coredata.test_guid
         kw = ET.SubElement(globalgroup, 'Keyword')
         kw.text = 'Win32Proj'
         p = ET.SubElement(globalgroup, 'Platform')
-        p.text= platform
+        p.text = self.platform
         pname= ET.SubElement(globalgroup, 'ProjectName')
         pname.text = project_name
         ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.Default.props')
@@ -539,8 +537,6 @@ if %%errorlevel%% neq 0 goto :VCEnd'''
         tree.write(ofname, encoding='utf-8', xml_declaration=True)
 
     def gen_testproj(self, target_name, ofname):
-        buildtype = self.environment.coredata.buildtype
-        platform = "Win32"
         project_name = target_name
         root = ET.Element('Project', {'DefaultTargets' : "Build",
                                       'ToolsVersion' : '4.0',
@@ -548,16 +544,16 @@ if %%errorlevel%% neq 0 goto :VCEnd'''
         confitems = ET.SubElement(root, 'ItemGroup', {'Label' : 'ProjectConfigurations'})
         prjconf = ET.SubElement(confitems, 'ProjectConfiguration', {'Include' : 'Debug|Win32'})
         p = ET.SubElement(prjconf, 'Configuration')
-        p.text= buildtype
+        p.text= self.buildtype
         pl = ET.SubElement(prjconf, 'Platform')
-        pl.text = platform
+        pl.text = self.platform
         globalgroup = ET.SubElement(root, 'PropertyGroup', Label='Globals')
         guidelem = ET.SubElement(globalgroup, 'ProjectGuid')
         guidelem.text = self.environment.coredata.test_guid
         kw = ET.SubElement(globalgroup, 'Keyword')
         kw.text = 'Win32Proj'
         p = ET.SubElement(globalgroup, 'Platform')
-        p.text= platform
+        p.text= self.platform
         pname= ET.SubElement(globalgroup, 'ProjectName')
         pname.text = project_name
         ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.Default.props')
