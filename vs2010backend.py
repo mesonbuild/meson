@@ -245,7 +245,7 @@ class Vs2010Backend(backends.Backend):
         tname.text = target.name
         action = ET.SubElement(root, 'ItemDefinitionGroup')
         customstep = ET.SubElement(action, 'CustomBuildStep')
-        (srcs, ofilenames, cmd) = self.eval_custom_target_command(target)
+        (srcs, ofilenames, cmd) = self.eval_custom_target_command(target, True)
         cmd_templ = '''"%s" '''*len(cmd)
         ET.SubElement(customstep, 'Command').text = cmd_templ % tuple(cmd)
         ET.SubElement(customstep, 'Outputs').text = ';'.join([os.path.join(self.environment.get_build_dir(), i)\

@@ -351,14 +351,20 @@ class Backend():
                 deps.append(os.path.join(self.build_to_src, sp, 'meson_options.txt'))
         return deps
 
-    def eval_custom_target_command(self, target):
+    def eval_custom_target_command(self, target, absolute_paths=False):
         ofilenames = [os.path.join(self.get_target_dir(target), i) for i in target.output]
         srcs = []
+        outdir = self.get_target_dir(target)
+        if absolute_paths:
+            outdir = os.path.join(self.environment.get_build_dir(), outdir)
         for i in target.sources:
             if isinstance(i, str):
-                srcs.append(os.path.join(self.build_to_src, target.subdir, i))
+                fname = os.path.join(self.build_to_src, target.subdir, i)
             else:
-                srcs.append(i.rel_to_builddir(self.build_to_src))
+                fname = i.rel_to_builddir(self.build_to_src)
+            if absolute_paths:
+                fname = os.path.join(self.environment.get_build_dir(), fname)
+            srcs.append(fname)
         cmd = []
         for i in target.command:
             if isinstance(i, build.CustomTarget):
@@ -376,17 +382,18 @@ class Backend():
                 cmd += ofilenames
             else:
                 if '@OUTDIR@' in i:
-                    i = i.replace('@OUTDIR@', self.get_target_dir(target))
+                    i = i.replace('@OUTDIR@', outdir)
                 elif '@PRIVATE_OUTDIR_' in i:
                     match = re.search('@PRIVATE_OUTDIR_(ABS_)?([-a-zA-Z0-9.@:]*)@', i)
                     source = match.group(0)
-                    if match.group(1) is None:
+                    if match.group(1) is None and not absolute_paths:
                         lead_dir = ''
                     else:
                         lead_dir = self.environment.get_build_dir()
                     target_id = match.group(2)
                     i = i.replace(source,
                                   os.path.join(lead_dir,
-                                               self.get_target_dir(self.build.targets[target_id])))
+                                               self.get_target_private_dir(self.build.targets[target_id])))
                 cmd.append(i)
+        cmd = [i.replace('\\', '/') for i in cmd]
         return (srcs, ofilenames, cmd)
