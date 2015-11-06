@@ -158,16 +158,26 @@ class Vs2010Backend(backends.Backend):
         ofile.write('EndProject\n')
         ofile.write('Global\n')
         ofile.write('\tGlobalSection(SolutionConfigurationPlatforms) = preSolution\n')
-        ofile.write('\t\tDebug|Win32 = Debug|Win32\n')
+        ofile.write('\t\t%s|%s = %s|%s\n' % (self.buildtype, self.platform, self.buildtype, self.platform))
         ofile.write('\tEndGlobalSection\n')
         ofile.write('\tGlobalSection(ProjectConfigurationPlatforms) = postSolution\n')
-        ofile.write('\t\t{%s}.Debug|Win32.ActiveCfg = Debug|Win32\n' % self.environment.coredata.regen_guid)
-        ofile.write('\t\t{%s}.Debug|Win32.Build.0 = Debug|Win32\n' % self.environment.coredata.regen_guid)
+        ofile.write('\t\t{%s}.%s|%s.ActiveCfg = %s|%s\n' % 
+                    (self.environment.coredata.regen_guid, self.buildtype, self.platform,
+                     self.buildtype, self.platform))
+        ofile.write('\t\t{%s}.%s|%s.Build.0 = %s|%s\n' % 
+                    (self.environment.coredata.regen_guid, self.buildtype, self.platform,
+                     self.buildtype, self.platform))
         for p in projlist:
-            ofile.write('\t\t{%s}.Debug|Win32.ActiveCfg = Debug|Win32\n' % p[2])
+            ofile.write('\t\t{%s}.%s|%s.ActiveCfg = %s|%s\n' % 
+                        (p[2], self.buildtype, self.platform,
+                         self.buildtype, self.platform))
             if not isinstance(self.build.targets[p[0]], build.RunTarget):
-                ofile.write('\t\t{%s}.Debug|Win32.Build.0 = Debug|Win32\n' % p[2])
-        ofile.write('\t\t{%s}.Debug|Win32.ActiveCfg = Debug|Win32\n' % self.environment.coredata.test_guid)
+                ofile.write('\t\t{%s}.%s|%s.Build.0 = %s|%s\n' %
+                            (p[2], self.buildtype, self.platform,
+                             self.buildtype, self.platform))
+        ofile.write('\t\t{%s}.%s|%s.ActiveCfg = %s|%s\n' % 
+                    (self.environment.coredata.test_guid, self.buildtype, self.platform,
+                     self.buildtype, self.platform))
         ofile.write('\tEndGlobalSection\n')
         ofile.write('\tGlobalSection(SolutionProperties) = preSolution\n')
         ofile.write('\t\tHideSolutionNode = FALSE\n')
@@ -221,7 +231,8 @@ class Vs2010Backend(backends.Backend):
                                       'ToolsVersion' : '4.0',
                                       'xmlns' : 'http://schemas.microsoft.com/developer/msbuild/2003'})
         confitems = ET.SubElement(root, 'ItemGroup', {'Label' : 'ProjectConfigurations'})
-        prjconf = ET.SubElement(confitems, 'ProjectConfiguration', {'Include' : 'Debug|Win32'})
+        prjconf = ET.SubElement(confitems, 'ProjectConfiguration',
+                                {'Include' : self.buildtype + '|' + self.platform})
         p = ET.SubElement(prjconf, 'Configuration')
         p.text= self.buildtype
         pl = ET.SubElement(prjconf, 'Platform')
@@ -230,7 +241,7 @@ class Vs2010Backend(backends.Backend):
         guidelem = ET.SubElement(globalgroup, 'ProjectGuid')
         guidelem.text = self.environment.coredata.test_guid
         kw = ET.SubElement(globalgroup, 'Keyword')
-        kw.text = 'Win32Proj'
+        kw.text = self.platform + 'Proj'
         p = ET.SubElement(globalgroup, 'Platform')
         p.text= self.platform
         pname= ET.SubElement(globalgroup, 'ProjectName')
@@ -314,27 +325,27 @@ class Vs2010Backend(backends.Backend):
         proj_to_src_dir = os.path.join(proj_to_src_root, target.subdir)
         (sources, headers) = self.split_sources(target.sources)
         buildtype = self.buildtype
-        platform = "Win32"
         project_name = target.name
         target_name = target.name
         root = ET.Element('Project', {'DefaultTargets' : "Build",
                                       'ToolsVersion' : '4.0',
                                       'xmlns' : 'http://schemas.microsoft.com/developer/msbuild/2003'})
         confitems = ET.SubElement(root, 'ItemGroup', {'Label' : 'ProjectConfigurations'})
-        prjconf = ET.SubElement(confitems, 'ProjectConfiguration', {'Include' : 'Debug|Win32'})
+        prjconf = ET.SubElement(confitems, 'ProjectConfiguration',
+                                {'Include' : self.buildtype + '|' + self.platform})
         p = ET.SubElement(prjconf, 'Configuration')
         p.text= buildtype
         pl = ET.SubElement(prjconf, 'Platform')
-        pl.text = platform
+        pl.text = self.platform
         globalgroup = ET.SubElement(root, 'PropertyGroup', Label='Globals')
         guidelem = ET.SubElement(globalgroup, 'ProjectGuid')
         guidelem.text = guid
         kw = ET.SubElement(globalgroup, 'Keyword')
-        kw.text = 'Win32Proj'
+        kw.text = self.platform + 'Proj'
         ns = ET.SubElement(globalgroup, 'RootNamespace')
         ns.text = target_name
         p = ET.SubElement(globalgroup, 'Platform')
-        p.text= platform
+        p.text= self.platform
         pname= ET.SubElement(globalgroup, 'ProjectName')
         pname.text = project_name
         ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.Default.props')
@@ -471,7 +482,8 @@ class Vs2010Backend(backends.Backend):
                                       'ToolsVersion' : '4.0',
                                       'xmlns' : 'http://schemas.microsoft.com/developer/msbuild/2003'})
         confitems = ET.SubElement(root, 'ItemGroup', {'Label' : 'ProjectConfigurations'})
-        prjconf = ET.SubElement(confitems, 'ProjectConfiguration', {'Include' : 'Debug|Win32'})
+        prjconf = ET.SubElement(confitems, 'ProjectConfiguration', 
+                                {'Include' : self.buildtype + '|' + self.platform})
         p = ET.SubElement(prjconf, 'Configuration')
         p.text= self.buildtype
         pl = ET.SubElement(prjconf, 'Platform')
@@ -480,7 +492,7 @@ class Vs2010Backend(backends.Backend):
         guidelem = ET.SubElement(globalgroup, 'ProjectGuid')
         guidelem.text = self.environment.coredata.test_guid
         kw = ET.SubElement(globalgroup, 'Keyword')
-        kw.text = 'Win32Proj'
+        kw.text = self.platform + 'Proj'
         p = ET.SubElement(globalgroup, 'Platform')
         p.text = self.platform
         pname= ET.SubElement(globalgroup, 'ProjectName')
@@ -542,7 +554,8 @@ if %%errorlevel%% neq 0 goto :VCEnd'''
                                       'ToolsVersion' : '4.0',
                                       'xmlns' : 'http://schemas.microsoft.com/developer/msbuild/2003'})
         confitems = ET.SubElement(root, 'ItemGroup', {'Label' : 'ProjectConfigurations'})
-        prjconf = ET.SubElement(confitems, 'ProjectConfiguration', {'Include' : 'Debug|Win32'})
+        prjconf = ET.SubElement(confitems, 'ProjectConfiguration',
+                                {'Include' : self.buildtype + '|' + self.platform})
         p = ET.SubElement(prjconf, 'Configuration')
         p.text= self.buildtype
         pl = ET.SubElement(prjconf, 'Platform')
@@ -551,7 +564,7 @@ if %%errorlevel%% neq 0 goto :VCEnd'''
         guidelem = ET.SubElement(globalgroup, 'ProjectGuid')
         guidelem.text = self.environment.coredata.test_guid
         kw = ET.SubElement(globalgroup, 'Keyword')
-        kw.text = 'Win32Proj'
+        kw.text = self.platform + 'Proj'
         p = ET.SubElement(globalgroup, 'Platform')
         p.text= self.platform
         pname= ET.SubElement(globalgroup, 'ProjectName')
