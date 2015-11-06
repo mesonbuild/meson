@@ -26,7 +26,7 @@ parser.add_argument('-D', action='append', default=[], dest='sets',
                     help='Set an option to the given value.')
 parser.add_argument('directory', nargs='*')
 
-class ConfException(Exception):
+class ConfException(coredata.MesonException):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -69,55 +69,8 @@ class Conf:
             if '=' not in o:
                 raise ConfException('Value "%s" not of type "a=b".' % o)
             (k, v) = o.split('=', 1)
-            if k == 'buildtype':
-                if v not in build_types:
-                    raise ConfException('Invalid build type %s.' % v)
-                self.coredata.buildtype = v
-            elif k == 'layout':
-                if v not in layouts:
-                    raise ConfException('Invalid layout type %s.' % v)
-                self.coredata.layout = v
-            elif k == 'warnlevel':
-                if not v in warning_levels:
-                    raise ConfException('Invalid warning level %s.' % v)
-                self.coredata.warning_level = v
-            elif k == 'strip':
-                self.coredata.strip = self.tobool(v)
-            elif k == 'coverage':
-                v = self.tobool(v)
-                self.coredata.coverage = self.tobool(v)
-            elif k == 'pch':
-                self.coredata.use_pch = self.tobool(v)
-            elif k == 'unity':
-                self.coredata.unity = self.tobool(v)
-            elif k == 'prefix':
-                if not os.path.isabs(v):
-                    raise ConfException('Install prefix %s is not an absolute path.' % v)
-                self.coredata.prefix = v
-            elif k == 'libdir':
-                if os.path.isabs(v):
-                    raise ConfException('Library dir %s must not be an absolute path.' % v)
-                self.coredata.libdir = v
-            elif k == 'bindir':
-                if os.path.isabs(v):
-                    raise ConfException('Binary dir %s must not be an absolute path.' % v)
-                self.coredata.bindir = v
-            elif k == 'includedir':
-                if os.path.isabs(v):
-                    raise ConfException('Include dir %s must not be an absolute path.' % v)
-                self.coredata.includedir = v
-            elif k == 'datadir':
-                if os.path.isabs(v):
-                    raise ConfException('Data dir %s must not be an absolute path.' % v)
-                self.coredata.datadir = v
-            elif k == 'mandir':
-                if os.path.isabs(v):
-                    raise ConfException('Man dir %s must not be an absolute path.' % v)
-                self.coredata.mandir = v
-            elif k == 'localedir':
-                if os.path.isabs(v):
-                    raise ConfException('Locale dir %s must not be an absolute path.' % v)
-                self.coredata.localedir = v
+            if self.coredata.is_builtin_option(k):
+                self.coredata.set_builtin_option(k, v)
             elif k in self.coredata.user_options:
                 tgt = self.coredata.user_options[k]
                 tgt.set_value(v)
@@ -150,12 +103,13 @@ class Conf:
         print('')
         print('Core options\n')
         carr = []
-        carr.append(['buildtype', 'Build type', self.coredata.buildtype])
-        carr.append(['warnlevel', 'Warning level', self.coredata.warning_level])
-        carr.append(['strip', 'Strip on install', self.coredata.strip])
-        carr.append(['coverage', 'Coverage report', self.coredata.coverage])
-        carr.append(['pch', 'Precompiled headers', self.coredata.use_pch])
-        carr.append(['unity', 'Unity build', self.coredata.unity])
+        carr.append(['buildtype', 'Build type', self.coredata.get_builtin_option('buildtype')])
+        carr.append(['warning_level', 'Warning level', self.coredata.get_builtin_option('warning_level')])
+        carr.append(['strip', 'Strip on install', self.coredata.get_builtin_option('strip')])
+        carr.append(['coverage', 'Coverage report', self.coredata.get_builtin_option('coverage')])
+        carr.append(['use_pch', 'Precompiled headers', self.coredata.get_builtin_option('use_pch')])
+        carr.append(['unity', 'Unity build', self.coredata.get_builtin_option('unity')])
+        carr.append(['default_library', 'Default library type', self.coredata.get_builtin_option('default_library')])
         self.print_aligned(carr)
         print('')
         print('Compiler arguments\n')
@@ -179,13 +133,13 @@ class Conf:
         print('')
         print('Directories\n')
         parr = []
-        parr.append(['prefix', 'Install prefix', self.coredata.prefix])
-        parr.append(['libdir', 'Library directory', self.coredata.libdir])
-        parr.append(['bindir', 'Binary directory', self.coredata.bindir])
-        parr.append(['includedir', 'Header directory', self.coredata.includedir])
-        parr.append(['datadir', 'Data directory', self.coredata.datadir])
-        parr.append(['mandir', 'Man page directory', self.coredata.mandir])
-        parr.append(['localedir', 'Locale file directory', self.coredata.localedir])
+        parr.append(['prefix', 'Install prefix', self.coredata.get_builtin_option('prefix')])
+        parr.append(['libdir', 'Library directory', self.coredata.get_builtin_option('libdir')])
+        parr.append(['bindir', 'Binary directory', self.coredata.get_builtin_option('bindir')])
+        parr.append(['includedir', 'Header directory', self.coredata.get_builtin_option('includedir')])
+        parr.append(['datadir', 'Data directory', self.coredata.get_builtin_option('datadir')])
+        parr.append(['mandir', 'Man page directory', self.coredata.get_builtin_option('mandir')])
+        parr.append(['localedir', 'Locale file directory', self.coredata.get_builtin_option('localedir')])
         self.print_aligned(parr)
         print('')
         if len(self.coredata.user_options) == 0:
@@ -218,7 +172,7 @@ if __name__ == '__main__':
             c.save()
         else:
             c.print_conf()
-    except ConfException as e:
+    except coredata.MesonException as e:
         print('Meson configurator encountered an error:\n')
         print(e)
 

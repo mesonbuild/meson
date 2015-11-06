@@ -68,7 +68,7 @@ class Backend():
         return filename
 
     def get_target_dir(self, target):
-        if self.environment.coredata.layout == 'mirror':
+        if self.environment.coredata.get_builtin_option('layout') == 'mirror':
             dirname = target.get_subdir()
         else:
             dirname = 'meson-out'
@@ -208,16 +208,16 @@ class Backend():
     def generate_basic_compiler_args(self, target, compiler):
         commands = []
         commands += compiler.get_always_args()
-        if self.environment.coredata.buildtype != 'plain':
-            commands += compiler.get_warn_args(self.environment.coredata.warning_level)
+        if self.environment.coredata.get_builtin_option('buildtype') != 'plain':
+            commands += compiler.get_warn_args(self.environment.coredata.get_builtin_option('warning_level'))
         commands += compiler.get_option_compile_args(self.environment.coredata.compiler_options)
         commands += self.build.get_global_args(compiler)
         commands += self.environment.coredata.external_args[compiler.get_language()]
         commands += target.get_extra_args(compiler.get_language())
-        commands += compiler.get_buildtype_args(self.environment.coredata.buildtype)
-        if self.environment.coredata.coverage:
+        commands += compiler.get_buildtype_args(self.environment.coredata.get_builtin_option('buildtype'))
+        if self.environment.coredata.get_builtin_option('coverage'):
             commands += compiler.get_coverage_args()
-        if self.environment.coredata.werror:
+        if self.environment.coredata.get_builtin_option('werror'):
             commands += compiler.get_werror_args()
         if isinstance(target, build.SharedLibrary):
             commands += compiler.get_pic_args()
@@ -302,9 +302,10 @@ class Backend():
             outdir = self.environment.scratch_dir
             fname = os.path.join(outdir, p.filebase + '.pc')
             ofile = open(fname, 'w')
-            ofile.write('prefix=%s\n' % self.environment.get_coredata().prefix)
-            ofile.write('libdir=${prefix}/%s\n' % self.environment.get_coredata().libdir)
-            ofile.write('includedir=${prefix}/%s\n\n' % self.environment.get_coredata().includedir)
+            coredata = self.environment.get_coredata()
+            ofile.write('prefix=%s\n' % coredata.get_builtin_option('prefix'))
+            ofile.write('libdir=${prefix}/%s\n' % coredata.get_builtin_option('libdir'))
+            ofile.write('includedir=${prefix}/%s\n\n' % coredata.get_builtin_option('includedir'))
             ofile.write('Name: %s\n' % p.name)
             if len(p.description) > 0:
                 ofile.write('Description: %s\n' % p.description)

@@ -855,7 +855,7 @@ class MesonMain(InterpreterObject):
         raise InterpreterException('Tried to access compiler for unspecified language "%s".' % cname)
 
     def is_unity_method(self, args, kwargs):
-        return self.build.environment.coredata.unity
+        return self.build.environment.coredata.get_builtin_option('unity')
 
     def is_subproject_method(self, args, kwargs):
         return self.interpreter.is_subproject()
@@ -933,6 +933,7 @@ class Interpreter():
                       'dependency' : self.func_dependency,
                       'static_library' : self.func_static_lib,
                       'shared_library' : self.func_shared_lib,
+                      'library' : self.func_library,
                       'jar' : self.func_jar,
                       'build_target': self.func_build_target,
                       'custom_target' : self.func_custom_target,
@@ -1351,9 +1352,10 @@ class Interpreter():
             if '=' not in option:
                 raise InterpreterException('All default options must be of type key=value.')
             key, value = option.split('=', 1)
-            if hasattr(self.coredata, key):
+            builtin_options = self.coredata.builtin_options
+            if key in builtin_options:
                 if not hasattr(self.environment.cmd_line_options, value):
-                    setattr(self.coredata, key, value)
+                    self.coredata.set_builtin_option(key, value)
                 # If this was set on the command line, do not override.
             else:
                 newoptions = [option] + self.environment.cmd_line_options.projectoptions
@@ -1579,6 +1581,11 @@ class Interpreter():
     def func_shared_lib(self, node, args, kwargs):
         return self.build_target(node, args, kwargs, SharedLibraryHolder)
 
+    def func_library(self, node, args, kwargs):
+        if self.coredata.get_builtin_option('default_library') == 'shared':
+            return self.func_shared_lib(node, args, kwargs)
+        return self.func_static_lib(node, args, kwargs)
+
     def func_jar(self, node, args, kwargs):
         return self.build_target(node, args, kwargs, JarHolder)
 
@@ -1592,6 +1599,8 @@ class Interpreter():
             return self.func_shared_lib(node, args, kwargs)
         elif target_type == 'static_library':
             return self.func_static_lib(node, args, kwargs)
+        elif target_type == 'library':
+            return self.func_library(node, args, kwargs)
         elif target_type == 'jar':
             return self.func_jar(node, args, kwargs)
         else:
@@ -2021,7 +2030,7 @@ class Interpreter():
         else:
             obj = self.evaluate_statement(invokable)
         method_name = node.name
-        if method_name == 'extract_objects' and self.environment.coredata.unity:
+        if method_name == 'extract_objects' and self.environment.coredata.get_builtin_option('unity'):
             raise InterpreterException('Single object files can not be extracted in Unity builds.')
         args = node.args
         if isinstance(obj, mparser.StringNode):

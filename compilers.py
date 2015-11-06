@@ -17,6 +17,7 @@ import tempfile
 import mesonlib
 import mlog
 from coredata import MesonException
+import coredata
 
 """This file contains the data files of all compilers Meson knows
 about. To support a new compiler, add its information below.
@@ -1017,7 +1018,7 @@ class VisualStudioCCompiler(CCompiler):
         return []
 
     def get_options(self):
-        return {'c_winlibs' : mesonlib.UserStringArrayOption('c_winlibs',
+        return {'c_winlibs' : coredata.UserStringArrayOption('c_winlibs',
                                                              'Windows libs to link against.',
                                                              msvc_winlibs)
                 }
@@ -1056,11 +1057,11 @@ class VisualStudioCPPCompiler(VisualStudioCCompiler):
             raise EnvironmentException('Executables created by C++ compiler %s are not runnable.' % self.name_string())
 
     def get_options(self):
-        return {'cpp_eh' : mesonlib.UserComboOption('cpp_eh',
+        return {'cpp_eh' : coredata.UserComboOption('cpp_eh',
                                                     'C++ exception handling type.',
                                                     ['none', 'a', 's', 'sc'],
                                                     'sc'),
-                'cpp_winlibs' : mesonlib.UserStringArrayOption('cpp_winlibs',
+                'cpp_winlibs' : coredata.UserStringArrayOption('cpp_winlibs',
                                                                'Windows libs to link against.',
                                                                msvc_winlibs)
                 }
@@ -1129,12 +1130,12 @@ class GnuCCompiler(CCompiler):
         return super().can_compile(filename) or filename.split('.')[-1].lower() == 's' # Gcc can do asm, too.
 
     def get_options(self):
-        opts = {'c_std' : mesonlib.UserComboOption('c_std', 'C language standard to use',
+        opts = {'c_std' : coredata.UserComboOption('c_std', 'C language standard to use',
                                                    ['none', 'c89', 'c99', 'c11', 'gnu89', 'gnu99', 'gnu11'],
                                                    'c11')}
         if self.gcc_type == GCC_MINGW:
             opts.update({
-                'c_winlibs': mesonlib.UserStringArrayOption('c_winlibs', 'Standard Win libraries to link against',
+                'c_winlibs': coredata.UserStringArrayOption('c_winlibs', 'Standard Win libraries to link against',
                                                             gnu_winlibs),
                 })
         return opts
@@ -1240,7 +1241,7 @@ class ClangCCompiler(CCompiler):
         return ['-include-pch', os.path.join (pch_dir, self.get_pch_name (header))]
 
     def get_options(self):
-        return {'c_std' : mesonlib.UserComboOption('c_std', 'C language standard to use',
+        return {'c_std' : coredata.UserComboOption('c_std', 'C language standard to use',
                                                    ['none', 'c89', 'c99', 'c11'],
                                                    'c11')}
 
@@ -1282,12 +1283,12 @@ class GnuCPPCompiler(CPPCompiler):
         return get_gcc_soname_args(self.gcc_type, shlib_name, path, soversion)
 
     def get_options(self):
-        opts = {'cpp_std' : mesonlib.UserComboOption('cpp_std', 'C language standard to use',
+        opts = {'cpp_std' : coredata.UserComboOption('cpp_std', 'C language standard to use',
                                                      ['none', 'c++03', 'c++11', 'c++1y'],
                                                      'c++11')}
         if self.gcc_type == GCC_MINGW:
             opts.update({
-                'cpp_winlibs': mesonlib.UserStringArrayOption('c_winlibs', 'Standard Win libraries to link against',
+                'cpp_winlibs': coredata.UserStringArrayOption('c_winlibs', 'Standard Win libraries to link against',
                                                               gnu_winlibs),
                 })
         return opts
@@ -1328,7 +1329,7 @@ class ClangCPPCompiler(CPPCompiler):
         return ['-include-pch', os.path.join (pch_dir, self.get_pch_name (header))]
 
     def get_options(self):
-        return {'cpp_std' : mesonlib.UserComboOption('cpp_std', 'C++ language standard to use',
+        return {'cpp_std' : coredata.UserComboOption('cpp_std', 'C++ language standard to use',
                                                    ['none', 'c++03', 'c++11', 'c++1y'],
                                                    'c++11')}
 
