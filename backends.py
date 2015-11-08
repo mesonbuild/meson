@@ -394,7 +394,7 @@ class Backend():
                     target_id = match.group(2)
                     i = i.replace(source,
                                   os.path.join(lead_dir,
-                                               self.get_target_private_dir(self.build.targets[target_id])))
+                                               outdir))
                 cmd.append(i)
         cmd = [i.replace('\\', '/') for i in cmd]
         return (srcs, ofilenames, cmd)
