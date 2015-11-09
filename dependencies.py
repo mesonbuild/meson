@@ -96,6 +96,7 @@ class PkgConfigDependency(Dependency):
             pkgbin = 'pkg-config'
             self.type_string = 'Native'
 
+        mlog.debug('Determining dependency %s with pkg-config executable %s.' % (name, pkgbin))
         self.pkgbin = pkgbin
         p = subprocess.Popen([pkgbin, '--modversion', name],
                              stdout=subprocess.PIPE,
