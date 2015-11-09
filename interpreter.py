@@ -176,6 +176,7 @@ class ConfigurationDataHolder(InterpreterObject):
         self.held_object = build.ConfigurationData()
         self.methods.update({'set': self.set_method,
                              'set10': self.set10_method,
+                             'has' : self.has_method,
                             })
 
     def is_used(self):
@@ -205,6 +206,9 @@ class ConfigurationDataHolder(InterpreterObject):
             self.held_object.values[name] = 1
         else:
             self.held_object.values[name] = 0
+
+    def has_method(self, args, kwargs):
+        return args[0] in self.held_object.values
 
     def get(self, name):
         return self.held_object.values[name]
