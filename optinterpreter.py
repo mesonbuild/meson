@@ -1,4 +1,4 @@
-# Copyright 2013-2015 The Meson development team
+# Copyright 2013-2014 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -41,7 +41,7 @@ optname_regex = re.compile('[^a-zA-Z0-9_-]')
 
 def StringParser(name, description, kwargs):
     return coredata.UserStringOption(name, description,
-                                     kwargs.get('value', ''))
+                                     kwargs.get('value', ''), kwargs.get('choices', []))
 
 def BooleanParser(name, description, kwargs):
     return coredata.UserBooleanOption(name, description, kwargs.get('value', True))
