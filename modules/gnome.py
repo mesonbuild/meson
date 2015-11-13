@@ -285,8 +285,8 @@ class GnomeModule:
                     raise MesonException('html_args values must be strings.')
         except KeyError:
             return[]
-        if len(html_args) > 0:
-            return ['--htmlargs=' + '@@'.join(new_args)]
+        if len(new_args) > 0:
+            return [arg + '@@'.join(new_args)]
         return []
 
     def gdbus_codegen(self, state, args, kwargs):
