@@ -1143,7 +1143,8 @@ rule FORTRAN_DEP_HACK
                         for x in base_args]
                 args = self.replace_outputs(args, self.get_target_private_dir_abs(target), outfilelist)
                 # We have consumed output files, so drop them from the list of remaining outputs.
-                outfilelist = outfilelist[len(generator.outputs):]
+                if sole_output == '':
+                    outfilelist = outfilelist[len(generator.outputs):]
                 relout = self.get_target_private_dir(target)
                 args = [x.replace("@SOURCE_DIR@", self.build_to_src).replace("@BUILD_DIR@", relout)
                         for x in args]
