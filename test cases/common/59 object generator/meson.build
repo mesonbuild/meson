@@ -18,7 +18,7 @@ gen = generator(python,
  output : outputname,
  arguments : [comp, cc, '@INPUT@', '@OUTPUT@'])
 
-generated = gen.process('source.c')
+generated = gen.process(['source.c', 'source2.c'])
 
 e = executable('prog', 'prog.c', generated)
 

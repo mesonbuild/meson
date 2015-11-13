@@ -1,5 +1,6 @@
-int func_in_obj();
+int func1_in_obj();
+int func2_in_obj();
 
 int main(int argc, char **argv) {
-    return func_in_obj();
+    return func1_in_obj() + func2_in_obj();
 }
