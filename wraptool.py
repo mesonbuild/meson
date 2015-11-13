@@ -18,12 +18,19 @@ import urllib.request, json
 import sys, os
 import configparser
 import shutil
+import platform
 try:
+    # FIXME for some unknown reason ssl connections
+    # fail on OSX. Thus fall back to unencrypted
+    # traffic.
+    if platform.system().lower() == 'darwin':
+        import nonexisting
     import ssl
     has_ssl = True
     API_ROOT = 'https://wrapdb.mesonbuild.com/v1/'
 except ImportError:
-    print('Warning: ssl not available, traffic not authenticated.')
+    print('Warning: ssl not available, traffic not authenticated.',
+          file=sys.stderr)
     has_ssl = False
     API_ROOT = 'http://wrapdb.mesonbuild.com/v1/'
 
