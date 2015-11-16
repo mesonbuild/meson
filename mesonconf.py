@@ -18,7 +18,7 @@ import sys, os
 import pickle
 import argparse
 import coredata, mesonlib
-from meson import build_types, layouts, warning_levels
+from coredata import build_types, layouts, warning_levels, libtypelist
 
 parser = argparse.ArgumentParser()
 
@@ -127,7 +127,7 @@ class Conf:
         carr.append(['coverage', 'Coverage report', self.coredata.get_builtin_option('coverage'), booleans])
         carr.append(['use_pch', 'Precompiled headers', self.coredata.get_builtin_option('use_pch'), booleans])
         carr.append(['unity', 'Unity build', self.coredata.get_builtin_option('unity'), booleans])
-        carr.append(['default_library', 'Default library type', self.coredata.get_builtin_option('default_library'), booleans])
+        carr.append(['default_library', 'Default library type', self.coredata.get_builtin_option('default_library'), libtypelist])
         self.print_aligned(carr)
         print('')
         print('Compiler arguments:')
