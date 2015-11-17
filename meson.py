@@ -73,7 +73,7 @@ parser.add_argument('--cross-file', default=None, dest='cross_file',
                     help='file describing cross compilation environment')
 parser.add_argument('-D', action='append', dest='projectoptions', default=[],
                     help='Set project options.')
-parser.add_argument('-v', action='store_true', dest='print_version', default=False,
+parser.add_argument('-v', '--version', action='store_true', dest='print_version', default=False,
                     help='Print version.')
 parser.add_argument('directories', nargs='*')
 
