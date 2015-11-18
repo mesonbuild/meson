@@ -29,10 +29,11 @@ try:
     has_ssl = True
     API_ROOT = 'https://wrapdb.mesonbuild.com/v1/'
 except ImportError:
-    print('Warning: ssl not available, traffic not authenticated.',
-          file=sys.stderr)
     has_ssl = False
     API_ROOT = 'http://wrapdb.mesonbuild.com/v1/'
+
+
+ssl_warning_printed = False
 
 from glob import glob
 
@@ -103,9 +104,14 @@ def build_ssl_context():
     return ctx
 
 def open_wrapdburl(urlstring):
+    global ssl_warning_printed
     if has_ssl:
         return urllib.request.urlopen(urlstring, context=build_ssl_context())
     else:
+        if not ssl_warning_printed:
+            print('Warning: ssl not available, traffic not authenticated.',
+                  file=sys.stderr)
+            ssl_warning_printed = True
         return urllib.request.urlopen(urlstring)
 
 def get_result(urlstring):
