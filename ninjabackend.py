@@ -293,7 +293,10 @@ class NinjaBackend(backends.Backend):
             # FIXME, should not grab element at zero but rather expand all.
             if isinstance(i, list):
                 i = i[0]
-            deps.append(os.path.join(self.get_target_dir(i), i.get_filename()[0]))
+            fname = i.get_filename()
+            if isinstance(fname, list):
+                fname = fname[0]
+            deps.append(os.path.join(self.get_target_dir(i), fname))
         if target.build_always:
             deps.append('PHONY')
         elem = NinjaBuildElement(ofilenames, 'CUSTOM_COMMAND', srcs)
@@ -1115,19 +1118,9 @@ rule FORTRAN_DEP_HACK
                 continue # Customtarget has already written its output rules
             generator = genlist.get_generator()
             exe = generator.get_exe()
-            if self.environment.is_cross_build() and \
-            isinstance(exe, build.BuildTarget) and exe.is_cross:
-                if 'exe_wrapper'  not in self.environment.cross_info:
-                    s = 'Can not use target %s as a generator because it is cross-built\n'
-                    s += 'and no exe wrapper is defined. You might want to set it to native instead.'
-                    s = s % exe.name
-                    raise MesonException(s)
+            exe_arr = self.exe_object_to_cmd_array(exe)
             infilelist = genlist.get_infilelist()
             outfilelist = genlist.get_outfilelist()
-            if isinstance(exe, build.BuildTarget):
-                exe_arr = [os.path.join(self.environment.get_build_dir(), self.get_target_filename(exe))]
-            else:
-                exe_arr = exe.get_command()
             base_args = generator.get_arglist()
             extra_dependencies = [os.path.join(self.build_to_src, i) for i in genlist.extra_depends]
             for i in range(len(infilelist)):

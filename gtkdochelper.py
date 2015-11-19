@@ -37,6 +37,8 @@ def build_gtkdoc(source_root, build_root, doc_subdir, src_subdir,
     scan_cmd = ['gtkdoc-scan',
                 '--module=' + module,
                 '--source-dir=' + abs_src] + scan_args
+#    print(scan_cmd)
+#    sys.exit(1)
     subprocess.check_call(scan_cmd,
                           cwd=abs_out)
     if main_file.endswith('sgml'):

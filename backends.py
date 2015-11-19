@@ -352,6 +352,20 @@ class Backend():
                 deps.append(os.path.join(self.build_to_src, sp, 'meson_options.txt'))
         return deps
 
+    def exe_object_to_cmd_array(self, exe):
+        if self.environment.is_cross_build() and \
+                isinstance(exe, build.BuildTarget) and exe.is_cross:
+            if 'exe_wrapper'  not in self.environment.cross_info:
+                s = 'Can not use target %s as a generator because it is cross-built\n'
+                s += 'and no exe wrapper is defined. You might want to set it to native instead.'
+                s = s % exe.name
+                raise MesonException(s)
+        if isinstance(exe, build.BuildTarget):
+            exe_arr = [os.path.join(self.environment.get_build_dir(), self.get_target_filename(exe))]
+        else:
+            exe_arr = exe.get_command()
+        return exe_arr
+
     def eval_custom_target_command(self, target, absolute_paths=False):
         ofilenames = [os.path.join(self.get_target_dir(target), i) for i in target.output]
         srcs = []
@@ -368,6 +382,9 @@ class Backend():
             srcs.append(fname)
         cmd = []
         for i in target.command:
+            if isinstance(i, build.Executable):
+                cmd += self.exe_object_to_cmd_array(i)
+                continue
             if isinstance(i, build.CustomTarget):
                 # GIR scanner will attempt to execute this binary but
                 # it assumes that it is in path, so always give it a full path.
