@@ -112,6 +112,10 @@ def open_wrapdburl(urlstring):
             print('Warning: ssl not available, traffic not authenticated.',
                   file=sys.stderr)
             ssl_warning_printed = True
+        # Trying to open SSL connection to wrapdb fails because the
+        # certificate is not known. Use plain http. For some
+        # reason OSX fails here again.
+        urlstring = 'http' + urlstring[5:]
         return urllib.request.urlopen(urlstring)
 
 def get_result(urlstring):
