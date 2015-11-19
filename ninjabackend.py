@@ -1450,7 +1450,8 @@ rule FORTRAN_DEP_HACK
         for d in target.external_deps:
             if d.need_threads():
                 commands += linker.thread_link_flags()
-        commands += target.link_args
+        if not isinstance(target, build.StaticLibrary):
+            commands += target.link_args
         # External deps must be last because target link libraries may depend on them.
         if not(isinstance(target, build.StaticLibrary)):
             for dep in target.get_external_deps():
