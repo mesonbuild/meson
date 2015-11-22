@@ -553,7 +553,13 @@ class CPPCompiler(CCompiler):
         ofile = open(source_name, 'w')
         ofile.write('class breakCCompiler;int main(int argc, char **argv) { return 0; }\n')
         ofile.close()
-        cmdlist = self.exelist + [source_name, '-o', binary_name]
+        if self.is_cross and self.exe_wrapper is None:
+            # Skipping link because of the same reason as for C.
+            # The comment in CCompiler explains why this is done.
+            extra_flags = ['-c']
+        else:
+            extra_flags = []
+        cmdlist = self.exelist + extra_flags + [source_name, '-o', binary_name]
         pc = subprocess.Popen(cmdlist, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (stdo, stde) = pc.communicate()
         stdo = stdo.decode()
