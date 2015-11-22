@@ -1125,7 +1125,7 @@ class GnuCCompiler(CCompiler):
         self.id = 'gcc'
         self.gcc_type = gcc_type
         self.warn_args = {'1': ['-Wall', '-Winvalid-pch'],
-                          '2': ['-Wall', '-Wpedantic', '-Winvalid-pch'],
+                          '2': ['-Wall', '-Wextra', '-Winvalid-pch'],
                           '3' : ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch']}
 
     def get_pic_args(self):
@@ -1187,7 +1187,7 @@ class GnuObjCCompiler(ObjCCompiler):
         # if this breaks your use case.
         self.gcc_type = GCC_STANDARD
         self.warn_args = {'1': ['-Wall', '-Winvalid-pch'],
-                          '2': ['-Wall', '-Wpedantic', '-Winvalid-pch'],
+                          '2': ['-Wall', '-Wextra', '-Winvalid-pch'],
                           '3' : ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch']}
 
     def get_buildtype_args(self, buildtype):
@@ -1212,7 +1212,7 @@ class GnuObjCPPCompiler(ObjCPPCompiler):
         # if this breaks your use case.
         self.gcc_type = GCC_STANDARD
         self.warn_args = {'1': ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor'],
-                          '2': ['-Wall', '-Wpedantic', '-Winvalid-pch', '-Wnon-virtual-dtor'],
+                          '2': ['-Wall', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor'],
                           '3' : ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor']}
 
     def get_buildtype_args(self, buildtype):
@@ -1238,13 +1238,11 @@ class ClangObjCPPCompiler(GnuObjCPPCompiler):
         self.id = 'clang'
 
 class ClangCCompiler(CCompiler):
-    std_warn_args = ['-Wall', '-Wpedantic', '-Winvalid-pch']
-
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
         CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
         self.id = 'clang'
         self.warn_args = {'1': ['-Wall', '-Winvalid-pch'],
-                          '2': ['-Wall', '-Wpedantic', '-Winvalid-pch'],
+                          '2': ['-Wall', '-Wextra', '-Winvalid-pch'],
                           '3' : ['-Weverything']}
 
     def get_buildtype_args(self, buildtype):
@@ -1288,8 +1286,8 @@ class GnuCPPCompiler(CPPCompiler):
         CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
         self.id = 'gcc'
         self.gcc_type = gcc_type
-        self.warn_args = {'1': ['-Wall', '-Winvalid-pch'],
-                          '2': ['-Wall', '-Wpedantic', '-Winvalid-pch', '-Wnon-virtual-dtor'],
+        self.warn_args = {'1': ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor'],
+                          '2': ['-Wall', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor'],
                           '3': ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor']}
 
     def get_always_args(self):
@@ -1335,7 +1333,7 @@ class ClangCPPCompiler(CPPCompiler):
         CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
         self.id = 'clang'
         self.warn_args = {'1': ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor'],
-                          '2': ['-Wall', '-Wpedantic', '-Winvalid-pch', '-Wnon-virtual-dtor'],
+                          '2': ['-Wall', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor'],
                           '3': ['-Weverything']}
 
     def get_buildtype_args(self, buildtype):

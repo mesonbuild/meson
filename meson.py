@@ -28,7 +28,7 @@ backendlist = ['ninja', 'vs2010', 'xcode']
 
 parser = argparse.ArgumentParser()
 
-default_warning = '2'
+default_warning = '1'
 
 if mesonlib.is_windows():
     def_prefix = 'c:/'
