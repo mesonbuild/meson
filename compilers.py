@@ -294,8 +294,17 @@ class CCompiler(Compiler):
             extra_flags = ['-c']
         else:
             extra_flags = []
-        pc = subprocess.Popen(self.exelist + extra_flags + [source_name, '-o', binary_name])
-        pc.wait()
+        cmdlist = self.exelist + extra_flags + [source_name, '-o', binary_name]
+        pc = subprocess.Popen(cmdlist, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        (stdo, stde) = pc.communicate()
+        stdo = stdo.decode()
+        stde = stde.decode()
+        mlog.debug('Sanity check compiler command line:', ' '.join(cmdlist))
+        mlog.debug('Sanity check compile stdout:')
+        mlog.debug(stdo)
+        mlog.debug('-----\nSanity check compile stderr:')
+        mlog.debug(stde)
+        mlog.debug('-----')
         if pc.returncode != 0:
             raise EnvironmentException('Compiler %s can not compile programs.' % self.name_string())
         if self.is_cross:
@@ -544,7 +553,17 @@ class CPPCompiler(CCompiler):
         ofile = open(source_name, 'w')
         ofile.write('class breakCCompiler;int main(int argc, char **argv) { return 0; }\n')
         ofile.close()
-        pc = subprocess.Popen(self.exelist + [source_name, '-o', binary_name])
+        cmdlist = self.exelist + [source_name, '-o', binary_name]
+        pc = subprocess.Popen(cmdlist, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        (stdo, stde) = pc.communicate()
+        stdo = stdo.decode()
+        stde = stde.decode()
+        mlog.debug('Sanity check compiler command line:', ' '.join(cmdlist))
+        mlog.debug('Sanity check compile stdout:')
+        mlog.debug(stdo)
+        mlog.debug('-----\nSanity check compile stderr:')
+        mlog.debug(stde)
+        mlog.debug('-----')
         pc.wait()
         if pc.returncode != 0:
             raise EnvironmentException('Compiler %s can not compile programs.' % self.name_string())
