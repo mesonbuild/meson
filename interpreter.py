@@ -1527,9 +1527,14 @@ class Interpreter():
         if not isinstance(required, bool):
             raise InvalidArguments('"required" argument must be a boolean.')
         libname = args[0]
-        if libname in self.coredata.ext_libs and\
-           self.coredata.ext_libs[libname].found():
-            return ExternalLibraryHolder(self.coredata.ext_libs[libname])
+        # We do not cache found libraries because they can come
+        # and go between invocations wildly. As an example we
+        # may find the 64 bit version but need instead the 32 bit
+        # one that is not installed. If we cache the found path
+        # then we will never found the new one if it get installed.
+        # This causes a bit of a slowdown as libraries are rechecked
+        # on every regen, but since it is a fast operation it should be
+        # ok.
         if 'dirs' in kwargs:
             search_dirs = kwargs['dirs']
             if not isinstance(search_dirs, list):
@@ -1544,7 +1549,6 @@ class Interpreter():
         result = self.environment.find_library(libname, search_dirs)
         extlib = dependencies.ExternalLibrary(libname, result)
         libobj = ExternalLibraryHolder(extlib)
-        self.coredata.ext_libs[libname] = extlib
         if required and not libobj.found():
             raise InvalidArguments('External library "%s" not found.' % libname)
         return libobj
