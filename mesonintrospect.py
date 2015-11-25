@@ -37,6 +37,8 @@ parser.add_argument('--buildoptions', action='store_true', dest='buildoptions', 
                     help='List all build options.')
 parser.add_argument('--tests', action='store_true', dest='tests', default=False,
                     help='List all unit tests.')
+parser.add_argument('--benchmarks', action='store_true', dest='benchmarks', default=False,
+                    help='List all benchmarks.')
 parser.add_argument('--dependencies', action='store_true', dest='dependencies', default=False,
                     help='list external dependencies.')
 parser.add_argument('args', nargs='+')
@@ -157,7 +159,11 @@ def list_tests(testdata):
     result = []
     for t in testdata:
         to = {}
-        to['cmd'] = [t.fname] + t.cmd_args
+        if isinstance(t.fname, str):
+            fname = [t.fname]
+        else:
+            fname = t.fname
+        to['cmd'] = fname + t.cmd_args
         to['env'] = t.env
         to['name'] = t.name
         result.append(to)
@@ -175,9 +181,11 @@ if __name__ == '__main__':
     corefile = os.path.join(bdir, 'meson-private/coredata.dat')
     buildfile = os.path.join(bdir, 'meson-private/build.dat')
     testfile = os.path.join(bdir, 'meson-private/meson_test_setup.dat')
+    benchmarkfile = os.path.join(bdir, 'meson-private/meson_benchmark_setup.dat')
     coredata = pickle.load(open(corefile, 'rb'))
     builddata = pickle.load(open(buildfile, 'rb'))
     testdata = pickle.load(open(testfile, 'rb'))
+    benchmarkdata = pickle.load(open(benchmarkfile, 'rb'))
     if options.list_targets:
         list_targets(coredata, builddata)
     elif options.target_files is not None:
@@ -188,6 +196,8 @@ if __name__ == '__main__':
         list_buildoptions(coredata, builddata)
     elif options.tests:
         list_tests(testdata)
+    elif options.benchmarks:
+        list_tests(benchmarkdata)
     elif options.dependencies:
         list_deps(coredata)
     else:
