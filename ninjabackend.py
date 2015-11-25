@@ -802,7 +802,7 @@ class NinjaBackend(backends.Backend):
         else:
             raise InvalidArguments('Unknown target type for rustc.')
         args.append(cratetype)
-        args += rustc.get_buildtype_args(self.environment.coredata.buildtype)
+        args += rustc.get_buildtype_args(self.environment.coredata.get_builtin_option('buildtype'))
         depfile = target.name + '.d'
         args += ['--out-dir', target.subdir]
         args += ['--emit', 'dep-info', '--emit', 'link']
