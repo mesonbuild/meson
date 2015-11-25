@@ -54,6 +54,9 @@ def run_benchmarks(options, datafile):
     jsonlogfile = open(jsonlogfilename, 'w')
     tests = pickle.load(open(datafile, 'rb'))
     num_tests = len(tests)
+    if num_tests == 0:
+        print('No benchmarks defined.')
+        return 0
     iteration_count = 5
     wrap = [] # Benchmarks on cross builds are pointless so don't support them.
     for i, test in enumerate(tests):
@@ -75,6 +78,7 @@ def run_benchmarks(options, datafile):
             resultstr = 'OK'
         print_stats(3, num_tests, test.name, resultstr, i, mean, stddev)
         print_json_log(jsonlogfile, runs, test.name, i)
+    print('\nFull log written to meson-logs/benchmarklog.json.')
     return failed_tests
 
 def run(args):
@@ -87,7 +91,6 @@ def run(args):
         os.chdir(options.wd)
     datafile = options.args[0]
     returncode = run_benchmarks(options, datafile)
-    print('\nFull log written to meson-logs/benchmarklog.json.')
     return returncode
 
 if __name__ == '__main__':

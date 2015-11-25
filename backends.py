@@ -127,6 +127,10 @@ class Backend():
         datafile = open(test_data, 'wb')
         self.write_test_file(datafile)
         datafile.close()
+        benchmark_data = os.path.join(self.environment.get_scratch_dir(), 'meson_benchmark_setup.dat')
+        datafile = open(benchmark_data, 'wb')
+        self.write_benchmark_file(datafile)
+        datafile.close()
 
     def has_vala(self, target):
         for s in target.get_sources():
@@ -269,9 +273,15 @@ class Backend():
                 result.append(dirseg)
         return result
 
+    def write_benchmark_file(self, datafile):
+        self.write_test_serialisation(self.build.get_benchmarks(), datafile)
+
     def write_test_file(self, datafile):
+        self.write_test_serialisation(self.build.get_tests(), datafile)
+
+    def write_test_serialisation(self, tests, datafile):
         arr = []
-        for t in self.build.get_tests():
+        for t in tests:
             exe = t.get_exe()
             if isinstance(exe, dependencies.ExternalProgram):
                 fname = exe.fullpath
