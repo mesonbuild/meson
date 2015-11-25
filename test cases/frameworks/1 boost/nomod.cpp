@@ -9,7 +9,7 @@ boost::any get_any() {
 int main(int argc, char **argv) {
     boost::any result = get_any();
     if(boost::any_cast<int>(result) == 3) {
-        std::cout << "Everything is fine in the worls.\n";
+        std::cout << "Everything is fine in the world.\n";
         return 0;
     } else {
         std::cout << "Mathematics stopped working.\n";
