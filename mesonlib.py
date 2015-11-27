@@ -264,3 +264,21 @@ def stringlistify(item):
         if not isinstance(i, str):
             raise MesonException('List item not a string.')
     return item
+
+def expand_arguments(args):
+    expended_args = []
+    for arg in args:
+        if not arg.startswith('@'):
+            expended_args.append(arg)
+            continue
+
+        args_file = arg[1:]
+        try:
+            with open(args_file) as f:
+                extended_args = f.read().split()
+            expended_args += extended_args
+        except Exception as e:
+            print('Error expanding command line arguments, %s not found' % args_file)
+            print(e)
+            return None
+    return expended_args

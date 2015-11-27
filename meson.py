@@ -174,6 +174,9 @@ def run(args):
         handshake = True
     else:
         handshake = False
+    args = mesonlib.expand_arguments(args)
+    if not args:
+        return 1
     options = parser.parse_args(args[1:])
     if options.print_version:
         print(coredata.version)
