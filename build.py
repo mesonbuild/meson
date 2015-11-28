@@ -575,7 +575,7 @@ class Generator():
         return self.arglist
 
 class GeneratedList():
-    def __init__(self, generator):
+    def __init__(self, generator, extra_args=[]):
         if hasattr(generator, 'held_object'):
             generator = generator.held_object
         self.generator = generator
@@ -583,6 +583,7 @@ class GeneratedList():
         self.outfilelist = []
         self.outmap = {}
         self.extra_depends = []
+        self.extra_args = extra_args
 
     def add_file(self, newfile):
         self.infilelist.append(newfile)
@@ -601,6 +602,9 @@ class GeneratedList():
 
     def get_generator(self):
         return self.generator
+
+    def get_extra_args(self):
+        return self.extra_args
 
 class Executable(BuildTarget):
     def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):

@@ -290,18 +290,17 @@ class GeneratorHolder(InterpreterObject):
         self.methods.update({'process' : self.process_method})
 
     def process_method(self, args, kwargs):
-        if len(kwargs) > 0:
-            raise InvalidArguments('Process does not take keyword arguments.')
         check_stringlist(args)
-        gl = GeneratedListHolder(self)
+        extras = mesonlib.stringlistify(kwargs.get('extra_args', []))
+        gl = GeneratedListHolder(self, extras)
         [gl.add_file(os.path.join(self.interpreter.subdir, a)) for a in args]
         return gl
 
 class GeneratedListHolder(InterpreterObject):
-    def __init__(self, arg1):
+    def __init__(self, arg1, extra_args=[]):
         super().__init__()
         if isinstance(arg1, GeneratorHolder):
-            self.held_object = build.GeneratedList(arg1.held_object)
+            self.held_object = build.GeneratedList(arg1.held_object, extra_args)
         else:
             self.held_object = arg1
 
