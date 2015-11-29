@@ -1,4 +1,6 @@
-project('subproj user', 'c', version : '2.3.4')
+project('subproj user', 'c', 
+  version : '2.3.4',
+  license : 'mylicense')
 
 sub = subproject('sublib', version : '1.0.0')
 

@@ -872,7 +872,7 @@ class MesonMain(InterpreterObject):
         self.build.dep_manifest_name = args[0]
 
     def project_version_method(self, args, kwargs):
-        return self.build.dep_manifest[self.interpreter.active_projectname]
+        return self.build.dep_manifest[self.interpreter.active_projectname]['version']
 
 class Interpreter():
 
@@ -1377,7 +1377,9 @@ class Interpreter():
                 self.parse_default_options(kwargs['default_options'])
         self.active_projectname = args[0]
         self.project_version = kwargs.get('version', 'undefined')
-        self.build.dep_manifest[args[0]] = self.project_version
+        license = mesonlib.stringlistify(kwargs.get('license', 'unknown'))
+        self.build.dep_manifest[args[0]] = {'version': self.project_version,
+                                            'license': license}
         if self.subproject in self.build.projects:
             raise InvalidCode('Second call to project().')
         if not self.is_subproject() and 'subproject_dir' in kwargs:
