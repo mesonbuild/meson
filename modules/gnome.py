@@ -307,6 +307,25 @@ class GnomeModule:
                          }
         return build.CustomTarget(namebase + '-gdbus', state.subdir, custom_kwargs)
 
+    def gtkdoc_scan(self, state, args, kwargs):
+        module = args[0]
+        cmd = ['gtkdoc-scan', '--module', module]
+        if 'source_dir' in kwargs:
+            d = os.path.join(state.build_to_src, state.subdir, kwargs.pop('source_dir'))
+            cmd += ['--source-dir', d]
+        outputs = [
+            module + '-decl-list.txt',
+            module + '-decl.txt',
+            module + '-overrides.txt',
+            module + '-sections.txt',
+            module + '.types',
+        ]
+        custom_kwargs = {
+            'output' : outputs,
+            'command' : cmd
+        }
+        return build.CustomTarget(module + '-gtkdoc', state.subdir, custom_kwargs)
+
 def initialize():
     mlog.log('Warning, glib compiled dependencies will not work until this upstream issue is fixed:',
              mlog.bold('https://bugzilla.gnome.org/show_bug.cgi?id=745754'))
