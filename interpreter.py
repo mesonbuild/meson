@@ -1396,7 +1396,7 @@ class Interpreter():
         langs = self.coredata.compilers.keys()
         if 'vala' in langs:
             if not 'c' in langs:
-                raise InterpreterException('Compiling Vala requires a C compiler')
+                raise InterpreterException('Compiling Vala requires C. Add C to your project languages and rerun Meson.')
 
     @noKwargs
     @stringArgs
