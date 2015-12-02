@@ -550,6 +550,17 @@ class NinjaBackend(backends.Backend):
             velem.write(outfile)
             self.check_outputs(velem)
 
+        # And then benchmarks.
+        benchmark_script = os.path.join(script_root, 'meson_benchmark.py')
+        benchmark_data = os.path.join(self.environment.get_scratch_dir(), 'meson_benchmark_setup.dat')
+        cmd = [sys.executable, benchmark_script, benchmark_data]
+        elem = NinjaBuildElement('benchmark', 'CUSTOM_COMMAND', ['all', 'PHONY'])
+        elem.add_item('COMMAND', cmd)
+        elem.add_item('DESC', 'Running benchmark suite.')
+        elem.add_item('pool', 'console')
+        elem.write(outfile)
+        self.check_outputs(elem)
+
     def generate_rules(self, outfile):
         outfile.write('# Rules for compiling.\n\n')
         self.generate_compile_rules(outfile)

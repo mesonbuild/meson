@@ -21,7 +21,7 @@ import sys
 import environment
 import mesonlib
 import mlog
-import meson, meson_test
+import meson, meson_test, meson_benchmark
 import argparse
 import xml.etree.ElementTree as ET
 import time
@@ -87,7 +87,7 @@ def setup_commands(backend):
             compile_commands = [ninja_command, '-v']
         else:
             compile_commands = [ninja_command]
-        test_commands = [ninja_command, 'test']
+        test_commands = [ninja_command, 'test', 'benchmark']
         install_commands = [ninja_command, 'install']
 
 def platform_fix_filename(fname):
@@ -165,11 +165,12 @@ def run_test_inprocess(testdir):
     sys.stderr = mystderr = StringIO()
     old_cwd = os.getcwd()
     os.chdir(testdir)
-    returncode = meson_test.run(['meson-private/meson_test_setup.dat'])
+    returncode_test = meson_test.run(['meson-private/meson_test_setup.dat'])
+    returncode_benchmark = meson_benchmark.run(['meson-private/meson_benchmark_setup.dat'])
     sys.stdout = old_stdout
     sys.stderr = old_stderr
     os.chdir(old_cwd)
-    return (returncode, mystdout.getvalue(), mystderr.getvalue())
+    return (max(returncode_test, returncode_benchmark), mystdout.getvalue(), mystderr.getvalue())
 
 
 def run_test(testdir, extra_args, should_succeed):

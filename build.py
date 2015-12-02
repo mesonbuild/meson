@@ -65,6 +65,7 @@ class Build:
         self.cross_compilers = []
         self.global_args = {}
         self.tests = []
+        self.benchmarks = []
         self.headers = []
         self.man = []
         self.data = []
@@ -107,6 +108,9 @@ class Build:
 
     def get_tests(self):
         return self.tests
+
+    def get_benchmarks(self):
+        return self.benchmarks
 
     def get_headers(self):
         return self.headers

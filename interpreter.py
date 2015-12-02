@@ -943,6 +943,7 @@ class Interpreter():
                       'run_target' : self.func_run_target,
                       'generator' : self.func_generator,
                       'test' : self.func_test,
+                      'benchmark' : self.func_benchmark,
                       'install_headers' : self.func_install_headers,
                       'install_man' : self.func_install_man,
                       'subdir' : self.func_subdir,
@@ -1677,7 +1678,13 @@ class Interpreter():
         self.generators.append(gen)
         return gen
 
+    def func_benchmark(self, node, args, kwargs):
+        self.add_test(node, args, kwargs, False)
+
     def func_test(self, node, args, kwargs):
+        self.add_test(node, args, kwargs, True)
+
+    def add_test(self, node, args, kwargs, is_base_test):
         if len(args) != 2:
             raise InterpreterException('Incorrect number of arguments')
         if not isinstance(args[0], str):
@@ -1719,8 +1726,12 @@ class Interpreter():
         if not isinstance(timeout, int):
             raise InterpreterException('Timeout must be an integer.')
         t = Test(args[0], args[1].held_object, par, cmd_args, env, should_fail, valgrind_args, timeout)
-        self.build.tests.append(t)
-        mlog.debug('Adding test "', mlog.bold(args[0]), '".', sep='')
+        if is_base_test:
+            self.build.tests.append(t)
+            mlog.debug('Adding test "', mlog.bold(args[0]), '".', sep='')
+        else:
+            self.build.benchmarks.append(t)
+            mlog.debug('Adding benchmark "', mlog.bold(args[0]), '".', sep='')
 
     @stringArgs
     def func_install_headers(self, node, args, kwargs):
