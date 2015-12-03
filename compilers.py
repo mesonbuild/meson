@@ -406,7 +406,12 @@ int someSymbolHereJustForFun;
             cmdlist = self.exe_wrapper + [exename]
         else:
             cmdlist = exename
-        pe = subprocess.Popen(cmdlist, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        try:
+            pe = subprocess.Popen(cmdlist, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        except Exception as e:
+            mlog.debug('Could not run: %s (error: %s)\n' % (cmdlist, e))
+            return RunResult(False)
+
         (so, se) = pe.communicate()
         so = so.decode()
         se = se.decode()
