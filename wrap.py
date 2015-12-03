@@ -137,6 +137,7 @@ class Resolver:
         expected = p.get('source_hash')
         if dhash != expected:
             raise RuntimeError('Incorrect hash for source %s:\n %s expected\n %s actual.' % (packagename, expected, dhash))
+        open(ofname, 'wb').write(srcdata)
         if p.has_patch():
             purl = p.get('patch_url')
             mlog.log('Downloading patch from', mlog.bold(purl))
@@ -148,7 +149,6 @@ class Resolver:
             open(os.path.join(self.cachedir, p.get('patch_filename')), 'wb').write(pdata)
         else:
             mlog.log('Package does not require patch.')
-        open(ofname, 'wb').write(srcdata)
 
     def extract_package(self, package):
         if sys.version_info < (3, 5):
