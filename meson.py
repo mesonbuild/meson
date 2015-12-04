@@ -164,8 +164,8 @@ itself as required.'''
         pickle.dump(b, open(dumpfile, 'wb'))
 
 def run(args):
-    if sys.version_info < (3, 4):
-        print('Meson works correctly only with python 3.4+.')
+    if sys.version_info < (3, 3):
+        print('Meson works correctly only with python 3.3+.')
         print('You have python %s.' % sys.version)
         print('Please update your environment')
         return 1

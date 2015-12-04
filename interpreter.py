@@ -1150,7 +1150,7 @@ class Interpreter():
             raise InvalidCode('First argument to set_variable must be a string.')
         if not self.is_assignable(variable):
             raise InvalidCode('Assigned value not of assignable type.')
-        if re.fullmatch('[_a-zA-Z][_0-9a-zA-Z]*', varname) is None:
+        if re.match('[_a-zA-Z][_0-9a-zA-Z]*$', varname) is None:
             raise InvalidCode('Invalid variable name: ' + varname)
         if varname in self.builtin:
             raise InvalidCode('Tried to overwrite internal variable "%s"' % varname)
