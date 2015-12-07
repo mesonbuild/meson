@@ -92,6 +92,11 @@ mono_buildtype_args = {'plain' : [],
                        'debugoptimized': ['-debug', '-optimize+'],
                        'release' : ['-optimize+']}
 
+swift_buildtype_args = {'plain' : [],
+                        'debug' : ['-g'],
+                        'debugoptimized': ['-g', '-O'],
+                        'release' : ['-O']}
+
 gnu_winlibs = ['-lkernel32', '-luser32', '-lgdi32', '-lwinspool', '-lshell32',
                '-lole32', '-loleaut32', '-luuid', '-lcomdlg32', '-ladvapi32']
 
@@ -947,6 +952,87 @@ class RustCompiler(Compiler):
 
     def get_buildtype_args(self, buildtype):
         return rust_buildtype_args[buildtype]
+
+class SwiftCompiler(Compiler):
+    def __init__(self, exelist, version):
+        super().__init__(exelist, version)
+        self.version = version
+        self.id = 'llvm'
+        self.language = 'swift'
+        self.is_cross = False
+
+    def get_id(self):
+        return self.id
+
+    def get_linker_exelist(self):
+        return self.exelist
+
+    def name_string(self):
+        return ' '.join(self.exelist)
+
+    def needs_static_linker(self):
+        return True
+
+    def get_exelist(self):
+        return self.exelist
+
+    def get_werror_args(self):
+        return ['--fatal-warnings']
+
+    def get_language(self):
+        return self.language
+
+    def get_dependency_gen_args(self, outtarget, outfile):
+        return ['-emit-dependencies']
+
+    def get_depfile_suffix(self):
+        return 'd'
+
+    def get_output_args(self, target):
+        return ['-o', target]
+
+    def get_linker_output_args(self, target):
+        return ['-o', target]
+
+    def get_warn_args(self, level):
+        return []
+
+    def get_buildtype_args(self, buildtype):
+        return swift_buildtype_args[buildtype]
+
+    def get_buildtype_linker_args(self, buildtype):
+        return []
+
+    def get_std_exe_link_args(self):
+        return ['-emit-executable']
+
+    def build_rpath_args(self, *args):
+        return [] # FIXME
+
+    def get_include_args(self, dirname):
+        return ['-I' + dirname]
+
+    def get_compile_only_args(self):
+        return ['-c']
+
+    def sanity_check(self, work_dir):
+        src = 'swifttest.swift'
+        source_name = os.path.join(work_dir, src)
+        output_name = os.path.join(work_dir, 'swifttest')
+        ofile = open(source_name, 'w')
+        ofile.write('''1 + 2
+''')
+        ofile.close()
+        pc = subprocess.Popen(self.exelist + ['-emit-executable', '-o', output_name, src], cwd=work_dir)
+        pc.wait()
+        if pc.returncode != 0:
+            raise EnvironmentException('Swift compiler %s can not compile programs.' % self.name_string())
+        if subprocess.call(output_name) != 0:
+            raise EnvironmentException('Executables created by Swift compiler %s are not runnable.' % self.name_string())
+
+    def can_compile(self, filename):
+        suffix = filename.split('.')[-1]
+        return suffix in ('swift')
 
 class VisualStudioCCompiler(CCompiler):
     std_warn_args = ['/W3']

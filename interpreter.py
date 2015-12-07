@@ -1474,6 +1474,11 @@ class Interpreter():
                     comp = self.environment.detect_fortran_compiler(False)
                     if need_cross_compiler:
                         cross_comp = self.environment.detect_fortran_compiler(True)
+                elif lang == 'swift':
+                    comp = self.environment.detect_swift_compiler()
+                    if need_cross_compiler:
+                        raise InterpreterException('Cross compilation with Swift is not working yet.')
+                        #cross_comp = self.environment.detect_fortran_compiler(True)
                 else:
                     raise InvalidCode('Tried to use unknown language "%s".' % lang)
                 comp.sanity_check(self.environment.get_scratch_dir())

@@ -254,6 +254,7 @@ def detect_tests_to_run():
     all_tests.append(('rust', gather_tests('test cases/rust'), False if shutil.which('rustc') else True))
     all_tests.append(('objective c', gather_tests('test cases/objc'), False if not mesonlib.is_windows() else True))
     all_tests.append(('fortran', gather_tests('test cases/fortran'), False if shutil.which('gfortran') else True))
+    all_tests.append(('swift', gather_tests('test cases/swift'), False if shutil.which('swiftc') else True))
     return all_tests
 
 def run_tests(extra_args):
