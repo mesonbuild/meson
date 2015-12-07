@@ -1269,7 +1269,7 @@ rule FORTRAN_DEP_HACK
         obj_basename = src_filename.replace('/', '_').replace('\\', '_')
         rel_obj = os.path.join(self.get_target_private_dir(target), obj_basename)
         rel_obj += '.' + self.environment.get_object_suffix()
-        dep_file = rel_obj + '.' + compiler.get_depfile_suffix()
+        dep_file = compiler.depfile_for_object(rel_obj)
         if self.environment.coredata.get_builtin_option('use_pch'):
             pchlist = target.get_pch(compiler.language)
         else:

@@ -215,6 +215,9 @@ class CCompiler(Compiler):
     def get_dependency_gen_args(self, outtarget, outfile):
         return ['-MMD', '-MQ', outtarget, '-MF', outfile]
 
+    def depfile_for_object(self, objfile):
+        return objfile + '.' + self.get_depfile_suffix()
+
     def get_depfile_suffix(self):
         return 'd'
 
@@ -985,6 +988,9 @@ class SwiftCompiler(Compiler):
     def get_dependency_gen_args(self, outtarget, outfile):
         return ['-emit-dependencies']
 
+    def depfile_for_object(self, objfile):
+        return os.path.splitext(objfile)[0] + '.' + self.get_depfile_suffix()
+
     def get_depfile_suffix(self):
         return 'd'
 
@@ -1561,6 +1567,9 @@ end program prog
 
     def get_module_outdir_args(self, path):
         return ['-J' + path]
+
+    def depfile_for_object(self, objfile):
+        return objfile + '.' + self.get_depfile_suffix()
 
     def get_depfile_suffix(self):
         return 'd'
