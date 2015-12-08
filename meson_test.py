@@ -104,7 +104,7 @@ def run_single_test(wrap, test):
         if len(test.extra_paths) > 0:
             child_env['PATH'] = child_env['PATH'] + ';'.join([''] + test.extra_paths)
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                             env=child_env)
+                             env=child_env, cwd=test.workdir)
         timed_out = False
         try:
             (stdo, stde) = p.communicate(timeout=test.timeout)

@@ -528,7 +528,7 @@ class RunTargetHolder(InterpreterObject):
         self.held_object = build.RunTarget(name, command, args, subdir)
 
 class Test(InterpreterObject):
-    def __init__(self, name, exe, is_parallel, cmd_args, env, should_fail, valgrind_args, timeout):
+    def __init__(self, name, exe, is_parallel, cmd_args, env, should_fail, valgrind_args, timeout, workdir):
         InterpreterObject.__init__(self)
         self.name = name
         self.exe = exe
@@ -538,6 +538,7 @@ class Test(InterpreterObject):
         self.should_fail = should_fail
         self.valgrind_args = valgrind_args
         self.timeout = timeout
+        self.workdir = workdir
 
     def get_exe(self):
         return self.exe
@@ -1723,9 +1724,17 @@ class Interpreter():
         if not isinstance(should_fail, bool):
             raise InterpreterException('Keyword argument should_fail must be a boolean.')
         timeout = kwargs.get('timeout', 30)
+        if 'workdir' in kwargs:
+            workdir = kwargs['workdir']
+            if not isinstance(workdir, str):
+                raise InterpreterException('Workdir keyword argument must be a string.')
+            if not os.path.isabs(workdir):
+                raise InterpreterException('Workdir keyword argument must be an absolute path.')
+        else:
+            workdir = None
         if not isinstance(timeout, int):
             raise InterpreterException('Timeout must be an integer.')
-        t = Test(args[0], args[1].held_object, par, cmd_args, env, should_fail, valgrind_args, timeout)
+        t = Test(args[0], args[1].held_object, par, cmd_args, env, should_fail, valgrind_args, timeout, workdir)
         if is_base_test:
             self.build.tests.append(t)
             mlog.debug('Adding test "', mlog.bold(args[0]), '".', sep='')
