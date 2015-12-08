@@ -166,6 +166,8 @@ def list_tests(testdata):
         to['cmd'] = fname + t.cmd_args
         to['env'] = t.env
         to['name'] = t.name
+        to['workdir'] = t.workdir
+        to['timeout'] = t.timeout
         result.append(to)
     print(json.dumps(result))
 
