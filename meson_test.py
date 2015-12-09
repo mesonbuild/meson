@@ -26,6 +26,8 @@ parser.add_argument('--wrapper', default=None, dest='wrapper',
                     help='wrapper to run tests with (e.g. valgrind)')
 parser.add_argument('--wd', default=None, dest='wd',
                     help='directory to cd into before running')
+parser.add_argument('--suite', default=None, dest='suite',
+                    help='Only run tests belonging to this suite.')
 parser.add_argument('args', nargs='+')
 
 
@@ -144,6 +146,11 @@ def drain_futures(futures):
         (result, numlen, tests, name, i, logfile, jsonlogfile) = i
         print_stats(numlen, tests, name, result.result(), i, logfile, jsonlogfile)
 
+def filter_tests(suite, tests):
+    if suite is None:
+        return tests
+    return [x for x in tests if x.suite == suite]
+
 def run_tests(options, datafilename):
     logfile_base = 'meson-logs/testlog'
     if options.wrapper is None:
@@ -173,15 +180,20 @@ def run_tests(options, datafilename):
         num_workers = multiprocessing.cpu_count()
     executor = conc.ThreadPoolExecutor(max_workers=num_workers)
     futures = []
-    for i, test in enumerate(tests):
+    filtered_tests = filter_tests(options.suite, tests)
+    for i, test in enumerate(filtered_tests):
+        if test.suite == '':
+            visible_name = test.name
+        else:
+            visible_name = test.suite + ' / ' + test.name
         if not test.is_parallel:
             drain_futures(futures)
             futures = []
             res = run_single_test(wrap, test)
-            print_stats(numlen, tests, test.name, res, i, logfile, jsonlogfile)
+            print_stats(numlen, tests, visible_name, res, i, logfile, jsonlogfile)
         else:
             f = executor.submit(run_single_test, wrap, test)
-            futures.append((f, numlen, tests, test.name, i, logfile, jsonlogfile))
+            futures.append((f, numlen, tests, visible_name, i, logfile, jsonlogfile))
     drain_futures(futures)
     print('\nFull log written to %s.' % logfilename)
 
