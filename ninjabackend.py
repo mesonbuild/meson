@@ -531,7 +531,8 @@ class NinjaBackend(backends.Backend):
     def write_test_suite_targets(self, cmd, outfile):
         suites = {}
         for t in self.build.get_tests():
-            suites[t.suite] = True
+            for s in t.suite:
+                suites[s] = True
         suites = list(suites.keys())
         suites.sort()
         for s in suites:

@@ -1735,9 +1735,12 @@ class Interpreter():
             workdir = None
         if not isinstance(timeout, int):
             raise InterpreterException('Timeout must be an integer.')
-        suite = kwargs.get('suite', '')
+        suite = mesonlib.stringlistify(kwargs.get('suite', ''))
         if self.is_subproject():
-            suite = self.subproject.replace(' ', '_') + ':' + suite
+            newsuite = []
+            for s in suite:
+                newsuite.append(self.subproject.replace(' ', '_') + ':' + s)
+            suite = newsuite
         t = Test(args[0], suite, args[1].held_object, par, cmd_args, env, should_fail, valgrind_args, timeout, workdir)
         if is_base_test:
             self.build.tests.append(t)

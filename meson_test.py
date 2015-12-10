@@ -149,7 +149,7 @@ def drain_futures(futures):
 def filter_tests(suite, tests):
     if suite is None:
         return tests
-    return [x for x in tests if x.suite == suite]
+    return [x for x in tests if suite in x.suite]
 
 def run_tests(options, datafilename):
     logfile_base = 'meson-logs/testlog'
@@ -182,10 +182,10 @@ def run_tests(options, datafilename):
     futures = []
     filtered_tests = filter_tests(options.suite, tests)
     for i, test in enumerate(filtered_tests):
-        if test.suite == '':
+        if test.suite[0] == '':
             visible_name = test.name
         else:
-            visible_name = test.suite + ' / ' + test.name
+            visible_name = test.suite[0] + ' / ' + test.name
         if not test.is_parallel:
             drain_futures(futures)
             futures = []
