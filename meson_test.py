@@ -185,15 +185,19 @@ def run_tests(options, datafilename):
         if test.suite[0] == '':
             visible_name = test.name
         else:
-            visible_name = test.suite[0] + ' / ' + test.name
+            if options.suite is not None:
+                visible_name = options.suite + ' / ' + test.name
+            else:
+                visible_name = test.suite[0] + ' / ' + test.name
+
         if not test.is_parallel:
             drain_futures(futures)
             futures = []
             res = run_single_test(wrap, test)
-            print_stats(numlen, tests, visible_name, res, i, logfile, jsonlogfile)
+            print_stats(numlen, filtered_tests, visible_name, res, i, logfile, jsonlogfile)
         else:
             f = executor.submit(run_single_test, wrap, test)
-            futures.append((f, numlen, tests, visible_name, i, logfile, jsonlogfile))
+            futures.append((f, numlen, filtered_tests, visible_name, i, logfile, jsonlogfile))
     drain_futures(futures)
     print('\nFull log written to %s.' % logfilename)
 
