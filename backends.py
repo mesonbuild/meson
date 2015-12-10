@@ -83,6 +83,13 @@ class Backend():
         os.makedirs(os.path.join(self.environment.get_build_dir(), dirname), exist_ok=True)
         return dirname
 
+    # Crap hack. The above was doing the wrong thing but too many thing use it to fix
+    # now. Get fixed once Swift works.
+    def get_target_private_dir_abs_v2(self, target):
+        dirname = os.path.join(self.environment.get_build_dir(), self.get_target_private_dir(target))
+        os.makedirs(dirname, exist_ok=True)
+        return dirname
+
     def generate_unity_files(self, target, unity_src):
         langlist = {}
         abs_files = []

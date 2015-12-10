@@ -837,7 +837,33 @@ class NinjaBackend(backends.Backend):
         element.write(outfile)
         self.check_outputs(element)
 
+    def swift_module_file_name(self, target):
+        return os.path.join(self.get_target_private_dir(target),
+                            self.target_swift_modulename(target) + '.swiftmodule')
+
+    def target_swift_modulename(self, target):
+        return target.name
+
+    def determine_swift_dep_modules(self, target):
+        result = []
+        for l in target.link_targets:
+            result.append(self.swift_module_file_name(l))
+        return result
+
+    def determine_swift_dep_dirs(self, target):
+        result = []
+        for l in target.link_targets:
+            result.append(self.get_target_private_dir_abs_v2(l))
+        return result
+
+    def get_swift_link_deps(self, target):
+        result = []
+        for l in target.link_targets:
+            result.append(self.get_target_filename(l))
+        return result
+
     def generate_swift_target(self, target, outfile):
+        module_name = self.target_swift_modulename(target)
         swiftc = self.environment.coredata.compilers['swift']
         abssrc = []
         for i in target.get_sources():
@@ -857,21 +883,49 @@ class NinjaBackend(backends.Backend):
             objects.append(oname)
             rel_objects.append(os.path.join(self.get_target_private_dir(target), oname))
         compile_args = swiftc.get_compile_only_args()
-        compile_args += swiftc.get_module_args(target.name)
-        link_args = swiftc.get_output_args(self.get_target_filename(target))
+        compile_args += swiftc.get_module_args(module_name)
+        link_args = swiftc.get_output_args(os.path.join(self.environment.get_build_dir(), self.get_target_filename(target)))
         rundir = self.get_target_private_dir(target)
+        out_module_name = self.swift_module_file_name(target)
+        in_module_files = self.determine_swift_dep_modules(target)
+        abs_module_dirs = self.determine_swift_dep_dirs(target)
+        module_includes = []
+        for x in abs_module_dirs:
+            module_includes += swiftc.get_include_args(x)
+        link_deps = self.get_swift_link_deps(target)
+        abs_link_deps = [os.path.join(self.environment.get_build_dir(), x) for x in link_deps]
 
-        elem = NinjaBuildElement(rel_objects, 'swift_COMPILER', abssrc)
-        elem.add_item('ARGS', compile_args)
+        # Swiftc does not seem to be able to emit objects and module files in one go.
+        elem = NinjaBuildElement(rel_objects,
+                                 'swift_COMPILER',
+                                 abssrc)
+        elem.add_dep(in_module_files)
+        elem.add_item('ARGS', compile_args + module_includes)
         elem.add_item('RUNDIR', rundir)
         elem.write(outfile)
         self.check_outputs(elem)
-        elem = NinjaBuildElement(self.get_target_filename(target), 'swift_COMPILER', [])
-        elem.add_dep(rel_objects)
-        elem.add_item('ARGS', link_args + objects)
+        elem = NinjaBuildElement(out_module_name,
+                                 'swift_COMPILER',
+                                 abssrc)
+        elem.add_dep(in_module_files)
+        elem.add_item('ARGS', compile_args + module_includes + swiftc.get_mod_gen_args())
         elem.add_item('RUNDIR', rundir)
         elem.write(outfile)
         self.check_outputs(elem)
+        if isinstance(target, build.StaticLibrary):
+            elem = self.generate_link(target, outfile, self.get_target_filename(target),
+                               rel_objects, self.build.static_linker)
+            elem.write(outfile)
+        elif isinstance(target, build.Executable):
+            elem = NinjaBuildElement(self.get_target_filename(target), 'swift_COMPILER', [])
+            elem.add_dep(rel_objects)
+            elem.add_dep(link_deps)
+            elem.add_item('ARGS', link_args + swiftc.get_std_exe_link_args() + objects + abs_link_deps)
+            elem.add_item('RUNDIR', rundir)
+            elem.write(outfile)
+            self.check_outputs(elem)
+        else:
+            raise MesonException('Swift supports only executable and static library targets.')
 
     def generate_static_link_rules(self, is_cross, outfile):
         if self.build.has_language('java'):
@@ -997,10 +1051,7 @@ class NinjaBackend(backends.Backend):
 
     def generate_rust_compile_rules(self, compiler, outfile):
         rule = 'rule %s_COMPILER\n' % compiler.get_language()
-        full_exe = [sys.executable,
-                    os.path.join(self.environment.get_script_root(), 'dirchanger'),
-                    '$RUNDIR'] + compiler.get_exelist()
-        invoc = ' '.join([ninja_quote(i) for i in full_exe])
+        invoc = ' '.join([ninja_quote(i) for i in compiler.get_exelist()])
         command = ' command = %s $ARGS $in\n' % invoc
         description = ' description = Compiling Rust source $in.\n'
         depfile = ' depfile = $targetdep\n'
@@ -1015,7 +1066,10 @@ class NinjaBackend(backends.Backend):
 
     def generate_swift_compile_rules(self, compiler, outfile):
         rule = 'rule %s_COMPILER\n' % compiler.get_language()
-        invoc = ' '.join([ninja_quote(i) for i in compiler.get_exelist()])
+        full_exe = [sys.executable,
+                    os.path.join(self.environment.get_script_dir(), 'dirchanger.py'),
+                    '$RUNDIR'] + compiler.get_exelist()
+        invoc = ' '.join([ninja_quote(i) for i in full_exe])
         command = ' command = %s $ARGS $in\n' % invoc
         description = ' description = Compiling Swift source $in.\n'
         outfile.write(rule)

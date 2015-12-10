@@ -1015,6 +1015,9 @@ class SwiftCompiler(Compiler):
     def get_module_args(self, modname):
         return ['-module-name', modname]
 
+    def get_mod_gen_args(self):
+        return ['-emit-module']
+
     def build_rpath_args(self, *args):
         return [] # FIXME
 
