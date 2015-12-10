@@ -1012,6 +1012,9 @@ class SwiftCompiler(Compiler):
     def get_std_exe_link_args(self):
         return ['-emit-executable']
 
+    def get_module_args(self, modname):
+        return ['-module-name', modname]
+
     def build_rpath_args(self, *args):
         return [] # FIXME
 

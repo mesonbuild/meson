@@ -1,0 +1,1 @@
+printSomething("String from main")

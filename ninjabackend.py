@@ -195,6 +195,9 @@ class NinjaBackend(backends.Backend):
             return
         if 'vala' in self.environment.coredata.compilers.keys() and self.has_vala(target):
             gen_src_deps += self.generate_vala_compile(target, outfile)
+        if 'swift' in self.environment.coredata.compilers.keys() and self.has_swift(target):
+            self.generate_swift_target(target, outfile)
+            return
         self.scan_fortran_module_outputs(target)
         # The following deals with C/C++ compilation.
         (gen_src, gen_other_deps) = self.process_dep_gens(outfile, target)
@@ -834,6 +837,42 @@ class NinjaBackend(backends.Backend):
         element.write(outfile)
         self.check_outputs(element)
 
+    def generate_swift_target(self, target, outfile):
+        swiftc = self.environment.coredata.compilers['swift']
+        abssrc = []
+        for i in target.get_sources():
+            if not swiftc.can_compile(i):
+                raise InvalidArguments('Swift target %s contains a non-swift source file.' % target.get_basename())
+            relsrc = i.rel_to_builddir(self.build_to_src)
+            abss = os.path.normpath(os.path.join(self.environment.get_build_dir(), relsrc))
+            abssrc.append(abss)
+        os.makedirs(os.path.join(self.get_target_private_dir_abs(target)), exist_ok=True)
+        # We need absolute paths because swiftc needs to be invoked in a subdir
+        # and this is the easiest way about it.
+        objects = [] # Relative to swift invocation dir
+        rel_objects = [] # Relative to build.ninja
+        for i in abssrc:
+            base = os.path.split(i)[1]
+            oname = os.path.splitext(base)[0] + '.o'
+            objects.append(oname)
+            rel_objects.append(os.path.join(self.get_target_private_dir(target), oname))
+        compile_args = swiftc.get_compile_only_args()
+        compile_args += swiftc.get_module_args(target.name)
+        link_args = swiftc.get_output_args(self.get_target_filename(target))
+        rundir = self.get_target_private_dir(target)
+
+        elem = NinjaBuildElement(rel_objects, 'swift_COMPILER', abssrc)
+        elem.add_item('ARGS', compile_args)
+        elem.add_item('RUNDIR', rundir)
+        elem.write(outfile)
+        self.check_outputs(elem)
+        elem = NinjaBuildElement(self.get_target_filename(target), 'swift_COMPILER', [])
+        elem.add_dep(rel_objects)
+        elem.add_item('ARGS', link_args + objects)
+        elem.add_item('RUNDIR', rundir)
+        elem.write(outfile)
+        self.check_outputs(elem)
+
     def generate_static_link_rules(self, is_cross, outfile):
         if self.build.has_language('java'):
             if not is_cross:
@@ -958,7 +997,10 @@ class NinjaBackend(backends.Backend):
 
     def generate_rust_compile_rules(self, compiler, outfile):
         rule = 'rule %s_COMPILER\n' % compiler.get_language()
-        invoc = ' '.join([ninja_quote(i) for i in compiler.get_exelist()])
+        full_exe = [sys.executable,
+                    os.path.join(self.environment.get_script_root(), 'dirchanger'),
+                    '$RUNDIR'] + compiler.get_exelist()
+        invoc = ' '.join([ninja_quote(i) for i in full_exe])
         command = ' command = %s $ARGS $in\n' % invoc
         description = ' description = Compiling Rust source $in.\n'
         depfile = ' depfile = $targetdep\n'
@@ -969,6 +1011,16 @@ class NinjaBackend(backends.Backend):
         outfile.write(description)
         outfile.write(depfile)
         outfile.write(depstyle)
+        outfile.write('\n')
+
+    def generate_swift_compile_rules(self, compiler, outfile):
+        rule = 'rule %s_COMPILER\n' % compiler.get_language()
+        invoc = ' '.join([ninja_quote(i) for i in compiler.get_exelist()])
+        command = ' command = %s $ARGS $in\n' % invoc
+        description = ' description = Compiling Swift source $in.\n'
+        outfile.write(rule)
+        outfile.write(command)
+        outfile.write(description)
         outfile.write('\n')
 
     def generate_fortran_dep_hack(self, outfile):
@@ -1003,6 +1055,10 @@ rule FORTRAN_DEP_HACK
         if langname == 'rust':
             if not is_cross:
                 self.generate_rust_compile_rules(compiler, outfile)
+            return
+        if langname == 'swift':
+            if not is_cross:
+                self.generate_swift_compile_rules(compiler, outfile)
             return
         if langname == 'fortran':
             self.generate_fortran_dep_hack(outfile)
