@@ -168,6 +168,15 @@ class GnomeModule:
                 girdir = dep.held_object.get_variable ("girdir")
                 if girdir:
                     scan_command += ["--add-include-path=%s" % girdir]
+                for lib in dep.held_object.libs:
+                    if os.path.isabs(lib) and dep.held_object.is_libtool:
+                        scan_command += ["-L%s" % os.path.dirname(lib)]
+                        libname = os.path.basename(lib)
+                        if libname.startswith("lib"):
+                            libname = libname[3:]
+                        libname = libname.split(".so")[0]
+                        lib = "-l%s" % libname
+                    scan_command += [lib]
 
         inc_dirs = None
         if kwargs.get('include_directories'):

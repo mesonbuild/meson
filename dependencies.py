@@ -71,6 +71,7 @@ class PkgConfigDependency(Dependency):
 
     def __init__(self, name, environment, kwargs):
         Dependency.__init__(self)
+        self.is_libtool = False
         self.required = kwargs.get('required', True)
         if 'native' in kwargs and environment.is_cross_build():
             want_cross = not kwargs['native']
@@ -150,6 +151,7 @@ class PkgConfigDependency(Dependency):
                                            'but we could not compute the actual shared'
                                            'library path' % lib)
                     lib = shared_lib
+                    self.is_libtool = True
 
                 self.libs.append(lib)
 
