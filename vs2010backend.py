@@ -53,17 +53,17 @@ class Vs2010Backend(backends.Backend):
                 base_args = generator.get_arglist()
                 for i in range(len(infilelist)):
                     if len(infilelist) == len(outfilelist):
-                        sole_output = os.path.join(self.get_target_private_dir_abs(target), outfilelist[i])
+                        sole_output = os.path.join(self.get_target_private_dir(target), outfilelist[i])
                     else:
                         sole_output = ''
                     curfile = infilelist[i]
                     infilename = os.path.join(self.environment.get_source_dir(), curfile)
                     outfiles = genlist.get_outputs_for(curfile)
-                    outfiles = [os.path.join(self.get_target_private_dir_abs(target), of) for of in outfiles]
+                    outfiles = [os.path.join(self.get_target_private_dir(target), of) for of in outfiles]
                     all_output_files += outfiles
                     args = [x.replace("@INPUT@", infilename).replace('@OUTPUT@', sole_output)\
                             for x in base_args]
-                    args = [x.replace("@SOURCE_DIR@", self.environment.get_source_dir()).replace("@BUILD_DIR@", self.get_target_private_dir_abs(target))
+                    args = [x.replace("@SOURCE_DIR@", self.environment.get_source_dir()).replace("@BUILD_DIR@", self.get_target_private_dir(target))
                             for x in args]
                     fullcmd = [exe_file] + args
                     cbs = ET.SubElement(idgroup, 'CustomBuildStep')
@@ -373,7 +373,7 @@ class Vs2010Backend(backends.Backend):
         clconf = ET.SubElement(compiles, 'ClCompile')
         opt = ET.SubElement(clconf, 'Optimization')
         opt.text = 'disabled'
-        inc_dirs = [proj_to_src_dir, self.get_target_private_dir_abs(target)]
+        inc_dirs = [proj_to_src_dir, self.get_target_private_dir(target)]
         cur_dir = target.subdir
         if cur_dir == '':
             cur_dir= '.'

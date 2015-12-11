@@ -78,18 +78,12 @@ class Backend():
         return dirname
 
     def get_target_private_dir(self, target):
-        return os.path.join(self.get_target_dir(target), target.get_basename() + target.type_suffix())
-
-    def get_target_private_dir_abs(self, target):
-        dirname = self.get_target_private_dir(target)
+        dirname = os.path.join(self.get_target_dir(target), target.get_basename() + target.type_suffix())
         os.makedirs(os.path.join(self.environment.get_build_dir(), dirname), exist_ok=True)
         return dirname
 
-    # Crap hack. The above was doing the wrong thing but too many thing use it to fix
-    # now. Get fixed once Swift works.
-    def get_target_private_dir_abs_v2(self, target):
+    def get_target_private_dir_abs(self, target):
         dirname = os.path.join(self.environment.get_build_dir(), self.get_target_private_dir(target))
-        os.makedirs(dirname, exist_ok=True)
         return dirname
 
     def generate_unity_files(self, target, unity_src):
@@ -185,7 +179,7 @@ class Backend():
 
     def determine_ext_objs(self, extobj, proj_dir_to_build_root=''):
         result = []
-        targetdir = self.get_target_private_dir_abs(extobj.target)
+        targetdir = self.get_target_private_dir(extobj.target)
         suffix = '.' + self.environment.get_object_suffix()
         for osrc in extobj.srclist:
             osrc_base = osrc.fname
@@ -205,7 +199,7 @@ class Backend():
 
     def get_pch_include_args(self, compiler, target):
         args = []
-        pchpath = self.get_target_private_dir_abs(target)
+        pchpath = self.get_target_private_dir(target)
         includeargs = compiler.get_include_args(pchpath)
         for lang in ['c', 'cpp']:
             p = target.get_pch(lang)
