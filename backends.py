@@ -46,6 +46,9 @@ class Backend():
         self.dep_rules = {}
         self.build_to_src = os.path.relpath(self.environment.get_source_dir(),
                                             self.environment.get_build_dir())
+        for t in self.build.targets:
+            priv_dirname = self.get_target_private_dir_abs(t)
+            os.makedirs(priv_dirname, exist_ok=True)
 
     def get_compiler_for_lang(self, lang):
         for i in self.build.compilers:
@@ -74,12 +77,10 @@ class Backend():
             dirname = target.get_subdir()
         else:
             dirname = 'meson-out'
-        os.makedirs(os.path.join(self.environment.get_build_dir(), dirname), exist_ok=True)
         return dirname
 
     def get_target_private_dir(self, target):
         dirname = os.path.join(self.get_target_dir(target), target.get_basename() + target.type_suffix())
-        os.makedirs(os.path.join(self.environment.get_build_dir(), dirname), exist_ok=True)
         return dirname
 
     def get_target_private_dir_abs(self, target):
