@@ -844,10 +844,17 @@ class NinjaBackend(backends.Backend):
     def target_swift_modulename(self, target):
         return target.name
 
+    def is_swift_target(self, target):
+        for s in target.sources:
+            if s.endswith('swift'):
+                return True
+        return False
+
     def determine_swift_dep_modules(self, target):
         result = []
         for l in target.link_targets:
-            result.append(self.swift_module_file_name(l))
+            if self.is_swift_target(l):
+                result.append(self.swift_module_file_name(l))
         return result
 
     def determine_swift_dep_dirs(self, target):
@@ -886,12 +893,20 @@ class NinjaBackend(backends.Backend):
         module_name = self.target_swift_modulename(target)
         swiftc = self.environment.coredata.compilers['swift']
         abssrc = []
+        abs_headers = []
+        header_imports = []
         for i in target.get_sources():
-            if not swiftc.can_compile(i):
+            if swiftc.can_compile(i):
+                relsrc = i.rel_to_builddir(self.build_to_src)
+                abss = os.path.normpath(os.path.join(self.environment.get_build_dir(), relsrc))
+                abssrc.append(abss)
+            elif self.environment.is_header(i):
+                relh = i.rel_to_builddir(self.build_to_src)
+                absh = os.path.normpath(os.path.join(self.environment.get_build_dir(), relh))
+                abs_headers.append(absh)
+                header_imports += swiftc.get_header_import_args(absh)
+            else:
                 raise InvalidArguments('Swift target %s contains a non-swift source file.' % target.get_basename())
-            relsrc = i.rel_to_builddir(self.build_to_src)
-            abss = os.path.normpath(os.path.join(self.environment.get_build_dir(), relsrc))
-            abssrc.append(abss)
         os.makedirs(os.path.join(self.get_target_private_dir_abs(target)), exist_ok=True)
         compile_args = swiftc.get_compile_only_args()
         compile_args += swiftc.get_module_args(module_name)
@@ -922,7 +937,8 @@ class NinjaBackend(backends.Backend):
                                  'swift_COMPILER',
                                  abssrc)
         elem.add_dep(in_module_files + rel_generated)
-        elem.add_item('ARGS', compile_args + abs_generated + module_includes)
+        elem.add_dep(abs_headers)
+        elem.add_item('ARGS', compile_args + header_imports + abs_generated + module_includes)
         elem.add_item('RUNDIR', rundir)
         elem.write(outfile)
         self.check_outputs(elem)

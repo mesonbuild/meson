@@ -1000,6 +1000,9 @@ class SwiftCompiler(Compiler):
     def get_linker_output_args(self, target):
         return ['-o', target]
 
+    def get_header_import_args(self, headername):
+        return ['-import-objc-header', headername]
+
     def get_warn_args(self, level):
         return []
 
