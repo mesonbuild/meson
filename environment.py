@@ -19,6 +19,10 @@ import configparser
 
 build_filename = 'meson.build'
 
+class EnvironmentException(coredata.MesonException):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
 def find_coverage_tools():
     gcovr_exe = 'gcovr'
     lcov_exe = 'lcov'
@@ -455,6 +459,23 @@ class Environment():
             version = 'unknown version'
         if 'rustc' in out:
             return RustCompiler(exelist, version)
+        raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
+
+    def detect_swift_compiler(self):
+        exelist = ['swiftc']
+        try:
+            p = subprocess.Popen(exelist + ['-v'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        except OSError:
+            raise EnvironmentException('Could not execute Swift compiler "%s"' % ' '.join(exelist))
+        (_, err) = p.communicate()
+        err = err.decode()
+        vmatch = re.search(Environment.version_regex, err)
+        if vmatch:
+            version = vmatch.group(0)
+        else:
+            version = 'unknown version'
+        if 'Swift' in err:
+            return SwiftCompiler(exelist, version)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
 
     def detect_static_linker(self, compiler):

@@ -85,6 +85,13 @@ class Backend():
         os.makedirs(os.path.join(self.environment.get_build_dir(), dirname), exist_ok=True)
         return dirname
 
+    # Crap hack. The above was doing the wrong thing but too many thing use it to fix
+    # now. Get fixed once Swift works.
+    def get_target_private_dir_abs_v2(self, target):
+        dirname = os.path.join(self.environment.get_build_dir(), self.get_target_private_dir(target))
+        os.makedirs(dirname, exist_ok=True)
+        return dirname
+
     def generate_unity_files(self, target, unity_src):
         langlist = {}
         abs_files = []
@@ -134,23 +141,23 @@ class Backend():
         self.write_benchmark_file(datafile)
         datafile.close()
 
-    def has_vala(self, target):
+    def has_source_suffix(self, target, suffix):
         for s in target.get_sources():
-            if s.endswith('.vala'):
+            if s.endswith(suffix):
                 return True
         return False
+
+    def has_vala(self, target):
+        return self.has_source_suffix(target, '.vala')
 
     def has_rust(self, target):
-        for s in target.get_sources():
-            if s.endswith('.rs'):
-                return True
-        return False
+        return self.has_source_suffix(target, '.rs')
 
     def has_cs(self, target):
-        for s in target.get_sources():
-            if s.endswith('.cs'):
-                return True
-        return False
+        return self.has_source_suffix(target, '.cs')
+
+    def has_swift(self, target):
+        return self.has_source_suffix(target, '.swift')
 
     def determine_linker(self, target, src):
         if isinstance(target, build.StaticLibrary):

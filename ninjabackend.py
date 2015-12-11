@@ -195,6 +195,9 @@ class NinjaBackend(backends.Backend):
             return
         if 'vala' in self.environment.coredata.compilers.keys() and self.has_vala(target):
             gen_src_deps += self.generate_vala_compile(target, outfile)
+        if 'swift' in self.environment.coredata.compilers.keys() and self.has_swift(target):
+            self.generate_swift_target(target, outfile)
+            return
         self.scan_fortran_module_outputs(target)
         # The following deals with C/C++ compilation.
         (gen_src, gen_other_deps) = self.process_dep_gens(outfile, target)
@@ -854,6 +857,134 @@ class NinjaBackend(backends.Backend):
         element.write(outfile)
         self.check_outputs(element)
 
+    def swift_module_file_name(self, target):
+        return os.path.join(self.get_target_private_dir(target),
+                            self.target_swift_modulename(target) + '.swiftmodule')
+
+    def target_swift_modulename(self, target):
+        return target.name
+
+    def is_swift_target(self, target):
+        for s in target.sources:
+            if s.endswith('swift'):
+                return True
+        return False
+
+    def determine_swift_dep_modules(self, target):
+        result = []
+        for l in target.link_targets:
+            if self.is_swift_target(l):
+                result.append(self.swift_module_file_name(l))
+        return result
+
+    def determine_swift_dep_dirs(self, target):
+        result = []
+        for l in target.link_targets:
+            result.append(self.get_target_private_dir_abs_v2(l))
+        return result
+
+    def get_swift_link_deps(self, target):
+        result = []
+        for l in target.link_targets:
+            result.append(self.get_target_filename(l))
+        return result
+
+    def split_swift_generated_sources(self, target):
+        all_srcs = []
+        for genlist in target.get_generated_sources():
+            if isinstance(genlist, build.CustomTarget):
+                for ifile in genlist.get_filename():
+                    rel = os.path.join(self.get_target_dir(genlist), ifile)
+                    all_srcs.append(rel)
+            else:
+                for ifile in genlist.get_outfilelist():
+                    rel = os.path.join(self.get_target_private_dir(target), ifile)
+                    all_srcs.append(rel)
+        srcs = []
+        others = []
+        for i in all_srcs:
+            if i.endswith('.swift'):
+                srcs.append(i)
+            else:
+                others.append(i)
+        return (srcs, others)
+
+    def generate_swift_target(self, target, outfile):
+        module_name = self.target_swift_modulename(target)
+        swiftc = self.environment.coredata.compilers['swift']
+        abssrc = []
+        abs_headers = []
+        header_imports = []
+        for i in target.get_sources():
+            if swiftc.can_compile(i):
+                relsrc = i.rel_to_builddir(self.build_to_src)
+                abss = os.path.normpath(os.path.join(self.environment.get_build_dir(), relsrc))
+                abssrc.append(abss)
+            elif self.environment.is_header(i):
+                relh = i.rel_to_builddir(self.build_to_src)
+                absh = os.path.normpath(os.path.join(self.environment.get_build_dir(), relh))
+                abs_headers.append(absh)
+                header_imports += swiftc.get_header_import_args(absh)
+            else:
+                raise InvalidArguments('Swift target %s contains a non-swift source file.' % target.get_basename())
+        os.makedirs(os.path.join(self.get_target_private_dir_abs(target)), exist_ok=True)
+        compile_args = swiftc.get_compile_only_args()
+        compile_args += swiftc.get_module_args(module_name)
+        link_args = swiftc.get_output_args(os.path.join(self.environment.get_build_dir(), self.get_target_filename(target)))
+        rundir = self.get_target_private_dir(target)
+        out_module_name = self.swift_module_file_name(target)
+        in_module_files = self.determine_swift_dep_modules(target)
+        abs_module_dirs = self.determine_swift_dep_dirs(target)
+        module_includes = []
+        for x in abs_module_dirs:
+            module_includes += swiftc.get_include_args(x)
+        link_deps = self.get_swift_link_deps(target)
+        abs_link_deps = [os.path.join(self.environment.get_build_dir(), x) for x in link_deps]
+        (rel_generated, _) = self.split_swift_generated_sources(target)
+        abs_generated = [os.path.join(self.environment.get_build_dir(), x) for x in rel_generated]
+        # We need absolute paths because swiftc needs to be invoked in a subdir
+        # and this is the easiest way about it.
+        objects = [] # Relative to swift invocation dir
+        rel_objects = [] # Relative to build.ninja
+        for i in abssrc + abs_generated:
+            base = os.path.split(i)[1]
+            oname = os.path.splitext(base)[0] + '.o'
+            objects.append(oname)
+            rel_objects.append(os.path.join(self.get_target_private_dir(target), oname))
+
+        # Swiftc does not seem to be able to emit objects and module files in one go.
+        elem = NinjaBuildElement(rel_objects,
+                                 'swift_COMPILER',
+                                 abssrc)
+        elem.add_dep(in_module_files + rel_generated)
+        elem.add_dep(abs_headers)
+        elem.add_item('ARGS', compile_args + header_imports + abs_generated + module_includes)
+        elem.add_item('RUNDIR', rundir)
+        elem.write(outfile)
+        self.check_outputs(elem)
+        elem = NinjaBuildElement(out_module_name,
+                                 'swift_COMPILER',
+                                 abssrc)
+        elem.add_dep(in_module_files + rel_generated)
+        elem.add_item('ARGS', compile_args + abs_generated + module_includes + swiftc.get_mod_gen_args())
+        elem.add_item('RUNDIR', rundir)
+        elem.write(outfile)
+        self.check_outputs(elem)
+        if isinstance(target, build.StaticLibrary):
+            elem = self.generate_link(target, outfile, self.get_target_filename(target),
+                               rel_objects, self.build.static_linker)
+            elem.write(outfile)
+        elif isinstance(target, build.Executable):
+            elem = NinjaBuildElement(self.get_target_filename(target), 'swift_COMPILER', [])
+            elem.add_dep(rel_objects)
+            elem.add_dep(link_deps)
+            elem.add_item('ARGS', link_args + swiftc.get_std_exe_link_args() + objects + abs_link_deps)
+            elem.add_item('RUNDIR', rundir)
+            elem.write(outfile)
+            self.check_outputs(elem)
+        else:
+            raise MesonException('Swift supports only executable and static library targets.')
+
     def generate_static_link_rules(self, is_cross, outfile):
         if self.build.has_language('java'):
             if not is_cross:
@@ -991,6 +1122,19 @@ class NinjaBackend(backends.Backend):
         outfile.write(depstyle)
         outfile.write('\n')
 
+    def generate_swift_compile_rules(self, compiler, outfile):
+        rule = 'rule %s_COMPILER\n' % compiler.get_language()
+        full_exe = [sys.executable,
+                    os.path.join(self.environment.get_script_dir(), 'dirchanger.py'),
+                    '$RUNDIR'] + compiler.get_exelist()
+        invoc = ' '.join([ninja_quote(i) for i in full_exe])
+        command = ' command = %s $ARGS $in\n' % invoc
+        description = ' description = Compiling Swift source $in.\n'
+        outfile.write(rule)
+        outfile.write(command)
+        outfile.write(description)
+        outfile.write('\n')
+
     def generate_fortran_dep_hack(self, outfile):
         if mesonlib.is_windows():
             cmd = 'cmd /C ""'
@@ -1023,6 +1167,10 @@ rule FORTRAN_DEP_HACK
         if langname == 'rust':
             if not is_cross:
                 self.generate_rust_compile_rules(compiler, outfile)
+            return
+        if langname == 'swift':
+            if not is_cross:
+                self.generate_swift_compile_rules(compiler, outfile)
             return
         if langname == 'fortran':
             self.generate_fortran_dep_hack(outfile)
@@ -1289,7 +1437,7 @@ rule FORTRAN_DEP_HACK
         obj_basename = src_filename.replace('/', '_').replace('\\', '_')
         rel_obj = os.path.join(self.get_target_private_dir(target), obj_basename)
         rel_obj += '.' + self.environment.get_object_suffix()
-        dep_file = rel_obj + '.' + compiler.get_depfile_suffix()
+        dep_file = compiler.depfile_for_object(rel_obj)
         if self.environment.coredata.get_builtin_option('use_pch'):
             pchlist = target.get_pch(compiler.language)
         else:
