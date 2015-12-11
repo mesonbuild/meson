@@ -20,9 +20,10 @@ import json
 from coredata import MesonException
 
 class TestSerialisation:
-    def __init__(self, name, fname, is_cross, exe_wrapper, is_parallel, cmd_args, env,
+    def __init__(self, name, suite, fname, is_cross, exe_wrapper, is_parallel, cmd_args, env,
                  should_fail, valgrind_args, timeout, workdir, extra_paths):
         self.name = name
+        self.suite = suite
         self.fname = fname
         self.is_cross = is_cross
         self.exe_runner = exe_wrapper
@@ -302,7 +303,7 @@ class Backend():
                 if isinstance(a, mesonlib.File):
                     a = os.path.join(self.environment.get_build_dir(), a.rel_to_builddir(self.build_to_src))
                 cmd_args.append(a)
-            ts = TestSerialisation(t.get_name(), fname, is_cross, exe_wrapper,
+            ts = TestSerialisation(t.get_name(), t.suite, fname, is_cross, exe_wrapper,
                                    t.is_parallel, cmd_args, t.env, t.should_fail, t.valgrind_args,
                                    t.timeout, t.workdir, extra_paths)
             arr.append(ts)

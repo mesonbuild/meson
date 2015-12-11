@@ -168,6 +168,7 @@ def list_tests(testdata):
         to['name'] = t.name
         to['workdir'] = t.workdir
         to['timeout'] = t.timeout
+        to['suite'] = t.suite
         result.append(to)
     print(json.dumps(result))
 

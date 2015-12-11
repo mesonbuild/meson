@@ -528,9 +528,10 @@ class RunTargetHolder(InterpreterObject):
         self.held_object = build.RunTarget(name, command, args, subdir)
 
 class Test(InterpreterObject):
-    def __init__(self, name, exe, is_parallel, cmd_args, env, should_fail, valgrind_args, timeout, workdir):
+    def __init__(self, name, suite, exe, is_parallel, cmd_args, env, should_fail, valgrind_args, timeout, workdir):
         InterpreterObject.__init__(self)
         self.name = name
+        self.suite = suite
         self.exe = exe
         self.is_parallel = is_parallel
         self.cmd_args = cmd_args
@@ -1378,9 +1379,9 @@ class Interpreter():
                 self.parse_default_options(kwargs['default_options'])
         self.active_projectname = args[0]
         self.project_version = kwargs.get('version', 'undefined')
-        license = mesonlib.stringlistify(kwargs.get('license', 'unknown'))
+        proj_license = mesonlib.stringlistify(kwargs.get('license', 'unknown'))
         self.build.dep_manifest[args[0]] = {'version': self.project_version,
-                                            'license': license}
+                                            'license': proj_license}
         if self.subproject in self.build.projects:
             raise InvalidCode('Second call to project().')
         if not self.is_subproject() and 'subproject_dir' in kwargs:
@@ -1734,7 +1735,13 @@ class Interpreter():
             workdir = None
         if not isinstance(timeout, int):
             raise InterpreterException('Timeout must be an integer.')
-        t = Test(args[0], args[1].held_object, par, cmd_args, env, should_fail, valgrind_args, timeout, workdir)
+        suite = mesonlib.stringlistify(kwargs.get('suite', ''))
+        if self.is_subproject():
+            newsuite = []
+            for s in suite:
+                newsuite.append(self.subproject.replace(' ', '_').replace('.', '_') + '.' + s)
+            suite = newsuite
+        t = Test(args[0], suite, args[1].held_object, par, cmd_args, env, should_fail, valgrind_args, timeout, workdir)
         if is_base_test:
             self.build.tests.append(t)
             mlog.debug('Adding test "', mlog.bold(args[0]), '".', sep='')

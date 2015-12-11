@@ -528,6 +528,25 @@ class NinjaBackend(backends.Backend):
             dst_dir = os.path.join(self.environment.get_prefix(), sd.install_dir)
             d.install_subdirs.append([src_dir, dst_dir])
 
+    def write_test_suite_targets(self, cmd, outfile):
+        suites = {}
+        for t in self.build.get_tests():
+            for s in t.suite:
+                suites[s] = True
+        suites = list(suites.keys())
+        suites.sort()
+        for s in suites:
+            if s == '':
+                visible_name = 'for top level tests'
+            else:
+                visible_name = s
+            elem = NinjaBuildElement('test-' + s, 'CUSTOM_COMMAND', ['all', 'PHONY'])
+            elem.add_item('COMMAND', cmd + ['--suite=' + s])
+            elem.add_item('DESC', 'Running test suite %s.' % visible_name)
+            elem.add_item('pool', 'console')
+            elem.write(outfile)
+            self.check_outputs(elem)
+
     def generate_tests(self, outfile):
         self.serialise_tests()
         valgrind = environment.find_valgrind()
@@ -537,10 +556,11 @@ class NinjaBackend(backends.Backend):
         cmd = [sys.executable, test_script, test_data]
         elem = NinjaBuildElement('test', 'CUSTOM_COMMAND', ['all', 'PHONY'])
         elem.add_item('COMMAND', cmd)
-        elem.add_item('DESC', 'Running test suite.')
+        elem.add_item('DESC', 'Running all tests.')
         elem.add_item('pool', 'console')
         elem.write(outfile)
         self.check_outputs(elem)
+        self.write_test_suite_targets(cmd, outfile)
 
         if valgrind:
             velem = NinjaBuildElement('test-valgrind', 'CUSTOM_COMMAND', ['all', 'PHONY'])
