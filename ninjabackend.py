@@ -862,6 +862,26 @@ class NinjaBackend(backends.Backend):
             result.append(self.get_target_filename(l))
         return result
 
+    def split_swift_generated_sources(self, target):
+        all_srcs = []
+        for genlist in target.get_generated_sources():
+            if isinstance(genlist, build.CustomTarget):
+                for ifile in genlist.get_filename():
+                    rel = os.path.join(self.get_target_dir(genlist), ifile)
+                    all_srcs.append(rel)
+            else:
+                for ifile in genlist.get_outfilelist():
+                    rel = os.path.join(self.get_target_private_dir(target), ifile)
+                    all_srcs.append(rel)
+        srcs = []
+        others = []
+        for i in all_srcs:
+            if i.endswith('.swift'):
+                srcs.append(i)
+            else:
+                others.append(i)
+        return (srcs, others)
+
     def generate_swift_target(self, target, outfile):
         module_name = self.target_swift_modulename(target)
         swiftc = self.environment.coredata.compilers['swift']
@@ -873,15 +893,6 @@ class NinjaBackend(backends.Backend):
             abss = os.path.normpath(os.path.join(self.environment.get_build_dir(), relsrc))
             abssrc.append(abss)
         os.makedirs(os.path.join(self.get_target_private_dir_abs(target)), exist_ok=True)
-        # We need absolute paths because swiftc needs to be invoked in a subdir
-        # and this is the easiest way about it.
-        objects = [] # Relative to swift invocation dir
-        rel_objects = [] # Relative to build.ninja
-        for i in abssrc:
-            base = os.path.split(i)[1]
-            oname = os.path.splitext(base)[0] + '.o'
-            objects.append(oname)
-            rel_objects.append(os.path.join(self.get_target_private_dir(target), oname))
         compile_args = swiftc.get_compile_only_args()
         compile_args += swiftc.get_module_args(module_name)
         link_args = swiftc.get_output_args(os.path.join(self.environment.get_build_dir(), self.get_target_filename(target)))
@@ -894,21 +905,32 @@ class NinjaBackend(backends.Backend):
             module_includes += swiftc.get_include_args(x)
         link_deps = self.get_swift_link_deps(target)
         abs_link_deps = [os.path.join(self.environment.get_build_dir(), x) for x in link_deps]
+        (rel_generated, _) = self.split_swift_generated_sources(target)
+        abs_generated = [os.path.join(self.environment.get_build_dir(), x) for x in rel_generated]
+        # We need absolute paths because swiftc needs to be invoked in a subdir
+        # and this is the easiest way about it.
+        objects = [] # Relative to swift invocation dir
+        rel_objects = [] # Relative to build.ninja
+        for i in abssrc + abs_generated:
+            base = os.path.split(i)[1]
+            oname = os.path.splitext(base)[0] + '.o'
+            objects.append(oname)
+            rel_objects.append(os.path.join(self.get_target_private_dir(target), oname))
 
         # Swiftc does not seem to be able to emit objects and module files in one go.
         elem = NinjaBuildElement(rel_objects,
                                  'swift_COMPILER',
                                  abssrc)
-        elem.add_dep(in_module_files)
-        elem.add_item('ARGS', compile_args + module_includes)
+        elem.add_dep(in_module_files + rel_generated)
+        elem.add_item('ARGS', compile_args + abs_generated + module_includes)
         elem.add_item('RUNDIR', rundir)
         elem.write(outfile)
         self.check_outputs(elem)
         elem = NinjaBuildElement(out_module_name,
                                  'swift_COMPILER',
                                  abssrc)
-        elem.add_dep(in_module_files)
-        elem.add_item('ARGS', compile_args + module_includes + swiftc.get_mod_gen_args())
+        elem.add_dep(in_module_files + rel_generated)
+        elem.add_item('ARGS', compile_args + abs_generated + module_includes + swiftc.get_mod_gen_args())
         elem.add_item('RUNDIR', rundir)
         elem.write(outfile)
         self.check_outputs(elem)
