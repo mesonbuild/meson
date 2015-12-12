@@ -183,8 +183,8 @@ class Environment():
             except OSError:
                 continue
             (out, err) = p.communicate()
-            out = out.decode()
-            err = err.decode()
+            out = out.decode(errors='ignore')
+            err = err.decode(errors='ignore')
             vmatch = re.search(Environment.version_regex, out)
             if vmatch:
                 version = vmatch.group(0)
@@ -232,8 +232,8 @@ class Environment():
                 except OSError:
                    continue
                 (out, err) = p.communicate()
-                out = out.decode()
-                err = err.decode()
+                out = out.decode(errors='ignore')
+                err = err.decode(errors='ignore')
 
                 version = 'unknown version'
                 vmatch = re.search(Environment.version_regex, out)
@@ -307,8 +307,8 @@ class Environment():
             except OSError:
                 continue
             (out, err) = p.communicate()
-            out = out.decode()
-            err = err.decode()
+            out = out.decode(errors='ignore')
+            err = err.decode(errors='ignore')
             vmatch = re.search(Environment.version_regex, out)
             if vmatch:
                 version = vmatch.group(0)
@@ -345,8 +345,8 @@ class Environment():
         except OSError:
             raise EnvironmentException('Could not execute ObjC compiler "%s"' % ' '.join(exelist))
         (out, err) = p.communicate()
-        out = out.decode()
-        err = err.decode()
+        out = out.decode(errors='ignore')
+        err = err.decode(errors='ignore')
         vmatch = re.search(Environment.version_regex, out)
         if vmatch:
             version = vmatch.group(0)
@@ -375,8 +375,8 @@ class Environment():
         except OSError:
             raise EnvironmentException('Could not execute ObjC++ compiler "%s"' % ' '.join(exelist))
         (out, err) = p.communicate()
-        out = out.decode()
-        err = err.decode()
+        out = out.decode(errors='ignore')
+        err = err.decode(errors='ignore')
         vmatch = re.search(Environment.version_regex, out)
         if vmatch:
             version = vmatch.group(0)
@@ -398,8 +398,8 @@ class Environment():
         except OSError:
             raise EnvironmentException('Could not execute Java compiler "%s"' % ' '.join(exelist))
         (out, err) = p.communicate()
-        out = out.decode()
-        err = err.decode()
+        out = out.decode(errors='ignore')
+        err = err.decode(errors='ignore')
         vmatch = re.search(Environment.version_regex, err)
         if vmatch:
             version = vmatch.group(0)
@@ -416,8 +416,8 @@ class Environment():
         except OSError:
             raise EnvironmentException('Could not execute C# compiler "%s"' % ' '.join(exelist))
         (out, err) = p.communicate()
-        out = out.decode()
-        err = err.decode()
+        out = out.decode(errors='ignore')
+        err = err.decode(errors='ignore')
         vmatch = re.search(Environment.version_regex, out)
         if vmatch:
             version = vmatch.group(0)
@@ -434,7 +434,7 @@ class Environment():
         except OSError:
             raise EnvironmentException('Could not execute Vala compiler "%s"' % ' '.join(exelist))
         (out, _) = p.communicate()
-        out = out.decode()
+        out = out.decode(errors='ignore')
         vmatch = re.search(Environment.version_regex, out)
         if vmatch:
             version = vmatch.group(0)
@@ -451,7 +451,7 @@ class Environment():
         except OSError:
             raise EnvironmentException('Could not execute Rust compiler "%s"' % ' '.join(exelist))
         (out, _) = p.communicate()
-        out = out.decode()
+        out = out.decode(errors='ignore')
         vmatch = re.search(Environment.version_regex, out)
         if vmatch:
             version = vmatch.group(0)
@@ -468,7 +468,7 @@ class Environment():
         except OSError:
             raise EnvironmentException('Could not execute Swift compiler "%s"' % ' '.join(exelist))
         (_, err) = p.communicate()
-        err = err.decode()
+        err = err.decode(errors='ignore')
         vmatch = re.search(Environment.version_regex, err)
         if vmatch:
             version = vmatch.group(0)
@@ -499,8 +499,8 @@ class Environment():
         except OSError:
             raise EnvironmentException('Could not execute static linker "%s".' % linker)
         (out, err) = p.communicate()
-        out = out.decode()
-        err = err.decode()
+        out = out.decode(errors='ignore')
+        err = err.decode(errors='ignore')
         if '/OUT:' in out or '/OUT:' in err:
             return VisualStudioLinker([linker])
         if p.returncode == 0:
