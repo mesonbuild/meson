@@ -202,7 +202,7 @@ class Environment():
                 return GnuCCompiler(ccache + [compiler], version, gtype, is_cross, exe_wrap)
             if 'clang' in out:
                 return ClangCCompiler(ccache + [compiler], version, is_cross, exe_wrap)
-            if 'Microsoft' in out:
+            if 'Microsoft' in out or 'Microsoft' in err:
                 # Visual Studio prints version number to stderr but
                 # everything else to stdout. Why? Lord only knows.
                 version = re.search(Environment.version_regex, err).group()
@@ -326,7 +326,7 @@ class Environment():
                 return GnuCPPCompiler(ccache + [compiler], version, gtype, is_cross, exe_wrap)
             if 'clang' in out:
                 return ClangCPPCompiler(ccache + [compiler], version, is_cross, exe_wrap)
-            if 'Microsoft' in out:
+            if 'Microsoft' in out or 'Microsoft' in err:
                 version = re.search(Environment.version_regex, err).group()
                 return VisualStudioCPPCompiler([compiler], version, is_cross, exe_wrap)
         raise EnvironmentException('Unknown compiler(s) "' + ', '.join(compilers) + '"')
