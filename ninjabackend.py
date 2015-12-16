@@ -22,6 +22,7 @@ from meson_install import InstallData
 from build import InvalidArguments
 from coredata import MesonException
 import os, sys, pickle, re
+import subprocess
 
 if mesonlib.is_windows():
     quote_char = '"'
@@ -159,6 +160,14 @@ class NinjaBackend(backends.Backend):
         # fully created.
         outfile.close()
         os.replace(tempfilename, outfilename)
+        self.generate_compdb()
+
+    # http://clang.llvm.org/docs/JSONCompilationDatabase.html
+    def generate_compdb(self):
+        ninja_exe = environment.detect_ninja()
+        builddir = self.environment.get_build_dir()
+        jsondb = subprocess.check_output([ninja_exe, '-t', 'compdb', 'c_COMPILER', 'cpp_COMPILER'], cwd=builddir)
+        open(os.path.join(builddir, 'compile_commands.json'), 'wb').write(jsondb)
 
     # Get all generated headers. Any source file might need them so
     # we need to add an order dependency to them.
