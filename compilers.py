@@ -27,7 +27,7 @@ header_suffixes = ['h', 'hh', 'hpp', 'hxx', 'H', 'moc', 'vapi']
 cpp_suffixes = ['cc', 'cpp', 'cxx', 'h', 'hh', 'hpp', 'hxx', 'c++']
 c_suffixes = ['c']
 clike_suffixes = c_suffixes + cpp_suffixes
-obj_suffixes = ['o', 'obj']
+obj_suffixes = ['o', 'obj', 'res']
 
 def is_header(fname):
     if hasattr(fname, 'fname'):
