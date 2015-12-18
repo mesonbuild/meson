@@ -153,9 +153,11 @@ def run_configure_inprocess(commandlist):
     sys.stdout = mystdout = StringIO()
     old_stderr = sys.stderr
     sys.stderr = mystderr = StringIO()
-    returncode = meson.run(commandlist)
-    sys.stdout = old_stdout
-    sys.stderr = old_stderr
+    try:
+        returncode = meson.run(commandlist)
+    finally:
+        sys.stdout = old_stdout
+        sys.stderr = old_stderr
     return (returncode, mystdout.getvalue(), mystderr.getvalue())
 
 def run_test_inprocess(testdir):
@@ -165,11 +167,13 @@ def run_test_inprocess(testdir):
     sys.stderr = mystderr = StringIO()
     old_cwd = os.getcwd()
     os.chdir(testdir)
-    returncode_test = meson_test.run(['meson-private/meson_test_setup.dat'])
-    returncode_benchmark = meson_benchmark.run(['meson-private/meson_benchmark_setup.dat'])
-    sys.stdout = old_stdout
-    sys.stderr = old_stderr
-    os.chdir(old_cwd)
+    try:
+        returncode_test = meson_test.run(['meson-private/meson_test_setup.dat'])
+        returncode_benchmark = meson_benchmark.run(['meson-private/meson_benchmark_setup.dat'])
+    finally:
+        sys.stdout = old_stdout
+        sys.stderr = old_stderr
+        os.chdir(old_cwd)
     return (max(returncode_test, returncode_benchmark), mystdout.getvalue(), mystderr.getvalue())
 
 
