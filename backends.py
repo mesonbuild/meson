@@ -311,32 +311,6 @@ class Backend():
             arr.append(ts)
         pickle.dump(arr, datafile)
 
-    def generate_pkgconfig_files(self):
-        for p in self.build.pkgconfig_gens:
-            outdir = self.environment.scratch_dir
-            fname = os.path.join(outdir, p.filebase + '.pc')
-            ofile = open(fname, 'w')
-            coredata = self.environment.get_coredata()
-            ofile.write('prefix=%s\n' % coredata.get_builtin_option('prefix'))
-            ofile.write('libdir=${prefix}/%s\n' % coredata.get_builtin_option('libdir'))
-            ofile.write('includedir=${prefix}/%s\n\n' % coredata.get_builtin_option('includedir'))
-            ofile.write('Name: %s\n' % p.name)
-            if len(p.description) > 0:
-                ofile.write('Description: %s\n' % p.description)
-            if len(p.version) > 0:
-                ofile.write('Version: %s\n' % p.version)
-            ofile.write('Libs: -L${libdir} ')
-            for l in p.libraries:
-                ofile.write('-l%s ' % l.name)
-            ofile.write('\n')
-            ofile.write('CFlags: ')
-            for h in p.subdirs:
-                if h == '.':
-                    h = ''
-                ofile.write(os.path.join('-I${includedir}', h))
-                ofile.write(' ')
-            ofile.write('\n')
-
 
     def generate_depmf_install(self, d):
         if self.build.dep_manifest_name is None:

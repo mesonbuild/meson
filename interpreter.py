@@ -399,29 +399,25 @@ class Headers(InterpreterObject):
     def get_custom_install_dir(self):
         return self.custom_install_dir
 
-class Data(InterpreterObject):
+class DataHolder(InterpreterObject):
     def __init__(self, in_sourcetree, source_subdir, sources, kwargs):
-        InterpreterObject.__init__(self)
-        self.in_sourcetree = in_sourcetree
-        self.source_subdir = source_subdir
-        self.sources = sources
-        kwsource = kwargs.get('sources', [])
-        if not isinstance(kwsource, list):
-            kwsource = [kwsource]
-        self.sources += kwsource
-        check_stringlist(self.sources)
-        self.install_dir = kwargs.get('install_dir', None)
-        if not isinstance(self.install_dir, str):
+        super().__init__()
+        kwsource = mesonlib.stringlistify(kwargs.get('sources', []))
+        sources += kwsource
+        check_stringlist(sources)
+        install_dir = kwargs.get('install_dir', None)
+        if not isinstance(install_dir, str):
             raise InterpreterException('Custom_install_dir must be a string.')
+        self.held_object = build.Data(in_sourcetree, source_subdir, sources, install_dir)
 
     def get_source_subdir(self):
-        return self.source_subdir
+        return self.held_object.source_subdir
 
     def get_sources(self):
-        return self.sources
+        return self.held_object.sources
 
     def get_install_dir(self):
-        return self.install_dir
+        return self.held_object.install_dir
 
 class InstallDir(InterpreterObject):
     def __init__(self, source_subdir, installable_subdir, install_dir):
@@ -775,7 +771,6 @@ class ModuleHolder(InterpreterObject):
         state.targets = self.interpreter.build.targets
         state.headers = self.interpreter.build.get_headers()
         state.man = self.interpreter.build.get_man()
-        state.pkgconfig_gens = self.interpreter.build.pkgconfig_gens
         state.global_args = self.interpreter.build.global_args
         value = fn(state, args, kwargs)
         return self.interpreter.module_method_callback(value)
@@ -963,7 +958,6 @@ class Interpreter():
                       'option' : self.func_option,
                       'get_option' : self.func_get_option,
                       'subproject' : self.func_subproject,
-                      'pkgconfig_gen' : self.func_pkgconfig_gen,
                       'vcs_tag' : self.func_vcs_tag,
                       'set_variable' : self.func_set_variable,
                       'is_variable' : self.func_is_variable,
@@ -1005,6 +999,8 @@ class Interpreter():
                 self.build.targets[v.name] = v
             elif isinstance(v, build.InstallScript):
                 self.build.install_scripts.append(v)
+            elif isinstance(v, build.Data):
+                self.build.data.append(v)
             else:
                 print(v)
                 raise InterpreterException('Module returned a value of unknown type.')
@@ -1245,36 +1241,6 @@ class Interpreter():
 
     def func_option(self, nodes, args, kwargs):
         raise InterpreterException('Tried to call option() in build description file. All options must be in the option file.')
-
-    def func_pkgconfig_gen(self, nodes, args, kwargs):
-        if len(args) > 0:
-            raise InterpreterException('Pkgconfig_gen takes no positional arguments.')
-        libs = kwargs.get('libraries', [])
-        if not isinstance(libs, list):
-            libs = [libs]
-        for l in libs:
-            if not (isinstance(l, SharedLibraryHolder) or isinstance(l, StaticLibraryHolder)):
-                raise InterpreterException('Library argument not a library object.')
-        subdirs = kwargs.get('subdirs', ['.'])
-        if not isinstance(subdirs, list):
-            subdirs = [subdirs]
-        for h in subdirs:
-            if not isinstance(h, str):
-                raise InterpreterException('Header argument not string.')
-        version = kwargs.get('version', '')
-        if not isinstance(version, str):
-            raise InterpreterException('Version must be a string.')
-        name = kwargs.get('name', None)
-        if not isinstance(name, str):
-            raise InterpreterException('Name not specified.')
-        filebase = kwargs.get('filebase', name)
-        if not isinstance(filebase, str):
-            raise InterpreterException('Filebase must be a string.')
-        description = kwargs.get('description', None)
-        if not isinstance(description, str):
-            raise InterpreterException('Description is not a string.')
-        p = build.PkgConfigGenerator(libs, subdirs, name, description, version, filebase)
-        self.build.pkgconfig_gens.append(p)
 
     @stringArgs
     def func_subproject(self, nodes, args, kwargs):
@@ -1801,8 +1767,8 @@ class Interpreter():
 
     @stringArgs
     def func_install_data(self, node, args, kwargs):
-        data = Data(True, self.subdir, args, kwargs)
-        self.build.data.append(data)
+        data = DataHolder(True, self.subdir, args, kwargs)
+        self.build.data.append(data.held_object)
         return data
 
     @stringArgs
@@ -1852,7 +1818,7 @@ class Interpreter():
         else:
             raise InterpreterException('Configure_file must have either "configuration" or "command".')
         if isinstance(kwargs.get('install_dir', None), str):
-            self.build.data.append(Data(False, self.subdir, [output], kwargs))
+            self.build.data.append(DataHolder(False, self.subdir, [output], kwargs).held_object)
         return mesonlib.File.from_built_file(self.subdir, output)
 
     @stringArgs

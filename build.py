@@ -73,7 +73,6 @@ class Build:
         self.static_cross_linker = None
         self.pot = []
         self.subprojects = {}
-        self.pkgconfig_gens = []
         self.install_scripts = []
         self.install_dirs = []
         self.dep_manifest_name = None
@@ -930,20 +929,14 @@ class ConfigurationData():
     def keys(self):
         return self.values.keys()
 
-class PkgConfigGenerator():
-    def __init__(self, libraries, subdirs, name, description, version, filebase):
-        self.libraries = []
-        for l in libraries:
-            if hasattr(l, 'held_object'):
-                self.libraries.append(l.held_object)
-            else:
-                self.libraries.append(l)
-        self.headerdirs = {}
-        self.subdirs = subdirs
-        self.name = name
-        self.description = description
-        self.version = version
-        self.filebase = filebase
+# A bit poorly named, but this represents plain data files to copy
+# during install.
+class Data():
+    def __init__(self, in_sourcetree, source_subdir, sources, install_dir):
+        self.in_sourcetree = in_sourcetree
+        self.source_subdir = source_subdir
+        self.sources = sources
+        self.install_dir = install_dir
 
 class InstallScript:
     def __init__(self, cmd_arr):
