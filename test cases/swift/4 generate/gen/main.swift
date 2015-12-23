@@ -1,4 +1,8 @@
-import Glibc
+#if os(OSX)
+    import Darwin
+#else
+    import Glibc
+#endif
 
 let fname = Process.arguments[1]
 let code = "public func getGenerated() -> Int {\n    return 42\n}\n"
