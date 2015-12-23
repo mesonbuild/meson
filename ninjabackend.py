@@ -952,7 +952,7 @@ int dummy;
                 header_imports += swiftc.get_header_import_args(absh)
             else:
                 raise InvalidArguments('Swift target %s contains a non-swift source file.' % target.get_basename())
-        os.makedirs(os.path.join(self.get_target_private_dir(target)), exist_ok=True)
+        os.makedirs(self.get_target_private_dir_abs(target), exist_ok=True)
         compile_args = swiftc.get_compile_only_args()
         compile_args += swiftc.get_module_args(module_name)
         link_args = swiftc.get_output_args(os.path.join(self.environment.get_build_dir(), self.get_target_filename(target)))
