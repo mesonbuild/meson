@@ -52,7 +52,7 @@ class XCodeBackend(backends.Backend):
         return str(uuid.uuid4()).upper().replace('-', '')[:24]
 
     def get_target_dir(self, target):
-        dirname = os.path.join(target.get_subdir(), self.environment.coredata.buildtype)
+        dirname = os.path.join(target.get_subdir(), self.environment.coredata.get_builtin_option('buildtype'))
         os.makedirs(os.path.join(self.environment.get_build_dir(), dirname), exist_ok=True)
         return dirname
 
@@ -78,7 +78,6 @@ class XCodeBackend(backends.Backend):
         self.generate_target_dependency_map()
         self.generate_pbxdep_map()
         self.generate_containerproxy_map()
-        self.generate_pkgconfig_files()
         self.proj_dir = os.path.join(self.environment.get_build_dir(), self.build.project_name + '.xcodeproj')
         os.makedirs(self.proj_dir, exist_ok=True)
         self.proj_file = os.path.join(self.proj_dir, 'project.pbxproj')
