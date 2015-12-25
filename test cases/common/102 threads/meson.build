@@ -1,7 +1,15 @@
-project('threads', 'cpp')
+project('threads', 'cpp', 'c')
 
-test('threadtest',
-  executable('threadprog', 'threadprog.cpp',
-    dependencies : dependency('threads')
+threaddep = dependency('threads')
+
+test('cppthreadtest',
+  executable('cppthreadprog', 'threadprog.cpp',
+    dependencies : threaddep
+  )
+)
+
+test('cthreadtest',
+  executable('cthreadprog', 'threadprog.c',
+    dependencies : threaddep
   )
 )
