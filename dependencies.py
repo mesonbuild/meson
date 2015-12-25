@@ -1059,6 +1059,16 @@ class ExtraFrameworkDependency(Dependency):
     def found(self):
         return self.name is not None
 
+class ThreadDependency(Dependency):
+    def __init__(self, environment, kwargs):
+        super().__init__()
+        self.name = 'threads'
+        self.is_found = True
+        mlog.log('Dependency', mlog.bold(self.name), 'found:', mlog.green('YES'))
+
+    def need_threads(self):
+        return True
+
 def get_dep_identifier(name, kwargs):
     elements = [name]
     modlist = kwargs.get('modules', [])
@@ -1108,4 +1118,5 @@ packages = {'boost': BoostDependency,
             'wxwidgets' : WxDependency,
             'sdl2' : SDL2Dependency,
             'gl' : GLDependency,
+            'threads' : ThreadDependency,
            }
