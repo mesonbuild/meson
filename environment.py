@@ -145,6 +145,9 @@ class Environment():
     def is_object(self, fname):
         return is_object(fname)
 
+    def is_library(self, fname):
+        return is_library(fname)
+
     def merge_options(self, options):
         for (name, value) in options.items():
             if name not in self.coredata.user_options:

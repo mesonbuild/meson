@@ -28,6 +28,7 @@ cpp_suffixes = ['cc', 'cpp', 'cxx', 'h', 'hh', 'hpp', 'hxx', 'c++']
 c_suffixes = ['c']
 clike_suffixes = c_suffixes + cpp_suffixes
 obj_suffixes = ['o', 'obj', 'res']
+lib_suffixes = ['a', 'lib', 'dll', 'dylib', 'so']
 
 def is_header(fname):
     if hasattr(fname, 'fname'):
@@ -46,6 +47,12 @@ def is_object(fname):
         fname = fname.fname
     suffix = fname.split('.')[-1]
     return suffix in obj_suffixes
+
+def is_library(fname):
+    if hasattr(fname, 'fname'):
+        fname = fname.fname
+    suffix = fname.split('.')[-1]
+    return suffix in lib_suffixes
 
 gnulike_buildtype_args = {'plain' : [],
                           'debug' : ['-g'],

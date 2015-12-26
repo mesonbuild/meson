@@ -358,6 +358,9 @@ class Backend():
         ofilenames = [os.path.join(self.get_target_dir(target), i) for i in target.output]
         srcs = []
         outdir = self.get_target_dir(target)
+        # Many external programs fail on empty arguments.
+        if outdir == '':
+            outdir = '.'
         if absolute_paths:
             outdir = os.path.join(self.environment.get_build_dir(), outdir)
         for i in target.sources:
