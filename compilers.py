@@ -1423,7 +1423,7 @@ class GnuCPPCompiler(CPPCompiler):
 
     def get_options(self):
         opts = {'cpp_std' : coredata.UserComboOption('cpp_std', 'C++ language standard to use',
-                                                     ['none', 'c++03', 'c++11', 'c++1y'],
+                                                     ['none', 'c++03', 'c++11', 'c++14'],
                                                      'c++11')}
         if self.gcc_type == GCC_MINGW:
             opts.update({
@@ -1469,7 +1469,7 @@ class ClangCPPCompiler(CPPCompiler):
 
     def get_options(self):
         return {'cpp_std' : coredata.UserComboOption('cpp_std', 'C++ language standard to use',
-                                                   ['none', 'c++03', 'c++11', 'c++1y'],
+                                                   ['none', 'c++03', 'c++11', 'c++14'],
                                                    'c++11')}
 
     def get_option_compile_args(self, options):
