@@ -1696,7 +1696,7 @@ rule FORTRAN_DEP_HACK
                 continue
             for f in t.output:
                 if self.environment.is_library(f):
-                    libs.append(os.path.join(self.get_target_dir(target), f))
+                    libs.append(os.path.join(self.get_target_dir(t), f))
         return libs
 
     def determine_rpath_dirs(self, target):
