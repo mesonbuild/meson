@@ -9,9 +9,9 @@ DWORD WINAPI thread_func(LPVOID ignored) {
 }
 
 int main(int argc, char **argv) {
-    printf("Starting thread.\n");
-    HANDLE th;
     DWORD id;
+    HANDLE th;
+    printf("Starting thread.\n");
     th = CreateThread(NULL, 0, thread_func, NULL, 0, &id);
     WaitForSingleObject(th, INFINITE);
     printf("Stopped thread.\n");
