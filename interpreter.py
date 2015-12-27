@@ -1333,7 +1333,6 @@ class Interpreter():
                 newoptions = [option] + self.environment.cmd_line_options.projectoptions
                 self.environment.cmd_line_options.projectoptions = newoptions
 
-
     @stringArgs
     def func_project(self, node, args, kwargs):
         if len(args) < 2:
@@ -1463,7 +1462,7 @@ class Interpreter():
                     for cmd_arg in self.environment.cmd_line_options.projectoptions:
                         if cmd_arg.startswith(cmd_prefix):
                             value = cmd_arg.split('=', 1)[1]
-                            new_options[i].value = value
+                            new_options[i].set_value(value)
                 new_options.update(self.coredata.compiler_options)
                 self.coredata.compiler_options = new_options
             mlog.log('Native %s compiler: ' % lang, mlog.bold(' '.join(comp.get_exelist())), ' (%s %s)' % (comp.id, comp.version), sep='')
