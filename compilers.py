@@ -177,6 +177,9 @@ class Compiler():
     def has_function(self, *args, **kwargs):
         raise EnvironmentException('Language %s does not support function checks.' % self.language)
 
+    def unixtype_flags_to_native(self, args):
+        return args
+
 class CCompiler(Compiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
         super().__init__(exelist, version)
@@ -1055,7 +1058,6 @@ class VisualStudioCCompiler(CCompiler):
     vs2010_always_args = ['/nologo', '/showIncludes']
     vs2013_always_args = ['/nologo', '/showIncludes', '/FS']
 
-
     def __init__(self, exelist, version, is_cross, exe_wrap):
         CCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
         self.id = 'msvc'
@@ -1156,6 +1158,14 @@ class VisualStudioCCompiler(CCompiler):
 
     def get_option_link_args(self, options):
         return options['c_winlibs'].value
+
+    def unixtype_flags_to_native(self, args):
+        result = []
+        for i in args:
+            if i.startswith('-L'):
+                i = '/LIBPATH:' + i[2:]
+            result.append(i)
+        return result
 
 class VisualStudioCPPCompiler(VisualStudioCCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrap):
@@ -1768,6 +1778,9 @@ class VisualStudioLinker():
     def get_option_link_args(self, options):
         return []
 
+    def unixtype_flags_to_native(self, args):
+        return args
+
 class ArLinker():
     std_args = ['csr']
 
@@ -1804,3 +1817,6 @@ class ArLinker():
 
     def get_option_link_args(self, options):
         return []
+
+    def unixtype_flags_to_native(self, args):
+        return args

@@ -539,10 +539,7 @@ class BoostDependency(Dependency):
     def get_win_link_args(self):
         args = []
         if self.boost_root:
-            # FIXME, these are in gcc format, not msvc.
-            # On the other hand, so are the args that
-            # pkg-config returns.
-            args.append('/LIBPATH:' + self.libdir)
+            args.append('-L' + self.libdir)
         for module in self.requested_modules:
             module = BoostDependency.name2lib.get(module, module)
             if module in self.lib_modules_mt:

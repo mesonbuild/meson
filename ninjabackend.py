@@ -1675,6 +1675,7 @@ rule FORTRAN_DEP_HACK
         if self.environment.coredata.get_builtin_option('coverage'):
             commands += linker.get_coverage_link_args()
         commands += extra_args
+        commands = linker.unixtype_flags_to_native(commands)
         dep_targets = [self.get_dependency_filename(t) for t in dependencies]
         dep_targets += [os.path.join(self.environment.source_dir,
                                      target.subdir, t) for t in target.link_depends]
