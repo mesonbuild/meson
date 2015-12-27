@@ -1422,7 +1422,7 @@ class GnuCPPCompiler(CPPCompiler):
         return get_gcc_soname_args(self.gcc_type, shlib_name, path, soversion)
 
     def get_options(self):
-        opts = {'cpp_std' : coredata.UserComboOption('cpp_std', 'C language standard to use',
+        opts = {'cpp_std' : coredata.UserComboOption('cpp_std', 'C++ language standard to use',
                                                      ['none', 'c++03', 'c++11', 'c++1y'],
                                                      'c++11')}
         if self.gcc_type == GCC_MINGW:
