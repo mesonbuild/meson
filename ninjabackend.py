@@ -264,6 +264,8 @@ int dummy;
                                                                          header_deps))
                     elif self.environment.is_object(src):
                         obj_list.append(src)
+                    elif self.environment.is_library(src):
+                        pass
                     else:
                         # Assume anything not specifically a source file is a header. This is because
                         # people generate files with weird suffixes (.inc, .fh) that they then include
@@ -1674,16 +1676,28 @@ rule FORTRAN_DEP_HACK
                                             self.determine_rpath_dirs(target), target.install_rpath)
         if self.environment.coredata.get_builtin_option('coverage'):
             commands += linker.get_coverage_link_args()
+        custom_target_libraries = self.get_custom_target_provided_libraries(target)
         commands += extra_args
+        commands += custom_target_libraries
         commands = linker.unixtype_flags_to_native(commands)
         dep_targets = [self.get_dependency_filename(t) for t in dependencies]
         dep_targets += [os.path.join(self.environment.source_dir,
                                      target.subdir, t) for t in target.link_depends]
         elem = NinjaBuildElement(outname, linker_rule, obj_list)
-        elem.add_dep(dep_targets)
+        elem.add_dep(dep_targets + custom_target_libraries)
         elem.add_item('LINK_ARGS', commands)
         self.check_outputs(elem)
         return elem
+
+    def get_custom_target_provided_libraries(self, target):
+        libs = []
+        for t in target.get_generated_sources():
+            if not isinstance(t, build.CustomTarget):
+                continue
+            for f in t.output:
+                if self.environment.is_library(f):
+                    libs.append(os.path.join(self.get_target_dir(t), f))
+        return libs
 
     def determine_rpath_dirs(self, target):
         link_deps = target.get_all_link_deps()
