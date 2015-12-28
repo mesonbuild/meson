@@ -14,26 +14,29 @@ if not os.path.isdir(outdir):
     sys.exit(1)
 
 if shutil.which('cl'):
-    print('VS support not yet added.')
-    sys.exit(1)
+    libsuffix = '.lib'
+    is_vs = True
+    compiler = 'cl'
+    linker = 'lib'
+else:
+    libsuffix = '.a'
+    is_vs = False
+    linker = 'ar'
+    compiler = shutil.which('gcc')
+    if compiler is None:
+        compiler = shutil.which('clang')
+    if compiler is None:
+        compiler = shutil.which('cc')
+    if compiler is None:
+        print('No known compilers found.')
+        sys.exit(1)
 
 objsuffix = '.o'
-libsuffix = '.a'
 
 outo = os.path.join(outdir, funcname + objsuffix)
 outa = os.path.join(outdir, funcname + libsuffix)
 outh = os.path.join(outdir, funcname + '.h')
 outc = os.path.join(outdir, funcname + '.c')
-
-compiler = shutil.which('gcc')
-if compiler is None:
-    compiler = shutil.which('clang')
-if compiler is None:
-    compiler = shutil.which('cc')
-if compiler is None:
-    print('No known compilers found.')
-    sys.exit(1)
-linker = 'ar'
 
 tmpc = 'diibadaaba.c'
 tmpo = 'diibadaaba' + objsuffix
@@ -55,15 +58,23 @@ open(tmpc, 'w').write('''int %s_in_obj() {
 }
 ''' % funcname)
 
-subprocess.check_call([compiler, '-c', '-o', outo, tmpc])
+if is_vs:
+    subprocess.check_call([compiler, '/nologo', '/c', '/Fo' + outo, tmpc])
+else:
+    subprocess.check_call([compiler, '-c', '-o', outo, tmpc])
 
 open(tmpc, 'w').write('''int %s_in_lib() {
   return 0;
 }
 ''' % funcname)
 
-subprocess.check_call([compiler, '-c', '-o', tmpo, tmpc])
-subprocess.check_call([linker, 'csr', outa, tmpo])
+if is_vs:
+    subprocess.check_call([compiler, '/nologo', '/c', '/Fo' + tmpo, tmpc])
+    subprocess.check_call([linker, '/NOLOGO', '/OUT:' + outa, tmpo])
+else:
+    subprocess.check_call([compiler, '-c', '-o', tmpo, tmpc])
+    subprocess.check_call([linker, 'csr', outa, tmpo])
+
 os.unlink(tmpo)
 os.unlink(tmpc)
 
