@@ -79,7 +79,6 @@ class Vs2010Backend(backends.Backend):
         self.interpreter = interp
         self.platform = 'Win32'
         self.buildtype = self.environment.coredata.get_builtin_option('buildtype')
-        self.generate_pkgconfig_files()
         sln_filename = os.path.join(self.environment.get_build_dir(), self.build.project_name + '.sln')
         projlist = self.generate_projects()
         self.gen_testproj('RUN_TESTS', os.path.join(self.environment.get_build_dir(), 'RUN_TESTS.vcxproj'))
@@ -634,7 +633,7 @@ if %%errorlevel%% neq 0 goto :VCEnd'''
         tree = ET.ElementTree(root)
         tree.write(ofname, encoding='utf-8', xml_declaration=True)
         datafile = open(test_data, 'wb')
-        self.write_test_file(datafile)
+        self.serialise_tests()
         datafile.close()
         # ElementTree can not do prettyprinting so do it manually
         #doc = xml.dom.minidom.parse(ofname)
