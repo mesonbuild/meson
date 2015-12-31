@@ -460,7 +460,7 @@ int dummy;
         d = InstallData(self.environment.get_source_dir(),
                         self.environment.get_build_dir(),
                         self.environment.get_prefix(), depfixer)
-        elem = NinjaBuildElement('install', 'CUSTOM_COMMAND', '')
+        elem = NinjaBuildElement('install', 'CUSTOM_COMMAND', 'PHONY')
         elem.add_dep('all')
         elem.add_item('DESC', 'Installing files.')
         elem.add_item('COMMAND', [sys.executable, install_script, install_data_file])
