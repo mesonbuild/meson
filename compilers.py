@@ -1280,7 +1280,7 @@ class GnuCCompiler(CCompiler):
     def get_options(self):
         opts = {'c_std' : coredata.UserComboOption('c_std', 'C language standard to use',
                                                    ['none', 'c89', 'c99', 'c11', 'gnu89', 'gnu99', 'gnu11'],
-                                                   'c11')}
+                                                   'none')}
         if self.gcc_type == GCC_MINGW:
             opts.update({
                 'c_winlibs': coredata.UserStringArrayOption('c_winlibs', 'Standard Win libraries to link against',
@@ -1389,7 +1389,7 @@ class ClangCCompiler(CCompiler):
     def get_options(self):
         return {'c_std' : coredata.UserComboOption('c_std', 'C language standard to use',
                                                    ['none', 'c89', 'c99', 'c11'],
-                                                   'c11')}
+                                                   'none')}
 
     def get_option_compile_args(self, options):
         args = []
@@ -1431,7 +1431,7 @@ class GnuCPPCompiler(CPPCompiler):
     def get_options(self):
         opts = {'cpp_std' : coredata.UserComboOption('cpp_std', 'C++ language standard to use',
                                                      ['none', 'c++03', 'c++11', 'c++14'],
-                                                     'c++11')}
+                                                     'none')}
         if self.gcc_type == GCC_MINGW:
             opts.update({
                 'cpp_winlibs': coredata.UserStringArrayOption('c_winlibs', 'Standard Win libraries to link against',
@@ -1477,7 +1477,7 @@ class ClangCPPCompiler(CPPCompiler):
     def get_options(self):
         return {'cpp_std' : coredata.UserComboOption('cpp_std', 'C++ language standard to use',
                                                    ['none', 'c++03', 'c++11', 'c++14'],
-                                                   'c++11')}
+                                                   'none')}
 
     def get_option_compile_args(self, options):
         args = []

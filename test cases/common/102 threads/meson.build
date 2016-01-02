@@ -1,4 +1,5 @@
-project('threads', 'cpp', 'c')
+project('threads', 'cpp', 'c',
+  default_options : ['cpp_std=c++11'])
 
 threaddep = dependency('threads')
 

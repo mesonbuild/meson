@@ -1,4 +1,5 @@
-project('boosttest', 'cpp')
+project('boosttest', 'cpp',
+  default_options : ['cpp_std=c++11'])
 
 # We want to have multiple separate configurations of Boost
 # within one project. The need to be independent of each other.
