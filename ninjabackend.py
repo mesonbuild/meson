@@ -1429,13 +1429,13 @@ rule FORTRAN_DEP_HACK
         extra_orderdeps = []
         compiler = self.get_compiler_for_source(src)
         commands = self.generate_basic_compiler_args(target, compiler)
-        commands += compiler.get_include_args(self.get_target_private_dir(target))
+        commands += compiler.get_include_args(self.get_target_private_dir(target), False)
         curdir = target.get_subdir()
         tmppath = os.path.normpath(os.path.join(self.build_to_src, curdir))
-        commands += compiler.get_include_args(tmppath)
+        commands += compiler.get_include_args(tmppath, False)
         if curdir ==  '':
             curdir = '.'
-        commands += compiler.get_include_args(curdir)
+        commands += compiler.get_include_args(curdir, False)
         for d in target.external_deps:
             if d.need_threads():
                 commands += compiler.thread_flags()
@@ -1482,12 +1482,12 @@ rule FORTRAN_DEP_HACK
             for d in i.get_incdirs():
                 expdir =  os.path.join(basedir, d)
                 srctreedir = os.path.join(self.build_to_src, expdir)
-                bargs = compiler.get_include_args(expdir)
-                sargs = compiler.get_include_args(srctreedir)
+                bargs = compiler.get_include_args(expdir, i.is_system)
+                sargs = compiler.get_include_args(srctreedir, i.is_system)
                 commands += bargs
                 commands += sargs
             for d in i.get_extra_build_dirs():
-                commands += compiler.get_include_args(d)
+                commands += compiler.get_include_args(d, i.is_system)
         custom_target_include_dirs = []
         for i in target.generated:
             if isinstance(i, build.CustomTarget):
@@ -1495,7 +1495,7 @@ rule FORTRAN_DEP_HACK
                 if idir not in custom_target_include_dirs:
                     custom_target_include_dirs.append(idir)
         for i in custom_target_include_dirs:
-            commands+= compiler.get_include_args(i)
+            commands+= compiler.get_include_args(i, False)
         if self.environment.coredata.get_builtin_option('use_pch'):
             commands += self.get_pch_include_args(compiler, target)
         crstr = ''

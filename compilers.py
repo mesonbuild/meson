@@ -264,9 +264,11 @@ class CCompiler(Compiler):
     def get_std_exe_link_args(self):
         return []
 
-    def get_include_args(self, path):
+    def get_include_args(self, path, is_system):
         if path == '':
             path = '.'
+        if is_system:
+            return ['-isystem', path]
         return ['-I' + path]
 
     def get_std_shared_lib_link_args(self):
@@ -1174,6 +1176,12 @@ class VisualStudioCCompiler(CCompiler):
             result.append(i)
         return result
 
+    def get_include_args(self, path, is_system):
+        if path == '':
+            path = '.'
+        # msvc does not have a concept of system header dirs.
+        return ['-I' + path]
+
 class VisualStudioCPPCompiler(VisualStudioCCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrap):
         VisualStudioCCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
@@ -1588,7 +1596,7 @@ end program prog
             return True
         return False
 
-    def get_include_args(self, path):
+    def get_include_args(self, path, is_system):
         return ['-I' + path]
 
     def get_module_outdir_args(self, path):

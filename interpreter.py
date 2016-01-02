@@ -475,7 +475,7 @@ class BuildTargetHolder(InterpreterObject):
         return self.held_object.is_cross()
 
     def private_dir_include_method(self, args, kwargs):
-        return IncludeDirsHolder(build.IncludeDirs('', [],
+        return IncludeDirsHolder(build.IncludeDirs('', [], False,
                     [self.interpreter.backend.get_target_private_dir(self.held_object)]))
 
     def outdir_method(self, args, kwargs):
@@ -1821,14 +1821,16 @@ class Interpreter():
         return mesonlib.File.from_built_file(self.subdir, output)
 
     @stringArgs
-    @noKwargs
     def func_include_directories(self, node, args, kwargs):
         absbase = os.path.join(self.environment.get_source_dir(), self.subdir)
         for a in args:
             absdir = os.path.join(absbase, a)
             if not os.path.isdir(absdir):
                 raise InvalidArguments('Include dir %s does not exist.' % a)
-        i = IncludeDirsHolder(build.IncludeDirs(self.subdir, args))
+        is_system = kwargs.get('is_system', False)
+        if not isinstance(is_system, bool):
+            raise InvalidArguments('Is_system must be boolean.')
+        i = IncludeDirsHolder(build.IncludeDirs(self.subdir, args, is_system))
         return i
 
     @stringArgs

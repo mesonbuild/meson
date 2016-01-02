@@ -148,9 +148,10 @@ class Build:
         return self.global_args.get(compiler.get_language(), [])
 
 class IncludeDirs():
-    def __init__(self, curdir, dirs, extra_build_dirs=None):
+    def __init__(self, curdir, dirs, is_system, extra_build_dirs=None):
         self.curdir = curdir
         self.incdirs = dirs
+        self.is_system = is_system
         # Interpreter has validated that all given directories
         # actually exist.
         if extra_build_dirs is None:
