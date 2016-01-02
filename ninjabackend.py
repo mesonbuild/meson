@@ -86,11 +86,10 @@ class NinjaBuildElement():
         if len(self.orderdeps) > 0:
             line += ' || ' + ' '.join([ninja_quote(x) for x in self.orderdeps])
         line += '\n'
-        # This needs to be done to make these strings
-        # pass through arbitrary shells. Backslash is a
-        # quote character so it can break at any time.
-        # Because of this always use forward slashes,
-        # it is a path separator even on Windows.
+        # This is the only way I could find to make this work on all
+        # platforms including Windows command shell. Slash is a dir separator
+        # on Windows, too, so all characters are unambiguous and, more importantly,
+        # do not require quoting.
         line = line.replace('\\', '/')
         outfile.write(line)
 
@@ -111,7 +110,7 @@ class NinjaBuildElement():
                 newelems.append(templ % ninja_quote(i))
             line += ' '.join(newelems)
             line += '\n'
-            line = line.replace('\\', '/')
+            line = line.replace('\\', '\\\\')
             outfile.write(line)
         outfile.write('\n')
 
