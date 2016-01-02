@@ -107,10 +107,12 @@ class NinjaBuildElement():
                     templ = noq_templ
                 else:
                     templ = q_templ
+                i = i.replace('\\', '\\\\')
+                if quote_char == '"':
+                    i = i.replace('"', '\\"')
                 newelems.append(templ % ninja_quote(i))
             line += ' '.join(newelems)
             line += '\n'
-            line = line.replace('\\', '\\\\')
             outfile.write(line)
         outfile.write('\n')
 
