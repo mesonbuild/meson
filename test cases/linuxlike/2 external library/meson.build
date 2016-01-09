@@ -27,3 +27,8 @@ test('libtest', e)
 intdep = declare_dependency(dependencies : zlib)
 exe2 = executable('zprog2', 'prog.c', dependencies : intdep)
 test('libtest2', exe2)
+
+# Test that deps that use find_library deps work.
+depdep = declare_dependency(dependencies : intdep)
+exe3 = executable('zprog3', 'prog.c', dependencies : depdep)
+test('libtest3', exe3)
