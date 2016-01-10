@@ -1,5 +1,5 @@
 project('simplejava', 'java')
 
-javaprog = jar('myprog', 'com/sourceforge/meson/Simple.java',
-  main_class : 'com.sourceforge.meson.Simple')
+javaprog = jar('myprog', 'com/mesonbuild/Simple.java',
+  main_class : 'com.mesonbuild.Simple')
 test('mytest', javaprog)

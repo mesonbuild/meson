@@ -1,4 +1,4 @@
-package com.sourceforge.meson;
+package com.mesonbuild;
 
 class Simple {
     public static void main(String [] args) {

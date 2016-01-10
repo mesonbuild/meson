@@ -675,16 +675,18 @@ int dummy;
         if main_class != '':
             e = 'e'
         for src in src_list:
-            class_list.append(self.generate_single_java_compile(src, target, compiler, outfile))
+            plain_class_path = self.generate_single_java_compile(src, target, compiler, outfile)
+            class_list.append(plain_class_path)
+        class_dep_list = [os.path.join(self.get_target_private_dir(target), i) for i in class_list]
         jar_rule = 'java_LINKER'
         commands = [c+m+e+f]
         if e != '':
             commands.append(main_class)
         commands.append(self.get_target_filename(target))
-        commands += ['-C', self.get_target_private_dir(target)]
-        commands += class_list
+        for cls in class_list:
+            commands += ['-C', self.get_target_private_dir(target), cls]
         elem = NinjaBuildElement(outname_rel, jar_rule, [])
-        elem.add_dep([os.path.join(self.get_target_private_dir(target), i) for i in class_list])
+        elem.add_dep(class_dep_list)
         elem.add_item('ARGS', commands)
         elem.write(outfile)
         self.check_outputs(elem)
@@ -750,6 +752,9 @@ int dummy;
         args = []
         args += compiler.get_buildtype_args(self.environment.coredata.get_builtin_option('buildtype'))
         args += compiler.get_output_args(self.get_target_private_dir(target))
+        for i in target.include_dirs:
+            for idir in i.get_incdirs():
+                args += ['-sourcepath', os.path.join(self.build_to_src, i.curdir, idir)]
         rel_src = src.rel_to_builddir(self.build_to_src)
         plain_class_path = src.fname[:-4] + 'class'
         rel_obj = os.path.join(self.get_target_private_dir(target), plain_class_path)

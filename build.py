@@ -915,6 +915,7 @@ class Jar(BuildTarget):
             if not s.endswith('.java'):
                 raise InvalidArguments('Jar source %s is not a java file.' % s)
         self.filename = self.name + '.jar'
+        incdirs = kwargs.get('include_directories', [])
 
     def get_main_class(self):
         return self.main_class
