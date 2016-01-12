@@ -19,7 +19,7 @@ import concurrent.futures as conc
 import argparse
 import mesonlib
 
-tests_failed = False
+tests_failed = []
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--wrapper', default=None, dest='wrapper',
@@ -120,13 +120,13 @@ def run_single_test(wrap, test):
         stde = decode(stde)
         if timed_out:
             res = 'TIMEOUT'
-            tests_failed = True
+            tests_failed.append((test.name, stdo, stde))
         elif (not test.should_fail and p.returncode == 0) or \
             (test.should_fail and p.returncode != 0):
             res = 'OK'
         else:
             res = 'FAIL'
-            tests_failed = True
+            tests_failed.append((test.name, stdo, stde))
         returncode = p.returncode
     return TestRun(res, returncode, duration, stdo, stde, cmd)
 
@@ -199,11 +199,10 @@ def run_tests(options, datafilename):
             f = executor.submit(run_single_test, wrap, test)
             futures.append((f, numlen, filtered_tests, visible_name, i, logfile, jsonlogfile))
     drain_futures(futures)
-    print('\nFull log written to %s.' % logfilename)
+    return logfilename
 
 def run(args):
     global tests_failed
-    tests_failed = False
     options = parser.parse_args(args)
     if len(options.args) != 1:
         print('Test runner for Meson. Do not run on your own, mmm\'kay?')
@@ -211,10 +210,19 @@ def run(args):
     if options.wd is not None:
         os.chdir(options.wd)
     datafile = options.args[0]
-    run_tests(options, datafile)
-    if tests_failed:
-        return 1
-    return 0
+    logfilename = run_tests(options, datafile)
+    returncode = 0
+    if len(tests_failed) > 0:
+        print('\nOutput of failed tests (max 10):')
+        for (name, stdo, stde) in tests_failed[:10]:
+            print("{} stdout:\n".format(name))
+            print(stdo)
+            print('\n{} stderr:\n'.format(name))
+            print(stde)
+            print('\n')
+        returncode = 1
+    print('\nFull log written to %s.' % logfilename)
+    return returncode
 
 if __name__ == '__main__':
     sys.exit(run(sys.argv[1:]))
