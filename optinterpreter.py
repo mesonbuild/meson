@@ -100,7 +100,7 @@ class OptionInterpreter:
         elif isinstance(arg, mparser.ArrayNode):
             return [self.reduce_single(curarg) for curarg in arg.args.arguments]
         elif isinstance(arg, mparser.NumberNode):
-            return arg.get_value()
+            return arg.value
         else:
             raise OptionException('Arguments may only be string, int, bool, or array of those.')
 
