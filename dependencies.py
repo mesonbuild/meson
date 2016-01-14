@@ -20,7 +20,6 @@
 # package before this gets too big.
 
 import re
-import platform
 import os, stat, glob, subprocess, shutil
 from coredata import MesonException
 import mlog
@@ -130,14 +129,16 @@ class PkgConfigDependency(Dependency):
                                  stderr=subprocess.PIPE)
             out = p.communicate()[0]
             if p.returncode != 0:
-                raise RuntimeError('Could not generate cargs for %s:\n\n%s' % (name, out.decode(errors='ignore')))
+                raise DependencyException('Could not generate cargs for %s:\n\n%s' % \
+                                          (name, out.decode(errors='ignore')))
             self.cargs = out.decode().split()
 
             p = subprocess.Popen([pkgbin, '--libs', name], stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE)
             out = p.communicate()[0]
             if p.returncode != 0:
-                raise RuntimeError('Could not generate libs for %s.' % name)
+                raise DependencyException('Could not generate libs for %s:\n\n%s' % \
+                                          (name, out.decode(errors='ignore')))
             self.libs = []
             for lib in out.decode().split():
                 if lib.endswith(".la"):
@@ -147,9 +148,9 @@ class PkgConfigDependency(Dependency):
                         shared_lib = os.path.join(os.path.dirname(lib), ".libs", shared_libname)
 
                     if not os.path.exists(shared_lib):
-                        raise RuntimeError('Got a libtools specific "%s" dependencies'
-                                           'but we could not compute the actual shared'
-                                           'library path' % lib)
+                        raise DependencyException('Got a libtools specific "%s" dependencies'
+                                                  'but we could not compute the actual shared'
+                                                  'library path' % lib)
                     lib = shared_lib
                     self.is_libtool = True
 
@@ -267,14 +268,14 @@ class WxDependency(Dependency):
                                  stderr=subprocess.PIPE)
             out = p.communicate()[0]
             if p.returncode != 0:
-                raise RuntimeError('Could not generate cargs for wxwidgets.')
+                raise DependencyException('Could not generate cargs for wxwidgets.')
             self.cargs = out.decode().split()
 
             p = subprocess.Popen([self.wxc, '--libs'] + self.requested_modules,
                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             out = p.communicate()[0]
             if p.returncode != 0:
-                raise RuntimeError('Could not generate libs for wxwidgets.')
+                raise DependencyException('Could not generate libs for wxwidgets.')
             self.libs = out.decode().split()
 
     def get_requested(self, kwargs):
