@@ -130,7 +130,7 @@ class PkgConfigDependency(Dependency):
                                  stderr=subprocess.PIPE)
             out = p.communicate()[0]
             if p.returncode != 0:
-                raise RuntimeError('Could not generate cargs for %s.' % name)
+                raise RuntimeError('Could not generate cargs for %s:\n\n%s' % (name, out.decode(errors='ignore')))
             self.cargs = out.decode().split()
 
             p = subprocess.Popen([pkgbin, '--libs', name], stdout=subprocess.PIPE,
