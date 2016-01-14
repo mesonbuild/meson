@@ -1740,7 +1740,7 @@ rule FORTRAN_DEP_HACK
             gcno_elem.add_item('COMMAND', [sys.executable, clean_script, '.', 'gcno'])
             gcno_elem.add_item('description', 'Deleting gcno files')
             gcno_elem.write(outfile)
-            self.check_outputs(gcno_elem, gcno_elem)
+            self.check_outputs(gcno_elem)
 
             gcda_elem = NinjaBuildElement('clean-gcda', 'CUSTOM_COMMAND', 'PHONY')
             script_root = self.environment.get_script_dir()
