@@ -19,6 +19,21 @@ from . import mesonlib
 import json
 from .coredata import MesonException
 
+class InstallData():
+    def __init__(self, source_dir, build_dir, prefix, depfixer):
+        self.source_dir = source_dir
+        self.build_dir= build_dir
+        self.prefix = prefix
+        self.targets = []
+        self.depfixer = depfixer
+        self.headers = []
+        self.man = []
+        self.data = []
+        self.po_package_name = ''
+        self.po = []
+        self.install_scripts = []
+        self.install_subdirs = []
+
 class TestSerialisation:
     def __init__(self, name, suite, fname, is_cross, exe_wrapper, is_parallel, cmd_args, env,
                  should_fail, valgrind_args, timeout, workdir, extra_paths):

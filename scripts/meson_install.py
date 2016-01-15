@@ -17,21 +17,6 @@
 import sys, pickle, os, shutil, subprocess, gzip, platform
 from glob import glob
 
-class InstallData():
-    def __init__(self, source_dir, build_dir, prefix, depfixer):
-        self.source_dir = source_dir
-        self.build_dir= build_dir
-        self.prefix = prefix
-        self.targets = []
-        self.depfixer = depfixer
-        self.headers = []
-        self.man = []
-        self.data = []
-        self.po_package_name = ''
-        self.po = []
-        self.install_scripts = []
-        self.install_subdirs = []
-
 def do_install(datafilename):
     ifile = open(datafilename, 'rb')
     d = pickle.load(ifile)

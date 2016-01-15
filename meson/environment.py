@@ -125,7 +125,7 @@ class Environment():
         coredata.save(self.coredata, cdf)
 
     def get_script_dir(self):
-        return os.path.dirname(self.meson_script_file)
+        return os.path.join(os.path.dirname(self.meson_script_file), '../scripts')
 
     def get_log_dir(self):
         return self.log_dir

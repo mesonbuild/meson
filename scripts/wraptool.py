@@ -14,18 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import urllib.request, json
+import json
 import sys, os
 import configparser
 import shutil
-import platform
-try:
-    import ssl
-    has_ssl = True
-    API_ROOT = 'https://wrapdb.mesonbuild.com/v1/'
-except ImportError:
-    has_ssl = False
-    API_ROOT = 'http://wrapdb.mesonbuild.com/v1/'
 
 
 ssl_warning_printed = False
@@ -63,25 +55,6 @@ def build_ssl_context():
     ctx.verify_mode = ssl.CERT_REQUIRED
     ctx.load_default_certs()
     return ctx
-
-def open_wrapdburl(urlstring):
-    global ssl_warning_printed
-    if has_ssl:
-        try:
-            return urllib.request.urlopen(urlstring)#, context=build_ssl_context())
-        except urllib.error.URLError:
-            if not ssl_warning_printed:
-                print('SSL connection failed. Falling back to unencrypted connections.')
-                ssl_warning_printed = True
-    if not ssl_warning_printed:
-        print('Warning: SSL not available, traffic not authenticated.',
-              file=sys.stderr)
-        ssl_warning_printed = True
-    # Trying to open SSL connection to wrapdb fails because the
-    # certificate is not known.
-    if urlstring.startswith('https'):
-        urlstring = 'http' + urlstring[5:]
-    return urllib.request.urlopen(urlstring)
 
 def get_result(urlstring):
     u = open_wrapdburl(urlstring)

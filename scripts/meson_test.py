@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import meson
 import sys, os, subprocess, time, datetime, pickle, multiprocessing, json
 import concurrent.futures as conc
 import argparse

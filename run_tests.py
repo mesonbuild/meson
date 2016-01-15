@@ -21,12 +21,13 @@ import sys
 from meson import environment
 from meson import mesonlib
 from meson import mlog
-from meson import meson, meson_test, meson_benchmark
+from meson import mesonmain
+from scripts import meson_test, meson_benchmark
 import argparse
 import xml.etree.ElementTree as ET
 import time
 
-from meson.meson import backendlist
+from meson.mesonmain import backendlist
 
 class TestResult:
     def __init__(self, msg, stdo, stde, conftime=0, buildtime=0, testtime=0):
@@ -154,7 +155,7 @@ def run_configure_inprocess(commandlist):
     old_stderr = sys.stderr
     sys.stderr = mystderr = StringIO()
     try:
-        returncode = meson.run(commandlist)
+        returncode = mesonmain.run(commandlist)
     finally:
         sys.stdout = old_stdout
         sys.stderr = old_stderr

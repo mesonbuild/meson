@@ -17,7 +17,33 @@ import urllib.request, os, hashlib, shutil
 import subprocess
 import sys
 
-from . import wraptool
+try:
+    import ssl
+    has_ssl = True
+    API_ROOT = 'https://wrapdb.mesonbuild.com/v1/'
+except ImportError:
+    has_ssl = False
+    API_ROOT = 'http://wrapdb.mesonbuild.com/v1/'
+
+def open_wrapdburl(urlstring):
+    global ssl_warning_printed
+    if has_ssl:
+        try:
+            return urllib.request.urlopen(urlstring)#, context=build_ssl_context())
+        except urllib.error.URLError:
+            if not ssl_warning_printed:
+                print('SSL connection failed. Falling back to unencrypted connections.')
+                ssl_warning_printed = True
+    if not ssl_warning_printed:
+        print('Warning: SSL not available, traffic not authenticated.',
+              file=sys.stderr)
+        ssl_warning_printed = True
+    # Trying to open SSL connection to wrapdb fails because the
+    # certificate is not known.
+    if urlstring.startswith('https'):
+        urlstring = 'http' + urlstring[5:]
+    return urllib.request.urlopen(urlstring)
+
 
 class PackageDefinition:
     def __init__(self, fname):
@@ -94,7 +120,7 @@ class Resolver:
     def get_data(self, url):
         blocksize = 10*1024
         if url.startswith('https://wrapdb.mesonbuild.com'):
-            resp = wraptool.open_wrapdburl(url)
+            resp = open_wrapdburl(url)
         else:
             resp = urllib.request.urlopen(url)
         dlsize = int(resp.info()['Content-Length'])

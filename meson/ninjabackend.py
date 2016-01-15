@@ -18,7 +18,7 @@ from . import build
 from . import mlog
 from . import dependencies
 from .mesonlib import File
-from .meson_install import InstallData
+from .backends import InstallData
 from .build import InvalidArguments
 from .coredata import MesonException
 import os, sys, pickle, re
