@@ -14,12 +14,12 @@
 
 import os, sys
 import pickle
-import backends, build
-import dependencies
-import mlog
+from . import backends, build
+from . import dependencies
+from . import mlog
 import xml.etree.ElementTree as ET
 import xml.dom.minidom
-from coredata import MesonException
+from .coredata import MesonException
 
 class RegenInfo():
     def __init__(self, source_dir, build_dir, depfiles, solutionfile):
