@@ -12,15 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import mparser
-import environment
-import coredata
-import dependencies
-import mlog
-import build
-import optinterpreter
-import wrap
-import mesonlib
+from . import mparser
+from . import environment
+from . import coredata
+from . import dependencies
+from . import mlog
+from . import build
+from . import optinterpreter
+from . import wrap
+from . import mesonlib
+
 import os, sys, platform, subprocess, shutil, uuid, re
 from functools import wraps
 

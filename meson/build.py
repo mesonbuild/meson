@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import coredata
-import environment
-import dependencies
-import mlog
+from . import coredata
+from . import environment
+from . import dependencies
+from . import mlog
 import copy, os
-from mesonlib import File, flatten
+from .mesonlib import File, flatten
 
 known_basic_kwargs = {'install' : True,
                       'c_pch' : True,

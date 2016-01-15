@@ -17,7 +17,11 @@
 import sys, os, subprocess, time, datetime, pickle, multiprocessing, json
 import concurrent.futures as conc
 import argparse
-import mesonlib
+import platform
+
+def is_windows():
+    platname = platform.system().lower()
+    return platname == 'windows' or 'mingw' in platname
 
 tests_failed = []
 
@@ -70,7 +74,7 @@ def write_json_log(jsonlogfile, test_name, result):
     jsonlogfile.write(json.dumps(result) + '\n')
 
 def run_with_mono(fname):
-    if fname.endswith('.exe') and not mesonlib.is_windows():
+    if fname.endswith('.exe') and not is_windows():
         return True
     return False
 

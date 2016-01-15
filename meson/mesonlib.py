@@ -18,7 +18,7 @@ import platform, subprocess, operator, os, shutil, re, sys
 
 from glob import glob
 
-from coredata import MesonException
+from .coredata import MesonException
 
 class File:
     def __init__(self, is_built, subdir, fname):

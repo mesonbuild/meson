@@ -13,8 +13,8 @@
 # limitations under the License.
 
 import os, re, subprocess
-import coredata, mesonlib
-from compilers import *
+from . import coredata, mesonlib
+from .compilers import *
 import configparser
 
 build_filename = 'meson.build'

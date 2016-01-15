@@ -21,9 +21,9 @@
 
 import re
 import os, stat, glob, subprocess, shutil
-from coredata import MesonException
-import mlog
-import mesonlib
+from . coredata import MesonException
+from . import mlog
+from . import mesonlib
 
 class DependencyException(MesonException):
     def __init__(self, *args, **kwargs):

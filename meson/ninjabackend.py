@@ -12,15 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import backends
-import environment, mesonlib
-import build
-import mlog
-import dependencies
-from mesonlib import File
-from meson_install import InstallData
-from build import InvalidArguments
-from coredata import MesonException
+from . import backends
+from . import environment, mesonlib
+from . import build
+from . import mlog
+from . import dependencies
+from .mesonlib import File
+from .meson_install import InstallData
+from .build import InvalidArguments
+from .coredata import MesonException
 import os, sys, pickle, re
 import subprocess, shutil
 

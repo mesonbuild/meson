@@ -16,7 +16,7 @@
 
 import subprocess, sys, os, argparse
 import pickle, statistics, json
-import meson_test
+from . import meson_test
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--wd', default=None, dest='wd',
