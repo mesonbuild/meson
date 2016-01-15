@@ -193,7 +193,7 @@ def install_targets(d):
                     print("Symlink creation does not work on this platform.")
                     printed_symlink_error = True
         if is_elf_platform():
-            p = subprocess.Popen([d.depfixer, outname, install_rpath],
+            p = subprocess.Popen(d.depfixer + [outname, install_rpath],
                                  stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE)
             (stdo, stde) = p.communicate()

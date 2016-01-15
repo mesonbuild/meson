@@ -172,11 +172,17 @@ def run_script_command(args):
     elif cmdname == 'benchmark':
         import meson.scripts.meson_benchmark as abc
         cmdfunc = abc.run
+    elif cmdname == 'install':
+        import meson.scripts.meson_install as abc
+        cmdfunc = abc.run
     elif cmdname == 'commandrunner':
         import meson.scripts.commandrunner as abc
         cmdfunc = abc.run
     elif cmdname == 'delsuffix':
         import meson.scripts.delwithsuffix as abc
+        cmdfunc = abc.run
+    elif cmdname == 'depfixer':
+        import meson.scripts.depfixer as abc
         cmdfunc = abc.run
     elif cmdname == 'dirchanger':
         import meson.scripts.dirchanger as abc
@@ -210,7 +216,6 @@ def run(mainfile, args):
         handshake = True
     else:
         handshake = False
-    print(args)
     args = mesonlib.expand_arguments(args)
     if not args:
         return 1

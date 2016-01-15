@@ -457,14 +457,14 @@ int dummy;
         script_root = self.environment.get_script_dir()
         install_script = os.path.join(script_root, 'meson_install.py')
         install_data_file = os.path.join(self.environment.get_scratch_dir(), 'install.dat')
-        depfixer = os.path.join(script_root, 'depfixer.py')
+        depfixer = [sys.executable, self.environment.get_build_command(), '--internal', 'depfixer']
         d = InstallData(self.environment.get_source_dir(),
                         self.environment.get_build_dir(),
                         self.environment.get_prefix(), depfixer)
         elem = NinjaBuildElement('install', 'CUSTOM_COMMAND', 'PHONY')
         elem.add_dep('all')
         elem.add_item('DESC', 'Installing files.')
-        elem.add_item('COMMAND', [sys.executable, install_script, install_data_file])
+        elem.add_item('COMMAND', [sys.executable, self.environment.get_build_command(), '--internal', 'install', install_data_file])
         elem.add_item('pool', 'console')
         self.generate_depmf_install(d)
         self.generate_target_install(d)
@@ -1094,9 +1094,12 @@ int dummy;
         scriptdir = self.environment.get_script_dir()
         outfile.write('\n')
         symrule = 'rule SHSYM\n'
-        symcmd = ' command = "%s" "%s" %s %s $CROSS\n' % (ninja_quote(sys.executable),
-                                         ninja_quote(os.path.join(scriptdir, 'symbolextractor.py')),
-                                         '$in', '$out')
+        symcmd = ' command = "%s" "%s" %s %s %s %s $CROSS\n' % (ninja_quote(sys.executable),
+                                                                self.environment.get_build_command(),
+                                                                '--internal',
+                                                                'symbolextractor',
+                                                                '$in',
+                                                                '$out')
         synstat = ' restat = 1\n'
         syndesc = ' description = Generating symbol file $out.\n'
         outfile.write(symrule)

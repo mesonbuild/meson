@@ -1610,9 +1610,17 @@ class Interpreter():
                 regex_selector = vcs['rev_regex']
             else:
                 vcs_cmd = [' '] # executing this cmd will fail in vcstagger.py and force to use the fallback string
-        scriptfile = os.path.join(self.environment.get_script_dir(), 'vcstagger.py')
         # vcstagger.py parameters: infile, outfile, fallback, source_dir, replace_string, regex_selector, command...
-        kwargs['command'] = [sys.executable, scriptfile, '@INPUT0@', '@OUTPUT0@', fallback, source_dir, replace_string, regex_selector] + vcs_cmd
+        kwargs['command'] = [sys.executable,
+                             self.environment.get_build_command(),
+                             '--internal',
+                             'vcstagger',
+                             '@INPUT0@',
+                             '@OUTPUT0@',
+                             fallback,
+                             source_dir,
+                             replace_string,
+                             regex_selector] + vcs_cmd
         kwargs.setdefault('build_always', True)
         return self.func_custom_target(node, [kwargs['output']], kwargs)
 
