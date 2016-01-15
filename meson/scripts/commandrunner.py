@@ -42,9 +42,10 @@ def run_command(source_dir, build_dir, subdir, command, arguments):
         print('Could not execute command "%s".' % command)
         sys.exit(1)
 
-if __name__ == '__main__':
-    if len(sys.argv) < 5:
-        print(sys.argv[0], '<source dir> <build dir> <subdir> <command> [arguments]')
+def run(args):
+    if len(sys.argv) < 4:
+        print('commandrunner.py <source dir> <build dir> <subdir> <command> [arguments]')
+        sys.exit(1)
     src_dir = sys.argv[1]
     build_dir = sys.argv[2]
     subdir = sys.argv[3]
@@ -52,4 +53,7 @@ if __name__ == '__main__':
     arguments = sys.argv[5:]
     pc = run_command(src_dir, build_dir, subdir, command, arguments)
     pc.wait()
-    sys.exit(pc.returncode)
+    return pc.returncode
+
+if __name__ == '__main__':
+    sys.exit(run(sys.argv[1:]))

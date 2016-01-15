@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2015 The Meson development team
+# Copyright 2015-2016 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -87,8 +87,8 @@ def install_gtkdoc(build_root, doc_subdir, install_prefix, datadir, module):
     shutil.rmtree(final_destination, ignore_errors=True)
     shutil.copytree(source, final_destination)
 
-if __name__ == '__main__':
-    options = parser.parse_args(sys.argv[1:])
+def run(args):
+    options = parser.parse_args(args)
     if len(options.htmlargs) > 0:
         htmlargs = options.htmlargs.split('@@')
     else:
@@ -116,3 +116,7 @@ if __name__ == '__main__':
                        installdir,
                        'share/gtk-doc/html',
                        options.modulename)
+    return 0
+
+if __name__ == '__main__':
+    sys.exit(run(sys.argv[1:]))

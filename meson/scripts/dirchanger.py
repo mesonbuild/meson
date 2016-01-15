@@ -19,8 +19,12 @@ the command given in the rest of the arguments.'''
 
 import os, subprocess, sys
 
-dirname = sys.argv[1]
-command = sys.argv[2:]
+def run(args):
+    dirname = args[0]
+    command = args[1:]
 
-os.chdir(dirname)
-sys.exit(subprocess.call(command))
+    os.chdir(dirname)
+    return subprocess.call(command)
+
+if __name__ == '__main__':
+    sys.exit(run(sys.argv[1:]))

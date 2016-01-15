@@ -1,4 +1,4 @@
-# Copyright 2012-2014 The Meson development team
+# Copyright 2012-2016 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -582,9 +582,8 @@ int dummy;
         self.serialise_tests()
         valgrind = environment.find_valgrind()
         script_root = self.environment.get_script_dir()
-        test_script = os.path.join(script_root, 'meson_test.py')
         test_data = os.path.join(self.environment.get_scratch_dir(), 'meson_test_setup.dat')
-        cmd = [sys.executable, test_script, test_data]
+        cmd = [sys.executable, self.environment.get_build_command(), '--internal', 'test', test_data]
         elem = NinjaBuildElement('test', 'CUSTOM_COMMAND', ['all', 'PHONY'])
         elem.add_item('COMMAND', cmd)
         elem.add_item('DESC', 'Running all tests.')
@@ -604,7 +603,7 @@ int dummy;
         # And then benchmarks.
         benchmark_script = os.path.join(script_root, 'meson_benchmark.py')
         benchmark_data = os.path.join(self.environment.get_scratch_dir(), 'meson_benchmark_setup.dat')
-        cmd = [sys.executable, benchmark_script, benchmark_data]
+        cmd = [sys.executable, self.environment.get_build_command(), '--internal', 'benchmark', benchmark_data]
         elem = NinjaBuildElement('benchmark', 'CUSTOM_COMMAND', ['all', 'PHONY'])
         elem.add_item('COMMAND', cmd)
         elem.add_item('DESC', 'Running benchmark suite.')
@@ -628,9 +627,11 @@ int dummy;
         outfile.write('rule REGENERATE_BUILD\n')
         c = (quote_char + ninja_quote(sys.executable) + quote_char,
              quote_char + ninja_quote(self.environment.get_build_command())  + quote_char,
+             '--internal',
+             'regenerate',
              quote_char + ninja_quote(self.environment.get_source_dir())  + quote_char,
              quote_char + ninja_quote(self.environment.get_build_dir())  + quote_char)
-        outfile.write(" command = %s %s %s %s --backend ninja secret-handshake\n" % c)
+        outfile.write(" command = %s %s %s %s %s %s --backend ninja\n" % c)
         outfile.write(' description = Regenerating build files\n')
         outfile.write(' generator = 1\n\n')
         if len(self.build.pot) > 0:

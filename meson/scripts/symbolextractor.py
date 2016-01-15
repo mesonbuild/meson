@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright 2013-2015 The Meson development team
+# Copyright 2013-2016 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -92,11 +92,15 @@ def gen_symbols(libfilename, outfilename, cross_host):
     else:
         dummy_syms(outfilename)
 
-if __name__ == '__main__':
-    options = parser.parse_args()
+def run(args):
+    options = parser.parse_args(args)
     if len(options.args) != 2:
-        print(sys.argv[0], '<shared library file> <output file>')
+        print('symbolextractor.py <shared library file> <output file>')
         sys.exit(1)
     libfile = options.args[0]
     outfile = options.args[1]
     gen_symbols(libfile, outfile, options.cross_host)
+    return 0
+
+if __name__ == '__main__':
+    sys.exit(run(sys.argv[1:]))

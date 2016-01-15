@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright 2012-2015 The Meson development team
+# Copyright 2012-2016 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ import sys, stat, traceback, pickle, argparse
 import datetime
 import os.path
 from . import environment, interpreter, mesonlib
-from .import build
+from . import build
 import platform
 from . import mlog, coredata
 
@@ -163,21 +163,58 @@ itself as required.'''
         dumpfile = os.path.join(env.get_scratch_dir(), 'build.dat')
         pickle.dump(b, open(dumpfile, 'wb'))
 
-def run(args):
+def run_script_command(args):
+    cmdname = args[0]
+    cmdargs = args[1:]
+    if cmdname == 'test':
+        import meson.scripts.meson_test as abc
+        cmdfunc = abc.run
+    elif cmdname == 'benchmark':
+        import meson.scripts.meson_benchmark as abc
+        cmdfunc = abc.run
+    elif cmdname == 'commandrunner':
+        import meson.scripts.commandrunner as abc
+        cmdfunc = abc.run
+    elif cmdname == 'delsuffix':
+        import meson.scripts.delwithsuffix as abc
+        cmdfunc = abc.run
+    elif cmdname == 'dirchanger':
+        import meson.scripts.dirchanger as abc
+        cmdfunc = abc.run
+    elif cmdname == 'gtkdoc':
+        import meson.scripts.gtkdochelper as abc
+        cmdfunc = abc.run
+    elif cmdname == 'regencheck':
+        import meson.scripts.regen_checker as abc
+        cmdfunc = abc.run
+    elif cmdname == 'symbolextractor':
+        import meson.scripts.symbolextractor as abc
+        cmdfunc = abc.run
+    elif cmdname == 'vcstagger':
+        import meson.scripts.vcstagger as abc
+        cmdfunc = abc.run
+    else:
+        raise MesonException('Unknown internal command {}.'.format(cmdname))
+    return cmdfunc(cmdargs)
+
+def run(mainfile, args):
     if sys.version_info < (3, 3):
         print('Meson works correctly only with python 3.3+.')
         print('You have python %s.' % sys.version)
         print('Please update your environment')
         return 1
-    if args[-1] == 'secret-handshake':
-        args = args[:-1]
+    if args[0] == '--internal':
+        if args[1] != 'regenerate':
+            sys.exit(run_script_command(args[1:]))
+        args = args[2:]
         handshake = True
     else:
         handshake = False
+    print(args)
     args = mesonlib.expand_arguments(args)
     if not args:
         return 1
-    options = parser.parse_args(args[1:])
+    options = parser.parse_args(args)
     if options.print_version:
         print(coredata.version)
         return 0
@@ -191,16 +228,15 @@ def run(args):
         dir2 = args[1]
     else:
         dir2 = '.'
-    this_file = os.path.abspath(__file__)
-    while os.path.islink(this_file):
-        resolved = os.readlink(this_file)
+    while os.path.islink(mainfile):
+        resolved = os.readlink(mainfile)
         if resolved[0] != '/':
-            this_file = os.path.join(os.path.dirname(this_file), resolved)
+            mainfile = os.path.join(os.path.dirname(mainfile), resolved)
         else:
-            this_file = resolved
+            mainfile = resolved
 
     try:
-        app = MesonApp(dir1, dir2, this_file, handshake, options)
+        app = MesonApp(dir1, dir2, mainfile, handshake, options)
     except Exception as e:
         # Log directory does not exist, so just print
         # to stdout.

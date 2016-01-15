@@ -16,17 +16,22 @@
 
 import os, sys
 
-if len(sys.argv) != 3:
-    print('%s <root of subdir to process> <suffix to delete>' % sys.argv[0])
-    sys.exit(1)
+def run(args):
+    if len(sys.argv) != 2:
+        print('delwithsuffix.py <root of subdir to process> <suffix to delete>')
+        sys.exit(1)
 
-topdir = sys.argv[1]
-suffix = sys.argv[2]
-if suffix[0] != '.':
-    suffix = '.' + suffix
+    topdir = sys.argv[1]
+    suffix = sys.argv[2]
+    if suffix[0] != '.':
+        suffix = '.' + suffix
 
-for (root, dirs, files) in os.walk(topdir):
-    for f in files:
-        if f.endswith(suffix):
-            fullname = os.path.join(root, f)
-            os.unlink(fullname)
+    for (root, _, files) in os.walk(topdir):
+        for f in files:
+            if f.endswith(suffix):
+                fullname = os.path.join(root, f)
+                os.unlink(fullname)
+    return 0
+
+if __name__ == '__main__':
+    run(sys.argv[1:])

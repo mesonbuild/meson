@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright 2015 The Meson development team
+# Copyright 2015-2016 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -35,8 +35,11 @@ def regen(regeninfo):
            '--backend=vs2010', 'secret-handshake']
     subprocess.check_call(cmd)
 
-if __name__ == '__main__':
-    regeninfo = pickle.load(open(os.path.join(sys.argv[1], 'regeninfo.dump'), 'rb'))
+def run(args):
+    regeninfo = pickle.load(open(os.path.join(args[0], 'regeninfo.dump'), 'rb'))
     if need_regen(regeninfo):
         regen(regeninfo)
     sys.exit(0)
+
+if __name__ == '__main__':
+    run(sys.argv[1:])

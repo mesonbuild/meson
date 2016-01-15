@@ -284,16 +284,19 @@ class Elf(DataSizes):
             entry.write(self.bf)
         return None
 
-if __name__ == '__main__':
-    if len(sys.argv) < 2 or len(sys.argv) > 3:
+def run(args):
+    if len(args) < 1 or len(args) > 2:
         print('This application resets target rpath.')
         print('Don\'t run this unless you know what you are doing.')
         print('%s: <binary file> <prefix>' % sys.argv[0])
         exit(1)
-    e = Elf(sys.argv[1])
-    if len(sys.argv) == 2:
+    e = Elf(args[0])
+    if len(args) == 1:
         e.print_rpath()
     else:
-        new_rpath = sys.argv[2]
+        new_rpath = args[1]
         e.fix_rpath(new_rpath.encode('utf8'))
-    #e.fix_deps(prefix.encode())
+    return 0
+
+if __name__ == '__main__':
+    run(sys.argv[1:])

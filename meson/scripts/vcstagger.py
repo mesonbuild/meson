@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright 2015 The Meson development team
+# Copyright 2015-2016 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -27,7 +27,10 @@ def config_vcs_tag(infile, outfile, fallback, source_dir, replace_string, regex_
     if (not os.path.exists(outfile)) or (open(outfile).read() != new_data):
         open(outfile, 'w').write(new_data)
 
-if __name__ == '__main__':
-    infile, outfile, fallback, source_dir, replace_string, regex_selector = sys.argv[1:7]
-    command = sys.argv[7:]
+def run(args):
+    infile, outfile, fallback, source_dir, replace_string, regex_selector = args[0:6]
+    command = args[6:]
     config_vcs_tag(infile, outfile, fallback, source_dir, replace_string, regex_selector, command)
+
+if __name__ == '__main__':
+    sys.exit(run(sys.argv[1:]))

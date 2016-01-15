@@ -203,10 +203,13 @@ def install_targets(d):
                 print('Stderr:\n%s\n' % stde.decode())
                 sys.exit(1)
 
-if __name__ == '__main__':
-    if len(sys.argv) != 2:
+def run(args):
+    if len(args) != 1:
         print('Installer script for Meson. Do not run on your own, mmm\'kay?')
-        print('%s [install info file]' % sys.argv[0])
-    datafilename = sys.argv[1]
+        print('meson_install.py [install info file]')
+    datafilename = args[0]
     do_install(datafilename)
+    return 0
 
+if __name__ == '__main__':
+    sys.exit(run(sys.argv[1:]))
