@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import dependencies, mlog
+from .. import dependencies, mlog
 import os, subprocess
-import build
-from coredata import MesonException
+from .. import build
+from ..coredata import MesonException
 import xml.etree.ElementTree as ET
 
 class Qt5Module():

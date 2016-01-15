@@ -15,13 +15,13 @@
 '''This module provides helper functions for Gnome/GLib related
 functionality such as gobject-introspection and gresources.'''
 
-import build
+from .. import build
 import os, sys
 import subprocess
-from coredata import MesonException
-import mlog
+from ..coredata import MesonException
+from .. import mlog
 import xml.etree.ElementTree as ET
-from mesonlib import File
+from ..mesonlib import File
 
 girwarning_printed = False
 

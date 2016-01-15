@@ -23,7 +23,7 @@
 # http://cgit.freedesktop.org/libreoffice/core/commit/?id=3213cd54b76bc80a6f0516aac75a48ff3b2ad67c
 
 import sys, subprocess
-import mesonlib
+from meson import mesonlib
 import argparse
 
 parser = argparse.ArgumentParser()

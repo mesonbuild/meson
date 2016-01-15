@@ -1094,7 +1094,7 @@ class Interpreter():
             raise InvalidCode('Import takes one argument.')
         modname = args[0]
         if not modname in self.environment.coredata.modules:
-            module = importlib.import_module('modules.' + modname).initialize()
+            module = importlib.import_module('meson.modules.' + modname).initialize()
             self.environment.coredata.modules[modname] = module
         return ModuleHolder(modname, self.environment.coredata.modules[modname], self)
 

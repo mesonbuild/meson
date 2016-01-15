@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import coredata, build
-import mesonlib
+from .. import coredata, build
+from .. import mesonlib
 import os
 
 class PkgConfigModule:

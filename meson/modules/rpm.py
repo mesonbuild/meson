@@ -15,11 +15,11 @@
 '''This module provides helper functions for RPM related
 functionality such as generating template RPM spec file.'''
 
-import build
-import compilers
-import datetime
-import mlog
-import modules.gnome
+from .. import build
+from .. import compilers
+from .. import datetime
+from .. import mlog
+from .. import modules.gnome
 import os
 
 class RPMModule:
