@@ -209,7 +209,7 @@ def run(mainfile, args):
         print('You have python %s.' % sys.version)
         print('Please update your environment')
         return 1
-    if args[0] == '--internal':
+    if len(args) >= 2 and args[0] == '--internal':
         if args[1] != 'regenerate':
             sys.exit(run_script_command(args[1:]))
         args = args[2:]
@@ -217,16 +217,15 @@ def run(mainfile, args):
     else:
         handshake = False
     args = mesonlib.expand_arguments(args)
-    if not args:
-        return 1
     options = parser.parse_args(args)
     if options.print_version:
         print(coredata.version)
         return 0
     args = options.directories
     if len(args) == 0 or len(args) > 2:
-        print('%s <source directory> <build directory>' % sys.argv[0])
+        print('{} <source directory> <build directory>'.format(sys.argv[0]))
         print('If you omit either directory, the current directory is substituted.')
+        print('Run {} --help for more information.'.format(sys.argv[0]))
         return 1
     dir1 = args[0]
     if len(args) > 1:
