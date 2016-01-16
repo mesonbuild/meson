@@ -188,7 +188,7 @@ def run_script_command(args):
         import mesonbuild.scripts.dirchanger as abc
         cmdfunc = abc.run
     elif cmdname == 'gtkdoc':
-        import meson.scripts.gtkdochelper as abc
+        import mesonbuild.scripts.gtkdochelper as abc
         cmdfunc = abc.run
     elif cmdname == 'regencheck':
         import mesonbuild.scripts.regen_checker as abc

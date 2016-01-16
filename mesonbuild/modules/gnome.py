@@ -260,11 +260,11 @@ class GnomeModule:
             main_file = main_xml
         src_dir = kwargs['src_dir']
         targetname = modulename + '-doc'
-        command = os.path.normpath(os.path.join(os.path.split(__file__)[0], "../gtkdochelper.py"))
+        command = [state.environment.get_build_command(), '--internal', 'gtkdoc']
         if hasattr(src_dir, 'held_object'):
             src_dir= src_dir.held_object
             if not isinstance(src_dir, build.IncludeDirs):
-                raise MesonException('Invalidt keyword argument for src_dir.')
+                raise MesonException('Invalid keyword argument for src_dir.')
             incdirs = src_dir.get_incdirs()
             if len(incdirs) != 1:
                 raise MesonException('Argument src_dir has more than one directory specified.')
@@ -279,9 +279,9 @@ class GnomeModule:
                 '--modulename=' + modulename]
         args += self.unpack_args('--htmlargs=', 'html_args', kwargs)
         args += self.unpack_args('--scanargs=', 'scan_args', kwargs)
-        res = [build.RunTarget(targetname, command, args, state.subdir)]
+        res = [build.RunTarget(targetname, command[0], command[1:] + args, state.subdir)]
         if kwargs.get('install', True):
-            res.append(build.InstallScript([command] + args))
+            res.append(build.InstallScript(command + args))
         return res
 
     def unpack_args(self, arg, kwarg_name, kwargs):

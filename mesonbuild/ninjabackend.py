@@ -362,7 +362,7 @@ int dummy;
         self.processed_targets[target.name + target.type_suffix()] = True
 
     def generate_run_target(self, target, outfile):
-        runnerscript = os.path.join(self.environment.get_script_dir(), 'commandrunner.py')
+        runnerscript = [sys.executable, self.environment.get_build_command(), '--internal', 'commandrunner']
         deps = []
         arg_strings = []
         for i in target.args:
@@ -376,7 +376,7 @@ int dummy;
                 mlog.debug(str(i))
                 raise MesonException('Unreachable code in generate_run_target.')
         elem = NinjaBuildElement(target.name, 'CUSTOM_COMMAND', deps)
-        cmd = [sys.executable, runnerscript, self.environment.get_source_dir(), self.environment.get_build_dir(), target.subdir]
+        cmd = runnerscript + [self.environment.get_source_dir(), self.environment.get_build_dir(), target.subdir]
         texe = target.command
         try:
             texe = texe.held_object

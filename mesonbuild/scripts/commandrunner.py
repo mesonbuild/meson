@@ -43,14 +43,14 @@ def run_command(source_dir, build_dir, subdir, command, arguments):
         sys.exit(1)
 
 def run(args):
-    if len(sys.argv) < 4:
+    if len(args) < 4:
         print('commandrunner.py <source dir> <build dir> <subdir> <command> [arguments]')
-        sys.exit(1)
-    src_dir = sys.argv[1]
-    build_dir = sys.argv[2]
-    subdir = sys.argv[3]
-    command = sys.argv[4]
-    arguments = sys.argv[5:]
+        return 1
+    src_dir = args[0]
+    build_dir = args[1]
+    subdir = args[2]
+    command = args[3]
+    arguments = args[4:]
     pc = run_command(src_dir, build_dir, subdir, command, arguments)
     pc.wait()
     return pc.returncode
