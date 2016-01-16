@@ -4,22 +4,15 @@ build system.
 
 Dependencies
 
-Python   http://python.org (version 3.3 or newer)
+Python   http://python.org (version 3.4 or newer)
 Ninja    http://martine.github.com/ninja/
 
 
 Installing from source
 
 You can run Meson directly from a revision control checkout or an
-extracted tarball.  Installing it system-wide is simple.
-
-Configure step: None
-Compile step:   None
-Unit test step: ./run_tests.py
-Install step:   [sudo] ./install_meson.py --prefix /your/prefix --destdir /destdir/path
-
-The default value of prefix is /usr/local. The default value of destdir
-is empty. 
+extracted tarball. Installation can be done with standard Python
+distutils/setuptools commands.
 
 
 Running
