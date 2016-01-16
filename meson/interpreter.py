@@ -19,7 +19,7 @@ from . import dependencies
 from . import mlog
 from . import build
 from . import optinterpreter
-from . import wrap
+from .wrap import wrap
 from . import mesonlib
 
 import os, sys, platform, subprocess, shutil, uuid, re

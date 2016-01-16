@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from . import mlog
+from .. import mlog
 import urllib.request, os, hashlib, shutil
 import subprocess
 import sys
@@ -24,6 +24,14 @@ try:
 except ImportError:
     has_ssl = False
     API_ROOT = 'http://wrapdb.mesonbuild.com/v1/'
+
+def build_ssl_context():
+    ctx = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+    ctx.options |= ssl.OP_NO_SSLv2
+    ctx.options |= ssl.OP_NO_SSLv3
+    ctx.verify_mode = ssl.CERT_REQUIRED
+    ctx.load_default_certs()
+    return ctx
 
 def open_wrapdburl(urlstring):
     global ssl_warning_printed

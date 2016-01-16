@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright 2015 The Meson development team
+# Copyright 2015-2016 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,10 +19,9 @@ import sys, os
 import configparser
 import shutil
 
-
-ssl_warning_printed = False
-
 from glob import glob
+
+from .wrap import API_ROOT, open_wrapdburl
 
 help_templ = '''This program allows you to manage your Wrap dependencies
 using the online wrap database http://wrapdb.mesonbuild.com.
@@ -47,14 +46,6 @@ Commands:
 
 def print_help():
     print(help_templ % sys.argv[0])
-
-def build_ssl_context():
-    ctx = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
-    ctx.options |= ssl.OP_NO_SSLv2
-    ctx.options |= ssl.OP_NO_SSLv3
-    ctx.verify_mode = ssl.CERT_REQUIRED
-    ctx.load_default_certs()
-    return ctx
 
 def get_result(urlstring):
     u = open_wrapdburl(urlstring)
@@ -170,37 +161,40 @@ def status():
         else:
             print('', name, 'not up to date. Have %s %d, but %s %d is available.' % (current_branch, current_revision, latest_branch, latest_revision))
 
-if __name__ == '__main__':
-    if len(sys.argv) < 2 or sys.argv[1] == '-h' or sys.argv[1] == '--help':
+def run(args):
+    if len(sys.argv) < 1 or sys.argv[0] == '-h' or sys.argv[1] == '--help':
         print_help()
-        sys.exit(0)
-    command = sys.argv[1]
-    args = sys.argv[2:]
+        return 0
+    command = args[0]
+    args = args[1:]
     if command == 'list':
         list_projects()
     elif command == 'search':
         if len(args) != 1:
             print('Search requires exactly one argument.')
-            sys.exit(1)
+            return 1
         search(args[0])
     elif command == 'install':
         if len(args) != 1:
             print('Install requires exactly one argument.')
-            sys.exit(1)
+            return 1
         install(args[0])
     elif command == 'update':
         if len(args) != 1:
             print('update requires exactly one argument.')
-            sys.exit(1)
+            return 1
         update(args[0])
     elif command == 'info':
         if len(args) != 1:
             print('info requires exactly one argument.')
-            sys.exit(1)
+            return 1
         info(args[0])
     elif command == 'status':
         status()
     else:
         print('Unknown command', command)
-        sys.exit(1)
+        return 1
+    return 0
 
+if __name__ == '__main__':
+    sys.exit(run(sys.argv[1:]))
