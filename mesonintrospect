@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from meson import mintro
+from mesonbuild import mintro
 import sys
 
 sys.exit(mintro.run(sys.argv[1:]))

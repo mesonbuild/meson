@@ -167,37 +167,37 @@ def run_script_command(args):
     cmdname = args[0]
     cmdargs = args[1:]
     if cmdname == 'test':
-        import meson.scripts.meson_test as abc
+        import mesonbuild.scripts.meson_test as abc
         cmdfunc = abc.run
     elif cmdname == 'benchmark':
-        import meson.scripts.meson_benchmark as abc
+        import mesonbuild.scripts.meson_benchmark as abc
         cmdfunc = abc.run
     elif cmdname == 'install':
-        import meson.scripts.meson_install as abc
+        import mesonbuild.scripts.meson_install as abc
         cmdfunc = abc.run
     elif cmdname == 'commandrunner':
-        import meson.scripts.commandrunner as abc
+        import mesonbuild.scripts.commandrunner as abc
         cmdfunc = abc.run
     elif cmdname == 'delsuffix':
-        import meson.scripts.delwithsuffix as abc
+        import mesonbuild.scripts.delwithsuffix as abc
         cmdfunc = abc.run
     elif cmdname == 'depfixer':
-        import meson.scripts.depfixer as abc
+        import mesonbuild.scripts.depfixer as abc
         cmdfunc = abc.run
     elif cmdname == 'dirchanger':
-        import meson.scripts.dirchanger as abc
+        import mesonbuild.scripts.dirchanger as abc
         cmdfunc = abc.run
     elif cmdname == 'gtkdoc':
         import meson.scripts.gtkdochelper as abc
         cmdfunc = abc.run
     elif cmdname == 'regencheck':
-        import meson.scripts.regen_checker as abc
+        import mesonbuild.scripts.regen_checker as abc
         cmdfunc = abc.run
     elif cmdname == 'symbolextractor':
-        import meson.scripts.symbolextractor as abc
+        import mesonbuild.scripts.symbolextractor as abc
         cmdfunc = abc.run
     elif cmdname == 'vcstagger':
-        import meson.scripts.vcstagger as abc
+        import mesonbuild.scripts.vcstagger as abc
         cmdfunc = abc.run
     else:
         raise MesonException('Unknown internal command {}.'.format(cmdname))
@@ -239,7 +239,6 @@ def run(mainfile, args):
             mainfile = os.path.join(os.path.dirname(mainfile), resolved)
         else:
             mainfile = resolved
-
     try:
         app = MesonApp(dir1, dir2, mainfile, handshake, options)
     except Exception as e:

@@ -18,16 +18,16 @@ from glob import glob
 import os, subprocess, shutil, sys, signal
 from io import StringIO
 import sys
-from meson import environment
-from meson import mesonlib
-from meson import mlog
-from meson import mesonmain
-from meson.scripts import meson_test, meson_benchmark
+from mesonbuild import environment
+from mesonbuild import mesonlib
+from mesonbuild import mlog
+from mesonbuild import mesonmain
+from mesonbuild.scripts import meson_test, meson_benchmark
 import argparse
 import xml.etree.ElementTree as ET
 import time
 
-from meson.mesonmain import backendlist
+from mesonbuild.mesonmain import backendlist
 
 class TestResult:
     def __init__(self, msg, stdo, stde, conftime=0, buildtime=0, testtime=0):
@@ -45,7 +45,7 @@ print_debug = 'MESON_PRINT_TEST_OUTPUT' in os.environ
 
 test_build_dir = 'work area'
 install_dir = os.path.join(os.path.split(os.path.abspath(__file__))[0], 'install dir')
-meson_command = os.path.join(os.getcwd(), 'meson.py')
+meson_command = os.path.join(os.getcwd(), 'meson')
 
 class StopException(Exception):
     def __init__(self):

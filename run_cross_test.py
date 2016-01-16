@@ -23,7 +23,7 @@ Not part of the main test suite because of two reasons:
 Eventually migrate to something fancier.'''
 
 import os, subprocess, shutil, sys
-import meson.environment as environment
+import mesonbuild.environment as environment
 
 from run_tests import gather_tests
 

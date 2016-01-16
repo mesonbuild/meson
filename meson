@@ -14,11 +14,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from meson import mesonmain
+from mesonbuild import mesonmain
 import sys, os
 
 thisfile = __file__
 if not os.path.isabs(thisfile):
-    thisfile = os.path.join(os.getcwd(), thisfile)
+    thisfile = os.path.normpath(os.path.join(os.getcwd(), thisfile))
 
 sys.exit(mesonmain.run(thisfile, sys.argv[1:]))
