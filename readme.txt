@@ -11,8 +11,8 @@ Ninja    http://martine.github.com/ninja/
 Installing from source
 
 You can run Meson directly from a revision control checkout or an
-extracted tarball. Installation can be done with standard Python
-distutils/setuptools commands.
+extracted tarball. Meson is also available from PyPi, so it can
+be installed with 'pip install meson'.
 
 
 Running

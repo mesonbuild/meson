@@ -52,6 +52,6 @@ setup(name='meson',
                    ],
       license=' Apache License, Version 2.0',
       long_description='''Meson is a cross-platform build system designed to be both as
-fast and as user friendly as possible. It supports many languages and compilers, includint
+fast and as user friendly as possible. It supports many languages and compilers, including
 Gcc, clang and Visual Studio. Its build definitions are written in a simple non-turing
 complete DSL.''')
