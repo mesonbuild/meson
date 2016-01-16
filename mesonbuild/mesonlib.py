@@ -116,6 +116,15 @@ def detect_vcs(source_dir):
                 return vcs
     return None
 
+def grab_leading_numbers(vstr):
+    result = []
+    for x in vstr.split('.'):
+        try:
+            result.append(int(x))
+        except ValueError:
+            break
+    return result
+
 numpart = re.compile('[0-9.]+')
 
 def version_compare(vstr1, vstr2):
@@ -146,8 +155,8 @@ def version_compare(vstr1, vstr2):
         vstr2 = vstr2[1:]
     else:
         cmpop = operator.eq
-    varr1 = [int(x) for x in vstr1.split('.')]
-    varr2 = [int(x) for x in vstr2.split('.')]
+    varr1 = grab_leading_numbers(vstr1)
+    varr2 = grab_leading_numbers(vstr2)
     return cmpop(varr1, varr2)
 
 def default_libdir():

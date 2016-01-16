@@ -14,3 +14,5 @@ packagecache
 /MANIFEST
 /build
 /dist
+/meson.egg-info
+
