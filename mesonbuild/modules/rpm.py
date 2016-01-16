@@ -17,9 +17,10 @@ functionality such as generating template RPM spec file.'''
 
 from .. import build
 from .. import compilers
-from .. import datetime
+import datetime
 from .. import mlog
-from .. import modules.gnome
+from ..modules import gnome
+
 import os
 
 class RPMModule:
