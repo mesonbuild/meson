@@ -15,7 +15,7 @@
 # limitations under the License.
 
 import sys, os, pickle, time, shutil
-import build, coredata, environment, mesonlib
+from . import build, coredata, environment, mesonlib
 from PyQt5 import uic
 from PyQt5.QtWidgets import QApplication, QMainWindow, QHeaderView
 from PyQt5.QtWidgets import QComboBox, QCheckBox
@@ -242,23 +242,23 @@ class OptionForm:
         combo.addItem('debug')
         combo.addItem('debugoptimized')
         combo.addItem('release')
-        combo.setCurrentText(self.coredata.buildtype)
+        combo.setCurrentText(self.coredata.get_builtin_option('buildtype'))
         combo.currentTextChanged.connect(self.build_type_changed)
         self.form.addRow('Build type', combo)
         strip = QCheckBox("")
-        strip.setChecked(self.coredata.strip)
+        strip.setChecked(self.coredata.get_builtin_option('strip'))
         strip.stateChanged.connect(self.strip_changed)
         self.form.addRow('Strip on install', strip)
         coverage = QCheckBox("")
-        coverage.setChecked(self.coredata.coverage)
+        coverage.setChecked(self.coredata.get_builtin_option('coverage'))
         coverage.stateChanged.connect(self.coverage_changed)
         self.form.addRow('Enable coverage', coverage)
         pch = QCheckBox("")
-        pch.setChecked(self.coredata.use_pch)
+        pch.setChecked(self.coredata.get_builtin_option('use_pch'))
         pch.stateChanged.connect(self.pch_changed)
         self.form.addRow('Enable pch', pch)
         unity = QCheckBox("")
-        unity.setChecked(self.coredata.unity)
+        unity.setChecked(self.coredata.get_builtin_option('unity'))
         unity.stateChanged.connect(self.unity_changed)
         self.form.addRow('Unity build', unity)
         form.addRow(PyQt5.QtWidgets.QLabel("Project options"))
@@ -545,17 +545,21 @@ class MesonGuiRespawner():
         self.gui.resize(s)
         # Garbage collection takes care of the old gui widget
 
-if __name__ == '__main__':
+
+def run(args): # SPECIAL, Qt wants all args, including command name.
     app = QApplication(sys.argv)
-    if len(sys.argv) == 1:
+    if len(args) == 1:
         arg = ""
-    elif len(sys.argv) == 2:
+    elif len(args) == 2:
         arg = sys.argv[1]
     else:
         print(sys.argv[0], "<build or source dir>")
-        sys.exit(1)
+        return 1
     if os.path.exists(os.path.join(arg, 'meson-private/coredata.dat')):
         guirespawner = MesonGuiRespawner(arg)
     else:
         runner = Starter(arg)
-    sys.exit(app.exec_())
+    return app.exec_()
+
+if __name__ == '__main__':
+    sys.exit(run(sys.argv))

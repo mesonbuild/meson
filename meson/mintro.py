@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright 2014-2015 The Meson development team
+# Copyright 2014-2016 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ Currently only works for the Ninja backend. Others use generated
 project files and don't need this info."""
 
 import json, pickle
-import coredata, build, mesonlib
+from . import coredata, build, mesonlib
 import argparse
 import sys, os
 
@@ -172,11 +172,11 @@ def list_tests(testdata):
         result.append(to)
     print(json.dumps(result))
 
-if __name__ == '__main__':
-    options = parser.parse_args()
+def run(args):
+    options = parser.parse_args(args)
     if len(options.args) > 1:
         print('Too many arguments')
-        sys.exit(1)
+        return 1
     elif len(options.args) == 1:
         bdir = options.args[0]
     else:
@@ -205,4 +205,8 @@ if __name__ == '__main__':
         list_deps(coredata)
     else:
         print('No command specified')
-        sys.exit(1)
+        return 1
+    return 0
+
+if __name__ == '__main__':
+    sys.exit(run(sys.argv[1:]))
