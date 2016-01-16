@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright 2014-2015 The Meson development team
+# Copyright 2014-2016 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,8 +17,8 @@
 import sys, os
 import pickle
 import argparse
-import coredata, mesonlib
-from coredata import build_types, layouts, warning_levels, libtypelist
+from . import coredata, mesonlib
+from .coredata import build_types, warning_levels, libtypelist
 
 parser = argparse.ArgumentParser()
 
@@ -59,13 +59,13 @@ class Conf:
         longest_value = len(titles[2])
         longest_possible_value = len(titles[3])
         for x in arr:
-          longest_name = max(longest_name, len(x[0]))
-          longest_descr = max(longest_descr, len(x[1]))
-          longest_value = max(longest_value, len(str(x[2])))
-          longest_possible_value = max(longest_possible_value, len(x[3]))
+            longest_name = max(longest_name, len(x[0]))
+            longest_descr = max(longest_descr, len(x[1]))
+            longest_value = max(longest_value, len(str(x[2])))
+            longest_possible_value = max(longest_possible_value, len(x[3]))
 
         if longest_possible_value > 0:
-          titles[3] = 'Possible Values'
+            titles[3] = 'Possible Values'
         print('  %s%s %s%s %s%s %s' % (titles[0], ' '*(longest_name - len(titles[0])), titles[1], ' '*(longest_descr - len(titles[1])), titles[2], ' '*(longest_value - len(titles[2])), titles[3]))
         print('  %s%s %s%s %s%s %s' % ('-'*len(titles[0]), ' '*(longest_name - len(titles[0])), '-'*len(titles[1]), ' '*(longest_descr - len(titles[1])), '-'*len(titles[2]), ' '*(longest_value - len(titles[2])), '-'*len(titles[3])))
         for i in arr:
@@ -179,15 +179,15 @@ class Conf:
                 optarr.append([key, opt.description, opt.value, choices])
             self.print_aligned(optarr)
 
-if __name__ == '__main__':
-    args = mesonlib.expand_arguments(sys.argv[:])
+def run(args):
+    args = mesonlib.expand_arguments(args)
     if not args:
         sys.exit(1)
-    options = parser.parse_args(args[1:])
+    options = parser.parse_args(args)
     if len(options.directory) > 1:
-        print('%s <build directory>' % sys.argv[0])
+        print('%s <build directory>' % args[0])
         print('If you omit the build directory, the current directory is substituted.')
-        sys.exit(1)
+        return 1
     if len(options.directory) == 0:
         builddir = os.getcwd()
     else:
@@ -202,4 +202,8 @@ if __name__ == '__main__':
     except ConfException as e:
         print('Meson configurator encountered an error:\n')
         print(e)
+        return(1)
+    return 0
 
+if __name__ == '__main__':
+    sys.exit(run(sys.argv[1:]))
