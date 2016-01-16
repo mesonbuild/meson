@@ -3,6 +3,7 @@ graft manual?tests
 graft cross
 graft data
 graft graphics
+graft man
 graft tools
 include run_tests.py
 include run_cross_test.py
