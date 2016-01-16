@@ -162,7 +162,7 @@ def status():
             print('', name, 'not up to date. Have %s %d, but %s %d is available.' % (current_branch, current_revision, latest_branch, latest_revision))
 
 def run(args):
-    if len(sys.argv) < 1 or sys.argv[0] == '-h' or sys.argv[1] == '--help':
+    if len(args) == 0 or args[0] == '-h' or args[0] == '--help':
         print_help()
         return 0
     command = args[0]
