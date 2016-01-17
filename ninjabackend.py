@@ -300,7 +300,10 @@ int dummy;
                     # compile we get precise dependency info from dep files.
                     # This should work in all cases. If it does not, then just
                     # move them from orderdeps to proper deps.
-                    obj_list.append(self.generate_single_compile(target, outfile, src, True, [], header_deps))
+                    if self.environment.is_header(src):
+                        header_deps.append(src)
+                    else:
+                        obj_list.append(self.generate_single_compile(target, outfile, src, True, [], header_deps))
         for src in target.get_sources():
             if src.endswith('.vala'):
                 continue
@@ -773,22 +776,6 @@ int dummy;
         outfile.write(description)
         outfile.write('\n')
 
-    def generate_fastvapi_compile(self, target, valac, outfile):
-        fastvapis = {}
-        for s in target.get_sources():
-            if not s.endswith('.vala'):
-                continue
-            vapibase = os.path.basename(s.fname)[:-4] + 'vapi'
-            rel_vapi = os.path.join(self.get_target_private_dir(target), vapibase)
-            args = ['--fast-vapi=' + rel_vapi]
-            rel_s = s.rel_to_builddir(self.build_to_src)
-            element = NinjaBuildElement(rel_vapi, valac.get_language() + '_COMPILER', rel_s)
-            element.add_item('ARGS', args)
-            element.write(outfile)
-            self.check_outputs(element)
-            fastvapis[s] = (vapibase, rel_vapi)
-        return fastvapis
-
     def split_vala_sources(self, sources):
         src = []
         vapi_src = []
@@ -799,57 +786,73 @@ int dummy;
                 src.append(s)
         return (src, vapi_src)
 
+    def determine_dep_vapis(self, target):
+        result = []
+        for dep in target.link_targets:
+            for i in dep.sources:
+                if hasattr(i, 'fname'):
+                    i = i.fname
+                if i.endswith('vala'):
+                    vapiname = os.path.splitext(os.path.split(i)[1])[0] + '.vapi'
+                    fullname = os.path.join(self.get_target_private_dir(dep), vapiname)
+                    result.append(fullname)
+                    break
+        return result
+
     def generate_vala_compile(self, target, outfile):
         """Vala is compiled into C. Set up all necessary build steps here."""
         valac = self.environment.coredata.compilers['vala']
-        fast_vapis = self.generate_fastvapi_compile(target, valac, outfile)
-        generated_c = []
         (src, vapi_src) = self.split_vala_sources(target.get_sources())
         vapi_src = [x.rel_to_builddir(self.build_to_src) for x in vapi_src]
         extra_dep_files = []
+        vala_input_files = []
         for s in src:
-            if not s.endswith('.vala'):
-                continue
-            args = ['-d', self.get_target_private_dir(target)]
-            sc = os.path.basename(s.fname)[:-4] + 'c'
-            args += ['-C']
-            vapi_order_deps = []
-            for (sourcefile, vapi_info) in fast_vapis.items():
-                if sourcefile == s:
-                    continue
-                (vapibase, rel_vapi) = vapi_info
-                args += ['--use-fast-vapi=' + rel_vapi]
-                vapi_order_deps.append(rel_vapi)
-            relsc = os.path.join(self.get_target_private_dir(target), sc)
-            rel_s = s.rel_to_builddir(self.build_to_src)
-            args += ['--deps', relsc + '.d']
-            if self.environment.coredata.get_builtin_option('werror'):
-                args += valac.get_werror_args()
-            for d in target.external_deps:
-                if isinstance(d, dependencies.PkgConfigDependency):
-                    if d.name == 'glib-2.0' and d.version_requirement is not None \
-                        and d.version_requirement.startswith(('>=', '==')):
-                            args += ['--target-glib', d.version_requirement[2:]]
-                    args += ['--pkg', d.name]
-            args += vapi_src
-            extra_args = []
+            if s.endswith('.vala'):
+                vala_input_files.append(s.rel_to_builddir(self.build_to_src))
+        namebase = os.path.splitext(os.path.split(vala_input_files[0])[1])[0]
+        hname = namebase + '.h'
+        vapiname = namebase + '.vapi'
+        outputs = [vapiname]
 
-            for a in target.extra_args.get('vala', []):
-                if isinstance(a, File):
-                    relname = a.rel_to_builddir(self.build_to_src)
-                    extra_dep_files.append(relname)
-                    extra_args.append(relname)
-                else:
-                    extra_args.append(a)
-            args += extra_args
-            generated_c += [relsc]
-            element = NinjaBuildElement(relsc, valac.get_language() + '_COMPILER', rel_s)
-            element.add_item('ARGS', args)
-            element.add_orderdep(vapi_order_deps)
-            element.add_dep(extra_dep_files)
-            element.write(outfile)
-            self.check_outputs(element)
-        return generated_c
+        args = ['-d', self.get_target_private_dir(target)]
+        args += ['-C']#, '-o', cname]
+        if not isinstance(target, build.Executable):
+            outputs.append(hname)
+            args += ['-H', hname]
+        args += ['--vapi=' + vapiname]
+        for src in vala_input_files:
+            namebase = os.path.splitext(os.path.split(src)[1])[0] + '.c'
+            outputs.append(namebase)
+        if self.environment.coredata.get_builtin_option('werror'):
+            args += valac.get_werror_args()
+        for d in target.external_deps:
+            if isinstance(d, dependencies.PkgConfigDependency):
+                if d.name == 'glib-2.0' and d.version_requirement is not None \
+                and d.version_requirement.startswith(('>=', '==')):
+                    args += ['--target-glib', d.version_requirement[2:]]
+                args += ['--pkg', d.name]
+        extra_args = []
+
+        for a in target.extra_args.get('vala', []):
+            if isinstance(a, File):
+                relname = a.rel_to_builddir(self.build_to_src)
+                extra_dep_files.append(relname)
+                extra_args.append(relname)
+            else:
+                extra_args.append(a)
+        dependency_vapis = self.determine_dep_vapis(target)
+        extra_dep_files += dependency_vapis
+        args += extra_args
+        args += dependency_vapis
+        outputs = [os.path.join(self.get_target_private_dir(target), x) for x in outputs]
+        element = NinjaBuildElement(outputs,
+                                    valac.get_language() + '_COMPILER',
+                                    vala_input_files + vapi_src)
+        element.add_item('ARGS', args)
+        element.add_dep(extra_dep_files)
+        element.write(outfile)
+        self.check_outputs(element)
+        return outputs
 
     def generate_rust_target(self, target, outfile):
         rustc = self.environment.coredata.compilers['rust']
@@ -1130,14 +1133,10 @@ int dummy;
         command = ' command = %s $ARGS $in\n' % invoc
         description = ' description = Compiling Vala source $in.\n'
         restat = ' restat = 1\n' # ValaC does this always to take advantage of it.
-        depfile = ' depfile = $out.d\n'
-        depstyle = ' deps = gcc\n'
         outfile.write(rule)
         outfile.write(command)
         outfile.write(description)
         outfile.write(restat)
-        outfile.write(depfile)
-        outfile.write(depstyle)
         outfile.write('\n')
 
     def generate_rust_compile_rules(self, compiler, outfile):
