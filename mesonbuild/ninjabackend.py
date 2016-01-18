@@ -1161,7 +1161,9 @@ int dummy;
     def generate_swift_compile_rules(self, compiler, outfile):
         rule = 'rule %s_COMPILER\n' % compiler.get_language()
         full_exe = [sys.executable,
-                    os.path.join(self.environment.get_script_dir(), 'dirchanger.py'),
+                    self.environment.get_build_command(),
+                    '--internal',
+                    'dirchanger',
                     '$RUNDIR'] + compiler.get_exelist()
         invoc = ' '.join([ninja_quote(i) for i in full_exe])
         command = ' command = %s $ARGS $in\n' % invoc
