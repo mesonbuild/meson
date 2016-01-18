@@ -11,3 +11,8 @@ __pycache__
 .DS_Store
 *~
 packagecache
+/MANIFEST
+/build
+/dist
+/meson.egg-info
+

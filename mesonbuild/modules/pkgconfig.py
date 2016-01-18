@@ -1,0 +1,82 @@
+# Copyright 2015 The Meson development team
+
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+
+#     http://www.apache.org/licenses/LICENSE-2.0
+
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+from .. import coredata, build
+from .. import mesonlib
+import os
+
+class PkgConfigModule:
+
+    def print_hello(self, state, args, kwargs):
+        print('Hello from a Meson module')
+
+    def generate_pkgconfig_file(self, state, libraries, subdirs, name, description, version, filebase):
+        outdir = state.environment.scratch_dir
+        fname = os.path.join(outdir, filebase + '.pc')
+        ofile = open(fname, 'w')
+        coredata = state.environment.get_coredata()
+        ofile.write('prefix=%s\n' % coredata.get_builtin_option('prefix'))
+        ofile.write('libdir=${prefix}/%s\n' % coredata.get_builtin_option('libdir'))
+        ofile.write('includedir=${prefix}/%s\n\n' % coredata.get_builtin_option('includedir'))
+        ofile.write('Name: %s\n' % name)
+        if len(description) > 0:
+            ofile.write('Description: %s\n' % description)
+        if len(version) > 0:
+            ofile.write('Version: %s\n' % version)
+        ofile.write('Libs: -L${libdir} ')
+        for l in libraries:
+            ofile.write('-l%s ' % l.name)
+        ofile.write('\n')
+        ofile.write('CFlags: ')
+        for h in subdirs:
+            if h == '.':
+                h = ''
+            ofile.write(os.path.join('-I${includedir}', h))
+            ofile.write(' ')
+        ofile.write('\n')
+
+    def generate(self, state, args, kwargs):
+        if len(args) > 0:
+            raise coredata.MesonException('Pkgconfig_gen takes no positional arguments.')
+        libs = kwargs.get('libraries', [])
+        if not isinstance(libs, list):
+            libs = [libs]
+        processed_libs = []
+        for l in libs:
+            if hasattr(l, 'held_object'):
+                l = l.held_object
+            if not (isinstance(l, build.SharedLibrary) or isinstance(l, build.StaticLibrary)):
+                raise coredata.MesonException('Library argument not a library object.')
+            processed_libs.append(l)
+        libs = processed_libs
+        subdirs = mesonlib.stringlistify(kwargs.get('subdirs', ['.']))
+        version = kwargs.get('version', '')
+        if not isinstance(version, str):
+            raise coredata.MesonException('Version must be a string.')
+        name = kwargs.get('name', None)
+        if not isinstance(name, str):
+            raise coredata.MesonException('Name not specified.')
+        filebase = kwargs.get('filebase', name)
+        if not isinstance(filebase, str):
+            raise coredata.MesonException('Filebase must be a string.')
+        description = kwargs.get('description', None)
+        if not isinstance(description, str):
+            raise coredata.MesonException('Description is not a string.')
+        pcfile = filebase + '.pc'
+        pkgroot = os.path.join(state.environment.coredata.get_builtin_option('libdir'), 'pkgconfig')
+        self.generate_pkgconfig_file(state, libs, subdirs, name, description, version, filebase)
+        return build.Data(False, state.environment.get_scratch_dir(), [pcfile], pkgroot)
+
+def initialize():
+    return PkgConfigModule()

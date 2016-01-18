@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright 2012-2015 The Meson development team
+# Copyright 2012-2016 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,15 +18,16 @@ from glob import glob
 import os, subprocess, shutil, sys, signal
 from io import StringIO
 import sys
-import environment
-import mesonlib
-import mlog
-import meson, meson_test, meson_benchmark
+from mesonbuild import environment
+from mesonbuild import mesonlib
+from mesonbuild import mlog
+from mesonbuild import mesonmain
+from mesonbuild.scripts import meson_test, meson_benchmark
 import argparse
 import xml.etree.ElementTree as ET
 import time
 
-from meson import backendlist
+from mesonbuild.mesonmain import backendlist
 
 class TestResult:
     def __init__(self, msg, stdo, stde, conftime=0, buildtime=0, testtime=0):
@@ -44,7 +45,7 @@ print_debug = 'MESON_PRINT_TEST_OUTPUT' in os.environ
 
 test_build_dir = 'work area'
 install_dir = os.path.join(os.path.split(os.path.abspath(__file__))[0], 'install dir')
-meson_command = './meson.py'
+meson_command = os.path.join(os.getcwd(), 'meson')
 
 class StopException(Exception):
     def __init__(self):
@@ -154,7 +155,7 @@ def run_configure_inprocess(commandlist):
     old_stderr = sys.stderr
     sys.stderr = mystderr = StringIO()
     try:
-        returncode = meson.run(commandlist)
+        returncode = mesonmain.run(commandlist[0], commandlist[1:])
     finally:
         sys.stdout = old_stdout
         sys.stderr = old_stderr
