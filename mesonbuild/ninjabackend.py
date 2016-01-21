@@ -810,7 +810,9 @@ int dummy;
         for s in src:
             if s.endswith('.vala'):
                 vala_input_files.append(s.rel_to_builddir(self.build_to_src))
-        namebase = os.path.splitext(os.path.split(vala_input_files[0])[1])[0]
+        if len(src) == 0:
+            raise InvalidArguments('Vala library has no Vala source files.')
+        namebase = os.path.splitext(os.path.split(src[0].fname)[1])[0]
         hname = namebase + '.h'
         vapiname = namebase + '.vapi'
         outputs = [vapiname]
