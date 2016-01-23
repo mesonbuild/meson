@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -eu
+
 echo Starting custom installation step
 
 # These commands fail on Windows, but we don't really care.

@@ -125,7 +125,13 @@ def run_install_script(d):
                 final_command = commands + [script] + i.cmd_arr[1:]
         else:
             final_command = i.cmd_arr
-        subprocess.check_call(final_command, env=child_env)
+        try:
+            rc = subprocess.call(final_command, env=child_env)
+            if rc != 0:
+                sys.exit(rc)
+        except Exception:
+            print('Failed to run install script:', i.cmd_arr[0])
+            sys.exit(1)
 
 def is_elf_platform():
     platname = platform.system().lower()
