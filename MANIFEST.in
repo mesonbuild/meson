@@ -5,11 +5,9 @@ graft data
 graft graphics
 graft man
 graft tools
-include run_tests.py
-include run_cross_test.py
-include readme.txt
 include authors.txt
 include contributing.txt
 include COPYING
+include readme.txt
 include run_cross_test.py
 include run_tests.py
