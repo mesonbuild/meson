@@ -231,7 +231,8 @@ int dummy;
             self.generate_cs_target(target, outfile)
             return
         if 'vala' in self.environment.coredata.compilers.keys() and self.has_vala(target):
-            gen_src_deps += self.generate_vala_compile(target, outfile)
+            vala_output_files = self.generate_vala_compile(target, outfile)
+            gen_src_deps += vala_output_files
         if 'swift' in self.environment.coredata.compilers.keys() and self.has_swift(target):
             self.generate_swift_target(target, outfile)
             return
@@ -795,7 +796,7 @@ int dummy;
                     i = i.fname
                 if i.endswith('vala'):
                     vapiname = os.path.splitext(os.path.split(i)[1])[0] + '.vapi'
-                    fullname = os.path.join(self.get_target_private_dir(dep), vapiname)
+                    fullname = os.path.join(self.get_target_dir(dep), vapiname)
                     result.append(fullname)
                     break
         return result
@@ -813,19 +814,25 @@ int dummy;
         if len(src) == 0:
             raise InvalidArguments('Vala library has no Vala source files.')
         namebase = os.path.splitext(os.path.split(src[0].fname)[1])[0]
-        hname = namebase + '.h'
-        vapiname = namebase + '.vapi'
-        outputs = [vapiname]
+        base_h = namebase + '.h'
+        base_vapi = namebase + '.vapi'
+        hname = os.path.normpath(os.path.join(self.get_target_dir(target), base_h))
+        vapiname = os.path.normpath(os.path.join(self.get_target_dir(target), base_vapi))
 
+        generated_c_files = []
+        outputs = [vapiname]
         args = ['-d', self.get_target_private_dir(target)]
         args += ['-C']#, '-o', cname]
         if not isinstance(target, build.Executable):
             outputs.append(hname)
             args += ['-H', hname]
-        args += ['--vapi=' + vapiname]
+            args += ['--library=' + target.name]
+        args += ['--vapi=' + os.path.join('..', base_vapi)]
         for src in vala_input_files:
             namebase = os.path.splitext(os.path.split(src)[1])[0] + '.c'
-            outputs.append(namebase)
+            full_c = os.path.join(self.get_target_private_dir(target), namebase)
+            generated_c_files.append(full_c)
+            outputs.append(full_c)
         if self.environment.coredata.get_builtin_option('werror'):
             args += valac.get_werror_args()
         for d in target.external_deps:
@@ -847,7 +854,6 @@ int dummy;
         extra_dep_files += dependency_vapis
         args += extra_args
         args += dependency_vapis
-        outputs = [os.path.join(self.get_target_private_dir(target), x) for x in outputs]
         element = NinjaBuildElement(outputs,
                                     valac.get_language() + '_COMPILER',
                                     vala_input_files + vapi_src)
@@ -855,7 +861,7 @@ int dummy;
         element.add_dep(extra_dep_files)
         element.write(outfile)
         self.check_outputs(element)
-        return outputs
+        return generated_c_files
 
     def generate_rust_target(self, target, outfile):
         rustc = self.environment.coredata.compilers['rust']
