@@ -13,14 +13,14 @@
 # limitations under the License.
 
 from . import backends
-from . import environment, mesonlib
-from . import build
-from . import mlog
-from . import dependencies
-from .mesonlib import File
+from .. import environment, mesonlib
+from .. import build
+from .. import mlog
+from .. import dependencies
+from ..mesonlib import File
 from .backends import InstallData
-from .build import InvalidArguments
-from .coredata import MesonException
+from ..build import InvalidArguments
+from ..coredata import MesonException
 import os, sys, pickle, re
 import subprocess, shutil
 

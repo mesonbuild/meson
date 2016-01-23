@@ -1,4 +1,4 @@
-# Copyright 2014-2015 The Meson development team
+# Copyright 2014-2016 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,12 +14,13 @@
 
 import os, sys
 import pickle
-from . import backends, build
-from . import dependencies
-from . import mlog
+from . import backends
+from .. import build
+from .. import dependencies
+from .. import mlog
 import xml.etree.ElementTree as ET
 import xml.dom.minidom
-from .coredata import MesonException
+from ..coredata import MesonException
 
 class RegenInfo():
     def __init__(self, source_dir, build_dir, depfiles, solutionfile):

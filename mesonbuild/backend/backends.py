@@ -1,4 +1,4 @@
-# Copyright 2012-2014 The Meson development team
+# Copyright 2012-2016 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,11 +13,11 @@
 # limitations under the License.
 
 import os, pickle, re
-from . import build
-from . import dependencies
-from . import mesonlib
+from .. import build
+from .. import dependencies
+from .. import mesonlib
 import json
-from .coredata import MesonException
+from ..coredata import MesonException
 
 class InstallData():
     def __init__(self, source_dir, build_dir, prefix, depfixer):

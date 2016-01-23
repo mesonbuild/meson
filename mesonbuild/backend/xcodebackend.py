@@ -1,4 +1,4 @@
-# Copyright 2014 The Meson development team
+# Copyright 2014-2016 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,11 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from . import backends, build
-from . import mesonlib
+from . import backends
+from .. import build
+from .. import mesonlib
 import uuid, os, sys
 
-from .coredata import MesonException
+from ..coredata import MesonException
 
 class XCodeBackend(backends.Backend):
     def __init__(self, build):

@@ -138,13 +138,13 @@ itself as required.'''
             mlog.log('Build type:', mlog.bold('native build'))
         b = build.Build(env)
         if self.options.backend == 'ninja':
-            from . import ninjabackend
+            from .backend import ninjabackend
             g = ninjabackend.NinjaBackend(b)
         elif self.options.backend == 'vs2010':
-            from . import vs2010backend
+            from .backend import vs2010backend
             g = vs2010backend.Vs2010Backend(b)
         elif self.options.backend == 'xcode':
-            from . import xcodebackend
+            from .backend import xcodebackend
             g = xcodebackend.XCodeBackend(b)
         else:
             raise RuntimeError('Unknown backend "%s".' % self.options.backend)
