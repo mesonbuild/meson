@@ -542,11 +542,13 @@ class Vs2010Backend(backends.Backend):
         ET.SubElement(midl, 'TypeLibraryName').text = '%(Filename).tlb'
         ET.SubElement(midl, 'InterfaceIdentifierFilename').text = '%(Filename)_i.c'
         ET.SubElement(midl, 'ProxyFileName').text = '%(Filename)_p.c'
-        script_root = self.environment.get_script_dir()
-        regen_script = os.path.join(script_root, 'regen_checker.py')
+        regen_command = [sys.executable,
+                         self.environment.get_build_command(),
+                         '--internal',
+                         'regencheck']
         private_dir = self.environment.get_scratch_dir()
         cmd_templ = '''setlocal
-"%s" "%s" "%s"
+"%s" "%s"
 if %%errorlevel%% neq 0 goto :cmEnd
 :cmEnd
 endlocal & call :cmErrorLevel %%errorlevel%% & goto :cmDone
@@ -559,7 +561,7 @@ if %%errorlevel%% neq 0 goto :VCEnd'''
         message = ET.SubElement(custombuild, 'Message')
         message.text = 'Checking whether solution needs to be regenerated.'
         ET.SubElement(custombuild, 'Command').text = cmd_templ % \
-            (sys.executable, regen_script, private_dir)
+            ('" "'.join(regen_command), private_dir)
         ET.SubElement(custombuild, 'Outputs').text = os.path.join(self.environment.get_scratch_dir(), 'regen.stamp')
         deps = self.get_regen_filelist()
         depstr = ';'.join([os.path.join(self.environment.get_source_dir(), d) for d in deps])
@@ -616,11 +618,13 @@ if %%errorlevel%% neq 0 goto :VCEnd'''
         ET.SubElement(midl, 'ProxyFileName').text = '%(Filename)_p.c'
         postbuild = ET.SubElement(action, 'PostBuildEvent')
         ET.SubElement(postbuild, 'Message')
-        script_root = self.environment.get_script_dir()
-        test_script = os.path.join(script_root, 'meson_test.py')
         test_data = os.path.join(self.environment.get_scratch_dir(), 'meson_test_setup.dat')
+        test_command = [sys.executable,
+                        self.environment.get_build_command(),
+                        '--internal',
+                        'test']
         cmd_templ = '''setlocal
-"%s" "%s" "%s"
+"%s" "%s"
 if %%errorlevel%% neq 0 goto :cmEnd
 :cmEnd
 endlocal & call :cmErrorLevel %%errorlevel%% & goto :cmDone
@@ -628,7 +632,8 @@ endlocal & call :cmErrorLevel %%errorlevel%% & goto :cmDone
 exit /b %%1
 :cmDone
 if %%errorlevel%% neq 0 goto :VCEnd'''
-        ET.SubElement(postbuild, 'Command').text = cmd_templ % (sys.executable, test_script, test_data)
+        ET.SubElement(postbuild, 'Command').text =\
+            cmd_templ % ('" "'.join(test_command), test_data)
         ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.targets')
         tree = ET.ElementTree(root)
         tree.write(ofname, encoding='utf-8', xml_declaration=True)

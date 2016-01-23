@@ -30,9 +30,14 @@ def need_regen(regeninfo):
 
 def regen(regeninfo):
     scriptdir = os.path.split(__file__)[0]
-    mesonscript = os.path.join(scriptdir, 'meson.py')
-    cmd = [sys.executable, mesonscript, regeninfo.build_dir, regeninfo.source_dir,
-           '--backend=vs2010', 'secret-handshake']
+    mesonscript = os.path.join(scriptdir, '../../', 'meson')
+    cmd = [sys.executable,
+           mesonscript,
+           '--internal',
+           'regenerate',
+           regeninfo.build_dir,
+           regeninfo.source_dir,
+           '--backend=vs2010']
     subprocess.check_call(cmd)
 
 def run(args):
