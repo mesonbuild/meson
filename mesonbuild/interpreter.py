@@ -1,4 +1,4 @@
-# Copyright 2012-2015 The Meson development team
+# Copyright 2012-2016 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -2181,8 +2181,16 @@ class Interpreter():
             return val1 == val2
         elif node.ctype == '!=':
             return val1 != val2
+        elif node.ctype == '<':
+            return val1 < val2
+        elif node.ctype == '<=':
+            return val1 <= val2
+        elif node.ctype == '>':
+            return val1 > val2
+        elif node.ctype == '>=':
+            return val1 >= val2
         else:
-            raise InvalidCode('You broke me.')
+            raise InvalidCode('You broke my compare eval.')
 
     def evaluate_andstatement(self, cur):
         l = self.evaluate_statement(cur.left)

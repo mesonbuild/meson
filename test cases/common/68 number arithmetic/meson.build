@@ -20,3 +20,15 @@ endif
 if (5 / 3) * 3 != 3
   error('Integer division is broken')
 endif
+
+assert(3 < 4, 'Lt broken')
+assert(not(4 < 3), 'Lt broken')
+assert(3 <= 4, 'Lte broken')
+assert(not(4 <= 3), 'Lte broken')
+assert(3 <= 3, 'Lte broken')
+
+assert(4 > 3, 'Gt broken')
+assert(not(3 > 4), 'Gt broken')
+assert(4 >= 3, 'Gte broken')
+assert(not(3 >= 4), 'Gte broken')
+assert(3 >= 3, 'Gte broken')

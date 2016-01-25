@@ -1,4 +1,4 @@
-# Copyright 2014-2015 The Meson development team
+# Copyright 2014-2016 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -63,6 +63,10 @@ class Lexer:
             ('equal', re.compile(r'==')),
             ('nequal', re.compile(r'\!=')),
             ('assign', re.compile(r'=')),
+            ('le', re.compile(r'<=')),
+            ('lt', re.compile(r'<')),
+            ('ge', re.compile(r'>=')),
+            ('gt', re.compile(r'>')),
         ]
 
     def lex(self, code):
@@ -313,6 +317,14 @@ class ArgumentNode():
     def __len__(self):
         return self.num_args() # Fixme
 
+comparison_map = {'equal': '==',
+                  'nequal': '!=',
+                  'lt': '<',
+                  'le': '<=',
+                  'gt': '>',
+                  'ge': '>='
+                  }
+
 # Recursive descent parser for Meson's definition language.
 # Very basic apart from the fact that we have many precedence
 # levels so there are not enough words to describe them all.
@@ -387,10 +399,9 @@ class Parser:
 
     def e4(self):
         left = self.e5()
-        if self.accept('equal'):
-            return ComparisonNode(left.lineno, left.colno, '==', left, self.e5())
-        if self.accept('nequal'):
-            return ComparisonNode(left.lineno, left.colno, '!=', left, self.e5())
+        for nodename, operator_type in comparison_map.items():
+            if self.accept(nodename):
+                return ComparisonNode(left.lineno, left.colno, operator_type, left, self.e5())
         return left
 
     def e5(self):
