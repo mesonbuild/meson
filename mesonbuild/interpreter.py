@@ -2019,6 +2019,11 @@ class Interpreter():
             if method_name == 'startswith':
                 return obj.startswith(s)
             return obj.endswith(s)
+        elif method_name == 'to_int':
+            try:
+                return int(obj)
+            except Exception:
+                raise InterpreterException('String can not be converted to int: ' + obj)
         raise InterpreterException('Unknown method "%s" for a string.' % method_name)
 
     def to_native(self, arg):

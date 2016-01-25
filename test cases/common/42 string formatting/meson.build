@@ -40,3 +40,5 @@ endif
 if long.endswith(prefix)
   error('Not suffix.')
 endif
+
+assert('3'.to_int() == 3, 'String int conversion does not work.')
