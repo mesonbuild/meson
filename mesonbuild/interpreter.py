@@ -1360,16 +1360,15 @@ class Interpreter():
                 raise InterpreterException('Meson version is %s but project requires %s.' % (cv, pv))
         self.build.projects[self.subproject] = args[0]
         mlog.log('Project name: ', mlog.bold(args[0]), sep='')
-        self.add_languages(node, args[1:])
+        self.add_languages(node, args[1:], True)
         langs = self.coredata.compilers.keys()
         if 'vala' in langs:
             if not 'c' in langs:
                 raise InterpreterException('Compiling Vala requires C. Add C to your project languages and rerun Meson.')
 
-    @noKwargs
     @stringArgs
     def func_add_languages(self, node, args, kwargs):
-        self.add_languages(node, args)
+        return self.add_languages(node, args, kwargs.get('required', True))
 
     @noKwargs
     def func_message(self, node, args, kwargs):
@@ -1397,7 +1396,72 @@ class Interpreter():
         self.validate_arguments(args, 1, [str])
         raise InterpreterException('Error encountered: ' + args[0])
 
-    def add_languages(self, node, args):
+    def detect_compilers(self, lang, need_cross_compiler):
+        cross_comp = None
+        if lang == 'c':
+            comp = self.environment.detect_c_compiler(False)
+            if need_cross_compiler:
+                cross_comp = self.environment.detect_c_compiler(True)
+        elif lang == 'cpp':
+            comp = self.environment.detect_cpp_compiler(False)
+            if need_cross_compiler:
+                cross_comp = self.environment.detect_cpp_compiler(True)
+        elif lang == 'objc':
+            comp = self.environment.detect_objc_compiler(False)
+            if need_cross_compiler:
+                cross_comp = self.environment.detect_objc_compiler(True)
+        elif lang == 'objcpp':
+            comp = self.environment.detect_objcpp_compiler(False)
+            if need_cross_compiler:
+                cross_comp = self.environment.detect_objcpp_compiler(True)
+        elif lang == 'java':
+            comp = self.environment.detect_java_compiler()
+            if need_cross_compiler:
+                cross_comp = comp  # Java is platform independent.
+        elif lang == 'cs':
+            comp = self.environment.detect_cs_compiler()
+            if need_cross_compiler:
+                cross_comp = comp  # C# is platform independent.
+        elif lang == 'vala':
+            comp = self.environment.detect_vala_compiler()
+            if need_cross_compiler:
+                        cross_comp = comp  # Vala is too (I think).
+        elif lang == 'rust':
+            comp = self.environment.detect_rust_compiler()
+            if need_cross_compiler:
+                cross_comp = comp  # FIXME, probably not correct.
+        elif lang == 'fortran':
+            comp = self.environment.detect_fortran_compiler(False)
+            if need_cross_compiler:
+                cross_comp = self.environment.detect_fortran_compiler(True)
+        elif lang == 'swift':
+            comp = self.environment.detect_swift_compiler()
+            if need_cross_compiler:
+                raise InterpreterException('Cross compilation with Swift is not working yet.')
+                # cross_comp = self.environment.detect_fortran_compiler(True)
+        else:
+            raise InvalidCode('Tried to use unknown language "%s".' % lang)
+        comp.sanity_check(self.environment.get_scratch_dir())
+        self.coredata.compilers[lang] = comp
+        if cross_comp is not None:
+            cross_comp.sanity_check(self.environment.get_scratch_dir())
+            self.coredata.cross_compilers[lang] = cross_comp
+        new_options = comp.get_options()
+        optprefix = lang + '_'
+        for i in new_options:
+            if not i.startswith(optprefix):
+                raise InterpreterException('Internal error, %s has incorrect prefix.' % i)
+            cmd_prefix = i + '='
+            for cmd_arg in self.environment.cmd_line_options.projectoptions:
+                if cmd_arg.startswith(cmd_prefix):
+                    value = cmd_arg.split('=', 1)[1]
+                    new_options[i].set_value(value)
+        new_options.update(self.coredata.compiler_options)
+        self.coredata.compiler_options = new_options
+        return (comp, cross_comp)
+
+    def add_languages(self, node, args, required):
+        success = True
         need_cross_compiler = self.environment.is_cross_build() and self.environment.cross_info.need_cross_compiler()
         for lang in args:
             lang = lang.lower()
@@ -1405,67 +1469,15 @@ class Interpreter():
                 comp = self.coredata.compilers[lang]
                 cross_comp = self.coredata.cross_compilers.get(lang, None)
             else:
-                cross_comp = None
-                if lang == 'c':
-                    comp = self.environment.detect_c_compiler(False)
-                    if need_cross_compiler:
-                        cross_comp = self.environment.detect_c_compiler(True)
-                elif lang == 'cpp':
-                    comp = self.environment.detect_cpp_compiler(False)
-                    if need_cross_compiler:
-                        cross_comp = self.environment.detect_cpp_compiler(True)
-                elif lang == 'objc':
-                    comp = self.environment.detect_objc_compiler(False)
-                    if need_cross_compiler:
-                        cross_comp = self.environment.detect_objc_compiler(True)
-                elif lang == 'objcpp':
-                    comp = self.environment.detect_objcpp_compiler(False)
-                    if need_cross_compiler:
-                        cross_comp = self.environment.detect_objcpp_compiler(True)
-                elif lang == 'java':
-                    comp = self.environment.detect_java_compiler()
-                    if need_cross_compiler:
-                        cross_comp = comp # Java is platform independent.
-                elif lang == 'cs':
-                    comp = self.environment.detect_cs_compiler()
-                    if need_cross_compiler:
-                        cross_comp = comp # C# is platform independent.
-                elif lang == 'vala':
-                    comp = self.environment.detect_vala_compiler()
-                    if need_cross_compiler:
-                        cross_comp = comp # Vala is too (I think).
-                elif lang == 'rust':
-                    comp = self.environment.detect_rust_compiler()
-                    if need_cross_compiler:
-                        cross_comp = comp # FIXME, probably not correct.
-                elif lang == 'fortran':
-                    comp = self.environment.detect_fortran_compiler(False)
-                    if need_cross_compiler:
-                        cross_comp = self.environment.detect_fortran_compiler(True)
-                elif lang == 'swift':
-                    comp = self.environment.detect_swift_compiler()
-                    if need_cross_compiler:
-                        raise InterpreterException('Cross compilation with Swift is not working yet.')
-                        #cross_comp = self.environment.detect_fortran_compiler(True)
-                else:
-                    raise InvalidCode('Tried to use unknown language "%s".' % lang)
-                comp.sanity_check(self.environment.get_scratch_dir())
-                self.coredata.compilers[lang] = comp
-                if cross_comp is not None:
-                    cross_comp.sanity_check(self.environment.get_scratch_dir())
-                    self.coredata.cross_compilers[lang] = cross_comp
-                new_options = comp.get_options()
-                optprefix = lang + '_'
-                for i in new_options:
-                    if not i.startswith(optprefix):
-                        raise InterpreterException('Internal error, %s has incorrect prefix.' % i)
-                    cmd_prefix = i + '='
-                    for cmd_arg in self.environment.cmd_line_options.projectoptions:
-                        if cmd_arg.startswith(cmd_prefix):
-                            value = cmd_arg.split('=', 1)[1]
-                            new_options[i].set_value(value)
-                new_options.update(self.coredata.compiler_options)
-                self.coredata.compiler_options = new_options
+                try:
+                    (comp, cross_comp) = self.detect_compilers(lang, need_cross_compiler)
+                except Exception:
+                    if not required:
+                        mlog.log('Compiler for language', mlog.bold(lang), 'not found.')
+                        success = False
+                        continue
+                    else:
+                        raise
             mlog.log('Native %s compiler: ' % lang, mlog.bold(' '.join(comp.get_exelist())), ' (%s %s)' % (comp.id, comp.version), sep='')
             if not comp.get_language() in self.coredata.external_args:
                 (ext_compile_args, ext_link_args) = environment.get_args_from_envvars(comp.get_language())
@@ -1477,6 +1489,7 @@ class Interpreter():
                 self.build.add_cross_compiler(cross_comp)
             if self.environment.is_cross_build() and not need_cross_compiler:
                 self.build.add_cross_compiler(comp)
+        return success
 
     def func_find_program(self, node, args, kwargs):
         self.validate_arguments(args, 1, [str])
