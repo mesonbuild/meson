@@ -83,6 +83,8 @@ class MesonApp():
         (self.source_dir, self.build_dir) = self.validate_dirs(dir1, dir2, handshake)
         if not os.path.isabs(options.prefix):
             raise RuntimeError('--prefix must be an absolute path.')
+        if options.prefix.endswith('/') or options.prefix.endswith('\\'):
+            options.prefix = options.prefix[:-1]
         self.meson_script_file = script_file
         self.options = options
 
