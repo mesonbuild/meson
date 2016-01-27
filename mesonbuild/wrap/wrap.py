@@ -25,6 +25,8 @@ except ImportError:
     has_ssl = False
     API_ROOT = 'http://wrapdb.mesonbuild.com/v1/'
 
+ssl_warning_printed = False
+
 def build_ssl_context():
     ctx = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
     ctx.options |= ssl.OP_NO_SSLv2
