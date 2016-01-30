@@ -157,6 +157,6 @@ class Qt5Module():
         return sources
 
 def initialize():
-    mlog.log('Warning, rcc dependencies will not work properly until this upstream issue is fixed:',
+    mlog.log('Warning, rcc dependencies will not work reliably until this upstream issue is fixed:',
              mlog.bold('https://bugreports.qt.io/browse/QTBUG-45460'))
     return Qt5Module()

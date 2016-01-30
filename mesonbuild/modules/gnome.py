@@ -317,7 +317,7 @@ class GnomeModule:
         return build.CustomTarget(namebase + '-gdbus', state.subdir, custom_kwargs)
 
 def initialize():
-    mlog.log('Warning, glib compiled dependencies will not work until this upstream issue is fixed:',
+    mlog.log('Warning, glib compiled dependencies will not work reliably until this upstream issue is fixed:',
              mlog.bold('https://bugzilla.gnome.org/show_bug.cgi?id=745754'))
     return GnomeModule()
 
