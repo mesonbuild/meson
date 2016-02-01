@@ -1476,17 +1476,6 @@ rule FORTRAN_DEP_HACK
             i = os.path.join(self.get_target_private_dir(target), compiler.get_pch_name(pchlist[0]))
             arr.append(i)
             pch_dep = arr
-        for i in target.get_include_dirs():
-            basedir = i.get_curdir()
-            for d in i.get_incdirs():
-                expdir =  os.path.join(basedir, d)
-                srctreedir = os.path.join(self.build_to_src, expdir)
-                bargs = compiler.get_include_args(expdir, i.is_system)
-                sargs = compiler.get_include_args(srctreedir, i.is_system)
-                commands += bargs
-                commands += sargs
-            for d in i.get_extra_build_dirs():
-                commands += compiler.get_include_args(d, i.is_system)
         custom_target_include_dirs = []
         for i in target.generated:
             if isinstance(i, build.CustomTarget):
