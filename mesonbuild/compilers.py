@@ -437,7 +437,13 @@ int someSymbolHereJustForFun;
         se = se.decode()
         mlog.debug('Program stdout:\n', so)
         mlog.debug('Program stderr:\n', se)
-        os.remove(exename)
+        try:
+            os.remove(exename)
+        except PermissionError:
+            # On Windows antivirus programs and the like hold
+            # on to files so they can't be deleted. There's not
+            # much to do in this case.
+            pass
         return RunResult(True, pe.returncode, so, se)
 
     def cross_sizeof(self, element, prefix, env, extra_args=[]):
