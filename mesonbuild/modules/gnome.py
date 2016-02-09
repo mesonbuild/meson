@@ -44,11 +44,9 @@ class GnomeModule:
 
         kwargs['command'] = cmd
         kwargs['input'] = args[1]
-        output_c = args[0] + '.c'
-        output_h = args[0] + '.h'
-        kwargs['output'] = output_c
-        target_c = build.CustomTarget(args[0]+'_c', state.subdir, kwargs)
-        kwargs['output'] = output_h
+        kwargs['output'] = args[0] + '.c'
+        target_c = build.CustomTarget(args[0] + '_c', state.subdir, kwargs)
+        kwargs['output'] = args[0] + '.h'
         target_h = build.CustomTarget(args[0] + '_h', state.subdir, kwargs)
         return [target_c, target_h]
 
