@@ -20,63 +20,52 @@ import os, sys
 import subprocess
 from ..coredata import MesonException
 from .. import mlog
-import xml.etree.ElementTree as ET
-from ..mesonlib import File
 
 girwarning_printed = False
 
 class GnomeModule:
 
     def compile_resources(self, state, args, kwargs):
-        cmd = ['glib-compile-resources', '@INPUT@', '--generate']
-        if 'source_dir' in kwargs:
-            resource_loc = os.path.join(state.subdir, kwargs.pop('source_dir'))
-            d = os.path.join(state.build_to_src, resource_loc)
-            cmd += ['--sourcedir', d]
-        else:
-            resource_loc = state.subdir
+        cmd = ['glib-compile-resources', '@INPUT@']
+
+        source_dirs = kwargs.pop('source_dir', [])
+        if not isinstance(source_dirs, list):
+            source_dirs = [source_dirs]
+
+        kwargs['depend_files'] = self.get_gresource_dependencies(state, args[1], source_dirs)
+
+        for source_dir in source_dirs:
+            sourcedir = os.path.join(state.build_to_src, state.subdir, source_dir)
+            cmd += ['--sourcedir', sourcedir]
+
         if 'c_name' in kwargs:
             cmd += ['--c-name', kwargs.pop('c_name')]
-        cmd += ['--target', '@OUTPUT@']
+        cmd += ['--generate', '--target', '@OUTPUT@']
+
         kwargs['command'] = cmd
-        output_c = args[0] + '.c'
-        output_h = args[0] + '.h'
-        resfile = args[1]
-        kwargs['depend_files'] = self.parse_gresource_xml(state, resfile, resource_loc)
-        kwargs['input'] = resfile
-        kwargs['output'] = output_c
-        target_c = build.CustomTarget(args[0]+'_c', state.subdir, kwargs)
-        kwargs['output'] = output_h
+        kwargs['input'] = args[1]
+        kwargs['output'] = args[0] + '.c'
+        target_c = build.CustomTarget(args[0] + '_c', state.subdir, kwargs)
+        kwargs['output'] = args[0] + '.h'
         target_h = build.CustomTarget(args[0] + '_h', state.subdir, kwargs)
         return [target_c, target_h]
 
-    def parse_gresource_xml(self, state, fobj, resource_loc):
-        if isinstance(fobj, File):
-            fname = fobj.fname
-            subdir = fobj.subdir
-        else:
-            fname = fobj
-            subdir = state.subdir
-        abspath = os.path.join(state.environment.source_dir, state.subdir, fname)
-        relative_part = os.path.split(fname)[0]
-        try:
-            tree = ET.parse(abspath)
-            root = tree.getroot()
-            result = []
-            for child in root[0]:
-                if child.tag != 'file':
-                    mlog.log("Warning, malformed rcc file: ", os.path.join(state.subdir, fname))
-                    break
-                else:
-                    relfname = os.path.join(resource_loc, child.text)
-                    absfname = os.path.join(state.environment.source_dir, relfname)
-                    if os.path.isfile(absfname):
-                        result.append(relfname)
-                    else:
-                        mlog.log('Warning, resource file points to nonexisting file %s.' % relfname)
-            return result
-        except Exception:
-            return []
+    def get_gresource_dependencies(self, state, input_file, source_dirs):
+        cmd = ['glib-compile-resources',
+               os.path.join(state.subdir, input_file),
+               '--generate-dependencies']
+
+        for source_dir in source_dirs:
+            cmd += ['--sourcedir', os.path.join(state.subdir, source_dir)]
+
+        pc = subprocess.Popen(cmd, stdout=subprocess.PIPE, universal_newlines=True,
+                              cwd=state.environment.get_source_dir())
+        (stdout, _) = pc.communicate()
+        if pc.returncode != 0:
+            mlog.log(mlog.bold('Warning:'), 'glib-compile-resources has failed to get the dependencies for {}'.format(cmd[1]))
+            raise subprocess.CalledProcessError(pc.returncode, cmd)
+
+        return stdout.split('\n')[:-1]
 
     def generate_gir(self, state, args, kwargs):
         if len(args) != 1:
@@ -203,7 +192,7 @@ class GnomeModule:
             scankwargs['install'] = kwargs['install']
             scankwargs['install_dir'] = os.path.join(state.environment.get_datadir(), 'gir-1.0')
         scan_target = GirTarget(girfile, state.subdir, scankwargs)
-        
+
         typelib_output = '%s-%s.typelib' % (ns, nsversion)
         typelib_cmd = ['g-ir-compiler', scan_target, '--output', '@OUTPUT@']
         if inc_dirs:
