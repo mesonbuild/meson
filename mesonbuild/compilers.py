@@ -1128,7 +1128,7 @@ class VisualStudioCCompiler(CCompiler):
         return ['/OUT:' + outputname]
 
     def get_pic_args(self):
-        return ['/LD']
+        return [] # PIC is handled by the loader on Windows
 
     def get_std_shared_lib_link_args(self):
         return ['/DLL']
