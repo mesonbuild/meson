@@ -1803,11 +1803,17 @@ class VisualStudioLinker():
         return args
 
 class ArLinker():
-    std_args = ['csr']
 
     def __init__(self, exelist):
         self.exelist = exelist
         self.id = 'ar'
+        pc = subprocess.Popen(self.exelist + ['-h'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+        (stdo, _) = pc.communicate()
+        # Enable deterministic builds if they are available.
+        if b'[D]' in stdo:
+            self.std_args = ['csrD']
+        else:
+            self.std_args = ['csr']
 
     def build_rpath_args(self, build_dir, rpath_paths, install_rpath):
         return []
