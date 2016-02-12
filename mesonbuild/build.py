@@ -44,7 +44,9 @@ known_basic_kwargs = {'install' : True,
 
 known_shlib_kwargs = known_basic_kwargs.copy()
 known_shlib_kwargs.update({'version' : True,
-                           'soversion' : True})
+                           'soversion' : True,
+                           'name_prefix' : True,
+                           })
 
 backslash_explanation = \
 '''Compiler arguments have a backslash "\\" character. This is unfortunately not
@@ -411,6 +413,11 @@ class BuildTarget():
             if not os.path.isfile(trial):
                 raise InvalidArguments('Tried to add non-existing resource %s.' % r)
         self.resources = resources
+        if 'name_prefix' in kwargs:
+            name_prefix = kwargs['name_prefix']
+            if not isinstance(name_prefix, str):
+                raise InvalidArguments('Name prefix must be a string.')
+            self.prefix = name_prefix
 
     def get_subdir(self):
         return self.subdir
@@ -654,7 +661,8 @@ class StaticLibrary(BuildTarget):
         super().__init__(name, subdir, subproject, is_cross, sources, objects, environment, kwargs)
         if len(self.sources) > 0 and self.sources[0].endswith('.cs'):
             raise InvalidArguments('Static libraries not supported for C#.')
-        self.prefix = environment.get_static_lib_prefix()
+        if not hasattr(self, 'prefix'):
+            self.prefix = environment.get_static_lib_prefix()
         self.suffix = environment.get_static_lib_suffix()
         if len(self.sources) > 0 and self.sources[0].endswith('.rs'):
             self.suffix = 'rlib'
@@ -675,11 +683,13 @@ class SharedLibrary(BuildTarget):
         self.soversion = None
         super().__init__(name, subdir, subproject, is_cross, sources, objects, environment, kwargs);
         if len(self.sources) > 0 and self.sources[0].endswith('.cs'):
+            prefix = 'lib'
             self.suffix = 'dll'
-            self.prefix = 'lib'
         else:
-            self.prefix = environment.get_shared_lib_prefix()
+            prefix = environment.get_shared_lib_prefix()
             self.suffix = environment.get_shared_lib_suffix()
+        if not hasattr(self, 'prefix'):
+            self.prefix = prefix
         if len(self.sources) > 0 and self.sources[0].endswith('.rs'):
             self.suffix = 'rlib'
         self.importsuffix = environment.get_import_lib_suffix()
