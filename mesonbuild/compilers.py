@@ -61,7 +61,7 @@ gnulike_buildtype_args = {'plain' : [],
 
 msvc_buildtype_args = {'plain' : [],
                        'debug' : ["/MDd", "/ZI", "/Ob0", "/Od", "/RTC1"],
-                       'debugoptimized' : ["/MD", "/Zi", "/O2", "/Ob1", "/D"],
+                       'debugoptimized' : ["/MD", "/Zi", "/O2", "/Ob1"],
                        'release' : ["/MD", "/O2", "/Ob2"]}
 
 gnulike_buildtype_linker_args = {}
