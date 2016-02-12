@@ -154,7 +154,6 @@ class CoreData():
         self.compilers = {}
         self.cross_compilers = {}
         self.deps = {}
-        self.ext_progs = {}
         self.modules = {}
 
     def init_builtins(self, options):
