@@ -1183,6 +1183,9 @@ class VisualStudioCCompiler(CCompiler):
         for i in args:
             if i.startswith('-L'):
                 i = '/LIBPATH:' + i[2:]
+            # Translate GNU-style -lfoo library name to the import library
+            if i.startswith('-l'):
+                i = i[2:] + '.lib'
             result.append(i)
         return result
 
