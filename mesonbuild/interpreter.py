@@ -242,10 +242,14 @@ class ExternalProgramHolder(InterpreterObject):
     def __init__(self, ep):
         InterpreterObject.__init__(self)
         self.held_object = ep
-        self.methods.update({'found': self.found_method})
+        self.methods.update({'found': self.found_method,
+                             'path': self.path_method})
 
     def found_method(self, args, kwargs):
         return self.found()
+
+    def path_method(self, args, kwargs):
+        return self.get_command()
 
     def found(self):
         return self.held_object.found()
