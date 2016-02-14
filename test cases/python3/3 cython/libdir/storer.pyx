@@ -12,5 +12,5 @@ cdef class Storer:
     cpdef int get_value(self):
         return cstorer.storer_get_value(self._c_storer)
 
-    cpdef void set_value(self, int value):
+    cpdef set_value(self, int value):
         cstorer.storer_set_value(self._c_storer, value)
