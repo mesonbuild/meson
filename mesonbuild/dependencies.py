@@ -72,6 +72,9 @@ class PkgConfigDependency(Dependency):
         Dependency.__init__(self)
         self.is_libtool = False
         self.required = kwargs.get('required', True)
+        self.static = kwargs.get('static', False)
+        if not isinstance(self.static, bool):
+            raise DependencyException('Static keyword must be boolean')
         if 'native' in kwargs and environment.is_cross_build():
             want_cross = not kwargs['native']
         else:
@@ -133,7 +136,10 @@ class PkgConfigDependency(Dependency):
                                           (name, out.decode(errors='ignore')))
             self.cargs = out.decode().split()
 
-            p = subprocess.Popen([pkgbin, '--libs', name], stdout=subprocess.PIPE,
+            libcmd = [pkgbin, '--libs']
+            if self.static:
+                libcmd.append('--static')
+            p = subprocess.Popen(libcmd + [name], stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE)
             out = p.communicate()[0]
             if p.returncode != 0:
@@ -1074,7 +1080,7 @@ def get_dep_identifier(name, kwargs):
         modlist = [modlist]
     for module in modlist:
         elements.append(module)
-    return '/'.join(elements) + '/main' + str(kwargs.get('main', False))
+    return '/'.join(elements) + '/main' + str(kwargs.get('main', False)) + '/static' + str(kwargs.get('static', False))
 
 def find_external_dependency(name, environment, kwargs):
     required = kwargs.get('required', True)
