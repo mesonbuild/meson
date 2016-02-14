@@ -184,7 +184,10 @@ class Compiler():
     def has_function(self, *args, **kwargs):
         raise EnvironmentException('Language %s does not support function checks.' % self.language)
 
-    def unixtype_flags_to_native(self, args):
+    def unix_link_flags_to_native(self, args):
+        return args
+
+    def unix_compile_flags_to_native(self, args):
         return args
 
 class CCompiler(Compiler):
@@ -1174,11 +1177,20 @@ class VisualStudioCCompiler(CCompiler):
     def get_option_link_args(self, options):
         return options['c_winlibs'].value
 
-    def unixtype_flags_to_native(self, args):
+    def unix_link_flags_to_native(self, args):
         result = []
         for i in args:
             if i.startswith('-L'):
                 i = '/LIBPATH:' + i[2:]
+            result.append(i)
+        return result
+
+    def unix_compile_flags_to_native(self, args):
+        result = []
+        for i in args:
+            # -mms-bitfields is specific to MinGW-GCC
+            if i == '-mms-bitfields':
+                continue
             result.append(i)
         return result
 
@@ -1799,7 +1811,10 @@ class VisualStudioLinker():
     def get_option_link_args(self, options):
         return []
 
-    def unixtype_flags_to_native(self, args):
+    def unix_link_flags_to_native(self, args):
+        return args
+
+    def unix_compile_flags_to_native(self, args):
         return args
 
 class ArLinker():
@@ -1845,5 +1860,8 @@ class ArLinker():
     def get_option_link_args(self, options):
         return []
 
-    def unixtype_flags_to_native(self, args):
+    def unix_link_flags_to_native(self, args):
+        return args
+
+    def unix_compile_flags_to_native(self, args):
         return args
