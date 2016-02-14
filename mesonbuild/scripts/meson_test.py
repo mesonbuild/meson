@@ -19,6 +19,7 @@ import sys, os, subprocess, time, datetime, pickle, multiprocessing, json
 import concurrent.futures as conc
 import argparse
 import platform
+import signal
 
 def is_windows():
     platname = platform.system().lower()
@@ -110,14 +111,28 @@ def run_single_test(wrap, test):
         child_env.update(test.env)
         if len(test.extra_paths) > 0:
             child_env['PATH'] = child_env['PATH'] + ';'.join([''] + test.extra_paths)
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                             env=child_env, cwd=test.workdir)
+        if is_windows():
+            setsid = None
+        else:
+            setsid = os.setsid
+        p = subprocess.Popen(cmd,
+                             stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE,
+                             env=child_env,
+                             cwd=test.workdir,
+                             preexec_fn=setsid)
         timed_out = False
         try:
             (stdo, stde) = p.communicate(timeout=test.timeout)
         except subprocess.TimeoutExpired:
             timed_out = True
-            p.kill()
+            # Python does not provide multiplatform support for
+            # killing a process and all its children so we need
+            # to roll our own.
+            if is_windows():
+                subprocess.call(['taskkill', '/F', '/T', '/PID', str(p.pid)])
+            else:
+                os.killpg(os.getpgid(p.pid), signal.SIGKILL)
             (stdo, stde) = p.communicate()
         endtime = time.time()
         duration = endtime - starttime
