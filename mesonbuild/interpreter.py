@@ -1816,6 +1816,8 @@ class Interpreter():
             raise InterpreterException('Input must be a string.')
         if not isinstance(output, str):
             raise InterpreterException('Output must be a string.')
+        if os.path.split(output)[0] != '':
+            raise InterpreterException('Output file name must not contain a subdirectory.')
         if 'configuration' in kwargs:
             conf = kwargs['configuration']
             if not isinstance(conf, ConfigurationDataHolder):
