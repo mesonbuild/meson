@@ -62,7 +62,7 @@ class UserStringOption(UserOption):
         if not isinstance(value, str):
             raise MesonException('Value "%s" for string option "%s" is not a string.' % (str(newvalue), self.name))
         if self.name == 'prefix' and not os.path.isabs(value):
-            raise MesonException('Prefix option must be an absolute path.')
+            raise MesonException('Prefix option value \'{0}\' must be an absolute path.'.format(value))
         if self.name in ('libdir', 'bindir', 'includedir', 'datadir', 'mandir', 'localedir') \
             and os.path.isabs(value):
             raise MesonException('Option %s must not be an absolute path.' % self.name)
