@@ -1657,6 +1657,8 @@ rule FORTRAN_DEP_HACK
             else:
                 soversion = None
             commands += linker.get_soname_args(target.name, abspath, soversion)
+            if target.vs_module_defs and hasattr(linker, 'gen_vs_module_defs_args'):
+                commands += linker.gen_vs_module_defs_args(target.vs_module_defs.rel_to_builddir(self.build_to_src))
         elif isinstance(target, build.StaticLibrary):
             commands += linker.get_std_link_args()
         else:
