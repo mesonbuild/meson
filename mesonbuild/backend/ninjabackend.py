@@ -1717,16 +1717,16 @@ rule FORTRAN_DEP_HACK
     def generate_shlib_aliases(self, target, outdir):
         basename = target.get_filename()
         aliases = target.get_aliaslist()
-        if not mesonlib.is_windows():
-            for alias in aliases:
-                aliasfile = os.path.join(self.environment.get_build_dir(), outdir, alias)
-                try:
-                    os.remove(aliasfile)
-                except Exception:
-                    pass
+        for alias in aliases:
+            aliasfile = os.path.join(self.environment.get_build_dir(), outdir, alias)
+            try:
+                os.remove(aliasfile)
+            except Exception:
+                pass
+            try:
                 os.symlink(basename, aliasfile)
-        else:
-            mlog.debug("Library versioning disabled because host does not support symlinks.")
+            except OSError:
+                mlog.debug("Library versioning disabled because we do not have symlink creation privileges")
 
     def generate_gcov_clean(self, outfile):
             gcno_elem = NinjaBuildElement(self.all_outputs, 'clean-gcno', 'CUSTOM_COMMAND', 'PHONY')
