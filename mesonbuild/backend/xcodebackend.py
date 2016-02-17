@@ -98,6 +98,7 @@ class XCodeBackend(backends.Backend):
         self.generate_xc_build_configuration()
         self.generate_xc_configurationList()
         self.generate_suffix()
+        self.run_postconf_scripts()
 
     def get_xcodetype(self, fname):
         return self.xcodetypemap[fname.split('.')[-1]]

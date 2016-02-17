@@ -191,6 +191,7 @@ int dummy;
         outfile.close()
         os.replace(tempfilename, outfilename)
         self.generate_compdb()
+        self.run_postconf_scripts()
 
     # http://clang.llvm.org/docs/JSONCompilationDatabase.html
     def generate_compdb(self):

@@ -90,6 +90,7 @@ class Vs2010Backend(backends.Backend):
         rulefile = os.path.join(self.environment.get_scratch_dir(), 'regen.rule')
         if not os.path.exists(rulefile):
             open(rulefile, 'w').write("# For some reason this needs to be here.")
+        self.run_postconf_scripts()
 
     def generate_regen_info(self, sln_filename):
         deps = self.get_regen_filelist()
