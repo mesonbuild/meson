@@ -244,6 +244,23 @@ class Backend():
             commands += compiler.get_werror_args()
         if isinstance(target, build.SharedLibrary):
             commands += compiler.get_pic_args()
+        # -I args work differently than other ones. In them the
+        # first found directory is used whereas for other flags
+        # (such as -ffoo -fno-foo) the latest one is used.
+        # Therefore put the internal include directories here
+        # at the beginning so they override args coming from
+        # e.g. pkg-config.
+        for i in target.get_include_dirs():
+            basedir = i.get_curdir()
+            for d in i.get_incdirs():
+                expdir =  os.path.join(basedir, d)
+                srctreedir = os.path.join(self.build_to_src, expdir)
+                bargs = compiler.get_include_args(expdir, i.is_system)
+                sargs = compiler.get_include_args(srctreedir, i.is_system)
+                commands += bargs
+                commands += sargs
+            for d in i.get_extra_build_dirs():
+                commands += compiler.get_include_args(d, i.is_system)
         for dep in target.get_external_deps():
             commands += dep.get_compile_args()
             if isinstance(target, build.Executable):
