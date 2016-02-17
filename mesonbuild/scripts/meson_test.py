@@ -223,6 +223,7 @@ def run_tests(options, datafilename):
 
 def run(args):
     global tests_failed
+    tests_failed = [] # To avoid state leaks when invoked multiple times (running tests in-process)
     options = parser.parse_args(args)
     if len(options.args) != 1:
         print('Test runner for Meson. Do not run on your own, mmm\'kay?')
