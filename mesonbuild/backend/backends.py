@@ -83,7 +83,9 @@ class Backend():
         targetdir = self.get_target_dir(target)
         fname = target.get_filename()
         if isinstance(fname, list):
-            fname = fname[0] # HORROR, HORROR! Fix this.
+            # FIXME FIXME FIXME: build.CustomTarget has multiple output files
+            # and get_filename() returns them all
+            fname = fname[0]
         filename = os.path.join(targetdir, fname)
         return filename
 
