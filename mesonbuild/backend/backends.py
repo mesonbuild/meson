@@ -89,14 +89,6 @@ class Backend():
         filename = os.path.join(targetdir, fname)
         return filename
 
-    def get_target_filename_for_linking(self, target):
-        # On some platforms (msvc for instance), the file that is used for
-        # dynamic linking is not the same as the dynamic library itself. This
-        # file is called an import library, and we want to link against that.
-        # On platforms where this distinction is not important, the import
-        # library is the same as the dynamic library itself.
-        return os.path.join(self.get_target_dir(target), target.get_import_filename())
-
     def get_target_dir(self, target):
         if self.environment.coredata.get_builtin_option('layout') == 'mirror':
             dirname = target.get_subdir()
@@ -275,7 +267,11 @@ class Backend():
             if not isinstance(d, build.StaticLibrary) and\
             not isinstance(d, build.SharedLibrary):
                 raise RuntimeError('Tried to link with a non-library target "%s".' % d.get_basename())
-            args.append(self.get_target_filename_for_linking(d))
+            fname = self.get_target_filename(d)
+            if compiler.id == 'msvc':
+                if fname.endswith('dll'):
+                    fname = fname[:-3] + 'lib'
+            args.append(fname)
             # If you have executable e that links to shared lib s1 that links to shared library s2
             # you have to specify s2 as well as s1 when linking e even if e does not directly use
             # s2. Gcc handles this case fine but Clang does not for some reason. Thus we need to
