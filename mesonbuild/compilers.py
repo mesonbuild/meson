@@ -899,6 +899,7 @@ class ValaCompiler(Compiler):
         self.version = version
         self.id = 'unknown'
         self.language = 'vala'
+        self.is_cross = False
 
     def name_string(self):
         return ' '.join(self.exelist)
