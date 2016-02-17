@@ -1725,8 +1725,10 @@ rule FORTRAN_DEP_HACK
                 pass
             try:
                 os.symlink(basename, aliasfile)
+            except NotImplementedError:
+                mlog.debug("Library versioning disabled because symlinks are not supported.")
             except OSError:
-                mlog.debug("Library versioning disabled because we do not have symlink creation privileges")
+                mlog.debug("Library versioning disabled because we do not have symlink creation privileges.")
 
     def generate_gcov_clean(self, outfile):
             gcno_elem = NinjaBuildElement(self.all_outputs, 'clean-gcno', 'CUSTOM_COMMAND', 'PHONY')
