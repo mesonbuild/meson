@@ -194,7 +194,7 @@ def install_targets(d):
                 except FileNotFoundError:
                     pass
                 os.symlink(os.path.split(fname)[-1], symlinkfilename)
-            except NotImplementedError:
+            except (NotImplementedError, OSError):
                 if not printed_symlink_error:
                     print("Symlink creation does not work on this platform.")
                     printed_symlink_error = True
