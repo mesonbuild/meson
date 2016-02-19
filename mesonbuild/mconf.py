@@ -182,7 +182,7 @@ class Conf:
 def run(args):
     args = mesonlib.expand_arguments(args)
     if not args:
-        sys.exit(1)
+        args = [os.getcwd()]
     options = parser.parse_args(args)
     if len(options.directory) > 1:
         print('%s <build directory>' % args[0])
