@@ -98,7 +98,12 @@ class Environment():
         if (not cross and mesonlib.is_windows()) \
         or (cross and self.cross_info.has_host() and self.cross_info.config['host_machine']['system'] == 'windows'):
             self.exe_suffix = 'exe'
-            self.import_lib_suffix = 'lib'
+            if self.detect_c_compiler(cross).get_id() == 'msvc':
+                self.import_lib_suffix = 'lib'
+            else:
+                # MinGW-GCC doesn't generate and can't link with a .lib
+                # It uses the DLL file as the import library
+                self.import_lib_suffix = 'dll'
             self.shared_lib_suffix = 'dll'
             self.shared_lib_prefix = ''
             self.static_lib_suffix = 'lib'
@@ -546,7 +551,7 @@ class Environment():
     def get_exe_suffix(self):
         return self.exe_suffix
 
-    # On Windows the library has suffix dll
+    # On Windows (MSVC) the library has suffix dll
     # but you link against a file that has suffix lib.
     def get_import_lib_suffix(self):
         return self.import_lib_suffix
