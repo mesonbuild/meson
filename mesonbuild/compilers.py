@@ -1393,7 +1393,7 @@ class ClangCCompiler(CCompiler):
         self.id = 'clang'
         self.warn_args = {'1': ['-Wall', '-Winvalid-pch'],
                           '2': ['-Wall', '-Wextra', '-Winvalid-pch'],
-                          '3' : ['-Weverything']}
+                          '3' : ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch']}
 
     def get_buildtype_args(self, buildtype):
         return gnulike_buildtype_args[buildtype]
@@ -1484,7 +1484,7 @@ class ClangCPPCompiler(CPPCompiler):
         self.id = 'clang'
         self.warn_args = {'1': ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor'],
                           '2': ['-Wall', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor'],
-                          '3': ['-Weverything']}
+                          '3': ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor']}
 
     def get_buildtype_args(self, buildtype):
         return gnulike_buildtype_args[buildtype]
