@@ -2,10 +2,8 @@ project('find program', 'c')
 
 prog = find_program('program.py')
 
-# Use either Python3 or 2 to run this
-python = find_program('python3', required : false)
-if not python.found()
-  python = find_program('python')
-endif
+# Python 3 is guaranteed to be available because Meson
+# is implemented in it.
+python = find_program('python3')
 
 run_command(python, prog.path())
