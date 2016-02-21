@@ -1077,6 +1077,7 @@ class ThreadDependency(Dependency):
 class Python3Dependency(Dependency):
     def __init__(self, environment, kwargs):
         super().__init__()
+        self.name = 'python3'
         self.is_found = False
         try:
             pkgdep = PkgConfigDependency('python3', environment, kwargs)
@@ -1100,6 +1101,14 @@ class Python3Dependency(Dependency):
                 self.libs = ['-L{}/libs'.format(basedir),
                              '-lpython{}'.format(vernum)]
                 self.is_found = True
+            elif mesonlib.is_osx():
+                # In OSX the Python 3 framework does not have a version
+                # number in its name.
+                fw = ExtraFrameworkDependency('python', False)
+                if fw.found():
+                    self.cargs = fw.get_compile_args()
+                    self.libs = fw.get_link_args()
+                    self.is_found = True
         if self.is_found:
             mlog.log('Dependency', mlog.bold(self.name), 'found:', mlog.green('YES'))
         else:
