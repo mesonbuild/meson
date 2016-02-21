@@ -84,7 +84,12 @@ class MesonApp():
         if not os.path.isabs(options.prefix):
             raise RuntimeError('--prefix value \'{0}\' must be an absolute path: '.format(options.prefix))
         if options.prefix.endswith('/') or options.prefix.endswith('\\'):
-            options.prefix = options.prefix[:-1]
+            # On Windows we need to preserve the trailing slash if the
+            # string is of type 'C:\' because 'C:' is not an absolute path.
+            if len(options.prefix) == 3 and options.prefix[1] == ':':
+                pass
+            else:
+                options.prefix = options.prefix[:-1]
         self.meson_script_file = script_file
         self.options = options
 
