@@ -160,11 +160,12 @@ def version_compare(vstr1, vstr2):
     return cmpop(varr1, varr2)
 
 def default_libdir():
-    try:
-        archpath = subprocess.check_output(['dpkg-architecture', '-qDEB_HOST_MULTIARCH']).decode().strip()
+    pc = subprocess.Popen(['dpkg-architecture', '-qDEB_HOST_MULTIARCH'],
+                          stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    (stdo, _) = pc.communicate()
+    if pc.returncode == 0:
+        archpath = stdo.decode().strip()
         return 'lib/' + archpath
-    except:
-        pass
     if os.path.isdir('/usr/lib64'):
         return 'lib64'
     return 'lib'
