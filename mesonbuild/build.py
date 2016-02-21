@@ -427,9 +427,10 @@ class BuildTarget():
             if isinstance(name_suffix, list):
                 if len(name_suffix) != 0:
                     raise InvalidArguments('Array must be empty to signify null.')
-            elif not isinstance(name_suffix, str):
-                raise InvalidArguments('Name suffix must be a string.')
-            self.suffix = name_suffix
+            else:
+                if not isinstance(name_suffix, str):
+                    raise InvalidArguments('Name suffix must be a string.')
+                self.suffix = name_suffix
 
     def get_subdir(self):
         return self.subdir
