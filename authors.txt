@@ -29,3 +29,4 @@ Martin Ejdestig
 Rémi Nicole
 Damián Nohales
 Nirbheek Chauhan
+Nicolas Schneider
