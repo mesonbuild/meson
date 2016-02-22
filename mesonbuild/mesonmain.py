@@ -79,7 +79,7 @@ parser.add_argument('directories', nargs='*')
 
 class MesonApp():
 
-    def __init__(self, dir1, dir2, script_file, handshake, options):
+    def __init__(self, dir1, dir2, script_file, handshake, options, original_cmd_line_args):
         (self.source_dir, self.build_dir) = self.validate_dirs(dir1, dir2, handshake)
         if not os.path.isabs(options.prefix):
             raise RuntimeError('--prefix value \'{0}\' must be an absolute path: '.format(options.prefix))
@@ -92,6 +92,7 @@ class MesonApp():
                 options.prefix = options.prefix[:-1]
         self.meson_script_file = script_file
         self.options = options
+        self.original_cmd_line_args = original_cmd_line_args
 
     def has_build_file(self, dirname):
         fname = os.path.join(dirname, environment.build_filename)
@@ -130,7 +131,7 @@ itself as required.'''
         return (src_dir, build_dir)
 
     def generate(self):
-        env = environment.Environment(self.source_dir, self.build_dir, self.meson_script_file, self.options)
+        env = environment.Environment(self.source_dir, self.build_dir, self.meson_script_file, self.options, self.original_cmd_line_args)
         mlog.initialize(env.get_log_dir())
         mlog.debug('Build started at', datetime.datetime.now().isoformat())
         mlog.debug('Python binary:', sys.executable)
@@ -246,7 +247,7 @@ def run(mainfile, args):
         else:
             mainfile = resolved
     try:
-        app = MesonApp(dir1, dir2, mainfile, handshake, options)
+        app = MesonApp(dir1, dir2, mainfile, handshake, options, sys.argv)
     except Exception as e:
         # Log directory does not exist, so just print
         # to stdout.
