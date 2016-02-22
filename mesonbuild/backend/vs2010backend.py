@@ -39,6 +39,9 @@ class Vs2010Backend(backends.Backend):
     def generate_custom_generator_commands(self, target, parent_node):
         idgroup = ET.SubElement(parent_node, 'ItemDefinitionGroup')
         all_output_files = []
+        commands = []
+        inputs = []
+        outputs = []
         for genlist in target.get_generated_sources():
             if isinstance(genlist, build.CustomTarget):
                 all_output_files += [os.path.join(self.get_target_dir(genlist), i) for i in genlist.output]
@@ -67,11 +70,14 @@ class Vs2010Backend(backends.Backend):
                     args = [x.replace("@SOURCE_DIR@", self.environment.get_source_dir()).replace("@BUILD_DIR@", self.get_target_private_dir(target))
                             for x in args]
                     fullcmd = [exe_file] + args
-                    cbs = ET.SubElement(idgroup, 'CustomBuildStep')
-                    ET.SubElement(cbs, 'Command').text = ' '.join(self.special_quote(fullcmd))
-                    ET.SubElement(cbs, 'Inputs').text = infilename
-                    ET.SubElement(cbs, 'Outputs').text = ';'.join(outfiles)
-                    ET.SubElement(cbs, 'Message').text = 'Generating sources from %s.' % infilename
+                    commands.append(' '.join(self.special_quote(fullcmd)))
+                    inputs.append(infilename)
+                    outputs.extend(outfiles)
+        cbs = ET.SubElement(idgroup, 'CustomBuildStep')
+        ET.SubElement(cbs, 'Command').text = '\r\n'.join(commands)
+        ET.SubElement(cbs, 'Inputs').text = ";".join(inputs)
+        ET.SubElement(cbs, 'Outputs').text = ';'.join(outputs)
+        ET.SubElement(cbs, 'Message').text = 'Generating custom sources.'
         pg = ET.SubElement(parent_node, 'PropertyGroup')
         ET.SubElement(pg, 'CustomBuildBeforeTargets').text = 'ClCompile'
         return all_output_files
