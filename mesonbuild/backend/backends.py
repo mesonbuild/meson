@@ -241,8 +241,7 @@ class Backend():
     def generate_basic_compiler_args(self, target, compiler):
         commands = []
         commands += compiler.get_always_args()
-        if self.environment.coredata.get_builtin_option('buildtype') != 'plain':
-            commands += compiler.get_warn_args(self.environment.coredata.get_builtin_option('warning_level'))
+        commands += compiler.get_warn_args(self.environment.coredata.get_builtin_option('warning_level'))
         commands += compiler.get_option_compile_args(self.environment.coredata.compiler_options)
         commands += self.build.get_global_args(compiler)
         commands += self.environment.coredata.external_args[compiler.get_language()]
