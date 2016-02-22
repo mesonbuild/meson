@@ -206,12 +206,15 @@ class Vs2010Backend(backends.Backend):
     def split_sources(self, srclist):
         sources = []
         headers = []
+        objects = []
         for i in srclist:
             if self.environment.is_header(i):
                 headers.append(i)
+            elif self.environment.is_object(i):
+                objects.append(i)
             else:
                 sources.append(i)
-        return (sources, headers)
+        return (sources, headers, objects)
 
     def target_to_build_root(self, target):
         if target.subdir == '':
@@ -323,7 +326,7 @@ class Vs2010Backend(backends.Backend):
         down = self.target_to_build_root(target)
         proj_to_src_root = os.path.join(down, self.build_to_src)
         proj_to_src_dir = os.path.join(proj_to_src_root, target.subdir)
-        (sources, headers) = self.split_sources(target.sources)
+        (sources, headers, objects) = self.split_sources(target.sources)
         buildtype = self.buildtype
         project_name = target.name
         target_name = target.name
@@ -356,7 +359,7 @@ class Vs2010Backend(backends.Backend):
         ET.SubElement(type_config, 'UseDebugLibraries').text = 'true'
         ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.props')
         generated_files = self.generate_custom_generator_commands(target, root)
-        (gen_src, gen_hdrs) = self.split_sources(generated_files)
+        (gen_src, gen_hdrs, gen_objs) = self.split_sources(generated_files)
         direlem = ET.SubElement(root, 'PropertyGroup')
         fver = ET.SubElement(direlem, '_ProjectFileVersion')
         fver.text = self.project_file_version
@@ -483,6 +486,14 @@ class Vs2010Backend(backends.Backend):
             for s in gen_src:
                 relpath =  self.relpath(s, target.subdir)
                 ET.SubElement(inc_src, 'CLCompile', Include=relpath)
+        if len(objects) + len(gen_objs) > 0:
+            inc_objs = ET.SubElement(root, 'ItemGroup')
+            for s in objects:
+                relpath = s.rel_to_builddir(proj_to_src_root)
+                ET.SubElement(inc_objs, 'Object', Include=relpath)
+            for s in gen_objs:
+                relpath =  self.relpath(s, target.subdir)
+                ET.SubElement(inc_objs, 'Object', Include=relpath)
         ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.targets')
         # Reference the regen target.
         ig = ET.SubElement(root, 'ItemGroup')
