@@ -1331,7 +1331,7 @@ class Interpreter():
             key, value = option.split('=', 1)
             builtin_options = self.coredata.builtin_options
             if key in builtin_options:
-                if not hasattr(self.environment.cmd_line_options, value):
+                if not self.environment.had_argument_for(key):
                     self.coredata.set_builtin_option(key, value)
                 # If this was set on the command line, do not override.
             else:

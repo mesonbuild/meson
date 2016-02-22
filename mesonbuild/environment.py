@@ -58,7 +58,7 @@ class Environment():
     log_dir = 'meson-logs'
     coredata_file = os.path.join(private_dir, 'coredata.dat')
     version_regex = '\d+(\.\d+)+(-[a-zA-Z0-9]+)?'
-    def __init__(self, source_dir, build_dir, main_script_file, options):
+    def __init__(self, source_dir, build_dir, main_script_file, options, original_cmd_line_args):
         assert(os.path.isabs(main_script_file))
         assert(not os.path.islink(main_script_file))
         self.source_dir = source_dir
@@ -80,6 +80,7 @@ class Environment():
         else:
             self.cross_info = None
         self.cmd_line_options = options
+        self.original_cmd_line_args = original_cmd_line_args
 
         # List of potential compilers.
         if mesonlib.is_windows():
@@ -152,6 +153,18 @@ class Environment():
 
     def is_library(self, fname):
         return is_library(fname)
+
+    def had_argument_for(self, option):
+        trial1 = '--' + option
+        trial2 = '-D' + option
+        previous_is_plaind = False
+        for i in self.original_cmd_line_args:
+            if i.startswith(trial1) or i.startswith(trial2):
+                return True
+            if previous_is_plaind and i.startswith(option):
+                return True
+            previous_is_plaind = i == '-D'
+        return False
 
     def merge_options(self, options):
         for (name, value) in options.items():
