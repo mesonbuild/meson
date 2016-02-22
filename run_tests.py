@@ -207,8 +207,8 @@ def run_test(testdir, extra_args, should_succeed):
                           stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     (o, e) = pc.communicate()
     build_time = time.time() - build_start
-    stdo += o.decode('utf-8')
-    stde += e.decode('utf-8')
+    stdo += o.decode(sys.stdout.encoding)
+    stde += e.decode(sys.stdout.encoding)
     if pc.returncode != 0:
         return TestResult('Compiling source code failed.', stdo, stde, gen_time, build_time)
     test_start = time.time()
@@ -230,8 +230,8 @@ def run_test(testdir, extra_args, should_succeed):
         pi = subprocess.Popen(install_commands, cwd=test_build_dir, env=env,
                               stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (o, e) = pi.communicate()
-        stdo += o.decode('utf-8')
-        stde += e.decode('utf-8')
+        stdo += o.decode(sys.stdout.encoding)
+        stde += e.decode(sys.stdout.encoding)
         if pi.returncode != 0:
             return TestResult('Running install failed.', stdo, stde, gen_time, build_time, test_time)
         return TestResult(validate_install(testdir, install_dir), stdo, stde, gen_time, build_time, test_time)
