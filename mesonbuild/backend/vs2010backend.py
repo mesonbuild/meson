@@ -50,7 +50,7 @@ class Vs2010Backend(backends.Backend):
                 if isinstance(exe, build.BuildTarget):
                     exe_file = os.path.join(self.environment.get_build_dir(), self.get_target_filename(exe))
                 else:
-                    exe_file = exe.get_command()
+                    exe_file = exe.get_command()[0]
                 base_args = generator.get_arglist()
                 for i in range(len(infilelist)):
                     if len(infilelist) == len(outfilelist):
