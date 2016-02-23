@@ -493,13 +493,12 @@ class Vs2010Backend(backends.Backend):
             for s in gen_src:
                 relpath =  self.relpath(s, target.subdir)
                 ET.SubElement(inc_src, 'CLCompile', Include=relpath)
-        if len(objects) + len(gen_objs) > 0:
+        if len(objects) > 0:
+            # Do not add gen_objs to project file. Those are automatically used by MSBuild, because they are part of
+            # the CustomBuildStep Outputs.
             inc_objs = ET.SubElement(root, 'ItemGroup')
             for s in objects:
                 relpath = s.rel_to_builddir(proj_to_src_root)
-                ET.SubElement(inc_objs, 'Object', Include=relpath)
-            for s in gen_objs:
-                relpath =  self.relpath(s, target.subdir)
                 ET.SubElement(inc_objs, 'Object', Include=relpath)
         ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.targets')
         # Reference the regen target.
