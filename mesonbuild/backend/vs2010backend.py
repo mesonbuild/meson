@@ -37,7 +37,6 @@ class Vs2010Backend(backends.Backend):
         self.source_suffix_in_obj = False
 
     def generate_custom_generator_commands(self, target, parent_node):
-        idgroup = ET.SubElement(parent_node, 'ItemDefinitionGroup')
         all_output_files = []
         commands = []
         inputs = []
@@ -73,13 +72,15 @@ class Vs2010Backend(backends.Backend):
                     commands.append(' '.join(self.special_quote(fullcmd)))
                     inputs.append(infilename)
                     outputs.extend(outfiles)
-        cbs = ET.SubElement(idgroup, 'CustomBuildStep')
-        ET.SubElement(cbs, 'Command').text = '\r\n'.join(commands)
-        ET.SubElement(cbs, 'Inputs').text = ";".join(inputs)
-        ET.SubElement(cbs, 'Outputs').text = ';'.join(outputs)
-        ET.SubElement(cbs, 'Message').text = 'Generating custom sources.'
-        pg = ET.SubElement(parent_node, 'PropertyGroup')
-        ET.SubElement(pg, 'CustomBuildBeforeTargets').text = 'ClCompile'
+        if len(commands) > 0:
+            idgroup = ET.SubElement(parent_node, 'ItemDefinitionGroup')
+            cbs = ET.SubElement(idgroup, 'CustomBuildStep')
+            ET.SubElement(cbs, 'Command').text = '\r\n'.join(commands)
+            ET.SubElement(cbs, 'Inputs').text = ";".join(inputs)
+            ET.SubElement(cbs, 'Outputs').text = ';'.join(outputs)
+            ET.SubElement(cbs, 'Message').text = 'Generating custom sources.'
+            pg = ET.SubElement(parent_node, 'PropertyGroup')
+            ET.SubElement(pg, 'CustomBuildBeforeTargets').text = 'ClCompile'
         return all_output_files
 
     def generate(self, interp):
