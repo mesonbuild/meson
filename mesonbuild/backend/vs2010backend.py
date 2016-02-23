@@ -217,10 +217,8 @@ class Vs2010Backend(backends.Backend):
         if target.subdir == '':
             return ''
 
-        directories = os.path.split(target.subdir)
-        directories = list(filter(bool,directories)) #Filter out empty strings
-
-        return '/'.join(['..']*len(directories))
+        directories = target.subdir.split(os.sep)
+        return os.sep.join(['..']*len(directories))
 
     def special_quote(self, arr):
         return ['&quot;%s&quot;' % i for i in arr]
