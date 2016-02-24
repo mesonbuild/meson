@@ -12,7 +12,7 @@ if __name__ == '__main__':
     ifile = sys.argv[2]
     ofile = sys.argv[3]
     if compiler.endswith('cl'):
-        cmd = [compiler, '/nologo', '/Fo'+ofile, '/c', ifile]
+        cmd = [compiler, '/nologo', '/MDd', '/Fo'+ofile, '/c', ifile]
     else:
         cmd = [compiler, '-c', ifile, '-o', ofile]
     sys.exit(subprocess.call(cmd))

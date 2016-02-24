@@ -37,8 +37,10 @@ class Vs2010Backend(backends.Backend):
         self.source_suffix_in_obj = False
 
     def generate_custom_generator_commands(self, target, parent_node):
-        idgroup = ET.SubElement(parent_node, 'ItemDefinitionGroup')
         all_output_files = []
+        commands = []
+        inputs = []
+        outputs = []
         for genlist in target.get_generated_sources():
             if isinstance(genlist, build.CustomTarget):
                 all_output_files += [os.path.join(self.get_target_dir(genlist), i) for i in genlist.output]
@@ -50,7 +52,7 @@ class Vs2010Backend(backends.Backend):
                 if isinstance(exe, build.BuildTarget):
                     exe_file = os.path.join(self.environment.get_build_dir(), self.get_target_filename(exe))
                 else:
-                    exe_file = exe.get_command()
+                    exe_file = exe.get_command()[0]
                 base_args = generator.get_arglist()
                 for i in range(len(infilelist)):
                     if len(infilelist) == len(outfilelist):
@@ -67,13 +69,18 @@ class Vs2010Backend(backends.Backend):
                     args = [x.replace("@SOURCE_DIR@", self.environment.get_source_dir()).replace("@BUILD_DIR@", self.get_target_private_dir(target))
                             for x in args]
                     fullcmd = [exe_file] + args
-                    cbs = ET.SubElement(idgroup, 'CustomBuildStep')
-                    ET.SubElement(cbs, 'Command').text = ' '.join(self.special_quote(fullcmd))
-                    ET.SubElement(cbs, 'Inputs').text = infilename
-                    ET.SubElement(cbs, 'Outputs').text = ';'.join(outfiles)
-                    ET.SubElement(cbs, 'Message').text = 'Generating sources from %s.' % infilename
-        pg = ET.SubElement(parent_node, 'PropertyGroup')
-        ET.SubElement(pg, 'CustomBuildBeforeTargets').text = 'ClCompile'
+                    commands.append(' '.join(self.special_quote(fullcmd)))
+                    inputs.append(infilename)
+                    outputs.extend(outfiles)
+        if len(commands) > 0:
+            idgroup = ET.SubElement(parent_node, 'ItemDefinitionGroup')
+            cbs = ET.SubElement(idgroup, 'CustomBuildStep')
+            ET.SubElement(cbs, 'Command').text = '\r\n'.join(commands)
+            ET.SubElement(cbs, 'Inputs').text = ";".join(inputs)
+            ET.SubElement(cbs, 'Outputs').text = ';'.join(outputs)
+            ET.SubElement(cbs, 'Message').text = 'Generating custom sources.'
+            pg = ET.SubElement(parent_node, 'PropertyGroup')
+            ET.SubElement(pg, 'CustomBuildBeforeTargets').text = 'ClCompile'
         return all_output_files
 
     def generate(self, interp):
@@ -206,12 +213,15 @@ class Vs2010Backend(backends.Backend):
     def split_sources(self, srclist):
         sources = []
         headers = []
+        objects = []
         for i in srclist:
             if self.environment.is_header(i):
                 headers.append(i)
+            elif self.environment.is_object(i):
+                objects.append(i)
             else:
                 sources.append(i)
-        return (sources, headers)
+        return (sources, headers, objects)
 
     def target_to_build_root(self, target):
         if target.subdir == '':
@@ -323,7 +333,7 @@ class Vs2010Backend(backends.Backend):
         down = self.target_to_build_root(target)
         proj_to_src_root = os.path.join(down, self.build_to_src)
         proj_to_src_dir = os.path.join(proj_to_src_root, target.subdir)
-        (sources, headers) = self.split_sources(target.sources)
+        (sources, headers, objects) = self.split_sources(target.sources)
         buildtype = self.buildtype
         project_name = target.name
         target_name = target.name
@@ -356,7 +366,7 @@ class Vs2010Backend(backends.Backend):
         ET.SubElement(type_config, 'UseDebugLibraries').text = 'true'
         ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.props')
         generated_files = self.generate_custom_generator_commands(target, root)
-        (gen_src, gen_hdrs) = self.split_sources(generated_files)
+        (gen_src, gen_hdrs, gen_objs) = self.split_sources(generated_files)
         direlem = ET.SubElement(root, 'PropertyGroup')
         fver = ET.SubElement(direlem, '_ProjectFileVersion')
         fver.text = self.project_file_version
@@ -483,6 +493,13 @@ class Vs2010Backend(backends.Backend):
             for s in gen_src:
                 relpath =  self.relpath(s, target.subdir)
                 ET.SubElement(inc_src, 'CLCompile', Include=relpath)
+        if len(objects) > 0:
+            # Do not add gen_objs to project file. Those are automatically used by MSBuild, because they are part of
+            # the CustomBuildStep Outputs.
+            inc_objs = ET.SubElement(root, 'ItemGroup')
+            for s in objects:
+                relpath = s.rel_to_builddir(proj_to_src_root)
+                ET.SubElement(inc_objs, 'Object', Include=relpath)
         ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.targets')
         # Reference the regen target.
         ig = ET.SubElement(root, 'ItemGroup')
