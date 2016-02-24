@@ -231,15 +231,22 @@ def run(mainfile, args):
         return 0
     args = options.directories
     if len(args) == 0 or len(args) > 2:
-        print('{} <source directory> <build directory>'.format(sys.argv[0]))
-        print('If you omit either directory, the current directory is substituted.')
-        print('Run {} --help for more information.'.format(sys.argv[0]))
-        return 1
-    dir1 = args[0]
-    if len(args) > 1:
-        dir2 = args[1]
+        # if there's a meson.build in the dir above, and not in the current
+        # directory, assume we're in the build directory
+        if len(args) == 0 and not os.path.exists('meson.build') and os.path.exists('../meson.build'):
+            dir1 = '..'
+            dir2 = '.'
+        else:
+            print('{} <source directory> <build directory>'.format(sys.argv[0]))
+            print('If you omit either directory, the current directory is substituted.')
+            print('Run {} --help for more information.'.format(sys.argv[0]))
+            return 1
     else:
-        dir2 = '.'
+        dir1 = args[0]
+        if len(args) > 1:
+            dir2 = args[1]
+        else:
+            dir2 = '.'
     while os.path.islink(mainfile):
         resolved = os.readlink(mainfile)
         if resolved[0] != '/':
