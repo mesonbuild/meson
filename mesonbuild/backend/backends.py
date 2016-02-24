@@ -125,6 +125,9 @@ class Backend():
                 outfileabs = os.path.join(self.environment.get_build_dir(), outfilename)
                 outfileabs_tmp = outfileabs + '.tmp'
                 abs_files.append(outfileabs)
+                outfileabs_tmp_dir = os.path.dirname(outfileabs_tmp)
+                if not os.path.exists(outfileabs_tmp_dir):
+                    os.makedirs(outfileabs_tmp_dir)
                 outfile = open(outfileabs_tmp, 'w')
                 langlist[language] = outfile
                 result.append(outfilename)
