@@ -19,13 +19,18 @@ import pickle, subprocess
 
 # This could also be used for XCode.
 
-def need_regen(regeninfo):
-    sln_time = os.stat(os.path.join(regeninfo.build_dir, regeninfo.solutionfile)).st_mtime
+def need_regen(regeninfo, regen_timestamp):
     for i in regeninfo.depfiles:
         curfile = os.path.join(regeninfo.build_dir, i)
         curtime = os.stat(curfile).st_mtime
-        if curtime > sln_time:
+        if curtime > regen_timestamp:
             return True
+    # The timestamp file gets automatically deleted by MSBuild during a 'Clean' build.
+    # We must make sure to recreate it, even if we do not regenerate the solution.
+    # Otherwise, Visual Studio will always consider the REGEN project out of date.
+    print("Everything is up-to-date, regeneration of build files is not needed.")
+    from mesonbuild.backend.vs2010backend import Vs2010Backend
+    Vs2010Backend.touch_regen_timestamp(regeninfo.build_dir)
     return False
 
 def regen(regeninfo):
@@ -41,8 +46,11 @@ def regen(regeninfo):
     subprocess.check_call(cmd)
 
 def run(args):
-    regeninfo = pickle.load(open(os.path.join(args[0], 'regeninfo.dump'), 'rb'))
-    if need_regen(regeninfo):
+    private_dir = args[0]
+    dumpfile = os.path.join(private_dir, 'regeninfo.dump')
+    regeninfo = pickle.load(open(dumpfile, 'rb'))
+    regen_timestamp = os.stat(dumpfile).st_mtime
+    if need_regen(regeninfo, regen_timestamp):
         regen(regeninfo)
     sys.exit(0)
 
