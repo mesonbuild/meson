@@ -31,7 +31,7 @@ parser = argparse.ArgumentParser()
 default_warning = '1'
 
 if mesonlib.is_windows():
-    def_prefix = 'c:/'
+    def_prefix = 'c:\\'
 else:
     def_prefix = '/usr/local'
 
