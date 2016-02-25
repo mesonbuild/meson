@@ -99,6 +99,10 @@ class XCodeBackend(backends.Backend):
         self.generate_xc_configurationList()
         self.generate_suffix()
 
+        # for some reason, the entire file was not being flushed to the disk.
+        # closing it explicitly forces a flush and fixes the issue
+        self.ofile.close()
+
     def get_xcodetype(self, fname):
         return self.xcodetypemap[fname.split('.')[-1]]
 
@@ -222,6 +226,9 @@ class XCodeBackend(backends.Backend):
         otempl = '%s /* %s */ = { isa = PBXBuildFile; fileRef = %s /* %s */;};\n'
         for t in self.build.targets.values():
             for s in t.sources:
+                if isinstance(s, mesonlib.File):
+                    s = s.fname
+
                 if isinstance(s, str):
                     s = os.path.join(t.subdir, s)
                     idval = self.buildmap[s]
@@ -250,7 +257,7 @@ class XCodeBackend(backends.Backend):
             self.write_line('COPY_PHASE_STRIP = NO;\n')
             self.indent_level -= 1
             self.write_line('};\n')
-            self.write_line('name = %s;\n' % name)
+            self.write_line('name = "%s";\n' % name)
             self.indent_level -= 1
             self.write_line('};\n')
         self.ofile.write('/* End PBXBuildStyle section */\n')
@@ -264,7 +271,7 @@ class XCodeBackend(backends.Backend):
             self.write_line('containerPortal = %s /* Project object */;' % self.project_uid)
             self.write_line('proxyType = 1;')
             self.write_line('remoteGlobalIDString = %s;' % self.native_targets[t])
-            self.write_line('remoteInfo = %s;' % t)
+            self.write_line('remoteInfo = "%s";' % t)
             self.indent_level-=1
             self.write_line('};')
         self.ofile.write('/* End PBXContainerItemProxy section */\n')
@@ -356,7 +363,7 @@ class XCodeBackend(backends.Backend):
             self.write_line('%s /* Source files */,' % target_src_map[t])
             self.indent_level-=1
             self.write_line(');')
-            self.write_line('name = %s;' % t)
+            self.write_line('name = "%s";' % t)
             self.write_line('sourceTree = "<group>";')
             self.indent_level-=1
             self.write_line('};')
@@ -416,12 +423,12 @@ class XCodeBackend(backends.Backend):
             for lt in self.build.targets[tname].link_targets:
                 # NOT DOCUMENTED, may need to make different links
                 # to same target have different targetdependency item.
-                idval = self.pbx_dep_map[lt.get_basename()]
+                idval = self.pbx_dep_map[lt.get_id()]
                 self.write_line('%s /* PBXTargetDependency */,' % idval)
             self.indent_level -=1
             self.write_line(");")
-            self.write_line('name = %s;' % tname)
-            self.write_line('productName = %s;' % tname)
+            self.write_line('name = "%s";' % tname)
+            self.write_line('productName = "%s";' % tname)
             self.write_line('productReference = %s /* %s */;' % (self.target_filemap[tname], tname))
             if isinstance(t, build.Executable):
                 typestr = 'com.apple.product-type.tool'
@@ -542,11 +549,11 @@ class XCodeBackend(backends.Backend):
             self.indent_level+=1
             self.write_line('ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";')
             self.write_line('ONLY_ACTIVE_ARCH = YES;')
-            self.write_line('SDKROOT = "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk";')
+            self.write_line('SDKROOT = "macosx";')
             self.write_line('SYMROOT = "%s/build";' % self.environment.get_build_dir())
             self.indent_level-=1
             self.write_line('};')
-            self.write_line('name = %s;' % buildtype)
+            self.write_line('name = "%s";' % buildtype)
             self.indent_level-=1
             self.write_line('};')
 
@@ -574,7 +581,7 @@ class XCodeBackend(backends.Backend):
             self.write_line('WARNING_CFLAGS = ("-Wmost", "-Wno-four-char-constants", "-Wno-unknown-pragmas", );')
             self.indent_level-=1
             self.write_line('};')
-            self.write_line('name = %s;' % buildtype)
+            self.write_line('name = "%s";' % buildtype)
             self.indent_level-=1
             self.write_line('};')
 
@@ -602,7 +609,7 @@ class XCodeBackend(backends.Backend):
             self.write_line('WARNING_CFLAGS = ("-Wmost", "-Wno-four-char-constants", "-Wno-unknown-pragmas", );')
             self.indent_level-=1
             self.write_line('};')
-            self.write_line('name = %s;' % buildtype)
+            self.write_line('name = "%s";' % buildtype)
             self.indent_level-=1
             self.write_line('};')
 
@@ -635,9 +642,9 @@ class XCodeBackend(backends.Backend):
                     ldargs = dep_libs
                     install_path = ''
                 if dylib_version is not None:
-                    product_name = target_name + '.' + dylib_version
+                    product_name = target.get_basename() + '.' + dylib_version
                 else:
-                    product_name = target_name
+                    product_name = target.get_basename()
                 ldargs += target.link_args
                 ldstr = ' '.join(ldargs)
                 valid = self.buildconfmap[target_name][buildtype]
@@ -689,7 +696,7 @@ class XCodeBackend(backends.Backend):
                 self.write_line('WARNING_CFLAGS = ("-Wmost", "-Wno-four-char-constants", "-Wno-unknown-pragmas", );')
                 self.indent_level-=1
                 self.write_line('};')
-                self.write_line('name = %s;' % buildtype)
+                self.write_line('name = "%s";' % buildtype)
                 self.indent_level-=1
                 self.write_line('};')
         self.ofile.write('/* End XCBuildConfiguration section */\n')
@@ -753,7 +760,7 @@ class XCodeBackend(backends.Backend):
             self.indent_level -= 1
             self.write_line(');')
             self.write_line('defaultConfigurationIsVisible = 0;')
-            self.write_line('defaultConfigurationName = %s;' % typestr)
+            self.write_line('defaultConfigurationName = "%s";' % typestr)
             self.indent_level -= 1
             self.write_line('};')
         self.ofile.write('/* End XCConfigurationList section */\n')
