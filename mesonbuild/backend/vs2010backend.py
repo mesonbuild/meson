@@ -94,9 +94,6 @@ class Vs2010Backend(backends.Backend):
         self.generate_solution(sln_filename, projlist)
         self.generate_regen_info(sln_filename)
         open(os.path.join(self.environment.get_scratch_dir(), 'regen.stamp'), 'wb')
-        rulefile = os.path.join(self.environment.get_scratch_dir(), 'regen.rule')
-        if not os.path.exists(rulefile):
-            open(rulefile, 'w').write("# For some reason this needs to be here.")
 
     def generate_regen_info(self, sln_filename):
         deps = self.get_regen_filelist()
@@ -573,7 +570,11 @@ exit /b %%1
 :cmDone
 if %%errorlevel%% neq 0 goto :VCEnd'''
         igroup = ET.SubElement(root, 'ItemGroup')
-        custombuild = ET.SubElement(igroup, 'CustomBuild', Include='meson-private/regen.rule')
+        rulefile = os.path.join(self.environment.get_scratch_dir(), 'regen.rule')
+        if not os.path.exists(rulefile):
+            with open(rulefile, 'w') as f:
+                f.write("# Meson regen file.")
+        custombuild = ET.SubElement(igroup, 'CustomBuild', Include=rulefile)
         message = ET.SubElement(custombuild, 'Message')
         message.text = 'Checking whether solution needs to be regenerated.'
         ET.SubElement(custombuild, 'Command').text = cmd_templ % \
