@@ -580,8 +580,7 @@ if %%errorlevel%% neq 0 goto :VCEnd'''
             ('" "'.join(regen_command), private_dir)
         ET.SubElement(custombuild, 'Outputs').text = os.path.join(self.environment.get_scratch_dir(), 'regen.stamp')
         deps = self.get_regen_filelist()
-        depstr = ';'.join([os.path.join(self.environment.get_source_dir(), d) for d in deps])
-        ET.SubElement(custombuild, 'AdditionalInputs').text = depstr
+        ET.SubElement(custombuild, 'AdditionalInputs').text = ';'.join(deps)
         ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.targets')
         ET.SubElement(root, 'ImportGroup', Label='ExtensionTargets')
         tree = ET.ElementTree(root)
