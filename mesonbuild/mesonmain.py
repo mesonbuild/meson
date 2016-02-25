@@ -166,8 +166,8 @@ itself as required.'''
         mlog.log('Build machine cpu family:', mlog.bold(intr.builtin['build_machine'].cpu_family_method([], {})))
         mlog.log('Build machine cpu:', mlog.bold(intr.builtin['build_machine'].cpu_method([], {})))
         intr.run()
+        env.dump_coredata()
         g.generate(intr)
-        env.generating_finished()
         dumpfile = os.path.join(env.get_scratch_dir(), 'build.dat')
         pickle.dump(b, open(dumpfile, 'wb'))
 
