@@ -21,13 +21,13 @@ from .. import mlog
 import xml.etree.ElementTree as ET
 import xml.dom.minidom
 from ..coredata import MesonException
+from ..environment import Environment
 
 class RegenInfo():
-    def __init__(self, source_dir, build_dir, depfiles, solutionfile):
+    def __init__(self, source_dir, build_dir, depfiles):
         self.source_dir = source_dir
         self.build_dir = build_dir
         self.depfiles = depfiles
-        self.solutionfile = solutionfile
 
 class Vs2010Backend(backends.Backend):
     def __init__(self, build):
@@ -92,18 +92,22 @@ class Vs2010Backend(backends.Backend):
         self.gen_testproj('RUN_TESTS', os.path.join(self.environment.get_build_dir(), 'RUN_TESTS.vcxproj'))
         self.gen_regenproj('REGEN', os.path.join(self.environment.get_build_dir(), 'REGEN.vcxproj'))
         self.generate_solution(sln_filename, projlist)
-        self.generate_regen_info(sln_filename)
-        open(os.path.join(self.environment.get_scratch_dir(), 'regen.stamp'), 'wb')
-        rulefile = os.path.join(self.environment.get_scratch_dir(), 'regen.rule')
-        if not os.path.exists(rulefile):
-            open(rulefile, 'w').write("# For some reason this needs to be here.")
+        self.generate_regen_info()
+        Vs2010Backend.touch_regen_timestamp(self.environment.get_build_dir())
 
-    def generate_regen_info(self, sln_filename):
+    @staticmethod
+    def get_regen_stampfile(build_dir):
+        return os.path.join(os.path.join(build_dir, Environment.private_dir), 'regen.stamp')
+
+    @staticmethod
+    def touch_regen_timestamp(build_dir):
+        open(Vs2010Backend.get_regen_stampfile(build_dir), 'w').close()
+
+    def generate_regen_info(self):
         deps = self.get_regen_filelist()
         regeninfo = RegenInfo(self.environment.get_source_dir(),
                               self.environment.get_build_dir(),
-                              deps,
-                              sln_filename)
+                              deps)
         pickle.dump(regeninfo, open(os.path.join(self.environment.get_scratch_dir(), 'regeninfo.dump'), 'wb'))
 
     def get_obj_target_deps(self, obj_list):
@@ -573,15 +577,18 @@ exit /b %%1
 :cmDone
 if %%errorlevel%% neq 0 goto :VCEnd'''
         igroup = ET.SubElement(root, 'ItemGroup')
-        custombuild = ET.SubElement(igroup, 'CustomBuild', Include='meson-private/regen.rule')
+        rulefile = os.path.join(self.environment.get_scratch_dir(), 'regen.rule')
+        if not os.path.exists(rulefile):
+            with open(rulefile, 'w') as f:
+                f.write("# Meson regen file.")
+        custombuild = ET.SubElement(igroup, 'CustomBuild', Include=rulefile)
         message = ET.SubElement(custombuild, 'Message')
         message.text = 'Checking whether solution needs to be regenerated.'
         ET.SubElement(custombuild, 'Command').text = cmd_templ % \
             ('" "'.join(regen_command), private_dir)
-        ET.SubElement(custombuild, 'Outputs').text = os.path.join(self.environment.get_scratch_dir(), 'regen.stamp')
+        ET.SubElement(custombuild, 'Outputs').text = Vs2010Backend.get_regen_stampfile(self.environment.get_build_dir())
         deps = self.get_regen_filelist()
-        depstr = ';'.join([os.path.join(self.environment.get_source_dir(), d) for d in deps])
-        ET.SubElement(custombuild, 'AdditionalInputs').text = depstr
+        ET.SubElement(custombuild, 'AdditionalInputs').text = ';'.join(deps)
         ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.targets')
         ET.SubElement(root, 'ImportGroup', Label='ExtensionTargets')
         tree = ET.ElementTree(root)
