@@ -586,6 +586,8 @@ int dummy;
         cmd = [ sys.executable, self.environment.get_build_command(), '--internal', 'test' ]
         if not self.environment.coredata.get_builtin_option('stdsplit'):
             cmd += ['--no-stdsplit']
+        if self.environment.coredata.get_builtin_option('errorlogs'):
+            cmd += ['--print-errorlogs']
         cmd += [ test_data ]
         elem = NinjaBuildElement(self.all_outputs, 'test', 'CUSTOM_COMMAND', ['all', 'PHONY'])
         elem.add_item('COMMAND', cmd)
