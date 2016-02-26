@@ -25,7 +25,8 @@ def is_windows():
     platname = platform.system().lower()
     return platname == 'windows' or 'mingw' in platname
 
-tests_failed = []
+collected_logs = []
+error_count = 0
 options = None
 
 parser = argparse.ArgumentParser()
@@ -37,6 +38,8 @@ parser.add_argument('--suite', default=None, dest='suite',
                     help='Only run tests belonging to this suite.')
 parser.add_argument('--no-stdsplit', default=True, dest='split', action='store_false',
                     help='Do not split stderr and stdout in test logs.')
+parser.add_argument('--print-errorlogs', default=False, action='store_true',
+                    help="Whether to print faling tests' logs.")
 parser.add_argument('args', nargs='+')
 
 
@@ -49,25 +52,30 @@ class TestRun():
         self.stde = stde
         self.cmd = cmd
 
+    def get_log(self):
+        res = '--- command ---\n'
+        if self.cmd is None:
+            res += 'NONE\n'
+        else:
+            res += ' '.join(self.cmd) + '\n'
+        if self.stdo:
+            res += '--- stdout ---\n'
+            res += self.stdo
+        if self.stde:
+            if res[-1:] != '\n':
+                res += '\n'
+            res += '--- stderr ---\n'
+            res += self.stde
+        if res[-1:] != '\n':
+            res += '\n'
+        res += '-------\n\n'
+        return res
+
 def decode(stream):
     try:
         return stream.decode('utf-8')
     except UnicodeDecodeError:
         return stream.decode('iso-8859-1', errors='ignore')
-
-def write_log(logfile, test_name, result_str, result):
-    logfile.write(result_str + '\n\n')
-    logfile.write('--- command ---\n')
-    if result.cmd is None:
-        logfile.write('NONE')
-    else:
-        logfile.write(' '.join(result.cmd))
-    logfile.write('\n--- "%s" stdout ---\n' % test_name)
-    logfile.write(result.stdo)
-    if result.stde:
-        logfile.write('\n--- "%s" stderr ---\n' % test_name)
-        logfile.write(result.stde)
-    logfile.write('\n-------\n\n')
 
 def write_json_log(jsonlogfile, test_name, result):
     jresult = {'name' : test_name,
@@ -86,7 +94,7 @@ def run_with_mono(fname):
     return False
 
 def run_single_test(wrap, test):
-    global tests_failed, options
+    global options
     if test.fname[0].endswith('.jar'):
         cmd = ['java', '-jar'] + test.fname
     elif not test.is_cross and run_with_mono(test.fname[0]):
@@ -146,17 +154,16 @@ def run_single_test(wrap, test):
             stde = decode(stde)
         if timed_out:
             res = 'TIMEOUT'
-            tests_failed.append((test.name, stdo, stde))
         elif (not test.should_fail and p.returncode == 0) or \
             (test.should_fail and p.returncode != 0):
             res = 'OK'
         else:
             res = 'FAIL'
-            tests_failed.append((test.name, stdo, stde))
         returncode = p.returncode
     return TestRun(res, returncode, duration, stdo, stde, cmd)
 
 def print_stats(numlen, tests, name, result, i, logfile, jsonlogfile):
+    global collected_logs, error_count, options
     startpad = ' '*(numlen - len('%d' % (i+1)))
     num = '%s%d/%d' % (startpad, i+1, len(tests))
     padding1 = ' '*(38-len(name))
@@ -164,7 +171,12 @@ def print_stats(numlen, tests, name, result, i, logfile, jsonlogfile):
     result_str = '%s %s  %s%s%s%5.2f s' % \
         (num, name, padding1, result.res, padding2, result.duration)
     print(result_str)
-    write_log(logfile, name, result_str, result)
+    result_str += "\n\n" + result.get_log()
+    if result.returncode != 0:
+        error_count += 1
+        if options.print_errorlogs:
+            collected_logs.append(result_str)
+    logfile.write(result_str)
     write_json_log(jsonlogfile, name, result)
 
 def drain_futures(futures):
@@ -229,8 +241,9 @@ def run_tests(datafilename):
     return logfilename
 
 def run(args):
-    global tests_failed, options
-    tests_failed = [] # To avoid state leaks when invoked multiple times (running tests in-process)
+    global collected_logs, error_count, options
+    collected_logs = [] # To avoid state leaks when invoked multiple times (running tests in-process)
+    error_count = 0
     options = parser.parse_args(args)
     if len(options.args) != 1:
         print('Test runner for Meson. Do not run on your own, mmm\'kay?')
@@ -239,19 +252,21 @@ def run(args):
         os.chdir(options.wd)
     datafile = options.args[0]
     logfilename = run_tests(datafile)
-    returncode = 0
-    if len(tests_failed) > 0:
-        print('\nOutput of failed tests (max 10):')
-        for (name, stdo, stde) in tests_failed[:10]:
-            print("{} stdout:\n".format(name))
-            print(stdo)
-            if stde:
-                print('\n{} stderr:\n'.format(name))
-                print(stde)
-            print('\n')
-        returncode = 1
-    print('\nFull log written to %s.' % logfilename)
-    return returncode
+    if len(collected_logs) > 0:
+        if len(collected_logs) > 10:
+            print('\nThe output from 10 first failed tests:\n')
+        else:
+            print('\nThe output from the failed tests:\n')
+        for log in collected_logs[:10]:
+            lines = log.splitlines()
+            if len(lines) > 100:
+                print(line[0])
+                print('--- Listing only the last 100 lines from a long log. ---')
+                lines = lines[-99:]
+            for line in lines:
+                print(line)
+    print('Full log written to %s.' % logfilename)
+    return error_count
 
 if __name__ == '__main__':
     sys.exit(run(sys.argv[1:]))
