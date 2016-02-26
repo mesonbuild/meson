@@ -23,8 +23,8 @@ from . import coredata
 about. To support a new compiler, add its information below.
 Also add corresponding autodetection code in environment.py."""
 
-header_suffixes = ['h', 'hh', 'hpp', 'hxx', 'H', 'moc', 'vapi']
-cpp_suffixes = ['cc', 'cpp', 'cxx', 'h', 'hh', 'hpp', 'hxx', 'c++']
+header_suffixes = ['h', 'hh', 'hpp', 'hxx', 'H', 'ipp', 'moc', 'vapi']
+cpp_suffixes = ['cc', 'cpp', 'cxx', 'h', 'hh', 'hpp', 'ipp', 'hxx', 'c++']
 c_suffixes = ['c']
 clike_suffixes = c_suffixes + cpp_suffixes
 obj_suffixes = ['o', 'obj', 'res']
