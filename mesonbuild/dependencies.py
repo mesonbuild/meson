@@ -21,6 +21,7 @@
 
 import re
 import os, stat, glob, subprocess, shutil
+import sysconfig
 from . coredata import MesonException
 from . import mlog
 from . import mesonlib
@@ -1073,6 +1074,52 @@ class ThreadDependency(Dependency):
     def need_threads(self):
         return True
 
+class Python3Dependency(Dependency):
+    def __init__(self, environment, kwargs):
+        super().__init__()
+        self.name = 'python3'
+        self.is_found = False
+        try:
+            pkgdep = PkgConfigDependency('python3', environment, kwargs)
+            if pkgdep.found():
+                self.cargs = pkgdep.cargs
+                self.libs = pkgdep.libs
+                self.is_found = True
+                return
+        except Exception:
+            pass
+        if not self.is_found:
+            if mesonlib.is_windows():
+                inc = sysconfig.get_path('include')
+                platinc = sysconfig.get_path('platinclude')
+                self.cargs = ['-I' + inc]
+                if inc != platinc:
+                    self.cargs.append('-I' + platinc)
+                # Nothing exposes this directly that I coulf find
+                basedir = sysconfig.get_config_var('base')
+                vernum = sysconfig.get_config_var('py_version_nodot')
+                self.libs = ['-L{}/libs'.format(basedir),
+                             '-lpython{}'.format(vernum)]
+                self.is_found = True
+            elif mesonlib.is_osx():
+                # In OSX the Python 3 framework does not have a version
+                # number in its name.
+                fw = ExtraFrameworkDependency('python', False)
+                if fw.found():
+                    self.cargs = fw.get_compile_args()
+                    self.libs = fw.get_link_args()
+                    self.is_found = True
+        if self.is_found:
+            mlog.log('Dependency', mlog.bold(self.name), 'found:', mlog.green('YES'))
+        else:
+            mlog.log('Dependency', mlog.bold(self.name), 'found:', mlog.red('NO'))
+
+    def get_compile_args(self):
+        return self.cargs
+
+    def get_link_args(self):
+        return self.libs
+
 def get_dep_identifier(name, kwargs):
     elements = [name]
     modlist = kwargs.get('modules', [])
@@ -1123,4 +1170,5 @@ packages = {'boost': BoostDependency,
             'sdl2' : SDL2Dependency,
             'gl' : GLDependency,
             'threads' : ThreadDependency,
+            'python3' : Python3Dependency,
            }
