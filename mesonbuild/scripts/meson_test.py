@@ -35,6 +35,8 @@ parser.add_argument('--wd', default=None, dest='wd',
                     help='directory to cd into before running')
 parser.add_argument('--suite', default=None, dest='suite',
                     help='Only run tests belonging to this suite.')
+parser.add_argument('--no-stdsplit', default=True, dest='split', action='store_false',
+                    help='Do not split stderr and stdout in test logs.')
 parser.add_argument('args', nargs='+')
 
 
@@ -62,19 +64,21 @@ def write_log(logfile, test_name, result_str, result):
         logfile.write(' '.join(result.cmd))
     logfile.write('\n--- "%s" stdout ---\n' % test_name)
     logfile.write(result.stdo)
-    logfile.write('\n--- "%s" stderr ---\n' % test_name)
-    logfile.write(result.stde)
+    if result.stde:
+        logfile.write('\n--- "%s" stderr ---\n' % test_name)
+        logfile.write(result.stde)
     logfile.write('\n-------\n\n')
 
 def write_json_log(jsonlogfile, test_name, result):
-    result = {'name' : test_name,
+    jresult = {'name' : test_name,
               'stdout' : result.stdo,
-              'stderr' : result.stde,
               'result' : result.res,
               'duration' : result.duration,
               'returncode' : result.returncode,
               'command' : result.cmd}
-    jsonlogfile.write(json.dumps(result) + '\n')
+    if result.stde:
+        jresult['stderr'] = result.stde
+    jsonlogfile.write(json.dumps(jresult) + '\n')
 
 def run_with_mono(fname):
     if fname.endswith('.exe') and not is_windows():
@@ -82,7 +86,7 @@ def run_with_mono(fname):
     return False
 
 def run_single_test(wrap, test):
-    global tests_failed
+    global tests_failed, options
     if test.fname[0].endswith('.jar'):
         cmd = ['java', '-jar'] + test.fname
     elif not test.is_cross and run_with_mono(test.fname[0]):
@@ -103,7 +107,7 @@ def run_single_test(wrap, test):
         res = 'SKIP'
         duration = 0.0
         stdo = 'Not run because can not execute cross compiled binaries.'
-        stde = ''
+        stde = None
         returncode = -1
     else:
         cmd = wrap + cmd + test.cmd_args
@@ -118,7 +122,7 @@ def run_single_test(wrap, test):
             setsid = os.setsid
         p = subprocess.Popen(cmd,
                              stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE,
+                             stderr=subprocess.PIPE if options and options.split else subprocess.STDOUT,
                              env=child_env,
                              cwd=test.workdir,
                              preexec_fn=setsid)
@@ -138,7 +142,8 @@ def run_single_test(wrap, test):
         endtime = time.time()
         duration = endtime - starttime
         stdo = decode(stdo)
-        stde = decode(stde)
+        if stde:
+            stde = decode(stde)
         if timed_out:
             res = 'TIMEOUT'
             tests_failed.append((test.name, stdo, stde))
@@ -240,8 +245,9 @@ def run(args):
         for (name, stdo, stde) in tests_failed[:10]:
             print("{} stdout:\n".format(name))
             print(stdo)
-            print('\n{} stderr:\n'.format(name))
-            print(stde)
+            if stde:
+                print('\n{} stderr:\n'.format(name))
+                print(stde)
             print('\n')
         returncode = 1
     print('\nFull log written to %s.' % logfilename)
