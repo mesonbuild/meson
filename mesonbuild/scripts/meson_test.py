@@ -26,6 +26,7 @@ def is_windows():
     return platname == 'windows' or 'mingw' in platname
 
 tests_failed = []
+options = None
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--wrapper', default=None, dest='wrapper',
@@ -171,7 +172,8 @@ def filter_tests(suite, tests):
         return tests
     return [x for x in tests if suite in x.suite]
 
-def run_tests(options, datafilename):
+def run_tests(datafilename):
+    global options
     logfile_base = 'meson-logs/testlog'
     if options.wrapper is None:
         wrap = []
@@ -222,7 +224,7 @@ def run_tests(options, datafilename):
     return logfilename
 
 def run(args):
-    global tests_failed
+    global tests_failed, options
     tests_failed = [] # To avoid state leaks when invoked multiple times (running tests in-process)
     options = parser.parse_args(args)
     if len(options.args) != 1:
@@ -231,7 +233,7 @@ def run(args):
     if options.wd is not None:
         os.chdir(options.wd)
     datafile = options.args[0]
-    logfilename = run_tests(options, datafile)
+    logfilename = run_tests(datafile)
     returncode = 0
     if len(tests_failed) > 0:
         print('\nOutput of failed tests (max 10):')
