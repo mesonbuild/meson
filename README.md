@@ -12,9 +12,9 @@ build system.
 ####Installing from source
 
 You can run Meson directly from a revision control checkout or an
-extracted tarball. You can also install it locally with standard
-Python distutils command `python3 setup.py install <your options
-here>`.
+extracted tarball. If you wish you can install it locally with the
+standard Python distutils command `python3 setup.py install <your
+options here>`.
 
 Meson is also available from
 [PyPi](https://pypi.python.org/pypi/meson), so it can be installed
@@ -34,6 +34,8 @@ the current directory and autodetect what you mean. This allows you to
 do things like this:
 
 `cd source_root; mkdir build; cd build; meson ..`
+
+or
 
 `cd source_root; mkdir build; meson build`
 
