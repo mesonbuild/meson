@@ -1,6 +1,10 @@
 #include<entity.h>
 #include<stdio.h>
 
+#ifndef USING_ENT
+#error "Entity use flag not used for compilation."
+#endif
+
 int main(int argc, char **argv) {
     if(entity_func1() != 5) {
         printf("Error in func1.\n");

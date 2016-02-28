@@ -486,10 +486,18 @@ class BuildTarget():
             if hasattr(dep, 'held_object'):
                 dep = dep.held_object
             if isinstance(dep, dependencies.InternalDependency):
+                # Those parts that are internal.
                 self.process_sourcelist(dep.sources)
                 self.add_include_dirs(dep.include_directories)
                 for l in dep.libraries:
                     self.link(l)
+                # Those parts that are external.
+                extpart = dependencies.InternalDependency([],
+                                                          dep.compile_args,
+                                                          dep.link_args,
+                                                          [], [], [])
+                self.external_deps.append(extpart)
+                # Deps of deps.
                 self.add_external_deps(dep.ext_deps)
             elif isinstance(dep, dependencies.Dependency):
                 self.external_deps.append(dep)

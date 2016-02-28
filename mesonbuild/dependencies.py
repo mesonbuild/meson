@@ -58,13 +58,21 @@ class Dependency():
     def need_threads(self):
         return False
 
-class InternalDependency():
-    def __init__(self, incdirs, libraries, sources, ext_deps):
+class InternalDependency(Dependency):
+    def __init__(self, incdirs, compile_args, link_args, libraries, sources, ext_deps):
         super().__init__()
         self.include_directories = incdirs
+        self.compile_args = compile_args
+        self.link_args = link_args
         self.libraries = libraries
         self.sources = sources
         self.ext_deps = ext_deps
+
+    def get_compile_args(self):
+        return self.compile_args
+
+    def get_link_args(self):
+        return self.link_args
 
 class PkgConfigDependency(Dependency):
     pkgconfig_found = None

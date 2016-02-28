@@ -1122,6 +1122,8 @@ class Interpreter():
         deps = kwargs.get('dependencies', [])
         if not isinstance(deps, list):
             deps = [deps]
+        compile_args = mesonlib.stringlistify(kwargs.get('compile_args', []))
+        link_args = mesonlib.stringlistify(kwargs.get('link_args', []))
         final_deps = []
         for d in deps:
             try:
@@ -1131,7 +1133,7 @@ class Interpreter():
             if not isinstance(d, (dependencies.Dependency, dependencies.ExternalLibrary, dependencies.InternalDependency)):
                 raise InterpreterException('Dependencies must be external deps')
             final_deps.append(d)
-        dep = dependencies.InternalDependency(incs, libs, sources, final_deps)
+        dep = dependencies.InternalDependency(incs, compile_args, link_args, libs, sources, final_deps)
         return InternalDependencyHolder(dep)
 
     @noKwargs
