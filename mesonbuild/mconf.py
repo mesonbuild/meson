@@ -187,6 +187,13 @@ class Conf:
                   choices = str(opt.choices);
                 optarr.append([key, opt.description, opt.value, choices])
             self.print_aligned(optarr)
+        print('')
+        print('Testing options:')
+        tarr = []
+        for key in [ 'stdsplit', 'errorlogs' ]:
+            tarr.append([key, coredata.get_builtin_option_description(key),
+                self.coredata.get_builtin_option(key), coredata.get_builtin_option_choices(key)])
+        self.print_aligned(tarr)
 
 def run(args):
     args = mesonlib.expand_arguments(args)
