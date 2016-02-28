@@ -6,14 +6,20 @@ build system.
 
 ####Dependencies
 
- - Python   http://python.org (version 3.4 or newer)
- - Ninja    http://martine.github.com/ninja/
-
+ - [Python](http://python.org) (version 3.4 or newer)
+ - [Ninja](http://martine.github.com/ninja/)
 
 ####Installing from source
+
 You can run Meson directly from a revision control checkout or an
-extracted tarball. Meson is also available from PyPi, so it can
-be installed with 'pip install meson'.
+extracted tarball. You can also install it locally with standard
+Python distutils command `python3 setup.py install <your options
+here>`.
+
+Meson is also available from
+[PyPi](https://pypi.python.org/pypi/meson), so it can be installed
+with `pip install meson` (this does not require a source checkout, pip
+will download the package automatically).
 
 ####Running
 
@@ -49,13 +55,12 @@ details.
 
 IRC
 
-The irc channel for Meson is #mesonbuild over at freenode.
+The irc channel for Meson is `#mesonbuild` over at Freenode.
 
 
 ####Further info
 
-The home page of Meson can be found here:
-
-http://mesonbuild.com
+More information about the Meson build system can be found at the
+[project's home page](http://mesonbuild.com).
 
 Meson is a registered trademark of Jussi Pakkanen
