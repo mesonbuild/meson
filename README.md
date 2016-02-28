@@ -34,6 +34,7 @@ the current directory and autodetect what you mean. This allows you to
 do things like this:
 
 `cd source_root; mkdir build; cd build; meson ..`
+
 `cd source_root; mkdir build; meson build`
 
 To compile, cd into your build directory and type `ninja`. To run unit
@@ -53,7 +54,7 @@ We love code contributions. See the contributing.txt file for
 details.
 
 
-IRC
+####IRC
 
 The irc channel for Meson is `#mesonbuild` over at Freenode.
 
