@@ -18,7 +18,6 @@ import sys, os
 import pickle
 import argparse
 from . import coredata, mesonlib
-from .coredata import build_types, warning_levels, libtypelist
 
 parser = argparse.ArgumentParser()
 
@@ -62,7 +61,8 @@ class Conf:
             longest_name = max(longest_name, len(x[0]))
             longest_descr = max(longest_descr, len(x[1]))
             longest_value = max(longest_value, len(str(x[2])))
-            longest_possible_value = max(longest_possible_value, len(x[3]))
+            if x[3]:
+                longest_possible_value = max(longest_possible_value, len(x[3]))
 
         if longest_possible_value > 0:
             titles[3] = 'Possible Values'
@@ -71,10 +71,14 @@ class Conf:
         for i in arr:
             name = i[0]
             descr = i[1]
-            value = i[2]
-            if isinstance(value, bool):
-                value = 'true' if value else 'false'
-            possible_values = i[3]
+            value = i[2] if isinstance(i[2], str) else str(i[2]).lower()
+            possible_values = ''
+            if isinstance(i[3], list):
+                if len(i[3]) > 0:
+                    i[3] = [s if isinstance(s, str) else str(s).lower() for s in i[3]]
+                    possible_values = '[%s]' % ', '.join(map(str, i[3]))
+            elif i[3]:
+                possible_values = i[3] if isinstance(i[3], str) else str(i[3]).lower()
             namepad = ' '*(longest_name - len(name))
             descrpad = ' '*(longest_descr - len(descr))
             valuepad = ' '*(longest_value - len(str(value)))
@@ -86,7 +90,7 @@ class Conf:
             if '=' not in o:
                 raise ConfException('Value "%s" not of type "a=b".' % o)
             (k, v) = o.split('=', 1)
-            if self.coredata.is_builtin_option(k):
+            if coredata.is_builtin_option(k):
                 self.coredata.set_builtin_option(k, v)
             elif k in self.coredata.user_options:
                 tgt = self.coredata.user_options[k]
@@ -123,13 +127,9 @@ class Conf:
         print('')
         print('Core options:')
         carr = []
-        booleans = '[true, false]'
-        carr.append(['buildtype', 'Build type', self.coredata.get_builtin_option('buildtype'), build_types])
-        carr.append(['warning_level', 'Warning level', self.coredata.get_builtin_option('warning_level'), warning_levels])
-        carr.append(['werror', 'Treat warnings as errors', self.coredata.get_builtin_option('werror'), booleans])
-        carr.append(['strip', 'Strip on install', self.coredata.get_builtin_option('strip'), booleans])
-        carr.append(['unity', 'Unity build', self.coredata.get_builtin_option('unity'), booleans])
-        carr.append(['default_library', 'Default library type', self.coredata.get_builtin_option('default_library'), libtypelist])
+        for key in [ 'buildtype', 'warning_level', 'werror', 'strip', 'unity', 'default_library' ]:
+            carr.append([key, coredata.get_builtin_option_description(key),
+                self.coredata.get_builtin_option(key), coredata.get_builtin_option_choices(key)])
         self.print_aligned(carr)
         print('')
         print('Base options:')
@@ -164,14 +164,9 @@ class Conf:
         print('')
         print('Directories:')
         parr = []
-        parr.append(['prefix', 'Install prefix', self.coredata.get_builtin_option('prefix'), ''])
-        parr.append(['libdir', 'Library directory', self.coredata.get_builtin_option('libdir'), ''])
-        parr.append(['libexecdir', 'Library executables directory', self.coredata.get_builtin_option('libexecdir'), ''])
-        parr.append(['bindir', 'Binary directory', self.coredata.get_builtin_option('bindir'), ''])
-        parr.append(['includedir', 'Header directory', self.coredata.get_builtin_option('includedir'), ''])
-        parr.append(['datadir', 'Data directory', self.coredata.get_builtin_option('datadir'), ''])
-        parr.append(['mandir', 'Man page directory', self.coredata.get_builtin_option('mandir'), ''])
-        parr.append(['localedir', 'Locale file directory', self.coredata.get_builtin_option('localedir'), ''])
+        for key in [ 'prefix', 'libdir', 'libexecdir', 'bindir', 'includedir', 'datadir', 'mandir', 'localedir' ]:
+            parr.append([key, coredata.get_builtin_option_description(key),
+                self.coredata.get_builtin_option(key), coredata.get_builtin_option_choices(key)])
         self.print_aligned(parr)
         print('')
         print('Project options:')

@@ -22,7 +22,6 @@ from . import build
 import platform
 from . import mlog, coredata
 from .mesonlib import MesonException
-from .coredata import build_types, layouts, warning_levels, libtypelist
 
 backendlist = ['ninja', 'vs2010', 'xcode']
 
@@ -30,49 +29,40 @@ parser = argparse.ArgumentParser()
 
 default_warning = '1'
 
-if mesonlib.is_windows():
-    def_prefix = 'c:/'
-else:
-    def_prefix = '/usr/local'
+def add_builtin_argument(name, **kwargs):
+    k = kwargs.get('dest', name.replace('-', '_'))
+    c = coredata.get_builtin_option_choices(k)
+    b = True if kwargs.get('action', None) in [ 'store_true', 'store_false' ] else False
+    h = coredata.get_builtin_option_description(k)
+    if not b:
+        h = h.rstrip('.') + ' (default: %s).' % coredata.get_builtin_option_default(k)
+    if c and not b:
+        kwargs['choices'] = c
+    parser.add_argument('--' + name, default=coredata.get_builtin_option_default(k), help=h, **kwargs)
 
-parser.add_argument('--prefix', default=def_prefix, dest='prefix',
-                    help='the installation prefix (default: %(default)s)')
-parser.add_argument('--libdir', default=mesonlib.default_libdir(), dest='libdir',
-                    help='the installation subdir of libraries (default: %(default)s)')
-parser.add_argument('--libexecdir', default=mesonlib.default_libexecdir(), dest='libexecdir',
-                    help='the installation subdir of library executables (default: %(default)s)')
-parser.add_argument('--bindir', default='bin', dest='bindir',
-                    help='the installation subdir of executables (default: %(default)s)')
-parser.add_argument('--includedir', default='include', dest='includedir',
-                    help='relative path of installed headers (default: %(default)s)')
-parser.add_argument('--datadir', default='share', dest='datadir',
-                    help='relative path to the top of data file subdirectory (default: %(default)s)')
-parser.add_argument('--mandir', default='share/man', dest='mandir',
-                    help='relative path of man files (default: %(default)s)')
-parser.add_argument('--localedir', default='share/locale', dest='localedir',
-                    help='relative path of locale data (default: %(default)s)')
-parser.add_argument('--backend', default='ninja', dest='backend', choices=backendlist,
-                    help='backend to use (default: %(default)s)')
-parser.add_argument('--buildtype', default='debug', choices=build_types, dest='buildtype',
-                    help='build type go use (default: %(default)s)')
-parser.add_argument('--strip', action='store_true', dest='strip', default=False,\
-                    help='strip targets on install (default: %(default)s)')
-parser.add_argument('--unity', action='store_true', dest='unity', default=False,\
-                    help='unity build')
-parser.add_argument('--werror', action='store_true', dest='werror', default=False,\
-                    help='Treat warnings as errors')
-parser.add_argument('--layout', choices=layouts, dest='layout', default='mirror',\
-                    help='Build directory layout.')
-parser.add_argument('--default-library', choices=libtypelist, dest='default_library',
-                    default='shared', help='Default library type.')
-parser.add_argument('--warnlevel', default=default_warning, dest='warning_level', choices=warning_levels,\
-                    help='Level of compiler warnings to use (larger is more, default is %(default)s)')
-parser.add_argument('--cross-file', default=None, dest='cross_file',
-                    help='file describing cross compilation environment')
+add_builtin_argument('prefix')
+add_builtin_argument('libdir')
+add_builtin_argument('libexecdir')
+add_builtin_argument('bindir')
+add_builtin_argument('includedir')
+add_builtin_argument('datadir')
+add_builtin_argument('mandir')
+add_builtin_argument('localedir')
+add_builtin_argument('backend')
+add_builtin_argument('buildtype')
+add_builtin_argument('strip', action='store_true')
+add_builtin_argument('unity', action='store_true')
+add_builtin_argument('werror', action='store_true')
+add_builtin_argument('layout')
+add_builtin_argument('default-library')
+add_builtin_argument('warnlevel', dest='warning_level')
+
+parser.add_argument('--cross-file', default=None,
+                    help='File describing cross compilation environment.')
 parser.add_argument('-D', action='append', dest='projectoptions', default=[],
                     help='Set project options.')
 parser.add_argument('-v', '--version', action='store_true', dest='print_version', default=False,
-                    help='Print version.')
+                    help='Print version information.')
 parser.add_argument('directories', nargs='*')
 
 class MesonApp():

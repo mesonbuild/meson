@@ -179,6 +179,9 @@ def default_libexecdir():
     # There is no way to auto-detect this, so it must be set at build time
     return 'libexec'
 
+def default_prefix():
+    return 'c:/' if is_windows() else '/usr/local'
+
 def get_library_dirs():
     if is_windows():
         return ['C:/mingw/lib'] # Fixme

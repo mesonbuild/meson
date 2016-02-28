@@ -13,32 +13,9 @@
 # limitations under the License.
 
 import pickle, os, uuid
-from .mesonlib import MesonException
+from .mesonlib import MesonException, default_libdir, default_libexecdir, default_prefix
 
 version = '0.31.0.dev1'
-
-build_types = ['plain', 'debug', 'debugoptimized', 'release']
-layouts = ['mirror', 'flat']
-warning_levels = ['1', '2', '3']
-libtypelist = ['shared', 'static']
-
-builtin_options = {'buildtype': True,
-                   'strip': True,
-                   'coverage': True,
-                   'unity': True,
-                   'prefix': True,
-                   'libdir' : True,
-                   'libexecdir' : True,
-                   'bindir' : True,
-                   'includedir' : True,
-                   'datadir' : True,
-                   'mandir' : True,
-                   'localedir' : True,
-                   'werror' : True,
-                   'warning_level': True,
-                   'layout' : True,
-                   'default_library': True,
-                  }
 
 class UserOption:
     def __init__(self, name, description, choices):
@@ -70,7 +47,7 @@ class UserStringOption(UserOption):
 
 class UserBooleanOption(UserOption):
     def __init__(self, name, description, value):
-        super().__init__(name, description, '[true, false]')
+        super().__init__(name, description, [ True, False ])
         self.set_value(value)
 
     def tobool(self, thing):
@@ -137,7 +114,6 @@ class CoreData():
         self.regen_guid = str(uuid.uuid4()).upper()
         self.target_guids = {}
         self.version = version
-        self.builtin_options = {}
         self.init_builtins(options)
         self.user_options = {}
         self.compiler_options = {}
@@ -155,36 +131,21 @@ class CoreData():
         self.modules = {}
 
     def init_builtins(self, options):
-        self.builtin_options['prefix'] = UserStringOption('prefix', 'Installation prefix', options.prefix)
-        self.builtin_options['libdir'] = UserStringOption('libdir', 'Library dir', options.libdir)
-        self.builtin_options['libexecdir'] = UserStringOption('libexecdir', 'Library executables dir', options.libexecdir)
-        self.builtin_options['bindir'] = UserStringOption('bindir', 'Executable dir', options.bindir)
-        self.builtin_options['includedir'] = UserStringOption('includedir', 'Include dir', options.includedir)
-        self.builtin_options['datadir'] = UserStringOption('datadir', 'Data directory', options.datadir)
-        self.builtin_options['mandir'] = UserStringOption('mandir', 'Man page dir', options.mandir)
-        self.builtin_options['localedir'] = UserStringOption('localedir', 'Locale dir', options.localedir)
-        self.builtin_options['backend'] = UserStringOption('backend', 'Backend to use', options.backend)
-        self.builtin_options['buildtype'] = UserComboOption('buildtype', 'Build type', build_types, options.buildtype)
-        self.builtin_options['strip'] = UserBooleanOption('strip', 'Strip on install', options.strip)
-        self.builtin_options['unity'] = UserBooleanOption('unity', 'Unity build', options.unity)
-        self.builtin_options['warning_level'] = UserComboOption('warning_level', 'Warning level', warning_levels, options.warning_level)
-        self.builtin_options['werror'] = UserBooleanOption('werror', 'Warnings are errors', options.werror)
-        self.builtin_options['layout'] = UserComboOption('layout', 'Build dir layout', layouts, options.layout)
-        self.builtin_options['default_library'] = UserComboOption('default_library', 'Default_library type', libtypelist, options.default_library)
+        self.builtins = {}
+        for key in get_builtin_options():
+            args = [key] + builtin_options[key][1:-1] + [ getattr(options, key, get_builtin_option_default(key)) ]
+            self.builtins[key] = builtin_options[key][0](*args)
 
     def get_builtin_option(self, optname):
-        if optname in self.builtin_options:
-            return self.builtin_options[optname].value
-        raise RuntimeError('Tried to get unknown builtin option %s' % optname)
+        if optname in self.builtins:
+            return self.builtins[optname].value
+        raise RuntimeError('Tried to get unknown builtin option %s.' % optname)
 
     def set_builtin_option(self, optname, value):
-        if optname in self.builtin_options:
-            self.builtin_options[optname].set_value(value)
+        if optname in self.builtins:
+            self.builtins[optname].set_value(value)
         else:
-            raise RuntimeError('Tried to set unknown builtin option %s' % optname)
-
-    def is_builtin_option(self, optname):
-        return optname in self.builtin_options
+            raise RuntimeError('Tried to set unknown builtin option %s.' % optname)
 
 def load(filename):
     obj = pickle.load(open(filename, 'rb'))
@@ -199,6 +160,57 @@ def save(obj, filename):
     if obj.version != version:
         raise RuntimeError('Fatal version mismatch corruption.')
     pickle.dump(obj, open(filename, 'wb'))
+
+def get_builtin_options():
+    return list(builtin_options.keys())
+
+def is_builtin_option(optname):
+    return optname in get_builtin_options()
+
+def get_builtin_option_choices(optname):
+    if is_builtin_option(optname):
+        if builtin_options[optname][0] == UserStringOption:
+            return None
+        elif builtin_options[optname][0] == UserBooleanOption:
+            return [ True, False ]
+        else:
+            return builtin_options[optname][2]
+    else:
+        raise RuntimeError('Tried to get the supported values for an unknown builtin option \'%s\'.' % optname)
+
+def get_builtin_option_description(optname):
+    if is_builtin_option(optname):
+        return builtin_options[optname][1]
+    else:
+        raise RuntimeError('Tried to get the description for an unknown builtin option \'%s\'.' % optname)
+
+def get_builtin_option_default(optname):
+    if is_builtin_option(optname):
+        o = builtin_options[optname]
+        if o[0] == UserComboOption:
+            return o[3]
+        return o[2]
+    else:
+        raise RuntimeError('Tried to get the default value for an unknown builtin option \'%s\'.' % optname)
+
+builtin_options = {
+        'buildtype'         : [ UserComboOption, 'Build type to use.', [ 'plain', 'debug', 'debugoptimized', 'release' ], 'debug' ],
+        'strip'             : [ UserBooleanOption, 'Strip targets on install.', False ],
+        'unity'             : [ UserBooleanOption, 'Unity build.', False ],
+        'prefix'            : [ UserStringOption, 'Installation prefix.', default_prefix() ],
+        'libdir'            : [ UserStringOption, 'Library directory.', default_libdir() ],
+        'libexecdir'        : [ UserStringOption, 'Library executable directory.', default_libexecdir() ],
+        'bindir'            : [ UserStringOption, 'Executable directory.', 'bin' ],
+        'includedir'        : [ UserStringOption, 'Header file directory.', 'include' ],
+        'datadir'           : [ UserStringOption, 'Data file directory.', 'share' ],
+        'mandir'            : [ UserStringOption, 'Manual page directory.', 'share/man' ],
+        'localedir'         : [ UserStringOption, 'Locale data directory.', 'share/locale' ],
+        'werror'            : [ UserBooleanOption, 'Treat warnings as errors.', False ],
+        'warning_level'     : [ UserComboOption, 'Compiler warning level to use.', [ '1', '2', '3' ], '1'],
+        'layout'            : [ UserComboOption, 'Build directory layout.', ['mirror', 'flat' ], 'mirror' ],
+        'default_library'   : [ UserComboOption, 'Default library type.', [ 'shared', 'static' ], 'shared' ],
+        'backend'           : [ UserComboOption, 'Backend to use.', [ 'ninja', 'vs2010', 'xcode' ], 'ninja' ],
+        }
 
 forbidden_target_names = {'clean': None,
                           'clean-gcno': None,

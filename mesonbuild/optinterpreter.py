@@ -17,7 +17,7 @@ from . import coredata
 from . import mesonlib
 import os, re
 
-forbidden_option_names = coredata.builtin_options
+forbidden_option_names = coredata.get_builtin_options()
 forbidden_prefixes = {'c_': True,
                       'cpp_': True,
                       'rust_': True,
