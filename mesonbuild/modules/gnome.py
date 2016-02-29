@@ -20,6 +20,7 @@ import os, sys
 import subprocess
 from ..coredata import MesonException
 from .. import mlog
+from .. import mesonlib
 
 girwarning_printed = False
 
@@ -32,7 +33,14 @@ class GnomeModule:
         if not isinstance(source_dirs, list):
             source_dirs = [source_dirs]
 
-        kwargs['depend_files'] = self.get_gresource_dependencies(state, args[1], source_dirs)
+        ifile = args[1]
+        if isinstance(ifile, mesonlib.File):
+            ifile = os.path.join(ifile.subdir, ifile.fname)
+        elif isinstance(ifile, str):
+            ifile = os.path.join(state.subdir, ifile)
+        else:
+            raise RuntimeError('Unreachable code.')
+        kwargs['depend_files'] = self.get_gresource_dependencies(state, ifile, source_dirs)
 
         for source_dir in source_dirs:
             sourcedir = os.path.join(state.build_to_src, state.subdir, source_dir)
@@ -52,7 +60,7 @@ class GnomeModule:
 
     def get_gresource_dependencies(self, state, input_file, source_dirs):
         cmd = ['glib-compile-resources',
-               os.path.join(state.subdir, input_file),
+               input_file,
                '--generate-dependencies']
 
         for source_dir in source_dirs:
