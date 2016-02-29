@@ -389,8 +389,12 @@ class Backend():
         if absolute_paths:
             outdir = os.path.join(self.environment.get_build_dir(), outdir)
         for i in target.sources:
+            if hasattr(i, 'held_object'):
+                i = i.held_object
             if isinstance(i, str):
                 fname = os.path.join(self.build_to_src, target.subdir, i)
+            elif isinstance(i, build.BuildTarget):
+                fname = self.get_target_filename(i)
             else:
                 fname = i.rel_to_builddir(self.build_to_src)
             if absolute_paths:

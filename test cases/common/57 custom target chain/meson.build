@@ -17,3 +17,5 @@ mytarget2 = custom_target('bindat2',
   install : true,
   install_dir : 'subdir'
 )
+
+subdir('usetarget')
