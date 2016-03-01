@@ -819,7 +819,8 @@ class MesonMain(InterpreterObject):
         search_dir = os.path.join(self.interpreter.environment.source_dir,
                                   self.interpreter.subdir)
         exe = dependencies.ExternalProgram(scriptbase, search_dir=search_dir)
-        self.build.postconf_scripts.append(exe)
+        extras = mesonlib.stringlistify(kwargs.get('args', []))
+        self.build.postconf_scripts.append({'exe': exe, 'args': extras})
 
     def current_source_dir_method(self, args, kwargs):
         src = self.interpreter.environment.source_dir

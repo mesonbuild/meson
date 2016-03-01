@@ -439,5 +439,5 @@ class Backend():
 
     def run_postconf_scripts(self):
         for s in self.build.postconf_scripts:
-            cmd = s.get_command() + [self.environment.get_source_dir(), self.environment.get_build_dir()]
+            cmd = s['exe'].get_command() + [self.environment.get_source_dir(), self.environment.get_build_dir()] + s['args']
             subprocess.check_call(cmd)
