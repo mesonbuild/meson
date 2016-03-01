@@ -98,6 +98,7 @@ class Build:
         self.pot = []
         self.subprojects = {}
         self.install_scripts = []
+        self.postconf_scripts = []
         self.install_dirs = []
         self.dep_manifest_name = None
         self.dep_manifest = {}

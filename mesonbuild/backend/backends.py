@@ -17,6 +17,7 @@ from .. import build
 from .. import dependencies
 from .. import mesonlib
 import json
+import subprocess
 from ..coredata import MesonException
 
 class InstallData():
@@ -435,3 +436,8 @@ class Backend():
                 cmd.append(i)
         cmd = [i.replace('\\', '/') for i in cmd]
         return (srcs, ofilenames, cmd)
+
+    def run_postconf_scripts(self):
+        for s in self.build.postconf_scripts:
+            cmd = s.get_command() + [self.environment.get_source_dir(), self.environment.get_build_dir()]
+            subprocess.check_call(cmd)
