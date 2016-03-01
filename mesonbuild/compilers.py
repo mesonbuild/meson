@@ -1308,9 +1308,13 @@ class GnuCCompiler(CCompiler):
         return super().can_compile(filename) or filename.split('.')[-1].lower() == 's' # Gcc can do asm, too.
 
     def get_options(self):
+        no_undef_desc = 'Whether to allow undefined symbols in shared libraries and executables at link time'
         opts = {'c_std' : coredata.UserComboOption('c_std', 'C language standard to use',
                                                    ['none', 'c89', 'c99', 'c11', 'gnu89', 'gnu99', 'gnu11'],
-                                                   'none')}
+                                                   'none'),
+                'c_no_undefined' : coredata.UserComboOption('c_no_undefined', no_undef_desc,
+                                                         ['auto', 'force', 'off'],
+                                                         'auto'),}
         if self.gcc_type == GCC_MINGW:
             opts.update({
                 'c_winlibs': coredata.UserStringArrayOption('c_winlibs', 'Standard Win libraries to link against',
@@ -1326,9 +1330,12 @@ class GnuCCompiler(CCompiler):
         return args
 
     def get_option_link_args(self, options):
+        args = []
+        if options['c_no_undefined'].value in ('auto', 'force'):
+            args.append('-Wl,--no-undefined')
         if self.gcc_type == GCC_MINGW:
-            return options['c_winlibs'].value
-        return []
+            args.append(options['c_winlibs'].value)
+        return args
 
 class GnuObjCCompiler(ObjCCompiler):
     std_opt_args = ['-O2']
@@ -1459,9 +1466,13 @@ class GnuCPPCompiler(CPPCompiler):
         return get_gcc_soname_args(self.gcc_type, shlib_name, path, soversion)
 
     def get_options(self):
+        no_undef_desc = 'Whether to allow undefined symbols in shared libraries and executables at link time'
         opts = {'cpp_std' : coredata.UserComboOption('cpp_std', 'C++ language standard to use',
                                                      ['none', 'c++03', 'c++11', 'c++14'],
-                                                     'none')}
+                                                     'none'),
+                'cpp_no_undefined' : coredata.UserComboOption('cpp_no_undefined', no_undef_desc,
+                                                         ['auto', 'force', 'off'],
+                                                         'auto'),}
         if self.gcc_type == GCC_MINGW:
             opts.update({
                 'cpp_winlibs': coredata.UserStringArrayOption('c_winlibs', 'Standard Win libraries to link against',
@@ -1477,9 +1488,12 @@ class GnuCPPCompiler(CPPCompiler):
         return args
 
     def get_option_link_args(self, options):
+        args = []
+        if options['cpp_no_undefined'].value in ('auto', 'force'):
+            args.append('-Wl,--no-undefined')
         if self.gcc_type == GCC_MINGW:
-            return options['cpp_winlibs'].value
-        return []
+            args.append(options['cpp_winlibs'].value)
+        return args
 
 class ClangCPPCompiler(CPPCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
