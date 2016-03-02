@@ -190,6 +190,9 @@ class Compiler():
     def unix_compile_flags_to_native(self, args):
         return args
 
+    def find_library(self, libname):
+        raise EnvironmentException('Language {} does not support library finding.'.format(self.language))
+
 class CCompiler(Compiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
         super().__init__(exelist, version)
@@ -562,6 +565,16 @@ void bar() {
 };
 '''
         return self.compiles(templ % (prefix, typename), extra_args)
+
+    def find_library(self, libname):
+        code = '''int main(int argc, char **argv) {
+    return 0;
+}
+        '''
+        linkarg = '-l' + libname
+        if self.links(code, extra_args=[linkarg]):
+            return linkarg
+        return None
 
     def thread_flags(self):
         return ['-pthread']

@@ -27,6 +27,8 @@ from functools import wraps
 
 import importlib
 
+find_lib_deprecation_printed = False
+
 class InterpreterException(coredata.MesonException):
     pass
 
@@ -581,6 +583,7 @@ class CompilerHolder(InterpreterObject):
                              'alignment' : self.alignment_method,
                              'version' : self.version_method,
                              'cmd_array' : self.cmd_array_method,
+                             'find_library': self.find_library_method,
                             })
 
     def version_method(self, args, kwargs):
@@ -749,6 +752,19 @@ class CompilerHolder(InterpreterObject):
             h = mlog.red('NO')
         mlog.log('Has header "%s":' % string, h)
         return haz
+
+    def find_library_method(self, args, kwargs):
+        if len(args) != 1:
+            raise InterpreterException('find_library method takes one argument.')
+        libname = args[0]
+        if not isinstance(libname, str):
+            raise InterpreterException('Library name not a string.')
+        required = kwargs.get('required', True)
+        if not isinstance(required, bool):
+            raise InterpreterException('required must be boolean.')
+        linkarg = self.compiler.find_library(libname)
+        lib = dependencies.ExternalLibrary(libname, linkarg)
+        return ExternalLibraryHolder(lib)
 
 class ModuleState:
     pass
@@ -1526,6 +1542,10 @@ class Interpreter():
         return progobj
 
     def func_find_library(self, node, args, kwargs):
+        global find_lib_deprecation_printed
+        if not find_lib_deprecation_printed:
+            find_lib_deprecation_printed = True
+            mlog.log(mlog.red('DEPRECATION:'), 'find_library() is deprecated, use the corresponding method in compiler object instead.')
         self.validate_arguments(args, 1, [str])
         required = kwargs.get('required', True)
         if not isinstance(required, bool):

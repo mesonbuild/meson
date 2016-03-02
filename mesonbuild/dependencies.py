@@ -388,7 +388,14 @@ class ExternalLibrary(Dependency):
     def __init__(self, name, fullpath=None, silent=False):
         super().__init__()
         self.name = name
-        self.fullpath = fullpath
+        # Rename fullpath to link_args once standalone find_library() gets removed.
+        if fullpath is not None:
+            if isinstance(fullpath, list):
+                self.fullpath = fullpath
+            else:
+                self.fullpath = [fullpath]
+        else:
+            self.fullpath = fullpath
         if not silent:
             if self.found():
                 mlog.log('Library', mlog.bold(name), 'found:', mlog.green('YES'),
@@ -401,7 +408,7 @@ class ExternalLibrary(Dependency):
 
     def get_link_args(self):
         if self.found():
-            return [self.fullpath]
+            return self.fullpath
         return []
 
 class BoostDependency(Dependency):
