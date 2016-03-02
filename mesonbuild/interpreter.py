@@ -812,14 +812,14 @@ class MesonMain(InterpreterObject):
         self.build.install_scripts.append(build.InstallScript([scriptfile]))
 
     def add_postconf_script_method(self, args, kwargs):
-        if len(args) != 1:
-            raise InterpreterException('Set_postconf_script takes exactly one argument.')
-        check_stringlist(args)
+        if len(args) < 1:
+            raise InterpreterException('Not enough arguments')
+        check_stringlist(args, 'add_postconf_script arguments must be strings.')
         scriptbase = args[0]
         search_dir = os.path.join(self.interpreter.environment.source_dir,
                                   self.interpreter.subdir)
         exe = dependencies.ExternalProgram(scriptbase, search_dir=search_dir)
-        extras = mesonlib.stringlistify(kwargs.get('args', []))
+        extras = args[1:]
         self.build.postconf_scripts.append({'exe': exe, 'args': extras})
 
     def current_source_dir_method(self, args, kwargs):
