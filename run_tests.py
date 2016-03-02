@@ -46,6 +46,10 @@ print_debug = 'MESON_PRINT_TEST_OUTPUT' in os.environ
 test_build_dir = 'work area'
 install_dir = os.path.join(os.path.split(os.path.abspath(__file__))[0], 'install dir')
 meson_command = os.path.join(os.getcwd(), 'meson')
+if not os.path.exists(meson_command):
+    meson_command += '.py'
+    if not os.path.exists(meson_command):
+        raise RuntimeError('Could not find main Meson script to run.')
 
 class StopException(Exception):
     def __init__(self):
