@@ -795,6 +795,7 @@ class MesonMain(InterpreterObject):
                              'source_root' : self.source_root_method,
                              'build_root' : self.build_root_method,
                              'add_install_script' : self.add_install_script_method,
+                             'add_postconf_script' : self.add_postconf_script_method,
                              'install_dependency_manifest': self.install_dependency_manifest_method,
                              'project_version': self.project_version_method,
                             })
@@ -809,6 +810,17 @@ class MesonMain(InterpreterObject):
         if not os.path.isfile(scriptfile):
             raise InterpreterException('Can not find install script %s.' % scriptbase)
         self.build.install_scripts.append(build.InstallScript([scriptfile]))
+
+    def add_postconf_script_method(self, args, kwargs):
+        if len(args) < 1:
+            raise InterpreterException('Not enough arguments')
+        check_stringlist(args, 'add_postconf_script arguments must be strings.')
+        scriptbase = args[0]
+        search_dir = os.path.join(self.interpreter.environment.source_dir,
+                                  self.interpreter.subdir)
+        exe = dependencies.ExternalProgram(scriptbase, search_dir=search_dir)
+        extras = args[1:]
+        self.build.postconf_scripts.append({'exe': exe, 'args': extras})
 
     def current_source_dir_method(self, args, kwargs):
         src = self.interpreter.environment.source_dir

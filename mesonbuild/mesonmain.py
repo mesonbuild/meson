@@ -168,6 +168,7 @@ itself as required.'''
         intr.run()
         env.dump_coredata()
         g.generate(intr)
+        g.run_postconf_scripts()
         dumpfile = os.path.join(env.get_scratch_dir(), 'build.dat')
         pickle.dump(b, open(dumpfile, 'wb'))
 
