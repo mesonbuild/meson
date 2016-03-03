@@ -128,7 +128,8 @@ def sanitizer_compile_args(value):
 def sanitizer_link_args(value):
     if value == 'none':
         return []
-    return ['-fsanitize=' + value]
+    args = ['-fsanitize=' + value]
+    return args
 
 def build_unix_rpath_args(build_dir, rpath_paths, install_rpath):
         if len(rpath_paths) == 0 and len(install_rpath) == 0:
@@ -1329,7 +1330,10 @@ class GnuCCompiler(CCompiler):
     def get_options(self):
         opts = {'c_std' : coredata.UserComboOption('c_std', 'C language standard to use',
                                                    ['none', 'c89', 'c99', 'c11', 'gnu89', 'gnu99', 'gnu11'],
-                                                   'none')}
+                                                   'none'),
+                'c_no_undefined' : coredata.UserBooleanOption('c_no_undefined', 'Use no-undefined for link.',
+                                                              True)
+                }
         if self.gcc_type == GCC_MINGW:
             opts.update({
                 'c_winlibs': coredata.UserStringArrayOption('c_winlibs', 'Standard Win libraries to link against',
@@ -1351,6 +1355,8 @@ class GnuCCompiler(CCompiler):
         if self.gcc_type == GCC_MINGW:
             args += options['c_winlibs'].value
         args += sanitizer_link_args(options['c_sanitizer'].value)
+        if options['c_no_undefined']:
+            args += ['-Wl,--no-undefined']
         return args
 
 class GnuObjCCompiler(ObjCCompiler):
@@ -1488,7 +1494,10 @@ class GnuCPPCompiler(CPPCompiler):
     def get_options(self):
         opts = {'cpp_std' : coredata.UserComboOption('cpp_std', 'C++ language standard to use',
                                                      ['none', 'c++03', 'c++11', 'c++14'],
-                                                     'none')}
+                                                     'none'),
+                'cpp_no_undefined' : coredata.UserBooleanOption('cpp_no_undefined', 'Use no-undefined for link.',
+                                                              True)
+                }
         if self.gcc_type == GCC_MINGW:
             opts.update({
                 'cpp_winlibs': coredata.UserStringArrayOption('c_winlibs', 'Standard Win libraries to link against',
@@ -1510,6 +1519,8 @@ class GnuCPPCompiler(CPPCompiler):
         if self.gcc_type == GCC_MINGW:
             args += options['cpp_winlibs'].value
         args += sanitizer_link_args(options['cpp_sanitizer'].value)
+        if options['cpp_no_undefined']:
+            args += ['-Wl,--no-undefined']
         return args
 
 class ClangCPPCompiler(CPPCompiler):
