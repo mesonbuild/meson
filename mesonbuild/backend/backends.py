@@ -438,6 +438,12 @@ class Backend():
         return (srcs, ofilenames, cmd)
 
     def run_postconf_scripts(self):
+        env = {'MESON_SOURCE_ROOT' : self.environment.get_source_dir(),
+               'MESON_BUILD_ROOT' : self.environment.get_build_dir()
+              }
+        child_env = os.environ.copy()
+        child_env.update(env)
+
         for s in self.build.postconf_scripts:
-            cmd = s['exe'].get_command() + [self.environment.get_source_dir(), self.environment.get_build_dir()] + s['args']
-            subprocess.check_call(cmd)
+            cmd = s['exe'].get_command() + s['args']
+            subprocess.check_call(cmd, env=child_env)
