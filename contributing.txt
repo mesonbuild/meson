@@ -1,9 +1,9 @@
 Contributing to the Meson build system
 
-There are two simple ways to submit your patches. The preferred way is to
-send a github pull request. You can also send patches as emails to the Meson
-mailing list. Remember to add your name to the list of contributors
-in authors.txt.
+There are two simple ways to submit your patches. The preferred way is
+to send a github pull request. Small changes can also be sent as
+patches as emails to the Meson mailing list. Remember to add your name
+to the list of contributors in authors.txt.
 
 
 Python Coding style
