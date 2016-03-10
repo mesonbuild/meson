@@ -1427,7 +1427,8 @@ rule FORTRAN_DEP_HACK
             raise RuntimeError('Fug')
         extra_orderdeps = []
         compiler = self.get_compiler_for_source(src)
-        commands = self.generate_basic_compiler_args(target, compiler)
+        commands = []
+        # The first thing is implicit include directories: source, build and private.
         commands += compiler.get_include_args(self.get_target_private_dir(target), False)
         curdir = target.get_subdir()
         tmppath = os.path.normpath(os.path.join(self.build_to_src, curdir))
@@ -1435,6 +1436,7 @@ rule FORTRAN_DEP_HACK
         if curdir ==  '':
             curdir = '.'
         commands += compiler.get_include_args(curdir, False)
+        commands += self.generate_basic_compiler_args(target, compiler)
         # -I args work differently than other ones. In them the
         # first found directory is used whereas for other flags
         # (such as -ffoo -fno-foo) the latest one is used.
