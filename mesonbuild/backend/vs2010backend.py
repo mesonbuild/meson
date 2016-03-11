@@ -426,7 +426,18 @@ class Vs2010Backend(backends.Backend):
         rtlib.text = 'MultiThreadedDebugDLL'
         funclink = ET.SubElement(clconf, 'FunctionLevelLinking')
         funclink.text = 'true'
-        pch = ET.SubElement(clconf, 'PrecompiledHeader')
+        pch_node = ET.SubElement(clconf, 'PrecompiledHeader')
+        pch_sources = []
+        for lang in ['c', 'cpp']:
+            pch = target.get_pch(lang)
+            if len(pch) == 0:
+                continue
+            pch_node.text = 'Use'
+            pch_file = ET.SubElement(clconf, 'PrecompiledHeaderFile')
+            pch_file.text = pch[0]
+            pch_include = ET.SubElement(clconf, 'ForcedIncludeFiles')
+            pch_include.text = pch[0] + ';%(ForcedIncludeFiles)'
+            pch_sources.append(pch[1])
         warnings = ET.SubElement(clconf, 'WarningLevel')
         warnings.text = 'Level3'
         debinfo = ET.SubElement(clconf, 'DebugInformationFormat')
@@ -487,11 +498,16 @@ class Vs2010Backend(backends.Backend):
                 else:
                     relpath = h.rel_to_builddir(proj_to_src_root)
                 ET.SubElement(inc_hdrs, 'CLInclude', Include = relpath)
-        if len(sources) + len(gen_src) > 0:
+        if len(sources) + len(gen_src) + len(pch_sources) > 0:
             inc_src = ET.SubElement(root, 'ItemGroup')
             for s in sources:
                 relpath = s.rel_to_builddir(proj_to_src_root)
                 ET.SubElement(inc_src, 'CLCompile', Include=relpath)
+            for s in pch_sources:
+                relpath = os.path.join(proj_to_src_dir, s)
+                comp_pch = ET.SubElement(inc_src, 'CLCompile', Include=relpath)
+                pch = ET.SubElement(comp_pch, 'PrecompiledHeader')
+                pch.text = 'Create'
             for s in gen_src:
                 relpath =  self.relpath(s, target.subdir)
                 ET.SubElement(inc_src, 'CLCompile', Include=relpath)
