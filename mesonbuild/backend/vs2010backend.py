@@ -432,6 +432,8 @@ class Vs2010Backend(backends.Backend):
             pch = target.get_pch(lang)
             if len(pch) == 0:
                 continue
+            if len(pch_sources) > 0:
+                raise MesonException('VS2010 backend does not support multiple precompiled header files.')
             pch_node.text = 'Use'
             pch_file = ET.SubElement(clconf, 'PrecompiledHeaderFile')
             pch_file.text = pch[0]
