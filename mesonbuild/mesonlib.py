@@ -227,7 +227,7 @@ def do_mesondefine(line, confdata):
     try:
         v = confdata.get(varname)
     except KeyError:
-        return '/* undef %s */\n' % varname
+        return '/* #undef %s */\n' % varname
     if isinstance(v, bool):
         if v:
             return '#define %s\n' % varname
