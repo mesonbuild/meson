@@ -2,80 +2,46 @@ project('string formatting', 'c')
 
 templ = '@0@bar@1@'
 
-if templ.format('foo', 'baz') != 'foobarbaz'
-  error('Basic string formatting is broken.')
-endif
+assert(templ.format('foo', 'baz') == 'foobarbaz', 'Basic string formatting is broken.')
 
-if '@0@'.format(1) != '1'
-  error('String number formatting is broken.')
-endif
+assert('@0@'.format(1) == '1', 'String number formatting is broken.')
 
-if '@0@'.format(true) != 'true'
-  error('String boolean formatting is broken.')
-endif
+assert('@0@'.format(true) == 'true', 'String boolean formatting is broken.')
 
 templ2 = '@0@'
 subs2 = '42'
 
-if templ2.format(subs2) != '42'
-  error('String formatting with variables is broken.')
-endif
+assert(templ2.format(subs2) == '42', 'String formatting with variables is broken.')
 
 long = 'abcde'
 prefix = 'abc'
 suffix = 'cde'
 
-if not long.startswith(prefix)
-  error('Prefix.')
-endif
+assert(long.startswith(prefix), 'Prefix.')
 
-if long.startswith(suffix)
-  error('Not prefix.')
-endif
+assert(not long.startswith(suffix), 'Not prefix.')
 
-if not long.endswith(suffix)
-  error('Suffix.')
-endif
+assert(long.endswith(suffix), 'Suffix.')
 
-if long.endswith(prefix)
-  error('Not suffix.')
-endif
+assert(not long.endswith(prefix), 'Not suffix.')
 
-if not long.contains(prefix)
-  error('Does not contain prefix')
-endif
+assert(long.contains(prefix), 'Does not contain prefix')
 
-if not long.contains(suffix)
-  error('Does not contain suffix')
-endif
+assert(long.contains(suffix), 'Does not contain suffix')
 
-if not long.contains('bcd')
-  error('Does not contain middle part')
-endif
+assert(long.contains('bcd'), 'Does not contain middle part')
 
-if long.contains('dc')
-  error('Broken contains')
-endif
+assert(not long.contains('dc'), 'Broken contains')
 
-if long.to_upper() != 'ABCDE'
-  error('Broken to_upper')
-endif
+assert(long.to_upper() == 'ABCDE', 'Broken to_upper')
 
-if long.to_upper().to_lower() != long
-  error('Broken to_lower')
-endif
+assert(long.to_upper().to_lower() == long, 'Broken to_lower')
 
-if 'struct stat.st_foo'.underscorify() != 'struct_stat_st_foo'
-  error('Broken underscorify')
-endif
+assert('struct stat.st_foo'.underscorify() == 'struct_stat_st_foo', 'Broken underscorify')
 
-if '#include <foo/bar.h>'.underscorify() != '_include__foo_bar_h_'
-  error('Broken underscorify')
-endif
+assert('#include <foo/bar.h>'.underscorify() == '_include__foo_bar_h_', 'Broken underscorify')
 
 # case should not change, space should be replaced, numbers are ok too
-if 'Do SomeThing 09'.underscorify() != 'Do_SomeThing_09'
-  error('Broken underscorify')
-endif
+assert('Do SomeThing 09'.underscorify() == 'Do_SomeThing_09', 'Broken underscorify')
 
 assert('3'.to_int() == 3, 'String int conversion does not work.')
