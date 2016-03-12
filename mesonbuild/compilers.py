@@ -1189,7 +1189,7 @@ class VisualStudioCCompiler(CCompiler):
                 }
 
     def get_option_link_args(self, options):
-        return options['c_winlibs'].value
+        return options['c_winlibs'].value[:]
 
     def unix_link_flags_to_native(self, args):
         result = []
@@ -1265,7 +1265,7 @@ class VisualStudioCPPCompiler(VisualStudioCCompiler):
         return args
 
     def get_option_link_args(self, options):
-        return options['cpp_winlibs'].value
+        return options['cpp_winlibs'].value[:]
 
 GCC_STANDARD = 0
 GCC_OSX = 1
