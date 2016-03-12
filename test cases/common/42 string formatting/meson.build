@@ -41,4 +41,28 @@ if long.endswith(prefix)
   error('Not suffix.')
 endif
 
+if not long.contains(prefix)
+  error('Does not contain prefix')
+endif
+
+if not long.contains(suffix)
+  error('Does not contain suffix')
+endif
+
+if not long.contains('bcd')
+  error('Does not contain middle part')
+endif
+
+if long.contains('dc')
+  error('Broken contains')
+endif
+
+if long.to_upper() != 'ABCDE'
+  error('Broken to_upper')
+endif
+
+if long.to_upper().to_lower() != long
+  error('Broken to_lower')
+endif
+
 assert('3'.to_int() == 3, 'String int conversion does not work.')

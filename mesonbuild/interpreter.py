@@ -2033,6 +2033,10 @@ class Interpreter():
             return obj.strip()
         elif method_name == 'format':
             return self.format_string(obj, args)
+        elif method_name == 'to_upper':
+            return obj.upper()
+        elif method_name == 'to_lower':
+            return obj.lower()
         elif method_name == 'split':
             if len(posargs) > 1:
                 raise InterpreterException('Split()  must have at most one argument.')
@@ -2043,12 +2047,14 @@ class Interpreter():
                 return obj.split(s)
             else:
                 return obj.split()
-        elif method_name == 'startswith' or method_name == 'endswith':
+        elif method_name == 'startswith' or method_name == 'contains' or method_name == 'endswith':
             s = posargs[0]
             if not isinstance(s, str):
                 raise InterpreterException('Argument must be a string.')
             if method_name == 'startswith':
                 return obj.startswith(s)
+            elif method_name == 'contains':
+                return obj.find(s) >= 0
             return obj.endswith(s)
         elif method_name == 'to_int':
             try:
