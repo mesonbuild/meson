@@ -14,6 +14,8 @@
 
 import os, sys
 import pickle
+
+from mesonbuild import compilers
 from . import backends
 from .. import build
 from .. import dependencies
@@ -312,6 +314,24 @@ class Vs2010Backend(backends.Backend):
         tree = ET.ElementTree(root)
         tree.write(ofname, encoding='utf-8', xml_declaration=True)
 
+    def add_pch(self, inc_cl, proj_to_src_dir, pch_sources, source_file):
+        if len(pch_sources) <= 1:
+            # We only need per file precompiled headers if we have more than 1 language.
+            return
+        if source_file.split('.')[-1] in compilers.c_suffixes:
+            lang = 'c'
+        elif source_file.split('.')[-1] in compilers.cpp_suffixes:
+            lang = 'cpp'
+        else:
+            return
+        header = os.path.join(proj_to_src_dir, pch_sources[lang][0])
+        pch_file = ET.SubElement(inc_cl, 'PrecompiledHeaderFile')
+        pch_file.text = header
+        pch_include = ET.SubElement(inc_cl, 'ForcedIncludeFiles')
+        pch_include.text = header + ';%(ForcedIncludeFiles)'
+        pch_out = ET.SubElement(inc_cl, 'PrecompiledHeaderOutputFile')
+        pch_out.text = '$(IntDir)$(TargetName)-%s.pch' % lang
+
     def gen_vcxproj(self, target, ofname, guid, compiler):
         mlog.debug('Generating vcxproj %s.' % target.name)
         entrypoint = 'WinMainCRTStartup'
@@ -427,19 +447,25 @@ class Vs2010Backend(backends.Backend):
         funclink = ET.SubElement(clconf, 'FunctionLevelLinking')
         funclink.text = 'true'
         pch_node = ET.SubElement(clconf, 'PrecompiledHeader')
-        pch_sources = []
+        pch_sources = {}
         for lang in ['c', 'cpp']:
             pch = target.get_pch(lang)
             if len(pch) == 0:
                 continue
-            if len(pch_sources) > 0:
-                raise MesonException('VS2010 backend does not support multiple precompiled header files.')
             pch_node.text = 'Use'
+            pch_sources[lang] = [pch[0], pch[1], lang]
+        if len(pch_sources) == 1:
+            # If there is only 1 language with precompiled headers, we can use it for the entire project, which
+            # is cleaner than specifying it for each source file.
+            pch_source = list(pch_sources.values())[0]
+            header = os.path.join(proj_to_src_dir, pch_source[0])
             pch_file = ET.SubElement(clconf, 'PrecompiledHeaderFile')
-            pch_file.text = pch[0]
+            pch_file.text = header
             pch_include = ET.SubElement(clconf, 'ForcedIncludeFiles')
-            pch_include.text = pch[0] + ';%(ForcedIncludeFiles)'
-            pch_sources.append(pch[1])
+            pch_include.text = header + ';%(ForcedIncludeFiles)'
+            pch_out = ET.SubElement(clconf, 'PrecompiledHeaderOutputFile')
+            pch_out.text = '$(IntDir)$(TargetName)-%s.pch' % pch_source[2]
+
         warnings = ET.SubElement(clconf, 'WarningLevel')
         warnings.text = 'Level3'
         debinfo = ET.SubElement(clconf, 'DebugInformationFormat')
@@ -504,15 +530,25 @@ class Vs2010Backend(backends.Backend):
             inc_src = ET.SubElement(root, 'ItemGroup')
             for s in sources:
                 relpath = s.rel_to_builddir(proj_to_src_root)
-                ET.SubElement(inc_src, 'CLCompile', Include=relpath)
-            for s in pch_sources:
-                relpath = os.path.join(proj_to_src_dir, s)
-                comp_pch = ET.SubElement(inc_src, 'CLCompile', Include=relpath)
-                pch = ET.SubElement(comp_pch, 'PrecompiledHeader')
-                pch.text = 'Create'
+                inc_cl = ET.SubElement(inc_src, 'CLCompile', Include=relpath)
+                self.add_pch(inc_cl, proj_to_src_dir, pch_sources, s)
             for s in gen_src:
                 relpath =  self.relpath(s, target.subdir)
-                ET.SubElement(inc_src, 'CLCompile', Include=relpath)
+                inc_cl = ET.SubElement(inc_src, 'CLCompile', Include=relpath)
+                self.add_pch(inc_cl, proj_to_src_dir, pch_sources, s)
+            for lang in pch_sources:
+                header, impl, suffix = pch_sources[lang]
+                relpath = os.path.join(proj_to_src_dir, impl)
+                inc_cl = ET.SubElement(inc_src, 'CLCompile', Include=relpath)
+                pch = ET.SubElement(inc_cl, 'PrecompiledHeader')
+                pch.text = 'Create'
+                pch_out = ET.SubElement(inc_cl, 'PrecompiledHeaderOutputFile')
+                pch_out.text = '$(IntDir)$(TargetName)-%s.pch' % suffix
+                pch_file = ET.SubElement(inc_cl, 'PrecompiledHeaderFile')
+                # MSBuild searches for the header relative from the implementation, so we have to use
+                # just the file name instead of the relative path to the file.
+                pch_file.text = os.path.split(header)[1]
+
         if len(objects) > 0:
             # Do not add gen_objs to project file. Those are automatically used by MSBuild, because they are part of
             # the CustomBuildStep Outputs.
