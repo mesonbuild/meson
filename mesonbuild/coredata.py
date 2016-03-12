@@ -14,7 +14,7 @@
 
 import pickle, os, uuid
 
-version = '0.30.0.dev1'
+version = '0.30.0'
 
 build_types = ['plain', 'debug', 'debugoptimized', 'release']
 layouts = ['mirror', 'flat']
