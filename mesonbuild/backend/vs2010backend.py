@@ -443,9 +443,9 @@ class Vs2010Backend(backends.Backend):
         for l in target.link_args:
             for a in l:
                 extra_link_args.append(a)
-        if len(extra_args) > 0:
-            extra_args.append('%(AdditionalOptions)')
-            ET.SubElement(link, "AdditionalOptions").text = ' '.join(extra_args)
+        if len(extra_link_args) > 0:
+            extra_link_args.append('%(AdditionalOptions)')
+            ET.SubElement(link, "AdditionalOptions").text = ' '.join(extra_link_args)
 
         additional_links = []
         for t in target.link_targets:
