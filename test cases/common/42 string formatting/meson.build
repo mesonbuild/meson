@@ -65,4 +65,17 @@ if long.to_upper().to_lower() != long
   error('Broken to_lower')
 endif
 
+if 'struct stat.st_foo'.underscorify() != 'struct_stat_st_foo'
+  error('Broken underscorify')
+endif
+
+if '#include <foo/bar.h>'.underscorify() != '_include__foo_bar_h_'
+  error('Broken underscorify')
+endif
+
+# case should not change, space should be replaced, numbers are ok too
+if 'Do SomeThing 09'.underscorify() != 'Do_SomeThing_09'
+  error('Broken underscorify')
+endif
+
 assert('3'.to_int() == 3, 'String int conversion does not work.')

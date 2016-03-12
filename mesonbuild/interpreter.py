@@ -2037,6 +2037,8 @@ class Interpreter():
             return obj.upper()
         elif method_name == 'to_lower':
             return obj.lower()
+        elif method_name == 'underscorify':
+            return re.sub(r'[^a-zA-Z0-9]', '_', obj)
         elif method_name == 'split':
             if len(posargs) > 1:
                 raise InterpreterException('Split()  must have at most one argument.')
