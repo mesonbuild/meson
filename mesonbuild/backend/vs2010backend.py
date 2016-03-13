@@ -436,23 +436,25 @@ class Vs2010Backend(backends.Backend):
         for l, args in target.extra_args.items():
             if l in extra_args:
                 extra_args[l] += args
-        for l in extra_args:
-            comp_args = compiler.get_buildtype_args(self.buildtype)
-            # FIXME all the internal flags of VS (optimization etc) are represented
-            # by their own XML elements. In theory we should split all flags to those
-            # that have an XML element and those that don't and serialise them
-            # properly. This is a crapton of work for no real gain, so just dump them
-            # here.
-            comp_args += compiler.get_option_compile_args(self.environment.coredata.compiler_options)
-            extra_args[l] = comp_args + extra_args[l]
-            for d in target.get_external_deps():
-                extra_args[l] += d.compile_args
+        general_args = compiler.get_buildtype_args(self.buildtype)
+        # FIXME all the internal flags of VS (optimization etc) are represented
+        # by their own XML elements. In theory we should split all flags to those
+        # that have an XML element and those that don't and serialise them
+        # properly. This is a crapton of work for no real gain, so just dump them
+        # here.
+        general_args += compiler.get_option_compile_args(self.environment.coredata.compiler_options)
+        for d in target.get_external_deps():
+            general_args += d.compile_args
 
         languages += gen_langs
         has_language_specific_args = any(l != extra_args['c'] for l in extra_args.values())
         additional_options_set = False
         if not has_language_specific_args or len(languages) == 1:
-            extra_args = extra_args[languages[0]]
+            if len(languages) == 0:
+                extra_args = []
+            else:
+                extra_args = extra_args[languages[0]]
+            extra_args = general_args + extra_args
             if len(extra_args) > 0:
                 extra_args.append('%(AdditionalOptions)')
                 ET.SubElement(clconf, "AdditionalOptions").text = ' '.join(extra_args)
