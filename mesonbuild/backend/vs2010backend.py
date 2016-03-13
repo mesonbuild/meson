@@ -222,15 +222,15 @@ class Vs2010Backend(backends.Backend):
         objects = []
         languages = []
         for i in srclist:
-            lang = self.lang_from_source_file(i)
-            if lang not in languages:
-                languages.append(lang)
             if self.environment.is_header(i):
                 headers.append(i)
             elif self.environment.is_object(i):
                 objects.append(i)
             else:
                 sources.append(i)
+                lang = self.lang_from_source_file(i)
+                if lang not in languages:
+                    languages.append(lang)
         return (sources, headers, objects, languages)
 
     def target_to_build_root(self, target):
