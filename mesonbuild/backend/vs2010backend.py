@@ -222,9 +222,7 @@ class Vs2010Backend(backends.Backend):
         objects = []
         languages = []
         for i in srclist:
-            if self.environment.is_header(i):
-                headers.append(i)
-            elif self.environment.is_object(i):
+            if self.environment.is_object(i):
                 objects.append(i)
             elif self.environment.is_source(i):
                 sources.append(i)
@@ -232,8 +230,8 @@ class Vs2010Backend(backends.Backend):
                 if lang not in languages:
                     languages.append(lang)
             else:
-                # TODO: what to do with those? E.g. generated header files with custom extension (test case 64)
-                pass
+                # Everything that is not an object or source file is considered a header.
+                headers.append(i)
         return (sources, headers, objects, languages)
 
     def target_to_build_root(self, target):
