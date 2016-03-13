@@ -220,14 +220,18 @@ class Vs2010Backend(backends.Backend):
         sources = []
         headers = []
         objects = []
+        languages = []
         for i in srclist:
+            lang = self.lang_from_source_file(i)
+            if lang not in languages:
+                languages.append(lang)
             if self.environment.is_header(i):
                 headers.append(i)
             elif self.environment.is_object(i):
                 objects.append(i)
             else:
                 sources.append(i)
-        return (sources, headers, objects)
+        return (sources, headers, objects, languages)
 
     def target_to_build_root(self, target):
         if target.subdir == '':
@@ -314,16 +318,20 @@ class Vs2010Backend(backends.Backend):
         tree = ET.ElementTree(root)
         tree.write(ofname, encoding='utf-8', xml_declaration=True)
 
+    @classmethod
+    def lang_from_source_file(cls, src):
+        ext = src.split('.')[-1]
+        if ext in compilers.c_suffixes:
+            return 'c'
+        if ext in compilers.cpp_suffixes:
+            return 'cpp'
+        raise MesonException('Could not guess language from source file %s.' % src)
+
     def add_pch(self, inc_cl, proj_to_src_dir, pch_sources, source_file):
         if len(pch_sources) <= 1:
             # We only need per file precompiled headers if we have more than 1 language.
             return
-        if source_file.split('.')[-1] in compilers.c_suffixes:
-            lang = 'c'
-        elif source_file.split('.')[-1] in compilers.cpp_suffixes:
-            lang = 'cpp'
-        else:
-            return
+        lang = Vs2010Backend.lang_from_source_file(source_file)
         header = os.path.join(proj_to_src_dir, pch_sources[lang][0])
         pch_file = ET.SubElement(inc_cl, 'PrecompiledHeaderFile')
         pch_file.text = header
@@ -331,6 +339,13 @@ class Vs2010Backend(backends.Backend):
         pch_include.text = header + ';%(ForcedIncludeFiles)'
         pch_out = ET.SubElement(inc_cl, 'PrecompiledHeaderOutputFile')
         pch_out.text = '$(IntDir)$(TargetName)-%s.pch' % lang
+
+    def add_additional_options(self, source_file, parent_node, extra_args, has_additional_options_set):
+        if has_additional_options_set:
+            # We only need per file options if they were not set per project.
+            return
+        lang = Vs2010Backend.lang_from_source_file(source_file)
+        ET.SubElement(parent_node, "AdditionalOptions").text = ' '.join(extra_args[lang]) + ' %(AdditionalOptions)'
 
     def gen_vcxproj(self, target, ofname, guid, compiler):
         mlog.debug('Generating vcxproj %s.' % target.name)
@@ -355,7 +370,7 @@ class Vs2010Backend(backends.Backend):
         down = self.target_to_build_root(target)
         proj_to_src_root = os.path.join(down, self.build_to_src)
         proj_to_src_dir = os.path.join(proj_to_src_root, target.subdir)
-        (sources, headers, objects) = self.split_sources(target.sources)
+        (sources, headers, objects, languages) = self.split_sources(target.sources)
         buildtype = self.buildtype
         project_name = target.name
         target_name = target.name
@@ -388,7 +403,7 @@ class Vs2010Backend(backends.Backend):
         ET.SubElement(type_config, 'UseDebugLibraries').text = 'true'
         ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.props')
         generated_files = self.generate_custom_generator_commands(target, root)
-        (gen_src, gen_hdrs, gen_objs) = self.split_sources(generated_files)
+        (gen_src, gen_hdrs, gen_objs, gen_langs) = self.split_sources(generated_files)
         direlem = ET.SubElement(root, 'PropertyGroup')
         fver = ET.SubElement(direlem, '_ProjectFileVersion')
         fver.text = self.project_file_version
@@ -410,28 +425,39 @@ class Vs2010Backend(backends.Backend):
         if cur_dir == '':
             cur_dir= '.'
         inc_dirs.append(cur_dir)
-        extra_args = []
-        # SUCKS, VS can not handle per-language type flags, so just use
-        # them all.
-        extra_args += compiler.get_buildtype_args(self.buildtype)
-        for l in self.environment.coredata.external_args.values():
-            for a in l:
-                extra_args.append(a)
-        for l in self.build.global_args.values():
-            for a in l:
-                extra_args.append(a)
-        for l in target.extra_args.values():
-            for a in l:
-                extra_args.append(a)
-        # FIXME all the internal flags of VS (optimization etc) are represented
-        # by their own XML elements. In theory we should split all flags to those
-        # that have an XML element and those that don't and serialise them
-        # properly. This is a crapton of work for no real gain, so just dump them
-        # here.
-        extra_args = compiler.get_option_compile_args(self.environment.coredata.compiler_options)
-        if len(extra_args) > 0:
-            extra_args.append('%(AdditionalOptions)')
-            ET.SubElement(clconf, "AdditionalOptions").text = ' '.join(extra_args)
+
+        extra_args = {'c': [], 'cpp': []}
+        for l, args in self.environment.coredata.external_args.items():
+            if l in extra_args:
+                extra_args[l] += args
+        for l, args in self.build.global_args.items():
+            if l in extra_args:
+                extra_args[l] += args
+        for l, args in target.extra_args.items():
+            if l in extra_args:
+                extra_args[l] += args
+        for l in extra_args:
+            comp_args = compiler.get_buildtype_args(self.buildtype)
+            # FIXME all the internal flags of VS (optimization etc) are represented
+            # by their own XML elements. In theory we should split all flags to those
+            # that have an XML element and those that don't and serialise them
+            # properly. This is a crapton of work for no real gain, so just dump them
+            # here.
+            comp_args += compiler.get_option_compile_args(self.environment.coredata.compiler_options)
+            extra_args[l] = comp_args + extra_args[l]
+            for d in target.get_external_deps():
+                extra_args[l] += d.compile_args
+
+        languages += gen_langs
+        has_language_specific_args = any(l != extra_args['c'] for l in extra_args.values())
+        additional_options_set = False
+        if not has_language_specific_args or len(languages) == 1:
+            extra_args = extra_args[languages[0]]
+            if len(extra_args) > 0:
+                extra_args.append('%(AdditionalOptions)')
+                ET.SubElement(clconf, "AdditionalOptions").text = ' '.join(extra_args)
+            additional_options_set = True
+
         for d in target.include_dirs:
             for i in d.incdirs:
                 curdir = os.path.join(d.curdir, i)
@@ -532,10 +558,12 @@ class Vs2010Backend(backends.Backend):
                 relpath = s.rel_to_builddir(proj_to_src_root)
                 inc_cl = ET.SubElement(inc_src, 'CLCompile', Include=relpath)
                 self.add_pch(inc_cl, proj_to_src_dir, pch_sources, s)
+                self.add_additional_options(s, inc_cl, extra_args, additional_options_set)
             for s in gen_src:
                 relpath =  self.relpath(s, target.subdir)
                 inc_cl = ET.SubElement(inc_src, 'CLCompile', Include=relpath)
                 self.add_pch(inc_cl, proj_to_src_dir, pch_sources, s)
+                self.add_additional_options(s, inc_cl, extra_args, additional_options_set)
             for lang in pch_sources:
                 header, impl, suffix = pch_sources[lang]
                 relpath = os.path.join(proj_to_src_dir, impl)
@@ -548,6 +576,7 @@ class Vs2010Backend(backends.Backend):
                 # MSBuild searches for the header relative from the implementation, so we have to use
                 # just the file name instead of the relative path to the file.
                 pch_file.text = os.path.split(header)[1]
+                self.add_additional_options(impl, inc_cl, extra_args, additional_options_set)
 
         if len(objects) > 0:
             # Do not add gen_objs to project file. Those are automatically used by MSBuild, because they are part of
