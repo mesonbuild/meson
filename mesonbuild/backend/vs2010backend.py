@@ -444,7 +444,10 @@ class Vs2010Backend(backends.Backend):
         # here.
         general_args += compiler.get_option_compile_args(self.environment.coredata.compiler_options)
         for d in target.get_external_deps():
-            general_args += d.compile_args
+            try:
+                general_args += d.compile_args
+            except AttributeError:
+                pass
 
         languages += gen_langs
         has_language_specific_args = any(l != extra_args['c'] for l in extra_args.values())
