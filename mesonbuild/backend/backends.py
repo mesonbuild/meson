@@ -247,7 +247,10 @@ class Backend():
         commands += compiler.get_warn_args(self.environment.coredata.get_builtin_option('warning_level'))
         commands += compiler.get_option_compile_args(self.environment.coredata.compiler_options)
         commands += self.build.get_global_args(compiler)
-        commands += self.environment.coredata.external_args[compiler.get_language()]
+        crstr = ''
+        if target.is_cross:
+            crstr = '_CROSS'
+        commands += self.environment.coredata.external_args[compiler.get_language()+crstr]
         commands += target.get_extra_args(compiler.get_language())
         commands += compiler.get_buildtype_args(self.environment.coredata.get_builtin_option('buildtype'))
         if self.environment.coredata.get_builtin_option('coverage'):
@@ -317,10 +320,8 @@ class Backend():
             else:
                 fname = [os.path.join(self.environment.get_build_dir(), self.get_target_filename(t.get_exe()))]
             is_cross = self.environment.is_cross_build() and self.environment.cross_info.need_cross_compiler()
-            if is_cross:
-                exe_wrapper = self.environment.cross_info.config['binaries'].get('exe_wrapper', None)
-            else:
-                exe_wrapper = None
+            machine_prop = self.environment.get_machine_properties(is_cross)
+            exe_wrapper = machine_prop.get('exe_wrapper', None)
             if mesonlib.is_windows():
                 extra_paths = self.determine_windows_extra_paths(exe)
             else:

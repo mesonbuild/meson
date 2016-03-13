@@ -349,16 +349,25 @@ class CrossMachineInfo(InterpreterObject):
     def __init__(self, cross_info):
         InterpreterObject.__init__(self)
         minimum_cross_info = {'cpu', 'cpu_family', 'endian', 'system'}
-        if set(cross_info) < minimum_cross_info:
-            raise InterpreterException(
-                'Machine info is currently {}\n'.format(cross_info) +
-                'but is missing {}.'.format(minimum_cross_info - set(cross_info)))
+        if set(cross_info) < minimum_cross_info and cross_info.get('system','') != 'auto':
+                raise InterpreterException(
+                    'Machine info is currently {}\n'.format(cross_info) +
+                    'but is missing {}.'.format(minimum_cross_info - set(cross_info)) +
+                    'or system must be set to "auto"' )
         self.info = cross_info
-        self.methods.update({'system' : self.system_method,
-                             'cpu' : self.cpu_method,
-                             'cpu_family' : self.cpu_family_method,
-                             'endian' : self.endian_method,
-                            })
+        if cross_info.get('system','') == 'auto':
+            build = BuildMachine()
+            self.methods.update({'system' : build.system_method,
+                                 'cpu' : build.cpu_method,
+                                 'cpu_family' : build.cpu_family_method,
+                                 'endian' : build.endian_method,
+            })
+        else:
+            self.methods.update({'system' : self.system_method,
+                                 'cpu' : self.cpu_method,
+                                 'cpu_family' : self.cpu_family_method,
+                                 'endian' : self.endian_method,
+            })
 
     def system_method(self, args, kwargs):
         return self.info['system']
@@ -1484,12 +1493,22 @@ class Interpreter():
                         raise
             mlog.log('Native %s compiler: ' % lang, mlog.bold(' '.join(comp.get_exelist())), ' (%s %s)' % (comp.id, comp.version), sep='')
             if not comp.get_language() in self.coredata.external_args:
-                (ext_compile_args, ext_link_args) = environment.get_args_from_envvars(comp.get_language())
-                self.coredata.external_args[comp.get_language()] = ext_compile_args
-                self.coredata.external_link_args[comp.get_language()] = ext_link_args
+                if need_cross_compiler and self.environment.cross_info.has_host():
+                    lname = comp.get_language()
+                    host_prop = self.get_machine_properties(False)
+                    self.coredata.external_args[lname] = host_prop.get(lname + '_args',[])
+                    self.coredata.external_link_args[lname] = host_prop.get(lname + '_link_args',[])
+                else:
+                    (ext_compile_args, ext_link_args) = environment.get_args_from_envvars(comp.get_language())
+                    self.coredata.external_args[comp.get_language()] = ext_compile_args
+                    self.coredata.external_link_args[comp.get_language()] = ext_link_args
             self.build.add_compiler(comp)
             if need_cross_compiler:
                 mlog.log('Cross %s compiler: ' % lang, mlog.bold(' '.join(cross_comp.get_exelist())), ' (%s %s)' % (cross_comp.id, cross_comp.version), sep='')
+                cross_lname = cross_comp.get_language()
+                target_prop = self.get_machine_properties(True)
+                self.coredata.external_args[cross_lname+'_CROSS'] = target_prop.get(cross_lname + '_args',[])
+                self.coredata.external_link_args[cross_lname+'_CROSS'] = target_prop.get(cross_lname + '_link_args',[])
                 self.build.add_cross_compiler(cross_comp)
             if self.environment.is_cross_build() and not need_cross_compiler:
                 self.build.add_cross_compiler(comp)

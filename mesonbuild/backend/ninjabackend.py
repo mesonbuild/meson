@@ -390,9 +390,11 @@ int dummy;
         if isinstance(texe, build.Executable):
             abs_exe = os.path.join(self.environment.get_build_dir(), self.get_target_filename(texe))
             deps.append(self.get_target_filename(texe))
-            if self.environment.is_cross_build() \
-                and self.environment.cross_info.config['binaries'].get('exe_wrapper', None) is not None:
-                cmd += [self.environment.cross_info.config['binaries']['exe_wrapper']]
+            is_cross = self.environment.is_cross_build()
+            machine_prop = self.environment.cross_info.get_machine_config(is_cross)
+            exe_wrapper = machine_pgrop.get('exe_wrapper',None)
+            if exe_wrapper is not None:
+                cmd += [exe_wrapper]
             cmd.append(abs_exe)
         else:
             cmd.append(target.command)
@@ -1060,13 +1062,8 @@ int dummy;
                  langname == 'rust' or langname == 'cs':
                     continue
                 crstr = ''
-                cross_args = []
                 if is_cross:
                     crstr = '_CROSS'
-                    try:
-                        cross_args = self.environment.cross_info.config['properties'][langname + '_link_args']
-                    except KeyError:
-                        pass
                 rule = 'rule %s%s_LINKER\n' % (langname, crstr)
                 if mesonlib.is_windows():
                     command_template = ''' command = %s @$out.rsp
@@ -1077,7 +1074,7 @@ int dummy;
                     command_template = ' command = %s %s $ARGS  %s $in $LINK_ARGS $aliasing\n'
                 command = command_template % \
                 (' '.join(compiler.get_linker_exelist()),\
-                 ' '.join(cross_args),\
+                 ' ',\
                  ' '.join(compiler.get_linker_output_args('$out')))
                 description = ' description = Linking target $out'
                 outfile.write(rule)
@@ -1213,12 +1210,6 @@ rule FORTRAN_DEP_HACK
             if d != '$out' and d != '$in':
                 d = qstr % d
             quoted_depargs.append(d)
-        cross_args = []
-        if is_cross:
-            try:
-                cross_args = self.environment.cross_info.config['properties'][langname + '_args']
-            except KeyError:
-                pass
         if mesonlib.is_windows():
             command_template = ''' command = %s @$out.rsp
  rspfile = $out.rsp
@@ -1228,7 +1219,7 @@ rule FORTRAN_DEP_HACK
             command_template = ' command = %s %s $ARGS %s %s %s $in\n'
         command = command_template % \
             (' '.join(compiler.get_exelist()),\
-             ' '.join(cross_args),
+             ' ',\
              ' '.join(quoted_depargs),\
              ' '.join(compiler.get_output_args('$out')),\
              ' '.join(compiler.get_compile_only_args()))
@@ -1253,12 +1244,6 @@ rule FORTRAN_DEP_HACK
             crstr = ''
         rule = 'rule %s%s_PCH\n' % (langname, crstr)
         depargs = compiler.get_dependency_gen_args('$out', '$DEPFILE')
-        cross_args = []
-        if is_cross:
-            try:
-                cross_args = self.environment.cross_info.config['properties'][langname + '_args']
-            except KeyError:
-                pass
 
         quoted_depargs = []
         for d in depargs:
@@ -1271,7 +1256,7 @@ rule FORTRAN_DEP_HACK
             output = ' '.join(compiler.get_output_args('$out'))
         command = " command = %s %s $ARGS %s %s %s $in\n" % \
             (' '.join(compiler.get_exelist()),\
-             ' '.join(cross_args),\
+             ' ',\
              ' '.join(quoted_depargs),\
              output,\
              ' '.join(compiler.get_compile_only_args()))
@@ -1638,7 +1623,7 @@ rule FORTRAN_DEP_HACK
         commands += linker.get_buildtype_linker_args(self.environment.coredata.get_builtin_option('buildtype'))
         commands += linker.get_option_link_args(self.environment.coredata.compiler_options)
         if not(isinstance(target, build.StaticLibrary)):
-            commands += self.environment.coredata.external_link_args[linker.get_language()]
+            commands += self.environment.coredata.external_link_args[linker.get_language()+crstr]
         if isinstance(target, build.Executable):
             commands += linker.get_std_exe_link_args()
         elif isinstance(target, build.SharedLibrary):
