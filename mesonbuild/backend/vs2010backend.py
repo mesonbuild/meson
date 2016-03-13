@@ -222,7 +222,9 @@ class Vs2010Backend(backends.Backend):
         objects = []
         languages = []
         for i in srclist:
-            if self.environment.is_object(i):
+            if self.environment.is_header(i):
+                headers.append(i)
+            elif self.environment.is_object(i):
                 objects.append(i)
             elif self.environment.is_source(i):
                 sources.append(i)
