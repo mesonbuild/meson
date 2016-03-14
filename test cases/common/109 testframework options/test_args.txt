@@ -1,0 +1,4 @@
+# This file is not read by meson itself, but by the test framework.
+# It is not possible to pass arguments to meson from a file.
+['--werror', '-D', 'testoption=A string with spaces', '-D', 'other_one=true', \
+ '-D', 'combo_opt=one']

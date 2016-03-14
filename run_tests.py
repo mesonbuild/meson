@@ -17,11 +17,13 @@
 from glob import glob
 import os, subprocess, shutil, sys, signal
 from io import StringIO
+from ast import literal_eval
 import sys
 from mesonbuild import environment
 from mesonbuild import mesonlib
 from mesonbuild import mlog
 from mesonbuild import mesonmain
+from mesonbuild.mesonlib import stringlistify
 from mesonbuild.scripts import meson_test, meson_benchmark
 import argparse
 import xml.etree.ElementTree as ET
@@ -181,6 +183,19 @@ def run_test_inprocess(testdir):
         os.chdir(old_cwd)
     return (max(returncode_test, returncode_benchmark), mystdout.getvalue(), mystderr.getvalue())
 
+def parse_test_args(testdir):
+    args = []
+    try:
+        with open(os.path.join(testdir, 'test_args.txt'), 'r') as f:
+            content = f.read()
+            try:
+                args = literal_eval(content)
+            except Exception:
+                raise Exception('Malformed test_args file.')
+            args = stringlistify(args)
+    except FileNotFoundError:
+        pass
+    return args
 
 def run_test(testdir, extra_args, should_succeed):
     global compile_commands
@@ -190,9 +205,10 @@ def run_test(testdir, extra_args, should_succeed):
     os.mkdir(test_build_dir)
     os.mkdir(install_dir)
     print('Running test: ' + testdir)
+    test_args = parse_test_args(testdir)
     gen_start = time.time()
     gen_command = [meson_command, '--prefix', '/usr', '--libdir', 'lib', testdir, test_build_dir]\
-        + unity_flags + backend_flags + extra_args
+        + unity_flags + backend_flags + test_args + extra_args
     (returncode, stdo, stde) = run_configure_inprocess(gen_command)
     gen_time = time.time() - gen_start
     if not should_succeed:
