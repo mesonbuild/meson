@@ -29,6 +29,7 @@ c_suffixes = ['c']
 clike_suffixes = c_suffixes + cpp_suffixes
 obj_suffixes = ['o', 'obj', 'res']
 lib_suffixes = ['a', 'lib', 'dll', 'dylib', 'so']
+possible_compiler_options = ['c_std', 'c_winlibs', 'cpp_eh', 'cpp_std', 'cpp_winlibs']
 
 def is_header(fname):
     if hasattr(fname, 'fname'):

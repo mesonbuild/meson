@@ -189,6 +189,11 @@ class CoreData():
     def is_builtin_option(self, optname):
         return optname in self.builtin_options
 
+    def is_known_option(self, optname):
+        return optname in self.user_options \
+            or optname in self.builtin_options \
+            or optname in self.compiler_options
+
 def load(filename):
     obj = pickle.load(open(filename, 'rb'))
     if not isinstance(obj, CoreData):
