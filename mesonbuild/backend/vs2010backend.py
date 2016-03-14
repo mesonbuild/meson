@@ -272,7 +272,7 @@ class Vs2010Backend(backends.Backend):
         outdir = ET.SubElement(direlem, 'OutDir')
         outdir.text = '.\\'
         intdir = ET.SubElement(direlem, 'IntDir')
-        intdir.text = 'test-temp\\'
+        intdir.text = target.get_id() + '\\'
         tname = ET.SubElement(direlem, 'TargetName')
         tname.text = target.name
         return root
@@ -395,7 +395,7 @@ class Vs2010Backend(backends.Backend):
         outdir = ET.SubElement(direlem, 'OutDir')
         outdir.text = '.\\'
         intdir = ET.SubElement(direlem, 'IntDir')
-        intdir.text = os.path.join(self.get_target_dir(target), target.get_basename() + '.dir') + '\\'
+        intdir.text = target.get_id() + '\\'
         tname = ET.SubElement(direlem, 'TargetName')
         tname.text = target_name
         inclinc = ET.SubElement(direlem, 'LinkIncremental')
@@ -604,7 +604,7 @@ class Vs2010Backend(backends.Backend):
         outdir = ET.SubElement(direlem, 'OutDir')
         outdir.text = '.\\'
         intdir = ET.SubElement(direlem, 'IntDir')
-        intdir.text = 'test-temp\\'
+        intdir.text = 'regen-temp\\'
         tname = ET.SubElement(direlem, 'TargetName')
         tname.text = project_name
 
