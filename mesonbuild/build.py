@@ -806,6 +806,16 @@ class CustomTarget:
     def get_id(self):
         return self.name + self.type_suffix()
 
+    def get_target_dependencies(self):
+        deps = self.dependencies[:]
+        deps += self.extra_depends
+        for c in self.sources:
+            if hasattr(c, 'held_object'):
+                c = c.held_object
+            if isinstance(c, BuildTarget) or isinstance(c, CustomTarget):
+                deps.append(c)
+        return deps
+
     def process_kwargs(self, kwargs):
         self.sources = kwargs.get('input', [])
         if not isinstance(self.sources, list):
