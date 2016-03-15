@@ -118,10 +118,14 @@ def run_install_script(d):
         if platform.system().lower() == 'windows' and suffix != '.bat':
             first_line = open(script).readline().strip()
             if first_line.startswith('#!'):
-                commands = first_line[2:].split('#')[0].strip().split()
-                commands[0] = shutil.which(commands[0].split('/')[-1])
-                if commands[0] is None:
-                    raise RuntimeError("Don't know how to run script %s." % script)
+                if shutil.which(first_line[2:]):
+                    commands = [first_line[2:]]
+                else:
+                    commands = first_line[2:].split('#')[0].strip().split()
+                    commands[0] = shutil.which(commands[0].split('/')[-1])
+                    if commands[0] is None:
+                        commands
+                        raise RuntimeError("Don't know how to run script %s." % script)
                 final_command = commands + [script] + i.cmd_arr[1:]
         else:
             final_command = i.cmd_arr
@@ -129,8 +133,8 @@ def run_install_script(d):
             rc = subprocess.call(final_command, env=child_env)
             if rc != 0:
                 sys.exit(rc)
-        except Exception:
-            print('Failed to run install script:', i.cmd_arr[0])
+        except:
+            print('Failed to run install script:', *i.cmd_arr)
             sys.exit(1)
 
 def is_elf_platform():
