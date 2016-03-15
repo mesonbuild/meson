@@ -306,10 +306,8 @@ class Vs2010Backend(backends.Backend):
         (srcs, ofilenames, cmd) = self.eval_custom_target_command(target, True)
         cmd_templ = '''"%s" '''*len(cmd)
         ET.SubElement(customstep, 'Command').text = cmd_templ % tuple(cmd)
-        ET.SubElement(customstep, 'Outputs').text = ';'.join([os.path.join(self.environment.get_build_dir(), i)\
-                                                              for i in ofilenames])
-        ET.SubElement(customstep, 'Inputs').text = ';'.join([os.path.join(self.environment.get_build_dir(), i) \
-                                                             for i in srcs])
+        ET.SubElement(customstep, 'Outputs').text = ';'.join(ofilenames)
+        ET.SubElement(customstep, 'Inputs').text = ';'.join(srcs)
         ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.targets')
         tree = ET.ElementTree(root)
         tree.write(ofname, encoding='utf-8', xml_declaration=True)
