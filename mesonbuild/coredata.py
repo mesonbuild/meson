@@ -144,6 +144,7 @@ class CoreData():
         self.init_builtins(options)
         self.user_options = {}
         self.compiler_options = {}
+        self.base_options = {}
         self.external_args = {} # These are set from "the outside" with e.g. mesonconf
         self.external_link_args = {}
         if options.cross_file is not None:

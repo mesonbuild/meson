@@ -66,6 +66,7 @@ msvc_buildtype_args = {'plain' : [],
 
 gnulike_buildtype_linker_args = {}
 
+
 if mesonlib.is_osx():
     gnulike_buildtype_linker_args.update({'plain' : [],
                                           'debug' : [],
@@ -111,6 +112,81 @@ msvc_winlibs = ['kernel32.lib', 'user32.lib', 'gdi32.lib',
                 'winspool.lib', 'shell32.lib', 'ole32.lib', 'oleaut32.lib',
                 'uuid.lib', 'comdlg32.lib', 'advapi32.lib']
 
+
+base_options = {'b_lto': coredata.UserBooleanOption('b_lto', 'Use link time optimization', False),
+                'b_sanitize': coredata.UserComboOption('b_sanitize',
+                                                       'Code sanitizer to use',
+                                                       ['none', 'address', 'thread', 'undefined', 'memory'],
+                                                       'none'),
+                'b_lundef': coredata.UserBooleanOption('b_lundef', 'Use -Wl,--no-undefined when linking', True),
+                'b_pgo': coredata.UserComboOption('b_pgo', 'Use profile guide optimization',
+                                                  ['off', 'generate', 'use'],
+                                                  'off')
+                }
+
+def sanitizer_compile_args(value):
+    if value == 'none':
+        return []
+    args = ['-fsanitize=' + value]
+    if value == 'address':
+        args.append('-fno-omit-frame-pointer')
+    return args
+
+def sanitizer_link_args(value):
+    if value == 'none':
+        return []
+    args = ['-fsanitize=' + value]
+    return args
+
+def get_base_compile_args(options):
+    args = []
+    # FIXME, gcc/clang specific.
+    try:
+        if options['b_lto'].value:
+            args.append('-flto')
+    except KeyError:
+        pass
+    try:
+        args += sanitizer_compile_args(options['b_sanitize'].value)
+    except KeyError:
+        pass
+    try:
+        pgo_val = options['b_pgo'].value
+        if pgo_val == 'generate':
+            args.append('-fprofile-generate')
+        elif pgo_val == 'use':
+            args.append('-fprofile-use')
+    except KeyError:
+        pass
+    return args
+
+def get_base_link_args(options):
+    args = []
+    # FIXME, gcc/clang specific.
+    try:
+        if options['b_lto'].value:
+            args.append('-flto')
+    except KeyError:
+        pass
+    try:
+        args += sanitizer_link_args(options['b_sanitize'].value)
+    except KeyError:
+        pass
+    try:
+        pgo_val = options['b_pgo'].value
+        if pgo_val == 'generate':
+            args.append('-fprofile-generate')
+        elif pgo_val == 'use':
+            args.append('-fprofile-use')
+    except KeyError:
+        pass
+    try:
+        if options['b_lundef'].value:
+            args.append('-Wl,--no-undefined')
+    except KeyError:
+        pass
+    return args
+
 def build_unix_rpath_args(build_dir, rpath_paths, install_rpath):
         if len(rpath_paths) == 0 and len(install_rpath) == 0:
             return []
@@ -147,6 +223,7 @@ class Compiler():
         else:
             raise TypeError('Unknown argument to Compiler')
         self.version = version
+        self.base_options = []
 
     def get_always_args(self):
         return []
@@ -1293,6 +1370,7 @@ class GnuCCompiler(CCompiler):
         self.warn_args = {'1': ['-Wall', '-Winvalid-pch'],
                           '2': ['-Wall', '-Wextra', '-Winvalid-pch'],
                           '3' : ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch']}
+        self.base_options = ['b_lto', 'b_pgo', 'b_sanitize', 'b_lundef']
 
     def get_pic_args(self):
         if self.gcc_type == GCC_MINGW:
@@ -1355,6 +1433,7 @@ class GnuObjCCompiler(ObjCCompiler):
         self.warn_args = {'1': ['-Wall', '-Winvalid-pch'],
                           '2': ['-Wall', '-Wextra', '-Winvalid-pch'],
                           '3' : ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch']}
+        self.base_options = ['b_lto', 'b_pgo', 'b_sanitize', 'b_lundef']
 
     def get_buildtype_args(self, buildtype):
         return gnulike_buildtype_args[buildtype]
@@ -1380,6 +1459,7 @@ class GnuObjCPPCompiler(ObjCPPCompiler):
         self.warn_args = {'1': ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor'],
                           '2': ['-Wall', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor'],
                           '3' : ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor']}
+        self.base_options = ['b_lto', 'b_pgo', 'b_sanitize', 'b_lundef']
 
     def get_buildtype_args(self, buildtype):
         return gnulike_buildtype_args[buildtype]
@@ -1455,6 +1535,7 @@ class GnuCPPCompiler(CPPCompiler):
         self.warn_args = {'1': ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor'],
                           '2': ['-Wall', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor'],
                           '3': ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor']}
+        self.base_options = ['b_lto', 'b_pgo', 'b_sanitize', 'b_lundef']
 
     def get_always_args(self):
         return ['-pipe']

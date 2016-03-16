@@ -17,6 +17,7 @@ from .. import environment, mesonlib
 from .. import build
 from .. import mlog
 from .. import dependencies
+from .. import compilers
 from ..mesonlib import File
 from .backends import InstallData
 from ..build import InvalidArguments
@@ -1430,6 +1431,7 @@ rule FORTRAN_DEP_HACK
         commands = []
         # The first thing is implicit include directories: source, build and private.
         commands += compiler.get_include_args(self.get_target_private_dir(target), False)
+        commands += compilers.get_base_compile_args(self.environment.coredata.base_options)
         curdir = target.get_subdir()
         tmppath = os.path.normpath(os.path.join(self.build_to_src, curdir))
         commands += compiler.get_include_args(tmppath, False)
@@ -1637,6 +1639,8 @@ rule FORTRAN_DEP_HACK
         abspath = os.path.join(self.environment.get_build_dir(), target.subdir)
         commands = []
         commands += linker.get_linker_always_args()
+        if not isinstance(target, build.StaticLibrary):
+            commands += compilers.get_base_link_args(self.environment.coredata.base_options)
         commands += linker.get_buildtype_linker_args(self.environment.coredata.get_builtin_option('buildtype'))
         commands += linker.get_option_link_args(self.environment.coredata.compiler_options)
         if not(isinstance(target, build.StaticLibrary)):
