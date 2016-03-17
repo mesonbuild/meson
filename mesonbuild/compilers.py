@@ -1370,7 +1370,9 @@ class GnuCCompiler(CCompiler):
         self.warn_args = {'1': ['-Wall', '-Winvalid-pch'],
                           '2': ['-Wall', '-Wextra', '-Winvalid-pch'],
                           '3' : ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch']}
-        self.base_options = ['b_lto', 'b_pgo', 'b_sanitize', 'b_lundef']
+        self.base_options = ['b_lto', 'b_pgo', 'b_sanitize']
+        if self.gcc_type != GCC_OSX:
+            self.base_options.append('b_lundef')
 
     def get_pic_args(self):
         if self.gcc_type == GCC_MINGW:
@@ -1433,7 +1435,9 @@ class GnuObjCCompiler(ObjCCompiler):
         self.warn_args = {'1': ['-Wall', '-Winvalid-pch'],
                           '2': ['-Wall', '-Wextra', '-Winvalid-pch'],
                           '3' : ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch']}
-        self.base_options = ['b_lto', 'b_pgo', 'b_sanitize', 'b_lundef']
+        self.base_options = ['b_lto', 'b_pgo', 'b_sanitize']
+        if self.gcc_type != GCC_OSX:
+            self.base_options.append('b_lundef')
 
     def get_buildtype_args(self, buildtype):
         return gnulike_buildtype_args[buildtype]
@@ -1459,7 +1463,9 @@ class GnuObjCPPCompiler(ObjCPPCompiler):
         self.warn_args = {'1': ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor'],
                           '2': ['-Wall', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor'],
                           '3' : ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor']}
-        self.base_options = ['b_lto', 'b_pgo', 'b_sanitize', 'b_lundef']
+        self.base_options = ['b_lto', 'b_pgo', 'b_sanitize']
+        if self.gcc_type != GCC_OSX:
+            self.base_options.append('b_lundef')
 
     def get_buildtype_args(self, buildtype):
         return gnulike_buildtype_args[buildtype]
@@ -1535,7 +1541,9 @@ class GnuCPPCompiler(CPPCompiler):
         self.warn_args = {'1': ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor'],
                           '2': ['-Wall', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor'],
                           '3': ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor']}
-        self.base_options = ['b_lto', 'b_pgo', 'b_sanitize', 'b_lundef']
+        self.base_options = ['b_lto', 'b_pgo', 'b_sanitize']
+        if self.gcc_type != GCC_OSX:
+            self.base_options.append('b_lundef')
 
     def get_always_args(self):
         return ['-pipe']
