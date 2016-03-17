@@ -39,6 +39,8 @@ parser.add_argument('--prefix', default=def_prefix, dest='prefix',
                     help='the installation prefix (default: %(default)s)')
 parser.add_argument('--libdir', default=mesonlib.default_libdir(), dest='libdir',
                     help='the installation subdir of libraries (default: %(default)s)')
+parser.add_argument('--libexecdir', default=mesonlib.default_libexecdir(), dest='libexecdir',
+                    help='the installation subdir of library executables (default: %(default)s)')
 parser.add_argument('--bindir', default='bin', dest='bindir',
                     help='the installation subdir of executables (default: %(default)s)')
 parser.add_argument('--includedir', default='include', dest='includedir',

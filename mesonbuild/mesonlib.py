@@ -173,6 +173,10 @@ def default_libdir():
         return 'lib64'
     return 'lib'
 
+def default_libexecdir():
+    # There is no way to auto-detect this, so it must be set at build time
+    return 'libexec'
+
 def get_library_dirs():
     if is_windows():
         return ['C:/mingw/lib'] # Fixme

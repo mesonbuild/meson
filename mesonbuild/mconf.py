@@ -154,6 +154,7 @@ class Conf:
         parr = []
         parr.append(['prefix', 'Install prefix', self.coredata.get_builtin_option('prefix'), ''])
         parr.append(['libdir', 'Library directory', self.coredata.get_builtin_option('libdir'), ''])
+        parr.append(['libexecdir', 'Library executables directory', self.coredata.get_builtin_option('libexecdir'), ''])
         parr.append(['bindir', 'Binary directory', self.coredata.get_builtin_option('bindir'), ''])
         parr.append(['includedir', 'Header directory', self.coredata.get_builtin_option('includedir'), ''])
         parr.append(['datadir', 'Data directory', self.coredata.get_builtin_option('datadir'), ''])
