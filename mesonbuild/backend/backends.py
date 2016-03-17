@@ -203,8 +203,11 @@ class Backend():
                 if c.can_compile(s):
                     return cpp
         for c in self.build.compilers:
-            if c.get_language() != 'vala':
-                return c
+            if c.get_language() == 'vala':
+                continue
+            for s in src:
+                if c.can_compile(s):
+                    return c
         raise RuntimeError('Unreachable code')
 
     def determine_ext_objs(self, extobj, proj_dir_to_build_root=''):

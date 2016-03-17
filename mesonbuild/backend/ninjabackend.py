@@ -294,20 +294,20 @@ int dummy;
                                                                          header_deps=header_deps))
         src_list = []
         for src in gen_src_deps:
-                src_list.append(src)
-                if is_unity:
-                    unity_src.append(os.path.join(self.environment.get_build_dir(), src))
+            src_list.append(src)
+            if is_unity:
+                unity_src.append(os.path.join(self.environment.get_build_dir(), src))
+                header_deps.append(src)
+            else:
+                # Generated targets are ordered deps because the must exist
+                # before the sources compiling them are used. After the first
+                # compile we get precise dependency info from dep files.
+                # This should work in all cases. If it does not, then just
+                # move them from orderdeps to proper deps.
+                if self.environment.is_header(src):
                     header_deps.append(src)
                 else:
-                    # Generated targets are ordered deps because the must exist
-                    # before the sources compiling them are used. After the first
-                    # compile we get precise dependency info from dep files.
-                    # This should work in all cases. If it does not, then just
-                    # move them from orderdeps to proper deps.
-                    if self.environment.is_header(src):
-                        header_deps.append(src)
-                    else:
-                        obj_list.append(self.generate_single_compile(target, outfile, src, True, [], header_deps))
+                    obj_list.append(self.generate_single_compile(target, outfile, src, True, [], header_deps))
         for src in target.get_sources():
             if src.endswith('.vala'):
                 continue
