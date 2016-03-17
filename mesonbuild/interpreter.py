@@ -27,8 +27,6 @@ from functools import wraps
 
 import importlib
 
-find_lib_deprecation_printed = False
-
 class InterpreterException(coredata.MesonException):
     pass
 
@@ -762,8 +760,14 @@ class CompilerHolder(InterpreterObject):
         required = kwargs.get('required', True)
         if not isinstance(required, bool):
             raise InterpreterException('required must be boolean.')
-        linkarg = self.compiler.find_library(libname)
-        lib = dependencies.ExternalLibrary(libname, linkarg)
+        search_dirs = kwargs.get('dirs', [])
+        for i in search_dirs:
+            if not os.path.isabs(i):
+                raise InvalidCode('Search directory %s is not an absolute path.' % i)
+        linkargs = self.compiler.find_library(libname, search_dirs)
+        if required and linkargs is None:
+            raise InterpreterException('Library %s not found'.format(libname))
+        lib = dependencies.ExternalLibrary(libname, linkargs)
         return ExternalLibraryHolder(lib)
 
 class ModuleState:
@@ -1542,40 +1546,7 @@ class Interpreter():
         return progobj
 
     def func_find_library(self, node, args, kwargs):
-        global find_lib_deprecation_printed
-        if not find_lib_deprecation_printed:
-            find_lib_deprecation_printed = True
-            mlog.log(mlog.red('DEPRECATION:'), 'find_library() is deprecated, use the corresponding method in compiler object instead.')
-        self.validate_arguments(args, 1, [str])
-        required = kwargs.get('required', True)
-        if not isinstance(required, bool):
-            raise InvalidArguments('"required" argument must be a boolean.')
-        libname = args[0]
-        # We do not cache found libraries because they can come
-        # and go between invocations wildly. As an example we
-        # may find the 64 bit version but need instead the 32 bit
-        # one that is not installed. If we cache the found path
-        # then we will never found the new one if it get installed.
-        # This causes a bit of a slowdown as libraries are rechecked
-        # on every regen, but since it is a fast operation it should be
-        # ok.
-        if 'dirs' in kwargs:
-            search_dirs = kwargs['dirs']
-            if not isinstance(search_dirs, list):
-                search_dirs = [search_dirs]
-            for i in search_dirs:
-                if not isinstance(i, str):
-                    raise InvalidCode('Directory entry is not a string.')
-                if not os.path.isabs(i):
-                    raise InvalidCode('Search directory %s is not an absolute path.' % i)
-        else:
-            search_dirs = None
-        result = self.environment.find_library(libname, search_dirs)
-        extlib = dependencies.ExternalLibrary(libname, result)
-        libobj = ExternalLibraryHolder(extlib)
-        if required and not libobj.found():
-            raise InvalidArguments('External library "%s" not found.' % libname)
-        return libobj
+        mlog.log(mlog.red('DEPRECATION:'), 'find_library() is removed, use the corresponding method in compiler object instead.')
 
     def func_dependency(self, node, args, kwargs):
         self.validate_arguments(args, 1, [str])

@@ -385,30 +385,29 @@ class ExternalProgram():
         return self.name
 
 class ExternalLibrary(Dependency):
-    def __init__(self, name, fullpath=None, silent=False):
+    def __init__(self, name, link_args=None, silent=False):
         super().__init__()
         self.name = name
         # Rename fullpath to link_args once standalone find_library() gets removed.
-        if fullpath is not None:
-            if isinstance(fullpath, list):
-                self.fullpath = fullpath
+        if link_args is not None:
+            if isinstance(link_args, list):
+                self.link_args = link_args
             else:
-                self.fullpath = [fullpath]
+                self.link_args = [link_args]
         else:
-            self.fullpath = fullpath
+            self.link_args = link_args
         if not silent:
             if self.found():
-                mlog.log('Library', mlog.bold(name), 'found:', mlog.green('YES'),
-                         '(%s)' % self.fullpath)
+                mlog.log('Library', mlog.bold(name), 'found:', mlog.green('YES'))
             else:
                 mlog.log('Library', mlog.bold(name), 'found:', mlog.red('NO'))
 
     def found(self):
-        return self.fullpath is not None
+        return self.link_args is not None
 
     def get_link_args(self):
         if self.found():
-            return self.fullpath
+            return self.link_args
         return []
 
 class BoostDependency(Dependency):

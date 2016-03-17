@@ -1,8 +1,7 @@
 project('external library', 'c')
 
 cc = meson.get_compiler('c')
-zlib = find_library('z') # DEPRECATED
-zlib2 = cc.find_library('z') # The modern way.
+zlib = cc.find_library('z')
 
 # Verify that link testing works.
 linkcode = '''#include<zlib.h>
@@ -25,7 +24,7 @@ assert(not cc.links(nolinkcode, name : 'Failing link'), 'Linking succeeded when 
 e = executable('zprog', 'prog.c', dependencies : zlib)
 test('libtest', e)
 
-e2 = executable('zprog_alt', 'prog.c', dependencies : zlib2)
+e2 = executable('zprog_alt', 'prog.c', dependencies : zlib)
 test('libtest_alt', e2)
 
 # Test that ext deps work via an internal dep.

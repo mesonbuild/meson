@@ -190,7 +190,7 @@ class Compiler():
     def unix_compile_flags_to_native(self, args):
         return args
 
-    def find_library(self, libname):
+    def find_library(self, libname, extra_dirs):
         raise EnvironmentException('Language {} does not support library finding.'.format(self.language))
 
 class CCompiler(Compiler):
@@ -297,6 +297,9 @@ class CCompiler(Compiler):
 
     def get_pch_name(self, header_name):
         return os.path.split(header_name)[-1] + '.' + self.get_pch_suffix()
+
+    def get_linker_search_args(self, dirname):
+        return ['-L'+dirname]
 
     def sanity_check(self, work_dir):
         mlog.debug('Sanity testing C compiler:', ' '.join(self.exelist))
@@ -566,14 +569,17 @@ void bar() {
 '''
         return self.compiles(templ % (prefix, typename), extra_args)
 
-    def find_library(self, libname):
+    def find_library(self, libname, extra_dirs):
         code = '''int main(int argc, char **argv) {
     return 0;
 }
         '''
-        linkarg = '-l' + libname
-        if self.links(code, extra_args=[linkarg]):
-            return linkarg
+        args = []
+        for i in extra_dirs:
+            args += self.get_linker_search_args(i)
+        args.append('-l' + libname)
+        if self.links(code, extra_args=args):
+            return args
         return None
 
     def thread_flags(self):
