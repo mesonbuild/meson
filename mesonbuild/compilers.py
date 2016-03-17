@@ -1348,6 +1348,11 @@ GCC_STANDARD = 0
 GCC_OSX = 1
 GCC_MINGW = 2
 
+CLANG_STANDARD = 0
+CLANG_OSX = 1
+CLANG_WIN = 2
+# Possibly clang-cl?
+
 def get_gcc_soname_args(gcc_type, shlib_name, path, soversion):
     if soversion is None:
         sostr = ''
@@ -1480,22 +1485,34 @@ class GnuObjCPPCompiler(ObjCPPCompiler):
         return get_gcc_soname_args(self.gcc_type, shlib_name, path, soversion)
 
 class ClangObjCCompiler(GnuObjCCompiler):
-    def __init__(self, exelist, version, is_cross, exe_wrapper=None):
+    def __init__(self, exelist, version, cltype, is_cross, exe_wrapper=None):
         super().__init__(exelist, version, is_cross, exe_wrapper)
         self.id = 'clang'
+        self.base_options = ['b_lto', 'b_pgo', 'b_sanitize']
+        self.clang_type = cltype
+        if self.clang_type != CLANG_OSX:
+            self.base_options.append('b_lundef')
 
 class ClangObjCPPCompiler(GnuObjCPPCompiler):
-    def __init__(self, exelist, version, is_cross, exe_wrapper=None):
+    def __init__(self, exelist, version, cltype, is_cross, exe_wrapper=None):
         super().__init__(exelist, version, is_cross, exe_wrapper)
         self.id = 'clang'
+        self.clang_type = cltype
+        self.base_options = ['b_lto', 'b_pgo', 'b_sanitize']
+        if self.clang_type != CLANG_OSX:
+            self.base_options.append('b_lundef')
 
 class ClangCCompiler(CCompiler):
-    def __init__(self, exelist, version, is_cross, exe_wrapper=None):
+    def __init__(self, exelist, version, clang_type, is_cross, exe_wrapper=None):
         CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
         self.id = 'clang'
+        self.clang_type = clang_type
         self.warn_args = {'1': ['-Wall', '-Winvalid-pch'],
                           '2': ['-Wall', '-Wextra', '-Winvalid-pch'],
                           '3' : ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch']}
+        self.base_options = ['b_lto', 'b_pgo', 'b_sanitize']
+        if self.clang_type != CLANG_OSX:
+            self.base_options.append('b_lundef')
 
     def get_buildtype_args(self, buildtype):
         return gnulike_buildtype_args[buildtype]
@@ -1584,12 +1601,16 @@ class GnuCPPCompiler(CPPCompiler):
         return []
 
 class ClangCPPCompiler(CPPCompiler):
-    def __init__(self, exelist, version, is_cross, exe_wrapper=None):
+    def __init__(self, exelist, version, cltype, is_cross, exe_wrapper=None):
         CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
         self.id = 'clang'
         self.warn_args = {'1': ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor'],
                           '2': ['-Wall', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor'],
                           '3': ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor']}
+        self.clang_type = cltype
+        self.base_options = ['b_lto', 'b_pgo', 'b_sanitize']
+        if self.clang_type != CLANG_OSX:
+            self.base_options.append('b_lundef')
 
     def get_buildtype_args(self, buildtype):
         return gnulike_buildtype_args[buildtype]

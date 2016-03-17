@@ -222,7 +222,11 @@ class Environment():
                     gtype = GCC_STANDARD
                 return GnuCCompiler(ccache + [compiler], version, gtype, is_cross, exe_wrap)
             if 'clang' in out:
-                return ClangCCompiler(ccache + [compiler], version, is_cross, exe_wrap)
+                if 'Apple' in out:
+                    cltype = CLANG_OSX
+                else:
+                    cltype = CLANG_STANDARD
+                return ClangCCompiler(ccache + [compiler], version, cltype, is_cross, exe_wrap)
             if 'Microsoft' in out or 'Microsoft' in err:
                 # Visual Studio prints version number to stderr but
                 # everything else to stdout. Why? Lord only knows.
@@ -346,7 +350,11 @@ class Environment():
                     gtype = GCC_STANDARD
                 return GnuCPPCompiler(ccache + [compiler], version, gtype, is_cross, exe_wrap)
             if 'clang' in out:
-                return ClangCPPCompiler(ccache + [compiler], version, is_cross, exe_wrap)
+                if 'Apple' in out:
+                    cltype = CLANG_OSX
+                else:
+                    cltype = CLANG_STANDARD
+                return ClangCPPCompiler(ccache + [compiler], version, cltype, is_cross, exe_wrap)
             if 'Microsoft' in out or 'Microsoft' in err:
                 version = re.search(Environment.version_regex, err).group()
                 return VisualStudioCPPCompiler([compiler], version, is_cross, exe_wrap)
@@ -377,7 +385,7 @@ class Environment():
             'Free Software Foundation' in out:
             return GnuObjCCompiler(exelist, version, is_cross, exe_wrap)
         if out.startswith('Apple LLVM'):
-            return ClangObjCCompiler(exelist, version, is_cross, exe_wrap)
+            return ClangObjCCompiler(exelist, version, CLANG_OSX, is_cross, exe_wrap)
         if 'apple' in out and 'Free Software Foundation' in out:
             return GnuObjCCompiler(exelist, version, is_cross, exe_wrap)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
@@ -407,7 +415,7 @@ class Environment():
             'Free Software Foundation' in out:
             return GnuObjCPPCompiler(exelist, version, is_cross, exe_wrap)
         if out.startswith('Apple LLVM'):
-            return ClangObjCPPCompiler(exelist, version, is_cross, exe_wrap)
+            return ClangObjCPPCompiler(exelist, version, CLANG_OSX, is_cross, exe_wrap)
         if 'apple' in out and 'Free Software Foundation' in out:
             return GnuObjCPPCompiler(exelist, version, is_cross, exe_wrap)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
