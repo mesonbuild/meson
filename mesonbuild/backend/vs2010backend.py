@@ -36,7 +36,7 @@ class Vs2010Backend(backends.Backend):
         super().__init__(build)
         self.project_file_version = '10.0.30319.1'
         # foo.c compiles to foo.obj, not foo.c.obj
-        self.source_suffix_in_obj = False
+        self.source_suffix_in_objs = False
 
     def generate_custom_generator_commands(self, target, parent_node):
         all_output_files = []
@@ -116,7 +116,7 @@ class Vs2010Backend(backends.Backend):
         result = {}
         for o in obj_list:
             if isinstance(o, build.ExtractedObjects):
-                result[o.target.get_basename()] = True
+                result[o.target.get_id()] = True
         return result.keys()
 
     def determine_deps(self, p):
@@ -492,7 +492,7 @@ class Vs2010Backend(backends.Backend):
             rel_path = self.relpath(lobj.subdir, target.subdir)
             linkname = os.path.join(rel_path, lobj.get_import_filename())
             additional_links.append(linkname)
-        for o in self.flatten_object_list(target, down):
+        for o in self.flatten_object_list(target, down, include_dir_names=False):
             assert(isinstance(o, str))
             additional_links.append(o)
         if len(additional_links) > 0:
