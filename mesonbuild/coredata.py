@@ -28,6 +28,7 @@ builtin_options = {'buildtype': True,
                    'unity': True,
                    'prefix': True,
                    'libdir' : True,
+                   'libexecdir' : True,
                    'bindir' : True,
                    'includedir' : True,
                    'datadir' : True,
@@ -159,6 +160,7 @@ class CoreData():
     def init_builtins(self, options):
         self.builtin_options['prefix'] = UserStringOption('prefix', 'Installation prefix', options.prefix)
         self.builtin_options['libdir'] = UserStringOption('libdir', 'Library dir', options.libdir)
+        self.builtin_options['libexecdir'] = UserStringOption('libexecdir', 'Library executables dir', options.libexecdir)
         self.builtin_options['bindir'] = UserStringOption('bindir', 'Executable dir', options.bindir)
         self.builtin_options['includedir'] = UserStringOption('includedir', 'Include dir', options.includedir)
         self.builtin_options['datadir'] = UserStringOption('datadir', 'Data directory', options.datadir)

@@ -590,6 +590,9 @@ class Environment():
     def get_libdir(self):
         return self.coredata.get_builtin_option('libdir')
 
+    def get_libexecdir(self):
+        return self.coredata.get_builtin_option('libexecdir')
+
     def get_bindir(self):
         return self.coredata.get_builtin_option('bindir')
 
