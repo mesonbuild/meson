@@ -1220,7 +1220,13 @@ class VisualStudioCCompiler(CCompiler):
                 i = '/LIBPATH:' + i[2:]
             # Translate GNU-style -lfoo library name to the import library
             if i.startswith('-l'):
-                i = i[2:] + '.lib'
+                name = i[2:]
+                if name in ('m', 'c'):
+                    # With MSVC, these are provided by the C runtime which is
+                    # linked in by default
+                    continue
+                else:
+                    i = name + '.lib'
             result.append(i)
         return result
 
