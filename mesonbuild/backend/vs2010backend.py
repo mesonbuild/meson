@@ -36,7 +36,7 @@ class Vs2010Backend(backends.Backend):
         super().__init__(build)
         self.project_file_version = '10.0.30319.1'
         # foo.c compiles to foo.obj, not foo.c.obj
-        self.source_suffix_in_obj = False
+        self.source_suffix_in_objs = False
 
     def generate_custom_generator_commands(self, target, parent_node):
         all_output_files = []
@@ -116,7 +116,7 @@ class Vs2010Backend(backends.Backend):
         result = {}
         for o in obj_list:
             if isinstance(o, build.ExtractedObjects):
-                result[o.target.get_basename()] = True
+                result[o.target.get_id()] = True
         return result.keys()
 
     def determine_deps(self, p):
@@ -492,9 +492,10 @@ class Vs2010Backend(backends.Backend):
             rel_path = self.relpath(lobj.subdir, target.subdir)
             linkname = os.path.join(rel_path, lobj.get_import_filename())
             additional_links.append(linkname)
-        for o in self.flatten_object_list(target, down):
+        additional_objects = []
+        for o in self.flatten_object_list(target, down, include_dir_names=False):
             assert(isinstance(o, str))
-            additional_links.append(o)
+            additional_objects.append(o)
         if len(additional_links) > 0:
             additional_links.append('%(AdditionalDependencies)')
             ET.SubElement(link, 'AdditionalDependencies').text = ';'.join(additional_links)
@@ -549,13 +550,15 @@ class Vs2010Backend(backends.Backend):
                 # just the file name instead of the relative path to the file.
                 pch_file.text = os.path.split(header)[1]
 
-        if len(objects) > 0:
+        if len(objects) + len(additional_objects) > 0:
             # Do not add gen_objs to project file. Those are automatically used by MSBuild, because they are part of
             # the CustomBuildStep Outputs.
             inc_objs = ET.SubElement(root, 'ItemGroup')
             for s in objects:
                 relpath = s.rel_to_builddir(proj_to_src_root)
                 ET.SubElement(inc_objs, 'Object', Include=relpath)
+            for s in additional_objects:
+                ET.SubElement(inc_objs, 'Object', Include=s)
         ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.targets')
         # Reference the regen target.
         ig = ET.SubElement(root, 'ItemGroup')

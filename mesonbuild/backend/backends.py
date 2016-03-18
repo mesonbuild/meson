@@ -142,7 +142,7 @@ class Backend():
         return os.path.relpath(os.path.join('dummyprefixdir', todir),\
                                os.path.join('dummyprefixdir', fromdir))
 
-    def flatten_object_list(self, target, proj_dir_to_build_root=''):
+    def flatten_object_list(self, target, proj_dir_to_build_root='', include_dir_names=True):
         obj_list = []
         for obj in target.get_objects():
             if isinstance(obj, str):
@@ -150,7 +150,7 @@ class Backend():
                                  self.build_to_src, target.get_subdir(), obj)
                 obj_list.append(o)
             elif isinstance(obj, build.ExtractedObjects):
-                obj_list += self.determine_ext_objs(obj, proj_dir_to_build_root)
+                obj_list += self.determine_ext_objs(obj, proj_dir_to_build_root, include_dir_names)
             else:
                 raise MesonException('Unknown data type in object list.')
         return obj_list
@@ -207,7 +207,7 @@ class Backend():
                 return c
         raise RuntimeError('Unreachable code')
 
-    def determine_ext_objs(self, extobj, proj_dir_to_build_root=''):
+    def determine_ext_objs(self, extobj, proj_dir_to_build_root='', include_dir_names=True):
         result = []
         targetdir = self.get_target_private_dir(extobj.target)
         suffix = '.' + self.environment.get_object_suffix()
@@ -221,7 +221,12 @@ class Backend():
             if pathsegs[0] == 'subprojects':
                 pathsegs = pathsegs[2:]
             fixedpath = os.sep.join(pathsegs)
-            objbase = osrc.fname.replace('/', '_').replace('\\', '_')
+            if include_dir_names:
+                objbase = osrc_base.replace('/', '_').replace('\\', '_')
+            else:
+                # vs2010 backend puts all obj files without directory prefixes into build dir, so just
+                # use the file name without a directory (will be stripped by os.path.basename() below).
+                objbase = osrc_base
             objname = os.path.join(proj_dir_to_build_root,
                                    targetdir, os.path.basename(objbase) + suffix)
             result.append(objname)
