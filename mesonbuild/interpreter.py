@@ -2169,8 +2169,16 @@ class Interpreter():
         # Remember that all variables are immutable. We must always create a
         # full new variable and then assign it.
         old_variable = self.get_variable(varname)
-        if not isinstance(old_variable, list):
-            raise InvalidArguments('The += operator currently only works with arrays.')
+        if isinstance(old_variable, str):
+          if not isinstance(addition, str):
+            raise InvalidArguments('The += operator requires a string on the right hand side if the variable on the left is a string')
+          new_value = old_variable + addition
+        elif isinstance(old_variable, int):
+          if not isinstance(addition, int):
+            raise InvalidArguments('The += operator requires an int on the right hand side if the variable on the left is an int')
+          new_value = old_variable + addition
+        elif not isinstance(old_variable, list):
+            raise InvalidArguments('The += operator currently only works with arrays, strings or ints ')
         # Add other data types here.
         else:
             if isinstance(addition, list):
