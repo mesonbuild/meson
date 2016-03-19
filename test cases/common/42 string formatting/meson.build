@@ -45,3 +45,9 @@ assert('#include <foo/bar.h>'.underscorify() == '_include__foo_bar_h_', 'Broken 
 assert('Do SomeThing 09'.underscorify() == 'Do_SomeThing_09', 'Broken underscorify')
 
 assert('3'.to_int() == 3, 'String int conversion does not work.')
+
+assert(true.to_string() == 'true', 'bool string conversion failed')
+assert(false.to_string() == 'false', 'bool string conversion failed')
+assert(true.to_string('yes', 'no') == 'yes', 'bool string conversion with args failed')
+assert(false.to_string('yes', 'no') == 'no', 'bool string conversion with args failed')
+assert('@0@'.format(true) == 'true', 'bool string formatting failed')
