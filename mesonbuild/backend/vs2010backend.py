@@ -123,7 +123,7 @@ class Vs2010Backend(backends.Backend):
         all_deps = {}
         target = self.build.targets[p[0]]
         if isinstance(target, build.CustomTarget):
-            for d in target.dependencies:
+            for d in target.get_target_dependencies():
                 all_deps[d.get_id()] = True
             return all_deps
         if isinstance(target, build.RunTarget):
