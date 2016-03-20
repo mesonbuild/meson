@@ -111,6 +111,26 @@ msvc_winlibs = ['kernel32.lib', 'user32.lib', 'gdi32.lib',
                 'winspool.lib', 'shell32.lib', 'ole32.lib', 'oleaut32.lib',
                 'uuid.lib', 'comdlg32.lib', 'advapi32.lib']
 
+def sanitizer_options(langname):
+    return {langname + '_sanitizer' : coredata.UserComboOption(langname + '_std',
+                                                         'Code sanitizer to use',
+                                                         ['none', 'address', 'thread', 'undefined', 'memory'],
+                                                         'none')}
+
+def sanitizer_compile_args(value):
+    if value == 'none':
+        return []
+    args = ['-fsanitize=' + value]
+    if value == 'address':
+        args.append('-fno-omit-frame-pointer')
+    return args
+
+def sanitizer_link_args(value):
+    if value == 'none':
+        return []
+    args = ['-fsanitize=' + value]
+    return args
+
 def build_unix_rpath_args(build_dir, rpath_paths, install_rpath):
         if len(rpath_paths) == 0 and len(install_rpath) == 0:
             return []
@@ -1351,12 +1371,16 @@ class GnuCCompiler(CCompiler):
     def get_options(self):
         opts = {'c_std' : coredata.UserComboOption('c_std', 'C language standard to use',
                                                    ['none', 'c89', 'c99', 'c11', 'gnu89', 'gnu99', 'gnu11'],
-                                                   'none')}
+                                                   'none'),
+                'c_no_undefined' : coredata.UserBooleanOption('c_no_undefined', 'Use no-undefined for link.',
+                                                              True)
+                }
         if self.gcc_type == GCC_MINGW:
             opts.update({
                 'c_winlibs': coredata.UserStringArrayOption('c_winlibs', 'Standard Win libraries to link against',
                                                             gnu_winlibs),
                 })
+        opts.update(sanitizer_options('c'))
         return opts
 
     def get_option_compile_args(self, options):
@@ -1364,12 +1388,17 @@ class GnuCCompiler(CCompiler):
         std = options['c_std']
         if std.value != 'none':
             args.append('-std=' + std.value)
+        args += sanitizer_compile_args(options['c_sanitizer'].value)
         return args
 
     def get_option_link_args(self, options):
+        args = []
         if self.gcc_type == GCC_MINGW:
-            return options['c_winlibs'].value
-        return []
+            args += options['c_winlibs'].value
+        args += sanitizer_link_args(options['c_sanitizer'].value)
+        if options['c_no_undefined']:
+            args += ['-Wl,--no-undefined']
+        return args
 
 class GnuObjCCompiler(ObjCCompiler):
     std_opt_args = ['-O2']
@@ -1458,19 +1487,23 @@ class ClangCCompiler(CCompiler):
         return ['-include-pch', os.path.join (pch_dir, self.get_pch_name (header))]
 
     def get_options(self):
-        return {'c_std' : coredata.UserComboOption('c_std', 'C language standard to use',
+        opts = {'c_std' : coredata.UserComboOption('c_std', 'C language standard to use',
                                                    ['none', 'c89', 'c99', 'c11'],
                                                    'none')}
+        opts.update(sanitizer_options('c'))
+        return opts
 
     def get_option_compile_args(self, options):
         args = []
         std = options['c_std']
         if std.value != 'none':
             args.append('-std=' + std.value)
+        args += sanitizer_compile_args(options['c_sanitizer'].value)
         return args
 
     def get_option_link_args(self, options):
-        return []
+        args = sanitizer_link_args(options['c_sanitizer'].value)
+        return args
 
 class GnuCPPCompiler(CPPCompiler):
     # may need to separate the latter to extra_debug_args or something
@@ -1502,12 +1535,16 @@ class GnuCPPCompiler(CPPCompiler):
     def get_options(self):
         opts = {'cpp_std' : coredata.UserComboOption('cpp_std', 'C++ language standard to use',
                                                      ['none', 'c++03', 'c++11', 'c++14'],
-                                                     'none')}
+                                                     'none'),
+                'cpp_no_undefined' : coredata.UserBooleanOption('cpp_no_undefined', 'Use no-undefined for link.',
+                                                              True)
+                }
         if self.gcc_type == GCC_MINGW:
             opts.update({
                 'cpp_winlibs': coredata.UserStringArrayOption('c_winlibs', 'Standard Win libraries to link against',
                                                               gnu_winlibs),
                 })
+        opts.update(sanitizer_options('cpp'))
         return opts
 
     def get_option_compile_args(self, options):
@@ -1515,12 +1552,17 @@ class GnuCPPCompiler(CPPCompiler):
         std = options['cpp_std']
         if std.value != 'none':
             args.append('-std=' + std.value)
+        args += sanitizer_compile_args(options['cpp_sanitizer'].value)
         return args
 
     def get_option_link_args(self, options):
+        args = []
         if self.gcc_type == GCC_MINGW:
-            return options['cpp_winlibs'].value
-        return []
+            args += options['cpp_winlibs'].value
+        args += sanitizer_link_args(options['cpp_sanitizer'].value)
+        if options['cpp_no_undefined']:
+            args += ['-Wl,--no-undefined']
+        return args
 
 class ClangCPPCompiler(CPPCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
@@ -1546,19 +1588,24 @@ class ClangCPPCompiler(CPPCompiler):
         return ['-include-pch', os.path.join (pch_dir, self.get_pch_name (header))]
 
     def get_options(self):
-        return {'cpp_std' : coredata.UserComboOption('cpp_std', 'C++ language standard to use',
-                                                   ['none', 'c++03', 'c++11', 'c++14'],
-                                                   'none')}
+        opts = {'cpp_std' : coredata.UserComboOption('cpp_std', 'C++ language standard to use',
+                                                     ['none', 'c++03', 'c++11', 'c++14'],
+                                                     'none')}
+        opts.update(sanitizer_options('cpp'))
+        return opts
 
     def get_option_compile_args(self, options):
         args = []
         std = options['cpp_std']
         if std.value != 'none':
             args.append('-std=' + std.value)
+        args += sanitizer_compile_args(options['cpp_sanitizer'].value)
         return args
 
     def get_option_link_args(self, options):
-        return []
+        args = []
+        args += sanitizer_link_args(options['cpp_sanitizer'].value)
+        return args
 
 class FortranCompiler(Compiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
