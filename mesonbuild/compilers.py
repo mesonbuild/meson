@@ -114,7 +114,7 @@ msvc_winlibs = ['kernel32.lib', 'user32.lib', 'gdi32.lib',
 
 
 base_options = {
-                'b_pch': coredata.UserBooleanOption('b_lto', 'Use precompiled headers', False),
+                'b_pch': coredata.UserBooleanOption('b_pch', 'Use precompiled headers', False),
                 'b_lto': coredata.UserBooleanOption('b_lto', 'Use link time optimization', False),
                 'b_sanitize': coredata.UserComboOption('b_sanitize',
                                                        'Code sanitizer to use',
