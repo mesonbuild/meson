@@ -1528,10 +1528,16 @@ class Interpreter():
         return success
 
     def add_base_options(self, compiler):
+        proj_opt = self.environment.cmd_line_options.projectoptions
         for optname in compiler.base_options:
             if optname in self.coredata.base_options:
                 continue
-            self.coredata.base_options[optname] = compilers.base_options[optname]
+            oobj = compilers.base_options[optname]
+            for po in proj_opt:
+                if po.startswith(optname + '='):
+                    oobj.set_value(po.split('=', 1)[1])
+                    break
+            self.coredata.base_options[optname] = oobj
 
     def func_find_program(self, node, args, kwargs):
         self.validate_arguments(args, 1, [str])

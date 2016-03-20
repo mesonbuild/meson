@@ -128,7 +128,6 @@ class Conf:
         carr.append(['warning_level', 'Warning level', self.coredata.get_builtin_option('warning_level'), warning_levels])
         carr.append(['werror', 'Treat warnings as errors', self.coredata.get_builtin_option('werror'), booleans])
         carr.append(['strip', 'Strip on install', self.coredata.get_builtin_option('strip'), booleans])
-        carr.append(['use_pch', 'Precompiled headers', self.coredata.get_builtin_option('use_pch'), booleans])
         carr.append(['unity', 'Unity build', self.coredata.get_builtin_option('unity'), booleans])
         carr.append(['default_library', 'Default library type', self.coredata.get_builtin_option('default_library'), libtypelist])
         self.print_aligned(carr)
