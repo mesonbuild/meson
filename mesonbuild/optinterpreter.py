@@ -73,7 +73,7 @@ class OptionInterpreter:
 
     def process(self, option_file):
         try:
-            ast = mparser.Parser(open(option_file, 'r').read()).parse()
+            ast = mparser.Parser(open(option_file, 'r', encoding='utf8').read()).parse()
         except coredata.MesonException as me:
             me.file = option_file
             raise me
