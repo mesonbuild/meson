@@ -386,7 +386,11 @@ class Backend():
         return exe_arr
 
     def eval_custom_target_command(self, target, absolute_paths=False):
-        ofilenames = [os.path.join(self.get_target_dir(target), i) for i in target.output]
+        if not absolute_paths:
+            ofilenames = [os.path.join(self.get_target_dir(target), i) for i in target.output]
+        else:
+            ofilenames = [os.path.join(self.environment.get_build_dir(), self.get_target_dir(target), i) \
+                          for i in target.output]
         srcs = []
         outdir = self.get_target_dir(target)
         # Many external programs fail on empty arguments.
