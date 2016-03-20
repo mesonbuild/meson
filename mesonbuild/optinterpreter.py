@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from . import mparser
-from . import coredata, mesonlib
+from . import coredata
 import os, re
 
 forbidden_option_names = coredata.builtin_options
@@ -24,13 +24,16 @@ forbidden_prefixes = {'c_': True,
                       'objc_': True,
                       'objcpp_': True,
                       'vala_': True,
-                      'csharp_': True
+                      'csharp_': True,
+                      'swift_': True,
+                      'b_': True,
                       }
 
 def is_invalid_name(name):
     if name in forbidden_option_names:
         return True
-    if name in forbidden_prefixes:
+    pref = name.split('_')[0] + '_'
+    if pref in forbidden_prefixes:
         return True
     return False
 

@@ -121,7 +121,7 @@ base_options = {'b_lto': coredata.UserBooleanOption('b_lto', 'Use link time opti
                 'b_lundef': coredata.UserBooleanOption('b_lundef', 'Use -Wl,--no-undefined when linking', True),
                 'b_pgo': coredata.UserComboOption('b_pgo', 'Use profile guide optimization',
                                                   ['off', 'generate', 'use'],
-                                                  'off')
+                                                  'off'),
                 }
 
 def sanitizer_compile_args(value):
