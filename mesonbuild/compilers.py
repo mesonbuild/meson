@@ -66,6 +66,7 @@ msvc_buildtype_args = {'plain' : [],
 
 gnulike_buildtype_linker_args = {}
 
+
 if mesonlib.is_osx():
     gnulike_buildtype_linker_args.update({'plain' : [],
                                           'debug' : [],
@@ -111,6 +112,96 @@ msvc_winlibs = ['kernel32.lib', 'user32.lib', 'gdi32.lib',
                 'winspool.lib', 'shell32.lib', 'ole32.lib', 'oleaut32.lib',
                 'uuid.lib', 'comdlg32.lib', 'advapi32.lib']
 
+
+base_options = {
+                'b_pch': coredata.UserBooleanOption('b_lto', 'Use precompiled headers', False),
+                'b_lto': coredata.UserBooleanOption('b_lto', 'Use link time optimization', False),
+                'b_sanitize': coredata.UserComboOption('b_sanitize',
+                                                       'Code sanitizer to use',
+                                                       ['none', 'address', 'thread', 'undefined', 'memory'],
+                                                       'none'),
+                'b_lundef': coredata.UserBooleanOption('b_lundef', 'Use -Wl,--no-undefined when linking', True),
+                'b_pgo': coredata.UserComboOption('b_pgo', 'Use profile guide optimization',
+                                                  ['off', 'generate', 'use'],
+                                                  'off'),
+                'b_coverage': coredata.UserBooleanOption('b_coverage',
+                                                         'Enable coverage tracking.',
+                                                         True),
+                }
+
+def sanitizer_compile_args(value):
+    if value == 'none':
+        return []
+    args = ['-fsanitize=' + value]
+    if value == 'address':
+        args.append('-fno-omit-frame-pointer')
+    return args
+
+def sanitizer_link_args(value):
+    if value == 'none':
+        return []
+    args = ['-fsanitize=' + value]
+    return args
+
+def get_base_compile_args(options, compiler):
+    args = []
+    # FIXME, gcc/clang specific.
+    try:
+        if options['b_lto'].value:
+            args.append('-flto')
+    except KeyError:
+        pass
+    try:
+        args += sanitizer_compile_args(options['b_sanitize'].value)
+    except KeyError:
+        pass
+    try:
+        pgo_val = options['b_pgo'].value
+        if pgo_val == 'generate':
+            args.append('-fprofile-generate')
+        elif pgo_val == 'use':
+            args.append('-fprofile-use')
+    except KeyError:
+        pass
+    try:
+        if options['b_coverage'].value:
+            args += compiler.get_coverage_args()
+    except KeyError:
+        pass
+    return args
+
+def get_base_link_args(options, linker):
+    args = []
+    # FIXME, gcc/clang specific.
+    try:
+        if options['b_lto'].value:
+            args.append('-flto')
+    except KeyError:
+        pass
+    try:
+        args += sanitizer_link_args(options['b_sanitize'].value)
+    except KeyError:
+        pass
+    try:
+        pgo_val = options['b_pgo'].value
+        if pgo_val == 'generate':
+            args.append('-fprofile-generate')
+        elif pgo_val == 'use':
+            args.append('-fprofile-use')
+    except KeyError:
+        pass
+    try:
+        if options['b_lundef'].value:
+            args.append('-Wl,--no-undefined')
+    except KeyError:
+        pass
+    try:
+        if options['b_coverage'].value:
+            args += linker.get_coverage_link_args()
+    except KeyError:
+        pass
+    return args
+
 def build_unix_rpath_args(build_dir, rpath_paths, install_rpath):
         if len(rpath_paths) == 0 and len(install_rpath) == 0:
             return []
@@ -147,6 +238,7 @@ class Compiler():
         else:
             raise TypeError('Unknown argument to Compiler')
         self.version = version
+        self.base_options = []
 
     def get_always_args(self):
         return []
@@ -1106,6 +1198,7 @@ class VisualStudioCCompiler(CCompiler):
         self.warn_args = {'1': ['/W2'],
                           '2': ['/W3'],
                           '3': ['/w4']}
+        self.base_options = ['b_pch'] # FIXME add lto, pgo and the like
 
     def get_always_args(self):
         return self.always_args
@@ -1250,6 +1343,7 @@ class VisualStudioCPPCompiler(VisualStudioCCompiler):
         VisualStudioCCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
         self.language = 'cpp'
         self.default_suffix = 'cpp'
+        self.base_options = ['b_pch'] # FIXME add lto, pgo and the like
 
     def can_compile(self, filename):
         suffix = filename.split('.')[-1]
@@ -1299,6 +1393,11 @@ GCC_STANDARD = 0
 GCC_OSX = 1
 GCC_MINGW = 2
 
+CLANG_STANDARD = 0
+CLANG_OSX = 1
+CLANG_WIN = 2
+# Possibly clang-cl?
+
 def get_gcc_soname_args(gcc_type, shlib_name, path, soversion):
     if soversion is None:
         sostr = ''
@@ -1321,6 +1420,9 @@ class GnuCCompiler(CCompiler):
         self.warn_args = {'1': ['-Wall', '-Winvalid-pch'],
                           '2': ['-Wall', '-Wextra', '-Winvalid-pch'],
                           '3' : ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch']}
+        self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize']
+        if self.gcc_type != GCC_OSX:
+            self.base_options.append('b_lundef')
 
     def get_pic_args(self):
         if self.gcc_type == GCC_MINGW:
@@ -1383,6 +1485,9 @@ class GnuObjCCompiler(ObjCCompiler):
         self.warn_args = {'1': ['-Wall', '-Winvalid-pch'],
                           '2': ['-Wall', '-Wextra', '-Winvalid-pch'],
                           '3' : ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch']}
+        self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize']
+        if self.gcc_type != GCC_OSX:
+            self.base_options.append('b_lundef')
 
     def get_buildtype_args(self, buildtype):
         return gnulike_buildtype_args[buildtype]
@@ -1408,6 +1513,9 @@ class GnuObjCPPCompiler(ObjCPPCompiler):
         self.warn_args = {'1': ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor'],
                           '2': ['-Wall', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor'],
                           '3' : ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor']}
+        self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize']
+        if self.gcc_type != GCC_OSX:
+            self.base_options.append('b_lundef')
 
     def get_buildtype_args(self, buildtype):
         return gnulike_buildtype_args[buildtype]
@@ -1422,22 +1530,34 @@ class GnuObjCPPCompiler(ObjCPPCompiler):
         return get_gcc_soname_args(self.gcc_type, shlib_name, path, soversion)
 
 class ClangObjCCompiler(GnuObjCCompiler):
-    def __init__(self, exelist, version, is_cross, exe_wrapper=None):
+    def __init__(self, exelist, version, cltype, is_cross, exe_wrapper=None):
         super().__init__(exelist, version, is_cross, exe_wrapper)
         self.id = 'clang'
+        self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize']
+        self.clang_type = cltype
+        if self.clang_type != CLANG_OSX:
+            self.base_options.append('b_lundef')
 
 class ClangObjCPPCompiler(GnuObjCPPCompiler):
-    def __init__(self, exelist, version, is_cross, exe_wrapper=None):
+    def __init__(self, exelist, version, cltype, is_cross, exe_wrapper=None):
         super().__init__(exelist, version, is_cross, exe_wrapper)
         self.id = 'clang'
+        self.clang_type = cltype
+        self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize']
+        if self.clang_type != CLANG_OSX:
+            self.base_options.append('b_lundef')
 
 class ClangCCompiler(CCompiler):
-    def __init__(self, exelist, version, is_cross, exe_wrapper=None):
+    def __init__(self, exelist, version, clang_type, is_cross, exe_wrapper=None):
         CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
         self.id = 'clang'
+        self.clang_type = clang_type
         self.warn_args = {'1': ['-Wall', '-Winvalid-pch'],
                           '2': ['-Wall', '-Wextra', '-Winvalid-pch'],
                           '3' : ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch']}
+        self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize']
+        if self.clang_type != CLANG_OSX:
+            self.base_options.append('b_lundef')
 
     def get_buildtype_args(self, buildtype):
         return gnulike_buildtype_args[buildtype]
@@ -1483,6 +1603,9 @@ class GnuCPPCompiler(CPPCompiler):
         self.warn_args = {'1': ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor'],
                           '2': ['-Wall', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor'],
                           '3': ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor']}
+        self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize']
+        if self.gcc_type != GCC_OSX:
+            self.base_options.append('b_lundef')
 
     def get_always_args(self):
         return ['-pipe']
@@ -1523,12 +1646,16 @@ class GnuCPPCompiler(CPPCompiler):
         return []
 
 class ClangCPPCompiler(CPPCompiler):
-    def __init__(self, exelist, version, is_cross, exe_wrapper=None):
+    def __init__(self, exelist, version, cltype, is_cross, exe_wrapper=None):
         CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
         self.id = 'clang'
         self.warn_args = {'1': ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor'],
                           '2': ['-Wall', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor'],
                           '3': ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor']}
+        self.clang_type = cltype
+        self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize']
+        if self.clang_type != CLANG_OSX:
+            self.base_options.append('b_lundef')
 
     def get_buildtype_args(self, buildtype):
         return gnulike_buildtype_args[buildtype]

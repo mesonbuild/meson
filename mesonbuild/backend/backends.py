@@ -203,8 +203,11 @@ class Backend():
                 if c.can_compile(s):
                     return cpp
         for c in self.build.compilers:
-            if c.get_language() != 'vala':
-                return c
+            if c.get_language() == 'vala':
+                continue
+            for s in src:
+                if c.can_compile(s):
+                    return c
         raise RuntimeError('Unreachable code')
 
     def determine_ext_objs(self, extobj, proj_dir_to_build_root='', include_dir_names=True):
@@ -256,7 +259,7 @@ class Backend():
         commands += self.environment.coredata.external_args[compiler.get_language()]
         commands += target.get_extra_args(compiler.get_language())
         commands += compiler.get_buildtype_args(self.environment.coredata.get_builtin_option('buildtype'))
-        if self.environment.coredata.get_builtin_option('coverage'):
+        if self.environment.coredata.base_options.get('b_coverage', False):
             commands += compiler.get_coverage_args()
         if self.environment.coredata.get_builtin_option('werror'):
             commands += compiler.get_werror_args()

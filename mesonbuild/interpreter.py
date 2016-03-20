@@ -19,6 +19,7 @@ from . import dependencies
 from . import mlog
 from . import build
 from . import optinterpreter
+from . import compilers
 from .wrap import wrap
 from . import mesonlib
 
@@ -1527,7 +1528,20 @@ class Interpreter():
                 self.build.add_cross_compiler(cross_comp)
             if self.environment.is_cross_build() and not need_cross_compiler:
                 self.build.add_cross_compiler(comp)
+            self.add_base_options(comp)
         return success
+
+    def add_base_options(self, compiler):
+        proj_opt = self.environment.cmd_line_options.projectoptions
+        for optname in compiler.base_options:
+            if optname in self.coredata.base_options:
+                continue
+            oobj = compilers.base_options[optname]
+            for po in proj_opt:
+                if po.startswith(optname + '='):
+                    oobj.set_value(po.split('=', 1)[1])
+                    break
+            self.coredata.base_options[optname] = oobj
 
     def func_find_program(self, node, args, kwargs):
         self.validate_arguments(args, 1, [str])

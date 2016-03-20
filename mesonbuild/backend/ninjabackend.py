@@ -17,6 +17,7 @@ from .. import environment, mesonlib
 from .. import build
 from .. import mlog
 from .. import dependencies
+from .. import compilers
 from ..mesonlib import File
 from .backends import InstallData
 from ..build import InvalidArguments
@@ -181,7 +182,7 @@ int dummy;
         self.generate_tests(outfile)
         outfile.write('# Install rules\n\n')
         self.generate_install(outfile)
-        if self.environment.coredata.get_builtin_option('coverage'):
+        if self.environment.coredata.base_options.get('b_coverage', False):
             outfile.write('# Coverage rules\n\n')
             self.generate_coverage_rules(outfile)
         outfile.write('# Suffix\n\n')
@@ -246,7 +247,7 @@ int dummy;
         self.generate_custom_generator_rules(target, outfile)
         outname = self.get_target_filename(target)
         obj_list = []
-        use_pch = self.environment.coredata.get_builtin_option('use_pch')
+        use_pch = self.environment.coredata.base_options.get('b_pch', False)
         is_unity = self.environment.coredata.get_builtin_option('unity')
         if use_pch and target.has_pch():
             pch_objects = self.generate_pch(target, outfile)
@@ -293,20 +294,20 @@ int dummy;
                                                                          header_deps=header_deps))
         src_list = []
         for src in gen_src_deps:
-                src_list.append(src)
-                if is_unity:
-                    unity_src.append(os.path.join(self.environment.get_build_dir(), src))
+            src_list.append(src)
+            if is_unity:
+                unity_src.append(os.path.join(self.environment.get_build_dir(), src))
+                header_deps.append(src)
+            else:
+                # Generated targets are ordered deps because the must exist
+                # before the sources compiling them are used. After the first
+                # compile we get precise dependency info from dep files.
+                # This should work in all cases. If it does not, then just
+                # move them from orderdeps to proper deps.
+                if self.environment.is_header(src):
                     header_deps.append(src)
                 else:
-                    # Generated targets are ordered deps because the must exist
-                    # before the sources compiling them are used. After the first
-                    # compile we get precise dependency info from dep files.
-                    # This should work in all cases. If it does not, then just
-                    # move them from orderdeps to proper deps.
-                    if self.environment.is_header(src):
-                        header_deps.append(src)
-                    else:
-                        obj_list.append(self.generate_single_compile(target, outfile, src, True, [], header_deps))
+                    obj_list.append(self.generate_single_compile(target, outfile, src, True, [], header_deps))
         for src in target.get_sources():
             if src.endswith('.vala'):
                 continue
@@ -1430,6 +1431,8 @@ rule FORTRAN_DEP_HACK
         commands = []
         # The first thing is implicit include directories: source, build and private.
         commands += compiler.get_include_args(self.get_target_private_dir(target), False)
+        commands += compilers.get_base_compile_args(self.environment.coredata.base_options,
+                                                    compiler)
         curdir = target.get_subdir()
         tmppath = os.path.normpath(os.path.join(self.build_to_src, curdir))
         commands += compiler.get_include_args(tmppath, False)
@@ -1484,7 +1487,7 @@ rule FORTRAN_DEP_HACK
         rel_obj = os.path.join(self.get_target_private_dir(target), obj_basename)
         rel_obj += '.' + self.environment.get_object_suffix()
         dep_file = compiler.depfile_for_object(rel_obj)
-        if self.environment.coredata.get_builtin_option('use_pch'):
+        if self.environment.coredata.base_options.get('b_pch', False):
             pchlist = target.get_pch(compiler.language)
         else:
             pchlist = []
@@ -1503,7 +1506,7 @@ rule FORTRAN_DEP_HACK
                     custom_target_include_dirs.append(idir)
         for i in custom_target_include_dirs:
             commands+= compiler.get_include_args(i, False)
-        if self.environment.coredata.get_builtin_option('use_pch'):
+        if self.environment.coredata.base_options.get('b_pch', False):
             commands += self.get_pch_include_args(compiler, target)
         crstr = ''
         if target.is_cross:
@@ -1637,6 +1640,9 @@ rule FORTRAN_DEP_HACK
         abspath = os.path.join(self.environment.get_build_dir(), target.subdir)
         commands = []
         commands += linker.get_linker_always_args()
+        if not isinstance(target, build.StaticLibrary):
+            commands += compilers.get_base_link_args(self.environment.coredata.base_options,
+                                                     linker)
         commands += linker.get_buildtype_linker_args(self.environment.coredata.get_builtin_option('buildtype'))
         commands += linker.get_option_link_args(self.environment.coredata.compiler_options)
         if not(isinstance(target, build.StaticLibrary)):
@@ -1678,7 +1684,7 @@ rule FORTRAN_DEP_HACK
                         commands += dep.get_link_args()
         commands += linker.build_rpath_args(self.environment.get_build_dir(),\
                                             self.determine_rpath_dirs(target), target.install_rpath)
-        if self.environment.coredata.get_builtin_option('coverage'):
+        if self.environment.coredata.base_options.get('b_coverage', False):
             commands += linker.get_coverage_link_args()
         custom_target_libraries = self.get_custom_target_provided_libraries(target)
         commands += extra_args
@@ -1793,7 +1799,7 @@ rule FORTRAN_DEP_HACK
         elem = NinjaBuildElement(self.all_outputs, 'clean', 'CUSTOM_COMMAND', 'PHONY')
         elem.add_item('COMMAND', [ninja_command, '-t', 'clean'])
         elem.add_item('description', 'Cleaning')
-        if self.environment.coredata.get_builtin_option('coverage'):
+        if self.environment.coredata.base_options.get('b_coverage', False):
             self.generate_gcov_clean(outfile)
             elem.add_dep('clean-gcda')
             elem.add_dep('clean-gcno')

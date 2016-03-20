@@ -94,6 +94,9 @@ class Conf:
             elif k in self.coredata.compiler_options:
                 tgt = self.coredata.compiler_options[k]
                 tgt.set_value(v)
+            elif k in self.coredata.base_options:
+                tgt = self.coredata.base_options[k]
+                tgt.set_value(v)
             elif k.endswith('linkargs'):
                 lang = k[:-8]
                 if not lang in self.coredata.external_link_args:
@@ -125,11 +128,20 @@ class Conf:
         carr.append(['warning_level', 'Warning level', self.coredata.get_builtin_option('warning_level'), warning_levels])
         carr.append(['werror', 'Treat warnings as errors', self.coredata.get_builtin_option('werror'), booleans])
         carr.append(['strip', 'Strip on install', self.coredata.get_builtin_option('strip'), booleans])
-        carr.append(['coverage', 'Coverage report', self.coredata.get_builtin_option('coverage'), booleans])
-        carr.append(['use_pch', 'Precompiled headers', self.coredata.get_builtin_option('use_pch'), booleans])
         carr.append(['unity', 'Unity build', self.coredata.get_builtin_option('unity'), booleans])
         carr.append(['default_library', 'Default library type', self.coredata.get_builtin_option('default_library'), libtypelist])
         self.print_aligned(carr)
+        print('')
+        print('Base options:')
+        okeys = sorted(self.coredata.base_options.keys())
+        if len(okeys) == 0:
+            print('  No base options\n')
+        else:
+            coarr = []
+            for k in okeys:
+                o = self.coredata.base_options[k]
+                coarr.append([k, o.description, o.value, ''])
+            self.print_aligned(coarr)
         print('')
         print('Compiler arguments:')
         for (lang, args) in self.coredata.external_args.items():

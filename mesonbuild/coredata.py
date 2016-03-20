@@ -24,7 +24,6 @@ libtypelist = ['shared', 'static']
 builtin_options = {'buildtype': True,
                    'strip': True,
                    'coverage': True,
-                   'pch': True,
                    'unity': True,
                    'prefix': True,
                    'libdir' : True,
@@ -145,6 +144,7 @@ class CoreData():
         self.init_builtins(options)
         self.user_options = {}
         self.compiler_options = {}
+        self.base_options = {}
         self.external_args = {} # These are set from "the outside" with e.g. mesonconf
         self.external_link_args = {}
         if options.cross_file is not None:
@@ -169,9 +169,7 @@ class CoreData():
         self.builtin_options['backend'] = UserStringOption('backend', 'Backend to use', options.backend)
         self.builtin_options['buildtype'] = UserComboOption('buildtype', 'Build type', build_types, options.buildtype)
         self.builtin_options['strip'] = UserBooleanOption('strip', 'Strip on install', options.strip)
-        self.builtin_options['use_pch'] = UserBooleanOption('use_pch', 'Use precompiled headers', options.use_pch)
         self.builtin_options['unity'] = UserBooleanOption('unity', 'Unity build', options.unity)
-        self.builtin_options['coverage'] = UserBooleanOption('coverage', 'Enable coverage', options.coverage)
         self.builtin_options['warning_level'] = UserComboOption('warning_level', 'Warning level', warning_levels, options.warning_level)
         self.builtin_options['werror'] = UserBooleanOption('werror', 'Warnings are errors', options.werror)
         self.builtin_options['layout'] = UserComboOption('layout', 'Build dir layout', layouts, options.layout)

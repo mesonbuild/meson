@@ -89,28 +89,21 @@ def list_target_files(target_name, coredata, builddata):
 def list_buildoptions(coredata, builddata):
     buildtype= {'choices': ['plain', 'debug', 'debugoptimized', 'release'],
                 'type' : 'combo',
-                'value' : coredata.buildtype,
+                'value' : coredata.builtin_options['buildtype'].value,
                 'description' : 'Build type',
                 'name' : 'type'}
-    strip = {'value' : coredata.strip,
+    strip = {'value' : coredata.builtin_options['strip'].value,
              'type' : 'boolean',
              'description' : 'Strip on install',
              'name' : 'strip'}
-    coverage = {'value': coredata.coverage,
-                'type' : 'boolean',
-                'description' : 'Enable coverage',
-                'name' : 'coverage'}
-    pch = {'value' : coredata.use_pch,
-           'type' : 'boolean',
-           'description' : 'Use precompiled headers',
-           'name' : 'pch'}
-    unity = {'value' : coredata.unity,
+    unity = {'value' : coredata.builtin_options['unity'].value,
              'type' : 'boolean',
              'description' : 'Unity build',
              'name' : 'unity'}
-    optlist = [buildtype, strip, coverage, pch, unity]
+    optlist = [buildtype, strip, unity]
     add_keys(optlist, coredata.user_options)
     add_keys(optlist, coredata.compiler_options)
+    add_keys(optlist, coredata.base_options)
     print(json.dumps(optlist))
 
 def add_keys(optlist, options):
@@ -121,14 +114,14 @@ def add_keys(optlist, options):
         optdict = {}
         optdict['name'] = key
         optdict['value'] = opt.value
-        if isinstance(opt, mesonlib.UserStringOption):
+        if isinstance(opt, coredata.UserStringOption):
             typestr = 'string'
-        elif isinstance(opt, mesonlib.UserBooleanOption):
+        elif isinstance(opt, coredata.UserBooleanOption):
             typestr = 'boolean'
-        elif isinstance(opt, mesonlib.UserComboOption):
+        elif isinstance(opt, coredata.UserComboOption):
             optdict['choices'] = opt.choices
             typestr = 'combo'
-        elif isinstance(opt, mesonlib.UserStringArrayOption):
+        elif isinstance(opt, coredata.UserStringArrayOption):
             typestr = 'stringarray'
         else:
             raise RuntimeError("Unknown option type")
