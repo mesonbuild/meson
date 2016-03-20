@@ -352,7 +352,7 @@ def check_file(fname):
 def check_format():
     for (root, _, files) in os.walk('.'):
         for file in files:
-            if file.endswith('.py') or file.endswith('.build'):
+            if file.endswith('.py') or file.endswith('.build') or file == 'meson_options.txt':
                 fullname = os.path.join(root, file)
                 check_file(fullname)
 
