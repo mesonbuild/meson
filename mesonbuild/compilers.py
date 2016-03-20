@@ -113,7 +113,9 @@ msvc_winlibs = ['kernel32.lib', 'user32.lib', 'gdi32.lib',
                 'uuid.lib', 'comdlg32.lib', 'advapi32.lib']
 
 
-base_options = {'b_lto': coredata.UserBooleanOption('b_lto', 'Use link time optimization', False),
+base_options = {
+                'b_pch': coredata.UserBooleanOption('b_lto', 'Use precompiled headers', False),
+                'b_lto': coredata.UserBooleanOption('b_lto', 'Use link time optimization', False),
                 'b_sanitize': coredata.UserComboOption('b_sanitize',
                                                        'Code sanitizer to use',
                                                        ['none', 'address', 'thread', 'undefined', 'memory'],
@@ -1190,6 +1192,7 @@ class VisualStudioCCompiler(CCompiler):
         self.warn_args = {'1': ['/W2'],
                           '2': ['/W3'],
                           '3': ['/w4']}
+        self.base_options = ['b_pch'] # FIXME add lto, pgo and the like
 
     def get_always_args(self):
         return self.always_args
@@ -1312,6 +1315,7 @@ class VisualStudioCPPCompiler(VisualStudioCCompiler):
         VisualStudioCCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
         self.language = 'cpp'
         self.default_suffix = 'cpp'
+        self.base_options = ['b_pch'] # FIXME add lto, pgo and the like
 
     def can_compile(self, filename):
         suffix = filename.split('.')[-1]
@@ -1388,7 +1392,7 @@ class GnuCCompiler(CCompiler):
         self.warn_args = {'1': ['-Wall', '-Winvalid-pch'],
                           '2': ['-Wall', '-Wextra', '-Winvalid-pch'],
                           '3' : ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch']}
-        self.base_options = ['b_lto', 'b_pgo', 'b_sanitize']
+        self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize']
         if self.gcc_type != GCC_OSX:
             self.base_options.append('b_lundef')
 
@@ -1453,7 +1457,7 @@ class GnuObjCCompiler(ObjCCompiler):
         self.warn_args = {'1': ['-Wall', '-Winvalid-pch'],
                           '2': ['-Wall', '-Wextra', '-Winvalid-pch'],
                           '3' : ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch']}
-        self.base_options = ['b_lto', 'b_pgo', 'b_sanitize']
+        self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize']
         if self.gcc_type != GCC_OSX:
             self.base_options.append('b_lundef')
 
@@ -1481,7 +1485,7 @@ class GnuObjCPPCompiler(ObjCPPCompiler):
         self.warn_args = {'1': ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor'],
                           '2': ['-Wall', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor'],
                           '3' : ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor']}
-        self.base_options = ['b_lto', 'b_pgo', 'b_sanitize']
+        self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize']
         if self.gcc_type != GCC_OSX:
             self.base_options.append('b_lundef')
 
@@ -1501,7 +1505,7 @@ class ClangObjCCompiler(GnuObjCCompiler):
     def __init__(self, exelist, version, cltype, is_cross, exe_wrapper=None):
         super().__init__(exelist, version, is_cross, exe_wrapper)
         self.id = 'clang'
-        self.base_options = ['b_lto', 'b_pgo', 'b_sanitize']
+        self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize']
         self.clang_type = cltype
         if self.clang_type != CLANG_OSX:
             self.base_options.append('b_lundef')
@@ -1511,7 +1515,7 @@ class ClangObjCPPCompiler(GnuObjCPPCompiler):
         super().__init__(exelist, version, is_cross, exe_wrapper)
         self.id = 'clang'
         self.clang_type = cltype
-        self.base_options = ['b_lto', 'b_pgo', 'b_sanitize']
+        self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize']
         if self.clang_type != CLANG_OSX:
             self.base_options.append('b_lundef')
 
@@ -1523,7 +1527,7 @@ class ClangCCompiler(CCompiler):
         self.warn_args = {'1': ['-Wall', '-Winvalid-pch'],
                           '2': ['-Wall', '-Wextra', '-Winvalid-pch'],
                           '3' : ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch']}
-        self.base_options = ['b_lto', 'b_pgo', 'b_sanitize']
+        self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize']
         if self.clang_type != CLANG_OSX:
             self.base_options.append('b_lundef')
 
@@ -1571,7 +1575,7 @@ class GnuCPPCompiler(CPPCompiler):
         self.warn_args = {'1': ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor'],
                           '2': ['-Wall', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor'],
                           '3': ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor']}
-        self.base_options = ['b_lto', 'b_pgo', 'b_sanitize']
+        self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize']
         if self.gcc_type != GCC_OSX:
             self.base_options.append('b_lundef')
 
@@ -1621,7 +1625,7 @@ class ClangCPPCompiler(CPPCompiler):
                           '2': ['-Wall', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor'],
                           '3': ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor']}
         self.clang_type = cltype
-        self.base_options = ['b_lto', 'b_pgo', 'b_sanitize']
+        self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize']
         if self.clang_type != CLANG_OSX:
             self.base_options.append('b_lundef')
 

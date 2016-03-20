@@ -247,7 +247,7 @@ int dummy;
         self.generate_custom_generator_rules(target, outfile)
         outname = self.get_target_filename(target)
         obj_list = []
-        use_pch = self.environment.coredata.get_builtin_option('use_pch')
+        use_pch = self.environment.coredata.base_options.get('b_pch', False)
         is_unity = self.environment.coredata.get_builtin_option('unity')
         if use_pch and target.has_pch():
             pch_objects = self.generate_pch(target, outfile)
@@ -1487,7 +1487,7 @@ rule FORTRAN_DEP_HACK
         rel_obj = os.path.join(self.get_target_private_dir(target), obj_basename)
         rel_obj += '.' + self.environment.get_object_suffix()
         dep_file = compiler.depfile_for_object(rel_obj)
-        if self.environment.coredata.get_builtin_option('use_pch'):
+        if self.environment.coredata.base_options.get('b_pch', False):
             pchlist = target.get_pch(compiler.language)
         else:
             pchlist = []
@@ -1506,7 +1506,7 @@ rule FORTRAN_DEP_HACK
                     custom_target_include_dirs.append(idir)
         for i in custom_target_include_dirs:
             commands+= compiler.get_include_args(i, False)
-        if self.environment.coredata.get_builtin_option('use_pch'):
+        if self.environment.coredata.base_options.get('b_pch', False):
             commands += self.get_pch_include_args(compiler, target)
         crstr = ''
         if target.is_cross:

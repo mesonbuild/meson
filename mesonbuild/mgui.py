@@ -249,10 +249,6 @@ class OptionForm:
         strip.setChecked(self.coredata.get_builtin_option('strip'))
         strip.stateChanged.connect(self.strip_changed)
         self.form.addRow('Strip on install', strip)
-        pch = QCheckBox("")
-        pch.setChecked(self.coredata.get_builtin_option('use_pch'))
-        pch.stateChanged.connect(self.pch_changed)
-        self.form.addRow('Enable pch', pch)
         unity = QCheckBox("")
         unity.setChecked(self.coredata.get_builtin_option('unity'))
         unity.stateChanged.connect(self.unity_changed)
@@ -312,13 +308,6 @@ class OptionForm:
         else:
             ns = True
         self.coredata.strip = ns
-
-    def pch_changed(self, newState):
-        if newState == 0:
-            ns = False
-        else:
-            ns = True
-        self.coredata.use_pch = ns
 
     def unity_changed(self, newState):
         if newState == 0:

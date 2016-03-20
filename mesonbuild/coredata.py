@@ -24,7 +24,6 @@ libtypelist = ['shared', 'static']
 builtin_options = {'buildtype': True,
                    'strip': True,
                    'coverage': True,
-                   'pch': True,
                    'unity': True,
                    'prefix': True,
                    'libdir' : True,
@@ -168,7 +167,6 @@ class CoreData():
         self.builtin_options['backend'] = UserStringOption('backend', 'Backend to use', options.backend)
         self.builtin_options['buildtype'] = UserComboOption('buildtype', 'Build type', build_types, options.buildtype)
         self.builtin_options['strip'] = UserBooleanOption('strip', 'Strip on install', options.strip)
-        self.builtin_options['use_pch'] = UserBooleanOption('use_pch', 'Use precompiled headers', options.use_pch)
         self.builtin_options['unity'] = UserBooleanOption('unity', 'Unity build', options.unity)
         self.builtin_options['warning_level'] = UserComboOption('warning_level', 'Warning level', warning_levels, options.warning_level)
         self.builtin_options['werror'] = UserBooleanOption('werror', 'Warnings are errors', options.werror)

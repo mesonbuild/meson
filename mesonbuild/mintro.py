@@ -96,15 +96,11 @@ def list_buildoptions(coredata, builddata):
              'type' : 'boolean',
              'description' : 'Strip on install',
              'name' : 'strip'}
-    pch = {'value' : coredata.builtin_options['use_pch'].value,
-           'type' : 'boolean',
-           'description' : 'Use precompiled headers',
-           'name' : 'pch'}
     unity = {'value' : coredata.builtin_options['unity'].value,
              'type' : 'boolean',
              'description' : 'Unity build',
              'name' : 'unity'}
-    optlist = [buildtype, strip, pch, unity]
+    optlist = [buildtype, strip, unity]
     add_keys(optlist, coredata.user_options)
     add_keys(optlist, coredata.compiler_options)
     add_keys(optlist, coredata.base_options)
