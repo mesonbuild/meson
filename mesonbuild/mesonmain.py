@@ -55,8 +55,6 @@ parser.add_argument('--buildtype', default='debug', choices=build_types, dest='b
                     help='build type go use (default: %(default)s)')
 parser.add_argument('--strip', action='store_true', dest='strip', default=False,\
                     help='strip targets on install (default: %(default)s)')
-parser.add_argument('--enable-gcov', action='store_true', dest='coverage', default=False,\
-                    help='measure test coverage')
 parser.add_argument('--disable-pch', action='store_false', dest='use_pch', default=True,\
                     help='do not use precompiled headers')
 parser.add_argument('--unity', action='store_true', dest='unity', default=False,\

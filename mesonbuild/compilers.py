@@ -122,6 +122,9 @@ base_options = {'b_lto': coredata.UserBooleanOption('b_lto', 'Use link time opti
                 'b_pgo': coredata.UserComboOption('b_pgo', 'Use profile guide optimization',
                                                   ['off', 'generate', 'use'],
                                                   'off'),
+                'b_coverage': coredata.UserBooleanOption('b_coverage',
+                                                         'Enable coverage tracking.',
+                                                         True),
                 }
 
 def sanitizer_compile_args(value):
@@ -138,7 +141,7 @@ def sanitizer_link_args(value):
     args = ['-fsanitize=' + value]
     return args
 
-def get_base_compile_args(options):
+def get_base_compile_args(options, compiler):
     args = []
     # FIXME, gcc/clang specific.
     try:
@@ -158,9 +161,14 @@ def get_base_compile_args(options):
             args.append('-fprofile-use')
     except KeyError:
         pass
+    try:
+        if options['b_coverage'].value:
+            args += compiler.get_coverage_args()
+    except KeyError:
+        pass
     return args
 
-def get_base_link_args(options):
+def get_base_link_args(options, linker):
     args = []
     # FIXME, gcc/clang specific.
     try:
@@ -183,6 +191,11 @@ def get_base_link_args(options):
     try:
         if options['b_lundef'].value:
             args.append('-Wl,--no-undefined')
+    except KeyError:
+        pass
+    try:
+        if options['b_coverage'].value:
+            args += linker.get_coverage_link_args()
     except KeyError:
         pass
     return args

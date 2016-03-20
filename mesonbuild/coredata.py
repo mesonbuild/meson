@@ -170,7 +170,6 @@ class CoreData():
         self.builtin_options['strip'] = UserBooleanOption('strip', 'Strip on install', options.strip)
         self.builtin_options['use_pch'] = UserBooleanOption('use_pch', 'Use precompiled headers', options.use_pch)
         self.builtin_options['unity'] = UserBooleanOption('unity', 'Unity build', options.unity)
-        self.builtin_options['coverage'] = UserBooleanOption('coverage', 'Enable coverage', options.coverage)
         self.builtin_options['warning_level'] = UserComboOption('warning_level', 'Warning level', warning_levels, options.warning_level)
         self.builtin_options['werror'] = UserBooleanOption('werror', 'Warnings are errors', options.werror)
         self.builtin_options['layout'] = UserComboOption('layout', 'Build dir layout', layouts, options.layout)

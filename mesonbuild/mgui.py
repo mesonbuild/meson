@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright 2013-2015 The Meson development team
+# Copyright 2013-2016 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -249,10 +249,6 @@ class OptionForm:
         strip.setChecked(self.coredata.get_builtin_option('strip'))
         strip.stateChanged.connect(self.strip_changed)
         self.form.addRow('Strip on install', strip)
-        coverage = QCheckBox("")
-        coverage.setChecked(self.coredata.get_builtin_option('coverage'))
-        coverage.stateChanged.connect(self.coverage_changed)
-        self.form.addRow('Enable coverage', coverage)
         pch = QCheckBox("")
         pch.setChecked(self.coredata.get_builtin_option('use_pch'))
         pch.stateChanged.connect(self.pch_changed)
@@ -316,13 +312,6 @@ class OptionForm:
         else:
             ns = True
         self.coredata.strip = ns
-
-    def coverage_changed(self, newState):
-        if newState == 0:
-            ns = False
-        else:
-            ns = True
-        self.coredata.coverage = ns
 
     def pch_changed(self, newState):
         if newState == 0:

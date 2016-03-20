@@ -182,7 +182,7 @@ int dummy;
         self.generate_tests(outfile)
         outfile.write('# Install rules\n\n')
         self.generate_install(outfile)
-        if self.environment.coredata.get_builtin_option('coverage'):
+        if self.environment.coredata.base_options.get('b_coverage', False):
             outfile.write('# Coverage rules\n\n')
             self.generate_coverage_rules(outfile)
         outfile.write('# Suffix\n\n')
@@ -1431,7 +1431,8 @@ rule FORTRAN_DEP_HACK
         commands = []
         # The first thing is implicit include directories: source, build and private.
         commands += compiler.get_include_args(self.get_target_private_dir(target), False)
-        commands += compilers.get_base_compile_args(self.environment.coredata.base_options)
+        commands += compilers.get_base_compile_args(self.environment.coredata.base_options,
+                                                    compiler)
         curdir = target.get_subdir()
         tmppath = os.path.normpath(os.path.join(self.build_to_src, curdir))
         commands += compiler.get_include_args(tmppath, False)
@@ -1640,7 +1641,8 @@ rule FORTRAN_DEP_HACK
         commands = []
         commands += linker.get_linker_always_args()
         if not isinstance(target, build.StaticLibrary):
-            commands += compilers.get_base_link_args(self.environment.coredata.base_options)
+            commands += compilers.get_base_link_args(self.environment.coredata.base_options,
+                                                     linker)
         commands += linker.get_buildtype_linker_args(self.environment.coredata.get_builtin_option('buildtype'))
         commands += linker.get_option_link_args(self.environment.coredata.compiler_options)
         if not(isinstance(target, build.StaticLibrary)):
@@ -1682,7 +1684,7 @@ rule FORTRAN_DEP_HACK
                         commands += dep.get_link_args()
         commands += linker.build_rpath_args(self.environment.get_build_dir(),\
                                             self.determine_rpath_dirs(target), target.install_rpath)
-        if self.environment.coredata.get_builtin_option('coverage'):
+        if self.environment.coredata.base_options.get('b_coverage', False):
             commands += linker.get_coverage_link_args()
         custom_target_libraries = self.get_custom_target_provided_libraries(target)
         commands += extra_args
@@ -1797,7 +1799,7 @@ rule FORTRAN_DEP_HACK
         elem = NinjaBuildElement(self.all_outputs, 'clean', 'CUSTOM_COMMAND', 'PHONY')
         elem.add_item('COMMAND', [ninja_command, '-t', 'clean'])
         elem.add_item('description', 'Cleaning')
-        if self.environment.coredata.get_builtin_option('coverage'):
+        if self.environment.coredata.base_options.get('b_coverage', False):
             self.generate_gcov_clean(outfile)
             elem.add_dep('clean-gcda')
             elem.add_dep('clean-gcno')
