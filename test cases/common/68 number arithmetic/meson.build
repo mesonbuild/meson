@@ -32,3 +32,6 @@ assert(not(3 > 4), 'Gt broken')
 assert(4 >= 3, 'Gte broken')
 assert(not(3 >= 4), 'Gte broken')
 assert(3 >= 3, 'Gte broken')
+
+assert(true.to_int() == 1,'bool to_int() broken')
+assert(false.to_int() == 0,'bool to_int() broken')

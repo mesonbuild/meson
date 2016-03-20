@@ -2017,6 +2017,30 @@ class Interpreter():
             reduced_pos = [reduced_pos]
         return (reduced_pos, reduced_kw)
 
+    def bool_method_call(self, obj, method_name, args):
+        obj = self.to_native(obj)
+        (posargs, _) = self.reduce_arguments(args)
+        if method_name == 'to_string':
+           if len(posargs) == 0:
+             if obj == True:
+               return 'true'
+             else:
+               return 'false'
+           elif len(posargs) == 2 and isinstance(posargs[0], str) and isinstance(posargs[1], str):
+             if obj == True:
+               return posargs[0]
+             else:
+               return posargs[1]
+           else:
+               raise InterpreterException('bool.to_string() must have either no arguments or exactly two string arguments.')
+        elif method_name == 'to_int':
+          if obj == True:
+            return 1
+          else:
+            return 0
+        else:
+            raise InterpreterException('Unknown method "%s" for a boolean.' % method_name)
+
     def string_method_call(self, obj, method_name, args):
         obj = self.to_native(obj)
         (posargs, _) = self.reduce_arguments(args)
@@ -2089,6 +2113,8 @@ class Interpreter():
             obj = obj.get_value()
         if isinstance(obj, str):
             return self.string_method_call(obj, method_name, args)
+        if isinstance(obj, bool):
+            return self.bool_method_call(obj, method_name, args)
         if isinstance(obj, list):
             return self.array_method_call(obj, method_name, self.reduce_arguments(args)[0])
         if not isinstance(obj, InterpreterObject):
