@@ -26,7 +26,7 @@ parser.add_argument('-D', action='append', default=[], dest='sets',
                     help='Set an option to the given value.')
 parser.add_argument('directory', nargs='*')
 
-class ConfException(coredata.MesonException):
+class ConfException(mesonlib.MesonException):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 

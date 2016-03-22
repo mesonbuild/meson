@@ -18,10 +18,9 @@ from .. import build
 from .. import mlog
 from .. import dependencies
 from .. import compilers
-from ..mesonlib import File
+from ..mesonlib import File, MesonException
 from .backends import InstallData
 from ..build import InvalidArguments
-from ..coredata import MesonException
 import os, sys, pickle, re
 import subprocess, shutil
 

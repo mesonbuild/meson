@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import pickle, os, uuid
+from .mesonlib import MesonException
 
 version = '0.31.0.dev1'
 
@@ -38,10 +39,6 @@ builtin_options = {'buildtype': True,
                    'layout' : True,
                    'default_library': True,
                   }
-
-class MesonException(Exception):
-    def __init__(self, *args, **kwargs):
-        Exception.__init__(self, *args, **kwargs)
 
 class UserOption:
     def __init__(self, name, description, choices):

@@ -15,7 +15,7 @@
 from .. import dependencies, mlog
 import os, subprocess
 from .. import build
-from ..coredata import MesonException
+from ..mesonlib import MesonException
 import xml.etree.ElementTree as ET
 
 class Qt5Module():

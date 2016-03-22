@@ -28,7 +28,7 @@ from functools import wraps
 
 import importlib
 
-class InterpreterException(coredata.MesonException):
+class InterpreterException(mesonlib.MesonException):
     pass
 
 class InvalidCode(InterpreterException):
@@ -932,7 +932,7 @@ class Interpreter():
         assert(isinstance(code, str))
         try:
             self.ast = mparser.Parser(code).parse()
-        except coredata.MesonException as me:
+        except mesonlib.MesonException as me:
             me.file = environment.build_filename
             raise me
         self.sanity_check_ast()
@@ -1801,7 +1801,7 @@ class Interpreter():
         assert(isinstance(code, str))
         try:
             codeblock = mparser.Parser(code).parse()
-        except coredata.MesonException as me:
+        except mesonlib.MesonException as me:
             me.file = buildfilename
             raise me
         self.evaluate_codeblock(codeblock)

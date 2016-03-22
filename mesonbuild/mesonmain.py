@@ -21,8 +21,8 @@ from . import environment, interpreter, mesonlib
 from . import build
 import platform
 from . import mlog, coredata
-
-from .coredata import MesonException, build_types, layouts, warning_levels, libtypelist
+from .mesonlib import MesonException
+from .coredata import build_types, layouts, warning_levels, libtypelist
 
 backendlist = ['ninja', 'vs2010', 'xcode']
 

@@ -18,7 +18,7 @@ functionality such as gobject-introspection and gresources.'''
 from .. import build
 import os, sys
 import subprocess
-from ..coredata import MesonException
+from ..mesonlib import MesonException
 from .. import mlog
 from .. import mesonlib
 

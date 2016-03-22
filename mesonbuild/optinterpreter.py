@@ -14,6 +14,7 @@
 
 from . import mparser
 from . import coredata
+from . import mesonlib
 import os, re
 
 forbidden_option_names = coredata.builtin_options
@@ -37,7 +38,7 @@ def is_invalid_name(name):
         return True
     return False
 
-class OptionException(coredata.MesonException):
+class OptionException(mesonlib.MesonException):
     pass
 
 optname_regex = re.compile('[^a-zA-Z0-9_-]')
@@ -77,7 +78,7 @@ class OptionInterpreter:
     def process(self, option_file):
         try:
             ast = mparser.Parser(open(option_file, 'r', encoding='utf8').read()).parse()
-        except coredata.MesonException as me:
+        except mesonlib.MesonException as me:
             me.file = option_file
             raise me
         if not isinstance(ast, mparser.CodeBlockNode):

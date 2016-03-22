@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from .. import mesonlib, dependencies, build
-from ..coredata import MesonException
+from ..mesonlib import MesonException
 import os
 
 class WindowsModule:
