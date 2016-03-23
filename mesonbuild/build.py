@@ -842,6 +842,8 @@ class CustomTarget:
             if isinstance(c, str):
                 final_cmd.append(c)
             elif isinstance(c, dependencies.ExternalProgram):
+                if not c.found():
+                    raise InvalidArguments('Tried to use not found external program in a build rule.')
                 final_cmd += c.get_command()
             elif isinstance(c, BuildTarget) or isinstance(c, CustomTarget):
                 self.dependencies.append(c)
