@@ -566,6 +566,11 @@ class Vs2010Backend(backends.Backend):
                 inc_cl = ET.SubElement(inc_src, 'CLCompile', Include=relpath)
                 self.add_pch(inc_cl, proj_to_src_dir, pch_sources, s)
                 self.add_additional_options(s, inc_cl, extra_args, additional_options_set)
+                basename = os.path.basename(s.fname)
+                if basename in target.sources_conflicts:
+                    obj_name = '.'.join(s.split('.')[:-1]).replace('/', '_')\
+                               + '.' + self.environment.get_object_suffix()
+                    ET.SubElement(inc_cl, 'ObjectFileName').text = "$(IntDir)" + obj_name
             for s in gen_src:
                 relpath =  self.relpath(s, target.subdir)
                 inc_cl = ET.SubElement(inc_src, 'CLCompile', Include=relpath)

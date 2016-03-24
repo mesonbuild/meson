@@ -184,6 +184,7 @@ class BuildTarget():
         self.subproject = subproject # Can not be calculated from subdir as subproject dirname can be changed per project.
         self.is_cross = is_cross
         self.sources = []
+        self.sources_conflicts = {}
         self.objects = []
         self.external_deps = []
         self.include_dirs = []
@@ -244,6 +245,7 @@ class BuildTarget():
         if not isinstance(sources, list):
             sources = [sources]
         added_sources = {} # If the same source is defined multiple times, use it only once.
+        conflicts = {} # We must resolve conflicts if multiple source files from different subdirs have the same name.
         for s in sources:
             # Holder unpacking. Ugly.
             if hasattr(s, 'held_object'):
@@ -252,10 +254,19 @@ class BuildTarget():
                 if not s in added_sources:
                     self.sources.append(s)
                     added_sources[s] = True
+                    basename = os.path.basename(s.fname)
+                    conflicting_sources = conflicts.get(basename, None)
+                    if conflicting_sources is None:
+                        conflicting_sources = []
+                    conflicting_sources.append(s)
+                    conflicts[basename] = conflicting_sources
             elif isinstance(s, GeneratedList) or isinstance(s, CustomTarget):
                 self.generated.append(s)
             else:
                 raise InvalidArguments('Bad source in target %s.' % self.name)
+        for basename, conflicting_sources in conflicts.items():
+            if len(conflicting_sources) > 1:
+                self.sources_conflicts[basename] = conflicting_sources
 
     def validate_sources(self):
         if len(self.sources) > 0:
