@@ -31,6 +31,10 @@ called 'meson.build'. To generate the build system run this command:
 
 `meson <source directory> <build directory>`
 
+Depending on how you obtained Meson the command might also be called
+`meson.py` instead of plain `meson`. In the rest of this document we
+are going to use the latter form.
+
 You can omit either of the two directories, and Meson will substitute
 the current directory and autodetect what you mean. This allows you to
 do things like this:
