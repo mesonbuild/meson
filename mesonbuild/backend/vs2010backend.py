@@ -35,8 +35,15 @@ class Vs2010Backend(backends.Backend):
     def __init__(self, build):
         super().__init__(build)
         self.project_file_version = '10.0.30319.1'
-        # foo.c compiles to foo.obj, not foo.c.obj
-        self.source_suffix_in_objs = False
+
+    def object_filename_from_source(self, target, source):
+        basename = os.path.basename(source.fname)
+        filename_without_extension = '.'.join(basename.split('.')[:-1])
+        if basename in target.sources_conflicts:
+            # If there are multiple source files with the same basename, we must resolve the conflict
+            # by giving each a unique object output file.
+            filename_without_extension = '.'.join(source.fname.split('.')[:-1]).replace('/', '_').replace('\\', '_')
+        return filename_without_extension + '.' + self.environment.get_object_suffix()
 
     def generate_custom_generator_commands(self, target, parent_node):
         all_output_files = []
@@ -525,7 +532,7 @@ class Vs2010Backend(backends.Backend):
             linkname = os.path.join(rel_path, lobj.get_import_filename())
             additional_links.append(linkname)
         additional_objects = []
-        for o in self.flatten_object_list(target, down, include_dir_names=False):
+        for o in self.flatten_object_list(target, down):
             assert(isinstance(o, str))
             additional_objects.append(o)
         if len(additional_links) > 0:
@@ -568,9 +575,7 @@ class Vs2010Backend(backends.Backend):
                 self.add_additional_options(s, inc_cl, extra_args, additional_options_set)
                 basename = os.path.basename(s.fname)
                 if basename in target.sources_conflicts:
-                    obj_name = '.'.join(s.split('.')[:-1]).replace('/', '_')\
-                               + '.' + self.environment.get_object_suffix()
-                    ET.SubElement(inc_cl, 'ObjectFileName').text = "$(IntDir)" + obj_name
+                    ET.SubElement(inc_cl, 'ObjectFileName').text = "$(IntDir)" + self.object_filename_from_source(target, s)
             for s in gen_src:
                 relpath =  self.relpath(s, target.subdir)
                 inc_cl = ET.SubElement(inc_src, 'CLCompile', Include=relpath)
