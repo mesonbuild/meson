@@ -437,7 +437,7 @@ class Vs2010Backend(backends.Backend):
         for l, args in target.extra_args.items():
             if l in extra_args:
                 extra_args[l] += args
-        general_args = compiler.get_buildtype_args(self.buildtype)
+        general_args = compiler.get_buildtype_args(self.buildtype).copy()
         # FIXME all the internal flags of VS (optimization etc) are represented
         # by their own XML elements. In theory we should split all flags to those
         # that have an XML element and those that don't and serialise them
