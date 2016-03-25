@@ -89,6 +89,7 @@ class PkgConfigDependency(Dependency):
         else:
             want_cross = environment.is_cross_build()
         self.name = name
+        self.pkgbin = 'pkg-config'
         if PkgConfigDependency.pkgconfig_found is None:
             self.check_pkgconfig()
 
@@ -102,19 +103,14 @@ class PkgConfigDependency(Dependency):
         if environment.is_cross_build() and want_cross:
             if "pkgconfig" not in environment.cross_info.config["binaries"]:
                 raise DependencyException('Pkg-config binary missing from cross file.')
-            pkgbin = environment.cross_info.config["binaries"]['pkgconfig']
+            self.pkgbin = environment.cross_info.config["binaries"]['pkgconfig']
             self.type_string = 'Cross'
         else:
-            pkgbin = 'pkg-config'
             self.type_string = 'Native'
 
-        mlog.debug('Determining dependency %s with pkg-config executable %s.' % (name, pkgbin))
-        self.pkgbin = pkgbin
-        p = subprocess.Popen([pkgbin, '--modversion', name],
-                             stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE)
-        out = p.communicate()[0]
-        if p.returncode != 0:
+        mlog.debug('Determining dependency %s with pkg-config executable %s.' % (name, self.pkgbin))
+        (out, returncode) = self.run_pkgconfig(['--modversion', name])
+        if returncode != 0:
             if self.required:
                 raise DependencyException('%s dependency %s not found.' % (self.type_string, name))
             self.modversion = 'none'
@@ -137,21 +133,17 @@ class PkgConfigDependency(Dependency):
                         (name, self.version_requirement, self.modversion))
             if not self.is_found:
                 return
-            p = subprocess.Popen([pkgbin, '--cflags', name], stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE)
-            out = p.communicate()[0]
-            if p.returncode != 0:
+            (out, returncode) = self.run_pkgconfig(['--cflags', name])
+            if returncode != 0:
                 raise DependencyException('Could not generate cargs for %s:\n\n%s' % \
                                           (name, out.decode(errors='ignore')))
             self.cargs = out.decode().split()
 
-            libcmd = [pkgbin, '--libs']
+            libcmd = ['--libs']
             if self.static:
                 libcmd.append('--static')
-            p = subprocess.Popen(libcmd + [name], stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE)
-            out = p.communicate()[0]
-            if p.returncode != 0:
+            (out, returncode) = self.run_pkgconfig(libcmd + [name])
+            if returncode != 0:
                 raise DependencyException('Could not generate libs for %s:\n\n%s' % \
                                           (name, out.decode(errors='ignore')))
             self.libs = []
@@ -172,10 +164,8 @@ class PkgConfigDependency(Dependency):
                 self.libs.append(lib)
 
     def get_variable(self, variable_name):
-        p = subprocess.Popen([self.pkgbin, '--variable=%s' % variable_name, self.name],
-                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        out = p.communicate()[0]
-        if p.returncode != 0:
+        (out, returncode) = self.run_pkgconfig(['--variable=' + variable_name, self.name])
+        if returncode != 0:
             if self.required:
                 raise DependencyException('%s dependency %s not found.' %
                                           (self.type_string, self.name))
@@ -194,17 +184,29 @@ class PkgConfigDependency(Dependency):
     def get_link_args(self):
         return self.libs
 
+    def run_pkgconfig(self, args):
+        # Sometimes pkg-config tries to be extra-smart and removes includes
+        # that are in the "system prefix", which it derives from the location
+        # of the .pc file. This causes all '-I${prefix}/include' cflags to be
+        # stripped and causes a compilation error with dependencies that have
+        # headers in the system include directory. We disable that with
+        # PKG_CONFIG_ALLOW_SYSTEM_CFLAGS=1 in the environment
+        our_env = os.environ.copy()
+        our_env['PKG_CONFIG_ALLOW_SYSTEM_CFLAGS'] = '1'
+        p = subprocess.Popen([self.pkgbin] + args, env=our_env,
+                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        out = p.communicate()[0]
+        return (out, p.returncode)
+
     def check_pkgconfig(self):
         try:
-            p = subprocess.Popen(['pkg-config', '--version'], stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE)
-            out = p.communicate()[0]
-            if p.returncode == 0:
+            (out, returncode) = self.run_pkgconfig(['--version'])
+            if returncode == 0:
                 mlog.log('Found pkg-config:', mlog.bold(shutil.which('pkg-config')),
                          '(%s)' % out.decode().strip())
                 PkgConfigDependency.pkgconfig_found = True
                 return
-        except Exception:
+        except (ValueError, OSError, subprocess.SubprocessError):
             pass
         PkgConfigDependency.pkgconfig_found = False
         mlog.log('Found Pkg-config:', mlog.red('NO'))
