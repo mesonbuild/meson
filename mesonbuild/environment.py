@@ -175,13 +175,13 @@ class Environment():
                 if type(oldval) != type(value):
                     self.coredata.user_options[name] = value
 
-    def detect_c_compiler(self, want_cross):
+    def detect_c_compiler(self, is_cross):
         evar = 'CC'
-        if self.is_cross_build() and want_cross:
-            compilers = [self.cross_info.config['binaries']['c']]
+        machine_prop = self.get_machine_properties(is_cross)
+        if machine_prop:
+            compilers = [machine_prop['c']]
             ccache = []
-            is_cross = True
-            exe_wrap = self.cross_info.config['binaries'].get('exe_wrapper', None)
+            exe_wrap = machine_prop.get('exe_wrapper', None)
         elif evar in os.environ:
             compilers = os.environ[evar].split()
             ccache = []
@@ -234,19 +234,17 @@ class Environment():
                 return VisualStudioCCompiler([compiler], version, is_cross, exe_wrap)
         raise EnvironmentException('Unknown compiler(s): "' + ', '.join(compilers) + '"')
 
-    def detect_fortran_compiler(self, want_cross):
+    def detect_fortran_compiler(self, is_cross):
         evar = 'FC'
-        if self.is_cross_build() and want_cross:
-            compilers = [self.cross_info['fortran']]
-            is_cross = True
-            exe_wrap = self.cross_info.get('exe_wrapper', None)
+        machine_prop = self.get_machine_properties(is_cross)
+        if prop:
+            compilers = [machine_prop['fortran']]
+            exe_wrap = machine_prop.get('exe_wrapper', None)
         elif evar in os.environ:
             compilers = os.environ[evar].split()
-            is_cross = False
             exe_wrap = None
         else:
             compilers = self.default_fortran
-            is_cross = False
             exe_wrap = None
         for compiler in compilers:
             for arg in ['--version', '-V']:
@@ -280,7 +278,7 @@ class Environment():
 
                 if 'ifort (IFORT)' in out:
                   return IntelFortranCompiler([compiler], version, is_cross, exe_wrap)
-                
+
                 if 'PathScale EKOPath(tm)' in err:
                   return PathScaleFortranCompiler([compiler], version, is_cross, exe_wrap)
 
@@ -302,22 +300,20 @@ class Environment():
         path = os.path.split(__file__)[0]
         return os.path.join(path, 'depfixer.py')
 
-    def detect_cpp_compiler(self, want_cross):
+    def detect_cpp_compiler(self, is_cross):
         evar = 'CXX'
-        if self.is_cross_build() and want_cross:
-            compilers = [self.cross_info.config['binaries']['cpp']]
+        machine_prop = self.get_machine_properties(is_cross)
+        if machine_prop:
+            compilers = [machine_prop['cpp']]
             ccache = []
-            is_cross = True
-            exe_wrap = self.cross_info.config['binaries'].get('exe_wrapper', None)
+            exe_wrap = mahine_prop.get('exe_wrapper', None)
         elif evar in os.environ:
             compilers = os.environ[evar].split()
             ccache = []
-            is_cross = False
             exe_wrap = None
         else:
             compilers = self.default_cpp
             ccache = self.detect_ccache()
-            is_cross = False
             exe_wrap = None
         for compiler in compilers:
             basename = os.path.basename(compiler).lower()
@@ -360,14 +356,13 @@ class Environment():
                 return VisualStudioCPPCompiler([compiler], version, is_cross, exe_wrap)
         raise EnvironmentException('Unknown compiler(s) "' + ', '.join(compilers) + '"')
 
-    def detect_objc_compiler(self, want_cross):
-        if self.is_cross_build() and want_cross:
-            exelist = [self.cross_info['objc']]
-            is_cross = True
-            exe_wrap = self.cross_info.get('exe_wrapper', None)
+    def detect_objc_compiler(self, is_cross):
+        machine_prop = self.get_machine_properties(is_cross)
+        if machine_prop:
+            exelist = [machine_prop['objc']]
+            exe_wrap = machine_prop.get('exe_wrapper', None)
         else:
             exelist = self.get_objc_compiler_exelist()
-            is_cross = False
             exe_wrap = None
         try:
             p = subprocess.Popen(exelist + ['--version'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -390,14 +385,13 @@ class Environment():
             return GnuObjCCompiler(exelist, version, is_cross, exe_wrap)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
 
-    def detect_objcpp_compiler(self, want_cross):
-        if self.is_cross_build() and want_cross:
-            exelist = [self.cross_info['objcpp']]
-            is_cross = True
-            exe_wrap = self.cross_info.get('exe_wrapper', None)
+    def detect_objcpp_compiler(self, is_cross):
+        machine_prop = self.get_machine_properties(is_cross)
+        if prop:
+            exelist = [machine_prop['objcpp']]
+            exe_wrap = machine_prop.get('exe_wrapper', None)
         else:
             exelist = self.get_objcpp_compiler_exelist()
-            is_cross = False
             exe_wrap = None
         try:
             p = subprocess.Popen(exelist + ['--version'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -508,8 +502,9 @@ class Environment():
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
 
     def detect_static_linker(self, compiler):
-        if compiler.is_cross:
-            linker = self.cross_info.config['binaries']['ar']
+        machine_prop = self.get_machine_properties(compiler.is_cross)
+        if machine_prop:
+            linker = machine_prop['ar']
         else:
             evar = 'AR'
             if evar in os.environ:
@@ -624,6 +619,13 @@ class Environment():
                 if os.path.isfile(trial):
                     return trial
 
+    def get_machine_properties(self, is_cross):
+        if not self.cross_info:
+            return {}
+        if is_cross:
+            return self.cross_info['host_machine']
+        else:
+            return self.cross_info['target_machine']
 
 def get_args_from_envvars(lang):
     if lang == 'c':
@@ -658,10 +660,6 @@ class CrossBuildInfo():
             return
         if not 'host_machine' in self.config:
             raise coredata.MesonException('Cross info file must have either host or a target machine.')
-        if not 'properties' in self.config:
-            raise coredata.MesonException('Cross file is missing "properties".')
-        if not 'binaries' in self.config:
-            raise coredata.MesonException('Cross file is missing "binaries".')
 
     def ok_type(self, i):
         return isinstance(i, str) or isinstance(i, int) or isinstance(i, bool)
@@ -696,7 +694,7 @@ class CrossBuildInfo():
     def has_target(self):
         return 'target_machine' in self.config
 
-    # Wehn compiling a cross compiler we use the native compiler for everything.
+    # When compiling a cross compiler we use the native compiler for everything.
     # But not when cross compiling a cross compiler.
     def need_cross_compiler(self):
         return 'host_machine' in self.config

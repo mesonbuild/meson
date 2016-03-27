@@ -636,8 +636,9 @@ int main(int argc, char **argv) {
 '''
         varname = 'has function ' + funcname
         varname = varname.replace(' ', '_')
+        machine_prop = self.cross_info.get_machine_config(self.is_cross)
         if self.is_cross:
-            val = env.cross_info.config['properties'].get(varname, None)
+            val = machine_prop.get(varname, None)
             if val is not None:
                 if isinstance(val, bool):
                     return val
@@ -1850,11 +1851,11 @@ class SunFortranCompiler(FortranCompiler):
 
 class IntelFortranCompiler(FortranCompiler):
     std_warn_args = ['-warn', 'all']
-    
+
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
         super().__init__(exelist, version, is_cross, exe_wrapper=None)
         self.id = 'intel'
-        
+
     def get_module_outdir_args(self, path):
         return ['-module', path]
 
