@@ -53,19 +53,20 @@ class Vs2010Backend(backends.Backend):
                 outfilelist = genlist.get_outfilelist()
                 exe_arr = self.exe_object_to_cmd_array(exe)
                 base_args = generator.get_arglist()
+                target_private_dir = self.relpath(self.get_target_private_dir(target), self.get_target_dir(target))
                 for i in range(len(infilelist)):
                     if len(infilelist) == len(outfilelist):
-                        sole_output = os.path.join(self.get_target_private_dir(target), outfilelist[i])
+                        sole_output = os.path.join(target_private_dir, outfilelist[i])
                     else:
                         sole_output = ''
                     curfile = infilelist[i]
                     infilename = os.path.join(self.environment.get_source_dir(), curfile)
                     outfiles = genlist.get_outputs_for(curfile)
-                    outfiles = [os.path.join(self.get_target_private_dir(target), of) for of in outfiles]
+                    outfiles = [os.path.join(target_private_dir, of) for of in outfiles]
                     all_output_files += outfiles
                     args = [x.replace("@INPUT@", infilename).replace('@OUTPUT@', sole_output)\
                             for x in base_args]
-                    args = [x.replace("@SOURCE_DIR@", self.environment.get_source_dir()).replace("@BUILD_DIR@", self.get_target_private_dir(target))
+                    args = [x.replace("@SOURCE_DIR@", self.environment.get_source_dir()).replace("@BUILD_DIR@", target_private_dir)
                             for x in args]
                     fullcmd = exe_arr + args
                     commands.append(' '.join(self.special_quote(fullcmd)))
