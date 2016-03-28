@@ -14,6 +14,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import sys
+
+if sys.version_info[0] < 3:
+    print('Tried to install with Python 2, Meson only supports Python 3.')
+    sys.exit(1)
+
 # We need to support Python installations that have nothing but the basic
 # Python installation. Use setuptools when possible and fall back to
 # plain distutils when setuptools is not available.
