@@ -16,6 +16,8 @@ import os, sys
 import pickle
 
 from mesonbuild import compilers
+from mesonbuild.build import BuildTarget
+from mesonbuild.mesonlib import File
 from . import backends
 from .. import build
 from .. import dependencies
@@ -35,15 +37,35 @@ class Vs2010Backend(backends.Backend):
     def __init__(self, build):
         super().__init__(build)
         self.project_file_version = '10.0.30319.1'
+        self.sources_conflicts = {}
 
     def object_filename_from_source(self, target, source):
         basename = os.path.basename(source.fname)
         filename_without_extension = '.'.join(basename.split('.')[:-1])
-        if basename in target.sources_conflicts:
+        if basename in self.sources_conflicts[target.get_id()]:
             # If there are multiple source files with the same basename, we must resolve the conflict
             # by giving each a unique object output file.
             filename_without_extension = '.'.join(source.fname.split('.')[:-1]).replace('/', '_').replace('\\', '_')
         return filename_without_extension + '.' + self.environment.get_object_suffix()
+
+    def resolve_source_conflicts(self):
+        for name, target in self.build.targets.items():
+            if not isinstance(target, BuildTarget):
+                continue
+            conflicts = {}
+            for s in target.get_sources():
+                if hasattr(s, 'held_object'):
+                    s = s.held_object
+                if not isinstance(s, File):
+                    continue
+                basename = os.path.basename(s.fname)
+                conflicting_sources = conflicts.get(basename, None)
+                if conflicting_sources is None:
+                    conflicting_sources = []
+                    conflicts[basename] = conflicting_sources
+                conflicting_sources.append(s)
+            self.sources_conflicts[target.get_id()] = {name: src_conflicts for name, src_conflicts in conflicts.items()
+                                                       if len(src_conflicts) > 1}
 
     def generate_custom_generator_commands(self, target, parent_node):
         all_output_files = []
@@ -93,6 +115,7 @@ class Vs2010Backend(backends.Backend):
         return all_output_files
 
     def generate(self, interp):
+        self.resolve_source_conflicts()
         self.interpreter = interp
         self.platform = 'Win32'
         self.buildtype = self.environment.coredata.get_builtin_option('buildtype')
@@ -574,7 +597,7 @@ class Vs2010Backend(backends.Backend):
                 self.add_pch(inc_cl, proj_to_src_dir, pch_sources, s)
                 self.add_additional_options(s, inc_cl, extra_args, additional_options_set)
                 basename = os.path.basename(s.fname)
-                if basename in target.sources_conflicts:
+                if basename in self.sources_conflicts[target.get_id()]:
                     ET.SubElement(inc_cl, 'ObjectFileName').text = "$(IntDir)" + self.object_filename_from_source(target, s)
             for s in gen_src:
                 relpath =  self.relpath(s, target.subdir)
