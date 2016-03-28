@@ -574,7 +574,7 @@ int main(int argc, char **argv) {
 '''
         res = self.run(templ % (prefix, element), extra_args)
         if not res.compiled:
-            raise EnvironmentException('Could not compile sizeof test.')
+            return -1
         if res.returncode != 0:
             raise EnvironmentException('Could not run sizeof test binary.')
         return int(res.stdout)
