@@ -552,11 +552,7 @@ class Vs2010Backend(backends.Backend):
                 relpath = h.rel_to_builddir(proj_to_src_root)
                 ET.SubElement(inc_hdrs, 'CLInclude', Include=relpath)
             for h in gen_hdrs:
-                if isinstance(h, str):
-                    relpath = h
-                else:
-                    relpath = h.rel_to_builddir(proj_to_src_root)
-                ET.SubElement(inc_hdrs, 'CLInclude', Include = relpath)
+                ET.SubElement(inc_hdrs, 'CLInclude', Include=h)
         if len(sources) + len(gen_src) + len(pch_sources) > 0:
             inc_src = ET.SubElement(root, 'ItemGroup')
             for s in sources:
@@ -565,8 +561,7 @@ class Vs2010Backend(backends.Backend):
                 self.add_pch(inc_cl, proj_to_src_dir, pch_sources, s)
                 self.add_additional_options(s, inc_cl, extra_args, additional_options_set)
             for s in gen_src:
-                relpath =  self.relpath(s, target.subdir)
-                inc_cl = ET.SubElement(inc_src, 'CLCompile', Include=relpath)
+                inc_cl = ET.SubElement(inc_src, 'CLCompile', Include=s)
                 self.add_pch(inc_cl, proj_to_src_dir, pch_sources, s)
                 self.add_additional_options(s, inc_cl, extra_args, additional_options_set)
             for lang in pch_sources:
