@@ -1039,6 +1039,10 @@ class Interpreter():
                 self.build.install_scripts.append(v)
             elif isinstance(v, build.Data):
                 self.build.data.append(v)
+            elif isinstance(v, build.PoInfo):
+                if len(self.build.pot) > 0:
+                    raise coredata.MesonException('More than one gettext definition currently not supported.')
+                self.build.pot.append(v)
             else:
                 print(v)
                 raise InterpreterException('Module returned a value of unknown type.')
@@ -1269,15 +1273,7 @@ class Interpreter():
 
     @stringArgs
     def func_gettext(self, nodes, args, kwargs):
-        if len(args) != 1:
-            raise InterpreterException('Gettext requires one positional argument (package name).')
-        packagename = args[0]
-        languages = kwargs.get('languages', None)
-        check_stringlist(languages, 'Argument languages must be a list of strings.')
-        # TODO: check that elements are strings
-        if len(self.build.pot) > 0:
-            raise InterpreterException('More than one gettext definition currently not supported.')
-        self.build.pot.append((packagename, languages, self.subdir))
+        raise InterpreterException('Gettext() function has been moved to module i18n. Import it and use i18n.gettext() instead')
 
     def func_option(self, nodes, args, kwargs):
         raise InterpreterException('Tried to call option() in build description file. All options must be in the option file.')

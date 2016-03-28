@@ -1016,3 +1016,9 @@ class InstallScript:
     def __init__(self, cmd_arr):
         assert(isinstance(cmd_arr, list))
         self.cmd_arr = cmd_arr
+
+class PoInfo():
+    def __init__(self, packagename, languages, subdir):
+        self.packagename = packagename
+        self.languages = languages
+        self.subdir = subdir

@@ -406,17 +406,16 @@ int dummy;
 
     def generate_po(self, outfile):
         for p in self.build.pot:
-            (packagename, languages, subdir) = p
-            input_file = os.path.join(subdir, 'POTFILES')
+            input_file = os.path.join(p.subdir, 'POTFILES')
             elem = NinjaBuildElement(self.all_outputs, 'pot', 'GEN_POT', [])
-            elem.add_item('PACKAGENAME', packagename)
-            elem.add_item('OUTFILE', packagename + '.pot')
+            elem.add_item('PACKAGENAME', p.packagename)
+            elem.add_item('OUTFILE', p.packagename + '.pot')
             elem.add_item('FILELIST', os.path.join(self.environment.get_source_dir(), input_file))
-            elem.add_item('OUTDIR', os.path.join(self.environment.get_source_dir(), subdir))
+            elem.add_item('OUTDIR', os.path.join(self.environment.get_source_dir(), p.subdir))
             elem.write(outfile)
-            for l in languages:
-                infile = os.path.join(self.environment.get_source_dir(), subdir, l + '.po')
-                outfilename = os.path.join(subdir, l + '.gmo')
+            for l in p.languages:
+                infile = os.path.join(self.environment.get_source_dir(), p.subdir, l + '.po')
+                outfilename = os.path.join(p.subdir, l + '.gmo')
                 lelem = NinjaBuildElement(self.all_outputs, outfilename, 'GEN_GMO', infile)
                 lelem.add_item('INFILE', infile)
                 lelem.add_item('OUTFILE', outfilename)
@@ -482,11 +481,10 @@ int dummy;
 
     def generate_po_install(self, d, elem):
         for p in self.build.pot:
-            (package_name, languages, subdir) = p
             # FIXME: assumes only one po package per source
-            d.po_package_name = package_name
-            for lang in languages:
-                rel_src =  os.path.join(subdir, lang + '.gmo')
+            d.po_package_name = p.packagename
+            for lang in p.languages:
+                rel_src =  os.path.join(p.subdir, lang + '.gmo')
                 src_file = os.path.join(self.environment.get_build_dir(), rel_src)
                 d.po.append((src_file, self.environment.coredata.get_builtin_option('localedir'), lang))
                 elem.add_dep(rel_src)
