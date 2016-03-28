@@ -51,10 +51,7 @@ class Vs2010Backend(backends.Backend):
                 exe = generator.get_exe()
                 infilelist = genlist.get_infilelist()
                 outfilelist = genlist.get_outfilelist()
-                if isinstance(exe, build.BuildTarget):
-                    exe_file = os.path.join(self.environment.get_build_dir(), self.get_target_filename(exe))
-                else:
-                    exe_file = exe.get_command()[0]
+                exe_arr = self.exe_object_to_cmd_array(exe)
                 base_args = generator.get_arglist()
                 for i in range(len(infilelist)):
                     if len(infilelist) == len(outfilelist):
@@ -70,7 +67,7 @@ class Vs2010Backend(backends.Backend):
                             for x in base_args]
                     args = [x.replace("@SOURCE_DIR@", self.environment.get_source_dir()).replace("@BUILD_DIR@", self.get_target_private_dir(target))
                             for x in args]
-                    fullcmd = [exe_file] + args
+                    fullcmd = exe_arr + args
                     commands.append(' '.join(self.special_quote(fullcmd)))
                     inputs.append(infilename)
                     outputs.extend(outfiles)
