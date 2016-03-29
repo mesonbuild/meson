@@ -129,7 +129,6 @@ class NinjaBackend(backends.Backend):
 
     def __init__(self, build):
         super().__init__(build)
-        self.source_suffix_in_objs = True
         self.ninja_filename = 'build.ninja'
         self.fortran_deps = {}
         self.all_outputs = {}
