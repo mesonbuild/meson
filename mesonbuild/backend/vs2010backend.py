@@ -548,7 +548,7 @@ class Vs2010Backend(backends.Backend):
             ET.SubElement(link, "AdditionalOptions").text = ' '.join(extra_link_args)
 
         additional_links = []
-        for t in target.link_targets:
+        for t in target.get_dependencies():
             lobj = self.build.targets[t.get_id()]
             rel_path = self.relpath(lobj.subdir, target.subdir)
             linkname = os.path.join(rel_path, lobj.get_import_filename())
