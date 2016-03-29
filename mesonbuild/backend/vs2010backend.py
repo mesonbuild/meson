@@ -73,9 +73,13 @@ class Vs2010Backend(backends.Backend):
         commands = []
         inputs = []
         outputs = []
+        custom_target_include_dirs = []
         for genlist in target.get_generated_sources():
             if isinstance(genlist, build.CustomTarget):
                 all_output_files += [os.path.join(self.get_target_dir(genlist), i) for i in genlist.output]
+                idir = self.relpath(self.get_target_dir(genlist), self.get_target_dir(target))
+                if idir not in custom_target_include_dirs:
+                    custom_target_include_dirs.append(idir)
             else:
                 generator = genlist.get_generator()
                 exe = generator.get_exe()
@@ -111,7 +115,7 @@ class Vs2010Backend(backends.Backend):
             ET.SubElement(cbs, 'Message').text = 'Generating custom sources.'
             pg = ET.SubElement(parent_node, 'PropertyGroup')
             ET.SubElement(pg, 'CustomBuildBeforeTargets').text = 'ClCompile'
-        return all_output_files
+        return all_output_files, custom_target_include_dirs
 
     def generate(self, interp):
         self.resolve_source_conflicts()
@@ -436,7 +440,7 @@ class Vs2010Backend(backends.Backend):
         ET.SubElement(type_config, 'WholeProgramOptimization').text = 'false'
         ET.SubElement(type_config, 'UseDebugLibraries').text = 'true'
         ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.props')
-        generated_files = self.generate_custom_generator_commands(target, root)
+        generated_files, generated_files_include_dirs = self.generate_custom_generator_commands(target, root)
         (gen_src, gen_hdrs, gen_objs, gen_langs) = self.split_sources(generated_files)
         direlem = ET.SubElement(root, 'PropertyGroup')
         fver = ET.SubElement(direlem, '_ProjectFileVersion')
@@ -455,7 +459,7 @@ class Vs2010Backend(backends.Backend):
         opt = ET.SubElement(clconf, 'Optimization')
         opt.text = 'disabled'
         inc_dirs = ['.', self.relpath(self.get_target_private_dir(target), self.get_target_dir(target)),
-                    proj_to_src_dir]
+                    proj_to_src_dir] + generated_files_include_dirs
 
         extra_args = {'c': [], 'cpp': []}
         for l, args in self.environment.coredata.external_args.items():
