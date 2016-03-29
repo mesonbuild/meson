@@ -1348,13 +1348,7 @@ rule FORTRAN_DEP_HACK
                 relout = self.get_target_private_dir(target)
                 args = [x.replace("@SOURCE_DIR@", self.build_to_src).replace("@BUILD_DIR@", relout)
                         for x in args]
-                final_args = []
-                for a in args:
-                    if a == '@EXTRA_ARGS@':
-                        final_args += genlist.get_extra_args()
-                    else:
-                        final_args.append(a)
-                cmdlist = exe_arr + final_args
+                cmdlist = exe_arr + self.replace_extra_args(args, genlist)
                 elem = NinjaBuildElement(self.all_outputs, outfiles, 'CUSTOM_COMMAND', infilename)
                 if len(extra_dependencies) > 0:
                     elem.add_dep(extra_dependencies)

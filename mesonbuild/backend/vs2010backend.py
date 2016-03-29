@@ -80,26 +80,24 @@ class Vs2010Backend(backends.Backend):
                 exe = generator.get_exe()
                 infilelist = genlist.get_infilelist()
                 outfilelist = genlist.get_outfilelist()
-                if isinstance(exe, build.BuildTarget):
-                    exe_file = os.path.join(self.environment.get_build_dir(), self.get_target_filename(exe))
-                else:
-                    exe_file = exe.get_command()[0]
+                exe_arr = self.exe_object_to_cmd_array(exe)
                 base_args = generator.get_arglist()
+                target_private_dir = self.relpath(self.get_target_private_dir(target), self.get_target_dir(target))
                 for i in range(len(infilelist)):
                     if len(infilelist) == len(outfilelist):
-                        sole_output = os.path.join(self.get_target_private_dir(target), outfilelist[i])
+                        sole_output = os.path.join(target_private_dir, outfilelist[i])
                     else:
                         sole_output = ''
                     curfile = infilelist[i]
                     infilename = os.path.join(self.environment.get_source_dir(), curfile)
                     outfiles = genlist.get_outputs_for(curfile)
-                    outfiles = [os.path.join(self.get_target_private_dir(target), of) for of in outfiles]
+                    outfiles = [os.path.join(target_private_dir, of) for of in outfiles]
                     all_output_files += outfiles
                     args = [x.replace("@INPUT@", infilename).replace('@OUTPUT@', sole_output)\
                             for x in base_args]
-                    args = [x.replace("@SOURCE_DIR@", self.environment.get_source_dir()).replace("@BUILD_DIR@", self.get_target_private_dir(target))
+                    args = [x.replace("@SOURCE_DIR@", self.environment.get_source_dir()).replace("@BUILD_DIR@", target_private_dir)
                             for x in args]
-                    fullcmd = [exe_file] + args
+                    fullcmd = exe_arr + self.replace_extra_args(args, genlist)
                     commands.append(' '.join(self.special_quote(fullcmd)))
                     inputs.append(infilename)
                     outputs.extend(outfiles)
@@ -584,11 +582,7 @@ class Vs2010Backend(backends.Backend):
                 relpath = h.rel_to_builddir(proj_to_src_root)
                 ET.SubElement(inc_hdrs, 'CLInclude', Include=relpath)
             for h in gen_hdrs:
-                if isinstance(h, str):
-                    relpath = h
-                else:
-                    relpath = h.rel_to_builddir(proj_to_src_root)
-                ET.SubElement(inc_hdrs, 'CLInclude', Include = relpath)
+                ET.SubElement(inc_hdrs, 'CLInclude', Include=h)
         if len(sources) + len(gen_src) + len(pch_sources) > 0:
             inc_src = ET.SubElement(root, 'ItemGroup')
             for s in sources:
@@ -600,8 +594,7 @@ class Vs2010Backend(backends.Backend):
                 if basename in self.sources_conflicts[target.get_id()]:
                     ET.SubElement(inc_cl, 'ObjectFileName').text = "$(IntDir)" + self.object_filename_from_source(target, s)
             for s in gen_src:
-                relpath =  self.relpath(s, target.subdir)
-                inc_cl = ET.SubElement(inc_src, 'CLCompile', Include=relpath)
+                inc_cl = ET.SubElement(inc_src, 'CLCompile', Include=s)
                 self.add_pch(inc_cl, proj_to_src_dir, pch_sources, s)
                 self.add_additional_options(s, inc_cl, extra_args, additional_options_set)
             for lang in pch_sources:
