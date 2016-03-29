@@ -14,6 +14,7 @@
 
 import os, sys
 import pickle
+import re
 
 from mesonbuild import compilers
 from mesonbuild.build import BuildTarget
@@ -376,6 +377,10 @@ class Vs2010Backend(backends.Backend):
         lang = Vs2010Backend.lang_from_source_file(source_file)
         ET.SubElement(parent_node, "AdditionalOptions").text = ' '.join(extra_args[lang]) + ' %(AdditionalOptions)'
 
+    @classmethod
+    def quote_define_cmdline(cls, arg):
+        return re.sub(r'^([-/])D(.*?)="(.*)"$', r'\1D\2=\"\3\"', arg)
+
     def gen_vcxproj(self, target, ofname, guid, compiler):
         mlog.debug('Generating vcxproj %s.' % target.name)
         entrypoint = 'WinMainCRTStartup'
@@ -474,6 +479,9 @@ class Vs2010Backend(backends.Backend):
                 general_args += d.compile_args
             except AttributeError:
                 pass
+
+        for l, args in extra_args.items():
+            extra_args[l] = [Vs2010Backend.quote_define_cmdline(x) for x in args]
 
         languages += gen_langs
         has_language_specific_args = any(l != extra_args['c'] for l in extra_args.values())
