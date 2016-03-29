@@ -68,7 +68,7 @@ class Vs2010Backend(backends.Backend):
                             for x in base_args]
                     args = [x.replace("@SOURCE_DIR@", self.environment.get_source_dir()).replace("@BUILD_DIR@", target_private_dir)
                             for x in args]
-                    fullcmd = exe_arr + args
+                    fullcmd = exe_arr + self.replace_extra_args(args, genlist)
                     commands.append(' '.join(self.special_quote(fullcmd)))
                     inputs.append(infilename)
                     outputs.extend(outfiles)

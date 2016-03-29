@@ -388,6 +388,15 @@ class Backend():
             exe_arr = exe.get_command()
         return exe_arr
 
+    def replace_extra_args(self, args, genlist):
+        final_args = []
+        for a in args:
+            if a == '@EXTRA_ARGS@':
+                final_args += genlist.get_extra_args()
+            else:
+                final_args.append(a)
+        return final_args
+
     def eval_custom_target_command(self, target, absolute_paths=False):
         if not absolute_paths:
             ofilenames = [os.path.join(self.get_target_dir(target), i) for i in target.output]
