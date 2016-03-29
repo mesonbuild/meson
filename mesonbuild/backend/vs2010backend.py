@@ -449,11 +449,8 @@ class Vs2010Backend(backends.Backend):
         clconf = ET.SubElement(compiles, 'ClCompile')
         opt = ET.SubElement(clconf, 'Optimization')
         opt.text = 'disabled'
-        inc_dirs = [proj_to_src_dir, self.get_target_private_dir(target)]
-        cur_dir = target.subdir
-        if cur_dir == '':
-            cur_dir= '.'
-        inc_dirs.append(cur_dir)
+        inc_dirs = ['.', self.relpath(self.get_target_private_dir(target), self.get_target_dir(target)),
+                    proj_to_src_dir]
 
         extra_args = {'c': [], 'cpp': []}
         for l, args in self.environment.coredata.external_args.items():
