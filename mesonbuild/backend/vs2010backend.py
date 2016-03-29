@@ -494,6 +494,10 @@ class Vs2010Backend(backends.Backend):
                 curdir = os.path.join(d.curdir, i)
                 inc_dirs.append(self.relpath(curdir, target.subdir)) # build dir
                 inc_dirs.append(os.path.join(proj_to_src_root, curdir)) # src dir
+            for i in d.get_extra_build_dirs():
+                curdir = os.path.join(d.curdir, i)
+                inc_dirs.append(self.relpath(curdir, target.subdir))  # build dir
+
         inc_dirs.append('%(AdditionalIncludeDirectories)')
         ET.SubElement(clconf, 'AdditionalIncludeDirectories').text = ';'.join(inc_dirs)
         preproc = ET.SubElement(clconf, 'PreprocessorDefinitions')
