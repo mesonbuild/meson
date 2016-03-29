@@ -264,6 +264,8 @@ class Vs2010Backend(backends.Backend):
                 lang = self.lang_from_source_file(i)
                 if lang not in languages:
                     languages.append(lang)
+            elif self.environment.is_library(i):
+                pass
             else:
                 # Everything that is not an object or source file is considered a header.
                 headers.append(i)
@@ -565,6 +567,8 @@ class Vs2010Backend(backends.Backend):
             rel_path = self.relpath(lobj.subdir, target.subdir)
             linkname = os.path.join(rel_path, lobj.get_import_filename())
             additional_links.append(linkname)
+        for lib in self.get_custom_target_provided_libraries(target):
+            additional_links.append(self.relpath(lib, self.get_target_dir(target)))
         additional_objects = []
         for o in self.flatten_object_list(target, down):
             assert(isinstance(o, str))
