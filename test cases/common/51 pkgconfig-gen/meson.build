@@ -12,5 +12,7 @@ pkgg.generate(
   version : libver,
   name : 'libsimple',
   filebase : 'simple',
-  description : 'A simple demo library.'
+  description : 'A simple demo library.',
+  requires : 'glib-2.0', # Not really, but only here to test that this works.
+  requires_private : ['gio-2.0', 'gobject-2.0'],
 )

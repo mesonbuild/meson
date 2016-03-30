@@ -21,7 +21,8 @@ class PkgConfigModule:
     def print_hello(self, state, args, kwargs):
         print('Hello from a Meson module')
 
-    def generate_pkgconfig_file(self, state, libraries, subdirs, name, description, version, filebase):
+    def generate_pkgconfig_file(self, state, libraries, subdirs, name, description, version, filebase,
+                                pub_reqs, priv_reqs):
         outdir = state.environment.scratch_dir
         fname = os.path.join(outdir, filebase + '.pc')
         ofile = open(fname, 'w')
@@ -34,6 +35,10 @@ class PkgConfigModule:
             ofile.write('Description: %s\n' % description)
         if len(version) > 0:
             ofile.write('Version: %s\n' % version)
+        if len(pub_reqs):
+            ofile.write('Requires: {}\n'.format(' '.join(pub_reqs)))
+        if len(priv_reqs):
+            ofile.write('Requires.private: {}\n'.format(' '.join(priv_reqs)))
         ofile.write('Libs: -L${libdir} ')
         for l in libraries:
             ofile.write('-l%s ' % l.name)
@@ -73,9 +78,12 @@ class PkgConfigModule:
         description = kwargs.get('description', None)
         if not isinstance(description, str):
             raise coredata.MesonException('Description is not a string.')
+        pub_reqs = mesonlib.stringlistify(kwargs.get('requires', []))
+        priv_reqs = mesonlib.stringlistify(kwargs.get('requires_private', []))
         pcfile = filebase + '.pc'
         pkgroot = os.path.join(state.environment.coredata.get_builtin_option('libdir'), 'pkgconfig')
-        self.generate_pkgconfig_file(state, libs, subdirs, name, description, version, filebase)
+        self.generate_pkgconfig_file(state, libs, subdirs, name, description, version, filebase,
+                                     pub_reqs, priv_reqs)
         return build.Data(False, state.environment.get_scratch_dir(), [pcfile], pkgroot)
 
 def initialize():
