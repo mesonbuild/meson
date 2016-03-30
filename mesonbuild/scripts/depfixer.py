@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright 2013-2014 The Meson development team
+# Copyright 2013-2016 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -110,8 +110,9 @@ class SectionHeader(DataSizes):
             self.sh_entsize = struct.unpack(self.Word, ifile.read(self.WordSize))[0]
 
 class Elf(DataSizes):
-    def __init__(self, bfile):
+    def __init__(self, bfile, verbose=True):
         self.bfile = bfile
+        self.verbose = verbose
         self.bf = open(bfile, 'r+b')
         (self.ptrsize, self.is_le) = self.detect_elf_type()
         super().__init__(self.ptrsize, self.is_le)
@@ -124,22 +125,21 @@ class Elf(DataSizes):
         if data[1:4] != b'ELF':
             # This script gets called to non-elf targets too
             # so just ignore them.
-            print('File "%s" is not an ELF file.' % self.bfile)
+            if self.verbose:
+                print('File "%s" is not an ELF file.' % self.bfile)
             sys.exit(0)
         if data[4] == 1:
             ptrsize = 32
         elif data[4] == 2:
             ptrsize = 64
         else:
-            print('File "%s" has unknown ELF class.' % self.bfile)
-            sys.exit(1)
+            sys.exit('File "%s" has unknown ELF class.' % self.bfile)
         if data[5] == 1:
             is_le = True
         elif data[5] == 2:
             is_le = False
         else:
-            print('File "%s" has unknown ELF endianness.' % self.bfile)
-            sys.exit(1)
+            sys.exit('File "%s" has unknown ELF endianness.' % self.bfile)
         return (ptrsize, is_le)
 
     def parse_header(self):
@@ -257,14 +257,17 @@ class Elf(DataSizes):
                 self.bf.write(newname)
 
     def fix_rpath(self, new_rpath):
+        if isinstance(new_rpath, str):
+            new_rpath = new_rpath.encode('utf8')
         rp_off = self.get_rpath_offset()
         if rp_off is None:
-            print('File does not have rpath. It should be a fully static executable.')
+            if self.verbose:
+                print('File does not have rpath. It should be a fully static executable.')
             return
         self.bf.seek(rp_off)
         old_rpath = self.read_str()
         if len(old_rpath) < len(new_rpath):
-            print("New rpath must not be longer than the old one.")
+            sys.exit("New rpath must not be longer than the old one.")
         self.bf.seek(rp_off)
         self.bf.write(new_rpath)
         self.bf.write(b'\0'*(len(old_rpath) - len(new_rpath) + 1))
@@ -295,7 +298,7 @@ def run(args):
         e.print_rpath()
     else:
         new_rpath = args[1]
-        e.fix_rpath(new_rpath.encode('utf8'))
+        e.fix_rpath(new_rpath)
     return 0
 
 if __name__ == '__main__':

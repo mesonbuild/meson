@@ -16,6 +16,7 @@
 
 import sys, pickle, os, shutil, subprocess, gzip, platform
 from glob import glob
+from mesonbuild.scripts import depfixer
 
 def do_install(datafilename):
     ifile = open(datafilename, 'rb')
@@ -203,15 +204,14 @@ def install_targets(d):
                     print("Symlink creation does not work on this platform.")
                     printed_symlink_error = True
         if is_elf_platform():
-            p = subprocess.Popen(d.depfixer + [outname, install_rpath],
-                                 stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE)
-            (stdo, stde) = p.communicate()
-            if p.returncode != 0:
-                print('Could not fix dependency info.\n')
-                print('Stdout:\n%s\n' % stdo.decode())
-                print('Stderr:\n%s\n' % stde.decode())
-                sys.exit(1)
+            try:
+                e = depfixer.Elf(outname, True)
+                e.fix_rpath(install_rpath)
+            except SystemExit as e:
+                if isinstance(e.code, int) and e.code == 0:
+                    pass
+                else:
+                    raise
 
 def run(args):
     if len(args) != 1:

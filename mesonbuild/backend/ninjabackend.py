@@ -458,10 +458,9 @@ int dummy;
         script_root = self.environment.get_script_dir()
         install_script = os.path.join(script_root, 'meson_install.py')
         install_data_file = os.path.join(self.environment.get_scratch_dir(), 'install.dat')
-        depfixer = [sys.executable, self.environment.get_build_command(), '--internal', 'depfixer']
         d = InstallData(self.environment.get_source_dir(),
                         self.environment.get_build_dir(),
-                        self.environment.get_prefix(), depfixer)
+                        self.environment.get_prefix())
         elem = NinjaBuildElement(self.all_outputs, 'install', 'CUSTOM_COMMAND', 'PHONY')
         elem.add_dep('all')
         elem.add_item('DESC', 'Installing files.')
