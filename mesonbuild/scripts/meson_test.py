@@ -44,13 +44,14 @@ parser.add_argument('args', nargs='+')
 
 
 class TestRun():
-    def __init__(self, res, returncode, duration, stdo, stde, cmd):
+    def __init__(self, res, returncode, should_fail, duration, stdo, stde, cmd):
         self.res = res
         self.returncode = returncode
         self.duration = duration
         self.stdo = stdo
         self.stde = stde
         self.cmd = cmd
+        self.should_fail = should_fail
 
     def get_log(self):
         res = '--- command ---\n'
@@ -160,7 +161,7 @@ def run_single_test(wrap, test):
         else:
             res = 'FAIL'
         returncode = p.returncode
-    return TestRun(res, returncode, duration, stdo, stde, cmd)
+    return TestRun(res, returncode, test.should_fail, duration, stdo, stde, cmd)
 
 def print_stats(numlen, tests, name, result, i, logfile, jsonlogfile):
     global collected_logs, error_count, options
@@ -172,7 +173,7 @@ def print_stats(numlen, tests, name, result, i, logfile, jsonlogfile):
         (num, name, padding1, result.res, padding2, result.duration)
     print(result_str)
     result_str += "\n\n" + result.get_log()
-    if result.returncode != 0:
+    if (result.returncode != 0) != result.should_fail:
         error_count += 1
         if options.print_errorlogs:
             collected_logs.append(result_str)
