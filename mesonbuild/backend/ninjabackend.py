@@ -233,7 +233,8 @@ int dummy;
             self.generate_cs_target(target, outfile)
             return
         if 'vala' in self.environment.coredata.compilers.keys() and self.has_vala(target):
-            vala_output_files = self.generate_vala_compile(target, outfile)
+            vc = self.environment.coredata.compilers['vala']
+            vala_output_files = self.generate_vala_compile(vc, target, outfile)
             gen_src_deps += vala_output_files
         if 'swift' in self.environment.coredata.compilers.keys() and self.has_swift(target):
             self.generate_swift_target(target, outfile)
@@ -788,7 +789,7 @@ int dummy;
                     break
         return result
 
-    def generate_vala_compile(self, target, outfile):
+    def generate_vala_compile(self, compiler, target, outfile):
         """Vala is compiled into C. Set up all necessary build steps here."""
         valac = self.environment.coredata.compilers['vala']
         (src, vapi_src) = self.split_vala_sources(target.get_sources())
@@ -808,7 +809,9 @@ int dummy;
 
         generated_c_files = []
         outputs = [vapiname]
-        args = ['-d', self.get_target_private_dir(target)]
+        args = []
+        args += self.build.get_global_args(compiler)
+        args += ['-d', self.get_target_private_dir(target)]
         args += ['-C']#, '-o', cname]
         if not isinstance(target, build.Executable):
             outputs.append(hname)
