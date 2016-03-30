@@ -577,13 +577,18 @@ class Vs2010Backend(backends.Backend):
         targetmachine = ET.SubElement(link, 'TargetMachine')
         targetmachine.text = 'MachineX86'
 
-        if len(headers) + len(gen_hdrs) > 0:
+        extra_files = target.extra_files
+        if len(headers) + len(gen_hdrs) + len(extra_files) > 0:
             inc_hdrs = ET.SubElement(root, 'ItemGroup')
             for h in headers:
                 relpath = h.rel_to_builddir(proj_to_src_root)
                 ET.SubElement(inc_hdrs, 'CLInclude', Include=relpath)
             for h in gen_hdrs:
                 ET.SubElement(inc_hdrs, 'CLInclude', Include=h)
+            for h in target.extra_files:
+                relpath = os.path.join(proj_to_src_dir, h)
+                ET.SubElement(inc_hdrs, 'CLInclude', Include=relpath)
+
         if len(sources) + len(gen_src) + len(pch_sources) > 0:
             inc_src = ET.SubElement(root, 'ItemGroup')
             for s in sources:
