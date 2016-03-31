@@ -669,9 +669,9 @@ void bar() {
         args = []
         for i in extra_dirs:
             args += self.get_linker_search_args(i)
-        args.append('-Wl,--unresolved-symbols=ignore-in-shared-libs')
         args.append('-l' + libname)
-        if self.links(code, extra_args=args):
+        tmp_link_arg = ['-Wl,--unresolved-symbols=ignore-in-shared-libs']
+        if self.links(code, extra_args = args + tmp_link_arg):
             return args
         return None
 
