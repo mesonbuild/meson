@@ -136,7 +136,10 @@ class NinjaBackend(backends.Backend):
     def detect_vs_dep_prefix(self, outfile, tempfilename):
         '''VS writes its dependency in a locale dependent format.
         Detect the search prefix to use.'''
-        if shutil.which('cl') is None:
+        # Of course there is another program called 'cl' on
+        # some platforms. Let's just require that on Windows
+        # cl points to msvc.
+        if not mesonlib.is_windows() or shutil.which('cl') is None:
             return outfile
         outfile.close()
         open(os.path.join(self.environment.get_scratch_dir(), 'incdetect.c'),
