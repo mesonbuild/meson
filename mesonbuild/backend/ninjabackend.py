@@ -341,6 +341,7 @@ int dummy;
     def generate_custom_target(self, target, outfile):
         (srcs, ofilenames, cmd) = self.eval_custom_target_command(target)
         deps = []
+        desc = 'Generating {0} with a {1} command.'
         for i in target.get_dependencies():
             # FIXME, should not grab element at zero but rather expand all.
             if isinstance(i, list):
@@ -364,9 +365,23 @@ int dummy;
                 tmp = [tmp]
             for fname in tmp:
                 elem.add_dep(os.path.join(self.get_target_dir(d), fname))
+        # Windows doesn't have -rpath, so for EXEs that need DLLs built within
+        # the project, we need to set PATH so the DLLs are found. We use
+        # a serialized executable wrapper for that and check if the
+        # CustomTarget command needs extra paths first.
+        if mesonlib.is_windows() and \
+           self.determine_windows_extra_paths(target.command[0]):
+            exe_data = self.serialise_executable(target.command[0], cmd[1:],
+                # All targets are built from the build dir
+                self.environment.get_build_dir())
+            cmd = [sys.executable, self.environment.get_build_command(),
+                   '--internal', 'exe', exe_data]
+            cmd_type = 'meson_exe.py custom'
+        else:
+            cmd_type = 'custom'
 
         elem.add_item('COMMAND', cmd)
-        elem.add_item('description', 'Generating %s with a custom command.' % target.name)
+        elem.add_item('description',  desc.format(target.name, cmd_type))
         elem.write(outfile)
         self.processed_targets[target.name + target.type_suffix()] = True
 
