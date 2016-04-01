@@ -209,7 +209,6 @@ def run_test(skipped, testdir, extra_args, should_succeed):
 
 def _run_test(testdir, test_build_dir, install_dir, extra_args, should_succeed):
     global compile_commands
-    print('Running test: ' + testdir)
     test_args = parse_test_args(testdir)
     gen_start = time.time()
     gen_command = [meson_command, '--prefix', '/usr', '--libdir', 'lib', testdir, test_build_dir]\
@@ -311,24 +310,26 @@ def run_tests(extra_args):
             (testnum, testbase) = os.path.split(t)[-1].split(' ', 1)
             testname = '%.3d %s' % (int(testnum), testbase)
             result = executor.submit(run_test, skipped, t, extra_args, name != 'failing')
-        for (testname, result) in futures:
-            futures.append((testname, result))
+            futures.append((testname, t, result))
+        for (testname, t, result) in futures:
+            result = result.result()
             if result is None:
+                print('Skipping:', t)
                 current_test = ET.SubElement(current_suite, 'testcase', {'name' : testname,
                                                                          'classname' : name})
                 ET.SubElement(current_test, 'skipped', {})
                 global skipped_tests
                 skipped_tests += 1
             else:
-                ts = time.time()
-                te = time.time()
+                print('Running test: ' + t)
                 conf_time += result.conftime
                 build_time += result.buildtime
                 test_time += result.testtime
+                total_time = conf_time + build_time + test_time
                 log_text_file(logfile, t, result.msg, result.stdo, result.stde)
                 current_test = ET.SubElement(current_suite, 'testcase', {'name' : testname,
                                                                          'classname' : name,
-                                                                         'time' : '%.3f' % (te - ts)})
+                                                                         'time' : '%.3f' % total_time})
                 if result.msg != '':
                     ET.SubElement(current_test, 'failure', {'message' : result.msg})
                 stdoel = ET.SubElement(current_test, 'system-out')
