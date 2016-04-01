@@ -514,7 +514,7 @@ class Environment():
             evar = 'AR'
             if evar in os.environ:
                 linker = os.environ[evar].strip()
-            if isinstance(compiler, VisualStudioCCompiler):
+            elif isinstance(compiler, VisualStudioCCompiler):
                 linker= self.vs_static_linker
             else:
                 linker = self.default_static_linker
