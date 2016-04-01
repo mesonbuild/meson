@@ -18,7 +18,7 @@ from glob import glob
 import os, subprocess, shutil, sys, signal
 from io import StringIO
 from ast import literal_eval
-import sys
+import sys, tempfile
 from mesonbuild import environment
 from mesonbuild import mesonlib
 from mesonbuild import mlog
@@ -45,8 +45,6 @@ failing_tests = 0
 skipped_tests = 0
 print_debug = 'MESON_PRINT_TEST_OUTPUT' in os.environ
 
-test_build_dir = 'work area'
-install_dir = os.path.join(os.path.split(os.path.abspath(__file__))[0], 'install dir')
 meson_command = os.path.join(os.getcwd(), 'meson')
 if not os.path.exists(meson_command):
     meson_command += '.py'
@@ -198,12 +196,13 @@ def parse_test_args(testdir):
     return args
 
 def run_test(testdir, extra_args, should_succeed):
+    with tempfile.TemporaryDirectory(prefix='b ', dir='.') as build_dir:
+        with tempfile.TemporaryDirectory(prefix='i ', dir=os.getcwd()) as install_dir:
+            return _run_test(testdir, build_dir, install_dir, extra_args, should_succeed)
+
+def _run_test(testdir, test_build_dir, install_dir, extra_args, should_succeed):
     global compile_commands
     mlog.shutdown() # Close the log file because otherwise Windows wets itself.
-    shutil.rmtree(test_build_dir)
-    shutil.rmtree(install_dir)
-    os.mkdir(test_build_dir)
-    os.mkdir(install_dir)
     print('Running test: ' + testdir)
     test_args = parse_test_args(testdir)
     gen_start = time.time()
@@ -290,14 +289,6 @@ def run_tests(extra_args):
     conf_time = 0
     build_time = 0
     test_time = 0
-    try:
-        os.mkdir(test_build_dir)
-    except OSError:
-        pass
-    try:
-        os.mkdir(install_dir)
-    except OSError:
-        pass
 
     for name, test_cases, skipped in all_tests:
         current_suite = ET.SubElement(junit_root, 'testsuite', {'name' : name, 'tests' : str(len(test_cases))})
