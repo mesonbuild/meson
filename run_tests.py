@@ -198,11 +198,13 @@ def parse_test_args(testdir):
 def run_test(testdir, extra_args, should_succeed):
     with tempfile.TemporaryDirectory(prefix='b ', dir='.') as build_dir:
         with tempfile.TemporaryDirectory(prefix='i ', dir=os.getcwd()) as install_dir:
-            return _run_test(testdir, build_dir, install_dir, extra_args, should_succeed)
+            try:
+                return _run_test(testdir, build_dir, install_dir, extra_args, should_succeed)
+            finally:
+                mlog.shutdown() # Close the log file because otherwise Windows wets itself.
 
 def _run_test(testdir, test_build_dir, install_dir, extra_args, should_succeed):
     global compile_commands
-    mlog.shutdown() # Close the log file because otherwise Windows wets itself.
     print('Running test: ' + testdir)
     test_args = parse_test_args(testdir)
     gen_start = time.time()
