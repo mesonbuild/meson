@@ -1021,6 +1021,9 @@ class ValaCompiler(Compiler):
     def get_exelist(self):
         return self.exelist
 
+    def get_coverage_args(self):
+        return ['--debug']
+
     def get_werror_args(self):
         return ['--fatal-warnings']
 
