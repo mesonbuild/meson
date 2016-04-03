@@ -47,7 +47,7 @@ known_shlib_kwargs.update({'version' : True,
                            'soversion' : True,
                            'name_prefix' : True,
                            'name_suffix' : True,
-                           })
+                           'vs_module_defs' : True})
 
 backslash_explanation = \
 '''Compiler arguments have a backslash "\\" character. This is unfortunately not
@@ -703,6 +703,7 @@ class SharedLibrary(BuildTarget):
     def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
         self.version = None
         self.soversion = None
+        self.vs_module_defs = None
         super().__init__(name, subdir, subproject, is_cross, sources, objects, environment, kwargs);
         if len(self.sources) > 0 and self.sources[0].endswith('.cs'):
             prefix = 'lib'
@@ -726,6 +727,12 @@ class SharedLibrary(BuildTarget):
             self.set_version(kwargs['version'])
         if 'soversion' in kwargs:
             self.set_soversion(kwargs['soversion'])
+        if 'vs_module_defs' in kwargs:
+            path = kwargs['vs_module_defs']
+            if (os.path.isabs(path)):
+                self.vs_module_defs = File.from_absolute_file(path)
+            else:
+                self.vs_module_defs = File.from_source_file(environment.source_dir, self.subdir, path)
 
     def check_unknown_kwargs(self, kwargs):
         self.check_unknown_kwargs_int(kwargs, known_shlib_kwargs)
