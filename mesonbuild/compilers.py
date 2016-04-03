@@ -126,7 +126,7 @@ base_options = {
                                                   'off'),
                 'b_coverage': coredata.UserBooleanOption('b_coverage',
                                                          'Enable coverage tracking.',
-                                                         True),
+                                                         False),
                 }
 
 def sanitizer_compile_args(value):
@@ -1043,6 +1043,11 @@ class ValaCompiler(Compiler):
     def can_compile(self, filename):
         suffix = filename.split('.')[-1]
         return suffix in ('vala', 'vapi')
+
+    def get_buildtype_args(self, buildtype):
+        if buildtype == 'debug' or buildtype == 'debugoptimized':
+            return ['--debug']
+        return []
 
 class RustCompiler(Compiler):
     def __init__(self, exelist, version):

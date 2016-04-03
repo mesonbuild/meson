@@ -184,7 +184,9 @@ int dummy;
         self.generate_tests(outfile)
         outfile.write('# Install rules\n\n')
         self.generate_install(outfile)
-        if self.environment.coredata.base_options.get('b_coverage', False):
+        if 'b_coverage' in self.environment.coredata.base_options and\
+            self.environment.coredata.base_options['b_coverage'].value:
+            print(bool(self.environment.coredata.base_options.get('b_coverage', False)))
             outfile.write('# Coverage rules\n\n')
             self.generate_coverage_rules(outfile)
         outfile.write('# Suffix\n\n')
@@ -813,6 +815,7 @@ int dummy;
         outputs = [vapiname]
         args = []
         args += self.build.get_global_args(compiler)
+        args += compiler.get_buildtype_args(self.environment.coredata.get_builtin_option('buildtype'))
         args += ['-d', self.get_target_private_dir(target)]
         args += ['-C']#, '-o', cname]
         if not isinstance(target, build.Executable):
