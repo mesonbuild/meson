@@ -184,9 +184,8 @@ int dummy;
         self.generate_tests(outfile)
         outfile.write('# Install rules\n\n')
         self.generate_install(outfile)
-        if 'b_coverage' in self.environment.coredata.base_options and\
+        if 'b_coverage' in self.environment.coredata.base_options and \
             self.environment.coredata.base_options['b_coverage'].value:
-            print(bool(self.environment.coredata.base_options.get('b_coverage', False)))
             outfile.write('# Coverage rules\n\n')
             self.generate_coverage_rules(outfile)
         outfile.write('# Suffix\n\n')
@@ -448,10 +447,11 @@ int dummy;
             phony_elem.write(outfile)
 
             elem = NinjaBuildElement(self.all_outputs, 'coveragereport/index.html', 'CUSTOM_COMMAND', '')
+            htmloutdir = os.path.join(self.environment.get_log_dir(), 'coveragereport')
             command = [lcov_exe, '--directory', self.environment.get_build_dir(),\
                        '--capture', '--output-file', 'coverage.info', '--no-checksum',\
                        '&&', genhtml_exe, '--prefix', self.environment.get_build_dir(),\
-                       '--output-directory', self.environment.get_log_dir(), '--title', 'Code coverage',\
+                       '--output-directory', htmloutdir, '--title', 'Code coverage',\
                        '--legend', '--show-details', 'coverage.info']
             elem.add_item('COMMAND', command)
             elem.add_item('DESC', 'Generating HTML coverage report.')
