@@ -251,8 +251,6 @@ class Backend():
         commands += self.environment.coredata.external_args[compiler.get_language()]
         commands += target.get_extra_args(compiler.get_language())
         commands += compiler.get_buildtype_args(self.environment.coredata.get_builtin_option('buildtype'))
-        if self.environment.coredata.base_options.get('b_coverage', False):
-            commands += compiler.get_coverage_args()
         if self.environment.coredata.get_builtin_option('werror'):
             commands += compiler.get_werror_args()
         if isinstance(target, build.SharedLibrary):

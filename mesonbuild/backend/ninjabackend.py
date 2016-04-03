@@ -1687,8 +1687,6 @@ rule FORTRAN_DEP_HACK
                         commands += dep.get_link_args()
         commands += linker.build_rpath_args(self.environment.get_build_dir(),\
                                             self.determine_rpath_dirs(target), target.install_rpath)
-        if self.environment.coredata.base_options.get('b_coverage', False):
-            commands += linker.get_coverage_link_args()
         custom_target_libraries = self.get_custom_target_provided_libraries(target)
         commands += extra_args
         commands += custom_target_libraries
@@ -1802,7 +1800,8 @@ rule FORTRAN_DEP_HACK
         elem = NinjaBuildElement(self.all_outputs, 'clean', 'CUSTOM_COMMAND', 'PHONY')
         elem.add_item('COMMAND', [ninja_command, '-t', 'clean'])
         elem.add_item('description', 'Cleaning')
-        if self.environment.coredata.base_options.get('b_coverage', False):
+        if 'b_coverage' in self.environment.coredata.base_options and \
+           self.environment.coredata.base_options['b_coverage'].value:
             self.generate_gcov_clean(outfile)
             elem.add_dep('clean-gcda')
             elem.add_dep('clean-gcno')
