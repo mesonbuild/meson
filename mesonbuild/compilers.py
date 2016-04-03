@@ -484,7 +484,6 @@ int someSymbolHereJustForFun;
         return p.returncode == 0
 
     def links(self, code, extra_args = []):
-        suflen = len(self.default_suffix)
         (fd, srcname) = tempfile.mkstemp(suffix='.'+self.default_suffix)
         os.close(fd)
         (fd, dstname) = tempfile.mkstemp()

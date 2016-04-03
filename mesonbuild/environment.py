@@ -266,32 +266,32 @@ class Environment():
                     version = vmatch.group(0)
 
                 if 'GNU Fortran' in out:
-                  return GnuFortranCompiler([compiler], version, GCC_STANDARD, is_cross, exe_wrap)
+                    return GnuFortranCompiler([compiler], version, GCC_STANDARD, is_cross, exe_wrap)
 
                 if 'G95' in out:
-                  return G95FortranCompiler([compiler], version, is_cross, exe_wrap)
+                    return G95FortranCompiler([compiler], version, is_cross, exe_wrap)
 
                 if 'Sun Fortran' in err:
-                  version = 'unknown version'
-                  vmatch = re.search(Environment.version_regex, err)
-                  if vmatch:
-                      version = vmatch.group(0)
-                  return SunFortranCompiler([compiler], version, is_cross, exe_wrap)
+                    version = 'unknown version'
+                    vmatch = re.search(Environment.version_regex, err)
+                    if vmatch:
+                        version = vmatch.group(0)
+                    return SunFortranCompiler([compiler], version, is_cross, exe_wrap)
 
                 if 'ifort (IFORT)' in out:
-                  return IntelFortranCompiler([compiler], version, is_cross, exe_wrap)
-                
+                    return IntelFortranCompiler([compiler], version, is_cross, exe_wrap)
+
                 if 'PathScale EKOPath(tm)' in err:
-                  return PathScaleFortranCompiler([compiler], version, is_cross, exe_wrap)
+                    return PathScaleFortranCompiler([compiler], version, is_cross, exe_wrap)
 
                 if 'pgf90' in out:
-                  return PGIFortranCompiler([compiler], version, is_cross, exe_wrap)
+                    return PGIFortranCompiler([compiler], version, is_cross, exe_wrap)
 
                 if 'Open64 Compiler Suite' in err:
-                  return Open64FortranCompiler([compiler], version, is_cross, exe_wrap)
+                    return Open64FortranCompiler([compiler], version, is_cross, exe_wrap)
 
                 if 'NAG Fortran' in err:
-                  return NAGFortranCompiler([compiler], version, is_cross, exe_wrap)
+                    return NAGFortranCompiler([compiler], version, is_cross, exe_wrap)
 
         raise EnvironmentException('Unknown compiler(s): "' + ', '.join(compilers) + '"')
 
