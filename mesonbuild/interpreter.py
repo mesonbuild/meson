@@ -761,13 +761,13 @@ class CompilerHolder(InterpreterObject):
         required = kwargs.get('required', True)
         if not isinstance(required, bool):
             raise InterpreterException('required must be boolean.')
-        search_dirs = kwargs.get('dirs', [])
+        search_dirs = mesonlib.stringlistify(kwargs.get('dirs', []))
         for i in search_dirs:
             if not os.path.isabs(i):
                 raise InvalidCode('Search directory %s is not an absolute path.' % i)
         linkargs = self.compiler.find_library(libname, search_dirs)
         if required and linkargs is None:
-            raise InterpreterException('Library %s not found'.format(libname))
+            raise InterpreterException('Library {} not found'.format(libname))
         lib = dependencies.ExternalLibrary(libname, linkargs)
         return ExternalLibraryHolder(lib)
 

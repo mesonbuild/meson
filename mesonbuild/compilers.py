@@ -285,6 +285,9 @@ class Compiler():
     def find_library(self, libname, extra_dirs):
         raise EnvironmentException('Language {} does not support library finding.'.format(self.language))
 
+    def get_library_dirs(self):
+        return []
+
 class CCompiler(Compiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
         super().__init__(exelist, version)
@@ -371,6 +374,16 @@ class CCompiler(Compiler):
 
     def get_std_shared_lib_link_args(self):
         return ['-shared']
+
+    def get_library_dirs(self):
+        output = subprocess.Popen(self.exelist + ['--print-search-dirs'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+        (stdo, _) = output.communicate()
+        stdo = stdo.decode('utf-8')
+        for line in stdo.split('\n'):
+            if line.startswith('libraries:'):
+                libstr = line.split('=', 1)[1]
+                return libstr.split(':')
+        return []
 
     def can_compile(self, filename):
         suffix = filename.split('.')[-1]
@@ -661,16 +674,28 @@ void bar() {
         return self.compiles(templ % (prefix, typename), extra_args)
 
     def find_library(self, libname, extra_dirs):
+        # First try if we can just add the library as -l.
         code = '''int main(int argc, char **argv) {
     return 0;
 }
         '''
-        args = []
-        for i in extra_dirs:
-            args += self.get_linker_search_args(i)
-        args.append('-l' + libname)
-        if self.links(code, extra_args=args):
-            return args
+        # Gcc + co seem to prefer builtin lib dirs to -L dirs.
+        # Only try to find std libs if no extra dirs specified.
+        if len(extra_dirs) == 0:
+            args = ['-l' + libname]
+            if self.links(code, extra_args=args):
+                return args
+        # Not found? Try to find the library file itself.
+        extra_dirs += self.get_library_dirs()
+        suffixes = ['so', 'dylib', 'lib', 'dll', 'a']
+        for d in extra_dirs:
+            for suffix in suffixes:
+                trial = os.path.join(d, 'lib' + libname + '.' + suffix)
+                if os.path.isfile(trial):
+                    return trial
+                trial2 = os.path.join(d, libname + '.' + suffix)
+                if os.path.isfile(trial2):
+                    return trial2
         return None
 
     def thread_flags(self):
