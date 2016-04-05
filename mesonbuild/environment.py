@@ -58,7 +58,6 @@ class Environment():
     log_dir = 'meson-logs'
     coredata_file = os.path.join(private_dir, 'coredata.dat')
     version_regex = '\d+(\.\d+)+(-[a-zA-Z0-9]+)?'
-
     def __init__(self, source_dir, build_dir, main_script_file, options, original_cmd_line_args):
         assert(os.path.isabs(main_script_file))
         assert(not os.path.islink(main_script_file))

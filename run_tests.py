@@ -309,20 +309,10 @@ def run_tests(extra_args):
             # and getting it wrong by not doing logical number sorting.
             (testnum, testbase) = os.path.split(t)[-1].split(' ', 1)
             testname = '%.3d %s' % (int(testnum), testbase)
-            # Windows errors out when calling result.result() below with
-            # a bizarre error about appending None to an array that comes
-            # from the standard library. This is probably either because I use
-            # XP or the Python version is old. Anyhow, fall back to immediate
-            # evaluation. This causes output not to be printed until the end,
-            # which is unfortunate but least it works.
-            if mesonlib.is_windows():
-                result = run_test(skipped, t, extra_args, name != 'failing')
-            else:
-                result = executor.submit(run_test, skipped, t, extra_args, name != 'failing')
+            result = executor.submit(run_test, skipped, t, extra_args, name != 'failing')
             futures.append((testname, t, result))
         for (testname, t, result) in futures:
-            if not mesonlib.is_windows(): # See above.
-                result = result.result()
+            result = result.result()
             if result is None:
                 print('Skipping:', t)
                 current_test = ET.SubElement(current_suite, 'testcase', {'name' : testname,
