@@ -245,7 +245,6 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, flags, compile_c
     if returncode != 0:
         return TestResult('Running unit tests failed.', stdo, stde, gen_time, build_time, test_time)
     if len(install_commands) == 0:
-        print("Skipping install test")
         return TestResult('', '', '', gen_time, build_time, test_time)
     else:
         env = os.environ.copy()
@@ -320,7 +319,8 @@ def run_tests(extra_args):
                 global skipped_tests
                 skipped_tests += 1
             else:
-                print('Running test: ' + t)
+                without_install = "" if len(install_commands) > 0 else " (without install)"
+                print('Running test%s: %s' % (without_install, t))
                 conf_time += result.conftime
                 build_time += result.buildtime
                 test_time += result.testtime
