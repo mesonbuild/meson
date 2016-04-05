@@ -197,22 +197,21 @@ def parse_test_args(testdir):
         pass
     return args
 
-def run_test(skipped, testdir, extra_args, should_succeed):
+def run_test(skipped, testdir, extra_args, flags, compile_commands, install_commands, should_succeed):
     if skipped:
         return None
     with tempfile.TemporaryDirectory(prefix='b ', dir='.') as build_dir:
         with tempfile.TemporaryDirectory(prefix='i ', dir=os.getcwd()) as install_dir:
             try:
-                return _run_test(testdir, build_dir, install_dir, extra_args, should_succeed)
+                return _run_test(testdir, build_dir, install_dir, extra_args, flags, compile_commands, install_commands, should_succeed)
             finally:
                 mlog.shutdown() # Close the log file because otherwise Windows wets itself.
 
-def _run_test(testdir, test_build_dir, install_dir, extra_args, should_succeed):
-    global compile_commands
+def _run_test(testdir, test_build_dir, install_dir, extra_args, flags, compile_commands, install_commands, should_succeed):
     test_args = parse_test_args(testdir)
     gen_start = time.time()
     gen_command = [meson_command, '--prefix', '/usr', '--libdir', 'lib', testdir, test_build_dir]\
-        + unity_flags + backend_flags + test_args + extra_args
+        + flags + test_args + extra_args
     (returncode, stdo, stde) = run_configure_inprocess(gen_command)
     gen_time = time.time() - gen_start
     if not should_succeed:
@@ -309,7 +308,7 @@ def run_tests(extra_args):
             # and getting it wrong by not doing logical number sorting.
             (testnum, testbase) = os.path.split(t)[-1].split(' ', 1)
             testname = '%.3d %s' % (int(testnum), testbase)
-            result = executor.submit(run_test, skipped, t, extra_args, name != 'failing')
+            result = executor.submit(run_test, skipped, t, extra_args, unity_flags + backend_flags, compile_commands, install_commands, name != 'failing')
             futures.append((testname, t, result))
         for (testname, t, result) in futures:
             result = result.result()
