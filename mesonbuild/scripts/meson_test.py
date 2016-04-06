@@ -25,7 +25,9 @@ def is_windows():
     platname = platform.system().lower()
     return platname == 'windows' or 'mingw' in platname
 
-tests_failed = []
+collected_logs = []
+error_count = 0
+options = None
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--wrapper', default=None, dest='wrapper',
@@ -34,17 +36,41 @@ parser.add_argument('--wd', default=None, dest='wd',
                     help='directory to cd into before running')
 parser.add_argument('--suite', default=None, dest='suite',
                     help='Only run tests belonging to this suite.')
+parser.add_argument('--no-stdsplit', default=True, dest='split', action='store_false',
+                    help='Do not split stderr and stdout in test logs.')
+parser.add_argument('--print-errorlogs', default=False, action='store_true',
+                    help="Whether to print faling tests' logs.")
 parser.add_argument('args', nargs='+')
 
 
 class TestRun():
-    def __init__(self, res, returncode, duration, stdo, stde, cmd):
+    def __init__(self, res, returncode, should_fail, duration, stdo, stde, cmd):
         self.res = res
         self.returncode = returncode
         self.duration = duration
         self.stdo = stdo
         self.stde = stde
         self.cmd = cmd
+        self.should_fail = should_fail
+
+    def get_log(self):
+        res = '--- command ---\n'
+        if self.cmd is None:
+            res += 'NONE\n'
+        else:
+            res += ' '.join(self.cmd) + '\n'
+        if self.stdo:
+            res += '--- stdout ---\n'
+            res += self.stdo
+        if self.stde:
+            if res[-1:] != '\n':
+                res += '\n'
+            res += '--- stderr ---\n'
+            res += self.stde
+        if res[-1:] != '\n':
+            res += '\n'
+        res += '-------\n\n'
+        return res
 
 def decode(stream):
     try:
@@ -52,28 +78,16 @@ def decode(stream):
     except UnicodeDecodeError:
         return stream.decode('iso-8859-1', errors='ignore')
 
-def write_log(logfile, test_name, result_str, result):
-    logfile.write(result_str + '\n\n')
-    logfile.write('--- command ---\n')
-    if result.cmd is None:
-        logfile.write('NONE')
-    else:
-        logfile.write(' '.join(result.cmd))
-    logfile.write('\n--- "%s" stdout ---\n' % test_name)
-    logfile.write(result.stdo)
-    logfile.write('\n--- "%s" stderr ---\n' % test_name)
-    logfile.write(result.stde)
-    logfile.write('\n-------\n\n')
-
 def write_json_log(jsonlogfile, test_name, result):
-    result = {'name' : test_name,
+    jresult = {'name' : test_name,
               'stdout' : result.stdo,
-              'stderr' : result.stde,
               'result' : result.res,
               'duration' : result.duration,
               'returncode' : result.returncode,
               'command' : result.cmd}
-    jsonlogfile.write(json.dumps(result) + '\n')
+    if result.stde:
+        jresult['stderr'] = result.stde
+    jsonlogfile.write(json.dumps(jresult) + '\n')
 
 def run_with_mono(fname):
     if fname.endswith('.exe') and not is_windows():
@@ -81,7 +95,7 @@ def run_with_mono(fname):
     return False
 
 def run_single_test(wrap, test):
-    global tests_failed
+    global options
     if test.fname[0].endswith('.jar'):
         cmd = ['java', '-jar'] + test.fname
     elif not test.is_cross and run_with_mono(test.fname[0]):
@@ -102,7 +116,7 @@ def run_single_test(wrap, test):
         res = 'SKIP'
         duration = 0.0
         stdo = 'Not run because can not execute cross compiled binaries.'
-        stde = ''
+        stde = None
         returncode = -1
     else:
         cmd = wrap + cmd + test.cmd_args
@@ -117,7 +131,7 @@ def run_single_test(wrap, test):
             setsid = os.setsid
         p = subprocess.Popen(cmd,
                              stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE,
+                             stderr=subprocess.PIPE if options and options.split else subprocess.STDOUT,
                              env=child_env,
                              cwd=test.workdir,
                              preexec_fn=setsid)
@@ -137,20 +151,20 @@ def run_single_test(wrap, test):
         endtime = time.time()
         duration = endtime - starttime
         stdo = decode(stdo)
-        stde = decode(stde)
+        if stde:
+            stde = decode(stde)
         if timed_out:
             res = 'TIMEOUT'
-            tests_failed.append((test.name, stdo, stde))
         elif (not test.should_fail and p.returncode == 0) or \
             (test.should_fail and p.returncode != 0):
             res = 'OK'
         else:
             res = 'FAIL'
-            tests_failed.append((test.name, stdo, stde))
         returncode = p.returncode
-    return TestRun(res, returncode, duration, stdo, stde, cmd)
+    return TestRun(res, returncode, test.should_fail, duration, stdo, stde, cmd)
 
 def print_stats(numlen, tests, name, result, i, logfile, jsonlogfile):
+    global collected_logs, error_count, options
     startpad = ' '*(numlen - len('%d' % (i+1)))
     num = '%s%d/%d' % (startpad, i+1, len(tests))
     padding1 = ' '*(38-len(name))
@@ -158,7 +172,12 @@ def print_stats(numlen, tests, name, result, i, logfile, jsonlogfile):
     result_str = '%s %s  %s%s%s%5.2f s' % \
         (num, name, padding1, result.res, padding2, result.duration)
     print(result_str)
-    write_log(logfile, name, result_str, result)
+    result_str += "\n\n" + result.get_log()
+    if (result.returncode != 0) != result.should_fail:
+        error_count += 1
+        if options.print_errorlogs:
+            collected_logs.append(result_str)
+    logfile.write(result_str)
     write_json_log(jsonlogfile, name, result)
 
 def drain_futures(futures):
@@ -171,7 +190,8 @@ def filter_tests(suite, tests):
         return tests
     return [x for x in tests if suite in x.suite]
 
-def run_tests(options, datafilename):
+def run_tests(datafilename):
+    global options
     logfile_base = 'meson-logs/testlog'
     if options.wrapper is None:
         wrap = []
@@ -222,8 +242,9 @@ def run_tests(options, datafilename):
     return logfilename
 
 def run(args):
-    global tests_failed
-    tests_failed = [] # To avoid state leaks when invoked multiple times (running tests in-process)
+    global collected_logs, error_count, options
+    collected_logs = [] # To avoid state leaks when invoked multiple times (running tests in-process)
+    error_count = 0
     options = parser.parse_args(args)
     if len(options.args) != 1:
         print('Test runner for Meson. Do not run on your own, mmm\'kay?')
@@ -231,19 +252,22 @@ def run(args):
     if options.wd is not None:
         os.chdir(options.wd)
     datafile = options.args[0]
-    logfilename = run_tests(options, datafile)
-    returncode = 0
-    if len(tests_failed) > 0:
-        print('\nOutput of failed tests (max 10):')
-        for (name, stdo, stde) in tests_failed[:10]:
-            print("{} stdout:\n".format(name))
-            print(stdo)
-            print('\n{} stderr:\n'.format(name))
-            print(stde)
-            print('\n')
-        returncode = 1
-    print('\nFull log written to %s.' % logfilename)
-    return returncode
+    logfilename = run_tests(datafile)
+    if len(collected_logs) > 0:
+        if len(collected_logs) > 10:
+            print('\nThe output from 10 first failed tests:\n')
+        else:
+            print('\nThe output from the failed tests:\n')
+        for log in collected_logs[:10]:
+            lines = log.splitlines()
+            if len(lines) > 100:
+                print(line[0])
+                print('--- Listing only the last 100 lines from a long log. ---')
+                lines = lines[-99:]
+            for line in lines:
+                print(line)
+    print('Full log written to %s.' % logfilename)
+    return error_count
 
 if __name__ == '__main__':
     sys.exit(run(sys.argv[1:]))

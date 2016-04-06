@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import re
-from .coredata import MesonException
+from .mesonlib import MesonException
 
 class ParseException(MesonException):
     def __init__(self, text, lineno, colno):

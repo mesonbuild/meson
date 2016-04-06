@@ -16,7 +16,7 @@ import subprocess, os.path
 import tempfile
 from .import mesonlib
 from . import mlog
-from .coredata import MesonException
+from .mesonlib import MesonException
 from . import coredata
 
 """This file contains the data files of all compilers Meson knows

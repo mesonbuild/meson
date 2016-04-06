@@ -18,7 +18,9 @@ import platform, subprocess, operator, os, shutil, re, sys
 
 from glob import glob
 
-from .coredata import MesonException
+class MesonException(Exception):
+    def __init__(self, *args, **kwargs):
+        Exception.__init__(self, *args, **kwargs)
 
 class File:
     def __init__(self, is_built, subdir, fname):
@@ -176,6 +178,9 @@ def default_libdir():
 def default_libexecdir():
     # There is no way to auto-detect this, so it must be set at build time
     return 'libexec'
+
+def default_prefix():
+    return 'c:/' if is_windows() else '/usr/local'
 
 def get_library_dirs():
     if is_windows():

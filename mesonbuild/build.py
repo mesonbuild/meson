@@ -17,7 +17,7 @@ from . import environment
 from . import dependencies
 from . import mlog
 import copy, os
-from .mesonlib import File, flatten
+from .mesonlib import File, flatten, MesonException
 
 known_basic_kwargs = {'install' : True,
                       'c_pch' : True,
@@ -71,7 +71,7 @@ We are fully aware that these are not really usable or pleasant ways to do
 this but it's the best we can do given the way shell quoting works.
 '''
 
-class InvalidArguments(coredata.MesonException):
+class InvalidArguments(MesonException):
     pass
 
 class Build:
@@ -299,10 +299,10 @@ class BuildTarget():
                 srclist = [srclist]
             for src in srclist:
                 if not isinstance(src, str):
-                    raise coredata.MesonException('Extraction arguments must be strings.')
+                    raise MesonException('Extraction arguments must be strings.')
                 src = File(False, self.subdir, src)
                 if src not in self.sources:
-                    raise coredata.MesonException('Tried to extract unknown source %s.' % src)
+                    raise MesonException('Tried to extract unknown source %s.' % src)
                 obj_src.append(src)
         return ExtractedObjects(self, obj_src)
 

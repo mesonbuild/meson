@@ -25,7 +25,7 @@ from .. import dependencies
 from .. import mlog
 import xml.etree.ElementTree as ET
 import xml.dom.minidom
-from ..coredata import MesonException
+from ..mesonlib import MesonException
 from ..environment import Environment
 
 class RegenInfo():

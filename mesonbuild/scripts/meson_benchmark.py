@@ -39,9 +39,10 @@ def print_json_log(jsonlogfile, rawruns, test_name, i):
     for r in rawruns:
         runobj = {'duration': r.duration,
                   'stdout': r.stdo,
-                  'stderr': r.stde,
                   'returncode' : r.returncode,
                   'duration' : r.duration}
+        if r.stde:
+            runobj['stderr'] = r.stde
         runs.append(runobj)
     jsonobj['runs'] = runs
     jsonlogfile.write(json.dumps(jsonobj) + '\n')

@@ -18,7 +18,7 @@ from .. import dependencies
 from .. import mesonlib
 import json
 import subprocess
-from ..coredata import MesonException
+from ..mesonlib import MesonException
 
 class InstallData():
     def __init__(self, source_dir, build_dir, prefix):

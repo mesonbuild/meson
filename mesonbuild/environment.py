@@ -19,7 +19,7 @@ import configparser
 
 build_filename = 'meson.build'
 
-class EnvironmentException(coredata.MesonException):
+class EnvironmentException(mesonlib.MesonException):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -657,11 +657,11 @@ class CrossBuildInfo():
         if 'target_machine' in self.config:
             return
         if not 'host_machine' in self.config:
-            raise coredata.MesonException('Cross info file must have either host or a target machine.')
+            raise mesonlib.MesonException('Cross info file must have either host or a target machine.')
         if not 'properties' in self.config:
-            raise coredata.MesonException('Cross file is missing "properties".')
+            raise mesonlib.MesonException('Cross file is missing "properties".')
         if not 'binaries' in self.config:
-            raise coredata.MesonException('Cross file is missing "binaries".')
+            raise mesonlib.MesonException('Cross file is missing "binaries".')
 
     def ok_type(self, i):
         return isinstance(i, str) or isinstance(i, int) or isinstance(i, bool)

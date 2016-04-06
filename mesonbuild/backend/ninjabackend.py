@@ -18,10 +18,9 @@ from .. import build
 from .. import mlog
 from .. import dependencies
 from .. import compilers
-from ..mesonlib import File
+from ..mesonlib import File, MesonException
 from .backends import InstallData
 from ..build import InvalidArguments
-from ..coredata import MesonException
 import os, sys, pickle, re
 import subprocess, shutil
 
@@ -586,7 +585,12 @@ int dummy;
         valgrind = environment.find_valgrind()
         script_root = self.environment.get_script_dir()
         test_data = os.path.join(self.environment.get_scratch_dir(), 'meson_test_setup.dat')
-        cmd = [sys.executable, self.environment.get_build_command(), '--internal', 'test', test_data]
+        cmd = [ sys.executable, self.environment.get_build_command(), '--internal', 'test' ]
+        if not self.environment.coredata.get_builtin_option('stdsplit'):
+            cmd += ['--no-stdsplit']
+        if self.environment.coredata.get_builtin_option('errorlogs'):
+            cmd += ['--print-errorlogs']
+        cmd += [ test_data ]
         elem = NinjaBuildElement(self.all_outputs, 'test', 'CUSTOM_COMMAND', ['all', 'PHONY'])
         elem.add_item('COMMAND', cmd)
         elem.add_item('DESC', 'Running all tests.')

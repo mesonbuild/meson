@@ -22,7 +22,7 @@
 import re
 import os, stat, glob, subprocess, shutil
 import sysconfig
-from . coredata import MesonException
+from . mesonlib import MesonException
 from . import mlog
 from . import mesonlib
 

@@ -55,7 +55,7 @@ class PkgConfigModule:
 
     def generate(self, state, args, kwargs):
         if len(args) > 0:
-            raise coredata.MesonException('Pkgconfig_gen takes no positional arguments.')
+            raise mesonlib.MesonException('Pkgconfig_gen takes no positional arguments.')
         libs = kwargs.get('libraries', [])
         if not isinstance(libs, list):
             libs = [libs]
@@ -64,22 +64,22 @@ class PkgConfigModule:
             if hasattr(l, 'held_object'):
                 l = l.held_object
             if not (isinstance(l, build.SharedLibrary) or isinstance(l, build.StaticLibrary)):
-                raise coredata.MesonException('Library argument not a library object.')
+                raise mesonlib.MesonException('Library argument not a library object.')
             processed_libs.append(l)
         libs = processed_libs
         subdirs = mesonlib.stringlistify(kwargs.get('subdirs', ['.']))
         version = kwargs.get('version', '')
         if not isinstance(version, str):
-            raise coredata.MesonException('Version must be a string.')
+            raise mesonlib.MesonException('Version must be a string.')
         name = kwargs.get('name', None)
         if not isinstance(name, str):
-            raise coredata.MesonException('Name not specified.')
+            raise mesonlib.MesonException('Name not specified.')
         filebase = kwargs.get('filebase', name)
         if not isinstance(filebase, str):
-            raise coredata.MesonException('Filebase must be a string.')
+            raise mesonlib.MesonException('Filebase must be a string.')
         description = kwargs.get('description', None)
         if not isinstance(description, str):
-            raise coredata.MesonException('Description is not a string.')
+            raise mesonlib.MesonException('Description is not a string.')
         pub_reqs = mesonlib.stringlistify(kwargs.get('requires', []))
         priv_reqs = mesonlib.stringlistify(kwargs.get('requires_private', []))
         priv_libs = mesonlib.stringlistify(kwargs.get('libraries_private', []))

@@ -28,7 +28,7 @@ from functools import wraps
 
 import importlib
 
-class InterpreterException(coredata.MesonException):
+class InterpreterException(mesonlib.MesonException):
     pass
 
 class InvalidCode(InterpreterException):
@@ -932,7 +932,7 @@ class Interpreter():
         assert(isinstance(code, str))
         try:
             self.ast = mparser.Parser(code).parse()
-        except coredata.MesonException as me:
+        except mesonlib.MesonException as me:
             me.file = environment.build_filename
             raise me
         self.sanity_check_ast()
@@ -1341,7 +1341,7 @@ class Interpreter():
             return self.environment.coredata.compiler_options[optname].value
         except KeyError:
             pass
-        if optname not in coredata.builtin_options and self.is_subproject():
+        if not coredata.is_builtin_option(optname) and self.is_subproject():
             optname = self.subproject + ':' + optname
         try:
             return self.environment.coredata.user_options[optname].value
@@ -1364,8 +1364,7 @@ class Interpreter():
             if '=' not in option:
                 raise InterpreterException('All default options must be of type key=value.')
             key, value = option.split('=', 1)
-            builtin_options = self.coredata.builtin_options
-            if key in builtin_options:
+            if coredata.is_builtin_option(key):
                 if not self.environment.had_argument_for(key):
                     self.coredata.set_builtin_option(key, value)
                 # If this was set on the command line, do not override.
@@ -1801,7 +1800,7 @@ class Interpreter():
         assert(isinstance(code, str))
         try:
             codeblock = mparser.Parser(code).parse()
-        except coredata.MesonException as me:
+        except mesonlib.MesonException as me:
             me.file = buildfilename
             raise me
         self.evaluate_codeblock(codeblock)
