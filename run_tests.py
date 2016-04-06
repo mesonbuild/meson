@@ -42,6 +42,25 @@ class TestResult:
         self.buildtime = buildtime
         self.testtime = testtime
 
+class AutoDeletedDir():
+    def __init__(self, dir):
+        self.dir = dir
+    def __enter__(self):
+        os.makedirs(self.dir, exist_ok=True)
+        return self.dir
+    def __exit__(self, type, value, traceback):
+        # On Windows, shutil.rmtree fails sometimes, because 'the directory is not empty'.
+        # Retrying fixes this.
+        # That's why we don't use tempfile.TemporaryDirectory, but wrap the deletion in the AutoDeletedDir class.
+        retries = 5
+        for i in range(0, retries):
+            try:
+                shutil.rmtree(self.dir)
+                return
+            except OSError:
+                if i == retries:
+                    raise
+
 passing_tests = 0
 failing_tests = 0
 skipped_tests = 0
@@ -200,8 +219,8 @@ def parse_test_args(testdir):
 def run_test(skipped, testdir, extra_args, flags, compile_commands, install_commands, should_succeed):
     if skipped:
         return None
-    with tempfile.TemporaryDirectory(prefix='b ', dir='.') as build_dir:
-        with tempfile.TemporaryDirectory(prefix='i ', dir=os.getcwd()) as install_dir:
+    with AutoDeletedDir(tempfile.mkdtemp(prefix='b ', dir='.')) as build_dir:
+        with AutoDeletedDir(tempfile.mkdtemp(prefix='i ', dir=os.getcwd())) as install_dir:
             try:
                 return _run_test(testdir, build_dir, install_dir, extra_args, flags, compile_commands, install_commands, should_succeed)
             finally:
