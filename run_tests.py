@@ -58,7 +58,7 @@ class AutoDeletedDir():
                 shutil.rmtree(self.dir)
                 return
             except OSError:
-                if i == retries:
+                if i == retries-1:
                     raise
 
 passing_tests = 0
