@@ -60,6 +60,7 @@ class AutoDeletedDir():
             except OSError:
                 if i == retries-1:
                     raise
+                time.sleep(0.1 * (2**i))
 
 passing_tests = 0
 failing_tests = 0
