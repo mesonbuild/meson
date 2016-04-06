@@ -42,6 +42,26 @@ class TestResult:
         self.buildtime = buildtime
         self.testtime = testtime
 
+class AutoDeletedDir():
+    def __init__(self, dir):
+        self.dir = dir
+    def __enter__(self):
+        os.makedirs(self.dir, exist_ok=True)
+        return self.dir
+    def __exit__(self, type, value, traceback):
+        # On Windows, shutil.rmtree fails sometimes, because 'the directory is not empty'.
+        # Retrying fixes this.
+        # That's why we don't use tempfile.TemporaryDirectory, but wrap the deletion in the AutoDeletedDir class.
+        retries = 5
+        for i in range(0, retries):
+            try:
+                shutil.rmtree(self.dir)
+                return
+            except OSError:
+                if i == retries-1:
+                    raise
+                time.sleep(0.1 * (2**i))
+
 passing_tests = 0
 failing_tests = 0
 skipped_tests = 0
@@ -197,22 +217,21 @@ def parse_test_args(testdir):
         pass
     return args
 
-def run_test(skipped, testdir, extra_args, should_succeed):
+def run_test(skipped, testdir, extra_args, flags, compile_commands, install_commands, should_succeed):
     if skipped:
         return None
-    with tempfile.TemporaryDirectory(prefix='b ', dir='.') as build_dir:
-        with tempfile.TemporaryDirectory(prefix='i ', dir=os.getcwd()) as install_dir:
+    with AutoDeletedDir(tempfile.mkdtemp(prefix='b ', dir='.')) as build_dir:
+        with AutoDeletedDir(tempfile.mkdtemp(prefix='i ', dir=os.getcwd())) as install_dir:
             try:
-                return _run_test(testdir, build_dir, install_dir, extra_args, should_succeed)
+                return _run_test(testdir, build_dir, install_dir, extra_args, flags, compile_commands, install_commands, should_succeed)
             finally:
                 mlog.shutdown() # Close the log file because otherwise Windows wets itself.
 
-def _run_test(testdir, test_build_dir, install_dir, extra_args, should_succeed):
-    global compile_commands
+def _run_test(testdir, test_build_dir, install_dir, extra_args, flags, compile_commands, install_commands, should_succeed):
     test_args = parse_test_args(testdir)
     gen_start = time.time()
     gen_command = [meson_command, '--prefix', '/usr', '--libdir', 'lib', testdir, test_build_dir]\
-        + unity_flags + backend_flags + test_args + extra_args
+        + flags + test_args + extra_args
     (returncode, stdo, stde) = run_configure_inprocess(gen_command)
     gen_time = time.time() - gen_start
     if not should_succeed:
@@ -246,7 +265,6 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, should_succeed):
     if returncode != 0:
         return TestResult('Running unit tests failed.', stdo, stde, gen_time, build_time, test_time)
     if len(install_commands) == 0:
-        print("Skipping install test")
         return TestResult('', '', '', gen_time, build_time, test_time)
     else:
         env = os.environ.copy()
@@ -309,20 +327,10 @@ def run_tests(extra_args):
             # and getting it wrong by not doing logical number sorting.
             (testnum, testbase) = os.path.split(t)[-1].split(' ', 1)
             testname = '%.3d %s' % (int(testnum), testbase)
-            # Windows errors out when calling result.result() below with
-            # a bizarre error about appending None to an array that comes
-            # from the standard library. This is probably either because I use
-            # XP or the Python version is old. Anyhow, fall back to immediate
-            # evaluation. This causes output not to be printed until the end,
-            # which is unfortunate but least it works.
-            if mesonlib.is_windows():
-                result = run_test(skipped, t, extra_args, name != 'failing')
-            else:
-                result = executor.submit(run_test, skipped, t, extra_args, name != 'failing')
+            result = executor.submit(run_test, skipped, t, extra_args, unity_flags + backend_flags, compile_commands, install_commands, name != 'failing')
             futures.append((testname, t, result))
         for (testname, t, result) in futures:
-            if not mesonlib.is_windows(): # See above.
-                result = result.result()
+            result = result.result()
             if result is None:
                 print('Skipping:', t)
                 current_test = ET.SubElement(current_suite, 'testcase', {'name' : testname,
@@ -331,7 +339,8 @@ def run_tests(extra_args):
                 global skipped_tests
                 skipped_tests += 1
             else:
-                print('Running test: ' + t)
+                without_install = "" if len(install_commands) > 0 else " (without install)"
+                print('Running test%s: %s' % (without_install, t))
                 conf_time += result.conftime
                 build_time += result.buildtime
                 test_time += result.testtime
