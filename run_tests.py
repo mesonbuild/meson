@@ -156,14 +156,8 @@ def validate_install(srcdir, installdir):
         return 'Found extra file %s.' % fname
     return ''
 
-def log_text_file(logfile, testdir, msg, stdo, stde):
-    global passing_tests, failing_tests, stop
-    if msg != '':
-        print('Fail:', msg)
-        failing_tests += 1
-    else:
-        print('Success')
-        passing_tests += 1
+def log_text_file(logfile, testdir, stdo, stde):
+    global stop
     logfile.write('%s\nstdout\n\n---\n' % testdir)
     logfile.write(stdo)
     logfile.write('\n\n---\n\nstderr\n\n---\n')
@@ -306,6 +300,7 @@ def detect_tests_to_run():
     return all_tests
 
 def run_tests(extra_args):
+    global passing_tests, failing_tests, stop
     all_tests = detect_tests_to_run()
     logfile = open('meson-test-run.txt', 'w', encoding="utf_8")
     junit_root = ET.Element('testsuites')
@@ -340,12 +335,18 @@ def run_tests(extra_args):
                 skipped_tests += 1
             else:
                 without_install = "" if len(install_commands) > 0 else " (without install)"
-                print('Running test%s: %s' % (without_install, t))
+                if result.msg != '':
+                    print('Failed test%s: %s' % (without_install, t))
+                    print('Reason:', result.msg)
+                    failing_tests += 1
+                else:
+                    print('Succeeded test%s: %s' % (without_install, t))
+                    passing_tests += 1
                 conf_time += result.conftime
                 build_time += result.buildtime
                 test_time += result.testtime
                 total_time = conf_time + build_time + test_time
-                log_text_file(logfile, t, result.msg, result.stdo, result.stde)
+                log_text_file(logfile, t, result.stdo, result.stde)
                 current_test = ET.SubElement(current_suite, 'testcase', {'name' : testname,
                                                                          'classname' : name,
                                                                          'time' : '%.3f' % total_time})
