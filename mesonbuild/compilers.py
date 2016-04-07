@@ -55,7 +55,9 @@ def is_library(fname):
     return suffix in lib_suffixes
 
 gnulike_buildtype_args = {'plain' : [],
-                          'debug' : ['-g'],
+                          # -O0 is passed for improved debugging information with gcc
+                          # See https://github.com/mesonbuild/meson/pull/509
+                          'debug' : ['-O0', '-g'],
                           'debugoptimized' : ['-O2', '-g'],
                           'release' : ['-O3']}
 
