@@ -23,10 +23,21 @@ from .. import mlog
 from .. import mesonlib
 
 girwarning_printed = False
+gresource_warning_printed = False
 
 class GnomeModule:
 
+    def __print_gresources_warning(self):
+        global gresource_warning_printed
+        if not gresource_warning_printed:
+            mlog.log('Warning, glib compiled dependencies will not work reliably until this upstream issue is fixed:',
+                     mlog.bold('https://bugzilla.gnome.org/show_bug.cgi?id=745754'))
+            gresource_warning_printed = True
+        return []
+
     def compile_resources(self, state, args, kwargs):
+        self.__print_gresources_warning()
+
         cmd = ['glib-compile-resources', '@INPUT@']
 
         source_dirs = kwargs.pop('source_dir', [])
@@ -59,6 +70,8 @@ class GnomeModule:
         return [target_c, target_h]
 
     def get_gresource_dependencies(self, state, input_file, source_dirs):
+        self.__print_gresources_warning()
+
         cmd = ['glib-compile-resources',
                input_file,
                '--generate-dependencies']
@@ -314,8 +327,6 @@ class GnomeModule:
         return build.CustomTarget(namebase + '-gdbus', state.subdir, custom_kwargs)
 
 def initialize():
-    mlog.log('Warning, glib compiled dependencies will not work reliably until this upstream issue is fixed:',
-             mlog.bold('https://bugzilla.gnome.org/show_bug.cgi?id=745754'))
     return GnomeModule()
 
 class GirTarget(build.CustomTarget):
