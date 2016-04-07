@@ -647,15 +647,41 @@ int main(int argc, char **argv) {
         return align
 
     def has_function(self, funcname, prefix, env, extra_args=[]):
-        # This fails (returns true) if funcname is a ptr or a variable.
-        # The correct check is a lot more difficult.
-        # Fix this to do that eventually.
-        templ = '''%s
-int main(int argc, char **argv) {
-    void *ptr = (void*)(%s);
-    return 0;
-};
-'''
+        # Define the symbol to something else in case it is defined by the
+        # includes or defines listed by the user `{0}` or by the compiler.
+        # Then, undef the symbol to get rid of it completely.
+        templ = '''
+        #define {1} meson_disable_define_of_{1}
+        {0}
+        #undef {1}
+        '''
+
+        # Override any GCC internal prototype and declare our own definition for
+        # the symbol. Use char because that's unlikely to be an actual return
+        # value for a function which ensures that we override the definition.
+        templ += '''
+        #ifdef __cplusplus
+        extern "C"
+        #endif
+        char {1} ();
+        '''
+
+        # glibc defines functions that are not available on Linux as stubs that
+        # fail with ENOSYS (such as e.g. lchmod). In this case we want to fail
+        # instead of detecting the stub as a valid symbol.
+        templ += '''
+        #if defined __stub_{1} || defined __stub___{1}
+        fail fail fail this function is not going to work
+        #endif
+        '''
+
+        # And finally the actual function call
+        templ += '''
+        int
+        main ()
+        {{
+          return {1} ();
+        }}'''
         varname = 'has function ' + funcname
         varname = varname.replace(' ', '_')
         if self.is_cross:
@@ -664,7 +690,7 @@ int main(int argc, char **argv) {
                 if isinstance(val, bool):
                     return val
                 raise EnvironmentException('Cross variable {0} is not a boolean.'.format(varname))
-        return self.compiles(templ % (prefix, funcname), extra_args)
+        return self.links(templ.format(prefix, funcname), extra_args)
 
     def has_member(self, typename, membername, prefix, extra_args=[]):
         templ = '''%s
