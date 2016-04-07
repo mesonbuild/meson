@@ -690,7 +690,14 @@ int main(int argc, char **argv) {
                 if isinstance(val, bool):
                     return val
                 raise EnvironmentException('Cross variable {0} is not a boolean.'.format(varname))
-        return self.links(templ.format(prefix, funcname), extra_args)
+        if self.links(templ.format(prefix, funcname), extra_args):
+            return True
+        # Some functions like alloca() are defined as compiler built-ins which
+        # are inlined by the compiler, so test for that instead. Built-ins are
+        # special functions that ignore all includes and defines, so we just
+        # directly try to link via main().
+        # Add -O0 to ensure that the symbol isn't optimized away by the compiler
+        return self.links('int main() {{ {0}; }}'.format('__builtin_' + funcname), extra_args + ['-O0'])
 
     def has_member(self, typename, membername, prefix, extra_args=[]):
         templ = '''%s
