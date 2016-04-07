@@ -258,6 +258,9 @@ class Compiler():
     def has_header(self, *args, **kwargs):
         raise EnvironmentException('Language %s does not support header checks.' % self.language)
 
+    def has_header_symbol(self, *args, **kwargs):
+        raise EnvironmentException('Language %s does not support header symbol checks.' % self.language)
+
     def compiles(self, *args, **kwargs):
         raise EnvironmentException('Language %s does not support compile checks.' % self.language)
 
@@ -459,6 +462,13 @@ class CCompiler(Compiler):
 int someSymbolHereJustForFun;
 '''
         return self.compiles(templ % hname, extra_args)
+
+    def has_header_symbol(self, hname, symbol, prefix, extra_args=[]):
+        templ = '''{2}
+#include <{0}>
+int main () {{ {1}; }}'''
+        # Pass -O0 to ensure that the symbol isn't optimized away
+        return self.compiles(templ.format(hname, symbol, prefix), extra_args + ['-O0'])
 
     def compile(self, code, srcname, extra_args=[]):
         commands = self.get_exelist()

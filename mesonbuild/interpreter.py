@@ -575,6 +575,7 @@ class CompilerHolder(InterpreterObject):
                              'get_id': self.get_id_method,
                              'sizeof': self.sizeof_method,
                              'has_header': self.has_header_method,
+                             'has_header_symbol': self.has_header_symbol_method,
                              'run' : self.run_method,
                              'has_function' : self.has_function_method,
                              'has_member' : self.has_member_method,
@@ -750,6 +751,24 @@ class CompilerHolder(InterpreterObject):
         else:
             h = mlog.red('NO')
         mlog.log('Has header "%s":' % string, h)
+        return haz
+
+    def has_header_symbol_method(self, args, kwargs):
+        if len(args) != 2:
+            raise InterpreterException('has_header_symbol method takes exactly two arguments.')
+        check_stringlist(args)
+        hname = args[0]
+        symbol = args[1]
+        prefix = kwargs.get('prefix', '')
+        if not isinstance(prefix, str):
+            raise InterpreterException('Prefix argument of has_function must be a string.')
+        extra_args = self.determine_args(kwargs)
+        haz = self.compiler.has_header_symbol(hname, symbol, prefix, extra_args)
+        if haz:
+            h = mlog.green('YES')
+        else:
+            h = mlog.red('NO')
+        mlog.log('Header <{0}> has symbol "{1}":'.format(hname, symbol), h)
         return haz
 
     def find_library_method(self, args, kwargs):
