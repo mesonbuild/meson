@@ -547,12 +547,13 @@ int dummy;
             assert(isinstance(de, build.Data))
             subdir = de.install_dir
             for f in de.sources:
+                plain_f = os.path.split(f)[1]
                 if de.in_sourcetree:
                     srcprefix = self.environment.get_source_dir()
                 else:
                     srcprefix = self.environment.get_build_dir()
                 srcabs = os.path.join(srcprefix, de.source_subdir, f)
-                dstabs = os.path.join(subdir, f)
+                dstabs = os.path.join(subdir, plain_f)
                 i = [srcabs, dstabs]
                 d.data.append(i)
 
