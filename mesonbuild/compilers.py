@@ -350,6 +350,9 @@ class CCompiler(Compiler):
     def get_compile_only_args(self):
         return ['-c']
 
+    def get_no_optimization_args(self):
+        return ['-O0']
+
     def get_output_args(self, target):
         return ['-o', target]
 
@@ -468,7 +471,8 @@ int someSymbolHereJustForFun;
 #include <{0}>
 int main () {{ {1}; }}'''
         # Pass -O0 to ensure that the symbol isn't optimized away
-        return self.compiles(templ.format(hname, symbol, prefix), extra_args + ['-O0'])
+        extra_args += self.get_no_optimization_args()
+        return self.compiles(templ.format(hname, symbol, prefix), extra_args)
 
     def compile(self, code, srcname, extra_args=[]):
         commands = self.get_exelist()
@@ -697,7 +701,8 @@ int main(int argc, char **argv) {
         # special functions that ignore all includes and defines, so we just
         # directly try to link via main().
         # Add -O0 to ensure that the symbol isn't optimized away by the compiler
-        return self.links('int main() {{ {0}; }}'.format('__builtin_' + funcname), extra_args + ['-O0'])
+        extra_args += self.get_no_optimization_args()
+        return self.links('int main() {{ {0}; }}'.format('__builtin_' + funcname), extra_args)
 
     def has_member(self, typename, membername, prefix, extra_args=[]):
         templ = '''%s
@@ -1297,6 +1302,9 @@ class VisualStudioCCompiler(CCompiler):
 
     def get_compile_only_args(self):
         return ['/c']
+
+    def get_no_optimization_args(self):
+        return ['/Od']
 
     def get_output_args(self, target):
         if target.endswith('.exe'):
