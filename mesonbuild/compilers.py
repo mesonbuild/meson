@@ -260,6 +260,9 @@ class Compiler():
     def has_header(self, *args, **kwargs):
         raise EnvironmentException('Language %s does not support header checks.' % self.language)
 
+    def has_header_symbol(self, *args, **kwargs):
+        raise EnvironmentException('Language %s does not support header symbol checks.' % self.language)
+
     def compiles(self, *args, **kwargs):
         raise EnvironmentException('Language %s does not support compile checks.' % self.language)
 
@@ -348,6 +351,9 @@ class CCompiler(Compiler):
 
     def get_compile_only_args(self):
         return ['-c']
+
+    def get_no_optimization_args(self):
+        return ['-O0']
 
     def get_output_args(self, target):
         return ['-o', target]
@@ -461,6 +467,14 @@ class CCompiler(Compiler):
 int someSymbolHereJustForFun;
 '''
         return self.compiles(templ % hname, extra_args)
+
+    def has_header_symbol(self, hname, symbol, prefix, extra_args=[]):
+        templ = '''{2}
+#include <{0}>
+int main () {{ {1}; }}'''
+        # Pass -O0 to ensure that the symbol isn't optimized away
+        extra_args += self.get_no_optimization_args()
+        return self.compiles(templ.format(hname, symbol, prefix), extra_args)
 
     def compile(self, code, srcname, extra_args=[]):
         commands = self.get_exelist()
@@ -639,15 +653,41 @@ int main(int argc, char **argv) {
         return align
 
     def has_function(self, funcname, prefix, env, extra_args=[]):
-        # This fails (returns true) if funcname is a ptr or a variable.
-        # The correct check is a lot more difficult.
-        # Fix this to do that eventually.
-        templ = '''%s
-int main(int argc, char **argv) {
-    void *ptr = (void*)(%s);
-    return 0;
-};
-'''
+        # Define the symbol to something else in case it is defined by the
+        # includes or defines listed by the user `{0}` or by the compiler.
+        # Then, undef the symbol to get rid of it completely.
+        templ = '''
+        #define {1} meson_disable_define_of_{1}
+        {0}
+        #undef {1}
+        '''
+
+        # Override any GCC internal prototype and declare our own definition for
+        # the symbol. Use char because that's unlikely to be an actual return
+        # value for a function which ensures that we override the definition.
+        templ += '''
+        #ifdef __cplusplus
+        extern "C"
+        #endif
+        char {1} ();
+        '''
+
+        # glibc defines functions that are not available on Linux as stubs that
+        # fail with ENOSYS (such as e.g. lchmod). In this case we want to fail
+        # instead of detecting the stub as a valid symbol.
+        templ += '''
+        #if defined __stub_{1} || defined __stub___{1}
+        fail fail fail this function is not going to work
+        #endif
+        '''
+
+        # And finally the actual function call
+        templ += '''
+        int
+        main ()
+        {{
+          return {1} ();
+        }}'''
         varname = 'has function ' + funcname
         varname = varname.replace(' ', '_')
         if self.is_cross:
@@ -656,7 +696,15 @@ int main(int argc, char **argv) {
                 if isinstance(val, bool):
                     return val
                 raise EnvironmentException('Cross variable {0} is not a boolean.'.format(varname))
-        return self.compiles(templ % (prefix, funcname), extra_args)
+        if self.links(templ.format(prefix, funcname), extra_args):
+            return True
+        # Some functions like alloca() are defined as compiler built-ins which
+        # are inlined by the compiler, so test for that instead. Built-ins are
+        # special functions that ignore all includes and defines, so we just
+        # directly try to link via main().
+        # Add -O0 to ensure that the symbol isn't optimized away by the compiler
+        extra_args += self.get_no_optimization_args()
+        return self.links('int main() {{ {0}; }}'.format('__builtin_' + funcname), extra_args)
 
     def has_member(self, typename, membername, prefix, extra_args=[]):
         templ = '''%s
@@ -1256,6 +1304,9 @@ class VisualStudioCCompiler(CCompiler):
 
     def get_compile_only_args(self):
         return ['/c']
+
+    def get_no_optimization_args(self):
+        return ['/Od']
 
     def get_output_args(self, target):
         if target.endswith('.exe'):
