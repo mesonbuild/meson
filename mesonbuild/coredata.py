@@ -15,7 +15,7 @@
 import pickle, os, uuid
 from .mesonlib import MesonException, default_libdir, default_libexecdir, default_prefix
 
-version = '0.31.0'
+version = '0.32.0.dev1'
 
 class UserOption:
     def __init__(self, name, description, choices):
