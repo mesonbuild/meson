@@ -261,7 +261,7 @@ def run(args):
         for log in collected_logs[:10]:
             lines = log.splitlines()
             if len(lines) > 100:
-                print(line[0])
+                print(lines[0])
                 print('--- Listing only the last 100 lines from a long log. ---')
                 lines = lines[-99:]
             for line in lines:
