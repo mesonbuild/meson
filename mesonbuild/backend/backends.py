@@ -204,6 +204,7 @@ class Backend():
         datafile = open(benchmark_data, 'wb')
         self.write_benchmark_file(datafile)
         datafile.close()
+        return (test_data, benchmark_data)
 
     def has_source_suffix(self, target, suffix):
         for s in target.get_sources():

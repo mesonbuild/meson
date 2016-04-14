@@ -597,10 +597,9 @@ int dummy;
             elem.write(outfile)
 
     def generate_tests(self, outfile):
-        self.serialise_tests()
+        (test_data, benchmark_data) = self.serialise_tests()
         valgrind = environment.find_valgrind()
         script_root = self.environment.get_script_dir()
-        test_data = os.path.join(self.environment.get_scratch_dir(), 'meson_test_setup.dat')
         cmd = [ sys.executable, self.environment.get_build_command(), '--internal', 'test' ]
         if not self.environment.coredata.get_builtin_option('stdsplit'):
             cmd += ['--no-stdsplit']
@@ -623,7 +622,6 @@ int dummy;
 
         # And then benchmarks.
         benchmark_script = os.path.join(script_root, 'meson_benchmark.py')
-        benchmark_data = os.path.join(self.environment.get_scratch_dir(), 'meson_benchmark_setup.dat')
         cmd = [sys.executable, self.environment.get_build_command(), '--internal', 'benchmark', benchmark_data]
         elem = NinjaBuildElement(self.all_outputs, 'benchmark', 'CUSTOM_COMMAND', ['all', 'PHONY'])
         elem.add_item('COMMAND', cmd)

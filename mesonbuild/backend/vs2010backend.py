@@ -773,7 +773,6 @@ if %%errorlevel%% neq 0 goto :VCEnd'''
         ET.SubElement(midl, 'ProxyFileName').text = '%(Filename)_p.c'
         postbuild = ET.SubElement(action, 'PostBuildEvent')
         ET.SubElement(postbuild, 'Message')
-        test_data = os.path.join(self.environment.get_scratch_dir(), 'meson_test_setup.dat')
         test_command = [sys.executable,
                         self.environment.get_build_command(),
                         '--internal',
@@ -787,14 +786,12 @@ endlocal & call :cmErrorLevel %%errorlevel%% & goto :cmDone
 exit /b %%1
 :cmDone
 if %%errorlevel%% neq 0 goto :VCEnd'''
+        test_data = self.serialise_tests()[0]
         ET.SubElement(postbuild, 'Command').text =\
             cmd_templ % ('" "'.join(test_command), test_data)
         ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.targets')
         tree = ET.ElementTree(root)
         tree.write(ofname, encoding='utf-8', xml_declaration=True)
-        datafile = open(test_data, 'wb')
-        self.serialise_tests()
-        datafile.close()
         # ElementTree can not do prettyprinting so do it manually
         #doc = xml.dom.minidom.parse(ofname)
         #open(ofname, 'w').write(doc.toprettyxml())

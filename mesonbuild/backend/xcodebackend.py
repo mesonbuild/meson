@@ -64,7 +64,7 @@ class XCodeBackend(backends.Backend):
 
     def generate(self, interp):
         self.interpreter = interp
-        self.serialise_tests()
+        test_data = self.serialise_tests()[0]
         self.generate_filemap()
         self.generate_buildmap()
         self.generate_buildstylemap()
@@ -92,7 +92,7 @@ class XCodeBackend(backends.Backend):
         self.generate_pbx_group()
         self.generate_pbx_native_target()
         self.generate_pbx_project()
-        self.generate_pbx_shell_build_phase()
+        self.generate_pbx_shell_build_phase(test_data)
         self.generate_pbx_sources_build_phase()
         self.generate_pbx_target_dependency()
         self.generate_xc_build_configuration()
@@ -480,7 +480,7 @@ class XCodeBackend(backends.Backend):
         self.write_line('};')
         self.ofile.write('/* End PBXProject section */\n')
 
-    def generate_pbx_shell_build_phase(self):
+    def generate_pbx_shell_build_phase(self, test_data):
         self.ofile.write('\n/* Begin PBXShellScriptBuildPhase section */\n')
         self.write_line('%s = {' % self.test_command_id)
         self.indent_level += 1
@@ -496,7 +496,6 @@ class XCodeBackend(backends.Backend):
         self.write_line('shellPath = /bin/sh;')
         script_root = self.environment.get_script_dir()
         test_script = os.path.join(script_root, 'meson_test.py')
-        test_data = os.path.join(self.environment.get_scratch_dir(), 'meson_test_setup.dat')
         cmd = [sys.executable, test_script, test_data, '--wd', self.environment.get_build_dir()]
         cmdstr = ' '.join(["'%s'" % i for i in cmd])
         self.write_line('shellScript = "%s";' % cmdstr)
