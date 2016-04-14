@@ -315,7 +315,9 @@ class Backend():
                 fname = exe.fullpath
             else:
                 fname = [os.path.join(self.environment.get_build_dir(), self.get_target_filename(t.get_exe()))]
-            is_cross = self.environment.is_cross_build() and self.environment.cross_info.need_cross_compiler()
+            is_cross = self.environment.is_cross_build() and \
+                self.environment.cross_info.need_cross_compiler() and \
+                self.environment.cross_info.need_exe_wrapper()
             if is_cross:
                 exe_wrapper = self.environment.cross_info.config['binaries'].get('exe_wrapper', None)
             else:
@@ -366,8 +368,9 @@ class Backend():
 
     def exe_object_to_cmd_array(self, exe):
         if self.environment.is_cross_build() and \
-                isinstance(exe, build.BuildTarget) and exe.is_cross:
-            if 'exe_wrapper'  not in self.environment.cross_info:
+           self.environment.cross_info.need_exe_wrapper() and \
+           isinstance(exe, build.BuildTarget) and exe.is_cross:
+            if 'exe_wrapper' not in self.environment.cross_info.config:
                 s = 'Can not use target %s as a generator because it is cross-built\n'
                 s += 'and no exe wrapper is defined. You might want to set it to native instead.'
                 s = s % exe.name
