@@ -326,7 +326,7 @@ class BuildMachine(InterpreterObject):
         return environment.detect_cpu_family()
 
     def cpu_method(self, args, kwargs):
-        return platform.machine().lower()
+        return environment.detect_cpu()
 
     def system_method(self, args, kwargs):
         return environment.detect_system()

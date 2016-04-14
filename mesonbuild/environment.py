@@ -69,6 +69,13 @@ def detect_cpu_family():
     # Add fixes here as bugs are reported.
     return trial
 
+def detect_cpu():
+    trial = platform.machine().lower()
+    if trial == 'amd64':
+        return 'x86_64'
+    # Add fixes here as bugs are reported.
+    return trial
+
 def detect_system():
     return platform.system().lower()
 
