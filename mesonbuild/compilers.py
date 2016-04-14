@@ -576,13 +576,23 @@ int main () {{ {1}; }}'''
         return RunResult(True, pe.returncode, so, se)
 
     def cross_sizeof(self, element, prefix, env, extra_args=[]):
-        templ = '''%s
+        element_exists_templ = '''#include <stdio.h>
+{0}
+int main(int argc, char **argv) {{
+    {1};
+}}
+'''
+        templ = '''#include <stdio.h>
+%s
 int temparray[%d-sizeof(%s)];
 '''
         try:
             extra_args += env.cross_info.config['properties'][self.language + '_args']
         except KeyError:
             pass
+        extra_args += self.get_no_optimization_args()
+        if not self.compiles(element_exists_templ.format(prefix, element)):
+            return -1
         for i in range(1, 1024):
             code = templ % (prefix, i, element)
             if self.compiles(code, extra_args):
