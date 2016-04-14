@@ -192,6 +192,7 @@ class Environment():
             ccache = self.detect_ccache()
             is_cross = False
             exe_wrap = None
+        popen_exceptions = {}
         for compiler in compilers:
             try:
                 basename = os.path.basename(compiler).lower()
@@ -199,9 +200,10 @@ class Environment():
                     arg = '/?'
                 else:
                     arg = '--version'
-                p = subprocess.Popen([compiler] + [arg], stdout=subprocess.PIPE,
+                p = subprocess.Popen([compiler, arg], stdout=subprocess.PIPE,
                                      stderr=subprocess.PIPE)
-            except OSError:
+            except OSError as e:
+                popen_exceptions[' '.join([compiler, arg])] = e
                 continue
             (out, err) = p.communicate()
             out = out.decode(errors='ignore')
@@ -232,7 +234,12 @@ class Environment():
                 # everything else to stdout. Why? Lord only knows.
                 version = re.search(Environment.version_regex, err).group()
                 return VisualStudioCCompiler([compiler], version, is_cross, exe_wrap)
-        raise EnvironmentException('Unknown compiler(s): "' + ', '.join(compilers) + '"')
+        errmsg = 'Unknown compiler(s): "' + ', '.join(compilers) + '"'
+        if popen_exceptions:
+            errmsg += '\nThe follow exceptions were encountered:'
+            for (c, e) in popen_exceptions.items():
+                errmsg += '\nRunning "{0}" gave "{1}"'.format(c, e)
+        raise EnvironmentException(errmsg)
 
     def detect_fortran_compiler(self, want_cross):
         evar = 'FC'
@@ -248,13 +255,15 @@ class Environment():
             compilers = self.default_fortran
             is_cross = False
             exe_wrap = None
+        popen_exceptions = {}
         for compiler in compilers:
             for arg in ['--version', '-V']:
                 try:
-                    p = subprocess.Popen([compiler] + [arg],
+                    p = subprocess.Popen([compiler, arg],
                                          stdout=subprocess.PIPE,
                                          stderr=subprocess.PIPE)
-                except OSError:
+                except OSError as e:
+                    popen_exceptions[' '.join([compiler, arg])] = e
                     continue
                 (out, err) = p.communicate()
                 out = out.decode(errors='ignore')
@@ -292,8 +301,12 @@ class Environment():
 
                 if 'NAG Fortran' in err:
                     return NAGFortranCompiler([compiler], version, is_cross, exe_wrap)
-
-        raise EnvironmentException('Unknown compiler(s): "' + ', '.join(compilers) + '"')
+        errmsg = 'Unknown compiler(s): "' + ', '.join(compilers) + '"'
+        if popen_exceptions:
+            errmsg += '\nThe follow exceptions were encountered:'
+            for (c, e) in popen_exceptions.items():
+                errmsg += '\nRunning "{0}" gave "{1}"'.format(c, e)
+        raise EnvironmentException(errmsg)
 
     def get_scratch_dir(self):
         return self.scratch_dir
@@ -319,6 +332,7 @@ class Environment():
             ccache = self.detect_ccache()
             is_cross = False
             exe_wrap = None
+        popen_exceptions = {}
         for compiler in compilers:
             basename = os.path.basename(compiler).lower()
             if basename == 'cl' or basename == 'cl.exe':
@@ -329,7 +343,8 @@ class Environment():
                 p = subprocess.Popen([compiler, arg],
                                      stdout=subprocess.PIPE,
                                      stderr=subprocess.PIPE)
-            except OSError:
+            except OSError as e:
+                popen_exceptions[' '.join([compiler, arg])] = e
                 continue
             (out, err) = p.communicate()
             out = out.decode(errors='ignore')
@@ -358,7 +373,12 @@ class Environment():
             if 'Microsoft' in out or 'Microsoft' in err:
                 version = re.search(Environment.version_regex, err).group()
                 return VisualStudioCPPCompiler([compiler], version, is_cross, exe_wrap)
-        raise EnvironmentException('Unknown compiler(s) "' + ', '.join(compilers) + '"')
+        errmsg = 'Unknown compiler(s): "' + ', '.join(compilers) + '"'
+        if popen_exceptions:
+            errmsg += '\nThe follow exceptions were encountered:'
+            for (c, e) in popen_exceptions.items():
+                errmsg += '\nRunning "{0}" gave "{1}"'.format(c, e)
+        raise EnvironmentException(errmsg)
 
     def detect_objc_compiler(self, want_cross):
         if self.is_cross_build() and want_cross:
