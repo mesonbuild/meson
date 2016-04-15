@@ -596,6 +596,10 @@ int temparray[%d-sizeof(%s)];
         for i in range(1, 1024):
             code = templ % (prefix, i, element)
             if self.compiles(code, extra_args):
+                if self.id == 'msvc':
+                    # MSVC refuses to construct an array of zero size, so
+                    # the test only succeeds when i is sizeof(element) + 1
+                    return i - 1
                 return i
         raise EnvironmentException('Cross checking sizeof overflowed.')
 
@@ -633,6 +637,10 @@ int testarray[%d-offsetof(struct tmp, target)];
         for i in range(1, 1024):
             code = templ % (typename, i)
             if self.compiles(code, extra_args):
+                if self.id == 'msvc':
+                    # MSVC refuses to construct an array of zero size, so
+                    # the test only succeeds when i is sizeof(element) + 1
+                    return i - 1
                 return i
         raise EnvironmentException('Cross checking offsetof overflowed.')
 
