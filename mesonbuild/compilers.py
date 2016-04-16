@@ -579,7 +579,7 @@ int main () {{ {1}; }}'''
         element_exists_templ = '''#include <stdio.h>
 {0}
 int main(int argc, char **argv) {{
-    {1};
+    {1} something;
 }}
 '''
         templ = '''#include <stdio.h>
@@ -596,6 +596,10 @@ int temparray[%d-sizeof(%s)];
         for i in range(1, 1024):
             code = templ % (prefix, i, element)
             if self.compiles(code, extra_args):
+                if self.id == 'msvc':
+                    # MSVC refuses to construct an array of zero size, so
+                    # the test only succeeds when i is sizeof(element) + 1
+                    return i - 1
                 return i
         raise EnvironmentException('Cross checking sizeof overflowed.')
 
@@ -618,6 +622,11 @@ int main(int argc, char **argv) {
         return int(res.stdout)
 
     def cross_alignment(self, typename, env, extra_args=[]):
+        type_exists_templ = '''#include <stdio.h>
+int main(int argc, char **argv) {{
+    {0} something;
+}}
+'''
         templ = '''#include<stddef.h>
 struct tmp {
   char c;
@@ -630,9 +639,16 @@ int testarray[%d-offsetof(struct tmp, target)];
             extra_args += env.cross_info.config['properties'][self.language + '_args']
         except KeyError:
             pass
+        extra_args += self.get_no_optimization_args()
+        if not self.compiles(type_exists_templ.format(typename)):
+            return -1
         for i in range(1, 1024):
             code = templ % (typename, i)
             if self.compiles(code, extra_args):
+                if self.id == 'msvc':
+                    # MSVC refuses to construct an array of zero size, so
+                    # the test only succeeds when i is sizeof(element) + 1
+                    return i - 1
                 return i
         raise EnvironmentException('Cross checking offsetof overflowed.')
 
