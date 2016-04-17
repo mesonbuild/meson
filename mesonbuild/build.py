@@ -871,11 +871,12 @@ class CustomTarget:
             self.install = kwargs['install']
             if not isinstance(self.install, bool):
                 raise InvalidArguments('"install" must be boolean.')
-            if 'install_dir' not in kwargs:
-                raise InvalidArguments('"install_dir" not specified.')
-            self.install_dir = kwargs['install_dir']
-            if not(isinstance(self.install_dir, str)):
-                raise InvalidArguments('"install_dir" must be a string.')
+            if self.install:
+                if 'install_dir' not in kwargs:
+                    raise InvalidArguments('"install_dir" not specified.')
+                self.install_dir = kwargs['install_dir']
+                if not(isinstance(self.install_dir, str)):
+                    raise InvalidArguments('"install_dir" must be a string.')
         else:
             self.install = False
         self.build_always = kwargs.get('build_always', False)
