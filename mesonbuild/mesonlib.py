@@ -252,7 +252,9 @@ def do_mesondefine(line, confdata):
 
 def do_conf_file(src, dst, confdata):
     data = open(src).readlines()
-    regex = re.compile('@(.*?)@')
+    # Only allow (a-z, A-Z, 0-9, _, -) as valid characters for a define
+    # Also allow escaping '@' with '\@'
+    regex = re.compile(r'[^\\]?@([-a-zA-Z0-9_]+)@')
     result = []
     for line in data:
         if line.startswith('#mesondefine'):
