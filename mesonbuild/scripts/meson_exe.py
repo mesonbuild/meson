@@ -53,7 +53,7 @@ def run_exe(exe):
     child_env = os.environ.copy()
     child_env.update(exe.env)
     if len(exe.extra_paths) > 0:
-        child_env['PATH'] = child_env['PATH'] + ';'.join([''] + exe.extra_paths)
+        child_env['PATH'] = ';'.join(exe.extra_paths + ['']) + child_env['PATH']
     p = subprocess.Popen(cmd + exe.cmd_args,
                          stdout=subprocess.PIPE,
                          stderr=subprocess.PIPE,
