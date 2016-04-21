@@ -520,7 +520,8 @@ int main () {{ {1}; }}'''
         ofile = open(srcname, 'w')
         ofile.write(code)
         ofile.close()
-        extra_args = extra_args + self.get_output_args(dstname)
+        extra_args = self.unix_link_flags_to_native(extra_args) + \
+            self.get_output_args(dstname)
         p = self.compile(code, srcname, extra_args)
         try:
             os.remove(dstname)
@@ -539,7 +540,7 @@ int main () {{ {1}; }}'''
         ofile.close()
         exename = srcname + '.exe' # Is guaranteed to be executable on every platform.
         commands = self.get_exelist()
-        commands += extra_args
+        commands += self.unix_link_flags_to_native(extra_args)
         commands.append(srcname)
         commands += self.get_output_args(exename)
         p = subprocess.Popen(commands, cwd=os.path.split(srcname)[0], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -1391,19 +1392,6 @@ class VisualStudioCCompiler(CCompiler):
 
     def build_rpath_args(self, build_dir, rpath_paths, install_rpath):
         return []
-
-    def find_library(self, libname, extra_dirs):
-        code = '''int main(int argc, char **argv) {
-    return 0;
-}
-        '''
-        args = []
-        for i in extra_dirs:
-            args += self.get_linker_search_args(i)
-        args.append(libname + '.lib')
-        if self.links(code, extra_args=args):
-            return args
-        return None
 
     # FIXME, no idea what these should be.
     def thread_flags(self):
