@@ -69,13 +69,18 @@ class Vs2010Backend(backends.Backend):
                                                        if len(src_conflicts) > 1}
 
     def generate_custom_generator_commands(self, target, parent_node):
-        all_output_files = []
+        generator_output_files = []
         commands = []
         inputs = []
         outputs = []
+        custom_target_include_dirs = []
+        custom_target_output_files = []
         for genlist in target.get_generated_sources():
             if isinstance(genlist, build.CustomTarget):
-                all_output_files += [os.path.join(self.get_target_dir(genlist), i) for i in genlist.output]
+                custom_target_output_files += [os.path.join(self.get_target_dir(genlist), i) for i in genlist.output]
+                idir = self.relpath(self.get_target_dir(genlist), self.get_target_dir(target))
+                if idir not in custom_target_include_dirs:
+                    custom_target_include_dirs.append(idir)
             else:
                 generator = genlist.get_generator()
                 exe = generator.get_exe()
@@ -93,7 +98,7 @@ class Vs2010Backend(backends.Backend):
                     infilename = os.path.join(self.environment.get_source_dir(), curfile)
                     outfiles = genlist.get_outputs_for(curfile)
                     outfiles = [os.path.join(target_private_dir, of) for of in outfiles]
-                    all_output_files += outfiles
+                    generator_output_files += outfiles
                     args = [x.replace("@INPUT@", infilename).replace('@OUTPUT@', sole_output)\
                             for x in base_args]
                     args = [x.replace("@SOURCE_DIR@", self.environment.get_source_dir()).replace("@BUILD_DIR@", target_private_dir)
@@ -111,7 +116,7 @@ class Vs2010Backend(backends.Backend):
             ET.SubElement(cbs, 'Message').text = 'Generating custom sources.'
             pg = ET.SubElement(parent_node, 'PropertyGroup')
             ET.SubElement(pg, 'CustomBuildBeforeTargets').text = 'ClCompile'
-        return all_output_files
+        return generator_output_files, custom_target_output_files, custom_target_include_dirs
 
     def generate(self, interp):
         self.resolve_source_conflicts()
@@ -260,6 +265,8 @@ class Vs2010Backend(backends.Backend):
                 lang = self.lang_from_source_file(i)
                 if lang not in languages:
                     languages.append(lang)
+            elif self.environment.is_library(i):
+                pass
             else:
                 # Everything that is not an object or source file is considered a header.
                 headers.append(i)
@@ -436,8 +443,12 @@ class Vs2010Backend(backends.Backend):
         ET.SubElement(type_config, 'WholeProgramOptimization').text = 'false'
         ET.SubElement(type_config, 'UseDebugLibraries').text = 'true'
         ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.props')
-        generated_files = self.generate_custom_generator_commands(target, root)
+        generated_files, custom_target_output_files, generated_files_include_dirs = self.generate_custom_generator_commands(target, root)
         (gen_src, gen_hdrs, gen_objs, gen_langs) = self.split_sources(generated_files)
+        (custom_src, custom_hdrs, custom_objs, custom_langs) = self.split_sources(custom_target_output_files)
+        gen_src += custom_src
+        gen_hdrs += custom_hdrs
+        gen_langs += custom_langs
         direlem = ET.SubElement(root, 'PropertyGroup')
         fver = ET.SubElement(direlem, '_ProjectFileVersion')
         fver.text = self.project_file_version
@@ -455,7 +466,7 @@ class Vs2010Backend(backends.Backend):
         opt = ET.SubElement(clconf, 'Optimization')
         opt.text = 'disabled'
         inc_dirs = ['.', self.relpath(self.get_target_private_dir(target), self.get_target_dir(target)),
-                    proj_to_src_dir]
+                    proj_to_src_dir] + generated_files_include_dirs
 
         extra_args = {'c': [], 'cpp': []}
         for l, args in self.environment.coredata.external_args.items():
@@ -561,10 +572,14 @@ class Vs2010Backend(backends.Backend):
             rel_path = self.relpath(lobj.subdir, target.subdir)
             linkname = os.path.join(rel_path, lobj.get_import_filename())
             additional_links.append(linkname)
+        for lib in self.get_custom_target_provided_libraries(target):
+            additional_links.append(self.relpath(lib, self.get_target_dir(target)))
         additional_objects = []
         for o in self.flatten_object_list(target, down):
             assert(isinstance(o, str))
             additional_objects.append(o)
+        for o in custom_objs:
+            additional_objects.append(self.relpath(o, self.get_target_dir(target)))
         if len(additional_links) > 0:
             additional_links.append('%(AdditionalDependencies)')
             ET.SubElement(link, 'AdditionalDependencies').text = ';'.join(additional_links)

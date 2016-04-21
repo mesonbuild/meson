@@ -1704,16 +1704,6 @@ rule FORTRAN_DEP_HACK
         elem.add_item('LINK_ARGS', commands)
         return elem
 
-    def get_custom_target_provided_libraries(self, target):
-        libs = []
-        for t in target.get_generated_sources():
-            if not isinstance(t, build.CustomTarget):
-                continue
-            for f in t.output:
-                if self.environment.is_library(f):
-                    libs.append(os.path.join(self.get_target_dir(t), f))
-        return libs
-
     def determine_rpath_dirs(self, target):
         link_deps = target.get_all_link_deps()
         result = []

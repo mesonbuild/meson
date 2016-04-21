@@ -387,6 +387,16 @@ class Backend():
                 final_args.append(a)
         return final_args
 
+    def get_custom_target_provided_libraries(self, target):
+        libs = []
+        for t in target.get_generated_sources():
+            if not isinstance(t, build.CustomTarget):
+                continue
+            for f in t.output:
+                if self.environment.is_library(f):
+                    libs.append(os.path.join(self.get_target_dir(t), f))
+        return libs
+
     def eval_custom_target_command(self, target, absolute_paths=False):
         if not absolute_paths:
             ofilenames = [os.path.join(self.get_target_dir(target), i) for i in target.output]
