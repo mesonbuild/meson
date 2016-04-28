@@ -442,16 +442,16 @@ int dummy;
             elem.write(outfile)
         if lcov_exe and genhtml_exe:
             added_rule = True
-            phony_elem = NinjaBuildElement(self.all_outputs, 'coverage-html', 'phony', 'coveragereport/index.html')
-            phony_elem.write(outfile)
-
-            elem = NinjaBuildElement(self.all_outputs, 'coveragereport/index.html', 'CUSTOM_COMMAND', '')
             htmloutdir = os.path.join(self.environment.get_log_dir(), 'coveragereport')
+            covinfo = os.path.join(self.environment.get_log_dir(), 'coverage.info')
+            phony_elem = NinjaBuildElement(self.all_outputs, 'coverage-html', 'phony', os.path.join(htmloutdir, 'index.html'))
+            phony_elem.write(outfile)
+            elem = NinjaBuildElement(self.all_outputs, os.path.join(htmloutdir, 'index.html'), 'CUSTOM_COMMAND', '')
             command = [lcov_exe, '--directory', self.environment.get_build_dir(),\
-                       '--capture', '--output-file', 'coverage.info', '--no-checksum',\
+                       '--capture', '--output-file', covinfo, '--no-checksum',\
                        '&&', genhtml_exe, '--prefix', self.environment.get_build_dir(),\
                        '--output-directory', htmloutdir, '--title', 'Code coverage',\
-                       '--legend', '--show-details', 'coverage.info']
+                       '--legend', '--show-details', covinfo]
             elem.add_item('COMMAND', command)
             elem.add_item('DESC', 'Generating HTML coverage report.')
             elem.write(outfile)
