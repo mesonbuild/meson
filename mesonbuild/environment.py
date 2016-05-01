@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os, re, subprocess
+import os, re, subprocess, platform
 from . import coredata, mesonlib
 from .compilers import *
 import configparser
@@ -51,6 +51,33 @@ def detect_ninja():
         p.communicate()
         if p.returncode == 0:
             return n
+
+def detect_cpu_family():
+    """
+    Python is inconsistent in its platform module.
+    It returns different values for the same cpu.
+    For x86 it might return 'x86', 'i686' or somesuch.
+    Do some canonicalization.
+    """
+    trial = platform.machine().lower()
+    if trial.startswith('i') and trial.endswith('86'):
+        return 'x86'
+    if trial.startswith('arm'):
+        return 'arm'
+    if trial == 'amd64':
+        return 'x86_64'
+    # Add fixes here as bugs are reported.
+    return trial
+
+def detect_cpu():
+    trial = platform.machine().lower()
+    if trial == 'amd64':
+        return 'x86_64'
+    # Add fixes here as bugs are reported.
+    return trial
+
+def detect_system():
+    return platform.system().lower()
 
 
 class Environment():
@@ -182,7 +209,10 @@ class Environment():
             compilers = [self.cross_info.config['binaries']['c']]
             ccache = []
             is_cross = True
-            exe_wrap = self.cross_info.config['binaries'].get('exe_wrapper', None)
+            if self.cross_info.need_exe_wrapper():
+                exe_wrap = self.cross_info.config['binaries'].get('exe_wrapper', None)
+            else:
+                exe_wrap = []
         elif evar in os.environ:
             compilers = os.environ[evar].split()
             ccache = []
@@ -247,7 +277,10 @@ class Environment():
         if self.is_cross_build() and want_cross:
             compilers = [self.cross_info['fortran']]
             is_cross = True
-            exe_wrap = self.cross_info.get('exe_wrapper', None)
+            if self.cross_info.need_exe_wrapper():
+                exe_wrap = self.cross_info.get('exe_wrapper', None)
+            else:
+                exe_wrap = []
         elif evar in os.environ:
             compilers = os.environ[evar].split()
             is_cross = False
@@ -322,7 +355,10 @@ class Environment():
             compilers = [self.cross_info.config['binaries']['cpp']]
             ccache = []
             is_cross = True
-            exe_wrap = self.cross_info.config['binaries'].get('exe_wrapper', None)
+            if self.cross_info.need_exe_wrapper():
+                exe_wrap = self.cross_info.config['binaries'].get('exe_wrapper', None)
+            else:
+                exe_wrap = []
         elif evar in os.environ:
             compilers = os.environ[evar].split()
             ccache = []
@@ -385,7 +421,10 @@ class Environment():
         if self.is_cross_build() and want_cross:
             exelist = [self.cross_info['objc']]
             is_cross = True
-            exe_wrap = self.cross_info.get('exe_wrapper', None)
+            if self.cross_info.need_exe_wrapper():
+                exe_wrap = self.cross_info.get('exe_wrapper', None)
+            else:
+                exe_wrap = []
         else:
             exelist = self.get_objc_compiler_exelist()
             is_cross = False
@@ -415,7 +454,10 @@ class Environment():
         if self.is_cross_build() and want_cross:
             exelist = [self.cross_info['objcpp']]
             is_cross = True
-            exe_wrap = self.cross_info.get('exe_wrapper', None)
+            if self.cross_info.need_exe_wrapper():
+                exe_wrap = self.cross_info.get('exe_wrapper', None)
+            else:
+                exe_wrap = []
         else:
             exelist = self.get_objcpp_compiler_exelist()
             is_cross = False
@@ -721,3 +763,12 @@ class CrossBuildInfo():
     # But not when cross compiling a cross compiler.
     def need_cross_compiler(self):
         return 'host_machine' in self.config
+
+    def need_exe_wrapper(self):
+        if self.has_host() and detect_cpu_family() == 'x86_64' and \
+           self.config['host_machine']['cpu_family'] == 'x86' and \
+           self.config['host_machine']['system'] == detect_system():
+            # Can almost always run 32-bit binaries on 64-bit natively if the
+            # host and build systems are the same
+            return False
+        return True

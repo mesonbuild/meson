@@ -322,24 +322,14 @@ class BuildMachine(InterpreterObject):
                              'endian' : self.endian_method,
                             })
 
-    # Python is inconsistent in its platform module.
-    # It returns different values for the same cpu.
-    # For x86 it might return 'x86', 'i686' or somesuch.
-    # Do some canonicalization.
     def cpu_family_method(self, args, kwargs):
-        trial = platform.machine().lower()
-        if trial.startswith('i') and trial.endswith('86'):
-            return 'x86'
-        if trial.startswith('arm'):
-            return 'arm'
-        # Add fixes here as bugs are reported.
-        return trial
+        return environment.detect_cpu_family()
 
     def cpu_method(self, args, kwargs):
-        return platform.machine().lower()
+        return environment.detect_cpu()
 
     def system_method(self, args, kwargs):
-        return platform.system().lower()
+        return environment.detect_system()
 
     def endian_method(self, args, kwargs):
         return sys.byteorder
@@ -883,9 +873,16 @@ class MesonMain(InterpreterObject):
         return self.interpreter.environment.build_dir
 
     def has_exe_wrapper_method(self, args, kwargs):
-        if self.is_cross_build_method(None, None) and 'binaries' in self.build.environment.cross_info.config:
-            return 'exe_wrap' in self.build.environment.cross_info.config['binaries']
-        return True  # This is semantically confusing.
+        if self.is_cross_build_method(None, None) and \
+           'binaries' in self.build.environment.cross_info.config and \
+           self.build.environment.cross_info.need_exe_wrapper():
+            exe_wrap = self.build.environment.cross_info.config['binaries'].get('exe_wrap', None)
+            if exe_wrap is None:
+                return False
+        # We return True when exe_wrap is defined, when it's not needed, and
+        # when we're compiling natively. The last two are semantically confusing.
+        # Need to revisit this.
+        return True
 
     def is_cross_build_method(self, args, kwargs):
         return self.build.environment.is_cross_build()

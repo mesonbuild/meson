@@ -409,9 +409,11 @@ int dummy;
         if isinstance(texe, build.Executable):
             abs_exe = os.path.join(self.environment.get_build_dir(), self.get_target_filename(texe))
             deps.append(self.get_target_filename(texe))
-            if self.environment.is_cross_build() \
-                and self.environment.cross_info.config['binaries'].get('exe_wrapper', None) is not None:
-                cmd += [self.environment.cross_info.config['binaries']['exe_wrapper']]
+            if self.environment.is_cross_build() and \
+               self.environment.cross_info.need_exe_wrapper():
+                exe_wrap = self.environment.cross_info.config['binaries'].get('exe_wrapper', None)
+                if exe_wrap is not None:
+                    cmd += [exe_wrap]
             cmd.append(abs_exe)
         else:
             cmd.append(target.command)
