@@ -34,6 +34,18 @@ class InstallData():
         self.install_scripts = []
         self.install_subdirs = []
 
+class ExecutableSerialisation():
+    def __init__(self, name, fname, cmd_args, env, is_cross, exe_wrapper,
+                 workdir, extra_paths):
+        self.name = name
+        self.fname = fname
+        self.cmd_args = cmd_args
+        self.env = env
+        self.is_cross = is_cross
+        self.exe_runner = exe_wrapper
+        self.workdir = workdir
+        self.extra_paths = extra_paths
+
 class TestSerialisation:
     def __init__(self, name, suite, fname, is_cross, exe_wrapper, is_parallel, cmd_args, env,
                  should_fail, valgrind_args, timeout, workdir, extra_paths):
@@ -154,6 +166,35 @@ class Backend():
                 raise MesonException('Unknown data type in object list.')
         return obj_list
 
+    def serialise_executable(self, exe, cmd_args, workdir, env={}):
+        import uuid
+        # Can't just use exe.name here; it will likely be run more than once
+        scratch_file = 'meson_exe_{0}_{1}.dat'.format(exe.name,
+                                                      str(uuid.uuid4())[:8])
+        exe_data = os.path.join(self.environment.get_scratch_dir(), scratch_file)
+        with open(exe_data, 'wb') as f:
+            if isinstance(exe, dependencies.ExternalProgram):
+                exe_fullpath = exe.fullpath
+            else:
+                exe_fullpath = [os.path.join(self.environment.get_build_dir(),
+                                             self.get_target_filename(exe))]
+            is_cross = self.environment.is_cross_build() and \
+                self.environment.cross_info.need_cross_compiler() and \
+                self.environment.cross_info.need_exe_wrapper()
+            if is_cross:
+                exe_wrapper = self.environment.cross_info.config['binaries'].get('exe_wrapper', None)
+            else:
+                exe_wrapper = None
+            if mesonlib.is_windows():
+                extra_paths = self.determine_windows_extra_paths(exe)
+            else:
+                extra_paths = []
+            es = ExecutableSerialisation(exe.name, exe_fullpath, cmd_args, env,
+                                         is_cross, exe_wrapper, workdir,
+                                         extra_paths)
+            pickle.dump(es, f)
+        return exe_data
+
     def serialise_tests(self):
         test_data = os.path.join(self.environment.get_scratch_dir(), 'meson_test_setup.dat')
         datafile = open(test_data, 'wb')
@@ -163,6 +204,7 @@ class Backend():
         datafile = open(benchmark_data, 'wb')
         self.write_benchmark_file(datafile)
         datafile.close()
+        return (test_data, benchmark_data)
 
     def has_source_suffix(self, target, suffix):
         for s in target.get_sources():

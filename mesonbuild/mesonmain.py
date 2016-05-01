@@ -163,7 +163,10 @@ itself as required.'''
 def run_script_command(args):
     cmdname = args[0]
     cmdargs = args[1:]
-    if cmdname == 'test':
+    if cmdname == 'exe':
+        import mesonbuild.scripts.meson_exe as abc
+        cmdfunc = abc.run
+    elif cmdname == 'test':
         import mesonbuild.scripts.meson_test as abc
         cmdfunc = abc.run
     elif cmdname == 'benchmark':
