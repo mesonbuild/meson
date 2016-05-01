@@ -17,7 +17,7 @@
 import os, sys
 
 def run(args):
-    if len(sys.argv) != 2:
+    if len(sys.argv) != 3:
         print('delwithsuffix.py <root of subdir to process> <suffix to delete>')
         sys.exit(1)
 
