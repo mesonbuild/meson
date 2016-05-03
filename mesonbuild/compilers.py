@@ -88,8 +88,8 @@ else:
                                          })
 
 msvc_buildtype_linker_args = {'plain' : [],
-                              'debug' : [],
-                              'debugoptimized' : [],
+                              'debug' : ['/DEBUG'],
+                              'debugoptimized' : ['/DEBUG'],
                               'release' : [],
                               'minsize' : ['/INCREMENTAL:NO'],
                               }
