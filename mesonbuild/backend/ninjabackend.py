@@ -199,7 +199,10 @@ int dummy;
     def generate_compdb(self):
         ninja_exe = environment.detect_ninja()
         builddir = self.environment.get_build_dir()
-        jsondb = subprocess.check_output([ninja_exe, '-t', 'compdb', 'c_COMPILER', 'cpp_COMPILER'], cwd=builddir)
+        try:
+            jsondb = subprocess.check_output([ninja_exe, '-t', 'compdb', 'c_COMPILER', 'cpp_COMPILER'], cwd=builddir)
+        except Exception:
+                raise MesonException('Could not create compilation database.')
         open(os.path.join(builddir, 'compile_commands.json'), 'wb').write(jsondb)
 
     # Get all generated headers. Any source file might need them so
