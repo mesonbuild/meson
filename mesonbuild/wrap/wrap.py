@@ -90,10 +90,11 @@ class Resolver:
     def resolve(self, packagename):
         fname = os.path.join(self.subdir_root, packagename + '.wrap')
         dirname = os.path.join(self.subdir_root, packagename)
+        if os.path.isdir(dirname):
+            # The directory is there? Great, use it.
+            return packagename 
         if not os.path.isfile(fname):
-            if os.path.isdir(dirname):
-                # No wrap file but dir exists -> user put it there manually.
-                return packagename 
+            # No wrap file with this name? Give up.
             return None
         p = PackageDefinition(fname)
         if p.type == 'file':
