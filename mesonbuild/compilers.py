@@ -830,7 +830,6 @@ class CPPCompiler(CCompiler):
         mlog.debug('-----\nSanity check compile stderr:')
         mlog.debug(stde)
         mlog.debug('-----')
-        pc.wait()
         if pc.returncode != 0:
             raise EnvironmentException('Compiler %s can not compile programs.' % self.name_string())
         if self.is_cross:
