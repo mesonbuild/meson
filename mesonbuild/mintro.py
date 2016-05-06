@@ -89,14 +89,14 @@ def list_target_files(target_name, coredata, builddata):
 def list_buildoptions(coredata, builddata):
     buildtype= {'choices': ['plain', 'debug', 'debugoptimized', 'release'],
                 'type' : 'combo',
-                'value' : coredata.builtin_options['buildtype'].value,
+                'value' : coredata.get_builtin_option('buildtype'),
                 'description' : 'Build type',
                 'name' : 'type'}
-    strip = {'value' : coredata.builtin_options['strip'].value,
+    strip = {'value' : coredata.get_builtin_option('strip'),
              'type' : 'boolean',
              'description' : 'Strip on install',
              'name' : 'strip'}
-    unity = {'value' : coredata.builtin_options['unity'].value,
+    unity = {'value' : coredata.get_builtin_option('unity'),
              'type' : 'boolean',
              'description' : 'Unity build',
              'name' : 'unity'}
