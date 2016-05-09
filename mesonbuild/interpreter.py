@@ -1767,7 +1767,9 @@ class Interpreter():
         if self.is_subproject():
             newsuite = []
             for s in suite:
-                newsuite.append(self.subproject.replace(' ', '_').replace('.', '_') + '.' + s)
+                if len(s) > 0:
+                    s = '.' + s
+                newsuite.append(self.subproject.replace(' ', '_').replace('.', '_') + s)
             suite = newsuite
         t = Test(args[0], suite, args[1].held_object, par, cmd_args, env, should_fail, valgrind_args, timeout, workdir)
         if is_base_test:
