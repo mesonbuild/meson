@@ -680,6 +680,13 @@ int main(int argc, char **argv) {
         return align
 
     def has_function(self, funcname, prefix, env, extra_args=[]):
+        """
+        First, this function looks for the symbol in the default libraries
+        provided by the compiler (stdlib + a few others usually). If that
+        fails, it checks if any of the headers specified in the prefix provide
+        an implementation of the function, and if that fails, it checks if it's
+        implemented as a compiler-builtin.
+        """
         # Define the symbol to something else in case it is defined by the
         # includes or defines listed by the user `{0}` or by the compiler.
         # Then, undef the symbol to get rid of it completely.
@@ -725,12 +732,17 @@ int main(int argc, char **argv) {
                 raise EnvironmentException('Cross variable {0} is not a boolean.'.format(varname))
         if self.links(templ.format(prefix, funcname), extra_args):
             return True
+        # Add -O0 to ensure that the symbol isn't optimized away by the compiler
+        extra_args += self.get_no_optimization_args()
+        # Sometimes the implementation is provided by the header, or the header
+        # redefines the symbol to be something else. In that case, we want to
+        # still detect the function.
+        if self.links('{0}\nint main() {{ {1}; }}'.format(prefix, funcname), extra_args):
+            return True
         # Some functions like alloca() are defined as compiler built-ins which
         # are inlined by the compiler, so test for that instead. Built-ins are
         # special functions that ignore all includes and defines, so we just
         # directly try to link via main().
-        # Add -O0 to ensure that the symbol isn't optimized away by the compiler
-        extra_args += self.get_no_optimization_args()
         return self.links('int main() {{ {0}; }}'.format('__builtin_' + funcname), extra_args)
 
     def has_member(self, typename, membername, prefix, extra_args=[]):
