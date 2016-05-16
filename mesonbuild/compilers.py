@@ -709,11 +709,12 @@ int main(int argc, char **argv) {
         # glibc defines functions that are not available on Linux as stubs that
         # fail with ENOSYS (such as e.g. lchmod). In this case we want to fail
         # instead of detecting the stub as a valid symbol.
-        templ += '''
+        stubs_fail = '''
         #if defined __stub_{1} || defined __stub___{1}
         fail fail fail this function is not going to work
         #endif
         '''
+        templ += stubs_fail
 
         # And finally the actual function call
         templ += '''
@@ -736,8 +737,9 @@ int main(int argc, char **argv) {
         extra_args += self.get_no_optimization_args()
         # Sometimes the implementation is provided by the header, or the header
         # redefines the symbol to be something else. In that case, we want to
-        # still detect the function.
-        if self.links('{0}\nint main() {{ {1}; }}'.format(prefix, funcname), extra_args):
+        # still detect the function. We still want to fail if __stub_foo or
+        # _stub_foo are defined, of course.
+        if self.links('{0}\n' + stubs_fail + '\nint main() {{ {1}; }}'.format(prefix, funcname), extra_args):
             return True
         # Some functions like alloca() are defined as compiler built-ins which
         # are inlined by the compiler, so test for that instead. Built-ins are
