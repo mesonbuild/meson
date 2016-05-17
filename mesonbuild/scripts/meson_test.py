@@ -110,8 +110,6 @@ def run_single_test(wrap, test):
                 cmd = [test.exe_runner] + test.fname
         else:
             cmd = test.fname
-    if len(wrap) > 0 and 'valgrind' in wrap[0]:
-        wrap += test.valgrind_args
     if cmd is None:
         res = 'SKIP'
         duration = 0.0
@@ -119,7 +117,10 @@ def run_single_test(wrap, test):
         stde = None
         returncode = -1
     else:
-        cmd = wrap + cmd + test.cmd_args
+        if len(wrap) > 0 and 'valgrind' in wrap[0]:
+            cmd = wrap + test.valgrind_args + cmd + test.cmd_args
+        else:
+            cmd = wrap + cmd + test.cmd_args
         starttime = time.time()
         child_env = os.environ.copy()
         child_env.update(test.env)
