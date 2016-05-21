@@ -1080,6 +1080,22 @@ class Interpreter():
         if not isinstance(first, mparser.FunctionNode) or first.func_name != 'project':
             raise InvalidCode('First statement must be a call to project')
 
+    def check_cross_stdlibs(self):
+        if self.build.environment.is_cross_build():
+            cross_info = self.build.environment.cross_info
+            for c in self.build.cross_compilers:
+                l = c.language
+                try:
+                    di = mesonlib.stringlistify(cross_info.get_stdlib(l))
+                    if len(di) != 2:
+                        raise InterpreterException('Stdlib definition for %s should have exactly two elements.' \
+                                                   % l)
+                    projname, depname = di
+                    subproj = self.do_subproject(projname, {})
+                    self.build.cross_stdlibs[l] = subproj.get_variable_method([depname], {})
+                except KeyError as e:
+                    pass
+
     def run(self):
         self.evaluate_codeblock(self.ast)
         mlog.log('Build targets in project:', mlog.bold(str(len(self.build.targets))))
@@ -1422,6 +1438,8 @@ class Interpreter():
         if 'vala' in langs:
             if not 'c' in langs:
                 raise InterpreterException('Compiling Vala requires C. Add C to your project languages and rerun Meson.')
+        if not self.is_subproject():
+            self.check_cross_stdlibs()
 
     @stringArgs
     def func_add_languages(self, node, args, kwargs):
@@ -1991,10 +2009,27 @@ class Interpreter():
             mlog.debug('Unknown target type:', str(targetholder))
             raise RuntimeError('Unreachable code')
         target = targetclass(name, self.subdir, self.subproject, is_cross, sources, objs, self.environment, kwargs)
+        if is_cross:
+            self.add_cross_stdlib_info(target)
         l = targetholder(target, self)
         self.add_target(name, l.held_object)
         self.global_args_frozen = True
         return l
+
+    def get_used_languages(self, target):
+        result = {}
+        for i in target.sources:
+            for c in self.build.compilers:
+                if c.can_compile(i):
+                    result[c.language] = True
+                    break
+        return result
+
+    def add_cross_stdlib_info(self, target):
+        for l in self.get_used_languages(target):
+            if self.environment.cross_info.has_stdlib(l) and \
+                self.subproject != self.environment.cross_info.get_stdlib(l)[0]:
+                target.add_external_deps(self.build.cross_stdlibs[l])
 
     def check_sources_exist(self, subdir, sources):
         for s in sources:

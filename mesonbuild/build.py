@@ -102,6 +102,7 @@ class Build:
         self.install_dirs = []
         self.dep_manifest_name = None
         self.dep_manifest = {}
+        self.cross_stdlibs = {}
 
     def has_language(self, language):
         for i in self.compilers:
