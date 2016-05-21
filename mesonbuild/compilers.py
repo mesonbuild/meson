@@ -1742,7 +1742,10 @@ class GnuCPPCompiler(CPPCompiler):
     def get_options(self):
         opts = {'cpp_std' : coredata.UserComboOption('cpp_std', 'C++ language standard to use',
                                                      ['none', 'c++03', 'c++11', 'c++14'],
-                                                     'none')}
+                                                     'none'),
+                'cpp_debugstl': coredata.UserBooleanOption('cpp_debugstl',
+                                                           'STL debug mode',
+                                                           False)}
         if self.gcc_type == GCC_MINGW:
             opts.update({
                 'cpp_winlibs': coredata.UserStringArrayOption('c_winlibs', 'Standard Win libraries to link against',
@@ -1755,6 +1758,8 @@ class GnuCPPCompiler(CPPCompiler):
         std = options['cpp_std']
         if std.value != 'none':
             args.append('-std=' + std.value)
+        if options['cpp_debugstl'].value:
+            args.append('-D_GLIBCXX_DEBUG=1')
         return args
 
     def get_option_link_args(self, options):
