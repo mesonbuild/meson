@@ -1036,13 +1036,10 @@ class Interpreter():
                     raise InterpreterException('Tried to create target %s which already exists.' % v.name)
                 self.build.targets[v.name] = v
             elif isinstance(v, build.InstallScript):
+                print('x')
                 self.build.install_scripts.append(v)
             elif isinstance(v, build.Data):
                 self.build.data.append(v)
-            elif isinstance(v, build.PoInfo):
-                if len(self.build.pot) > 0:
-                    raise coredata.MesonException('More than one gettext definition currently not supported.')
-                self.build.pot.append(v)
             else:
                 print(v)
                 raise InterpreterException('Module returned a value of unknown type.')

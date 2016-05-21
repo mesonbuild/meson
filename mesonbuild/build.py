@@ -95,7 +95,6 @@ class Build:
         self.data = []
         self.static_linker = None
         self.static_cross_linker = None
-        self.pot = []
         self.subprojects = {}
         self.install_scripts = []
         self.postconf_scripts = []
@@ -1016,9 +1015,3 @@ class InstallScript:
     def __init__(self, cmd_arr):
         assert(isinstance(cmd_arr, list))
         self.cmd_arr = cmd_arr
-
-class PoInfo():
-    def __init__(self, packagename, languages, subdir):
-        self.packagename = packagename
-        self.languages = languages
-        self.subdir = subdir

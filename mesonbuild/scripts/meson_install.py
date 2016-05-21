@@ -32,7 +32,6 @@ def do_install(datafilename):
     install_headers(d)
     install_man(d)
     install_data(d)
-    install_po(d)
     run_install_script(d)
 
 def install_subdirs(d):
@@ -49,19 +48,6 @@ def install_subdirs(d):
 #        shutil.rmtree(final_dst, ignore_errors=True)
         shutil.copytree(src_dir, final_dst, symlinks=True)
         print('Installing subdir %s to %s.' % (src_dir, dst_dir))
-
-def install_po(d):
-    packagename = d.po_package_name
-    for f in d.po:
-        srcfile = f[0]
-        localedir = f[1]
-        languagename = f[2]
-        outfile = os.path.join(d.fullprefix, localedir, languagename, 'LC_MESSAGES',
-                               packagename + '.mo')
-        os.makedirs(os.path.split(outfile)[0], exist_ok=True)
-        shutil.copyfile(srcfile, outfile)
-        shutil.copystat(srcfile, outfile)
-        print('Installing %s to %s.' % (srcfile, outfile))
 
 def install_data(d):
     for i in d.data:

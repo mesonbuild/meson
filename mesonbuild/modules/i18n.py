@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from .. import coredata, mesonlib, build
+import sys
 
 class I18nModule:
 
@@ -23,7 +24,21 @@ class I18nModule:
         languages = mesonlib.stringlistify(kwargs.get('languages', []))
         if len(languages) == 0:
             raise coredata.MesonException('List of languages empty.')
-        return build.PoInfo(packagename, languages, state.subdir)
+        potargs = [state.environment.get_build_command(), '--internal', 'gettext', 'pot', packagename]
+        pottarget = build.RunTarget(packagename + '-pot', sys.executable, potargs, state.subdir)
+        gmoargs = [state.environment.get_build_command(), '--internal', 'gettext', 'gen_gmo'] + languages
+        gmotarget = build.RunTarget(packagename + '-gmo', sys.executable, gmoargs, state.subdir)
+        installcmd = [sys.executable,
+                      state.environment.get_build_command(),
+                      '--internal',
+                      'gettext',
+                      'install',
+                      state.subdir,
+                      packagename,
+                      state.environment.coredata.get_builtin_option('localedir'),
+                      ] + languages
+        iscript = build.InstallScript(installcmd)
+        return [pottarget, gmotarget, iscript]
 
 def initialize():
     return I18nModule()
