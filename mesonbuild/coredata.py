@@ -229,4 +229,5 @@ forbidden_target_names = {'clean': None,
                           'benchmark': None,
                           'install': None,
                           'build.ninja': None,
+                          'scan-build': None,
                          }

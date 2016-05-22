@@ -196,6 +196,9 @@ def run_script_command(args):
     elif cmdname == 'symbolextractor':
         import mesonbuild.scripts.symbolextractor as abc
         cmdfunc = abc.run
+    elif cmdname == 'scanbuild':
+        import mesonbuild.scripts.scanbuild as abc
+        cmdfunc = abc.run
     elif cmdname == 'vcstagger':
         import mesonbuild.scripts.vcstagger as abc
         cmdfunc = abc.run

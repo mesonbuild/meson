@@ -188,6 +188,7 @@ int dummy;
             outfile.write('# Coverage rules\n\n')
             self.generate_coverage_rules(outfile)
         outfile.write('# Suffix\n\n')
+        self.generate_utils(outfile)
         self.generate_ending(outfile)
         # Only ovewrite the old build file after the new one has been
         # fully created.
@@ -1796,6 +1797,16 @@ rule FORTRAN_DEP_HACK
                 else:
                     other_deps.append(outfilename)
         return (src_deps, other_deps)
+
+    # For things like scan-build and other helper tools we might have.
+    def generate_utils(self, outfile):
+        cmd = [sys.executable, self.environment.get_build_command(),
+               '--internal', 'scanbuild', self.environment.source_dir, self.environment.build_dir,
+               sys.executable, self.environment.get_build_command()]
+        elem = NinjaBuildElement(self.all_outputs, 'scan-build', 'CUSTOM_COMMAND', 'PHONY')
+        elem.add_item('COMMAND', cmd)
+        elem.add_item('pool', 'console')
+        elem.write(outfile)
 
     def generate_ending(self, outfile):
         targetlist = [self.get_target_filename(t) for t in self.build.get_targets().values()\
