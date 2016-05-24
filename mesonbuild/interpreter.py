@@ -2109,6 +2109,12 @@ class Interpreter():
                 return int(obj)
             except Exception:
                 raise InterpreterException('String can not be converted to int: ' + obj)
+        elif method_name == 'join':
+            if len(posargs) != 1:
+                raise InterpreterException('Join() takes exactly one argument.')
+            strlist = posargs[0]
+            check_stringlist(strlist)
+            return obj.join(strlist)
         raise InterpreterException('Unknown method "%s" for a string.' % method_name)
 
     def to_native(self, arg):
