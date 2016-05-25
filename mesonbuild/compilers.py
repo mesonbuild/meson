@@ -414,29 +414,31 @@ class CCompiler(Compiler):
     def get_linker_search_args(self, dirname):
         return ['-L'+dirname]
 
-    def sanity_check(self, work_dir):
-        mlog.debug('Sanity testing C compiler:', ' '.join(self.exelist))
+    def sanity_check_impl(self, work_dir, sname, code):
+        mlog.debug('Sanity testing ' + self.language + ' compiler:', ' '.join(self.exelist))
         mlog.debug('Is cross compiler: %s.' % str(self.is_cross))
 
-        source_name = os.path.join(work_dir, 'sanitycheckc.c')
+        extra_flags = []
+        source_name = os.path.join(work_dir, sname)
+        binname = sname.rsplit('.', 1)[0]
         if self.is_cross:
-            binname = 'sanitycheckc_cross'
-        else:
-            binname = 'sanitycheckc'
+            binname += '_cross'
+            if self.exe_wrapper is None:
+                # Linking cross built apps is painful. You can't really
+                # tell if you should use -nostdlib or not and for example
+                # on OSX the compiler binary is the same but you need
+                # a ton of compiler flags to differentiate between
+                # arm and x86_64. So just compile.
+                extra_flags = self.get_compile_only_args()
+        # Is a valid executable output for all toolchains and platforms
+        binname += '.exe'
+        # Write binary check source
         binary_name = os.path.join(work_dir, binname)
         ofile = open(source_name, 'w')
-        ofile.write('int main(int argc, char **argv) { int class=0; return class; }\n')
+        ofile.write(code)
         ofile.close()
-        if self.is_cross and self.exe_wrapper is None:
-            # Linking cross built apps is painful. You can't really
-            # tell if you should use -nostdlib or not and for example
-            # on OSX the compiler binary is the same but you need
-            # a ton of compiler flags to differentiate between
-            # arm and x86_64. So just compile.
-            extra_flags = ['-c']
-        else:
-            extra_flags = []
-        cmdlist = self.exelist + extra_flags + [source_name, '-o', binary_name]
+        # Compile sanity check
+        cmdlist = self.exelist + extra_flags + [source_name] + self.get_output_args(binary_name)
         pc = subprocess.Popen(cmdlist, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (stdo, stde) = pc.communicate()
         stdo = stdo.decode()
@@ -448,7 +450,8 @@ class CCompiler(Compiler):
         mlog.debug(stde)
         mlog.debug('-----')
         if pc.returncode != 0:
-            raise EnvironmentException('Compiler %s can not compile programs.' % self.name_string())
+            raise EnvironmentException('Compiler {0} can not compile programs.'.format(self.name_string()))
+        # Run sanity check
         if self.is_cross:
             if self.exe_wrapper is None:
                 # Can't check if the binaries run so we have to assume they do
@@ -460,7 +463,11 @@ class CCompiler(Compiler):
         pe = subprocess.Popen(cmdlist)
         pe.wait()
         if pe.returncode != 0:
-            raise EnvironmentException('Executables created by C compiler %s are not runnable.' % self.name_string())
+            raise EnvironmentException('Executables created by {0} compiler {1} are not runnable.'.format(self.language, self.name_string()))
+
+    def sanity_check(self, work_dir):
+        code = 'int main(int argc, char **argv) { int class=0; return class; }\n'
+        return self.sanity_check_impl(work_dir, 'sanitycheckc.c', code)
 
     def has_header(self, hname, extra_args=[]):
         templ = '''#include<%s>
@@ -811,42 +818,8 @@ class CPPCompiler(CCompiler):
         return False
 
     def sanity_check(self, work_dir):
-        source_name = os.path.join(work_dir, 'sanitycheckcpp.cc')
-        binary_name = os.path.join(work_dir, 'sanitycheckcpp')
-        ofile = open(source_name, 'w')
-        ofile.write('class breakCCompiler;int main(int argc, char **argv) { return 0; }\n')
-        ofile.close()
-        if self.is_cross and self.exe_wrapper is None:
-            # Skipping link because of the same reason as for C.
-            # The comment in CCompiler explains why this is done.
-            extra_flags = ['-c']
-        else:
-            extra_flags = []
-        cmdlist = self.exelist + extra_flags + [source_name, '-o', binary_name]
-        pc = subprocess.Popen(cmdlist, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        (stdo, stde) = pc.communicate()
-        stdo = stdo.decode()
-        stde = stde.decode()
-        mlog.debug('Sanity check compiler command line:', ' '.join(cmdlist))
-        mlog.debug('Sanity check compile stdout:')
-        mlog.debug(stdo)
-        mlog.debug('-----\nSanity check compile stderr:')
-        mlog.debug(stde)
-        mlog.debug('-----')
-        pc.wait()
-        if pc.returncode != 0:
-            raise EnvironmentException('Compiler %s can not compile programs.' % self.name_string())
-        if self.is_cross:
-            if self.exe_wrapper is None:
-                # Can't check if the binaries run so we have to assume they do
-                return
-            cmdlist = self.exe_wrapper + [binary_name]
-        else:
-            cmdlist = [binary_name]
-        pe = subprocess.Popen(cmdlist)
-        pe.wait()
-        if pe.returncode != 0:
-            raise EnvironmentException('Executables created by C++ compiler %s are not runnable.' % self.name_string())
+        code = 'class breakCCompiler;int main(int argc, char **argv) { return 0; }\n'
+        return self.sanity_check_impl(work_dir, 'sanitycheckcpp.cc', code)
 
 class ObjCCompiler(CCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrap):
@@ -1389,24 +1362,6 @@ class VisualStudioCCompiler(CCompiler):
         objname = os.path.splitext(pchname)[0] + '.obj'
         return (objname, ['/Yc' + header, '/Fp' + pchname, '/Fo' + objname ])
 
-    def sanity_check(self, work_dir):
-        source_name = 'sanitycheckc.c'
-        binary_name = 'sanitycheckc'
-        ofile = open(os.path.join(work_dir, source_name), 'w')
-        ofile.write('int main(int argc, char **argv) { return 0; }\n')
-        ofile.close()
-        pc = subprocess.Popen(self.exelist + [source_name, '/Fe' + binary_name],
-                              stdout=subprocess.DEVNULL,
-                              stderr=subprocess.DEVNULL,
-                              cwd=work_dir)
-        pc.wait()
-        if pc.returncode != 0:
-            raise EnvironmentException('Compiler %s can not compile programs.' % self.name_string())
-        pe = subprocess.Popen(os.path.join(work_dir, binary_name))
-        pe.wait()
-        if pe.returncode != 0:
-            raise EnvironmentException('Executables created by C++ compiler %s are not runnable.' % self.name_string())
-
     def build_rpath_args(self, build_dir, rpath_paths, install_rpath):
         return []
 
@@ -1470,24 +1425,6 @@ class VisualStudioCPPCompiler(VisualStudioCCompiler):
         if suffix in cpp_suffixes:
             return True
         return False
-
-    def sanity_check(self, work_dir):
-        source_name = 'sanitycheckcpp.cpp'
-        binary_name = 'sanitycheckcpp'
-        ofile = open(os.path.join(work_dir, source_name), 'w')
-        ofile.write('class BreakPlainC;int main(int argc, char **argv) { return 0; }\n')
-        ofile.close()
-        pc = subprocess.Popen(self.exelist + [source_name, '/Fe' + binary_name],
-                              stdout=subprocess.DEVNULL,
-                              stderr=subprocess.DEVNULL,
-                              cwd=work_dir)
-        pc.wait()
-        if pc.returncode != 0:
-            raise EnvironmentException('Compiler %s can not compile programs.' % self.name_string())
-        pe = subprocess.Popen(os.path.join(work_dir, binary_name))
-        pe.wait()
-        if pe.returncode != 0:
-            raise EnvironmentException('Executables created by C++ compiler %s are not runnable.' % self.name_string())
 
     def get_options(self):
         return {'cpp_eh' : coredata.UserComboOption('cpp_eh',
