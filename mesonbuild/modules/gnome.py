@@ -295,6 +295,15 @@ class GnomeModule:
             res.append(build.InstallScript(command + args))
         return res
 
+    def gtkdoc_html_dir(self, state, args, kwarga):
+        if len(args) != 1:
+            raise MesonException('Must have exactly one argument.')
+        modulename = args[0]
+        if not isinstance(modulename, str):
+            raise MesonException('Argument must be a string')
+        return os.path.join('share/gtkdoc/html', modulename)
+
+
     def unpack_args(self, arg, kwarg_name, kwargs):
         try:
             new_args = kwargs[kwarg_name]

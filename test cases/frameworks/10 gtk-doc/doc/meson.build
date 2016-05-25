@@ -1,5 +1,3 @@
-gnome = import('gnome')
-
 cdata = configuration_data()
 cdata.set('VERSION', '1.0')
 configure_file(input : 'version.xml.in',
