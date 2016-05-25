@@ -16,11 +16,11 @@
 
 import os, subprocess, shutil
 
-def run_potgen(src_sub, pkgname, langs):
+def run_potgen(src_sub, pkgname, args):
     listfile = os.path.join(src_sub, 'POTFILES')
     ofile = os.path.join(src_sub, pkgname + '.pot')
-    return subprocess.call(['xgettext', '--package-name=' + pkgname, '-p', src_sub, listfile,
-                            '-D', os.environ['MESON_SOURCE_ROOT'], '-k_', '-o', ofile])
+    return subprocess.call(['xgettext', '--package-name=' + pkgname, '-p', src_sub, '-f', listfile,
+                            '-D', os.environ['MESON_SOURCE_ROOT'], '-k_', '-o', ofile] + args)
 
 def gen_gmo(src_sub, bld_sub, langs):
     for l in langs:
