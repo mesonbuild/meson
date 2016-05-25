@@ -876,7 +876,7 @@ class MesonMain(InterpreterObject):
         if self.is_cross_build_method(None, None) and \
            'binaries' in self.build.environment.cross_info.config and \
            self.build.environment.cross_info.need_exe_wrapper():
-            exe_wrap = self.build.environment.cross_info.config['binaries'].get('exe_wrap', None)
+            exe_wrap = self.build.environment.cross_info.config['binaries'].get('exe_wrapper', None)
             if exe_wrap is None:
                 return False
         # We return True when exe_wrap is defined, when it's not needed, and
