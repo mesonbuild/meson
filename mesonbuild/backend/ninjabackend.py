@@ -176,9 +176,6 @@ int dummy;
         self.generate_phony(outfile)
         outfile.write('# Build rules for targets\n\n')
         [self.generate_target(t, outfile) for t in self.build.get_targets().values()]
-        if len(self.build.pot) > 0:
-            outfile.write('# Build rules for localisation.\n\n')
-            self.generate_po(outfile)
         outfile.write('# Test rules\n\n')
         self.generate_tests(outfile)
         outfile.write('# Install rules\n\n')
@@ -428,24 +425,6 @@ int dummy;
         elem.write(outfile)
         self.processed_targets[target.name + target.type_suffix()] = True
 
-    def generate_po(self, outfile):
-        for p in self.build.pot:
-            (packagename, languages, subdir) = p
-            input_file = os.path.join(subdir, 'POTFILES')
-            elem = NinjaBuildElement(self.all_outputs, 'pot', 'GEN_POT', [])
-            elem.add_item('PACKAGENAME', packagename)
-            elem.add_item('OUTFILE', packagename + '.pot')
-            elem.add_item('FILELIST', os.path.join(self.environment.get_source_dir(), input_file))
-            elem.add_item('OUTDIR', os.path.join(self.environment.get_source_dir(), subdir))
-            elem.write(outfile)
-            for l in languages:
-                infile = os.path.join(self.environment.get_source_dir(), subdir, l + '.po')
-                outfilename = os.path.join(subdir, l + '.gmo')
-                lelem = NinjaBuildElement(self.all_outputs, outfilename, 'GEN_GMO', infile)
-                lelem.add_item('INFILE', infile)
-                lelem.add_item('OUTFILE', outfilename)
-                lelem.write(outfile)
-
     def generate_coverage_rules(self, outfile):
         (gcovr_exe, lcov_exe, genhtml_exe) = environment.find_coverage_tools()
         added_rule = False
@@ -496,24 +475,12 @@ int dummy;
         self.generate_header_install(d)
         self.generate_man_install(d)
         self.generate_data_install(d)
-        self.generate_po_install(d, elem)
         self.generate_custom_install_script(d)
         self.generate_subdir_install(d)
         elem.write(outfile)
 
         ofile = open(install_data_file, 'wb')
         pickle.dump(d, ofile)
-
-    def generate_po_install(self, d, elem):
-        for p in self.build.pot:
-            (package_name, languages, subdir) = p
-            # FIXME: assumes only one po package per source
-            d.po_package_name = package_name
-            for lang in languages:
-                rel_src =  os.path.join(subdir, lang + '.gmo')
-                src_file = os.path.join(self.environment.get_build_dir(), rel_src)
-                d.po.append((src_file, self.environment.coredata.get_builtin_option('localedir'), lang))
-                elem.add_dep(rel_src)
 
     def generate_target_install(self, d):
         libdir = self.environment.get_libdir()
@@ -658,25 +625,6 @@ int dummy;
         outfile.write(" command = %s %s %s %s %s %s --backend ninja\n" % c)
         outfile.write(' description = Regenerating build files\n')
         outfile.write(' generator = 1\n\n')
-        if len(self.build.pot) > 0:
-            self.generate_gettext_rules(outfile)
-        outfile.write('\n')
-
-    def generate_gettext_rules(self, outfile):
-        rule = 'rule GEN_POT\n'
-        command = " command = xgettext --package-name=$PACKAGENAME -p $OUTDIR -f $FILELIST -D '%s' -k_ -o $OUTFILE\n" % \
-        self.environment.get_source_dir()
-        desc = " description = Creating pot file for package $PACKAGENAME.\n"
-        outfile.write(rule)
-        outfile.write(command)
-        outfile.write(desc)
-        outfile.write('\n')
-        rule = 'rule GEN_GMO\n'
-        command = ' command = msgfmt $INFILE -o $OUTFILE\n'
-        desc = ' description = Generating gmo file $OUTFILE\n'
-        outfile.write(rule)
-        outfile.write(command)
-        outfile.write(desc)
         outfile.write('\n')
 
     def generate_phony(self, outfile):

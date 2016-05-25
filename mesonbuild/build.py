@@ -95,7 +95,6 @@ class Build:
         self.data = []
         self.static_linker = None
         self.static_cross_linker = None
-        self.pot = []
         self.subprojects = {}
         self.install_scripts = []
         self.postconf_scripts = []
