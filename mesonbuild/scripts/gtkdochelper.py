@@ -28,9 +28,10 @@ parser.add_argument('--mainfile', dest='mainfile')
 parser.add_argument('--modulename', dest='modulename')
 parser.add_argument('--htmlargs', dest='htmlargs', default='')
 parser.add_argument('--scanargs', dest='scanargs', default='')
+parser.add_argument('--fixxrefargs', dest='fixxrefargs', default='')
 
 def build_gtkdoc(source_root, build_root, doc_subdir, src_subdir,
-                 main_file, module, html_args, scan_args):
+                 main_file, module, html_args, scan_args, fixxref_args):
     abs_src = os.path.join(source_root, src_subdir)
     abs_out = os.path.join(build_root, doc_subdir)
     htmldir = os.path.join(abs_out, 'html')
@@ -76,7 +77,7 @@ def build_gtkdoc(source_root, build_root, doc_subdir, src_subdir,
     subprocess.check_call(mkhtml_cmd, cwd=os.path.join(abs_out, 'html'), shell=False)
     fixref_cmd = ['gtkdoc-fixxref',
                   '--module=' + module,
-                  '--module-dir=html']
+                  '--module-dir=html'] + fixxref_args
 #    print(fixref_cmd)
 #    sys.exit(1)
     subprocess.check_call(fixref_cmd, cwd=abs_out)
@@ -97,6 +98,10 @@ def run(args):
         scanargs = options.scanargs.split('@@')
     else:
         scanargs = []
+    if len(options.fixxrefargs) > 0:
+        fixxrefargs = options.fixxrefargs.split('@@')
+    else:
+        fixxrefargs = []
     build_gtkdoc(options.sourcedir,
                  options.builddir,
                  options.subdir,
@@ -104,7 +109,8 @@ def run(args):
                  options.mainfile,
                  options.modulename,
                  htmlargs,
-                 scanargs)
+                 scanargs,
+                 fixxrefargs)
 
     if 'MESON_INSTALL_PREFIX' in os.environ:
         if 'DESTDIR' in os.environ:

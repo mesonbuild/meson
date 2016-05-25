@@ -33,3 +33,4 @@ Nicolas Schneider
 Luke Adams
 Rogiel Sulzbach
 Tim-Philipp Müller
+Emmanuele Bassi
