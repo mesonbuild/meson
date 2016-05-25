@@ -692,6 +692,7 @@ int main(int argc, char **argv) {
         # Then, undef the symbol to get rid of it completely.
         templ = '''
         #define {1} meson_disable_define_of_{1}
+        #include <limits.h>
         {0}
         #undef {1}
         '''
@@ -709,6 +710,8 @@ int main(int argc, char **argv) {
         # glibc defines functions that are not available on Linux as stubs that
         # fail with ENOSYS (such as e.g. lchmod). In this case we want to fail
         # instead of detecting the stub as a valid symbol.
+        # We always include limits.h above to ensure that these are defined for
+        # stub functions.
         stubs_fail = '''
         #if defined __stub_{1} || defined __stub___{1}
         fail fail fail this function is not going to work
