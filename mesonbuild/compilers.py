@@ -739,7 +739,8 @@ int main(int argc, char **argv) {
         # redefines the symbol to be something else. In that case, we want to
         # still detect the function. We still want to fail if __stub_foo or
         # _stub_foo are defined, of course.
-        if self.links('{0}\n' + stubs_fail + '\nint main() {{ {1}; }}'.format(prefix, funcname), extra_args):
+        header_templ = '#include <limits.h>\n{0}\n' + stubs_fail + '\nint main() {{ {1}; }}'
+        if self.links(header_templ.format(prefix, funcname), extra_args):
             return True
         # Some functions like alloca() are defined as compiler built-ins which
         # are inlined by the compiler, so test for that instead. Built-ins are
