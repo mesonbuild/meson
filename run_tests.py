@@ -31,7 +31,7 @@ import time
 import multiprocessing
 import concurrent.futures as conc
 
-from mesonbuild.mesonmain import backendlist
+from mesonbuild.coredata import backendlist
 
 class TestResult:
     def __init__(self, msg, stdo, stde, conftime=0, buildtime=0, testtime=0):
@@ -97,6 +97,11 @@ def setup_commands(backend):
     msbuild_exe = shutil.which('msbuild')
     if backend == 'vs2010' or (backend is None and msbuild_exe is not None):
         backend_flags = ['--backend=vs2010']
+        compile_commands = ['msbuild']
+        test_commands = ['msbuild', 'RUN_TESTS.vcxproj']
+        install_commands = []
+    elif backend == 'vs2015':
+        backend_flags = ['--backend=vs2015']
         compile_commands = ['msbuild']
         test_commands = ['msbuild', 'RUN_TESTS.vcxproj']
         install_commands = []

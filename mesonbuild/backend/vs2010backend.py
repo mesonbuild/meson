@@ -39,6 +39,7 @@ class Vs2010Backend(backends.Backend):
         super().__init__(build)
         self.project_file_version = '10.0.30319.1'
         self.sources_conflicts = {}
+        self.platform_toolset = None
 
     def object_filename_from_source(self, target, source):
         basename = os.path.basename(source.fname)
@@ -309,6 +310,8 @@ class Vs2010Backend(backends.Backend):
         ET.SubElement(type_config, 'ConfigurationType')
         ET.SubElement(type_config, 'CharacterSet').text = 'MultiByte'
         ET.SubElement(type_config, 'UseOfMfc').text = 'false'
+        if self.platform_toolset:
+            ET.SubElement(type_config, 'PlatformToolset').text = self.platform_toolset
         ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.props')
         direlem = ET.SubElement(root, 'PropertyGroup')
         fver = ET.SubElement(direlem, '_ProjectFileVersion')
@@ -441,6 +444,8 @@ class Vs2010Backend(backends.Backend):
         type_config = ET.SubElement(root, 'PropertyGroup', Label='Configuration')
         ET.SubElement(type_config, 'ConfigurationType').text = conftype
         ET.SubElement(type_config, 'CharacterSet').text = 'MultiByte'
+        if self.platform_toolset:
+            ET.SubElement(type_config, 'PlatformToolset').text = self.platform_toolset
         ET.SubElement(type_config, 'WholeProgramOptimization').text = 'false'
         ET.SubElement(type_config, 'UseDebugLibraries').text = 'true'
         ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.props')
@@ -691,6 +696,8 @@ class Vs2010Backend(backends.Backend):
         ET.SubElement(type_config, 'ConfigurationType').text = "Utility"
         ET.SubElement(type_config, 'CharacterSet').text = 'MultiByte'
         ET.SubElement(type_config, 'UseOfMfc').text = 'false'
+        if self.platform_toolset:
+            ET.SubElement(type_config, 'PlatformToolset').text = self.platform_toolset
         ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.props')
         direlem = ET.SubElement(root, 'PropertyGroup')
         fver = ET.SubElement(direlem, '_ProjectFileVersion')
@@ -768,6 +775,8 @@ if %%errorlevel%% neq 0 goto :VCEnd'''
         ET.SubElement(type_config, 'ConfigurationType')
         ET.SubElement(type_config, 'CharacterSet').text = 'MultiByte'
         ET.SubElement(type_config, 'UseOfMfc').text = 'false'
+        if self.platform_toolset:
+            ET.SubElement(type_config, 'PlatformToolset').text = self.platform_toolset
         ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.props')
         direlem = ET.SubElement(root, 'PropertyGroup')
         fver = ET.SubElement(direlem, '_ProjectFileVersion')
@@ -811,3 +820,9 @@ if %%errorlevel%% neq 0 goto :VCEnd'''
         # ElementTree can not do prettyprinting so do it manually
         #doc = xml.dom.minidom.parse(ofname)
         #open(ofname, 'w').write(doc.toprettyxml())
+
+
+class Vs2015Backend(Vs2010Backend):
+    def __init__(self, build):
+        super().__init__(build)
+        self.platform_toolset = 'v140'
