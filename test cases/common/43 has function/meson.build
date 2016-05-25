@@ -9,7 +9,13 @@ endif
 # Should also be able to detect it without specifying the header
 # We check for a different function here to make sure the result is
 # not taken from a cache (ie. the check above)
-assert(cc.has_function('fprintf'), '"fprintf" function not found without include (should always exist).')
+# On MSVC fprintf is defined as an inline function in the header, so it cannot
+# be found without the include.
+if cc.get_id() != 'msvc'
+  assert(cc.has_function('fprintf'), '"fprintf" function not found without include (on !msvc).')
+else
+  assert(cc.has_function('fprintf', prefix : '#include <stdio.h>'), '"fprintf" function not found with include (on msvc).')
+endif
 
 if cc.has_function('hfkerhisadf', prefix : '#include<stdio.h>')
   error('Found non-existent function "hfkerhisadf".')
