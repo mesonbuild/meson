@@ -1394,6 +1394,13 @@ rule FORTRAN_DEP_HACK
                 mod_files.append(os.path.join(dirname, mod_name))
         return mod_files
 
+    def get_cross_stdlib_args(self, target, compiler):
+        if not target.is_cross:
+            return []
+        if self.environment.cross_info.has_stdlib(compiler.language):
+            return []
+        return compiler.get_no_stdinc_args()
+
     def generate_single_compile(self, target, outfile, src, is_generated=False, header_deps=[], order_deps=[]):
         if(isinstance(src, str) and src.endswith('.h')):
             raise RuntimeError('Fug')
@@ -1599,6 +1606,13 @@ rule FORTRAN_DEP_HACK
             elem.add_item('CROSS', '--cross-host=' + self.environment.cross_info.config['host_machine']['system'])
         elem.write(outfile)
 
+    def get_cross_stdlib_link_args(self, target, linker):
+        if isinstance(target, build.StaticLibrary) or not target.is_cross:
+            return []
+        if not self.environment.cross_info.has_stdlib(linker.language):
+            return []
+        return linker.get_no_stdlib_link_args()
+
     def generate_link(self, target, outfile, outname, obj_list, linker, extra_args=[]):
         if isinstance(target, build.StaticLibrary):
             linker_base = 'STATIC'
@@ -1612,6 +1626,7 @@ rule FORTRAN_DEP_HACK
         linker_rule = linker_base + crstr + '_LINKER'
         abspath = os.path.join(self.environment.get_build_dir(), target.subdir)
         commands = []
+        commands += self.get_cross_stdlib_link_args(target, linker)
         commands += linker.get_linker_always_args()
         if not isinstance(target, build.StaticLibrary):
             commands += compilers.get_base_link_args(self.environment.coredata.base_options,
