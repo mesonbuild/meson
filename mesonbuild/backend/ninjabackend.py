@@ -1397,7 +1397,7 @@ rule FORTRAN_DEP_HACK
     def get_cross_stdlib_args(self, target, compiler):
         if not target.is_cross:
             return []
-        if self.environment.cross_info.has_stdlib(compiler.language):
+        if not self.environment.cross_info.has_stdlib(compiler.language):
             return []
         return compiler.get_no_stdinc_args()
 
