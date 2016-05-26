@@ -4,6 +4,11 @@
 Meson® is a project to create the best possible next-generation
 build system.
 
+####Build status
+
+<a href="https://travis-ci.org/mesonbuild/meson"><img
+src="https://travis-ci.org/mesonbuild/meson.svg?branch=master"></a>
+
 ####Dependencies
 
  - [Python](http://python.org) (version 3.4 or newer)
