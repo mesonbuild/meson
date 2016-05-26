@@ -157,7 +157,7 @@ def validate_install(srcdir, installdir):
     return ''
 
 def log_text_file(logfile, testdir, stdo, stde):
-    global stop
+    global stop, executor, futures
     logfile.write('%s\nstdout\n\n---\n' % testdir)
     logfile.write(stdo)
     logfile.write('\n\n---\n\nstderr\n\n---\n')
@@ -167,6 +167,10 @@ def log_text_file(logfile, testdir, stdo, stde):
         print(stdo)
         print(stde, file=sys.stderr)
     if stop:
+        print("Aborting..")
+        for f in futures:
+            f[2].cancel()
+        executor.shutdown()
         raise StopException()
 
 def run_configure_inprocess(commandlist):
@@ -300,7 +304,7 @@ def detect_tests_to_run():
     return all_tests
 
 def run_tests(extra_args):
-    global passing_tests, failing_tests, stop
+    global passing_tests, failing_tests, stop, executor, futures
     all_tests = detect_tests_to_run()
     logfile = open('meson-test-run.txt', 'w', encoding="utf_8")
     junit_root = ET.Element('testsuites')
