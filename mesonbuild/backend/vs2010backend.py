@@ -388,6 +388,18 @@ class Vs2010Backend(backends.Backend):
         lang = Vs2010Backend.lang_from_source_file(source_file)
         ET.SubElement(parent_node, "AdditionalOptions").text = ' '.join(extra_args[lang]) + ' %(AdditionalOptions)'
 
+    @staticmethod
+    def has_objects(objects, additional_objects, generated_objects):
+        # Ignore generated objects, those are automatically used by MSBuild for VS2010, because they are part of
+        # the CustomBuildStep Outputs.
+        return len(objects) + len(additional_objects) > 0
+
+    @staticmethod
+    def add_generated_objects(node, generated_objects):
+        # Do not add generated objects to project file. Those are automatically used by MSBuild for VS2010, because
+        # they are part of the CustomBuildStep Outputs.
+        return
+
     @classmethod
     def quote_define_cmdline(cls, arg):
         return re.sub(r'^([-/])D(.*?)="(.*)"$', r'\1D\2=\"\3\"', arg)
@@ -646,15 +658,15 @@ class Vs2010Backend(backends.Backend):
                 pch_file.text = os.path.split(header)[1]
                 self.add_additional_options(impl, inc_cl, extra_args, additional_options_set)
 
-        if len(objects) + len(additional_objects) > 0:
-            # Do not add gen_objs to project file. Those are automatically used by MSBuild, because they are part of
-            # the CustomBuildStep Outputs.
+        if self.has_objects(objects, additional_objects, gen_objs):
             inc_objs = ET.SubElement(root, 'ItemGroup')
             for s in objects:
                 relpath = s.rel_to_builddir(proj_to_src_root)
                 ET.SubElement(inc_objs, 'Object', Include=relpath)
             for s in additional_objects:
                 ET.SubElement(inc_objs, 'Object', Include=s)
+            self.add_generated_objects(inc_objs, gen_objs)
+
         ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.targets')
         # Reference the regen target.
         ig = ET.SubElement(root, 'ItemGroup')
@@ -826,3 +838,15 @@ class Vs2015Backend(Vs2010Backend):
     def __init__(self, build):
         super().__init__(build)
         self.platform_toolset = 'v140'
+
+    @staticmethod
+    def has_objects(objects, additional_objects, generated_objects):
+        # VS2015 requires generated objects to be added explicitly to the project file.
+        return len(objects) + len(additional_objects) + len(generated_objects) > 0
+
+    @staticmethod
+    def add_generated_objects(node, generated_objects):
+        # VS2015 requires generated objects to be added explicitly to the project file.
+        for s in generated_objects:
+            ET.SubElement(node, 'Object', Include=s)
+        return
