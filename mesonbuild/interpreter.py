@@ -1052,7 +1052,6 @@ class Interpreter():
                     raise InterpreterException('Tried to create target %s which already exists.' % v.name)
                 self.build.targets[v.name] = v
             elif isinstance(v, build.InstallScript):
-                print('x')
                 self.build.install_scripts.append(v)
             elif isinstance(v, build.Data):
                 self.build.data.append(v)
