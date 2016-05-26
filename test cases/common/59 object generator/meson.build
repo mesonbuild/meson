@@ -20,6 +20,12 @@ gen = generator(python,
 
 generated = gen.process(['source.c', 'source2.c'])
 
-e = executable('prog', 'prog.c', generated)
+# Generate an object file with indexed OUTPUT replacement.
+gen2 = generator(python,
+ output : outputname,
+ arguments : [comp, cc, '@INPUT@', '@OUTPUT0@'])
+generated2 = gen2.process(['source3.c'])
+
+e = executable('prog', 'prog.c', generated, generated2)
 
 test('objgen', e)
