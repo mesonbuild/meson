@@ -445,7 +445,7 @@ class CCompiler(Compiler):
         ofile.close()
         # Compile sanity check
         cmdlist = self.exelist + extra_flags + [source_name] + self.get_output_args(binary_name)
-        pc = subprocess.Popen(cmdlist, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        pc = subprocess.Popen(cmdlist, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=work_dir)
         (stdo, stde) = pc.communicate()
         stdo = stdo.decode()
         stde = stde.decode()
