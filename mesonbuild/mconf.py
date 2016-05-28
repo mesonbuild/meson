@@ -101,16 +101,16 @@ class Conf:
             elif k in self.coredata.base_options:
                 tgt = self.coredata.base_options[k]
                 tgt.set_value(v)
-            elif k.endswith('linkargs'):
-                lang = k[:-8]
+            elif k.endswith('_link_args'):
+                lang = k[:-10]
                 if not lang in self.coredata.external_link_args:
                     raise ConfException('Unknown language %s in linkargs.' % lang)
                 # TODO, currently split on spaces, make it so that user
                 # can pass in an array string.
                 newvalue = v.split()
                 self.coredata.external_link_args[lang] = newvalue
-            elif k.endswith('args'):
-                lang = k[:-4]
+            elif k.endswith('_args'):
+                lang = k[:-5]
                 if not lang in self.coredata.external_args:
                     raise ConfException('Unknown language %s in compile args' % lang)
                 # TODO same fix as above
@@ -145,11 +145,11 @@ class Conf:
         print('')
         print('Compiler arguments:')
         for (lang, args) in self.coredata.external_args.items():
-            print('  ' + lang + 'args', str(args))
+            print('  ' + lang + '_args', str(args))
         print('')
         print('Linker args:')
         for (lang, args) in self.coredata.external_link_args.items():
-            print('  ' + lang + 'linkargs', str(args))
+            print('  ' + lang + '_link_args', str(args))
         print('')
         print('Compiler options:')
         okeys = sorted(self.coredata.compiler_options.keys())
@@ -180,11 +180,11 @@ class Conf:
             for key in keys:
                 opt = options[key]
                 if (opt.choices is None) or (len(opt.choices) == 0):
-                  # Zero length list or string
-                  choices = '';
+                    # Zero length list or string
+                    choices = '';
                 else:
-                  # A non zero length list or string, convert to string
-                  choices = str(opt.choices);
+                    # A non zero length list or string, convert to string
+                    choices = str(opt.choices);
                 optarr.append([key, opt.description, opt.value, choices])
             self.print_aligned(optarr)
         print('')
