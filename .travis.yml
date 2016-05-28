@@ -9,4 +9,5 @@ before_install:
   - docker pull jpakkane/mesonci:xenial
 
 script:
-  - docker run jpakkane/mesonci:xenial /bin/sh -c "cd /root && git clone https://github.com/mesonbuild/meson.git && cd meson && ./run_tests.py"
+  - docker cp /home/travis/mesonbuild/meson jpakkane/mesonci:xenial:/root
+  - docker run jpakkane/mesonci:xenial /bin/sh -c "cd /root/meson && ./run_tests.py"
