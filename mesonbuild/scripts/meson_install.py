@@ -18,6 +18,13 @@ import sys, pickle, os, shutil, subprocess, gzip, platform
 from glob import glob
 from mesonbuild.scripts import depfixer
 
+def destdir_join(d1, d2):
+    # c:\destdir + c:\prefix must produce c:\destdir\prefix
+    if len(d1) > 1 and d1[1] == ':' and \
+        len(d2) > 1 and d2[1] == ':':
+        return d1 + d2[2:]
+    return d1 + d2
+
 def do_install(datafilename):
     ifile = open(datafilename, 'rb')
     d = pickle.load(ifile)
@@ -26,7 +33,7 @@ def do_install(datafilename):
         d.destdir = os.environ[destdir_var]
     else:
         d.destdir = ''
-    d.fullprefix = d.destdir + d.prefix
+    d.fullprefix = destdir_join(d.destdir, d.prefix)
 
     install_subdirs(d) # Must be first, because it needs to delete the old subtree.
     install_targets(d)
@@ -38,7 +45,7 @@ def do_install(datafilename):
 def install_subdirs(d):
     for (src_dir, dst_dir) in d.install_subdirs:
         if os.path.isabs(dst_dir):
-            dst_dir = d.destdir + dst_dir
+            dst_dir = destdir_join(d.destdir, dst_dir)
         else:
             dst_dir = d.fullprefix + dst_dir
         # Python's copytree works in strange ways.
@@ -55,8 +62,8 @@ def install_data(d):
         fullfilename = i[0]
         outfilename = i[1]
         if os.path.isabs(outfilename):
-            outdir = d.destdir + os.path.split(outfilename)[0]
-            outfilename = d.destdir + outfilename
+            outdir = destdir_join(d.destdir, os.path.split(outfilename)[0])
+            outfilename = destdir_join(d.destdir, outfilename)
         else:
             outdir = os.path.join(d.fullprefix, os.path.split(outfilename)[0])
             outfilename = os.path.join(outdir, os.path.split(outfilename)[1])
