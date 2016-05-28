@@ -1953,6 +1953,8 @@ class Interpreter():
         return results
 
     def add_target(self, name, tobj):
+        if name == '':
+            raise InterpreterException('Target name must not be empty.')
         if name in coredata.forbidden_target_names:
             raise InvalidArguments('Target name "%s" is reserved for Meson\'s internal use. Please rename.'\
                                    % name)
