@@ -1286,19 +1286,6 @@ rule FORTRAN_DEP_HACK
                 self.generate_pch_rule_for(langname, compiler, qstr, True, outfile)
         outfile.write('\n')
 
-    def replace_outputs(self, args, private_dir, output_list):
-        newargs = []
-        regex = re.compile('@OUTPUT(\d+)@')
-        for arg in args:
-            m = regex.search(arg)
-            while m is not None:
-                index = int(m.group(1))
-                src = '@OUTPUT%d@' % index
-                arg = arg.replace(src, os.path.join(private_dir, output_list[index]))
-                m = regex.search(arg)
-            newargs.append(arg)
-        return newargs
-
     def generate_custom_generator_rules(self, target, outfile):
         for genlist in target.get_generated_sources():
             if isinstance(genlist, build.CustomTarget):

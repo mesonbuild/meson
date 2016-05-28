@@ -433,6 +433,19 @@ class Backend():
                 final_args.append(a)
         return final_args
 
+    def replace_outputs(self, args, private_dir, output_list):
+        newargs = []
+        regex = re.compile('@OUTPUT(\d+)@')
+        for arg in args:
+            m = regex.search(arg)
+            while m is not None:
+                index = int(m.group(1))
+                src = '@OUTPUT%d@' % index
+                arg = arg.replace(src, os.path.join(private_dir, output_list[index]))
+                m = regex.search(arg)
+            newargs.append(arg)
+        return newargs
+
     def get_custom_target_provided_libraries(self, target):
         libs = []
         for t in target.get_generated_sources():

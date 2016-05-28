@@ -96,11 +96,12 @@ class Vs2010Backend(backends.Backend):
                         sole_output = ''
                     curfile = infilelist[i]
                     infilename = os.path.join(self.environment.get_source_dir(), curfile)
-                    outfiles = genlist.get_outputs_for(curfile)
-                    outfiles = [os.path.join(target_private_dir, of) for of in outfiles]
+                    outfiles_rel = genlist.get_outputs_for(curfile)
+                    outfiles = [os.path.join(target_private_dir, of) for of in outfiles_rel]
                     generator_output_files += outfiles
                     args = [x.replace("@INPUT@", infilename).replace('@OUTPUT@', sole_output)\
                             for x in base_args]
+                    args = self.replace_outputs(args, target_private_dir, outfiles_rel)
                     args = [x.replace("@SOURCE_DIR@", self.environment.get_source_dir()).replace("@BUILD_DIR@", target_private_dir)
                             for x in args]
                     fullcmd = exe_arr + self.replace_extra_args(args, genlist)
