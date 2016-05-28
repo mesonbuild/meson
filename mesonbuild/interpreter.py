@@ -1003,6 +1003,7 @@ class Interpreter():
                       'configure_file' : self.func_configure_file,
                       'include_directories' : self.func_include_directories,
                       'add_global_arguments' : self.func_add_global_arguments,
+                      'add_global_link_arguments' : self.func_add_global_link_arguments,
                       'add_languages' : self.func_add_languages,
                       'find_program' : self.func_find_program,
                       'find_library' : self.func_find_library,
@@ -1918,6 +1919,20 @@ class Interpreter():
             self.build.global_args[lang] += args
         else:
             self.build.global_args[lang] = args
+
+    @stringArgs
+    def func_add_global_link_arguments(self, node, args, kwargs):
+        if self.subproject != '':
+            raise InvalidCode('Global arguments can not be set in subprojects because there is no way to make that reliable.')
+        if self.global_args_frozen:
+            raise InvalidCode('Tried to set global arguments after a build target has been declared.\nThis is not permitted. Please declare all global arguments before your targets.')
+        if not 'language' in kwargs:
+            raise InvalidCode('Missing language definition in add_global_arguments')
+        lang = kwargs['language'].lower()
+        if lang in self.build.global_link_args:
+            self.build.global_link_args[lang] += args
+        else:
+            self.build.global_link_args[lang] = args
 
     def flatten(self, args):
         if isinstance(args, mparser.StringNode):

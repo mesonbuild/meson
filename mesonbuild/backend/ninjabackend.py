@@ -1626,6 +1626,8 @@ rule FORTRAN_DEP_HACK
         linker_rule = linker_base + crstr + '_LINKER'
         abspath = os.path.join(self.environment.get_build_dir(), target.subdir)
         commands = []
+        if not isinstance(target, build.StaticLibrary):
+            commands += self.build.get_global_link_args(linker)
         commands += self.get_cross_stdlib_link_args(target, linker)
         commands += linker.get_linker_always_args()
         if not isinstance(target, build.StaticLibrary):
