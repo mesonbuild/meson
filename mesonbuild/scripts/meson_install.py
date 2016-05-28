@@ -106,6 +106,7 @@ def run_install_script(d):
     child_env.update(env)
 
     for i in d.install_scripts:
+        final_command = i.cmd_arr
         script = i.cmd_arr[0]
         print('Running custom install script %s' % script)
         suffix = os.path.splitext(script)[1].lower()
@@ -120,8 +121,6 @@ def run_install_script(d):
                     if commands[0] is None:
                         raise RuntimeError("Don't know how to run script %s." % script)
                 final_command = commands + [script] + i.cmd_arr[1:]
-        else:
-            final_command = i.cmd_arr
         try:
             rc = subprocess.call(final_command, env=child_env)
             if rc != 0:
