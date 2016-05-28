@@ -12,8 +12,6 @@ before_install:
 # because it has the MR id to be tested checked out.
 
 script:
-  - pwd
-  - ls
   - echo FROM jpakkane/mesonci:xenial > Dockerfile
   - echo ADD . /root >> Dockerfile
   - docker build -t withgit .
