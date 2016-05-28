@@ -55,3 +55,15 @@ assert('@0@'.format(true) == 'true', 'bool string formatting failed')
 assert(' '.join(['a', 'b', 'c']) == 'a b c', 'join() array broken')
 assert(''.join(['a', 'b', 'c']) == 'abc', 'empty join() broken')
 assert(' '.join(['a']) == 'a', 'single join broken')
+
+version_number = '1.2.8'
+
+assert(version_number.version_compare('>=1.2.8'), 'Version_compare gt broken')
+assert(not version_number.version_compare('>1.2.8'), 'Version_compare greater broken')
+assert(not version_number.version_compare('<1.2.8'), 'Version_compare less broken')
+assert(version_number.version_compare('<=1.2.8'), 'Version_compare le broken')
+assert(version_number.version_compare('==1.2.8'), 'Version_compare eq broken')
+assert(not version_number.version_compare('!=1.2.8'), 'Version_compare neq broken')
+
+assert(version_number.version_compare('<2.0'), 'Version_compare major less broken')
+assert(version_number.version_compare('>0.9'), 'Version_compare major greater broken')

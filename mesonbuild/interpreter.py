@@ -2159,6 +2159,13 @@ class Interpreter():
             strlist = posargs[0]
             check_stringlist(strlist)
             return obj.join(strlist)
+        elif method_name == 'version_compare':
+            if len(posargs) != 1:
+                raise InterpreterException('Version_compare() takes exactly one argument.')
+            cmpr = posargs[0]
+            if not isinstance(cmpr, str):
+                raise InterpreterException('Version_compare() argument must be a string.')
+            return mesonlib.version_compare(obj, cmpr)
         raise InterpreterException('Unknown method "%s" for a string.' % method_name)
 
     def to_native(self, arg):
