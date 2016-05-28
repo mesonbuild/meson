@@ -8,6 +8,13 @@ services:
 before_install:
   - docker pull jpakkane/mesonci:xenial
 
+# We need to copy the current checkout inside the container,
+# because it has the MR id to be tested checked out.
+
 script:
-  - docker cp /home/travis/mesonbuild/meson jpakkane/mesonci:xenial:/root
-  - docker run jpakkane/mesonci:xenial /bin/sh -c "cd /root/meson && ./run_tests.py"
+  - pwd
+  - ls
+  - echo FROM jpakkane/mesonci:xenial > Dockerfile
+  - echo ADD . /root >> Dockerfile
+  - docker build -t withgit .
+  - docker run withgit /bin/sh -c "cd /root && ./run_tests.py"
