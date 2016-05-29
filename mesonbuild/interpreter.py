@@ -1836,6 +1836,7 @@ class Interpreter():
         self.build_def_files.append(buildfilename)
         absname = os.path.join(self.environment.get_source_dir(), buildfilename)
         if not os.path.isfile(absname):
+            self.subdir = prev_subdir
             raise InterpreterException('Nonexistant build def file %s.' % buildfilename)
         code = open(absname, encoding='utf8').read()
         assert(isinstance(code, str))
