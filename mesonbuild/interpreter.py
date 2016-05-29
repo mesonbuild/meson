@@ -1617,11 +1617,21 @@ class Interpreter():
         self.validate_arguments(args, 1, [str])
         name = args[0]
         identifier = dependencies.get_dep_identifier(name, kwargs)
+        # Check if we've already searched for and found this dep
+        cached_dep = None
         if identifier in self.coredata.deps:
-            dep = self.coredata.deps[identifier]
+            cached_dep = self.coredata.deps[identifier]
+            if 'version' in kwargs:
+                wanted = kwargs['version']
+                found = cached_dep.get_version()
+                if not found or not mesonlib.version_compare(found, wanted):
+                    # Cached dep has the wrong version. Check if an external
+                    # dependency or a fallback dependency provides it.
+                    cached_dep = None
+        if cached_dep:
+            dep = cached_dep
         else:
-            dep = dependencies.Dependency() # Returns always false for dep.found()
-        if not dep.found():
+            # We need to actually search for this dep
             try:
                 dep = dependencies.find_external_dependency(name, self.environment, kwargs)
             except dependencies.DependencyException:
