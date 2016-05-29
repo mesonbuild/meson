@@ -1626,7 +1626,9 @@ class Interpreter():
                 dep = dependencies.find_external_dependency(name, self.environment, kwargs)
             except dependencies.DependencyException:
                 if 'fallback' in kwargs:
-                    return self.dependency_fallback(kwargs)
+                    dep = self.dependency_fallback(kwargs)
+                    self.coredata.deps[identifier] = dep.held_object
+                    return dep
                 raise
         self.coredata.deps[identifier] = dep
         return DependencyHolder(dep)

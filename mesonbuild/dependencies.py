@@ -1148,7 +1148,15 @@ def get_dep_identifier(name, kwargs):
         modlist = [modlist]
     for module in modlist:
         elements.append(module)
-    return '/'.join(elements) + '/main' + str(kwargs.get('main', False)) + '/static' + str(kwargs.get('static', False))
+    # We use a tuple because we need a non-mutable structure to use as the key
+    # of a dictionary and a string has potential for name collisions
+    identifier = tuple(elements)
+    identifier += ('main', kwargs.get('main', False))
+    identifier += ('static', kwargs.get('static', False))
+    if 'fallback' in kwargs:
+        f = kwargs.get('fallback')
+        identifier += ('fallback', f[0], f[1])
+    return identifier
 
 def find_external_dependency(name, environment, kwargs):
     required = kwargs.get('required', True)
