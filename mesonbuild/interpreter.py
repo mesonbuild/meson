@@ -225,19 +225,28 @@ class DependencyHolder(InterpreterObject):
     def __init__(self, dep):
         InterpreterObject.__init__(self)
         self.held_object = dep
-        self.methods.update({'found' : self.found_method})
+        self.methods.update({'found' : self.found_method,
+                             'version': self.version_method})
 
     def found_method(self, args, kwargs):
         return self.held_object.found()
+
+    def version_method(self, args, kwargs):
+        return self.held_object.get_version()
 
 class InternalDependencyHolder(InterpreterObject):
     def __init__(self, dep):
         InterpreterObject.__init__(self)
         self.held_object = dep
-        self.methods.update({'found' : self.found_method})
+        self.methods.update({'found' : self.found_method,
+                             'version': self.version_method,
+                             })
 
     def found_method(self, args, kwargs):
         return True
+
+    def version_method(self, args, kwargs):
+        return self.held_object.get_version()
 
 class ExternalProgramHolder(InterpreterObject):
     def __init__(self, ep):
@@ -1175,6 +1184,9 @@ class Interpreter():
 
     @noPosargs
     def func_declare_dependency(self, node, args, kwargs):
+        version = kwargs.get('version', 'undefined')
+        if not isinstance(version, str):
+            raise InterpreterException('Version must be a string.')
         incs = kwargs.get('include_directories', [])
         if not isinstance(incs, list):
             incs = [incs]
@@ -1199,7 +1211,7 @@ class Interpreter():
             if not isinstance(d, (dependencies.Dependency, dependencies.ExternalLibrary, dependencies.InternalDependency)):
                 raise InterpreterException('Dependencies must be external deps')
             final_deps.append(d)
-        dep = dependencies.InternalDependency(incs, compile_args, link_args, libs, sources, final_deps)
+        dep = dependencies.InternalDependency(version, incs, compile_args, link_args, libs, sources, final_deps)
         return InternalDependencyHolder(dep)
 
     @noKwargs

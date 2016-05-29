@@ -497,7 +497,8 @@ class BuildTarget():
                 for l in dep.libraries:
                     self.link(l)
                 # Those parts that are external.
-                extpart = dependencies.InternalDependency([],
+                extpart = dependencies.InternalDependency('undefined',
+                                                          [],
                                                           dep.compile_args,
                                                           dep.link_args,
                                                           [], [], [])

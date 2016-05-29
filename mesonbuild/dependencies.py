@@ -59,8 +59,9 @@ class Dependency():
         return False
 
 class InternalDependency(Dependency):
-    def __init__(self, incdirs, compile_args, link_args, libraries, sources, ext_deps):
+    def __init__(self, version, incdirs, compile_args, link_args, libraries, sources, ext_deps):
         super().__init__()
+        self.version = version
         self.include_directories = incdirs
         self.compile_args = compile_args
         self.link_args = link_args
@@ -73,6 +74,9 @@ class InternalDependency(Dependency):
 
     def get_link_args(self):
         return self.link_args
+
+    def get_version(self):
+        return self.version
 
 class PkgConfigDependency(Dependency):
     pkgconfig_found = None
@@ -187,6 +191,9 @@ class PkgConfigDependency(Dependency):
 
     def get_modversion(self):
         return self.modversion
+
+    def get_version(self):
+        return self.get_modversion()
 
     def get_compile_args(self):
         return self.cargs
