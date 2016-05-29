@@ -125,14 +125,18 @@ class Qt5Module():
         if len(rcc_files) > 0:
             rcc_kwargs = {'output' : '@BASENAME@.cpp',
                           'arguments' : ['@INPUT@', '-o', '@OUTPUT@']}
-            rcc_gen = build.Generator([self.rcc], rcc_kwargs)
-            rcc_output = build.GeneratedList(rcc_gen)
             qrc_deps = []
             for i in rcc_files:
                 qrc_deps += self.parse_qrc(state, i)
-            rcc_output.extra_depends = qrc_deps
-            [rcc_output.add_file(os.path.join(state.subdir, a)) for a in rcc_files]
-            sources.append(rcc_output)
+            rcc_kwargs = {'input' : rcc_files,
+                    'output' : rcc_files[0] + '.cpp',
+                    'command' : [self.rcc, '-o', '@OUTPUT@', '@INPUT@'],
+                    'depend_files' : qrc_deps,
+                    }
+            res_target = build.CustomTarget(rcc_files[0].replace('.', '_'),
+                                            state.subdir,
+                                            rcc_kwargs)
+            sources.append(res_target)
         if len(ui_files) > 0:
             ui_kwargs = {'output' : 'ui_@BASENAME@.h',
                          'arguments' : ['-o', '@OUTPUT@', '@INPUT@']}
