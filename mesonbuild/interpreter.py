@@ -1184,7 +1184,7 @@ class Interpreter():
 
     @noPosargs
     def func_declare_dependency(self, node, args, kwargs):
-        version = kwargs.get('version', 'undefined')
+        version = kwargs.get('version', self.project_version)
         if not isinstance(version, str):
             raise InterpreterException('Version must be a string.')
         incs = kwargs.get('include_directories', [])
