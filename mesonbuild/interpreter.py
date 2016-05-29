@@ -1639,8 +1639,16 @@ class Interpreter():
         if len(fbinfo) != 2:
             raise InterpreterException('Fallback info must have exactly two items.')
         dirname, varname = fbinfo
-        self.do_subproject(dirname, kwargs)
-        return self.subprojects[dirname].get_variable_method([varname], {})
+        self.do_subproject(dirname, {})
+        dep = self.subprojects[dirname].get_variable_method([varname], {})
+        # Check if the version of the declared dependency matches what we want
+        if 'version' in kwargs:
+            wanted = kwargs['version']
+            found = dep.version_method([], {})
+            if found == 'undefined' or not mesonlib.version_compare(found, wanted):
+                m = 'Subproject "{0}" dependency "{1}" version is "{2}" but "{3}" is required.'
+                raise InterpreterException(m.format(dirname, varname, found, wanted))
+        return dep
 
     def func_executable(self, node, args, kwargs):
         return self.build_target(node, args, kwargs, ExecutableHolder)
