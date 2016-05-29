@@ -1383,7 +1383,20 @@ class Interpreter():
         try:
             return self.environment.coredata.user_options[optname].value
         except KeyError:
-            raise InterpreterException('Tried to access unknown option "%s".' % optname)
+            pass
+        if optname.endswith('_link_args'):
+            try:
+                lang = optname[:-10]
+                return self.coredata.external_link_args[lang]
+            except KeyError:
+                pass
+        if optname.endswith('_args'):
+            try:
+                lang = optname[:-5]
+                return self.coredata.external_args[lang]
+            except KeyError:
+                pass
+        raise InterpreterException('Tried to access unknown option "%s".' % optname)
 
     @noKwargs
     def func_configuration_data(self, node, args, kwargs):
