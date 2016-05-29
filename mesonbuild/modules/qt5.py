@@ -123,17 +123,16 @@ class Qt5Module():
             srctmp = [srctmp]
         sources = args[1:] + srctmp
         if len(rcc_files) > 0:
-            rcc_kwargs = {'output' : '@BASENAME@.cpp',
-                          'arguments' : ['@INPUT@', '-o', '@OUTPUT@']}
             qrc_deps = []
             for i in rcc_files:
                 qrc_deps += self.parse_qrc(state, i)
+            basename = os.path.split(rcc_files[0])[1]
             rcc_kwargs = {'input' : rcc_files,
-                    'output' : rcc_files[0] + '.cpp',
+                    'output' : basename + '.cpp',
                     'command' : [self.rcc, '-o', '@OUTPUT@', '@INPUT@'],
                     'depend_files' : qrc_deps,
                     }
-            res_target = build.CustomTarget(rcc_files[0].replace('.', '_'),
+            res_target = build.CustomTarget(basename.replace('.', '_'),
                                             state.subdir,
                                             rcc_kwargs)
             sources.append(res_target)
