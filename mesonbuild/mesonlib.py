@@ -132,7 +132,7 @@ numpart = re.compile('[0-9.]+')
 def version_compare(vstr1, vstr2):
     match = numpart.match(vstr1.strip())
     if match is None:
-        raise MesonException('Unconparable version string %s.' % vstr1)
+        raise MesonException('Uncomparable version string %s.' % vstr1)
     vstr1 = match.group(0)
     if vstr2.startswith('>='):
         cmpop = operator.ge
