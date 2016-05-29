@@ -1354,7 +1354,7 @@ class Interpreter():
         if 'version' in kwargs:
             pv = subi.project_version
             wanted = kwargs['version']
-            if not mesonlib.version_compare(pv, wanted):
+            if pv == 'undefined' or not mesonlib.version_compare(pv, wanted):
                 raise InterpreterException('Subproject %s version is %s but %s required.' % (dirname, pv, wanted))
         self.active_projectname = current_active
         mlog.log('\nSubproject', mlog.bold(dirname), 'finished.')
