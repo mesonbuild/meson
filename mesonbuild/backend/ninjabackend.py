@@ -459,8 +459,6 @@ int dummy;
             mlog.log(mlog.red('Warning:'), 'coverage requested but neither gcovr nor lcov/genhtml found.')
 
     def generate_install(self, outfile):
-        script_root = self.environment.get_script_dir()
-        install_script = os.path.join(script_root, 'meson_install.py')
         install_data_file = os.path.join(self.environment.get_scratch_dir(), 'install.dat')
         d = InstallData(self.environment.get_source_dir(),
                         self.environment.get_build_dir(),
@@ -548,9 +546,10 @@ int dummy;
 
     def generate_subdir_install(self, d):
         for sd in self.build.get_install_subdirs():
-            src_dir = os.path.join(self.environment.get_source_dir(), sd.source_subdir, sd.installable_subdir)
+            src_dir = os.path.join(self.environment.get_source_dir(), sd.source_subdir)
+            inst_dir =  sd.installable_subdir
             dst_dir = os.path.join(self.environment.get_prefix(), sd.install_dir)
-            d.install_subdirs.append([src_dir, dst_dir])
+            d.install_subdirs.append([src_dir, inst_dir, dst_dir])
 
     def write_test_suite_targets(self, cmd, outfile):
         suites = {}

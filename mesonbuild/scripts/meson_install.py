@@ -42,20 +42,40 @@ def do_install(datafilename):
     install_data(d)
     run_install_script(d)
 
-def install_subdirs(d):
-    for (src_dir, dst_dir) in d.install_subdirs:
+def install_subdirs(data):
+    for (src_dir, inst_dir, dst_dir) in data.install_subdirs:
+        if src_dir.endswith('/'):
+            src_dir = src_dir[:-1]
+        src_prefix = os.path.join(src_dir, inst_dir)
+        print('Installing subdir %s to %s.' % (src_prefix, dst_dir))
         if os.path.isabs(dst_dir):
-            dst_dir = destdir_join(d.destdir, dst_dir)
+            dst_dir = destdir_join(data.destdir, dst_dir)
         else:
-            dst_dir = d.fullprefix + dst_dir
-        # Python's copytree works in strange ways.
-        last_level = os.path.split(src_dir)[-1]
-        final_dst = os.path.join(dst_dir, last_level)
-# Don't do rmtree because final_dst might point to e.g. /var/www
-# We might need to revert to walking the directory tree by hand.
-#        shutil.rmtree(final_dst, ignore_errors=True)
-        shutil.copytree(src_dir, final_dst, symlinks=True)
-        print('Installing subdir %s to %s.' % (src_dir, dst_dir))
+            dst_dir = data.fullprefix + dst_dir
+        if not os.path.exists(dst_dir):
+            os.makedirs(dst_dir)
+        for root, dirs, files in os.walk(src_prefix):
+            print(root)
+            for d in dirs:
+                abs_src = os.path.join(src_dir, root, d)
+                filepart = abs_src[len(src_dir)+1:]
+                abs_dst = os.path.join(dst_dir, filepart)
+                if os.path.isdir(abs_dst):
+                    continue
+                if os.path.exists(abs_dst):
+                    print('Tried to copy directory %s but a file of that name already exists.' % abs_dst)
+                    sys.exit(1)
+                os.makedirs(abs_dst)
+                shutil.copystat(abs_src, abs_dst)
+            for f in files:
+                abs_src = os.path.join(src_dir, root, f)
+                filepart = abs_src[len(src_dir)+1:]
+                abs_dst = os.path.join(dst_dir, filepart)
+                if os.path.isdir(abs_dst):
+                    print('Tried to copy file %s but a directory of that name already exists.' % abs_dst)
+                if os.path.exists(abs_dst):
+                    os.unlink(abs_dst)
+                shutil.copy2(abs_src, abs_dst, follow_symlinks=False)
 
 def install_data(d):
     for i in d.data:
