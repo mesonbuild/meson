@@ -545,8 +545,15 @@ int dummy;
 
     def generate_subdir_install(self, d):
         for sd in self.build.get_install_subdirs():
-            src_dir = os.path.join(self.environment.get_source_dir(), sd.source_subdir)
-            inst_dir =  sd.installable_subdir
+            inst_subdir = sd.installable_subdir.rstrip('/')
+            idir_parts = inst_subdir.split('/')
+            if len(idir_parts) > 1:
+                subdir = os.path.join(sd.source_subdir, '/'.join(idir_parts[:-1]))
+                inst_dir = idir_parts[-1]
+            else:
+                subdir = sd.source_subdir
+                inst_dir = sd.installable_subdir
+            src_dir = os.path.join(self.environment.get_source_dir(), subdir)
             dst_dir = os.path.join(self.environment.get_prefix(), sd.install_dir)
             d.install_subdirs.append([src_dir, inst_dir, dst_dir])
 

@@ -55,7 +55,6 @@ def install_subdirs(data):
         if not os.path.exists(dst_dir):
             os.makedirs(dst_dir)
         for root, dirs, files in os.walk(src_prefix):
-            print(root)
             for d in dirs:
                 abs_src = os.path.join(src_dir, root, d)
                 filepart = abs_src[len(src_dir)+1:]
@@ -75,6 +74,10 @@ def install_subdirs(data):
                     print('Tried to copy file %s but a directory of that name already exists.' % abs_dst)
                 if os.path.exists(abs_dst):
                     os.unlink(abs_dst)
+                parent_dir = os.path.split(abs_dst)[0]
+                if not os.path.isdir(parent_dir):
+                    os.mkdir(parent_dir)
+                    shutil.copystat(os.path.split(abs_src)[0], parent_dir)
                 shutil.copy2(abs_src, abs_dst, follow_symlinks=False)
 
 def install_data(d):
