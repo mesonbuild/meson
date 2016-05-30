@@ -533,7 +533,12 @@ int main () {{ {1}; }}'''
         ofile = open(srcname, 'w')
         ofile.write(code)
         ofile.close()
-        extra_args = self.unix_link_flags_to_native(extra_args) + \
+        # Need to add buildtype args to select the CRT to use with MSVC
+        # This is needed especially while trying to link with static libraries
+        # since MSVC won't auto-select a CRT for us in that case and will error
+        # out asking us to select one.
+        extra_args = self.get_buildtype_args('debug') + \
+            self.unix_link_flags_to_native(extra_args) + \
             self.get_output_args(dstname)
         p = self.compile(code, srcname, extra_args)
         try:
@@ -553,6 +558,8 @@ int main () {{ {1}; }}'''
         ofile.close()
         exename = srcname + '.exe' # Is guaranteed to be executable on every platform.
         commands = self.get_exelist()
+        # Same reasoning as self.links() above
+        commands += self.get_buildtype_args('debug')
         commands += self.unix_link_flags_to_native(extra_args)
         commands.append(srcname)
         commands += self.get_output_args(exename)
