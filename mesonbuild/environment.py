@@ -309,7 +309,13 @@ class Environment():
                     version = vmatch.group(0)
 
                 if 'GNU Fortran' in out:
-                    return GnuFortranCompiler([compiler], version, GCC_STANDARD, is_cross, exe_wrap)
+                    if mesonlib.is_osx():
+                        gcctype = GCC_OSX
+                    elif mesonlib.is_windows():
+                        gcctype = GCC_MINGW
+                    else:
+                        gcctype = GCC_STANDARD
+                    return GnuFortranCompiler([compiler], version, gcctype, is_cross, exe_wrap)
 
                 if 'G95' in out:
                     return G95FortranCompiler([compiler], version, is_cross, exe_wrap)
