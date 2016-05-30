@@ -2,6 +2,8 @@ project('subproj user', 'c',
   version : '2.3.4',
   license : 'mylicense')
 
+assert(meson.project_name() == 'subproj user', 'Incorrect project name')
+
 sub = subproject('sublib', version : '1.0.0')
 
 if meson.project_version() != '2.3.4'
