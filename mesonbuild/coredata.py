@@ -69,6 +69,9 @@ class UserBooleanOption(UserOption):
             return True
         raise MesonException('Value "%s" for boolean option "%s" is not a boolean.' % (valuestring, self.name))
 
+    def __bool__(self):
+        return self.value
+
 class UserComboOption(UserOption):
     def __init__(self, name, description, choices, value):
         super().__init__(name, description, choices)
