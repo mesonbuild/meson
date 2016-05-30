@@ -1,18 +1,26 @@
 sudo: required
 
-language: c
+os:
+  - linux
+  - osx
+
+language:
+  - cpp
 
 services:
   - docker
 
 before_install:
-  - docker pull jpakkane/mesonci:xenial
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install ninja python3; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then docker pull jpakkane/mesonci:xenial; fi
 
-# We need to copy the current checkout inside the container,
+# We need to copy the current checkout inside the Docker container,
 # because it has the MR id to be tested checked out.
 
 script:
-  - echo FROM jpakkane/mesonci:xenial > Dockerfile
-  - echo ADD . /root >> Dockerfile
-  - docker build -t withgit .
-  - docker run withgit /bin/sh -c "cd /root && ./run_tests.py"
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then echo FROM jpakkane/mesonci:xenial > Dockerfile; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then echo ADD . /root >> Dockerfile; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then docker build -t withgit .; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then docker run withgit /bin/sh -c "cd /root && ./run_tests.py"; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then ./run_tests.py ; fi
