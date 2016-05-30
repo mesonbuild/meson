@@ -23,4 +23,4 @@ script:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then echo ADD . /root >> Dockerfile; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then docker build -t withgit .; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then docker run withgit /bin/sh -c "cd /root && ./run_tests.py"; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then ./run_tests.py ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then ./run_tests.py --backend=ninja ; fi
