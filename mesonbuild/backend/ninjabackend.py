@@ -525,8 +525,9 @@ int dummy;
                 if subdir is None:
                     subdir = os.path.join(manroot, 'man' + num)
                 srcabs = os.path.join(self.environment.get_source_dir(), m.get_source_subdir(), f)
-                dstabs = os.path.join(subdir, f + '.gz')
+                dstabs = os.path.join(subdir, os.path.split(f)[1] + '.gz')
                 i = [srcabs, dstabs]
+                print(i)
                 d.man.append(i)
 
     def generate_data_install(self, d):
