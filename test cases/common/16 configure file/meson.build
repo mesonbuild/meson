@@ -30,3 +30,18 @@ command : [genprog, scriptfile,  ifile, ofile],
 install_dir : 'share/appdir')
 
 test('inctest2', executable('prog2', 'prog2.c'))
+
+# Generate a conf file without an input file.
+
+dump = configuration_data()
+dump.set('SHOULD_BE_STRING', '"string"')
+dump.set('SHOULD_BE_RETURN', 'return')
+dump.set('SHOULD_BE_DEFINED', true)
+dump.set('SHOULD_BE_UNDEFINED', false)
+dump.set('SHOULD_BE_ONE', 1)
+dump.set('SHOULD_BE_ZERO', 0)
+dump.set('SHOULD_BE_QUOTED_ONE', '"1"')
+configure_file(output : 'config3.h',
+  configuration : dump)
+
+test('Configless.', executable('dumpprog', 'dumpprog.c'))

@@ -1,0 +1,33 @@
+#define SHOULD_BE_UNDEFINED 1
+
+#include"config3.h"
+#include<string.h>
+#include<stdio.h>
+
+#ifdef SHOULD_BE_UNDEFINED
+#error Token did not get undefined.
+#endif
+
+#ifndef SHOULD_BE_DEFINED
+#error Token did not get defined
+#endif
+
+int main(int argc, char **argv) {
+    if(strcmp(SHOULD_BE_STRING, "string") != 0) {
+        printf("String token defined wrong.\n");
+        return 1;
+    }
+    if(SHOULD_BE_ONE != 1) {
+        printf("One defined incorrectly.\n");
+        return 1;
+    }
+    if(SHOULD_BE_ZERO != 0) {
+        printf("Zero defined incorrectly.\n");
+        return 1;
+    }
+    if(strcmp(SHOULD_BE_QUOTED_ONE, "1") != 0) {
+        printf("Quoted number defined incorrectly.\n");
+        return 1;
+    }
+    SHOULD_BE_RETURN 0;
+}

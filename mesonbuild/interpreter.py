@@ -1887,13 +1887,11 @@ class Interpreter():
     def func_configure_file(self, node, args, kwargs):
         if len(args) > 0:
             raise InterpreterException("configure_file takes only keyword arguments.")
-        if not 'input' in kwargs:
-            raise InterpreterException('Required keyword argument "input" not defined.')
         if not 'output' in kwargs:
             raise InterpreterException('Required keyword argument "output" not defined.')
-        inputfile = kwargs['input']
+        inputfile = kwargs.get('input', None)
         output = kwargs['output']
-        if not isinstance(inputfile, str):
+        if not isinstance(inputfile, (str, type(None))):
             raise InterpreterException('Input must be a string.')
         if not isinstance(output, str):
             raise InterpreterException('Output must be a string.')
@@ -1903,16 +1901,20 @@ class Interpreter():
             conf = kwargs['configuration']
             if not isinstance(conf, ConfigurationDataHolder):
                 raise InterpreterException('Argument "configuration" is not of type configuration_data')
-
-            conffile = os.path.join(self.subdir, inputfile)
-            if conffile not in self.build_def_files:
-                self.build_def_files.append(conffile)
-            os.makedirs(os.path.join(self.environment.build_dir, self.subdir), exist_ok=True)
-            ifile_abs = os.path.join(self.environment.source_dir, self.subdir, inputfile)
             ofile_abs = os.path.join(self.environment.build_dir, self.subdir, output)
-            mesonlib.do_conf_file(ifile_abs, ofile_abs, conf.held_object)
+            if inputfile is not None:
+                conffile = os.path.join(self.subdir, inputfile)
+                if conffile not in self.build_def_files:
+                    self.build_def_files.append(conffile)
+                os.makedirs(os.path.join(self.environment.build_dir, self.subdir), exist_ok=True)
+                ifile_abs = os.path.join(self.environment.source_dir, self.subdir, inputfile)
+                mesonlib.do_conf_file(ifile_abs, ofile_abs, conf.held_object)
+            else:
+                mesonlib.dump_conf_header(ofile_abs, conf.held_object)
             conf.mark_used()
         elif 'command' in kwargs:
+            if 'input' not in kwargs:
+                raise InterpreterException('Required keyword input missing.')
             res = self.func_run_command(node, kwargs['command'], {})
             if res.returncode != 0:
                 raise InterpreterException('Running configure command failed.\n%s\n%s' %
