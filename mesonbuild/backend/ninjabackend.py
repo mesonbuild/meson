@@ -569,7 +569,7 @@ int dummy;
                 visible_name = 'for top level tests'
             else:
                 visible_name = s
-            elem = NinjaBuildElement(self.all_outputs, 'test-' + s, 'CUSTOM_COMMAND', ['all', 'PHONY'])
+            elem = NinjaBuildElement(self.all_outputs, 'test:' + s, 'CUSTOM_COMMAND', ['all', 'PHONY'])
             elem.add_item('COMMAND', cmd + ['--suite=' + s])
             elem.add_item('DESC', 'Running test suite %s.' % visible_name)
             elem.add_item('pool', 'console')
