@@ -156,6 +156,7 @@ itself as required.'''
         mlog.log('Build machine cpu family:', mlog.bold(intr.builtin['build_machine'].cpu_family_method([], {})))
         mlog.log('Build machine cpu:', mlog.bold(intr.builtin['build_machine'].cpu_method([], {})))
         intr.run()
+        env.assert_valid_options()
         env.dump_coredata()
         g.generate(intr)
         g.run_postconf_scripts()

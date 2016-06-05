@@ -203,6 +203,28 @@ class Environment():
                 if type(oldval) != type(value):
                     self.coredata.user_options[name] = value
 
+    def assert_valid_options(self):
+        unknown_options = []
+        unused_options = []
+        for opt in self.cmd_line_options.projectoptions:
+            optname = opt.split('=', 1)[0]
+            if not self.coredata.is_known_option(optname):
+                if optname in possible_compiler_options:
+                    unused_options.append(optname)
+                else:
+                    unknown_options.append(optname)
+        for opt in unused_options:
+            mlog.log(mlog.bold('Warning:'), 'Unused option: %s' % opt)
+        if unknown_options:
+            for opt in unknown_options:
+                mlog.log(mlog.red('Error: unknown project option: %s' % opt))
+            if self.coredata.user_options:
+                mlog.log('Known project options:\n %s' % '\n '.join(self.coredata.user_options))
+            else:
+                mlog.log('Known project options:', mlog.bold('None'))
+            raise MesonException('Unknown project options used.')
+        return
+
     def detect_c_compiler(self, want_cross):
         evar = 'CC'
         if self.is_cross_build() and want_cross:

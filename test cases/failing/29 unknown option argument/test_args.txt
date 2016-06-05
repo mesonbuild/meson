@@ -1,0 +1,3 @@
+# This file is not read by meson itself, but by the test framework.
+# It is not possible to pass arguments to meson from a file.
+['-D', 'testoption=something', '-D', 'unknown_option=true']
