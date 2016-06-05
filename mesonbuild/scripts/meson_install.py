@@ -18,6 +18,15 @@ import sys, pickle, os, shutil, subprocess, gzip, platform
 from glob import glob
 from mesonbuild.scripts import depfixer
 
+def do_copy(from_file, to_file):
+    try:
+        # Python's copyfile fails if the target file already exists.
+        os.unlink(to_file)
+    except FileNotFoundError:
+        pass
+    shutil.copyfile(from_file, to_file)
+    shutil.copystat(from_file, to_file)
+
 def destdir_join(d1, d2):
     # c:\destdir + c:\prefix must produce c:\destdir\prefix
     if len(d1) > 1 and d1[1] == ':' and \
@@ -92,8 +101,7 @@ def install_data(d):
             outfilename = os.path.join(outdir, os.path.split(outfilename)[1])
         os.makedirs(outdir, exist_ok=True)
         print('Installing %s to %s.' % (fullfilename, outdir))
-        shutil.copyfile(fullfilename, outfilename)
-        shutil.copystat(fullfilename, outfilename)
+        do_copy(fullfilename, outfilename)
 
 def install_man(d):
     for m in d.man:
@@ -105,9 +113,9 @@ def install_man(d):
         print('Installing %s to %s.' % (full_source_filename, outdir))
         if outfilename.endswith('.gz') and not full_source_filename.endswith('.gz'):
             open(outfilename, 'wb').write(gzip.compress(open(full_source_filename, 'rb').read()))
+            shutil.copystat(full_source_filename, outfilename)
         else:
-            shutil.copyfile(full_source_filename, outfilename)
-        shutil.copystat(full_source_filename, outfilename)
+            do_copy(full_source_filename, outfilename)
 
 def install_headers(d):
     for t in d.headers:
@@ -117,8 +125,7 @@ def install_headers(d):
         outfilename = os.path.join(outdir, fname)
         print('Installing %s to %s' % (fname, outdir))
         os.makedirs(outdir, exist_ok=True)
-        shutil.copyfile(fullfilename, outfilename)
-        shutil.copystat(fullfilename, outfilename)
+        do_copy(fullfilename, outfilename)
 
 def run_install_script(d):
     env = {'MESON_SOURCE_ROOT' : d.source_dir,
@@ -193,8 +200,7 @@ def install_targets(d):
         install_rpath = t[4]
         print('Installing %s to %s' % (fname, outname))
         os.makedirs(outdir, exist_ok=True)
-        shutil.copyfile(fname, outname)
-        shutil.copystat(fname, outname)
+        do_copy(fname, outname)
         if should_strip:
             print('Stripping target')
             ps = subprocess.Popen(['strip', outname], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
