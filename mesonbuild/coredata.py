@@ -16,6 +16,7 @@ import pickle, os, uuid
 from .mesonlib import MesonException, default_libdir, default_libexecdir, default_prefix
 
 version = '0.32.0.dev1'
+backendlist = ['ninja', 'vs2010', 'vs2015', 'xcode']
 
 class UserOption:
     def __init__(self, name, description, choices):
@@ -212,7 +213,7 @@ builtin_options = {
         'warning_level'     : [ UserComboOption, 'Compiler warning level to use.', [ '1', '2', '3' ], '1'],
         'layout'            : [ UserComboOption, 'Build directory layout.', ['mirror', 'flat' ], 'mirror' ],
         'default_library'   : [ UserComboOption, 'Default library type.', [ 'shared', 'static' ], 'shared' ],
-        'backend'           : [ UserComboOption, 'Backend to use.', [ 'ninja', 'vs2010', 'xcode' ], 'ninja' ],
+        'backend'           : [ UserComboOption, 'Backend to use.', backendlist, 'ninja' ],
         'stdsplit'          : [ UserBooleanOption, 'Split stdout and stderr in test logs.', True ],
         'errorlogs'         : [ UserBooleanOption, "Whether to print the logs from failing tests.", False ],
         }

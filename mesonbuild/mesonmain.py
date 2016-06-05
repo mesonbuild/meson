@@ -23,7 +23,6 @@ import platform
 from . import mlog, coredata
 from .mesonlib import MesonException
 
-backendlist = ['ninja', 'vs2010', 'xcode']
 
 parser = argparse.ArgumentParser()
 
@@ -139,6 +138,9 @@ itself as required.'''
         elif self.options.backend == 'vs2010':
             from .backend import vs2010backend
             g = vs2010backend.Vs2010Backend(b)
+        elif self.options.backend == 'vs2015':
+            from .backend import vs2015backend
+            g = vs2015backend.Vs2015Backend(b)
         elif self.options.backend == 'xcode':
             from .backend import xcodebackend
             g = xcodebackend.XCodeBackend(b)
