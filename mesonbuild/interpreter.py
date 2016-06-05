@@ -1188,7 +1188,7 @@ class Interpreter():
 
     @noPosargs
     def func_declare_dependency(self, node, args, kwargs):
-        version = kwargs.get('version', 'undefined')
+        version = kwargs.get('version', self.project_version)
         if not isinstance(version, str):
             raise InterpreterException('Version must be a string.')
         incs = kwargs.get('include_directories', [])
@@ -1358,7 +1358,7 @@ class Interpreter():
         if 'version' in kwargs:
             pv = subi.project_version
             wanted = kwargs['version']
-            if not mesonlib.version_compare(pv, wanted):
+            if pv == 'undefined' or not mesonlib.version_compare(pv, wanted):
                 raise InterpreterException('Subproject %s version is %s but %s required.' % (dirname, pv, wanted))
         self.active_projectname = current_active
         mlog.log('\nSubproject', mlog.bold(dirname), 'finished.')
@@ -1621,16 +1621,28 @@ class Interpreter():
         self.validate_arguments(args, 1, [str])
         name = args[0]
         identifier = dependencies.get_dep_identifier(name, kwargs)
+        # Check if we've already searched for and found this dep
+        cached_dep = None
         if identifier in self.coredata.deps:
-            dep = self.coredata.deps[identifier]
+            cached_dep = self.coredata.deps[identifier]
+            if 'version' in kwargs:
+                wanted = kwargs['version']
+                found = cached_dep.get_version()
+                if not found or not mesonlib.version_compare(found, wanted):
+                    # Cached dep has the wrong version. Check if an external
+                    # dependency or a fallback dependency provides it.
+                    cached_dep = None
+        if cached_dep:
+            dep = cached_dep
         else:
-            dep = dependencies.Dependency() # Returns always false for dep.found()
-        if not dep.found():
+            # We need to actually search for this dep
             try:
                 dep = dependencies.find_external_dependency(name, self.environment, kwargs)
             except dependencies.DependencyException:
                 if 'fallback' in kwargs:
-                    return self.dependency_fallback(kwargs)
+                    dep = self.dependency_fallback(kwargs)
+                    self.coredata.deps[identifier] = dep.held_object
+                    return dep
                 raise
         self.coredata.deps[identifier] = dep
         return DependencyHolder(dep)
@@ -1641,8 +1653,16 @@ class Interpreter():
         if len(fbinfo) != 2:
             raise InterpreterException('Fallback info must have exactly two items.')
         dirname, varname = fbinfo
-        self.do_subproject(dirname, kwargs)
-        return self.subprojects[dirname].get_variable_method([varname], {})
+        self.do_subproject(dirname, {})
+        dep = self.subprojects[dirname].get_variable_method([varname], {})
+        # Check if the version of the declared dependency matches what we want
+        if 'version' in kwargs:
+            wanted = kwargs['version']
+            found = dep.version_method([], {})
+            if found == 'undefined' or not mesonlib.version_compare(found, wanted):
+                m = 'Subproject "{0}" dependency "{1}" version is "{2}" but "{3}" is required.'
+                raise InterpreterException(m.format(dirname, varname, found, wanted))
+        return dep
 
     def func_executable(self, node, args, kwargs):
         return self.build_target(node, args, kwargs, ExecutableHolder)
