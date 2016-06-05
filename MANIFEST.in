@@ -11,3 +11,4 @@ include COPYING
 include readme.txt
 include run_cross_test.py
 include run_tests.py
+include ghwt.py
