@@ -88,6 +88,8 @@ class PkgConfigDependency(Dependency):
         self.static = kwargs.get('static', False)
         if not isinstance(self.static, bool):
             raise DependencyException('Static keyword must be boolean')
+        self.cargs = []
+        self.libs = []
         if 'native' in kwargs and environment.is_cross_build():
             want_cross = not kwargs['native']
         else:
@@ -100,8 +102,6 @@ class PkgConfigDependency(Dependency):
         if not PkgConfigDependency.pkgconfig_found:
             if self.required:
                 raise DependencyException('Pkg-config not found.')
-            self.cargs = []
-            self.libs = []
             return
         if environment.is_cross_build() and want_cross:
             if "pkgconfig" not in environment.cross_info.config["binaries"]:
@@ -122,8 +122,6 @@ class PkgConfigDependency(Dependency):
             if self.required:
                 raise DependencyException('%s dependency %s not found.' % (self.type_string, name))
             self.modversion = 'none'
-            self.cargs = []
-            self.libs = []
         else:
             self.modversion = out.decode().strip()
             mlog.log('%s dependency' % self.type_string, mlog.bold(name), 'found:',
