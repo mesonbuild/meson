@@ -583,6 +583,7 @@ class CompilerHolder(InterpreterObject):
                              'version' : self.version_method,
                              'cmd_array' : self.cmd_array_method,
                              'find_library': self.find_library_method,
+                             'has_arg' : self.has_arg_method,
                             })
 
     def version_method(self, args, kwargs):
@@ -788,6 +789,12 @@ class CompilerHolder(InterpreterObject):
             raise InterpreterException('Library {} not found'.format(libname))
         lib = dependencies.ExternalLibrary(libname, linkargs)
         return ExternalLibraryHolder(lib)
+
+    def has_arg_method(self, args, kwargs):
+        args = mesonlib.stringlistify(args)
+        if len(args) != 1:
+            raise InterpreterException('Has_arg takes exactly one argument.')
+        return self.compiler.has_arg(args[0])
 
 class ModuleState:
     pass

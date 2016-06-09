@@ -293,6 +293,9 @@ class Compiler():
     def get_library_dirs(self):
         return []
 
+    def has_arg(self, arg):
+        raise EnvironmentException('Language {} does not support has_arg.'.format(self.language))
+
 class CCompiler(Compiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
         super().__init__(exelist, version)
@@ -506,6 +509,8 @@ int main () {{ {1}; }}'''
         return p
 
     def compiles(self, code, extra_args = []):
+        if isinstance(extra_args, str):
+            extra_args = [extra_args]
         suflen = len(self.default_suffix)
         (fd, srcname) = tempfile.mkstemp(suffix='.'+self.default_suffix)
         os.close(fd)
@@ -818,6 +823,9 @@ void bar() {
 
     def thread_link_flags(self):
         return ['-pthread']
+
+    def has_arg(self, arg):
+        return self.compiles('int i;\n', extra_args=arg)
 
 class CPPCompiler(CCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrap):
