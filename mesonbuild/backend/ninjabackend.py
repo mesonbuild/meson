@@ -131,6 +131,7 @@ class NinjaBackend(backends.Backend):
         self.ninja_filename = 'build.ninja'
         self.fortran_deps = {}
         self.all_outputs = {}
+        self.valgrind = environment.find_valgrind()
 
     def detect_vs_dep_prefix(self, outfile, tempfilename):
         '''VS writes its dependency in a locale dependent format.
@@ -569,15 +570,21 @@ int dummy;
                 visible_name = 'for top level tests'
             else:
                 visible_name = s
-            elem = NinjaBuildElement(self.all_outputs, 'test-' + s, 'CUSTOM_COMMAND', ['all', 'PHONY'])
+            elem = NinjaBuildElement(self.all_outputs, 'test:' + s, 'CUSTOM_COMMAND', ['all', 'PHONY'])
             elem.add_item('COMMAND', cmd + ['--suite=' + s])
             elem.add_item('DESC', 'Running test suite %s.' % visible_name)
             elem.add_item('pool', 'console')
             elem.write(outfile)
 
+            if self.valgrind:
+                velem = NinjaBuildElement(self.all_outputs, 'test-valgrind:' + s, 'CUSTOM_COMMAND', ['all', 'PHONY'])
+                velem.add_item('COMMAND', cmd + ['--wrapper=' + self.valgrind, '--suite=' + s])
+                velem.add_item('DESC', 'Running test suite %s under Valgrind.' % visible_name)
+                velem.add_item('pool', 'console')
+                velem.write(outfile)
+
     def generate_tests(self, outfile):
         (test_data, benchmark_data) = self.serialise_tests()
-        valgrind = environment.find_valgrind()
         script_root = self.environment.get_script_dir()
         cmd = [ sys.executable, self.environment.get_build_command(), '--internal', 'test' ]
         if not self.environment.coredata.get_builtin_option('stdsplit'):
@@ -592,9 +599,9 @@ int dummy;
         elem.write(outfile)
         self.write_test_suite_targets(cmd, outfile)
 
-        if valgrind:
+        if self.valgrind:
             velem = NinjaBuildElement(self.all_outputs, 'test-valgrind', 'CUSTOM_COMMAND', ['all', 'PHONY'])
-            velem.add_item('COMMAND', cmd + ['--wrapper=' + valgrind])
+            velem.add_item('COMMAND', cmd + ['--wrapper=' + self.valgrind])
             velem.add_item('DESC', 'Running test suite under Valgrind.')
             velem.add_item('pool', 'console')
             velem.write(outfile)
