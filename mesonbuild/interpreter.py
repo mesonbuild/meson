@@ -583,7 +583,8 @@ class CompilerHolder(InterpreterObject):
                              'version' : self.version_method,
                              'cmd_array' : self.cmd_array_method,
                              'find_library': self.find_library_method,
-                             'has_arg' : self.has_arg_method,
+                             'has_argument' : self.has_argument_method,
+                             'first_supported_argument' : self.first_supported_argument_method,
                             })
 
     def version_method(self, args, kwargs):
@@ -790,11 +791,25 @@ class CompilerHolder(InterpreterObject):
         lib = dependencies.ExternalLibrary(libname, linkargs)
         return ExternalLibraryHolder(lib)
 
-    def has_arg_method(self, args, kwargs):
+    def has_argument_method(self, args, kwargs):
         args = mesonlib.stringlistify(args)
         if len(args) != 1:
             raise InterpreterException('Has_arg takes exactly one argument.')
-        return self.compiler.has_arg(args[0])
+        result = self.compiler.has_argument(args[0])
+        if result:
+            h = mlog.green('YES')
+        else:
+            h = mlog.red('NO')
+        mlog.log('Compiler for {} supports argument {}:'.format(self.compiler.language, args[0]), h)
+        return result
+
+    def first_supported_argument_method(self, args, kwargs):
+        for i in mesonlib.stringlistify(args):
+            if self.compiler.has_argument(i):
+                mlog.log('First supported argument:', mlog.bold(i))
+                return [i]
+        mlog.log('First supported argument:', mlog.red('None'))
+        return []
 
 class ModuleState:
     pass

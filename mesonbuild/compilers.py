@@ -293,7 +293,7 @@ class Compiler():
     def get_library_dirs(self):
         return []
 
-    def has_arg(self, arg):
+    def has_argument(self, arg):
         raise EnvironmentException('Language {} does not support has_arg.'.format(self.language))
 
 class CCompiler(Compiler):
@@ -824,7 +824,7 @@ void bar() {
     def thread_link_flags(self):
         return ['-pthread']
 
-    def has_arg(self, arg):
+    def has_argument(self, arg):
         return self.compiles('int i;\n', extra_args=arg)
 
 class CPPCompiler(CCompiler):
