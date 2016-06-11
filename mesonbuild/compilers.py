@@ -293,6 +293,9 @@ class Compiler():
     def get_library_dirs(self):
         return []
 
+    def has_argument(self, arg):
+        raise EnvironmentException('Language {} does not support has_arg.'.format(self.language))
+
 class CCompiler(Compiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
         super().__init__(exelist, version)
@@ -506,6 +509,8 @@ int main () {{ {1}; }}'''
         return p
 
     def compiles(self, code, extra_args = []):
+        if isinstance(extra_args, str):
+            extra_args = [extra_args]
         suflen = len(self.default_suffix)
         (fd, srcname) = tempfile.mkstemp(suffix='.'+self.default_suffix)
         os.close(fd)
@@ -818,6 +823,9 @@ void bar() {
 
     def thread_link_flags(self):
         return ['-pthread']
+
+    def has_argument(self, arg):
+        return self.compiles('int i;\n', extra_args=arg)
 
 class CPPCompiler(CCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrap):
@@ -1426,6 +1434,27 @@ class VisualStudioCCompiler(CCompiler):
             path = '.'
         # msvc does not have a concept of system header dirs.
         return ['-I' + path]
+
+    # Visual Studio is special. It ignores arguments it does not
+    # understand and you can't tell it to error out on those.
+    # http://stackoverflow.com/questions/15259720/how-can-i-make-the-microsoft-c-compiler-treat-unknown-flags-as-errors-rather-t
+    def has_argument(self, arg):
+        warning_text = b'9002'
+        code = 'int i;\n'
+        (fd, srcname) = tempfile.mkstemp(suffix='.'+self.default_suffix)
+        os.close(fd)
+        ofile = open(srcname, 'w')
+        ofile.write(code)
+        ofile.close()
+        commands = self.exelist + [arg] + self.get_compile_only_args() + [srcname]
+        mlog.debug('Running VS compile:')
+        mlog.debug('Command line: ', ' '.join(commands))
+        mlog.debug('Code:\n', code)
+        p = subprocess.Popen(commands, cwd=os.path.split(srcname)[0], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        (stde, stdo) = p.communicate()
+        if p.returncode != 0:
+            raise MesonException('Compiling test app failed.')
+        return not(warning_text in stde or warning_text in stdo)
 
 class VisualStudioCPPCompiler(VisualStudioCCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrap):
