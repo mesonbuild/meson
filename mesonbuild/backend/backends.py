@@ -226,7 +226,10 @@ class Backend():
 
     def determine_linker(self, target, src):
         if isinstance(target, build.StaticLibrary):
-            return self.build.static_linker
+            if self.build.static_cross_linker is not None:
+                return self.build.static_cross_linker
+            else:
+                return self.build.static_linker
         if len(self.build.compilers) == 1:
             return self.build.compilers[0]
         # Currently a bit naive. C++ must
