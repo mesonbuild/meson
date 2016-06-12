@@ -246,7 +246,7 @@ class Environment():
                 version = 'unknown version'
             if 'apple' in out and 'Free Software Foundation' in out:
                 return GnuCCompiler(ccache + [compiler], version, GCC_OSX, is_cross, exe_wrap)
-            if (out.startswith('cc') or 'gcc' in out) and \
+            if (out.startswith('cc') or 'gcc' in out.lower()) and \
                 'Free Software Foundation' in out:
                 lowerout = out.lower()
                 if 'mingw' in lowerout or 'msys' in lowerout or 'mingw' in compiler.lower():
