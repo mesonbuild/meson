@@ -1557,10 +1557,10 @@ class Interpreter():
                 # cross_comp = self.environment.detect_fortran_compiler(True)
         else:
             raise InvalidCode('Tried to use unknown language "%s".' % lang)
-        comp.sanity_check(self.environment.get_scratch_dir())
+        comp.sanity_check(self.environment.get_scratch_dir(), self.environment)
         self.coredata.compilers[lang] = comp
         if cross_comp is not None:
-            cross_comp.sanity_check(self.environment.get_scratch_dir())
+            cross_comp.sanity_check(self.environment.get_scratch_dir(), self.environment)
             self.coredata.cross_compilers[lang] = cross_comp
         new_options = comp.get_options()
         optprefix = lang + '_'
