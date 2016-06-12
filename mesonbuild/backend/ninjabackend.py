@@ -1220,7 +1220,7 @@ rule FORTRAN_DEP_HACK
         else:
             command_template = ' command = %s %s $ARGS %s %s %s $in\n'
         command = command_template % \
-            (' '.join(compiler.get_exelist()),\
+            (' '.join([ninja_quote(i) for i in compiler.get_exelist()]),\
              ' '.join(cross_args),
              ' '.join(quoted_depargs),\
              ' '.join(compiler.get_output_args('$out')),\
