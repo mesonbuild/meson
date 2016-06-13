@@ -22,4 +22,4 @@ build_script:
   - cmd: echo No build step.
 
 test_script:
-  - cmd: c:\python34\python3 run_tests.py --backend=ninja
+  - cmd: PATH c:\python34;%PATH% && python3 run_tests.py --backend=ninja
