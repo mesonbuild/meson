@@ -824,7 +824,7 @@ class CustomTarget:
         for c in self.sources:
             if hasattr(c, 'held_object'):
                 c = c.held_object
-            if isinstance(c, BuildTarget) or isinstance(c, CustomTarget):
+            if isinstance(c, BuildTarget) or isinstance(c, CustomTarget) or isinstance(c, GeneratedList):
                 deps.append(c)
         return deps
 

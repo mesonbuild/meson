@@ -9,9 +9,9 @@ gen = generator(creator,
 
 hs = gen.process('res1.txt', 'res2.txt')
 
-all_headers_in_one = custom_target('alltogether',
+allinone = custom_target('alltogether',
     input : hs,
     output : 'alltogether.h',
     command : [catter, '@INPUT@', '@OUTPUT@'])
 
-executable('proggie', 'main.c', hs)
+executable('proggie', 'main.c', allinone)

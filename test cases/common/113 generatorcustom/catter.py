@@ -2,12 +2,12 @@
 
 import sys, os
 
-output = sys.argv[1]
-inputs = sys.argv[2:]
+output = sys.argv[-1]
+inputs = sys.argv[1:-1]
 
 with open(output, 'w') as ofile:
     ofile.write('#pragma once\n')
     for i in inputs:
         content = open(i, 'r').read()
-        i.write(content)
-        i.write('\n')
+        ofile.write(content)
+        ofile.write('\n')
