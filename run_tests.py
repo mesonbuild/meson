@@ -431,7 +431,7 @@ if __name__ == '__main__':
     print('\nTotal passed tests:', passing_tests)
     print('Total failed tests:', failing_tests)
     print('Total skipped tests:', skipped_tests)
-    if failing_tests > 0 and 'TRAVIS' in os.environ:
+    if failing_tests > 0 and ('TRAVIS' in os.environ or 'APPVEYOR' in os.environ):
         # Cat because it can have stuff of unknown encodings mixed.
         subprocess.call(['cat', 'meson-test-run.txt'])
     sys.exit(failing_tests)

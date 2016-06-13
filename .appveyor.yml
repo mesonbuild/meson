@@ -23,6 +23,3 @@ build_script:
 
 test_script:
   - cmd: c:\python34\python3 run_tests.py --backend=ninja
-
-artifacts:
-  - path: meson-test-run.txt
