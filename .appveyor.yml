@@ -16,6 +16,7 @@ install:
  - cmd: echo %PATH%
  - cmd: dir c:\python34
  - cmd: copy c:\python34\python.exe c:\python34\python3.exe
+ - '"C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin\SetEnv.cmd" /x86'
 
 build_script:
   - cmd: echo No build step.
