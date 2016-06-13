@@ -406,7 +406,7 @@ def generate_prebuilt_object():
         else:
             raise RuntimeError("Could not find C compiler.")
         cmd = [cmd, '-c', source, '-o', objectfile]
-    subprocess.check_call(cmd)
+    subprocess.check_call(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     return objectfile
 
 if __name__ == '__main__':
