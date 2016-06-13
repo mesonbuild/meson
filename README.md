@@ -6,8 +6,7 @@ build system.
 
 ####Build status
 
-<a href="https://travis-ci.org/mesonbuild/meson"><img
-src="https://travis-ci.org/mesonbuild/meson.svg?branch=master"></a>
+[![Build Status](https://travis-ci.org/mesonbuild/meson.svg?branch=master)](https://travis-ci.org/mesonbuild/meson) [![Build status](https://ci.appveyor.com/api/projects/status/l5c8v71ninew2i3p?svg=true)](https://ci.appveyor.com/project/jpakkane/meson)
 
 ####Dependencies
 
