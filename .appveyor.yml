@@ -10,10 +10,11 @@ branches:
     - master
 
 install:
+ - ps: (new-object net.webclient).DownloadFile('https://dl.dropboxusercontent.com/u/37517477/ninja.exe', 'ninja.exe')
  - ps: (new-object net.webclient).DownloadFile('https://www.python.org/ftp/python/3.4.4/python-3.4.4.msi', 'python-3.4.4.msi')
  - ps: msiexec /i python-3.4.4.msi /quiet /qn /norestart
+ - cmd: dir
  - cmd: copy c:\python34\python.exe c:\python34\python3.exe
- - ps: (new-object net.webclient).DownloadFile('https://dl.dropboxusercontent.com/u/37517477/ninja.exe', 'ninja.exe')
  - cmd: copy ninja.exe c:\python34
 
 build_script:
