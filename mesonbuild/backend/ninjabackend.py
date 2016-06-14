@@ -772,7 +772,7 @@ int dummy;
                 if hasattr(i, 'fname'):
                     i = i.fname
                 if i.endswith('vala'):
-                    vapiname = os.path.splitext(os.path.split(i)[1])[0] + '.vapi'
+                    vapiname = dep.name + '.vapi'
                     fullname = os.path.join(self.get_target_dir(dep), vapiname)
                     result.append(fullname)
                     break
@@ -790,7 +790,7 @@ int dummy;
                 vala_input_files.append(s.rel_to_builddir(self.build_to_src))
         if len(src) == 0:
             raise InvalidArguments('Vala library has no Vala source files.')
-        namebase = os.path.splitext(os.path.split(src[0].fname)[1])[0]
+        namebase = target.name
         base_h = namebase + '.h'
         base_vapi = namebase + '.vapi'
         hname = os.path.normpath(os.path.join(self.get_target_dir(target), base_h))
