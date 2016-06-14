@@ -296,6 +296,18 @@ class Compiler():
     def has_argument(self, arg):
         raise EnvironmentException('Language {} does not support has_arg.'.format(self.language))
 
+    def get_cross_extra_flags(self, environment, *, compile, link):
+        extra_flags = []
+        if self.is_cross:
+            if 'properties' in environment.cross_info.config:
+                lang_args_key = self.language + '_args'
+                if compile:
+                    extra_flags += environment.cross_info.config['properties'].get(lang_args_key, [])
+                lang_link_args_key = self.language + '_link_args'
+                if link:
+                    extra_flags += environment.cross_info.config['properties'].get(lang_link_args_key, [])
+        return extra_flags
+
 class CCompiler(Compiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
         super().__init__(exelist, version)
@@ -423,7 +435,7 @@ class CCompiler(Compiler):
     def get_linker_search_args(self, dirname):
         return ['-L'+dirname]
 
-    def sanity_check_impl(self, work_dir, sname, code):
+    def sanity_check_impl(self, work_dir, environment, sname, code):
         mlog.debug('Sanity testing ' + self.language + ' compiler:', ' '.join(self.exelist))
         mlog.debug('Is cross compiler: %s.' % str(self.is_cross))
 
@@ -438,7 +450,10 @@ class CCompiler(Compiler):
                 # on OSX the compiler binary is the same but you need
                 # a ton of compiler flags to differentiate between
                 # arm and x86_64. So just compile.
+                extra_flags += self.get_cross_extra_flags(environment, compile=True, link=False)
                 extra_flags = self.get_compile_only_args()
+            else:
+                extra_flags += self.get_cross_extra_flags(environment, compile=True, link=True)
         # Is a valid executable output for all toolchains and platforms
         binname += '.exe'
         # Write binary check source
@@ -474,9 +489,9 @@ class CCompiler(Compiler):
         if pe.returncode != 0:
             raise EnvironmentException('Executables created by {0} compiler {1} are not runnable.'.format(self.language, self.name_string()))
 
-    def sanity_check(self, work_dir):
+    def sanity_check(self, work_dir, environment):
         code = 'int main(int argc, char **argv) { int class=0; return class; }\n'
-        return self.sanity_check_impl(work_dir, 'sanitycheckc.c', code)
+        return self.sanity_check_impl(work_dir, environment, 'sanitycheckc.c', code)
 
     def has_header(self, hname, extra_args=[]):
         templ = '''#include<%s>
@@ -839,9 +854,9 @@ class CPPCompiler(CCompiler):
             return True
         return False
 
-    def sanity_check(self, work_dir):
+    def sanity_check(self, work_dir, environment):
         code = 'class breakCCompiler;int main(int argc, char **argv) { return 0; }\n'
-        return self.sanity_check_impl(work_dir, 'sanitycheckcpp.cc', code)
+        return self.sanity_check_impl(work_dir, environment, 'sanitycheckcpp.cc', code)
 
 class ObjCCompiler(CCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrap):
@@ -855,16 +870,23 @@ class ObjCCompiler(CCompiler):
             return True
         return False
 
-    def sanity_check(self, work_dir):
+    def sanity_check(self, work_dir, environment):
+        # TODO try to use sanity_check_impl instead of duplicated code
         source_name = os.path.join(work_dir, 'sanitycheckobjc.m')
         binary_name = os.path.join(work_dir, 'sanitycheckobjc')
+        extra_flags = self.get_cross_extra_flags(environment, compile=True, link=False)
+        if self.is_cross:
+            extra_flags = self.get_compile_only_args()
         ofile = open(source_name, 'w')
         ofile.write('#import<stdio.h>\nint main(int argc, char **argv) { return 0; }\n')
         ofile.close()
-        pc = subprocess.Popen(self.exelist + [source_name, '-o', binary_name])
+        pc = subprocess.Popen(self.exelist + extra_flags + [source_name, '-o', binary_name])
         pc.wait()
         if pc.returncode != 0:
             raise EnvironmentException('ObjC compiler %s can not compile programs.' % self.name_string())
+        if self.is_cross:
+            # Can't check if the binaries run so we have to assume they do
+            return
         pe = subprocess.Popen(binary_name)
         pe.wait()
         if pe.returncode != 0:
@@ -882,16 +904,23 @@ class ObjCPPCompiler(CPPCompiler):
             return True
         return False
 
-    def sanity_check(self, work_dir):
+    def sanity_check(self, work_dir, environment):
+        # TODO try to use sanity_check_impl instead of duplicated code
         source_name = os.path.join(work_dir, 'sanitycheckobjcpp.mm')
         binary_name = os.path.join(work_dir, 'sanitycheckobjcpp')
+        extra_flags = self.get_cross_extra_flags(environment, compile=True, link=True)
+        if self.is_cross:
+            extra_flags = self.get_compile_only_args()
         ofile = open(source_name, 'w')
         ofile.write('#import<stdio.h>\nclass MyClass;int main(int argc, char **argv) { return 0; }\n')
         ofile.close()
-        pc = subprocess.Popen(self.exelist + [source_name, '-o', binary_name])
+        pc = subprocess.Popen(self.exelist + extra_flags + [source_name, '-o', binary_name])
         pc.wait()
         if pc.returncode != 0:
             raise EnvironmentException('ObjC++ compiler %s can not compile programs.' % self.name_string())
+        if self.is_cross:
+            # Can't check if the binaries run so we have to assume they do
+            return
         pe = subprocess.Popen(binary_name)
         pe.wait()
         if pe.returncode != 0:
@@ -980,7 +1009,7 @@ class MonoCompiler(Compiler):
     def get_pch_name(self, header_name):
         return ''
 
-    def sanity_check(self, work_dir):
+    def sanity_check(self, work_dir, environment):
         src = 'sanity.cs'
         obj = 'sanity.exe'
         source_name = os.path.join(work_dir, src)
@@ -1092,7 +1121,7 @@ class JavaCompiler(Compiler):
     def get_buildtype_args(self, buildtype):
         return java_buildtype_args[buildtype]
 
-    def sanity_check(self, work_dir):
+    def sanity_check(self, work_dir, environment):
         src = 'SanityCheck.java'
         obj = 'SanityCheck'
         source_name = os.path.join(work_dir, src)
@@ -1140,7 +1169,7 @@ class ValaCompiler(Compiler):
     def get_language(self):
         return self.language
 
-    def sanity_check(self, work_dir):
+    def sanity_check(self, work_dir, environment):
         src = 'valatest.vala'
         source_name = os.path.join(work_dir, src)
         ofile = open(source_name, 'w')
@@ -1148,7 +1177,8 @@ class ValaCompiler(Compiler):
 }
 ''')
         ofile.close()
-        pc = subprocess.Popen(self.exelist + ['-C', '-c', src], cwd=work_dir)
+        extra_flags = self.get_cross_extra_flags(environment, compile=True, link=False)
+        pc = subprocess.Popen(self.exelist + extra_flags + ['-C', '-c', src], cwd=work_dir)
         pc.wait()
         if pc.returncode != 0:
             raise EnvironmentException('Vala compiler %s can not compile programs.' % self.name_string())
@@ -1183,7 +1213,7 @@ class RustCompiler(Compiler):
     def get_language(self):
         return self.language
 
-    def sanity_check(self, work_dir):
+    def sanity_check(self, work_dir, environment):
         source_name = os.path.join(work_dir, 'sanity.rs')
         output_name = os.path.join(work_dir, 'rusttest')
         ofile = open(source_name, 'w')
@@ -1281,7 +1311,7 @@ class SwiftCompiler(Compiler):
     def get_compile_only_args(self):
         return ['-c']
 
-    def sanity_check(self, work_dir):
+    def sanity_check(self, work_dir, environment):
         src = 'swifttest.swift'
         source_name = os.path.join(work_dir, src)
         output_name = os.path.join(work_dir, 'swifttest')
@@ -1289,7 +1319,8 @@ class SwiftCompiler(Compiler):
         ofile.write('''1 + 2
 ''')
         ofile.close()
-        pc = subprocess.Popen(self.exelist + ['-emit-executable', '-o', output_name, src], cwd=work_dir)
+        extra_flags = self.get_cross_extra_flags(environment, compile=True, link=True)
+        pc = subprocess.Popen(self.exelist + extra_flags + ['-emit-executable', '-o', output_name, src], cwd=work_dir)
         pc.wait()
         if pc.returncode != 0:
             raise EnvironmentException('Swift compiler %s can not compile programs.' % self.name_string())
@@ -1825,7 +1856,7 @@ class FortranCompiler(Compiler):
     def needs_static_linker(self):
         return True
 
-    def sanity_check(self, work_dir):
+    def sanity_check(self, work_dir, environment):
         source_name = os.path.join(work_dir, 'sanitycheckf.f90')
         binary_name = os.path.join(work_dir, 'sanitycheckf')
         ofile = open(source_name, 'w')
@@ -1834,7 +1865,8 @@ class FortranCompiler(Compiler):
 end program prog
 ''')
         ofile.close()
-        pc = subprocess.Popen(self.exelist + [source_name, '-o', binary_name])
+        extra_flags = self.get_cross_extra_flags(environment, compile=True, link=True)
+        pc = subprocess.Popen(self.exelist + extra_flags + [source_name, '-o', binary_name])
         pc.wait()
         if pc.returncode != 0:
             raise EnvironmentException('Compiler %s can not compile programs.' % self.name_string())
