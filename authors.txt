@@ -35,3 +35,4 @@ Rogiel Sulzbach
 Tim-Philipp Müller
 Emmanuele Bassi
 Martin Hostettler
+Sam Thursfield
