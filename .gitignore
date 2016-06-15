@@ -2,6 +2,7 @@
 /.pydevproject
 /.settings
 /.cproject
+/.idea
 
 __pycache__
 /install dir
