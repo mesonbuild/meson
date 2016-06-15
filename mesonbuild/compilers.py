@@ -451,7 +451,7 @@ class CCompiler(Compiler):
                 # a ton of compiler flags to differentiate between
                 # arm and x86_64. So just compile.
                 extra_flags += self.get_cross_extra_flags(environment, compile=True, link=False)
-                extra_flags = self.get_compile_only_args()
+                extra_flags += self.get_compile_only_args()
             else:
                 extra_flags += self.get_cross_extra_flags(environment, compile=True, link=True)
         # Is a valid executable output for all toolchains and platforms
@@ -876,7 +876,7 @@ class ObjCCompiler(CCompiler):
         binary_name = os.path.join(work_dir, 'sanitycheckobjc')
         extra_flags = self.get_cross_extra_flags(environment, compile=True, link=False)
         if self.is_cross:
-            extra_flags = self.get_compile_only_args()
+            extra_flags += self.get_compile_only_args()
         ofile = open(source_name, 'w')
         ofile.write('#import<stdio.h>\nint main(int argc, char **argv) { return 0; }\n')
         ofile.close()
@@ -908,9 +908,9 @@ class ObjCPPCompiler(CPPCompiler):
         # TODO try to use sanity_check_impl instead of duplicated code
         source_name = os.path.join(work_dir, 'sanitycheckobjcpp.mm')
         binary_name = os.path.join(work_dir, 'sanitycheckobjcpp')
-        extra_flags = self.get_cross_extra_flags(environment, compile=True, link=True)
+        extra_flags = self.get_cross_extra_flags(environment, compile=True, link=False)
         if self.is_cross:
-            extra_flags = self.get_compile_only_args()
+            extra_flags += self.get_compile_only_args()
         ofile = open(source_name, 'w')
         ofile.write('#import<stdio.h>\nclass MyClass;int main(int argc, char **argv) { return 0; }\n')
         ofile.close()
