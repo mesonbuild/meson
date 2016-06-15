@@ -624,7 +624,7 @@ class CompilerHolder(InterpreterObject):
         if not isinstance(testname, str):
             raise InterpreterException('Testname argument must be a string.')
         extra_args = self.determine_args(kwargs)
-        result = self.compiler.run(code, extra_args)
+        result = self.compiler.run(code, self.environment, extra_args)
         if len(testname) > 0:
             if not result.compiled:
                 h = mlog.red('DID NOT COMPILE')
@@ -648,7 +648,7 @@ class CompilerHolder(InterpreterObject):
         if not isinstance(prefix, str):
             raise InterpreterException('Prefix argument of has_function must be a string.')
         extra_args = self.determine_args(kwargs)
-        had = self.compiler.has_member(typename, membername, prefix, extra_args)
+        had = self.compiler.has_member(typename, membername, prefix, self.environment, extra_args)
         if had:
             hadtxt = mlog.green('YES')
         else:
@@ -683,7 +683,7 @@ class CompilerHolder(InterpreterObject):
         if not isinstance(prefix, str):
             raise InterpreterException('Prefix argument of has_type must be a string.')
         extra_args = self.determine_args(kwargs)
-        had = self.compiler.has_type(typename, prefix, extra_args)
+        had = self.compiler.has_type(typename, prefix, self.environment, extra_args)
         if had:
             hadtxt = mlog.green('YES')
         else:
@@ -713,7 +713,7 @@ class CompilerHolder(InterpreterObject):
         if not isinstance(testname, str):
             raise InterpreterException('Testname argument must be a string.')
         extra_args = self.determine_args(kwargs)
-        result = self.compiler.compiles(code, extra_args)
+        result = self.compiler.compiles(code, self.environment, extra_args)
         if len(testname) > 0:
             if result:
                 h = mlog.green('YES')
@@ -731,7 +731,7 @@ class CompilerHolder(InterpreterObject):
         if not isinstance(testname, str):
             raise InterpreterException('Testname argument must be a string.')
         extra_args = self.determine_args(kwargs)
-        result = self.compiler.links(code, extra_args)
+        result = self.compiler.links(code, self.environment, extra_args)
         if len(testname) > 0:
             if result:
                 h = mlog.green('YES')
@@ -746,7 +746,7 @@ class CompilerHolder(InterpreterObject):
         check_stringlist(args)
         string = args[0]
         extra_args = self.determine_args(kwargs)
-        haz = self.compiler.has_header(string, extra_args)
+        haz = self.compiler.has_header(string, self.environment, extra_args)
         if haz:
             h = mlog.green('YES')
         else:
@@ -764,7 +764,7 @@ class CompilerHolder(InterpreterObject):
         if not isinstance(prefix, str):
             raise InterpreterException('Prefix argument of has_function must be a string.')
         extra_args = self.determine_args(kwargs)
-        haz = self.compiler.has_header_symbol(hname, symbol, prefix, extra_args)
+        haz = self.compiler.has_header_symbol(hname, symbol, prefix, self.environment, extra_args)
         if haz:
             h = mlog.green('YES')
         else:
@@ -785,7 +785,7 @@ class CompilerHolder(InterpreterObject):
         for i in search_dirs:
             if not os.path.isabs(i):
                 raise InvalidCode('Search directory %s is not an absolute path.' % i)
-        linkargs = self.compiler.find_library(libname, search_dirs)
+        linkargs = self.compiler.find_library(libname, self.environment, search_dirs)
         if required and linkargs is None:
             raise InterpreterException('Library {} not found'.format(libname))
         lib = dependencies.ExternalLibrary(libname, linkargs)
@@ -795,7 +795,7 @@ class CompilerHolder(InterpreterObject):
         args = mesonlib.stringlistify(args)
         if len(args) != 1:
             raise InterpreterException('Has_arg takes exactly one argument.')
-        result = self.compiler.has_argument(args[0])
+        result = self.compiler.has_argument(args[0], self.environment)
         if result:
             h = mlog.green('YES')
         else:
@@ -805,7 +805,7 @@ class CompilerHolder(InterpreterObject):
 
     def first_supported_argument_method(self, args, kwargs):
         for i in mesonlib.stringlistify(args):
-            if self.compiler.has_argument(i):
+            if self.compiler.has_argument(i, self.environment):
                 mlog.log('First supported argument:', mlog.bold(i))
                 return [i]
         mlog.log('First supported argument:', mlog.red('None'))

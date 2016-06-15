@@ -282,12 +282,14 @@ class Compiler():
         raise EnvironmentException('Language %s does not support function checks.' % self.language)
 
     def unix_link_flags_to_native(self, args):
-        return args
+        "Always returns a copy that can be independently mutated"
+        return args[:]
 
     def unix_compile_flags_to_native(self, args):
-        return args
+        "Always returns a copy that can be independently mutated"
+        return args[:]
 
-    def find_library(self, libname, extra_dirs):
+    def find_library(self, *args, **kwargs):
         raise EnvironmentException('Language {} does not support library finding.'.format(self.language))
 
     def get_library_dirs(self):
@@ -298,7 +300,7 @@ class Compiler():
 
     def get_cross_extra_flags(self, environment, *, compile, link):
         extra_flags = []
-        if self.is_cross:
+        if self.is_cross and environment:
             if 'properties' in environment.cross_info.config:
                 lang_args_key = self.language + '_args'
                 if compile:
@@ -493,19 +495,19 @@ class CCompiler(Compiler):
         code = 'int main(int argc, char **argv) { int class=0; return class; }\n'
         return self.sanity_check_impl(work_dir, environment, 'sanitycheckc.c', code)
 
-    def has_header(self, hname, extra_args=[]):
+    def has_header(self, hname, env, extra_args=[]):
         templ = '''#include<%s>
 int someSymbolHereJustForFun;
 '''
-        return self.compiles(templ % hname, extra_args)
+        return self.compiles(templ % hname, env, extra_args)
 
-    def has_header_symbol(self, hname, symbol, prefix, extra_args=[]):
+    def has_header_symbol(self, hname, symbol, prefix, env, extra_args=[]):
         templ = '''{2}
 #include <{0}>
 int main () {{ {1}; }}'''
         # Pass -O0 to ensure that the symbol isn't optimized away
         extra_args += self.get_no_optimization_args()
-        return self.compiles(templ.format(hname, symbol, prefix), extra_args)
+        return self.compiles(templ.format(hname, symbol, prefix), env, extra_args)
 
     def compile(self, code, srcname, extra_args=[]):
         commands = self.get_exelist()
@@ -523,7 +525,7 @@ int main () {{ {1}; }}'''
         os.remove(srcname)
         return p
 
-    def compiles(self, code, extra_args = []):
+    def compiles(self, code, env, extra_args=[]):
         if isinstance(extra_args, str):
             extra_args = [extra_args]
         suflen = len(self.default_suffix)
@@ -532,8 +534,13 @@ int main () {{ {1}; }}'''
         ofile = open(srcname, 'w')
         ofile.write(code)
         ofile.close()
-        extra_args = extra_args + self.get_compile_only_args()
-        p = self.compile(code, srcname, extra_args)
+        # Convert flags to the native type of the selected compiler
+        args = self.unix_link_flags_to_native(extra_args)
+        # Read c_args/cpp_args/etc from the cross-info file (if needed)
+        args += self.get_cross_extra_flags(env, compile=True, link=False)
+        # We only want to compile; not link
+        args += self.get_compile_only_args()
+        p = self.compile(code, srcname, args)
         try:
             trial = srcname[:-suflen] + 'o'
             os.remove(trial)
@@ -545,7 +552,7 @@ int main () {{ {1}; }}'''
             pass
         return p.returncode == 0
 
-    def links(self, code, extra_args = []):
+    def links(self, code, env, extra_args=[]):
         (fd, srcname) = tempfile.mkstemp(suffix='.'+self.default_suffix)
         os.close(fd)
         (fd, dstname) = tempfile.mkstemp()
@@ -553,21 +560,25 @@ int main () {{ {1}; }}'''
         ofile = open(srcname, 'w')
         ofile.write(code)
         ofile.close()
+        # Convert flags to the native type of the selected compiler
+        args = self.unix_link_flags_to_native(extra_args)
         # Need to add buildtype args to select the CRT to use with MSVC
         # This is needed especially while trying to link with static libraries
         # since MSVC won't auto-select a CRT for us in that case and will error
         # out asking us to select one.
-        extra_args = self.get_buildtype_args('debug') + \
-            self.unix_link_flags_to_native(extra_args) + \
-            self.get_output_args(dstname)
-        p = self.compile(code, srcname, extra_args)
+        args += self.get_buildtype_args('debug')
+        # Read c_args/c_link_args/cpp_args/cpp_link_args/etc from the cross-info file (if needed)
+        args += self.get_cross_extra_flags(env, compile=True, link=True)
+        # Arguments specifying the output filename
+        args += self.get_output_args(dstname)
+        p = self.compile(code, srcname, args)
         try:
             os.remove(dstname)
         except FileNotFoundError:
             pass
         return p.returncode == 0
 
-    def run(self, code, extra_args=[]):
+    def run(self, code, env, extra_args=[]):
         mlog.debug('Running code:\n\n', code)
         if self.is_cross and self.exe_wrapper is None:
             raise CrossNoRunException('Can not run test applications in this cross environment.')
@@ -576,11 +587,15 @@ int main () {{ {1}; }}'''
         ofile = open(srcname, 'w')
         ofile.write(code)
         ofile.close()
-        exename = srcname + '.exe' # Is guaranteed to be executable on every platform.
-        commands = self.get_exelist()
+        # Convert flags to the native type of the selected compiler
+        args = self.unix_link_flags_to_native(extra_args)
         # Same reasoning as self.links() above
-        commands += self.get_buildtype_args('debug')
-        commands += self.unix_link_flags_to_native(extra_args)
+        args += self.get_buildtype_args('debug')
+        # Read c_link_args/cpp_link_args/etc from the cross-info file
+        args += self.get_cross_extra_flags(env, compile=True, link=True)
+        # Create command list
+        exename = srcname + '.exe' # Is guaranteed to be executable on every platform.
+        commands = self.get_exelist() + args
         commands.append(srcname)
         commands += self.get_output_args(exename)
         p = subprocess.Popen(commands, cwd=os.path.split(srcname)[0], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -627,16 +642,12 @@ int main(int argc, char **argv) {{
 %s
 int temparray[%d-sizeof(%s)];
 '''
-        try:
-            extra_args += env.cross_info.config['properties'][self.language + '_args']
-        except KeyError:
-            pass
         extra_args += self.get_no_optimization_args()
-        if not self.compiles(element_exists_templ.format(prefix, element)):
+        if not self.compiles(element_exists_templ.format(prefix, element), env, extra_args):
             return -1
         for i in range(1, 1024):
             code = templ % (prefix, i, element)
-            if self.compiles(code, extra_args):
+            if self.compiles(code, env, extra_args):
                 if self.id == 'msvc':
                     # MSVC refuses to construct an array of zero size, so
                     # the test only succeeds when i is sizeof(element) + 1
@@ -655,7 +666,7 @@ int main(int argc, char **argv) {
     return 0;
 };
 '''
-        res = self.run(templ % (prefix, element), extra_args)
+        res = self.run(templ % (prefix, element), env, extra_args)
         if not res.compiled:
             return -1
         if res.returncode != 0:
@@ -676,16 +687,12 @@ struct tmp {
 
 int testarray[%d-offsetof(struct tmp, target)];
 '''
-        try:
-            extra_args += env.cross_info.config['properties'][self.language + '_args']
-        except KeyError:
-            pass
         extra_args += self.get_no_optimization_args()
-        if not self.compiles(type_exists_templ.format(typename)):
+        if not self.compiles(type_exists_templ.format(typename), env, extra_args):
             return -1
         for i in range(1, 1024):
             code = templ % (typename, i)
-            if self.compiles(code, extra_args):
+            if self.compiles(code, env, extra_args):
                 if self.id == 'msvc':
                     # MSVC refuses to construct an array of zero size, so
                     # the test only succeeds when i is sizeof(element) + 1
@@ -709,7 +716,7 @@ int main(int argc, char **argv) {
   return 0;
 }
 '''
-        res = self.run(templ % typename, extra_args)
+        res = self.run(templ % typename, env, extra_args)
         if not res.compiled:
             raise EnvironmentException('Could not compile alignment test.')
         if res.returncode != 0:
@@ -774,7 +781,7 @@ int main(int argc, char **argv) {
                 if isinstance(val, bool):
                     return val
                 raise EnvironmentException('Cross variable {0} is not a boolean.'.format(varname))
-        if self.links(templ.format(prefix, funcname), extra_args):
+        if self.links(templ.format(prefix, funcname), env, extra_args):
             return True
         # Add -O0 to ensure that the symbol isn't optimized away by the compiler
         extra_args += self.get_no_optimization_args()
@@ -783,32 +790,32 @@ int main(int argc, char **argv) {
         # still detect the function. We still want to fail if __stub_foo or
         # _stub_foo are defined, of course.
         header_templ = '#include <limits.h>\n{0}\n' + stubs_fail + '\nint main() {{ {1}; }}'
-        if self.links(header_templ.format(prefix, funcname), extra_args):
+        if self.links(header_templ.format(prefix, funcname), env, extra_args):
             return True
         # Some functions like alloca() are defined as compiler built-ins which
         # are inlined by the compiler, so test for that instead. Built-ins are
         # special functions that ignore all includes and defines, so we just
         # directly try to link via main().
-        return self.links('int main() {{ {0}; }}'.format('__builtin_' + funcname), extra_args)
+        return self.links('int main() {{ {0}; }}'.format('__builtin_' + funcname), env, extra_args)
 
-    def has_member(self, typename, membername, prefix, extra_args=[]):
+    def has_member(self, typename, membername, prefix, env, extra_args=[]):
         templ = '''%s
 void bar() {
     %s foo;
     foo.%s;
 };
 '''
-        return self.compiles(templ % (prefix, typename, membername), extra_args)
+        return self.compiles(templ % (prefix, typename, membername), env, extra_args)
 
-    def has_type(self, typename, prefix, extra_args):
+    def has_type(self, typename, prefix, env, extra_args):
         templ = '''%s
 void bar() {
     sizeof(%s);
 };
 '''
-        return self.compiles(templ % (prefix, typename), extra_args)
+        return self.compiles(templ % (prefix, typename), env, extra_args)
 
-    def find_library(self, libname, extra_dirs):
+    def find_library(self, libname, env, extra_dirs):
         # First try if we can just add the library as -l.
         code = '''int main(int argc, char **argv) {
     return 0;
@@ -818,7 +825,7 @@ void bar() {
         # Only try to find std libs if no extra dirs specified.
         if len(extra_dirs) == 0:
             args = ['-l' + libname]
-            if self.links(code, extra_args=args):
+            if self.links(code, env, extra_args=args):
                 return args
         # Not found? Try to find the library file itself.
         extra_dirs += self.get_library_dirs()
@@ -839,8 +846,8 @@ void bar() {
     def thread_link_flags(self):
         return ['-pthread']
 
-    def has_argument(self, arg):
-        return self.compiles('int i;\n', extra_args=arg)
+    def has_argument(self, arg, env):
+        return self.compiles('int i;\n', env, extra_args=arg)
 
 class CPPCompiler(CCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrap):
@@ -1440,7 +1447,7 @@ class VisualStudioCCompiler(CCompiler):
             if i.startswith('-L'):
                 i = '/LIBPATH:' + i[2:]
             # Translate GNU-style -lfoo library name to the import library
-            if i.startswith('-l'):
+            elif i.startswith('-l'):
                 name = i[2:]
                 if name in ('m', 'c'):
                     # With MSVC, these are provided by the C runtime which is
@@ -1469,7 +1476,7 @@ class VisualStudioCCompiler(CCompiler):
     # Visual Studio is special. It ignores arguments it does not
     # understand and you can't tell it to error out on those.
     # http://stackoverflow.com/questions/15259720/how-can-i-make-the-microsoft-c-compiler-treat-unknown-flags-as-errors-rather-t
-    def has_argument(self, arg):
+    def has_argument(self, arg, env):
         warning_text = b'9002'
         code = 'int i;\n'
         (fd, srcname) = tempfile.mkstemp(suffix='.'+self.default_suffix)
@@ -1477,7 +1484,10 @@ class VisualStudioCCompiler(CCompiler):
         ofile = open(srcname, 'w')
         ofile.write(code)
         ofile.close()
-        commands = self.exelist + [arg] + self.get_compile_only_args() + [srcname]
+        # Read c_args/cpp_args/etc from the cross-info file (if needed)
+        extra_args = self.get_cross_extra_flags(env, compile=True, link=False)
+        extra_args += self.get_compile_only_args()
+        commands = self.exelist + [arg] + extra_args + [srcname]
         mlog.debug('Running VS compile:')
         mlog.debug('Command line: ', ' '.join(commands))
         mlog.debug('Code:\n', code)
@@ -2121,10 +2131,10 @@ class VisualStudioLinker():
         return []
 
     def unix_link_flags_to_native(self, args):
-        return args
+        return args[:]
 
     def unix_compile_flags_to_native(self, args):
-        return args
+        return args[:]
 
 class ArLinker():
 
@@ -2170,7 +2180,7 @@ class ArLinker():
         return []
 
     def unix_link_flags_to_native(self, args):
-        return args
+        return args[:]
 
     def unix_compile_flags_to_native(self, args):
-        return args
+        return args[:]
