@@ -1,3 +1,5 @@
 usr/bin/intlprog
+usr/share/applications/intltest.desktop
+usr/share/intltest/sample-data.xml
 usr/share/locale/de/LC_MESSAGES/intltest.mo
 usr/share/locale/fi/LC_MESSAGES/intltest.mo

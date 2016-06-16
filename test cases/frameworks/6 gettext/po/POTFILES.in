@@ -1,1 +1,3 @@
+data/intltest.desktop.in
+data/intltest.xml.in
 src/intlmain.c

@@ -7,16 +7,25 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2013-09-12 18:53+0300\n"
+"POT-Creation-Date: 2016-06-15 20:58-0300\n"
 "PO-Revision-Date: 2013-09-12 18:57+0300\n"
 "Last-Translator: Jussi Pakkanen <jpakkane@brash>\n"
 "Language-Team: Finnish\n"
 "Language: fi\n"
 "MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=ASCII\n"
+"Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: src/intlmain.c:15
+#: ../data/intltest.desktop.in.h:1
+#, fuzzy
+msgid "Internationalization test"
+msgstr "Kansainvälistyminen testi"
+
+#: ../data/intltest.xml.in.h:1
+msgid "Translatable node!"
+msgstr "Käännettävissä solmu!"
+
+#: ../src/intlmain.c:15
 msgid "International greeting."
 msgstr "Maailman tervehdys."
