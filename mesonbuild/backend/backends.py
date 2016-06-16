@@ -476,14 +476,16 @@ class Backend():
             if hasattr(i, 'held_object'):
                 i = i.held_object
             if isinstance(i, str):
-                fname = os.path.join(self.build_to_src, target.subdir, i)
+                fname = [os.path.join(self.build_to_src, target.subdir, i)]
             elif isinstance(i, build.BuildTarget):
-                fname = self.get_target_filename(i)
+                fname = [self.get_target_filename(i)]
+            elif isinstance(i, build.GeneratedList):
+                fname = [os.path.join(self.get_target_private_dir(target), p) for p in i.get_outfilelist()]
             else:
-                fname = i.rel_to_builddir(self.build_to_src)
+                fname = [i.rel_to_builddir(self.build_to_src)]
             if absolute_paths:
-                fname = os.path.join(self.environment.get_build_dir(), fname)
-            srcs.append(fname)
+                fname =[os.path.join(self.environment.get_build_dir(), f) for f in fname]
+            srcs += fname
         cmd = []
         for i in target.command:
             if isinstance(i, build.Executable):

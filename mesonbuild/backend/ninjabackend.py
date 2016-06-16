@@ -340,7 +340,15 @@ int dummy;
             if not tname in self.processed_targets:
                 self.generate_target(t, outfile)
 
+    def custom_target_generator_inputs(self, target, outfile):
+        for s in target.sources:
+            if hasattr(s, 'held_object'):
+                s = s.held_object
+            if isinstance(s, build.GeneratedList):
+                self.generate_genlist_for_target(s, target, outfile)
+
     def generate_custom_target(self, target, outfile):
+        self.custom_target_generator_inputs(target, outfile)
         (srcs, ofilenames, cmd) = self.eval_custom_target_command(target)
         deps = []
         desc = 'Generating {0} with a {1} command.'
@@ -1303,40 +1311,43 @@ rule FORTRAN_DEP_HACK
         for genlist in target.get_generated_sources():
             if isinstance(genlist, build.CustomTarget):
                 continue # Customtarget has already written its output rules
-            generator = genlist.get_generator()
-            exe = generator.get_exe()
-            exe_arr = self.exe_object_to_cmd_array(exe)
-            infilelist = genlist.get_infilelist()
-            outfilelist = genlist.get_outfilelist()
-            base_args = generator.get_arglist()
-            extra_dependencies = [os.path.join(self.build_to_src, i) for i in genlist.extra_depends]
-            for i in range(len(infilelist)):
-                if len(generator.outputs) == 1:
-                    sole_output = os.path.join(self.get_target_private_dir(target), outfilelist[i])
-                else:
-                    sole_output = ''
-                curfile = infilelist[i]
-                infilename = os.path.join(self.build_to_src, curfile)
-                outfiles = genlist.get_outputs_for(curfile)
-                outfiles = [os.path.join(self.get_target_private_dir(target), of) for of in outfiles]
-                args = [x.replace("@INPUT@", infilename).replace('@OUTPUT@', sole_output)\
-                        for x in base_args]
-                args = self.replace_outputs(args, self.get_target_private_dir(target), outfilelist)
-                # We have consumed output files, so drop them from the list of remaining outputs.
-                if sole_output == '':
-                    outfilelist = outfilelist[len(generator.outputs):]
-                relout = self.get_target_private_dir(target)
-                args = [x.replace("@SOURCE_DIR@", self.build_to_src).replace("@BUILD_DIR@", relout)
-                        for x in args]
-                cmdlist = exe_arr + self.replace_extra_args(args, genlist)
-                elem = NinjaBuildElement(self.all_outputs, outfiles, 'CUSTOM_COMMAND', infilename)
-                if len(extra_dependencies) > 0:
-                    elem.add_dep(extra_dependencies)
-                elem.add_item('DESC', 'Generating $out')
-                if isinstance(exe, build.BuildTarget):
-                    elem.add_dep(self.get_target_filename(exe))
-                elem.add_item('COMMAND', cmdlist)
-                elem.write(outfile)
+            self.generate_genlist_for_target(genlist, target, outfile)
+
+    def generate_genlist_for_target(self, genlist, target, outfile):
+        generator = genlist.get_generator()
+        exe = generator.get_exe()
+        exe_arr = self.exe_object_to_cmd_array(exe)
+        infilelist = genlist.get_infilelist()
+        outfilelist = genlist.get_outfilelist()
+        base_args = generator.get_arglist()
+        extra_dependencies = [os.path.join(self.build_to_src, i) for i in genlist.extra_depends]
+        for i in range(len(infilelist)):
+            if len(generator.outputs) == 1:
+                sole_output = os.path.join(self.get_target_private_dir(target), outfilelist[i])
+            else:
+                sole_output = ''
+            curfile = infilelist[i]
+            infilename = os.path.join(self.build_to_src, curfile)
+            outfiles = genlist.get_outputs_for(curfile)
+            outfiles = [os.path.join(self.get_target_private_dir(target), of) for of in outfiles]
+            args = [x.replace("@INPUT@", infilename).replace('@OUTPUT@', sole_output)\
+                    for x in base_args]
+            args = self.replace_outputs(args, self.get_target_private_dir(target), outfilelist)
+            # We have consumed output files, so drop them from the list of remaining outputs.
+            if sole_output == '':
+                outfilelist = outfilelist[len(generator.outputs):]
+            relout = self.get_target_private_dir(target)
+            args = [x.replace("@SOURCE_DIR@", self.build_to_src).replace("@BUILD_DIR@", relout)
+                    for x in args]
+            cmdlist = exe_arr + self.replace_extra_args(args, genlist)
+            elem = NinjaBuildElement(self.all_outputs, outfiles, 'CUSTOM_COMMAND', infilename)
+            if len(extra_dependencies) > 0:
+                elem.add_dep(extra_dependencies)
+            elem.add_item('DESC', 'Generating $out')
+            if isinstance(exe, build.BuildTarget):
+                elem.add_dep(self.get_target_filename(exe))
+            elem.add_item('COMMAND', cmdlist)
+            elem.write(outfile)
 
     def scan_fortran_module_outputs(self, target):
         compiler = None
