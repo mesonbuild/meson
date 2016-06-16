@@ -13,7 +13,15 @@ if not os.path.isdir(outdir):
     print('Outdir does not exist.')
     sys.exit(1)
 
-if shutil.which('cl'):
+# Emulate the environment.detect_c_compiler() logic
+compiler = os.environ.get('CC', None)
+if not compiler:
+    compiler = shutil.which('cl') or \
+        shutil.which('gcc') or \
+        shutil.which('clang') or \
+        shutil.which('cc')
+
+if 'cl' in os.path.basename(compiler):
     libsuffix = '.lib'
     is_vs = True
     compiler = 'cl'
@@ -22,11 +30,6 @@ else:
     libsuffix = '.a'
     is_vs = False
     linker = 'ar'
-    compiler = shutil.which('gcc')
-    if compiler is None:
-        compiler = shutil.which('clang')
-    if compiler is None:
-        compiler = shutil.which('cc')
     if compiler is None:
         print('No known compilers found.')
         sys.exit(1)
