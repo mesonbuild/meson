@@ -17,6 +17,7 @@ import sys, os
 import subprocess
 import shutil
 import argparse
+from mesonbuild.scripts import destdir_join
 
 parser = argparse.ArgumentParser()
 
@@ -113,10 +114,8 @@ def run(args):
                  fixxrefargs)
 
     if 'MESON_INSTALL_PREFIX' in os.environ:
-        if 'DESTDIR' in os.environ:
-            installdir = os.environ['DESTDIR'] + os.environ['MESON_INSTALL_PREFIX']
-        else:
-            installdir = os.environ['MESON_INSTALL_PREFIX']
+        destdir = os.environ.get('DESTDIR', '')
+        installdir = destdir_join(destdir, os.environ['MESON_INSTALL_PREFIX'])
         install_gtkdoc(options.builddir,
                        options.subdir,
                        installdir,
