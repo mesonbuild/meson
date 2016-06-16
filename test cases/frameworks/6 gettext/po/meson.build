@@ -1,3 +1,1 @@
-langs = ['fi', 'de']
-
-i18n.gettext('intltest', languages : langs)
+i18n.gettext('intltest')
