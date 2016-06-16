@@ -100,7 +100,7 @@ def install_data(d):
             outdir = os.path.join(d.fullprefix, os.path.split(outfilename)[0])
             outfilename = os.path.join(outdir, os.path.split(outfilename)[1])
         os.makedirs(outdir, exist_ok=True)
-        print('Installing %s to %s.' % (fullfilename, outdir))
+        print('Installing %s to %s.' % (fullfilename, outfilename))
         do_copy(fullfilename, outfilename)
 
 def install_man(d):

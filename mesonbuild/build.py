@@ -1019,11 +1019,12 @@ class ConfigurationData():
 # A bit poorly named, but this represents plain data files to copy
 # during install.
 class Data():
-    def __init__(self, in_sourcetree, source_subdir, sources, install_dir):
+    def __init__(self, in_sourcetree, source_subdir, sources, install_dir, install_renames=None):
         self.in_sourcetree = in_sourcetree
         self.source_subdir = source_subdir
         self.sources = sources
         self.install_dir = install_dir
+        self.install_renames = install_renames
 
 class InstallScript:
     def __init__(self, cmd_arr):
