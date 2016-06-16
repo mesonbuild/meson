@@ -15,6 +15,7 @@
 # limitations under the License.
 
 import os, subprocess, shutil
+from mesonbuild.scripts import destdir_join
 
 def run_potgen(src_sub, pkgname, args):
     listfile = os.path.join(src_sub, 'POTFILES')
@@ -56,7 +57,8 @@ def run(args):
         langs = args[4:]
         src_sub = os.path.join(os.environ['MESON_SOURCE_ROOT'], subdir)
         bld_sub = os.path.join(os.environ['MESON_BUILD_ROOT'], subdir)
-        dest = os.environ.get('DESTDIR') + os.path.join(os.environ['MESON_INSTALL_PREFIX'], instsubdir)
+        destdir = os.environ.get('DESTDIR', '')
+        dest = destdir_join(destdir, os.path.join(os.environ['MESON_INSTALL_PREFIX'], instsubdir))
         if gen_gmo(src_sub, bld_sub, langs) != 0:
             return 1
         do_install(src_sub, bld_sub, dest, pkgname, langs)

@@ -17,6 +17,7 @@
 import sys, pickle, os, shutil, subprocess, gzip, platform
 from glob import glob
 from mesonbuild.scripts import depfixer
+from mesonbuild.scripts import destdir_join
 
 def do_copy(from_file, to_file):
     try:
@@ -27,21 +28,10 @@ def do_copy(from_file, to_file):
     shutil.copyfile(from_file, to_file)
     shutil.copystat(from_file, to_file)
 
-def destdir_join(d1, d2):
-    # c:\destdir + c:\prefix must produce c:\destdir\prefix
-    if len(d1) > 1 and d1[1] == ':' and \
-        len(d2) > 1 and d2[1] == ':':
-        return d1 + d2[2:]
-    return d1 + d2
-
 def do_install(datafilename):
     ifile = open(datafilename, 'rb')
     d = pickle.load(ifile)
-    destdir_var = 'DESTDIR'
-    if destdir_var in os.environ:
-        d.destdir = os.environ[destdir_var]
-    else:
-        d.destdir = ''
+    d.destdir = os.environ.get('DESTDIR', '')
     d.fullprefix = destdir_join(d.destdir, d.prefix)
 
     install_subdirs(d) # Must be first, because it needs to delete the old subtree.
