@@ -1068,25 +1068,19 @@ class Interpreter():
         outvalues = []
         for v in invalues:
             if isinstance(v, build.CustomTarget):
-                if v.name in self.build.targets:
-                    raise InterpreterException('Tried to create target %s which already exists.' % v.name)
-                self.build.targets[v.name] = v
+                self.add_target(v.name, v)
                 outvalues.append(CustomTargetHolder(v))
             elif isinstance(v, int) or isinstance(v, str):
                 outvalues.append(v)
             elif isinstance(v, build.Executable):
-                if v.name in self.build.targets:
-                    raise InterpreterException('Tried to create target %s which already exists.' % v.name)
-                self.build.targets[v.name] = v
+                self.add_target(v.name, v)
                 outvalues.append(ExecutableHolder(v))
             elif isinstance(v, list):
                 outvalues.append(self.module_method_callback(v))
             elif isinstance(v, build.GeneratedList):
                 outvalues.append(GeneratedListHolder(v))
             elif isinstance(v, build.RunTarget):
-                if v.name in self.build.targets:
-                    raise InterpreterException('Tried to create target %s which already exists.' % v.name)
-                self.build.targets[v.name] = v
+                self.add_target(v.name, v)
             elif isinstance(v, build.InstallScript):
                 self.build.install_scripts.append(v)
             elif isinstance(v, build.Data):
