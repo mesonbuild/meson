@@ -495,7 +495,7 @@ class Vs2010Backend(backends.Backend):
                 extra_args[l] += args
         for l, args in target.extra_args.items():
             if l in extra_args:
-                extra_args[l] += args
+                extra_args[l] += compiler.unix_compile_flags_to_native(args)
         general_args = compiler.get_buildtype_args(self.buildtype).copy()
         # FIXME all the internal flags of VS (optimization etc) are represented
         # by their own XML elements. In theory we should split all flags to those
@@ -575,11 +575,8 @@ class Vs2010Backend(backends.Backend):
         extra_link_args = compiler.get_option_link_args(self.environment.coredata.compiler_options)
         extra_link_args += compiler.get_buildtype_linker_args(self.buildtype)
         for l in self.environment.coredata.external_link_args.values():
-            for a in l:
-                extra_link_args.append(a)
-        for l in target.link_args:
-            for a in l:
-                extra_link_args.append(a)
+            extra_link_args += compiler.unix_link_flags_to_native(l)
+        extra_link_args += compiler.unix_link_flags_to_native(target.link_args)
         if len(extra_link_args) > 0:
             extra_link_args.append('%(AdditionalOptions)')
             ET.SubElement(link, "AdditionalOptions").text = ' '.join(extra_link_args)
