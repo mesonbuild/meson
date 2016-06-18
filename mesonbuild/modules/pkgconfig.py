@@ -43,6 +43,8 @@ class PkgConfigModule:
             ofile.write('Libraries.private: {}\n'.format(' '.join(priv_libs)))
         ofile.write('Libs: -L${libdir} ')
         for l in libraries:
+            if l.custom_install_dir:
+                ofile.write('-L${prefix}/%s ' % l.custom_install_dir)
             ofile.write('-l%s ' % l.name)
         ofile.write('\n')
         ofile.write('CFlags: ')
