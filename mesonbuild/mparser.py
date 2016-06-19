@@ -67,6 +67,7 @@ class Lexer:
             ('lt', re.compile(r'<')),
             ('ge', re.compile(r'>=')),
             ('gt', re.compile(r'>')),
+            ('questionmark', re.compile(r'\?')),
         ]
 
     def lex(self, code):
@@ -282,6 +283,14 @@ class IfNode():
         self.condition = condition
         self.block = block
 
+class TernaryNode():
+    def __init__(self, lineno, colno, condition, trueblock, falseblock):
+        self.lineno = lineno
+        self.colno = colno
+        self.condition = condition
+        self.trueblock = trueblock
+        self.falseblock = falseblock
+
 class ArgumentNode():
     def __init__(self, token):
         self.lineno = token.lineno
@@ -383,6 +392,11 @@ class Parser:
                 raise ParseException('Assignment target must be an id.',
                                      left.lineno, left.colno)
             return AssignmentNode(left.lineno, left.colno, left.value, value)
+        elif self.accept('questionmark'):
+            trueblock = self.e1()
+            self.expect('colon')
+            falseblock = self.e1()
+            return TernaryNode(left.lineno, left.colno, left, trueblock, falseblock)
         return left
 
     def e2(self):
