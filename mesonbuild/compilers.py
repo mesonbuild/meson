@@ -510,8 +510,8 @@ int someSymbolHereJustForFun;
 #include <{0}>
 int main () {{ {1}; }}'''
         # Pass -O0 to ensure that the symbol isn't optimized away
-        extra_args += self.get_no_optimization_args()
-        return self.compiles(templ.format(hname, symbol, prefix), env, extra_args)
+        args = extra_args + self.get_no_optimization_args()
+        return self.compiles(templ.format(hname, symbol, prefix), env, args)
 
     def compile(self, code, srcname, extra_args=None):
         if extra_args is None:
@@ -563,6 +563,8 @@ int main () {{ {1}; }}'''
     def links(self, code, env, extra_args=None):
         if extra_args is None:
             extra_args = []
+        elif isinstance(extra_args, str):
+            extra_args = [extra_args]
         (fd, srcname) = tempfile.mkstemp(suffix='.'+self.default_suffix)
         os.close(fd)
         (fd, dstname) = tempfile.mkstemp()
@@ -656,12 +658,12 @@ int main(int argc, char **argv) {{
 %s
 int temparray[%d-sizeof(%s)];
 '''
-        extra_args += self.get_no_optimization_args()
-        if not self.compiles(element_exists_templ.format(prefix, element), env, extra_args):
+        args = extra_args + self.get_no_optimization_args()
+        if not self.compiles(element_exists_templ.format(prefix, element), env, args):
             return -1
         for i in range(1, 1024):
             code = templ % (prefix, i, element)
-            if self.compiles(code, env, extra_args):
+            if self.compiles(code, env, args):
                 if self.id == 'msvc':
                     # MSVC refuses to construct an array of zero size, so
                     # the test only succeeds when i is sizeof(element) + 1
@@ -705,12 +707,12 @@ struct tmp {
 
 int testarray[%d-offsetof(struct tmp, target)];
 '''
-        extra_args += self.get_no_optimization_args()
-        if not self.compiles(type_exists_templ.format(typename), env, extra_args):
+        args = extra_args + self.get_no_optimization_args()
+        if not self.compiles(type_exists_templ.format(typename), env, args):
             return -1
         for i in range(1, 1024):
             code = templ % (typename, i)
-            if self.compiles(code, env, extra_args):
+            if self.compiles(code, env, args):
                 if self.id == 'msvc':
                     # MSVC refuses to construct an array of zero size, so
                     # the test only succeeds when i is sizeof(element) + 1
@@ -806,19 +808,19 @@ int main(int argc, char **argv) {
         if self.links(templ.format(prefix, funcname), env, extra_args):
             return True
         # Add -O0 to ensure that the symbol isn't optimized away by the compiler
-        extra_args += self.get_no_optimization_args()
+        args = extra_args + self.get_no_optimization_args()
         # Sometimes the implementation is provided by the header, or the header
         # redefines the symbol to be something else. In that case, we want to
         # still detect the function. We still want to fail if __stub_foo or
         # _stub_foo are defined, of course.
         header_templ = '#include <limits.h>\n{0}\n' + stubs_fail + '\nint main() {{ {1}; }}'
-        if self.links(header_templ.format(prefix, funcname), env, extra_args):
+        if self.links(header_templ.format(prefix, funcname), env, args):
             return True
         # Some functions like alloca() are defined as compiler built-ins which
         # are inlined by the compiler, so test for that instead. Built-ins are
         # special functions that ignore all includes and defines, so we just
         # directly try to link via main().
-        return self.links('int main() {{ {0}; }}'.format('__builtin_' + funcname), env, extra_args)
+        return self.links('int main() {{ {0}; }}'.format('__builtin_' + funcname), env, args)
 
     def has_member(self, typename, membername, prefix, env, extra_args=None):
         if extra_args is None:
