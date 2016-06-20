@@ -256,12 +256,13 @@ class WxDependency(Dependency):
 
     def __init__(self, environment, kwargs):
         Dependency.__init__(self)
+        self.is_found = False
         if WxDependency.wx_found is None:
             self.check_wxconfig()
-
         if not WxDependency.wx_found:
-            raise DependencyException('Wx-config not found.')
-        self.is_found = False
+            mlog.log("Neither wx-config-3.0 nor wx-config found; can't detect dependency")
+            return
+
         p = subprocess.Popen([self.wxc, '--version'],
                              stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE)
