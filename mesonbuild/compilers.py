@@ -495,13 +495,17 @@ class CCompiler(Compiler):
         code = 'int main(int argc, char **argv) { int class=0; return class; }\n'
         return self.sanity_check_impl(work_dir, environment, 'sanitycheckc.c', code)
 
-    def has_header(self, hname, env, extra_args=[]):
+    def has_header(self, hname, env, extra_args=None):
+        if extra_args is None:
+            extra_args = []
         templ = '''#include<%s>
 int someSymbolHereJustForFun;
 '''
         return self.compiles(templ % hname, env, extra_args)
 
-    def has_header_symbol(self, hname, symbol, prefix, env, extra_args=[]):
+    def has_header_symbol(self, hname, symbol, prefix, env, extra_args=None):
+        if extra_args is None:
+            extra_args = []
         templ = '''{2}
 #include <{0}>
 int main () {{ {1}; }}'''
@@ -509,7 +513,9 @@ int main () {{ {1}; }}'''
         extra_args += self.get_no_optimization_args()
         return self.compiles(templ.format(hname, symbol, prefix), env, extra_args)
 
-    def compile(self, code, srcname, extra_args=[]):
+    def compile(self, code, srcname, extra_args=None):
+        if extra_args is None:
+            extra_args = []
         commands = self.get_exelist()
         commands.append(srcname)
         commands += extra_args
@@ -525,7 +531,9 @@ int main () {{ {1}; }}'''
         os.remove(srcname)
         return p
 
-    def compiles(self, code, env, extra_args=[]):
+    def compiles(self, code, env, extra_args=None):
+        if extra_args is None:
+            extra_args = []
         if isinstance(extra_args, str):
             extra_args = [extra_args]
         suflen = len(self.default_suffix)
@@ -552,7 +560,9 @@ int main () {{ {1}; }}'''
             pass
         return p.returncode == 0
 
-    def links(self, code, env, extra_args=[]):
+    def links(self, code, env, extra_args=None):
+        if extra_args is None:
+            extra_args = []
         (fd, srcname) = tempfile.mkstemp(suffix='.'+self.default_suffix)
         os.close(fd)
         (fd, dstname) = tempfile.mkstemp()
@@ -578,7 +588,9 @@ int main () {{ {1}; }}'''
             pass
         return p.returncode == 0
 
-    def run(self, code, env, extra_args=[]):
+    def run(self, code, env, extra_args=None):
+        if extra_args is None:
+            extra_args = []
         mlog.debug('Running code:\n\n', code)
         if self.is_cross and self.exe_wrapper is None:
             raise CrossNoRunException('Can not run test applications in this cross environment.')
@@ -631,7 +643,9 @@ int main () {{ {1}; }}'''
             pass
         return RunResult(True, pe.returncode, so, se)
 
-    def cross_sizeof(self, element, prefix, env, extra_args=[]):
+    def cross_sizeof(self, element, prefix, env, extra_args=None):
+        if extra_args is None:
+            extra_args = []
         element_exists_templ = '''#include <stdio.h>
 {0}
 int main(int argc, char **argv) {{
@@ -655,7 +669,9 @@ int temparray[%d-sizeof(%s)];
                 return i
         raise EnvironmentException('Cross checking sizeof overflowed.')
 
-    def sizeof(self, element, prefix, env, extra_args=[]):
+    def sizeof(self, element, prefix, env, extra_args=None):
+        if extra_args is None:
+            extra_args = []
         if self.is_cross:
             return self.cross_sizeof(element, prefix, env, extra_args)
         templ = '''#include<stdio.h>
@@ -673,7 +689,9 @@ int main(int argc, char **argv) {
             raise EnvironmentException('Could not run sizeof test binary.')
         return int(res.stdout)
 
-    def cross_alignment(self, typename, env, extra_args=[]):
+    def cross_alignment(self, typename, env, extra_args=None):
+        if extra_args is None:
+            extra_args = []
         type_exists_templ = '''#include <stdio.h>
 int main(int argc, char **argv) {{
     {0} something;
@@ -700,7 +718,9 @@ int testarray[%d-offsetof(struct tmp, target)];
                 return i
         raise EnvironmentException('Cross checking offsetof overflowed.')
 
-    def alignment(self, typename, env, extra_args=[]):
+    def alignment(self, typename, env, extra_args=None):
+        if extra_args is None:
+            extra_args = []
         if self.is_cross:
             return self.cross_alignment(typename, env, extra_args)
         templ = '''#include<stdio.h>
@@ -726,7 +746,7 @@ int main(int argc, char **argv) {
             raise EnvironmentException('Could not determine alignment of %s. Sorry. You might want to file a bug.' % typename)
         return align
 
-    def has_function(self, funcname, prefix, env, extra_args=[]):
+    def has_function(self, funcname, prefix, env, extra_args=None):
         """
         First, this function looks for the symbol in the default libraries
         provided by the compiler (stdlib + a few others usually). If that
@@ -734,6 +754,8 @@ int main(int argc, char **argv) {
         an implementation of the function, and if that fails, it checks if it's
         implemented as a compiler-builtin.
         """
+        if extra_args is None:
+            extra_args = []
         # Define the symbol to something else in case it is defined by the
         # includes or defines listed by the user `{0}` or by the compiler.
         # Then, undef the symbol to get rid of it completely.
@@ -798,7 +820,9 @@ int main(int argc, char **argv) {
         # directly try to link via main().
         return self.links('int main() {{ {0}; }}'.format('__builtin_' + funcname), env, extra_args)
 
-    def has_member(self, typename, membername, prefix, env, extra_args=[]):
+    def has_member(self, typename, membername, prefix, env, extra_args=None):
+        if extra_args is None:
+            extra_args = []
         templ = '''%s
 void bar() {
     %s foo;
