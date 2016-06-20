@@ -1422,21 +1422,21 @@ rule FORTRAN_DEP_HACK
         commands = []
         # The first thing is implicit include directories: source, build and private.
         commands += compiler.get_include_args(self.get_target_private_dir(target), False)
+        # Compiler args for compiling this target
         commands += compilers.get_base_compile_args(self.environment.coredata.base_options,
                                                     compiler)
+        # Add the root source and build directories as include dirs
         curdir = target.get_subdir()
         tmppath = os.path.normpath(os.path.join(self.build_to_src, curdir))
         commands += compiler.get_include_args(tmppath, False)
         if curdir ==  '':
             curdir = '.'
         commands += compiler.get_include_args(curdir, False)
-        commands += self.generate_basic_compiler_args(target, compiler)
-        # -I args work differently than other ones. In them the
-        # first found directory is used whereas for other flags
-        # (such as -ffoo -fno-foo) the latest one is used.
-        # Therefore put the internal include directories here
-        # at the beginning so they override args coming from
-        # e.g. pkg-config.
+        # -I args work differently than other ones. In them the first found
+        # directory is used whereas for other flags (such as -ffoo -fno-foo) the
+        # latest one is used.  Therefore put the internal include directories
+        # here before generating the "basic compiler args" so they override args
+        # coming from e.g. pkg-config.
         for i in target.get_include_dirs():
             basedir = i.get_curdir()
             for d in i.get_incdirs():
@@ -1448,6 +1448,7 @@ rule FORTRAN_DEP_HACK
                 commands += sargs
             for d in i.get_extra_build_dirs():
                 commands += compiler.get_include_args(d, i.is_system)
+        commands += self.generate_basic_compiler_args(target, compiler)
         for d in target.external_deps:
             if d.need_threads():
                 commands += compiler.thread_flags()
