@@ -821,6 +821,8 @@ void bar() {
     return 0;
 }
         '''
+        if extra_dirs and isinstance(extra_dirs, str):
+            extra_dirs = [extra_dirs]
         # Gcc + co seem to prefer builtin lib dirs to -L dirs.
         # Only try to find std libs if no extra dirs specified.
         if len(extra_dirs) == 0:
