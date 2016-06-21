@@ -1644,7 +1644,7 @@ class Interpreter():
             if 'version' in kwargs:
                 wanted = kwargs['version']
                 found = cached_dep.get_version()
-                if not found or not mesonlib.version_compare(found, wanted):
+                if not cached_dep.found() or not mesonlib.version_compare(found, wanted):
                     # Cached dep has the wrong version. Check if an external
                     # dependency or a fallback dependency provides it.
                     cached_dep = None
