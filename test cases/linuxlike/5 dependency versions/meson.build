@@ -9,6 +9,10 @@ assert(zlib.version() == zlibver.version(), 'zlib versions did not match!')
 zlibver = dependency('zlib', version : '<1.0', required : false)
 assert(zlibver.found() == false, 'zlib <1.0 should not be found!')
 
+# Test https://github.com/mesonbuild/meson/pull/610
+dependency('somebrokenlib', version : '>=2.0', required : false)
+dependency('somebrokenlib', version : '>=1.0', required : false)
+
 # Find internal dependency without version
 somelibver = dependency('somelib',
   fallback : ['somelibnover', 'some_dep'])
