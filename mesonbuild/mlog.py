@@ -71,11 +71,13 @@ def debug(*args, **kwargs):
     arr = process_markup(args, False)
     if log_file is not None:
         print(*arr, file=log_file, **kwargs) # Log file never gets ANSI codes.
+        log_file.flush()
 
 def log(*args, **kwargs):
     arr = process_markup(args, False)
     if log_file is not None:
         print(*arr, file=log_file, **kwargs) # Log file never gets ANSI codes.
+        log_file.flush()
     if colorize_console:
         arr = process_markup(args, True)
     print(*arr, **kwargs)

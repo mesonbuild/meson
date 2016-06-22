@@ -34,21 +34,22 @@ import concurrent.futures as conc
 from mesonbuild.coredata import backendlist
 
 class TestResult:
-    def __init__(self, msg, stdo, stde, conftime=0, buildtime=0, testtime=0):
+    def __init__(self, msg, stdo, stde, mlog, conftime=0, buildtime=0, testtime=0):
         self.msg = msg
         self.stdo = stdo
         self.stde = stde
+        self.mlog = mlog
         self.conftime = conftime
         self.buildtime = buildtime
         self.testtime = testtime
 
 class AutoDeletedDir():
-    def __init__(self, dir):
-        self.dir = dir
+    def __init__(self, d):
+        self.dir = d
     def __enter__(self):
         os.makedirs(self.dir, exist_ok=True)
         return self.dir
-    def __exit__(self, type, value, traceback):
+    def __exit__(self, _type, value, traceback):
         # On Windows, shutil.rmtree fails sometimes, because 'the directory is not empty'.
         # Retrying fixes this.
         # That's why we don't use tempfile.TemporaryDirectory, but wrap the deletion in the AutoDeletedDir class.
@@ -65,6 +66,7 @@ class AutoDeletedDir():
 passing_tests = 0
 failing_tests = 0
 skipped_tests = 0
+failing_logs = []
 print_debug = 'MESON_PRINT_TEST_OUTPUT' in os.environ
 
 meson_command = os.path.join(os.getcwd(), 'meson')
@@ -236,13 +238,18 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, flags, compile_c
     gen_command = [meson_command, '--prefix', '/usr', '--libdir', 'lib', testdir, test_build_dir]\
         + flags + test_args + extra_args
     (returncode, stdo, stde) = run_configure_inprocess(gen_command)
+    try:
+        logfile = os.path.join(test_build_dir, 'meson-logs/meson-log.txt')
+        mesonlog = open(logfile, errors='ignore').read()
+    except Exception:
+        mesonlog = 'No meson-log.txt found.'
     gen_time = time.time() - gen_start
     if not should_succeed:
         if returncode != 0:
-            return TestResult('', stdo, stde, gen_time)
-        return TestResult('Test that should have failed succeeded', stdo, stde, gen_time)
+            return TestResult('', stdo, stde, mesonlog, gen_time)
+        return TestResult('Test that should have failed succeeded', stdo, stde, mesonlog, gen_time)
     if returncode != 0:
-        return TestResult('Generating the build system failed.', stdo, stde, gen_time)
+        return TestResult('Generating the build system failed.', stdo, stde, mesonlog, gen_time)
     if 'msbuild' in compile_commands[0]:
         sln_name = glob(os.path.join(test_build_dir, '*.sln'))[0]
         comp = compile_commands + [os.path.split(sln_name)[-1]]
@@ -256,7 +263,7 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, flags, compile_c
     stdo += o.decode(sys.stdout.encoding)
     stde += e.decode(sys.stdout.encoding)
     if pc.returncode != 0:
-        return TestResult('Compiling source code failed.', stdo, stde, gen_time, build_time)
+        return TestResult('Compiling source code failed.', stdo, stde, gen_time, mesonlog, build_time)
     test_start = time.time()
     # Note that we don't test that running e.g. 'ninja test' actually
     # works. One hopes that this is a common enough happening that
@@ -266,7 +273,7 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, flags, compile_c
     stdo += tstdo
     stde += tstde
     if returncode != 0:
-        return TestResult('Running unit tests failed.', stdo, stde, gen_time, build_time, test_time)
+        return TestResult('Running unit tests failed.', stdo, stde, mesonlog, gen_time, build_time, test_time)
     if len(install_commands) == 0:
         return TestResult('', '', '', gen_time, build_time, test_time)
     else:
@@ -278,8 +285,8 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, flags, compile_c
         stdo += o.decode(sys.stdout.encoding)
         stde += e.decode(sys.stdout.encoding)
         if pi.returncode != 0:
-            return TestResult('Running install failed.', stdo, stde, gen_time, build_time, test_time)
-        return TestResult(validate_install(testdir, install_dir), stdo, stde, gen_time, build_time, test_time)
+            return TestResult('Running install failed.', stdo, stde, mesonlog, gen_time, build_time, test_time)
+        return TestResult(validate_install(testdir, install_dir), stdo, stde, mesonlog, gen_time, build_time, test_time)
 
 def gather_tests(testdir):
     tests = [t.replace('\\', '/').split('/', 2)[2] for t in glob(os.path.join(testdir, '*'))]
@@ -348,6 +355,7 @@ def run_tests(extra_args):
                     print('Failed test%s: %s' % (without_install, t))
                     print('Reason:', result.msg)
                     failing_tests += 1
+                    failing_logs.append(result.mlog)
                 else:
                     print('Succeeded test%s: %s' % (without_install, t))
                     passing_tests += 1
@@ -432,7 +440,8 @@ if __name__ == '__main__':
     print('Total failed tests:', failing_tests)
     print('Total skipped tests:', skipped_tests)
     if failing_tests > 0 and ('TRAVIS' in os.environ or 'APPVEYOR' in os.environ):
-        # Cat because it can have stuff of unknown encodings mixed.
-        subprocess.call(['cat', 'meson-test-run.txt'])
+        print('\nMesonlogs of failing tests\n')
+        for l in failing_logs:
+            print(l, '\n')
     sys.exit(failing_tests)
 

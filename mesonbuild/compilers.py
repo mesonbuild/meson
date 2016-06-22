@@ -520,7 +520,7 @@ int main () {{ {1}; }}'''
         commands.append(srcname)
         commands += extra_args
         mlog.debug('Running compile:')
-        mlog.debug('Command line: ', ' '.join(commands))
+        mlog.debug('Command line: ', ' '.join(commands), '\n')
         mlog.debug('Code:\n', code)
         p = subprocess.Popen(commands, cwd=os.path.split(srcname)[0], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (stde, stdo) = p.communicate()
@@ -593,7 +593,6 @@ int main () {{ {1}; }}'''
     def run(self, code, env, extra_args=None):
         if extra_args is None:
             extra_args = []
-        mlog.debug('Running code:\n\n', code)
         if self.is_cross and self.exe_wrapper is None:
             raise CrossNoRunException('Can not run test applications in this cross environment.')
         (fd, srcname) = tempfile.mkstemp(suffix='.'+self.default_suffix)
@@ -612,12 +611,16 @@ int main () {{ {1}; }}'''
         commands = self.get_exelist() + args
         commands.append(srcname)
         commands += self.get_output_args(exename)
+        mlog.debug('Running code:\n\n', code)
+        mlog.debug('Command line:', ' '.join(commands))
         p = subprocess.Popen(commands, cwd=os.path.split(srcname)[0], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (stdo, stde) = p.communicate()
         stde = stde.decode()
         stdo = stdo.decode()
-        mlog.debug('Compiler stdout:\n', stdo)
-        mlog.debug('Compiler stderr:\n', stde)
+        mlog.debug('Compiler stdout:\n')
+        mlog.debug(stdo)
+        mlog.debug('Compiler stderr:\n')
+        mlog.debug(stde)
         os.remove(srcname)
         if p.returncode != 0:
             return RunResult(False)
@@ -634,8 +637,10 @@ int main () {{ {1}; }}'''
         (so, se) = pe.communicate()
         so = so.decode()
         se = se.decode()
-        mlog.debug('Program stdout:\n', so)
-        mlog.debug('Program stderr:\n', se)
+        mlog.debug('Program stdout:\n')
+        mlog.debug(so)
+        mlog.debug('Program stderr:\n')
+        mlog.debug(se)
         try:
             os.remove(exename)
         except PermissionError:
