@@ -263,7 +263,7 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, flags, compile_c
     stdo += o.decode(sys.stdout.encoding)
     stde += e.decode(sys.stdout.encoding)
     if pc.returncode != 0:
-        return TestResult('Compiling source code failed.', stdo, stde, gen_time, mesonlog, build_time)
+        return TestResult('Compiling source code failed.', stdo, stde, mesonlog, gen_time, build_time)
     test_start = time.time()
     # Note that we don't test that running e.g. 'ninja test' actually
     # works. One hopes that this is a common enough happening that
