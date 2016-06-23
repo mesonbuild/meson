@@ -198,7 +198,7 @@ def get_builtin_option_default(optname):
         raise RuntimeError('Tried to get the default value for an unknown builtin option \'%s\'.' % optname)
 
 builtin_options = {
-        'buildtype'         : [ UserComboOption, 'Build type to use.', [ 'plain', 'debug', 'debugoptimized', 'release' ], 'debug' ],
+        'buildtype'         : [ UserComboOption, 'Build type to use.', [ 'plain', 'debug', 'debugoptimized', 'release', 'minsize' ], 'debug' ],
         'strip'             : [ UserBooleanOption, 'Strip targets on install.', False ],
         'unity'             : [ UserBooleanOption, 'Unity build.', False ],
         'prefix'            : [ UserStringOption, 'Installation prefix.', default_prefix() ],

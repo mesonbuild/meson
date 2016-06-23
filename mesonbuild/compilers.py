@@ -59,12 +59,15 @@ gnulike_buildtype_args = {'plain' : [],
                           # See https://github.com/mesonbuild/meson/pull/509
                           'debug' : ['-O0', '-g'],
                           'debugoptimized' : ['-O2', '-g'],
-                          'release' : ['-O3']}
+                          'release' : ['-O3'],
+                          'minsize' : ['-Os', '-g']}
 
 msvc_buildtype_args = {'plain' : [],
                        'debug' : ["/MDd", "/ZI", "/Ob0", "/Od", "/RTC1"],
                        'debugoptimized' : ["/MD", "/Zi", "/O2", "/Ob1"],
-                       'release' : ["/MD", "/O2", "/Ob2"]}
+                       'release' : ["/MD", "/O2", "/Ob2"],
+                       'minsize' : ["/MD", "/Zi", "/Os", "/Ob1"],
+                       }
 
 gnulike_buildtype_linker_args = {}
 
@@ -74,38 +77,50 @@ if mesonlib.is_osx():
                                           'debug' : [],
                                           'debugoptimized' : [],
                                           'release' : [],
+                                          'minsize' : [],
                                          })
 else:
     gnulike_buildtype_linker_args.update({'plain' : [],
                                           'debug' : [],
                                           'debugoptimized' : [],
                                           'release' : ['-Wl,-O1'],
+                                          'minsize' : [],
                                          })
 
 msvc_buildtype_linker_args = {'plain' : [],
                               'debug' : [],
                               'debugoptimized' : [],
-                              'release' : []}
+                              'release' : [],
+                              'minsize' : ['/INCREMENTAL:NO'],
+                              }
 
 java_buildtype_args = {'plain' : [],
                        'debug' : ['-g'],
                        'debugoptimized' : ['-g'],
-                       'release' : []}
+                       'release' : [],
+                       'minsize' : [],
+                       }
 
 rust_buildtype_args = {'plain' : [],
                        'debug' : ['-g'],
                        'debugoptimized' : ['-g', '--opt-level', '2'],
-                       'release' : ['--opt-level', '3']}
+                       'release' : ['--opt-level', '3'],
+                       'minsize' : [],
+                       }
 
 mono_buildtype_args = {'plain' : [],
                        'debug' : ['-debug'],
                        'debugoptimized': ['-debug', '-optimize+'],
-                       'release' : ['-optimize+']}
+                       'release' : ['-optimize+'],
+                       'minsize' : [],
+                       }
 
 swift_buildtype_args = {'plain' : [],
                         'debug' : ['-g'],
                         'debugoptimized': ['-g', '-O'],
-                        'release' : ['-O']}
+                        'release' : ['-O'],
+                        'minsize' : [],
+                        }
 
 gnu_winlibs = ['-lkernel32', '-luser32', '-lgdi32', '-lwinspool', '-lshell32',
                '-lole32', '-loleaut32', '-luuid', '-lcomdlg32', '-ladvapi32']
@@ -1228,7 +1243,7 @@ class ValaCompiler(Compiler):
         return suffix in ('vala', 'vapi')
 
     def get_buildtype_args(self, buildtype):
-        if buildtype == 'debug' or buildtype == 'debugoptimized':
+        if buildtype == 'debug' or buildtype == 'debugoptimized' or buildtype == 'minsize':
             return ['--debug']
         return []
 

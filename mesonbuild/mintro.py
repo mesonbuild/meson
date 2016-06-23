@@ -79,7 +79,6 @@ def list_target_files(target_name, coredata, builddata):
     try:
         t = builddata.targets[target_name]
         sources = t.sources + t.extra_files
-        subdir = t.subdir
     except KeyError:
         print("Unknown target %s." % target_name)
         sys.exit(1)
@@ -87,7 +86,7 @@ def list_target_files(target_name, coredata, builddata):
     print(json.dumps(sources))
 
 def list_buildoptions(coredata, builddata):
-    buildtype= {'choices': ['plain', 'debug', 'debugoptimized', 'release'],
+    buildtype= {'choices': ['plain', 'debug', 'debugoptimized', 'release', 'minsize'],
                 'type' : 'combo',
                 'value' : coredata.get_builtin_option('buildtype'),
                 'description' : 'Build type',
