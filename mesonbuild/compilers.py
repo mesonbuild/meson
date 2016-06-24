@@ -91,7 +91,7 @@ msvc_buildtype_linker_args = {'plain' : [],
                               'debug' : [],
                               'debugoptimized' : [],
                               'release' : [],
-                              'minsize' : [],
+                              'minsize' : ['/INCREMENTAL:NO'],
                               }
 
 java_buildtype_args = {'plain' : [],
