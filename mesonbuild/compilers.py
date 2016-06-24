@@ -343,6 +343,13 @@ class CCompiler(Compiler):
     def get_always_args(self):
         return []
 
+    def get_linker_debug_crt_args(self):
+        """
+        Arguments needed to select a debug crt for the linker
+        This is only needed for MSVC
+        """
+        return []
+
     def get_no_stdinc_args(self):
         return ['-nostdinc']
 
@@ -589,11 +596,8 @@ int main () {{ {1}; }}'''
         ofile.close()
         # Convert flags to the native type of the selected compiler
         args = self.unix_link_flags_to_native(extra_args)
-        # Need to add buildtype args to select the CRT to use with MSVC
-        # This is needed especially while trying to link with static libraries
-        # since MSVC won't auto-select a CRT for us in that case and will error
-        # out asking us to select one.
-        args += self.get_buildtype_args('debug')
+        # Select a CRT if needed since we're linking
+        args += self.get_linker_debug_crt_args()
         # Read c_args/c_link_args/cpp_args/cpp_link_args/etc from the cross-info file (if needed)
         args += self.get_cross_extra_flags(env, compile=True, link=True)
         # Arguments specifying the output filename
@@ -617,8 +621,8 @@ int main () {{ {1}; }}'''
         ofile.close()
         # Convert flags to the native type of the selected compiler
         args = self.unix_link_flags_to_native(extra_args)
-        # Same reasoning as self.links() above
-        args += self.get_buildtype_args('debug')
+        # Select a CRT if needed since we're linking
+        args += self.get_linker_debug_crt_args()
         # Read c_link_args/cpp_link_args/etc from the cross-info file
         args += self.get_cross_extra_flags(env, compile=True, link=True)
         # Create command list
@@ -1406,6 +1410,17 @@ class VisualStudioCCompiler(CCompiler):
 
     def get_always_args(self):
         return self.always_args
+
+    def get_linker_debug_crt_args(self):
+        """
+        Arguments needed to select a debug crt for the linker
+
+        Sometimes we need to manually select the CRT (C runtime) to use with
+        MSVC. One example is when trying to link with static libraries since
+        MSVC won't auto-select a CRT for us in that case and will error out
+        asking us to select one.
+        """
+        return ['/MDd']
 
     def get_buildtype_args(self, buildtype):
         return msvc_buildtype_args[buildtype]
