@@ -1015,6 +1015,7 @@ class SDL2Dependency(Dependency):
             self.linkargs = stdo.decode().strip().split()
             self.is_found = True
             mlog.log('Dependency', mlog.bold('sdl2'), 'found:', mlog.green('YES'), '(%s)' % sdlconf)
+            self.version = '2' # FIXME
             return
         try:
             pcdep = PkgConfigDependency('sdl2', kwargs)
@@ -1022,6 +1023,7 @@ class SDL2Dependency(Dependency):
                 self.is_found = True
                 self.cargs = pcdep.get_compile_args()
                 self.linkargs = pcdep.get_link_args()
+                self.version = pcdep.get_version()
                 return
         except Exception:
             pass
@@ -1031,6 +1033,7 @@ class SDL2Dependency(Dependency):
                 self.is_found = True
                 self.cargs = fwdep.get_compile_args()
                 self.linkargs = fwdep.get_link_args()
+                self.version = '2' # FIXME
                 return
         mlog.log('Dependency', mlog.bold('sdl2'), 'found:', mlog.red('NO'))
 
@@ -1042,6 +1045,9 @@ class SDL2Dependency(Dependency):
 
     def found(self):
         return self.is_found
+
+    def get_version(self):
+        return self.version
 
 class ExtraFrameworkDependency(Dependency):
     def __init__(self, name, required, path=None):
