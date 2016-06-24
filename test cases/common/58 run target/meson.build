@@ -7,3 +7,6 @@ run_target('mycommand', 'scripts/script.sh')
 
 exe = executable('helloprinter', 'helloprinter.c')
 run_target('runhello', exe, 'argument')
+
+python3 = find_program('python3')
+run_target('py3hi', python3, '-c', 'print("I am Python3.")')

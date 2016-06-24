@@ -425,6 +425,8 @@ int dummy;
                 if exe_wrap is not None:
                     cmd += [exe_wrap]
             cmd.append(abs_exe)
+        elif isinstance(texe, dependencies.ExternalProgram):
+            cmd += texe.get_command()
         else:
             cmd.append(target.command)
         cmd += arg_strings
