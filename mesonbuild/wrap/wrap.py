@@ -97,9 +97,9 @@ class Resolver:
             # No wrap file with this name? Give up.
             return None
         p = PackageDefinition(fname)
+        if not os.path.isdir(self.cachedir):
+            os.mkdir(self.cachedir)
         if p.type == 'file':
-            if not os.path.isdir(self.cachedir):
-                os.mkdir(self.cachedir)
             self.download(p, packagename)
             self.extract_package(p)
         elif p.type == 'git':
@@ -113,6 +113,7 @@ class Resolver:
         revno = p.get('revision')
         is_there = os.path.isdir(checkoutdir)
         if is_there:
+            subprocess.check_call(['git', 'clean', '-f'], cwd=checkoutdir)
             if revno.lower() == 'head':
                 subprocess.check_call(['git', 'pull'], cwd=checkoutdir)
             else:
@@ -126,7 +127,9 @@ class Resolver:
             if revno.lower() != 'head':
                 subprocess.check_call(['git', 'checkout', revno],
                                       cwd=checkoutdir)
-
+        self.get_patch(p)
+        if p.has_patch():            
+            shutil.unpack_archive(os.path.join(self.cachedir, p.get('patch_filename')), self.subdir_root)
 
     def get_data(self, url):
         blocksize = 10*1024
@@ -175,17 +178,7 @@ class Resolver:
         if dhash != expected:
             raise RuntimeError('Incorrect hash for source %s:\n %s expected\n %s actual.' % (packagename, expected, dhash))
         open(ofname, 'wb').write(srcdata)
-        if p.has_patch():
-            purl = p.get('patch_url')
-            mlog.log('Downloading patch from', mlog.bold(purl))
-            pdata = self.get_data(purl)
-            phash = self.get_hash(pdata)
-            expected = p.get('patch_hash')
-            if phash != expected:
-                raise RuntimeError('Incorrect hash for patch %s:\n %s expected\n %s actual' % (packagename, expected, phash))
-            open(os.path.join(self.cachedir, p.get('patch_filename')), 'wb').write(pdata)
-        else:
-            mlog.log('Package does not require patch.')
+        self.get_patch(p)
 
     def extract_package(self, package):
         if sys.version_info < (3, 5):
@@ -213,3 +206,16 @@ class Resolver:
         shutil.unpack_archive(os.path.join(self.cachedir, package.get('source_filename')), extract_dir)
         if package.has_patch():
             shutil.unpack_archive(os.path.join(self.cachedir, package.get('patch_filename')), self.subdir_root)
+
+    def get_patch(self, package):
+        if package.has_patch():
+            purl = package.get('patch_url')
+            mlog.log('Downloading patch from', mlog.bold(purl))
+            pdata = self.get_data(purl)
+            phash = self.get_hash(pdata)
+            expected = package.get('patch_hash')
+            if phash != expected:
+                raise RuntimeError('Incorrect hash for patch %s:\n %s expected\n %s actual' % (packagename, expected, phash))
+            open(os.path.join(self.cachedir, package.get('patch_filename')), 'wb').write(pdata)
+        else:
+            mlog.log('Package does not require patch.')
