@@ -92,6 +92,7 @@ class Backend():
         raise RuntimeError('No specified compiler can handle file ' + src)
 
     def get_target_filename(self, target):
+        assert(isinstance(target, (build.BuildTarget, build.CustomTarget)))
         targetdir = self.get_target_dir(target)
         fname = target.get_filename()
         if isinstance(fname, list):
@@ -100,6 +101,9 @@ class Backend():
             fname = fname[0]
         filename = os.path.join(targetdir, fname)
         return filename
+
+    def get_target_filename_abs(self, target):
+        return os.path.join(self.environment.get_build_dir(), self.get_target_filename(target))
 
     def get_target_filename_for_linking(self, target):
         # On some platforms (msvc for instance), the file that is used for

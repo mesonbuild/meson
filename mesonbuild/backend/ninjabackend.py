@@ -409,7 +409,16 @@ int dummy;
             else:
                 mlog.debug(str(i))
                 raise MesonException('Unreachable code in generate_run_target.')
+        for i in target.get_dependencies():
+            # FIXME, should not grab element at zero but rather expand all.
+            if isinstance(i, list):
+                i = i[0]
+            fname = i.get_filename()
+            if isinstance(fname, list):
+                fname = fname[0]
+            deps.append(os.path.join(self.get_target_dir(i), fname))
         elem = NinjaBuildElement(self.all_outputs, target.name, 'CUSTOM_COMMAND', deps)
+        elem.add_dep(deps)
         cmd = runnerscript + [self.environment.get_source_dir(), self.environment.get_build_dir(), target.subdir]
         texe = target.command
         try:

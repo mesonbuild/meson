@@ -23,10 +23,12 @@ from . import compilers
 from .wrap import wrap
 from . import mesonlib
 
-import os, sys, platform, subprocess, shutil, uuid, re
+import os, sys, subprocess, shutil, uuid, re
 from functools import wraps
 
 import importlib
+
+run_depr_printed = False
 
 class InterpreterException(mesonlib.MesonException):
     pass
@@ -473,6 +475,7 @@ class BuildTargetHolder(InterpreterObject):
                              'extract_all_objects' : self.extract_all_objects_method,
                              'get_id': self.get_id_method,
                              'outdir' : self.outdir_method,
+                             'full_path' : self.full_path_method,
                              'private_dir_include' : self.private_dir_include_method,
                              })
 
@@ -482,6 +485,9 @@ class BuildTargetHolder(InterpreterObject):
     def private_dir_include_method(self, args, kwargs):
         return IncludeDirsHolder(build.IncludeDirs('', [], False,
                     [self.interpreter.backend.get_target_private_dir(self.held_object)]))
+
+    def full_path_method(self, args, kwargs):
+        return self.interpreter.backend.get_target_filename_abs(self.held_object)
 
     def outdir_method(self, args, kwargs):
         return self.interpreter.backend.get_target_dir(self.held_object)
@@ -514,19 +520,19 @@ class JarHolder(BuildTargetHolder):
         super().__init__(target, interp)
 
 class CustomTargetHolder(InterpreterObject):
-    def __init__(self, object_to_hold):
+    def __init__(self, object_to_hold, interp):
+        super().__init__()
         self.held_object = object_to_hold
+        self.interpreter = interp
+        self.methods.update({'full_path' : self.full_path_method,
+                             })
 
-    def is_cross(self):
-        return self.held_object.is_cross()
-
-    def extract_objects_method(self, args, kwargs):
-        gobjs = self.held_object.extract_objects(args)
-        return GeneratedObjectsHolder(gobjs)
+    def full_path_method(self, args, kwargs):
+        return self.interpreter.backend.get_target_filename_abs(self.held_object)
 
 class RunTargetHolder(InterpreterObject):
-    def __init__(self, name, command, args, subdir):
-        self.held_object = build.RunTarget(name, command, args, subdir)
+    def __init__(self, name, command, args, dependencies, subdir):
+        self.held_object = build.RunTarget(name, command, args, dependencies, subdir)
 
 class Test(InterpreterObject):
     def __init__(self, name, suite, exe, is_parallel, cmd_args, env, should_fail, valgrind_args, timeout, workdir):
@@ -1069,7 +1075,7 @@ class Interpreter():
         for v in invalues:
             if isinstance(v, build.CustomTarget):
                 self.add_target(v.name, v)
-                outvalues.append(CustomTargetHolder(v))
+                outvalues.append(CustomTargetHolder(v, self))
             elif isinstance(v, int) or isinstance(v, str):
                 outvalues.append(v)
             elif isinstance(v, build.Executable):
@@ -1754,16 +1760,32 @@ class Interpreter():
         if len(args) != 1:
             raise InterpreterException('Incorrect number of arguments')
         name = args[0]
-        tg = CustomTargetHolder(build.CustomTarget(name, self.subdir, kwargs))
+        tg = CustomTargetHolder(build.CustomTarget(name, self.subdir, kwargs), self)
         self.add_target(name, tg.held_object)
         return tg
 
-    @noKwargs
     def func_run_target(self, node, args, kwargs):
-        if len(args) < 2:
-            raise InterpreterException('Incorrect number of arguments')
+        global run_depr_printed
+        if len(args) > 1:
+            if not run_depr_printed:
+                mlog.log(mlog.red('DEPRECATION'), 'positional version of run_target is deprecated, use the keyword version instead.')
+                run_depr_printed = True
+            if 'command' in kwargs:
+                raise InterpreterException('Can not have command both in positional and keyword arguments.')
+            all_args = args[1:]
+            deps = []
+        elif len(args) == 1:
+            if not 'command' in kwargs:
+                raise InterpreterException('Missing "command" keyword argument')
+            all_args = kwargs['command']
+            deps = kwargs.get('depends', [])
+            if not isinstance(deps, list):
+                deps = [deps]
+        else:
+            raise InterpreterException('Run_target needs at least one positional argument.')
+
         cleaned_args = []
-        for i in args:
+        for i in all_args:
             try:
                 i = i.held_object
             except AttributeError:
@@ -1772,10 +1794,21 @@ class Interpreter():
                 mlog.debug('Wrong type:', str(i))
                 raise InterpreterException('Invalid argument to run_target.')
             cleaned_args.append(i)
-        name = cleaned_args[0]
-        command = cleaned_args[1]
-        cmd_args = cleaned_args[2:]
-        tg = RunTargetHolder(name, command, cmd_args, self.subdir)
+        name = args[0]
+        if not isinstance(name, str):
+            raise InterpreterException('First argument must be a string.')
+        cleaned_deps = []
+        for d in deps:
+            try:
+                d = d.held_object
+            except AttributeError:
+                pass
+            if not isinstance(d, (build.BuildTarget, build.CustomTarget)):
+                raise InterpreterException('Depends items must be build targets.')
+            cleaned_deps.append(d)
+        command = cleaned_args[0]
+        cmd_args = cleaned_args[1:]
+        tg = RunTargetHolder(name, command, cmd_args, cleaned_deps, self.subdir)
         self.add_target(name, tg.held_object)
         return tg
 
