@@ -520,6 +520,8 @@ class BuildTarget():
         for t in target:
             if hasattr(t, 'held_object'):
                 t = t.held_object
+            if isinstance(t, ObjectLibrary):
+                raise InvalidArguments('Object library cannot be linked to.')
             if not isinstance(t, StaticLibrary) and \
             not isinstance(t, SharedLibrary):
                 raise InvalidArguments('Link target is not library.')
@@ -786,6 +788,15 @@ class SharedLibrary(BuildTarget):
 
     def type_suffix(self):
         return "@sha"
+
+class ObjectLibrary(BuildTarget):
+    def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
+        super().__init__(name, subdir, subproject, is_cross, sources, objects, environment, kwargs)
+        if len(self.sources) > 0 and self.sources[0].endswith('.cs'):
+            raise InvalidArguments('Object libraries not supported for C#.')
+
+    def type_suffix(self):
+        return "@obj"
 
 class CustomTarget:
     known_kwargs = {'input' : True,
