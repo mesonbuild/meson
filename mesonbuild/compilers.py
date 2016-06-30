@@ -88,8 +88,8 @@ else:
                                          })
 
 msvc_buildtype_linker_args = {'plain' : [],
-                              'debug' : [],
-                              'debugoptimized' : [],
+                              'debug' : ['/DEBUG'],
+                              'debugoptimized' : ['/DEBUG'],
                               'release' : [],
                               'minsize' : ['/INCREMENTAL:NO'],
                               }
@@ -1393,16 +1393,11 @@ class SwiftCompiler(Compiler):
 class VisualStudioCCompiler(CCompiler):
     std_warn_args = ['/W3']
     std_opt_args= ['/O2']
-    vs2010_always_args = ['/nologo', '/showIncludes']
-    vs2013_always_args = ['/nologo', '/showIncludes', '/FS']
 
     def __init__(self, exelist, version, is_cross, exe_wrap):
         CCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
         self.id = 'msvc'
-        if int(version.split('.')[0]) > 17:
-            self.always_args = VisualStudioCCompiler.vs2013_always_args
-        else:
-            self.always_args = VisualStudioCCompiler.vs2010_always_args
+        self.always_args = ['/nologo', '/showIncludes']
         self.warn_args = {'1': ['/W2'],
                           '2': ['/W3'],
                           '3': ['/w4']}
@@ -1449,9 +1444,17 @@ class VisualStudioCCompiler(CCompiler):
         return ['/Od']
 
     def get_output_args(self, target):
+        # Manually name the pdb file to avoid filename conflicts during parallel
+        # builds: failure due to 'cannot open program database vc140.pdb', etc.
+        #
+        # Only specify it for transient compiled object files because for an
+        # exe called something.exe the pdb filename is already something.pdb
+        #
+        # Will be ignored by the compiler if debug info generation is disabled
+        pdb_args = ['/Fd' + target.rsplit('.', 1)[0] + '.pdb']
         if target.endswith('.exe'):
             return ['/Fe' + target]
-        return ['/Fo' + target]
+        return pdb_args + ['/Fo' + target]
 
     def get_dependency_gen_args(self, outtarget, outfile):
         return []
