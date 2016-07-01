@@ -634,8 +634,7 @@ class Vs2010Backend(backends.Backend):
         # Add more libraries to be linked if needed
         for t in target.get_dependencies():
             lobj = self.build.targets[t.get_id()]
-            rel_path = self.relpath(lobj.subdir, target.subdir)
-            linkname = os.path.join(rel_path, self.get_target_filename_for_linking(lobj))
+            linkname = os.path.join(down, self.get_target_filename_for_linking(lobj))
             additional_links.append(linkname)
         for lib in self.get_custom_target_provided_libraries(target):
             additional_links.append(self.relpath(lib, self.get_target_dir(target)))
