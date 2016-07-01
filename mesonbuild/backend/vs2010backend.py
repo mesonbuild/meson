@@ -730,6 +730,10 @@ class Vs2010Backend(backends.Backend):
             # DLLs built with MSVC always have an import library except when
             # they're data-only DLLs, but we don't support those yet.
             ET.SubElement(link, 'ImportLibrary').text = target.get_import_filename()
+            # Add module definitions file, if provided
+            if target.vs_module_defs:
+                relpath = target.vs_module_defs.rel_to_builddir(proj_to_src_root)
+                ET.SubElement(link, 'ModuleDefinitionFile').text = relpath
         if '/ZI' in buildtype_args or '/Zi' in buildtype_args:
             pdb = ET.SubElement(link, 'ProgramDataBaseFileName')
             pdb.text = '$(OutDir}%s.pdb' % target_name
