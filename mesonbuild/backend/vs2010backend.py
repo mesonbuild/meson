@@ -474,11 +474,13 @@ class Vs2010Backend(backends.Backend):
         outdir.text = '.\\'
         intdir = ET.SubElement(direlem, 'IntDir')
         intdir.text = target.get_id() + '\\'
-        tname = ET.SubElement(direlem, 'TargetName')
-        tname.text = target_name
         inclinc = ET.SubElement(direlem, 'LinkIncremental')
         inclinc.text = 'true'
+        tfilename = os.path.splitext(target.get_filename())
+        ET.SubElement(direlem, 'TargetName').text = tfilename[0]
+        ET.SubElement(direlem, 'TargetExt').text = tfilename[1]
 
+        # Build information
         compiles = ET.SubElement(root, 'ItemDefinitionGroup')
         clconf = ET.SubElement(compiles, 'ClCompile')
         opt = ET.SubElement(clconf, 'Optimization')
