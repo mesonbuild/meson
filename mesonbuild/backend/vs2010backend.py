@@ -480,8 +480,11 @@ class Vs2010Backend(backends.Backend):
             return self.gen_run_target_vcxproj(target, ofname, guid)
         else:
             raise MesonException('Unknown target type for %s' % target.get_basename())
+        # Prefix to use to access the build root from the vcxproj dir
         down = self.target_to_build_root(target)
+        # Prefix to use to access the source tree's root from the vcxproj dir
         proj_to_src_root = os.path.join(down, self.build_to_src)
+        # Prefix to use to access the source tree's subdir from the vcxproj dir
         proj_to_src_dir = os.path.join(proj_to_src_root, target.subdir)
         (sources, headers, objects, languages) = self.split_sources(target.sources)
         buildtype_args = compiler.get_buildtype_args(self.buildtype)
