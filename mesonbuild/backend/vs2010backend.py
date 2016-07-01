@@ -735,7 +735,7 @@ class Vs2010Backend(backends.Backend):
             ET.SubElement(link, 'ImportLibrary').text = target.get_import_filename()
             # Add module definitions file, if provided
             if target.vs_module_defs:
-                relpath = target.vs_module_defs.rel_to_builddir(proj_to_src_root)
+                relpath = os.path.join(down, target.vs_module_defs.rel_to_builddir(self.build_to_src))
                 ET.SubElement(link, 'ModuleDefinitionFile').text = relpath
         if '/ZI' in buildtype_args or '/Zi' in buildtype_args:
             pdb = ET.SubElement(link, 'ProgramDataBaseFileName')
@@ -749,7 +749,7 @@ class Vs2010Backend(backends.Backend):
         if len(headers) + len(gen_hdrs) + len(extra_files) > 0:
             inc_hdrs = ET.SubElement(root, 'ItemGroup')
             for h in headers:
-                relpath = h.rel_to_builddir(proj_to_src_root)
+                relpath = os.path.join(down, h.rel_to_builddir(self.build_to_src))
                 ET.SubElement(inc_hdrs, 'CLInclude', Include=relpath)
             for h in gen_hdrs:
                 ET.SubElement(inc_hdrs, 'CLInclude', Include=h)
@@ -760,7 +760,7 @@ class Vs2010Backend(backends.Backend):
         if len(sources) + len(gen_src) + len(pch_sources) > 0:
             inc_src = ET.SubElement(root, 'ItemGroup')
             for s in sources:
-                relpath = s.rel_to_builddir(proj_to_src_root)
+                relpath = os.path.join(down, s.rel_to_builddir(self.build_to_src))
                 inc_cl = ET.SubElement(inc_src, 'CLCompile', Include=relpath)
                 self.add_pch(inc_cl, proj_to_src_dir, pch_sources, s)
                 self.add_additional_options(s, inc_cl, extra_args, additional_options_set)
@@ -788,7 +788,7 @@ class Vs2010Backend(backends.Backend):
         if self.has_objects(objects, additional_objects, gen_objs):
             inc_objs = ET.SubElement(root, 'ItemGroup')
             for s in objects:
-                relpath = s.rel_to_builddir(proj_to_src_root)
+                relpath = os.path.join(down, s.rel_to_builddir(self.build_to_src))
                 ET.SubElement(inc_objs, 'Object', Include=relpath)
             for s in additional_objects:
                 ET.SubElement(inc_objs, 'Object', Include=s)
