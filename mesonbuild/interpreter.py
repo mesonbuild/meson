@@ -1978,6 +1978,7 @@ class Interpreter():
                 os.makedirs(os.path.join(self.environment.build_dir, self.subdir), exist_ok=True)
                 ifile_abs = os.path.join(self.environment.source_dir, self.subdir, inputfile)
                 mesonlib.do_conf_file(ifile_abs, ofile_abs, conf.held_object)
+                shutil.copystat(ifile_abs, ofile_abs)
             else:
                 mesonlib.dump_conf_header(ofile_abs, conf.held_object)
             conf.mark_used()
