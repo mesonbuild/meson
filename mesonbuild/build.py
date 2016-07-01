@@ -16,8 +16,9 @@ from . import coredata
 from . import environment
 from . import dependencies
 from . import mlog
-import copy, os
+import copy, os, re
 from .mesonlib import File, flatten, MesonException
+from .environment import for_windows, for_darwin
 
 known_basic_kwargs = {'install' : True,
                       'c_pch' : True,
@@ -70,6 +71,35 @@ const char *fulltext = "\\\\" PLAIN_TEXT;
 We are fully aware that these are not really usable or pleasant ways to do
 this but it's the best we can do given the way shell quoting works.
 '''
+
+def sources_are_suffix(sources, suffix):
+    return len(sources) > 0 and sources[0].endswith('.' + suffix)
+
+def compiler_is_msvc(sources, is_cross, env):
+    """
+    Since each target does not currently have the compiler information attached
+    to it, we must do this detection manually here.
+
+    This detection is purposely incomplete and will cause bugs if other code is
+    extended and this piece of code is forgotten.
+    """
+    compiler = None
+    if sources_are_suffix(sources, 'c'):
+        try:
+            compiler = env.detect_c_compiler(is_cross)
+        except MesonException:
+            return False
+    elif sources_are_suffix(sources, 'cxx') or \
+         sources_are_suffix(sources, 'cpp') or \
+         sources_are_suffix(sources, 'cc'):
+        try:
+            compiler = env.detect_cpp_compiler(is_cross)
+        except MesonException:
+            return False
+    if compiler and compiler.get_id() == 'msvc' and compiler.can_compile(sources[0]):
+        return True
+    return False
+
 
 class InvalidArguments(MesonException):
     pass
@@ -670,15 +700,19 @@ class GeneratedList():
 class Executable(BuildTarget):
     def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
         super().__init__(name, subdir, subproject, is_cross, sources, objects, environment, kwargs)
-        self.prefix = ''
-        self.suffix = environment.get_exe_suffix()
-        suffix = environment.get_exe_suffix()
-        if len(self.sources) > 0 and self.sources[0].endswith('.cs'):
-            suffix = 'exe'
-        if suffix != '':
-            self.filename = self.name + '.' + suffix
-        else:
-            self.filename = self.name
+        # Unless overriden, executables have no suffix or prefix. Except on
+        # Windows and with C#/Mono executables where the suffix is 'exe'
+        if not hasattr(self, 'prefix'):
+            self.prefix = ''
+        if not hasattr(self, 'suffix'):
+            # Executable for Windows or C#/Mono
+            if for_windows(is_cross, environment) or sources_are_suffix(self.sources, 'cs'):
+                self.suffix = 'exe'
+            else:
+                self.suffix = ''
+        self.filename = self.name
+        if self.suffix:
+            self.filename += '.' + self.suffix
 
     def type_suffix(self):
         return "@exe"
@@ -686,52 +720,161 @@ class Executable(BuildTarget):
 class StaticLibrary(BuildTarget):
     def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
         super().__init__(name, subdir, subproject, is_cross, sources, objects, environment, kwargs)
-        if len(self.sources) > 0 and self.sources[0].endswith('.cs'):
+        if sources_are_suffix(self.sources, 'cs'):
             raise InvalidArguments('Static libraries not supported for C#.')
+        # By default a static library is named libfoo.a even on Windows because
+        # MSVC does not have a consistent convention for what static libraries
+        # are called. The MSVC CRT uses libfoo.lib syntax but nothing else uses
+        # it and GCC only looks for static libraries called foo.lib and
+        # libfoo.a. However, we cannot use foo.lib because that's the same as
+        # the import library. Using libfoo.a is ok because people using MSVC
+        # always pass the library filename while linking anyway.
         if not hasattr(self, 'prefix'):
-            self.prefix = environment.get_static_lib_prefix()
-        self.suffix = environment.get_static_lib_suffix()
-        if len(self.sources) > 0 and self.sources[0].endswith('.rs'):
-            self.suffix = 'rlib'
+            self.prefix = 'lib'
+        if not hasattr(self, 'suffix'):
+            # Rust static library crates have .rlib suffix
+            if sources_are_suffix(self.sources, 'rs'):
+                self.suffix = 'rlib'
+            else:
+                self.suffix = 'a'
         self.filename = self.prefix + self.name + '.' + self.suffix
-
-    def get_import_filename(self):
-        return self.filename
-
-    def get_osx_filename(self):
-        return self.get_filename()
 
     def type_suffix(self):
         return "@sta"
 
 class SharedLibrary(BuildTarget):
     def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
-        self.version = None
         self.soversion = None
+        self.ltversion = None
         self.vs_module_defs = None
-        super().__init__(name, subdir, subproject, is_cross, sources, objects, environment, kwargs);
-        if len(self.sources) > 0 and self.sources[0].endswith('.cs'):
-            prefix = 'lib'
-            suffix = 'dll'
-        else:
-            prefix = environment.get_shared_lib_prefix()
-            suffix = environment.get_shared_lib_suffix()
+        # The import library this target will generate
+        self.import_filename = None
+        # The import library that Visual Studio would generate (and accept)
+        self.vs_import_filename = None
+        # The import library that GCC would generate (and prefer)
+        self.gcc_import_filename = None
+        super().__init__(name, subdir, subproject, is_cross, sources, objects, environment, kwargs)
         if not hasattr(self, 'prefix'):
-            self.prefix = prefix
+            self.prefix = None
         if not hasattr(self, 'suffix'):
-            if len(self.sources) > 0 and self.sources[0].endswith('.rs'):
-                self.suffix = 'rlib'
+            self.suffix = None
+        self.basic_filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
+        self.determine_filenames(is_cross, environment)
+
+    def determine_filenames(self, is_cross, env):
+        """
+        See https://github.com/mesonbuild/meson/pull/417 for details.
+
+        First we determine the filename template (self.filename_tpl), then we
+        set the output filename (self.filename).
+
+        The template is needed while creating aliases (self.get_aliaslist),
+        which are needed while generating .so shared libraries for Linux.
+
+        Besides this, there's also the import library name, which is only used
+        on Windows since on that platform the linker uses a separate library
+        called the "import library" during linking instead of the shared
+        library (DLL). The toolchain will output an import library in one of
+        two formats: GCC or Visual Studio.
+
+        When we're building with Visual Studio, the import library that will be
+        generated by the toolchain is self.vs_import_filename, and with
+        MinGW/GCC, it's self.gcc_import_filename. self.import_filename will
+        always contain the import library name this target will generate.
+        """
+        prefix = ''
+        suffix = ''
+        self.filename_tpl = self.basic_filename_tpl
+        # If the user already provided the prefix and suffix to us, we don't
+        # need to do any filename suffix/prefix detection.
+        # NOTE: manual prefix/suffix override is currently only tested for C/C++
+        if self.prefix != None and self.suffix != None:
+            pass
+        # C# and Mono
+        elif sources_are_suffix(self.sources, 'cs'):
+            prefix = ''
+            suffix = 'dll'
+            self.filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
+        # Rust
+        elif sources_are_suffix(self.sources, 'rs'):
+            # Currently, we always build --crate-type=rlib
+            prefix = 'lib'
+            suffix = 'rlib'
+            self.filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
+        # C, C++, Swift, Vala
+        # Only Windows uses a separate import library for linking
+        # For all other targets/platforms import_filename stays None
+        elif for_windows(is_cross, env):
+            suffix = 'dll'
+            self.vs_import_filename = '{0}.lib'.format(self.name)
+            self.gcc_import_filename = 'lib{0}.dll.a'.format(self.name)
+            if compiler_is_msvc(self.sources, is_cross, env):
+                # Shared library is of the form foo.dll
+                prefix = ''
+                # Import library is called foo.lib
+                self.import_filename = self.vs_import_filename
+            # Assume GCC-compatible naming
             else:
-                self.suffix = suffix
-        self.importsuffix = environment.get_import_lib_suffix()
-        self.filename = self.prefix + self.name + '.' + self.suffix
+                # Shared library is of the form libfoo.dll
+                prefix = 'lib'
+                # Import library is called libfoo.dll.a
+                self.import_filename = self.gcc_import_filename
+            # Shared library has the soversion if it is defined
+            if self.soversion:
+                self.filename_tpl = '{0.prefix}{0.name}-{0.soversion}.{0.suffix}'
+            else:
+                self.filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
+        elif for_darwin(is_cross, env):
+            prefix = 'lib'
+            suffix = 'dylib'
+            if self.soversion:
+                # libfoo.X.dylib
+                self.filename_tpl = '{0.prefix}{0.name}.{0.soversion}.{0.suffix}'
+            else:
+                # libfoo.dylib
+                self.filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
+        else:
+            prefix = 'lib'
+            suffix = 'so'
+            if self.ltversion:
+                # libfoo.so.X[.Y[.Z]] (.Y and .Z are optional)
+                self.filename_tpl = '{0.prefix}{0.name}.{0.suffix}.{0.ltversion}'
+            elif self.soversion:
+                # libfoo.so.X
+                self.filename_tpl = '{0.prefix}{0.name}.{0.suffix}.{0.soversion}'
+            else:
+                # No versioning, libfoo.so
+                self.filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
+        if self.prefix == None:
+            self.prefix = prefix
+        if self.suffix == None:
+            self.suffix = suffix
+        self.filename = self.filename_tpl.format(self)
 
     def process_kwargs(self, kwargs, environment):
         super().process_kwargs(kwargs, environment)
+        # Shared library version
         if 'version' in kwargs:
-            self.set_version(kwargs['version'])
+            self.ltversion = kwargs['version']
+            if not isinstance(self.ltversion, str):
+                raise InvalidArguments('Shared library version needs to be a string, not ' + type(self.ltversion).__name__)
+            if not re.fullmatch(r'[0-9]+(\.[0-9]+){0,2}', self.ltversion):
+                raise InvalidArguments('Invalid Shared library version "{0}". Must be of the form X.Y.Z where all three are numbers. Y and Z are optional.'.format(self.ltversion))
+        # Try to extract/deduce the soversion
         if 'soversion' in kwargs:
-            self.set_soversion(kwargs['soversion'])
+            self.soversion = kwargs['soversion']
+            if isinstance(self.soversion, int):
+                self.soversion = str(self.soversion)
+            if not isinstance(self.soversion, str):
+                raise InvalidArguments('Shared library soversion is not a string or integer.')
+            try:
+                int(self.soversion)
+            except ValueError:
+                raise InvalidArguments('Shared library soversion must be a valid integer')
+        elif self.ltversion:
+            # library version is defined, get the soversion from that
+            self.soversion = self.ltversion.split('.')[0]
+        # Visual Studio module-definitions file
         if 'vs_module_defs' in kwargs:
             path = kwargs['vs_module_defs']
             if (os.path.isabs(path)):
@@ -742,46 +885,41 @@ class SharedLibrary(BuildTarget):
     def check_unknown_kwargs(self, kwargs):
         self.check_unknown_kwargs_int(kwargs, known_shlib_kwargs)
 
-    def get_shbase(self):
-        return self.prefix + self.name + '.' + self.suffix
-
     def get_import_filename(self):
-        return self.prefix + self.name + '.' + self.importsuffix
+        """
+        The name of the import library that will be outputted by the compiler
+
+        Returns None if there is no import library required for this platform
+        """
+        return self.import_filename
+
+    def get_import_filenameslist(self):
+        if self.import_filename:
+            return [self.vs_import_filename, self.gcc_import_filename]
+        return []
 
     def get_all_link_deps(self):
         return [self] + self.get_transitive_link_deps()
 
-    def get_filename(self):
-        '''Works on all platforms except OSX, which does its own thing.'''
-        fname = self.get_shbase()
-        if self.version is None:
-            return fname
-        else:
-            return fname + '.' + self.version
-
-    def get_osx_filename(self):
-        if self.version is None:
-            return self.get_shbase()
-        return self.prefix + self.name + '.' + self.version + '.' + self.suffix
-
-    def set_version(self, version):
-        if not isinstance(version, str):
-            raise InvalidArguments('Shared library version is not a string.')
-        self.version = version
-
-    def set_soversion(self, version):
-        if isinstance(version, int):
-            version = str(version)
-        if not isinstance(version, str):
-            raise InvalidArguments('Shared library soversion is not a string or integer.')
-        self.soversion = version
-
     def get_aliaslist(self):
-        aliases = []
-        if self.soversion is not None:
-            aliases.append(self.get_shbase() + '.' + self.soversion)
-        if self.version is not None:
-            aliases.append(self.get_shbase())
+        """
+        If the versioned library name is libfoo.so.0.100.0, aliases are:
+        * libfoo.so.0 (soversion)
+        * libfoo.so (unversioned; for linking)
+        """
+        # Aliases are only useful with .so libraries. Also if the .so library
+        # ends with .so (no versioning), we don't need aliases.
+        if self.suffix != 'so' or self.filename.endswith('.so'):
+            return []
+        # Unversioned alias: libfoo.so
+        aliases = [self.basic_filename_tpl.format(self)]
+        # If ltversion != soversion we create an soversion alias: libfoo.so.X
+        if self.ltversion and self.ltversion != self.soversion:
+            if not self.soversion:
+                # This is done in self.process_kwargs()
+                raise AssertionError('BUG: If library version is defined, soversion must have been defined')
+            alias_tpl = self.filename_tpl.replace('ltversion', 'soversion')
+            aliases.append(alias_tpl.format(self))
         return aliases
 
     def type_suffix(self):

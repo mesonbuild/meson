@@ -80,11 +80,37 @@ def detect_system():
     return platform.system().lower()
 
 
+def for_windows(is_cross, env):
+    """
+    Host machine is windows?
+
+    Note: 'host' is the machine on which compiled binaries will run
+    """
+    if not is_cross:
+        return mesonlib.is_windows()
+    elif env.cross_info.has_host():
+        return env.cross_info.config['host_machine']['system'] == 'windows'
+    return False
+
+def for_darwin(is_cross, env):
+    """
+    Host machine is Darwin (iOS/OS X)?
+
+    Note: 'host' is the machine on which compiled binaries will run
+    """
+    if not is_cross:
+        return mesonlib.is_osx()
+    elif env.cross_info.has_host():
+        return env.cross_info.config['host_machine']['system'] == 'darwin'
+    return False
+
+
 class Environment():
     private_dir = 'meson-private'
     log_dir = 'meson-logs'
     coredata_file = os.path.join(private_dir, 'coredata.dat')
     version_regex = '\d+(\.\d+)+(-[a-zA-Z0-9]+)?'
+
     def __init__(self, source_dir, build_dir, main_script_file, options, original_cmd_line_args):
         assert(os.path.isabs(main_script_file))
         assert(not os.path.islink(main_script_file))
@@ -122,33 +148,22 @@ class Environment():
         self.default_static_linker = 'ar'
         self.vs_static_linker = 'lib'
 
+        # Various prefixes and suffixes for import libraries, shared libraries,
+        # static libraries, and executables.
+        # Versioning is added to these names in the backends as-needed.
         cross = self.is_cross_build()
         if (not cross and mesonlib.is_windows()) \
         or (cross and self.cross_info.has_host() and self.cross_info.config['host_machine']['system'] == 'windows'):
             self.exe_suffix = 'exe'
-            if self.detect_c_compiler(cross).get_id() == 'msvc':
-                self.import_lib_suffix = 'lib'
-            else:
-                # MinGW-GCC doesn't generate and can't link with a .lib
-                # It uses the DLL file as the import library
-                self.import_lib_suffix = 'dll'
-            self.shared_lib_suffix = 'dll'
-            self.shared_lib_prefix = ''
-            self.static_lib_suffix = 'lib'
-            self.static_lib_prefix = ''
             self.object_suffix = 'obj'
+            self.shared_lib_dir = self.get_bindir()
         else:
             self.exe_suffix = ''
-            if (not cross and mesonlib.is_osx()) or \
-            (cross and self.cross_info.has_host() and self.cross_info.config['host_machine']['system'] == 'darwin'):
-                self.shared_lib_suffix = 'dylib'
-            else:
-                self.shared_lib_suffix = 'so'
-            self.shared_lib_prefix = 'lib'
-            self.static_lib_suffix = 'a'
-            self.static_lib_prefix = 'lib'
             self.object_suffix = 'o'
-            self.import_lib_suffix = self.shared_lib_suffix
+            self.shared_lib_dir = self.get_libdir()
+        # Common to all platforms
+        self.import_lib_dir = self.get_libdir()
+        self.static_lib_dir = self.get_libdir()
 
     def is_cross_build(self):
         return self.cross_info is not None
@@ -641,22 +656,17 @@ class Environment():
     def get_exe_suffix(self):
         return self.exe_suffix
 
-    # On Windows (MSVC) the library has suffix dll
-    # but you link against a file that has suffix lib.
-    def get_import_lib_suffix(self):
-        return self.import_lib_suffix
+    def get_import_lib_dir(self):
+        "Install dir for the import library (library used for linking)"
+        return self.import_lib_dir
 
-    def get_shared_lib_prefix(self):
-        return self.shared_lib_prefix
+    def get_shared_lib_dir(self):
+        "Install dir for the shared library"
+        return self.shared_lib_dir
 
-    def get_shared_lib_suffix(self):
-        return self.shared_lib_suffix
-
-    def get_static_lib_prefix(self):
-        return self.static_lib_prefix
-
-    def get_static_lib_suffix(self):
-        return self.static_lib_suffix
+    def get_static_lib_dir(self):
+        "Install dir for the static library"
+        return self.static_lib_dir
 
     def get_object_suffix(self):
         return self.object_suffix
@@ -681,17 +691,6 @@ class Environment():
 
     def get_datadir(self):
         return self.coredata.get_builtin_option('datadir')
-
-    def find_library(self, libname, dirs):
-        if dirs is None:
-            dirs = mesonlib.get_library_dirs()
-        suffixes = [self.get_shared_lib_suffix(), self.get_static_lib_suffix()]
-        prefix = self.get_shared_lib_prefix()
-        for d in dirs:
-            for suffix in suffixes:
-                trial = os.path.join(d, prefix + libname + '.' + suffix)
-                if os.path.isfile(trial):
-                    return trial
 
 
 def get_args_from_envvars(lang):

@@ -292,12 +292,10 @@ class XCodeBackend(backends.Backend):
             reftype = 0
             if isinstance(t, build.Executable):
                 typestr = 'compiled.mach-o.executable'
-                path = t.get_filename()
+                path = fname
             elif isinstance(t, build.SharedLibrary):
-                # OSX has a completely different shared library
-                # naming scheme so do this manually.
                 typestr = self.get_xcodetype('dummy.dylib')
-                path = t.get_osx_filename()
+                path = fname
             else:
                 typestr = self.get_xcodetype(fname)
                 path = '"%s"' % t.get_filename()
@@ -626,7 +624,7 @@ class XCodeBackend(backends.Backend):
                         headerdirs.append(os.path.join(self.environment.get_build_dir(), cd))
                 for l in target.link_targets:
                     abs_path = os.path.join(self.environment.get_build_dir(),
-                                            l.subdir, buildtype, l.get_osx_filename())
+                                            l.subdir, buildtype, l.get_filename())
                     dep_libs.append("'%s'" % abs_path)
                     if isinstance(l, build.SharedLibrary):
                         links_dylib = True

@@ -585,7 +585,7 @@ class Vs2010Backend(backends.Backend):
         for t in target.get_dependencies():
             lobj = self.build.targets[t.get_id()]
             rel_path = self.relpath(lobj.subdir, target.subdir)
-            linkname = os.path.join(rel_path, lobj.get_import_filename())
+            linkname = os.path.join(rel_path, self.get_target_filename_for_linking(lobj))
             additional_links.append(linkname)
         for lib in self.get_custom_target_provided_libraries(target):
             additional_links.append(self.relpath(lib, self.get_target_dir(target)))
@@ -607,6 +607,8 @@ class Vs2010Backend(backends.Backend):
         gendeb = ET.SubElement(link, 'GenerateDebugInformation')
         gendeb.text = 'true'
         if isinstance(target, build.SharedLibrary):
+            # DLLs built with MSVC always have an import library except when
+            # they're data-only DLLs, but we don't support those yet.
             ET.SubElement(link, 'ImportLibrary').text = target.get_import_filename()
         pdb = ET.SubElement(link, 'ProgramDataBaseFileName')
         pdb.text = '$(OutDir}%s.pdb' % target_name

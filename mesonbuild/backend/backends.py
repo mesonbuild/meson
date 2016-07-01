@@ -105,9 +105,13 @@ class Backend():
         # On some platforms (msvc for instance), the file that is used for
         # dynamic linking is not the same as the dynamic library itself. This
         # file is called an import library, and we want to link against that.
-        # On platforms where this distinction is not important, the import
-        # library is the same as the dynamic library itself.
-        return os.path.join(self.get_target_dir(target), target.get_import_filename())
+        # On all other platforms, we link to the library directly.
+        if isinstance(target, build.SharedLibrary):
+            link_lib = target.get_import_filename() or target.get_filename()
+            return os.path.join(self.get_target_dir(target), link_lib)
+        elif isinstance(target, build.StaticLibrary):
+            return os.path.join(self.get_target_dir(target), target.get_filename())
+        raise AssertionError('BUG: Tried to link to something that\'s not a library')
 
     def get_target_dir(self, target):
         if self.environment.coredata.get_builtin_option('layout') == 'mirror':
