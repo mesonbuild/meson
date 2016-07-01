@@ -404,6 +404,37 @@ class Vs2010Backend(backends.Backend):
     def quote_define_cmdline(cls, arg):
         return re.sub(r'^([-/])D(.*?)="(.*)"$', r'\1D\2=\"\3\"', arg)
 
+    @staticmethod
+    def split_link_args(args):
+        """
+        Split a list of link arguments into three lists:
+        * library search paths
+        * library filenames (or paths)
+        * other link arguments
+        """
+        lpaths = []
+        libs = []
+        other = []
+        for arg in args:
+            if arg.startswith('/LIBPATH:'):
+                lpath = arg[9:]
+                # De-dup library search paths by removing older entries when
+                # a new one is found. This is necessary because unlike other
+                # search paths such as the include path, the library is
+                # searched for in the newest (right-most) search path first.
+                if lpath in lpaths:
+                    lpaths.remove(lpath)
+                lpaths.append(lpath)
+            # It's ok if we miss libraries with non-standard extensions here.
+            # They will go into the general link arguments.
+            elif arg.endswith('.lib') or arg.endswith('.a'):
+                # De-dup
+                if arg not in libs:
+                    libs.append(arg)
+            else:
+                other.append(arg)
+        return (lpaths, libs, other)
+
     def gen_vcxproj(self, target, ofname, guid, compiler):
         mlog.debug('Generating vcxproj %s.' % target.name)
         entrypoint = 'WinMainCRTStartup'
@@ -581,13 +612,26 @@ class Vs2010Backend(backends.Backend):
         extra_link_args = compiler.get_option_link_args(self.environment.coredata.compiler_options)
         extra_link_args += compiler.get_buildtype_linker_args(self.buildtype)
         for l in self.environment.coredata.external_link_args.values():
-            extra_link_args += compiler.unix_link_flags_to_native(l)
-        extra_link_args += compiler.unix_link_flags_to_native(target.link_args)
+            extra_link_args += l
+        if not isinstance(target, build.StaticLibrary):
+            extra_link_args += target.link_args
+            # External deps must be last because target link libraries may depend on them.
+            for dep in target.get_external_deps():
+                extra_link_args += dep.get_link_args()
+            for d in target.get_dependencies():
+                if isinstance(d, build.StaticLibrary):
+                    for dep in d.get_external_deps():
+                        extra_link_args += dep.get_link_args()
+        extra_link_args = compiler.unix_link_flags_to_native(extra_link_args)
+        (additional_libpaths, additional_links, extra_link_args) = self.split_link_args(extra_link_args)
         if len(extra_link_args) > 0:
             extra_link_args.append('%(AdditionalOptions)')
             ET.SubElement(link, "AdditionalOptions").text = ' '.join(extra_link_args)
+        if len(additional_libpaths) > 0:
+            additional_libpaths.insert(0, '%(AdditionalLibraryDirectories)')
+            ET.SubElement(link, 'AdditionalLibraryDirectories').text = ';'.join(additional_libpaths)
 
-        additional_links = []
+        # Add more libraries to be linked if needed
         for t in target.get_dependencies():
             lobj = self.build.targets[t.get_id()]
             rel_path = self.relpath(lobj.subdir, target.subdir)
@@ -606,8 +650,6 @@ class Vs2010Backend(backends.Backend):
             ET.SubElement(link, 'AdditionalDependencies').text = ';'.join(additional_links)
         ofile = ET.SubElement(link, 'OutputFile')
         ofile.text = '$(OutDir)%s' % target.get_filename()
-        addlibdir = ET.SubElement(link, 'AdditionalLibraryDirectories')
-        addlibdir.text = '%(AdditionalLibraryDirectories)'
         subsys = ET.SubElement(link, 'SubSystem')
         subsys.text = subsystem
         gendeb = ET.SubElement(link, 'GenerateDebugInformation')
