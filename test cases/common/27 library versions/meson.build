@@ -5,3 +5,5 @@ shared_library('somelib', 'lib.c',
   name_suffix : 'suffix',
   install_dir : 'lib',
   install : true)
+
+subdir('subdir')
