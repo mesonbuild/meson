@@ -506,10 +506,14 @@ class Vs2010Backend(backends.Backend):
         # here.
         general_args += compiler.get_option_compile_args(self.environment.coredata.compiler_options)
         for d in target.get_external_deps():
-            try:
-                general_args += d.compile_args
-            except AttributeError:
-                pass
+            # Cflags required by external deps might have UNIX-specific flags,
+            # so filter them out if needed
+            d_compile_args = compiler.unix_compile_flags_to_native(d.get_compile_args())
+            for arg in d_compile_args:
+                if arg.startswith('-I'):
+                    inc_dirs.append(arg[2:])
+                else:
+                    general_args.append(arg)
 
         for l, args in extra_args.items():
             extra_args[l] = [Vs2010Backend.quote_define_cmdline(x) for x in args]
