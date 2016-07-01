@@ -771,6 +771,9 @@ class CrossBuildInfo():
     def get_stdlib(self, language):
         return self.config['properties'][language + '_stdlib']
 
+    def get_properties(self):
+        return self.config['properties']
+
     # Wehn compiling a cross compiler we use the native compiler for everything.
     # But not when cross compiling a cross compiler.
     def need_cross_compiler(self):

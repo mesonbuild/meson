@@ -866,6 +866,7 @@ class MesonMain(InterpreterObject):
                              'install_dependency_manifest': self.install_dependency_manifest_method,
                              'project_version': self.project_version_method,
                              'project_name' : self.project_name_method,
+                             'get_cross_property': self.get_cross_property_method,
                             })
 
     def add_install_script_method(self, args, kwargs):
@@ -964,6 +965,20 @@ class MesonMain(InterpreterObject):
 
     def project_name_method(self, args, kwargs):
         return self.interpreter.active_projectname
+
+    def get_cross_property_method(self, args, kwargs):
+        if len(args) < 1 or len(args) > 2:
+            raise InterpreterException('Must have one or two arguments.')
+        propname = args[0]
+        if not isinstance(propname, str):
+            raise InterpreterException('Property name must be string.')
+        try:
+            props = self.interpreter.environment.cross_info.get_properties()
+            return props[propname]
+        except Exception:
+            if len(args) == 2:
+                return args[1]
+            raise InterpreterException('Unknown cross property: %s.' % propname)
 
 class Interpreter():
 
