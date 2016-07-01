@@ -239,6 +239,10 @@ class BuildTarget():
             raise InvalidArguments('Build target %s has no sources.' % name)
         self.validate_sources()
 
+    def __repr__(self):
+        repr_str = "<{0} {1}: {2}>"
+        return repr_str.format(self.__class__.__name__, self.get_id(), self.filename)
+
     def get_id(self):
         # This ID must also be a valid file name on all OSs.
         # It should also avoid shell metacharacters for obvious
@@ -623,6 +627,10 @@ class Generator():
         self.exe = exe
         self.process_kwargs(kwargs)
 
+    def __repr__(self):
+        repr_str = "<{0}: {1}>"
+        return repr_str.format(self.__class__.__name__, self.exe)
+
     def get_exe(self):
         return self.exe
 
@@ -953,6 +961,10 @@ class CustomTarget:
             mlog.log(mlog.bold('Warning:'), 'Unknown keyword arguments in target %s: %s' %
                      (self.name, ', '.join(unknowns)))
 
+    def __repr__(self):
+        repr_str = "<{0} {1}: {2}>"
+        return repr_str.format(self.__class__.__name__, self.get_id(), self.command)
+
     def get_id(self):
         return self.name + self.type_suffix()
 
@@ -1079,6 +1091,10 @@ class RunTarget:
         self.args = args
         self.subdir = subdir
 
+    def __repr__(self):
+        repr_str = "<{0} {1}: {2}>"
+        return repr_str.format(self.__class__.__name__, self.get_id(), self.command)
+
     def get_id(self):
         return self.name + self.type_suffix()
 
@@ -1129,6 +1145,12 @@ class ConfigureFile():
         self.targetname = targetname
         self.configuration_data = configuration_data
 
+    def __repr__(self):
+        repr_str = "<{0}: {1} -> {2}>"
+        src = os.path.join(self.subdir, self.sourcename)
+        dst = os.path.join(self.subdir, self.targetname)
+        return repr_str.format(self.__class__.__name__, src, dst)
+
     def get_configuration_data(self):
         return self.configuration_data
 
@@ -1145,6 +1167,9 @@ class ConfigurationData():
     def __init__(self):
         super().__init__()
         self.values = {}
+
+    def __repr__(self):
+        return repr(self.values)
 
     def get(self, name):
         return self.values[name]

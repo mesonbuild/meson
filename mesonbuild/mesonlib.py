@@ -28,6 +28,16 @@ class File:
         self.subdir = subdir
         self.fname = fname
 
+    def __str__(self):
+        return os.path.join(self.subdir, self.fname)
+
+    def __repr__(self):
+        ret = '<File: {0}'
+        if not self.is_built:
+            ret += ' (not built)'
+        ret += '>'
+        return ret.format(os.path.join(self.subdir, self.fname))
+
     @staticmethod
     def from_source_file(source_root, subdir, fname):
         if not os.path.isfile(os.path.join(source_root, subdir, fname)):
