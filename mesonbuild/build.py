@@ -989,7 +989,7 @@ class CustomTarget:
         for i, c in enumerate(cmd):
             if hasattr(c, 'held_object'):
                 c = c.held_object
-            if isinstance(c, str):
+            if isinstance(c, str) or isinstance(c, File):
                 final_cmd.append(c)
             elif isinstance(c, dependencies.ExternalProgram):
                 if not c.found():
@@ -1005,8 +1005,6 @@ class CustomTarget:
                     if not isinstance(s, str):
                         raise InvalidArguments('Array as argument %d contains a non-string.' % i)
                     final_cmd.append(s)
-            elif isinstance(c, File):
-                final_cmd.append(os.path.join(c.subdir, c.fname))
             else:
                 raise InvalidArguments('Argument %s in "command" is invalid.' % i)
         self.command = final_cmd

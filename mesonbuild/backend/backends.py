@@ -500,6 +500,10 @@ class Backend():
                 # it assumes that it is in path, so always give it a full path.
                 tmp = i.get_filename()[0]
                 i = os.path.join(self.get_target_dir(i), tmp)
+            elif isinstance(i, mesonlib.File):
+                i = os.path.join(i.subdir, i.fname)
+                if absolute_paths:
+                    i = os.path.join(self.environment.get_build_dir(), i)
             # FIXME: str types are blindly added and ignore the 'absolute_paths' argument
             elif not isinstance(i, str):
                 err_msg = 'Argument {0} is of unknown type {1}'
