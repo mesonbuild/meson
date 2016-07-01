@@ -1,12 +1,14 @@
 project('run target', 'c')
 
-run_target('mycommand', 'scripts/script.sh')
+# deprecated format, fix once we remove support for it.
+run_target('mycommand','scripts/script.sh')
 
 # Make it possible to run built programs.
 # In cross builds exe_wrapper should be added if it exists.
 
 exe = executable('helloprinter', 'helloprinter.c')
-run_target('runhello', exe, 'argument')
+run_target('runhello',
+  command : [exe, 'argument'])
 
 converter = find_program('converter.py')
 
@@ -30,4 +32,5 @@ run_target('upload2',
 )
 
 python3 = find_program('python3')
-run_target('py3hi', python3, '-c', 'print("I am Python3.")')
+run_target('py3hi',
+  command : [python3, '-c', 'print("I am Python3.")'])
