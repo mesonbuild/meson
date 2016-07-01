@@ -83,8 +83,9 @@ class Backend():
                 return i
         raise RuntimeError('No compiler for language ' + lang)
 
-    def get_compiler_for_source(self, src):
-        for i in self.build.compilers:
+    def get_compiler_for_source(self, src, is_cross):
+        comp = self.build.cross_compilers if is_cross else self.build.compilers
+        for i in comp:
             if i.can_compile(src):
                 return i
         if isinstance(src, mesonlib.File):
@@ -133,7 +134,7 @@ class Backend():
         abs_files = []
         result = []
         for src in unity_src:
-            comp = self.get_compiler_for_source(src)
+            comp = self.get_compiler_for_source(src, target.is_cross)
             language = comp.get_language()
             suffix = '.' + comp.get_default_suffix()
             if language not in langlist:

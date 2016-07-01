@@ -1644,7 +1644,9 @@ class GnuCCompiler(CCompiler):
             self.base_options.append('b_lundef')
 
     def get_colorout_args(self, colortype):
-        return gnu_color_args[colortype][:]
+        if mesonlib.version_compare(self.version, '>=4.9.0'):
+            return gnu_color_args[colortype][:]
+        return []
 
     def get_pic_args(self):
         if self.gcc_type == GCC_MINGW:
@@ -1831,7 +1833,9 @@ class GnuCPPCompiler(CPPCompiler):
             self.base_options.append('b_lundef')
 
     def get_colorout_args(self, colortype):
-        return gnu_color_args[colortype][:]
+        if mesonlib.version_compare(self.version, '>=4.9.0'):
+            return gnu_color_args[colortype][:]
+        return []
 
     def get_always_args(self):
         return ['-pipe']
