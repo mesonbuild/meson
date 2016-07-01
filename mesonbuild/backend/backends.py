@@ -495,11 +495,15 @@ class Backend():
             if isinstance(i, build.Executable):
                 cmd += self.exe_object_to_cmd_array(i)
                 continue
-            if isinstance(i, build.CustomTarget):
+            elif isinstance(i, build.CustomTarget):
                 # GIR scanner will attempt to execute this binary but
                 # it assumes that it is in path, so always give it a full path.
                 tmp = i.get_filename()[0]
                 i = os.path.join(self.get_target_dir(i), tmp)
+            # FIXME: str types are blindly added and ignore the 'absolute_paths' argument
+            elif not isinstance(i, str):
+                err_msg = 'Argument {0} is of unknown type {1}'
+                raise RuntimeError(err_msg.format(str(i), str(type(i))))
             for (j, src) in enumerate(srcs):
                 i = i.replace('@INPUT%d@' % j, src)
             for (j, res) in enumerate(ofilenames):
