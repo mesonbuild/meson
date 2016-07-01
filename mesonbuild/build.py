@@ -937,10 +937,11 @@ class CustomTarget:
         return "@cus"
 
 class RunTarget:
-    def __init__(self, name, command, args, subdir):
+    def __init__(self, name, command, args, dependencies, subdir):
         self.name = name
         self.command = command
         self.args = args
+        self.dependencies = dependencies
         self.subdir = subdir
 
     def get_id(self):
@@ -950,7 +951,7 @@ class RunTarget:
         return self.name
 
     def get_dependencies(self):
-        return []
+        return self.dependencies
 
     def get_generated_sources(self):
         return []

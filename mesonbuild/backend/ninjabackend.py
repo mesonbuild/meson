@@ -347,11 +347,8 @@ int dummy;
             if isinstance(s, build.GeneratedList):
                 self.generate_genlist_for_target(s, target, outfile)
 
-    def generate_custom_target(self, target, outfile):
-        self.custom_target_generator_inputs(target, outfile)
-        (srcs, ofilenames, cmd) = self.eval_custom_target_command(target)
+    def unwrap_dep_list(self, target):
         deps = []
-        desc = 'Generating {0} with a {1} command.'
         for i in target.get_dependencies():
             # FIXME, should not grab element at zero but rather expand all.
             if isinstance(i, list):
@@ -360,6 +357,13 @@ int dummy;
             if isinstance(fname, list):
                 fname = fname[0]
             deps.append(os.path.join(self.get_target_dir(i), fname))
+        return deps
+
+    def generate_custom_target(self, target, outfile):
+        self.custom_target_generator_inputs(target, outfile)
+        (srcs, ofilenames, cmd) = self.eval_custom_target_command(target)
+        deps = self.unwrap_dep_list(target)
+        desc = 'Generating {0} with a {1} command.'
         if target.build_always:
             deps.append('PHONY')
         elem = NinjaBuildElement(self.all_outputs, ofilenames, 'CUSTOM_COMMAND', srcs)
@@ -397,19 +401,19 @@ int dummy;
 
     def generate_run_target(self, target, outfile):
         runnerscript = [sys.executable, self.environment.get_build_command(), '--internal', 'commandrunner']
-        deps = []
+        deps = self.unwrap_dep_list(target)
         arg_strings = []
         for i in target.args:
             if isinstance(i, str):
                 arg_strings.append(i)
             elif isinstance(i, (build.BuildTarget, build.CustomTarget)):
                 relfname = self.get_target_filename(i)
-                deps.append(relfname)
                 arg_strings.append(os.path.join(self.environment.get_build_dir(), relfname))
             else:
                 mlog.debug(str(i))
                 raise MesonException('Unreachable code in generate_run_target.')
         elem = NinjaBuildElement(self.all_outputs, target.name, 'CUSTOM_COMMAND', deps)
+        elem.add_dep(deps)
         cmd = runnerscript + [self.environment.get_source_dir(), self.environment.get_build_dir(), target.subdir]
         texe = target.command
         try:

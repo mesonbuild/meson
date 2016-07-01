@@ -26,9 +26,9 @@ class I18nModule:
             raise coredata.MesonException('List of languages empty.')
         extra_args = mesonlib.stringlistify(kwargs.get('args', []))
         potargs = [state.environment.get_build_command(), '--internal', 'gettext', 'pot', packagename] + extra_args
-        pottarget = build.RunTarget(packagename + '-pot', sys.executable, potargs, state.subdir)
+        pottarget = build.RunTarget(packagename + '-pot', sys.executable, potargs, [], state.subdir)
         gmoargs = [state.environment.get_build_command(), '--internal', 'gettext', 'gen_gmo'] + languages
-        gmotarget = build.RunTarget(packagename + '-gmo', sys.executable, gmoargs, state.subdir)
+        gmotarget = build.RunTarget(packagename + '-gmo', sys.executable, gmoargs, [], state.subdir)
         installcmd = [sys.executable,
                       state.environment.get_build_command(),
                       '--internal',
