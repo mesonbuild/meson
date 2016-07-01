@@ -129,6 +129,10 @@ msvc_winlibs = ['kernel32.lib', 'user32.lib', 'gdi32.lib',
                 'winspool.lib', 'shell32.lib', 'ole32.lib', 'oleaut32.lib',
                 'uuid.lib', 'comdlg32.lib', 'advapi32.lib']
 
+gnu_color_args = {'auto' : ['-fdiagnostics-color=auto'],
+                  'always': ['-fdiagnostics-color=always'],
+                  'never' : ['-fdiagnostics-color=never'],
+                  }
 
 base_options = {
                 'b_pch': coredata.UserBooleanOption('b_pch', 'Use precompiled headers', True),
@@ -144,6 +148,9 @@ base_options = {
                 'b_coverage': coredata.UserBooleanOption('b_coverage',
                                                          'Enable coverage tracking.',
                                                          False),
+                'b_colorout' : coredata.UserComboOption('b_colorout', 'Use colored output',
+                                                        ['auto', 'always', 'never'], 
+                                                        'always'),
                 }
 
 def sanitizer_compile_args(value):
@@ -166,6 +173,10 @@ def get_base_compile_args(options, compiler):
     try:
         if options['b_lto'].value:
             args.append('-flto')
+    except KeyError:
+        pass
+    try:
+        args += compiler.get_colorout_args(options['b_colorout'].value)
     except KeyError:
         pass
     try:
@@ -324,6 +335,9 @@ class Compiler():
                 if link:
                     extra_flags += environment.cross_info.config['properties'].get(lang_link_args_key, [])
         return extra_flags
+
+    def get_colorout_args(self, colortype):
+        return []
 
 class CCompiler(Compiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
@@ -1624,9 +1638,13 @@ class GnuCCompiler(CCompiler):
         self.warn_args = {'1': ['-Wall', '-Winvalid-pch'],
                           '2': ['-Wall', '-Wextra', '-Winvalid-pch'],
                           '3' : ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch']}
-        self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage']
+        self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage',
+                             'b_colorout']
         if self.gcc_type != GCC_OSX:
             self.base_options.append('b_lundef')
+
+    def get_colorout_args(self, colortype):
+        return gnu_color_args[colortype][:]
 
     def get_pic_args(self):
         if self.gcc_type == GCC_MINGW:
@@ -1807,9 +1825,13 @@ class GnuCPPCompiler(CPPCompiler):
         self.warn_args = {'1': ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor'],
                           '2': ['-Wall', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor'],
                           '3': ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor']}
-        self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage']
+        self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage',
+                             'b_colorout']
         if self.gcc_type != GCC_OSX:
             self.base_options.append('b_lundef')
+
+    def get_colorout_args(self, colortype):
+        return gnu_color_args[colortype][:]
 
     def get_always_args(self):
         return ['-pipe']
