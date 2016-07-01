@@ -1,3 +1,1 @@
-usr/lib/libsomelib.so
-usr/lib/libsomelib.so.0
-usr/lib/libsomelib.so.1.2.3
+usr/lib/prefixsomelib.suffix

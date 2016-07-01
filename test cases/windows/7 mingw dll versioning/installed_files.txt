@@ -1,0 +1,4 @@
+usr/bin/libsome-0.dll
+usr/lib/libsome.dll.a
+usr/bin/libnoversion.dll
+usr/lib/libnoversion.dll.a

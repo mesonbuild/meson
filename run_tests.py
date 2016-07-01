@@ -124,44 +124,50 @@ def setup_commands(backend):
         test_commands = [ninja_command, 'test', 'benchmark']
         install_commands = [ninja_command, 'install']
 
-def platform_fix_filename(fname):
-    if mesonlib.is_osx():
-        if fname.endswith('.so'):
-            return fname[:-2] + 'dylib'
-        return fname.replace('.so.', '.dylib.')
-    elif mesonlib.is_windows():
-        if fname.endswith('.so'):
-            (p, f) = os.path.split(fname)
-            f = f[3:-2] + 'dll'
-            return os.path.join(p, f)
-        if fname.endswith('.a'):
-            return fname[:-1] + 'lib'
+def get_relative_files_list_from_dir(fromdir):
+    paths = []
+    for (root, _, files) in os.walk(fromdir):
+        reldir = os.path.relpath(root, start=fromdir)
+        for f in files:
+            path = os.path.join(reldir, f).replace('\\', '/')
+            if path.startswith('./'):
+                path = path[2:]
+            paths.append(path)
+    return paths
+
+def platform_fix_exe_name(fname):
+    if not fname.endswith('?exe'):
+        return fname
+    fname = fname[:-4]
+    if mesonlib.is_windows():
+        return fname + '.exe'
     return fname
 
 def validate_install(srcdir, installdir):
-    if mesonlib.is_windows():
-        # Don't really know how Windows installs should work
-        # so skip.
-        return ''
     info_file = os.path.join(srcdir, 'installed_files.txt')
     expected = {}
     found = {}
+    ret_msg = ''
+    # Test expects to not install any files
+    if os.path.exists(os.path.join(installdir, 'usr', 'no-installed-files')):
+        return ''
+    # Generate list of expected files
     if os.path.exists(info_file):
         for line in open(info_file):
-            expected[platform_fix_filename(line.strip())] = True
-    for root, _, files in os.walk(installdir):
-        for fname in files:
-            found_name = os.path.join(root, fname)[len(installdir)+1:]
-            found[found_name] = True
-    expected = set(expected)
-    found = set(found)
-    missing = expected - found
-    for fname in missing:
-        return 'Expected file %s missing.' % fname
-    extra = found - expected
-    for fname in extra:
-        return 'Found extra file %s.' % fname
-    return ''
+            expected[platform_fix_exe_name(line.strip())] = False
+    # Check if expected files were found
+    for fname in expected:
+        if os.path.exists(os.path.join(installdir, fname)):
+            expected[fname] = True
+    for (fname, found) in expected.items():
+        if not found:
+            ret_msg += 'Expected file {0} missing.\n'.format(fname)
+    # Check if there are any unexpected files
+    found = get_relative_files_list_from_dir(installdir)
+    for fname in found:
+        if fname not in expected:
+            ret_msg += 'Extra file {0} found.\n'.format(fname)
+    return ret_msg
 
 def log_text_file(logfile, testdir, stdo, stde):
     global stop, executor, futures
