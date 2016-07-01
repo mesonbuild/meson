@@ -623,7 +623,10 @@ class Vs2010Backend(backends.Backend):
             d_compile_args = compiler.unix_compile_flags_to_native(d.get_compile_args())
             for arg in d_compile_args:
                 if arg.startswith('-I'):
-                    inc_dirs.append(arg[2:])
+                    inc_dir = arg[2:]
+                    # De-dup
+                    if inc_dir not in inc_dirs:
+                        inc_dirs.append(inc_dir)
                 else:
                     general_args.append(arg)
 
