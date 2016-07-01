@@ -97,9 +97,14 @@ class Vs2010Backend(backends.Backend):
         outputs = []
         custom_target_include_dirs = []
         custom_target_output_files = []
+        target_private_dir = self.relpath(self.get_target_private_dir(target), self.get_target_dir(target))
+        down = self.target_to_build_root(target)
         for genlist in target.get_generated_sources():
             if isinstance(genlist, build.CustomTarget):
-                custom_target_output_files += [os.path.join(self.get_target_dir(genlist), i) for i in genlist.output]
+                for i in genlist.output:
+                    # Path to the generated source from the current vcxproj dir via the build root
+                    ipath = os.path.join(down, self.get_target_dir(genlist), i)
+                    custom_target_output_files.append(ipath)
                 idir = self.relpath(self.get_target_dir(genlist), self.get_target_dir(target))
                 if idir not in custom_target_include_dirs:
                     custom_target_include_dirs.append(idir)
@@ -110,7 +115,6 @@ class Vs2010Backend(backends.Backend):
                 outfilelist = genlist.get_outfilelist()
                 exe_arr = self.exe_object_to_cmd_array(exe)
                 base_args = generator.get_arglist()
-                target_private_dir = self.relpath(self.get_target_private_dir(target), self.get_target_dir(target))
                 for i in range(len(infilelist)):
                     if len(infilelist) == len(outfilelist):
                         sole_output = os.path.join(target_private_dir, outfilelist[i])
