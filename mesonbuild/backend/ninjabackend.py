@@ -665,7 +665,7 @@ int dummy;
         outname_rel = os.path.join(self.get_target_dir(target), fname)
         src_list = target.get_sources()
         class_list = []
-        compiler = self.get_compiler_for_source(src_list[0])
+        compiler = self.get_compiler_for_source(src_list[0], False)
         assert(compiler.get_language() == 'java')
         c = 'c'
         m = ''
@@ -716,7 +716,7 @@ int dummy;
         fname = target.get_filename()
         outname_rel = os.path.join(self.get_target_dir(target), fname)
         src_list = target.get_sources()
-        compiler = self.get_compiler_for_source(src_list[0])
+        compiler = self.get_compiler_for_source(src_list[0], False)
         assert(compiler.get_language() == 'cs')
         rel_srcs = [s.rel_to_builddir(self.build_to_src) for s in src_list]
         deps = []
@@ -1424,7 +1424,7 @@ rule FORTRAN_DEP_HACK
         if isinstance(src, RawFilename) and src.fname.endswith('.h'):
             raise RuntimeError('Fug')
         extra_orderdeps = []
-        compiler = self.get_compiler_for_source(src)
+        compiler = self.get_compiler_for_source(src, target.is_cross)
         commands = []
         # The first thing is implicit include directories: source, build and private.
         commands += compiler.get_include_args(self.get_target_private_dir(target), False)
