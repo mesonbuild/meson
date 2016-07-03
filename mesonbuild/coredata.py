@@ -133,6 +133,8 @@ class CoreData():
         self.cross_compilers = {}
         self.deps = {}
         self.modules = {}
+        # Only to print a warning if it changes between Meson invocations.
+        self.pkgconf_envvar = os.environ.get('PKG_CONFIG_PATH', '')
 
     def init_builtins(self, options):
         self.builtins = {}

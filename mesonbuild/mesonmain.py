@@ -117,6 +117,13 @@ itself as required.'''
                 raise RuntimeError('Something went terribly wrong. Please file a bug.')
         return (src_dir, build_dir)
 
+    def check_pkgconfig_envvar(self, env):
+        curvar = os.environ.get('PKG_CONFIG_PATH', '')
+        if curvar != env.coredata.pkgconf_envvar:
+            mlog.log(mlog.red("WARNING:"), 'PKG_CONFIG_PATH has changed between invocations from "%s" to "%s".' %
+                     (env.coredata.pkgconf_envvar, curvar))
+            env.coredata.pkgconf_envvar = curvar
+
     def generate(self):
         env = environment.Environment(self.source_dir, self.build_dir, self.meson_script_file, self.options, self.original_cmd_line_args)
         mlog.initialize(env.get_log_dir())
@@ -124,6 +131,7 @@ itself as required.'''
         mlog.debug('Python binary:', sys.executable)
         mlog.debug('Python system:', platform.system())
         mlog.log(mlog.bold('The Meson build system'))
+        self.check_pkgconfig_envvar(env)
         mlog.log('Version:', coredata.version)
         mlog.log('Source dir:', mlog.bold(self.source_dir))
         mlog.log('Build dir:', mlog.bold(self.build_dir))
