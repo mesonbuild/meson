@@ -19,6 +19,14 @@ from glob import glob
 from mesonbuild.scripts import depfixer
 from mesonbuild.scripts import destdir_join
 
+install_log_file = None
+
+def append_to_log(line):
+    install_log_file.write(line)
+    if not line.endswith('\n'):
+        install_log_file.write('\n')
+    install_log_file.flush()
+
 def do_copy(from_file, to_file):
     try:
         # Python's copyfile fails if the target file already exists.
@@ -27,6 +35,7 @@ def do_copy(from_file, to_file):
         pass
     shutil.copyfile(from_file, to_file)
     shutil.copystat(from_file, to_file)
+    append_to_log(to_file)
 
 def do_install(datafilename):
     ifile = open(datafilename, 'rb')
@@ -78,6 +87,7 @@ def install_subdirs(data):
                     os.mkdir(parent_dir)
                     shutil.copystat(os.path.split(abs_src)[0], parent_dir)
                 shutil.copy2(abs_src, abs_dst, follow_symlinks=False)
+                append_to_log(abs_dst)
 
 def install_data(d):
     for i in d.data:
@@ -104,6 +114,7 @@ def install_man(d):
         if outfilename.endswith('.gz') and not full_source_filename.endswith('.gz'):
             open(outfilename, 'wb').write(gzip.compress(open(full_source_filename, 'rb').read()))
             shutil.copystat(full_source_filename, outfilename)
+            append_to_log(outfilename)
         else:
             do_copy(full_source_filename, outfilename)
 
@@ -209,6 +220,7 @@ def install_targets(d):
                 except FileNotFoundError:
                     pass
                 os.symlink(os.path.split(fname)[-1], symlinkfilename)
+                append_to_log(symlinkfilename)
             except (NotImplementedError, OSError):
                 if not printed_symlink_error:
                     print("Symlink creation does not work on this platform.")
@@ -224,11 +236,19 @@ def install_targets(d):
                     raise
 
 def run(args):
+    global install_log_file
     if len(args) != 1:
         print('Installer script for Meson. Do not run on your own, mmm\'kay?')
         print('meson_install.py [install info file]')
     datafilename = args[0]
-    do_install(datafilename)
+    private_dir = os.path.split(datafilename)[0]
+    log_dir = os.path.join(private_dir, '../meson-logs')
+    with open(os.path.join(log_dir, 'install-log.txt'), 'w') as lf:
+        install_log_file = lf
+        append_to_log('# List of files installed by Meson')
+        append_to_log('# Does not contain files installed by custom scripts.')
+        do_install(datafilename)
+    install_log_file = None
     return 0
 
 if __name__ == '__main__':
