@@ -73,7 +73,10 @@ this but it's the best we can do given the way shell quoting works.
 '''
 
 def sources_are_suffix(sources, suffix):
-    return len(sources) > 0 and sources[0].endswith('.' + suffix)
+    for source in sources:
+        if source.endswith('.' + suffix):
+            return True
+    return False
 
 def compiler_is_msvc(sources, is_cross, env):
     """
@@ -96,7 +99,7 @@ def compiler_is_msvc(sources, is_cross, env):
             compiler = env.detect_cpp_compiler(is_cross)
         except MesonException:
             return False
-    if compiler and compiler.get_id() == 'msvc' and compiler.can_compile(sources[0]):
+    if compiler and compiler.get_id() == 'msvc':
         return True
     return False
 
