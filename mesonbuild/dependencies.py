@@ -1105,11 +1105,13 @@ class Python3Dependency(Dependency):
         super().__init__()
         self.name = 'python3'
         self.is_found = False
+        self.version = "3.something_maybe"
         try:
             pkgdep = PkgConfigDependency('python3', environment, kwargs)
             if pkgdep.found():
                 self.cargs = pkgdep.cargs
                 self.libs = pkgdep.libs
+                self.version = pkgdep.get_version()
                 self.is_found = True
                 return
         except Exception:
@@ -1127,6 +1129,7 @@ class Python3Dependency(Dependency):
                 self.libs = ['-L{}/libs'.format(basedir),
                              '-lpython{}'.format(vernum)]
                 self.is_found = True
+                self.version = sysconfig.get_config_var('py_version_short')
             elif mesonlib.is_osx():
                 # In OSX the Python 3 framework does not have a version
                 # number in its name.
@@ -1145,6 +1148,9 @@ class Python3Dependency(Dependency):
 
     def get_link_args(self):
         return self.libs
+
+    def get_version(self):
+        return self.version
 
 def get_dep_identifier(name, kwargs):
     elements = [name]
