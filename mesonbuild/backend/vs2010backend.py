@@ -148,7 +148,17 @@ class Vs2010Backend(backends.Backend):
     def generate(self, interp):
         self.resolve_source_conflicts()
         self.interpreter = interp
-        self.platform = 'Win32'
+        target_machine = self.interpreter.builtin['target_machine'].cpu_family_method(None, None)
+        if target_machine.endswith('64'):
+            # amd64 or x86_64
+            self.platform = 'x64'
+        elif target_machine == 'x86':
+            # x86
+            self.platform = 'Win32'
+        elif 'arm' in target_machine.lower():
+            self.platform = 'ARM'
+        else:
+            raise MesonException('Unsupported Visual Studio platform: ' + target_machine)
         self.buildtype = self.environment.coredata.get_builtin_option('buildtype')
         sln_filename = os.path.join(self.environment.get_build_dir(), self.build.project_name + '.sln')
         projlist = self.generate_projects()
@@ -746,7 +756,15 @@ class Vs2010Backend(backends.Backend):
         if isinstance(target, build.Executable):
             ET.SubElement(link, 'EntryPointSymbol').text = entrypoint
         targetmachine = ET.SubElement(link, 'TargetMachine')
-        targetmachine.text = 'MachineX86'
+        targetplatform = self.platform.lower()
+        if targetplatform == 'win32':
+            targetmachine.text = 'MachineX86'
+        elif targetplatform == 'x64':
+            targetmachine.text = 'MachineX64'
+        elif targetplatform == 'arm':
+            targetmachine.text = 'MachineARM'
+        else:
+            raise MesonException('Unsupported Visual Studio target machine: ' + targetmachine)
 
         extra_files = target.extra_files
         if len(headers) + len(gen_hdrs) + len(extra_files) > 0:
