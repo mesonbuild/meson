@@ -1632,78 +1632,87 @@ rule FORTRAN_DEP_HACK
         return linker.get_no_stdlib_link_args()
 
     def generate_link(self, target, outfile, outname, obj_list, linker, extra_args=[]):
-        if isinstance(target, build.StaticLibrary):
-            linker_base = 'STATIC'
+        if isinstance(target, build.ObjectLibrary):
+            linker_rule = 'phony'
+            dep_targets = [os.path.join(self.environment.source_dir,
+                                        target.subdir, t) for t in target.link_depends]
+            custom_target_libraries = self.get_custom_target_provided_libraries(target)
+            elem = NinjaBuildElement(self.all_outputs, outname, linker_rule, obj_list)
+            elem.add_dep(dep_targets + custom_target_libraries)
         else:
-            linker_base = linker.get_language() # Fixme.
-        if isinstance(target, build.SharedLibrary):
-            self.generate_shsym(outfile, target)
-        crstr = ''
-        if target.is_cross:
-            crstr = '_CROSS'
-        linker_rule = linker_base + crstr + '_LINKER'
-        abspath = os.path.join(self.environment.get_build_dir(), target.subdir)
-        commands = []
-        if not isinstance(target, build.StaticLibrary):
-            commands += self.build.get_global_link_args(linker)
-        commands += self.get_cross_stdlib_link_args(target, linker)
-        commands += linker.get_linker_always_args()
-        if not isinstance(target, build.StaticLibrary):
-            commands += compilers.get_base_link_args(self.environment.coredata.base_options,
-                                                     linker)
-        commands += linker.get_buildtype_linker_args(self.environment.coredata.get_builtin_option('buildtype'))
-        commands += linker.get_option_link_args(self.environment.coredata.compiler_options)
-        if not(isinstance(target, build.StaticLibrary)):
-            commands += self.environment.coredata.external_link_args[linker.get_language()]
-        if isinstance(target, build.Executable):
-            commands += linker.get_std_exe_link_args()
-        elif isinstance(target, build.SharedLibrary):
-            commands += linker.get_std_shared_lib_link_args()
-            commands += linker.get_pic_args()
-            if hasattr(target, 'soversion'):
-                soversion = target.soversion
+            if isinstance(target, build.StaticLibrary):
+                linker_base = 'STATIC'
             else:
-                soversion = None
-            commands += linker.get_soname_args(target.name, abspath, soversion)
-            if target.vs_module_defs and hasattr(linker, 'gen_vs_module_defs_args'):
-                commands += linker.gen_vs_module_defs_args(target.vs_module_defs.rel_to_builddir(self.build_to_src))
-        elif isinstance(target, build.StaticLibrary):
-            commands += linker.get_std_link_args()
-        else:
-            raise RuntimeError('Unknown build target type.')
-        # Link arguments of static libraries are not put in the command line of
-        # the library. They are instead appended to the command line where
-        # the static library is used.
-        if linker_base == 'STATIC':
-            dependencies = []
-        else:
-            dependencies = target.get_dependencies()
-        commands += self.build_target_link_arguments(linker, dependencies)
-        for d in target.external_deps:
-            if d.need_threads():
-                commands += linker.thread_link_flags()
-        if not isinstance(target, build.StaticLibrary):
-            commands += target.link_args
-        # External deps must be last because target link libraries may depend on them.
-        if not(isinstance(target, build.StaticLibrary)):
-            for dep in target.get_external_deps():
-                commands += dep.get_link_args()
-            for d in target.get_dependencies():
-                if isinstance(d, build.StaticLibrary):
-                    for dep in d.get_external_deps():
-                        commands += dep.get_link_args()
-        commands += linker.build_rpath_args(self.environment.get_build_dir(),\
-                                            self.determine_rpath_dirs(target), target.install_rpath)
-        custom_target_libraries = self.get_custom_target_provided_libraries(target)
-        commands += extra_args
-        commands += custom_target_libraries
-        commands = linker.unix_link_flags_to_native(commands)
-        dep_targets = [self.get_dependency_filename(t) for t in dependencies]
-        dep_targets += [os.path.join(self.environment.source_dir,
-                                     target.subdir, t) for t in target.link_depends]
-        elem = NinjaBuildElement(self.all_outputs, outname, linker_rule, obj_list)
-        elem.add_dep(dep_targets + custom_target_libraries)
-        elem.add_item('LINK_ARGS', commands)
+                linker_base = linker.get_language() # Fixme.
+            if isinstance(target, build.SharedLibrary):
+                self.generate_shsym(outfile, target)
+            crstr = ''
+            if target.is_cross:
+                crstr = '_CROSS'
+            linker_rule = linker_base + crstr + '_LINKER'
+            abspath = os.path.join(self.environment.get_build_dir(), target.subdir)
+            commands = []
+            if not isinstance(target, build.StaticLibrary):
+                commands += self.build.get_global_link_args(linker)
+            commands += self.get_cross_stdlib_link_args(target, linker)
+            commands += linker.get_linker_always_args()
+            if not isinstance(target, build.StaticLibrary):
+                commands += compilers.get_base_link_args(self.environment.coredata.base_options,
+                                                         linker)
+            commands += linker.get_buildtype_linker_args(self.environment.coredata.get_builtin_option('buildtype'))
+            commands += linker.get_option_link_args(self.environment.coredata.compiler_options)
+            if not(isinstance(target, build.StaticLibrary)):
+                commands += self.environment.coredata.external_link_args[linker.get_language()]
+            if isinstance(target, build.Executable):
+                commands += linker.get_std_exe_link_args()
+            elif isinstance(target, build.SharedLibrary):
+                commands += linker.get_std_shared_lib_link_args()
+                commands += linker.get_pic_args()
+                if hasattr(target, 'soversion'):
+                    soversion = target.soversion
+                else:
+                    soversion = None
+                commands += linker.get_soname_args(target.name, abspath, soversion)
+                if target.vs_module_defs and hasattr(linker, 'gen_vs_module_defs_args'):
+                    commands += linker.gen_vs_module_defs_args(target.vs_module_defs.rel_to_builddir(self.build_to_src))
+            elif isinstance(target, build.StaticLibrary):
+                commands += linker.get_std_link_args()
+            else:
+                raise RuntimeError('Unknown build target type.')
+            # Link arguments of static libraries are not put in the command line of
+            # the library. They are instead appended to the command line where
+            # the static library is used.
+            if linker_base == 'STATIC':
+                dependencies = []
+            else:
+                dependencies = target.get_dependencies()
+            commands += self.build_target_link_arguments(linker, dependencies)
+            for d in target.external_deps:
+                if d.need_threads():
+                    commands += linker.thread_link_flags()
+            if not isinstance(target, build.StaticLibrary):
+                commands += target.link_args
+            # External deps must be last because target link libraries may depend on them.
+            if not(isinstance(target, build.StaticLibrary)):
+                for dep in target.get_external_deps():
+                    commands += dep.get_link_args()
+                for d in target.get_dependencies():
+                    if isinstance(d, build.StaticLibrary):
+                        for dep in d.get_external_deps():
+                            commands += dep.get_link_args()
+            commands += linker.build_rpath_args(self.environment.get_build_dir(),\
+                                                self.determine_rpath_dirs(target), target.install_rpath)
+
+            custom_target_libraries = self.get_custom_target_provided_libraries(target)
+            commands += extra_args
+            commands += custom_target_libraries
+            commands = linker.unix_link_flags_to_native(commands)
+            dep_targets = [self.get_dependency_filename(t) for t in dependencies]
+            dep_targets += [os.path.join(self.environment.source_dir,
+                                         target.subdir, t) for t in target.link_depends]
+            elem = NinjaBuildElement(self.all_outputs, outname, linker_rule, obj_list)
+            elem.add_dep(dep_targets + custom_target_libraries)
+            elem.add_item('LINK_ARGS', commands)
         return elem
 
     def determine_rpath_dirs(self, target):
