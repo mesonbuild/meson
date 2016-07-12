@@ -144,15 +144,17 @@ def platform_fix_exe_name(fname):
     return fname
 
 def validate_install(srcdir, installdir):
+    # List of installed files
     info_file = os.path.join(srcdir, 'installed_files.txt')
+    # If this exists, the test does not install any other files
+    noinst_file = 'usr/no-installed-files'
     expected = {}
     found = {}
     ret_msg = ''
-    # Test expects to not install any files
-    if os.path.exists(os.path.join(installdir, 'usr', 'no-installed-files')):
-        return ''
     # Generate list of expected files
-    if os.path.exists(info_file):
+    if os.path.exists(os.path.join(installdir, noinst_file)):
+        expected[noinst_file] = False
+    elif os.path.exists(info_file):
         for line in open(info_file):
             expected[platform_fix_exe_name(line.strip())] = False
     # Check if expected files were found
