@@ -274,6 +274,13 @@ class Compiler():
     def get_linker_always_args(self):
         return []
 
+    def gen_import_library_args(self, implibname):
+        """
+        Used only on Windows for libraries that need an import library.
+        This currently means C, C++, Fortran.
+        """
+        return []
+
     def get_options(self):
         return {} # build afresh every time
 
@@ -472,6 +479,14 @@ class CCompiler(Compiler):
 
     def get_linker_search_args(self, dirname):
         return ['-L'+dirname]
+
+    def gen_import_library_args(self, implibname):
+        """
+        The name of the outputted import library
+
+        This implementation is used only on Windows by compilers that use GNU ld
+        """
+        return ['-Wl,--out-implib=' + implibname]
 
     def sanity_check_impl(self, work_dir, environment, sname, code):
         mlog.debug('Sanity testing ' + self.language + ' compiler:', ' '.join(self.exelist))
@@ -1499,6 +1514,10 @@ class VisualStudioCCompiler(CCompiler):
         objname = os.path.splitext(pchname)[0] + '.obj'
         return (objname, ['/Yc' + header, '/Fp' + pchname, '/Fo' + objname ])
 
+    def gen_import_library_args(self, implibname):
+        "The name of the outputted import library"
+        return ['/IMPLIB:' + implibname]
+
     def build_rpath_args(self, build_dir, rpath_paths, install_rpath):
         return []
 
@@ -2057,6 +2076,14 @@ class GnuFortranCompiler(FortranCompiler):
     def get_always_args(self):
         return ['-pipe']
 
+    def gen_import_library_args(self, implibname):
+        """
+        The name of the outputted import library
+
+        Used only on Windows
+        """
+        return ['-Wl,--out-implib=' + implibname]
+
 class G95FortranCompiler(FortranCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
         super().__init__(exelist, version, is_cross, exe_wrapper=None)
@@ -2067,6 +2094,14 @@ class G95FortranCompiler(FortranCompiler):
 
     def get_always_args(self):
         return ['-pipe']
+
+    def gen_import_library_args(self, implibname):
+        """
+        The name of the outputted import library
+
+        Used only on Windows
+        """
+        return ['-Wl,--out-implib=' + implibname]
 
 class SunFortranCompiler(FortranCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):

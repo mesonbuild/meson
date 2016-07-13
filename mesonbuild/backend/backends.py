@@ -110,9 +110,13 @@ class Backend():
         # On some platforms (msvc for instance), the file that is used for
         # dynamic linking is not the same as the dynamic library itself. This
         # file is called an import library, and we want to link against that.
-        # On platforms where this distinction is not important, the import
-        # library is the same as the dynamic library itself.
-        return os.path.join(self.get_target_dir(target), target.get_import_filename())
+        # On all other platforms, we link to the library directly.
+        if isinstance(target, build.SharedLibrary):
+            link_lib = target.get_import_filename() or target.get_filename()
+            return os.path.join(self.get_target_dir(target), link_lib)
+        elif isinstance(target, build.StaticLibrary):
+            return os.path.join(self.get_target_dir(target), target.get_filename())
+        raise AssertionError('BUG: Tried to link to something that\'s not a library')
 
     def get_target_dir(self, target):
         if self.environment.coredata.get_builtin_option('layout') == 'mirror':
@@ -496,11 +500,19 @@ class Backend():
             if isinstance(i, build.Executable):
                 cmd += self.exe_object_to_cmd_array(i)
                 continue
-            if isinstance(i, build.CustomTarget):
+            elif isinstance(i, build.CustomTarget):
                 # GIR scanner will attempt to execute this binary but
                 # it assumes that it is in path, so always give it a full path.
                 tmp = i.get_filename()[0]
                 i = os.path.join(self.get_target_dir(i), tmp)
+            elif isinstance(i, mesonlib.File):
+                i = os.path.join(i.subdir, i.fname)
+                if absolute_paths:
+                    i = os.path.join(self.environment.get_build_dir(), i)
+            # FIXME: str types are blindly added and ignore the 'absolute_paths' argument
+            elif not isinstance(i, str):
+                err_msg = 'Argument {0} is of unknown type {1}'
+                raise RuntimeError(err_msg.format(str(i), str(type(i))))
             for (j, src) in enumerate(srcs):
                 i = i.replace('@INPUT%d@' % j, src)
             for (j, res) in enumerate(ofilenames):

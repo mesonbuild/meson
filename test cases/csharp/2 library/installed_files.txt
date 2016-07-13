@@ -1,2 +1,2 @@
 usr/bin/prog.exe
-usr/lib/libhelper.dll
+usr/lib/helper.dll

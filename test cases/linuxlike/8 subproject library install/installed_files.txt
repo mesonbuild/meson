@@ -1,0 +1,3 @@
+usr/lib/libsublib.so
+usr/lib/libsublib.so.5
+usr/lib/libsublib.so.2.1.0

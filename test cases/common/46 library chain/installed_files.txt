@@ -1,4 +1,1 @@
-usr/bin/prog
-usr/lib/liblib1.so
-usr/lib/liblib2.so
-usr/lib/liblib3.so
+usr/bin/prog?exe

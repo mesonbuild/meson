@@ -28,6 +28,27 @@ import xml.dom.minidom
 from ..mesonlib import MesonException
 from ..environment import Environment
 
+def split_o_flags_args(args):
+    """
+    Splits any /O args and returns them. Does not take care of flags overriding
+    previous ones. Skips non-O flag arguments.
+
+    ['/Ox', '/Ob1'] returns ['/Ox', '/Ob1']
+    ['/Oxj', '/MP'] returns ['/Ox', '/Oj']
+    """
+    o_flags = []
+    for arg in args:
+        if not arg.startswith('/O'):
+            continue
+        flags = list(arg[2:])
+        # Assume that this one can't be clumped with the others since it takes
+        # an argument itself
+        if 'b' in flags:
+            o_flags.append(arg)
+        else:
+            o_flags += ['/O' + f for f in flags]
+    return o_flags
+
 class RegenInfo():
     def __init__(self, source_dir, build_dir, depfiles):
         self.source_dir = source_dir
@@ -76,9 +97,14 @@ class Vs2010Backend(backends.Backend):
         outputs = []
         custom_target_include_dirs = []
         custom_target_output_files = []
+        target_private_dir = self.relpath(self.get_target_private_dir(target), self.get_target_dir(target))
+        down = self.target_to_build_root(target)
         for genlist in target.get_generated_sources():
             if isinstance(genlist, build.CustomTarget):
-                custom_target_output_files += [os.path.join(self.get_target_dir(genlist), i) for i in genlist.output]
+                for i in genlist.output:
+                    # Path to the generated source from the current vcxproj dir via the build root
+                    ipath = os.path.join(down, self.get_target_dir(genlist), i)
+                    custom_target_output_files.append(ipath)
                 idir = self.relpath(self.get_target_dir(genlist), self.get_target_dir(target))
                 if idir not in custom_target_include_dirs:
                     custom_target_include_dirs.append(idir)
@@ -89,7 +115,6 @@ class Vs2010Backend(backends.Backend):
                 outfilelist = genlist.get_outfilelist()
                 exe_arr = self.exe_object_to_cmd_array(exe)
                 base_args = generator.get_arglist()
-                target_private_dir = self.relpath(self.get_target_private_dir(target), self.get_target_dir(target))
                 for i in range(len(infilelist)):
                     if len(infilelist) == len(outfilelist):
                         sole_output = os.path.join(target_private_dir, outfilelist[i])
@@ -123,7 +148,17 @@ class Vs2010Backend(backends.Backend):
     def generate(self, interp):
         self.resolve_source_conflicts()
         self.interpreter = interp
-        self.platform = 'Win32'
+        target_machine = self.interpreter.builtin['target_machine'].cpu_family_method(None, None)
+        if target_machine.endswith('64'):
+            # amd64 or x86_64
+            self.platform = 'x64'
+        elif target_machine == 'x86':
+            # x86
+            self.platform = 'Win32'
+        elif 'arm' in target_machine.lower():
+            self.platform = 'ARM'
+        else:
+            raise MesonException('Unsupported Visual Studio platform: ' + target_machine)
         self.buildtype = self.environment.coredata.get_builtin_option('buildtype')
         sln_filename = os.path.join(self.environment.get_build_dir(), self.build.project_name + '.sln')
         projlist = self.generate_projects()
@@ -404,6 +439,37 @@ class Vs2010Backend(backends.Backend):
     def quote_define_cmdline(cls, arg):
         return re.sub(r'^([-/])D(.*?)="(.*)"$', r'\1D\2=\"\3\"', arg)
 
+    @staticmethod
+    def split_link_args(args):
+        """
+        Split a list of link arguments into three lists:
+        * library search paths
+        * library filenames (or paths)
+        * other link arguments
+        """
+        lpaths = []
+        libs = []
+        other = []
+        for arg in args:
+            if arg.startswith('/LIBPATH:'):
+                lpath = arg[9:]
+                # De-dup library search paths by removing older entries when
+                # a new one is found. This is necessary because unlike other
+                # search paths such as the include path, the library is
+                # searched for in the newest (right-most) search path first.
+                if lpath in lpaths:
+                    lpaths.remove(lpath)
+                lpaths.append(lpath)
+            # It's ok if we miss libraries with non-standard extensions here.
+            # They will go into the general link arguments.
+            elif arg.endswith('.lib') or arg.endswith('.a'):
+                # De-dup
+                if arg not in libs:
+                    libs.append(arg)
+            else:
+                other.append(arg)
+        return (lpaths, libs, other)
+
     def gen_vcxproj(self, target, ofname, guid, compiler):
         mlog.debug('Generating vcxproj %s.' % target.name)
         entrypoint = 'WinMainCRTStartup'
@@ -424,11 +490,15 @@ class Vs2010Backend(backends.Backend):
             return self.gen_run_target_vcxproj(target, ofname, guid)
         else:
             raise MesonException('Unknown target type for %s' % target.get_basename())
+        # Prefix to use to access the build root from the vcxproj dir
         down = self.target_to_build_root(target)
+        # Prefix to use to access the source tree's root from the vcxproj dir
         proj_to_src_root = os.path.join(down, self.build_to_src)
+        # Prefix to use to access the source tree's subdir from the vcxproj dir
         proj_to_src_dir = os.path.join(proj_to_src_root, target.subdir)
         (sources, headers, objects, languages) = self.split_sources(target.sources)
-        buildtype = self.buildtype
+        buildtype_args = compiler.get_buildtype_args(self.buildtype)
+        buildtype_link_args = compiler.get_buildtype_linker_args(self.buildtype)
         project_name = target.name
         target_name = target.name
         root = ET.Element('Project', {'DefaultTargets' : "Build",
@@ -438,9 +508,10 @@ class Vs2010Backend(backends.Backend):
         prjconf = ET.SubElement(confitems, 'ProjectConfiguration',
                                 {'Include' : self.buildtype + '|' + self.platform})
         p = ET.SubElement(prjconf, 'Configuration')
-        p.text= buildtype
+        p.text= self.buildtype
         pl = ET.SubElement(prjconf, 'Platform')
         pl.text = self.platform
+        # Globals
         globalgroup = ET.SubElement(root, 'PropertyGroup', Label='Globals')
         guidelem = ET.SubElement(globalgroup, 'ProjectGuid')
         guidelem.text = guid
@@ -453,13 +524,68 @@ class Vs2010Backend(backends.Backend):
         pname= ET.SubElement(globalgroup, 'ProjectName')
         pname.text = project_name
         ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.Default.props')
+        # Start configuration
         type_config = ET.SubElement(root, 'PropertyGroup', Label='Configuration')
         ET.SubElement(type_config, 'ConfigurationType').text = conftype
         ET.SubElement(type_config, 'CharacterSet').text = 'MultiByte'
         if self.platform_toolset:
             ET.SubElement(type_config, 'PlatformToolset').text = self.platform_toolset
+        # FIXME: Meson's LTO support needs to be integrated here
         ET.SubElement(type_config, 'WholeProgramOptimization').text = 'false'
-        ET.SubElement(type_config, 'UseDebugLibraries').text = 'true'
+        # Let VS auto-set the RTC level
+        ET.SubElement(type_config, 'BasicRuntimeChecks').text = 'Default'
+        o_flags = split_o_flags_args(buildtype_args)
+        if '/Oi' in o_flags:
+            ET.SubElement(type_config, 'IntrinsicFunctions').text = 'true'
+        if '/Ob1' in o_flags:
+            ET.SubElement(type_config, 'InlineFunctionExpansion').text = 'OnlyExplicitInline'
+        elif '/Ob2' in o_flags:
+            ET.SubElement(type_config, 'InlineFunctionExpansion').text = 'AnySuitable'
+        # Size-preserving flags
+        if '/Os' in o_flags:
+            ET.SubElement(type_config, 'FavorSizeOrSpeed').text = 'Size'
+        else:
+            ET.SubElement(type_config, 'FavorSizeOrSpeed').text = 'Speed'
+        # Incremental linking increases code size
+        if '/INCREMENTAL:NO' in buildtype_link_args:
+            ET.SubElement(type_config, 'LinkIncremental').text = 'false'
+        # CRT type; debug or release
+        if '/MDd' in buildtype_args:
+            ET.SubElement(type_config, 'UseDebugLibraries').text = 'true'
+            ET.SubElement(type_config, 'RuntimeLibrary').text = 'MultiThreadedDebugDLL'
+        else:
+            ET.SubElement(type_config, 'UseDebugLibraries').text = 'false'
+            ET.SubElement(type_config, 'RuntimeLibrary').text = 'MultiThreadedDLL'
+        # Debug format
+        if '/ZI' in buildtype_args:
+            ET.SubElement(type_config, 'DebugInformationFormat').text = 'EditAndContinue'
+        elif '/Zi' in buildtype_args:
+            ET.SubElement(type_config, 'DebugInformationFormat').text = 'ProgramDatabase'
+        elif '/Z7' in buildtype_args:
+            ET.SubElement(type_config, 'DebugInformationFormat').text = 'OldStyle'
+        # Generate Debug info
+        if '/DEBUG' in buildtype_link_args:
+            ET.SubElement(type_config, 'GenerateDebugInformation').text = 'true'
+        # Runtime checks
+        if '/RTC1' in buildtype_args:
+            ET.SubElement(type_config, 'BasicRuntimeChecks').text = 'EnableFastChecks'
+        elif '/RTCu' in buildtype_args:
+            ET.SubElement(type_config, 'BasicRuntimeChecks').text = 'UninitializedLocalUsageCheck'
+        elif '/RTCs' in buildtype_args:
+            ET.SubElement(type_config, 'BasicRuntimeChecks').text = 'StackFrameRuntimeCheck'
+        # Optimization flags
+        if '/Ox' in o_flags:
+            ET.SubElement(type_config, 'Optimization').text = 'Full'
+        elif '/O2' in o_flags:
+            ET.SubElement(type_config, 'Optimization').text = 'MaxSpeed'
+        elif '/O1' in o_flags:
+            ET.SubElement(type_config, 'Optimization').text = 'MinSpace'
+        elif '/Od' in o_flags:
+            ET.SubElement(type_config, 'Optimization').text = 'Disabled'
+        # Warning level
+        warning_level = self.environment.coredata.get_builtin_option('warning_level')
+        ET.SubElement(type_config, 'WarningLevel').text = 'Level' + warning_level
+        # End configuration
         ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.props')
         generated_files, custom_target_output_files, generated_files_include_dirs = self.generate_custom_generator_commands(target, root)
         (gen_src, gen_hdrs, gen_objs, gen_langs) = self.split_sources(generated_files)
@@ -467,6 +593,7 @@ class Vs2010Backend(backends.Backend):
         gen_src += custom_src
         gen_hdrs += custom_hdrs
         gen_langs += custom_langs
+        # Project information
         direlem = ET.SubElement(root, 'PropertyGroup')
         fver = ET.SubElement(direlem, '_ProjectFileVersion')
         fver.text = self.project_file_version
@@ -474,15 +601,13 @@ class Vs2010Backend(backends.Backend):
         outdir.text = '.\\'
         intdir = ET.SubElement(direlem, 'IntDir')
         intdir.text = target.get_id() + '\\'
-        tname = ET.SubElement(direlem, 'TargetName')
-        tname.text = target_name
-        inclinc = ET.SubElement(direlem, 'LinkIncremental')
-        inclinc.text = 'true'
+        tfilename = os.path.splitext(target.get_filename())
+        ET.SubElement(direlem, 'TargetName').text = tfilename[0]
+        ET.SubElement(direlem, 'TargetExt').text = tfilename[1]
 
+        # Build information
         compiles = ET.SubElement(root, 'ItemDefinitionGroup')
         clconf = ET.SubElement(compiles, 'ClCompile')
-        opt = ET.SubElement(clconf, 'Optimization')
-        opt.text = 'disabled'
         inc_dirs = ['.', self.relpath(self.get_target_private_dir(target), self.get_target_dir(target)),
                     proj_to_src_dir] + generated_files_include_dirs
 
@@ -496,18 +621,24 @@ class Vs2010Backend(backends.Backend):
         for l, args in target.extra_args.items():
             if l in extra_args:
                 extra_args[l] += compiler.unix_compile_flags_to_native(args)
-        general_args = compiler.get_buildtype_args(self.buildtype).copy()
         # FIXME all the internal flags of VS (optimization etc) are represented
         # by their own XML elements. In theory we should split all flags to those
         # that have an XML element and those that don't and serialise them
         # properly. This is a crapton of work for no real gain, so just dump them
         # here.
-        general_args += compiler.get_option_compile_args(self.environment.coredata.compiler_options)
+        general_args = compiler.get_option_compile_args(self.environment.coredata.compiler_options)
         for d in target.get_external_deps():
-            try:
-                general_args += d.compile_args
-            except AttributeError:
-                pass
+            # Cflags required by external deps might have UNIX-specific flags,
+            # so filter them out if needed
+            d_compile_args = compiler.unix_compile_flags_to_native(d.get_compile_args())
+            for arg in d_compile_args:
+                if arg.startswith('-I'):
+                    inc_dir = arg[2:]
+                    # De-dup
+                    if inc_dir not in inc_dirs:
+                        inc_dirs.append(inc_dir)
+                else:
+                    general_args.append(arg)
 
         for l, args in extra_args.items():
             extra_args[l] = [Vs2010Backend.quote_define_cmdline(x) for x in args]
@@ -540,8 +671,6 @@ class Vs2010Backend(backends.Backend):
         preproc = ET.SubElement(clconf, 'PreprocessorDefinitions')
         rebuild = ET.SubElement(clconf, 'MinimalRebuild')
         rebuild.text = 'true'
-        rtlib = ET.SubElement(clconf, 'RuntimeLibrary')
-        rtlib.text = 'MultiThreadedDebugDLL'
         funclink = ET.SubElement(clconf, 'FunctionLevelLinking')
         funclink.text = 'true'
         pch_node = ET.SubElement(clconf, 'PrecompiledHeader')
@@ -564,28 +693,39 @@ class Vs2010Backend(backends.Backend):
             pch_out = ET.SubElement(clconf, 'PrecompiledHeaderOutputFile')
             pch_out.text = '$(IntDir)$(TargetName)-%s.pch' % pch_source[2]
 
-        warnings = ET.SubElement(clconf, 'WarningLevel')
-        warnings.text = 'Level3'
-        debinfo = ET.SubElement(clconf, 'DebugInformationFormat')
-        debinfo.text = 'EditAndContinue'
         resourcecompile = ET.SubElement(compiles, 'ResourceCompile')
         ET.SubElement(resourcecompile, 'PreprocessorDefinitions')
         link = ET.SubElement(compiles, 'Link')
         # Put all language args here, too.
         extra_link_args = compiler.get_option_link_args(self.environment.coredata.compiler_options)
+        # FIXME: Can these buildtype linker args be added as tags in the
+        # vcxproj file (similar to buildtype compiler args) instead of in
+        # AdditionalOptions?
         extra_link_args += compiler.get_buildtype_linker_args(self.buildtype)
         for l in self.environment.coredata.external_link_args.values():
-            extra_link_args += compiler.unix_link_flags_to_native(l)
-        extra_link_args += compiler.unix_link_flags_to_native(target.link_args)
+            extra_link_args += l
+        if not isinstance(target, build.StaticLibrary):
+            extra_link_args += target.link_args
+            # External deps must be last because target link libraries may depend on them.
+            for dep in target.get_external_deps():
+                extra_link_args += dep.get_link_args()
+            for d in target.get_dependencies():
+                if isinstance(d, build.StaticLibrary):
+                    for dep in d.get_external_deps():
+                        extra_link_args += dep.get_link_args()
+        extra_link_args = compiler.unix_link_flags_to_native(extra_link_args)
+        (additional_libpaths, additional_links, extra_link_args) = self.split_link_args(extra_link_args)
         if len(extra_link_args) > 0:
             extra_link_args.append('%(AdditionalOptions)')
             ET.SubElement(link, "AdditionalOptions").text = ' '.join(extra_link_args)
+        if len(additional_libpaths) > 0:
+            additional_libpaths.insert(0, '%(AdditionalLibraryDirectories)')
+            ET.SubElement(link, 'AdditionalLibraryDirectories').text = ';'.join(additional_libpaths)
 
-        additional_links = []
+        # Add more libraries to be linked if needed
         for t in target.get_dependencies():
             lobj = self.build.targets[t.get_id()]
-            rel_path = self.relpath(lobj.subdir, target.subdir)
-            linkname = os.path.join(rel_path, lobj.get_import_filename())
+            linkname = os.path.join(down, self.get_target_filename_for_linking(lobj))
             additional_links.append(linkname)
         for lib in self.get_custom_target_provided_libraries(target):
             additional_links.append(self.relpath(lib, self.get_target_dir(target)))
@@ -600,26 +740,37 @@ class Vs2010Backend(backends.Backend):
             ET.SubElement(link, 'AdditionalDependencies').text = ';'.join(additional_links)
         ofile = ET.SubElement(link, 'OutputFile')
         ofile.text = '$(OutDir)%s' % target.get_filename()
-        addlibdir = ET.SubElement(link, 'AdditionalLibraryDirectories')
-        addlibdir.text = '%(AdditionalLibraryDirectories)'
         subsys = ET.SubElement(link, 'SubSystem')
         subsys.text = subsystem
-        gendeb = ET.SubElement(link, 'GenerateDebugInformation')
-        gendeb.text = 'true'
         if isinstance(target, build.SharedLibrary):
+            # DLLs built with MSVC always have an import library except when
+            # they're data-only DLLs, but we don't support those yet.
             ET.SubElement(link, 'ImportLibrary').text = target.get_import_filename()
-        pdb = ET.SubElement(link, 'ProgramDataBaseFileName')
-        pdb.text = '$(OutDir}%s.pdb' % target_name
+            # Add module definitions file, if provided
+            if target.vs_module_defs:
+                relpath = os.path.join(down, target.vs_module_defs.rel_to_builddir(self.build_to_src))
+                ET.SubElement(link, 'ModuleDefinitionFile').text = relpath
+        if '/ZI' in buildtype_args or '/Zi' in buildtype_args:
+            pdb = ET.SubElement(link, 'ProgramDataBaseFileName')
+            pdb.text = '$(OutDir}%s.pdb' % target_name
         if isinstance(target, build.Executable):
             ET.SubElement(link, 'EntryPointSymbol').text = entrypoint
         targetmachine = ET.SubElement(link, 'TargetMachine')
-        targetmachine.text = 'MachineX86'
+        targetplatform = self.platform.lower()
+        if targetplatform == 'win32':
+            targetmachine.text = 'MachineX86'
+        elif targetplatform == 'x64':
+            targetmachine.text = 'MachineX64'
+        elif targetplatform == 'arm':
+            targetmachine.text = 'MachineARM'
+        else:
+            raise MesonException('Unsupported Visual Studio target machine: ' + targetmachine)
 
         extra_files = target.extra_files
         if len(headers) + len(gen_hdrs) + len(extra_files) > 0:
             inc_hdrs = ET.SubElement(root, 'ItemGroup')
             for h in headers:
-                relpath = h.rel_to_builddir(proj_to_src_root)
+                relpath = os.path.join(down, h.rel_to_builddir(self.build_to_src))
                 ET.SubElement(inc_hdrs, 'CLInclude', Include=relpath)
             for h in gen_hdrs:
                 ET.SubElement(inc_hdrs, 'CLInclude', Include=h)
@@ -630,7 +781,7 @@ class Vs2010Backend(backends.Backend):
         if len(sources) + len(gen_src) + len(pch_sources) > 0:
             inc_src = ET.SubElement(root, 'ItemGroup')
             for s in sources:
-                relpath = s.rel_to_builddir(proj_to_src_root)
+                relpath = os.path.join(down, s.rel_to_builddir(self.build_to_src))
                 inc_cl = ET.SubElement(inc_src, 'CLCompile', Include=relpath)
                 self.add_pch(inc_cl, proj_to_src_dir, pch_sources, s)
                 self.add_additional_options(s, inc_cl, extra_args, additional_options_set)
@@ -658,7 +809,7 @@ class Vs2010Backend(backends.Backend):
         if self.has_objects(objects, additional_objects, gen_objs):
             inc_objs = ET.SubElement(root, 'ItemGroup')
             for s in objects:
-                relpath = s.rel_to_builddir(proj_to_src_root)
+                relpath = os.path.join(down, s.rel_to_builddir(self.build_to_src))
                 ET.SubElement(inc_objs, 'Object', Include=relpath)
             for s in additional_objects:
                 ET.SubElement(inc_objs, 'Object', Include=s)

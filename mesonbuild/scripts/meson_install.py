@@ -52,7 +52,7 @@ def do_install(datafilename):
 
 def install_subdirs(data):
     for (src_dir, inst_dir, dst_dir) in data.install_subdirs:
-        if src_dir.endswith('/'):
+        if src_dir.endswith('/') or src_dir.endswith('\\'):
             src_dir = src_dir[:-1]
         src_prefix = os.path.join(src_dir, inst_dir)
         print('Installing subdir %s to %s.' % (src_prefix, dst_dir))

@@ -13,7 +13,7 @@ if meson.project_version() != '1.0.0'
 endif
 
 i = include_directories('include')
-l = shared_library('sublib', 'sublib.c', include_directories : i, install : true,
+l = shared_library('sublib', 'sublib.c', include_directories : i, install : false,
  c_args : '-DBUILDING_SUB=2')
 t = executable('simpletest', 'simpletest.c', include_directories : i, link_with : l)
 test('plain', t)

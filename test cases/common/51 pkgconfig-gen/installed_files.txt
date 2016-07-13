@@ -1,3 +1,2 @@
 usr/include/simple.h
-usr/lib/libsimple.so
 usr/lib/pkgconfig/simple.pc

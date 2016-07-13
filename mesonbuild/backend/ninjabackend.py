@@ -496,18 +496,33 @@ int dummy;
         pickle.dump(d, ofile)
 
     def generate_target_install(self, d):
-        libdir = self.environment.get_libdir()
-        bindir = self.environment.get_bindir()
-
         should_strip = self.environment.coredata.get_builtin_option('strip')
         for t in self.build.get_targets().values():
             if t.should_install():
+                # Find the installation directory
                 outdir = t.get_custom_install_dir()
-                if outdir is None:
-                    if isinstance(t, build.Executable):
-                        outdir = bindir
-                    else:
-                        outdir = libdir
+                if outdir is not None:
+                    pass
+                elif isinstance(t, build.SharedLibrary):
+                    # For toolchains/platforms that need an import library for
+                    # linking (separate from the shared library with all the
+                    # code), we need to install the import library (dll.a/.lib)
+                    if t.get_import_filename():
+                        # Install the import library.
+                        i = [self.get_target_filename_for_linking(t),
+                             self.environment.get_import_lib_dir(),
+                             # It has no aliases, should not be stripped, and
+                             # doesn't have an install_rpath
+                             [], False, '']
+                        d.targets.append(i)
+                    outdir = self.environment.get_shared_lib_dir()
+                elif isinstance(t, build.SharedLibrary):
+                    outdir = self.environment.get_static_lib_dir()
+                elif isinstance(t, build.Executable):
+                    outdir = self.environment.get_bindir()
+                else:
+                    # XXX: Add BuildTarget-specific install dir cases here
+                    outdir = self.environment.get_libdir()
                 i = [self.get_target_filename(t), outdir, t.get_aliaslist(),\
                     should_strip, t.install_rpath]
                 d.targets.append(i)
@@ -1665,8 +1680,12 @@ rule FORTRAN_DEP_HACK
             else:
                 soversion = None
             commands += linker.get_soname_args(target.name, abspath, soversion)
+            # This is only visited when using the Visual Studio toolchain
             if target.vs_module_defs and hasattr(linker, 'gen_vs_module_defs_args'):
                 commands += linker.gen_vs_module_defs_args(target.vs_module_defs.rel_to_builddir(self.build_to_src))
+            # This is only visited when building for Windows using either MinGW/GCC or Visual Studio
+            if target.import_filename:
+                commands += linker.gen_import_library_args(os.path.join(target.subdir, target.import_filename))
         elif isinstance(target, build.StaticLibrary):
             commands += linker.get_std_link_args()
         else:

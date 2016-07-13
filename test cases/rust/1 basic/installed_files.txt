@@ -1,1 +1,1 @@
-usr/bin/prog
+usr/bin/prog?exe
