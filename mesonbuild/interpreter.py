@@ -1987,7 +1987,9 @@ class Interpreter():
                 raise InterpreterException('Argument "configuration" is not of type configuration_data')
             ofile_abs = os.path.join(self.environment.build_dir, self.subdir, output)
             if inputfile is not None:
-                conffile = os.path.join(self.subdir, inputfile)
+                # Normalize the path of the conffile to avoid duplicates
+                # This is especially important to convert '/' to '\' on Windows
+                conffile = os.path.normpath(os.path.join(self.subdir, inputfile))
                 if conffile not in self.build_def_files:
                     self.build_def_files.append(conffile)
                 os.makedirs(os.path.join(self.environment.build_dir, self.subdir), exist_ok=True)
