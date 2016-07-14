@@ -121,6 +121,7 @@ def setup_commands(backend):
             compile_commands = [ninja_command, '-v']
         else:
             compile_commands = [ninja_command]
+        compile_commands += ['-w', 'dupbuild=err']
         test_commands = [ninja_command, 'test', 'benchmark']
         install_commands = [ninja_command, 'install']
 
