@@ -50,28 +50,6 @@ known_shlib_kwargs.update({'version' : True,
                            'name_suffix' : True,
                            'vs_module_defs' : True})
 
-backslash_explanation = \
-'''Compiler arguments have a backslash "\\" character. This is unfortunately not
-permitted. The reason for this is that backslash is a shell quoting character
-that behaves differently across different systems. Because of this is it not
-possible to make it work reliably across all the platforms Meson needs to
-support.
-
-There are several different ways of working around this issue. Most of the time
-you are using this to provide a -D define to your compiler. Try instead to
-create a config.h file and put all of your definitions in it using
-configure_file().
-
-Another approach is to move the backslashes into the source and have the other
-bits in the def. So you would have an arg -DPLAIN_TEXT="foo" and then in your
-C sources something like this:
-
-const char *fulltext = "\\\\" PLAIN_TEXT;
-
-We are fully aware that these are not really usable or pleasant ways to do
-this but it's the best we can do given the way shell quoting works.
-'''
-
 def sources_are_suffix(sources, suffix):
     for source in sources:
         if source.endswith('.' + suffix):
@@ -606,8 +584,6 @@ class BuildTarget():
         for a in args:
             if not isinstance(a, (str, File)):
                 raise InvalidArguments('A non-string passed to compiler args.')
-            if isinstance(a, str) and '\\' in a:
-                raise InvalidArguments(backslash_explanation)
         if language in self.extra_args:
             self.extra_args[language] += args
         else:
