@@ -156,11 +156,16 @@ itself as required.'''
         mlog.log('Build machine cpu family:', mlog.bold(intr.builtin['build_machine'].cpu_family_method([], {})))
         mlog.log('Build machine cpu:', mlog.bold(intr.builtin['build_machine'].cpu_method([], {})))
         intr.run()
-        env.dump_coredata()
         g.generate(intr)
         g.run_postconf_scripts()
         dumpfile = os.path.join(env.get_scratch_dir(), 'build.dat')
         pickle.dump(b, open(dumpfile, 'wb'))
+        # Write this last since we use the existence of this file to check if
+        # we generated the build file successfully, so we don't want an error
+        # that pops up during generation, post-conf scripts, etc to cause us to
+        # incorrectly signal a successful meson run which will cause an error
+        # about an already-configured build directory when the user tries again.
+        env.dump_coredata()
 
 def run_script_command(args):
     cmdname = args[0]
