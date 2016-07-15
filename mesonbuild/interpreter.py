@@ -120,8 +120,14 @@ class RunProcess(InterpreterObject):
         pc = self.run_command(command_array, source_dir, build_dir, subdir, in_builddir)
         (stdout, stderr) = pc.communicate()
         self.returncode = pc.returncode
-        self.stdout = stdout.decode().replace('\r\n', '\n')
-        self.stderr = stderr.decode().replace('\r\n', '\n')
+        if sys.stdout.encoding:
+            self.stdout = stdout.decode(encoding=sys.stdout.encoding, errors='ignore').replace('\r\n', '\n')
+        else:
+            self.stdout = stdout.decode(errors='ignore').replace('\r\n', '\n')
+        if sys.stderr.encoding:
+            self.stderr = stderr.decode(encoding=sys.stderr.encoding, errors='ignore').replace('\r\n', '\n')
+        else:
+            self.stderr = stderr.decode(errors='ignore').replace('\r\n', '\n')
         self.methods.update({'returncode' : self.returncode_method,
                              'stdout' : self.stdout_method,
                              'stderr' : self.stderr_method,
