@@ -127,6 +127,7 @@ class Environment():
             self.first_invocation = False
         except FileNotFoundError:
             self.coredata = coredata.CoreData(options)
+            self.coredata.meson_script_file = self.meson_script_file
             self.first_invocation = True
         if self.coredata.cross_file:
             self.cross_info = CrossBuildInfo(self.coredata.cross_file)

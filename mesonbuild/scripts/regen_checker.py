@@ -33,25 +33,28 @@ def need_regen(regeninfo, regen_timestamp):
     Vs2010Backend.touch_regen_timestamp(regeninfo.build_dir)
     return False
 
-def regen(regeninfo):
+def regen(regeninfo, mesonscript, backend):
     scriptdir = os.path.split(__file__)[0]
-    mesonscript = os.path.join(scriptdir, '../../', 'meson')
     cmd = [sys.executable,
            mesonscript,
            '--internal',
            'regenerate',
            regeninfo.build_dir,
            regeninfo.source_dir,
-           '--backend=vs2010']
+           '--backend=' + backend]
     subprocess.check_call(cmd)
 
 def run(args):
     private_dir = args[0]
     dumpfile = os.path.join(private_dir, 'regeninfo.dump')
+    coredata = os.path.join(private_dir, 'coredata.dat')
     regeninfo = pickle.load(open(dumpfile, 'rb'))
+    coredata = pickle.load(open(coredata, 'rb'))
+    mesonscript = coredata.meson_script_file
+    backend = coredata.get_builtin_option('backend')
     regen_timestamp = os.stat(dumpfile).st_mtime
     if need_regen(regeninfo, regen_timestamp):
-        regen(regeninfo)
+        regen(regeninfo, mesonscript, backend)
     sys.exit(0)
 
 if __name__ == '__main__':
