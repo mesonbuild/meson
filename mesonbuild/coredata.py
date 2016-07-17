@@ -100,10 +100,10 @@ class UserStringArrayOption(UserOption):
                 raise MesonException('Valuestring does not define an array: ' + newvalue)
             newvalue = eval(newvalue, {}, {}) # Yes, it is unsafe.
         if not isinstance(newvalue, list):
-            raise MesonException('String array value is not an array.')
+            raise MesonException('"{0}" should be a string array, but it is not'.format(str(newvalue)))
         for i in newvalue:
             if not isinstance(i, str):
-                raise MesonException('String array element not a string.')
+                raise MesonException('String array element "{0}" is not a string.'.format(str(newvalue)))
         self.value = newvalue
 
 # This class contains all data that must persist over multiple
