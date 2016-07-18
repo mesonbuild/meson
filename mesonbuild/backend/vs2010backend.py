@@ -61,6 +61,7 @@ class Vs2010Backend(backends.Backend):
         self.project_file_version = '10.0.30319.1'
         self.sources_conflicts = {}
         self.platform_toolset = None
+        self.vs_version = '2010'
 
     def object_filename_from_source(self, target, source):
         basename = os.path.basename(source.fname)
@@ -218,7 +219,7 @@ class Vs2010Backend(backends.Backend):
     def generate_solution(self, sln_filename, projlist):
         ofile = open(sln_filename, 'w')
         ofile.write('Microsoft Visual Studio Solution File, Format Version 11.00\n')
-        ofile.write('# Visual Studio 2010\n')
+        ofile.write('# Visual Studio ' + self.vs_version + '\n')
         prj_templ = prj_line = 'Project("{%s}") = "%s", "%s", "{%s}"\n'
         for p in projlist:
             prj_line = prj_templ % (self.environment.coredata.guid, p[0], p[1], p[2])

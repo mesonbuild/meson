@@ -20,6 +20,7 @@ class Vs2015Backend(Vs2010Backend):
     def __init__(self, build):
         super().__init__(build)
         self.platform_toolset = 'v140'
+        self.vs_version = '2015'
 
     @staticmethod
     def has_objects(objects, additional_objects, generated_objects):
