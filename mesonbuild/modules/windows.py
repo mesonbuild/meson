@@ -32,7 +32,10 @@ class WindowsModule:
             res_args = extra_args + ['/nologo', '/fo@OUTPUT@', '@INPUT@']
             suffix = 'res'
         else:
-            rescomp = dependencies.ExternalProgram('windres', silent=True)
+            # Pick-up env var WINDRES if set. This is often used for specifying
+            # an arch-specific windres.
+            rescomp_name = os.environ.get('WINDRES', 'windres')
+            rescomp = dependencies.ExternalProgram(rescomp_name, silent=True)
             res_args = extra_args + ['@INPUT@', '@OUTPUT@']
             suffix = 'o'
         res_files = mesonlib.stringlistify(args)
