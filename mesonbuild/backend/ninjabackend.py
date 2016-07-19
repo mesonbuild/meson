@@ -1821,7 +1821,7 @@ rule FORTRAN_DEP_HACK
 
         ninja_command = environment.detect_ninja()
         if ninja_command is None:
-            raise MesonException('Could not detect ninja command')
+            raise MesonException('Could not detect Ninja v1.6 or newer)')
         elem = NinjaBuildElement(self.all_outputs, 'clean', 'CUSTOM_COMMAND', 'PHONY')
         elem.add_item('COMMAND', [ninja_command, '-t', 'clean'])
         elem.add_item('description', 'Cleaning')

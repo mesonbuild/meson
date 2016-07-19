@@ -116,11 +116,12 @@ def setup_commands(backend):
         backend_flags = []
         ninja_command = environment.detect_ninja()
         if ninja_command is None:
-            raise RuntimeError('Could not find Ninja executable.')
+            raise RuntimeError('Could not find Ninja v1.6 or newer')
         if print_debug:
             compile_commands = [ninja_command, '-v']
         else:
             compile_commands = [ninja_command]
+        compile_commands += ['-w', 'dupbuild=err']
         test_commands = [ninja_command, 'test', 'benchmark']
         install_commands = [ninja_command, 'install']
 

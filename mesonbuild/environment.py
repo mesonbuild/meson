@@ -45,11 +45,13 @@ def find_valgrind():
 def detect_ninja():
     for n in ['ninja', 'ninja-build']:
         try:
-            p = subprocess.Popen([n, '--version'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            p = subprocess.Popen([n, '--version'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
         except FileNotFoundError:
             continue
-        p.communicate()
-        if p.returncode == 0:
+        version = p.communicate()[0].decode(errors='ignore')
+        # Perhaps we should add a way for the caller to know the failure mode
+        # (not found or too old)
+        if p.returncode == 0 and mesonlib.version_compare(version, ">=1.6"):
             return n
 
 def detect_cpu_family():
