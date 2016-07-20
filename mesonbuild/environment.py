@@ -723,14 +723,12 @@ def get_args_from_envvars(lang):
 
 class CrossBuildInfo():
     def __init__(self, filename):
-        self.config = {}
+        self.config = {'properties': {}}
         self.parse_datafile(filename)
         if 'target_machine' in self.config:
             return
         if not 'host_machine' in self.config:
             raise mesonlib.MesonException('Cross info file must have either host or a target machine.')
-        if not 'properties' in self.config:
-            raise mesonlib.MesonException('Cross file is missing "properties".')
         if not 'binaries' in self.config:
             raise mesonlib.MesonException('Cross file is missing "binaries".')
 
