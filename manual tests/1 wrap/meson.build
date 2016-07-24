@@ -1,14 +1,13 @@
 project('downloader', 'c')
 
-s = subproject('sqlite')
+cc = meson.get_compiler('c')
 
-libdl = find_library('dl', required : false)
+s = subproject('sqlite').get_variable('sqlite_dep')
+th = dependency('threads')
+
+libdl = cc.find_library('dl', required : false)
 
 e = executable('dtest', 'main.c',
-  include_directories : s.get_variable('sqinc'),
-  link_args : ['-pthread'],
-  c_args : '-pthread',
-  dependencies : libdl,
-  link_with : s.get_variable('sqlib'))
+  dependencies : [th, libdl, s])
 
 test('dltest', e)
