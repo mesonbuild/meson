@@ -290,7 +290,7 @@ class GnomeModule:
         args += self.unpack_args('--htmlargs=', 'html_args', kwargs)
         args += self.unpack_args('--scanargs=', 'scan_args', kwargs)
         args += self.unpack_args('--fixxrefargs=', 'fixxref_args', kwargs)
-        res = [build.RunTarget(targetname, command[0], command[1:] + args, state.subdir)]
+        res = [build.RunTarget(targetname, command[0], command[1:] + args, [], state.subdir)]
         if kwargs.get('install', True):
             res.append(build.InstallScript(command + args))
         return res

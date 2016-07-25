@@ -17,6 +17,7 @@ import sys, os
 import subprocess
 import shutil
 import argparse
+from mesonbuild.mesonlib import MesonException
 from mesonbuild.scripts import destdir_join
 
 parser = argparse.ArgumentParser()
@@ -31,6 +32,18 @@ parser.add_argument('--htmlargs', dest='htmlargs', default='')
 parser.add_argument('--scanargs', dest='scanargs', default='')
 parser.add_argument('--fixxrefargs', dest='fixxrefargs', default='')
 
+def gtkdoc_run_check(cmd, cwd):
+    p = subprocess.Popen(cmd, cwd=cwd,
+                         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    (stde, stdo) = p.communicate()
+    if p.returncode != 0:
+        err_msg = ["{!r} failed with status {:d}".format(cmd[0], p.returncode)]
+        if stde:
+            err_msg.append(stde.decode(errors='ignore'))
+        if stdo:
+            err_msg.append(stdo.decode(errors='ignore'))
+        raise MesonException('\n'.join(err_msg))
+
 def build_gtkdoc(source_root, build_root, doc_subdir, src_subdir,
                  main_file, module, html_args, scan_args, fixxref_args):
     abs_src = os.path.join(source_root, src_subdir)
@@ -39,10 +52,9 @@ def build_gtkdoc(source_root, build_root, doc_subdir, src_subdir,
     scan_cmd = ['gtkdoc-scan',
                 '--module=' + module,
                 '--source-dir=' + abs_src] + scan_args
-#    print(scan_cmd)
-#    sys.exit(1)
-    subprocess.check_call(scan_cmd,
-                          cwd=abs_out)
+    gtkdoc_run_check(scan_cmd, abs_out)
+
+    # Make docbook files
     if main_file.endswith('sgml'):
         modeflag = '--sgml-mode'
     else:
@@ -56,9 +68,9 @@ def build_gtkdoc(source_root, build_root, doc_subdir, src_subdir,
     if len(main_file) > 0:
         # Yes, this is the flag even if the file is in xml.
         mkdb_cmd.append('--main-sgml-file=' + main_file)
-#    print(mkdb_cmd)
-#    sys.exit(1)
-    subprocess.check_call(mkdb_cmd, cwd=abs_out)
+    gtkdoc_run_check(mkdb_cmd, abs_out)
+
+    # Make HTML documentation
     shutil.rmtree(htmldir, ignore_errors=True)
     try:
         os.mkdir(htmldir)
@@ -73,15 +85,13 @@ def build_gtkdoc(source_root, build_root, doc_subdir, src_subdir,
     else:
         mkhtml_cmd.append('%s-docs.xml' % module)
     # html gen must be run in the HTML dir
-#    print(mkhtml_cmd)
-#    sys.exit(1)
-    subprocess.check_call(mkhtml_cmd, cwd=os.path.join(abs_out, 'html'), shell=False)
+    gtkdoc_run_check(mkhtml_cmd, os.path.join(abs_out, 'html'))
+
+    # Fix cross-references in HTML files
     fixref_cmd = ['gtkdoc-fixxref',
                   '--module=' + module,
                   '--module-dir=html'] + fixxref_args
-#    print(fixref_cmd)
-#    sys.exit(1)
-    subprocess.check_call(fixref_cmd, cwd=abs_out)
+    gtkdoc_run_check(fixref_cmd, abs_out)
 
 def install_gtkdoc(build_root, doc_subdir, install_prefix, datadir, module):
     source = os.path.join(build_root, doc_subdir, 'html')
