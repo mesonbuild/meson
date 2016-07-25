@@ -308,7 +308,7 @@ def detect_tests_to_run():
     all_tests = []
     all_tests.append(('common', gather_tests('test cases/common'), False))
     all_tests.append(('failing', gather_tests('test cases/failing'), False))
-    all_tests.append(('prebuilt object', gather_tests('test cases/prebuilt object'), False))
+    all_tests.append(('prebuilt', gather_tests('test cases/prebuilt'), False))
 
     all_tests.append(('platform-osx', gather_tests('test cases/osx'), False if mesonlib.is_osx() else True))
     all_tests.append(('platform-windows', gather_tests('test cases/windows'), False if mesonlib.is_windows() else True))
@@ -405,26 +405,50 @@ def check_format():
                 fullname = os.path.join(root, file)
                 check_file(fullname)
 
-def generate_prebuilt_object():
-    source = 'test cases/prebuilt object/1 basic/source.c'
-    objectbase = 'test cases/prebuilt object/1 basic/prebuilt.'
-    if shutil.which('cl'):
-        objectfile = objectbase + 'obj'
-        cmd = ['cl', '/nologo', '/Fo'+objectfile, '/c', source]
+def pbcompile(compiler, source, objectfile):
+    if compiler == 'cl':
+        cmd = [compiler, '/nologo', '/Fo'+objectfile, '/c', source]
     else:
-        if mesonlib.is_windows():
-            objectfile = objectbase + 'obj'
-        else:
-            objectfile = objectbase + 'o'
-        if shutil.which('cc'):
-            cmd = 'cc'
-        elif shutil.which('gcc'):
-            cmd = 'gcc'
-        else:
-            raise RuntimeError("Could not find C compiler.")
-        cmd = [cmd, '-c', source, '-o', objectfile]
+        cmd = [compiler, '-c', source, '-o', objectfile]
     subprocess.check_call(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+def generate_pb_object(compiler, object_suffix):
+    source = 'test cases/prebuilt/1 object/source.c'
+    objectfile = 'test cases/prebuilt/1 object/prebuilt.' + object_suffix
+    pbcompile(compiler, source, objectfile)
     return objectfile
+
+def generate_pb_static(compiler, object_suffix, static_suffix):
+    source = 'test cases/prebuilt/2 static/libdir/best.c'
+    objectfile = 'test cases/prebuilt/2 static/libdir/best.' + object_suffix
+    stlibfile = 'test cases/prebuilt/2 static/libdir/libbest.' + static_suffix
+    pbcompile(compiler, source, objectfile)
+    if compiler == 'cl':
+        linker = ['lib', '/NOLOGO', '/OUT:' + stlibfile, objectfile]
+    else:
+        linker = ['ar', 'csr', stlibfile, objectfile]
+    subprocess.check_call(linker)
+    os.unlink(objectfile)
+    return stlibfile
+
+def generate_prebuilt():
+    static_suffix = 'a'
+    if shutil.which('cl'):
+        compiler = 'cl'
+        static_suffix = 'lib'
+    elif shutil.which('cc'):
+        compiler = 'cc'
+    elif shutil.which('gcc'):
+        compiler = 'gcc'
+    else:
+        raise RuntimeError("Could not find C compiler.")
+    if mesonlib.is_windows():
+        object_suffix = 'obj'
+    else:
+        object_suffix = 'o'
+    objectfile = generate_pb_object(compiler, object_suffix)
+    stlibfile = generate_pb_static(compiler, object_suffix, static_suffix)
+    return (objectfile, stlibfile)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Run the test suite of Meson.")
@@ -439,12 +463,13 @@ if __name__ == '__main__':
     if script_dir != '':
         os.chdir(script_dir)
     check_format()
-    pbfile = generate_prebuilt_object()
+    pbfiles = generate_prebuilt()
     try:
         run_tests(options.extra_args)
     except StopException:
         pass
-    os.unlink(pbfile)
+    for f in pbfiles:
+        os.unlink(f)
     print('\nTotal passed tests:', passing_tests)
     print('Total failed tests:', failing_tests)
     print('Total skipped tests:', skipped_tests)
