@@ -128,6 +128,9 @@ class Environment():
             self.coredata = coredata.load(cdf)
             self.first_invocation = False
         except FileNotFoundError:
+            # WARNING: Don't use any values from coredata in __init__. It gets
+            # re-initialized with project options by the interpreter during
+            # build file parsing.
             self.coredata = coredata.CoreData(options)
             self.coredata.meson_script_file = self.meson_script_file
             self.first_invocation = True
@@ -154,19 +157,25 @@ class Environment():
         # Various prefixes and suffixes for import libraries, shared libraries,
         # static libraries, and executables.
         # Versioning is added to these names in the backends as-needed.
+        #
+        # NOTE: Some of these are derived from coredata builtin options (see
+        # self.get_libdir() etc), so we should not store their values during
+        # initialization since they might change during interpreter execution
+        # when the build files are parsed and project() options read. Hence we
+        # use function objects which will return the correct value on use.
         cross = self.is_cross_build()
         if (not cross and mesonlib.is_windows()) \
         or (cross and self.cross_info.has_host() and self.cross_info.config['host_machine']['system'] == 'windows'):
             self.exe_suffix = 'exe'
             self.object_suffix = 'obj'
-            self.shared_lib_dir = self.get_bindir()
+            self.get_shared_lib_dir = self.get_bindir
         else:
             self.exe_suffix = ''
             self.object_suffix = 'o'
-            self.shared_lib_dir = self.get_libdir()
+            self.get_shared_lib_dir = self.get_libdir
         # Common to all platforms
-        self.import_lib_dir = self.get_libdir()
-        self.static_lib_dir = self.get_libdir()
+        self.get_import_lib_dir = self.get_libdir
+        self.get_static_lib_dir = self.get_libdir
 
     def is_cross_build(self):
         return self.cross_info is not None
@@ -658,18 +667,6 @@ class Environment():
 
     def get_exe_suffix(self):
         return self.exe_suffix
-
-    def get_import_lib_dir(self):
-        "Install dir for the import library (library used for linking)"
-        return self.import_lib_dir
-
-    def get_shared_lib_dir(self):
-        "Install dir for the shared library"
-        return self.shared_lib_dir
-
-    def get_static_lib_dir(self):
-        "Install dir for the static library"
-        return self.static_lib_dir
 
     def get_object_suffix(self):
         return self.object_suffix
