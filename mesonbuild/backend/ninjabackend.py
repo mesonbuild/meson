@@ -516,7 +516,7 @@ int dummy;
                              [], False, '']
                         d.targets.append(i)
                     outdir = self.environment.get_shared_lib_dir()
-                elif isinstance(t, build.SharedLibrary):
+                elif isinstance(t, build.StaticLibrary):
                     outdir = self.environment.get_static_lib_dir()
                 elif isinstance(t, build.Executable):
                     outdir = self.environment.get_bindir()
