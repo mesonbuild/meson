@@ -1,2 +1,2 @@
 usr/bin/prog?exe
-usr/lib/libstat.a
+usr/libtest/libstat.a
