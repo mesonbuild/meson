@@ -139,19 +139,26 @@ class PkgConfigDependency(Dependency):
                     (name, self.version_requirement, self.modversion))
         if not self.is_found:
             return
-        p = subprocess.Popen([pkgbin, '--cflags', name], stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE)
+        # Fetch cargs to be used while using this dependency
+        self._set_cargs()
+        # Fetch the libraries and library paths needed for using this
+        self._set_libs()
+
+    def _set_cargs(self):
+        p = subprocess.Popen([self.pkgbin, '--cflags', self.name],
+                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out = p.communicate()[0]
         if p.returncode != 0:
             raise DependencyException('Could not generate cargs for %s:\n\n%s' % \
                                       (name, out.decode(errors='ignore')))
         self.cargs = out.decode().split()
 
-        libcmd = [pkgbin, '--libs']
+    def _set_libs(self):
+        libcmd = [self.pkgbin, '--libs']
         if self.static:
             libcmd.append('--static')
-        p = subprocess.Popen(libcmd + [name], stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE)
+        p = subprocess.Popen(libcmd + [self.name],
+                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out = p.communicate()[0]
         if p.returncode != 0:
             raise DependencyException('Could not generate libs for %s:\n\n%s' % \
@@ -170,7 +177,6 @@ class PkgConfigDependency(Dependency):
                                               'library path' % lib)
                 lib = shared_lib
                 self.is_libtool = True
-
             self.libs.append(lib)
 
     def get_variable(self, variable_name):
