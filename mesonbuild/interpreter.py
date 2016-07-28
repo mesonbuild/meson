@@ -1683,20 +1683,26 @@ class Interpreter():
                 dep = dependencies.find_external_dependency(name, self.environment, kwargs)
             except dependencies.DependencyException:
                 if 'fallback' in kwargs:
-                    dep = self.dependency_fallback(kwargs)
+                    dep = self.dependency_fallback(name, kwargs)
                     self.coredata.deps[identifier] = dep.held_object
                     return dep
                 raise
         self.coredata.deps[identifier] = dep
         return DependencyHolder(dep)
 
-    def dependency_fallback(self, kwargs):
+    def dependency_fallback(self, name, kwargs):
         fbinfo = kwargs['fallback']
         check_stringlist(fbinfo)
         if len(fbinfo) != 2:
             raise InterpreterException('Fallback info must have exactly two items.')
         dirname, varname = fbinfo
-        self.do_subproject(dirname, {})
+        try:
+            self.do_subproject(dirname, {})
+        except:
+            mlog.log('Also couldn\'t find a fallback subproject in',
+                     mlog.bold(os.path.join(self.subproject_dir, dirname)),
+                     'for the dependency', mlog.bold(name))
+            raise
         dep = self.subprojects[dirname].get_variable_method([varname], {})
         # Check if the version of the declared dependency matches what we want
         if 'version' in kwargs:
@@ -1705,6 +1711,9 @@ class Interpreter():
             if found == 'undefined' or not mesonlib.version_compare(found, wanted):
                 m = 'Subproject "{0}" dependency "{1}" version is "{2}" but "{3}" is required.'
                 raise InterpreterException(m.format(dirname, varname, found, wanted))
+        mlog.log('Found a', mlog.green('fallback'), 'subproject',
+                 mlog.bold(os.path.join(self.subproject_dir, dirname)), 'for',
+                 mlog.bold(name))
         return dep
 
     def func_executable(self, node, args, kwargs):
