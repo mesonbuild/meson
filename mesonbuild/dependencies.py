@@ -124,8 +124,7 @@ class PkgConfigDependency(Dependency):
             self.modversion = 'none'
             return
         self.modversion = out.decode().strip()
-        mlog.log('%s dependency' % self.type_string, mlog.bold(name), 'found:',
-                 mlog.green('YES'), self.modversion)
+        found_msg = ['%s dependency' % self.type_string, mlog.bold(name), 'found:']
         self.version_requirement = kwargs.get('version', None)
         if self.version_requirement is None:
             self.is_found = True
@@ -133,12 +132,17 @@ class PkgConfigDependency(Dependency):
             if not isinstance(self.version_requirement, str):
                 raise DependencyException('Version argument must be string.')
             self.is_found = mesonlib.version_compare(self.modversion, self.version_requirement)
-            if not self.is_found and self.required:
-                raise DependencyException(
-                    'Invalid version of a dependency, needed %s %s found %s.' %
-                    (name, self.version_requirement, self.modversion))
-        if not self.is_found:
-            return
+            if not self.is_found:
+                found_msg += [mlog.red('NO'), 'found {!r}'.format(self.modversion),
+                              'but need {!r}'.format(self.version_requirement)]
+                mlog.log(*found_msg)
+                if self.required:
+                    raise DependencyException(
+                        'Invalid version of a dependency, needed %s %s found %s.' %
+                        (name, self.version_requirement, self.modversion))
+                return
+        found_msg += [mlog.green('YES'), self.modversion]
+        mlog.log(*found_msg)
         # Fetch cargs to be used while using this dependency
         self._set_cargs()
         # Fetch the libraries and library paths needed for using this
