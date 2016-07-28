@@ -1704,6 +1704,8 @@ class Interpreter():
                      'for the dependency', mlog.bold(name))
             raise
         dep = self.subprojects[dirname].get_variable_method([varname], {})
+        if not isinstance(dep, (DependencyHolder, InternalDependencyHolder)):
+            raise InterpreterException('Fallback variable is not a dependency object.')
         # Check if the version of the declared dependency matches what we want
         if 'version' in kwargs:
             wanted = kwargs['version']

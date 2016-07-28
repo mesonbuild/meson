@@ -38,6 +38,8 @@ class WindowsModule:
             rescomp = dependencies.ExternalProgram(rescomp_name, silent=True)
             res_args = extra_args + ['@INPUT@', '@OUTPUT@']
             suffix = 'o'
+        if not rescomp.found():
+            raise MesonException('Could not find Windows resource compiler %s.' % ' '.join(rescomp.get_command()))
         res_files = mesonlib.stringlistify(args)
         res_kwargs = {'output' : '@BASENAME@.' + suffix,
                       'arguments': res_args}
