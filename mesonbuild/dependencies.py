@@ -122,56 +122,66 @@ class PkgConfigDependency(Dependency):
             if self.required:
                 raise DependencyException('%s dependency %s not found.' % (self.type_string, name))
             self.modversion = 'none'
+            return
+        self.modversion = out.decode().strip()
+        found_msg = ['%s dependency' % self.type_string, mlog.bold(name), 'found:']
+        self.version_requirement = kwargs.get('version', None)
+        if self.version_requirement is None:
+            self.is_found = True
         else:
-            self.modversion = out.decode().strip()
-            mlog.log('%s dependency' % self.type_string, mlog.bold(name), 'found:',
-                     mlog.green('YES'), self.modversion)
-            self.version_requirement = kwargs.get('version', None)
-            if self.version_requirement is None:
-                self.is_found = True
-            else:
-                if not isinstance(self.version_requirement, str):
-                    raise DependencyException('Version argument must be string.')
-                self.is_found = mesonlib.version_compare(self.modversion, self.version_requirement)
-                if not self.is_found and self.required:
+            if not isinstance(self.version_requirement, str):
+                raise DependencyException('Version argument must be string.')
+            self.is_found = mesonlib.version_compare(self.modversion, self.version_requirement)
+            if not self.is_found:
+                found_msg += [mlog.red('NO'), 'found {!r}'.format(self.modversion),
+                              'but need {!r}'.format(self.version_requirement)]
+                mlog.log(*found_msg)
+                if self.required:
                     raise DependencyException(
                         'Invalid version of a dependency, needed %s %s found %s.' %
                         (name, self.version_requirement, self.modversion))
-            if not self.is_found:
                 return
-            p = subprocess.Popen([pkgbin, '--cflags', name], stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE)
-            out = p.communicate()[0]
-            if p.returncode != 0:
-                raise DependencyException('Could not generate cargs for %s:\n\n%s' % \
-                                          (name, out.decode(errors='ignore')))
-            self.cargs = out.decode().split()
+        found_msg += [mlog.green('YES'), self.modversion]
+        mlog.log(*found_msg)
+        # Fetch cargs to be used while using this dependency
+        self._set_cargs()
+        # Fetch the libraries and library paths needed for using this
+        self._set_libs()
 
-            libcmd = [pkgbin, '--libs']
-            if self.static:
-                libcmd.append('--static')
-            p = subprocess.Popen(libcmd + [name], stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE)
-            out = p.communicate()[0]
-            if p.returncode != 0:
-                raise DependencyException('Could not generate libs for %s:\n\n%s' % \
-                                          (name, out.decode(errors='ignore')))
-            self.libs = []
-            for lib in out.decode().split():
-                if lib.endswith(".la"):
-                    shared_libname = self.extract_libtool_shlib(lib)
-                    shared_lib = os.path.join(os.path.dirname(lib), shared_libname)
-                    if not os.path.exists(shared_lib):
-                        shared_lib = os.path.join(os.path.dirname(lib), ".libs", shared_libname)
+    def _set_cargs(self):
+        p = subprocess.Popen([self.pkgbin, '--cflags', self.name],
+                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        out = p.communicate()[0]
+        if p.returncode != 0:
+            raise DependencyException('Could not generate cargs for %s:\n\n%s' % \
+                                      (name, out.decode(errors='ignore')))
+        self.cargs = out.decode().split()
 
-                    if not os.path.exists(shared_lib):
-                        raise DependencyException('Got a libtools specific "%s" dependencies'
-                                                  'but we could not compute the actual shared'
-                                                  'library path' % lib)
-                    lib = shared_lib
-                    self.is_libtool = True
+    def _set_libs(self):
+        libcmd = [self.pkgbin, '--libs']
+        if self.static:
+            libcmd.append('--static')
+        p = subprocess.Popen(libcmd + [self.name],
+                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        out = p.communicate()[0]
+        if p.returncode != 0:
+            raise DependencyException('Could not generate libs for %s:\n\n%s' % \
+                                      (name, out.decode(errors='ignore')))
+        self.libs = []
+        for lib in out.decode().split():
+            if lib.endswith(".la"):
+                shared_libname = self.extract_libtool_shlib(lib)
+                shared_lib = os.path.join(os.path.dirname(lib), shared_libname)
+                if not os.path.exists(shared_lib):
+                    shared_lib = os.path.join(os.path.dirname(lib), ".libs", shared_libname)
 
-                self.libs.append(lib)
+                if not os.path.exists(shared_lib):
+                    raise DependencyException('Got a libtools specific "%s" dependencies'
+                                              'but we could not compute the actual shared'
+                                              'library path' % lib)
+                lib = shared_lib
+                self.is_libtool = True
+            self.libs.append(lib)
 
     def get_variable(self, variable_name):
         p = subprocess.Popen([self.pkgbin, '--variable=%s' % variable_name, self.name],
