@@ -15,7 +15,7 @@
 # limitations under the License.
 
 import sys, stat, traceback, pickle, argparse
-import datetime
+import time, datetime
 import os.path
 from . import environment, interpreter, mesonlib
 from . import build
@@ -164,6 +164,7 @@ itself as required.'''
         mlog.log('Build machine cpu family:', mlog.bold(intr.builtin['build_machine'].cpu_family_method([], {})))
         mlog.log('Build machine cpu:', mlog.bold(intr.builtin['build_machine'].cpu_method([], {})))
         intr.run()
+        coredata_mtime = time.time()
         g.generate(intr)
         g.run_postconf_scripts()
         dumpfile = os.path.join(env.get_scratch_dir(), 'build.dat')
@@ -173,7 +174,11 @@ itself as required.'''
         # that pops up during generation, post-conf scripts, etc to cause us to
         # incorrectly signal a successful meson run which will cause an error
         # about an already-configured build directory when the user tries again.
-        env.dump_coredata()
+        #
+        # However, we set the mtime to an earlier value to ensure that doing an
+        # mtime comparison between the coredata dump and other build files
+        # shows the build files to be newer, not older.
+        env.dump_coredata(coredata_mtime)
 
 def run_script_command(args):
     cmdname = args[0]

@@ -171,9 +171,10 @@ class Environment():
     def is_cross_build(self):
         return self.cross_info is not None
 
-    def dump_coredata(self):
+    def dump_coredata(self, mtime):
         cdf = os.path.join(self.get_build_dir(), Environment.coredata_file)
         coredata.save(self.coredata, cdf)
+        os.utime(cdf, times=(mtime, mtime))
 
     def get_script_dir(self):
         import mesonbuild.scripts
