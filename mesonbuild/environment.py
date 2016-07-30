@@ -128,6 +128,9 @@ class Environment():
             self.coredata = coredata.load(cdf)
             self.first_invocation = False
         except FileNotFoundError:
+            # WARNING: Don't use any values from coredata in __init__. It gets
+            # re-initialized with project options by the interpreter during
+            # build file parsing.
             self.coredata = coredata.CoreData(options)
             self.coredata.meson_script_file = self.meson_script_file
             self.first_invocation = True
@@ -159,14 +162,11 @@ class Environment():
         or (cross and self.cross_info.has_host() and self.cross_info.config['host_machine']['system'] == 'windows'):
             self.exe_suffix = 'exe'
             self.object_suffix = 'obj'
-            self.shared_lib_dir = self.get_bindir()
+            self.win_libdir_layout = True
         else:
             self.exe_suffix = ''
             self.object_suffix = 'o'
-            self.shared_lib_dir = self.get_libdir()
-        # Common to all platforms
-        self.import_lib_dir = self.get_libdir()
-        self.static_lib_dir = self.get_libdir()
+            self.win_libdir_layout = False
 
     def is_cross_build(self):
         return self.cross_info is not None
@@ -661,15 +661,17 @@ class Environment():
 
     def get_import_lib_dir(self):
         "Install dir for the import library (library used for linking)"
-        return self.import_lib_dir
+        return self.get_libdir()
 
     def get_shared_lib_dir(self):
         "Install dir for the shared library"
-        return self.shared_lib_dir
+        if self.win_libdir_layout:
+            return self.get_bindir()
+        return self.get_libdir()
 
     def get_static_lib_dir(self):
         "Install dir for the static library"
-        return self.static_lib_dir
+        return self.get_libdir()
 
     def get_object_suffix(self):
         return self.object_suffix
