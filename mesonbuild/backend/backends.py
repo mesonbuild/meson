@@ -296,6 +296,33 @@ class Backend():
             args = includeargs + args
         return args
 
+    @staticmethod
+    def escape_extra_args(compiler, args):
+        # No extra escaping/quoting needed when not running on Windows
+        if not mesonlib.is_windows():
+            return args
+        extra_args = []
+        # Compiler-specific escaping is needed for -D args but not for any others
+        if compiler.get_id() == 'msvc':
+            # MSVC needs escaping when a -D argument ends in \ or \"
+            for arg in args:
+                if arg.startswith('-D') or arg.startswith('/D'):
+                    # Without extra escaping for these two, the next character
+                    # gets eaten
+                    if arg.endswith('\\'):
+                        arg += '\\'
+                    elif arg.endswith('\\"'):
+                        arg = arg[:-2] + '\\\\"'
+                extra_args.append(arg)
+        else:
+            # MinGW GCC needs all backslashes in defines to be doubly-escaped
+            # FIXME: Not sure about Cygwin or Clang
+            for arg in args:
+                if arg.startswith('-D') or arg.startswith('/D'):
+                    arg = arg.replace('\\', '\\\\')
+                extra_args.append(arg)
+        return extra_args
+
     def generate_basic_compiler_args(self, target, compiler):
         commands = []
         commands += self.get_cross_stdlib_args(target, compiler)
@@ -304,7 +331,7 @@ class Backend():
         commands += compiler.get_option_compile_args(self.environment.coredata.compiler_options)
         commands += self.build.get_global_args(compiler)
         commands += self.environment.coredata.external_args[compiler.get_language()]
-        commands += target.get_extra_args(compiler.get_language())
+        commands += self.escape_extra_args(compiler, target.get_extra_args(compiler.get_language()))
         commands += compiler.get_buildtype_args(self.environment.coredata.get_builtin_option('buildtype'))
         if self.environment.coredata.get_builtin_option('werror'):
             commands += compiler.get_werror_args()

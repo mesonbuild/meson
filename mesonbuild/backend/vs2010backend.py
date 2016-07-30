@@ -436,9 +436,30 @@ class Vs2010Backend(backends.Backend):
         # they are part of the CustomBuildStep Outputs.
         return
 
-    @classmethod
-    def quote_define_cmdline(cls, arg):
-        return re.sub(r'^([-/])D(.*?)="(.*)"$', r'\1D\2=\"\3\"', arg)
+    @staticmethod
+    def escape_preprocessor_define(define):
+        # See: https://msdn.microsoft.com/en-us/library/bb383819.aspx
+        table = str.maketrans({'%': '%25', '$': '%24', '@': '%40',
+            "'": '%27', ';': '%3B', '?': '%3F', '*': '%2A',
+            # We need to escape backslash because it'll be un-escaped by
+            # Windows during process creation when it parses the arguments
+            # Basically, this converts `\` to `\\`.
+            '\\': '\\\\'})
+        return define.translate(table)
+
+    @staticmethod
+    def escape_additional_option(option):
+        # See: https://msdn.microsoft.com/en-us/library/bb383819.aspx
+        table = str.maketrans({'%': '%25', '$': '%24', '@': '%40',
+            "'": '%27', ';': '%3B', '?': '%3F', '*': '%2A', ' ': '%20',})
+        option = option.translate(table)
+        # Since we're surrounding the option with ", if it ends in \ that will
+        # escape the " when the process arguments are parsed and the starting
+        # " will not terminate. So we escape it if that's the case.  I'm not
+        # kidding, this is how escaping works for process args on Windows.
+        if option.endswith('\\'):
+            option += '\\'
+        return '"{}"'.format(option)
 
     @staticmethod
     def split_link_args(args):
@@ -633,7 +654,7 @@ class Vs2010Backend(backends.Backend):
             # so filter them out if needed
             d_compile_args = compiler.unix_compile_flags_to_native(d.get_compile_args())
             for arg in d_compile_args:
-                if arg.startswith('-I'):
+                if arg.startswith('-I') or arg.startswith('/I'):
                     inc_dir = arg[2:]
                     # De-dup
                     if inc_dir not in inc_dirs:
@@ -641,8 +662,24 @@ class Vs2010Backend(backends.Backend):
                 else:
                     general_args.append(arg)
 
+        defines = []
+        # Split preprocessor defines and include directories out of the list of
+        # all extra arguments. The rest go into %(AdditionalOptions).
         for l, args in extra_args.items():
-            extra_args[l] = [Vs2010Backend.quote_define_cmdline(x) for x in args]
+            extra_args[l] = []
+            for arg in args:
+                if arg.startswith('-D') or arg.startswith('/D'):
+                    define = self.escape_preprocessor_define(arg[2:])
+                    # De-dup
+                    if define not in defines:
+                        defines.append(define)
+                elif arg.startswith('-I') or arg.startswith('/I'):
+                    inc_dir = arg[2:]
+                    # De-dup
+                    if inc_dir not in inc_dirs:
+                        inc_dirs.append(inc_dir)
+                else:
+                    extra_args[l].append(self.escape_additional_option(arg))
 
         languages += gen_langs
         has_language_specific_args = any(l != extra_args['c'] for l in extra_args.values())
@@ -669,7 +706,7 @@ class Vs2010Backend(backends.Backend):
 
         inc_dirs.append('%(AdditionalIncludeDirectories)')
         ET.SubElement(clconf, 'AdditionalIncludeDirectories').text = ';'.join(inc_dirs)
-        preproc = ET.SubElement(clconf, 'PreprocessorDefinitions')
+        ET.SubElement(clconf, 'PreprocessorDefinitions').text = ';'.join(defines)
         rebuild = ET.SubElement(clconf, 'MinimalRebuild')
         rebuild.text = 'true'
         funclink = ET.SubElement(clconf, 'FunctionLevelLinking')
