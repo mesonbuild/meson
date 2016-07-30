@@ -353,43 +353,80 @@ class WxDependency(Dependency):
 class ExternalProgram():
     def __init__(self, name, fullpath=None, silent=False, search_dir=None):
         self.name = name
-        self.fullpath = None
         if fullpath is not None:
             if not isinstance(fullpath, list):
                 self.fullpath = [fullpath]
             else:
                 self.fullpath = fullpath
         else:
-            self.fullpath = [shutil.which(name)]
-            if self.fullpath[0] is None and search_dir is not None:
-                trial = os.path.join(search_dir, name)
-                suffix = os.path.splitext(trial)[-1].lower()[1:]
-                if mesonlib.is_windows() and (suffix == 'exe' or suffix == 'com'\
-                                          or suffix == 'bat'):
-                    self.fullpath = [trial]
-                elif not mesonlib.is_windows() and os.access(trial, os.X_OK):
-                    self.fullpath = [trial]
-                else:
-                    # Now getting desperate. Maybe it is a script file that is a) not chmodded
-                    # executable or b) we are on windows so they can't be directly executed.
-                    try:
-                        first_line = open(trial).readline().strip()
-                        if first_line.startswith('#!'):
-                            commands = first_line[2:].split('#')[0].strip().split()
-                            if mesonlib.is_windows():
-                                # Windows does not have /usr/bin.
-                                commands[0] = commands[0].split('/')[-1]
-                                if commands[0] == 'env':
-                                    commands = commands[1:]
-                            self.fullpath = commands + [trial]
-                    except Exception:
-                        pass
+            self.fullpath = self._search(name, search_dir)
         if not silent:
             if self.found():
                 mlog.log('Program', mlog.bold(name), 'found:', mlog.green('YES'),
                          '(%s)' % ' '.join(self.fullpath))
             else:
                 mlog.log('Program', mlog.bold(name), 'found:', mlog.red('NO'))
+
+    @staticmethod
+    def _shebang_to_cmd(script):
+        """
+        Windows does not understand shebangs, so we check if the file has a
+        shebang and manually parse it to figure out the interpreter to use
+        """
+        try:
+            first_line = open(script).readline().strip()
+            if first_line.startswith('#!'):
+                commands = first_line[2:].split('#')[0].strip().split()
+                if mesonlib.is_windows():
+                    # Windows does not have /usr/bin.
+                    commands[0] = commands[0].split('/')[-1]
+                    if commands[0] == 'env':
+                        commands = commands[1:]
+                return commands + [script]
+        except Exception:
+            pass
+        return False
+
+    @staticmethod
+    def _is_executable(path):
+        suffix = os.path.splitext(path)[-1].lower()[1:]
+        if mesonlib.is_windows():
+            if suffix == 'exe' or suffix == 'com' or suffix == 'bat':
+                return True
+        elif os.access(path, os.X_OK):
+            return True
+        return False
+
+    def _search_dir(self, name, search_dir):
+        if search_dir is None:
+            return False
+        trial = os.path.join(search_dir, name)
+        if not os.path.exists(trial):
+            return False
+        if self._is_executable(trial):
+            return [trial]
+        # Now getting desperate. Maybe it is a script file that is a) not chmodded
+        # executable or b) we are on windows so they can't be directly executed.
+        return self._shebang_to_cmd(trial)
+
+    def _search(self, name, search_dir):
+        commands = self._search_dir(name, search_dir)
+        if commands:
+            return commands
+        # Do a standard search in PATH
+        fullpath = shutil.which(name)
+        if fullpath or not mesonlib.is_windows():
+            # On UNIX-like platforms, the standard PATH search is enough
+            return [fullpath]
+        # On Windows, interpreted scripts must have an extension otherwise they
+        # cannot be found by a standard PATH search. So we do a custom search
+        # where we manually search for a script with a shebang in PATH.
+        search_dirs = os.environ.get('PATH', '').split(';')
+        for search_dir in search_dirs:
+            commands = self._search_dir(name, search_dir)
+            if commands:
+                return commands
+        return [None]
 
     def found(self):
         return self.fullpath[0] is not None
