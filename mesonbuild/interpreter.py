@@ -1387,7 +1387,8 @@ class Interpreter():
         r = wrap.Resolver(os.path.join(self.build.environment.get_source_dir(), self.subproject_dir))
         resolved = r.resolve(dirname)
         if resolved is None:
-            raise InterpreterException('Subproject directory does not exist and can not be downloaded.')
+            msg = 'Subproject directory {!r} does not exist and can not be downloaded.'
+            raise InterpreterException(msg.format(os.path.join(self.subproject_dir, dirname)))
         subdir = os.path.join(self.subproject_dir, resolved)
         os.makedirs(os.path.join(self.build.environment.get_build_dir(), subdir), exist_ok=True)
         self.global_args_frozen = True
