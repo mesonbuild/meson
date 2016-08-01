@@ -5,10 +5,9 @@ project('same basename', 'c')
 # then the .o files will clobber each other.
 shlib = shared_library('name', 'lib.c', c_args : '-DSHAR')
 
-# On Windows a static lib is a foo.lib but a share library
-# is both a foo.dll and a foo.lib. Put static in subdir to avoid
-# name clashes.
-subdir('sub')
+# On Windows a static lib is now libfoo.a, so it does not conflict with foo.lib
+# from the shared library above
+stlib = static_library('name', 'lib.c', c_args : '-DSTAT')
 
 exe1 = executable('name', 'exe1.c', link_with : stlib)
 exe2 = executable('name2', 'exe2.c', link_with : shlib)
