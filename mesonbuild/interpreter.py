@@ -1323,6 +1323,8 @@ class Interpreter():
             return self.evaluate_plusassign(cur)
         elif isinstance(cur, mparser.IndexNode):
             return self.evaluate_indexing(cur)
+        elif isinstance(cur, mparser.TernaryNode):
+            return self.evaluate_ternary(cur)
         elif self.is_elementary_type(cur):
             return cur
         else:
@@ -2401,6 +2403,16 @@ class Interpreter():
                 return
         if not isinstance(node.elseblock, mparser.EmptyNode):
             self.evaluate_codeblock(node.elseblock)
+
+    def evaluate_ternary(self, node):
+        assert(isinstance(node, mparser.TernaryNode))
+        result = self.evaluate_statement(node.condition)
+        if not isinstance(result, bool):
+            raise InterpreterException('Ternary condition is not boolean.')
+        if result:
+            return self.evaluate_statement(node.trueblock)
+        else:
+            return self.evaluate_statement(node.falseblock)
 
     def evaluate_foreach(self, node):
         assert(isinstance(node, mparser.ForeachClauseNode))
