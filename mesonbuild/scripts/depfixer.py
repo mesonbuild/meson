@@ -20,6 +20,7 @@ import sys, struct
 SHT_STRTAB = 3
 DT_NEEDED = 1
 DT_RPATH = 15
+DT_RUNPATH = 29
 DT_STRTAB = 5
 DT_SONAME = 14
 
@@ -211,17 +212,25 @@ class Elf(DataSizes):
         self.bf.seek(strtab.val + soname.val)
         print(self.read_str())
 
-    def get_rpath_offset(self):
+    def get_entry_offset(self, entrynum):
         sec = self.find_section(b'.dynstr')
         for i in self.dynamic:
-            if i.d_tag == DT_RPATH:
+            if i.d_tag == entrynum:
                 return sec.sh_offset + i.val
         return None
 
     def print_rpath(self):
-        offset = self.get_rpath_offset()
+        offset = self.get_entry_offset(DT_RPATH)
         if offset is None:
             print("This file does not have an rpath.")
+        else:
+            self.bf.seek(offset)
+            print(self.read_str())
+
+    def print_runpath(self):
+        offset = self.get_entry_offset(DT_RUNPATH)
+        if offset is None:
+            print("This file does not have a runpath.")
         else:
             self.bf.seek(offset)
             print(self.read_str())
@@ -257,9 +266,15 @@ class Elf(DataSizes):
                 self.bf.write(newname)
 
     def fix_rpath(self, new_rpath):
+        # The path to search for can be either rpath or runpath.
+        # Fix both of them to be sure.
+        self.fix_rpathtype_entry(new_rpath, DT_RPATH)
+        self.fix_rpathtype_entry(new_rpath, DT_RUNPATH)
+
+    def fix_rpathtype_entry(self, new_rpath, entrynum):
         if isinstance(new_rpath, str):
             new_rpath = new_rpath.encode('utf8')
-        rp_off = self.get_rpath_offset()
+        rp_off = self.get_entry_offset(entrynum)
         if rp_off is None:
             if self.verbose:
                 print('File does not have rpath. It should be a fully static executable.')
@@ -272,12 +287,12 @@ class Elf(DataSizes):
         self.bf.write(new_rpath)
         self.bf.write(b'\0'*(len(old_rpath) - len(new_rpath) + 1))
         if len(new_rpath) == 0:
-            self.remove_rpath_entry()
+            self.remove_rpath_entry(entrynum)
 
-    def remove_rpath_entry(self):
+    def remove_rpath_entry(self, entrynum):
         sec = self.find_section(b'.dynamic')
         for (i, entry) in enumerate(self.dynamic):
-            if entry.d_tag == DT_RPATH:
+            if entry.d_tag == entrynum:
                 rpentry = self.dynamic[i]
                 rpentry.d_tag = 0
                 self.dynamic = self.dynamic[:i] + self.dynamic[i+1:] + [rpentry]
@@ -296,6 +311,7 @@ def run(args):
     e = Elf(args[0])
     if len(args) == 1:
         e.print_rpath()
+        e.print_runpath()
     else:
         new_rpath = args[1]
         e.fix_rpath(new_rpath)
