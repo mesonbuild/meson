@@ -142,6 +142,7 @@ base_options = {
                                                        ['none', 'address', 'thread', 'undefined', 'memory'],
                                                        'none'),
                 'b_lundef': coredata.UserBooleanOption('b_lundef', 'Use -Wl,--no-undefined when linking', True),
+                'b_asneeded': coredata.UserBooleanOption('b_asneeded', 'Use -Wl,--as-needed when linking', True),
                 'b_pgo': coredata.UserComboOption('b_pgo', 'Use profile guide optimization',
                                                   ['off', 'generate', 'use'],
                                                   'off'),
@@ -221,6 +222,11 @@ def get_base_link_args(options, linker):
     try:
         if options['b_lundef'].value:
             args.append('-Wl,--no-undefined')
+    except KeyError:
+        pass
+    try:
+        if options['b_asneeded'].value:
+            args.append('-Wl,--as-needed')
     except KeyError:
         pass
     try:
@@ -1661,6 +1667,7 @@ class GnuCCompiler(CCompiler):
                              'b_colorout']
         if self.gcc_type != GCC_OSX:
             self.base_options.append('b_lundef')
+            self.base_options.append('b_asneeded')
 
     def get_colorout_args(self, colortype):
         if mesonlib.version_compare(self.version, '>=4.9.0'):
@@ -1731,6 +1738,7 @@ class GnuObjCCompiler(ObjCCompiler):
         self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage']
         if self.gcc_type != GCC_OSX:
             self.base_options.append('b_lundef')
+            self.base_options.append('b_asneeded')
 
     def get_buildtype_args(self, buildtype):
         return gnulike_buildtype_args[buildtype]
@@ -1759,6 +1767,7 @@ class GnuObjCPPCompiler(ObjCPPCompiler):
         self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage']
         if self.gcc_type != GCC_OSX:
             self.base_options.append('b_lundef')
+            self.base_options.append('b_asneeded')
 
     def get_buildtype_args(self, buildtype):
         return gnulike_buildtype_args[buildtype]
@@ -1780,6 +1789,7 @@ class ClangObjCCompiler(GnuObjCCompiler):
         self.clang_type = cltype
         if self.clang_type != CLANG_OSX:
             self.base_options.append('b_lundef')
+            self.base_options.append('b_asneeded')
 
 class ClangObjCPPCompiler(GnuObjCPPCompiler):
     def __init__(self, exelist, version, cltype, is_cross, exe_wrapper=None):
@@ -1789,6 +1799,7 @@ class ClangObjCPPCompiler(GnuObjCPPCompiler):
         self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage']
         if self.clang_type != CLANG_OSX:
             self.base_options.append('b_lundef')
+            self.base_options.append('b_asneeded')
 
 class ClangCCompiler(CCompiler):
     def __init__(self, exelist, version, clang_type, is_cross, exe_wrapper=None):
@@ -1801,6 +1812,7 @@ class ClangCCompiler(CCompiler):
         self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage']
         if self.clang_type != CLANG_OSX:
             self.base_options.append('b_lundef')
+            self.base_options.append('b_asneeded')
 
     def get_buildtype_args(self, buildtype):
         return gnulike_buildtype_args[buildtype]
@@ -1850,6 +1862,7 @@ class GnuCPPCompiler(CPPCompiler):
                              'b_colorout']
         if self.gcc_type != GCC_OSX:
             self.base_options.append('b_lundef')
+            self.base_options.append('b_asneeded')
 
     def get_colorout_args(self, colortype):
         if mesonlib.version_compare(self.version, '>=4.9.0'):
@@ -1911,6 +1924,7 @@ class ClangCPPCompiler(CPPCompiler):
         self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage']
         if self.clang_type != CLANG_OSX:
             self.base_options.append('b_lundef')
+            self.base_options.append('b_asneeded')
 
     def get_buildtype_args(self, buildtype):
         return gnulike_buildtype_args[buildtype]
