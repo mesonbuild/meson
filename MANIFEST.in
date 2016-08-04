@@ -8,7 +8,7 @@ graft tools
 include authors.txt
 include contributing.txt
 include COPYING
-include readme.txt
+include README.md
 include run_cross_test.py
 include run_tests.py
 include ghwt.py
