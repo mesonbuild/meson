@@ -702,23 +702,23 @@ class Environment():
 def get_args_from_envvars(lang):
     if lang == 'c':
         compile_args = os.environ.get('CFLAGS', '').split()
-        link_args = compile_args + os.environ.get('LDFLAGS', '').split()
+        link_args = os.environ.get('LDFLAGS', '').split()
         compile_args += os.environ.get('CPPFLAGS', '').split()
     elif lang == 'cpp':
         compile_args = os.environ.get('CXXFLAGS', '').split()
-        link_args = compile_args + os.environ.get('LDFLAGS', '').split()
+        link_args = os.environ.get('LDFLAGS', '').split()
         compile_args += os.environ.get('CPPFLAGS', '').split()
     elif lang == 'objc':
         compile_args = os.environ.get('OBJCFLAGS', '').split()
-        link_args = compile_args + os.environ.get('LDFLAGS', '').split()
+        link_args = os.environ.get('LDFLAGS', '').split()
         compile_args += os.environ.get('CPPFLAGS', '').split()
     elif lang == 'objcpp':
         compile_args = os.environ.get('OBJCXXFLAGS', '').split()
-        link_args = compile_args + os.environ.get('LDFLAGS', '').split()
+        link_args = os.environ.get('LDFLAGS', '').split()
         compile_args += os.environ.get('CPPFLAGS', '').split()
     elif lang == 'fortran':
         compile_args = os.environ.get('FFLAGS', '').split()
-        link_args = compile_args + os.environ.get('LDFLAGS', '').split()
+        link_args = os.environ.get('LDFLAGS', '').split()
     else:
         compile_args = []
         link_args = []
