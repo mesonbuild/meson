@@ -701,7 +701,7 @@ class Environment():
         return self.coredata.get_builtin_option('datadir')
 
 
-def get_args_from_envvars(lang):
+def get_args_from_envvars(lang, compiler_is_linker):
     """
     @lang: Language to fetch environment flags for
 
@@ -727,15 +727,21 @@ def get_args_from_envvars(lang):
     link_flags = os.environ.get('LDFLAGS', '')
     log_var('LDFLAGS', link_flags)
     link_flags = link_flags.split()
+    if compiler_is_linker:
+        # When the compiler is used as a wrapper around the linker (such as
+        # with GCC and Clang), the compile flags can be needed while linking
+        # too. This is also what Autotools does. However, we don't want to do
+        # this when the linker is stand-alone such as with MSVC C/C++, etc.
+        link_flags = compile_flags + link_flags
 
     # Pre-processof rlags (not for fortran)
     preproc_flags = ''
     if lang in ('c', 'cpp', 'objc', 'objcpp'):
         preproc_flags = os.environ.get('CPPFLAGS', '')
     log_var('CPPFLAGS', preproc_flags)
-    preproc_flags = preproc_flags.split()
+    compile_flags += preproc_flags.split()
 
-    return (compile_flags + preproc_flags, link_flags + compile_flags)
+    return (compile_flags, link_flags)
 
 class CrossBuildInfo():
     def __init__(self, filename):

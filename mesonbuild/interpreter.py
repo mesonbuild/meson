@@ -1619,8 +1619,11 @@ class Interpreter():
                     else:
                         raise
             mlog.log('Native %s compiler: ' % lang, mlog.bold(' '.join(comp.get_exelist())), ' (%s %s)' % (comp.id, comp.version), sep='')
+            compiler_is_linker = False
+            if hasattr(comp, 'get_linker_exelist'):
+                compiler_is_linker = (comp.get_exelist() == comp.get_linker_exelist())
             if not comp.get_language() in self.coredata.external_args:
-                (ext_compile_args, ext_link_args) = environment.get_args_from_envvars(comp.get_language())
+                (ext_compile_args, ext_link_args) = environment.get_args_from_envvars(comp.get_language(), compiler_is_linker)
                 self.coredata.external_args[comp.get_language()] = ext_compile_args
                 self.coredata.external_link_args[comp.get_language()] = ext_link_args
             self.build.add_compiler(comp)
