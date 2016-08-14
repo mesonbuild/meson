@@ -39,3 +39,4 @@ Sam Thursfield
 Noam Meltzer
 Vincent Szolnoky
 Zhe Wang
+Wim Taymans
