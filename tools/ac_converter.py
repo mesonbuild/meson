@@ -275,6 +275,6 @@ for line in open(sys.argv[1]):
         print("cdata.set('%s', cc.sizeof('%s'))" % (elem, typename))
 
 print('''
-configure_file(input : 'config.h.in',
+configure_file(input : 'config.h.meson',
   output : 'config.h',
   configuration : cdata)''')
