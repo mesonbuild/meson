@@ -13,7 +13,9 @@
 # limitations under the License.
 
 import os, re, subprocess, platform
-from . import coredata, mesonlib
+from . import coredata
+from . import mesonlib
+from . import mlog
 from .compilers import *
 import configparser
 
@@ -699,30 +701,47 @@ class Environment():
         return self.coredata.get_builtin_option('datadir')
 
 
-def get_args_from_envvars(lang):
-    if lang == 'c':
-        compile_args = os.environ.get('CFLAGS', '').split()
-        link_args = compile_args + os.environ.get('LDFLAGS', '').split()
-        compile_args += os.environ.get('CPPFLAGS', '').split()
-    elif lang == 'cpp':
-        compile_args = os.environ.get('CXXFLAGS', '').split()
-        link_args = compile_args + os.environ.get('LDFLAGS', '').split()
-        compile_args += os.environ.get('CPPFLAGS', '').split()
-    elif lang == 'objc':
-        compile_args = os.environ.get('OBJCFLAGS', '').split()
-        link_args = compile_args + os.environ.get('LDFLAGS', '').split()
-        compile_args += os.environ.get('CPPFLAGS', '').split()
-    elif lang == 'objcpp':
-        compile_args = os.environ.get('OBJCXXFLAGS', '').split()
-        link_args = compile_args + os.environ.get('LDFLAGS', '').split()
-        compile_args += os.environ.get('CPPFLAGS', '').split()
-    elif lang == 'fortran':
-        compile_args = os.environ.get('FFLAGS', '').split()
-        link_args = compile_args + os.environ.get('LDFLAGS', '').split()
-    else:
-        compile_args = []
-        link_args = []
-    return (compile_args, link_args)
+def get_args_from_envvars(lang, compiler_is_linker):
+    """
+    @lang: Language to fetch environment flags for
+
+    Returns a tuple of (compile_flags, link_flags) for the specified language
+    from the inherited environment
+    """
+    def log_var(var, val):
+        if val:
+            mlog.log('Appending {} from environment: {!r}'.format(var, val))
+
+    if lang not in ('c', 'cpp', 'objc', 'objcpp', 'fortran'):
+        return ([], [])
+
+    # Compile flags
+    cflags_mapping = {'c': 'CFLAGS', 'cpp': 'CXXFLAGS',
+        'objc': 'OBJCFLAGS', 'objcpp': 'OBJCXXFLAGS',
+        'fortran': 'FFLAGS'}
+    compile_flags = os.environ.get(cflags_mapping[lang], '')
+    log_var(cflags_mapping[lang], compile_flags)
+    compile_flags = compile_flags.split()
+
+    # Link flags (same for all languages)
+    link_flags = os.environ.get('LDFLAGS', '')
+    log_var('LDFLAGS', link_flags)
+    link_flags = link_flags.split()
+    if compiler_is_linker:
+        # When the compiler is used as a wrapper around the linker (such as
+        # with GCC and Clang), the compile flags can be needed while linking
+        # too. This is also what Autotools does. However, we don't want to do
+        # this when the linker is stand-alone such as with MSVC C/C++, etc.
+        link_flags = compile_flags + link_flags
+
+    # Pre-processof rlags (not for fortran)
+    preproc_flags = ''
+    if lang in ('c', 'cpp', 'objc', 'objcpp'):
+        preproc_flags = os.environ.get('CPPFLAGS', '')
+    log_var('CPPFLAGS', preproc_flags)
+    compile_flags += preproc_flags.split()
+
+    return (compile_flags, link_flags)
 
 class CrossBuildInfo():
     def __init__(self, filename):

@@ -1255,7 +1255,7 @@ class ValaCompiler(Compiler):
         return False # Because compiles into C.
 
     def get_exelist(self):
-        return self.exelist
+        return self.exelist[:]
 
     def get_werror_args(self):
         return ['--fatal-warnings']
@@ -1299,7 +1299,7 @@ class RustCompiler(Compiler):
         return ' '.join(self.exelist)
 
     def get_exelist(self):
-        return self.exelist
+        return self.exelist[:]
 
     def get_id(self):
         return self.id
@@ -1343,7 +1343,7 @@ class SwiftCompiler(Compiler):
         return self.id
 
     def get_linker_exelist(self):
-        return self.exelist
+        return self.exelist[:]
 
     def name_string(self):
         return ' '.join(self.exelist)
@@ -1352,7 +1352,7 @@ class SwiftCompiler(Compiler):
         return True
 
     def get_exelist(self):
-        return self.exelist
+        return self.exelist[:]
 
     def get_werror_args(self):
         return ['--fatal-warnings']
@@ -1973,7 +1973,7 @@ class FortranCompiler(Compiler):
         return ' '.join(self.exelist)
 
     def get_exelist(self):
-        return self.exelist
+        return self.exelist[:]
 
     def get_language(self):
         return self.language
@@ -2240,7 +2240,7 @@ class VisualStudioLinker():
         self.exelist = exelist
 
     def get_exelist(self):
-        return self.exelist
+        return self.exelist[:]
 
     def get_std_link_args(self):
         return []
@@ -2292,7 +2292,7 @@ class ArLinker():
         return []
 
     def get_exelist(self):
-        return self.exelist
+        return self.exelist[:]
 
     def get_std_link_args(self):
         return self.std_args
