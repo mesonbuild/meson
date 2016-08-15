@@ -256,8 +256,15 @@ class BuildTarget():
                 self.objects.append(s)
             elif isinstance(s, ExtractedObjects):
                 self.objects.append(s)
+            elif isinstance(s, GeneratedList) or isinstance(s, CustomTarget):
+                msg =  'Generated files are not allowed in the \'objects\' kwarg ' + \
+                    'for target {!r}.\nIt is meant only for '.format(self.name) + \
+                    'pre-built object files that are shipped with the\nsource ' + \
+                    'tree. Try adding it in the list of sources.'
+                raise InvalidArguments(msg)
             else:
-                raise InvalidArguments('Bad object in target %s.' % self.name)
+                msg = 'Bad object of type {!r} in target {!r}.'.format(type(s).__name__, self.name)
+                raise InvalidArguments(msg)
 
     def process_sourcelist(self, sources):
         if not isinstance(sources, list):
@@ -274,7 +281,8 @@ class BuildTarget():
             elif isinstance(s, GeneratedList) or isinstance(s, CustomTarget):
                 self.generated.append(s)
             else:
-                raise InvalidArguments('Bad source in target %s.' % self.name)
+                msg = 'Bad source of type {!r} in target {!r}.'.format(type(s).__name__, self.name)
+                raise InvalidArguments(msg)
 
     def validate_sources(self):
         if len(self.sources) > 0:
