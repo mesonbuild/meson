@@ -814,12 +814,10 @@ class SharedLibrary(BuildTarget):
         elif for_darwin(is_cross, env):
             prefix = 'lib'
             suffix = 'dylib'
-            if self.soversion:
-                # libfoo.X.dylib
-                self.filename_tpl = '{0.prefix}{0.name}.{0.soversion}.{0.suffix}'
-            else:
-                # libfoo.dylib
-                self.filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
+            # libfoo.dylib
+            self.filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
+            # On OS X, the filename should never have the soversion
+            # See: https://github.com/mesonbuild/meson/pull/680
         else:
             prefix = 'lib'
             suffix = 'so'
