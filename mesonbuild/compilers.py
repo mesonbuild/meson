@@ -352,6 +352,11 @@ class Compiler():
     def get_colorout_args(self, colortype):
         return []
 
+    # Some compilers (msvc) write debug info to a separate file.
+    # These args specify where it should be written.
+    def get_compile_debugfile_args(self, rel_obj):
+        return []
+
 class CCompiler(Compiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
         super().__init__(exelist, version)
@@ -1598,6 +1603,10 @@ class VisualStudioCCompiler(CCompiler):
         if p.returncode != 0:
             raise MesonException('Compiling test app failed.')
         return not(warning_text in stde or warning_text in stdo)
+
+    def get_compile_debugfile_args(self, rel_obj):
+        pdbarr = rel_obj.split('.')[:-1] + ['pdb']
+        return ['/Fd' + '.'.join(pdbarr)]
 
 class VisualStudioCPPCompiler(VisualStudioCCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrap):

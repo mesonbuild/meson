@@ -1521,6 +1521,7 @@ rule FORTRAN_DEP_HACK
             commands+= compiler.get_include_args(i, False)
         if self.environment.coredata.base_options.get('b_pch', False):
             commands += self.get_pch_include_args(compiler, target)
+        commands += compiler.get_compile_debugfile_args(rel_obj)
         crstr = ''
         if target.is_cross:
             crstr = '_CROSS'
