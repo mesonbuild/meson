@@ -2343,3 +2343,6 @@ class ArLinker():
 
     def unix_compile_flags_to_native(self, args):
         return args[:]
+
+    def get_link_debugfile_args(self, targetfile):
+        return []
