@@ -1521,7 +1521,8 @@ rule FORTRAN_DEP_HACK
             commands+= compiler.get_include_args(i, False)
         if self.environment.coredata.base_options.get('b_pch', False):
             commands += self.get_pch_include_args(compiler, target)
-        commands += compiler.get_compile_debugfile_args(rel_obj)
+
+        commands += compiler.get_compile_debugfile_args(self.get_target_filename_abs(target))
         crstr = ''
         if target.is_cross:
             crstr = '_CROSS'
@@ -1590,6 +1591,8 @@ rule FORTRAN_DEP_HACK
         just_name = os.path.split(header)[1]
         (objname, pch_args) = compiler.gen_pch_args(just_name, source, dst)
         commands += pch_args
+        tfilename = self.get_target_filename_abs(target)
+        commands += compiler.get_compile_debugfile_args(tfilename)
         dep = dst + '.' + compiler.get_depfile_suffix()
         return (commands, dep, dst, [objname])
 
