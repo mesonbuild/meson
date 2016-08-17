@@ -1669,6 +1669,7 @@ rule FORTRAN_DEP_HACK
                                                      linker)
         commands += linker.get_buildtype_linker_args(self.environment.coredata.get_builtin_option('buildtype'))
         commands += linker.get_option_link_args(self.environment.coredata.compiler_options)
+        commands += linker.get_link_debugfile_args(outname)
         if not(isinstance(target, build.StaticLibrary)):
             commands += self.environment.coredata.external_link_args[linker.get_language()]
         if isinstance(target, build.Executable):

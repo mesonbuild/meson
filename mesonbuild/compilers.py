@@ -357,6 +357,9 @@ class Compiler():
     def get_compile_debugfile_args(self, rel_obj):
         return []
 
+    def get_link_debugfile_args(self, rel_obj):
+        return []
+
 class CCompiler(Compiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
         super().__init__(exelist, version)
@@ -1608,6 +1611,10 @@ class VisualStudioCCompiler(CCompiler):
         pdbarr = rel_obj.split('.')[:-1] + ['pdb']
         return ['/Fd' + '.'.join(pdbarr)]
 
+    def get_link_debugfile_args(self, targetfile):
+        pdbarr = targetfile.split('.')[:-1] + ['pdb']
+        return ['/DEBUG', '/PDB:' + '.'.join(pdbarr)]
+
 class VisualStudioCPPCompiler(VisualStudioCCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrap):
         VisualStudioCCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
@@ -2283,6 +2290,10 @@ class VisualStudioLinker():
 
     def unix_compile_flags_to_native(self, args):
         return args[:]
+
+    def get_link_debugfile_args(self, targetfile):
+        pdbarr = targetfile.split('.')[:-1] + ['pdb']
+        return ['/DEBUG', '/PDB:' + '.'.join(pdbarr)]
 
 class ArLinker():
 
