@@ -354,10 +354,10 @@ class Compiler():
 
     # Some compilers (msvc) write debug info to a separate file.
     # These args specify where it should be written.
-    def get_compile_debugfile_args(self, rel_obj):
+    def get_compile_debugfile_args(self, rel_obj, fname_suffix):
         return []
 
-    def get_link_debugfile_args(self, rel_obj):
+    def get_link_debugfile_args(self, rel_obj, fname_suffix):
         return []
 
 class CCompiler(Compiler):
@@ -1607,12 +1607,16 @@ class VisualStudioCCompiler(CCompiler):
             raise MesonException('Compiling test app failed.')
         return not(warning_text in stde or warning_text in stdo)
 
-    def get_compile_debugfile_args(self, rel_obj):
-        pdbarr = rel_obj.split('.')[:-1] + ['pdb']
+    def get_compile_debugfile_args(self, rel_obj, name_suffix):
+        pdbarr = rel_obj.split('.')[:-1]
+        pdbarr[-1] += name_suffix
+        pdbarr += ['pdb']
         return ['/Fd' + '.'.join(pdbarr)]
 
-    def get_link_debugfile_args(self, targetfile):
-        pdbarr = targetfile.split('.')[:-1] + ['pdb']
+    def get_link_debugfile_args(self, targetfile, name_suffix):
+        pdbarr = targetfile.split('.')[:-1]
+        pdbarr[-1] += name_suffix
+        pdbarr += ['pdb']
         return ['/DEBUG', '/PDB:' + '.'.join(pdbarr)]
 
 class VisualStudioCPPCompiler(VisualStudioCCompiler):
@@ -2291,8 +2295,10 @@ class VisualStudioLinker():
     def unix_compile_flags_to_native(self, args):
         return args[:]
 
-    def get_link_debugfile_args(self, targetfile):
-        pdbarr = targetfile.split('.')[:-1] + ['pdb']
+    def get_link_debugfile_args(self, targetfile, name_suffix):
+        pdbarr = targetfile.split('.')[:-1]
+        pdbarr[-1] += name_suffix
+        pdbarr += ['pdb']
         return ['/DEBUG', '/PDB:' + '.'.join(pdbarr)]
 
 class ArLinker():
@@ -2344,5 +2350,5 @@ class ArLinker():
     def unix_compile_flags_to_native(self, args):
         return args[:]
 
-    def get_link_debugfile_args(self, targetfile):
+    def get_link_debugfile_args(self, targetfile, suffix):
         return []

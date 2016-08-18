@@ -1433,6 +1433,33 @@ rule FORTRAN_DEP_HACK
             return []
         return compiler.get_no_stdinc_args()
 
+
+    def get_pdb_name_suffix(self, target):
+        if isinstance(target, build.Executable):
+            suffix = '__exe'
+        elif isinstance(target, build.SharedLibrary):
+            suffix = '__dll'
+        elif isinstance(target, build.StaticLibrary):
+            suffix = '__lib'
+        else:
+            raise MesonException('Tried to build PDB for a non-buildtarget. Please file a bug.')
+        return suffix
+
+
+    def get_compile_debugfile_args(self, compiler, target, objfile):
+        if compiler.id != 'msvc':
+            return []
+        suffix = self.get_pdb_name_suffix(target)
+        if target.has_pch():
+            tfilename = self.get_target_filename_abs(target)
+            return compiler.get_compile_debugfile_args(tfilename, suffix)
+        else:
+            return compiler.get_compile_debugfile_args(objfile, suffix)
+
+    def get_link_debugfile_args(self, linker, target, outname):
+        suffix = self.get_pdb_name_suffix(target)
+        return linker.get_link_debugfile_args(outname, suffix)
+
     def generate_single_compile(self, target, outfile, src, is_generated=False, header_deps=[], order_deps=[]):
         if(isinstance(src, str) and src.endswith('.h')):
             raise RuntimeError('Fug')
@@ -1522,7 +1549,7 @@ rule FORTRAN_DEP_HACK
         if self.environment.coredata.base_options.get('b_pch', False):
             commands += self.get_pch_include_args(compiler, target)
 
-        commands += compiler.get_compile_debugfile_args(self.get_target_filename_abs(target))
+        commands += self.get_compile_debugfile_args(compiler, target, rel_obj)
         crstr = ''
         if target.is_cross:
             crstr = '_CROSS'
@@ -1591,8 +1618,7 @@ rule FORTRAN_DEP_HACK
         just_name = os.path.split(header)[1]
         (objname, pch_args) = compiler.gen_pch_args(just_name, source, dst)
         commands += pch_args
-        tfilename = self.get_target_filename_abs(target)
-        commands += compiler.get_compile_debugfile_args(tfilename)
+        commands += self.get_compile_debugfile_args(compiler, target, objname)
         dep = dst + '.' + compiler.get_depfile_suffix()
         return (commands, dep, dst, [objname])
 
@@ -1672,7 +1698,7 @@ rule FORTRAN_DEP_HACK
                                                      linker)
         commands += linker.get_buildtype_linker_args(self.environment.coredata.get_builtin_option('buildtype'))
         commands += linker.get_option_link_args(self.environment.coredata.compiler_options)
-        commands += linker.get_link_debugfile_args(outname)
+        commands += self.get_link_debugfile_args(linker, target, outname)
         if not(isinstance(target, build.StaticLibrary)):
             commands += self.environment.coredata.external_link_args[linker.get_language()]
         if isinstance(target, build.Executable):
