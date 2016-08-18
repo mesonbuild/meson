@@ -876,6 +876,8 @@ class SharedLibrary(BuildTarget):
                 self.vs_module_defs = File.from_absolute_file(path)
             else:
                 self.vs_module_defs = File.from_source_file(environment.source_dir, self.subdir, path)
+            # link_depends can be an absolute path or relative to self.subdir
+            self.link_depends.append(path)
 
     def check_unknown_kwargs(self, kwargs):
         self.check_unknown_kwargs_int(kwargs, known_shlib_kwargs)
