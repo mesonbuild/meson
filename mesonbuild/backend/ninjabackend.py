@@ -1449,6 +1449,30 @@ rule FORTRAN_DEP_HACK
     def get_compile_debugfile_args(self, compiler, target, objfile):
         if compiler.id != 'msvc':
             return []
+        # The way MSVC uses PDB files is documented exactly nowhere so
+        # the following is what we have been able to decipher via reverse
+        # engineering.
+        #
+        # Each object file gets the path of its PDB file written inside it.
+        # This can be either the final PDB (for, say, foo.exe) or an object
+        # pdb (for foo.obj). If the former, then each compilation step locks
+        # the pdb file for writing, which is a bottleneck and object files from
+        # one target can not be used in a different target. The latter seems
+        # to be the sensible one (and what Unix does) but there is a catch.
+        # If you try to use precompiled headers MSVC will error out because
+        # both source and pch pdbs go in the same file and they must be the same.
+        # This means:
+        #
+        # - pch files must be compiled anew for every object file (negating
+        #   the entire point of having them in the first place)
+        # - when using pch, output must go to the target pdb
+        #
+        # Since both of these are broken in some way, use the one that works
+        # for each target. This unfortunately means that you can't combine
+        # pch and object extraction in a single target.
+        #
+        # If you feel that the above is completely wrong and all of this is
+        # actually doable, please send patches.
         suffix = self.get_pdb_name_suffix(target)
         if target.has_pch():
             tfilename = self.get_target_filename_abs(target)
