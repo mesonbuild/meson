@@ -18,6 +18,7 @@ from . import mesonlib
 from . import mlog
 from .compilers import *
 import configparser
+import shutil
 
 build_filename = 'meson.build'
 
@@ -580,6 +581,49 @@ class Environment():
             return RustCompiler(exelist, version)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
 
+    def detect_d_compiler(self):
+        exelist = None
+        is_cross = False
+        # Search for a D compiler.
+        # We prefer LDC over GDC unless overridden with the DC
+        # environment variable because LDC has a much more
+        # up to date language version at time (2016).
+        if 'DC' in os.environ:
+            exelist = os.environ['DC'].split()
+        elif self.is_cross_build() and want_cross:
+            exelist = [self.cross_info.config['binaries']['d']]
+            ccache = []
+            is_cross = True
+        elif shutil.which("ldc2"):
+            exelist = ['ldc2']
+        elif shutil.which("ldc"):
+            exelist = ['ldc']
+        elif shutil.which("gdc"):
+            exelist = ['gdc']
+        elif shutil.which("dmd"):
+            exelist = ['dmd']
+        else:
+            raise EnvironmentException('Could not find any supported D compiler.')
+
+        try:
+            p = subprocess.Popen(exelist + ['--version'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        except OSError:
+            raise EnvironmentException('Could not execute D compiler "%s"' % ' '.join(exelist))
+        (out, _) = p.communicate()
+        out = out.decode(errors='ignore')
+        vmatch = re.search(Environment.version_regex, out)
+        if vmatch:
+            version = vmatch.group(0)
+        else:
+            version = 'unknown version'
+        if 'LLVM D compiler' in out:
+            return LLVMDCompiler(exelist, version, is_cross)
+        elif 'gdc' in out:
+            return GnuDCompiler(exelist, version, is_cross)
+        elif 'Digital Mars' in out:
+            return DmdDCompiler(exelist, version, is_cross)
+        raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
+
     def detect_swift_compiler(self):
         exelist = ['swiftc']
         try:
@@ -712,13 +756,14 @@ def get_args_from_envvars(lang, compiler_is_linker):
         if val:
             mlog.log('Appending {} from environment: {!r}'.format(var, val))
 
-    if lang not in ('c', 'cpp', 'objc', 'objcpp', 'fortran'):
+    if lang not in ('c', 'cpp', 'objc', 'objcpp', 'fortran', 'd'):
         return ([], [])
 
     # Compile flags
     cflags_mapping = {'c': 'CFLAGS', 'cpp': 'CXXFLAGS',
         'objc': 'OBJCFLAGS', 'objcpp': 'OBJCXXFLAGS',
-        'fortran': 'FFLAGS'}
+        'fortran': 'FFLAGS',
+        'd': 'DFLAGS'}
     compile_flags = os.environ.get(cflags_mapping[lang], '')
     log_var(cflags_mapping[lang], compile_flags)
     compile_flags = compile_flags.split()

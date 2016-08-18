@@ -304,6 +304,17 @@ def gather_tests(testdir):
     tests = [os.path.join(testdir, t[1]) for t in testlist]
     return tests
 
+def have_d_compiler():
+    if shutil.which("ldc2"):
+        return True
+    elif shutil.which("ldc"):
+        return True
+    elif shutil.which("gdc"):
+        return True
+    elif shutil.which("dmd"):
+        return True
+    return False
+
 def detect_tests_to_run():
     all_tests = []
     all_tests.append(('common', gather_tests('test cases/common'), False))
@@ -318,6 +329,7 @@ def detect_tests_to_run():
     all_tests.append(('C#', gather_tests('test cases/csharp'), False if shutil.which('mcs') else True))
     all_tests.append(('vala', gather_tests('test cases/vala'), False if shutil.which('valac') else True))
     all_tests.append(('rust', gather_tests('test cases/rust'), False if shutil.which('rustc') else True))
+    all_tests.append(('d', gather_tests('test cases/d'), False if have_d_compiler() else True))
     all_tests.append(('objective c', gather_tests('test cases/objc'), False if not mesonlib.is_windows() else True))
     all_tests.append(('fortran', gather_tests('test cases/fortran'), False if shutil.which('gfortran') else True))
     all_tests.append(('swift', gather_tests('test cases/swift'), False if shutil.which('swiftc') else True))

@@ -20,6 +20,7 @@ import os, re
 forbidden_option_names = coredata.get_builtin_options()
 forbidden_prefixes = {'c_': True,
                       'cpp_': True,
+                      'd_': True,
                       'rust_': True,
                       'fortran_': True,
                       'objc_': True,

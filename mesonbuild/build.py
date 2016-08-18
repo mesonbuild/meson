@@ -27,6 +27,7 @@ known_basic_kwargs = {'install' : True,
                       'cpp_args' : True,
                       'cs_args' : True,
                       'vala_args' : True,
+                      'd_args' : True,
                       'link_args' : True,
                       'link_depends': True,
                       'link_with' : True,
@@ -385,6 +386,10 @@ class BuildTarget():
         if not isinstance(valalist, list):
             valalist = [valalist]
         self.add_compiler_args('vala', valalist)
+        dlist = kwargs.get('d_args', [])
+        if not isinstance(dlist, list):
+            dlist = [dlist]
+        self.add_compiler_args('d', dlist)
         self.link_args = kwargs.get('link_args', [])
         if not isinstance(self.link_args, list):
             self.link_args = [self.link_args]

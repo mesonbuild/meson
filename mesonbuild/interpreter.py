@@ -1566,6 +1566,10 @@ class Interpreter():
             comp = self.environment.detect_vala_compiler()
             if need_cross_compiler:
                         cross_comp = comp  # Vala is too (I think).
+        elif lang == 'd':
+            comp = self.environment.detect_d_compiler()
+            if need_cross_compiler:
+                cross_comp = comp  # D as well (AFAIK).
         elif lang == 'rust':
             comp = self.environment.detect_rust_compiler()
             if need_cross_compiler:

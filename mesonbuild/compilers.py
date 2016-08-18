@@ -23,7 +23,7 @@ from . import coredata
 about. To support a new compiler, add its information below.
 Also add corresponding autodetection code in environment.py."""
 
-header_suffixes = ['h', 'hh', 'hpp', 'hxx', 'H', 'ipp', 'moc', 'vapi']
+header_suffixes = ['h', 'hh', 'hpp', 'hxx', 'H', 'ipp', 'moc', 'vapi', 'di']
 cpp_suffixes = ['cc', 'cpp', 'cxx', 'h', 'hh', 'hpp', 'ipp', 'hxx', 'c++']
 c_suffixes = ['c']
 clike_suffixes = c_suffixes + cpp_suffixes
@@ -105,6 +105,27 @@ rust_buildtype_args = {'plain' : [],
                        'debug' : ['-g'],
                        'debugoptimized' : ['-g', '--opt-level', '2'],
                        'release' : ['--opt-level', '3'],
+                       'minsize' : [],
+                       }
+
+d_gdc_buildtype_args = {'plain' : [],
+                       'debug' : ['-g', '-O0'],
+                       'debugoptimized' : ['-g', '-O'],
+                       'release' : ['-O3', '-frelease'],
+                       'minsize' : [],
+                       }
+
+d_ldc_buildtype_args = {'plain' : [],
+                       'debug' : ['-g', '-O0'],
+                       'debugoptimized' : ['-g', '-O'],
+                       'release' : ['-O3', '-release'],
+                       'minsize' : [],
+                       }
+
+d_dmd_buildtype_args = {'plain' : [],
+                       'debug' : ['-g'],
+                       'debugoptimized' : ['-g', '-O'],
+                       'release' : ['-O', '-release'],
                        'minsize' : [],
                        }
 
@@ -1424,6 +1445,264 @@ class SwiftCompiler(Compiler):
     def can_compile(self, filename):
         suffix = filename.split('.')[-1]
         return suffix in ('swift')
+
+class DCompiler(Compiler):
+    def __init__(self, exelist, version, is_cross):
+        super().__init__(exelist, version)
+        self.id = 'unknown'
+        self.language = 'd'
+        self.is_cross = is_cross
+
+    def sanity_check(self, work_dir, environment):
+        source_name = os.path.join(work_dir, 'sanity.d')
+        output_name = os.path.join(work_dir, 'dtest')
+        ofile = open(source_name, 'w')
+        ofile.write('''void main() {
+}
+''')
+        ofile.close()
+        pc = subprocess.Popen(self.exelist + self.get_output_args(output_name) + [source_name], cwd=work_dir)
+        pc.wait()
+        if pc.returncode != 0:
+            raise EnvironmentException('D compiler %s can not compile programs.' % self.name_string())
+        if subprocess.call(output_name) != 0:
+            raise EnvironmentException('Executables created by D compiler %s are not runnable.' % self.name_string())
+
+    def needs_static_linker(self):
+        return True
+
+    def name_string(self):
+        return ' '.join(self.exelist)
+
+    def get_exelist(self):
+        return self.exelist
+
+    def get_id(self):
+        return self.id
+
+    def get_language(self):
+        return self.language
+
+    def can_compile(self, fname):
+        suffix = fname.split('.')[-1]
+        return suffix in ('d', 'di')
+
+    def get_linker_exelist(self):
+        return self.exelist[:]
+
+    def depfile_for_object(self, objfile):
+        return objfile + '.' + self.get_depfile_suffix()
+
+    def get_depfile_suffix(self):
+        return 'dep'
+
+    def get_pic_args(self):
+        return ['-fPIC']
+
+    def get_std_shared_lib_link_args(self):
+        return ['-shared']
+
+    def get_soname_args(self, shlib_name, path, soversion):
+        return []
+
+    def build_rpath_args(self, build_dir, rpath_paths, install_rpath):
+        # This method is to be used by LDC and DMD.
+        # GDC can deal with the verbatim flags.
+        if len(rpath_paths) == 0 and len(install_rpath) == 0:
+            return []
+        paths = ':'.join([os.path.join(build_dir, p) for p in rpath_paths])
+        if len(paths) < len(install_rpath):
+            padding = 'X'*(len(install_rpath) - len(paths))
+            if len(paths) == 0:
+                paths = padding
+            else:
+                paths = paths + ':' + padding
+        return ['-L-rpath={}'.format(paths)]
+
+class GnuDCompiler(DCompiler):
+    def __init__(self, exelist, version, is_cross):
+        DCompiler.__init__(self, exelist, version, is_cross)
+        self.id = 'gcc'
+        self.warn_args = {'1': ['-Wall', '-Wdeprecated'],
+                          '2': ['-Wall', '-Wextra', '-Wdeprecated'],
+                          '3': ['-Wall', '-Wextra', '-Wdeprecated', '-Wpedantic']}
+
+    def get_dependency_gen_args(self, outtarget, outfile):
+        # FIXME: Passing -fmake-deps results in a file-not-found message.
+        # Investigate why.
+        return []
+
+    def get_output_args(self, target):
+        return ['-o', target]
+
+    def get_compile_only_args(self):
+        return ['-c']
+
+    def get_linker_output_args(self, target):
+        return ['-o', target]
+
+    def get_include_args(self, path, is_system):
+        return ['-I' + path]
+
+    def get_warn_args(self, level):
+        return self.warn_args[level]
+
+    def get_werror_args(self):
+        return ['-Werror']
+
+    def get_buildtype_linker_args(self, buildtype):
+        return []
+
+    def get_std_exe_link_args(self):
+        return []
+
+    def get_buildtype_args(self, buildtype):
+        return d_gdc_buildtype_args[buildtype]
+
+    def build_rpath_args(self, build_dir, rpath_paths, install_rpath):
+        return build_unix_rpath_args(build_dir, rpath_paths, install_rpath)
+
+class LLVMDCompiler(DCompiler):
+    def __init__(self, exelist, version, is_cross):
+        DCompiler.__init__(self, exelist, version, is_cross)
+        self.id = 'llvm'
+
+    def get_dependency_gen_args(self, outtarget, outfile):
+        # LDC using the -deps flag returns a non-Makefile dependency-info file, which
+        # the backends can not use. So we disable this feature for now.
+        return []
+
+    def get_output_args(self, target):
+        return ['-of', target]
+
+    def get_compile_only_args(self):
+        return ['-c']
+
+    def get_linker_output_args(self, target):
+        return ['-of', target]
+
+    def get_include_args(self, path, is_system):
+        return ['-I' + path]
+
+    def get_warn_args(self, level):
+        if level == '2':
+            return ['-wi']
+        else:
+            return ['-w']
+
+    def get_coverage_args(self):
+        return ['-cov']
+
+    def get_buildtype_linker_args(self, buildtype):
+        return []
+
+    def get_std_exe_link_args(self):
+        return []
+
+    def get_buildtype_args(self, buildtype):
+        return d_ldc_buildtype_args[buildtype]
+
+    def get_pic_args(self):
+        return ['-relocation-model=pic']
+
+    def _translate_args(self, args):
+        ldcargs = []
+        # Translate common arguments to flags this compiler can
+        # understand.
+        # The flags might have been added by pkg-config files,
+        # and are therefore out of the user's control.
+        for arg in args:
+            if arg == '-pthread':
+                continue
+            if arg.startswith('-Wl,'):
+                linkargs = arg[arg.index(',')+1:].split(',')
+                for la in linkargs:
+                    ldcargs.append('-L' + la.strip())
+                continue
+            elif arg.startswith('-l'):
+                # translate library link flag
+                ldcargs.append('-L' + arg)
+                continue
+            ldcargs.append(arg)
+
+        return ldcargs
+
+    def unix_link_flags_to_native(self, args):
+        return self._translate_args(args)
+
+    def unix_compile_flags_to_native(self, args):
+        return self._translate_args(args)
+
+class DmdDCompiler(DCompiler):
+    def __init__(self, exelist, version, is_cross):
+        DCompiler.__init__(self, exelist, version, is_cross)
+        self.id = 'dmd'
+
+    def get_dependency_gen_args(self, outtarget, outfile):
+        # LDC using the -deps flag returns a non-Makefile dependency-info file, which
+        # the backends can not use. So we disable this feature for now.
+        return []
+
+    def get_output_args(self, target):
+        return ['-of' + target]
+
+    def get_werror_args(self):
+        return ['-w']
+
+    def get_compile_only_args(self):
+        return ['-c']
+
+    def get_linker_output_args(self, target):
+        return ['-of' + target]
+
+    def get_include_args(self, path, is_system):
+        return ['-I' + path]
+
+    def get_warn_args(self, level):
+        return []
+
+    def get_coverage_args(self):
+        return ['-cov']
+
+    def get_buildtype_linker_args(self, buildtype):
+        return []
+
+    def get_std_exe_link_args(self):
+        return []
+
+    def get_buildtype_args(self, buildtype):
+        return d_dmd_buildtype_args[buildtype]
+
+    def get_std_shared_lib_link_args(self):
+        return ['-shared', '-defaultlib=libphobos2.so']
+
+    def _translate_args(self, args):
+        dmdargs = []
+        # Translate common arguments to flags this compiler can
+        # understand.
+        # The flags might have been added by pkg-config files,
+        # and are therefore out of the user's control.
+        for arg in args:
+            if arg == '-pthread':
+                continue
+            if arg.startswith('-Wl,'):
+                linkargs = arg[arg.index(',')+1:].split(',')
+                for la in linkargs:
+                    dmdargs.append('-L' + la.strip())
+                continue
+            elif arg.startswith('-l'):
+                # translate library link flag
+                dmdargs.append('-L' + arg)
+                continue
+            dmdargs.append(arg)
+
+        return dmdargs
+
+    def unix_link_flags_to_native(self, args):
+        return self._translate_args(args)
+
+    def unix_compile_flags_to_native(self, args):
+        return self._translate_args(args)
 
 class VisualStudioCCompiler(CCompiler):
     std_warn_args = ['/W3']
