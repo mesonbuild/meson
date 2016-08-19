@@ -1,0 +1,4 @@
+usr/bin/appdc_d?exe
+usr/lib/libstuff.so
+usr/bin/appdc_s?exe
+usr/lib/libstuff.a
