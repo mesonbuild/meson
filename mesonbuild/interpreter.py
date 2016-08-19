@@ -597,6 +597,7 @@ class CompilerHolder(InterpreterObject):
                              'find_library': self.find_library_method,
                              'has_argument' : self.has_argument_method,
                              'first_supported_argument' : self.first_supported_argument_method,
+                             'get_unittest_flag' : self.get_unittest_flag_method,
                             })
 
     def version_method(self, args, kwargs):
@@ -649,6 +650,12 @@ class CompilerHolder(InterpreterObject):
 
     def get_id_method(self, args, kwargs):
         return self.compiler.get_id()
+
+    def get_unittest_flag_method(self, args, kwargs):
+        # At time, only D compilers have this feature.
+        if not getattr(self.compiler, "get_unittest_flag", None):
+            return ''
+        return self.compiler.get_unittest_flag()
 
     def has_member_method(self, args, kwargs):
         if len(args) != 2:

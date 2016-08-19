@@ -1505,6 +1505,9 @@ class DCompiler(Compiler):
     def get_soname_args(self, shlib_name, path, soversion):
         return []
 
+    def get_unittest_flag(self):
+        return ['-unittest']
+
     def build_rpath_args(self, build_dir, rpath_paths, install_rpath):
         # This method is to be used by LDC and DMD.
         # GDC can deal with the verbatim flags.
@@ -1561,6 +1564,9 @@ class GnuDCompiler(DCompiler):
 
     def build_rpath_args(self, build_dir, rpath_paths, install_rpath):
         return build_unix_rpath_args(build_dir, rpath_paths, install_rpath)
+
+    def get_unittest_flag(self):
+        return ['-funittest']
 
 class LLVMDCompiler(DCompiler):
     def __init__(self, exelist, version, is_cross):
