@@ -1,0 +1,9 @@
+usr/lib/libsome.so
+usr/lib/libsome.so.0
+usr/lib/libsome.so.1.2.3
+usr/lib/libnoversion.so
+usr/lib/libonlyversion.so
+usr/lib/libonlyversion.so.1
+usr/lib/libonlyversion.so.1.4.5
+usr/lib/libonlysoversion.so
+usr/lib/libonlysoversion.so.5

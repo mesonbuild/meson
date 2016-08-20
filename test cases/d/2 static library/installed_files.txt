@@ -1,0 +1,2 @@
+usr/bin/app_s?exe
+usr/lib/libstuff.a
