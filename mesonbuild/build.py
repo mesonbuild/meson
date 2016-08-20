@@ -17,7 +17,7 @@ from . import environment
 from . import dependencies
 from . import mlog
 import copy, os, re
-from .mesonlib import File, flatten, MesonException
+from .mesonlib import File, flatten, MesonException, stringlistify
 from .environment import for_windows, for_darwin
 
 known_basic_kwargs = {'install' : True,
@@ -386,9 +386,7 @@ class BuildTarget():
         if not isinstance(valalist, list):
             valalist = [valalist]
         self.add_compiler_args('vala', valalist)
-        dlist = kwargs.get('d_args', [])
-        if not isinstance(dlist, list):
-            dlist = [dlist]
+        dlist = stringlistify(kwargs.get('d_args', []))
         self.add_compiler_args('d', dlist)
         self.link_args = kwargs.get('link_args', [])
         if not isinstance(self.link_args, list):
