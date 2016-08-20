@@ -551,6 +551,11 @@ class Backend():
             else:
                 if '@OUTDIR@' in i:
                     i = i.replace('@OUTDIR@', outdir)
+                elif '@DEPFILE@' in i:
+                    if target.depfile is None:
+                        raise MesonException('Custom target %s has @DEPFILE@ but no depfile keyword argument.' % target.name)
+                    dfilename = os.path.join(self.get_target_private_dir(target), target.depfile)
+                    i = i.replace('@DEPFILE@', dfilename)
                 elif '@PRIVATE_OUTDIR_' in i:
                     match = re.search('@PRIVATE_OUTDIR_(ABS_)?([-a-zA-Z0-9.@:]*)@', i)
                     source = match.group(0)
@@ -558,7 +563,6 @@ class Backend():
                         lead_dir = ''
                     else:
                         lead_dir = self.environment.get_build_dir()
-                    target_id = match.group(2)
                     i = i.replace(source,
                                   os.path.join(lead_dir,
                                                outdir))

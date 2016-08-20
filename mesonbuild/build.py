@@ -931,6 +931,7 @@ class CustomTarget:
                     'build_always' : True,
                     'depends' : True,
                     'depend_files' : True,
+                    'depfile' : True,
                     }
 
     def __init__(self, name, subdir, kwargs):
@@ -939,6 +940,7 @@ class CustomTarget:
         self.dependencies = []
         self.extra_depends = []
         self.depend_files = [] # Files that this target depends on but are not on the command line.
+        self.depfile = None
         self.process_kwargs(kwargs)
         self.extra_files = []
         self.install_rpath = ''
@@ -983,6 +985,13 @@ class CustomTarget:
                 raise InvalidArguments('Output must not contain a path segment.')
         if 'command' not in kwargs:
             raise InvalidArguments('Missing keyword argument "command".')
+        if 'depfile' in kwargs:
+            depfile = kwargs['depfile']
+            if not isinstance(depfile, str):
+                raise InvalidArguments('Depfile must be a string.')
+            if os.path.split(depfile)[1] != depfile:
+                raise InvalidArguments('Depfile must be a plain filename without a subdirectory.')
+            self.depfile = depfile
         cmd = kwargs['command']
         if not(isinstance(cmd, list)):
             cmd = [cmd]

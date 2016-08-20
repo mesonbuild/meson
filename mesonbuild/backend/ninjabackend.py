@@ -366,7 +366,11 @@ int dummy;
         desc = 'Generating {0} with a {1} command.'
         if target.build_always:
             deps.append('PHONY')
-        elem = NinjaBuildElement(self.all_outputs, ofilenames, 'CUSTOM_COMMAND', srcs)
+        if target.depfile is None:
+            rulename = 'CUSTOM_COMMAND'
+        else:
+            rulename = 'CUSTOM_COMMAND_DEP'
+        elem = NinjaBuildElement(self.all_outputs, ofilenames, rulename, srcs)
         for i in target.depend_files:
             if isinstance(i, mesonlib.File):
                 deps.append(i.rel_to_builddir(self.build_to_src))
@@ -394,6 +398,11 @@ int dummy;
         else:
             cmd_type = 'custom'
 
+        if target.depfile is not None:
+            rel_dfile = os.path.join(self.get_target_private_dir(target), target.depfile)
+            abs_pdir = os.path.join(self.environment.get_build_dir(), self.get_target_private_dir(target))
+            os.makedirs(abs_pdir, exist_ok=True)
+            elem.add_item('DEPFILE', rel_dfile)
         elem.add_item('COMMAND', cmd)
         elem.add_item('description',  desc.format(target.name, cmd_type))
         elem.write(outfile)
@@ -636,7 +645,6 @@ int dummy;
             velem.write(outfile)
 
         # And then benchmarks.
-        benchmark_script = os.path.join(script_root, 'meson_benchmark.py')
         cmd = [sys.executable, self.environment.get_build_command(), '--internal', 'benchmark', benchmark_data]
         elem = NinjaBuildElement(self.all_outputs, 'benchmark', 'CUSTOM_COMMAND', ['all', 'PHONY'])
         elem.add_item('COMMAND', cmd)
@@ -656,6 +664,14 @@ int dummy;
         outfile.write('rule CUSTOM_COMMAND\n')
         outfile.write(' command = $COMMAND\n')
         outfile.write(' description = $DESC\n')
+        outfile.write(' restat = 1\n\n')
+        # Ninja errors out if you have deps = gcc but no depfile, so we must
+        # have two rules for custom commands.
+        outfile.write('rule CUSTOM_COMMAND_DEP\n')
+        outfile.write(' command = $COMMAND\n')
+        outfile.write(' description = $DESC\n')
+        outfile.write(' deps = gcc\n')
+        outfile.write(' depfile = $DEPFILE\n')
         outfile.write(' restat = 1\n\n')
         outfile.write('rule REGENERATE_BUILD\n')
         c = (quote_char + ninja_quote(sys.executable) + quote_char,
