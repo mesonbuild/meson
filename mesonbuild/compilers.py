@@ -1505,7 +1505,7 @@ class DCompiler(Compiler):
     def get_soname_args(self, shlib_name, path, soversion):
         return []
 
-    def get_unittest_flag(self):
+    def get_unittest_args(self):
         return ['-unittest']
 
     def get_buildtype_linker_args(self, buildtype):
@@ -1587,7 +1587,7 @@ class GnuDCompiler(DCompiler):
     def build_rpath_args(self, build_dir, rpath_paths, install_rpath):
         return build_unix_rpath_args(build_dir, rpath_paths, install_rpath)
 
-    def get_unittest_flag(self):
+    def get_unittest_args(self):
         return ['-funittest']
 
 class LLVMDCompiler(DCompiler):
