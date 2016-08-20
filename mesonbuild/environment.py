@@ -592,7 +592,6 @@ class Environment():
             exelist = os.environ['DC'].split()
         elif self.is_cross_build() and want_cross:
             exelist = [self.cross_info.config['binaries']['d']]
-            ccache = []
             is_cross = True
         elif shutil.which("ldc2"):
             exelist = ['ldc2']

@@ -1508,6 +1508,12 @@ class DCompiler(Compiler):
     def get_unittest_flag(self):
         return ['-unittest']
 
+    def get_buildtype_linker_args(self, buildtype):
+        return []
+
+    def get_std_exe_link_args(self):
+        return []
+
     def build_rpath_args(self, build_dir, rpath_paths, install_rpath):
         # This method is to be used by LDC and DMD.
         # GDC can deal with the verbatim flags.
@@ -1521,6 +1527,28 @@ class DCompiler(Compiler):
             else:
                 paths = paths + ':' + padding
         return ['-L-rpath={}'.format(paths)]
+
+    def translate_args_to_nongnu(self, args):
+        dcargs = []
+        # Translate common arguments to flags the LDC/DMD compilers
+        # can understand.
+        # The flags might have been added by pkg-config files,
+        # and are therefore out of the user's control.
+        for arg in args:
+            if arg == '-pthread':
+                continue
+            if arg.startswith('-Wl,'):
+                linkargs = arg[arg.index(',')+1:].split(',')
+                for la in linkargs:
+                    dcargs.append('-L' + la.strip())
+                continue
+            elif arg.startswith(('-l', '-L')):
+                # translate library link flag
+                dcargs.append('-L' + arg)
+                continue
+            dcargs.append(arg)
+
+        return dcargs
 
 class GnuDCompiler(DCompiler):
     def __init__(self, exelist, version, is_cross):
@@ -1552,12 +1580,6 @@ class GnuDCompiler(DCompiler):
 
     def get_werror_args(self):
         return ['-Werror']
-
-    def get_buildtype_linker_args(self, buildtype):
-        return []
-
-    def get_std_exe_link_args(self):
-        return []
 
     def get_buildtype_args(self, buildtype):
         return d_gdc_buildtype_args[buildtype]
@@ -1599,45 +1621,17 @@ class LLVMDCompiler(DCompiler):
     def get_coverage_args(self):
         return ['-cov']
 
-    def get_buildtype_linker_args(self, buildtype):
-        return []
-
-    def get_std_exe_link_args(self):
-        return []
-
     def get_buildtype_args(self, buildtype):
         return d_ldc_buildtype_args[buildtype]
 
     def get_pic_args(self):
         return ['-relocation-model=pic']
 
-    def _translate_args(self, args):
-        ldcargs = []
-        # Translate common arguments to flags this compiler can
-        # understand.
-        # The flags might have been added by pkg-config files,
-        # and are therefore out of the user's control.
-        for arg in args:
-            if arg == '-pthread':
-                continue
-            if arg.startswith('-Wl,'):
-                linkargs = arg[arg.index(',')+1:].split(',')
-                for la in linkargs:
-                    ldcargs.append('-L' + la.strip())
-                continue
-            elif arg.startswith('-l'):
-                # translate library link flag
-                ldcargs.append('-L' + arg)
-                continue
-            ldcargs.append(arg)
-
-        return ldcargs
-
     def unix_link_flags_to_native(self, args):
-        return self._translate_args(args)
+        return self.translate_args_to_nongnu(args)
 
     def unix_compile_flags_to_native(self, args):
-        return self._translate_args(args)
+        return self.translate_args_to_nongnu(args)
 
 class DmdDCompiler(DCompiler):
     def __init__(self, exelist, version, is_cross):
@@ -1670,45 +1664,17 @@ class DmdDCompiler(DCompiler):
     def get_coverage_args(self):
         return ['-cov']
 
-    def get_buildtype_linker_args(self, buildtype):
-        return []
-
-    def get_std_exe_link_args(self):
-        return []
-
     def get_buildtype_args(self, buildtype):
         return d_dmd_buildtype_args[buildtype]
 
     def get_std_shared_lib_link_args(self):
         return ['-shared', '-defaultlib=libphobos2.so']
 
-    def _translate_args(self, args):
-        dmdargs = []
-        # Translate common arguments to flags this compiler can
-        # understand.
-        # The flags might have been added by pkg-config files,
-        # and are therefore out of the user's control.
-        for arg in args:
-            if arg == '-pthread':
-                continue
-            if arg.startswith('-Wl,'):
-                linkargs = arg[arg.index(',')+1:].split(',')
-                for la in linkargs:
-                    dmdargs.append('-L' + la.strip())
-                continue
-            elif arg.startswith('-l'):
-                # translate library link flag
-                dmdargs.append('-L' + arg)
-                continue
-            dmdargs.append(arg)
-
-        return dmdargs
-
     def unix_link_flags_to_native(self, args):
-        return self._translate_args(args)
+        return self.translate_args_to_nongnu(args)
 
     def unix_compile_flags_to_native(self, args):
-        return self._translate_args(args)
+        return self.translate_args_to_nongnu(args)
 
 class VisualStudioCCompiler(CCompiler):
     std_warn_args = ['/W3']
