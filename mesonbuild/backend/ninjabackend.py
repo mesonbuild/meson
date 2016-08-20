@@ -1367,8 +1367,16 @@ rule FORTRAN_DEP_HACK
             infilename = os.path.join(self.build_to_src, curfile)
             outfiles = genlist.get_outputs_for(curfile)
             outfiles = [os.path.join(self.get_target_private_dir(target), of) for of in outfiles]
+            if generator.depfile is None:
+                rulename = 'CUSTOM_COMMAND'
+                args = base_args
+            else:
+                rulename = 'CUSTOM_COMMAND_DEP'
+                depfilename = generator.get_dep_outname(infilename)
+                depfile = os.path.join(self.get_target_private_dir(target), depfilename)
+                args = [x.replace('@DEPFILE@', depfile)  for x in base_args]
             args = [x.replace("@INPUT@", infilename).replace('@OUTPUT@', sole_output)\
-                    for x in base_args]
+                    for x in args]
             args = self.replace_outputs(args, self.get_target_private_dir(target), outfilelist)
             # We have consumed output files, so drop them from the list of remaining outputs.
             if sole_output == '':
@@ -1377,7 +1385,9 @@ rule FORTRAN_DEP_HACK
             args = [x.replace("@SOURCE_DIR@", self.build_to_src).replace("@BUILD_DIR@", relout)
                     for x in args]
             cmdlist = exe_arr + self.replace_extra_args(args, genlist)
-            elem = NinjaBuildElement(self.all_outputs, outfiles, 'CUSTOM_COMMAND', infilename)
+            elem = NinjaBuildElement(self.all_outputs, outfiles, rulename, infilename)
+            if generator.depfile is not None:
+                elem.add_item('DEPFILE', depfile)
             if len(extra_dependencies) > 0:
                 elem.add_dep(extra_dependencies)
             elem.add_item('DESC', 'Generating $out')

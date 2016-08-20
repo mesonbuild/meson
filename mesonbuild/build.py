@@ -612,6 +612,7 @@ class Generator():
         if not isinstance(exe, Executable) and not isinstance(exe, dependencies.ExternalProgram):
             raise InvalidArguments('First generator argument must be an executable.')
         self.exe = exe
+        self.depfile = None
         self.process_kwargs(kwargs)
 
     def __repr__(self):
@@ -633,7 +634,6 @@ class Generator():
             if not isinstance(a, str):
                 raise InvalidArguments('A non-string object in "arguments" keyword argument.')
         self.arglist = args
-
         if 'output' not in kwargs:
             raise InvalidArguments('Generator must have "output" keyword argument.')
         outputs = kwargs['output']
@@ -651,11 +651,25 @@ class Generator():
                 if '@OUTPUT@' in o:
                     raise InvalidArguments('Tried to use @OUTPUT@ in a rule with more than one output.')
         self.outputs = outputs
+        if 'depfile' in kwargs:
+            depfile = kwargs['depfile']
+            if not isinstance(depfile, str):
+                raise InvalidArguments('Depfile must be a string.')
+            if os.path.split(depfile)[1] != depfile:
+                raise InvalidArguments('Depfile must be a plain filename without a subdirectory.')
+            self.depfile = depfile
 
     def get_base_outnames(self, inname):
         plainname = os.path.split(inname)[1]
         basename = plainname.split('.')[0]
         return [x.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname) for x in self.outputs]
+
+    def get_dep_outname(self, inname):
+        if self.depfile is None:
+            raise InvalidArguments('Tried to get dep name for rule that does not have dependency file defined.')
+        plainname = os.path.split(inname)[1]
+        basename = plainname.split('.')[0]
+        return self.depfile.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname)
 
     def get_arglist(self):
         return self.arglist
