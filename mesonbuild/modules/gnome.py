@@ -61,6 +61,8 @@ class GnomeModule:
             cmd += ['--c-name', kwargs.pop('c_name')]
         cmd += ['--generate', '--target', '@OUTPUT@']
 
+        cmd += mesonlib.stringlistify(kwargs.get('extra_args', []))
+
         kwargs['command'] = cmd
         kwargs['input'] = args[1]
         kwargs['output'] = args[0] + '.c'
