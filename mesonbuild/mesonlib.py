@@ -261,7 +261,10 @@ def do_mesondefine(line, confdata):
 
 
 def do_conf_file(src, dst, confdata):
-    data = open(src).readlines()
+    try:
+        data = open(src).readlines()
+    except Exception:
+        raise MesonException('Could not read input file %s.' % src)
     # Only allow (a-z, A-Z, 0-9, _, -) as valid characters for a define
     # Also allow escaping '@' with '\@'
     regex = re.compile(r'[^\\]?@([-a-zA-Z0-9_]+)@')
