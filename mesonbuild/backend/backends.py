@@ -16,6 +16,7 @@ import os, pickle, re
 from .. import build
 from .. import dependencies
 from .. import mesonlib
+from .. import compilers
 import json
 import subprocess
 from ..mesonlib import MesonException
@@ -233,6 +234,9 @@ class Backend():
     def has_swift(self, target):
         return self.has_source_suffix(target, '.swift')
 
+    def has_d(self, target):
+        return self.has_source_suffix(target, '.d')
+
     def determine_linker(self, target, src):
         if isinstance(target, build.StaticLibrary):
             if self.build.static_cross_linker is not None:
@@ -358,7 +362,10 @@ class Backend():
             if not isinstance(d, build.StaticLibrary) and\
             not isinstance(d, build.SharedLibrary):
                 raise RuntimeError('Tried to link with a non-library target "%s".' % d.get_basename())
-            args.append(self.get_target_filename_for_linking(d))
+            if isinstance(compiler, compilers.LLVMDCompiler):
+                args.extend(['-L', self.get_target_filename_for_linking(d)])
+            else:
+                args.append(self.get_target_filename_for_linking(d))
             # If you have executable e that links to shared lib s1 that links to shared library s2
             # you have to specify s2 as well as s1 when linking e even if e does not directly use
             # s2. Gcc handles this case fine but Clang does not for some reason. Thus we need to
