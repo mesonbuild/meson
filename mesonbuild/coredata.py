@@ -211,6 +211,7 @@ builtin_options = {
         'datadir'           : [ UserStringOption, 'Data file directory.', 'share' ],
         'mandir'            : [ UserStringOption, 'Manual page directory.', 'share/man' ],
         'localedir'         : [ UserStringOption, 'Locale data directory.', 'share/locale' ],
+        'sysconfdir'        : [ UserStringOption, 'Sysconf data directory.', '/etc' ],
         'werror'            : [ UserBooleanOption, 'Treat warnings as errors.', False ],
         'warning_level'     : [ UserComboOption, 'Compiler warning level to use.', [ '1', '2', '3' ], '1'],
         'layout'            : [ UserComboOption, 'Build directory layout.', ['mirror', 'flat' ], 'mirror' ],
