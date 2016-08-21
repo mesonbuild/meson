@@ -61,7 +61,7 @@ class GnomeModule:
             cmd += ['--c-name', kwargs.pop('c_name')]
         cmd += ['--generate', '--target', '@OUTPUT@']
 
-        cmd += mesonlib.stringlistify(kwargs.get('extra_args', []))
+        cmd += mesonlib.stringlistify(kwargs.pop('extra_args', []))
 
         kwargs['command'] = cmd
         kwargs['input'] = args[1]
@@ -118,9 +118,7 @@ class GnomeModule:
         scan_command += ['--no-libtool', '--namespace='+ns, '--nsversion=' + nsversion, '--warn-all',
                          '--output', '@OUTPUT@']
 
-        extra_args = kwargs.pop('extra_args', [])
-        if not isinstance(extra_args, list):
-            extra_args = [extra_args]
+        extra_args = mesonlib.stringlistify(kwargs.pop('extra_args', []))
         scan_command += extra_args
 
         for incdirs in girtarget.include_dirs:
