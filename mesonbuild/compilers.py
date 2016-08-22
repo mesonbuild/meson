@@ -1557,6 +1557,12 @@ class GnuDCompiler(DCompiler):
         self.warn_args = {'1': ['-Wall', '-Wdeprecated'],
                           '2': ['-Wall', '-Wextra', '-Wdeprecated'],
                           '3': ['-Wall', '-Wextra', '-Wdeprecated', '-Wpedantic']}
+        self.base_options = ['b_colorout', 'b_sanitize']
+
+    def get_colorout_args(self, colortype):
+        if mesonlib.version_compare(self.version, '>=4.9.0'):
+            return gnu_color_args[colortype][:]
+        return []
 
     def get_dependency_gen_args(self, outtarget, outfile):
         # FIXME: Passing -fmake-deps results in a file-not-found message.
@@ -1597,6 +1603,12 @@ class LLVMDCompiler(DCompiler):
     def __init__(self, exelist, version, is_cross):
         DCompiler.__init__(self, exelist, version, is_cross)
         self.id = 'llvm'
+        self.base_options = ['b_coverage', 'b_colorout']
+
+    def get_colorout_args(self, colortype):
+        if colortype == 'always':
+            return ['-enable-color']
+        return []
 
     def get_dependency_gen_args(self, outtarget, outfile):
         # LDC using the -deps flag returns a non-Makefile dependency-info file, which
@@ -1646,6 +1658,12 @@ class DmdDCompiler(DCompiler):
     def __init__(self, exelist, version, is_cross):
         DCompiler.__init__(self, exelist, version, is_cross)
         self.id = 'dmd'
+        self.base_options = ['b_coverage', 'b_colorout']
+
+    def get_colorout_args(self, colortype):
+        if colortype == 'always':
+            return ['-color=on']
+        return []
 
     def get_dependency_gen_args(self, outtarget, outfile):
         # LDC using the -deps flag returns a non-Makefile dependency-info file, which
