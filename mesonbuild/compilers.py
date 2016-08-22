@@ -1542,7 +1542,7 @@ class DCompiler(Compiler):
                 for la in linkargs:
                     dcargs.append('-L' + la.strip())
                 continue
-            elif arg.startswith(('-l', '-L')):
+            elif arg.startswith('-l'):
                 # translate library link flag
                 dcargs.append('-L' + arg)
                 continue
@@ -1580,6 +1580,9 @@ class GnuDCompiler(DCompiler):
 
     def get_werror_args(self):
         return ['-Werror']
+
+    def get_linker_search_args(self, dirname):
+        return ['-L'+dirname]
 
     def get_buildtype_args(self, buildtype):
         return d_gdc_buildtype_args[buildtype]
@@ -1627,6 +1630,12 @@ class LLVMDCompiler(DCompiler):
     def get_pic_args(self):
         return ['-relocation-model=pic']
 
+    def get_linker_search_args(self, dirname):
+        # -L is recognized as "add this to the search path" by the linker,
+        # while the compiler recognizes it as "pass to linker". So, the first
+        # -L is for the compiler, telling it to pass the second -L to the linker.
+        return ['-L-L'+dirname]
+
     def unix_link_flags_to_native(self, args):
         return self.translate_args_to_nongnu(args)
 
@@ -1663,6 +1672,12 @@ class DmdDCompiler(DCompiler):
 
     def get_coverage_args(self):
         return ['-cov']
+
+    def get_linker_search_args(self, dirname):
+        # -L is recognized as "add this to the search path" by the linker,
+        # while the compiler recognizes it as "pass to linker". So, the first
+        # -L is for the compiler, telling it to pass the second -L to the linker.
+        return ['-L-L'+dirname]
 
     def get_buildtype_args(self, buildtype):
         return d_dmd_buildtype_args[buildtype]
