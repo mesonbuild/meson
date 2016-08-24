@@ -927,6 +927,7 @@ class CustomTarget:
     known_kwargs = {'input' : True,
                     'output' : True,
                     'command' : True,
+                    'capture' : False,
                     'install' : True,
                     'install_dir' : True,
                     'build_always' : True,
@@ -982,6 +983,10 @@ class CustomTarget:
                 raise InvalidArguments('Output argument not a string.')
             if '/' in i:
                 raise InvalidArguments('Output must not contain a path segment.')
+        self.capture = kwargs.get('capture', False)
+        if self.capture and len(self.output) != 1:
+            raise InvalidArguments(
+                'Capturing can only output to a single file.')
         if 'command' not in kwargs:
             raise InvalidArguments('Missing keyword argument "command".')
         cmd = kwargs['command']

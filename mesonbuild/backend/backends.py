@@ -37,7 +37,7 @@ class InstallData():
 
 class ExecutableSerialisation():
     def __init__(self, name, fname, cmd_args, env, is_cross, exe_wrapper,
-                 workdir, extra_paths):
+                 workdir, extra_paths, capture):
         self.name = name
         self.fname = fname
         self.cmd_args = cmd_args
@@ -46,6 +46,7 @@ class ExecutableSerialisation():
         self.exe_runner = exe_wrapper
         self.workdir = workdir
         self.extra_paths = extra_paths
+        self.capture = capture
 
 class TestSerialisation:
     def __init__(self, name, suite, fname, is_cross, exe_wrapper, is_parallel, cmd_args, env,
@@ -176,7 +177,8 @@ class Backend():
                 raise MesonException('Unknown data type in object list.')
         return obj_list
 
-    def serialise_executable(self, exe, cmd_args, workdir, env={}):
+    def serialise_executable(self, exe, cmd_args, workdir, env={},
+                             capture=None):
         import uuid
         # Can't just use exe.name here; it will likely be run more than once
         if isinstance(exe, (dependencies.ExternalProgram,
@@ -207,7 +209,7 @@ class Backend():
                 extra_paths = []
             es = ExecutableSerialisation(basename, exe_fullpath, cmd_args, env,
                                          is_cross, exe_wrapper, workdir,
-                                         extra_paths)
+                                         extra_paths, capture)
             pickle.dump(es, f)
         return exe_data
 

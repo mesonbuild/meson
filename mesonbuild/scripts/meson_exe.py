@@ -59,6 +59,11 @@ def run_exe(exe):
                          stderr=subprocess.PIPE,
                          env=child_env,
                          cwd=exe.workdir)
+    stdout, stderr = p.communicate()
+    if exe.capture and p.returncode == 0:
+        with open(exe.capture, 'wb') as output:
+            output.write(stdout)
+    return p.returncode
 
 def run(args):
     global options
@@ -68,7 +73,7 @@ def run(args):
         print(sys.argv[0] + ' [data file]')
     exe_data_file = options.args[0]
     exe = pickle.load(open(exe_data_file, 'rb'))
-    run_exe(exe)
+    return run_exe(exe)
 
 if __name__ == '__main__':
     sys.exit(run(sys.argv[1:]))

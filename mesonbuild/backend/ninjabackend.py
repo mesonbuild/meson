@@ -379,15 +379,19 @@ int dummy;
                 tmp = [tmp]
             for fname in tmp:
                 elem.add_dep(os.path.join(self.get_target_dir(d), fname))
+        # If the target requires capturing stdout, then use the serialized
+        # executable wrapper to capture that output and save it to a file.
+        #
         # Windows doesn't have -rpath, so for EXEs that need DLLs built within
         # the project, we need to set PATH so the DLLs are found. We use
         # a serialized executable wrapper for that and check if the
         # CustomTarget command needs extra paths first.
-        if mesonlib.is_windows() and \
-           self.determine_windows_extra_paths(target.command[0]):
+        if target.capture or (mesonlib.is_windows() and
+                self.determine_windows_extra_paths(target.command[0])):
             exe_data = self.serialise_executable(target.command[0], cmd[1:],
                 # All targets are built from the build dir
-                self.environment.get_build_dir())
+                self.environment.get_build_dir(),
+                capture=ofilenames[0] if target.capture else None)
             cmd = [sys.executable, self.environment.get_build_command(),
                    '--internal', 'exe', exe_data]
             cmd_type = 'meson_exe.py custom'
