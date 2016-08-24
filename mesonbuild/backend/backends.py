@@ -179,15 +179,21 @@ class Backend():
     def serialise_executable(self, exe, cmd_args, workdir, env={}):
         import uuid
         # Can't just use exe.name here; it will likely be run more than once
-        scratch_file = 'meson_exe_{0}_{1}.dat'.format(exe.name,
+        if isinstance(exe, (dependencies.ExternalProgram,
+                            build.BuildTarget, build.CustomTarget)):
+            basename = exe.name
+        else:
+            basename = os.path.basename(exe)
+        scratch_file = 'meson_exe_{0}_{1}.dat'.format(basename,
                                                       str(uuid.uuid4())[:8])
         exe_data = os.path.join(self.environment.get_scratch_dir(), scratch_file)
         with open(exe_data, 'wb') as f:
             if isinstance(exe, dependencies.ExternalProgram):
                 exe_fullpath = exe.fullpath
+            elif isinstance(exe, (build.BuildTarget, build.CustomTarget)):
+                exe_fullpath = [self.get_target_filename_abs(exe)]
             else:
-                exe_fullpath = [os.path.join(self.environment.get_build_dir(),
-                                             self.get_target_filename(exe))]
+                exe_fullpath = [exe]
             is_cross = self.environment.is_cross_build() and \
                 self.environment.cross_info.need_cross_compiler() and \
                 self.environment.cross_info.need_exe_wrapper()
@@ -199,7 +205,7 @@ class Backend():
                 extra_paths = self.determine_windows_extra_paths(exe)
             else:
                 extra_paths = []
-            es = ExecutableSerialisation(exe.name, exe_fullpath, cmd_args, env,
+            es = ExecutableSerialisation(basename, exe_fullpath, cmd_args, env,
                                          is_cross, exe_wrapper, workdir,
                                          extra_paths)
             pickle.dump(es, f)
