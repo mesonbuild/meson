@@ -359,8 +359,7 @@ class Backend():
     def build_target_link_arguments(self, compiler, deps):
         args = []
         for d in deps:
-            if not isinstance(d, build.StaticLibrary) and\
-            not isinstance(d, build.SharedLibrary):
+            if not isinstance(d, (build.StaticLibrary, build.SharedLibrary)):
                 raise RuntimeError('Tried to link with a non-library target "%s".' % d.get_basename())
             if isinstance(compiler, compilers.LLVMDCompiler):
                 args.extend(['-L', self.get_target_filename_for_linking(d)])

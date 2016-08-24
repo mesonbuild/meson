@@ -65,7 +65,7 @@ class PkgConfigModule:
         for l in libs:
             if hasattr(l, 'held_object'):
                 l = l.held_object
-            if not (isinstance(l, build.SharedLibrary) or isinstance(l, build.StaticLibrary)):
+            if not isinstance(l, (build.SharedLibrary, build.StaticLibrary)):
                 raise mesonlib.MesonException('Library argument not a library object.')
             processed_libs.append(l)
         libs = processed_libs
