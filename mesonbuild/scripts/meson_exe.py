@@ -74,7 +74,8 @@ def run(args):
         print('Test runner for Meson. Do not run on your own, mmm\'kay?')
         print(sys.argv[0] + ' [data file]')
     exe_data_file = options.args[0]
-    exe = pickle.load(open(exe_data_file, 'rb'))
+    with open(exe_data_file, 'rb') as f:
+        exe = pickle.load(f)
     return run_exe(exe)
 
 if __name__ == '__main__':

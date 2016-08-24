@@ -1032,7 +1032,8 @@ class Interpreter():
         mesonfile = os.path.join(self.source_root, self.subdir, environment.build_filename)
         if not os.path.isfile(mesonfile):
             raise InvalidArguments('Missing Meson file in %s' % mesonfile)
-        code = open(mesonfile, encoding='utf8').read()
+        with open(mesonfile, encoding='utf8') as mf:
+           code = mf.read()
         if len(code.strip()) == 0:
             raise InvalidCode('Builder file is empty.')
         assert(isinstance(code, str))
@@ -1994,7 +1995,8 @@ class Interpreter():
         if not os.path.isfile(absname):
             self.subdir = prev_subdir
             raise InterpreterException('Nonexistant build def file %s.' % buildfilename)
-        code = open(absname, encoding='utf8').read()
+        with open(absname, encoding='utf8') as f:
+            code = f.read()
         assert(isinstance(code, str))
         try:
             codeblock = mparser.Parser(code).parse()

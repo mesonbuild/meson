@@ -96,7 +96,8 @@ def is_32bit():
 
 def is_debianlike():
     try:
-        open('/etc/debian_version', 'r')
+        with open('/etc/debian_version', 'r'):
+            pass
         return True
     except FileNotFoundError:
         return False
@@ -262,7 +263,8 @@ def do_mesondefine(line, confdata):
 
 def do_conf_file(src, dst, confdata):
     try:
-        data = open(src).readlines()
+        with open(src) as f:
+            data = f.readlines()
     except Exception:
         raise MesonException('Could not read input file %s.' % src)
     # Only allow (a-z, A-Z, 0-9, _, -) as valid characters for a define
@@ -276,7 +278,8 @@ def do_conf_file(src, dst, confdata):
             line = do_replacement(regex, line, confdata)
         result.append(line)
     dst_tmp = dst + '~'
-    open(dst_tmp, 'w').writelines(result)
+    with open(dst_tmp, 'w') as f:
+        f.writelines(result)
     shutil.copymode(src, dst_tmp)
     replace_if_different(dst, dst_tmp)
 
@@ -306,9 +309,10 @@ def replace_if_different(dst, dst_tmp):
     # If contents are identical, don't touch the file to prevent
     # unnecessary rebuilds.
     try:
-        if open(dst, 'r').read() == open(dst_tmp, 'r').read():
-            os.unlink(dst_tmp)
-            return
+        with open(dst, 'r') as f1, open(dst_tmp, 'r') as f2:
+            if f1.read() == f2.read():
+                os.unlink(dst_tmp)
+                return
     except FileNotFoundError:
         pass
     os.replace(dst_tmp, dst)

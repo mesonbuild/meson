@@ -154,7 +154,8 @@ class CoreData():
             raise RuntimeError('Tried to set unknown builtin option %s.' % optname)
 
 def load(filename):
-    obj = pickle.load(open(filename, 'rb'))
+    with open(filename, 'rb') as f:
+        obj = pickle.load(f)
     if not isinstance(obj, CoreData):
         raise RuntimeError('Core data file is corrupted.')
     if obj.version != version:
@@ -165,7 +166,8 @@ def load(filename):
 def save(obj, filename):
     if obj.version != version:
         raise RuntimeError('Fatal version mismatch corruption.')
-    pickle.dump(obj, open(filename, 'wb'))
+    with open(filename, 'wb') as f:
+        pickle.dump(obj, f)
 
 def get_builtin_options():
     return list(builtin_options.keys())

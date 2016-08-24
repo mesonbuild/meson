@@ -177,10 +177,14 @@ def run(args):
     buildfile = os.path.join(bdir, 'meson-private/build.dat')
     testfile = os.path.join(bdir, 'meson-private/meson_test_setup.dat')
     benchmarkfile = os.path.join(bdir, 'meson-private/meson_benchmark_setup.dat')
-    coredata = pickle.load(open(corefile, 'rb'))
-    builddata = pickle.load(open(buildfile, 'rb'))
-    testdata = pickle.load(open(testfile, 'rb'))
-    benchmarkdata = pickle.load(open(benchmarkfile, 'rb'))
+    with open(corefile, 'rb') as f:
+        coredata = pickle.load(f)
+    with open(buildfile, 'rb') as f:
+        builddata = pickle.load(f)
+    with open(testfile, 'rb') as f:
+       testdata = pickle.load(f)
+    with open(benchmarkfile, 'rb') as f:
+       benchmarkdata = pickle.load(f)
     if options.list_targets:
         list_targets(coredata, builddata)
     elif options.target_files is not None:

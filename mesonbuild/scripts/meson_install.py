@@ -38,8 +38,8 @@ def do_copy(from_file, to_file):
     append_to_log(to_file)
 
 def do_install(datafilename):
-    ifile = open(datafilename, 'rb')
-    d = pickle.load(ifile)
+    with open(datafilename, 'rb') as ifile:
+        d = pickle.load(ifile)
     d.destdir = os.environ.get('DESTDIR', '')
     d.fullprefix = destdir_join(d.destdir, d.prefix)
 
@@ -112,7 +112,9 @@ def install_man(d):
         os.makedirs(outdir, exist_ok=True)
         print('Installing %s to %s.' % (full_source_filename, outdir))
         if outfilename.endswith('.gz') and not full_source_filename.endswith('.gz'):
-            open(outfilename, 'wb').write(gzip.compress(open(full_source_filename, 'rb').read()))
+            with open(outfilename, 'wb') as of:
+                with open(full_source_filename, 'rb') as sf:
+                    of.write(gzip.compress(sf.read()))
             shutil.copystat(full_source_filename, outfilename)
             append_to_log(outfilename)
         else:
@@ -142,7 +144,8 @@ def run_install_script(d):
         print('Running custom install script %s' % script)
         suffix = os.path.splitext(script)[1].lower()
         if platform.system().lower() == 'windows' and suffix != '.bat':
-            first_line = open(script, encoding='latin_1', errors='ignore').readline().strip()
+            with open(script, encoding='latin_1', errors='ignore') as f:
+                first_line = f.readline().strip()
             if first_line.startswith('#!'):
                 if shutil.which(first_line[2:]):
                     commands = [first_line[2:]]

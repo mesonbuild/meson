@@ -23,37 +23,41 @@ class PkgConfigModule:
 
     def generate_pkgconfig_file(self, state, libraries, subdirs, name, description, version, filebase,
                                 pub_reqs, priv_reqs, priv_libs):
+        coredata = state.environment.get_coredata()
         outdir = state.environment.scratch_dir
         fname = os.path.join(outdir, filebase + '.pc')
-        ofile = open(fname, 'w')
-        coredata = state.environment.get_coredata()
-        ofile.write('prefix=%s\n' % coredata.get_builtin_option('prefix'))
-        ofile.write('libdir=${prefix}/%s\n' % coredata.get_builtin_option('libdir'))
-        ofile.write('includedir=${prefix}/%s\n\n' % coredata.get_builtin_option('includedir'))
-        ofile.write('Name: %s\n' % name)
-        if len(description) > 0:
-            ofile.write('Description: %s\n' % description)
-        if len(version) > 0:
-            ofile.write('Version: %s\n' % version)
-        if len(pub_reqs) > 0:
-            ofile.write('Requires: {}\n'.format(' '.join(pub_reqs)))
-        if len(priv_reqs) > 0:
-            ofile.write('Requires.private: {}\n'.format(' '.join(priv_reqs)))
-        if len(priv_libs) > 0:
-            ofile.write('Libraries.private: {}\n'.format(' '.join(priv_libs)))
-        ofile.write('Libs: -L${libdir} ')
-        for l in libraries:
-            if l.custom_install_dir:
-                ofile.write('-L${prefix}/%s ' % l.custom_install_dir)
-            ofile.write('-l%s ' % l.name)
-        ofile.write('\n')
-        ofile.write('CFlags: ')
-        for h in subdirs:
-            if h == '.':
-                h = ''
-            ofile.write(os.path.join('-I${includedir}', h))
-            ofile.write(' ')
-        ofile.write('\n')
+        with open(fname, 'w') as ofile:
+            ofile.write('prefix=%s\n' % coredata.get_builtin_option('prefix'))
+            ofile.write('libdir=${prefix}/%s\n' %
+                        coredata.get_builtin_option('libdir'))
+            ofile.write('includedir=${prefix}/%s\n\n' %
+                        coredata.get_builtin_option('includedir'))
+            ofile.write('Name: %s\n' % name)
+            if len(description) > 0:
+                ofile.write('Description: %s\n' % description)
+            if len(version) > 0:
+                ofile.write('Version: %s\n' % version)
+            if len(pub_reqs) > 0:
+                ofile.write('Requires: {}\n'.format(' '.join(pub_reqs)))
+            if len(priv_reqs) > 0:
+                ofile.write(
+                    'Requires.private: {}\n'.format(' '.join(priv_reqs)))
+            if len(priv_libs) > 0:
+                ofile.write(
+                    'Libraries.private: {}\n'.format(' '.join(priv_libs)))
+            ofile.write('Libs: -L${libdir} ')
+            for l in libraries:
+                if l.custom_install_dir:
+                    ofile.write('-L${prefix}/%s ' % l.custom_install_dir)
+                ofile.write('-l%s ' % l.name)
+            ofile.write('\n')
+            ofile.write('CFlags: ')
+            for h in subdirs:
+                if h == '.':
+                    h = ''
+                ofile.write(os.path.join('-I${includedir}', h))
+                ofile.write(' ')
+            ofile.write('\n')
 
     def generate(self, state, args, kwargs):
         if len(args) > 0:

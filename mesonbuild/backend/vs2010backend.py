@@ -175,14 +175,18 @@ class Vs2010Backend(backends.Backend):
 
     @staticmethod
     def touch_regen_timestamp(build_dir):
-        open(Vs2010Backend.get_regen_stampfile(build_dir), 'w').close()
+        with open(Vs2010Backend.get_regen_stampfile(build_dir), 'w'):
+            pass
 
     def generate_regen_info(self):
         deps = self.get_regen_filelist()
         regeninfo = RegenInfo(self.environment.get_source_dir(),
                               self.environment.get_build_dir(),
                               deps)
-        pickle.dump(regeninfo, open(os.path.join(self.environment.get_scratch_dir(), 'regeninfo.dump'), 'wb'))
+        filename = os.path.join(self.environment.get_scratch_dir(),
+                                'regeninfo.dump')
+        with open(filename, 'wb') as f:
+            pickle.dump(regeninfo, f)
 
     def get_obj_target_deps(self, obj_list):
         result = {}
@@ -217,57 +221,66 @@ class Vs2010Backend(backends.Backend):
         return all_deps
 
     def generate_solution(self, sln_filename, projlist):
-        ofile = open(sln_filename, 'w')
-        ofile.write('Microsoft Visual Studio Solution File, Format Version 11.00\n')
-        ofile.write('# Visual Studio ' + self.vs_version + '\n')
-        prj_templ = prj_line = 'Project("{%s}") = "%s", "%s", "{%s}"\n'
-        for p in projlist:
-            prj_line = prj_templ % (self.environment.coredata.guid, p[0], p[1], p[2])
-            ofile.write(prj_line)
-            all_deps = self.determine_deps(p)
-            ofile.write('\tProjectSection(ProjectDependencies) = postProject\n')
-            regen_guid = self.environment.coredata.regen_guid
-            ofile.write('\t\t{%s} = {%s}\n' % (regen_guid, regen_guid))
-            for dep in all_deps.keys():
-                guid = self.environment.coredata.target_guids[dep]
-                ofile.write('\t\t{%s} = {%s}\n' % (guid, guid))
-            ofile.write('EndProjectSection\n')
+        with open(sln_filename, 'w') as ofile:
+            ofile.write('Microsoft Visual Studio Solution File, Format '
+                        'Version 11.00\n')
+            ofile.write('# Visual Studio ' + self.vs_version + '\n')
+            prj_templ = prj_line = 'Project("{%s}") = "%s", "%s", "{%s}"\n'
+            for p in projlist:
+                prj_line = prj_templ % (self.environment.coredata.guid,
+                                        p[0], p[1], p[2])
+                ofile.write(prj_line)
+                all_deps = self.determine_deps(p)
+                ofile.write('\tProjectSection(ProjectDependencies) = '
+                            'postProject\n')
+                regen_guid = self.environment.coredata.regen_guid
+                ofile.write('\t\t{%s} = {%s}\n' % (regen_guid, regen_guid))
+                for dep in all_deps.keys():
+                    guid = self.environment.coredata.target_guids[dep]
+                    ofile.write('\t\t{%s} = {%s}\n' % (guid, guid))
+                ofile.write('EndProjectSection\n')
+                ofile.write('EndProject\n')
+            test_line = prj_templ % (self.environment.coredata.guid,
+                                     'RUN_TESTS', 'RUN_TESTS.vcxproj',
+                                     self.environment.coredata.test_guid)
+            ofile.write(test_line)
             ofile.write('EndProject\n')
-        test_line = prj_templ % (self.environment.coredata.guid,
-                                 'RUN_TESTS', 'RUN_TESTS.vcxproj', self.environment.coredata.test_guid)
-        ofile.write(test_line)
-        ofile.write('EndProject\n')
-        regen_line = prj_templ % (self.environment.coredata.guid,
-                                 'REGEN', 'REGEN.vcxproj', self.environment.coredata.regen_guid)
-        ofile.write(regen_line)
-        ofile.write('EndProject\n')
-        ofile.write('Global\n')
-        ofile.write('\tGlobalSection(SolutionConfigurationPlatforms) = preSolution\n')
-        ofile.write('\t\t%s|%s = %s|%s\n' % (self.buildtype, self.platform, self.buildtype, self.platform))
-        ofile.write('\tEndGlobalSection\n')
-        ofile.write('\tGlobalSection(ProjectConfigurationPlatforms) = postSolution\n')
-        ofile.write('\t\t{%s}.%s|%s.ActiveCfg = %s|%s\n' % 
-                    (self.environment.coredata.regen_guid, self.buildtype, self.platform,
-                     self.buildtype, self.platform))
-        ofile.write('\t\t{%s}.%s|%s.Build.0 = %s|%s\n' % 
-                    (self.environment.coredata.regen_guid, self.buildtype, self.platform,
-                     self.buildtype, self.platform))
-        for p in projlist:
+            regen_line = prj_templ % (self.environment.coredata.guid,
+                                      'REGEN', 'REGEN.vcxproj',
+                                      self.environment.coredata.regen_guid)
+            ofile.write(regen_line)
+            ofile.write('EndProject\n')
+            ofile.write('Global\n')
+            ofile.write('\tGlobalSection(SolutionConfigurationPlatforms) = '
+                        'preSolution\n')
+            ofile.write('\t\t%s|%s = %s|%s\n' %
+                        (self.buildtype, self.platform, self.buildtype,
+                         self.platform))
+            ofile.write('\tEndGlobalSection\n')
+            ofile.write('\tGlobalSection(ProjectConfigurationPlatforms) = '
+                        'postSolution\n')
             ofile.write('\t\t{%s}.%s|%s.ActiveCfg = %s|%s\n' % 
-                        (p[2], self.buildtype, self.platform,
-                         self.buildtype, self.platform))
-            if not isinstance(self.build.targets[p[0]], build.RunTarget):
-                ofile.write('\t\t{%s}.%s|%s.Build.0 = %s|%s\n' %
+                        (self.environment.coredata.regen_guid, self.buildtype,
+                         self.platform, self.buildtype, self.platform))
+            ofile.write('\t\t{%s}.%s|%s.Build.0 = %s|%s\n' %
+                        (self.environment.coredata.regen_guid, self.buildtype,
+                         self.platform, self.buildtype, self.platform))
+            for p in projlist:
+                ofile.write('\t\t{%s}.%s|%s.ActiveCfg = %s|%s\n' %
                             (p[2], self.buildtype, self.platform,
                              self.buildtype, self.platform))
-        ofile.write('\t\t{%s}.%s|%s.ActiveCfg = %s|%s\n' % 
-                    (self.environment.coredata.test_guid, self.buildtype, self.platform,
-                     self.buildtype, self.platform))
-        ofile.write('\tEndGlobalSection\n')
-        ofile.write('\tGlobalSection(SolutionProperties) = preSolution\n')
-        ofile.write('\t\tHideSolutionNode = FALSE\n')
-        ofile.write('\tEndGlobalSection\n')
-        ofile.write('EndGlobal\n')
+                if not isinstance(self.build.targets[p[0]], build.RunTarget):
+                    ofile.write('\t\t{%s}.%s|%s.Build.0 = %s|%s\n' %
+                                (p[2], self.buildtype, self.platform,
+                                 self.buildtype, self.platform))
+            ofile.write('\t\t{%s}.%s|%s.ActiveCfg = %s|%s\n' %
+                        (self.environment.coredata.test_guid, self.buildtype,
+                         self.platform, self.buildtype, self.platform))
+            ofile.write('\tEndGlobalSection\n')
+            ofile.write('\tGlobalSection(SolutionProperties) = preSolution\n')
+            ofile.write('\t\tHideSolutionNode = FALSE\n')
+            ofile.write('\tEndGlobalSection\n')
+            ofile.write('EndGlobal\n')
 
     def generate_projects(self):
         projlist = []
@@ -862,12 +875,15 @@ class Vs2010Backend(backends.Backend):
         tree.write(ofname, encoding='utf-8', xml_declaration=True)
         # ElementTree can not do prettyprinting so do it manually
         doc = xml.dom.minidom.parse(ofname)
-        open(ofname, 'w').write(doc.toprettyxml())
+        with open(ofname, 'w') as of:
+            of.write(doc.toprettyxml())
         # World of horror! Python insists on not quoting quotes and
         # fixing the escaped &quot; into &amp;quot; whereas MSVS
         # requires quoted but not fixed elements. Enter horrible hack.
-        txt = open(ofname, 'r').read()
-        open(ofname, 'w').write(txt.replace('&amp;quot;', '&quot;'))
+        with open(ofname, 'r') as of:
+            txt = of.read()
+        with open(ofname, 'w') as of:
+            of.write(txt.replace('&amp;quot;', '&quot;'))
 
     def gen_regenproj(self, project_name, ofname):
         root = ET.Element('Project', {'DefaultTargets': 'Build',

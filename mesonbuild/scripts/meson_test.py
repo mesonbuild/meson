@@ -202,10 +202,8 @@ def run_tests(datafilename):
         wrap = [options.wrapper]
         logfilename = logfile_base + '-' + options.wrapper.replace(' ', '_') + '.txt'
         jsonlogfilename = logfile_base + '-' + options.wrapper.replace(' ', '_') + '.json'
-    logfile = open(logfilename, 'w')
-    jsonlogfile = open(jsonlogfilename, 'w')
-    logfile.write('Log of Meson test suite run on %s.\n\n' % datetime.datetime.now().isoformat())
-    tests = pickle.load(open(datafilename, 'rb'))
+    with open(datafilename, 'rb') as f:
+        tests = pickle.load(f)
     if len(tests) == 0:
         print('No tests defined.')
         return
@@ -222,24 +220,31 @@ def run_tests(datafilename):
     executor = conc.ThreadPoolExecutor(max_workers=num_workers)
     futures = []
     filtered_tests = filter_tests(options.suite, tests)
-    for i, test in enumerate(filtered_tests):
-        if test.suite[0] == '':
-            visible_name = test.name
-        else:
-            if options.suite is not None:
-                visible_name = options.suite + ' / ' + test.name
-            else:
-                visible_name = test.suite[0] + ' / ' + test.name
 
-        if not test.is_parallel:
-            drain_futures(futures)
-            futures = []
-            res = run_single_test(wrap, test)
-            print_stats(numlen, filtered_tests, visible_name, res, i, logfile, jsonlogfile)
-        else:
-            f = executor.submit(run_single_test, wrap, test)
-            futures.append((f, numlen, filtered_tests, visible_name, i, logfile, jsonlogfile))
-    drain_futures(futures)
+    with open(jsonlogfilename, 'w') as jsonlogfile, \
+         open(logfilename, 'w') as logfile:
+        logfile.write('Log of Meson test suite run on %s.\n\n' %
+                      datetime.datetime.now().isoformat())
+        for i, test in enumerate(filtered_tests):
+            if test.suite[0] == '':
+                visible_name = test.name
+            else:
+                if options.suite is not None:
+                    visible_name = options.suite + ' / ' + test.name
+                else:
+                    visible_name = test.suite[0] + ' / ' + test.name
+
+            if not test.is_parallel:
+                drain_futures(futures)
+                futures = []
+                res = run_single_test(wrap, test)
+                print_stats(numlen, filtered_tests, visible_name, res, i,
+                            logfile, jsonlogfile)
+            else:
+                f = executor.submit(run_single_test, wrap, test)
+                futures.append((f, numlen, filtered_tests, visible_name, i,
+                                logfile, jsonlogfile))
+        drain_futures(futures)
     return logfilename
 
 def run(args):
