@@ -154,7 +154,7 @@ class PkgConfigDependency(Dependency):
         out = p.communicate()[0]
         if p.returncode != 0:
             raise DependencyException('Could not generate cargs for %s:\n\n%s' % \
-                                      (name, out.decode(errors='ignore')))
+                                      (self.name, out.decode(errors='ignore')))
         self.cargs = out.decode().split()
 
     def _set_libs(self):
@@ -166,7 +166,7 @@ class PkgConfigDependency(Dependency):
         out = p.communicate()[0]
         if p.returncode != 0:
             raise DependencyException('Could not generate libs for %s:\n\n%s' % \
-                                      (name, out.decode(errors='ignore')))
+                                      (self.name, out.decode(errors='ignore')))
         self.libs = []
         for lib in out.decode().split():
             if lib.endswith(".la"):
