@@ -1015,6 +1015,9 @@ class CustomTarget:
             else:
                 raise InvalidArguments('Argument %s in "command" is invalid.' % i)
         self.command = final_cmd
+        if self.capture and '@OUTPUT@' in self.command:
+            raise InvalidArguments(
+                '@OUTPUT@ is not allowed when capturing output.')
         if 'install' in kwargs:
             self.install = kwargs['install']
             if not isinstance(self.install, bool):
