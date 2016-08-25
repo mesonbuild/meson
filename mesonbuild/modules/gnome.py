@@ -473,6 +473,53 @@ class GnomeModule:
                          }
         return build.CustomTarget(namebase + '-gdbus', state.subdir, custom_kwargs)
 
+    def mkenums(self, state, args, kwargs):
+        if len(args) != 1:
+            raise MesonException('Mkenums requires one positional argument.')
+        output = args[0]
+
+        if 'sources' not in kwargs:
+            raise MesonException('Missing keyword argument "sources".')
+        sources = kwargs.pop('sources')
+        if isinstance(sources, str):
+            sources = [sources]
+        elif not isinstance(sources, list):
+            raise MesonException(
+                'Sources keyword argument must be a string or array.')
+
+        cmd = ['glib-mkenums']
+        known_kwargs = ['comments', 'eprod', 'fhead', 'fprod', 'ftail',
+                        'identifier-prefix', 'symbol-prefix', 'template',
+                        'vhead', 'vprod', 'vtail']
+        known_custom_target_kwargs = ['install', 'install_dir', 'build_always',
+                                      'depends', 'depend_files']
+        add_template = False
+        for arg, value in kwargs.items():
+            if arg == 'template':
+                add_template = True
+                sources = [value] + sources
+            elif arg in known_kwargs:
+                cmd += ['--' + arg, value]
+            elif arg not in known_custom_target_kwargs:
+                raise MesonException(
+                    'Mkenums does not take a %s keyword argument.' % (arg, ))
+        if add_template:
+            cmd += ['--template', '@INPUT@']
+        else:
+            cmd += ['@INPUT@']
+
+        custom_kwargs = {
+            'input': sources,
+            'output': output,
+            'capture': True,
+            'command': cmd
+        }
+        for arg in known_custom_target_kwargs:
+            if arg in kwargs:
+                custom_kwargs[arg] = kwargs[arg]
+        return build.CustomTarget(output, state.subdir, custom_kwargs)
+
+
 def initialize():
     return GnomeModule()
 
