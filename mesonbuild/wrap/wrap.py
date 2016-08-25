@@ -114,7 +114,10 @@ class Resolver:
         is_there = os.path.isdir(checkoutdir)
         if is_there:
             if revno.lower() == 'head':
-                subprocess.check_call(['git', 'pull'], cwd=checkoutdir)
+                # Failure to do pull is not a fatal error,
+                # because otherwise you can't develop without
+                # a working net connection.
+                subprocess.call(['git', 'pull'], cwd=checkoutdir)
             else:
                 if subprocess.call(['git', 'checkout', revno], cwd=checkoutdir) != 0:
                     subprocess.check_call(['git', 'fetch'], cwd=checkoutdir)
