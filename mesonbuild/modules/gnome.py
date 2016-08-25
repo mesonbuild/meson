@@ -380,6 +380,47 @@ class GnomeModule:
                 custom_kwargs[arg] = kwargs[arg]
         return build.CustomTarget(output, state.subdir, custom_kwargs)
 
+    def genmarshal(self, state, args, kwargs):
+        if len(args) != 1:
+            raise MesonException('Mkenums must have one positional argument.')
+        output = args[0]
+
+        if 'sources' not in kwargs:
+            raise MesonException('Missing keyword argument "sources".')
+        sources = kwargs.pop('sources')
+        if isinstance(sources, str):
+            sources = [sources]
+        elif not isinstance(sources, list):
+            raise MesonException(
+                'Sources keyword argument must be a string or array.')
+
+        cmd = ['glib-genmarshal']
+        known_kwargs = ['body', 'header', 'internal', 'nostdinc',
+                        'skip-source', 'stdinc', 'valist-marshallers']
+        known_custom_target_kwargs = ['install', 'install_dir', 'build_always',
+                                      'depends', 'depend_files']
+        for arg, value in kwargs.items():
+            if arg == 'prefix':
+                cmd += ['--prefix', value]
+            elif arg in known_kwargs and value:
+                cmd += ['--' + arg]
+            elif arg not in known_custom_target_kwargs:
+                raise MesonException(
+                    'Genmarshal does not take a %s keyword argument.' % (
+                        arg, ))
+        cmd += ['@INPUT@']
+
+        custom_kwargs = {
+            'input': sources,
+            'output': output,
+            'capture': True,
+            'command': cmd
+        }
+        for arg in known_custom_target_kwargs:
+            if arg in kwargs:
+                custom_kwargs[arg] = kwargs[arg]
+        return build.CustomTarget(output, state.subdir, custom_kwargs)
+
 
 def initialize():
     return GnomeModule()
