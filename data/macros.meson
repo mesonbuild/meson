@@ -7,6 +7,15 @@
   export FCFLAGS="%{optflags} -I%{_fmoddir}" ; \
   export LDFLAGS="%{__global_ldflags}" ; \
   %__meson %{?1} \\\
-        --prefix=%{_prefix} \\\
+        --prefix=%{_prefix}            \\\
+        --libdir=%{_libdir}            \\\
+        --libexecdir=%{_libexecdir}    \\\
+        --bindir=%{_bindir}            \\\
+        --includedir=%{_includedir}    \\\
+        --datadir=%{_datadir}          \\\
+        --mandir=%{_mandir}            \\\
+        --localedir=%{_datadir}/locale \\\
+        --sysconfdir=%{_sysconfdir}    \\\
         --buildtype=plain \
+        %{nil} \
 }
