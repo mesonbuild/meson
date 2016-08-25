@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from .. import mlog
+import contextlib
 import urllib.request, os, hashlib, shutil
 import subprocess
 import sys
@@ -137,26 +138,26 @@ class Resolver:
             resp = open_wrapdburl(url)
         else:
             resp = urllib.request.urlopen(url)
-        dlsize = int(resp.info()['Content-Length'])
-        print('Download size:', dlsize)
-        print('Downloading: ', end='')
-        sys.stdout.flush()
-        printed_dots = 0
-        blocks = []
-        downloaded = 0
-        while True:
-            block = resp.read(blocksize)
-            if block == b'':
-                break
-            downloaded += len(block)
-            blocks.append(block)
-            ratio = int(downloaded/dlsize * 10)
-            while printed_dots < ratio:
-                print('.', end='')
-                sys.stdout.flush()
-                printed_dots += 1
-        print('')
-        resp.close()
+        with contextlib.closing(resp) as resp:
+            dlsize = int(resp.info()['Content-Length'])
+            print('Download size:', dlsize)
+            print('Downloading: ', end='')
+            sys.stdout.flush()
+            printed_dots = 0
+            blocks = []
+            downloaded = 0
+            while True:
+                block = resp.read(blocksize)
+                if block == b'':
+                    break
+                downloaded += len(block)
+                blocks.append(block)
+                ratio = int(downloaded/dlsize * 10)
+                while printed_dots < ratio:
+                    print('.', end='')
+                    sys.stdout.flush()
+                    printed_dots += 1
+            print('')
         return b''.join(blocks)
 
     def get_hash(self, data):
