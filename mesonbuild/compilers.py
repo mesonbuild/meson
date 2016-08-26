@@ -902,16 +902,21 @@ int main(int argc, char **argv) {
         # directly try to link via main().
         return self.links('int main() {{ {0}; }}'.format('__builtin_' + funcname), env, args)
 
-    def has_member(self, typename, membername, prefix, env, extra_args=None):
+    def has_members(self, typename, membernames, prefix, env, extra_args=None):
         if extra_args is None:
             extra_args = []
-        templ = '''%s
-void bar() {
-    %s foo;
-    foo.%s;
-};
+        templ = '''{0}
+void bar() {{
+    {1} {2};
+    {3}
+}};
 '''
-        return self.compiles(templ % (prefix, typename, membername), env, extra_args)
+        # Create code that accesses all members
+        members = ''
+        for m in membernames:
+            members += 'foo.{};\n'.format(m)
+        code = templ.format(prefix, typename, 'foo', members)
+        return self.compiles(code, env, extra_args)
 
     def has_type(self, typename, prefix, env, extra_args):
         templ = '''%s

@@ -590,6 +590,7 @@ class CompilerHolder(InterpreterObject):
                              'run' : self.run_method,
                              'has_function' : self.has_function_method,
                              'has_member' : self.has_member_method,
+                             'has_members' : self.has_members_method,
                              'has_type' : self.has_type_method,
                              'alignment' : self.alignment_method,
                              'version' : self.version_method,
@@ -667,13 +668,33 @@ class CompilerHolder(InterpreterObject):
         if not isinstance(prefix, str):
             raise InterpreterException('Prefix argument of has_function must be a string.')
         extra_args = self.determine_args(kwargs)
-        had = self.compiler.has_member(typename, membername, prefix, self.environment, extra_args)
+        had = self.compiler.has_members(typename, [membername], prefix,
+                                        self.environment, extra_args)
         if had:
             hadtxt = mlog.green('YES')
         else:
             hadtxt = mlog.red('NO')
         mlog.log('Checking whether type "', mlog.bold(typename),
                  '" has member "', mlog.bold(membername), '": ', hadtxt, sep='')
+        return had
+
+    def has_members_method(self, args, kwargs):
+        check_stringlist(args)
+        typename = args[0]
+        membernames = args[1:]
+        prefix = kwargs.get('prefix', '')
+        if not isinstance(prefix, str):
+            raise InterpreterException('Prefix argument of has_function must be a string.')
+        extra_args = self.determine_args(kwargs)
+        had = self.compiler.has_members(typename, membernames, prefix,
+                                        self.environment, extra_args)
+        if had:
+            hadtxt = mlog.green('YES')
+        else:
+            hadtxt = mlog.red('NO')
+        members = mlog.bold(', '.join(['"{}"'.format(m) for m in membernames]))
+        mlog.log('Checking whether type "', mlog.bold(typename),
+                 '" has members ', members, ': ', hadtxt, sep='')
         return had
 
     def has_function_method(self, args, kwargs):
