@@ -666,7 +666,7 @@ class CompilerHolder(InterpreterObject):
         membername = args[1]
         prefix = kwargs.get('prefix', '')
         if not isinstance(prefix, str):
-            raise InterpreterException('Prefix argument of has_function must be a string.')
+            raise InterpreterException('Prefix argument of has_member must be a string.')
         extra_args = self.determine_args(kwargs)
         had = self.compiler.has_members(typename, [membername], prefix,
                                         self.environment, extra_args)
@@ -684,7 +684,7 @@ class CompilerHolder(InterpreterObject):
         membernames = args[1:]
         prefix = kwargs.get('prefix', '')
         if not isinstance(prefix, str):
-            raise InterpreterException('Prefix argument of has_function must be a string.')
+            raise InterpreterException('Prefix argument of has_members must be a string.')
         extra_args = self.determine_args(kwargs)
         had = self.compiler.has_members(typename, membernames, prefix,
                                         self.environment, extra_args)
