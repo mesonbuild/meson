@@ -44,14 +44,14 @@ class OptionException(mesonlib.MesonException):
 
 optname_regex = re.compile('[^a-zA-Z0-9_-]')
 
-def StringParser(name, description, kwargs):
+def StringParser(name, description, parent, kwargs):
     return coredata.UserStringOption(name, description,
-                                     kwargs.get('value', ''), kwargs.get('choices', []))
+                                     kwargs.get('value', ''), kwargs.get('choices', []), parent)
 
-def BooleanParser(name, description, kwargs):
-    return coredata.UserBooleanOption(name, description, kwargs.get('value', True))
+def BooleanParser(name, description, parent, kwargs):
+    return coredata.UserBooleanOption(name, description, kwargs.get('value', True), parent)
 
-def ComboParser(name, description, kwargs):
+def ComboParser(name, description, parent, kwargs):
     if 'choices' not in kwargs:
         raise OptionException('Combo option missing "choices" keyword.')
     choices = kwargs['choices']
@@ -60,7 +60,7 @@ def ComboParser(name, description, kwargs):
     for i in choices:
         if not isinstance(i, str):
             raise OptionException('Combo choice elements must be strings.')
-    return coredata.UserComboOption(name, description, choices, kwargs.get('value', choices[0]))
+    return coredata.UserComboOption(name, description, choices, kwargs.get('value', choices[0]), parent)
 
 option_types = {'string' : StringParser,
                 'boolean' : BooleanParser,
@@ -70,6 +70,7 @@ option_types = {'string' : StringParser,
 class OptionInterpreter:
     def __init__(self, subproject, command_line_options):
         self.options = {}
+        self.suboptions = {}
         self.subproject = subproject
         self.cmd_line_options = {}
         for o in command_line_options:
@@ -123,16 +124,35 @@ class OptionInterpreter:
         if not isinstance(node, mparser.FunctionNode):
             raise OptionException('Option file may only contain option definitions')
         func_name = node.func_name
-        if func_name != 'option':
-            raise OptionException('Only calls to option() are allowed in option files.')
         (posargs, kwargs) = self.reduce_arguments(node.args)
+        if len(posargs) != 1:
+            raise OptionException('Function call must have one (and only one) positional argument')
+        if func_name == 'option':
+            return self.evaluate_option(posargs, kwargs)
+        elif func_name == 'suboption':
+            return self.evaluate_suboption(posargs, kwargs)
+        else:
+            raise OptionException('Only calls to option() or suboption() are allowed in option files.')
+
+    def evaluate_suboption(self, posargs, kwargs):
+        subopt_name = posargs[0]
+        parent_name = kwargs.get('parent', None)
+        if self.subproject != '':
+            subopt_name = self.subproject + ':' + subopt_name
+            if parent_name is not None:
+                parent_name = self.subproject + ':' + parent_name
+        if subopt_name in self.suboptions:
+            raise OptionException('Tried to redefine suboption %s.' % subopt_name)
+        description = kwargs.get('description', subopt_name)
+        so = coredata.SubOption(subopt_name, parent_name, description)
+        self.suboptions[subopt_name] = so
+
+    def evaluate_option(self, posargs, kwargs):
         if 'type' not in kwargs:
             raise OptionException('Option call missing mandatory "type" keyword argument')
         opt_type = kwargs['type']
         if not opt_type in option_types:
             raise OptionException('Unknown type %s.' % opt_type)
-        if len(posargs) != 1:
-            raise OptionException('Option() must have one (and only one) positional argument')
         opt_name = posargs[0]
         if not isinstance(opt_name, str):
             raise OptionException('Positional argument must be a string.')
@@ -140,9 +160,19 @@ class OptionInterpreter:
             raise OptionException('Option names can only contain letters, numbers or dashes.')
         if is_invalid_name(opt_name):
             raise OptionException('Option name %s is reserved.' % opt_name)
+        parent = kwargs.get('parent', None)
+        if parent is not None:
+            if not isinstance(parent, str):
+                raise OptionException('Parent, if set, must be a string.')
         if self.subproject != '':
             opt_name = self.subproject + ':' + opt_name
-        opt = option_types[opt_type](opt_name, kwargs.get('description', ''), kwargs)
+            if parent is not None:
+                parent = self.subproject + ':' + parent
+        if opt_name in self.options:
+            raise OptionException('Tried to redeclare option named %s.' % opt_name)
+        if parent is not None and parent not in self.suboptions:
+            raise OptionException('Parent %s of option %s is unknown.' % (parent, opt_name))
+        opt = option_types[opt_type](opt_name, kwargs.get('description', ''), parent, kwargs)
         if opt.description == '':
             opt.description = opt_name
         if opt_name in self.cmd_line_options:

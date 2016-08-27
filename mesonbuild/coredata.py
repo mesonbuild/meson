@@ -18,19 +18,26 @@ from .mesonlib import MesonException, default_libdir, default_libexecdir, defaul
 version = '0.34.0.dev1'
 backendlist = ['ninja', 'vs2010', 'vs2015', 'xcode']
 
+class SubOption:
+    def __init__(self, name, parent, description):
+        self.name = name
+        self.parent = parent
+        self.description = description
+
 class UserOption:
-    def __init__(self, name, description, choices):
+    def __init__(self, name, description, choices, parent=None):
         super().__init__()
         self.name = name
         self.choices = choices
         self.description = description
+        self.parent = parent
 
     def parse_string(self, valuestring):
         return valuestring
 
 class UserStringOption(UserOption):
-    def __init__(self, name, description, value, choices=None):
-        super().__init__(name, description, choices)
+    def __init__(self, name, description, value, parent=None, choices=None):
+        super().__init__(name, description, choices, parent)
         self.set_value(value)
 
     def validate(self, value):
@@ -47,8 +54,8 @@ class UserStringOption(UserOption):
         self.value = newvalue
 
 class UserBooleanOption(UserOption):
-    def __init__(self, name, description, value):
-        super().__init__(name, description, [ True, False ])
+    def __init__(self, name, description, value, parent=None):
+        super().__init__(name, description, [ True, False ], parent)
         self.set_value(value)
 
     def tobool(self, thing):
@@ -74,8 +81,8 @@ class UserBooleanOption(UserOption):
         return self.value
 
 class UserComboOption(UserOption):
-    def __init__(self, name, description, choices, value):
-        super().__init__(name, description, choices)
+    def __init__(self, name, description, choices, value, parent=None):
+        super().__init__(name, description, choices, parent)
         if not isinstance(self.choices, list):
             raise MesonException('Combo choices must be an array.')
         for i in self.choices:
@@ -90,8 +97,8 @@ class UserComboOption(UserOption):
         self.value = newvalue
 
 class UserStringArrayOption(UserOption):
-    def __init__(self, name, description, value, **kwargs):
-        super().__init__(name, description, kwargs.get('choices', []))
+    def __init__(self, name, description, value, parent=None, **kwargs):
+        super().__init__(name, description, kwargs.get('choices', []), parent)
         self.set_value(value)
 
     def set_value(self, newvalue):
@@ -120,6 +127,7 @@ class CoreData():
         self.version = version
         self.init_builtins(options)
         self.user_options = {}
+        self.suboptions = {} # In GUIs these would be called "submenus".
         self.compiler_options = {}
         self.base_options = {}
         self.external_args = {} # These are set from "the outside" with e.g. mesonconf

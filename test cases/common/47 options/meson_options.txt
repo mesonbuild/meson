@@ -1,3 +1,7 @@
 option('testoption', type : 'string', value : 'optval', description : 'An option to do something')
 option('other_one', type : 'boolean', value : false)
 option('combo_opt', type : 'combo', choices : ['one', 'two', 'combo'], value : 'combo')
+suboption('suboptions')
+option('subbool', type : 'boolean', parent : 'suboptions', description : 'An option in a submenu.')
+suboption('subsuboptions', parent : 'suboptions')
+option('subsubbool', type : 'boolean', parent : 'subsuboptions', description : 'A subsubmenuoption.')

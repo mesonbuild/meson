@@ -1028,7 +1028,7 @@ class Interpreter():
             oi = optinterpreter.OptionInterpreter(self.subproject, \
                                                   self.build.environment.cmd_line_options.projectoptions)
             oi.process(option_file)
-            self.build.environment.merge_options(oi.options)
+            self.build.environment.merge_options(oi.options, oi.suboptions)
         mesonfile = os.path.join(self.source_root, self.subdir, environment.build_filename)
         if not os.path.isfile(mesonfile):
             raise InvalidArguments('Missing Meson file in %s' % mesonfile)
