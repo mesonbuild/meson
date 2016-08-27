@@ -86,25 +86,11 @@ def list_target_files(target_name, coredata, builddata):
     print(json.dumps(sources))
 
 def list_buildoptions(coredata, builddata):
-    buildtype= {'choices': ['plain', 'debug', 'debugoptimized', 'release', 'minsize'],
-                'type' : 'combo',
-                'value' : coredata.get_builtin_option('buildtype'),
-                'description' : 'Build type',
-                'name' : 'type'}
-    strip = {'value' : coredata.get_builtin_option('strip'),
-             'type' : 'boolean',
-             'description' : 'Strip on install',
-             'name' : 'strip'}
-    unity = {'value' : coredata.get_builtin_option('unity'),
-             'type' : 'boolean',
-             'description' : 'Unity build',
-             'name' : 'unity'}
-    all_opt = []
-    all_opt.append({'name' : 'core',
-                    'description' : 'Core options',
-                    'type' : 'suboption',
-                    'value' : [buildtype, strip, unity],
-                    })
+    all_opt = [{'name' : 'builtin',
+                'description': 'Meson builtin options',
+                'type': 'suboption',
+                'value': get_keys(coredata.builtins),
+                }]
     all_opt.append({'name': 'user',
                     'description' : 'User defined options',
                     'type' : 'suboption',
@@ -161,6 +147,8 @@ def get_keys(options):
     keys = list(options.keys())
     keys.sort()
     for key in keys:
+        if key == 'backend': # The backend can never be changed.
+            continue
         opt = options[key]
         optlist.append(opt2dict(key, opt))
     return optlist
