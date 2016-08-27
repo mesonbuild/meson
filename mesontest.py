@@ -31,6 +31,26 @@ parser.add_argument('--list', default=False, dest='list', action='store_true',
                     help='List available tests.')
 parser.add_argument('tests', nargs='*')
 
+def gdbrun(test):
+    child_env = os.environ.copy()
+    child_env.update(test.env)
+    # On success will exit cleanly. On failure gdb will ask user
+    # if they really want to exit.
+    exe = test.fname
+    args = test.cmd_args
+    if len(args) > 0:
+        argset = ['-ex', 'set args ' + ' '.join(args)]
+    else:
+        argset = []
+    cmd = ['gdb', '--quiet'] + argset + ['-ex', 'run', '-ex', 'quit'] + exe
+    # FIXME a ton of stuff. run_single_test grabs stdout & co,
+    # which we do not want to do when running under gdb.
+    p = subprocess.Popen(cmd,
+                         env=child_env,
+                         cwd=test.workdir,
+                         )
+    p.communicate()
+
 def run(args):
     datafile = 'meson-private/meson_test_setup.dat'
     options = parser.parse_args(args)
@@ -48,22 +68,17 @@ def run(args):
         return 0
     for t in tests:
         if t.name in options.tests:
-            if options.gdb:
-                # On success will exit cleanly. On failure gdb will ask user
-                # if they really want to exit.
-                wrap = ['gdb', '--quiet', '-ex', 'run', '-ex', 'quit'] 
-                # FIXME a ton of stuff. run_single_test grabs stdout & co,
-                # which we do not want to do when running under gdb.
             for i in range(options.repeat):
                 print('Running: %s %d/%d' % (t.name, i+1, options.repeat))
-                res = meson_test.run_single_test(wrap, t)
-                if (res.returncode == 0 and res.should_fail) or \
-                    (res.returncode != 0 and not res.should_fail):
-                    print(res.stdo)
-                    print(res.stde)
-                    print(res.returncode)
-                    print(res.should_fail)
-                    raise RuntimeError('Test failed.')
+                if options.gdb:
+                    gdbrun(t)
+                else:
+                    res = meson_test.run_single_test(wrap, t)
+                    if (res.returncode == 0 and res.should_fail) or \
+                        (res.returncode != 0 and not res.should_fail):
+                        print(res.stdo)
+                        print(res.stde)
+                        raise RuntimeError('Test failed.')
 
 if __name__ == '__main__':
     sys.exit(run(sys.argv[1:]))
