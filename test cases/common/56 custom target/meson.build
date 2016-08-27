@@ -13,3 +13,5 @@ command : [python, comp, '@INPUT@', '@OUTPUT@'],
 install : true,
 install_dir : 'subdir'
 )
+
+subdir('depfile')
