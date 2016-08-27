@@ -48,6 +48,12 @@ def run(args):
         return 0
     for t in tests:
         if t.name in options.tests:
+            if options.gdb:
+                # On success will exit cleanly. On failure gdb will ask user
+                # if they really want to exit.
+                wrap = ['gdb', '--quiet', '-ex', 'run', '-ex', 'quit'] 
+                # FIXME a ton of stuff. run_single_test grabs stdout & co,
+                # which we do not want to do when running under gdb.
             for i in range(options.repeat):
                 print('Running: %s %d/%d' % (t.name, i+1, options.repeat))
                 res = meson_test.run_single_test(wrap, t)
