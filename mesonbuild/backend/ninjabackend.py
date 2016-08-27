@@ -1492,9 +1492,7 @@ rule FORTRAN_DEP_HACK
             else:
                 raise build.InvalidArguments('Invalid source type.')
             abs_src = os.path.join(self.environment.get_build_dir(), rel_src)
-        if isinstance(src, RawFilename):
-            src_filename = src.fname
-        elif isinstance(src, File):
+        if isinstance(src, (RawFilename, File)):
             src_filename = src.fname
         elif os.path.isabs(src):
             src_filename = os.path.basename(src)

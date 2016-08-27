@@ -253,11 +253,9 @@ class BuildTarget():
         for s in objects:
             if hasattr(s, 'held_object'):
                 s = s.held_object
-            if isinstance(s, str):
+            if isinstance(s, (str, ExtractedObjects)):
                 self.objects.append(s)
-            elif isinstance(s, ExtractedObjects):
-                self.objects.append(s)
-            elif isinstance(s, GeneratedList) or isinstance(s, CustomTarget):
+            elif isinstance(s, (GeneratedList, CustomTarget)):
                 msg =  'Generated files are not allowed in the \'objects\' kwarg ' + \
                     'for target {!r}.\nIt is meant only for '.format(self.name) + \
                     'pre-built object files that are shipped with the\nsource ' + \
@@ -279,7 +277,7 @@ class BuildTarget():
                 if not s in added_sources:
                     self.sources.append(s)
                     added_sources[s] = True
-            elif isinstance(s, GeneratedList) or isinstance(s, CustomTarget):
+            elif isinstance(s, (GeneratedList, CustomTarget)):
                 self.generated.append(s)
             else:
                 msg = 'Bad source of type {!r} in target {!r}.'.format(type(s).__name__, self.name)
@@ -546,8 +544,7 @@ class BuildTarget():
         for t in target:
             if hasattr(t, 'held_object'):
                 t = t.held_object
-            if not isinstance(t, StaticLibrary) and \
-            not isinstance(t, SharedLibrary):
+            if not isinstance(t, (StaticLibrary, SharedLibrary)):
                 raise InvalidArguments('Link target is not library.')
             if self.is_cross != t.is_cross:
                 raise InvalidArguments('Tried to mix cross built and native libraries in target %s.' % self.name)
@@ -612,7 +609,7 @@ class Generator():
         exe = args[0]
         if hasattr(exe, 'held_object'):
             exe = exe.held_object
-        if not isinstance(exe, Executable) and not isinstance(exe, dependencies.ExternalProgram):
+        if not isinstance(exe, (Executable, dependencies.ExternalProgram)):
             raise InvalidArguments('First generator argument must be an executable.')
         self.exe = exe
         self.process_kwargs(kwargs)
@@ -965,7 +962,7 @@ class CustomTarget:
         for c in self.sources:
             if hasattr(c, 'held_object'):
                 c = c.held_object
-            if isinstance(c, BuildTarget) or isinstance(c, CustomTarget) or isinstance(c, GeneratedList):
+            if isinstance(c, (BuildTarget, CustomTarget, GeneratedList)):
                 deps.append(c)
         return deps
 
@@ -996,13 +993,13 @@ class CustomTarget:
         for i, c in enumerate(cmd):
             if hasattr(c, 'held_object'):
                 c = c.held_object
-            if isinstance(c, str) or isinstance(c, File):
+            if isinstance(c, (str, File)):
                 final_cmd.append(c)
             elif isinstance(c, dependencies.ExternalProgram):
                 if not c.found():
                     raise InvalidArguments('Tried to use not found external program in a build rule.')
                 final_cmd += c.get_command()
-            elif isinstance(c, BuildTarget) or isinstance(c, CustomTarget):
+            elif isinstance(c, (BuildTarget, CustomTarget)):
                 self.dependencies.append(c)
                 final_cmd.append(c)
             elif isinstance(c, list):
@@ -1040,7 +1037,7 @@ class CustomTarget:
         for ed in extra_deps:
             while hasattr(ed, 'held_object'):
                 ed = ed.held_object
-            if not isinstance(ed, CustomTarget) and not isinstance(ed, BuildTarget):
+            if not isinstance(ed, (CustomTarget, BuildTarget)):
                 raise InvalidArguments('Can only depend on toplevel targets.')
             self.extra_depends.append(ed)
         depend_files = kwargs.get('depend_files', [])

@@ -799,7 +799,7 @@ class CrossBuildInfo():
             raise mesonlib.MesonException('Cross file is missing "binaries".')
 
     def ok_type(self, i):
-        return isinstance(i, str) or isinstance(i, int) or isinstance(i, bool)
+        return isinstance(i, (str, int, bool))
 
     def parse_datafile(self, filename):
         config = configparser.ConfigParser()

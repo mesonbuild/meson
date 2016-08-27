@@ -98,14 +98,11 @@ class OptionInterpreter:
     def reduce_single(self, arg):
         if isinstance(arg, str):
             return arg
-        elif isinstance(arg, mparser.StringNode):
-            return arg.value
-        elif isinstance(arg, mparser.BooleanNode):
+        elif isinstance(arg, (mparser.StringNode, mparser.BooleanNode,
+                              mparser.NumberNode)):
             return arg.value
         elif isinstance(arg, mparser.ArrayNode):
             return [self.reduce_single(curarg) for curarg in arg.args.arguments]
-        elif isinstance(arg, mparser.NumberNode):
-            return arg.value
         else:
             raise OptionException('Arguments may only be string, int, bool, or array of those.')
 

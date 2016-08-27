@@ -1104,7 +1104,7 @@ class Interpreter():
             if isinstance(v, build.CustomTarget):
                 self.add_target(v.name, v)
                 outvalues.append(CustomTargetHolder(v, self))
-            elif isinstance(v, int) or isinstance(v, str):
+            elif isinstance(v, (int, str)):
                 outvalues.append(v)
             elif isinstance(v, build.Executable):
                 self.add_target(v.name, v)
@@ -2089,11 +2089,7 @@ class Interpreter():
     def flatten(self, args):
         if isinstance(args, mparser.StringNode):
             return args.value
-        if isinstance(args, str):
-            return args
-        if isinstance(args, InterpreterObject):
-            return args
-        if isinstance(args, int):
+        if isinstance(args, (int, str, InterpreterObject)):
             return args
         result = []
         for a in args:
@@ -2109,8 +2105,8 @@ class Interpreter():
     def source_strings_to_files(self, sources):
         results = []
         for s in sources:
-            if isinstance(s, mesonlib.File) or isinstance(s, GeneratedListHolder) or \
-            isinstance(s, CustomTargetHolder):
+            if isinstance(s, (mesonlib.File, GeneratedListHolder,
+                              CustomTargetHolder)):
                 pass
             elif isinstance(s, str):
                 s = mesonlib.File.from_source_file(self.environment.source_dir, self.subdir, s)
@@ -2208,14 +2204,8 @@ class Interpreter():
             raise InvalidCode('Unknown function "%s".' % func_name)
 
     def is_assignable(self, value):
-        if isinstance(value, InterpreterObject) or \
-            isinstance(value, dependencies.Dependency) or\
-            isinstance(value, str) or\
-            isinstance(value, int) or \
-            isinstance(value, list) or \
-            isinstance(value, mesonlib.File):
-            return True
-        return False
+        return isinstance(value, (InterpreterObject, dependencies.Dependency,
+                                  str, int, list, mesonlib.File))
 
     def assignment(self, node):
         assert(isinstance(node, mparser.AssignmentNode))
@@ -2321,9 +2311,8 @@ class Interpreter():
         raise InterpreterException('Unknown method "%s" for a string.' % method_name)
 
     def to_native(self, arg):
-        if isinstance(arg, mparser.StringNode) or \
-           isinstance(arg, mparser.NumberNode) or \
-           isinstance(arg, mparser.BooleanNode):
+        if isinstance(arg, (mparser.StringNode, mparser.NumberNode,
+                            mparser.BooleanNode)):
             return arg.value
         return arg
 
@@ -2476,9 +2465,7 @@ class Interpreter():
         return iobject[index]
 
     def is_elementary_type(self, v):
-        if isinstance(v, (int, float, str, bool, list)):
-            return True
-        return False
+        return isinstance(v, (int, float, str, bool, list))
 
     def evaluate_comparison(self, node):
         v1 = self.evaluate_statement(node.left)
