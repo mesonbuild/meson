@@ -37,7 +37,7 @@ class InstallData():
 
 class ExecutableSerialisation():
     def __init__(self, name, fname, cmd_args, env, is_cross, exe_wrapper,
-                 workdir, extra_paths):
+                 workdir, extra_paths, capture):
         self.name = name
         self.fname = fname
         self.cmd_args = cmd_args
@@ -46,6 +46,7 @@ class ExecutableSerialisation():
         self.exe_runner = exe_wrapper
         self.workdir = workdir
         self.extra_paths = extra_paths
+        self.capture = capture
 
 class TestSerialisation:
     def __init__(self, name, suite, fname, is_cross, exe_wrapper, is_parallel, cmd_args, env,
@@ -176,18 +177,25 @@ class Backend():
                 raise MesonException('Unknown data type in object list.')
         return obj_list
 
-    def serialise_executable(self, exe, cmd_args, workdir, env={}):
+    def serialise_executable(self, exe, cmd_args, workdir, env={},
+                             capture=None):
         import uuid
         # Can't just use exe.name here; it will likely be run more than once
-        scratch_file = 'meson_exe_{0}_{1}.dat'.format(exe.name,
+        if isinstance(exe, (dependencies.ExternalProgram,
+                            build.BuildTarget, build.CustomTarget)):
+            basename = exe.name
+        else:
+            basename = os.path.basename(exe)
+        scratch_file = 'meson_exe_{0}_{1}.dat'.format(basename,
                                                       str(uuid.uuid4())[:8])
         exe_data = os.path.join(self.environment.get_scratch_dir(), scratch_file)
         with open(exe_data, 'wb') as f:
             if isinstance(exe, dependencies.ExternalProgram):
                 exe_fullpath = exe.fullpath
+            elif isinstance(exe, (build.BuildTarget, build.CustomTarget)):
+                exe_fullpath = [self.get_target_filename_abs(exe)]
             else:
-                exe_fullpath = [os.path.join(self.environment.get_build_dir(),
-                                             self.get_target_filename(exe))]
+                exe_fullpath = [exe]
             is_cross = self.environment.is_cross_build() and \
                 self.environment.cross_info.need_cross_compiler() and \
                 self.environment.cross_info.need_exe_wrapper()
@@ -199,9 +207,9 @@ class Backend():
                 extra_paths = self.determine_windows_extra_paths(exe)
             else:
                 extra_paths = []
-            es = ExecutableSerialisation(exe.name, exe_fullpath, cmd_args, env,
+            es = ExecutableSerialisation(basename, exe_fullpath, cmd_args, env,
                                          is_cross, exe_wrapper, workdir,
-                                         extra_paths)
+                                         extra_paths, capture)
             pickle.dump(es, f)
         return exe_data
 
