@@ -395,10 +395,11 @@ class GnomeModule:
                 'Sources keyword argument must be a string or array.')
 
         cmd = ['glib-genmarshal']
-        known_kwargs = ['body', 'header', 'internal', 'nostdinc',
-                        'skip-source', 'stdinc', 'valist-marshallers']
-        known_custom_target_kwargs = ['install', 'install_dir', 'build_always',
-                                      'depends', 'depend_files']
+        known_kwargs = ['internal', 'nostdinc', 'skip-source', 'stdinc',
+                        'valist-marshallers']
+        known_custom_target_kwargs = ['build_always', 'depends',
+                                      'depend_files', 'install_dir',
+                                      'install_header']
         for arg, value in kwargs.items():
             if arg == 'prefix':
                 cmd += ['--prefix', value]
@@ -408,18 +409,30 @@ class GnomeModule:
                 raise MesonException(
                     'Genmarshal does not take a %s keyword argument.' % (
                         arg, ))
-        cmd += ['@INPUT@']
+
+        install_header = kwargs.pop('install_header', False)
+        install_dir = kwargs.pop('install_dir', None)
 
         custom_kwargs = {
             'input': sources,
-            'output': output,
             'capture': True,
-            'command': cmd
         }
         for arg in known_custom_target_kwargs:
             if arg in kwargs:
                 custom_kwargs[arg] = kwargs[arg]
-        return build.CustomTarget(output, state.subdir, custom_kwargs)
+
+        custom_kwargs['command'] = cmd + ['--header', '--body', '@INPUT@']
+        custom_kwargs['output'] = output + '.c'
+        body = build.CustomTarget(output + '_c', state.subdir, custom_kwargs)
+
+        custom_kwargs['install'] = install_header
+        if install_dir is not None:
+            custom_kwargs['install_dir'] = install_dir
+        custom_kwargs['command'] = cmd + ['--header', '@INPUT@']
+        custom_kwargs['output'] = output + '.h'
+        header = build.CustomTarget(output + '_h', state.subdir, custom_kwargs)
+
+        return [body, header]
 
 
 def initialize():
