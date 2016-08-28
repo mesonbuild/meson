@@ -1,4 +1,10 @@
 usr/dib/dab/dub/prog?exe
+usr/dib/dab/dub2/prog2?exe
 usr/some/dir/sample.h
+usr/some/dir2/sample.h
 usr/woman/prog.1.gz
+usr/woman2/prog.1.gz
 usr/meow/datafile.cat
+usr/meow2/datafile.cat
+usr/woof/subdir/datafile.dog
+usr/woof2/subdir/datafile.dog

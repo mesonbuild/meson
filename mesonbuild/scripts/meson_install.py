@@ -106,7 +106,10 @@ def install_data(d):
 def install_man(d):
     for m in d.man:
         outfileroot = m[1]
-        outfilename = os.path.join(d.fullprefix, outfileroot)
+        if os.path.isabs(m[1]):
+            outfilename = destdir_join(d.destdir, m[1])
+        else:
+            outfilename = os.path.join(d.fullprefix, m[1])
         full_source_filename = m[0]
         outdir = os.path.split(outfilename)[0]
         os.makedirs(outdir, exist_ok=True)
@@ -121,7 +124,10 @@ def install_man(d):
 def install_headers(d):
     for t in d.headers:
         fullfilename = t[0]
-        outdir = os.path.join(d.fullprefix, t[1])
+        if os.path.isabs(t[1]):
+            outdir = destdir_join(d.destdir, t[1])
+        else:
+            outdir = os.path.join(d.fullprefix, t[1])
         fname = os.path.split(fullfilename)[1]
         outfilename = os.path.join(outdir, fname)
         print('Installing %s to %s' % (fname, outdir))
@@ -194,7 +200,10 @@ def check_for_stampfile(fname):
 def install_targets(d):
     for t in d.targets:
         fname = check_for_stampfile(t[0])
-        outdir = os.path.join(d.fullprefix, t[1])
+        if os.path.isabs(t[1]):
+            outdir = destdir_join(d.destdir, t[1])
+        else:
+            outdir = os.path.join(d.fullprefix, t[1])
         aliases = t[2]
         outname = os.path.join(outdir, os.path.split(fname)[-1])
         should_strip = t[3]
