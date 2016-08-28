@@ -18,4 +18,12 @@ mytarget2 = custom_target('bindat2',
   install_dir : 'subdir'
 )
 
+mytarget3 = custom_target('bindat3',
+  output : 'data3.dat',
+  input : [mytarget],
+  command : [python, comp2, '@INPUT@', '@OUTPUT@'],
+  install : true,
+  install_dir : 'subdir'
+)
+
 subdir('usetarget')

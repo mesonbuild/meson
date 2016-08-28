@@ -527,7 +527,7 @@ class Backend():
                 i = i.held_object
             if isinstance(i, str):
                 fname = [os.path.join(self.build_to_src, target.subdir, i)]
-            elif isinstance(i, build.BuildTarget):
+            elif isinstance(i, (build.BuildTarget, build.CustomTarget)):
                 fname = [self.get_target_filename(i)]
             elif isinstance(i, build.GeneratedList):
                 fname = [os.path.join(self.get_target_private_dir(target), p) for p in i.get_outfilelist()]
