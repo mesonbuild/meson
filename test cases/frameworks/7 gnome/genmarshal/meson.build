@@ -1,12 +1,10 @@
-marshaller_h = gnome.genmarshal('marshaller.h',
+marshallers = gnome.genmarshal('marshaller',
 sources : 'marshaller.list',
-header : true,
-install : true,
+install_header : true,
 install_dir : get_option('includedir'))
 
-marshaller_c = gnome.genmarshal('marshaller.c',
-sources : 'marshaller.list',
-body : true)
+marshaller_c = marshallers[0]
+marshaller_h = marshallers[1]
 
 genmarshalexe = executable('genmarshalprog', 'main.c', marshaller_c, marshaller_h,
 dependencies : gobj)
