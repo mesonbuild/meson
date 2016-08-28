@@ -37,6 +37,13 @@ def do_copy(from_file, to_file):
     shutil.copystat(from_file, to_file)
     append_to_log(to_file)
 
+def get_destdir_path(d, path):
+    if os.path.isabs(path):
+        output = destdir_join(d.destdir, path)
+    else:
+        output = os.path.join(d.fullprefix, path)
+    return output
+
 def do_install(datafilename):
     ifile = open(datafilename, 'rb')
     d = pickle.load(ifile)
@@ -56,10 +63,7 @@ def install_subdirs(data):
             src_dir = src_dir[:-1]
         src_prefix = os.path.join(src_dir, inst_dir)
         print('Installing subdir %s to %s.' % (src_prefix, dst_dir))
-        if os.path.isabs(dst_dir):
-            dst_dir = destdir_join(data.destdir, dst_dir)
-        else:
-            dst_dir = data.fullprefix + dst_dir
+        dst_dir = get_destdir_path(data, dst_dir)
         if not os.path.exists(dst_dir):
             os.makedirs(dst_dir)
         for root, dirs, files in os.walk(src_prefix):
@@ -92,22 +96,16 @@ def install_subdirs(data):
 def install_data(d):
     for i in d.data:
         fullfilename = i[0]
-        outfilename = i[1]
-        if os.path.isabs(outfilename):
-            outdir = destdir_join(d.destdir, os.path.split(outfilename)[0])
-            outfilename = destdir_join(d.destdir, outfilename)
-        else:
-            outdir = os.path.join(d.fullprefix, os.path.split(outfilename)[0])
-            outfilename = os.path.join(outdir, os.path.split(outfilename)[1])
+        outfilename = get_destdir_path(d, i[1])
+        outdir = os.path.split(outfilename)[0]
         os.makedirs(outdir, exist_ok=True)
         print('Installing %s to %s.' % (fullfilename, outdir))
         do_copy(fullfilename, outfilename)
 
 def install_man(d):
     for m in d.man:
-        outfileroot = m[1]
-        outfilename = os.path.join(d.fullprefix, outfileroot)
         full_source_filename = m[0]
+        outfilename = get_destdir_path(d, m[1])
         outdir = os.path.split(outfilename)[0]
         os.makedirs(outdir, exist_ok=True)
         print('Installing %s to %s.' % (full_source_filename, outdir))
@@ -121,8 +119,8 @@ def install_man(d):
 def install_headers(d):
     for t in d.headers:
         fullfilename = t[0]
-        outdir = os.path.join(d.fullprefix, t[1])
         fname = os.path.split(fullfilename)[1]
+        outdir = get_destdir_path(d, t[1])
         outfilename = os.path.join(outdir, fname)
         print('Installing %s to %s' % (fname, outdir))
         os.makedirs(outdir, exist_ok=True)
@@ -194,9 +192,9 @@ def check_for_stampfile(fname):
 def install_targets(d):
     for t in d.targets:
         fname = check_for_stampfile(t[0])
-        outdir = os.path.join(d.fullprefix, t[1])
-        aliases = t[2]
+        outdir = get_destdir_path(d, t[1])
         outname = os.path.join(outdir, os.path.split(fname)[-1])
+        aliases = t[2]
         should_strip = t[3]
         install_rpath = t[4]
         print('Installing %s to %s' % (fname, outname))
