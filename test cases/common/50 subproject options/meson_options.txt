@@ -1,1 +1,2 @@
 option('opt', type : 'boolean', value : true, description : 'main project option')
+option('opt1', type : 'boolean', value : true, description : 'main project option 1')
