@@ -1016,7 +1016,8 @@ class MesonMain(InterpreterObject):
 
 class Interpreter():
 
-    def __init__(self, build, backend, subproject='', subdir='', subproject_dir='subprojects'):
+    def __init__(self, build, backend, subproject='', subdir='', subproject_dir='subprojects',
+                 extra_options=None):
         self.build = build
         self.backend = backend
         self.subproject = subproject
@@ -1025,8 +1026,10 @@ class Interpreter():
         self.subproject_dir = subproject_dir
         option_file = os.path.join(self.source_root, self.subdir, 'meson_options.txt')
         if os.path.exists(option_file):
-            oi = optinterpreter.OptionInterpreter(self.subproject, \
-                                                  self.build.environment.cmd_line_options.projectoptions)
+            options = self.build.environment.cmd_line_options.projectoptions
+            if extra_options:
+                options += extra_options
+            oi = optinterpreter.OptionInterpreter(self.subproject, options)
             oi.process(option_file)
             self.build.environment.merge_options(oi.options)
         mesonfile = os.path.join(self.source_root, self.subdir, environment.build_filename)
@@ -1423,7 +1426,15 @@ class Interpreter():
         os.makedirs(os.path.join(self.build.environment.get_build_dir(), subdir), exist_ok=True)
         self.global_args_frozen = True
         mlog.log('\nExecuting subproject ', mlog.bold(dirname), '.\n', sep='')
-        subi = Interpreter(self.build, self.backend, dirname, subdir, self.subproject_dir)
+        options = kwargs.get('options')
+        if options:
+            if not isinstance(options, list):
+                options = [options]
+            check_stringlist(options)
+            options = [dirname + ':' + o for o in options]
+
+        subi = Interpreter(self.build, self.backend, dirname, subdir, self.subproject_dir,
+                           extra_options=options)
         subi.subprojects = self.subprojects
 
         subi.subproject_stack = self.subproject_stack + [dirname]
@@ -1735,7 +1746,10 @@ class Interpreter():
             raise InterpreterException('Fallback info must have exactly two items.')
         dirname, varname = fbinfo
         try:
-            self.do_subproject(dirname, {})
+            args = {}
+            if "fallback_options" in kwargs:
+                args["options"] = kwargs["fallback_options"]
+            self.do_subproject(dirname, args)
         except:
             mlog.log('Also couldn\'t find a fallback subproject in',
                      mlog.bold(os.path.join(self.subproject_dir, dirname)),
