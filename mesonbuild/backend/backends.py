@@ -581,7 +581,6 @@ class Backend():
                                   os.path.join(lead_dir,
                                                outdir))
                 cmd.append(i)
-        cmd = [i.replace('\\', '/') for i in cmd]
         return (srcs, ofilenames, cmd)
 
     def run_postconf_scripts(self):
