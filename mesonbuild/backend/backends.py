@@ -547,7 +547,7 @@ class Backend():
                 tmp = i.get_filename()[0]
                 i = os.path.join(self.get_target_dir(i), tmp)
             elif isinstance(i, mesonlib.File):
-                i = os.path.join(i.subdir, i.fname)
+                i = i.rel_to_builddir(self.build_to_src)
                 if absolute_paths:
                     i = os.path.join(self.environment.get_build_dir(), i)
             # FIXME: str types are blindly added and ignore the 'absolute_paths' argument

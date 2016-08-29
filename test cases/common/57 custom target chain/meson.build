@@ -4,7 +4,7 @@ python = find_program('python3')
 
 comp = '@0@/@1@'.format(meson.current_source_dir(), 'my_compiler.py')
 comp2 = '@0@/@1@'.format(meson.current_source_dir(), 'my_compiler2.py')
-infile = '@0@/@1@'.format(meson.current_source_dir(), 'data_source.txt')
+infile = files('data_source.txt')[0]
 
 mytarget = custom_target('bindat',
   output : 'data.dat',
