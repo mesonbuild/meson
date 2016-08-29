@@ -1717,14 +1717,23 @@ class Interpreter():
             dep = cached_dep
         else:
             # We need to actually search for this dep
+            exception = None
+            dep = None
             try:
                 dep = dependencies.find_external_dependency(name, self.environment, kwargs)
-            except dependencies.DependencyException:
+            except dependencies.DependencyException as e:
+                exception = e
+                pass
+
+            if not dep or not dep.found():
                 if 'fallback' in kwargs:
-                    dep = self.dependency_fallback(name, kwargs)
-                    self.coredata.deps[identifier] = dep.held_object
-                    return dep
-                raise
+                    fallback_dep = self.dependency_fallback(name, kwargs)
+                    if fallback_dep:
+                        return fallback_dep
+
+                if not dep:
+                    raise exception
+
         self.coredata.deps[identifier] = dep
         return DependencyHolder(dep)
 
@@ -1738,9 +1747,12 @@ class Interpreter():
             self.do_subproject(dirname, {})
         except:
             mlog.log('Also couldn\'t find a fallback subproject in',
-                     mlog.bold(os.path.join(self.subproject_dir, dirname)),
-                     'for the dependency', mlog.bold(name))
-            raise
+                    mlog.bold(os.path.join(self.subproject_dir, dirname)),
+                    'for the dependency', mlog.bold(name))
+            if kwargs.get('required', True):
+                raise
+            else:
+                return None
         dep = self.subprojects[dirname].get_variable_method([varname], {})
         if not isinstance(dep, (DependencyHolder, InternalDependencyHolder)):
             raise InterpreterException('Fallback variable is not a dependency object.')
