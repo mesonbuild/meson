@@ -9,5 +9,10 @@ template = '''#pragma once
 #define THE_ARG2 {}
 '''
 
-data = open(os.path.join(os.environ['MESON_SOURCE_ROOT'], 'raw.dat')).readline().strip()
-open(os.path.join(os.environ['MESON_BUILD_ROOT'], 'generated.h'), 'w').write(template.format(data, sys.argv[1], sys.argv[2]))
+input_file = os.path.join(os.environ['MESON_SOURCE_ROOT'], 'raw.dat')
+output_file = os.path.join(os.environ['MESON_BUILD_ROOT'], 'generated.h')
+
+with open(input_file) as f:
+    data = f.readline().strip()
+with open(output_file, 'w') as f:
+    f.write(template.format(data, sys.argv[1], sys.argv[2]))

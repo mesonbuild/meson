@@ -7,8 +7,10 @@ if len(sys.argv) != 2:
 
 odir = sys.argv[1]
 
-open(os.path.join(odir, 'mylib.h'), 'w').write('int func();\n')
-open(os.path.join(odir, 'mylib.c'), 'w').write('''int func() {
+with open(os.path.join(odir, 'mylib.h'), 'w') as f:
+    f.write('int func();\n')
+with open(os.path.join(odir, 'mylib.c'), 'w') as f:
+    f.write('''int func() {
     return 0;
 }
 ''')

@@ -14,14 +14,17 @@ def generate(infile, outfile, fallback):
             version = stdo.decode().strip()
     except:
         pass
-    newdata = open(infile).read().replace('@VERSION@', version)
+    with open(infile) as f:
+        newdata = f.read().replace('@VERSION@', version)
     try:
-        olddata = open(outfile).read()
+        with open(outfile) as f:
+            olddata = f.read()
         if olddata == newdata:
             return
     except:
         pass
-    open(outfile, 'w').write(newdata)
+    with open(outfile, 'w') as f:
+        f.write(newdata)
 
 if __name__ == '__main__':
     infile = sys.argv[1]

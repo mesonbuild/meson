@@ -26,5 +26,7 @@ hfile = os.path.join(outdir, base + '.h')
 c_code = c_templ % (base, base)
 h_code = h_templ % base
 
-open(cfile, 'w').write(c_code)
-open(hfile, 'w').write(h_code)
+with open(cfile, 'w') as f:
+    f.write(c_code)
+with open(hfile, 'w') as f:
+    f.write(h_code)

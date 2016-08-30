@@ -2,4 +2,5 @@
 
 import sys
 
-open(sys.argv[2], 'wb').write(open(sys.argv[1], 'rb').read())
+with open(sys.argv[1], 'rb') as ifile, open(sys.argv[2], 'wb') as ofile:
+    ofile.write(ifile.read())

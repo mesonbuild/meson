@@ -3,5 +3,5 @@
 import sys, os
 
 with open(sys.argv[1], 'rb') as ifile:
-    open(sys.argv[2], 'w').write('Everything ok.\n')
-
+    with open(sys.argv[2], 'w') as ofile:
+        ofile.write('Everything ok.\n')
