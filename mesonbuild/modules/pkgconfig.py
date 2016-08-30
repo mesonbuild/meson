@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .. import coredata, build
+from .. import coredata, build, dependencies
 from .. import mesonlib
 import os
 
@@ -37,6 +37,18 @@ class PkgConfigModule:
             ofile.write('Version: %s\n' % version)
         if len(pub_reqs) > 0:
             ofile.write('Requires: {}\n'.format(' '.join(pub_reqs)))
+        else:
+            for l in libraries:
+                ldeps = l.get_external_deps()
+                first = True
+                for l in ldeps:
+                    if isinstance(l, dependencies.PkgConfigDependency):
+                        if first:
+                            first = False
+                            ofile.write('Requires:')
+                        ofile.write(' %s%s' % (l.name, l.version_requirement))
+                if not first:
+                    ofile.write('\n')
         if len(priv_reqs) > 0:
             ofile.write('Requires.private: {}\n'.format(' '.join(priv_reqs)))
         if len(priv_libs) > 0:
