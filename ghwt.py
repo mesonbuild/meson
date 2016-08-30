@@ -52,8 +52,8 @@ def unpack(sproj, branch, outdir):
         return 1
     spdir = os.path.split(outdir)[0]
     ofilename = os.path.join(spdir, config['wrap-file']['source_filename'])
-    ofile = open(ofilename, 'wb')
-    ofile.write(us)
+    with open(ofilename, 'wb') as ofile:
+        ofile.write(us)
     if 'lead_directory_missing' in config['wrap-file']:
         os.mkdir(outdir)
         shutil.unpack_archive(ofilename, outdir)
