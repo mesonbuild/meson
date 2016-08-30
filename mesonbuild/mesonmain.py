@@ -61,8 +61,8 @@ parser.add_argument('--cross-file', default=None,
                     help='File describing cross compilation environment.')
 parser.add_argument('-D', action='append', dest='projectoptions', default=[],
                     help='Set project options.')
-parser.add_argument('-v', '--version', action='store_true', dest='print_version', default=False,
-                    help='Print version information.')
+parser.add_argument('-v', '--version', action='version',
+                    version=coredata.version)
 parser.add_argument('directories', nargs='*')
 
 class MesonApp():
@@ -245,9 +245,6 @@ def run(mainfile, args):
         handshake = False
     args = mesonlib.expand_arguments(args)
     options = parser.parse_args(args)
-    if options.print_version:
-        print(coredata.version)
-        return 0
     args = options.directories
     if len(args) == 0 or len(args) > 2:
         # if there's a meson.build in the dir above, and not in the current
