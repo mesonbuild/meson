@@ -209,6 +209,7 @@ class GnomeModule:
                                                 os.path.join(state.environment.get_build_dir(),
                                                              source.held_object.get_subdir())]
                 elif isinstance(dep.held_object, dependencies.PkgConfigDependency):
+                    scan_command += dep.held_object.get_compile_args()
                     for lib in dep.held_object.libs:
                         if os.path.isabs(lib) and dep.held_object.is_libtool:
                             scan_command += ["-L%s" % os.path.dirname(lib)]
