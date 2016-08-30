@@ -100,22 +100,27 @@ class GnomeModule:
             depends.append(lib)
         return link_command
 
-    def get_include_args(self, state, include_dirs):
+    def get_include_args(self, state, include_dirs, prefix='-I'):
         if not include_dirs:
             return []
 
+        build_to_src = os.path.relpath(state.environment.get_source_dir(),
+                                       state.environment.get_build_dir())
         dirs_str = []
         for incdirs in include_dirs:
             if hasattr(incdirs, "held_object"):
                 dirs = incdirs.held_object
             else:
                 dirs = incdirs
-            for incdir in dirs.get_incdirs():
-                if os.path.isabs(incdir):
-                    dirs_str += ['-I%s' % os.path.join(incdir)]
-                else:
-                    dirs_str += ['-I%s' % os.path.join(state.environment.get_source_dir(),
-                                                        dirs.curdir, incdir)]
+            basedir = dirs.get_curdir()
+            for d in dirs.get_incdirs():
+                expdir =  os.path.join(basedir, d)
+                srctreedir = os.path.join(build_to_src, expdir)
+                dirs_str += ['%s%s' % (prefix, expdir),
+                             '%s%s' % (prefix, srctreedir)]
+            for d in dirs.get_extra_build_dirs():
+                dirs_str += ['%s%s' % (prefix, d)]
+
         return dirs_str
 
     def generate_gir(self, state, args, kwargs):
@@ -148,7 +153,7 @@ class GnomeModule:
 
         extra_args = mesonlib.stringlistify(kwargs.pop('extra_args', []))
         scan_command += extra_args
-        scan_command += self.get_include_args(state, girtarget.include_dirs)
+        scan_command += self.get_include_args(state, girtarget.get_include_dirs())
 
         if 'link_with' in kwargs:
             link_with = kwargs.pop('link_with')
@@ -232,10 +237,10 @@ class GnomeModule:
                 inc_dirs = [inc_dirs]
 
             for ind in inc_dirs:
-                if isinstance(ind.held_object, build.IncludeDirs):
-                    scan_command += ['--add-include-path=%s' % inc for inc in ind.held_object.get_incdirs()]
-                else:
+                if not isinstance(ind.held_object, build.IncludeDirs):
                     raise MesonException('Gir include dirs should be include_directories()')
+            scan_command += self.get_include_args(state, inc_dirs,
+                                                  prefix='--add-include-path=')
         if isinstance(girtarget, build.Executable):
             scan_command += ['--program', girtarget]
         elif isinstance(girtarget, build.SharedLibrary):
