@@ -521,9 +521,9 @@ class BoostDependency(Dependency):
             if mesonlib.is_windows():
                 args.append('-I' + self.boost_root)
             else:
-                args.append('-I' + os.path.join(self.boost_root, 'include'))
+                args.append('-isystem' + os.path.join(self.boost_root, 'include'))
         else:
-            args.append('-I' + self.incdir)
+            args.append('-isystem' + self.incdir)
         return args
 
     def get_requested(self, kwargs):
@@ -689,7 +689,7 @@ class GTestDependency(Dependency):
             mlog.log('Dependency GTest found:', mlog.green('YES'), '(prebuilt)')
         elif os.path.exists(self.src_dir):
             self.is_found = True
-            self.compile_args = ['-I' + self.src_include_dir]
+            self.compile_args = ['-isystem' + self.src_include_dir]
             self.link_args = []
             if self.main:
                 self.sources = [self.all_src, self.main_src]
@@ -704,8 +704,8 @@ class GTestDependency(Dependency):
     def get_compile_args(self):
         arr = []
         if self.include_dir != '/usr/include':
-            arr.append('-I' + self.include_dir)
-        arr.append('-I' + self.src_include_dir)
+            arr.append('-isystem' + self.include_dir)
+        arr.append('-isystem' + self.src_include_dir)
         return arr
 
     def get_link_args(self):
@@ -743,7 +743,7 @@ class GMockDependency(Dependency):
                 self.is_found = True
                 # Yes, we need both because there are multiple
                 # versions of gmock that do different things.
-                self.compile_args = ['-I/usr/src/gmock', '-I/usr/src/gmock/src']
+                self.compile_args = ['-isystem/usr/src/gmock', '-isystem/usr/src/gmock/src']
                 self.link_args = []
                 all_src = mesonlib.File.from_absolute_file(os.path.join(d, 'gmock-all.cc'))
                 main_src = mesonlib.File.from_absolute_file(os.path.join(d, 'gmock_main.cc'))
@@ -832,13 +832,13 @@ class Qt5Dependency(Dependency):
         if mesonlib.is_osx():
             return self.framework_detect(qvars, mods, kwargs)
         incdir = qvars['QT_INSTALL_HEADERS']
-        self.cargs.append('-I' + incdir)
+        self.cargs.append('-isystem' + incdir)
         libdir = qvars['QT_INSTALL_LIBS']
         bindir = qvars['QT_INSTALL_BINS']
         #self.largs.append('-L' + libdir)
         for module in mods:
             mincdir = os.path.join(incdir, 'Qt' + module)
-            self.cargs.append('-I' + mincdir)
+            self.cargs.append('-isystem' + mincdir)
             libfile = os.path.join(libdir, 'Qt5' + module + '.lib')
             if not os.path.isfile(libfile):
                 # MinGW links directly to .dll, not to .lib.
@@ -1126,7 +1126,7 @@ class ExtraFrameworkDependency(Dependency):
 
     def get_compile_args(self):
         if self.found():
-            return ['-I' + os.path.join(self.path, self.name, 'Headers')]
+            return ['-isystem' + os.path.join(self.path, self.name, 'Headers')]
         return []
 
     def get_link_args(self):
