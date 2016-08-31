@@ -236,10 +236,13 @@ class GnomeModule:
                                              source.held_object.get_subdir()),
                             )
                         ]
-            elif isinstance(dep, dependencies.PkgConfigDependency):
+            # This should be any dependency other than an internal one.
+            elif isinstance(dep, dependencies.Dependency):
                 scan_command += dep.get_compile_args()
-                for lib in dep.libs:
-                    if os.path.isabs(lib) and dep.is_libtool:
+                for lib in dep.get_link_args():
+                    if (os.path.isabs(lib) and
+                            # For PkgConfigDependency only:
+                            getattr(dep, 'is_libtool', False)):
                         scan_command += ["-L%s" % os.path.dirname(lib)]
                         libname = os.path.basename(lib)
                         if libname.startswith("lib"):
@@ -251,9 +254,13 @@ class GnomeModule:
                         continue
                         scan_command += [lib]
 
-                girdir = dep.get_variable("girdir")
-                if girdir:
-                    scan_command += ["--add-include-path=%s" % (girdir, )]
+                if isinstance(dep, dependencies.PkgConfigDependency):
+                    girdir = dep.get_variable("girdir")
+                    if girdir:
+                        scan_command += ["--add-include-path=%s" % (girdir, )]
+            elif isinstance(dep, (build.StaticLibrary, build.SharedLibrary)):
+                for incd in dep.get_include_dirs():
+                    scan_command += incd.get_incdirs()
             else:
                 mlog.log('dependency %s not handled to build gir files' % dep)
                 continue
