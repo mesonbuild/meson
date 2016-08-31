@@ -519,7 +519,7 @@ class BoostDependency(Dependency):
         args = []
         if self.boost_root is not None:
             if mesonlib.is_windows():
-                args.append('-isystem' + self.boost_root)
+                args.append('-I' + self.boost_root)
             else:
                 args.append('-isystem' + os.path.join(self.boost_root, 'include'))
         else:
@@ -977,7 +977,7 @@ why. As a hack filter out everything that is not a flag."""
         result = []
         for f in args:
             if f.startswith('-D') or f.startswith('-f') or \
-            f.startswith('-isystem') or f == '-pthread' or\
+            f.startswith('-I') or f == '-pthread' or\
             (f.startswith('-W') and not f == '-Wall'):
                 result.append(f)
         return result
@@ -1167,9 +1167,9 @@ class Python3Dependency(Dependency):
             if mesonlib.is_windows():
                 inc = sysconfig.get_path('include')
                 platinc = sysconfig.get_path('platinclude')
-                self.cargs = ['-isystem' + inc]
+                self.cargs = ['-I' + inc]
                 if inc != platinc:
-                    self.cargs.append('-isystem' + platinc)
+                    self.cargs.append('-I' + platinc)
                 # Nothing exposes this directly that I coulf find
                 basedir = sysconfig.get_config_var('base')
                 vernum = sysconfig.get_config_var('py_version_nodot')
