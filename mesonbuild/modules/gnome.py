@@ -262,9 +262,10 @@ class GnomeModule:
         if not isinstance(inc_dirs, list):
             inc_dirs = [inc_dirs]
         for incd in inc_dirs:
-            if not isinstance(incd.held_object, build.IncludeDirs):
+            if not isinstance(incd.held_object, (str, build.IncludeDirs)):
                 raise MesonException(
                     'Gir include dirs should be include_directories().')
+        scan_command += self.get_include_args(state, inc_dirs)
         scan_command += self.get_include_args(state, gir_inc_dirs + inc_dirs,
                                               prefix='--add-include-path=')
 

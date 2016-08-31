@@ -17,7 +17,6 @@ girexe = executable(
 gnome.generate_gir(
   girsubproject,
   sources : libsources,
-  include_directories : girlib_inc,
   nsversion : '1.0',
   namespace : 'MesonSub',
   symbol_prefix : 'meson_sub_',
