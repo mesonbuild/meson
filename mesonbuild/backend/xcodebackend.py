@@ -82,26 +82,22 @@ class XCodeBackend(backends.Backend):
         self.proj_dir = os.path.join(self.environment.get_build_dir(), self.build.project_name + '.xcodeproj')
         os.makedirs(self.proj_dir, exist_ok=True)
         self.proj_file = os.path.join(self.proj_dir, 'project.pbxproj')
-        self.ofile = open(self.proj_file, 'w')
-        self.generate_prefix()
-        self.generate_pbx_aggregate_target()
-        self.generate_pbx_build_file()
-        self.generate_pbx_build_style()
-        self.generate_pbx_container_item_proxy()
-        self.generate_pbx_file_reference()
-        self.generate_pbx_group()
-        self.generate_pbx_native_target()
-        self.generate_pbx_project()
-        self.generate_pbx_shell_build_phase(test_data)
-        self.generate_pbx_sources_build_phase()
-        self.generate_pbx_target_dependency()
-        self.generate_xc_build_configuration()
-        self.generate_xc_configurationList()
-        self.generate_suffix()
-
-        # for some reason, the entire file was not being flushed to the disk.
-        # closing it explicitly forces a flush and fixes the issue
-        self.ofile.close()
+        with open(self.proj_file, 'w') as self.ofile:
+            self.generate_prefix()
+            self.generate_pbx_aggregate_target()
+            self.generate_pbx_build_file()
+            self.generate_pbx_build_style()
+            self.generate_pbx_container_item_proxy()
+            self.generate_pbx_file_reference()
+            self.generate_pbx_group()
+            self.generate_pbx_native_target()
+            self.generate_pbx_project()
+            self.generate_pbx_shell_build_phase(test_data)
+            self.generate_pbx_sources_build_phase()
+            self.generate_pbx_target_dependency()
+            self.generate_xc_build_configuration()
+            self.generate_xc_configurationList()
+            self.generate_suffix()
 
     def get_xcodetype(self, fname):
         return self.xcodetypemap[fname.split('.')[-1]]

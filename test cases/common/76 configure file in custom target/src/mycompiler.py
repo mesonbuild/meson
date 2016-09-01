@@ -2,7 +2,8 @@
 
 import sys
 
-ifile = open(sys.argv[1])
-if ifile.readline().strip() != '42':
-    print('Incorrect input')
-open(sys.argv[2], 'w').write('Success\n')
+with open(sys.argv[1]) as ifile:
+    if ifile.readline().strip() != '42':
+        print('Incorrect input')
+with open(sys.argv[2], 'w') as ofile:
+    ofile.write('Success\n')

@@ -115,11 +115,21 @@ class Elf(DataSizes):
         self.bfile = bfile
         self.verbose = verbose
         self.bf = open(bfile, 'r+b')
-        (self.ptrsize, self.is_le) = self.detect_elf_type()
-        super().__init__(self.ptrsize, self.is_le)
-        self.parse_header()
-        self.parse_sections()
-        self.parse_dynamic()
+        try:
+            (self.ptrsize, self.is_le) = self.detect_elf_type()
+            super().__init__(self.ptrsize, self.is_le)
+            self.parse_header()
+            self.parse_sections()
+            self.parse_dynamic()
+        except:
+            self.bf.close()
+            raise
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.bf.close()
 
     def detect_elf_type(self):
         data = self.bf.read(6)
@@ -308,13 +318,13 @@ def run(args):
         print('Don\'t run this unless you know what you are doing.')
         print('%s: <binary file> <prefix>' % sys.argv[0])
         exit(1)
-    e = Elf(args[0])
-    if len(args) == 1:
-        e.print_rpath()
-        e.print_runpath()
-    else:
-        new_rpath = args[1]
-        e.fix_rpath(new_rpath)
+    with Elf(args[0]) as e:
+        if len(args) == 1:
+            e.print_rpath()
+            e.print_runpath()
+        else:
+            new_rpath = args[1]
+            e.fix_rpath(new_rpath)
     return 0
 
 if __name__ == '__main__':

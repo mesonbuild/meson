@@ -156,8 +156,9 @@ def validate_install(srcdir, installdir):
     if os.path.exists(os.path.join(installdir, noinst_file)):
         expected[noinst_file] = False
     elif os.path.exists(info_file):
-        for line in open(info_file):
-            expected[platform_fix_exe_name(line.strip())] = False
+        with open(info_file) as f:
+            for line in f:
+                expected[platform_fix_exe_name(line.strip())] = False
     # Check if expected files were found
     for fname in expected:
         if os.path.exists(os.path.join(installdir, fname)):
@@ -249,7 +250,8 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, flags, compile_c
     (returncode, stdo, stde) = run_configure_inprocess(gen_command)
     try:
         logfile = os.path.join(test_build_dir, 'meson-logs/meson-log.txt')
-        mesonlog = open(logfile, errors='ignore').read()
+        with open(logfile, errors='ignore') as f:
+            mesonlog = f.read()
     except Exception:
         mesonlog = 'No meson-log.txt found.'
     gen_time = time.time() - gen_start
@@ -401,7 +403,9 @@ def run_tests(extra_args):
 
 def check_file(fname):
     linenum = 1
-    for line in open(fname, 'rb').readlines():
+    with open(fname, 'rb') as f:
+        lines = f.readlines()
+    for line in lines:
         if b'\t' in line:
             print("File %s contains a literal tab on line %d. Only spaces are permitted." % (fname, linenum))
             sys.exit(1)

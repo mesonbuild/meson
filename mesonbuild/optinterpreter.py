@@ -78,7 +78,8 @@ class OptionInterpreter:
 
     def process(self, option_file):
         try:
-            ast = mparser.Parser(open(option_file, 'r', encoding='utf8').read()).parse()
+            with open(option_file, 'r', encoding='utf8') as f:
+                ast = mparser.Parser(f.read()).parse()
         except mesonlib.MesonException as me:
             me.file = option_file
             raise me

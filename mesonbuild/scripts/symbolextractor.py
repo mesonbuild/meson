@@ -34,16 +34,19 @@ parser.add_argument('args', nargs='+')
 
 def dummy_syms(outfilename):
     """Just touch it so relinking happens always."""
-    open(outfilename, 'w').close()
+    with open(outfilename, 'w'):
+        pass
 
 def write_if_changed(text, outfilename):
     try:
-        oldtext = open(outfilename, 'r').read()
+        with open(outfilename, 'r') as f:
+            oldtext = f.read()
         if text == oldtext:
             return
     except FileNotFoundError:
         pass
-    open(outfilename, 'w').write(text)
+    with open(outfilename, 'w') as f:
+        f.write(text)
 
 def linux_syms(libfilename, outfilename):
     pe = subprocess.Popen(['readelf', '-d', libfilename], stdout=subprocess.PIPE, stderr=subprocess.PIPE)

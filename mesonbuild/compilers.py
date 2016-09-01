@@ -538,9 +538,8 @@ class CCompiler(Compiler):
         binname += '.exe'
         # Write binary check source
         binary_name = os.path.join(work_dir, binname)
-        ofile = open(source_name, 'w')
-        ofile.write(code)
-        ofile.close()
+        with open(source_name, 'w') as ofile:
+            ofile.write(code)
         # Compile sanity check
         cmdlist = self.exelist + extra_flags + [source_name] + self.get_output_args(binary_name)
         pc = subprocess.Popen(cmdlist, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=work_dir)
@@ -617,9 +616,8 @@ int main () {{ {1}; }}'''
         suflen = len(self.default_suffix)
         (fd, srcname) = tempfile.mkstemp(suffix='.'+self.default_suffix)
         os.close(fd)
-        ofile = open(srcname, 'w')
-        ofile.write(code)
-        ofile.close()
+        with open(srcname, 'w') as ofile:
+            ofile.write(code)
         # Convert flags to the native type of the selected compiler
         args = self.unix_link_flags_to_native(extra_args)
         # Read c_args/cpp_args/etc from the cross-info file (if needed)
@@ -647,9 +645,8 @@ int main () {{ {1}; }}'''
         os.close(fd)
         (fd, dstname) = tempfile.mkstemp()
         os.close(fd)
-        ofile = open(srcname, 'w')
-        ofile.write(code)
-        ofile.close()
+        with open(srcname, 'w') as ofile:
+            ofile.write(code)
         # Convert flags to the native type of the selected compiler
         args = self.unix_link_flags_to_native(extra_args)
         # Select a CRT if needed since we're linking
@@ -672,9 +669,8 @@ int main () {{ {1}; }}'''
             raise CrossNoRunException('Can not run test applications in this cross environment.')
         (fd, srcname) = tempfile.mkstemp(suffix='.'+self.default_suffix)
         os.close(fd)
-        ofile = open(srcname, 'w')
-        ofile.write(code)
-        ofile.close()
+        with open(srcname, 'w') as ofile:
+            ofile.write(code)
         # Convert flags to the native type of the selected compiler
         args = self.unix_link_flags_to_native(extra_args)
         # Select a CRT if needed since we're linking
@@ -997,9 +993,9 @@ class ObjCCompiler(CCompiler):
         extra_flags = self.get_cross_extra_flags(environment, compile=True, link=False)
         if self.is_cross:
             extra_flags += self.get_compile_only_args()
-        ofile = open(source_name, 'w')
-        ofile.write('#import<stdio.h>\nint main(int argc, char **argv) { return 0; }\n')
-        ofile.close()
+        with open(source_name, 'w') as ofile:
+            ofile.write('#import<stdio.h>\n'
+                        'int main(int argc, char **argv) { return 0; }\n')
         pc = subprocess.Popen(self.exelist + extra_flags + [source_name, '-o', binary_name])
         pc.wait()
         if pc.returncode != 0:
@@ -1031,9 +1027,10 @@ class ObjCPPCompiler(CPPCompiler):
         extra_flags = self.get_cross_extra_flags(environment, compile=True, link=False)
         if self.is_cross:
             extra_flags += self.get_compile_only_args()
-        ofile = open(source_name, 'w')
-        ofile.write('#import<stdio.h>\nclass MyClass;int main(int argc, char **argv) { return 0; }\n')
-        ofile.close()
+        with open(source_name, 'w') as ofile:
+            ofile.write('#import<stdio.h>\n'
+                        'class MyClass;'
+                        'int main(int argc, char **argv) { return 0; }\n')
         pc = subprocess.Popen(self.exelist + extra_flags + [source_name, '-o', binary_name])
         pc.wait()
         if pc.returncode != 0:
@@ -1133,13 +1130,12 @@ class MonoCompiler(Compiler):
         src = 'sanity.cs'
         obj = 'sanity.exe'
         source_name = os.path.join(work_dir, src)
-        ofile = open(source_name, 'w')
-        ofile.write('''public class Sanity {
+        with open(source_name, 'w') as ofile:
+            ofile.write('''public class Sanity {
     static public void Main () {
     }
 }
 ''')
-        ofile.close()
         pc = subprocess.Popen(self.exelist + [src], cwd=work_dir)
         pc.wait()
         if pc.returncode != 0:
@@ -1245,14 +1241,13 @@ class JavaCompiler(Compiler):
         src = 'SanityCheck.java'
         obj = 'SanityCheck'
         source_name = os.path.join(work_dir, src)
-        ofile = open(source_name, 'w')
-        ofile.write('''class SanityCheck {
+        with open(source_name, 'w') as ofile:
+            ofile.write('''class SanityCheck {
   public static void main(String[] args) {
     int i;
   }
 }
 ''')
-        ofile.close()
         pc = subprocess.Popen(self.exelist + [src], cwd=work_dir)
         pc.wait()
         if pc.returncode != 0:
@@ -1292,11 +1287,10 @@ class ValaCompiler(Compiler):
     def sanity_check(self, work_dir, environment):
         src = 'valatest.vala'
         source_name = os.path.join(work_dir, src)
-        ofile = open(source_name, 'w')
-        ofile.write('''class SanityCheck : Object {
+        with open(source_name, 'w') as ofile:
+            ofile.write('''class SanityCheck : Object {
 }
 ''')
-        ofile.close()
         extra_flags = self.get_cross_extra_flags(environment, compile=True, link=False)
         pc = subprocess.Popen(self.exelist + extra_flags + ['-C', '-c', src], cwd=work_dir)
         pc.wait()
@@ -1336,11 +1330,10 @@ class RustCompiler(Compiler):
     def sanity_check(self, work_dir, environment):
         source_name = os.path.join(work_dir, 'sanity.rs')
         output_name = os.path.join(work_dir, 'rusttest')
-        ofile = open(source_name, 'w')
-        ofile.write('''fn main() {
+        with open(source_name, 'w') as ofile:
+            ofile.write('''fn main() {
 }
 ''')
-        ofile.close()
         pc = subprocess.Popen(self.exelist + ['-o', output_name, source_name], cwd=work_dir)
         pc.wait()
         if pc.returncode != 0:
@@ -1435,10 +1428,9 @@ class SwiftCompiler(Compiler):
         src = 'swifttest.swift'
         source_name = os.path.join(work_dir, src)
         output_name = os.path.join(work_dir, 'swifttest')
-        ofile = open(source_name, 'w')
-        ofile.write('''1 + 2
+        with open(source_name, 'w') as ofile:
+            ofile.write('''1 + 2
 ''')
-        ofile.close()
         extra_flags = self.get_cross_extra_flags(environment, compile=True, link=True)
         pc = subprocess.Popen(self.exelist + extra_flags + ['-emit-executable', '-o', output_name, src], cwd=work_dir)
         pc.wait()
@@ -1461,11 +1453,10 @@ class DCompiler(Compiler):
     def sanity_check(self, work_dir, environment):
         source_name = os.path.join(work_dir, 'sanity.d')
         output_name = os.path.join(work_dir, 'dtest')
-        ofile = open(source_name, 'w')
-        ofile.write('''void main() {
+        with open(source_name, 'w') as ofile:
+            ofile.write('''void main() {
 }
 ''')
-        ofile.close()
         pc = subprocess.Popen(self.exelist + self.get_output_args(output_name) + [source_name], cwd=work_dir)
         pc.wait()
         if pc.returncode != 0:
@@ -1872,9 +1863,8 @@ class VisualStudioCCompiler(CCompiler):
         code = 'int i;\n'
         (fd, srcname) = tempfile.mkstemp(suffix='.'+self.default_suffix)
         os.close(fd)
-        ofile = open(srcname, 'w')
-        ofile.write(code)
-        ofile.close()
+        with open(srcname, 'w') as ofile:
+            ofile.write(code)
         # Read c_args/cpp_args/etc from the cross-info file (if needed)
         extra_args = self.get_cross_extra_flags(env, compile=True, link=False)
         extra_args += self.get_compile_only_args()
@@ -2286,12 +2276,11 @@ class FortranCompiler(Compiler):
     def sanity_check(self, work_dir, environment):
         source_name = os.path.join(work_dir, 'sanitycheckf.f90')
         binary_name = os.path.join(work_dir, 'sanitycheckf')
-        ofile = open(source_name, 'w')
-        ofile.write('''program prog
+        with open(source_name, 'w') as ofile:
+            ofile.write('''program prog
      print *, "Fortran compilation is working."
 end program prog
 ''')
-        ofile.close()
         extra_flags = self.get_cross_extra_flags(environment, compile=True, link=True)
         pc = subprocess.Popen(self.exelist + extra_flags + [source_name, '-o', binary_name])
         pc.wait()

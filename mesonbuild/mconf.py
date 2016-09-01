@@ -36,15 +36,18 @@ class Conf:
         self.build_file = os.path.join(build_dir, 'meson-private/build.dat')
         if not os.path.isfile(self.coredata_file) or not os.path.isfile(self.build_file):
             raise ConfException('Directory %s does not seem to be a Meson build directory.' % build_dir)
-        self.coredata = pickle.load(open(self.coredata_file, 'rb'))
-        self.build = pickle.load(open(self.build_file, 'rb'))
+        with open(self.coredata_file, 'rb') as f:
+            self.coredata = pickle.load(f)
+        with open(self.build_file, 'rb') as f:
+            self.build = pickle.load(f)
         if self.coredata.version != coredata.version:
             raise ConfException('Version mismatch (%s vs %s)' %
                                 (coredata.version, self.coredata.version))
 
     def save(self):
         # Only called if something has changed so overwrite unconditionally.
-        pickle.dump(self.coredata, open(self.coredata_file, 'wb'))
+        with open(self.coredata_file, 'wb') as f:
+            pickle.dump(self.coredata, f)
         # We don't write the build file because any changes to it
         # are erased when Meson is executed the nex time, i.e. the next
         # time Ninja is run.

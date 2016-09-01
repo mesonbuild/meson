@@ -139,24 +139,34 @@ class Backend():
         langlist = {}
         abs_files = []
         result = []
-        for src in unity_src:
-            comp = self.get_compiler_for_source(src, target.is_cross)
-            language = comp.get_language()
-            suffix = '.' + comp.get_default_suffix()
-            if language not in langlist:
-                outfilename = os.path.join(self.get_target_private_dir_abs(target), target.name + '-unity' + suffix)
-                outfileabs = os.path.join(self.environment.get_build_dir(), outfilename)
-                outfileabs_tmp = outfileabs + '.tmp'
-                abs_files.append(outfileabs)
-                outfileabs_tmp_dir = os.path.dirname(outfileabs_tmp)
-                if not os.path.exists(outfileabs_tmp_dir):
-                    os.makedirs(outfileabs_tmp_dir)
-                outfile = open(outfileabs_tmp, 'w')
-                langlist[language] = outfile
-                result.append(outfilename)
-            ofile = langlist[language]
-            ofile.write('#include<%s>\n' % src)
-        [x.close() for x in langlist.values()]
+
+        def init_language_file(language, suffix):
+            outfilename = os.path.join(self.get_target_private_dir_abs(target),
+                                       target.name + '-unity' + suffix)
+            outfileabs = os.path.join(self.environment.get_build_dir(),
+                                      outfilename)
+            outfileabs_tmp = outfileabs + '.tmp'
+            abs_files.append(outfileabs)
+            outfileabs_tmp_dir = os.path.dirname(outfileabs_tmp)
+            if not os.path.exists(outfileabs_tmp_dir):
+                os.makedirs(outfileabs_tmp_dir)
+            result.append(outfilename)
+            return open(outfileabs_tmp, 'w')
+
+        try:
+            for src in unity_src:
+                comp = self.get_compiler_for_source(src, target.is_cross)
+                language = comp.get_language()
+                try:
+                    ofile = langlist[language]
+                except KeyError:
+                    suffix = '.' + comp.get_default_suffix()
+                    ofile = langlist[language] = init_language_file(language,
+                                                                    suffix)
+                ofile.write('#include<%s>\n' % src)
+        finally:
+            for x in langlist.values():
+                x.close()
         [mesonlib.replace_if_different(x, x + '.tmp') for x in abs_files]
         return result
 
@@ -215,13 +225,11 @@ class Backend():
 
     def serialise_tests(self):
         test_data = os.path.join(self.environment.get_scratch_dir(), 'meson_test_setup.dat')
-        datafile = open(test_data, 'wb')
-        self.write_test_file(datafile)
-        datafile.close()
+        with open(test_data, 'wb') as datafile:
+            self.write_test_file(datafile)
         benchmark_data = os.path.join(self.environment.get_scratch_dir(), 'meson_benchmark_setup.dat')
-        datafile = open(benchmark_data, 'wb')
-        self.write_benchmark_file(datafile)
-        datafile.close()
+        with open(benchmark_data, 'wb') as datafile:
+            self.write_benchmark_file(datafile)
         return (test_data, benchmark_data)
 
     def has_source_suffix(self, target, suffix):
@@ -442,7 +450,8 @@ class Backend():
         mfobj = {'type': 'dependency manifest',
                  'version': '1.0'}
         mfobj['projects'] = self.build.dep_manifest
-        open(ifilename, 'w').write(json.dumps(mfobj))
+        with open(ifilename, 'w') as f:
+            f.write(json.dumps(mfobj))
         d.data.append([ifilename, ofilename])
 
     def get_regen_filelist(self):

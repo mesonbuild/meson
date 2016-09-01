@@ -9,5 +9,7 @@ depfiles = glob(os.path.join(srcdir, '*'))
 
 quoted_depfiles = [x.replace(' ', '\ ') for x in depfiles]
 
-open(output, 'w').write('I am the result of globbing.')
-open(depfile, 'w').write('%s: %s\n' % (output, ' '.join(quoted_depfiles)))
+with open(output, 'w') as f:
+    f.write('I am the result of globbing.')
+with open(depfile, 'w') as f:
+    f.write('%s: %s\n' % (output, ' '.join(quoted_depfiles)))

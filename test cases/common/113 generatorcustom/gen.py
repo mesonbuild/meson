@@ -5,7 +5,9 @@ import sys, os
 ifile = sys.argv[1]
 ofile = sys.argv[2]
 
-resname = open(ifile, 'r').readline().strip()
+with open(ifile, 'r') as f:
+    resname = f.readline().strip()
 
 templ = 'const char %s[] = "%s";\n'
-open(ofile, 'w').write(templ % (resname, resname))
+with open(ofile, 'w') as f:
+    f.write(templ % (resname, resname))

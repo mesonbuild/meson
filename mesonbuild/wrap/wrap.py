@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from .. import mlog
+import contextlib
 import urllib.request, os, hashlib, shutil
 import subprocess
 import sys
@@ -58,23 +59,23 @@ def open_wrapdburl(urlstring):
 class PackageDefinition:
     def __init__(self, fname):
         self.values = {}
-        ifile = open(fname)
-        first = ifile.readline().strip()
+        with open(fname) as ifile:
+            first = ifile.readline().strip()
 
-        if first == '[wrap-file]':
-            self.type = 'file'
-        elif first == '[wrap-git]':
-            self.type = 'git'
-        else:
-            raise RuntimeError('Invalid format of package file')
-        for line in ifile:
-            line = line.strip()
-            if line == '':
-                continue
-            (k, v) = line.split('=', 1)
-            k = k.strip()
-            v = v.strip()
-            self.values[k] = v
+            if first == '[wrap-file]':
+                self.type = 'file'
+            elif first == '[wrap-git]':
+                self.type = 'git'
+            else:
+                raise RuntimeError('Invalid format of package file')
+            for line in ifile:
+                line = line.strip()
+                if line == '':
+                    continue
+                (k, v) = line.split('=', 1)
+                k = k.strip()
+                v = v.strip()
+                self.values[k] = v
 
     def get(self, key):
         return self.values[key]
@@ -137,26 +138,26 @@ class Resolver:
             resp = open_wrapdburl(url)
         else:
             resp = urllib.request.urlopen(url)
-        dlsize = int(resp.info()['Content-Length'])
-        print('Download size:', dlsize)
-        print('Downloading: ', end='')
-        sys.stdout.flush()
-        printed_dots = 0
-        blocks = []
-        downloaded = 0
-        while True:
-            block = resp.read(blocksize)
-            if block == b'':
-                break
-            downloaded += len(block)
-            blocks.append(block)
-            ratio = int(downloaded/dlsize * 10)
-            while printed_dots < ratio:
-                print('.', end='')
-                sys.stdout.flush()
-                printed_dots += 1
-        print('')
-        resp.close()
+        with contextlib.closing(resp) as resp:
+            dlsize = int(resp.info()['Content-Length'])
+            print('Download size:', dlsize)
+            print('Downloading: ', end='')
+            sys.stdout.flush()
+            printed_dots = 0
+            blocks = []
+            downloaded = 0
+            while True:
+                block = resp.read(blocksize)
+                if block == b'':
+                    break
+                downloaded += len(block)
+                blocks.append(block)
+                ratio = int(downloaded/dlsize * 10)
+                while printed_dots < ratio:
+                    print('.', end='')
+                    sys.stdout.flush()
+                    printed_dots += 1
+            print('')
         return b''.join(blocks)
 
     def get_hash(self, data):
@@ -177,7 +178,8 @@ class Resolver:
         expected = p.get('source_hash')
         if dhash != expected:
             raise RuntimeError('Incorrect hash for source %s:\n %s expected\n %s actual.' % (packagename, expected, dhash))
-        open(ofname, 'wb').write(srcdata)
+        with open(ofname, 'wb') as f:
+            f.write(srcdata)
         if p.has_patch():
             purl = p.get('patch_url')
             mlog.log('Downloading patch from', mlog.bold(purl))
@@ -186,7 +188,9 @@ class Resolver:
             expected = p.get('patch_hash')
             if phash != expected:
                 raise RuntimeError('Incorrect hash for patch %s:\n %s expected\n %s actual' % (packagename, expected, phash))
-            open(os.path.join(self.cachedir, p.get('patch_filename')), 'wb').write(pdata)
+            filename = os.path.join(self.cachedir, p.get('patch_filename'))
+            with open(filename, 'wb') as f:
+                f.write(pdata)
         else:
             mlog.log('Package does not require patch.')
 

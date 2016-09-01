@@ -252,39 +252,46 @@ class Converter:
             subdir = self.cmake_root
         cfile = os.path.join(subdir, 'CMakeLists.txt')
         try:
-            cmakecode = open(cfile).read()
+            with open(cfile) as f:
+                cmakecode = f.read()
         except FileNotFoundError:
             print('\nWarning: No CMakeLists.txt in', subdir, '\n')
             return
         p = Parser(cmakecode)
-        outfile = open(os.path.join(subdir, 'meson.build'), 'w')
-        for t in p.parse():
-            if t.name == 'add_subdirectory':
-                #print('\nRecursing to subdir', os.path.join(self.cmake_root, t.args[0].value), '\n')
-                self.convert(os.path.join(subdir, t.args[0].value))
-                #print('\nReturning to', self.cmake_root, '\n')
-            self.write_entry(outfile, t)
+        with open(os.path.join(subdir, 'meson.build'), 'w') as outfile:
+            for t in p.parse():
+                if t.name == 'add_subdirectory':
+                    # print('\nRecursing to subdir',
+                    #       os.path.join(self.cmake_root, t.args[0].value),
+                    #       '\n')
+                    self.convert(os.path.join(subdir, t.args[0].value))
+                    # print('\nReturning to', self.cmake_root, '\n')
+                self.write_entry(outfile, t)
         if subdir == self.cmake_root and len(self.options) > 0:
             self.write_options()
 
     def write_options(self):
-        optfile = open(os.path.join(self.cmake_root, 'meson_options.txt'), 'w')
-        for o in self.options:
-            (optname, description, default) = o
-            if default is None:
-                defaultstr = ''
-            else:
-                if default == 'OFF':
-                    typestr = ' type : boolean,'
-                    default = 'false'
-                elif default == 'ON':
-                    default = 'true'
-                    typestr = ' type : boolean,'
+        filename = os.path.join(self.cmake_root, 'meson_options.txt')
+        with open(filename, 'w') as optfile:
+            for o in self.options:
+                (optname, description, default) = o
+                if default is None:
+                    defaultstr = ''
                 else:
-                    typestr = ' type : string,'
-                defaultstr = ' value : %s,' % default
-            line = "option(%s,%s%s description : '%s')\n" % (optname, typestr, defaultstr, description)
-            optfile.write(line)
+                    if default == 'OFF':
+                        typestr = ' type : boolean,'
+                        default = 'false'
+                    elif default == 'ON':
+                        default = 'true'
+                        typestr = ' type : boolean,'
+                    else:
+                        typestr = ' type : string,'
+                    defaultstr = ' value : %s,' % default
+                line = "option(%s,%s%s description : '%s')\n" % (optname,
+                                                                 typestr,
+                                                                 defaultstr,
+                                                                 description)
+                optfile.write(line)
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:

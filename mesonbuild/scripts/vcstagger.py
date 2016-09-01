@@ -23,9 +23,16 @@ def config_vcs_tag(infile, outfile, fallback, source_dir, replace_string, regex_
     except Exception:
         new_string = fallback
 
-    new_data = open(infile).read().replace(replace_string, new_string)
-    if (not os.path.exists(outfile)) or (open(outfile).read() != new_data):
-        open(outfile, 'w').write(new_data)
+    with open(infile) as f:
+        new_data = f.read().replace(replace_string, new_string)
+    if os.path.exists(outfile):
+        with open(outfile) as f:
+            needs_update = (f.read() != new_data)
+    else:
+        needs_update = True
+    if needs_update:
+        with open(outfile, 'w') as f:
+            f.write(new_data)
 
 def run(args):
     infile, outfile, fallback, source_dir, replace_string, regex_selector = args[0:6]

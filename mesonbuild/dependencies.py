@@ -228,10 +228,11 @@ class PkgConfigDependency(Dependency):
         return self.is_found
 
     def extract_field(self, la_file, fieldname):
-        for line in open(la_file):
-            arr = line.strip().split('=')
-            if arr[0] == fieldname:
-                return arr[1][1:-1]
+        with open(la_file) as f:
+            for line in f:
+                arr = line.strip().split('=')
+                if arr[0] == fieldname:
+                    return arr[1][1:-1]
         return None
 
     def extract_dlname_field(self, la_file):
@@ -374,7 +375,8 @@ class ExternalProgram():
         shebang and manually parse it to figure out the interpreter to use
         """
         try:
-            first_line = open(script).readline().strip()
+            with open(script) as f:
+                first_line = f.readline().strip()
             if first_line.startswith('#!'):
                 commands = first_line[2:].split('#')[0].strip().split()
                 if mesonlib.is_windows():
@@ -552,12 +554,13 @@ class BoostDependency(Dependency):
         except FileNotFoundError:
             self.version = None
             return
-        for line in ifile:
-            if line.startswith("#define") and 'BOOST_LIB_VERSION' in line:
-                ver = line.split()[-1]
-                ver = ver[1:-1]
-                self.version = ver.replace('_', '.')
-                return
+        with ifile:
+            for line in ifile:
+                if line.startswith("#define") and 'BOOST_LIB_VERSION' in line:
+                    ver = line.split()[-1]
+                    ver = ver[1:-1]
+                    self.version = ver.replace('_', '.')
+                    return
         self.version = None
 
     def detect_src_modules(self):

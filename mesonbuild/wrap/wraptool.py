@@ -92,7 +92,8 @@ def install(name):
     (branch, revision) = get_latest_version(name)
     u = open_wrapdburl(API_ROOT + 'projects/%s/%s/%s/get_wrap' % (name, branch, revision))
     data = u.read()
-    open(wrapfile, 'wb').write(data)
+    with open(wrapfile, 'wb') as f:
+        f.write(data)
     print('Installed', name, 'branch', branch, 'revision', revision)
 
 def get_current_version(wrapfile):
@@ -129,7 +130,8 @@ def update(name):
         os.unlink(os.path.join('subprojects/packagecache', patch_file))
     except FileNotFoundError:
         pass
-    open(wrapfile, 'wb').write(data)
+    with open(wrapfile, 'wb') as f:
+        f.write(data)
     print('Updated', name, 'to branch', new_branch, 'revision', new_revision)
 
 def info(name):

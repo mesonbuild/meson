@@ -6,7 +6,8 @@
 import sys, os
 import shutil, subprocess
 
-funcname = open(sys.argv[1]).readline().strip()
+with open(sys.argv[1]) as f:
+    funcname = f.readline().strip()
 outdir = sys.argv[2]
 
 if not os.path.isdir(outdir):
@@ -44,19 +45,22 @@ outc = os.path.join(outdir, funcname + '.c')
 tmpc = 'diibadaaba.c'
 tmpo = 'diibadaaba' + objsuffix
 
-open(outc, 'w').write('''#include"%s.h"
+with open(outc, 'w') as f:
+    f.write('''#include"%s.h"
 int %s_in_src() {
   return 0;
 }
 ''' % (funcname, funcname))
 
-open(outh, 'w').write('''#pragma once
+with open(outh, 'w') as f:
+    f.write('''#pragma once
 int %s_in_lib();
 int %s_in_obj();
 int %s_in_src();
 ''' % (funcname, funcname, funcname))
 
-open(tmpc, 'w').write('''int %s_in_obj() {
+with open(tmpc, 'w') as f:
+    f.write('''int %s_in_obj() {
   return 0;
 }
 ''' % funcname)
@@ -66,7 +70,8 @@ if is_vs:
 else:
     subprocess.check_call([compiler, '-c', '-o', outo, tmpc])
 
-open(tmpc, 'w').write('''int %s_in_lib() {
+with open(tmpc, 'w') as f:
+    f.write('''int %s_in_lib() {
   return 0;
 }
 ''' % funcname)

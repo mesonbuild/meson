@@ -52,33 +52,34 @@ def run_benchmarks(options, datafile):
     failed_tests = 0
     logfile_base = 'meson-logs/benchmarklog'
     jsonlogfilename = logfile_base+ '.json'
-    jsonlogfile = open(jsonlogfilename, 'w')
-    tests = pickle.load(open(datafile, 'rb'))
+    with open(datafile, 'rb') as f:
+        tests = pickle.load(f)
     num_tests = len(tests)
     if num_tests == 0:
         print('No benchmarks defined.')
         return 0
     iteration_count = 5
     wrap = [] # Benchmarks on cross builds are pointless so don't support them.
-    for i, test in enumerate(tests):
-        runs = []
-        durations = []
-        failed = False
-        for _ in range(iteration_count):
-            res = meson_test.run_single_test(wrap, test)
-            runs.append(res)
-            durations.append(res.duration)
-            if res.returncode != 0:
-                failed = True
-        mean = statistics.mean(durations)
-        stddev = statistics.stdev(durations)
-        if failed:
-            resultstr = 'FAIL'
-            failed_tests += 1
-        else:
-            resultstr = 'OK'
-        print_stats(3, num_tests, test.name, resultstr, i, mean, stddev)
-        print_json_log(jsonlogfile, runs, test.name, i)
+    with open(jsonlogfilename, 'w') as jsonlogfile:
+        for i, test in enumerate(tests):
+            runs = []
+            durations = []
+            failed = False
+            for _ in range(iteration_count):
+                res = meson_test.run_single_test(wrap, test)
+                runs.append(res)
+                durations.append(res.duration)
+                if res.returncode != 0:
+                    failed = True
+            mean = statistics.mean(durations)
+            stddev = statistics.stdev(durations)
+            if failed:
+                resultstr = 'FAIL'
+                failed_tests += 1
+            else:
+                resultstr = 'OK'
+            print_stats(3, num_tests, test.name, resultstr, i, mean, stddev)
+            print_json_log(jsonlogfile, runs, test.name, i)
     print('\nFull log written to meson-logs/benchmarklog.json.')
     return failed_tests
 

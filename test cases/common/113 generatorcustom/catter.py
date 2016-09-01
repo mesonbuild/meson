@@ -8,6 +8,7 @@ inputs = sys.argv[1:-1]
 with open(output, 'w') as ofile:
     ofile.write('#pragma once\n')
     for i in inputs:
-        content = open(i, 'r').read()
+        with open(i, 'r') as ifile:
+            content = ifile.read()
         ofile.write(content)
         ofile.write('\n')

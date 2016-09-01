@@ -2,5 +2,6 @@
 
 import sys
 
-if open(sys.argv[1]).read() != 'contents\n':
-  sys.exit(1)
+with open(sys.argv[1]) as f:
+    if f.read() != 'contents\n':
+        sys.exit(1)

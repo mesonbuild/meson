@@ -169,7 +169,8 @@ itself as required.'''
         g.generate(intr)
         g.run_postconf_scripts()
         dumpfile = os.path.join(env.get_scratch_dir(), 'build.dat')
-        pickle.dump(b, open(dumpfile, 'wb'))
+        with open(dumpfile, 'wb') as f:
+            pickle.dump(b, f)
         # Write this last since we use the existence of this file to check if
         # we generated the build file successfully, so we don't want an error
         # that pops up during generation, post-conf scripts, etc to cause us to

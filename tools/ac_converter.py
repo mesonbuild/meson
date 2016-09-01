@@ -25,28 +25,6 @@ that are unrelated to configure checks.
 
 import sys
 
-print('''cc = meson.get_compiler('c')
-cdata = configuration_data()''')
-
-print('check_headers = [')
-
-for line in open(sys.argv[1]):
-    line = line.strip()
-    if line.startswith('#mesondefine') and \
-       line.endswith('_H'):
-        token = line.split()[1]
-        tarr = token.split('_')[1:-1]
-        tarr = [x.lower() for x in tarr]
-        hname = '/'.join(tarr) + '.h'
-        print("  ['%s', '%s']," % (token, hname))
-print(']\n')
-
-print('''foreach h : check_headers
-  if cc.has_header(h.get(1))
-    cdata.set(h.get(0), 1)
-  endif
-endforeach
-''')
 
 # Add stuff here as it is encountered.
 function_data = \
@@ -242,18 +220,71 @@ function_data = \
      'HAVE_PTHREAD_SET_NAME_NP': ('pthread_set_name_np', 'pthread.h'),
     }
 
-print('check_functions = [')
+headers = []
+functions = []
+sizes = []
+with open(sys.argv[1]) as f:
+    for line in f:
+        line = line.strip()
+        arr = line.split()
 
-for line in open(sys.argv[1]):
-    try:
-        token = line.split()[1]
-        if token in function_data:
-            fdata = function_data[token]
-            print("  ['%s', '%s', '#include<%s>']," % (token, fdata[0], fdata[1]))
-        elif token.startswith('HAVE_') and not token.endswith('_H'):
-            print('# check token', token)
-    except Exception:
-        pass
+        # Check for headers.
+        if line.startswith('#mesondefine') and line.endswith('_H'):
+            token = line.split()[1]
+            tarr = token.split('_')[1:-1]
+            tarr = [x.lower() for x in tarr]
+            hname = '/'.join(tarr) + '.h'
+            headers.append((token, hname))
+
+        # Check for functions.
+        try:
+            token = arr[1]
+            if token in function_data:
+                fdata = function_data[token]
+                functions.append((token, fdata[0], fdata[1]))
+            elif token.startswith('HAVE_') and not token.endswith('_H'):
+                functions.append((token, ))
+        except Exception:
+            pass
+
+        # Check for sizeof tests.
+        if len(arr) != 2:
+            continue
+        elem = arr[1]
+        if elem.startswith('SIZEOF_'):
+            typename = elem.split('_', 1)[1] \
+                .replace('_P', '*') \
+                .replace('_', ' ') \
+                .lower() \
+                .replace('size t', 'size_t')
+            sizes.append((elem, typename))
+
+print('''cc = meson.get_compiler('c')
+cdata = configuration_data()''')
+
+# Convert header checks.
+
+print('check_headers = [')
+for token, hname in headers:
+    print("  ['%s', '%s']," % (token, hname))
+print(']\n')
+
+print('''foreach h : check_headers
+  if cc.has_header(h.get(1))
+    cdata.set(h.get(0), 1)
+  endif
+endforeach
+''')
+
+# Convert function checks.
+
+print('check_functions = [')
+for token in functions:
+    if len(func) == 3:
+        token, fdata0, fdata1 = token
+        print("  ['%s', '%s', '#include<%s>']," % (token, fdata0, fdata1))
+    else:
+        print('# check token', token)
 print(']\n')
 
 print('''foreach f : check_functions
@@ -265,14 +296,8 @@ endforeach
 
 # Convert sizeof checks.
 
-for line in open(sys.argv[1]):
-    arr = line.strip().split()
-    if len(arr) != 2:
-        continue
-    elem = arr[1]
-    if elem.startswith('SIZEOF_'):
-        typename = elem.split('_', 1)[1].replace('_P', '*').replace('_', ' ').lower().replace('size t', 'size_t')
-        print("cdata.set('%s', cc.sizeof('%s'))" % (elem, typename))
+for elem, typename in size:
+    print("cdata.set('%s', cc.sizeof('%s'))" % (elem, typename))
 
 print('''
 configure_file(input : 'config.h.meson',

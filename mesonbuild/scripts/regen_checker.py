@@ -48,8 +48,10 @@ def run(args):
     private_dir = args[0]
     dumpfile = os.path.join(private_dir, 'regeninfo.dump')
     coredata = os.path.join(private_dir, 'coredata.dat')
-    regeninfo = pickle.load(open(dumpfile, 'rb'))
-    coredata = pickle.load(open(coredata, 'rb'))
+    with open(dumpfile, 'rb') as f:
+        regeninfo = pickle.load(f)
+    with open(coredata, 'rb') as f:
+        coredata = pickle.load(f)
     mesonscript = coredata.meson_script_file
     backend = coredata.get_builtin_option('backend')
     regen_timestamp = os.stat(dumpfile).st_mtime
