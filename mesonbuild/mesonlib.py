@@ -95,12 +95,7 @@ def is_32bit():
     return not(sys.maxsize > 2**32)
 
 def is_debianlike():
-    try:
-        with open('/etc/debian_version', 'r'):
-            pass
-        return True
-    except FileNotFoundError:
-        return False
+    return os.path.isfile('/etc/debian_version')
 
 def exe_exists(arglist):
     try:
