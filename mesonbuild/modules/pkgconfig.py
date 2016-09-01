@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .. import coredata, build
+from .. import coredata, build, dependencies
 from .. import mesonlib
 import os
 
@@ -46,6 +46,12 @@ class PkgConfigModule:
             if l.custom_install_dir:
                 ofile.write('-L${prefix}/%s ' % l.custom_install_dir)
             ofile.write('-l%s ' % l.name)
+            ldeps = l.get_external_deps()
+            for l in ldeps:
+                if isinstance(l, dependencies.ExternalLibrary):
+                    args = l.get_link_args()
+                    for a in args:
+                        ofile.write('%s ' % a);
         ofile.write('\n')
         ofile.write('CFlags: ')
         for h in subdirs:
