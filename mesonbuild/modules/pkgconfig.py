@@ -18,9 +18,6 @@ import os
 
 class PkgConfigModule:
 
-    def print_hello(self, state, args, kwargs):
-        print('Hello from a Meson module')
-
     def generate_pkgconfig_file(self, state, libraries, subdirs, name, description, version, filebase,
                                 pub_reqs, priv_reqs, priv_libs):
         coredata = state.environment.get_coredata()
