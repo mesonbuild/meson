@@ -2595,6 +2595,10 @@ class Interpreter():
             if not isinstance(l, int) or not isinstance(r, int):
                 raise InvalidCode('Division works only with integers.')
             return l // r
+        elif cur.operation == 'mod':
+            if not isinstance(l, int) or not isinstance(r, int):
+                raise InvalidCode('Modulo works only with integers.')
+            return l % r
         else:
             raise InvalidCode('You broke me.')
 

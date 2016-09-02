@@ -21,6 +21,9 @@ if (5 / 3) * 3 != 3
   error('Integer division is broken')
 endif
 
+assert((5 % 2) == 1, 'Integer modulo (odd) is broken')
+assert((4 % 2) == 0, 'Integer modulo (even) is broken')
+
 assert(3 < 4, 'Lt broken')
 assert(not(4 < 3), 'Lt broken')
 assert(3 <= 4, 'Lte broken')
