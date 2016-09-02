@@ -454,7 +454,10 @@ class Man(InterpreterObject):
 
     def validate_sources(self):
         for s in self.sources:
-            num = int(s.split('.')[-1])
+            try:
+                num = int(s.split('.')[-1])
+            except (IndexError, ValueError):
+                num = 0
             if num < 1 or num > 8:
                 raise InvalidArguments('Man file must have a file extension of a number between 1 and 8')
 
