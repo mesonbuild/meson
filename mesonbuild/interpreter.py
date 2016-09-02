@@ -2293,6 +2293,22 @@ class Interpreter():
         else:
             raise InterpreterException('Unknown method "%s" for a boolean.' % method_name)
 
+    def int_method_call(self, obj, method_name, args):
+        obj = self.to_native(obj)
+        (posargs, _) = self.reduce_arguments(args)
+        if method_name == 'is_even':
+            if len(posargs) == 0:
+                return obj % 2 == 0
+            else:
+                raise InterpreterException('int.is_even() must have no arguments.')
+        elif method_name == 'is_odd':
+            if len(posargs) == 0:
+                return obj % 2 != 0
+            else:
+                raise InterpreterException('int.is_odd() must have no arguments.')
+        else:
+            raise InterpreterException('Unknown method "%s" for an integer.' % method_name)
+
     def string_method_call(self, obj, method_name, args):
         obj = self.to_native(obj)
         (posargs, _) = self.reduce_arguments(args)
@@ -2379,6 +2395,8 @@ class Interpreter():
             return self.string_method_call(obj, method_name, args)
         if isinstance(obj, bool):
             return self.bool_method_call(obj, method_name, args)
+        if isinstance(obj, int):
+            return self.int_method_call(obj, method_name, args)
         if isinstance(obj, list):
             return self.array_method_call(obj, method_name, self.reduce_arguments(args)[0])
         if not isinstance(obj, InterpreterObject):

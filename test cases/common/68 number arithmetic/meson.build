@@ -23,6 +23,8 @@ endif
 
 assert((5 % 2) == 1, 'Integer modulo (odd) is broken')
 assert((4 % 2) == 0, 'Integer modulo (even) is broken')
+assert(2.is_even() == 1, 'int is_even() broken')
+assert(2.is_odd() == 0, 'int is_odd() broken')
 
 assert(3 < 4, 'Lt broken')
 assert(not(4 < 3), 'Lt broken')
