@@ -1433,19 +1433,6 @@ rule FORTRAN_DEP_HACK
             return []
         return compiler.get_no_stdinc_args()
 
-
-    def get_pdb_name_suffix(self, target):
-        if isinstance(target, build.Executable):
-            suffix = '__exe'
-        elif isinstance(target, build.SharedLibrary):
-            suffix = '__dll'
-        elif isinstance(target, build.StaticLibrary):
-            suffix = '__lib'
-        else:
-            raise MesonException('Tried to build PDB for a non-buildtarget. Please file a bug.')
-        return suffix
-
-
     def get_compile_debugfile_args(self, compiler, target, objfile):
         if compiler.id != 'msvc':
             return []
@@ -1473,16 +1460,14 @@ rule FORTRAN_DEP_HACK
         #
         # If you feel that the above is completely wrong and all of this is
         # actually doable, please send patches.
-        suffix = self.get_pdb_name_suffix(target)
         if target.has_pch():
             tfilename = self.get_target_filename_abs(target)
-            return compiler.get_compile_debugfile_args(tfilename, suffix)
+            return compiler.get_compile_debugfile_args(tfilename)
         else:
-            return compiler.get_compile_debugfile_args(objfile, suffix)
+            return compiler.get_compile_debugfile_args(objfile)
 
     def get_link_debugfile_args(self, linker, target, outname):
-        suffix = self.get_pdb_name_suffix(target)
-        return linker.get_link_debugfile_args(outname, suffix)
+        return linker.get_link_debugfile_args(outname)
 
     def generate_single_compile(self, target, outfile, src, is_generated=False, header_deps=[], order_deps=[]):
         if(isinstance(src, str) and src.endswith('.h')):
