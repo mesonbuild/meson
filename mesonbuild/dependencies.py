@@ -1051,6 +1051,17 @@ class SDL2Dependency(Dependency):
         self.is_found = False
         self.cargs = []
         self.linkargs = []
+        try:
+            pcdep = PkgConfigDependency('sdl2', environment, kwargs)
+            if pcdep.found():
+                self.is_found = True
+                self.cargs = pcdep.get_compile_args()
+                self.linkargs = pcdep.get_link_args()
+                self.version = pcdep.get_version()
+                return
+        except Exception as e:
+            mlog.debug('SDL 2 not found via pkgconfig. Trying next, error was:', str(e))
+            pass
         sdlconf = shutil.which('sdl2-config')
         if sdlconf:
             pc = subprocess.Popen(['sdl2-config', '--cflags'],
@@ -1067,16 +1078,7 @@ class SDL2Dependency(Dependency):
             mlog.log('Dependency', mlog.bold('sdl2'), 'found:', mlog.green('YES'), '(%s)' % sdlconf)
             self.version = '2' # FIXME
             return
-        try:
-            pcdep = PkgConfigDependency('sdl2', kwargs)
-            if pcdep.found():
-                self.is_found = True
-                self.cargs = pcdep.get_compile_args()
-                self.linkargs = pcdep.get_link_args()
-                self.version = pcdep.get_version()
-                return
-        except Exception:
-            pass
+        mlog.debug('Could not find sdl2-config binary, trying next.')
         if mesonlib.is_osx():
             fwdep = ExtraFrameworkDependency('sdl2', kwargs.get('required', True))
             if fwdep.found():
