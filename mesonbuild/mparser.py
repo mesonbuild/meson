@@ -58,6 +58,7 @@ class Lexer:
             ('plus', re.compile(r'\+')),
             ('dash', re.compile(r'-')),
             ('star', re.compile(r'\*')),
+            ('percent', re.compile(r'\%')),
             ('fslash', re.compile(r'/')),
             ('colon', re.compile(r':')),
             ('equal', re.compile(r'==')),
@@ -434,9 +435,15 @@ class Parser:
         return left
 
     def e5sub(self):
-        left = self.e5mul()
+        left = self.e5mod()
         if self.accept('dash'):
             return ArithmeticNode(left.lineno, left.colno, 'sub', left, self.e5sub())
+        return left
+
+    def e5mod(self):
+        left = self.e5mul()
+        if self.accept('percent'):
+            return ArithmeticNode(left.lineno, left.colno, 'mod', left, self.e5mod())
         return left
 
     def e5mul(self):
