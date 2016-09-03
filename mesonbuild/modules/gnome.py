@@ -112,6 +112,12 @@ class GnomeModule:
                 dirs = incdirs.held_object
             else:
                 dirs = incdirs
+
+            if isinstance(dirs, str):
+                dirs_str += ['%s%s' % (prefix, dirs)]
+                continue
+
+            # Should be build.IncludeDirs object.
             basedir = dirs.get_curdir()
             for d in dirs.get_incdirs():
                 expdir =  os.path.join(basedir, d)
@@ -145,6 +151,7 @@ class GnomeModule:
         libsources = kwargs.pop('sources')
         girfile = '%s-%s.gir' % (ns, nsversion)
         depends = [girtarget]
+        gir_inc_dirs = []
 
         scan_command = ['g-ir-scanner', '@INPUT@']
         scan_command += pkgargs
@@ -164,12 +171,25 @@ class GnomeModule:
 
         if 'includes' in kwargs:
             includes = kwargs.pop('includes')
-            if isinstance(includes, str):
-                scan_command += ['--include=%s' % includes]
-            elif isinstance(includes, list):
-                scan_command += ['--include=%s' % inc for inc in includes]
-            else:
-                raise MesonException('Gir includes must be str or list')
+            if not isinstance(includes, list):
+                includes = [includes]
+            for inc in includes:
+                if hasattr(inc, 'held_object'):
+                    inc = inc.held_object
+                if isinstance(inc, str):
+                    scan_command += ['--include=%s' % (inc, )]
+                elif isinstance(inc, GirTarget):
+                    gir_inc_dirs += [
+                        os.path.join(state.environment.get_build_dir(),
+                                     inc.get_subdir()),
+                    ]
+                    scan_command += [
+                        "--include=%s" % (inc.get_basename()[:-4], ),
+                    ]
+                    depends += [inc]
+                else:
+                    raise MesonException(
+                        'Gir includes must be str, GirTarget, or list of them')
         if state.global_args.get('c'):
             scan_command += ['--cflags-begin']
             scan_command += state.global_args['c']
@@ -238,18 +258,16 @@ class GnomeModule:
                 mlog.log('dependency %s not handled to build gir files' % dep)
                 continue
 
-        inc_dirs = None
-        if kwargs.get('include_directories'):
-            inc_dirs = kwargs.pop('include_directories')
+        inc_dirs = kwargs.pop('include_directories', [])
+        if not isinstance(inc_dirs, list):
+            inc_dirs = [inc_dirs]
+        for incd in inc_dirs:
+            if not isinstance(incd.held_object, build.IncludeDirs):
+                raise MesonException(
+                    'Gir include dirs should be include_directories().')
+        scan_command += self.get_include_args(state, gir_inc_dirs + inc_dirs,
+                                              prefix='--add-include-path=')
 
-            if not isinstance(inc_dirs, list):
-                inc_dirs = [inc_dirs]
-
-            for ind in inc_dirs:
-                if not isinstance(ind.held_object, build.IncludeDirs):
-                    raise MesonException('Gir include dirs should be include_directories()')
-            scan_command += self.get_include_args(state, inc_dirs,
-                                                  prefix='--add-include-path=')
         if isinstance(girtarget, build.Executable):
             scan_command += ['--program', girtarget]
         elif isinstance(girtarget, build.SharedLibrary):
@@ -268,10 +286,8 @@ class GnomeModule:
 
         typelib_output = '%s-%s.typelib' % (ns, nsversion)
         typelib_cmd = ['g-ir-compiler', scan_target, '--output', '@OUTPUT@']
-        if inc_dirs:
-            for incd in inc_dirs:
-                typelib_cmd += ['--includedir=%s' % inc for inc in
-                                incd.held_object.get_incdirs()]
+        typelib_cmd += self.get_include_args(state, gir_inc_dirs,
+                                             prefix='--includedir=')
         for dep in deps:
             if hasattr(dep, 'held_object'):
                 dep = dep.held_object

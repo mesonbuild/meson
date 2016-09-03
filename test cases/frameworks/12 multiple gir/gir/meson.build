@@ -18,12 +18,11 @@ gnome.generate_gir(
   girsubproject,
   sources : libsources,
   include_directories : girlib_inc,
-  dependencies : [gobj, girlib_dep],
   nsversion : '1.0',
   namespace : 'MesonSub',
   symbol_prefix : 'meson_sub_',
   identifier_prefix : 'MesonSub',
-  includes : ['GObject-2.0', 'Meson-1.0'],
+  includes : ['GObject-2.0', meson_gir],
   install : true
 )
 
