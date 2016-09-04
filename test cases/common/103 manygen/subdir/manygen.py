@@ -22,7 +22,8 @@ if not compiler:
         shutil.which('clang') or \
         shutil.which('cc')
 
-if 'cl' in os.path.basename(compiler):
+compbase = os.path.basename(compiler)
+if 'cl' in compbase and 'clang' not in compbase:
     libsuffix = '.lib'
     is_vs = True
     compiler = 'cl'

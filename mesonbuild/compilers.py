@@ -2126,6 +2126,9 @@ class ClangCCompiler(CCompiler):
     def get_option_link_args(self, options):
         return []
 
+    def has_argument(self, arg, env):
+        return super().has_argument(['-Werror=unknown-warning-option', arg], env)
+
 class GnuCPPCompiler(CPPCompiler):
     # may need to separate the latter to extra_debug_args or something
     std_debug_args = ['-g']
@@ -2239,6 +2242,9 @@ class ClangCPPCompiler(CPPCompiler):
 
     def get_option_link_args(self, options):
         return []
+
+    def has_argument(self, arg, env):
+        return super().has_argument(['-Werror=unknown-warning-option', arg], env)
 
 class FortranCompiler(Compiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
