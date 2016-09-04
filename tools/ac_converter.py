@@ -296,7 +296,7 @@ endforeach
 
 # Convert sizeof checks.
 
-for elem, typename in size:
+for elem, typename in sizes:
     print("cdata.set('%s', cc.sizeof('%s'))" % (elem, typename))
 
 print('''
