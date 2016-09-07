@@ -1622,7 +1622,9 @@ class Interpreter():
         if cross_comp is not None:
             cross_comp.sanity_check(self.environment.get_scratch_dir(), self.environment)
             self.coredata.cross_compilers[lang] = cross_comp
-        new_options = comp.get_options()
+            new_options = cross_comp.get_options()
+        else:
+            new_options = comp.get_options()
         optprefix = lang + '_'
         for i in new_options:
             if not i.startswith(optprefix):
