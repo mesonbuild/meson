@@ -448,6 +448,9 @@ int dummy;
             cmd.append(abs_exe)
         elif isinstance(texe, dependencies.ExternalProgram):
             cmd += texe.get_command()
+        elif isinstance(texe, build.CustomTarget):
+            deps.append(self.get_target_filename(texe))
+            cmd += [os.path.join(self.environment.get_build_dir(), self.get_target_filename(texe))]
         else:
             cmd.append(target.command)
         cmd += arg_strings

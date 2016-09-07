@@ -37,3 +37,9 @@ run_target('py3hi',
 
 run_target('ct_in_arg',
   command : ['echo', hex, files('helloprinter.c')])
+
+# What if the output of a custom_target is the command to
+# execute. Obviously this will not work as hex is not an
+# executable but test that the output is generated correctly.
+run_target('donotrunme',
+  command : [hex])
