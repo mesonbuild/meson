@@ -533,7 +533,14 @@ class BuildTarget():
                 self.external_deps.append(dep)
                 self.process_sourcelist(dep.get_sources())
             else:
-                raise InvalidArguments('Argument is not an external dependency')
+                # This is a bit of a hack. We do not want Build to know anything
+                # about the interpreter so we can't import it and use isinstance.
+                # This should be reliable enough.
+                if hasattr(dep, 'subproject'):
+                    raise InvalidArguments('''Tried to use subproject object as a dependency.
+You probably wanted to use a dependency declared in it instead. Access it
+by calling get_variable() on the subproject object.''')
+                raise InvalidArguments('Argument is not an external dependency.')
 
     def get_external_deps(self):
         return self.external_deps

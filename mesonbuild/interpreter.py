@@ -567,7 +567,7 @@ class SubprojectHolder(InterpreterObject):
 
     def __init__(self, subinterpreter):
         super().__init__()
-        self.subinterpreter = subinterpreter
+        self.held_object = subinterpreter
         self.methods.update({'get_variable' : self.get_variable_method,
                             })
 
@@ -577,7 +577,7 @@ class SubprojectHolder(InterpreterObject):
         varname = args[0]
         if not isinstance(varname, str):
             raise InterpreterException('Get_variable takes a string argument.')
-        return self.subinterpreter.variables[varname]
+        return self.held_object.variables[varname]
 
 class CompilerHolder(InterpreterObject):
     def __init__(self, compiler, env):
