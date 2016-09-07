@@ -144,6 +144,7 @@ class RunProcess(InterpreterObject):
             cwd = os.path.join(source_dir, subdir)
         child_env = os.environ.copy()
         child_env.update(env)
+        mlog.debug('Running command:', ' '.join(command_array))
         try:
             return subprocess.Popen(command_array, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                     env=child_env, cwd=cwd)
@@ -1385,9 +1386,19 @@ class Interpreter():
             cmd = [cmd]
         else:
             raise InterpreterException('First argument is of incorrect type.')
-        check_stringlist(cargs, 'Run_command arguments must be strings.')
-        args = cmd + cargs
+        expanded_args = []
+        for a in mesonlib.flatten(cargs):
+            if isinstance(a, str):
+                expanded_args.append(a)
+            elif isinstance(a, mesonlib.File):
+                if a.is_built:
+                    raise InterpreterException('Can not use generated files in run_command.')
+                expanded_args.append(os.path.join(self.environment.get_source_dir(), str(a)))
+            else:
+                raise InterpreterException('Run_command arguments must be strings or the output of files().')
+        args = cmd + expanded_args
         in_builddir = kwargs.get('in_builddir', False)
+        mlog.debug('Running command:', ' '.join(args))
         if not isinstance(in_builddir, bool):
             raise InterpreterException('in_builddir must be boolean.')
         return RunProcess(args, self.environment.source_dir, self.environment.build_dir,
