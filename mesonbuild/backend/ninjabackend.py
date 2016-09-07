@@ -424,6 +424,8 @@ int dummy;
             elif isinstance(i, (build.BuildTarget, build.CustomTarget)):
                 relfname = self.get_target_filename(i)
                 arg_strings.append(os.path.join(self.environment.get_build_dir(), relfname))
+            elif isinstance(i, mesonlib.File):
+                arg_strings.append(i.rel_to_builddir(self.build_to_src))
             else:
                 mlog.debug(str(i))
                 raise MesonException('Unreachable code in generate_run_target.')

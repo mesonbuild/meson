@@ -34,3 +34,6 @@ run_target('upload2',
 python3 = find_program('python3')
 run_target('py3hi',
   command : [python3, '-c', 'print("I am Python3.")'])
+
+run_target('ct_in_arg',
+  command : ['echo', hex, files('helloprinter.c')])
