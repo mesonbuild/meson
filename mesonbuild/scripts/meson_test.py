@@ -44,13 +44,15 @@ parser.add_argument('args', nargs='+')
 
 
 class TestRun():
-    def __init__(self, res, returncode, should_fail, duration, stdo, stde, cmd):
+    def __init__(self, res, returncode, should_fail, duration, stdo, stde, cmd,
+                 env):
         self.res = res
         self.returncode = returncode
         self.duration = duration
         self.stdo = stdo
         self.stde = stde
         self.cmd = cmd
+        self.env = env
         self.should_fail = should_fail
 
     def get_log(self):
@@ -58,7 +60,9 @@ class TestRun():
         if self.cmd is None:
             res += 'NONE\n'
         else:
-            res += ' '.join(self.cmd) + '\n'
+            res += "\n%s %s\n" %(' '.join(
+                ["%s='%s'" % (k, v) for k, v in self.env.items()]),
+                ' ' .join(self.cmd))
         if self.stdo:
             res += '--- stdout ---\n'
             res += self.stdo
@@ -84,7 +88,8 @@ def write_json_log(jsonlogfile, test_name, result):
               'result' : result.res,
               'duration' : result.duration,
               'returncode' : result.returncode,
-              'command' : result.cmd}
+              'command' : result.cmd,
+              'env' : result.env}
     if result.stde:
         jresult['stderr'] = result.stde
     jsonlogfile.write(json.dumps(jresult) + '\n')
@@ -162,7 +167,7 @@ def run_single_test(wrap, test):
         else:
             res = 'FAIL'
         returncode = p.returncode
-    return TestRun(res, returncode, test.should_fail, duration, stdo, stde, cmd)
+    return TestRun(res, returncode, test.should_fail, duration, stdo, stde, cmd, test.env)
 
 def print_stats(numlen, tests, name, result, i, logfile, jsonlogfile):
     global collected_logs, error_count, options
