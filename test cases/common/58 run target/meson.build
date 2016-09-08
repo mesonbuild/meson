@@ -34,3 +34,12 @@ run_target('upload2',
 python3 = find_program('python3')
 run_target('py3hi',
   command : [python3, '-c', 'print("I am Python3.")'])
+
+run_target('ct_in_arg',
+  command : ['echo', hex, files('helloprinter.c')])
+
+# What if the output of a custom_target is the command to
+# execute. Obviously this will not work as hex is not an
+# executable but test that the output is generated correctly.
+run_target('donotrunme',
+  command : [hex])

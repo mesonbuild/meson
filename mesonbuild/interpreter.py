@@ -1873,12 +1873,12 @@ class Interpreter():
             raise InterpreterException('Run_target needs at least one positional argument.')
 
         cleaned_args = []
-        for i in all_args:
+        for i in mesonlib.flatten(all_args):
             try:
                 i = i.held_object
             except AttributeError:
                 pass
-            if not isinstance(i, (str, build.BuildTarget, build.CustomTarget, dependencies.ExternalProgram)):
+            if not isinstance(i, (str, build.BuildTarget, build.CustomTarget, dependencies.ExternalProgram, mesonlib.File)):
                 mlog.debug('Wrong type:', str(i))
                 raise InterpreterException('Invalid argument to run_target.')
             cleaned_args.append(i)
