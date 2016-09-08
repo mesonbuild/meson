@@ -424,13 +424,13 @@ int dummy;
             elif isinstance(i, (build.BuildTarget, build.CustomTarget)):
                 relfname = self.get_target_filename(i)
                 arg_strings.append(os.path.join(self.environment.get_build_dir(), relfname))
+                deps.append(relfname)
             elif isinstance(i, mesonlib.File):
                 arg_strings.append(i.rel_to_builddir(self.build_to_src))
             else:
                 mlog.debug(str(i))
                 raise MesonException('Unreachable code in generate_run_target.')
-        elem = NinjaBuildElement(self.all_outputs, target.name, 'CUSTOM_COMMAND', deps)
-        elem.add_dep(deps)
+        elem = NinjaBuildElement(self.all_outputs, target.name, 'CUSTOM_COMMAND', [])
         cmd = runnerscript + [self.environment.get_source_dir(), self.environment.get_build_dir(), target.subdir]
         texe = target.command
         try:
@@ -454,6 +454,7 @@ int dummy;
         else:
             cmd.append(target.command)
         cmd += arg_strings
+        elem.add_dep(deps)
         elem.add_item('COMMAND', cmd)
         elem.add_item('description', 'Running external command %s.' % target.name)
         elem.add_item('pool', 'console')
