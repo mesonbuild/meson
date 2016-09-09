@@ -139,7 +139,13 @@ class Resolver:
         else:
             resp = urllib.request.urlopen(url)
         with contextlib.closing(resp) as resp:
-            dlsize = int(resp.info()['Content-Length'])
+            try:
+                dlsize = int(resp.info()['Content-Length'])
+            except TypeError:
+                dlsize = None
+            if dlsize is None:
+                print('Downloading file of unknown size.')
+                return resp.read()
             print('Download size:', dlsize)
             print('Downloading: ', end='')
             sys.stdout.flush()
