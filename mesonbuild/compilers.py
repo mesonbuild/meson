@@ -1934,9 +1934,9 @@ def get_gcc_soname_args(gcc_type, shlib_name, path, soversion):
         raise RuntimeError('Not implemented yet.')
 
 
-class GnuCCompiler(CCompiler):
-    def __init__(self, exelist, version, gcc_type, is_cross, exe_wrapper=None):
-        CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
+class GnuCompiler:
+    # Functionality that is common to all GNU family compilers.
+    def __init__(self, gcc_type):
         self.id = 'gcc'
         self.gcc_type = gcc_type
         self.warn_args = {'1': ['-Wall', '-Winvalid-pch'],
@@ -1958,14 +1958,14 @@ class GnuCCompiler(CCompiler):
             return [] # On Window gcc defaults to fpic being always on.
         return ['-fPIC']
 
-    def get_always_args(self):
-        return ['-pipe']
-
     def get_buildtype_args(self, buildtype):
         return gnulike_buildtype_args[buildtype]
 
     def get_buildtype_linker_args(self, buildtype):
         return gnulike_buildtype_linker_args[buildtype]
+
+    def get_always_args(self):
+        return ['-pipe']
 
     def get_pch_suffix(self):
         return 'gch'
@@ -1975,6 +1975,11 @@ class GnuCCompiler(CCompiler):
 
     def get_soname_args(self, shlib_name, path, soversion):
         return get_gcc_soname_args(self.gcc_type, shlib_name, path, soversion)
+
+class GnuCCompiler(GnuCompiler, CCompiler):
+    def __init__(self, exelist, version, gcc_type, is_cross, exe_wrapper=None):
+        CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
+        GnuCompiler.__init__(self, gcc_type)
 
     def can_compile(self, filename):
         return super().can_compile(filename) or filename.split('.')[-1].lower() == 's' # Gcc can do asm, too.
