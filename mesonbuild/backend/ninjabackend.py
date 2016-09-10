@@ -1437,29 +1437,53 @@ rule FORTRAN_DEP_HACK
         if compiler.id != 'msvc':
             return []
         # The way MSVC uses PDB files is documented exactly nowhere so
-        # the following is what we have been able to decipher via reverse
-        # engineering.
+        # the following is what we have been able to decipher via
+        # reverse engineering.
         #
-        # Each object file gets the path of its PDB file written inside it.
-        # This can be either the final PDB (for, say, foo.exe) or an object
-        # pdb (for foo.obj). If the former, then each compilation step locks
-        # the pdb file for writing, which is a bottleneck and object files from
-        # one target can not be used in a different target. The latter seems
-        # to be the sensible one (and what Unix does) but there is a catch.
-        # If you try to use precompiled headers MSVC will error out because
-        # both source and pch pdbs go in the same file and they must be the same.
+        # Each object file gets the path of its PDB file written
+        # inside it.  This can be either the final PDB (for, say,
+        # foo.exe) or an object pdb (for foo.obj). If the former, then
+        # each compilation step locks the pdb file for writing, which
+        # is a bottleneck and object files from one target can not be
+        # used in a different target. The latter seems to be the
+        # sensible one (and what Unix does) but there is a catch.  If
+        # you try to use precompiled headers MSVC will error out
+        # because both source and pch pdbs go in the same file and
+        # they must be the same.
+        #
         # This means:
         #
         # - pch files must be compiled anew for every object file (negating
         #   the entire point of having them in the first place)
         # - when using pch, output must go to the target pdb
         #
-        # Since both of these are broken in some way, use the one that works
-        # for each target. This unfortunately means that you can't combine
-        # pch and object extraction in a single target.
+        # Since both of these are broken in some way, use the one that
+        # works for each target. This unfortunately means that you
+        # can't combine pch and object extraction in a single target.
         #
-        # If you feel that the above is completely wrong and all of this is
-        # actually doable, please send patches.
+        # PDB files also lead to filename collisions. A target foo.exe
+        # has a corresponding foo.pdb. A shared library foo.dll _also_
+        # has pdb file called foo.pdb. So will a static library
+        # foo.lib, which clobbers both foo.pdb _and_ the dll file's
+        # export library called foo.lib (by default, currently we name
+        # them libfoo.a to avoidt this issue). You can give the files
+        # unique names such as foo_exe.pdb but VC also generates a
+        # bunch of other files which take their names from the target
+        # basename (i.e. "foo") and stomp on each other.
+        #
+        # CMake solves this problem by doing two things. First of all
+        # static libraries do not generate pdb files at
+        # all. Presumably you don't need them and VC is smart enough
+        # to look up the original data when linking (speculation, not
+        # tested). The second solution is that you can only have
+        # target named "foo" as an exe, shared lib _or_ static
+        # lib. This makes filename collisions not happen. The downside
+        # is that you can't have an executable foo that uses a shared
+        # library libfoo.so, which is a common idiom on Unix.
+        #
+        # If you feel that the above is completely wrong and all of
+        # this is actually doable, please send patches.
+
         if target.has_pch():
             tfilename = self.get_target_filename_abs(target)
             return compiler.get_compile_debugfile_args(tfilename)
