@@ -2050,15 +2050,13 @@ class GnuCPPCompiler(GnuCompiler, CPPCompiler):
             return options['cpp_winlibs'].value
         return []
 
-class GnuObjCCompiler(ObjCCompiler):
-    std_opt_args = ['-O2']
+class GnuObjCCompiler(GnuCompiler,ObjCCompiler):
 
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
         ObjCCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
-        self.id = 'gcc'
         # Not really correct, but GNU objc is only used on non-OSX non-win. File a bug
         # if this breaks your use case.
-        self.gcc_type = GCC_STANDARD
+        GnuCompiler.__init__(self, GCC_STANDARD)
         self.warn_args = {'1': ['-Wall', '-Winvalid-pch'],
                           '2': ['-Wall', '-Wextra', '-Winvalid-pch'],
                           '3' : ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch']}
@@ -2067,27 +2065,13 @@ class GnuObjCCompiler(ObjCCompiler):
             self.base_options.append('b_lundef')
             self.base_options.append('b_asneeded')
 
-    def get_buildtype_args(self, buildtype):
-        return gnulike_buildtype_args[buildtype]
-
-    def get_buildtype_linker_args(self, buildtype):
-        return gnulike_buildtype_linker_args[buildtype]
-
-    def get_pch_suffix(self):
-        return 'gch'
-
-    def get_soname_args(self, shlib_name, path, soversion):
-        return get_gcc_soname_args(self.gcc_type, shlib_name, path, soversion)
-
-class GnuObjCPPCompiler(ObjCPPCompiler):
-    std_opt_args = ['-O2']
+class GnuObjCPPCompiler(GnuCompiler, ObjCPPCompiler):
 
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
         ObjCCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
-        self.id = 'gcc'
         # Not really correct, but GNU objc is only used on non-OSX non-win. File a bug
         # if this breaks your use case.
-        self.gcc_type = GCC_STANDARD
+        GnuCompiler.__init__(self, GCC_STANDARD)
         self.warn_args = {'1': ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor'],
                           '2': ['-Wall', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor'],
                           '3' : ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor']}
@@ -2095,18 +2079,6 @@ class GnuObjCPPCompiler(ObjCPPCompiler):
         if self.gcc_type != GCC_OSX:
             self.base_options.append('b_lundef')
             self.base_options.append('b_asneeded')
-
-    def get_buildtype_args(self, buildtype):
-        return gnulike_buildtype_args[buildtype]
-
-    def get_buildtype_linker_args(self, buildtype):
-        return gnulike_buildtype_linker_args[buildtype]
-
-    def get_pch_suffix(self):
-        return 'gch'
-
-    def get_soname_args(self, shlib_name, path, soversion):
-        return get_gcc_soname_args(self.gcc_type, shlib_name, path, soversion)
 
 class ClangObjCCompiler(GnuObjCCompiler):
     def __init__(self, exelist, version, cltype, is_cross, exe_wrapper=None):
