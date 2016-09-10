@@ -1436,16 +1436,11 @@ class SwiftCompiler(Compiler):
 class VisualStudioCCompiler(CCompiler):
     std_warn_args = ['/W3']
     std_opt_args= ['/O2']
-    vs2010_always_args = ['/nologo', '/showIncludes']
-    vs2013_always_args = ['/nologo', '/showIncludes', '/FS']
 
     def __init__(self, exelist, version, is_cross, exe_wrap):
         CCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
         self.id = 'msvc'
-        if int(version.split('.')[0]) > 17:
-            self.always_args = VisualStudioCCompiler.vs2013_always_args
-        else:
-            self.always_args = VisualStudioCCompiler.vs2010_always_args
+        self.always_args = ['/nologo', '/showIncludes']
         self.warn_args = {'1': ['/W2'],
                           '2': ['/W3'],
                           '3': ['/w4']}
