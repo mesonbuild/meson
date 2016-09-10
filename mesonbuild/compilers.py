@@ -1939,14 +1939,6 @@ class GnuCompiler:
     def __init__(self, gcc_type):
         self.id = 'gcc'
         self.gcc_type = gcc_type
-        self.warn_args = {'1': ['-Wall', '-Winvalid-pch'],
-                          '2': ['-Wall', '-Wextra', '-Winvalid-pch'],
-                          '3' : ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch']}
-        self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage',
-                             'b_colorout']
-        if self.gcc_type != GCC_OSX:
-            self.base_options.append('b_lundef')
-            self.base_options.append('b_asneeded')
 
     def get_colorout_args(self, colortype):
         if mesonlib.version_compare(self.version, '>=4.9.0'):
@@ -1980,6 +1972,14 @@ class GnuCCompiler(GnuCompiler, CCompiler):
     def __init__(self, exelist, version, gcc_type, is_cross, exe_wrapper=None):
         CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
         GnuCompiler.__init__(self, gcc_type)
+        self.warn_args = {'1': ['-Wall', '-Winvalid-pch'],
+                          '2': ['-Wall', '-Wextra', '-Winvalid-pch'],
+                          '3' : ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch']}
+        self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage',
+                             'b_colorout']
+        if self.gcc_type != GCC_OSX:
+            self.base_options.append('b_lundef')
+            self.base_options.append('b_asneeded')
 
     def can_compile(self, filename):
         return super().can_compile(filename) or filename.split('.')[-1].lower() == 's' # Gcc can do asm, too.
@@ -2005,6 +2005,49 @@ class GnuCCompiler(GnuCompiler, CCompiler):
     def get_option_link_args(self, options):
         if self.gcc_type == GCC_MINGW:
             return options['c_winlibs'].value
+        return []
+
+class GnuCPPCompiler(GnuCompiler, CPPCompiler):
+
+    def __init__(self, exelist, version, gcc_type, is_cross, exe_wrap):
+        CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
+        GnuCompiler.__init__(self, gcc_type)
+        self.warn_args = {'1': ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor'],
+                          '2': ['-Wall', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor'],
+                          '3': ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor']}
+        self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage',
+                             'b_colorout']
+        if self.gcc_type != GCC_OSX:
+            self.base_options.append('b_lundef')
+            self.base_options.append('b_asneeded')
+
+    def get_options(self):
+        opts = {'cpp_std' : coredata.UserComboOption('cpp_std', 'C++ language standard to use',
+                                                     ['none', 'c++03', 'c++11', 'c++14', 'c++1z',
+                                                      'gnu++03', 'gnu++11', 'gnu++14', 'gnu++1z'],
+                                                     'none'),
+                'cpp_debugstl': coredata.UserBooleanOption('cpp_debugstl',
+                                                           'STL debug mode',
+                                                           False)}
+        if self.gcc_type == GCC_MINGW:
+            opts.update({
+                'cpp_winlibs': coredata.UserStringArrayOption('c_winlibs', 'Standard Win libraries to link against',
+                                                              gnu_winlibs),
+                })
+        return opts
+
+    def get_option_compile_args(self, options):
+        args = []
+        std = options['cpp_std']
+        if std.value != 'none':
+            args.append('-std=' + std.value)
+        if options['cpp_debugstl'].value:
+            args.append('-D_GLIBCXX_DEBUG=1')
+        return args
+
+    def get_option_link_args(self, options):
+        if self.gcc_type == GCC_MINGW:
+            return options['cpp_winlibs'].value
         return []
 
 class GnuObjCCompiler(ObjCCompiler):
@@ -2134,76 +2177,6 @@ class ClangCCompiler(CCompiler):
     def has_argument(self, arg, env):
         return super().has_argument(['-Werror=unknown-warning-option', arg], env)
 
-class GnuCPPCompiler(CPPCompiler):
-    # may need to separate the latter to extra_debug_args or something
-    std_debug_args = ['-g']
-
-    def __init__(self, exelist, version, gcc_type, is_cross, exe_wrap):
-        CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
-        self.id = 'gcc'
-        self.gcc_type = gcc_type
-        self.warn_args = {'1': ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor'],
-                          '2': ['-Wall', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor'],
-                          '3': ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor']}
-        self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage',
-                             'b_colorout']
-        if self.gcc_type != GCC_OSX:
-            self.base_options.append('b_lundef')
-            self.base_options.append('b_asneeded')
-
-    def get_colorout_args(self, colortype):
-        if mesonlib.version_compare(self.version, '>=4.9.0'):
-            return gnu_color_args[colortype][:]
-        return []
-
-    def get_pic_args(self):
-        if self.gcc_type == GCC_MINGW:
-            return [] # On Window gcc defaults to fpic being always on.
-        return ['-fPIC']
-
-    def get_always_args(self):
-        return ['-pipe']
-
-    def get_buildtype_args(self, buildtype):
-        return gnulike_buildtype_args[buildtype]
-
-    def get_buildtype_linker_args(self, buildtype):
-        return gnulike_buildtype_linker_args[buildtype]
-
-    def get_pch_suffix(self):
-        return 'gch'
-
-    def get_soname_args(self, shlib_name, path, soversion):
-        return get_gcc_soname_args(self.gcc_type, shlib_name, path, soversion)
-
-    def get_options(self):
-        opts = {'cpp_std' : coredata.UserComboOption('cpp_std', 'C++ language standard to use',
-                                                     ['none', 'c++03', 'c++11', 'c++14', 'c++1z',
-                                                      'gnu++03', 'gnu++11', 'gnu++14', 'gnu++1z'],
-                                                     'none'),
-                'cpp_debugstl': coredata.UserBooleanOption('cpp_debugstl',
-                                                           'STL debug mode',
-                                                           False)}
-        if self.gcc_type == GCC_MINGW:
-            opts.update({
-                'cpp_winlibs': coredata.UserStringArrayOption('c_winlibs', 'Standard Win libraries to link against',
-                                                              gnu_winlibs),
-                })
-        return opts
-
-    def get_option_compile_args(self, options):
-        args = []
-        std = options['cpp_std']
-        if std.value != 'none':
-            args.append('-std=' + std.value)
-        if options['cpp_debugstl'].value:
-            args.append('-D_GLIBCXX_DEBUG=1')
-        return args
-
-    def get_option_link_args(self, options):
-        if self.gcc_type == GCC_MINGW:
-            return options['cpp_winlibs'].value
-        return []
 
 class ClangCPPCompiler(CPPCompiler):
     def __init__(self, exelist, version, cltype, is_cross, exe_wrapper=None):
