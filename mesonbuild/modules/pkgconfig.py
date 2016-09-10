@@ -87,7 +87,11 @@ class PkgConfigModule:
         priv_reqs = mesonlib.stringlistify(kwargs.get('requires_private', []))
         priv_libs = mesonlib.stringlistify(kwargs.get('libraries_private', []))
         pcfile = filebase + '.pc'
-        pkgroot = os.path.join(state.environment.coredata.get_builtin_option('libdir'), 'pkgconfig')
+        pkgroot = kwargs.get('install_dir',None)
+        if pkgroot is None:
+            pkgroot = os.path.join(state.environment.coredata.get_builtin_option('libdir'), 'pkgconfig')
+        if not isinstance(pkgroot, str):
+            raise mesonlib.MesonException('Install_dir must be a string.')
         self.generate_pkgconfig_file(state, libs, subdirs, name, description, version, filebase,
                                      pub_reqs, priv_reqs, priv_libs)
         return build.Data(False, state.environment.get_scratch_dir(), [pcfile], pkgroot)
