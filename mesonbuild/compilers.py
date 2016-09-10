@@ -2067,34 +2067,10 @@ class GnuObjCPPCompiler(GnuCompiler, ObjCPPCompiler):
                           '2': ['-Wall', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor'],
                           '3' : ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor']}
 
-class ClangObjCCompiler(GnuObjCCompiler):
-    def __init__(self, exelist, version, cltype, is_cross, exe_wrapper=None):
-        super().__init__(exelist, version, is_cross, exe_wrapper)
-        self.id = 'clang'
-        self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage']
-        self.clang_type = cltype
-        if self.clang_type != CLANG_OSX:
-            self.base_options.append('b_lundef')
-            self.base_options.append('b_asneeded')
-
-class ClangObjCPPCompiler(GnuObjCPPCompiler):
-    def __init__(self, exelist, version, cltype, is_cross, exe_wrapper=None):
-        super().__init__(exelist, version, is_cross, exe_wrapper)
-        self.id = 'clang'
-        self.clang_type = cltype
-        self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage']
-        if self.clang_type != CLANG_OSX:
-            self.base_options.append('b_lundef')
-            self.base_options.append('b_asneeded')
-
-class ClangCCompiler(CCompiler):
-    def __init__(self, exelist, version, clang_type, is_cross, exe_wrapper=None):
-        CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
+class ClangCompiler():
+    def __init__(self, clang_type):
         self.id = 'clang'
         self.clang_type = clang_type
-        self.warn_args = {'1': ['-Wall', '-Winvalid-pch'],
-                          '2': ['-Wall', '-Wextra', '-Winvalid-pch'],
-                          '3' : ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch']}
         self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage']
         if self.clang_type != CLANG_OSX:
             self.base_options.append('b_lundef')
@@ -2118,6 +2094,37 @@ class ClangCCompiler(CCompiler):
         # so it might change semantics at any time.
         return ['-include-pch', os.path.join (pch_dir, self.get_pch_name (header))]
 
+    def has_argument(self, arg, env):
+        return super().has_argument(['-Werror=unknown-warning-option', arg], env)
+
+class ClangObjCCompiler(GnuObjCCompiler):
+    def __init__(self, exelist, version, cltype, is_cross, exe_wrapper=None):
+        super().__init__(exelist, version, is_cross, exe_wrapper)
+        self.id = 'clang'
+        self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage']
+        self.clang_type = cltype
+        if self.clang_type != CLANG_OSX:
+            self.base_options.append('b_lundef')
+            self.base_options.append('b_asneeded')
+
+class ClangObjCPPCompiler(GnuObjCPPCompiler):
+    def __init__(self, exelist, version, cltype, is_cross, exe_wrapper=None):
+        super().__init__(exelist, version, is_cross, exe_wrapper)
+        self.id = 'clang'
+        self.clang_type = cltype
+        self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage']
+        if self.clang_type != CLANG_OSX:
+            self.base_options.append('b_lundef')
+            self.base_options.append('b_asneeded')
+
+class ClangCCompiler(ClangCompiler, CCompiler):
+    def __init__(self, exelist, version, clang_type, is_cross, exe_wrapper=None):
+        CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
+        ClangCompiler.__init__(self, clang_type)
+        self.warn_args = {'1': ['-Wall', '-Winvalid-pch'],
+                          '2': ['-Wall', '-Wextra', '-Winvalid-pch'],
+                          '3' : ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch']}
+
     def get_options(self):
         return {'c_std' : coredata.UserComboOption('c_std', 'C language standard to use',
                                                    ['none', 'c89', 'c99', 'c11'],
@@ -2132,9 +2139,6 @@ class ClangCCompiler(CCompiler):
 
     def get_option_link_args(self, options):
         return []
-
-    def has_argument(self, arg, env):
-        return super().has_argument(['-Werror=unknown-warning-option', arg], env)
 
 
 class ClangCPPCompiler(CPPCompiler):
