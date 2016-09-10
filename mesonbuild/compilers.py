@@ -2091,26 +2091,6 @@ class ClangCompiler():
         # so it might change semantics at any time.
         return ['-include-pch', os.path.join (pch_dir, self.get_pch_name (header))]
 
-class ClangObjCCompiler(GnuObjCCompiler):
-    def __init__(self, exelist, version, cltype, is_cross, exe_wrapper=None):
-        super().__init__(exelist, version, is_cross, exe_wrapper)
-        self.id = 'clang'
-        self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage']
-        self.clang_type = cltype
-        if self.clang_type != CLANG_OSX:
-            self.base_options.append('b_lundef')
-            self.base_options.append('b_asneeded')
-
-class ClangObjCPPCompiler(GnuObjCPPCompiler):
-    def __init__(self, exelist, version, cltype, is_cross, exe_wrapper=None):
-        super().__init__(exelist, version, is_cross, exe_wrapper)
-        self.id = 'clang'
-        self.clang_type = cltype
-        self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage']
-        if self.clang_type != CLANG_OSX:
-            self.base_options.append('b_lundef')
-            self.base_options.append('b_asneeded')
-
 class ClangCCompiler(ClangCompiler, CCompiler):
     def __init__(self, exelist, version, clang_type, is_cross, exe_wrapper=None):
         CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
@@ -2169,6 +2149,26 @@ class ClangCPPCompiler(ClangCompiler,   CPPCompiler):
 
     def can_compile(self, filename):
         return super().can_compile(filename) or filename.split('.')[-1].lower() == 's' # Clang can do asm, too.
+
+class ClangObjCCompiler(GnuObjCCompiler):
+    def __init__(self, exelist, version, cltype, is_cross, exe_wrapper=None):
+        super().__init__(exelist, version, is_cross, exe_wrapper)
+        self.id = 'clang'
+        self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage']
+        self.clang_type = cltype
+        if self.clang_type != CLANG_OSX:
+            self.base_options.append('b_lundef')
+            self.base_options.append('b_asneeded')
+
+class ClangObjCPPCompiler(GnuObjCPPCompiler):
+    def __init__(self, exelist, version, cltype, is_cross, exe_wrapper=None):
+        super().__init__(exelist, version, is_cross, exe_wrapper)
+        self.id = 'clang'
+        self.clang_type = cltype
+        self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage']
+        if self.clang_type != CLANG_OSX:
+            self.base_options.append('b_lundef')
+            self.base_options.append('b_asneeded')
 
 class FortranCompiler(Compiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
