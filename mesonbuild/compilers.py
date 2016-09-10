@@ -2085,17 +2085,11 @@ class ClangCompiler():
     def get_pch_suffix(self):
         return 'pch'
 
-    def can_compile(self, filename):
-        return super().can_compile(filename) or filename.split('.')[-1].lower() == 's' # Clang can do asm, too.
-
     def get_pch_use_args(self, pch_dir, header):
         # Workaround for Clang bug http://llvm.org/bugs/show_bug.cgi?id=15136
         # This flag is internal to Clang (or at least not documented on the man page)
         # so it might change semantics at any time.
         return ['-include-pch', os.path.join (pch_dir, self.get_pch_name (header))]
-
-    def has_argument(self, arg, env):
-        return super().has_argument(['-Werror=unknown-warning-option', arg], env)
 
 class ClangObjCCompiler(GnuObjCCompiler):
     def __init__(self, exelist, version, cltype, is_cross, exe_wrapper=None):
@@ -2140,34 +2134,20 @@ class ClangCCompiler(ClangCompiler, CCompiler):
     def get_option_link_args(self, options):
         return []
 
+    def has_argument(self, arg, env):
+        return super().has_argument(['-Werror=unknown-warning-option', arg], env)
 
-class ClangCPPCompiler(CPPCompiler):
+    def can_compile(self, filename):
+        return super().can_compile(filename) or filename.split('.')[-1].lower() == 's' # Clang can do asm, too.
+
+
+class ClangCPPCompiler(ClangCompiler,   CPPCompiler):
     def __init__(self, exelist, version, cltype, is_cross, exe_wrapper=None):
         CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
-        self.id = 'clang'
+        ClangCompiler.__init__(self, cltype)
         self.warn_args = {'1': ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor'],
                           '2': ['-Wall', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor'],
                           '3': ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor']}
-        self.clang_type = cltype
-        self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage']
-        if self.clang_type != CLANG_OSX:
-            self.base_options.append('b_lundef')
-            self.base_options.append('b_asneeded')
-
-    def get_buildtype_args(self, buildtype):
-        return gnulike_buildtype_args[buildtype]
-
-    def get_buildtype_linker_args(self, buildtype):
-        return gnulike_buildtype_linker_args[buildtype]
-
-    def get_pch_suffix(self):
-        return 'pch'
-
-    def get_pch_use_args(self, pch_dir, header):
-        # Workaround for Clang bug http://llvm.org/bugs/show_bug.cgi?id=15136
-        # This flag is internal to Clang (or at least not documented on the man page)
-        # so it might change semantics at any time.
-        return ['-include-pch', os.path.join (pch_dir, self.get_pch_name (header))]
 
     def get_options(self):
         return {'cpp_std' : coredata.UserComboOption('cpp_std', 'C++ language standard to use',
@@ -2186,6 +2166,9 @@ class ClangCPPCompiler(CPPCompiler):
 
     def has_argument(self, arg, env):
         return super().has_argument(['-Werror=unknown-warning-option', arg], env)
+
+    def can_compile(self, filename):
+        return super().can_compile(filename) or filename.split('.')[-1].lower() == 's' # Clang can do asm, too.
 
 class FortranCompiler(Compiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
