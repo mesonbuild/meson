@@ -1939,6 +1939,11 @@ class GnuCompiler:
     def __init__(self, gcc_type):
         self.id = 'gcc'
         self.gcc_type = gcc_type
+        self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage',
+                             'b_colorout']
+        if self.gcc_type != GCC_OSX:
+            self.base_options.append('b_lundef')
+            self.base_options.append('b_asneeded')
 
     def get_colorout_args(self, colortype):
         if mesonlib.version_compare(self.version, '>=4.9.0'):
@@ -1975,11 +1980,6 @@ class GnuCCompiler(GnuCompiler, CCompiler):
         self.warn_args = {'1': ['-Wall', '-Winvalid-pch'],
                           '2': ['-Wall', '-Wextra', '-Winvalid-pch'],
                           '3' : ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch']}
-        self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage',
-                             'b_colorout']
-        if self.gcc_type != GCC_OSX:
-            self.base_options.append('b_lundef')
-            self.base_options.append('b_asneeded')
 
     def can_compile(self, filename):
         return super().can_compile(filename) or filename.split('.')[-1].lower() == 's' # Gcc can do asm, too.
@@ -2015,11 +2015,6 @@ class GnuCPPCompiler(GnuCompiler, CPPCompiler):
         self.warn_args = {'1': ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor'],
                           '2': ['-Wall', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor'],
                           '3': ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor']}
-        self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage',
-                             'b_colorout']
-        if self.gcc_type != GCC_OSX:
-            self.base_options.append('b_lundef')
-            self.base_options.append('b_asneeded')
 
     def get_options(self):
         opts = {'cpp_std' : coredata.UserComboOption('cpp_std', 'C++ language standard to use',
@@ -2060,10 +2055,6 @@ class GnuObjCCompiler(GnuCompiler,ObjCCompiler):
         self.warn_args = {'1': ['-Wall', '-Winvalid-pch'],
                           '2': ['-Wall', '-Wextra', '-Winvalid-pch'],
                           '3' : ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch']}
-        self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage']
-        if self.gcc_type != GCC_OSX:
-            self.base_options.append('b_lundef')
-            self.base_options.append('b_asneeded')
 
 class GnuObjCPPCompiler(GnuCompiler, ObjCPPCompiler):
 
@@ -2075,10 +2066,6 @@ class GnuObjCPPCompiler(GnuCompiler, ObjCPPCompiler):
         self.warn_args = {'1': ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor'],
                           '2': ['-Wall', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor'],
                           '3' : ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor']}
-        self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage']
-        if self.gcc_type != GCC_OSX:
-            self.base_options.append('b_lundef')
-            self.base_options.append('b_asneeded')
 
 class ClangObjCCompiler(GnuObjCCompiler):
     def __init__(self, exelist, version, cltype, is_cross, exe_wrapper=None):
