@@ -1101,6 +1101,7 @@ class Interpreter():
                       'add_global_link_arguments' : self.func_add_global_link_arguments,
                       'add_languages' : self.func_add_languages,
                       'find_program' : self.func_find_program,
+                      'find_python3' : self.func_find_python3,
                       'find_library' : self.func_find_library,
                       'configuration_data' : self.func_configuration_data,
                       'run_command' : self.func_run_command,
@@ -1711,6 +1712,14 @@ class Interpreter():
         if required and not progobj.found():
             raise InvalidArguments('Program "%s" not found.' % exename)
         return progobj
+
+    def func_find_python3(self, node, args, kwargs):
+        self.validate_arguments(args, 0, [])
+        fullpath = sys.executable
+        if fullpath is None:
+            raise InterpreterException('Unable to find Python 3: sys.executable is empty')
+        extprog = dependencies.ExternalProgram('Python3', fullpath=fullpath)
+        return ExternalProgramHolder(extprog)
 
     def func_find_library(self, node, args, kwargs):
         mlog.log(mlog.red('DEPRECATION:'), 'find_library() is removed, use the corresponding method in compiler object instead.')
