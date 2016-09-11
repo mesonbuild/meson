@@ -169,7 +169,7 @@ def validate_install(srcdir, installdir):
     # Check if there are any unexpected files
     found = get_relative_files_list_from_dir(installdir)
     for fname in found:
-        if fname not in expected:
+        if fname not in expected and not fname.endswith('.pdb'):
             ret_msg += 'Extra file {0} found.\n'.format(fname)
     return ret_msg
 

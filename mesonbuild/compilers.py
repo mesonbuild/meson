@@ -373,6 +373,14 @@ class Compiler():
     def get_colorout_args(self, colortype):
         return []
 
+    # Some compilers (msvc) write debug info to a separate file.
+    # These args specify where it should be written.
+    def get_compile_debugfile_args(self, rel_obj):
+        return []
+
+    def get_link_debugfile_args(self, rel_obj):
+        return []
+
 class CCompiler(Compiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
         super().__init__(exelist, version)
@@ -1708,16 +1716,11 @@ class DmdDCompiler(DCompiler):
 class VisualStudioCCompiler(CCompiler):
     std_warn_args = ['/W3']
     std_opt_args= ['/O2']
-    vs2010_always_args = ['/nologo', '/showIncludes']
-    vs2013_always_args = ['/nologo', '/showIncludes', '/FS']
 
     def __init__(self, exelist, version, is_cross, exe_wrap):
         CCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
         self.id = 'msvc'
-        if int(version.split('.')[0]) > 17:
-            self.always_args = VisualStudioCCompiler.vs2013_always_args
-        else:
-            self.always_args = VisualStudioCCompiler.vs2010_always_args
+        self.always_args = ['/nologo', '/showIncludes']
         self.warn_args = {'1': ['/W2'],
                           '2': ['/W3'],
                           '3': ['/w4']}
@@ -1877,6 +1880,16 @@ class VisualStudioCCompiler(CCompiler):
         if p.returncode != 0:
             raise MesonException('Compiling test app failed.')
         return not(warning_text in stde or warning_text in stdo)
+
+    def get_compile_debugfile_args(self, rel_obj):
+        pdbarr = rel_obj.split('.')[:-1]
+        pdbarr += ['pdb']
+        return ['/Fd' + '.'.join(pdbarr)]
+
+    def get_link_debugfile_args(self, targetfile):
+        pdbarr = targetfile.split('.')[:-1]
+        pdbarr += ['pdb']
+        return ['/DEBUG', '/PDB:' + '.'.join(pdbarr)]
 
 class VisualStudioCPPCompiler(VisualStudioCCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrap):
@@ -2564,6 +2577,11 @@ class VisualStudioLinker():
     def unix_compile_flags_to_native(self, args):
         return args[:]
 
+    def get_link_debugfile_args(self, targetfile):
+        pdbarr = targetfile.split('.')[:-1]
+        pdbarr += ['pdb']
+        return ['/DEBUG', '/PDB:' + '.'.join(pdbarr)]
+
 class ArLinker():
 
     def __init__(self, exelist):
@@ -2612,3 +2630,6 @@ class ArLinker():
 
     def unix_compile_flags_to_native(self, args):
         return args[:]
+
+    def get_link_debugfile_args(self, targetfile):
+        return []

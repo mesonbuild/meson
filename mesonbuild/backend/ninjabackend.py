@@ -544,6 +544,13 @@ int dummy;
                 else:
                     # XXX: Add BuildTarget-specific install dir cases here
                     outdir = self.environment.get_libdir()
+                if isinstance(t, build.SharedLibrary) or isinstance(t, build.Executable):
+                    if t.get_debug_filename():
+                        # Install the debug symbols file in the same place as
+                        # the target itself. It has no aliases, should not be
+                        # stripped, and doesn't have an install_rpath
+                        i = [self.get_target_debug_filename(t), outdir, [], False, '']
+                        d.targets.append(i)
                 i = [self.get_target_filename(t), outdir, t.get_aliaslist(),\
                     should_strip, t.install_rpath]
                 d.targets.append(i)
@@ -1482,6 +1489,66 @@ rule FORTRAN_DEP_HACK
             return []
         return compiler.get_no_stdinc_args()
 
+    def get_compile_debugfile_args(self, compiler, target, objfile):
+        if compiler.id != 'msvc':
+            return []
+        # The way MSVC uses PDB files is documented exactly nowhere so
+        # the following is what we have been able to decipher via
+        # reverse engineering.
+        #
+        # Each object file gets the path of its PDB file written
+        # inside it.  This can be either the final PDB (for, say,
+        # foo.exe) or an object pdb (for foo.obj). If the former, then
+        # each compilation step locks the pdb file for writing, which
+        # is a bottleneck and object files from one target can not be
+        # used in a different target. The latter seems to be the
+        # sensible one (and what Unix does) but there is a catch.  If
+        # you try to use precompiled headers MSVC will error out
+        # because both source and pch pdbs go in the same file and
+        # they must be the same.
+        #
+        # This means:
+        #
+        # - pch files must be compiled anew for every object file (negating
+        #   the entire point of having them in the first place)
+        # - when using pch, output must go to the target pdb
+        #
+        # Since both of these are broken in some way, use the one that
+        # works for each target. This unfortunately means that you
+        # can't combine pch and object extraction in a single target.
+        #
+        # PDB files also lead to filename collisions. A target foo.exe
+        # has a corresponding foo.pdb. A shared library foo.dll _also_
+        # has pdb file called foo.pdb. So will a static library
+        # foo.lib, which clobbers both foo.pdb _and_ the dll file's
+        # export library called foo.lib (by default, currently we name
+        # them libfoo.a to avoidt this issue). You can give the files
+        # unique names such as foo_exe.pdb but VC also generates a
+        # bunch of other files which take their names from the target
+        # basename (i.e. "foo") and stomp on each other.
+        #
+        # CMake solves this problem by doing two things. First of all
+        # static libraries do not generate pdb files at
+        # all. Presumably you don't need them and VC is smart enough
+        # to look up the original data when linking (speculation, not
+        # tested). The second solution is that you can only have
+        # target named "foo" as an exe, shared lib _or_ static
+        # lib. This makes filename collisions not happen. The downside
+        # is that you can't have an executable foo that uses a shared
+        # library libfoo.so, which is a common idiom on Unix.
+        #
+        # If you feel that the above is completely wrong and all of
+        # this is actually doable, please send patches.
+
+        if target.has_pch():
+            tfilename = self.get_target_filename_abs(target)
+            return compiler.get_compile_debugfile_args(tfilename)
+        else:
+            return compiler.get_compile_debugfile_args(objfile)
+
+    def get_link_debugfile_args(self, linker, target, outname):
+        return linker.get_link_debugfile_args(outname)
+
     def generate_single_compile(self, target, outfile, src, is_generated=False, header_deps=[], order_deps=[]):
         if(isinstance(src, str) and src.endswith('.h')):
             raise RuntimeError('Fug')
@@ -1568,6 +1635,8 @@ rule FORTRAN_DEP_HACK
             commands+= compiler.get_include_args(i, False)
         if self.environment.coredata.base_options.get('b_pch', False):
             commands += self.get_pch_include_args(compiler, target)
+
+        commands += self.get_compile_debugfile_args(compiler, target, rel_obj)
         crstr = ''
         if target.is_cross:
             crstr = '_CROSS'
@@ -1636,6 +1705,7 @@ rule FORTRAN_DEP_HACK
         just_name = os.path.split(header)[1]
         (objname, pch_args) = compiler.gen_pch_args(just_name, source, dst)
         commands += pch_args
+        commands += self.get_compile_debugfile_args(compiler, target, objname)
         dep = dst + '.' + compiler.get_depfile_suffix()
         return (commands, dep, dst, [objname])
 
@@ -1715,6 +1785,7 @@ rule FORTRAN_DEP_HACK
                                                      linker)
         commands += linker.get_buildtype_linker_args(self.environment.coredata.get_builtin_option('buildtype'))
         commands += linker.get_option_link_args(self.environment.coredata.compiler_options)
+        commands += self.get_link_debugfile_args(linker, target, outname)
         if not(isinstance(target, build.StaticLibrary)):
             commands += self.environment.coredata.external_link_args[linker.get_language()]
         if isinstance(target, build.Executable):
