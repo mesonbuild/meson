@@ -572,15 +572,15 @@ class CCompiler(Compiler):
         code = 'int main(int argc, char **argv) { int class=0; return class; }\n'
         return self.sanity_check_impl(work_dir, environment, 'sanitycheckc.c', code)
 
-    def has_header(self, hname, env, extra_args=None):
+    def has_header(self, hname, env, extra_args=None, dependencies=None):
         if extra_args is None:
             extra_args = []
         templ = '''#include<%s>
 int someSymbolHereJustForFun;
 '''
-        return self.compiles(templ % hname, env, extra_args)
+        return self.compiles(templ % hname, env, extra_args, dependencies)
 
-    def has_header_symbol(self, hname, symbol, prefix, env, extra_args=None):
+    def has_header_symbol(self, hname, symbol, prefix, env, extra_args=None, dependencies=None):
         if extra_args is None:
             extra_args = []
         templ = '''{2}
@@ -588,7 +588,7 @@ int someSymbolHereJustForFun;
 int main () {{ {1}; }}'''
         # Pass -O0 to ensure that the symbol isn't optimized away
         args = extra_args + self.get_no_optimization_args()
-        return self.compiles(templ.format(hname, symbol, prefix), env, args)
+        return self.compiles(templ.format(hname, symbol, prefix), env, args, dependencies)
 
     def compile(self, code, srcname, extra_args=None):
         if extra_args is None:
@@ -608,18 +608,23 @@ int main () {{ {1}; }}'''
         os.remove(srcname)
         return p
 
-    def compiles(self, code, env, extra_args=None):
+    def compiles(self, code, env, extra_args=None, dependencies=None):
         if extra_args is None:
             extra_args = []
         if isinstance(extra_args, str):
             extra_args = [extra_args]
+        if dependencies is None:
+            dependencies = []
+        elif not isinstance(dependencies, list):
+            dependencies = [dependencies]
         suflen = len(self.default_suffix)
         (fd, srcname) = tempfile.mkstemp(suffix='.'+self.default_suffix)
         os.close(fd)
         with open(srcname, 'w') as ofile:
             ofile.write(code)
+        cargs = [a for d in dependencies for a in d.get_compile_args()]
         # Convert flags to the native type of the selected compiler
-        args = self.unix_link_flags_to_native(extra_args)
+        args = self.unix_link_flags_to_native(cargs + extra_args)
         # Read c_args/cpp_args/etc from the cross-info file (if needed)
         args += self.get_cross_extra_flags(env, compile=True, link=False)
         # We only want to compile; not link
@@ -636,19 +641,25 @@ int main () {{ {1}; }}'''
             pass
         return p.returncode == 0
 
-    def links(self, code, env, extra_args=None):
+    def links(self, code, env, extra_args=None, dependencies=None):
         if extra_args is None:
             extra_args = []
         elif isinstance(extra_args, str):
             extra_args = [extra_args]
+        if dependencies is None:
+            dependencies = []
+        elif not isinstance(dependencies, list):
+            dependencies = [dependencies]
         (fd, srcname) = tempfile.mkstemp(suffix='.'+self.default_suffix)
         os.close(fd)
         (fd, dstname) = tempfile.mkstemp()
         os.close(fd)
         with open(srcname, 'w') as ofile:
             ofile.write(code)
+        cargs = [a for d in dependencies for a in d.get_compile_args()]
+        link_args = [a for d in dependencies for a in d.get_link_args()]
         # Convert flags to the native type of the selected compiler
-        args = self.unix_link_flags_to_native(extra_args)
+        args = self.unix_link_flags_to_native(cargs + link_args + extra_args)
         # Select a CRT if needed since we're linking
         args += self.get_linker_debug_crt_args()
         # Read c_args/c_link_args/cpp_args/cpp_link_args/etc from the cross-info file (if needed)
@@ -662,17 +673,23 @@ int main () {{ {1}; }}'''
             pass
         return p.returncode == 0
 
-    def run(self, code, env, extra_args=None):
+    def run(self, code, env, extra_args=None, dependencies=None):
         if extra_args is None:
             extra_args = []
+        if dependencies is None:
+            dependencies = []
+        elif not isinstance(dependencies, list):
+            dependencies = [dependencies]
         if self.is_cross and self.exe_wrapper is None:
             raise CrossNoRunException('Can not run test applications in this cross environment.')
         (fd, srcname) = tempfile.mkstemp(suffix='.'+self.default_suffix)
         os.close(fd)
         with open(srcname, 'w') as ofile:
             ofile.write(code)
+        cargs = [a for d in dependencies for a in d.get_compile_args()]
+        link_args = [a for d in dependencies for a in d.get_link_args()]
         # Convert flags to the native type of the selected compiler
-        args = self.unix_link_flags_to_native(extra_args)
+        args = self.unix_link_flags_to_native(cargs + link_args + extra_args)
         # Select a CRT if needed since we're linking
         args += self.get_linker_debug_crt_args()
         # Read c_link_args/cpp_link_args/etc from the cross-info file
@@ -721,7 +738,7 @@ int main () {{ {1}; }}'''
             pass
         return RunResult(True, pe.returncode, so, se)
 
-    def cross_sizeof(self, element, prefix, env, extra_args=None):
+    def cross_sizeof(self, element, prefix, env, extra_args=None, dependencies=None):
         if extra_args is None:
             extra_args = []
         element_exists_templ = '''#include <stdio.h>
@@ -735,11 +752,11 @@ int main(int argc, char **argv) {{
 int temparray[%d-sizeof(%s)];
 '''
         args = extra_args + self.get_no_optimization_args()
-        if not self.compiles(element_exists_templ.format(prefix, element), env, args):
+        if not self.compiles(element_exists_templ.format(prefix, element), env, args, dependencies):
             return -1
         for i in range(1, 1024):
             code = templ % (prefix, i, element)
-            if self.compiles(code, env, args):
+            if self.compiles(code, env, args, dependencies):
                 if self.id == 'msvc':
                     # MSVC refuses to construct an array of zero size, so
                     # the test only succeeds when i is sizeof(element) + 1
@@ -747,11 +764,11 @@ int temparray[%d-sizeof(%s)];
                 return i
         raise EnvironmentException('Cross checking sizeof overflowed.')
 
-    def sizeof(self, element, prefix, env, extra_args=None):
+    def sizeof(self, element, prefix, env, extra_args=None, dependencies=None):
         if extra_args is None:
             extra_args = []
         if self.is_cross:
-            return self.cross_sizeof(element, prefix, env, extra_args)
+            return self.cross_sizeof(element, prefix, env, extra_args, dependencies)
         templ = '''#include<stdio.h>
 %s
 
@@ -760,14 +777,14 @@ int main(int argc, char **argv) {
     return 0;
 };
 '''
-        res = self.run(templ % (prefix, element), env, extra_args)
+        res = self.run(templ % (prefix, element), env, extra_args, dependencies)
         if not res.compiled:
             return -1
         if res.returncode != 0:
             raise EnvironmentException('Could not run sizeof test binary.')
         return int(res.stdout)
 
-    def cross_alignment(self, typename, env, extra_args=None):
+    def cross_alignment(self, typename, env, extra_args=None, dependencies=None):
         if extra_args is None:
             extra_args = []
         type_exists_templ = '''#include <stdio.h>
@@ -784,11 +801,11 @@ struct tmp {
 int testarray[%d-offsetof(struct tmp, target)];
 '''
         args = extra_args + self.get_no_optimization_args()
-        if not self.compiles(type_exists_templ.format(typename), env, args):
+        if not self.compiles(type_exists_templ.format(typename), env, args, dependencies):
             return -1
         for i in range(1, 1024):
             code = templ % (typename, i)
-            if self.compiles(code, env, args):
+            if self.compiles(code, env, args, dependencies):
                 if self.id == 'msvc':
                     # MSVC refuses to construct an array of zero size, so
                     # the test only succeeds when i is sizeof(element) + 1
@@ -796,11 +813,11 @@ int testarray[%d-offsetof(struct tmp, target)];
                 return i
         raise EnvironmentException('Cross checking offsetof overflowed.')
 
-    def alignment(self, typename, env, extra_args=None):
+    def alignment(self, typename, env, extra_args=None, dependencies=None):
         if extra_args is None:
             extra_args = []
         if self.is_cross:
-            return self.cross_alignment(typename, env, extra_args)
+            return self.cross_alignment(typename, env, extra_args, dependencies)
         templ = '''#include<stdio.h>
 #include<stddef.h>
 
@@ -814,7 +831,7 @@ int main(int argc, char **argv) {
   return 0;
 }
 '''
-        res = self.run(templ % typename, env, extra_args)
+        res = self.run(templ % typename, env, extra_args, dependencies)
         if not res.compiled:
             raise EnvironmentException('Could not compile alignment test.')
         if res.returncode != 0:
@@ -824,7 +841,7 @@ int main(int argc, char **argv) {
             raise EnvironmentException('Could not determine alignment of %s. Sorry. You might want to file a bug.' % typename)
         return align
 
-    def has_function(self, funcname, prefix, env, extra_args=None):
+    def has_function(self, funcname, prefix, env, extra_args=None, dependencies=None):
         """
         First, this function looks for the symbol in the default libraries
         provided by the compiler (stdlib + a few others usually). If that
@@ -881,7 +898,7 @@ int main(int argc, char **argv) {
                 if isinstance(val, bool):
                     return val
                 raise EnvironmentException('Cross variable {0} is not a boolean.'.format(varname))
-        if self.links(templ.format(prefix, funcname), env, extra_args):
+        if self.links(templ.format(prefix, funcname), env, extra_args, dependencies):
             return True
         # Add -O0 to ensure that the symbol isn't optimized away by the compiler
         args = extra_args + self.get_no_optimization_args()
@@ -890,15 +907,15 @@ int main(int argc, char **argv) {
         # still detect the function. We still want to fail if __stub_foo or
         # _stub_foo are defined, of course.
         header_templ = '#include <limits.h>\n{0}\n' + stubs_fail + '\nint main() {{ {1}; }}'
-        if self.links(header_templ.format(prefix, funcname), env, args):
+        if self.links(header_templ.format(prefix, funcname), env, args, dependencies):
             return True
         # Some functions like alloca() are defined as compiler built-ins which
         # are inlined by the compiler, so test for that instead. Built-ins are
         # special functions that ignore all includes and defines, so we just
         # directly try to link via main().
-        return self.links('int main() {{ {0}; }}'.format('__builtin_' + funcname), env, args)
+        return self.links('int main() {{ {0}; }}'.format('__builtin_' + funcname), env, args, dependencies)
 
-    def has_members(self, typename, membernames, prefix, env, extra_args=None):
+    def has_members(self, typename, membernames, prefix, env, extra_args=None, dependencies=None):
         if extra_args is None:
             extra_args = []
         templ = '''{0}
@@ -912,15 +929,15 @@ void bar() {{
         for m in membernames:
             members += 'foo.{};\n'.format(m)
         code = templ.format(prefix, typename, 'foo', members)
-        return self.compiles(code, env, extra_args)
+        return self.compiles(code, env, extra_args, dependencies)
 
-    def has_type(self, typename, prefix, env, extra_args):
+    def has_type(self, typename, prefix, env, extra_args, dependencies=None):
         templ = '''%s
 void bar() {
     sizeof(%s);
 };
 '''
-        return self.compiles(templ % (prefix, typename), env, extra_args)
+        return self.compiles(templ % (prefix, typename), env, extra_args, dependencies)
 
     def find_library(self, libname, env, extra_dirs):
         # First try if we can just add the library as -l.
