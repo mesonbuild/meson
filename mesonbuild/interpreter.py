@@ -1877,6 +1877,8 @@ class Interpreter():
             if not 'command' in kwargs:
                 raise InterpreterException('Missing "command" keyword argument')
             all_args = kwargs['command']
+            if not isinstance(all_args, list):
+                all_args = [all_args]
             deps = kwargs.get('depends', [])
             if not isinstance(deps, list):
                 deps = [deps]

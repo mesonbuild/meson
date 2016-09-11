@@ -42,4 +42,4 @@ run_target('ct_in_arg',
 # execute. Obviously this will not work as hex is not an
 # executable but test that the output is generated correctly.
 run_target('donotrunme',
-  command : [hex])
+  command : hex)
