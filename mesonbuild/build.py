@@ -193,6 +193,41 @@ class ExtractedObjects():
         self.target = target
         self.srclist = srclist
 
+class EnvironmentVariables():
+    def __init__(self):
+        self.envvars = []
+
+    def get_value(self, name, values, kwargs):
+        separator = kwargs.get('separator', os.pathsep)
+
+        value = ''
+        for var in values:
+            value += separator + var
+        return separator, value.strip(separator)
+
+    def set(self, env, name, values, kwargs):
+        return self.get_value(name, values, kwargs)[1]
+
+    def append(self, env, name, values, kwargs):
+        sep, value = self.get_value(name, values, kwargs)
+        if name in env:
+            return env[name] + sep + value
+        return value
+
+    def prepend(self, env, name, values, kwargs):
+        sep, value = self.get_value(name, values, kwargs)
+        if name in env:
+            return  value + sep + env[name]
+
+        return value
+
+    def get_env(self, full_env):
+        env = {}
+        for method, name, values, kwargs in self.envvars:
+            env[name] = method(full_env, name, values, kwargs)
+        return env
+
+
 class BuildTarget():
     def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
         self.name = name
