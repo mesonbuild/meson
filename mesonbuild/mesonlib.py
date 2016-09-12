@@ -221,7 +221,7 @@ def do_replacement(regex, line, confdata):
     while match:
         varname = match.group(1)
         if varname in confdata.keys():
-            var = confdata.get(varname)
+            (var, desc) = confdata.get(varname)
             if isinstance(var, str):
                 pass
             elif isinstance(var, int):
@@ -240,7 +240,7 @@ def do_mesondefine(line, confdata):
         raise MesonException('#mesondefine does not contain exactly two tokens: %s', line.strip())
     varname = arr[1]
     try:
-        v = confdata.get(varname)
+        (v, desc) = confdata.get(varname)
     except KeyError:
         return '/* #undef %s */\n' % varname
     if isinstance(v, bool):
@@ -289,7 +289,9 @@ def dump_conf_header(ofilename, cdata):
 
 ''')
         for k in sorted(cdata.keys()):
-            v = cdata.get(k)
+            (v, desc) = cdata.get(k)
+            if desc:
+                ofile.write('/* %s */\n' % desc)
             if isinstance(v, bool):
                 if v:
                     ofile.write('#define %s\n\n' % k)

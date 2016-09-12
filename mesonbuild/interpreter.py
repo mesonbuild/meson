@@ -228,40 +228,44 @@ class ConfigurationDataHolder(InterpreterObject):
     def mark_used(self):
         self.used = True
 
-    def validate_args(self, args):
+    def validate_args(self, args, kwargs):
         if len(args) != 2:
             raise InterpreterException("Configuration set requires 2 arguments.")
         if self.used:
             raise InterpreterException("Can not set values on configuration object that has been used.")
         name = args[0]
         val = args[1]
+        desc = kwargs.get('description', None)
         if not isinstance(name, str):
             raise InterpreterException("First argument to set must be a string.")
-        return (name, val)
+        if desc is not None and not isinstance(desc, str):
+            raise InterpreterException('Description must be a string.')
+
+        return (name, val, desc)
 
     def set_method(self, args, kwargs):
-        (name, val) = self.validate_args(args)
-        self.held_object.values[name] = val
+        (name, val, desc) = self.validate_args(args, kwargs)
+        self.held_object.values[name] = (val, desc)
 
     def set_quoted_method(self, args, kwargs):
-        (name, val) = self.validate_args(args)
+        (name, val, desc) = self.validate_args(args, kwargs)
         if not isinstance(val, str):
             raise InterpreterException("Second argument to set_quoted must be a string.")
         escaped_val = '\\"'.join(val.split('"'))
-        self.held_object.values[name] = '"' + escaped_val + '"'
+        self.held_object.values[name] = ('"' + escaped_val + '"', desc)
 
     def set10_method(self, args, kwargs):
-        (name, val) = self.validate_args(args)
+        (name, val, desc) = self.validate_args(args, kwargs)
         if val:
-            self.held_object.values[name] = 1
+            self.held_object.values[name] = (1, desc)
         else:
-            self.held_object.values[name] = 0
+            self.held_object.values[name] = (0, desc)
 
     def has_method(self, args, kwargs):
         return args[0] in self.held_object.values
 
     def get(self, name):
-        return self.held_object.values[name]
+        return self.held_object.values[name]     # (val, desc)
 
     def keys(self):
         return self.held_object.values.keys()
