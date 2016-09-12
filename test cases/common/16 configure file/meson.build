@@ -34,7 +34,10 @@ test('inctest2', executable('prog2', 'prog2.c'))
 # Generate a conf file without an input file.
 
 dump = configuration_data()
-dump.set('SHOULD_BE_STRING', '"string"')
+dump.set_quoted('SHOULD_BE_STRING', 'string')
+dump.set_quoted('SHOULD_BE_STRING2', 'A "B" C')
+dump.set_quoted('SHOULD_BE_STRING3', 'A "" C')
+dump.set_quoted('SHOULD_BE_STRING4', 'A " C')
 dump.set('SHOULD_BE_RETURN', 'return')
 dump.set('SHOULD_BE_DEFINED', true)
 dump.set('SHOULD_BE_UNDEFINED', false)
