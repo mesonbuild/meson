@@ -252,7 +252,7 @@ class GnomeModule:
                     # Hack to avoid passing some compiler options in
                     if lib.startswith("-W"):
                         continue
-                        scan_command += [lib]
+                    scan_command += [lib]
 
                 if isinstance(dep, dependencies.PkgConfigDependency):
                     girdir = dep.get_variable("girdir")
