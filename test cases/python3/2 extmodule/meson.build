@@ -3,6 +3,7 @@ project('Python extension module', 'c',
 # Because Windows Python ships only with optimized libs,
 # we must build this project the same way.
 
+py3_mod = import('python3')
 py3_dep = dependency('python3', required : false)
 
 if py3_dep.found()

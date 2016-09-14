@@ -14,10 +14,8 @@ pyx_c = custom_target('storer_pyx',
   command : [cython, '@INPUT@', '-o', '@OUTPUT@'],
 )
 
-slib = shared_library('storer',
+slib = py3_mod.extension_module('storer',
   'storer.c', pyx_c,
-  name_prefix : '',
-  name_suffix : suffix,
   dependencies : py3_dep)
 
 pydir = meson.current_build_dir()

@@ -899,3 +899,11 @@ class CrossBuildInfo():
            self.config['host_machine']['system'] == detect_system():
             return False
         return True
+
+
+class MachineInfo:
+    def __init__(self, system, cpu_family, cpu, endian):
+        self.system = system
+        self.cpu_family = cpu_family
+        self.cpu = cpu
+        self.endian = endian
