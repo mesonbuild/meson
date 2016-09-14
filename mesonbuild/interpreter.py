@@ -187,6 +187,7 @@ class ConfigurationDataHolder(InterpreterObject):
         self.held_object = build.ConfigurationData()
         self.methods.update({'set': self.set_method,
                              'set10': self.set10_method,
+                             'set_quoted': self.set_quoted_method,
                              'has' : self.has_method,
                             })
 
@@ -210,6 +211,13 @@ class ConfigurationDataHolder(InterpreterObject):
     def set_method(self, args, kwargs):
         (name, val) = self.validate_args(args)
         self.held_object.values[name] = val
+
+    def set_quoted_method(self, args, kwargs):
+        (name, val) = self.validate_args(args)
+        if not isinstance(val, str):
+            raise InterpreterException("Second argument to set_quoted must be a string.")
+        escaped_val = '\\"'.join(val.split('"'))
+        self.held_object.values[name] = '"' + escaped_val + '"'
 
     def set10_method(self, args, kwargs):
         (name, val) = self.validate_args(args)

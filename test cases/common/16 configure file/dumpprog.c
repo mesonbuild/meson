@@ -17,6 +17,18 @@ int main(int argc, char **argv) {
         printf("String token defined wrong.\n");
         return 1;
     }
+    if(strcmp(SHOULD_BE_STRING2, "A \"B\" C") != 0) {
+        printf("String token 2 defined wrong.\n");
+        return 1;
+    }
+    if(strcmp(SHOULD_BE_STRING3, "A \"\" C") != 0) {
+        printf("String token 3 defined wrong.\n");
+        return 1;
+    }
+    if(strcmp(SHOULD_BE_STRING4, "A \" C") != 0) {
+        printf("String token 4 defined wrong.\n");
+        return 1;
+    }
     if(SHOULD_BE_ONE != 1) {
         printf("One defined incorrectly.\n");
         return 1;
