@@ -180,6 +180,37 @@ class ConfigureFileHolder(InterpreterObject):
         InterpreterObject.__init__(self)
         self.held_object = build.ConfigureFile(subdir, sourcename, targetname, configuration_data)
 
+
+class EnvironmentVariablesHolder(InterpreterObject):
+    def __init__(self):
+        super().__init__()
+        self.held_object = build.EnvironmentVariables()
+        self.methods.update({'set': self.set_method,
+                             'append': self.append_method,
+                             'prepend' : self.prepend_method,
+                            })
+
+    @stringArgs
+    def add_var(self, method, args, kwargs):
+        if not isinstance(kwargs.get("separator", ""), str):
+            raise InterpreterException("EnvironmentVariablesHolder methods 'separator'"
+                                       " argument needs to be a string.")
+        if len(args) < 2:
+            raise InterpreterException("EnvironmentVariablesHolder methods require at least"
+                                       "2 arguments, first is the name of the variable and"
+                                       " following one are values")
+        self.held_object.envvars.append((method, args[0], args[1:], kwargs))
+
+    def set_method(self, args, kwargs):
+        self.add_var(self.held_object.set, args, kwargs)
+
+    def append_method(self, args, kwargs):
+        self.add_var(self.held_object.append, args, kwargs)
+
+    def prepend_method(self, args, kwargs):
+        self.add_var(self.held_object.prepend, args, kwargs)
+
+
 class ConfigurationDataHolder(InterpreterObject):
     def __init__(self):
         super().__init__()
@@ -1124,6 +1155,7 @@ class Interpreter():
                       'files' : self.func_files,
                       'declare_dependency': self.func_declare_dependency,
                       'assert': self.func_assert,
+                      'environment' : self.func_environment,
                      }
 
     def module_method_callback(self, invalues):
@@ -1949,18 +1981,21 @@ class Interpreter():
             if not isinstance(i, (str, mesonlib.File)):
                 raise InterpreterException('Command line arguments must be strings')
         envlist = kwargs.get('env', [])
-        if not isinstance(envlist, list):
-            envlist = [envlist]
-        env = {}
-        for e in envlist:
-            if '=' not in e:
-                raise InterpreterException('Env var definition must be of type key=val.')
-            (k, val) = e.split('=', 1)
-            k = k.strip()
-            val = val.strip()
-            if ' ' in k:
-                raise InterpreterException('Env var key must not have spaces in it.')
-            env[k] = val
+        if isinstance(envlist, EnvironmentVariablesHolder):
+            env = envlist.held_object
+        else:
+            if not isinstance(envlist, list):
+                envlist = [envlist]
+            env = {}
+            for e in envlist:
+                if '=' not in e:
+                    raise InterpreterException('Env var definition must be of type key=val.')
+                (k, val) = e.split('=', 1)
+                k = k.strip()
+                val = val.strip()
+                if ' ' in k:
+                    raise InterpreterException('Env var key must not have spaces in it.')
+                env[k] = val
         valgrind_args = kwargs.get('valgrind_args', [])
         if not isinstance(valgrind_args, list):
             valgrind_args = [valgrind_args]
@@ -2146,6 +2181,10 @@ class Interpreter():
             self.build.global_link_args[lang] += args
         else:
             self.build.global_link_args[lang] = args
+
+
+    def func_environment(self, node, args, kwargs):
+        return EnvironmentVariablesHolder()
 
     def flatten(self, args):
         if isinstance(args, mparser.StringNode):

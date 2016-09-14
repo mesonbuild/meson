@@ -15,6 +15,7 @@
 # limitations under the License.
 
 import mesonbuild
+from .. import build
 import sys, os, subprocess, time, datetime, pickle, multiprocessing, json
 import concurrent.futures as conc
 import argparse
@@ -128,6 +129,9 @@ def run_single_test(wrap, test):
             cmd = wrap + cmd + test.cmd_args
         starttime = time.time()
         child_env = os.environ.copy()
+        if isinstance(test.env, build.EnvironmentVariables):
+            test.env = test.env.get_env(child_env)
+
         child_env.update(test.env)
         if len(test.extra_paths) > 0:
             child_env['PATH'] = child_env['PATH'] + ';'.join([''] + test.extra_paths)
