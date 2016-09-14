@@ -1947,14 +1947,11 @@ def get_gcc_soname_args(gcc_type, shlib_name, path, soversion):
         raise RuntimeError('Not implemented yet.')
 
 
-class GnuCCompiler(CCompiler):
-    def __init__(self, exelist, version, gcc_type, is_cross, exe_wrapper=None):
-        CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
+class GnuCompiler:
+    # Functionality that is common to all GNU family compilers.
+    def __init__(self, gcc_type):
         self.id = 'gcc'
         self.gcc_type = gcc_type
-        self.warn_args = {'1': ['-Wall', '-Winvalid-pch'],
-                          '2': ['-Wall', '-Wextra', '-Winvalid-pch'],
-                          '3' : ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch']}
         self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage',
                              'b_colorout']
         if self.gcc_type != GCC_OSX:
@@ -1971,14 +1968,14 @@ class GnuCCompiler(CCompiler):
             return [] # On Window gcc defaults to fpic being always on.
         return ['-fPIC']
 
-    def get_always_args(self):
-        return ['-pipe']
-
     def get_buildtype_args(self, buildtype):
         return gnulike_buildtype_args[buildtype]
 
     def get_buildtype_linker_args(self, buildtype):
         return gnulike_buildtype_linker_args[buildtype]
+
+    def get_always_args(self):
+        return ['-pipe']
 
     def get_pch_suffix(self):
         return 'gch'
@@ -1988,6 +1985,14 @@ class GnuCCompiler(CCompiler):
 
     def get_soname_args(self, shlib_name, path, soversion):
         return get_gcc_soname_args(self.gcc_type, shlib_name, path, soversion)
+
+class GnuCCompiler(GnuCompiler, CCompiler):
+    def __init__(self, exelist, version, gcc_type, is_cross, exe_wrapper=None):
+        CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
+        GnuCompiler.__init__(self, gcc_type)
+        self.warn_args = {'1': ['-Wall', '-Winvalid-pch'],
+                          '2': ['-Wall', '-Wextra', '-Winvalid-pch'],
+                          '3' : ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch']}
 
     def can_compile(self, filename):
         return super().can_compile(filename) or filename.split('.')[-1].lower() == 's' # Gcc can do asm, too.
@@ -2015,174 +2020,14 @@ class GnuCCompiler(CCompiler):
             return options['c_winlibs'].value
         return []
 
-class GnuObjCCompiler(ObjCCompiler):
-    std_opt_args = ['-O2']
-
-    def __init__(self, exelist, version, is_cross, exe_wrapper=None):
-        ObjCCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
-        self.id = 'gcc'
-        # Not really correct, but GNU objc is only used on non-OSX non-win. File a bug
-        # if this breaks your use case.
-        self.gcc_type = GCC_STANDARD
-        self.warn_args = {'1': ['-Wall', '-Winvalid-pch'],
-                          '2': ['-Wall', '-Wextra', '-Winvalid-pch'],
-                          '3' : ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch']}
-        self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage']
-        if self.gcc_type != GCC_OSX:
-            self.base_options.append('b_lundef')
-            self.base_options.append('b_asneeded')
-
-    def get_buildtype_args(self, buildtype):
-        return gnulike_buildtype_args[buildtype]
-
-    def get_buildtype_linker_args(self, buildtype):
-        return gnulike_buildtype_linker_args[buildtype]
-
-    def get_pch_suffix(self):
-        return 'gch'
-
-    def get_soname_args(self, shlib_name, path, soversion):
-        return get_gcc_soname_args(self.gcc_type, shlib_name, path, soversion)
-
-class GnuObjCPPCompiler(ObjCPPCompiler):
-    std_opt_args = ['-O2']
-
-    def __init__(self, exelist, version, is_cross, exe_wrapper=None):
-        ObjCCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
-        self.id = 'gcc'
-        # Not really correct, but GNU objc is only used on non-OSX non-win. File a bug
-        # if this breaks your use case.
-        self.gcc_type = GCC_STANDARD
-        self.warn_args = {'1': ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor'],
-                          '2': ['-Wall', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor'],
-                          '3' : ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor']}
-        self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage']
-        if self.gcc_type != GCC_OSX:
-            self.base_options.append('b_lundef')
-            self.base_options.append('b_asneeded')
-
-    def get_buildtype_args(self, buildtype):
-        return gnulike_buildtype_args[buildtype]
-
-    def get_buildtype_linker_args(self, buildtype):
-        return gnulike_buildtype_linker_args[buildtype]
-
-    def get_pch_suffix(self):
-        return 'gch'
-
-    def get_soname_args(self, shlib_name, path, soversion):
-        return get_gcc_soname_args(self.gcc_type, shlib_name, path, soversion)
-
-class ClangObjCCompiler(GnuObjCCompiler):
-    def __init__(self, exelist, version, cltype, is_cross, exe_wrapper=None):
-        super().__init__(exelist, version, is_cross, exe_wrapper)
-        self.id = 'clang'
-        self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage']
-        self.clang_type = cltype
-        if self.clang_type != CLANG_OSX:
-            self.base_options.append('b_lundef')
-            self.base_options.append('b_asneeded')
-
-class ClangObjCPPCompiler(GnuObjCPPCompiler):
-    def __init__(self, exelist, version, cltype, is_cross, exe_wrapper=None):
-        super().__init__(exelist, version, is_cross, exe_wrapper)
-        self.id = 'clang'
-        self.clang_type = cltype
-        self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage']
-        if self.clang_type != CLANG_OSX:
-            self.base_options.append('b_lundef')
-            self.base_options.append('b_asneeded')
-
-class ClangCCompiler(CCompiler):
-    def __init__(self, exelist, version, clang_type, is_cross, exe_wrapper=None):
-        CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
-        self.id = 'clang'
-        self.clang_type = clang_type
-        self.warn_args = {'1': ['-Wall', '-Winvalid-pch'],
-                          '2': ['-Wall', '-Wextra', '-Winvalid-pch'],
-                          '3' : ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch']}
-        self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage']
-        if self.clang_type != CLANG_OSX:
-            self.base_options.append('b_lundef')
-            self.base_options.append('b_asneeded')
-
-    def get_buildtype_args(self, buildtype):
-        return gnulike_buildtype_args[buildtype]
-
-    def get_buildtype_linker_args(self, buildtype):
-        return gnulike_buildtype_linker_args[buildtype]
-
-    def get_pch_suffix(self):
-        return 'pch'
-
-    def can_compile(self, filename):
-        return super().can_compile(filename) or filename.split('.')[-1].lower() == 's' # Clang can do asm, too.
-
-    def get_pch_use_args(self, pch_dir, header):
-        # Workaround for Clang bug http://llvm.org/bugs/show_bug.cgi?id=15136
-        # This flag is internal to Clang (or at least not documented on the man page)
-        # so it might change semantics at any time.
-        return ['-include-pch', os.path.join (pch_dir, self.get_pch_name (header))]
-
-    def get_options(self):
-        return {'c_std' : coredata.UserComboOption('c_std', 'C language standard to use',
-                                                   ['none', 'c89', 'c99', 'c11'],
-                                                   'none')}
-
-    def get_option_compile_args(self, options):
-        args = []
-        std = options['c_std']
-        if std.value != 'none':
-            args.append('-std=' + std.value)
-        return args
-
-    def get_option_link_args(self, options):
-        return []
-
-    def has_argument(self, arg, env):
-        return super().has_argument(['-Werror=unknown-warning-option', arg], env)
-
-class GnuCPPCompiler(CPPCompiler):
-    # may need to separate the latter to extra_debug_args or something
-    std_debug_args = ['-g']
+class GnuCPPCompiler(GnuCompiler, CPPCompiler):
 
     def __init__(self, exelist, version, gcc_type, is_cross, exe_wrap):
         CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
-        self.id = 'gcc'
-        self.gcc_type = gcc_type
+        GnuCompiler.__init__(self, gcc_type)
         self.warn_args = {'1': ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor'],
                           '2': ['-Wall', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor'],
                           '3': ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor']}
-        self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage',
-                             'b_colorout']
-        if self.gcc_type != GCC_OSX:
-            self.base_options.append('b_lundef')
-            self.base_options.append('b_asneeded')
-
-    def get_colorout_args(self, colortype):
-        if mesonlib.version_compare(self.version, '>=4.9.0'):
-            return gnu_color_args[colortype][:]
-        return []
-
-    def get_pic_args(self):
-        if self.gcc_type == GCC_MINGW:
-            return [] # On Window gcc defaults to fpic being always on.
-        return ['-fPIC']
-
-    def get_always_args(self):
-        return ['-pipe']
-
-    def get_buildtype_args(self, buildtype):
-        return gnulike_buildtype_args[buildtype]
-
-    def get_buildtype_linker_args(self, buildtype):
-        return gnulike_buildtype_linker_args[buildtype]
-
-    def get_pch_suffix(self):
-        return 'gch'
-
-    def get_soname_args(self, shlib_name, path, soversion):
-        return get_gcc_soname_args(self.gcc_type, shlib_name, path, soversion)
 
     def get_options(self):
         opts = {'cpp_std' : coredata.UserComboOption('cpp_std', 'C++ language standard to use',
@@ -2213,14 +2058,32 @@ class GnuCPPCompiler(CPPCompiler):
             return options['cpp_winlibs'].value
         return []
 
-class ClangCPPCompiler(CPPCompiler):
-    def __init__(self, exelist, version, cltype, is_cross, exe_wrapper=None):
-        CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
-        self.id = 'clang'
+class GnuObjCCompiler(GnuCompiler,ObjCCompiler):
+
+    def __init__(self, exelist, version, is_cross, exe_wrapper=None):
+        ObjCCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
+        # Not really correct, but GNU objc is only used on non-OSX non-win. File a bug
+        # if this breaks your use case.
+        GnuCompiler.__init__(self, GCC_STANDARD)
+        self.warn_args = {'1': ['-Wall', '-Winvalid-pch'],
+                          '2': ['-Wall', '-Wextra', '-Winvalid-pch'],
+                          '3' : ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch']}
+
+class GnuObjCPPCompiler(GnuCompiler, ObjCPPCompiler):
+
+    def __init__(self, exelist, version, is_cross, exe_wrapper=None):
+        ObjCCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
+        # Not really correct, but GNU objc is only used on non-OSX non-win. File a bug
+        # if this breaks your use case.
+        GnuCompiler.__init__(self, GCC_STANDARD)
         self.warn_args = {'1': ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor'],
                           '2': ['-Wall', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor'],
-                          '3': ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor']}
-        self.clang_type = cltype
+                          '3' : ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor']}
+
+class ClangCompiler():
+    def __init__(self, clang_type):
+        self.id = 'clang'
+        self.clang_type = clang_type
         self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage']
         if self.clang_type != CLANG_OSX:
             self.base_options.append('b_lundef')
@@ -2241,6 +2104,44 @@ class ClangCPPCompiler(CPPCompiler):
         # so it might change semantics at any time.
         return ['-include-pch', os.path.join (pch_dir, self.get_pch_name (header))]
 
+class ClangCCompiler(ClangCompiler, CCompiler):
+    def __init__(self, exelist, version, clang_type, is_cross, exe_wrapper=None):
+        CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
+        ClangCompiler.__init__(self, clang_type)
+        self.warn_args = {'1': ['-Wall', '-Winvalid-pch'],
+                          '2': ['-Wall', '-Wextra', '-Winvalid-pch'],
+                          '3' : ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch']}
+
+    def get_options(self):
+        return {'c_std' : coredata.UserComboOption('c_std', 'C language standard to use',
+                                                   ['none', 'c89', 'c99', 'c11'],
+                                                   'none')}
+
+    def get_option_compile_args(self, options):
+        args = []
+        std = options['c_std']
+        if std.value != 'none':
+            args.append('-std=' + std.value)
+        return args
+
+    def get_option_link_args(self, options):
+        return []
+
+    def has_argument(self, arg, env):
+        return super().has_argument(['-Werror=unknown-warning-option', arg], env)
+
+    def can_compile(self, filename):
+        return super().can_compile(filename) or filename.split('.')[-1].lower() == 's' # Clang can do asm, too.
+
+
+class ClangCPPCompiler(ClangCompiler,   CPPCompiler):
+    def __init__(self, exelist, version, cltype, is_cross, exe_wrapper=None):
+        CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
+        ClangCompiler.__init__(self, cltype)
+        self.warn_args = {'1': ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor'],
+                          '2': ['-Wall', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor'],
+                          '3': ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor']}
+
     def get_options(self):
         return {'cpp_std' : coredata.UserComboOption('cpp_std', 'C++ language standard to use',
                                                    ['none', 'c++03', 'c++11', 'c++14', 'c++1z'],
@@ -2258,6 +2159,29 @@ class ClangCPPCompiler(CPPCompiler):
 
     def has_argument(self, arg, env):
         return super().has_argument(['-Werror=unknown-warning-option', arg], env)
+
+    def can_compile(self, filename):
+        return super().can_compile(filename) or filename.split('.')[-1].lower() == 's' # Clang can do asm, too.
+
+class ClangObjCCompiler(GnuObjCCompiler):
+    def __init__(self, exelist, version, cltype, is_cross, exe_wrapper=None):
+        super().__init__(exelist, version, is_cross, exe_wrapper)
+        self.id = 'clang'
+        self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage']
+        self.clang_type = cltype
+        if self.clang_type != CLANG_OSX:
+            self.base_options.append('b_lundef')
+            self.base_options.append('b_asneeded')
+
+class ClangObjCPPCompiler(GnuObjCPPCompiler):
+    def __init__(self, exelist, version, cltype, is_cross, exe_wrapper=None):
+        super().__init__(exelist, version, is_cross, exe_wrapper)
+        self.id = 'clang'
+        self.clang_type = cltype
+        self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage']
+        if self.clang_type != CLANG_OSX:
+            self.base_options.append('b_lundef')
+            self.base_options.append('b_asneeded')
 
 class FortranCompiler(Compiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
