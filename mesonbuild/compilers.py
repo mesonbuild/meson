@@ -173,6 +173,9 @@ base_options = {
                 'b_colorout' : coredata.UserComboOption('b_colorout', 'Use colored output',
                                                         ['auto', 'always', 'never'], 
                                                         'always'),
+                'b_ndebug' : coredata.UserBooleanOption('b_ndebug',
+                                                        'Disable asserts',
+                                                        False)
                 }
 
 def sanitizer_compile_args(value):
@@ -216,6 +219,11 @@ def get_base_compile_args(options, compiler):
     try:
         if options['b_coverage'].value:
             args += compiler.get_coverage_args()
+    except KeyError:
+        pass
+    try:
+        if options['b_ndebug'].value:
+            args += ['-DNDEBUG']
     except KeyError:
         pass
     return args
@@ -1953,7 +1961,7 @@ class GnuCompiler:
         self.id = 'gcc'
         self.gcc_type = gcc_type
         self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage',
-                             'b_colorout']
+                             'b_colorout', 'b_ndebug']
         if self.gcc_type != GCC_OSX:
             self.base_options.append('b_lundef')
             self.base_options.append('b_asneeded')
@@ -2084,7 +2092,8 @@ class ClangCompiler():
     def __init__(self, clang_type):
         self.id = 'clang'
         self.clang_type = clang_type
-        self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage']
+        self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage',
+                             'b_ndebug']
         if self.clang_type != CLANG_OSX:
             self.base_options.append('b_lundef')
             self.base_options.append('b_asneeded')
