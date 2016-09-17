@@ -15,26 +15,47 @@
 
 import unittest, os, shutil
 import subprocess
+import re
+
+def get_soname(fname):
+    # HACK, fix to not use shell.
+    raw_out = subprocess.check_output(['readelf', '-a', fname])
+    pattern = re.compile(b'soname: \[(.*?)\]')
+    for line in raw_out.split(b'\n'):
+        m = pattern.search(line)
+        if m is not None:
+            return m.group(1)
 
 class LinuxlikeTests(unittest.TestCase):
     
     def setUp(self):
         super().setUp()
         src_root = os.path.split(__file__)[0]
-        self.meson_command = [os.path.join(src_root, 'meson.py')]
-        self.ninja_command = ['ninja']
-        self.common_test_dir = os.path.join(src_root, 'test cases/common')
         self.builddir = 'unittestdir' # fixme to be unique
+        self.meson_command = [os.path.join(src_root, 'meson.py')]
+        self.ninja_command = ['ninja', '-C', self.builddir]
+        self.common_test_dir = os.path.join(src_root, 'test cases/common')
         os.mkdir(self.builddir)
 
     def tearDown(self):
         shutil.rmtree(self.builddir)
         super().tearDown()
 
-    def test_simple(self):
-        testdir = os.path.join(self.common_test_dir, '1 trivial')
+    def test_basic_soname(self):
+        testdir = os.path.join(self.common_test_dir, '4 shared')
         subprocess.check_call(self.meson_command + [testdir, self.builddir])
-        subprocess.check_call(self.ninja_command, cwd=self.builddir)
+        subprocess.check_call(self.ninja_command)
+        lib1 = os.path.join(self.builddir, 'libmylib.so')
+        soname = get_soname(lib1)
+        self.assertEqual(soname, b'libmylib.so')
+
+    def test_custom_soname(self):
+        testdir = os.path.join(self.common_test_dir, '27 library versions')
+        subprocess.check_call(self.meson_command + [testdir, self.builddir])
+        subprocess.check_call(self.ninja_command)
+        lib1 = os.path.join(self.builddir, 'prefixsomelib.suffix')
+        soname = get_soname(lib1)
+        self.assertEqual(soname, b'prefixsomelib.suffix')
 
 if __name__ == '__main__':
     unittest.main()

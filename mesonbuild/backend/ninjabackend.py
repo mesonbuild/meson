@@ -1827,7 +1827,8 @@ rule FORTRAN_DEP_HACK
                 soversion = target.soversion
             else:
                 soversion = None
-            commands += linker.get_soname_args(target.name, abspath, soversion)
+            soname = target.prefix + target.name + '.' + target.suffix
+            commands += linker.get_soname_args(soname, abspath, soversion)
             # This is only visited when using the Visual Studio toolchain
             if target.vs_module_defs and hasattr(linker, 'gen_vs_module_defs_args'):
                 commands += linker.gen_vs_module_defs_args(target.vs_module_defs.rel_to_builddir(self.build_to_src))

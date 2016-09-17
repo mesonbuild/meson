@@ -1894,7 +1894,7 @@ def get_gcc_soname_args(gcc_type, shlib_name, path, soversion):
         sostr = '.' + soversion
     if gcc_type == GCC_STANDARD or gcc_type == GCC_MINGW:
         # Might not be correct for mingw but seems to work.
-        return ['-Wl,-soname,lib%s.so%s' % (shlib_name, sostr)]
+        return ['-Wl,-soname,%s%s' % (shlib_name, sostr)]
     elif gcc_type == GCC_OSX:
         return ['-install_name', os.path.join(path, 'lib' + shlib_name + '.dylib')]
     else:
