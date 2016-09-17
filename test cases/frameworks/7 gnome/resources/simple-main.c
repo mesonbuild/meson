@@ -1,12 +1,12 @@
 #include<stdio.h>
 #include<string.h>
 #include<gio/gio.h>
-#include"myresources.h"
+#include"simple-resources.h"
 
 #define EXPECTED "This is a resource.\n"
 
 int main(int argc, char **argv) {
-    GResource *res = myres_get_resource();
+    GResource *res = simple_resources_get_resource();
     GError *err = NULL;
     GBytes *data = g_resources_lookup_data("/com/example/myprog/res1.txt",
             G_RESOURCE_LOOKUP_FLAGS_NONE, &err);

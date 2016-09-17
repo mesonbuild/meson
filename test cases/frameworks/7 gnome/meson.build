@@ -9,6 +9,7 @@ gir = dependency('gobject-introspection-1.0')
 gmod = dependency('gmodule-2.0')
 add_global_arguments('-DMESON_TEST', language : 'c')
 
+subdir('resources-data')
 subdir('resources')
 subdir('gir')
 subdir('schemas')

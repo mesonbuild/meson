@@ -22,22 +22,36 @@ from ..mesonlib import MesonException
 from .. import dependencies
 from .. import mlog
 from .. import mesonlib
+from .. import interpreter
 
+native_glib_version = None
 girwarning_printed = False
 gresource_warning_printed = False
 
 class GnomeModule:
 
+    def get_native_glib_version(self, state):
+        global native_glib_version
+        if native_glib_version is None:
+            glib_dep = dependencies.PkgConfigDependency(
+                'glib-2.0', state.environment, {'native': True})
+            native_glib_version = glib_dep.get_modversion()
+        return native_glib_version
+
     def __print_gresources_warning(self):
         global gresource_warning_printed
         if not gresource_warning_printed:
-            mlog.log('Warning, glib compiled dependencies will not work reliably until this upstream issue is fixed:',
+            mlog.log('Warning, GLib compiled dependencies do not work fully '
+                     'with versions of GLib older than 2.50.0.\n'
+                     'See the following upstream issue:',
                      mlog.bold('https://bugzilla.gnome.org/show_bug.cgi?id=745754'))
             gresource_warning_printed = True
         return []
 
     def compile_resources(self, state, args, kwargs):
-        self.__print_gresources_warning()
+        if mesonlib.version_compare(self.get_native_glib_version(state),
+                                    '< 2.50.0'):
+            self.__print_gresources_warning()
 
         cmd = ['glib-compile-resources', '@INPUT@']
 
@@ -51,6 +65,19 @@ class GnomeModule:
         if len(args) < 2:
             raise MesonException('Not enough arguments; The name of the resource and the path to the XML file are required')
 
+        dependencies = kwargs.pop('dependencies', [])
+        if not isinstance(dependencies, list):
+            dependencies = [dependencies]
+
+        if mesonlib.version_compare(self.get_native_glib_version(state),
+                                    '< 2.48.2'):
+            if len(dependencies) > 0:
+                raise MesonException(
+                  'The "dependencies" argument of gnome.compile_resources() '
+                  'can only be used with glib-compile-resources version '
+                  '2.48.2 or newer, due to '
+                  '<https://bugzilla.gnome.org/show_bug.cgi?id=673101>')
+
         ifile = args[1]
         if isinstance(ifile, mesonlib.File):
             ifile = os.path.join(ifile.subdir, ifile.fname)
@@ -58,11 +85,19 @@ class GnomeModule:
             ifile = os.path.join(state.subdir, ifile)
         else:
             raise RuntimeError('Unreachable code.')
-        kwargs['depend_files'] = self.get_gresource_dependencies(state, ifile, source_dirs)
+
+        kwargs['depend_files'] = self.get_gresource_dependencies(
+            state, ifile, source_dirs, dependencies)
 
         for source_dir in source_dirs:
             sourcedir = os.path.join(state.build_to_src, state.subdir, source_dir)
             cmd += ['--sourcedir', sourcedir]
+
+            if len(dependencies) > 0:
+                # Add the build variant of each sourcedir if we have any
+                # generated dependencies.
+                sourcedir = os.path.join(state.subdir, source_dir)
+                cmd += ['--sourcedir', sourcedir]
 
         if 'c_name' in kwargs:
             cmd += ['--c-name', kwargs.pop('c_name')]
@@ -78,8 +113,16 @@ class GnomeModule:
         target_h = build.CustomTarget(args[0] + '_h', state.subdir, kwargs)
         return [target_c, target_h]
 
-    def get_gresource_dependencies(self, state, input_file, source_dirs):
+    def get_gresource_dependencies(self, state, input_file, source_dirs, dependencies):
         self.__print_gresources_warning()
+
+        for dep in dependencies:
+            if not isinstance(dep, interpreter.CustomTargetHolder) and not \
+                    isinstance(dep, mesonlib.File):
+                raise MesonException(
+                    'Unexpected dependency type for gnome.compile_resources() '
+                    '"dependencies" argument. Please pass the output of '
+                    'custom_target() or configure_file().')
 
         cmd = ['glib-compile-resources',
                input_file,
@@ -95,7 +138,51 @@ class GnomeModule:
             mlog.log(mlog.bold('Warning:'), 'glib-compile-resources has failed to get the dependencies for {}'.format(cmd[1]))
             raise subprocess.CalledProcessError(pc.returncode, cmd)
 
-        return stdout.split('\n')[:-1]
+        dep_files = stdout.split('\n')[:-1]
+
+        # In generate-dependencies mode, glib-compile-resources doesn't raise
+        # an error for missing resources but instead prints whatever filename
+        # was listed in the input file.  That's good because it means we can
+        # handle resource files that get generated as part of the build, as
+        # follows.
+        #
+        # If there are multiple generated resource files with the same basename
+        # then this code will get confused.
+
+        def exists_in_srcdir(f):
+            return os.path.exists(os.path.join(state.environment.get_source_dir(), f))
+        missing_dep_files = [f for f in dep_files if not exists_in_srcdir(f)]
+
+        for missing in missing_dep_files:
+            found = False
+            missing_basename = os.path.basename(missing)
+
+            for dep in dependencies:
+                if isinstance(dep, mesonlib.File):
+                    if dep.fname == missing_basename:
+                        found = True
+                        dep_files.remove(missing)
+                        dep_files.append(dep)
+                        break
+                elif isinstance(dep, interpreter.CustomTargetHolder):
+                    if dep.held_object.get_basename() == missing_basename:
+                        found = True
+                        dep_files.remove(missing)
+                        dep_files.append(
+                            mesonlib.File(
+                                is_built=True,
+                                subdir=dep.held_object.get_subdir(),
+                                fname=dep.held_object.get_basename()))
+                        break
+
+            if not found:
+                raise MesonException(
+                    'Resource "%s" listed in "%s" was not found. If this is a '
+                    'generated file, pass the target that generates it to '
+                    'gnome.compile_resources() using the "dependencies" '
+                    'keyword argument.' % (missing, input_file))
+
+        return dep_files
 
     def get_link_args(self, state, lib, depends=None):
         link_command = ['-l%s' % lib.name]
