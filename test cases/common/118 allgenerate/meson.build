@@ -1,11 +1,11 @@
-project('all sources generated', 'cpp')
+project('all sources generated', 'c')
 
 comp = find_program('converter.py')
 
-c = custom_target('outputfile',
-  input : 'foobar.c.in',
-  output : 'foobar.cpp',
-  command : [comp, '@INPUT@', '@OUTPUT@'],
-)
+g = generator(comp,
+  output : '@BASENAME@.c',
+  arguments : ['@INPUT@', '@OUTPUT@'])
+
+c = g.process('foobar.c.in')
 
 prog = executable('genexe', c)
