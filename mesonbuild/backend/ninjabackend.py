@@ -264,10 +264,12 @@ int dummy;
         unity_src = []
         unity_deps = [] # Generated sources that must be built before compiling a Unity target.
         header_deps += self.get_generated_headers(target)
+        generator_output_sources = [] # Needed to determine the linker
         for gensource in target.get_generated_sources():
             if isinstance(gensource, build.CustomTarget):
                 for src in gensource.output:
                     src = os.path.join(self.get_target_dir(gensource), src)
+                    generator_output_sources.append(src)
                     if self.environment.is_source(src) and not self.environment.is_header(src):
                         if is_unity:
                             unity_deps.append(os.path.join(self.environment.get_build_dir(), RawFilename(src)))
@@ -285,6 +287,7 @@ int dummy;
                         header_deps.append(RawFilename(src))
             else:
                 for src in gensource.get_outfilelist():
+                    generator_output_sources.append(src)
                     if self.environment.is_object(src):
                         obj_list.append(os.path.join(self.get_target_private_dir(target), src))
                     elif not self.environment.is_header(src):
@@ -330,7 +333,7 @@ int dummy;
         if is_unity:
             for src in self.generate_unity_files(target, unity_src):
                 obj_list.append(self.generate_single_compile(target, outfile, src, True, unity_deps + header_deps))
-        linker = self.determine_linker(target, src_list)
+        linker = self.determine_linker(target, src_list + generator_output_sources)
         elem = self.generate_link(target, outfile, outname, obj_list, linker, pch_objects)
         self.generate_shlib_aliases(target, self.get_target_dir(target))
         elem.write(outfile)
