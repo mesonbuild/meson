@@ -489,7 +489,7 @@ class GnomeModule:
 
         cmd = ['glib-mkenums']
         known_kwargs = ['comments', 'eprod', 'fhead', 'fprod', 'ftail',
-                        'identifier-prefix', 'symbol-prefix', 'template',
+                        'identifier_prefix', 'symbol_prefix', 'template',
                         'vhead', 'vprod', 'vtail']
         known_custom_target_kwargs = ['install', 'install_dir', 'build_always',
                                       'depends', 'depend_files']
@@ -499,7 +499,7 @@ class GnomeModule:
                 add_template = True
                 sources = [value] + sources
             elif arg in known_kwargs:
-                cmd += ['--' + arg, value]
+                cmd += ['--' + arg.replace('_', '-'), value]
             elif arg not in known_custom_target_kwargs:
                 raise MesonException(
                     'Mkenums does not take a %s keyword argument.' % (arg, ))
@@ -535,8 +535,8 @@ class GnomeModule:
                 'Sources keyword argument must be a string or array.')
 
         cmd = ['glib-genmarshal']
-        known_kwargs = ['internal', 'nostdinc', 'skip-source', 'stdinc',
-                        'valist-marshallers']
+        known_kwargs = ['internal', 'nostdinc', 'skip_source', 'stdinc',
+                        'valist_marshallers']
         known_custom_target_kwargs = ['build_always', 'depends',
                                       'depend_files', 'install_dir',
                                       'install_header']
@@ -544,7 +544,7 @@ class GnomeModule:
             if arg == 'prefix':
                 cmd += ['--prefix', value]
             elif arg in known_kwargs and value:
-                cmd += ['--' + arg]
+                cmd += ['--' + arg.replace('_', '-')]
             elif arg not in known_custom_target_kwargs:
                 raise MesonException(
                     'Genmarshal does not take a %s keyword argument.' % (
