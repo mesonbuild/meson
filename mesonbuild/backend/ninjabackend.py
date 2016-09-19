@@ -465,7 +465,7 @@ int dummy;
         (gcovr_exe, lcov_exe, genhtml_exe) = environment.find_coverage_tools()
         if gcovr_exe:
             elem = NinjaBuildElement(self.all_outputs, 'coverage-html', 'CUSTOM_COMMAND', '')
-            elem.add_item('COMMAND', [gcovr_exe, '--html', '-r', self.environment.get_source_dir(),\
+            elem.add_item('COMMAND', [gcovr_exe, '--html', '--html-details', '-r', self.environment.get_source_dir(),\
                                       '-o', os.path.join(self.environment.get_log_dir(), 'coverage.html')])
             elem.add_item('DESC', 'Generating HTML coverage report.')
             elem.write(outfile)
