@@ -463,9 +463,12 @@ int dummy;
 
     def generate_coverage_rules(self, outfile):
         (gcovr_exe, lcov_exe, genhtml_exe) = environment.find_coverage_tools()
-        added_rule = False
         if gcovr_exe:
-            added_rule = True
+            elem = NinjaBuildElement(self.all_outputs, 'coverage-html', 'CUSTOM_COMMAND', '')
+            elem.add_item('COMMAND', [gcovr_exe, '--html', '-r', self.environment.get_source_dir(),\
+                                      '-o', os.path.join(self.environment.get_log_dir(), 'coverage.html')])
+            elem.add_item('DESC', 'Generating HTML coverage report.')
+            elem.write(outfile)
             elem = NinjaBuildElement(self.all_outputs, 'coverage-xml', 'CUSTOM_COMMAND', '')
             elem.add_item('COMMAND', [gcovr_exe, '-x', '-r', self.environment.get_source_dir(),\
                                       '-o', os.path.join(self.environment.get_log_dir(), 'coverage.xml')])
@@ -476,8 +479,7 @@ int dummy;
                                       '-o', os.path.join(self.environment.get_log_dir(), 'coverage.txt')])
             elem.add_item('DESC', 'Generating text coverage report.')
             elem.write(outfile)
-        if lcov_exe and genhtml_exe:
-            added_rule = True
+        elif lcov_exe and genhtml_exe:
             htmloutdir = os.path.join(self.environment.get_log_dir(), 'coveragereport')
             covinfo = os.path.join(self.environment.get_log_dir(), 'coverage.info')
             phony_elem = NinjaBuildElement(self.all_outputs, 'coverage-html', 'phony', os.path.join(htmloutdir, 'index.html'))
@@ -491,7 +493,7 @@ int dummy;
             elem.add_item('COMMAND', command)
             elem.add_item('DESC', 'Generating HTML coverage report.')
             elem.write(outfile)
-        if not added_rule:
+        else:
             mlog.log(mlog.red('Warning:'), 'coverage requested but neither gcovr nor lcov/genhtml found.')
 
     def generate_install(self, outfile):

@@ -45,3 +45,4 @@ Elliott Sales de Andrade
 Patrick Griffis
 Iain Lane
 Daniel Brendle
+Guillaume Poirier-Morency
