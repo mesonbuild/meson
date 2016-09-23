@@ -131,6 +131,63 @@ class GnomeModule:
 
         return dirs_str
 
+    def get_dependencies_flags(self, deps, state, depends=None):
+        cflags = set()
+        ldflags = set()
+        gi_includes = set()
+        if not isinstance(deps, list):
+            deps = [deps]
+
+        for dep in deps:
+            if hasattr(dep, 'held_object'):
+                dep = dep.held_object
+            if isinstance(dep, dependencies.InternalDependency):
+                cflags.update(self.get_include_args( state, dep.include_directories))
+                for lib in dep.libraries:
+                    ldflags.update(self.get_link_args(state, lib.held_object, depends))
+                    libdepflags = self.get_dependencies_flags(lib.held_object.get_external_deps(), state, depends)
+                    cflags.update(libdepflags[0])
+                    ldflags.update(libdepflags[1])
+                    gi_includes.update(libdepflags[2])
+                extdepflags = self.get_dependencies_flags(dep.ext_deps, state, depends)
+                cflags.update(extdepflags[0])
+                ldflags.update(extdepflags[1])
+                gi_includes.update(extdepflags[2])
+                for source in dep.sources:
+                    if isinstance(source.held_object, GirTarget):
+                        gi_includes.update([os.path.join(state.environment.get_build_dir(),
+                                        source.held_object.get_subdir())])
+            # This should be any dependency other than an internal one.
+            elif isinstance(dep, dependencies.Dependency):
+                cflags.update(dep.get_compile_args())
+                for lib in dep.get_link_args():
+                    if (os.path.isabs(lib) and
+                            # For PkgConfigDependency only:
+                            getattr(dep, 'is_libtool', False)):
+                        ldflags.update(["-L%s" % os.path.dirname(lib)])
+                        libname = os.path.basename(lib)
+                        if libname.startswith("lib"):
+                            libname = libname[3:]
+                        libname = libname.split(".so")[0]
+                        lib = "-l%s" % libname
+                    # Hack to avoid passing some compiler options in
+                    if lib.startswith("-W"):
+                        continue
+                    ldflags.update([lib])
+
+                if isinstance(dep, dependencies.PkgConfigDependency):
+                    girdir = dep.get_variable("girdir")
+                    if girdir:
+                        gi_includes.update([girdir])
+            elif isinstance(dep, (build.StaticLibrary, build.SharedLibrary)):
+                for incd in dep.get_include_dirs():
+                    cflags.update(incd.get_incdirs())
+            else:
+                mlog.log('dependency %s not handled to build gir files' % dep)
+                continue
+
+        return cflags, ldflags, gi_includes
+
     def generate_gir(self, state, args, kwargs):
         if len(args) != 1:
             raise MesonException('Gir takes one argument')
@@ -220,52 +277,10 @@ class GnomeModule:
             deps = [deps]
         deps = (girtarget.get_all_link_deps() + girtarget.get_external_deps() +
                 deps)
-        for dep in deps:
-            if hasattr(dep, 'held_object'):
-                dep = dep.held_object
-            if isinstance(dep, dependencies.InternalDependency):
-                scan_command += self.get_include_args(
-                    state,
-                    dep.include_directories)
-                for lib in dep.libraries:
-                    scan_command += self.get_link_args(state, lib.held_object,
-                                                       depends)
-                for source in dep.sources:
-                    if isinstance(source.held_object, GirTarget):
-                        scan_command += [
-                            "--add-include-path=%s" % (
-                                os.path.join(state.environment.get_build_dir(),
-                                             source.held_object.get_subdir()),
-                            )
-                        ]
-            # This should be any dependency other than an internal one.
-            elif isinstance(dep, dependencies.Dependency):
-                scan_command += dep.get_compile_args()
-                for lib in dep.get_link_args():
-                    if (os.path.isabs(lib) and
-                            # For PkgConfigDependency only:
-                            getattr(dep, 'is_libtool', False)):
-                        scan_command += ["-L%s" % os.path.dirname(lib)]
-                        libname = os.path.basename(lib)
-                        if libname.startswith("lib"):
-                            libname = libname[3:]
-                        libname = libname.split(".so")[0]
-                        lib = "-l%s" % libname
-                    # Hack to avoid passing some compiler options in
-                    if lib.startswith("-W"):
-                        continue
-                    scan_command += [lib]
-
-                if isinstance(dep, dependencies.PkgConfigDependency):
-                    girdir = dep.get_variable("girdir")
-                    if girdir:
-                        scan_command += ["--add-include-path=%s" % (girdir, )]
-            elif isinstance(dep, (build.StaticLibrary, build.SharedLibrary)):
-                for incd in dep.get_include_dirs():
-                    scan_command += incd.get_incdirs()
-            else:
-                mlog.log('dependency %s not handled to build gir files' % dep)
-                continue
+        cflags, ldflags, gi_includes = self.get_dependencies_flags(deps, state, depends)
+        scan_command += list(cflags) + list(ldflags)
+        for i in gi_includes:
+            scan_command += ['--add-include-path=%s' % i]
 
         inc_dirs = kwargs.pop('include_directories', [])
         if not isinstance(inc_dirs, list):
