@@ -253,9 +253,6 @@ int dummy;
             self.generate_swift_target(target, outfile)
             return
         self.scan_fortran_module_outputs(target)
-        # The following deals with C/C++ compilation.
-        (gen_src, gen_other_deps) = self.process_dep_gens(outfile, target)
-        gen_src_deps += gen_src
         self.process_target_dependencies(target, outfile)
         self.generate_custom_generator_rules(target, outfile)
         outname = self.get_target_filename(target)
@@ -266,7 +263,7 @@ int dummy;
             pch_objects = self.generate_pch(target, outfile)
         else:
             pch_objects = []
-        header_deps = gen_other_deps
+        header_deps = []
         unity_src = []
         unity_deps = [] # Generated sources that must be built before compiling a Unity target.
         header_deps += self.get_generated_headers(target)
@@ -1911,36 +1908,6 @@ rule FORTRAN_DEP_HACK
             gcda_elem.add_item('COMMAND', [sys.executable, clean_script, '.', 'gcda'])
             gcda_elem.add_item('description', 'Deleting gcda files')
             gcda_elem.write(outfile)
-
-    def is_compilable_file(self, filename):
-        if filename.endswith('.cpp') or\
-        filename.endswith('.c') or\
-        filename.endswith('.cxx') or\
-        filename.endswith('.cc') or\
-        filename.endswith('.C'):
-            return True
-        return False
-
-    def process_dep_gens(self, outfile, target):
-        src_deps = []
-        other_deps = []
-        for rule in self.dep_rules.values():
-            srcs = target.get_original_kwargs().get(rule.src_keyword, [])
-            if isinstance(srcs, str):
-                srcs = [srcs]
-            for src in srcs:
-                plainname = os.path.split(src)[1]
-                basename = plainname.split('.')[0]
-                outname = rule.name_templ.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname)
-                outfilename = os.path.join(self.get_target_private_dir(target), outname)
-                infilename = os.path.join(self.build_to_src, target.get_source_subdir(), src)
-                elem = NinjaBuildElement(self.all_outputs, outfilename, rule.name, infilename)
-                elem.write(outfile)
-                if self.is_compilable_file(outfilename):
-                    src_deps.append(outfilename)
-                else:
-                    other_deps.append(outfilename)
-        return (src_deps, other_deps)
 
     # For things like scan-build and other helper tools we might have.
     def generate_utils(self, outfile):
