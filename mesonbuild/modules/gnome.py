@@ -16,7 +16,7 @@
 functionality such as gobject-introspection and gresources.'''
 
 from .. import build
-import os, sys
+import os
 import subprocess
 from ..mesonlib import MesonException
 from .. import dependencies
@@ -94,13 +94,14 @@ class GnomeModule:
 
         return stdout.split('\n')[:-1]
 
-    def get_link_args(self, state, lib, depends):
+    def get_link_args(self, state, lib, depends=None):
         link_command = ['-l%s' % lib.name]
         if isinstance(lib, build.SharedLibrary):
             link_command += ['-L%s' %
                     os.path.join(state.environment.get_build_dir(),
                         lib.subdir)]
-            depends.append(lib)
+            if depends:
+                depends.append(lib)
         return link_command
 
     def get_include_args(self, state, include_dirs, prefix='-I'):
@@ -391,11 +392,38 @@ class GnomeModule:
                 '--modulename=' + modulename]
         args += self.unpack_args('--htmlargs=', 'html_args', kwargs)
         args += self.unpack_args('--scanargs=', 'scan_args', kwargs)
+        args += self.unpack_args('--scanobjsargs=', 'scanobjs_args', kwargs)
+        args += self.unpack_args('--gobjects-types-file=', 'gobject_typesfile', kwargs, state)
         args += self.unpack_args('--fixxrefargs=', 'fixxref_args', kwargs)
+        args += self.unpack_args('--html-assets=', 'html_assets', kwargs, state)
+        args += self.unpack_args('--content-files=', 'content_files', kwargs, state)
+        args += self.get_build_args(kwargs, state)
         res = [build.RunTarget(targetname, command[0], command[1:] + args, [], state.subdir)]
         if kwargs.get('install', True):
             res.append(build.InstallScript(command + args))
         return res
+
+    def get_build_args(self, kwargs, state):
+        args = []
+        cflags, ldflags, gi_includes = self.get_dependencies_flags(kwargs.get('dependencies', []), state)
+        inc_dirs = kwargs.get('include_directories', [])
+        if not isinstance(inc_dirs, list):
+            inc_dirs = [inc_dirs]
+        for incd in inc_dirs:
+            if not isinstance(incd.held_object, (str, build.IncludeDirs)):
+                raise MesonException(
+                    'Gir include dirs should be include_directories().')
+        cflags.update(self.get_include_args(state, inc_dirs))
+        if cflags:
+            args += ['--cflags=%s' % ' '.join(cflags)]
+        if ldflags:
+            args += ['--ldflags=%s' % ' '.join(ldflags)]
+        compiler = state.environment.coredata.compilers.get('c')
+        if compiler:
+            args += ['--cc=%s' % ' '.join(compiler.get_exelist())]
+            args += ['--ld=%s' % ' '.join(compiler.get_linker_exelist())]
+
+        return args
 
     def gtkdoc_html_dir(self, state, args, kwarga):
         if len(args) != 1:
@@ -406,18 +434,24 @@ class GnomeModule:
         return os.path.join('share/gtkdoc/html', modulename)
 
 
-    def unpack_args(self, arg, kwarg_name, kwargs):
-        try:
-            new_args = kwargs[kwarg_name]
-            if not isinstance(new_args, list):
-                new_args = [new_args]
-            for i in new_args:
-                if not isinstance(i, str):
-                    raise MesonException('html_args values must be strings.')
-        except KeyError:
-            return[]
-        if len(new_args) > 0:
-            return [arg + '@@'.join(new_args)]
+    def unpack_args(self, arg, kwarg_name, kwargs, expend_file_state=None):
+        if kwarg_name not in kwargs:
+            return []
+
+        new_args = kwargs[kwarg_name]
+        if not isinstance(new_args, list):
+            new_args = [new_args]
+        args = []
+        for i in new_args:
+            if expend_file_state and isinstance(i, mesonlib.File):
+                i = os.path.join(expend_file_state.environment.get_build_dir(), i.subdir, i.fname)
+            elif not isinstance(i, str):
+                raise MesonException(kwarg_name + ' values must be strings.')
+            args.append(i)
+
+        if args:
+            return [arg + '@@'.join(args)]
+
         return []
 
     def gdbus_codegen(self, state, args, kwargs):
