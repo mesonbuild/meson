@@ -38,6 +38,12 @@ class RawFilename():
     def __init__(self, fname):
         self.fname = fname
 
+    def __str__(self):
+        return self.fname
+
+    def __repr__(self):
+        return '<RawFilename: {0}>'.format(self.fname)
+
     def split(self, c):
         return self.fname.split(c)
 
