@@ -107,8 +107,6 @@ class GnomeModule:
         if not include_dirs:
             return []
 
-        build_to_src = os.path.relpath(state.environment.get_source_dir(),
-                                       state.environment.get_build_dir())
         dirs_str = []
         for incdirs in include_dirs:
             if hasattr(incdirs, "held_object"):
@@ -124,8 +122,9 @@ class GnomeModule:
             basedir = dirs.get_curdir()
             for d in dirs.get_incdirs():
                 expdir =  os.path.join(basedir, d)
-                srctreedir = os.path.join(build_to_src, expdir)
-                dirs_str += ['%s%s' % (prefix, expdir),
+                srctreedir = os.path.join(state.environment.get_source_dir(), expdir)
+                buildtreedir = os.path.join(state.environment.get_build_dir(), expdir)
+                dirs_str += ['%s%s' % (prefix, buildtreedir),
                              '%s%s' % (prefix, srctreedir)]
             for d in dirs.get_extra_build_dirs():
                 dirs_str += ['%s%s' % (prefix, d)]
