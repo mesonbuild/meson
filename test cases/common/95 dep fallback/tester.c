@@ -1,4 +1,5 @@
 #include"bob.h"
+#include"genbob.h"
 #include<string.h>
 #include<stdio.h>
 
