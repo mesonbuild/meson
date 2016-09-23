@@ -1920,8 +1920,16 @@ rule FORTRAN_DEP_HACK
         elem.write(outfile)
 
     def generate_ending(self, outfile):
-        targetlist = [self.get_target_filename(t) for t in self.build.get_targets().values()\
-                      if not isinstance(t, build.RunTarget)]
+        targetlist = []
+        for t in self.build.get_targets().values():
+            # RunTargets are meant to be invoked manually
+            if isinstance(t, build.RunTarget):
+                continue
+            # CustomTargets that aren't installed should only be built if they
+            # are used by something else or are meant to be always built
+            if isinstance(t, build.CustomTarget) and not (t.install or t.build_always):
+                continue
+            targetlist.append(self.get_target_filename(t))
 
         elem = NinjaBuildElement(self.all_outputs, 'all', 'phony', targetlist)
         elem.write(outfile)
