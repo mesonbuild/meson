@@ -39,6 +39,7 @@ parser.add_argument('--ldflags', dest='ldflags', default='')
 parser.add_argument('--cflags', dest='cflags', default='')
 parser.add_argument('--content-files', dest='content_files', default='')
 parser.add_argument('--html-assets', dest='html_assets', default='')
+parser.add_argument('--installdir', dest='install_dir')
 
 def gtkdoc_run_check(cmd, cwd):
     p = subprocess.Popen(cmd, cwd=cwd,
@@ -174,13 +175,14 @@ def run(args):
         options.content_files.split('@@') if options.content_files else [])
 
     if 'MESON_INSTALL_PREFIX' in os.environ:
+        install_dir = options.install_dir if options.install_dir else options.modulename
         destdir = os.environ.get('DESTDIR', '')
         installdir = destdir_join(destdir, os.environ['MESON_INSTALL_PREFIX'])
         install_gtkdoc(options.builddir,
                        options.subdir,
                        installdir,
                        'share/gtk-doc/html',
-                       options.modulename)
+                       install_dir)
     return 0
 
 if __name__ == '__main__':

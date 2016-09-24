@@ -397,6 +397,7 @@ class GnomeModule:
         args += self.unpack_args('--fixxrefargs=', 'fixxref_args', kwargs)
         args += self.unpack_args('--html-assets=', 'html_assets', kwargs, state)
         args += self.unpack_args('--content-files=', 'content_files', kwargs, state)
+        args += self.unpack_args('--installdir=', 'install_dir', kwargs, state)
         args += self.get_build_args(kwargs, state)
         res = [build.RunTarget(targetname, command[0], command[1:] + args, [], state.subdir)]
         if kwargs.get('install', True):
