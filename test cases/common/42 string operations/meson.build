@@ -33,6 +33,22 @@ assert(long.contains('bcd'), 'Does not contain middle part')
 
 assert(not long.contains('dc'), 'Broken contains')
 
+assert(long.matches(prefix + '*'), 'No prefix match')
+assert(not long.matches(prefix), 'Prefix alone should not have matched')
+assert(long.matches('*' + suffix), 'No suffix match')
+assert(long.matches('??' + suffix), 'No suffix match')
+assert(not long.matches('?' + suffix), 'No suffix match')
+assert(not long.matches(suffix), 'Suffix alone should not have matched')
+assert(not long.matches(suffix + '*'), 'Broken glob match (suffix at start)')
+assert(not long.matches('*' + prefix), 'Broken glob match (prefix at end)')
+assert('i586'.matches('i?86'), 'Broken glob match (? subst)')
+assert('i586'.matches('i[3456]86'), 'Broken glob match (sequence)')
+assert('i586'.matches('i[3-6]86'), 'Broken glob match (sequence range)')
+assert(not 'i586'.matches('i[34678]86'), 'Broken glob match (sequence)')
+assert(not 'i586'.matches('i[36-]86'), 'Broken glob match (sequence range)')
+assert('i586'.matches('i386|i486|i586'), 'Broken glob match (multiple options)')
+assert('i586'.matches('i386|i486|i58*'), 'Broken glob match (multiple options)')
+
 assert(long.to_upper() == 'ABCDE', 'Broken to_upper')
 
 assert(long.to_upper().to_lower() == long, 'Broken to_lower')
