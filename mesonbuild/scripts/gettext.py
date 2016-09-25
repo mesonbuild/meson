@@ -19,6 +19,12 @@ from mesonbuild.scripts import destdir_join
 
 def run_potgen(src_sub, pkgname, args):
     listfile = os.path.join(src_sub, 'POTFILES')
+    if not os.path.exists(listfile):
+        listfile = os.path.join(src_sub, 'POTFILES.in')
+        if not os.path.exists(listfile):
+            print('Could not find file POTFILES in %s' % src_sub)
+            return 1
+
     ofile = os.path.join(src_sub, pkgname + '.pot')
     return subprocess.call(['xgettext', '--package-name=' + pkgname, '-p', src_sub, '-f', listfile,
                             '-D', os.environ['MESON_SOURCE_ROOT'], '-k_', '-o', ofile] + args)
