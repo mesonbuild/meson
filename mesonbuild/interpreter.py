@@ -942,6 +942,7 @@ class MesonMain(InterpreterObject):
                              'add_postconf_script' : self.add_postconf_script_method,
                              'install_dependency_manifest': self.install_dependency_manifest_method,
                              'project_version': self.project_version_method,
+                             'version': self.version_method,
                              'project_name' : self.project_name_method,
                              'get_cross_property': self.get_cross_property_method,
                             })
@@ -1039,6 +1040,9 @@ class MesonMain(InterpreterObject):
 
     def project_version_method(self, args, kwargs):
         return self.build.dep_manifest[self.interpreter.active_projectname]['version']
+
+    def version_method(self, args, kwargs):
+        return coredata.version
 
     def project_name_method(self, args, kwargs):
         return self.interpreter.active_projectname
