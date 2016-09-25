@@ -25,6 +25,7 @@ import sysconfig
 from . mesonlib import MesonException
 from . import mlog
 from . import mesonlib
+from .environment import detect_cpu_family
 
 class DependencyException(MesonException):
     def __init__(self, *args, **kwargs):
@@ -582,11 +583,21 @@ class BoostDependency(Dependency):
         return self.detect_lib_modules_nix()
 
     def detect_lib_modules_win(self):
-        if mesonlib.is_32bit():
+        arch = detect_cpu_family(self.environment.coredata.compilers)
+        # Guess the libdir
+        if arch == 'x86':
             gl = 'lib32*'
-        else:
+        elif arch == 'x86_64':
             gl = 'lib64*'
-        libdir = glob.glob(os.path.join(self.boost_root, gl))
+        else:
+            # Does anyone do Boost cross-compiling to other archs on Windows?
+            gl = None
+        # See if the libdir is valid
+        if gl:
+            libdir = glob.glob(os.path.join(self.boost_root, gl))
+        else:
+            libdir = []
+        # Can't find libdir, bail
         if len(libdir) == 0:
             return
         libdir = libdir[0]
