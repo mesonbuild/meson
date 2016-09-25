@@ -332,6 +332,15 @@ class Compiler():
             return True
         return False
 
+    def get_id(self):
+        return self.id
+
+    def get_language(self):
+        return self.language
+
+    def get_exelist(self):
+        return self.exelist[:]
+
     def get_always_args(self):
         return []
 
@@ -465,9 +474,6 @@ class CCompiler(Compiler):
     def build_rpath_args(self, build_dir, rpath_paths, install_rpath):
         return build_unix_rpath_args(build_dir, rpath_paths, install_rpath)
 
-    def get_id(self):
-        return self.id
-
     def get_dependency_gen_args(self, outtarget, outfile):
         return ['-MMD', '-MQ', outtarget, '-MF', outfile]
 
@@ -476,9 +482,6 @@ class CCompiler(Compiler):
 
     def get_depfile_suffix(self):
         return 'd'
-
-    def get_language(self):
-        return self.language
 
     def get_default_suffix(self):
         return self.default_suffix
@@ -1090,20 +1093,11 @@ class MonoCompiler(Compiler):
     def build_rpath_args(self, build_dir, rpath_paths, install_rpath):
         return []
 
-    def get_id(self):
-        return self.id
-
     def get_dependency_gen_args(self, outtarget, outfile):
         return []
 
-    def get_language(self):
-        return self.language
-
     def get_default_suffix(self):
         return self.default_suffix
-
-    def get_exelist(self):
-        return self.exelist[:]
 
     def get_linker_exelist(self):
         return self.exelist[:]
@@ -1186,20 +1180,11 @@ class JavaCompiler(Compiler):
     def build_rpath_args(self, build_dir, rpath_paths, install_rpath):
         return []
 
-    def get_id(self):
-        return self.id
-
     def get_dependency_gen_args(self, outtarget, outfile):
         return []
 
-    def get_language(self):
-        return self.language
-
     def get_default_suffix(self):
         return self.default_suffix
-
-    def get_exelist(self):
-        return self.exelist[:]
 
     def get_linker_exelist(self):
         return self.exelist[:]
@@ -1283,14 +1268,8 @@ class ValaCompiler(Compiler):
     def needs_static_linker(self):
         return False # Because compiles into C.
 
-    def get_exelist(self):
-        return self.exelist[:]
-
     def get_werror_args(self):
         return ['--fatal-warnings']
-
-    def get_language(self):
-        return self.language
 
     def sanity_check(self, work_dir, environment):
         src = 'valatest.vala'
@@ -1322,15 +1301,6 @@ class RustCompiler(Compiler):
     def name_string(self):
         return ' '.join(self.exelist)
 
-    def get_exelist(self):
-        return self.exelist[:]
-
-    def get_id(self):
-        return self.id
-
-    def get_language(self):
-        return self.language
-
     def sanity_check(self, work_dir, environment):
         source_name = os.path.join(work_dir, 'sanity.rs')
         output_name = os.path.join(work_dir, 'rusttest')
@@ -1359,9 +1329,6 @@ class SwiftCompiler(Compiler):
         self.id = 'llvm'
         self.is_cross = False
 
-    def get_id(self):
-        return self.id
-
     def get_linker_exelist(self):
         return self.exelist[:]
 
@@ -1371,14 +1338,8 @@ class SwiftCompiler(Compiler):
     def needs_static_linker(self):
         return True
 
-    def get_exelist(self):
-        return self.exelist[:]
-
     def get_werror_args(self):
         return ['--fatal-warnings']
-
-    def get_language(self):
-        return self.language
 
     def get_dependency_gen_args(self, outtarget, outfile):
         return ['-emit-dependencies']
@@ -1466,15 +1427,6 @@ class DCompiler(Compiler):
 
     def name_string(self):
         return ' '.join(self.exelist)
-
-    def get_exelist(self):
-        return self.exelist
-
-    def get_id(self):
-        return self.id
-
-    def get_language(self):
-        return self.language
 
     def get_linker_exelist(self):
         return self.exelist[:]
@@ -2176,17 +2128,8 @@ class FortranCompiler(Compiler):
         self.gcc_type = GCC_STANDARD
         self.id = "IMPLEMENTATION CLASSES MUST SET THIS"
 
-    def get_id(self):
-        return self.id
-
     def name_string(self):
         return ' '.join(self.exelist)
-
-    def get_exelist(self):
-        return self.exelist[:]
-
-    def get_language(self):
-        return self.language
 
     def get_pic_args(self):
         if self.gcc_type == GCC_MINGW:
