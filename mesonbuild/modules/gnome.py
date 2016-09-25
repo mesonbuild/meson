@@ -337,7 +337,9 @@ class GnomeModule:
     def mkenums(self, state, args, kwargs):
         if len(args) != 1:
             raise MesonException('Mkenums must have one positional argument.')
-        output = args[0]
+        basename = args[0]
+        c_target_name = basename + '_c'
+        h_target_hame = basename = '_h'
 
         if 'sources' not in kwargs:
             raise MesonException('Missing keyword argument "sources".')
@@ -348,36 +350,61 @@ class GnomeModule:
             raise MesonException(
                 'Sources keyword argument must be a string or array.')
 
-        cmd = ['glib-mkenums']
+        cmd = []
         known_kwargs = ['comments', 'eprod', 'fhead', 'fprod', 'ftail',
                         'identifier_prefix', 'symbol_prefix', 'template',
                         'vhead', 'vprod', 'vtail']
         known_custom_target_kwargs = ['install', 'install_dir', 'build_always',
                                       'depends', 'depend_files']
-        add_template = False
+        c_template = h_template = None
+        install_header = False
         for arg, value in kwargs.items():
-            if arg == 'template':
-                add_template = True
+            if arg == 'sources':
                 sources = [value] + sources
+            elif arg == 'c_template':
+                c_template = value
+            elif arg == 'h_template':
+                h_template = value
+            elif arg == 'install_header':
+                install_header = value
             elif arg in known_kwargs:
                 cmd += ['--' + arg.replace('_', '-'), value]
             elif arg not in known_custom_target_kwargs:
                 raise MesonException(
                     'Mkenums does not take a %s keyword argument.' % (arg, ))
-        if add_template:
-            cmd += ['--template', '@INPUT@']
-        else:
-            cmd += ['@INPUT@']
+        if c_template is None or h_template is None:
+            raise MesonException('Must specify both a C and H template.')
+        # We always set template as the first element in the source array so
+        # --template consumes it.
+        cmd = ['glib-mkenums', '--template', '@INPUT@'] + cmd
+        custom_kwargs = {}
+        for arg in known_custom_target_kwargs:
+            if arg in kwargs:
+                custom_kwargs[arg] = kwargs[arg]
 
+        c_output = os.path.splitext(c_template)[0]
+        h_output = os.path.splitext(h_template)[0]
+
+        c_sources = [c_template] + sources
+        h_sources = [h_template] + sources
+
+        custom_kwargs['install'] = install_header
+        if 'install_dir' not in custom_kwargs:
+            custom_kwargs['install_dir'] = state.environment.coredata.get_builtin_option('includedir')
+        h_target = self.make_mkenum_custom_target(state, h_sources, h_output, cmd, custom_kwargs)
+        custom_kwargs['install'] = False # Never install the C file. Complain on bug tracker if you need this.
+        custom_kwargs['depends'] = h_target
+        c_target = self.make_mkenum_custom_target(state, c_sources, c_output, cmd, custom_kwargs)
+        return [c_target, h_target]
+
+    def make_mkenum_custom_target(self, state, sources, output, cmd, kwargs):
         custom_kwargs = {
             'input': sources,
             'output': output,
             'capture': True,
             'command': cmd
         }
-        for arg in known_custom_target_kwargs:
-            if arg in kwargs:
-                custom_kwargs[arg] = kwargs[arg]
+        custom_kwargs.update(kwargs)
         return build.CustomTarget(output, state.subdir, custom_kwargs)
 
     def genmarshal(self, state, args, kwargs):
