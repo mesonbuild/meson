@@ -1069,6 +1069,8 @@ class Interpreter():
 
     def __init__(self, build, backend, subproject='', subdir='', subproject_dir='subprojects'):
         self.build = build
+        self.environment = build.environment
+        self.coredata = self.environment.get_coredata()
         self.backend = backend
         self.subproject = subproject
         self.subdir = subdir
@@ -1096,6 +1098,7 @@ class Interpreter():
         self.sanity_check_ast()
         self.variables = {}
         self.builtin = {}
+        self.parse_project()
         self.builtin['build_machine'] = BuildMachine()
         if not self.build.environment.is_cross_build():
             self.builtin['host_machine'] = self.builtin['build_machine']
@@ -1111,10 +1114,8 @@ class Interpreter():
             else:
                 self.builtin['target_machine'] = self.builtin['host_machine']
         self.builtin['meson'] = MesonMain(build, self)
-        self.environment = build.environment
         self.build_func_dict()
         self.build_def_files = [os.path.join(self.subdir, environment.build_filename)]
-        self.coredata = self.environment.get_coredata()
         self.generators = []
         self.visited_subdirs = {}
         self.global_args_frozen = False
@@ -1166,6 +1167,15 @@ class Interpreter():
                       'environment' : self.func_environment,
                      }
 
+    def parse_project(self):
+        """
+        Parses project() and initializes languages, compilers etc. Do this
+        early because we need this before we parse the rest of the AST.
+        """
+        project = self.ast.lines[0]
+        args, kwargs = self.reduce_arguments(project.args)
+        self.func_project(project, args, kwargs)
+
     def module_method_callback(self, invalues):
         unwrap_single = False
         if invalues is None:
@@ -1214,6 +1224,10 @@ class Interpreter():
         first = self.ast.lines[0]
         if not isinstance(first, mparser.FunctionNode) or first.func_name != 'project':
             raise InvalidCode('First statement must be a call to project')
+        args = self.reduce_arguments(first.args)[0]
+        if len(args) < 2:
+            raise InvalidArguments('Not enough arguments to project(). Needs at least the project name and one language')
+
 
     def check_cross_stdlibs(self):
         if self.build.environment.is_cross_build():
@@ -1232,10 +1246,12 @@ class Interpreter():
                     pass
 
     def run(self):
-        self.evaluate_codeblock(self.ast)
+        # Evaluate everything after the first line, which is project() because
+        # we already parsed that in self.parse_project()
+        self.evaluate_codeblock(self.ast, start=1)
         mlog.log('Build targets in project:', mlog.bold(str(len(self.build.targets))))
 
-    def evaluate_codeblock(self, node):
+    def evaluate_codeblock(self, node, start=0):
         if node is None:
             return
         if not isinstance(node, mparser.CodeBlockNode):
@@ -1244,7 +1260,7 @@ class Interpreter():
             e.colno = node.colno
             raise e
         statements = node.lines
-        i = 0
+        i = start
         while i < len(statements):
             cur = statements[i]
             try:
@@ -1565,9 +1581,6 @@ class Interpreter():
 
     @stringArgs
     def func_project(self, node, args, kwargs):
-        if len(args) < 2:
-            raise InvalidArguments('Not enough arguments to project(). Needs at least the project name and one language')
-
         if not self.is_subproject():
             self.build.project_name = args[0]
             if self.environment.first_invocation and 'default_options' in kwargs:
@@ -1589,7 +1602,7 @@ class Interpreter():
                 raise InterpreterException('Meson version is %s but project requires %s.' % (cv, pv))
         self.build.projects[self.subproject] = args[0]
         mlog.log('Project name: ', mlog.bold(args[0]), sep='')
-        self.add_languages(node, args[1:], True)
+        self.add_languages(args[1:], True)
         langs = self.coredata.compilers.keys()
         if 'vala' in langs:
             if not 'c' in langs:
@@ -1599,7 +1612,7 @@ class Interpreter():
 
     @stringArgs
     def func_add_languages(self, node, args, kwargs):
-        return self.add_languages(node, args, kwargs.get('required', True))
+        return self.add_languages(args, kwargs.get('required', True))
 
     @noKwargs
     def func_message(self, node, args, kwargs):
@@ -1619,8 +1632,6 @@ class Interpreter():
             raise InvalidArguments('Function accepts only strings, integers, lists and lists thereof.')
 
         mlog.log(mlog.bold('Message:'), argstr)
-        return
-
 
     @noKwargs
     def func_error(self, node, args, kwargs):
@@ -1697,7 +1708,7 @@ class Interpreter():
         self.coredata.compiler_options = new_options
         return (comp, cross_comp)
 
-    def add_languages(self, node, args, required):
+    def add_languages(self, args, required):
         success = True
         need_cross_compiler = self.environment.is_cross_build() and self.environment.cross_info.need_cross_compiler()
         for lang in args:
