@@ -474,7 +474,12 @@ class BoostDependency(Dependency):
     def __init__(self, environment, kwargs):
         Dependency.__init__(self)
         self.name = 'boost'
+        self.environment = environment
         self.libdir = ''
+        if 'native' in kwargs and environment.is_cross_build():
+            want_cross = not kwargs['native']
+        else:
+            want_cross = environment.is_cross_build()
         try:
             self.boost_root = os.environ['BOOST_ROOT']
             if not os.path.isabs(self.boost_root):
@@ -482,6 +487,8 @@ class BoostDependency(Dependency):
         except KeyError:
             self.boost_root = None
         if self.boost_root is None:
+            if want_cross:
+                raise DependencyException('BOOST_ROOT is needed while cross-compiling')
             if mesonlib.is_windows():
                 self.boost_root = self.detect_win_root()
                 self.incdir = self.boost_root
