@@ -375,7 +375,8 @@ class GeneratedListHolder(InterpreterObject):
         self.held_object.add_file(a)
 
 class BuildMachine(InterpreterObject):
-    def __init__(self):
+    def __init__(self, compilers):
+        self.compilers = compilers
         InterpreterObject.__init__(self)
         self.methods.update({'system' : self.system_method,
                              'cpu_family' : self.cpu_family_method,
@@ -384,10 +385,10 @@ class BuildMachine(InterpreterObject):
                             })
 
     def cpu_family_method(self, args, kwargs):
-        return environment.detect_cpu_family()
+        return environment.detect_cpu_family(self.compilers)
 
     def cpu_method(self, args, kwargs):
-        return environment.detect_cpu()
+        return environment.detect_cpu(self.compilers)
 
     def system_method(self, args, kwargs):
         return environment.detect_system()
@@ -1099,7 +1100,7 @@ class Interpreter():
         self.variables = {}
         self.builtin = {}
         self.parse_project()
-        self.builtin['build_machine'] = BuildMachine()
+        self.builtin['build_machine'] = BuildMachine(self.coredata.compilers)
         if not self.build.environment.is_cross_build():
             self.builtin['host_machine'] = self.builtin['build_machine']
             self.builtin['target_machine'] = self.builtin['build_machine']
