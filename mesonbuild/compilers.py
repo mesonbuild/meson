@@ -1971,6 +1971,14 @@ class GnuCompiler:
             return gnu_color_args[colortype][:]
         return []
 
+    def get_warn_args(self, level):
+        args = super().get_warn_args(level)
+        if mesonlib.version_compare(self.version, '<4.8.0') and '-Wpedantic' in args:
+            # -Wpedantic was added in 4.8.0
+            # https://gcc.gnu.org/gcc-4.8/changes.html
+            args[args.index('-Wpedantic')] = '-pedantic'
+        return args
+
     def get_pic_args(self):
         if self.gcc_type == GCC_MINGW:
             return [] # On Window gcc defaults to fpic being always on.
