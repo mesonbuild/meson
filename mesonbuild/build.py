@@ -1271,7 +1271,7 @@ class ConfigurationData():
         return repr(self.values)
 
     def get(self, name):
-        return self.values[name]
+        return self.values[name]                 # (val, desc)
 
     def keys(self):
         return self.values.keys()
