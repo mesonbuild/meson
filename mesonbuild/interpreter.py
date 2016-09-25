@@ -2235,6 +2235,8 @@ class Interpreter():
             self.coredata.target_guids[idname] = str(uuid.uuid4()).upper()
 
     def build_target(self, node, args, kwargs, targetholder):
+        if len(args) == 0:
+            raise InterpreterException('Target does not have a name.')
         name = args[0]
         sources = args[1:]
         if self.environment.is_cross_build():
