@@ -1731,7 +1731,7 @@ class VisualStudioCCompiler(CCompiler):
         self.always_args = ['/nologo', '/showIncludes']
         self.warn_args = {'1': ['/W2'],
                           '2': ['/W3'],
-                          '3': ['/w4']}
+                          '3': ['/W4']}
         self.base_options = ['b_pch'] # FIXME add lto, pgo and the like
 
     def get_always_args(self):
