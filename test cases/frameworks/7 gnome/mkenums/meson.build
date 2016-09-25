@@ -1,13 +1,12 @@
-enums_h = gnome.mkenums('enums.h',
-sources : 'meson-sample.h',
-template : 'enums.h.in',
-install : true,
-install_dir : get_option('includedir'))
+myenums = gnome.mkenums('abc',
+  sources : 'meson-sample.h',
+  h_template : 'enums.h.in',
+  c_template : 'enums.c.in',
+  install_header : true,
+  install_dir : get_option('includedir'))
 
-enums_c = gnome.mkenums('enums.c',
-sources : 'meson-sample.h',
-template : 'enums.c.in',
-depends : enums_h)
+enums_c = myenums[0]
+enums_h = myenums[1]
 
 enumexe = executable('enumprog', 'main.c', enums_c, enums_h,
 dependencies : gobj)
