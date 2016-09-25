@@ -45,6 +45,9 @@ class GnomeModule:
         if not isinstance(source_dirs, list):
             source_dirs = [source_dirs]
 
+        if len(args) < 2:
+            raise MesonException('Not enough arguments; The name of the resource and the path to the XML file are required')
+
         ifile = args[1]
         if isinstance(ifile, mesonlib.File):
             ifile = os.path.join(ifile.subdir, ifile.fname)
