@@ -1259,7 +1259,7 @@ class ValaCompiler(Compiler):
         self.language = 'vala'
         super().__init__(exelist, version)
         self.version = version
-        self.id = 'unknown'
+        self.id = 'valac'
         self.is_cross = False
 
     def name_string(self):
@@ -1293,7 +1293,7 @@ class RustCompiler(Compiler):
     def __init__(self, exelist, version):
         self.language = 'rust'
         super().__init__(exelist, version)
-        self.id = 'unknown'
+        self.id = 'rustc'
 
     def needs_static_linker(self):
         return False
