@@ -1731,7 +1731,7 @@ class VisualStudioCCompiler(CCompiler):
         self.always_args = ['/nologo', '/showIncludes']
         self.warn_args = {'1': ['/W2'],
                           '2': ['/W3'],
-                          '3': ['/w4']}
+                          '3': ['/W4']}
         self.base_options = ['b_pch'] # FIXME add lto, pgo and the like
 
     def get_always_args(self):
@@ -1970,6 +1970,14 @@ class GnuCompiler:
         if mesonlib.version_compare(self.version, '>=4.9.0'):
             return gnu_color_args[colortype][:]
         return []
+
+    def get_warn_args(self, level):
+        args = super().get_warn_args(level)
+        if mesonlib.version_compare(self.version, '<4.8.0') and '-Wpedantic' in args:
+            # -Wpedantic was added in 4.8.0
+            # https://gcc.gnu.org/gcc-4.8/changes.html
+            args[args.index('-Wpedantic')] = '-pedantic'
+        return args
 
     def get_pic_args(self):
         if self.gcc_type == GCC_MINGW:
