@@ -481,7 +481,7 @@ class Backend():
         if self.environment.is_cross_build() and \
            self.environment.cross_info.need_exe_wrapper() and \
            isinstance(exe, build.BuildTarget) and exe.is_cross:
-            if 'exe_wrapper' not in self.environment.cross_info.config:
+            if 'exe_wrapper' not in self.environment.cross_info.config['binaries']:
                 s = 'Can not use target %s as a generator because it is cross-built\n'
                 s += 'and no exe wrapper is defined. You might want to set it to native instead.'
                 s = s % exe.name
