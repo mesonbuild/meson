@@ -110,9 +110,8 @@ def detect_windows_arch(compilers):
             platform = os.environ.get('Platform', 'x86').lower()
             if platform == 'x86':
                 return platform
-        if compiler.id == 'gcc':
-            # TODO: Implement this
-            pass
+        if compiler.id == 'gcc' and compiler.has_define('__i386__'):
+            return 'x86'
     return os_arch
 
 def detect_cpu_family(compilers):
