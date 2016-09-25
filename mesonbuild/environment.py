@@ -289,6 +289,45 @@ class Environment():
                 if type(oldval) != type(value):
                     self.coredata.user_options[name] = value
 
+    @staticmethod
+    def get_gnu_compiler_defines(compiler):
+        """
+        Detect GNU compiler platform type (Apple, MinGW, Unix)
+        """
+        # Arguments to output compiler pre-processor defines to stdout
+        # gcc, g++, and gfortran all support these arguments
+        args = compiler + ['-E', '-dM', '-']
+        p = subprocess.Popen(args, universal_newlines=True,
+                             stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+        output = p.communicate('')[0]
+        if p.returncode != 0:
+            raise EnvironmentException('Unable to detect GNU compiler type:\n' + output)
+        # Parse several lines of the type:
+        # `#define ___SOME_DEF some_value`
+        # and extract `___SOME_DEF`
+        defines = {}
+        for line in output.split('\n'):
+            if not line:
+                continue
+            d, *rest = line.split(' ', 2)
+            if d != '#define':
+                continue
+            if len(rest) == 1:
+                defines[rest] = True
+            if len(rest) == 2:
+                defines[rest[0]] = rest[1]
+        return defines
+
+    @staticmethod
+    def get_gnu_compiler_type(defines):
+        # Detect GCC type (Apple, MinGW, Cygwin, Unix)
+        if '__APPLE__' in defines:
+            return GCC_OSX
+        elif '__MINGW32__' in defines or '__MINGW64__' in defines:
+            return GCC_MINGW
+        # We ignore Cygwin for now, and treat it as a standard GCC
+        return GCC_STANDARD
+
     def detect_c_compiler(self, want_cross):
         evar = 'CC'
         if self.is_cross_build() and want_cross:
@@ -330,16 +369,13 @@ class Environment():
                 version = vmatch.group(0)
             else:
                 version = 'unknown version'
-            if 'apple' in out and 'Free Software Foundation' in out:
-                return GnuCCompiler(ccache + [compiler], version, GCC_OSX, is_cross, exe_wrap)
-            if (out.startswith('cc') or 'gcc' in out.lower()) and \
-                'Free Software Foundation' in out:
-                lowerout = out.lower()
-                if 'mingw' in lowerout or 'msys' in lowerout or 'mingw' in compiler.lower():
-                    gtype = GCC_MINGW
-                else:
-                    gtype = GCC_STANDARD
-                return GnuCCompiler(ccache + [compiler], version, gtype, is_cross, exe_wrap)
+            if 'Free Software Foundation' in out:
+                defines = self.get_gnu_compiler_defines([compiler])
+                if not defines:
+                    popen_exceptions[compiler] = 'no pre-processor defines'
+                    continue
+                gtype = self.get_gnu_compiler_type(defines)
+                return GnuCCompiler(ccache + [compiler], version, gtype, is_cross, exe_wrap, defines)
             if 'clang' in out:
                 if 'Apple' in out:
                     cltype = CLANG_OSX
@@ -395,13 +431,12 @@ class Environment():
                     version = vmatch.group(0)
 
                 if 'GNU Fortran' in out:
-                    if mesonlib.is_osx():
-                        gcctype = GCC_OSX
-                    elif mesonlib.is_windows():
-                        gcctype = GCC_MINGW
-                    else:
-                        gcctype = GCC_STANDARD
-                    return GnuFortranCompiler([compiler], version, gcctype, is_cross, exe_wrap)
+                    defines = self.get_gnu_compiler_defines([compiler])
+                    if not defines:
+                        popen_exceptions[compiler] = 'no pre-processor defines'
+                        continue
+                    gtype = self.get_gnu_compiler_type(defines)
+                    return GnuFortranCompiler([compiler], version, gtype, is_cross, exe_wrap, defines)
 
                 if 'G95' in out:
                     return G95FortranCompiler([compiler], version, is_cross, exe_wrap)
@@ -483,16 +518,13 @@ class Environment():
                 version = vmatch.group(0)
             else:
                 version = 'unknown version'
-            if 'apple' in out and 'Free Software Foundation' in out:
-                return GnuCPPCompiler(ccache + [compiler], version, GCC_OSX, is_cross, exe_wrap)
-            if (out.startswith('c++ ') or 'g++' in out or 'GCC' in out) and \
-                'Free Software Foundation' in out:
-                lowerout = out.lower()
-                if 'mingw' in lowerout or 'msys' in lowerout or 'mingw' in compiler.lower():
-                    gtype = GCC_MINGW
-                else:
-                    gtype = GCC_STANDARD
-                return GnuCPPCompiler(ccache + [compiler], version, gtype, is_cross, exe_wrap)
+            if 'Free Software Foundation' in out:
+                defines = self.get_gnu_compiler_defines([compiler])
+                if not defines:
+                    popen_exceptions[compiler] = 'no pre-processor defines'
+                    continue
+                gtype = self.get_gnu_compiler_type(defines)
+                return GnuCPPCompiler(ccache + [compiler], version, gtype, is_cross, exe_wrap, defines)
             if 'clang' in out:
                 if 'Apple' in out:
                     cltype = CLANG_OSX
@@ -533,13 +565,11 @@ class Environment():
             version = vmatch.group(0)
         else:
             version = 'unknown version'
-        if (out.startswith('cc ') or 'gcc' in out) and \
-            'Free Software Foundation' in out:
-            return GnuObjCCompiler(exelist, version, is_cross, exe_wrap)
+        if 'Free Software Foundation' in out:
+            defines = self.get_gnu_compiler_defines(exelist)
+            return GnuObjCCompiler(exelist, version, is_cross, exe_wrap, defines)
         if out.startswith('Apple LLVM'):
             return ClangObjCCompiler(exelist, version, CLANG_OSX, is_cross, exe_wrap)
-        if 'apple' in out and 'Free Software Foundation' in out:
-            return GnuObjCCompiler(exelist, version, is_cross, exe_wrap)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
 
     def detect_objcpp_compiler(self, want_cross):
@@ -566,13 +596,11 @@ class Environment():
             version = vmatch.group(0)
         else:
             version = 'unknown version'
-        if (out.startswith('c++ ') or out.startswith('g++')) and \
-            'Free Software Foundation' in out:
-            return GnuObjCPPCompiler(exelist, version, is_cross, exe_wrap)
+        if 'Free Software Foundation' in out:
+            defines = self.get_gnu_compiler_defines(exelist)
+            return GnuObjCPPCompiler(exelist, version, is_cross, exe_wrap, defines)
         if out.startswith('Apple LLVM'):
             return ClangObjCPPCompiler(exelist, version, CLANG_OSX, is_cross, exe_wrap)
-        if 'apple' in out and 'Free Software Foundation' in out:
-            return GnuObjCPPCompiler(exelist, version, is_cross, exe_wrap)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
 
     def detect_java_compiler(self):

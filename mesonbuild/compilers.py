@@ -341,6 +341,12 @@ class Compiler():
     def get_exelist(self):
         return self.exelist[:]
 
+    def get_define(self, *args, **kwargs):
+        raise EnvironmentException('%s does not support get_define.' % self.id)
+
+    def has_define(self, *args, **kwargs):
+        raise EnvironmentException('%s does not support has_define.' % self.id)
+
     def get_always_args(self):
         return []
 
@@ -1880,9 +1886,10 @@ def get_gcc_soname_args(gcc_type, shlib_name, path, soversion):
 
 class GnuCompiler:
     # Functionality that is common to all GNU family compilers.
-    def __init__(self, gcc_type):
+    def __init__(self, gcc_type, defines):
         self.id = 'gcc'
         self.gcc_type = gcc_type
+        self.defines = defines or {}
         self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage',
                              'b_colorout', 'b_ndebug']
         if self.gcc_type != GCC_OSX:
@@ -1901,6 +1908,13 @@ class GnuCompiler:
             # https://gcc.gnu.org/gcc-4.8/changes.html
             args[args.index('-Wpedantic')] = '-pedantic'
         return args
+
+    def has_define(self, define):
+        return define in self.defines
+
+    def get_define(self, define):
+        if define in self.defines:
+            return defines[define]
 
     def get_pic_args(self):
         if self.gcc_type == GCC_MINGW:
@@ -1926,9 +1940,9 @@ class GnuCompiler:
         return get_gcc_soname_args(self.gcc_type, shlib_name, path, soversion)
 
 class GnuCCompiler(GnuCompiler, CCompiler):
-    def __init__(self, exelist, version, gcc_type, is_cross, exe_wrapper=None):
+    def __init__(self, exelist, version, gcc_type, is_cross, exe_wrapper=None, defines=None):
         CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
-        GnuCompiler.__init__(self, gcc_type)
+        GnuCompiler.__init__(self, gcc_type, defines)
         # Gcc can do asm, too.
         self.can_compile_suffixes.add('s')
         self.warn_args = {'1': ['-Wall', '-Winvalid-pch'],
@@ -1960,9 +1974,9 @@ class GnuCCompiler(GnuCompiler, CCompiler):
 
 class GnuCPPCompiler(GnuCompiler, CPPCompiler):
 
-    def __init__(self, exelist, version, gcc_type, is_cross, exe_wrap):
+    def __init__(self, exelist, version, gcc_type, is_cross, exe_wrap, defines):
         CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
-        GnuCompiler.__init__(self, gcc_type)
+        GnuCompiler.__init__(self, gcc_type, defines)
         self.warn_args = {'1': ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor'],
                           '2': ['-Wall', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor'],
                           '3': ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor']}
@@ -1998,22 +2012,22 @@ class GnuCPPCompiler(GnuCompiler, CPPCompiler):
 
 class GnuObjCCompiler(GnuCompiler,ObjCCompiler):
 
-    def __init__(self, exelist, version, is_cross, exe_wrapper=None):
+    def __init__(self, exelist, version, is_cross, exe_wrapper=None, defines=None):
         ObjCCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
         # Not really correct, but GNU objc is only used on non-OSX non-win. File a bug
         # if this breaks your use case.
-        GnuCompiler.__init__(self, GCC_STANDARD)
+        GnuCompiler.__init__(self, GCC_STANDARD, defines)
         self.warn_args = {'1': ['-Wall', '-Winvalid-pch'],
                           '2': ['-Wall', '-Wextra', '-Winvalid-pch'],
                           '3' : ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch']}
 
 class GnuObjCPPCompiler(GnuCompiler, ObjCPPCompiler):
 
-    def __init__(self, exelist, version, is_cross, exe_wrapper=None):
-        ObjCCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
+    def __init__(self, exelist, version, is_cross, exe_wrapper=None, defines=None):
+        ObjCPPCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
         # Not really correct, but GNU objc is only used on non-OSX non-win. File a bug
         # if this breaks your use case.
-        GnuCompiler.__init__(self, GCC_STANDARD)
+        GnuCompiler.__init__(self, GCC_STANDARD, defines)
         self.warn_args = {'1': ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor'],
                           '2': ['-Wall', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor'],
                           '3' : ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor']}
@@ -2226,10 +2240,18 @@ end program prog
 
 
 class GnuFortranCompiler(FortranCompiler):
-    def __init__(self, exelist, version, gcc_type, is_cross, exe_wrapper=None):
+    def __init__(self, exelist, version, gcc_type, is_cross, exe_wrapper=None, defines=None):
         super().__init__(exelist, version, is_cross, exe_wrapper=None)
         self.gcc_type = gcc_type
+        self.defines = defines or {}
         self.id = 'gcc'
+
+    def has_define(self, define):
+        return define in self.defines
+
+    def get_define(self, define):
+        if define in self.defines:
+            return defines[define]
 
     def get_always_args(self):
         return ['-pipe']
