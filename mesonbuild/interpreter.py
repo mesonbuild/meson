@@ -1818,9 +1818,12 @@ class Interpreter():
                 raise
             else:
                 return None
-        dep = self.subprojects[dirname].get_variable_method([varname], {})
+        try:
+            dep = self.subprojects[dirname].get_variable_method([varname], {})
+        except KeyError:
+            raise InterpreterException('Fallback variable {!r} in the subproject {!r} does not exist'.format(varname, dirname))
         if not isinstance(dep, (DependencyHolder, InternalDependencyHolder)):
-            raise InterpreterException('Fallback variable is not a dependency object.')
+            raise InterpreterException('Fallback variable {!r} in the subproject {!r} is not a dependency object.'.format(varname, dirname))
         # Check if the version of the declared dependency matches what we want
         if 'version' in kwargs:
             wanted = kwargs['version']
