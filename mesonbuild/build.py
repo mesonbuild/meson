@@ -325,15 +325,30 @@ class BuildTarget():
                 self.compilers[lang] = compiler
 
     def validate_sources(self):
-        if len(self.sources) > 0:
+        if len(self.sources) == 0:
+            return
+        for lang in ('cs', 'java'):
+            if lang in self.compilers:
+                check_sources = list(self.sources)
+                compiler = self.compilers[lang]
+                if not self.can_compile_remove_sources(compiler, check_sources):
+                    m = 'No {} sources found in target {!r}'.format(lang, self.name)
+                    raise InvalidArguments(m)
+                if check_sources:
+                    m = '{0} targets can only contain {0} files:\n'.format(lang.capitalize())
+                    m += '\n'.join([repr(c) for c in check_sources])
+                    raise InvalidArguments(m)
+                # CSharp and Java targets can't contain any other file types
+                assert(len(self.compilers) == 1)
+                return
+        if 'rust' in self.compilers:
             firstname = self.sources[0]
             if isinstance(firstname, File):
                 firstname = firstname.fname
             first = os.path.split(firstname)[1]
             (base, suffix) = os.path.splitext(first)
-            if suffix == '.rs':
-                if self.name != base:
-                    raise InvalidArguments('In Rust targets, the first source file must be named projectname.rs.')
+            if suffix != '.rs' or self.name != base:
+                raise InvalidArguments('In Rust targets, the first source file must be named projectname.rs.')
 
     def get_original_kwargs(self):
         return self.kwargs
