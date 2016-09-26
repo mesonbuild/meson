@@ -820,14 +820,14 @@ int dummy;
         outfile.write('\n')
 
     def split_vala_sources(self, sources):
-        src = []
+        other_src = []
         vapi_src = []
         for s in sources:
             if s.endswith('.vapi'):
                 vapi_src.append(s)
             else:
-                src.append(s)
-        return (src, vapi_src)
+                other_src.append(s)
+        return (other_src, vapi_src)
 
     def determine_dep_vapis(self, target):
         result = []
@@ -845,14 +845,10 @@ int dummy;
     def generate_vala_compile(self, target, outfile):
         """Vala is compiled into C. Set up all necessary build steps here."""
         valac = target.compilers['vala']
-        (src, vapi_src) = self.split_vala_sources(target.get_sources())
+        (other_src, vapi_src) = self.split_vala_sources(target.get_sources())
         vapi_src = [x.rel_to_builddir(self.build_to_src) for x in vapi_src]
         extra_dep_files = []
-        vala_input_files = []
-        for s in src:
-            if s.endswith('.vala'):
-                vala_input_files.append(s.rel_to_builddir(self.build_to_src))
-        if len(src) == 0:
+        if len(other_src) == 0:
             raise InvalidArguments('Vala library has no Vala source files.')
         namebase = target.name
         base_h = namebase + '.h'
@@ -872,9 +868,23 @@ int dummy;
             args += ['-H', hname]
             args += ['--library=' + target.name]
         args += ['--vapi=' + os.path.join('..', base_vapi)]
-        for src in vala_input_files:
-            namebase = os.path.splitext(os.path.split(src)[1])[0] + '.c'
-            full_c = os.path.join(self.get_target_private_dir(target), namebase)
+        vala_src = []
+        for s in other_src:
+            if not s.endswith('.vala'):
+                continue
+            vala_file = s.rel_to_builddir(self.build_to_src)
+            vala_src.append(vala_file)
+            # Figure out where the Vala compiler will write the compiled C file
+            dirname, basename = os.path.split(vala_file)
+            # If the Vala file is in a subdir of the build dir (in our case
+            # because it was generated/built by something else), the subdir path
+            # components will be preserved in the output path. But if the Vala
+            # file is outside the build directory, the path components will be
+            # stripped and just the basename will be used.
+            c_file = os.path.splitext(basename)[0] + '.c'
+            if s.is_built:
+                c_file = os.path.join(dirname, c_file)
+            full_c = os.path.join(self.get_target_private_dir(target), c_file)
             generated_c_files.append(full_c)
             outputs.append(full_c)
         if self.environment.coredata.get_builtin_option('werror'):
@@ -900,7 +910,7 @@ int dummy;
         args += dependency_vapis
         element = NinjaBuildElement(self.all_outputs, outputs,
                                     valac.get_language() + '_COMPILER',
-                                    vala_input_files + vapi_src)
+                                    vala_src + vapi_src)
         element.add_item('ARGS', args)
         element.add_dep(extra_dep_files)
         element.write(outfile)
