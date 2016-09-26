@@ -103,22 +103,33 @@ class GnomeModule:
             depends.append(lib)
         return link_command
 
-    def get_include_args(self, state, include_dirs):
+    def get_include_args(self, state, include_dirs, prefix='-I'):
         if not include_dirs:
             return []
 
+        build_to_src = os.path.relpath(state.environment.get_source_dir(),
+                                       state.environment.get_build_dir())
         dirs_str = []
         for incdirs in include_dirs:
             if hasattr(incdirs, "held_object"):
                 dirs = incdirs.held_object
             else:
                 dirs = incdirs
-            for incdir in dirs.get_incdirs():
-                if os.path.isabs(incdir):
-                    dirs_str += ['-I%s' % os.path.join(incdir)]
-                else:
-                    dirs_str += ['-I%s' % os.path.join(state.environment.get_source_dir(),
-                                                        dirs.curdir, incdir)]
+
+            if isinstance(dirs, str):
+                dirs_str += ['%s%s' % (prefix, dirs)]
+                continue
+
+            # Should be build.IncludeDirs object.
+            basedir = dirs.get_curdir()
+            for d in dirs.get_incdirs():
+                expdir =  os.path.join(basedir, d)
+                srctreedir = os.path.join(build_to_src, expdir)
+                dirs_str += ['%s%s' % (prefix, expdir),
+                             '%s%s' % (prefix, srctreedir)]
+            for d in dirs.get_extra_build_dirs():
+                dirs_str += ['%s%s' % (prefix, d)]
+
         return dirs_str
 
     def generate_gir(self, state, args, kwargs):
@@ -143,6 +154,7 @@ class GnomeModule:
         libsources = kwargs.pop('sources')
         girfile = '%s-%s.gir' % (ns, nsversion)
         depends = [girtarget]
+        gir_inc_dirs = []
 
         scan_command = ['g-ir-scanner', '@INPUT@']
         scan_command += pkgargs
@@ -151,7 +163,7 @@ class GnomeModule:
 
         extra_args = mesonlib.stringlistify(kwargs.pop('extra_args', []))
         scan_command += extra_args
-        scan_command += self.get_include_args(state, girtarget.include_dirs)
+        scan_command += self.get_include_args(state, girtarget.get_include_dirs())
 
         if 'link_with' in kwargs:
             link_with = kwargs.pop('link_with')
@@ -162,12 +174,25 @@ class GnomeModule:
 
         if 'includes' in kwargs:
             includes = kwargs.pop('includes')
-            if isinstance(includes, str):
-                scan_command += ['--include=%s' % includes]
-            elif isinstance(includes, list):
-                scan_command += ['--include=%s' % inc for inc in includes]
-            else:
-                raise MesonException('Gir includes must be str or list')
+            if not isinstance(includes, list):
+                includes = [includes]
+            for inc in includes:
+                if hasattr(inc, 'held_object'):
+                    inc = inc.held_object
+                if isinstance(inc, str):
+                    scan_command += ['--include=%s' % (inc, )]
+                elif isinstance(inc, GirTarget):
+                    gir_inc_dirs += [
+                        os.path.join(state.environment.get_build_dir(),
+                                     inc.get_subdir()),
+                    ]
+                    scan_command += [
+                        "--include=%s" % (inc.get_basename()[:-4], ),
+                    ]
+                    depends += [inc]
+                else:
+                    raise MesonException(
+                        'Gir includes must be str, GirTarget, or list of them')
         if state.global_args.get('c'):
             scan_command += ['--cflags-begin']
             scan_command += state.global_args['c']
@@ -191,54 +216,69 @@ class GnomeModule:
             else:
                 raise MesonException('Gir export packages must be str or list')
 
-        deps = None
-        if 'dependencies' in kwargs:
-            deps = kwargs.pop('dependencies')
-            if not isinstance (deps, list):
-                deps = [deps]
-            for dep in deps:
-                if isinstance(dep.held_object, dependencies.InternalDependency):
-                    scan_command += self.get_include_args(state, dep.held_object.include_directories)
-                    for lib in dep.held_object.libraries:
-                        scan_command += self.get_link_args(state, lib.held_object, depends)
-                    for source in dep.held_object.sources:
-                        if isinstance(source.held_object, GirTarget):
-                            scan_command += ["--add-include-path=%s" %
-                                                os.path.join(state.environment.get_build_dir(),
-                                                             source.held_object.get_subdir())]
-                elif isinstance(dep.held_object, dependencies.PkgConfigDependency):
-                    for lib in dep.held_object.libs:
-                        if os.path.isabs(lib) and dep.held_object.is_libtool:
-                            scan_command += ["-L%s" % os.path.dirname(lib)]
-                            libname = os.path.basename(lib)
-                            if libname.startswith("lib"):
-                                libname = libname[3:]
-                            libname = libname.split(".so")[0]
-                            lib = "-l%s" % libname
-                        # Hack to avoid passing some compiler options in
-                        if lib.startswith("-W"):
-                            continue
-                            scan_command += [lib]
+        deps = kwargs.pop('dependencies', [])
+        if not isinstance(deps, list):
+            deps = [deps]
+        deps = (girtarget.get_all_link_deps() + girtarget.get_external_deps() +
+                deps)
+        for dep in deps:
+            if hasattr(dep, 'held_object'):
+                dep = dep.held_object
+            if isinstance(dep, dependencies.InternalDependency):
+                scan_command += self.get_include_args(
+                    state,
+                    dep.include_directories)
+                for lib in dep.libraries:
+                    scan_command += self.get_link_args(state, lib.held_object,
+                                                       depends)
+                for source in dep.sources:
+                    if isinstance(source.held_object, GirTarget):
+                        scan_command += [
+                            "--add-include-path=%s" % (
+                                os.path.join(state.environment.get_build_dir(),
+                                             source.held_object.get_subdir()),
+                            )
+                        ]
+            # This should be any dependency other than an internal one.
+            elif isinstance(dep, dependencies.Dependency):
+                scan_command += dep.get_compile_args()
+                for lib in dep.get_link_args():
+                    if (os.path.isabs(lib) and
+                            # For PkgConfigDependency only:
+                            getattr(dep, 'is_libtool', False)):
+                        scan_command += ["-L%s" % os.path.dirname(lib)]
+                        libname = os.path.basename(lib)
+                        if libname.startswith("lib"):
+                            libname = libname[3:]
+                        libname = libname.split(".so")[0]
+                        lib = "-l%s" % libname
+                    # Hack to avoid passing some compiler options in
+                    if lib.startswith("-W"):
+                        continue
+                    scan_command += [lib]
 
-                    girdir = dep.held_object.get_variable ("girdir")
+                if isinstance(dep, dependencies.PkgConfigDependency):
+                    girdir = dep.get_variable("girdir")
                     if girdir:
-                        scan_command += ["--add-include-path=%s" % girdir]
-                else:
-                    mlog.log('dependency %s not handled to build gir files' % dep)
-                    continue
+                        scan_command += ["--add-include-path=%s" % (girdir, )]
+            elif isinstance(dep, (build.StaticLibrary, build.SharedLibrary)):
+                for incd in dep.get_include_dirs():
+                    scan_command += incd.get_incdirs()
+            else:
+                mlog.log('dependency %s not handled to build gir files' % dep)
+                continue
 
-        inc_dirs = None
-        if kwargs.get('include_directories'):
-            inc_dirs = kwargs.pop('include_directories')
+        inc_dirs = kwargs.pop('include_directories', [])
+        if not isinstance(inc_dirs, list):
+            inc_dirs = [inc_dirs]
+        for incd in inc_dirs:
+            if not isinstance(incd.held_object, (str, build.IncludeDirs)):
+                raise MesonException(
+                    'Gir include dirs should be include_directories().')
+        scan_command += self.get_include_args(state, inc_dirs)
+        scan_command += self.get_include_args(state, gir_inc_dirs + inc_dirs,
+                                              prefix='--add-include-path=')
 
-            if not isinstance(inc_dirs, list):
-                inc_dirs = [inc_dirs]
-
-            for ind in inc_dirs:
-                if isinstance(ind.held_object, build.IncludeDirs):
-                    scan_command += ['--add-include-path=%s' % inc for inc in ind.held_object.get_incdirs()]
-                else:
-                    raise MesonException('Gir include dirs should be include_directories()')
         if isinstance(girtarget, build.Executable):
             scan_command += ['--program', girtarget]
         elif isinstance(girtarget, build.SharedLibrary):
@@ -257,22 +297,24 @@ class GnomeModule:
 
         typelib_output = '%s-%s.typelib' % (ns, nsversion)
         typelib_cmd = ['g-ir-compiler', scan_target, '--output', '@OUTPUT@']
-        if inc_dirs:
-            for incd in inc_dirs:
-                typelib_cmd += ['--includedir=%s' % inc for inc in
-                                incd.held_object.get_incdirs()]
-        if deps:
-            for dep in deps:
-                if isinstance(dep.held_object, dependencies.InternalDependency):
-                    for source in dep.held_object.sources:
-                        if isinstance(source.held_object, GirTarget):
-                            typelib_cmd += ["--includedir=%s" %
-                                                os.path.join(state.environment.get_build_dir(),
-                                                             source.held_object.get_subdir())]
-                elif isinstance(dep.held_object, dependencies.PkgConfigDependency):
-                    girdir = dep.held_object.get_variable ("girdir")
-                    if girdir:
-                        typelib_cmd += ["--includedir=%s" % girdir]
+        typelib_cmd += self.get_include_args(state, gir_inc_dirs,
+                                             prefix='--includedir=')
+        for dep in deps:
+            if hasattr(dep, 'held_object'):
+                dep = dep.held_object
+            if isinstance(dep, dependencies.InternalDependency):
+                for source in dep.sources:
+                    if isinstance(source.held_object, GirTarget):
+                        typelib_cmd += [
+                            "--includedir=%s" % (
+                                os.path.join(state.environment.get_build_dir(),
+                                             source.held_object.get_subdir()),
+                            )
+                        ]
+            elif isinstance(dep, dependencies.PkgConfigDependency):
+                girdir = dep.get_variable("girdir")
+                if girdir:
+                    typelib_cmd += ["--includedir=%s" % (girdir, )]
 
         kwargs['output'] = typelib_output
         kwargs['command'] = typelib_cmd
