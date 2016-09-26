@@ -1674,6 +1674,7 @@ rule FORTRAN_DEP_HACK
             element.add_orderdep(d)
         element.add_orderdep(pch_dep)
         element.add_orderdep(extra_orderdeps)
+        commands = self.dedup_arguments(commands)
         for i in self.get_fortran_orderdeps(target, compiler):
             element.add_orderdep(i)
         element.add_item('DEPFILE', dep_file)
@@ -1836,7 +1837,7 @@ rule FORTRAN_DEP_HACK
         custom_target_libraries = self.get_custom_target_provided_libraries(target)
         commands += extra_args
         commands += custom_target_libraries
-        commands = linker.unix_link_flags_to_native(commands)
+        commands = linker.unix_link_flags_to_native(self.dedup_arguments(commands))
         dep_targets = [self.get_dependency_filename(t) for t in dependencies]
         dep_targets += [os.path.join(self.environment.source_dir,
                                      target.subdir, t) for t in target.link_depends]
