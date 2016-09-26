@@ -17,8 +17,14 @@
 from mesonbuild import mesonmain
 import sys, os
 
-thisfile = __file__
-if not os.path.isabs(thisfile):
-    thisfile = os.path.normpath(os.path.join(os.getcwd(), thisfile))
+def main():
+    thisfile = __file__
+    if not os.path.isabs(thisfile):
+        thisfile = os.path.normpath(os.path.join(os.getcwd(), thisfile))
+    if __package__ == '':
+        thisfile = os.path.dirname(thisfile)
 
-sys.exit(mesonmain.run(thisfile, sys.argv[1:]))
+    sys.exit(mesonmain.run(thisfile, sys.argv[1:]))
+
+if __name__ == '__main__':
+    main()
