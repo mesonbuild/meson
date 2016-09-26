@@ -13,6 +13,14 @@ if compiler.compiles(code, name : 'should succeed') == false
   error('Compiler is fail.')
 endif
 
+if compiler.compiles(files('valid.c'), name : 'should succeed') == false
+  error('Compiler is fail.')
+endif
+
 if compiler.compiles(breakcode, name : 'should fail')
+  error('Compiler returned true on broken code.')
+endif
+
+if compiler.compiles(files('invalid.c'), name : 'should fail')
   error('Compiler returned true on broken code.')
 endif
