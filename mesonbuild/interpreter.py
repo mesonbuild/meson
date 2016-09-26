@@ -698,8 +698,12 @@ class CompilerHolder(InterpreterObject):
     def run_method(self, args, kwargs):
         if len(args) != 1:
             raise InterpreterException('Run method takes exactly one positional argument.')
-        check_stringlist(args)
         code = args[0]
+        if isinstance(code, mesonlib.File):
+            code = mesonlib.File.from_absolute_file(
+                code.rel_to_builddir(self.environment.source_dir))
+        elif not isinstance(code, str):
+            raise InvalidArguments('Argument must be string or file.')
         testname = kwargs.get('name', '')
         if not isinstance(testname, str):
             raise InterpreterException('Testname argument must be a string.')
@@ -819,8 +823,12 @@ class CompilerHolder(InterpreterObject):
     def compiles_method(self, args, kwargs):
         if len(args) != 1:
             raise InterpreterException('compiles method takes exactly one argument.')
-        check_stringlist(args)
         code = args[0]
+        if isinstance(code, mesonlib.File):
+            code = mesonlib.File.from_absolute_file(
+                code.rel_to_builddir(self.environment.source_dir))
+        elif not isinstance(code, str):
+            raise InvalidArguments('Argument must be string or file.')
         testname = kwargs.get('name', '')
         if not isinstance(testname, str):
             raise InterpreterException('Testname argument must be a string.')
@@ -838,8 +846,12 @@ class CompilerHolder(InterpreterObject):
     def links_method(self, args, kwargs):
         if len(args) != 1:
             raise InterpreterException('links method takes exactly one argument.')
-        check_stringlist(args)
         code = args[0]
+        if isinstance(code, mesonlib.File):
+            code = mesonlib.File.from_absolute_file(
+                code.rel_to_builddir(self.environment.source_dir))
+        elif not isinstance(code, str):
+            raise InvalidArguments('Argument must be string or file.')
         testname = kwargs.get('name', '')
         if not isinstance(testname, str):
             raise InterpreterException('Testname argument must be a string.')

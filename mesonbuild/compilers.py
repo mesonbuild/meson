@@ -614,10 +614,13 @@ int main () {{ {1}; }}'''
 
         try:
             with tempfile.TemporaryDirectory() as tmpdirname:
-                srcname = os.path.join(tmpdirname,
-                                       'testfile.' + self.default_suffix)
-                with open(srcname, 'w') as ofile:
-                    ofile.write(code)
+                if isinstance(code, str):
+                    srcname = os.path.join(tmpdirname,
+                                           'testfile.' + self.default_suffix)
+                    with open(srcname, 'w') as ofile:
+                        ofile.write(code)
+                elif isinstance(code, mesonlib.File):
+                    srcname = code.fname
 
                 # Extension only matters if running results; '.exe' is
                 # guaranteed to be executable on every platform.
