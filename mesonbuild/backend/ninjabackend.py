@@ -1820,6 +1820,9 @@ rule FORTRAN_DEP_HACK
         commands += linker.get_buildtype_linker_args(self.environment.coredata.get_builtin_option('buildtype'))
         commands += linker.get_option_link_args(self.environment.coredata.compiler_options)
         commands += self.get_link_debugfile_args(linker, target, outname)
+        if (isinstance(target, (build.SharedLibrary, build.Executable)) and
+                target.allow_undefined):
+            commands += linker.get_linker_allow_undefined()
         if not(isinstance(target, build.StaticLibrary)):
             commands += self.environment.coredata.external_link_args[linker.get_language()]
         if isinstance(target, build.Executable):

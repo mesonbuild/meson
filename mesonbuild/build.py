@@ -33,6 +33,7 @@ known_basic_kwargs = {'install' : True,
                       'link_with' : True,
                       'include_directories': True,
                       'dependencies' : True,
+                      'allow_undefined' : True,
                       'install_dir' : True,
                       'main_class' : True,
                       'gui_app' : True,
@@ -235,6 +236,8 @@ class BuildTarget():
         # The file with debugging symbols
         self.debug_filename = None
         self.need_install = False
+        # Whether to force allow/disallow undefined references
+        self.allow_undefined = None
         self.pch = {}
         self.extra_args = {}
         self.generated = []
@@ -527,6 +530,14 @@ class BuildTarget():
                     raise InvalidArguments('name_suffix must be a string.')
                 self.suffix = name_suffix
                 self.name_suffix_set = True
+        if 'allow_undefined' in kwargs:
+            if isinstance(self, StaticLibrary):
+                raise InvalidArguments('Argument allow_undefined cannot be '
+                                       'used on static libraries.')
+            self.allow_undefined = kwargs['allow_undefined']
+            if not isinstance(self.allow_undefined, bool):
+                raise InvalidArguments(
+                    'Argument allow_undefined is not a boolean.')
         if isinstance(self, StaticLibrary):
             # You can't disable PIC on OS X. The compiler ignores -fno-PIC.
             # PIC is always on for Windows (all code is position-independent
