@@ -67,7 +67,7 @@ parser.add_argument('directories', nargs='*')
 
 class MesonApp():
 
-    def __init__(self, dir1, dir2, script_file, handshake, options, original_cmd_line_args):
+    def __init__(self, dir1, dir2, script_launcher, handshake, options, original_cmd_line_args):
         (self.source_dir, self.build_dir) = self.validate_dirs(dir1, dir2, handshake)
         if not os.path.isabs(options.prefix):
             raise RuntimeError('--prefix value \'{0}\' must be an absolute path: '.format(options.prefix))
@@ -78,7 +78,7 @@ class MesonApp():
                 pass
             else:
                 options.prefix = options.prefix[:-1]
-        self.meson_script_file = script_file
+        self.meson_script_launcher = script_launcher
         self.options = options
         self.original_cmd_line_args = original_cmd_line_args
 
@@ -126,7 +126,7 @@ itself as required.'''
             env.coredata.pkgconf_envvar = curvar
 
     def generate(self):
-        env = environment.Environment(self.source_dir, self.build_dir, self.meson_script_file, self.options, self.original_cmd_line_args)
+        env = environment.Environment(self.source_dir, self.build_dir, self.meson_script_launcher, self.options, self.original_cmd_line_args)
         mlog.initialize(env.get_log_dir())
         mlog.debug('Build started at', datetime.datetime.now().isoformat())
         mlog.debug('Python binary:', sys.executable)
@@ -264,12 +264,6 @@ def run(mainfile, args):
             dir2 = args[1]
         else:
             dir2 = '.'
-    while os.path.islink(mainfile):
-        resolved = os.readlink(mainfile)
-        if resolved[0] != '/':
-            mainfile = os.path.join(os.path.dirname(mainfile), resolved)
-        else:
-            mainfile = resolved
     try:
         app = MesonApp(dir1, dir2, mainfile, handshake, options, sys.argv)
     except Exception as e:

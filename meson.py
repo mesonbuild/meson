@@ -15,13 +15,11 @@
 # limitations under the License.
 
 from mesonbuild import mesonmain
-import sys, os
+import sys, os, os.path
 
-thisfile = __file__
-if not os.path.isabs(thisfile):
-    thisfile = os.path.normpath(os.path.join(os.getcwd(), thisfile))
+launcher = sys.argv[0]
+# resolve the command path if not launched from $PATH
+if os.path.split(launcher)[0]:
+    launcher = os.path.realpath(launcher)
 
-# The first argument *must* be an absolute path because
-# the user may have launched the program from a dir
-# that is not in path.
-sys.exit(mesonmain.run(thisfile, sys.argv[1:]))
+sys.exit(mesonmain.run(launcher, sys.argv[1:]))
