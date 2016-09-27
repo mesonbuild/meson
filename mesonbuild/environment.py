@@ -179,12 +179,10 @@ class Environment():
     coredata_file = os.path.join(private_dir, 'coredata.dat')
     version_regex = '\d+(\.\d+)+(-[a-zA-Z0-9]+)?'
 
-    def __init__(self, source_dir, build_dir, main_script_file, options, original_cmd_line_args):
-        assert(os.path.isabs(main_script_file))
-        assert(not os.path.islink(main_script_file))
+    def __init__(self, source_dir, build_dir, main_script_launcher, options, original_cmd_line_args):
         self.source_dir = source_dir
         self.build_dir = build_dir
-        self.meson_script_file = main_script_file
+        self.meson_script_launcher = main_script_launcher
         self.scratch_dir = os.path.join(build_dir, Environment.private_dir)
         self.log_dir = os.path.join(build_dir, Environment.log_dir)
         os.makedirs(self.scratch_dir, exist_ok=True)
@@ -198,7 +196,7 @@ class Environment():
             # re-initialized with project options by the interpreter during
             # build file parsing.
             self.coredata = coredata.CoreData(options)
-            self.coredata.meson_script_file = self.meson_script_file
+            self.coredata.meson_script_launcher = self.meson_script_launcher
             self.first_invocation = True
         if self.coredata.cross_file:
             self.cross_info = CrossBuildInfo(self.coredata.cross_file)
@@ -253,7 +251,7 @@ class Environment():
         return self.coredata
 
     def get_build_command(self):
-        return self.meson_script_file
+        return self.meson_script_launcher
 
     def is_header(self, fname):
         return is_header(fname)
