@@ -541,7 +541,10 @@ class GnomeModule:
             # Never install the C file. Complain on bug tracker if you need it.
             custom_kwargs['install'] = False
             if h_template is not None:
-                custom_kwargs['depends'] = h_target
+                if 'depends' in custom_kwargs:
+                    custom_kwargs['depends'] += [h_target]
+                else:
+                    custom_kwargs['depends'] = h_target
             c_target = self.make_mkenum_custom_target(state, c_sources,
                                                       c_output, c_cmd,
                                                       custom_kwargs)
