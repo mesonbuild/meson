@@ -27,6 +27,17 @@ pip will download the package automatically). The exact command to
 type to install with pip can very between systems, be sure to use the
 Python 3 version of pip.
 
+#### Creating a standalone script
+
+Meson can be run as a [Python zip
+app](https://docs.python.org/3/library/zipapp.html). To generate the
+executable run the following command:
+
+    python3 -m zipapp -p '/usr/bin/env python3' -m meson:main -o meson <source checkout>
+
+Note that the source checkout may not be `meson` because it would
+clash with the generated binary name.
+
 ####Running
 
 Meson requires that you have a source directory and a build directory
