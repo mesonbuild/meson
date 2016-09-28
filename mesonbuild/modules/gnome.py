@@ -16,7 +16,7 @@
 functionality such as gobject-introspection and gresources.'''
 
 from .. import build
-import os, sys
+import os
 import subprocess
 from ..mesonlib import MesonException
 from .. import dependencies
@@ -94,21 +94,20 @@ class GnomeModule:
 
         return stdout.split('\n')[:-1]
 
-    def get_link_args(self, state, lib, depends):
+    def get_link_args(self, state, lib, depends=None):
         link_command = ['-l%s' % lib.name]
         if isinstance(lib, build.SharedLibrary):
             link_command += ['-L%s' %
                     os.path.join(state.environment.get_build_dir(),
                         lib.subdir)]
-            depends.append(lib)
+            if depends:
+                depends.append(lib)
         return link_command
 
     def get_include_args(self, state, include_dirs, prefix='-I'):
         if not include_dirs:
             return []
 
-        build_to_src = os.path.relpath(state.environment.get_source_dir(),
-                                       state.environment.get_build_dir())
         dirs_str = []
         for incdirs in include_dirs:
             if hasattr(incdirs, "held_object"):
@@ -124,13 +123,71 @@ class GnomeModule:
             basedir = dirs.get_curdir()
             for d in dirs.get_incdirs():
                 expdir =  os.path.join(basedir, d)
-                srctreedir = os.path.join(build_to_src, expdir)
-                dirs_str += ['%s%s' % (prefix, expdir),
+                srctreedir = os.path.join(state.environment.get_source_dir(), expdir)
+                buildtreedir = os.path.join(state.environment.get_build_dir(), expdir)
+                dirs_str += ['%s%s' % (prefix, buildtreedir),
                              '%s%s' % (prefix, srctreedir)]
             for d in dirs.get_extra_build_dirs():
                 dirs_str += ['%s%s' % (prefix, d)]
 
         return dirs_str
+
+    def get_dependencies_flags(self, deps, state, depends=None):
+        cflags = set()
+        ldflags = set()
+        gi_includes = set()
+        if not isinstance(deps, list):
+            deps = [deps]
+
+        for dep in deps:
+            if hasattr(dep, 'held_object'):
+                dep = dep.held_object
+            if isinstance(dep, dependencies.InternalDependency):
+                cflags.update(self.get_include_args( state, dep.include_directories))
+                for lib in dep.libraries:
+                    ldflags.update(self.get_link_args(state, lib.held_object, depends))
+                    libdepflags = self.get_dependencies_flags(lib.held_object.get_external_deps(), state, depends)
+                    cflags.update(libdepflags[0])
+                    ldflags.update(libdepflags[1])
+                    gi_includes.update(libdepflags[2])
+                extdepflags = self.get_dependencies_flags(dep.ext_deps, state, depends)
+                cflags.update(extdepflags[0])
+                ldflags.update(extdepflags[1])
+                gi_includes.update(extdepflags[2])
+                for source in dep.sources:
+                    if isinstance(source.held_object, GirTarget):
+                        gi_includes.update([os.path.join(state.environment.get_build_dir(),
+                                        source.held_object.get_subdir())])
+            # This should be any dependency other than an internal one.
+            elif isinstance(dep, dependencies.Dependency):
+                cflags.update(dep.get_compile_args())
+                for lib in dep.get_link_args():
+                    if (os.path.isabs(lib) and
+                            # For PkgConfigDependency only:
+                            getattr(dep, 'is_libtool', False)):
+                        ldflags.update(["-L%s" % os.path.dirname(lib)])
+                        libname = os.path.basename(lib)
+                        if libname.startswith("lib"):
+                            libname = libname[3:]
+                        libname = libname.split(".so")[0]
+                        lib = "-l%s" % libname
+                    # Hack to avoid passing some compiler options in
+                    if lib.startswith("-W"):
+                        continue
+                    ldflags.update([lib])
+
+                if isinstance(dep, dependencies.PkgConfigDependency):
+                    girdir = dep.get_variable("girdir")
+                    if girdir:
+                        gi_includes.update([girdir])
+            elif isinstance(dep, (build.StaticLibrary, build.SharedLibrary)):
+                for incd in dep.get_include_dirs():
+                    cflags.update(incd.get_incdirs())
+            else:
+                mlog.log('dependency %s not handled to build gir files' % dep)
+                continue
+
+        return cflags, ldflags, gi_includes
 
     def generate_gir(self, state, args, kwargs):
         if len(args) != 1:
@@ -221,52 +278,10 @@ class GnomeModule:
             deps = [deps]
         deps = (girtarget.get_all_link_deps() + girtarget.get_external_deps() +
                 deps)
-        for dep in deps:
-            if hasattr(dep, 'held_object'):
-                dep = dep.held_object
-            if isinstance(dep, dependencies.InternalDependency):
-                scan_command += self.get_include_args(
-                    state,
-                    dep.include_directories)
-                for lib in dep.libraries:
-                    scan_command += self.get_link_args(state, lib.held_object,
-                                                       depends)
-                for source in dep.sources:
-                    if isinstance(source.held_object, GirTarget):
-                        scan_command += [
-                            "--add-include-path=%s" % (
-                                os.path.join(state.environment.get_build_dir(),
-                                             source.held_object.get_subdir()),
-                            )
-                        ]
-            # This should be any dependency other than an internal one.
-            elif isinstance(dep, dependencies.Dependency):
-                scan_command += dep.get_compile_args()
-                for lib in dep.get_link_args():
-                    if (os.path.isabs(lib) and
-                            # For PkgConfigDependency only:
-                            getattr(dep, 'is_libtool', False)):
-                        scan_command += ["-L%s" % os.path.dirname(lib)]
-                        libname = os.path.basename(lib)
-                        if libname.startswith("lib"):
-                            libname = libname[3:]
-                        libname = libname.split(".so")[0]
-                        lib = "-l%s" % libname
-                    # Hack to avoid passing some compiler options in
-                    if lib.startswith("-W"):
-                        continue
-                    scan_command += [lib]
-
-                if isinstance(dep, dependencies.PkgConfigDependency):
-                    girdir = dep.get_variable("girdir")
-                    if girdir:
-                        scan_command += ["--add-include-path=%s" % (girdir, )]
-            elif isinstance(dep, (build.StaticLibrary, build.SharedLibrary)):
-                for incd in dep.get_include_dirs():
-                    scan_command += incd.get_incdirs()
-            else:
-                mlog.log('dependency %s not handled to build gir files' % dep)
-                continue
+        cflags, ldflags, gi_includes = self.get_dependencies_flags(deps, state, depends)
+        scan_command += list(cflags) + list(ldflags)
+        for i in gi_includes:
+            scan_command += ['--add-include-path=%s' % i]
 
         inc_dirs = kwargs.pop('include_directories', [])
         if not isinstance(inc_dirs, list):
@@ -377,11 +392,39 @@ class GnomeModule:
                 '--modulename=' + modulename]
         args += self.unpack_args('--htmlargs=', 'html_args', kwargs)
         args += self.unpack_args('--scanargs=', 'scan_args', kwargs)
+        args += self.unpack_args('--scanobjsargs=', 'scanobjs_args', kwargs)
+        args += self.unpack_args('--gobjects-types-file=', 'gobject_typesfile', kwargs, state)
         args += self.unpack_args('--fixxrefargs=', 'fixxref_args', kwargs)
+        args += self.unpack_args('--html-assets=', 'html_assets', kwargs, state)
+        args += self.unpack_args('--content-files=', 'content_files', kwargs, state)
+        args += self.unpack_args('--installdir=', 'install_dir', kwargs, state)
+        args += self.get_build_args(kwargs, state)
         res = [build.RunTarget(targetname, command[0], command[1:] + args, [], state.subdir)]
         if kwargs.get('install', True):
             res.append(build.InstallScript(command + args))
         return res
+
+    def get_build_args(self, kwargs, state):
+        args = []
+        cflags, ldflags, gi_includes = self.get_dependencies_flags(kwargs.get('dependencies', []), state)
+        inc_dirs = kwargs.get('include_directories', [])
+        if not isinstance(inc_dirs, list):
+            inc_dirs = [inc_dirs]
+        for incd in inc_dirs:
+            if not isinstance(incd.held_object, (str, build.IncludeDirs)):
+                raise MesonException(
+                    'Gir include dirs should be include_directories().')
+        cflags.update(self.get_include_args(state, inc_dirs))
+        if cflags:
+            args += ['--cflags=%s' % ' '.join(cflags)]
+        if ldflags:
+            args += ['--ldflags=%s' % ' '.join(ldflags)]
+        compiler = state.environment.coredata.compilers.get('c')
+        if compiler:
+            args += ['--cc=%s' % ' '.join(compiler.get_exelist())]
+            args += ['--ld=%s' % ' '.join(compiler.get_linker_exelist())]
+
+        return args
 
     def gtkdoc_html_dir(self, state, args, kwarga):
         if len(args) != 1:
@@ -392,18 +435,24 @@ class GnomeModule:
         return os.path.join('share/gtkdoc/html', modulename)
 
 
-    def unpack_args(self, arg, kwarg_name, kwargs):
-        try:
-            new_args = kwargs[kwarg_name]
-            if not isinstance(new_args, list):
-                new_args = [new_args]
-            for i in new_args:
-                if not isinstance(i, str):
-                    raise MesonException('html_args values must be strings.')
-        except KeyError:
-            return[]
-        if len(new_args) > 0:
-            return [arg + '@@'.join(new_args)]
+    def unpack_args(self, arg, kwarg_name, kwargs, expend_file_state=None):
+        if kwarg_name not in kwargs:
+            return []
+
+        new_args = kwargs[kwarg_name]
+        if not isinstance(new_args, list):
+            new_args = [new_args]
+        args = []
+        for i in new_args:
+            if expend_file_state and isinstance(i, mesonlib.File):
+                i = os.path.join(expend_file_state.environment.get_build_dir(), i.subdir, i.fname)
+            elif not isinstance(i, str):
+                raise MesonException(kwarg_name + ' values must be strings.')
+            args.append(i)
+
+        if args:
+            return [arg + '@@'.join(args)]
+
         return []
 
     def gdbus_codegen(self, state, args, kwargs):
