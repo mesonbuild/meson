@@ -2,7 +2,7 @@
 #include<string.h>
 #include<glib-object.h>
 #include"meson-sample.h"
-#include"enums.h"
+#include"@ENUM_FILE@"
 
 int main(int argc, char **argv) {
     GEnumClass *xenum = g_type_class_ref(MESON_TYPE_THE_XENUM);

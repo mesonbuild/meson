@@ -477,8 +477,6 @@ class GnomeModule:
         if len(args) != 1:
             raise MesonException('Mkenums requires one positional argument.')
         basename = args[0]
-        c_target_name = basename + '_c'
-        h_target_hame = basename + '_h'
 
         if 'sources' not in kwargs:
             raise MesonException('Missing keyword argument "sources".')
@@ -511,30 +509,57 @@ class GnomeModule:
             elif arg not in known_custom_target_kwargs:
                 raise MesonException(
                     'Mkenums does not take a %s keyword argument.' % (arg, ))
-        if c_template is None or h_template is None:
-            raise MesonException('Must specify both a C and H template.')
-        # We always set template as the first element in the source array so
-        # --template consumes it.
-        cmd = ['glib-mkenums', '--template', '@INPUT@'] + cmd
+        cmd = ['glib-mkenums'] + cmd
         custom_kwargs = {}
         for arg in known_custom_target_kwargs:
             if arg in kwargs:
                 custom_kwargs[arg] = kwargs[arg]
 
-        c_output = os.path.splitext(c_template)[0]
-        h_output = os.path.splitext(h_template)[0]
+        targets = []
 
-        c_sources = [c_template] + sources
-        h_sources = [h_template] + sources
+        if h_template is not None:
+            h_output = os.path.splitext(h_template)[0]
+            # We always set template as the first element in the source array
+            # so --template consumes it.
+            h_cmd = cmd + ['--template', '@INPUT@']
+            h_sources = [h_template] + sources
+            custom_kwargs['install'] = install_header
+            if 'install_dir' not in custom_kwargs:
+                custom_kwargs['install_dir'] = \
+                    state.environment.coredata.get_builtin_option('includedir')
+            h_target = self.make_mkenum_custom_target(state, h_sources,
+                                                      h_output, h_cmd,
+                                                      custom_kwargs)
+            targets.append(h_target)
 
-        custom_kwargs['install'] = install_header
-        if 'install_dir' not in custom_kwargs:
-            custom_kwargs['install_dir'] = state.environment.coredata.get_builtin_option('includedir')
-        h_target = self.make_mkenum_custom_target(state, h_sources, h_output, cmd, custom_kwargs)
-        custom_kwargs['install'] = False # Never install the C file. Complain on bug tracker if you need this.
-        custom_kwargs['depends'] = h_target
-        c_target = self.make_mkenum_custom_target(state, c_sources, c_output, cmd, custom_kwargs)
-        return [c_target, h_target]
+        if c_template is not None:
+            c_output = os.path.splitext(c_template)[0]
+            # We always set template as the first element in the source array
+            # so --template consumes it.
+            c_cmd = cmd + ['--template', '@INPUT@']
+            c_sources = [c_template] + sources
+            # Never install the C file. Complain on bug tracker if you need it.
+            custom_kwargs['install'] = False
+            if h_template is not None:
+                custom_kwargs['depends'] = h_target
+            c_target = self.make_mkenum_custom_target(state, c_sources,
+                                                      c_output, c_cmd,
+                                                      custom_kwargs)
+            targets.insert(0, c_target)
+
+        if c_template is None and h_template is None:
+            generic_cmd = cmd + ['@INPUT@']
+            custom_kwargs['install'] = install_header
+            if 'install_dir' not in custom_kwargs:
+                custom_kwargs['install_dir'] = \
+                    state.environment.coredata.get_builtin_option('includedir')
+            target = self.make_mkenum_custom_target(state, sources, basename,
+                                                    generic_cmd, custom_kwargs)
+            return target
+        elif len(targets) == 1:
+            return targets[0]
+        else:
+            return targets
 
     def make_mkenum_custom_target(self, state, sources, output, cmd, kwargs):
         custom_kwargs = {
