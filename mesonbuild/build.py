@@ -51,36 +51,16 @@ known_shlib_kwargs.update({'version' : True,
                            'name_suffix' : True,
                            'vs_module_defs' : True})
 
-def sources_are_suffix(sources, suffix):
-    for source in sources:
-        if source.endswith('.' + suffix):
-            return True
-    return False
-
-def compiler_is_msvc(sources, is_cross, env):
+def compilers_are_msvc(compilers):
     """
-    Since each target does not currently have the compiler information attached
-    to it, we must do this detection manually here.
-
-    This detection is purposely incomplete and will cause bugs if other code is
-    extended and this piece of code is forgotten.
+    Check if all the listed compilers are MSVC. Used by Executable,
+    StaticLibrary, and SharedLibrary for deciding when to use MSVC-specific
+    file naming.
     """
-    compiler = None
-    if sources_are_suffix(sources, 'c'):
-        try:
-            compiler = env.detect_c_compiler(is_cross)
-        except MesonException:
+    for compiler in compilers.values():
+        if compiler.get_id() != 'msvc':
             return False
-    elif sources_are_suffix(sources, 'cxx') or \
-         sources_are_suffix(sources, 'cpp') or \
-         sources_are_suffix(sources, 'cc'):
-        try:
-            compiler = env.detect_cpp_compiler(is_cross)
-        except MesonException:
-            return False
-    if compiler and compiler.get_id() == 'msvc':
-        return True
-    return False
+    return True
 
 
 class InvalidArguments(MesonException):
@@ -234,7 +214,9 @@ class BuildTarget():
         self.subdir = subdir
         self.subproject = subproject # Can not be calculated from subdir as subproject dirname can be changed per project.
         self.is_cross = is_cross
+        self.environment = environment
         self.sources = []
+        self.compilers = {}
         self.objects = []
         self.external_deps = []
         self.include_dirs = []
@@ -256,6 +238,7 @@ class BuildTarget():
             len(self.generated) == 0 and \
             len(self.objects) == 0:
             raise InvalidArguments('Build target %s has no sources.' % name)
+        self.process_compilers()
         self.validate_sources()
 
     def __repr__(self):
@@ -320,16 +303,52 @@ class BuildTarget():
                 msg = 'Bad source of type {!r} in target {!r}.'.format(type(s).__name__, self.name)
                 raise InvalidArguments(msg)
 
+    @staticmethod
+    def can_compile_remove_sources(compiler, sources):
+        removed = False
+        for s in sources[:]:
+            if compiler.can_compile(s):
+                sources.remove(s)
+                removed = True
+        return removed
+
+    def process_compilers(self):
+        if len(self.sources) == 0:
+            return
+        sources = list(self.sources)
+        if self.is_cross:
+            compilers = self.environment.coredata.cross_compilers
+        else:
+            compilers = self.environment.coredata.compilers
+        for lang, compiler in compilers.items():
+            if self.can_compile_remove_sources(compiler, sources):
+                self.compilers[lang] = compiler
+
     def validate_sources(self):
-        if len(self.sources) > 0:
+        if len(self.sources) == 0:
+            return
+        for lang in ('cs', 'java'):
+            if lang in self.compilers:
+                check_sources = list(self.sources)
+                compiler = self.compilers[lang]
+                if not self.can_compile_remove_sources(compiler, check_sources):
+                    m = 'No {} sources found in target {!r}'.format(lang, self.name)
+                    raise InvalidArguments(m)
+                if check_sources:
+                    m = '{0} targets can only contain {0} files:\n'.format(lang.capitalize())
+                    m += '\n'.join([repr(c) for c in check_sources])
+                    raise InvalidArguments(m)
+                # CSharp and Java targets can't contain any other file types
+                assert(len(self.compilers) == 1)
+                return
+        if 'rust' in self.compilers:
             firstname = self.sources[0]
             if isinstance(firstname, File):
                 firstname = firstname.fname
             first = os.path.split(firstname)[1]
             (base, suffix) = os.path.splitext(first)
-            if suffix == '.rs':
-                if self.name != base:
-                    raise InvalidArguments('In Rust targets, the first source file must be named projectname.rs.')
+            if suffix != '.rs' or self.name != base:
+                raise InvalidArguments('In Rust targets, the first source file must be named projectname.rs.')
 
     def get_original_kwargs(self):
         return self.kwargs
@@ -768,7 +787,7 @@ class Executable(BuildTarget):
             self.prefix = ''
         if not hasattr(self, 'suffix'):
             # Executable for Windows or C#/Mono
-            if for_windows(is_cross, environment) or sources_are_suffix(self.sources, 'cs'):
+            if for_windows(is_cross, environment) or 'cs' in self.compilers:
                 self.suffix = 'exe'
             else:
                 self.suffix = ''
@@ -777,8 +796,7 @@ class Executable(BuildTarget):
             self.filename += '.' + self.suffix
         # See determine_debug_filenames() in build.SharedLibrary
         buildtype = environment.coredata.get_builtin_option('buildtype')
-        if compiler_is_msvc(self.sources, is_cross, environment) and \
-           buildtype.startswith('debug'):
+        if compilers_are_msvc(self.compilers) and buildtype.startswith('debug'):
             self.debug_filename = self.prefix + self.name + '.pdb'
 
     def type_suffix(self):
@@ -787,7 +805,7 @@ class Executable(BuildTarget):
 class StaticLibrary(BuildTarget):
     def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
         super().__init__(name, subdir, subproject, is_cross, sources, objects, environment, kwargs)
-        if sources_are_suffix(self.sources, 'cs'):
+        if 'cs' in self.compilers:
             raise InvalidArguments('Static libraries not supported for C#.')
         # By default a static library is named libfoo.a even on Windows because
         # MSVC does not have a consistent convention for what static libraries
@@ -800,15 +818,14 @@ class StaticLibrary(BuildTarget):
             self.prefix = 'lib'
         if not hasattr(self, 'suffix'):
             # Rust static library crates have .rlib suffix
-            if sources_are_suffix(self.sources, 'rs'):
+            if 'rust' in self.compilers:
                 self.suffix = 'rlib'
             else:
                 self.suffix = 'a'
         self.filename = self.prefix + self.name + '.' + self.suffix
         # See determine_debug_filenames() in build.SharedLibrary
         buildtype = environment.coredata.get_builtin_option('buildtype')
-        if compiler_is_msvc(self.sources, is_cross, environment) and \
-           buildtype.startswith('debug'):
+        if compilers_are_msvc(self.compilers) and buildtype.startswith('debug'):
             self.debug_filename = self.prefix + self.name + '.pdb'
 
     def type_suffix(self):
@@ -864,12 +881,12 @@ class SharedLibrary(BuildTarget):
         if self.prefix != None and self.suffix != None:
             pass
         # C# and Mono
-        elif sources_are_suffix(self.sources, 'cs'):
+        elif 'cs' in self.compilers:
             prefix = ''
             suffix = 'dll'
             self.filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
         # Rust
-        elif sources_are_suffix(self.sources, 'rs'):
+        elif 'rust' in self.compilers:
             # Currently, we always build --crate-type=rlib
             prefix = 'lib'
             suffix = 'rlib'
@@ -881,7 +898,7 @@ class SharedLibrary(BuildTarget):
             suffix = 'dll'
             self.vs_import_filename = '{0}.lib'.format(self.name)
             self.gcc_import_filename = 'lib{0}.dll.a'.format(self.name)
-            if compiler_is_msvc(self.sources, is_cross, env):
+            if compilers_are_msvc(self.compilers):
                 # Shared library is of the form foo.dll
                 prefix = ''
                 # Import library is called foo.lib
@@ -928,7 +945,7 @@ class SharedLibrary(BuildTarget):
         determine_filenames() above.
         """
         buildtype = env.coredata.get_builtin_option('buildtype')
-        if compiler_is_msvc(self.sources, is_cross, env) and buildtype.startswith('debug'):
+        if compilers_are_msvc(self.compilers) and buildtype.startswith('debug'):
             # Currently we only implement separate debug symbol files for MSVC
             # since the toolchain does it for us. Other toolchains embed the
             # debugging symbols in the file itself by default.

@@ -23,12 +23,27 @@ from . import coredata
 about. To support a new compiler, add its information below.
 Also add corresponding autodetection code in environment.py."""
 
-header_suffixes = ['h', 'hh', 'hpp', 'hxx', 'H', 'ipp', 'moc', 'vapi', 'di']
-cpp_suffixes = ['cc', 'cpp', 'cxx', 'h', 'hh', 'hpp', 'ipp', 'hxx', 'c++']
-c_suffixes = ['c']
-clike_suffixes = c_suffixes + cpp_suffixes
-obj_suffixes = ['o', 'obj', 'res']
-lib_suffixes = ['a', 'lib', 'dll', 'dylib', 'so']
+header_suffixes = ('h', 'hh', 'hpp', 'hxx', 'H', 'ipp', 'moc', 'vapi', 'di')
+obj_suffixes = ('o', 'obj', 'res')
+lib_suffixes = ('a', 'lib', 'dll', 'dylib', 'so')
+# Mapping of language to suffixes of files that should always be in that language
+# This means we can't include .h headers here since they could be C, C++, ObjC, etc.
+lang_suffixes = {
+    'c': ('c',),
+    'cpp': ('cpp', 'cc', 'cxx', 'c++', 'hh', 'hpp', 'ipp', 'hxx'),
+    'fortran': ('f', 'f90', 'f95'),
+    'd': ('d', 'di'),
+    'objc': ('m',),
+    'objcpp': ('mm',),
+    'rust': ('rs',),
+    'vala': ('vala', 'vapi'),
+    'cs': ('cs',),
+    'swift': ('swift',),
+    'java': ('java',),
+}
+cpp_suffixes = lang_suffixes['cpp'] + ('h',)
+c_suffixes = lang_suffixes['c'] + ('h',)
+clike_suffixes = lang_suffixes['c'] + lang_suffixes['cpp'] + ('h',)
 
 def is_header(fname):
     if hasattr(fname, 'fname'):
@@ -300,8 +315,37 @@ class Compiler():
             self.exelist = exelist
         else:
             raise TypeError('Unknown argument to Compiler')
+        # In case it's been overriden by a child class already
+        if not hasattr(self, 'file_suffixes'):
+            self.file_suffixes = lang_suffixes[self.language]
+        if not hasattr(self, 'can_compile_suffixes'):
+            self.can_compile_suffixes = set(self.file_suffixes)
+        self.default_suffix = self.file_suffixes[0]
         self.version = version
         self.base_options = []
+
+    def can_compile(self, src):
+        if hasattr(src, 'fname'):
+            src = src.fname
+        suffix = os.path.splitext(src)[1].lower()
+        if suffix and suffix[1:] in self.can_compile_suffixes:
+            return True
+        return False
+
+    def get_id(self):
+        return self.id
+
+    def get_language(self):
+        return self.language
+
+    def get_exelist(self):
+        return self.exelist[:]
+
+    def get_define(self, *args, **kwargs):
+        raise EnvironmentException('%s does not support get_define.' % self.id)
+
+    def has_define(self, *args, **kwargs):
+        raise EnvironmentException('%s does not support has_define.' % self.id)
 
     def get_always_args(self):
         return []
@@ -391,11 +435,13 @@ class Compiler():
 
 class CCompiler(Compiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
+        # If a child ObjC or CPP class has already set it, don't set it ourselves
+        if not hasattr(self, 'language'):
+            self.language = 'c'
         super().__init__(exelist, version)
-        self.language = 'c'
-        self.default_suffix = 'c'
         self.id = 'unknown'
         self.is_cross = is_cross
+        self.can_compile_suffixes.add('h')
         if isinstance(exe_wrapper, str):
             self.exe_wrapper = [exe_wrapper]
         else:
@@ -434,9 +480,6 @@ class CCompiler(Compiler):
     def build_rpath_args(self, build_dir, rpath_paths, install_rpath):
         return build_unix_rpath_args(build_dir, rpath_paths, install_rpath)
 
-    def get_id(self):
-        return self.id
-
     def get_dependency_gen_args(self, outtarget, outfile):
         return ['-MMD', '-MQ', outtarget, '-MF', outfile]
 
@@ -445,9 +488,6 @@ class CCompiler(Compiler):
 
     def get_depfile_suffix(self):
         return 'd'
-
-    def get_language(self):
-        return self.language
 
     def get_default_suffix(self):
         return self.default_suffix
@@ -501,12 +541,6 @@ class CCompiler(Compiler):
                 libstr = line.split('=', 1)[1]
                 return libstr.split(':')
         return []
-
-    def can_compile(self, filename):
-        suffix = filename.split('.')[-1]
-        if suffix == 'c' or suffix == 'h':
-            return True
-        return False
 
     def get_pic_args(self):
         return ['-fPIC']
@@ -993,15 +1027,10 @@ void bar() {
 
 class CPPCompiler(CCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrap):
+        # If a child ObjCPP class has already set it, don't set it ourselves
+        if not hasattr(self, 'language'):
+            self.language = 'cpp'
         CCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
-        self.language = 'cpp'
-        self.default_suffix = 'cpp'
-
-    def can_compile(self, filename):
-        suffix = filename.split('.')[-1]
-        if suffix in cpp_suffixes:
-            return True
-        return False
 
     def sanity_check(self, work_dir, environment):
         code = 'class breakCCompiler;int main(int argc, char **argv) { return 0; }\n'
@@ -1009,15 +1038,8 @@ class CPPCompiler(CCompiler):
 
 class ObjCCompiler(CCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrap):
-        CCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
         self.language = 'objc'
-        self.default_suffix = 'm'
-
-    def can_compile(self, filename):
-        suffix = filename.split('.')[-1]
-        if suffix == 'm' or suffix == 'h':
-            return True
-        return False
+        CCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
 
     def sanity_check(self, work_dir, environment):
         # TODO try to use sanity_check_impl instead of duplicated code
@@ -1043,15 +1065,8 @@ class ObjCCompiler(CCompiler):
 
 class ObjCPPCompiler(CPPCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrap):
-        CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
         self.language = 'objcpp'
-        self.default_suffix = 'mm'
-
-    def can_compile(self, filename):
-        suffix = filename.split('.')[-1]
-        if suffix == 'mm' or suffix == 'h':
-            return True
-        return False
+        CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
 
     def sanity_check(self, work_dir, environment):
         # TODO try to use sanity_check_impl instead of duplicated code
@@ -1078,9 +1093,8 @@ class ObjCPPCompiler(CPPCompiler):
 
 class MonoCompiler(Compiler):
     def __init__(self, exelist, version):
-        super().__init__(exelist, version)
         self.language = 'cs'
-        self.default_suffix = 'cs'
+        super().__init__(exelist, version)
         self.id = 'mono'
         self.monorunner = 'mono'
 
@@ -1102,20 +1116,11 @@ class MonoCompiler(Compiler):
     def build_rpath_args(self, build_dir, rpath_paths, install_rpath):
         return []
 
-    def get_id(self):
-        return self.id
-
     def get_dependency_gen_args(self, outtarget, outfile):
         return []
 
-    def get_language(self):
-        return self.language
-
     def get_default_suffix(self):
         return self.default_suffix
-
-    def get_exelist(self):
-        return self.exelist[:]
 
     def get_linker_exelist(self):
         return self.exelist[:]
@@ -1140,12 +1145,6 @@ class MonoCompiler(Compiler):
 
     def get_std_shared_lib_link_args(self):
         return []
-
-    def can_compile(self, filename):
-        suffix = filename.split('.')[-1]
-        if suffix == 'cs':
-            return True
-        return False
 
     def get_pic_args(self):
         return []
@@ -1187,9 +1186,8 @@ class MonoCompiler(Compiler):
 
 class JavaCompiler(Compiler):
     def __init__(self, exelist, version):
-        super().__init__(exelist, version)
         self.language = 'java'
-        self.default_suffix = 'java'
+        super().__init__(exelist, version)
         self.id = 'unknown'
         self.javarunner = 'java'
 
@@ -1205,20 +1203,11 @@ class JavaCompiler(Compiler):
     def build_rpath_args(self, build_dir, rpath_paths, install_rpath):
         return []
 
-    def get_id(self):
-        return self.id
-
     def get_dependency_gen_args(self, outtarget, outfile):
         return []
 
-    def get_language(self):
-        return self.language
-
     def get_default_suffix(self):
         return self.default_suffix
-
-    def get_exelist(self):
-        return self.exelist[:]
 
     def get_linker_exelist(self):
         return self.exelist[:]
@@ -1248,12 +1237,6 @@ class JavaCompiler(Compiler):
 
     def get_std_shared_lib_link_args(self):
         return []
-
-    def can_compile(self, filename):
-        suffix = filename.split('.')[-1]
-        if suffix == 'java':
-            return True
-        return False
 
     def get_pic_args(self):
         return []
@@ -1296,10 +1279,10 @@ class JavaCompiler(Compiler):
 
 class ValaCompiler(Compiler):
     def __init__(self, exelist, version):
+        self.language = 'vala'
         super().__init__(exelist, version)
         self.version = version
-        self.id = 'unknown'
-        self.language = 'vala'
+        self.id = 'valac'
         self.is_cross = False
 
     def name_string(self):
@@ -1308,14 +1291,8 @@ class ValaCompiler(Compiler):
     def needs_static_linker(self):
         return False # Because compiles into C.
 
-    def get_exelist(self):
-        return self.exelist[:]
-
     def get_werror_args(self):
         return ['--fatal-warnings']
-
-    def get_language(self):
-        return self.language
 
     def sanity_check(self, work_dir, environment):
         src = 'valatest.vala'
@@ -1330,10 +1307,6 @@ class ValaCompiler(Compiler):
         if pc.returncode != 0:
             raise EnvironmentException('Vala compiler %s can not compile programs.' % self.name_string())
 
-    def can_compile(self, filename):
-        suffix = filename.split('.')[-1]
-        return suffix in ('vala', 'vapi')
-
     def get_buildtype_args(self, buildtype):
         if buildtype == 'debug' or buildtype == 'debugoptimized' or buildtype == 'minsize':
             return ['--debug']
@@ -1341,24 +1314,15 @@ class ValaCompiler(Compiler):
 
 class RustCompiler(Compiler):
     def __init__(self, exelist, version):
-        super().__init__(exelist, version)
-        self.id = 'unknown'
         self.language = 'rust'
+        super().__init__(exelist, version)
+        self.id = 'rustc'
 
     def needs_static_linker(self):
         return False
 
     def name_string(self):
         return ' '.join(self.exelist)
-
-    def get_exelist(self):
-        return self.exelist[:]
-
-    def get_id(self):
-        return self.id
-
-    def get_language(self):
-        return self.language
 
     def sanity_check(self, work_dir, environment):
         source_name = os.path.join(work_dir, 'sanity.rs')
@@ -1374,9 +1338,6 @@ class RustCompiler(Compiler):
         if subprocess.call(output_name) != 0:
             raise EnvironmentException('Executables created by Rust compiler %s are not runnable.' % self.name_string())
 
-    def can_compile(self, fname):
-        return fname.endswith('.rs')
-
     def get_dependency_gen_args(self, outfile):
         return ['--dep-info', outfile]
 
@@ -1385,14 +1346,11 @@ class RustCompiler(Compiler):
 
 class SwiftCompiler(Compiler):
     def __init__(self, exelist, version):
+        self.language = 'swift'
         super().__init__(exelist, version)
         self.version = version
         self.id = 'llvm'
-        self.language = 'swift'
         self.is_cross = False
-
-    def get_id(self):
-        return self.id
 
     def get_linker_exelist(self):
         return self.exelist[:]
@@ -1403,14 +1361,8 @@ class SwiftCompiler(Compiler):
     def needs_static_linker(self):
         return True
 
-    def get_exelist(self):
-        return self.exelist[:]
-
     def get_werror_args(self):
         return ['--fatal-warnings']
-
-    def get_language(self):
-        return self.language
 
     def get_dependency_gen_args(self, outtarget, outfile):
         return ['-emit-dependencies']
@@ -1472,15 +1424,11 @@ class SwiftCompiler(Compiler):
         if subprocess.call(output_name) != 0:
             raise EnvironmentException('Executables created by Swift compiler %s are not runnable.' % self.name_string())
 
-    def can_compile(self, filename):
-        suffix = filename.split('.')[-1]
-        return suffix in ('swift')
-
 class DCompiler(Compiler):
     def __init__(self, exelist, version, is_cross):
+        self.language = 'd'
         super().__init__(exelist, version)
         self.id = 'unknown'
-        self.language = 'd'
         self.is_cross = is_cross
 
     def sanity_check(self, work_dir, environment):
@@ -1502,19 +1450,6 @@ class DCompiler(Compiler):
 
     def name_string(self):
         return ' '.join(self.exelist)
-
-    def get_exelist(self):
-        return self.exelist
-
-    def get_id(self):
-        return self.id
-
-    def get_language(self):
-        return self.language
-
-    def can_compile(self, fname):
-        suffix = fname.split('.')[-1]
-        return suffix in ('d', 'di')
 
     def get_linker_exelist(self):
         return self.exelist[:]
@@ -1918,16 +1853,10 @@ class VisualStudioCCompiler(CCompiler):
 
 class VisualStudioCPPCompiler(VisualStudioCCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrap):
-        VisualStudioCCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
         self.language = 'cpp'
+        VisualStudioCCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
         self.default_suffix = 'cpp'
         self.base_options = ['b_pch'] # FIXME add lto, pgo and the like
-
-    def can_compile(self, filename):
-        suffix = filename.split('.')[-1]
-        if suffix in cpp_suffixes:
-            return True
-        return False
 
     def get_options(self):
         return {'cpp_eh' : coredata.UserComboOption('cpp_eh',
@@ -1974,9 +1903,10 @@ def get_gcc_soname_args(gcc_type, shlib_name, path, soversion):
 
 class GnuCompiler:
     # Functionality that is common to all GNU family compilers.
-    def __init__(self, gcc_type):
+    def __init__(self, gcc_type, defines):
         self.id = 'gcc'
         self.gcc_type = gcc_type
+        self.defines = defines or {}
         self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage',
                              'b_colorout', 'b_ndebug']
         if self.gcc_type != GCC_OSX:
@@ -1995,6 +1925,13 @@ class GnuCompiler:
             # https://gcc.gnu.org/gcc-4.8/changes.html
             args[args.index('-Wpedantic')] = '-pedantic'
         return args
+
+    def has_define(self, define):
+        return define in self.defines
+
+    def get_define(self, define):
+        if define in self.defines:
+            return defines[define]
 
     def get_pic_args(self):
         if self.gcc_type == GCC_MINGW:
@@ -2020,15 +1957,14 @@ class GnuCompiler:
         return get_gcc_soname_args(self.gcc_type, shlib_name, path, soversion)
 
 class GnuCCompiler(GnuCompiler, CCompiler):
-    def __init__(self, exelist, version, gcc_type, is_cross, exe_wrapper=None):
+    def __init__(self, exelist, version, gcc_type, is_cross, exe_wrapper=None, defines=None):
         CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
-        GnuCompiler.__init__(self, gcc_type)
+        GnuCompiler.__init__(self, gcc_type, defines)
+        # Gcc can do asm, too.
+        self.can_compile_suffixes.add('s')
         self.warn_args = {'1': ['-Wall', '-Winvalid-pch'],
                           '2': ['-Wall', '-Wextra', '-Winvalid-pch'],
                           '3' : ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch']}
-
-    def can_compile(self, filename):
-        return super().can_compile(filename) or filename.split('.')[-1].lower() == 's' # Gcc can do asm, too.
 
     def get_options(self):
         opts = {'c_std' : coredata.UserComboOption('c_std', 'C language standard to use',
@@ -2055,9 +1991,9 @@ class GnuCCompiler(GnuCompiler, CCompiler):
 
 class GnuCPPCompiler(GnuCompiler, CPPCompiler):
 
-    def __init__(self, exelist, version, gcc_type, is_cross, exe_wrap):
+    def __init__(self, exelist, version, gcc_type, is_cross, exe_wrap, defines):
         CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
-        GnuCompiler.__init__(self, gcc_type)
+        GnuCompiler.__init__(self, gcc_type, defines)
         self.warn_args = {'1': ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor'],
                           '2': ['-Wall', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor'],
                           '3': ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor']}
@@ -2093,22 +2029,22 @@ class GnuCPPCompiler(GnuCompiler, CPPCompiler):
 
 class GnuObjCCompiler(GnuCompiler,ObjCCompiler):
 
-    def __init__(self, exelist, version, is_cross, exe_wrapper=None):
+    def __init__(self, exelist, version, is_cross, exe_wrapper=None, defines=None):
         ObjCCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
         # Not really correct, but GNU objc is only used on non-OSX non-win. File a bug
         # if this breaks your use case.
-        GnuCompiler.__init__(self, GCC_STANDARD)
+        GnuCompiler.__init__(self, GCC_STANDARD, defines)
         self.warn_args = {'1': ['-Wall', '-Winvalid-pch'],
                           '2': ['-Wall', '-Wextra', '-Winvalid-pch'],
                           '3' : ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch']}
 
 class GnuObjCPPCompiler(GnuCompiler, ObjCPPCompiler):
 
-    def __init__(self, exelist, version, is_cross, exe_wrapper=None):
-        ObjCCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
+    def __init__(self, exelist, version, is_cross, exe_wrapper=None, defines=None):
+        ObjCPPCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
         # Not really correct, but GNU objc is only used on non-OSX non-win. File a bug
         # if this breaks your use case.
-        GnuCompiler.__init__(self, GCC_STANDARD)
+        GnuCompiler.__init__(self, GCC_STANDARD, defines)
         self.warn_args = {'1': ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor'],
                           '2': ['-Wall', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor'],
                           '3' : ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor']}
@@ -2142,6 +2078,8 @@ class ClangCCompiler(ClangCompiler, CCompiler):
     def __init__(self, exelist, version, clang_type, is_cross, exe_wrapper=None):
         CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
         ClangCompiler.__init__(self, clang_type)
+        # Clang can do asm, too.
+        self.can_compile_suffixes.add('s')
         self.warn_args = {'1': ['-Wall', '-Winvalid-pch'],
                           '2': ['-Wall', '-Wextra', '-Winvalid-pch'],
                           '3' : ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch']}
@@ -2163,9 +2101,6 @@ class ClangCCompiler(ClangCompiler, CCompiler):
 
     def has_argument(self, arg, env):
         return super().has_argument(['-Werror=unknown-warning-option', arg], env)
-
-    def can_compile(self, filename):
-        return super().can_compile(filename) or filename.split('.')[-1].lower() == 's' # Clang can do asm, too.
 
 
 class ClangCPPCompiler(ClangCompiler,   CPPCompiler):
@@ -2194,9 +2129,6 @@ class ClangCPPCompiler(ClangCompiler,   CPPCompiler):
     def has_argument(self, arg, env):
         return super().has_argument(['-Werror=unknown-warning-option', arg], env)
 
-    def can_compile(self, filename):
-        return super().can_compile(filename) or filename.split('.')[-1].lower() == 's' # Clang can do asm, too.
-
 class ClangObjCCompiler(GnuObjCCompiler):
     def __init__(self, exelist, version, cltype, is_cross, exe_wrapper=None):
         super().__init__(exelist, version, is_cross, exe_wrapper)
@@ -2219,25 +2151,16 @@ class ClangObjCPPCompiler(GnuObjCPPCompiler):
 
 class FortranCompiler(Compiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
+        self.language = 'fortran'
         super().__init__(exelist, version)
         self.is_cross = is_cross
         self.exe_wrapper = exe_wrapper
-        self.language = 'fortran'
         # Not really correct but I don't have Fortran compilers to test with. Sorry.
         self.gcc_type = GCC_STANDARD
         self.id = "IMPLEMENTATION CLASSES MUST SET THIS"
 
-    def get_id(self):
-        return self.id
-
     def name_string(self):
         return ' '.join(self.exelist)
-
-    def get_exelist(self):
-        return self.exelist[:]
-
-    def get_language(self):
-        return self.language
 
     def get_pic_args(self):
         if self.gcc_type == GCC_MINGW:
@@ -2308,14 +2231,6 @@ end program prog
     def get_linker_output_args(self, outputname):
         return ['-o', outputname]
 
-    def can_compile(self, src):
-        if hasattr(src, 'fname'):
-            src = src.fname
-        suffix = os.path.splitext(src)[1].lower()
-        if suffix == '.f' or suffix == '.f95' or suffix == '.f90':
-            return True
-        return False
-
     def get_include_args(self, path, is_system):
         return ['-I' + path]
 
@@ -2342,10 +2257,18 @@ end program prog
 
 
 class GnuFortranCompiler(FortranCompiler):
-    def __init__(self, exelist, version, gcc_type, is_cross, exe_wrapper=None):
+    def __init__(self, exelist, version, gcc_type, is_cross, exe_wrapper=None, defines=None):
         super().__init__(exelist, version, is_cross, exe_wrapper=None)
         self.gcc_type = gcc_type
+        self.defines = defines or {}
         self.id = 'gcc'
+
+    def has_define(self, define):
+        return define in self.defines
+
+    def get_define(self, define):
+        if define in self.defines:
+            return defines[define]
 
     def get_always_args(self):
         return ['-pipe']
@@ -2398,17 +2321,12 @@ class IntelFortranCompiler(FortranCompiler):
     std_warn_args = ['-warn', 'all']
     
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
+        self.file_suffixes = ('f', 'f90')
         super().__init__(exelist, version, is_cross, exe_wrapper=None)
         self.id = 'intel'
         
     def get_module_outdir_args(self, path):
         return ['-module', path]
-
-    def can_compile(self, src):
-        suffix = os.path.splitext(src)[1].lower()
-        if suffix == '.f' or suffix == '.f90':
-            return True
-        return False
 
     def get_warn_args(self, level):
         return IntelFortranCompiler.std_warn_args
@@ -2423,12 +2341,6 @@ class PathScaleFortranCompiler(FortranCompiler):
     def get_module_outdir_args(self, path):
         return ['-module', path]
 
-    def can_compile(self, src):
-        suffix = os.path.splitext(src)[1].lower()
-        if suffix == '.f' or suffix == '.f90' or suffix == '.f95':
-            return True
-        return False
-
     def get_std_warn_args(self, level):
         return PathScaleFortranCompiler.std_warn_args
 
@@ -2441,12 +2353,6 @@ class PGIFortranCompiler(FortranCompiler):
 
     def get_module_outdir_args(self, path):
         return ['-module', path]
-
-    def can_compile(self, src):
-        suffix = os.path.splitext(src)[1].lower()
-        if suffix == '.f' or suffix == '.f90' or suffix == '.f95':
-            return True
-        return False
 
     def get_warn_args(self, level):
         return PGIFortranCompiler.std_warn_args
@@ -2461,12 +2367,6 @@ class Open64FortranCompiler(FortranCompiler):
 
     def get_module_outdir_args(self, path):
         return ['-module', path]
-
-    def can_compile(self, src):
-        suffix = os.path.splitext(src)[1].lower()
-        if suffix == '.f' or suffix == '.f90' or suffix == '.f95':
-            return True
-        return False
 
     def get_warn_args(self, level):
         return Open64FortranCompiler.std_warn_args
@@ -2483,12 +2383,6 @@ class NAGFortranCompiler(FortranCompiler):
 
     def get_always_args(self):
         return []
-
-    def can_compile(self, src):
-        suffix = os.path.splitext(src)[1].lower()
-        if suffix == '.f' or suffix == '.f90' or suffix == '.f95':
-            return True
-        return False
 
     def get_warn_args(self, level):
         return NAGFortranCompiler.std_warn_args

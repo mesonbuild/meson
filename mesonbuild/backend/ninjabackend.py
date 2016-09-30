@@ -233,19 +233,18 @@ int dummy;
         if isinstance(target, build.Jar):
             self.generate_jar_target(target, outfile)
             return
-        if 'rust' in self.environment.coredata.compilers.keys() and self.has_rust(target):
+        if 'rust' in target.compilers:
             self.generate_rust_target(target, outfile)
             return
-        if 'cs' in self.environment.coredata.compilers.keys() and self.has_cs(target):
+        if 'cs' in target.compilers:
             self.generate_cs_target(target, outfile)
             return
-        if 'vala' in self.environment.coredata.compilers.keys() and self.has_vala(target):
-            vc = self.environment.coredata.compilers['vala']
-            vala_output_files = self.generate_vala_compile(vc, target, outfile)
-            gen_src_deps += vala_output_files
-        if 'swift' in self.environment.coredata.compilers.keys() and self.has_swift(target):
+        if 'swift' in target.compilers:
             self.generate_swift_target(target, outfile)
             return
+        if 'vala' in target.compilers:
+            vala_output_files = self.generate_vala_compile(target, outfile)
+            gen_src_deps += vala_output_files
         self.scan_fortran_module_outputs(target)
         # The following deals with C/C++ compilation.
         (gen_src, gen_other_deps) = self.process_dep_gens(outfile, target)
@@ -718,8 +717,7 @@ int dummy;
         outname_rel = os.path.join(self.get_target_dir(target), fname)
         src_list = target.get_sources()
         class_list = []
-        compiler = self.get_compiler_for_source(src_list[0], False)
-        assert(compiler.get_language() == 'java')
+        compiler = target.compilers['java']
         c = 'c'
         m = ''
         e = ''
@@ -769,8 +767,7 @@ int dummy;
         fname = target.get_filename()
         outname_rel = os.path.join(self.get_target_dir(target), fname)
         src_list = target.get_sources()
-        compiler = self.get_compiler_for_source(src_list[0], False)
-        assert(compiler.get_language() == 'cs')
+        compiler = target.compilers['cs']
         rel_srcs = [s.rel_to_builddir(self.build_to_src) for s in src_list]
         deps = []
         commands = target.extra_args.get('cs', [])
@@ -845,9 +842,9 @@ int dummy;
                     break
         return result
 
-    def generate_vala_compile(self, compiler, target, outfile):
+    def generate_vala_compile(self, target, outfile):
         """Vala is compiled into C. Set up all necessary build steps here."""
-        valac = self.environment.coredata.compilers['vala']
+        valac = target.compilers['vala']
         (src, vapi_src) = self.split_vala_sources(target.get_sources())
         vapi_src = [x.rel_to_builddir(self.build_to_src) for x in vapi_src]
         extra_dep_files = []
@@ -866,8 +863,8 @@ int dummy;
         generated_c_files = []
         outputs = [vapiname]
         args = []
-        args += self.build.get_global_args(compiler)
-        args += compiler.get_buildtype_args(self.environment.coredata.get_builtin_option('buildtype'))
+        args += self.build.get_global_args(valac)
+        args += valac.get_buildtype_args(self.environment.coredata.get_builtin_option('buildtype'))
         args += ['-d', self.get_target_private_dir(target)]
         args += ['-C']#, '-o', cname]
         if not isinstance(target, build.Executable):
@@ -910,7 +907,7 @@ int dummy;
         return generated_c_files
 
     def generate_rust_target(self, target, outfile):
-        rustc = self.environment.coredata.compilers['rust']
+        rustc = target.compilers['rust']
         relsrc = []
         for i in target.get_sources():
             if not rustc.can_compile(i):
@@ -1001,7 +998,7 @@ int dummy;
 
     def generate_swift_target(self, target, outfile):
         module_name = self.target_swift_modulename(target)
-        swiftc = self.environment.coredata.compilers['swift']
+        swiftc = target.compilers['swift']
         abssrc = []
         abs_headers = []
         header_imports = []

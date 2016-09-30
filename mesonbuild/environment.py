@@ -57,26 +57,89 @@ def detect_ninja():
         if p.returncode == 0 and mesonlib.version_compare(version, ">=1.6"):
             return n
 
-def detect_cpu_family():
+def detect_native_windows_arch():
+    """
+    The architecture of Windows itself: x86 or amd64
+    """
+    # These env variables are always available. See:
+    # https://msdn.microsoft.com/en-us/library/aa384274(VS.85).aspx
+    # https://blogs.msdn.microsoft.com/david.wang/2006/03/27/howto-detect-process-bitness/
+    arch = os.environ.get('PROCESSOR_ARCHITEW6432', '').lower()
+    if not arch:
+        try:
+            # If this doesn't exist, something is messing with the environment
+            arch = os.environ['PROCESSOR_ARCHITECTURE'].lower()
+        except KeyError:
+            raise InterpreterException('Unable to detect native OS architecture')
+    return arch
+
+def detect_windows_arch(compilers):
+    """
+    Detecting the 'native' architecture of Windows is not a trivial task. We
+    cannot trust that the architecture that Python is built for is the 'native'
+    one because you can run 32-bit apps on 64-bit Windows using WOW64 and
+    people sometimes install 32-bit Python on 64-bit Windows.
+
+    We also can't rely on the architecture of the OS itself, since it's
+    perfectly normal to compile and run 32-bit applications on Windows as if
+    they were native applications. It's a terrible experience to require the
+    user to supply a cross-info file to compile 32-bit applications on 64-bit
+    Windows. Thankfully, the only way to compile things with Visual Studio on
+    Windows is by entering the 'msvc toolchain' environment, which can be
+    easily detected.
+
+    In the end, the sanest method is as follows:
+    1. Check if we're in an MSVC toolchain environment, and if so, return the
+       MSVC toolchain architecture as our 'native' architecture.
+    2. If not, check environment variables that are set by Windows and WOW64 to
+       find out the architecture that Windows is built for, and use that as our
+       'native' architecture.
+    """
+    os_arch = detect_native_windows_arch()
+    if os_arch != 'amd64':
+        return os_arch
+    # If we're on 64-bit Windows, 32-bit apps can be compiled without
+    # cross-compilation. So if we're doing that, just set the native arch as
+    # 32-bit and pretend like we're running under WOW64. Else, return the
+    # actual Windows architecture that we deduced above.
+    for compiler in compilers.values():
+        # Check if we're using and inside an MSVC toolchain environment
+        if compiler.id == 'msvc' and 'VCINSTALLDIR' in os.environ:
+            # 'Platform' is only set when the target arch is not 'x86'.
+            # It's 'x64' when targetting x86_64 and 'arm' when targetting ARM.
+            platform = os.environ.get('Platform', 'x86').lower()
+            if platform == 'x86':
+                return platform
+        if compiler.id == 'gcc' and compiler.has_define('__i386__'):
+            return 'x86'
+    return os_arch
+
+def detect_cpu_family(compilers):
     """
     Python is inconsistent in its platform module.
     It returns different values for the same cpu.
     For x86 it might return 'x86', 'i686' or somesuch.
     Do some canonicalization.
     """
-    trial = platform.machine().lower()
+    if mesonlib.is_windows():
+        trial = detect_windows_arch(compilers)
+    else:
+        trial = platform.machine().lower()
     if trial.startswith('i') and trial.endswith('86'):
         return 'x86'
     if trial.startswith('arm'):
         return 'arm'
-    if trial == 'amd64':
+    if trial in ('amd64', 'x64'):
         return 'x86_64'
     # Add fixes here as bugs are reported.
     return trial
 
-def detect_cpu():
-    trial = platform.machine().lower()
-    if trial == 'amd64':
+def detect_cpu(compilers):
+    if mesonlib.is_windows():
+        trial = detect_windows_arch(compilers)
+    else:
+        trial = platform.machine().lower()
+    if trial in ('amd64', 'x64'):
         return 'x86_64'
     # Add fixes here as bugs are reported.
     return trial
@@ -225,6 +288,45 @@ class Environment():
                 if type(oldval) != type(value):
                     self.coredata.user_options[name] = value
 
+    @staticmethod
+    def get_gnu_compiler_defines(compiler):
+        """
+        Detect GNU compiler platform type (Apple, MinGW, Unix)
+        """
+        # Arguments to output compiler pre-processor defines to stdout
+        # gcc, g++, and gfortran all support these arguments
+        args = compiler + ['-E', '-dM', '-']
+        p = subprocess.Popen(args, universal_newlines=True,
+                             stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+        output = p.communicate('')[0]
+        if p.returncode != 0:
+            raise EnvironmentException('Unable to detect GNU compiler type:\n' + output)
+        # Parse several lines of the type:
+        # `#define ___SOME_DEF some_value`
+        # and extract `___SOME_DEF`
+        defines = {}
+        for line in output.split('\n'):
+            if not line:
+                continue
+            d, *rest = line.split(' ', 2)
+            if d != '#define':
+                continue
+            if len(rest) == 1:
+                defines[rest] = True
+            if len(rest) == 2:
+                defines[rest[0]] = rest[1]
+        return defines
+
+    @staticmethod
+    def get_gnu_compiler_type(defines):
+        # Detect GCC type (Apple, MinGW, Cygwin, Unix)
+        if '__APPLE__' in defines:
+            return GCC_OSX
+        elif '__MINGW32__' in defines or '__MINGW64__' in defines:
+            return GCC_MINGW
+        # We ignore Cygwin for now, and treat it as a standard GCC
+        return GCC_STANDARD
+
     def detect_c_compiler(self, want_cross):
         evar = 'CC'
         if self.is_cross_build() and want_cross:
@@ -266,16 +368,13 @@ class Environment():
                 version = vmatch.group(0)
             else:
                 version = 'unknown version'
-            if 'apple' in out and 'Free Software Foundation' in out:
-                return GnuCCompiler(ccache + [compiler], version, GCC_OSX, is_cross, exe_wrap)
-            if (out.startswith('cc') or 'gcc' in out.lower()) and \
-                'Free Software Foundation' in out:
-                lowerout = out.lower()
-                if 'mingw' in lowerout or 'msys' in lowerout or 'mingw' in compiler.lower():
-                    gtype = GCC_MINGW
-                else:
-                    gtype = GCC_STANDARD
-                return GnuCCompiler(ccache + [compiler], version, gtype, is_cross, exe_wrap)
+            if 'Free Software Foundation' in out:
+                defines = self.get_gnu_compiler_defines([compiler])
+                if not defines:
+                    popen_exceptions[compiler] = 'no pre-processor defines'
+                    continue
+                gtype = self.get_gnu_compiler_type(defines)
+                return GnuCCompiler(ccache + [compiler], version, gtype, is_cross, exe_wrap, defines)
             if 'clang' in out:
                 if 'Apple' in out:
                     cltype = CLANG_OSX
@@ -331,13 +430,12 @@ class Environment():
                     version = vmatch.group(0)
 
                 if 'GNU Fortran' in out:
-                    if mesonlib.is_osx():
-                        gcctype = GCC_OSX
-                    elif mesonlib.is_windows():
-                        gcctype = GCC_MINGW
-                    else:
-                        gcctype = GCC_STANDARD
-                    return GnuFortranCompiler([compiler], version, gcctype, is_cross, exe_wrap)
+                    defines = self.get_gnu_compiler_defines([compiler])
+                    if not defines:
+                        popen_exceptions[compiler] = 'no pre-processor defines'
+                        continue
+                    gtype = self.get_gnu_compiler_type(defines)
+                    return GnuFortranCompiler([compiler], version, gtype, is_cross, exe_wrap, defines)
 
                 if 'G95' in out:
                     return G95FortranCompiler([compiler], version, is_cross, exe_wrap)
@@ -419,16 +517,13 @@ class Environment():
                 version = vmatch.group(0)
             else:
                 version = 'unknown version'
-            if 'apple' in out and 'Free Software Foundation' in out:
-                return GnuCPPCompiler(ccache + [compiler], version, GCC_OSX, is_cross, exe_wrap)
-            if (out.startswith('c++ ') or 'g++' in out or 'GCC' in out) and \
-                'Free Software Foundation' in out:
-                lowerout = out.lower()
-                if 'mingw' in lowerout or 'msys' in lowerout or 'mingw' in compiler.lower():
-                    gtype = GCC_MINGW
-                else:
-                    gtype = GCC_STANDARD
-                return GnuCPPCompiler(ccache + [compiler], version, gtype, is_cross, exe_wrap)
+            if 'Free Software Foundation' in out:
+                defines = self.get_gnu_compiler_defines([compiler])
+                if not defines:
+                    popen_exceptions[compiler] = 'no pre-processor defines'
+                    continue
+                gtype = self.get_gnu_compiler_type(defines)
+                return GnuCPPCompiler(ccache + [compiler], version, gtype, is_cross, exe_wrap, defines)
             if 'clang' in out:
                 if 'Apple' in out:
                     cltype = CLANG_OSX
@@ -469,13 +564,11 @@ class Environment():
             version = vmatch.group(0)
         else:
             version = 'unknown version'
-        if (out.startswith('cc ') or 'gcc' in out) and \
-            'Free Software Foundation' in out:
-            return GnuObjCCompiler(exelist, version, is_cross, exe_wrap)
+        if 'Free Software Foundation' in out:
+            defines = self.get_gnu_compiler_defines(exelist)
+            return GnuObjCCompiler(exelist, version, is_cross, exe_wrap, defines)
         if out.startswith('Apple LLVM'):
             return ClangObjCCompiler(exelist, version, CLANG_OSX, is_cross, exe_wrap)
-        if 'apple' in out and 'Free Software Foundation' in out:
-            return GnuObjCCompiler(exelist, version, is_cross, exe_wrap)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
 
     def detect_objcpp_compiler(self, want_cross):
@@ -502,13 +595,11 @@ class Environment():
             version = vmatch.group(0)
         else:
             version = 'unknown version'
-        if (out.startswith('c++ ') or out.startswith('g++')) and \
-            'Free Software Foundation' in out:
-            return GnuObjCPPCompiler(exelist, version, is_cross, exe_wrap)
+        if 'Free Software Foundation' in out:
+            defines = self.get_gnu_compiler_defines(exelist)
+            return GnuObjCPPCompiler(exelist, version, is_cross, exe_wrap, defines)
         if out.startswith('Apple LLVM'):
             return ClangObjCPPCompiler(exelist, version, CLANG_OSX, is_cross, exe_wrap)
-        if 'apple' in out and 'Free Software Foundation' in out:
-            return GnuObjCPPCompiler(exelist, version, is_cross, exe_wrap)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
 
     def detect_java_compiler(self):
@@ -846,10 +937,12 @@ class CrossBuildInfo():
         return 'host_machine' in self.config
 
     def need_exe_wrapper(self):
-        if self.has_host() and detect_cpu_family() == 'x86_64' and \
+        # Can almost always run 32-bit binaries on 64-bit natively if the host
+        # and build systems are the same. We don't pass any compilers to
+        # detect_cpu_family() here because we always want to know the OS
+        # architecture, not what the compiler environment tells us.
+        if self.has_host() and detect_cpu_family({}) == 'x86_64' and \
            self.config['host_machine']['cpu_family'] == 'x86' and \
            self.config['host_machine']['system'] == detect_system():
-            # Can almost always run 32-bit binaries on 64-bit natively if the
-            # host and build systems are the same
             return False
         return True

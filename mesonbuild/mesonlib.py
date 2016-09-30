@@ -91,9 +91,6 @@ def is_windows():
     platname = platform.system().lower()
     return platname == 'windows' or 'mingw' in platname
 
-def is_32bit():
-    return not(sys.maxsize > 2**32)
-
 def is_debianlike():
     return os.path.isfile('/etc/debian_version')
 

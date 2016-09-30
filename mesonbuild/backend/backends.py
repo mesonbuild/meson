@@ -238,27 +238,6 @@ class Backend():
             self.write_benchmark_file(datafile)
         return (test_data, benchmark_data)
 
-    def has_source_suffix(self, target, suffix):
-        for s in target.get_sources():
-            if s.endswith(suffix):
-                return True
-        return False
-
-    def has_vala(self, target):
-        return self.has_source_suffix(target, '.vala')
-
-    def has_rust(self, target):
-        return self.has_source_suffix(target, '.rs')
-
-    def has_cs(self, target):
-        return self.has_source_suffix(target, '.cs')
-
-    def has_swift(self, target):
-        return self.has_source_suffix(target, '.swift')
-
-    def has_d(self, target):
-        return self.has_source_suffix(target, '.d')
-
     def determine_linker(self, target, src):
         if isinstance(target, build.StaticLibrary):
             if self.build.static_cross_linker is not None:
