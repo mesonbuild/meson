@@ -17,4 +17,18 @@
 from mesonbuild import mesonmain
 import sys, os
 
-sys.exit(mesonmain.run(sys.argv[0], sys.argv[1:]))
+def main():
+    thisfile = __file__
+    if not os.path.isabs(thisfile):
+        thisfile = os.path.normpath(os.path.join(os.getcwd(), thisfile))
+    if __package__ == '':
+        thisfile = os.path.dirname(thisfile)
+
+    # The first argument *must* be an absolute path because
+    # the user may have launched the program from a dir
+    # that is not in path.
+    sys.exit(mesonmain.run(thisfile, sys.argv[1:]))
+
+if __name__ == '__main__':
+    main()
+
