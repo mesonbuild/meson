@@ -620,7 +620,7 @@ class Backend():
         final_commands = []
         previous = '-fsuch_arguments=woof'
         for c in commands:
-            if c.startswith(('-I' '-L', '/LIBPATH')):
+            if c.startswith(('-I', '-L', '/LIBPATH')):
                 if c in includes:
                     continue
                 includes[c] = True
