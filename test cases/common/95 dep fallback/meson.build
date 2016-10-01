@@ -6,5 +6,14 @@ if not bob.found()
 endif
 jimmy = dependency('jimmylib', fallback : ['jimmylib', 'jimmy_dep'], required: false)
 
-exe = executable('bobtester', 'tester.c', dependencies : bob)
+gensrc_py = find_program('gensrc.py')
+gensrc = custom_target('gensrc.c',
+  input : 'tester.c',
+  output : 'gensrc.c',
+  command : [gensrc_py, '@INPUT@', '@OUTPUT@'])
+
+exe = executable('bobtester',
+  [gensrc],
+  dependencies : bob)
+
 test('bobtester', exe)
