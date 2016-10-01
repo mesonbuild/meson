@@ -18,4 +18,8 @@ build_script:
   - cmd: echo No build step.
 
 test_script:
-  - cmd: PATH c:\python34;%PATH% && python3 run_tests.py --backend=ninja
+  - cmd: PATH c:\python34;%PATH%; && python3 run_tests.py --backend=ninja
+
+on_finish:
+  - appveyor PushArtifact meson-test-run.txt -DeploymentName "Text test logs"
+  - appveyor PushArtifact meson-test-run.xml -DeploymentName "XML test logs"
