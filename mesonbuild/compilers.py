@@ -2074,6 +2074,17 @@ class ClangCompiler():
         # so it might change semantics at any time.
         return ['-include-pch', os.path.join (pch_dir, self.get_pch_name (header))]
 
+    def get_soname_args(self, shlib_name, path, soversion):
+        if self.clang_type == CLANG_STANDARD:
+            gcc_type = GCC_STANDARD
+        elif self.clang_type == CLANG_OSX:
+            gcc_type = GCC_OSX
+        elif self.clang_type == CLANG_WIN:
+            gcc_type = GCC_MINGW
+        else:
+            raise MesonException('Unreachable code when converting clang type to gcc type.')
+        return get_gcc_soname_args(gcc_type, shlib_name, path, soversion)
+
 class ClangCCompiler(ClangCompiler, CCompiler):
     def __init__(self, exelist, version, clang_type, is_cross, exe_wrapper=None):
         CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
