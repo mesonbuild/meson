@@ -1,5 +1,5 @@
 
-compiled = gnome.compile_schemas()
+compiled = gnome.compile_schemas('com.github.meson.gschema.xml')
 install_data('com.github.meson.gschema.xml',
 install_dir : 'share/glib-2.0/schemas')
 
