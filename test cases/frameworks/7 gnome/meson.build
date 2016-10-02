@@ -13,4 +13,5 @@ subdir('resources')
 subdir('gir')
 subdir('schemas')
 subdir('gdbus')
-
+subdir('mkenums')
+subdir('genmarshal')
