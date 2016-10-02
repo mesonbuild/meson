@@ -45,6 +45,9 @@ class GnomeModule:
         if not isinstance(source_dirs, list):
             source_dirs = [source_dirs]
 
+        # Always include current directory, but after paths set by user
+        source_dirs.append(os.path.join(state.environment.get_source_dir(), state.subdir))
+
         if len(args) < 2:
             raise MesonException('Not enough arguments; The name of the resource and the path to the XML file are required')
 
@@ -220,6 +223,7 @@ class GnomeModule:
 
         extra_args = mesonlib.stringlistify(kwargs.pop('extra_args', []))
         scan_command += extra_args
+        scan_command += ['-I' + os.path.join(state.environment.get_source_dir(), state.subdir)]
         scan_command += self.get_include_args(state, girtarget.get_include_dirs())
 
         if 'link_with' in kwargs:
