@@ -1,3 +1,7 @@
+usr/include/enums.h
+usr/include/enums2.h
+usr/include/enums3.h
+usr/include/marshaller.h
 usr/lib/girepository-1.0/Meson-1.0.typelib
 usr/lib/libgirlib.so
 usr/share/gir-1.0/Meson-1.0.gir

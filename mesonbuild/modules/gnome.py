@@ -477,6 +477,163 @@ class GnomeModule:
                          }
         return build.CustomTarget(namebase + '-gdbus', state.subdir, custom_kwargs)
 
+    def mkenums(self, state, args, kwargs):
+        if len(args) != 1:
+            raise MesonException('Mkenums requires one positional argument.')
+        basename = args[0]
+
+        if 'sources' not in kwargs:
+            raise MesonException('Missing keyword argument "sources".')
+        sources = kwargs.pop('sources')
+        if isinstance(sources, str):
+            sources = [sources]
+        elif not isinstance(sources, list):
+            raise MesonException(
+                'Sources keyword argument must be a string or array.')
+
+        cmd = []
+        known_kwargs = ['comments', 'eprod', 'fhead', 'fprod', 'ftail',
+                        'identifier_prefix', 'symbol_prefix', 'template',
+                        'vhead', 'vprod', 'vtail']
+        known_custom_target_kwargs = ['install', 'install_dir', 'build_always',
+                                      'depends', 'depend_files']
+        c_template = h_template = None
+        install_header = False
+        for arg, value in kwargs.items():
+            if arg == 'sources':
+                sources = [value] + sources
+            elif arg == 'c_template':
+                c_template = value
+            elif arg == 'h_template':
+                h_template = value
+            elif arg == 'install_header':
+                install_header = value
+            elif arg in known_kwargs:
+                cmd += ['--' + arg.replace('_', '-'), value]
+            elif arg not in known_custom_target_kwargs:
+                raise MesonException(
+                    'Mkenums does not take a %s keyword argument.' % (arg, ))
+        cmd = ['glib-mkenums'] + cmd
+        custom_kwargs = {}
+        for arg in known_custom_target_kwargs:
+            if arg in kwargs:
+                custom_kwargs[arg] = kwargs[arg]
+
+        targets = []
+
+        if h_template is not None:
+            h_output = os.path.splitext(h_template)[0]
+            # We always set template as the first element in the source array
+            # so --template consumes it.
+            h_cmd = cmd + ['--template', '@INPUT@']
+            h_sources = [h_template] + sources
+            custom_kwargs['install'] = install_header
+            if 'install_dir' not in custom_kwargs:
+                custom_kwargs['install_dir'] = \
+                    state.environment.coredata.get_builtin_option('includedir')
+            h_target = self.make_mkenum_custom_target(state, h_sources,
+                                                      h_output, h_cmd,
+                                                      custom_kwargs)
+            targets.append(h_target)
+
+        if c_template is not None:
+            c_output = os.path.splitext(c_template)[0]
+            # We always set template as the first element in the source array
+            # so --template consumes it.
+            c_cmd = cmd + ['--template', '@INPUT@']
+            c_sources = [c_template] + sources
+            # Never install the C file. Complain on bug tracker if you need it.
+            custom_kwargs['install'] = False
+            if h_template is not None:
+                if 'depends' in custom_kwargs:
+                    custom_kwargs['depends'] += [h_target]
+                else:
+                    custom_kwargs['depends'] = h_target
+            c_target = self.make_mkenum_custom_target(state, c_sources,
+                                                      c_output, c_cmd,
+                                                      custom_kwargs)
+            targets.insert(0, c_target)
+
+        if c_template is None and h_template is None:
+            generic_cmd = cmd + ['@INPUT@']
+            custom_kwargs['install'] = install_header
+            if 'install_dir' not in custom_kwargs:
+                custom_kwargs['install_dir'] = \
+                    state.environment.coredata.get_builtin_option('includedir')
+            target = self.make_mkenum_custom_target(state, sources, basename,
+                                                    generic_cmd, custom_kwargs)
+            return target
+        elif len(targets) == 1:
+            return targets[0]
+        else:
+            return targets
+
+    def make_mkenum_custom_target(self, state, sources, output, cmd, kwargs):
+        custom_kwargs = {
+            'input': sources,
+            'output': output,
+            'capture': True,
+            'command': cmd
+        }
+        custom_kwargs.update(kwargs)
+        return build.CustomTarget(output, state.subdir, custom_kwargs)
+
+    def genmarshal(self, state, args, kwargs):
+        if len(args) != 1:
+            raise MesonException(
+                'Genmarshal requires one positional argument.')
+        output = args[0]
+
+        if 'sources' not in kwargs:
+            raise MesonException('Missing keyword argument "sources".')
+        sources = kwargs.pop('sources')
+        if isinstance(sources, str):
+            sources = [sources]
+        elif not isinstance(sources, list):
+            raise MesonException(
+                'Sources keyword argument must be a string or array.')
+
+        cmd = ['glib-genmarshal']
+        known_kwargs = ['internal', 'nostdinc', 'skip_source', 'stdinc',
+                        'valist_marshallers']
+        known_custom_target_kwargs = ['build_always', 'depends',
+                                      'depend_files', 'install_dir',
+                                      'install_header']
+        for arg, value in kwargs.items():
+            if arg == 'prefix':
+                cmd += ['--prefix', value]
+            elif arg in known_kwargs and value:
+                cmd += ['--' + arg.replace('_', '-')]
+            elif arg not in known_custom_target_kwargs:
+                raise MesonException(
+                    'Genmarshal does not take a %s keyword argument.' % (
+                        arg, ))
+
+        install_header = kwargs.pop('install_header', False)
+        install_dir = kwargs.pop('install_dir', None)
+
+        custom_kwargs = {
+            'input': sources,
+            'capture': True,
+        }
+        for arg in known_custom_target_kwargs:
+            if arg in kwargs:
+                custom_kwargs[arg] = kwargs[arg]
+
+        custom_kwargs['command'] = cmd + ['--header', '--body', '@INPUT@']
+        custom_kwargs['output'] = output + '.c'
+        body = build.CustomTarget(output + '_c', state.subdir, custom_kwargs)
+
+        custom_kwargs['install'] = install_header
+        if install_dir is not None:
+            custom_kwargs['install_dir'] = install_dir
+        custom_kwargs['command'] = cmd + ['--header', '@INPUT@']
+        custom_kwargs['output'] = output + '.h'
+        header = build.CustomTarget(output + '_h', state.subdir, custom_kwargs)
+
+        return [body, header]
+
+
 def initialize():
     return GnomeModule()
 
