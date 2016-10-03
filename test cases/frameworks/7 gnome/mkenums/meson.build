@@ -23,17 +23,18 @@ test('enum test 1', enumexe1)
 
 # Generate both header and source via template individually and overriding.
 
-enums_c2 = gnome.mkenums('abc2',
-  sources : 'meson-sample.h',
-  c_template : 'enums2.c.in',
-  ftail : '/* trailing source file info */',
-  install_header : true,
-  install_dir : get_option('includedir'))
-
 enums_h2 = gnome.mkenums('abc2',
   sources : 'meson-sample.h',
   h_template : 'enums2.h.in',
   ftail : '/* trailing header file info */',
+  install_header : true,
+  install_dir : get_option('includedir'))
+
+enums_c2 = gnome.mkenums('abc2',
+  sources : 'meson-sample.h',
+  depends : enums_h2,
+  c_template : 'enums2.c.in',
+  ftail : '/* trailing source file info */',
   install_header : true,
   install_dir : get_option('includedir'))
 
