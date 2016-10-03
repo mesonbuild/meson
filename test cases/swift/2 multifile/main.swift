@@ -1,1 +1,1 @@
-printSomething("String from main")
+printSomething(text:"String from main")
