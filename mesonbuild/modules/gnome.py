@@ -225,7 +225,8 @@ class GnomeModule:
 
         extra_args = mesonlib.stringlistify(kwargs.pop('extra_args', []))
         scan_command += extra_args
-        scan_command += ['-I' + os.path.join(state.environment.get_source_dir(), state.subdir)]
+        scan_command += ['-I' + os.path.join(state.environment.get_source_dir(), state.subdir),
+                         '-I' + os.path.join(state.environment.get_build_dir(), state.subdir)]
         scan_command += self.get_include_args(state, girtarget.get_include_dirs())
 
         if 'link_with' in kwargs:
