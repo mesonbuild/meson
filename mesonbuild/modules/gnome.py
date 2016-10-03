@@ -195,6 +195,8 @@ class GnomeModule:
     def generate_gir(self, state, args, kwargs):
         if len(args) != 1:
             raise MesonException('Gir takes one argument')
+        if kwargs.get('install_dir'):
+            raise MesonException('install_dir is not supported with generate_gir(), see "install_dir_gir" and "install_dir_typelib"')
         girtarget = args[0]
         while hasattr(girtarget, 'held_object'):
             girtarget = girtarget.held_object
@@ -311,7 +313,8 @@ class GnomeModule:
                      }
         if kwargs.get('install'):
             scankwargs['install'] = kwargs['install']
-            scankwargs['install_dir'] = os.path.join(state.environment.get_datadir(), 'gir-1.0')
+            scankwargs['install_dir'] = kwargs.get('install_dir_gir',
+                os.path.join(state.environment.get_datadir(), 'gir-1.0'))
         scan_target = GirTarget(girfile, state.subdir, scankwargs)
 
         typelib_output = '%s-%s.typelib' % (ns, nsversion)
@@ -335,10 +338,15 @@ class GnomeModule:
                 if girdir:
                     typelib_cmd += ["--includedir=%s" % (girdir, )]
 
-        kwargs['output'] = typelib_output
-        kwargs['command'] = typelib_cmd
-        kwargs['install_dir'] = os.path.join(state.environment.get_libdir(), 'girepository-1.0')
-        typelib_target = TypelibTarget(typelib_output, state.subdir, kwargs)
+        typelib_kwargs = {
+            'output': typelib_output,
+            'command': typelib_cmd,
+        }
+        if kwargs.get('install'):
+            typelib_kwargs['install'] = kwargs['install']
+            typelib_kwargs['install_dir'] = kwargs.get('install_dir_typelib',
+                os.path.join(state.environment.get_libdir(), 'girepository-1.0'))
+        typelib_target = TypelibTarget(typelib_output, state.subdir, typelib_kwargs)
         return [scan_target, typelib_target]
 
     def compile_schemas(self, state, args, kwargs):
