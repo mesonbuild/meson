@@ -728,6 +728,149 @@ class GnomeModule:
 
         return [body, header]
 
+    @staticmethod
+    def _vapi_args_to_command(prefix, variable, kwargs, accept_vapi=False):
+        arg_list = kwargs.get(variable)
+        if not arg_list:
+            return []
+        ret = []
+        if not isinstance(arg_list, list):
+            arg_list = [arg_list]
+        for arg in arg_list:
+            if not isinstance(arg, str):
+                types = 'strings' + ' or InternalDependencys' if accept_vapi else ''
+                raise MesonException('All {} must be {}'.format(variable, types))
+            ret.append(prefix + arg)
+        return ret
+
+    def _extract_vapi_packages(self, state, kwargs):
+        '''
+        Packages are special because we need to:
+        - Get a list of packages for the .deps file
+        - Get a list of depends for any VapiTargets
+        - Get package name from VapiTargets
+        - Add include dirs for any VapiTargets
+        '''
+        arg_list = kwargs.get('packages')
+        if not arg_list:
+            return [], [], [], []
+        if not isinstance(arg_list, list):
+            arg_list = [arg_list]
+
+        vapi_depends = []
+        vapi_packages = []
+        vapi_includes = []
+        ret = []
+        remaining_args = []
+        for arg in arg_list:
+            if hasattr(arg, 'held_object'):
+                arg = arg.held_object
+            if isinstance(arg, dependencies.InternalDependency):
+                targets = [t for t in arg.sources if isinstance(t, VapiTarget)]
+                for target in targets:
+                    srcdir = os.path.join(state.environment.get_source_dir(),
+                                          target.get_subdir())
+                    outdir = os.path.join(state.environment.get_build_dir(),
+                                          target.get_subdir())
+                    outfile = target.output[0][:-5] # Strip .vapi
+                    ret.append('--vapidir=' + outdir)
+                    ret.append('--girdir=' + outdir)
+                    ret.append('--pkg=' + outfile)
+                    vapi_depends.append(target)
+                    vapi_packages.append(outfile)
+                    vapi_includes.append(srcdir)
+            else:
+                vapi_packages.append(arg)
+                remaining_args.append(arg)
+
+        kwargs['packages'] = remaining_args
+        vapi_args = ret + self._vapi_args_to_command('--pkg=', 'packages', kwargs, accept_vapi=True)
+        return vapi_args, vapi_depends, vapi_packages, vapi_includes
+
+    def _generate_deps(self, state, library, packages, indir):
+        outdir = state.environment.scratch_dir
+        fname = os.path.join(outdir, library + '.deps')
+        with open(fname, 'w') as ofile:
+            for package in packages:
+                ofile.write(package + '\n')
+        return build.Data(False, outdir, [fname], indir)
+
+    def _get_vapi_link_with(self, target):
+        link_with = []
+        for dep in target.get_target_dependencies():
+            if isinstance(dep, build.SharedLibrary):
+                link_with.append(dep)
+            elif isinstance(dep, GirTarget):
+                link_with += self._get_vapi_link_with(dep)
+        return link_with
+
+    def generate_vapi(self, state, args, kwargs):
+        if len(args) != 1:
+            raise MesonException('The library name is required')
+
+        if not isinstance(args[0], str):
+            raise MesonException('The first argument must be the name of the library')
+
+        library = args[0]
+        build_dir = os.path.join(state.environment.get_build_dir(), state.subdir)
+        source_dir = os.path.join(state.environment.get_source_dir(), state.subdir)
+        pkg_cmd, vapi_depends, vapi_packages, vapi_includes = self._extract_vapi_packages(state, kwargs)
+        cmd = ['vapigen', '--quiet', '--library=' + library, '--directory=' + build_dir]
+        cmd += self._vapi_args_to_command('--vapidir=', 'vapi_dirs', kwargs)
+        cmd += self._vapi_args_to_command('--metadatadir=', 'metadata_dirs', kwargs)
+        cmd += self._vapi_args_to_command('--girdir=', 'gir_dirs', kwargs)
+        cmd += pkg_cmd
+        cmd += ['--metadatadir=' + source_dir]
+
+        inputs = kwargs.get('sources')
+        if not inputs:
+            raise MesonException('sources are required to generate the vapi file')
+
+        if not isinstance(inputs, list):
+            inputs = [inputs]
+
+        link_with = []
+        for i in inputs:
+            if isinstance(i, str):
+                cmd.append(os.path.join(source_dir, i))
+            elif hasattr(i, 'held_object') \
+                 and isinstance(i.held_object, GirTarget):
+                link_with += self._get_vapi_link_with(i.held_object)
+                subdir = os.path.join(state.environment.get_build_dir(),
+                                      i.held_object.get_subdir())
+                gir_file = os.path.join(subdir, i.held_object.output[0])
+                cmd.append(gir_file)
+            else:
+                raise MesonException('Input must be a str or GirTarget')
+
+        vapi_output = library + '.vapi'
+        custom_kwargs = {
+            'command': cmd,
+            'input': inputs,
+            'output': vapi_output,
+            'depends': vapi_depends,
+        }
+        install_dir = kwargs.get('install_dir',
+                os.path.join(state.environment.coredata.get_builtin_option('datadir'),
+                             'vala', 'vapi'))
+        if kwargs.get('install'):
+            custom_kwargs['install'] = kwargs['install']
+            custom_kwargs['install_dir'] = install_dir
+
+            # We shouldn't need this locally but we install it
+            deps_target = self._generate_deps(state, library, vapi_packages, install_dir)
+            state.data.append(deps_target)
+        vapi_target = VapiTarget(vapi_output, state.subdir, custom_kwargs)
+
+        # So to try our best to get this to just work we need:
+        # - link with with the correct library
+        # - include the vapi and dependent vapi files in sources
+        # - add relevant directories to include dirs
+        includes = [build.IncludeDirs(state.subdir, ['.'] + vapi_includes, False)]
+        sources = [vapi_target] + vapi_depends
+        return dependencies.InternalDependency(
+            None, includes, [], [], link_with, sources, []
+        )
 
 def initialize():
     return GnomeModule()
@@ -737,5 +880,9 @@ class GirTarget(build.CustomTarget):
         super().__init__(name, subdir, kwargs)
 
 class TypelibTarget(build.CustomTarget):
+    def __init__(self, name, subdir, kwargs):
+        super().__init__(name, subdir, kwargs)
+
+class VapiTarget(build.CustomTarget):
     def __init__(self, name, subdir, kwargs):
         super().__init__(name, subdir, kwargs)

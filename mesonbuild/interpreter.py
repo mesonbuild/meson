@@ -990,6 +990,7 @@ class ModuleHolder(InterpreterObject):
         state.project_version = self.interpreter.build.dep_manifest[self.interpreter.active_projectname]
         state.compilers = self.interpreter.build.compilers
         state.targets = self.interpreter.build.targets
+        state.data = self.interpreter.build.data
         state.headers = self.interpreter.build.get_headers()
         state.man = self.interpreter.build.get_man()
         state.global_args = self.interpreter.build.global_args
@@ -1269,6 +1270,11 @@ class Interpreter():
                 self.build.install_scripts.append(v)
             elif isinstance(v, build.Data):
                 self.build.data.append(v)
+            elif isinstance(v, dependencies.InternalDependency):
+                # FIXME: This is special cased and not ideal:
+                # The first source is our new VapiTarget, the rest are deps
+                self.module_method_callback(v.sources[0])
+                outvalues.append(InternalDependencyHolder(v))
             else:
                 print(v)
                 raise InterpreterException('Module returned a value of unknown type.')
