@@ -278,27 +278,21 @@ class DependencyHolder(InterpreterObject):
         InterpreterObject.__init__(self)
         self.held_object = dep
         self.methods.update({'found' : self.found_method,
+                             'type_name': self.type_name_method,
                              'version': self.version_method})
 
+    def type_name_method(self, args, kwargs):
+        return self.held_object.type_name
+
     def found_method(self, args, kwargs):
+        if self.held_object.type_name == 'internal':
+            return True
+
         return self.held_object.found()
 
     def version_method(self, args, kwargs):
         return self.held_object.get_version()
 
-class InternalDependencyHolder(InterpreterObject):
-    def __init__(self, dep):
-        InterpreterObject.__init__(self)
-        self.held_object = dep
-        self.methods.update({'found' : self.found_method,
-                             'version': self.version_method,
-                             })
-
-    def found_method(self, args, kwargs):
-        return True
-
-    def version_method(self, args, kwargs):
-        return self.held_object.get_version()
 
 class ExternalProgramHolder(InterpreterObject):
     def __init__(self, ep):
@@ -1394,7 +1388,7 @@ class Interpreter():
                 raise InterpreterException('Dependencies must be external deps')
             final_deps.append(d)
         dep = dependencies.InternalDependency(version, incs, compile_args, link_args, libs, sources, final_deps)
-        return InternalDependencyHolder(dep)
+        return DependencyHolder(dep)
 
     @noKwargs
     def func_assert(self, node, args, kwargs):
@@ -1873,7 +1867,7 @@ class Interpreter():
             dep = self.subprojects[dirname].get_variable_method([varname], {})
         except KeyError:
             raise InterpreterException('Fallback variable {!r} in the subproject {!r} does not exist'.format(varname, dirname))
-        if not isinstance(dep, (DependencyHolder, InternalDependencyHolder)):
+        if not isinstance(dep, DependencyHolder):
             raise InterpreterException('Fallback variable {!r} in the subproject {!r} is not a dependency object.'.format(varname, dirname))
         # Check if the version of the declared dependency matches what we want
         if 'version' in kwargs:
