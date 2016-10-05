@@ -44,12 +44,19 @@ known_basic_kwargs = {'install' : True,
                       'native' : True,
                      }
 
-known_shlib_kwargs = known_basic_kwargs.copy()
-known_shlib_kwargs.update({'version' : True,
-                           'soversion' : True,
-                           'name_prefix' : True,
-                           'name_suffix' : True,
-                           'vs_module_defs' : True})
+# These contain kwargs supported by both static and shared libraries. These are
+# combined here because a library() call might be shared_library() or
+# static_library() at runtime based on the configuration.
+# FIXME: Find a way to pass that info down here so we can have proper target
+# kwargs checking when specifically using shared_library() or static_library().
+known_lib_kwargs = known_basic_kwargs.copy()
+known_lib_kwargs.update({'version' : True, # Only for shared libs
+                         'soversion' : True, # Only for shared libs
+                         'name_prefix' : True,
+                         'name_suffix' : True,
+                         'vs_module_defs' : True, # Only for shared libs
+                         'pic' : True, # Only for static libs
+                        })
 
 def compilers_are_msvc(compilers):
     """
@@ -516,6 +523,10 @@ class BuildTarget():
                 if not isinstance(name_suffix, str):
                     raise InvalidArguments('Name suffix must be a string.')
                 self.suffix = name_suffix
+        if isinstance(self, StaticLibrary):
+            self.pic = kwargs.get('pic', False)
+            if not isinstance(self.pic, bool):
+                raise InvalidArguments('Argument pic must be boolean')
 
     def get_subdir(self):
         return self.subdir
@@ -831,6 +842,9 @@ class StaticLibrary(BuildTarget):
     def type_suffix(self):
         return "@sta"
 
+    def check_unknown_kwargs(self, kwargs):
+        self.check_unknown_kwargs_int(kwargs, known_lib_kwargs)
+
 class SharedLibrary(BuildTarget):
     def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
         self.soversion = None
@@ -988,7 +1002,7 @@ class SharedLibrary(BuildTarget):
             self.link_depends.append(path)
 
     def check_unknown_kwargs(self, kwargs):
-        self.check_unknown_kwargs_int(kwargs, known_shlib_kwargs)
+        self.check_unknown_kwargs_int(kwargs, known_lib_kwargs)
 
     def get_import_filename(self):
         """

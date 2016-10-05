@@ -1,5 +1,10 @@
+int shlibfunc2();
 int statlibfunc();
 
 int main(int argc, char **argv) {
-    return statlibfunc() == 42 ? 0 : 1;
+    if (statlibfunc() != 42)
+        return 1;
+    if (shlibfunc2() != 24)
+        return 1;
+    return 0;
 }
