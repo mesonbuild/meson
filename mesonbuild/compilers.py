@@ -1934,8 +1934,8 @@ class GnuCompiler:
             return defines[define]
 
     def get_pic_args(self):
-        if self.gcc_type == GCC_MINGW:
-            return [] # On Window gcc defaults to fpic being always on.
+        if self.gcc_type in (GCC_MINGW, GCC_OSX):
+            return [] # On Window and OS X, pic is always on.
         return ['-fPIC']
 
     def get_buildtype_args(self, buildtype):
@@ -2059,6 +2059,11 @@ class ClangCompiler():
             self.base_options.append('b_lundef')
             self.base_options.append('b_asneeded')
 
+    def get_pic_args(self):
+        if self.clang_type in (CLANG_WIN, CLANG_OSX):
+            return [] # On Window and OS X, pic is always on.
+        return ['-fPIC']
+
     def get_buildtype_args(self, buildtype):
         return gnulike_buildtype_args[buildtype]
 
@@ -2174,8 +2179,8 @@ class FortranCompiler(Compiler):
         return ' '.join(self.exelist)
 
     def get_pic_args(self):
-        if self.gcc_type == GCC_MINGW:
-            return [] # On Windows gcc defaults to fpic being always on.
+        if self.gcc_type in (GCC_MINGW, GCC_OSX):
+            return [] # On Window and OS X, pic is always on.
         return ['-fPIC']
 
     def get_std_shared_lib_link_args(self):
