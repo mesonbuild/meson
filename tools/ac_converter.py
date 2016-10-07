@@ -279,7 +279,7 @@ endforeach
 
 print('check_functions = [')
 for token in functions:
-    if len(func) == 3:
+    if len(token) == 3:
         token, fdata0, fdata1 = token
         print("  ['%s', '%s', '#include<%s>']," % (token, fdata0, fdata1))
     else:
