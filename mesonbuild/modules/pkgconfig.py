@@ -68,16 +68,19 @@ class PkgConfigModule:
                       'may not find it from its \'-l{2}\' linker flag in the ' \
                       '{3!r} pkg-config file.'
                 for l in libs:
-                    if l.custom_install_dir:
-                        yield '-L${prefix}/%s ' % l.custom_install_dir
+                    if isinstance(l, str):
+                        yield l
                     else:
-                        yield '-L${libdir}'
-                    lname = self._get_lname(l, msg, pcfile)
-                    # If using a custom suffix, the compiler may not be able to
-                    # find the library
-                    if l.name_suffix_set:
-                        mlog.log(mlog.red('WARNING:'), msg.format(l.name, 'name_suffix', lname, pcfile))
-                    yield '-l%s' % lname
+                        if l.custom_install_dir:
+                            yield '-L${prefix}/%s ' % l.custom_install_dir
+                        else:
+                            yield '-L${libdir}'
+                        lname = self._get_lname(l, msg, pcfile)
+                        # If using a custom suffix, the compiler may not be able to
+                        # find the library
+                        if l.name_suffix_set:
+                            mlog.log(mlog.red('WARNING:'), msg.format(l.name, 'name_suffix', lname, pcfile))
+                        yield '-l%s' % lname
             if len(libraries) > 0:
                 ofile.write('Libs: {}\n'.format(' '.join(generate_libs_flags(libraries))))
             if len(priv_libs) > 0:
@@ -97,8 +100,8 @@ class PkgConfigModule:
         for l in libs:
             if hasattr(l, 'held_object'):
                 l = l.held_object
-            if not isinstance(l, (build.SharedLibrary, build.StaticLibrary)):
-                raise mesonlib.MesonException('Library argument not a library object.')
+            if not isinstance(l, (build.SharedLibrary, build.StaticLibrary, str)):
+                raise mesonlib.MesonException('Library argument not a library object nor a string.')
             processed_libs.append(l)
         return processed_libs
 
