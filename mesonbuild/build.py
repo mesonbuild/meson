@@ -57,6 +57,7 @@ known_lib_kwargs.update({'version' : True, # Only for shared libs
                          'vs_module_defs' : True, # Only for shared libs
                          'vala_header': True,
                          'vala_vapi': True,
+                         'vala_gir' : True,
                          'pic' : True, # Only for static libs
                         })
 
@@ -513,6 +514,7 @@ class BuildTarget():
         if not isinstance(self, Executable):
             self.vala_header = kwargs.get('vala_header', self.name + '.h')
             self.vala_vapi = kwargs.get('vala_vapi', self.name + '.vapi')
+        self.vala_gir = kwargs.get('vala_gir', None)
         dlist = stringlistify(kwargs.get('d_args', []))
         self.add_compiler_args('d', dlist)
         self.link_args = kwargs.get('link_args', [])
