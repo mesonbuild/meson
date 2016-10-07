@@ -61,26 +61,26 @@ class PkgConfigModule:
             if len(priv_libs) > 0:
                 ofile.write(
                     'Libraries.private: {}\n'.format(' '.join(priv_libs)))
-            ofile.write('Libs: -L${libdir} ')
+            ofile.write('Libs: -L${libdir}')
             msg = 'Library target {0!r} has {1!r} set. Compilers ' \
                   'may not find it from its \'-l{2}\' linker flag in the ' \
                   '{3!r} pkg-config file.'
             for l in libraries:
                 if l.custom_install_dir:
-                    ofile.write('-L${prefix}/%s ' % l.custom_install_dir)
+                    ofile.write(' -L${prefix}/%s ' % l.custom_install_dir)
                 lname = self._get_lname(l, msg, pcfile)
                 # If using a custom suffix, the compiler may not be able to
                 # find the library
                 if l.name_suffix_set:
                     mlog.log(mlog.red('WARNING:'), msg.format(l.name, 'name_suffix', lname, pcfile))
-                ofile.write('-l{} '.format(lname))
+                ofile.write(' -l{} '.format(lname))
             ofile.write('\n')
-            ofile.write('CFlags: ')
+            ofile.write('CFlags:')
             for h in subdirs:
                 if h == '.':
                     h = ''
-                ofile.write(os.path.join('-I${includedir}', h))
                 ofile.write(' ')
+                ofile.write(os.path.join('-I${includedir}', h))
             ofile.write('\n')
 
     def generate(self, state, args, kwargs):
