@@ -115,7 +115,6 @@ function_data = \
      'HAVE_SYMLINK': ('symlink', 'unistd.h'),
      'HAVE_SYSCTLBYNAME': ('sysctlbyname', 'sys/sysctl.h'),
      'HAVE_TIMEGM': ('timegm', 'time.h'),
-     'HAVE_UNSETENV': ('unsetenv', 'stdlib.h'),
      'HAVE_USELOCALE': ('uselocale', 'xlocale.h'),
      'HAVE_UTIMES': ('utimes', 'sys/time.h'),
      'HAVE_VALLOC': ('valloc', 'stdlib.h'),
