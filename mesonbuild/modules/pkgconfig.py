@@ -75,7 +75,7 @@ class PkgConfigModule:
                     mlog.log(mlog.red('WARNING:'), msg.format(l.name, 'name_suffix', lname, pcfile))
                 ofile.write(' -l{} '.format(lname))
             ofile.write('\n')
-            ofile.write('CFlags:')
+            ofile.write('Cflags:')
             for h in subdirs:
                 if h == '.':
                     h = ''
