@@ -94,7 +94,7 @@ function_data = \
      'HAVE_READLINK': ('readlink', 'unistd.h'),
      'HAVE_RES_INIT': ('res_init', 'resolv.h'),
      'HAVE_SENDMMSG': ('sendmmsg', 'sys/socket.h'),
-     'HAVE_SOCKET' : ('socket',' sys/socket.h'),
+     'HAVE_SOCKET' : ('socket', 'sys/socket.h'),
      'HAVE_GETENV': ('getenv', 'stdlib.h'),
      'HAVE_SETENV': ('setenv', 'stdlib.h'),
      'HAVE_PUTENV': ('putenv', 'stdlib.h'),
