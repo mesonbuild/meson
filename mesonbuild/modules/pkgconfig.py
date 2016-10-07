@@ -63,9 +63,6 @@ class PkgConfigModule:
                     'Requires.private: {}\n'.format(' '.join(priv_reqs)))
             if len(conflicts) > 0:
                 ofile.write('Conflicts: {}\n'.format(' '.join(conflicts)))
-            if len(priv_libs) > 0:
-                ofile.write(
-                    'Libraries.private: {}\n'.format(' '.join(priv_libs)))
             ofile.write('Libs: -L${libdir}')
             msg = 'Library target {0!r} has {1!r} set. Compilers ' \
                   'may not find it from its \'-l{2}\' linker flag in the ' \
@@ -80,6 +77,9 @@ class PkgConfigModule:
                     mlog.log(mlog.red('WARNING:'), msg.format(l.name, 'name_suffix', lname, pcfile))
                 ofile.write(' -l{} '.format(lname))
             ofile.write('\n')
+            if len(priv_libs) > 0:
+                ofile.write(
+                    'Libs.private: -L${libdir} {}\n'.format(' '.join(priv_libs)))
             ofile.write('Cflags:')
             for h in subdirs:
                 if h == '.':
