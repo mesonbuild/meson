@@ -68,6 +68,7 @@ failing_tests = 0
 skipped_tests = 0
 failing_logs = []
 print_debug = 'MESON_PRINT_TEST_OUTPUT' in os.environ
+do_debug = not {'MESON_PRINT_TEST_OUTPUT', 'TRAVIS', 'APPVEYOR'}.isdisjoint(os.environ)
 
 meson_command = os.path.join(os.getcwd(), 'meson')
 if not os.path.exists(meson_command):
@@ -117,7 +118,7 @@ def setup_commands(backend):
         ninja_command = environment.detect_ninja()
         if ninja_command is None:
             raise RuntimeError('Could not find Ninja v1.6 or newer')
-        if print_debug:
+        if do_debug:
             compile_commands = [ninja_command, '-v']
         else:
             compile_commands = [ninja_command]
@@ -378,7 +379,8 @@ def run_tests(extra_args):
                     print('Failed test%s: %s' % (without_install, t))
                     print('Reason:', result.msg)
                     failing_tests += 1
-                    failing_logs.append(result.mlog)
+                    failing_logs.append(result.stdo)
+                    failing_logs.append(result.stde)
                 else:
                     print('Succeeded test%s: %s' % (without_install, t))
                     passing_tests += 1
