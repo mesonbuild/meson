@@ -94,7 +94,7 @@ function_data = \
      'HAVE_READLINK': ('readlink', 'unistd.h'),
      'HAVE_RES_INIT': ('res_init', 'resolv.h'),
      'HAVE_SENDMMSG': ('sendmmsg', 'sys/socket.h'),
-     'HAVE_SOCKET' : ('socket',' sys/socket.h'),
+     'HAVE_SOCKET' : ('socket', 'sys/socket.h'),
      'HAVE_GETENV': ('getenv', 'stdlib.h'),
      'HAVE_SETENV': ('setenv', 'stdlib.h'),
      'HAVE_PUTENV': ('putenv', 'stdlib.h'),
@@ -115,7 +115,6 @@ function_data = \
      'HAVE_SYMLINK': ('symlink', 'unistd.h'),
      'HAVE_SYSCTLBYNAME': ('sysctlbyname', 'sys/sysctl.h'),
      'HAVE_TIMEGM': ('timegm', 'time.h'),
-     'HAVE_UNSETENV': ('unsetenv', 'stdlib.h'),
      'HAVE_USELOCALE': ('uselocale', 'xlocale.h'),
      'HAVE_UTIMES': ('utimes', 'sys/time.h'),
      'HAVE_VALLOC': ('valloc', 'stdlib.h'),
@@ -280,7 +279,7 @@ endforeach
 
 print('check_functions = [')
 for token in functions:
-    if len(func) == 3:
+    if len(token) == 3:
         token, fdata0, fdata1 = token
         print("  ['%s', '%s', '#include<%s>']," % (token, fdata0, fdata1))
     else:
