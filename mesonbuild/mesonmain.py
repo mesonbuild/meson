@@ -70,7 +70,7 @@ class MesonApp():
     def __init__(self, dir1, dir2, script_launcher, handshake, options, original_cmd_line_args):
         (self.source_dir, self.build_dir) = self.validate_dirs(dir1, dir2, handshake)
         if not os.path.isabs(options.prefix):
-            raise RuntimeError('--prefix value \'{0}\' must be an absolute path: '.format(options.prefix))
+            raise RuntimeError('--prefix value must be an absolute path: {!r}'.format(options.prefix))
         if options.prefix.endswith('/') or options.prefix.endswith('\\'):
             # On Windows we need to preserve the trailing slash if the
             # string is of type 'C:\' because 'C:' is not an absolute path.
