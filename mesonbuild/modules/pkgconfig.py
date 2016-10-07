@@ -37,8 +37,9 @@ class PkgConfigModule:
         mlog.log(mlog.red('WARNING:'), msg.format(l.name, 'name_prefix', l.name, pcfile))
         return l.name
 
-    def generate_pkgconfig_file(self, state, libraries, subdirs, name, description, version, pcfile,
-                                pub_reqs, priv_reqs, priv_libs):
+    def generate_pkgconfig_file(self, state, libraries, subdirs, name, description,
+                                url, version, pcfile, pub_reqs, priv_reqs,
+                                conflicts, priv_libs):
         coredata = state.environment.get_coredata()
         outdir = state.environment.scratch_dir
         fname = os.path.join(outdir, pcfile)
@@ -51,6 +52,8 @@ class PkgConfigModule:
             ofile.write('Name: %s\n' % name)
             if len(description) > 0:
                 ofile.write('Description: %s\n' % description)
+            if len(url) > 0:
+                ofile.write('URL: %s\n' % url)
             if len(version) > 0:
                 ofile.write('Version: %s\n' % version)
             if len(pub_reqs) > 0:
@@ -58,6 +61,8 @@ class PkgConfigModule:
             if len(priv_reqs) > 0:
                 ofile.write(
                     'Requires.private: {}\n'.format(' '.join(priv_reqs)))
+            if len(conflicts) > 0:
+                ofile.write('Conflicts: {}\n'.format(' '.join(conflicts)))
             if len(priv_libs) > 0:
                 ofile.write(
                     'Libraries.private: {}\n'.format(' '.join(priv_libs)))
@@ -110,8 +115,12 @@ class PkgConfigModule:
         description = kwargs.get('description', None)
         if not isinstance(description, str):
             raise mesonlib.MesonException('Description is not a string.')
+        url = kwargs.get('url', '')
+        if not isinstance(url, str):
+            raise mesonlib.MesonException('URL is not a string.')
         pub_reqs = mesonlib.stringlistify(kwargs.get('requires', []))
         priv_reqs = mesonlib.stringlistify(kwargs.get('requires_private', []))
+        conflicts = mesonlib.stringlistify(kwargs.get('conflicts', []))
         priv_libs = mesonlib.stringlistify(kwargs.get('libraries_private', []))
         pcfile = filebase + '.pc'
         pkgroot = kwargs.get('install_dir',None)
@@ -119,8 +128,9 @@ class PkgConfigModule:
             pkgroot = os.path.join(state.environment.coredata.get_builtin_option('libdir'), 'pkgconfig')
         if not isinstance(pkgroot, str):
             raise mesonlib.MesonException('Install_dir must be a string.')
-        self.generate_pkgconfig_file(state, libs, subdirs, name, description, version, pcfile,
-                                     pub_reqs, priv_reqs, priv_libs)
+        self.generate_pkgconfig_file(state, libs, subdirs, name, description, url,
+                                     version, pcfile, pub_reqs, priv_reqs,
+                                     conflicts, priv_libs)
         return build.Data(False, state.environment.get_scratch_dir(), [pcfile], pkgroot)
 
 def initialize():
