@@ -1,0 +1,3 @@
+ftdetect sets the filetype
+syntax does Meson syntax highlighting
+plugin does Meson indentation
