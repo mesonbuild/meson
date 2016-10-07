@@ -341,6 +341,8 @@ class Backend():
             commands += compiler.get_werror_args()
         if isinstance(target, build.SharedLibrary):
             commands += compiler.get_pic_args()
+        if isinstance(target, build.StaticLibrary) and target.pic:
+            commands += compiler.get_pic_args()
         for dep in target.get_external_deps():
             # Cflags required by external deps might have UNIX-specific flags,
             # so filter them out if needed
