@@ -524,9 +524,15 @@ class BuildTarget():
                     raise InvalidArguments('Name suffix must be a string.')
                 self.suffix = name_suffix
         if isinstance(self, StaticLibrary):
-            self.pic = kwargs.get('pic', False)
-            if not isinstance(self.pic, bool):
-                raise InvalidArguments('Argument pic must be boolean')
+            # You can't disable PIC on OS X. The compiler ignores -fno-PIC.
+            # PIC is always on for Windows (all code is position-independent
+            # since library loading is done differently)
+            if for_darwin(self.is_cross, self.environment) or for_windows(self.is_cross, self.environment):
+                self.pic = True
+            else:
+                self.pic = kwargs.get('pic', False)
+                if not isinstance(self.pic, bool):
+                    raise InvalidArguments('Argument pic must be boolean')
 
     def get_subdir(self):
         return self.subdir
@@ -629,6 +635,8 @@ by calling get_variable() on the subproject object.''')
                 t = t.held_object
             if not isinstance(t, (StaticLibrary, SharedLibrary)):
                 raise InvalidArguments('Link target is not library.')
+            if isinstance(self, SharedLibrary) and isinstance(t, StaticLibrary) and not t.pic:
+                raise InvalidArguments("Can't link a non-PIC static library into a shared library")
             if self.is_cross != t.is_cross:
                 raise InvalidArguments('Tried to mix cross built and native libraries in target %s.' % self.name)
             self.link_targets.append(t)
