@@ -1,7 +1,6 @@
 %__meson %{_bindir}/meson
 %__sourcedir .
 %__builddir %{_target_platform}
-%__meson_ninja_opts -v %{?_smp_mflags} -C %{__builddir}
 
 %meson \
     export CFLAGS="%{optflags}"                \
