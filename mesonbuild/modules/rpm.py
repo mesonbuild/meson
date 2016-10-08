@@ -104,7 +104,7 @@ class RPMModule:
                          mlog.bold('dnf provides %s' % lib.fullpath))
             for prog in state.environment.coredata.ext_progs.values():
                 if not prog.found():
-                    fn.write('BuildRequires: /usr/bin/%s # FIXME\n' %
+                    fn.write('BuildRequires: %{_bindir}/%s # FIXME\n' %
                              prog.get_name())
                 else:
                     fn.write('BuildRequires: %s\n' % ' '.join(prog.fullpath))
@@ -115,32 +115,25 @@ class RPMModule:
             if devel_subpkg:
                 fn.write('%package devel\n')
                 fn.write('Summary: Development files for %{name}\n')
-                fn.write('Requires: %{name}%{?_isa} = %{version}-%{release}\n')
+                fn.write('Requires: %{name}%{?_isa} = %{?epoch:%{epoch}:}{version}-%{release}\n')
                 fn.write('\n')
                 fn.write('%description devel\n')
                 fn.write('Development files for %{name}.\n')
                 fn.write('\n')
             fn.write('%prep\n')
             fn.write('%autosetup\n')
-            fn.write('rm -rf rpmbuilddir && mkdir rpmbuilddir\n')
             fn.write('\n')
             fn.write('%build\n')
-            fn.write('pushd rpmbuilddir\n')
-            fn.write('  %meson ..\n')
-            fn.write('  ninja-build -v\n')
-            fn.write('popd\n')
+            fn.write('%meson\n')
+            fn.write('%meson_build\n')
             fn.write('\n')
             fn.write('%install\n')
-            fn.write('pushd rpmbuilddir\n')
-            fn.write('  DESTDIR=%{buildroot} ninja-build -v install\n')
-            fn.write('popd\n')
+            fn.write('%meson_install\n')
             if len(to_delete) > 0:
-                fn.write('rm -rf %s\n' % ' '.join(to_delete))
+                fn.write('rm -vf %s\n' % ' '.join(to_delete))
             fn.write('\n')
             fn.write('%check\n')
-            fn.write('pushd rpmbuilddir\n')
-            fn.write('  ninja-build -v test\n')
-            fn.write('popd\n')
+            fn.write('%meson_test\n')
             fn.write('\n')
             fn.write('%files\n')
             for f in files:
@@ -153,7 +146,6 @@ class RPMModule:
                 fn.write('\n')
             if so_installed:
                 fn.write('%post -p /sbin/ldconfig\n')
-                fn.write('\n')
                 fn.write('%postun -p /sbin/ldconfig\n')
             fn.write('\n')
             fn.write('%changelog\n')
