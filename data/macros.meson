@@ -23,6 +23,12 @@
             --sysconfdir=%{_sysconfdir}    \\\
             $OLDPWD/%{__sourcedir}             \
     popd
-%meson_build %ninja_build -C %{__builddir}
-%meson_install %ninja_install -C %{__builddir}
-%meson_test %ninja_test -C %{__builddir}
+
+%meson_build \
+    %ninja_build -C %{__builddir}
+
+%meson_install \
+    %ninja_install -C %{__builddir}
+
+%meson_test \
+    %ninja_test -C %{__builddir}
