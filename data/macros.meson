@@ -1,21 +1,29 @@
-%__meson /usr/bin/meson
+%__meson %{_bindir}/meson
+%__sourcedir .
+%__builddir %{_target_platform}
+%__meson_ninja_opts -v %{?_smp_mflags} -C %{__builddir}
 
-%meson() %{expand:\
-  export CFLAGS="%{optflags}" ; \
-  export CXXFLAGS="%{optflags}" ; \
-  export FFLAGS="%{optflags} -I%{_fmoddir}" ; \
-  export FCFLAGS="%{optflags} -I%{_fmoddir}" ; \
-  export LDFLAGS="%{__global_ldflags}" ; \
-  %__meson %{?1} \\\
-        --prefix=%{_prefix}            \\\
-        --libdir=%{_libdir}            \\\
-        --libexecdir=%{_libexecdir}    \\\
-        --bindir=%{_bindir}            \\\
-        --includedir=%{_includedir}    \\\
-        --datadir=%{_datadir}          \\\
-        --mandir=%{_mandir}            \\\
-        --localedir=%{_datadir}/locale \\\
-        --sysconfdir=%{_sysconfdir}    \\\
-        --buildtype=plain \
-        %{nil} \
-}
+%meson \
+    export CFLAGS="%{optflags}"                \
+    export CXXFLAGS="%{optflags}"              \
+    export FFLAGS="%{optflags} -I%{_fmoddir}"  \
+    export FCFLAGS="%{optflags} -I%{_fmoddir}" \
+    export LDFLAGS="%{?__global_ldflags}"      \
+    mkdir -p %{__builddir}                     \
+    pushd %{__builddir}                        \
+        %{__meson}                         \\\
+            --buildtype=plain              \\\
+            --prefix=%{_prefix}            \\\
+            --libdir=%{_libdir}            \\\
+            --libexecdir=%{_libexecdir}    \\\
+            --bindir=%{_bindir}            \\\
+            --includedir=%{_includedir}    \\\
+            --datadir=%{_datadir}          \\\
+            --mandir=%{_mandir}            \\\
+            --localedir=%{_datadir}/locale \\\
+            --sysconfdir=%{_sysconfdir}    \\\
+            $OLDPWD/%{__sourcedir}             \
+    popd
+%meson_build %ninja_build -C %{__builddir}
+%meson_install %ninja_install -C %{__builddir}
+%meson_test %ninja_test -C %{__builddir}
