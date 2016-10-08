@@ -188,6 +188,7 @@ class PkgConfigDependency(Dependency):
         p = subprocess.Popen([self.pkgbin, '--variable=%s' % variable_name, self.name],
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out = p.communicate()[0]
+        variable = ''
         if p.returncode != 0:
             if self.required:
                 raise DependencyException('%s dependency %s not found.' %
