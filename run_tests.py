@@ -31,5 +31,5 @@ if __name__ == '__main__':
             myenv['CXX'] = 'clang++'
             print("'\nRunnint unittests with clang.\n")
             returncode += subprocess.call([sys.executable, 'run_unittests.py'], env=myenv)
-    returncode += subprocess.call([sys.executable, 'run_project_tests.py'])
+    returncode += subprocess.call([sys.executable, 'run_project_tests.py'] + sys.argv[1:])
     sys.exit(returncode)

@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import unittest, os, shutil
+import unittest, os, sys, shutil
 import subprocess
 import re
 
@@ -32,7 +32,7 @@ class LinuxlikeTests(unittest.TestCase):
         super().setUp()
         src_root = os.path.split(__file__)[0]
         self.builddir = 'unittestdir' # fixme to be unique
-        self.meson_command = [os.path.join(src_root, 'meson.py')]
+        self.meson_command = [sys.executable, os.path.join(src_root, 'meson.py')]
         self.ninja_command = ['ninja', '-C', self.builddir]
         self.common_test_dir = os.path.join(src_root, 'test cases/common')
         os.mkdir(self.builddir)
