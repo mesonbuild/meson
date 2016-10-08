@@ -19,13 +19,17 @@ import shutil
 from mesonbuild import mesonlib
 
 if __name__ == '__main__':
+    returncode = 0
     if mesonlib.is_linux():
         myenv = os.environ.copy()
         myenv['CC'] = 'gcc'
         myenv['CXX'] = 'g++'
-        subprocess.call([sys.executable, 'run_unittests.py'], env=myenv)
+        print('Running unittests with GCC.\n')
+        returncode += subprocess.call([sys.executable, 'run_unittests.py'], env=myenv)
         if shutil.which('clang'):
             myenv['CC'] = 'clang'
             myenv['CXX'] = 'clang++'
-            subprocess.call([sys.executable, 'run_unittests.py'], env=myenv)
-    subprocess.call([sys.executable, 'run_project_tests.py'])
+            print("'\nRunnint unittests with clang.\n")
+            returncode += subprocess.call([sys.executable, 'run_unittests.py'], env=myenv)
+    returncode += subprocess.call([sys.executable, 'run_project_tests.py'])
+    sys.exit(returncode)

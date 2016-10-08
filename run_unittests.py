@@ -36,6 +36,7 @@ class LinuxlikeTests(unittest.TestCase):
         self.ninja_command = ['ninja', '-C', self.builddir]
         self.common_test_dir = os.path.join(src_root, 'test cases/common')
         os.mkdir(self.builddir)
+        self.output = b''
 
     def tearDown(self):
         shutil.rmtree(self.builddir)
@@ -43,16 +44,16 @@ class LinuxlikeTests(unittest.TestCase):
 
     def test_basic_soname(self):
         testdir = os.path.join(self.common_test_dir, '4 shared')
-        subprocess.check_call(self.meson_command + [testdir, self.builddir])
-        subprocess.check_call(self.ninja_command)
+        self.output += subprocess.check_output(self.meson_command + [testdir, self.builddir])
+        self.output += subprocess.check_output(self.ninja_command)
         lib1 = os.path.join(self.builddir, 'libmylib.so')
         soname = get_soname(lib1)
         self.assertEqual(soname, b'libmylib.so')
 
     def test_custom_soname(self):
         testdir = os.path.join(self.common_test_dir, '27 library versions')
-        subprocess.check_call(self.meson_command + [testdir, self.builddir])
-        subprocess.check_call(self.ninja_command)
+        self.output += subprocess.check_output(self.meson_command + [testdir, self.builddir])
+        self.output += subprocess.check_output(self.ninja_command)
         lib1 = os.path.join(self.builddir, 'prefixsomelib.suffix')
         soname = get_soname(lib1)
         self.assertEqual(soname, b'prefixsomelib.suffix')
