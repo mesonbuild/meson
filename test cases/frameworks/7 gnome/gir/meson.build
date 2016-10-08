@@ -14,6 +14,8 @@ girexe = executable(
   link_with : girlib
 )
 
+fake_dep = dependency('no-way-this-exists', required: false)
+
 gnome.generate_gir(
   girlib,
   sources : libsources,
@@ -22,6 +24,7 @@ gnome.generate_gir(
   symbol_prefix : 'meson_',
   identifier_prefix : 'Meson',
   includes : ['GObject-2.0'],
+  dependencies : [fake_dep],
   install : true
 )
 
