@@ -224,7 +224,7 @@ builtin_options = {
         'default_library'   : [ UserComboOption, 'Default library type.', [ 'shared', 'static' ], 'shared' ],
         'backend'           : [ UserComboOption, 'Backend to use.', backendlist, 'ninja' ],
         'stdsplit'          : [ UserBooleanOption, 'Split stdout and stderr in test logs.', True ],
-        'errorlogs'         : [ UserBooleanOption, "Whether to print the logs from failing tests.", False ],
+        'errorlogs'         : [ UserBooleanOption, "Whether to print the logs from failing tests.", True ],
         }
 
 forbidden_target_names = {'clean': None,

@@ -54,6 +54,8 @@ add_builtin_argument('werror', action='store_true')
 add_builtin_argument('layout')
 add_builtin_argument('default-library')
 add_builtin_argument('warnlevel', dest='warning_level')
+add_builtin_argument('stdsplit', action='store_false')
+add_builtin_argument('errorlogs', action='store_false')
 
 parser.add_argument('--cross-file', default=None,
                     help='File describing cross compilation environment.')
