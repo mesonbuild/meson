@@ -29,7 +29,7 @@ if __name__ == '__main__':
         if shutil.which('clang'):
             myenv['CC'] = 'clang'
             myenv['CXX'] = 'clang++'
-            print("'\nRunnint unittests with clang.\n")
+            print('\nRunnint unittests with clang.\n')
             returncode += subprocess.call([sys.executable, 'run_unittests.py'], env=myenv)
     returncode += subprocess.call([sys.executable, 'run_project_tests.py'] + sys.argv[1:])
     sys.exit(returncode)

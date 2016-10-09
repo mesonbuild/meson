@@ -16,6 +16,8 @@
 import unittest, os, sys, shutil
 import subprocess
 import re
+import tempfile
+from mesonbuild.environment import detect_ninja
 
 def get_soname(fname):
     # HACK, fix to not use shell.
@@ -30,30 +32,35 @@ class LinuxlikeTests(unittest.TestCase):
     
     def setUp(self):
         super().setUp()
-        src_root = os.path.split(__file__)[0]
-        self.builddir = 'unittestdir' # fixme to be unique
+        src_root = os.path.dirname(__file__)
+        self.builddir = tempfile.mkdtemp()
         self.meson_command = [sys.executable, os.path.join(src_root, 'meson.py')]
-        self.ninja_command = ['ninja', '-C', self.builddir]
+        self.ninja_command = [detect_ninja(), '-C', self.builddir]
         self.common_test_dir = os.path.join(src_root, 'test cases/common')
-        os.mkdir(self.builddir)
         self.output = b''
 
     def tearDown(self):
         shutil.rmtree(self.builddir)
         super().tearDown()
 
+    def init(self, srcdir):
+        self.output += subprocess.check_output(self.meson_command + [srcdir, self.builddir])
+
+    def build(self):
+        self.output += subprocess.check_output(self.ninja_command)
+
     def test_basic_soname(self):
         testdir = os.path.join(self.common_test_dir, '4 shared')
-        self.output += subprocess.check_output(self.meson_command + [testdir, self.builddir])
-        self.output += subprocess.check_output(self.ninja_command)
+        self.init(testdir)
+        self.build()
         lib1 = os.path.join(self.builddir, 'libmylib.so')
         soname = get_soname(lib1)
         self.assertEqual(soname, b'libmylib.so')
 
     def test_custom_soname(self):
         testdir = os.path.join(self.common_test_dir, '27 library versions')
-        self.output += subprocess.check_output(self.meson_command + [testdir, self.builddir])
-        self.output += subprocess.check_output(self.ninja_command)
+        self.init(testdir)
+        self.build()
         lib1 = os.path.join(self.builddir, 'prefixsomelib.suffix')
         soname = get_soname(lib1)
         self.assertEqual(soname, b'prefixsomelib.suffix')
