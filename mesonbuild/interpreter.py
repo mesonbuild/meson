@@ -1196,6 +1196,7 @@ class Interpreter():
                       'declare_dependency': self.func_declare_dependency,
                       'assert': self.func_assert,
                       'environment' : self.func_environment,
+                      'path_join' : self.func_path_join,
                      }
 
     def parse_project(self):
@@ -2236,6 +2237,15 @@ class Interpreter():
 
     def func_environment(self, node, args, kwargs):
         return EnvironmentVariablesHolder()
+
+    @stringArgs
+    @noKwargs
+    def func_path_join(self, node, args, kwargs):
+        if isinstance(args, str):
+            st = (args,)
+        else:
+            st = tuple(args)
+        return os.path.join(*args).replace('\\', '/')
 
     def flatten(self, args):
         if isinstance(args, mparser.StringNode):
