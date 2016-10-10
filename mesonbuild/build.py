@@ -823,6 +823,8 @@ class Executable(BuildTarget):
 
 class StaticLibrary(BuildTarget):
     def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
+        if 'pic' not in kwargs and 'b_staticpic' in environment.coredata.base_options:
+            kwargs['pic'] = environment.coredata.base_options['b_staticpic'].value
         super().__init__(name, subdir, subproject, is_cross, sources, objects, environment, kwargs)
         if 'cs' in self.compilers:
             raise InvalidArguments('Static libraries not supported for C#.')
