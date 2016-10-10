@@ -14,15 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from mesonbuild import mesonmain
-import sys, os
+import meson
+import sys
 
-def main():
-    launcher = sys.argv[0]
-    # resolve the command path if not launched from $PATH
-    if os.path.split(launcher)[0]:
-        launcher = os.path.realpath(launcher)
-    return mesonmain.run(launcher, sys.argv[1:])
-
-if __name__ == '__main__':
-    sys.exit(main())
+sys.exit(meson.main())
