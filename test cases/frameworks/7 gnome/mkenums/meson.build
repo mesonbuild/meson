@@ -32,7 +32,7 @@ enums_h2 = gnome.mkenums('abc2',
 
 enums_c2 = gnome.mkenums('abc2',
   sources : 'meson-sample.h',
-  depends : enums_h2,
+  depends : [enums_h1, enums_h2],
   c_template : 'enums2.c.in',
   ftail : '/* trailing source file info */',
   install_header : true,
