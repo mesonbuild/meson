@@ -634,11 +634,11 @@ by calling get_variable() on the subproject object.''')
             if hasattr(t, 'held_object'):
                 t = t.held_object
             if not isinstance(t, (StaticLibrary, SharedLibrary)):
-                raise InvalidArguments('Link target is not library.')
+                raise InvalidArguments('Link target is not library ({!r})'.format(t.name))
             if isinstance(self, SharedLibrary) and isinstance(t, StaticLibrary) and not t.pic:
-                raise InvalidArguments("Can't link a non-PIC static library into a shared library")
+                raise InvalidArguments("Can't link a non-PIC static library ({!r}) into a shared library ({!r})".format(t.name, self.name))
             if self.is_cross != t.is_cross:
-                raise InvalidArguments('Tried to mix cross built and native libraries in target %s.' % self.name)
+                raise InvalidArguments('Tried to mix cross built and native libraries in target {!r}'.format(self.name))
             self.link_targets.append(t)
 
     def set_generated(self, genlist):
