@@ -190,7 +190,10 @@ base_options = {
                                                         'always'),
                 'b_ndebug' : coredata.UserBooleanOption('b_ndebug',
                                                         'Disable asserts',
-                                                        False)
+                                                        False),
+                'b_staticpic' : coredata.UserBooleanOption('b_staticpic',
+                                                           'Build static libraries as position independent',
+                                                           True),
                 }
 
 def sanitizer_compile_args(value):
@@ -1521,7 +1524,7 @@ class GnuDCompiler(DCompiler):
         self.warn_args = {'1': ['-Wall', '-Wdeprecated'],
                           '2': ['-Wall', '-Wextra', '-Wdeprecated'],
                           '3': ['-Wall', '-Wextra', '-Wdeprecated', '-Wpedantic']}
-        self.base_options = ['b_colorout', 'b_sanitize']
+        self.base_options = ['b_colorout', 'b_sanitize', 'b_staticpic']
 
     def get_colorout_args(self, colortype):
         if mesonlib.version_compare(self.version, '>=4.9.0'):
@@ -1909,7 +1912,7 @@ class GnuCompiler:
         self.gcc_type = gcc_type
         self.defines = defines or {}
         self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage',
-                             'b_colorout', 'b_ndebug']
+                             'b_colorout', 'b_ndebug', 'b_staticpic']
         if self.gcc_type != GCC_OSX:
             self.base_options.append('b_lundef')
             self.base_options.append('b_asneeded')
@@ -2055,7 +2058,7 @@ class ClangCompiler():
         self.id = 'clang'
         self.clang_type = clang_type
         self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage',
-                             'b_ndebug']
+                             'b_ndebug', 'b_staticpic']
         if self.clang_type != CLANG_OSX:
             self.base_options.append('b_lundef')
             self.base_options.append('b_asneeded')
@@ -2285,7 +2288,7 @@ class GnuFortranCompiler(FortranCompiler):
 
     def get_define(self, define):
         if define in self.defines:
-            return defines[define]
+            return self.defines[define]
 
     def get_always_args(self):
         return ['-pipe']

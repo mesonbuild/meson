@@ -1117,7 +1117,7 @@ class Interpreter():
         if not os.path.isfile(mesonfile):
             raise InvalidArguments('Missing Meson file in %s' % mesonfile)
         with open(mesonfile, encoding='utf8') as mf:
-           code = mf.read()
+            code = mf.read()
         if len(code.strip()) == 0:
             raise InvalidCode('Builder file is empty.')
         assert(isinstance(code, str))

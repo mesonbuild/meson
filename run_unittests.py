@@ -15,7 +15,7 @@
 
 import unittest, os, sys, shutil
 import subprocess
-import re
+import re, json
 import tempfile
 from mesonbuild.environment import detect_ninja
 
@@ -29,12 +29,12 @@ def get_soname(fname):
             return m.group(1)
 
 class LinuxlikeTests(unittest.TestCase):
-    
     def setUp(self):
         super().setUp()
         src_root = os.path.dirname(__file__)
         self.builddir = tempfile.mkdtemp()
         self.meson_command = [sys.executable, os.path.join(src_root, 'meson.py')]
+        self.mconf_command = [sys.executable, os.path.join(src_root, 'mesonconf.py')]
         self.ninja_command = [detect_ninja(), '-C', self.builddir]
         self.common_test_dir = os.path.join(src_root, 'test cases/common')
         self.output = b''
@@ -48,6 +48,13 @@ class LinuxlikeTests(unittest.TestCase):
 
     def build(self):
         self.output += subprocess.check_output(self.ninja_command)
+
+    def setconf(self, arg):
+        self.output += subprocess.check_output(self.mconf_command + [arg, self.builddir])
+
+    def get_compdb(self):
+        with open(os.path.join(self.builddir, 'compile_commands.json')) as ifile:
+            return json.load(ifile)
 
     def test_basic_soname(self):
         testdir = os.path.join(self.common_test_dir, '4 shared')
@@ -64,6 +71,15 @@ class LinuxlikeTests(unittest.TestCase):
         lib1 = os.path.join(self.builddir, 'prefixsomelib.suffix')
         soname = get_soname(lib1)
         self.assertEqual(soname, b'prefixsomelib.suffix')
+
+    def test_pic(self):
+        testdir = os.path.join(self.common_test_dir, '3 static')
+        self.init(testdir)
+        compdb = self.get_compdb()
+        self.assertTrue('-fPIC' in compdb[0]['command'])
+        self.setconf('-Db_staticpic=true')
+        self.build()
+        self.assertFalse('-fPIC' not in compdb[0]['command'])
 
 if __name__ == '__main__':
     unittest.main()
