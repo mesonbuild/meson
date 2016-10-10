@@ -510,18 +510,18 @@ class BuildTarget():
             name_prefix = kwargs['name_prefix']
             if isinstance(name_prefix, list):
                 if len(name_prefix) != 0:
-                    raise InvalidArguments('Array must be empty to signify null.')
+                    raise InvalidArguments('name_prefix array must be empty to signify null.')
             elif not isinstance(name_prefix, str):
-                raise InvalidArguments('Name prefix must be a string.')
+                raise InvalidArguments('name_prefix must be a string.')
             self.prefix = name_prefix
         if 'name_suffix' in kwargs:
             name_suffix = kwargs['name_suffix']
             if isinstance(name_suffix, list):
                 if len(name_suffix) != 0:
-                    raise InvalidArguments('Array must be empty to signify null.')
+                    raise InvalidArguments('name_suffix array must be empty to signify null.')
             else:
                 if not isinstance(name_suffix, str):
-                    raise InvalidArguments('Name suffix must be a string.')
+                    raise InvalidArguments('name_suffix must be a string.')
                 self.suffix = name_suffix
         if isinstance(self, StaticLibrary):
             # You can't disable PIC on OS X. The compiler ignores -fno-PIC.
@@ -529,10 +529,13 @@ class BuildTarget():
             # since library loading is done differently)
             if for_darwin(self.is_cross, self.environment) or for_windows(self.is_cross, self.environment):
                 self.pic = True
+            elif '-fPIC' in clist + cpplist:
+                mlog.log(mlog.red('WARNING:'), "Use the 'pic' kwarg instead of passing -fPIC manually to static library {!r}".format(self.name))
+                self.pic = True
             else:
                 self.pic = kwargs.get('pic', False)
                 if not isinstance(self.pic, bool):
-                    raise InvalidArguments('Argument pic must be boolean')
+                    raise InvalidArguments('Argument pic to static library {!r} must be boolean'.format(self.name))
 
     def get_subdir(self):
         return self.subdir
@@ -634,11 +637,13 @@ by calling get_variable() on the subproject object.''')
             if hasattr(t, 'held_object'):
                 t = t.held_object
             if not isinstance(t, (StaticLibrary, SharedLibrary)):
-                raise InvalidArguments('Link target is not library.')
+                raise InvalidArguments('Link target {!r} is not library.'.format(t.name))
             if isinstance(self, SharedLibrary) and isinstance(t, StaticLibrary) and not t.pic:
-                raise InvalidArguments("Can't link a non-PIC static library into a shared library")
+                msg = "Can't link non-PIC static library {!r} into shared library {!r}. ".format(t.name, self.name)
+                msg += "Use the 'pic' option to static_library to build with PIC."
+                raise InvalidArguments(msg)
             if self.is_cross != t.is_cross:
-                raise InvalidArguments('Tried to mix cross built and native libraries in target %s.' % self.name)
+                raise InvalidArguments('Tried to mix cross built and native libraries in target {!r}'.format(self.name))
             self.link_targets.append(t)
 
     def set_generated(self, genlist):
