@@ -1128,7 +1128,7 @@ class Interpreter():
             raise me
         self.sanity_check_ast()
         self.variables = {}
-        self.builtin = {}
+        self.builtin = {'meson': MesonMain(build, self)}
         self.generators = []
         self.visited_subdirs = {}
         self.global_args_frozen = False
@@ -1150,7 +1150,6 @@ class Interpreter():
                 self.builtin['target_machine'] = CrossMachineInfo(cross_info.config['target_machine'])
             else:
                 self.builtin['target_machine'] = self.builtin['host_machine']
-        self.builtin['meson'] = MesonMain(build, self)
         self.build_def_files = [os.path.join(self.subdir, environment.build_filename)]
 
     def build_func_dict(self):
@@ -1254,9 +1253,6 @@ class Interpreter():
         first = self.ast.lines[0]
         if not isinstance(first, mparser.FunctionNode) or first.func_name != 'project':
             raise InvalidCode('First statement must be a call to project')
-        args = self.reduce_arguments(first.args)[0]
-        if len(args) < 2:
-            raise InvalidArguments('Not enough arguments to project(). Needs at least the project name and one language')
 
 
     def check_cross_stdlibs(self):
@@ -1615,6 +1611,8 @@ class Interpreter():
             self.build.project_name = args[0]
             if self.environment.first_invocation and 'default_options' in kwargs:
                 self.parse_default_options(kwargs['default_options'])
+        if len(args) < 2:
+            raise InvalidArguments('Not enough arguments to project(). Needs at least the project name and one language')
         self.active_projectname = args[0]
         self.project_version = kwargs.get('version', 'undefined')
         proj_license = mesonlib.stringlistify(kwargs.get('license', 'unknown'))
