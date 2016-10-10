@@ -530,7 +530,7 @@ class BuildTarget():
             if for_darwin(self.is_cross, self.environment) or for_windows(self.is_cross, self.environment):
                 self.pic = True
             else:
-                self.pic = kwargs.get('pic', False)
+                self.pic = kwargs.get('pic', True)
                 if not isinstance(self.pic, bool):
                     raise InvalidArguments('Argument pic must be boolean')
 
