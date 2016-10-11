@@ -1,3 +1,5 @@
+extern int get_ret_code ();
+
 public class MyThread : Object {
 	public int x_times { get; private set; }
 
@@ -12,7 +14,7 @@ public class MyThread : Object {
 		}
 
 		// return & exit have the same effect
-		Thread.exit (42);
+		Thread.exit (get_ret_code ());
 		return 43;
 	}
 }
