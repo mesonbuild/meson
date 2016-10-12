@@ -149,18 +149,22 @@ class CoreData():
             raise RuntimeError('Tried to set unknown builtin option %s.' % optname)
 
 def load(filename):
-    with open(filename, 'rb') as f:
-        obj = pickle.load(f)
+    load_fail_msg = 'Coredata file {!r} is corrupted. Try with a fresh build tree.'.format(filename)
+    try:
+        with open(filename, 'rb') as f:
+            obj = pickle.load(f)
+    except pickle.UnpicklingError:
+        raise MesonException(load_fail_msg)
     if not isinstance(obj, CoreData):
-        raise RuntimeError('Core data file is corrupted.')
+        raise MesonException(load_fail_msg)
     if obj.version != version:
-        raise RuntimeError('Build tree has been generated with Meson version %s, which is incompatible with current version %s.'%
+        raise MesonException('Build directory has been generated with Meson version %s, which is incompatible with current version %s.\nPlease delete this build directory AND create a new one.'%
                            (obj.version, version))
     return obj
 
 def save(obj, filename):
     if obj.version != version:
-        raise RuntimeError('Fatal version mismatch corruption.')
+        raise MesonException('Fatal version mismatch corruption.')
     with open(filename, 'wb') as f:
         pickle.dump(obj, f)
 
