@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import unittest, os, sys, shutil
+import unittest, os, sys, shutil, time
 import subprocess
 import re, json
 import tempfile
@@ -77,9 +77,15 @@ class LinuxlikeTests(unittest.TestCase):
         self.init(testdir)
         compdb = self.get_compdb()
         self.assertTrue('-fPIC' in compdb[0]['command'])
-        self.setconf('-Db_staticpic=true')
+        # This is needed to increase the difference between build.ninja's
+        # timestamp and coredata.dat's timestamp due to a Ninja bug.
+        # https://github.com/ninja-build/ninja/issues/371
+        time.sleep(1)
+        self.setconf('-Db_staticpic=false')
+        # Regenerate build
         self.build()
-        self.assertFalse('-fPIC' not in compdb[0]['command'])
+        compdb = self.get_compdb()
+        self.assertTrue('-fPIC' not in compdb[0]['command'])
 
 if __name__ == '__main__':
     unittest.main()
