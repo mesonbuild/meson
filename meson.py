@@ -18,10 +18,8 @@ from mesonbuild import mesonmain
 import sys, os
 
 def main():
-    launcher = sys.argv[0]
-    # resolve the command path if not launched from $PATH
-    if os.path.split(launcher)[0]:
-        launcher = os.path.realpath(launcher)
+    # Always resolve the command path so Ninja can find it for regen, tests, etc.
+    launcher = os.path.realpath(sys.argv[0])
     return mesonmain.run(launcher, sys.argv[1:])
 
 if __name__ == '__main__':
