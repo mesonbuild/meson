@@ -1959,7 +1959,7 @@ class Interpreter():
     @stringArgs
     def func_custom_target(self, node, args, kwargs):
         if len(args) != 1:
-            raise InterpreterException('Incorrect number of arguments')
+            raise InterpreterException('custom_target: Only one positional argument is allowed, and it must be a string name')
         name = args[0]
         tg = CustomTargetHolder(build.CustomTarget(name, self.subdir, kwargs), self)
         self.add_target(name, tg.held_object)
