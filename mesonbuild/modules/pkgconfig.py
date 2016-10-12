@@ -14,15 +14,16 @@
 
 from .. import coredata, build
 from .. import mesonlib
+from .. import mlog
 import os
 
 class PkgConfigModule:
 
-    def generate_pkgconfig_file(self, state, libraries, subdirs, name, description, version, filebase,
+    def generate_pkgconfig_file(self, state, libraries, subdirs, name, description, version, pcfile,
                                 pub_reqs, priv_reqs, priv_libs):
         coredata = state.environment.get_coredata()
         outdir = state.environment.scratch_dir
-        fname = os.path.join(outdir, filebase + '.pc')
+        fname = os.path.join(outdir, pcfile)
         with open(fname, 'w') as ofile:
             ofile.write('prefix=%s\n' % coredata.get_builtin_option('prefix'))
             ofile.write('libdir=${prefix}/%s\n' %
@@ -43,9 +44,20 @@ class PkgConfigModule:
                 ofile.write(
                     'Libraries.private: {}\n'.format(' '.join(priv_libs)))
             ofile.write('Libs: -L${libdir} ')
+            msg = 'Library target {0!r} has {1!r} set. Compilers ' \
+                  'may not find it from its \'-l{0}\' linker flag in the ' \
+                  '{2!r} pkg-config file.'
             for l in libraries:
                 if l.custom_install_dir:
                     ofile.write('-L${prefix}/%s ' % l.custom_install_dir)
+                # Warn, but not if the filename starts with 'lib'. This can
+                # happen, for instance, if someone really wants to use the
+                # 'lib' prefix on all systems, not just on UNIX, or if the the
+                # target name itself starts with 'lib'.
+                if l.name_prefix_set and not l.filename.startswith('lib'):
+                    mlog.log(mlog.red('WARNING:'), msg.format(l.name, 'name_prefix', pcfile))
+                if l.name_suffix_set:
+                    mlog.log(mlog.red('WARNING:'), msg.format(l.name, 'name_suffix', pcfile))
                 ofile.write('-l%s ' % l.name)
             ofile.write('\n')
             ofile.write('CFlags: ')
@@ -92,7 +104,7 @@ class PkgConfigModule:
             pkgroot = os.path.join(state.environment.coredata.get_builtin_option('libdir'), 'pkgconfig')
         if not isinstance(pkgroot, str):
             raise mesonlib.MesonException('Install_dir must be a string.')
-        self.generate_pkgconfig_file(state, libs, subdirs, name, description, version, filebase,
+        self.generate_pkgconfig_file(state, libs, subdirs, name, description, version, pcfile,
                                      pub_reqs, priv_reqs, priv_libs)
         return build.Data(False, state.environment.get_scratch_dir(), [pcfile], pkgroot)
 
