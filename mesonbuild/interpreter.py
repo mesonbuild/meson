@@ -1207,7 +1207,7 @@ class Interpreter():
                       'declare_dependency': self.func_declare_dependency,
                       'assert': self.func_assert,
                       'environment' : self.func_environment,
-                      'path_join' : self.func_path_join,
+                      'join_paths' : self.func_join_paths,
                      }
 
     def parse_project(self):
@@ -2250,7 +2250,7 @@ class Interpreter():
 
     @stringArgs
     @noKwargs
-    def func_path_join(self, node, args, kwargs):
+    def func_join_paths(self, node, args, kwargs):
         if isinstance(args, str):
             st = (args,)
         else:
