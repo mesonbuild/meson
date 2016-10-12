@@ -15,5 +15,15 @@ pkgg.generate(
   description : 'A simple demo library.',
   requires : 'glib-2.0', # Not really, but only here to test that this works.
   requires_private : ['gio-2.0', 'gobject-2.0'],
-  libraries_private : '-lz',
-)
+  libraries_private : '-lz')
+
+# Test that name_prefix='' and name='libfoo' results in '-lfoo'
+lib2 = shared_library('libfoo', 'simple.c',
+  name_prefix : '',
+  version : libver)
+
+pkgg.generate(
+  libraries : lib2,
+  name : 'libfoo',
+  version : libver,
+  description : 'A foo library.')

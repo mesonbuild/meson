@@ -87,6 +87,7 @@ class PkgConfigDependency(Dependency):
         self.is_libtool = False
         self.required = kwargs.get('required', True)
         self.static = kwargs.get('static', False)
+        self.silent = kwargs.get('silent', False)
         if not isinstance(self.static, bool):
             raise DependencyException('Static keyword must be boolean')
         self.cargs = []
@@ -132,14 +133,16 @@ class PkgConfigDependency(Dependency):
             if not self.is_found:
                 found_msg += [mlog.red('NO'), 'found {!r}'.format(self.modversion),
                               'but need {!r}'.format(self.version_requirement)]
-                mlog.log(*found_msg)
+                if not self.silent:
+                    mlog.log(*found_msg)
                 if self.required:
                     raise DependencyException(
                         'Invalid version of a dependency, needed %s %s found %s.' %
                         (name, self.version_requirement, self.modversion))
                 return
         found_msg += [mlog.green('YES'), self.modversion]
-        mlog.log(*found_msg)
+        if not self.silent:
+            mlog.log(*found_msg)
         # Fetch cargs to be used while using this dependency
         self._set_cargs()
         # Fetch the libraries and library paths needed for using this
@@ -214,14 +217,16 @@ class PkgConfigDependency(Dependency):
                                  stderr=subprocess.PIPE)
             out = p.communicate()[0]
             if p.returncode == 0:
-                mlog.log('Found pkg-config:', mlog.bold(shutil.which('pkg-config')),
-                         '(%s)' % out.decode().strip())
+                if not self.silent:
+                    mlog.log('Found pkg-config:', mlog.bold(shutil.which('pkg-config')),
+                             '(%s)' % out.decode().strip())
                 PkgConfigDependency.pkgconfig_found = True
                 return
         except Exception:
             pass
         PkgConfigDependency.pkgconfig_found = False
-        mlog.log('Found Pkg-config:', mlog.red('NO'))
+        if not self.silent:
+            mlog.log('Found Pkg-config:', mlog.red('NO'))
 
     def found(self):
         return self.is_found
