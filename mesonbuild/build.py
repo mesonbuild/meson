@@ -229,6 +229,8 @@ class BuildTarget():
         self.include_dirs = []
         self.link_targets = []
         self.link_depends = []
+        self.name_prefix_set = False
+        self.name_suffix_set = False
         self.filename = 'no_name'
         # The file with debugging symbols
         self.debug_filename = None
@@ -514,6 +516,7 @@ class BuildTarget():
             elif not isinstance(name_prefix, str):
                 raise InvalidArguments('name_prefix must be a string.')
             self.prefix = name_prefix
+            self.name_prefix_set = True
         if 'name_suffix' in kwargs:
             name_suffix = kwargs['name_suffix']
             if isinstance(name_suffix, list):
@@ -523,6 +526,7 @@ class BuildTarget():
                 if not isinstance(name_suffix, str):
                     raise InvalidArguments('name_suffix must be a string.')
                 self.suffix = name_suffix
+                self.name_suffix_set = True
         if isinstance(self, StaticLibrary):
             # You can't disable PIC on OS X. The compiler ignores -fno-PIC.
             # PIC is always on for Windows (all code is position-independent
