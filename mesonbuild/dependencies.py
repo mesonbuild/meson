@@ -115,16 +115,12 @@ class PkgConfigDependency(Dependency):
 
         mlog.debug('Determining dependency %s with pkg-config executable %s.' % (name, pkgbin))
         self.pkgbin = pkgbin
-        p = subprocess.Popen([pkgbin, '--modversion', name],
-                             stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE)
-        out = p.communicate()[0]
-        if p.returncode != 0:
+        ret, self.modversion = self._call_pkgbin(['--modversion', name])
+        if ret != 0:
             if self.required:
                 raise DependencyException('%s dependency %s not found.' % (self.type_string, name))
             self.modversion = 'none'
             return
-        self.modversion = out.decode().strip()
         found_msg = ['%s dependency' % self.type_string, mlog.bold(name), 'found:']
         self.version_requirement = kwargs.get('version', None)
         if self.version_requirement is None:
@@ -149,27 +145,30 @@ class PkgConfigDependency(Dependency):
         # Fetch the libraries and library paths needed for using this
         self._set_libs()
 
-    def _set_cargs(self):
-        p = subprocess.Popen([self.pkgbin, '--cflags', self.name],
-                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    def _call_pkgbin(self, args):
+        p = subprocess.Popen([self.pkgbin] + args,
+                             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                             env=os.environ, universal_newlines=True)
         out = p.communicate()[0]
-        if p.returncode != 0:
+        return (p.returncode, out.strip())
+
+    def _set_cargs(self):
+        ret, out = self._call_pkgbin(['--cflags', self.name])
+        if ret != 0:
             raise DependencyException('Could not generate cargs for %s:\n\n%s' % \
                                       (self.name, out.decode(errors='ignore')))
-        self.cargs = out.decode().split()
+        self.cargs = out.split()
 
     def _set_libs(self):
-        libcmd = [self.pkgbin, '--libs']
+        libcmd = [self.name, '--libs']
         if self.static:
             libcmd.append('--static')
-        p = subprocess.Popen(libcmd + [self.name],
-                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        out = p.communicate()[0]
-        if p.returncode != 0:
+        ret, out = self._call_pkgbin(libcmd)
+        if ret != 0:
             raise DependencyException('Could not generate libs for %s:\n\n%s' % \
                                       (self.name, out.decode(errors='ignore')))
         self.libs = []
-        for lib in out.decode().split():
+        for lib in out.split():
             if lib.endswith(".la"):
                 shared_libname = self.extract_libtool_shlib(lib)
                 shared_lib = os.path.join(os.path.dirname(lib), shared_libname)
@@ -185,16 +184,14 @@ class PkgConfigDependency(Dependency):
             self.libs.append(lib)
 
     def get_variable(self, variable_name):
-        p = subprocess.Popen([self.pkgbin, '--variable=%s' % variable_name, self.name],
-                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        out = p.communicate()[0]
+        ret, out = self._call_pkgbin(['--variable=' + variable_name, self.name])
         variable = ''
-        if p.returncode != 0:
+        if ret != 0:
             if self.required:
                 raise DependencyException('%s dependency %s not found.' %
                                           (self.type_string, self.name))
         else:
-            variable = out.decode().strip()
+            variable = out.strip()
         mlog.debug('return of subprocess : %s' % variable)
 
         return variable
