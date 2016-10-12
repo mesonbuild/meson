@@ -19,6 +19,24 @@ import os
 
 class PkgConfigModule:
 
+    def _get_lname(self, l, msg, pcfile):
+        # Nothing special
+        if not l.name_prefix_set:
+            return l.name
+        # Sometimes people want the library to start with 'lib' everywhere,
+        # which is achieved by setting name_prefix to '' and the target name to
+        # 'libfoo'. In that case, try to get the pkg-config '-lfoo' arg correct.
+        if l.prefix == '' and l.name.startswith('lib'):
+            return l.name[3:]
+        # If the library is imported via an import library which is always
+        # named after the target name, '-lfoo' is correct.
+        if l.import_filename:
+            return l.name
+        # In other cases, we can't guarantee that the compiler will be able to
+        # find the library via '-lfoo', so tell the user that.
+        mlog.log(mlog.red('WARNING:'), msg.format(l.name, 'name_prefix', l.name, pcfile))
+        return l.name
+
     def generate_pkgconfig_file(self, state, libraries, subdirs, name, description, version, pcfile,
                                 pub_reqs, priv_reqs, priv_libs):
         coredata = state.environment.get_coredata()
@@ -45,20 +63,17 @@ class PkgConfigModule:
                     'Libraries.private: {}\n'.format(' '.join(priv_libs)))
             ofile.write('Libs: -L${libdir} ')
             msg = 'Library target {0!r} has {1!r} set. Compilers ' \
-                  'may not find it from its \'-l{0}\' linker flag in the ' \
-                  '{2!r} pkg-config file.'
+                  'may not find it from its \'-l{2}\' linker flag in the ' \
+                  '{3!r} pkg-config file.'
             for l in libraries:
                 if l.custom_install_dir:
                     ofile.write('-L${prefix}/%s ' % l.custom_install_dir)
-                # Warn, but not if the filename starts with 'lib'. This can
-                # happen, for instance, if someone really wants to use the
-                # 'lib' prefix on all systems, not just on UNIX, or if the the
-                # target name itself starts with 'lib'.
-                if l.name_prefix_set and not l.filename.startswith('lib'):
-                    mlog.log(mlog.red('WARNING:'), msg.format(l.name, 'name_prefix', pcfile))
+                lname = self._get_lname(l, msg, pcfile)
+                # If using a custom suffix, the compiler may not be able to
+                # find the library
                 if l.name_suffix_set:
-                    mlog.log(mlog.red('WARNING:'), msg.format(l.name, 'name_suffix', pcfile))
-                ofile.write('-l%s ' % l.name)
+                    mlog.log(mlog.red('WARNING:'), msg.format(l.name, 'name_suffix', lname, pcfile))
+                ofile.write('-l{} '.format(lname))
             ofile.write('\n')
             ofile.write('CFlags: ')
             for h in subdirs:
