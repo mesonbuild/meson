@@ -50,7 +50,11 @@ class PkgConfigModule:
             for l in libraries:
                 if l.custom_install_dir:
                     ofile.write('-L${prefix}/%s ' % l.custom_install_dir)
-                if l.name_prefix_set:
+                # Warn, but not if the filename starts with 'lib'. This can
+                # happen, for instance, if someone really wants to use the
+                # 'lib' prefix on all systems, not just on UNIX, or if the the
+                # target name itself starts with 'lib'.
+                if l.name_prefix_set and not l.filename.startswith('lib'):
                     mlog.log(mlog.red('WARNING:'), msg.format(l.name, 'name_prefix', pcfile))
                 if l.name_suffix_set:
                     mlog.log(mlog.red('WARNING:'), msg.format(l.name, 'name_suffix', pcfile))
