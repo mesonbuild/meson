@@ -27,42 +27,50 @@ error_code = '''int main(int argc, char **argv) {
 no_compile_code = '''int main(int argc, char **argv) {
 '''
 
-ok = cc.run(ok_code, name : 'should succeed')
-err = cc.run(error_code, name : 'should fail')
-noc = cc.run(no_compile_code, name : 'does not compile')
+INPUTS = [
+  ['String', ok_code, error_code, no_compile_code],
+  ['File', files('ok.c'), files('error.c'), files('no_compile.c')],
+]
 
-if noc.compiled()
-  error('Compilation fail test failed.')
-else
-  message('Fail detected properly.')
-endif
+foreach input : INPUTS
+  type = input[0]
+  ok = cc.run(input[1], name : type + ' should succeed')
+  err = cc.run(input[2], name : type + ' should fail')
+  noc = cc.run(input[3], name : type + ' does not compile')
 
-if ok.compiled()
-  message('Compilation worked.')
-else
-  error('Compilation did not work.')
-endif
+  if noc.compiled()
+    error(type + ' compilation fail test failed.')
+  else
+    message(type + ' fail detected properly.')
+  endif
 
-if ok.returncode() == 0
-  message('Return code ok.')
-else
-  error('Return code fail')
-endif
+  if ok.compiled()
+    message(type + ' compilation worked.')
+  else
+    error(type + ' compilation did not work.')
+  endif
 
-if err.returncode() == 1
-  message('Bad return code ok.')
-else
-  error('Bad return code fail.')
-endif
+  if ok.returncode() == 0
+    message(type + ' return code ok.')
+  else
+    error(type + ' return code fail')
+  endif
 
-if ok.stdout().strip() == 'stdout'
-  message('Stdout ok.')
-else
-  message('Bad stdout.')
-endif
+  if err.returncode() == 1
+    message(type + ' bad return code ok.')
+  else
+    error(type + ' bad return code fail.')
+  endif
 
-if ok.stderr().strip() == 'stderr'
-  message('Stderr ok.')
-else
-  message('Bad stderr.')
-endif
+  if ok.stdout().strip() == 'stdout'
+    message(type + ' stdout ok.')
+  else
+    message(type + ' bad stdout.')
+  endif
+
+  if ok.stderr().strip() == 'stderr'
+    message(type + ' stderr ok.')
+  else
+    message(type + ' bad stderr.')
+  endif
+endforeach

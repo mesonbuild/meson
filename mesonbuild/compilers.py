@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import contextlib
 import subprocess, os.path
 import tempfile
 from .import mesonlib
@@ -643,23 +644,50 @@ int main () {{ {1}; }}'''
         args = extra_args + self.get_no_optimization_args()
         return self.compiles(templ.format(hname, symbol, prefix), env, args, dependencies)
 
-    def compile(self, code, srcname, extra_args=None):
+    @contextlib.contextmanager
+    def compile(self, code, extra_args=None):
         if extra_args is None:
             extra_args = []
-        commands = self.get_exelist()
-        commands.append(srcname)
-        commands += extra_args
-        mlog.debug('Running compile:')
-        mlog.debug('Command line: ', ' '.join(commands), '\n')
-        mlog.debug('Code:\n', code)
-        p = subprocess.Popen(commands, cwd=os.path.split(srcname)[0], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        (stde, stdo) = p.communicate()
-        stde = stde.decode()
-        stdo = stdo.decode()
-        mlog.debug('Compiler stdout:\n', stdo)
-        mlog.debug('Compiler stderr:\n', stde)
-        os.remove(srcname)
-        return p
+
+        try:
+            with tempfile.TemporaryDirectory() as tmpdirname:
+                if isinstance(code, str):
+                    srcname = os.path.join(tmpdirname,
+                                           'testfile.' + self.default_suffix)
+                    with open(srcname, 'w') as ofile:
+                        ofile.write(code)
+                elif isinstance(code, mesonlib.File):
+                    srcname = code.fname
+
+                # Extension only matters if running results; '.exe' is
+                # guaranteed to be executable on every platform.
+                output = os.path.join(tmpdirname, 'output.exe')
+
+                commands = self.get_exelist()
+                commands.append(srcname)
+                commands += extra_args
+                commands += self.get_output_args(output)
+                mlog.debug('Running compile:')
+                mlog.debug('Working directory: ', tmpdirname)
+                mlog.debug('Command line: ', ' '.join(commands), '\n')
+                mlog.debug('Code:\n', code)
+                p = subprocess.Popen(commands, cwd=tmpdirname,
+                                     stdout=subprocess.PIPE,
+                                     stderr=subprocess.PIPE)
+                (stde, stdo) = p.communicate()
+                stde = stde.decode()
+                stdo = stdo.decode()
+                mlog.debug('Compiler stdout:\n', stdo)
+                mlog.debug('Compiler stderr:\n', stde)
+
+                p.input_name = srcname
+                p.output_name = output
+                yield p
+        except (PermissionError, OSError):
+            # On Windows antivirus programs and the like hold on to files so
+            # they can't be deleted. There's not much to do in this case. Also,
+            # catch OSError because the directory is then no longer empty.
+            pass
 
     def compiles(self, code, env, extra_args=None, dependencies=None):
         if extra_args is None:
@@ -670,11 +698,6 @@ int main () {{ {1}; }}'''
             dependencies = []
         elif not isinstance(dependencies, list):
             dependencies = [dependencies]
-        suflen = len(self.default_suffix)
-        (fd, srcname) = tempfile.mkstemp(suffix='.'+self.default_suffix)
-        os.close(fd)
-        with open(srcname, 'w') as ofile:
-            ofile.write(code)
         cargs = [a for d in dependencies for a in d.get_compile_args()]
         # Convert flags to the native type of the selected compiler
         args = self.unix_link_flags_to_native(cargs + extra_args)
@@ -682,17 +705,8 @@ int main () {{ {1}; }}'''
         args += self.get_cross_extra_flags(env, compile=True, link=False)
         # We only want to compile; not link
         args += self.get_compile_only_args()
-        p = self.compile(code, srcname, args)
-        try:
-            trial = srcname[:-suflen] + 'o'
-            os.remove(trial)
-        except FileNotFoundError:
-            pass
-        try:
-            os.remove(srcname[:-suflen] + 'obj')
-        except FileNotFoundError:
-            pass
-        return p.returncode == 0
+        with self.compile(code, args) as p:
+            return p.returncode == 0
 
     def links(self, code, env, extra_args=None, dependencies=None):
         if extra_args is None:
@@ -703,12 +717,6 @@ int main () {{ {1}; }}'''
             dependencies = []
         elif not isinstance(dependencies, list):
             dependencies = [dependencies]
-        (fd, srcname) = tempfile.mkstemp(suffix='.'+self.default_suffix)
-        os.close(fd)
-        (fd, dstname) = tempfile.mkstemp()
-        os.close(fd)
-        with open(srcname, 'w') as ofile:
-            ofile.write(code)
         cargs = [a for d in dependencies for a in d.get_compile_args()]
         link_args = [a for d in dependencies for a in d.get_link_args()]
         # Convert flags to the native type of the selected compiler
@@ -717,14 +725,8 @@ int main () {{ {1}; }}'''
         args += self.get_linker_debug_crt_args()
         # Read c_args/c_link_args/cpp_args/cpp_link_args/etc from the cross-info file (if needed)
         args += self.get_cross_extra_flags(env, compile=True, link=True)
-        # Arguments specifying the output filename
-        args += self.get_output_args(dstname)
-        p = self.compile(code, srcname, args)
-        try:
-            os.remove(dstname)
-        except FileNotFoundError:
-            pass
-        return p.returncode == 0
+        with self.compile(code, args) as p:
+            return p.returncode == 0
 
     def run(self, code, env, extra_args=None, dependencies=None):
         if extra_args is None:
@@ -735,10 +737,6 @@ int main () {{ {1}; }}'''
             dependencies = [dependencies]
         if self.is_cross and self.exe_wrapper is None:
             raise CrossNoRunException('Can not run test applications in this cross environment.')
-        (fd, srcname) = tempfile.mkstemp(suffix='.'+self.default_suffix)
-        os.close(fd)
-        with open(srcname, 'w') as ofile:
-            ofile.write(code)
         cargs = [a for d in dependencies for a in d.get_compile_args()]
         link_args = [a for d in dependencies for a in d.get_link_args()]
         # Convert flags to the native type of the selected compiler
@@ -747,48 +745,30 @@ int main () {{ {1}; }}'''
         args += self.get_linker_debug_crt_args()
         # Read c_link_args/cpp_link_args/etc from the cross-info file
         args += self.get_cross_extra_flags(env, compile=True, link=True)
-        # Create command list
-        exename = srcname + '.exe' # Is guaranteed to be executable on every platform.
-        commands = self.get_exelist() + args
-        commands.append(srcname)
-        commands += self.get_output_args(exename)
-        mlog.debug('Running code:\n\n', code)
-        mlog.debug('Command line:', ' '.join(commands))
-        p = subprocess.Popen(commands, cwd=os.path.split(srcname)[0], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        (stdo, stde) = p.communicate()
-        stde = stde.decode()
-        stdo = stdo.decode()
-        mlog.debug('Compiler stdout:\n')
-        mlog.debug(stdo)
-        mlog.debug('Compiler stderr:\n')
-        mlog.debug(stde)
-        os.remove(srcname)
-        if p.returncode != 0:
-            return RunResult(False)
-        if self.is_cross:
-            cmdlist = self.exe_wrapper + [exename]
-        else:
-            cmdlist = exename
-        try:
-            pe = subprocess.Popen(cmdlist, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        except Exception as e:
-            mlog.debug('Could not run: %s (error: %s)\n' % (cmdlist, e))
-            return RunResult(False)
+        with self.compile(code, args) as p:
+            if p.returncode != 0:
+                mlog.debug('Could not compile test file %s: %d\n' % (
+                    p.input_name,
+                    p.returncode))
+                return RunResult(False)
+            if self.is_cross:
+                cmdlist = self.exe_wrapper + [p.output_name]
+            else:
+                cmdlist = p.output_name
+            try:
+                pe = subprocess.Popen(cmdlist, stdout=subprocess.PIPE,
+                                      stderr=subprocess.PIPE)
+            except Exception as e:
+                mlog.debug('Could not run: %s (error: %s)\n' % (cmdlist, e))
+                return RunResult(False)
 
-        (so, se) = pe.communicate()
+            (so, se) = pe.communicate()
         so = so.decode()
         se = se.decode()
         mlog.debug('Program stdout:\n')
         mlog.debug(so)
         mlog.debug('Program stderr:\n')
         mlog.debug(se)
-        try:
-            os.remove(exename)
-        except PermissionError:
-            # On Windows antivirus programs and the like hold
-            # on to files so they can't be deleted. There's not
-            # much to do in this case.
-            pass
         return RunResult(True, pe.returncode, so, se)
 
     def cross_sizeof(self, element, prefix, env, extra_args=None, dependencies=None):
