@@ -18,6 +18,7 @@ import subprocess
 import re, json
 import tempfile
 from mesonbuild.environment import detect_ninja
+from mesonbuild.dependencies import PkgConfigDependency
 
 def get_soname(fname):
     # HACK, fix to not use shell.
@@ -27,6 +28,13 @@ def get_soname(fname):
         m = pattern.search(line)
         if m is not None:
             return m.group(1)
+
+class FakeEnvironment(object):
+    def __init__(self):
+        self.cross_info = None
+    
+    def is_cross_build(self):
+        return False
 
 class LinuxlikeTests(unittest.TestCase):
     def setUp(self):
@@ -38,9 +46,11 @@ class LinuxlikeTests(unittest.TestCase):
         self.ninja_command = [detect_ninja(), '-C', self.builddir]
         self.common_test_dir = os.path.join(src_root, 'test cases/common')
         self.output = b''
+        self.orig_env = os.environ.copy()
 
     def tearDown(self):
         shutil.rmtree(self.builddir)
+        os.environ = self.orig_env
         super().tearDown()
 
     def init(self, srcdir):
@@ -86,6 +96,17 @@ class LinuxlikeTests(unittest.TestCase):
         self.build()
         compdb = self.get_compdb()
         self.assertTrue('-fPIC' not in compdb[0]['command'])
+
+    def test_pkgconfig_gen(self):
+        testdir = os.path.join(self.common_test_dir, '51 pkgconfig-gen')
+        self.init(testdir)
+        env = FakeEnvironment()
+        kwargs = {'required': True, 'silent': True}
+        os.environ['PKG_CONFIG_LIBDIR'] = os.path.join(self.builddir, 'meson-private')
+        simple_dep = PkgConfigDependency('libfoo', env, kwargs)
+        self.assertTrue(simple_dep.found())
+        self.assertEqual(simple_dep.get_version(), '1.0')
+        self.assertTrue('-lfoo' in simple_dep.get_link_args())
 
 if __name__ == '__main__':
     unittest.main()

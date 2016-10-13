@@ -1,2 +1,3 @@
 usr/include/simple.h
 usr/lib/pkgconfig/simple.pc
+usr/lib/pkgconfig/libfoo.pc
