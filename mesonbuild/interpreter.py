@@ -1879,23 +1879,27 @@ class Interpreter():
             mlog.log('Also couldn\'t find a fallback subproject in',
                     mlog.bold(os.path.join(self.subproject_dir, dirname)),
                     'for the dependency', mlog.bold(name))
-            if kwargs.get('required', True):
-                raise
-            else:
-                return None
+            return None
         try:
             dep = self.subprojects[dirname].get_variable_method([varname], {})
         except KeyError:
-            raise InterpreterException('Fallback variable {!r} in the subproject {!r} does not exist'.format(varname, dirname))
+            mlog.log('Fallback variable', mlog.bold(varname),
+                    'in the subproject', mlog.bold(dirname), 'does not exist')
+            return None
         if not isinstance(dep, DependencyHolder):
-            raise InterpreterException('Fallback variable {!r} in the subproject {!r} is not a dependency object.'.format(varname, dirname))
+            mlog.log('Fallback variable', mlog.bold(varname),
+                    'in the subproject', mlog.bold(dirname),
+                    'is not a dependency object.')
+            return None
         # Check if the version of the declared dependency matches what we want
         if 'version' in kwargs:
             wanted = kwargs['version']
             found = dep.version_method([], {})
             if found == 'undefined' or not mesonlib.version_compare(found, wanted):
-                m = 'Subproject "{0}" dependency "{1}" version is "{2}" but "{3}" is required.'
-                raise InterpreterException(m.format(dirname, varname, found, wanted))
+                mlog.log('Subproject', mlog.bold(dirname), 'dependency',
+                        mlog.bold(varname), 'version is', mlog.bold(found),
+                        'but', mlog.bold(wanted), 'is required.')
+                return None
         mlog.log('Found a', mlog.green('fallback'), 'subproject',
                  mlog.bold(os.path.join(self.subproject_dir, dirname)), 'for',
                  mlog.bold(name))
