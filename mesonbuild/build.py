@@ -733,14 +733,14 @@ class Generator():
 
     def get_base_outnames(self, inname):
         plainname = os.path.split(inname)[1]
-        basename = plainname.split('.')[0]
+        basename = os.path.splitext(plainname)[0]
         return [x.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname) for x in self.outputs]
 
     def get_dep_outname(self, inname):
         if self.depfile is None:
             raise InvalidArguments('Tried to get dep name for rule that does not have dependency file defined.')
         plainname = os.path.split(inname)[1]
-        basename = plainname.split('.')[0]
+        basename = os.path.splitext(plainname)[0]
         return self.depfile.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname)
 
     def get_arglist(self):
