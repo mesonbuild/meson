@@ -5,7 +5,7 @@ project('all sources generated', 'c', 'cpp')
 comp = find_program('converter.py')
 
 g = generator(comp,
-  output : '@BASENAME@.cpp',
+  output : '@BASENAME@',
   arguments : ['@INPUT@', '@OUTPUT@'])
 
 c = g.process('foobar.cpp.in')
