@@ -20,7 +20,7 @@ int main(int argc, char **argv) {
                 (const char*)g_bytes_get_data(data, NULL));
         return 1;
     }
-    fprintf(stderr, "All ok.\n");
+    fprintf(stdout, "All ok.\n");
     g_bytes_unref(data);
     g_resource_unref(res);
     return 0;
