@@ -776,6 +776,7 @@ class GeneratedList():
         if hasattr(generator, 'held_object'):
             generator = generator.held_object
         self.generator = generator
+        self.name = self.generator.exe
         self.infilelist = []
         self.outfilelist = []
         self.outmap = {}
