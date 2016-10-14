@@ -32,3 +32,7 @@ somelibfail = dependency('somelib',
   required : false,
   fallback : ['somelibfail', 'some_dep'])
 assert(somelibfail.found() == false, 'somelibfail found via wrong fallback')
+
+fakezlib_dep = dependency('zlib',
+  fallback : ['somelib', 'fakezlib_dep'])
+assert(fakezlib_dep.type_name() == 'internal', 'fakezlib_dep should be of type "internal", not ' + fakezlib_dep.type_name())

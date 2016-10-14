@@ -1834,11 +1834,23 @@ class Interpreter():
             # We need to actually search for this dep
             exception = None
             dep = None
-            try:
-                dep = dependencies.find_external_dependency(name, self.environment, kwargs)
-            except dependencies.DependencyException as e:
-                exception = e
-                pass
+            # If the fallback has already been configured (possibly by a higher level project)
+            # try to use it before using the native version
+            if 'fallback' in kwargs:
+                dirname, varname = self.get_subproject_infos(kwargs)
+                if dirname in self.subprojects:
+                    try:
+                        dep = self.subprojects[dirname].get_variable_method([varname], {})
+                        dep = dep.held_object
+                    except KeyError:
+                        pass
+
+            if not dep:
+                try:
+                    dep = dependencies.find_external_dependency(name, self.environment, kwargs)
+                except dependencies.DependencyException as e:
+                    exception = e
+                    pass
 
             if not dep or not dep.found():
                 if 'fallback' in kwargs:
@@ -1852,12 +1864,15 @@ class Interpreter():
         self.coredata.deps[identifier] = dep
         return DependencyHolder(dep)
 
-    def dependency_fallback(self, name, kwargs):
+    def get_subproject_infos(self, kwargs):
         fbinfo = kwargs['fallback']
         check_stringlist(fbinfo)
         if len(fbinfo) != 2:
             raise InterpreterException('Fallback info must have exactly two items.')
-        dirname, varname = fbinfo
+        return fbinfo
+
+    def dependency_fallback(self, name, kwargs):
+        dirname, varname = self.get_subproject_infos(kwargs)
         try:
             self.do_subproject(dirname, {})
         except:
