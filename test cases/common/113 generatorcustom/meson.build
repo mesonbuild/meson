@@ -1,17 +1,13 @@
 project('generatorcustom', 'c')
 
-creator = find_program('gen.py')
-catter = find_program('catter.py')
+gen2 = find_program('gen2.py')
 
-gen = generator(creator,
-  output: '@BASENAME@.h',
-  arguments : ['@INPUT@', '@OUTPUT@'])
+res4 = configure_file(input : 'res4.txt.in',
+  output : 'res4.txt',
+  configuration : configuration_data())
 
-hs = gen.process('res1.txt', 'res2.txt')
-
-allinone = custom_target('alltogether',
-    input : hs,
-    output : 'alltogether.h',
-    command : [catter, '@INPUT@', '@OUTPUT@'])
+subdir('generator')
+subdir('files')
+subdir('customtarget')
 
 executable('proggie', 'main.c', allinone)

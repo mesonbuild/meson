@@ -2008,6 +2008,11 @@ requirements use the version keyword argument instead.''')
         if len(args) != 1:
             raise InterpreterException('custom_target: Only one positional argument is allowed, and it must be a string name')
         name = args[0]
+        if 'input' in kwargs:
+            inputs = kwargs['input']
+            if not isinstance(inputs, list):
+                inputs = [inputs]
+            kwargs['input'] = self.flatten(inputs)
         tg = CustomTargetHolder(build.CustomTarget(name, self.subdir, kwargs), self)
         self.add_target(name, tg.held_object)
         return tg
