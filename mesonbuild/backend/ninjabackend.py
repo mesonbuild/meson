@@ -35,6 +35,10 @@ def ninja_quote(text):
     return text.replace(' ', '$ ').replace(':', '$:')
 
 class RawFilename():
+    """
+    Used when a filename is already relative to the root build directory, so
+    that we know not to add the target's private build directory to it.
+    """
     def __init__(self, fname):
         self.fname = fname
 
@@ -216,16 +220,43 @@ int dummy;
     # we need to add an order dependency to them.
     def get_generated_headers(self, target):
         header_deps = []
-        for gensource in target.get_generated_sources():
-            if isinstance(gensource, build.CustomTarget):
+        # XXX: Why don't we add deps to CustomTarget headers here?
+        for genlist in target.get_generated_sources():
+            if isinstance(genlist, build.CustomTarget):
                 continue
-            for src in gensource.get_outputs():
+            for src in genlist.get_outputs():
                 if self.environment.is_header(src):
-                    header_deps.append(os.path.join(self.get_target_private_dir(target), src))
+                    header_deps.append(self.get_target_generated_dir(target, genlist, src))
+        # Recurse and find generated headers
         for dep in target.link_targets:
             if isinstance(dep, (build.StaticLibrary, build.SharedLibrary)):
                 header_deps += self.get_generated_headers(dep)
         return header_deps
+
+    def get_target_generated_sources(self, target):
+        """
+        Returns a dictionary with the keys being the path to the file
+        (relative to the build directory) of that type and the value
+        being the GeneratorList or CustomTarget that generated it.
+        """
+        srcs = {}
+        for gensrc in target.get_generated_sources():
+            for s in gensrc.get_outputs():
+                f = self.get_target_generated_dir(target, gensrc, s)
+                srcs[f] = s
+        return srcs
+
+    def get_target_sources(self, target):
+        srcs = {}
+        for s in target.get_sources():
+            # BuildTarget sources are always mesonlib.File files which are
+            # either in the source root, or generated with configure_file and
+            # in the build root
+            if not isinstance(s, File):
+                raise InvalidArguments('All sources in target {!r} must be of type mesonlib.File'.format(t))
+            f = s.rel_to_builddir(self.build_to_src)
+            srcs[f] = s
+        return srcs
 
     def generate_target(self, target, outfile):
         if isinstance(target, build.CustomTarget):
@@ -253,8 +284,15 @@ int dummy;
         if 'swift' in target.compilers:
             self.generate_swift_target(target, outfile)
             return
+
+        # Pre-existing target C/C++ sources to be built
+        target_sources = []
+        # GeneratedList and CustomTarget sources to be built
+        generated_sources = []
         if 'vala' in target.compilers:
             vala_gen_sources = self.generate_vala_compile(target, outfile)
+        target_sources = self.get_target_sources(target)
+        generated_sources = self.get_target_generated_sources(target)
         self.scan_fortran_module_outputs(target)
         # Generate rules for GeneratedLists
         self.generate_generator_list_rules(target, outfile)
@@ -282,41 +320,24 @@ int dummy;
         # This will be set as dependencies of all the target's sources. At the
         # same time, also deal with generated sources that need to be compiled.
         generated_source_files = []
-        for gensource in target.get_generated_sources():
-            if isinstance(gensource, build.CustomTarget):
-                for src in gensource.output:
-                    src = os.path.join(self.get_target_dir(gensource), src)
-                    generated_output_sources.append(src)
-                    if self.environment.is_source(src) and not self.environment.is_header(src):
-                        if is_unity:
-                            unity_deps.append(os.path.join(self.environment.get_build_dir(), RawFilename(src)))
-                        else:
-                            generated_source_files.append(RawFilename(src))
-                    elif self.environment.is_object(src):
-                        obj_list.append(src)
-                    elif self.environment.is_library(src):
-                        pass
-                    else:
-                        # Assume anything not specifically a source file is a header. This is because
-                        # people generate files with weird suffixes (.inc, .fh) that they then include
-                        # in their source files.
-                        header_deps.append(RawFilename(src))
+        for rel_src, gensrc in generated_sources.items():
+            generated_output_sources.append(rel_src)
+            if self.environment.is_source(rel_src) and not self.environment.is_header(rel_src):
+                if is_unity:
+                    unity_deps.append(rel_src)
+                    abs_src = os.path.join(self.environment.get_build_dir(), rel_src)
+                    unity_src.append(abs_src)
+                else:
+                    generated_source_files.append(RawFilename(rel_src))
+            elif self.environment.is_object(rel_src):
+                obj_list.append(rel_src)
+            elif self.environment.is_library(rel_src):
+                pass
             else:
-                for src in gensource.get_outputs():
-                    generated_output_sources.append(src)
-                    if self.environment.is_object(src):
-                        obj_list.append(os.path.join(self.get_target_private_dir(target), src))
-                    elif not self.environment.is_header(src):
-                        if is_unity:
-                            if self.has_dir_part(src):
-                                rel_src = src
-                            else:
-                                rel_src = os.path.join(self.get_target_private_dir(target), src)
-                            unity_deps.append(rel_src)
-                            abs_src = os.path.join(self.environment.get_build_dir(), rel_src)
-                            unity_src.append(abs_src)
-                        else:
-                            generated_source_files.append(src)
+                # Assume anything not specifically a source file is a header. This is because
+                # people generate files with weird suffixes (.inc, .fh) that they then include
+                # in their source files.
+                header_deps.append(RawFilename(rel_src))
         # These are the generated source files that need to be built for use by
         # this target. We create the Ninja build file elements for this here
         # because we need `header_deps` to be fully generated in the above loop.
@@ -341,9 +362,12 @@ int dummy;
                 if self.environment.is_header(src):
                     header_deps.append(src)
                 else:
+                    # Passing 'vala' here signifies that we want the compile
+                    # arguments to be specialized for C code generated by
+                    # valac. For instance, no warnings should be emitted.
                     obj_list.append(self.generate_single_compile(target, outfile, src, 'vala', [], header_deps))
         # Generate compile targets for all the pre-existing sources for this target
-        for src in target.get_sources():
+        for f, src in target_sources.items():
             if src.endswith('.vala'):
                 continue
             if not self.environment.is_header(src):
@@ -1015,16 +1039,7 @@ int dummy;
         return result
 
     def split_swift_generated_sources(self, target):
-        all_srcs = []
-        for genlist in target.get_generated_sources():
-            if isinstance(genlist, build.CustomTarget):
-                for ifile in genlist.get_filename():
-                    rel = os.path.join(self.get_target_dir(genlist), ifile)
-                    all_srcs.append(rel)
-            else:
-                for ifile in genlist.get_outputs():
-                    rel = os.path.join(self.get_target_private_dir(target), ifile)
-                    all_srcs.append(rel)
+        all_srcs = self.get_target_generated_sources(target)
         srcs = []
         others = []
         for i in all_srcs:
@@ -1590,6 +1605,9 @@ rule FORTRAN_DEP_HACK
         return linker.get_link_debugfile_args(outname)
 
     def generate_single_compile(self, target, outfile, src, is_generated=False, header_deps=[], order_deps=[]):
+        """
+        Compiles only C/C++ and ObjC/ObjC++ sources
+        """
         if(isinstance(src, str) and src.endswith('.h')):
             raise RuntimeError('Fug')
         if isinstance(src, RawFilename) and src.fname.endswith('.h'):
@@ -1670,11 +1688,12 @@ rule FORTRAN_DEP_HACK
             arr.append(i)
             pch_dep = arr
         custom_target_include_dirs = []
-        for i in target.generated:
-            if isinstance(i, build.CustomTarget):
-                idir = self.get_target_dir(i)
-                if idir not in custom_target_include_dirs:
-                    custom_target_include_dirs.append(idir)
+        for i in target.get_generated_sources():
+            if not isinstance(i, build.CustomTarget):
+                continue
+            idir = self.get_target_dir(i)
+            if idir not in custom_target_include_dirs:
+                custom_target_include_dirs.append(idir)
         for i in custom_target_include_dirs:
             commands+= compiler.get_include_args(i, False)
         if self.environment.coredata.base_options.get('b_pch', False):

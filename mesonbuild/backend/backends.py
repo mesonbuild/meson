@@ -140,6 +140,19 @@ class Backend():
         dirname = os.path.join(self.environment.get_build_dir(), self.get_target_private_dir(target))
         return dirname
 
+    def get_target_generated_dir(self, target, gensrc, src):
+        """
+        Takes a BuildTarget, a generator source (CustomTarget or GeneratedList),
+        and a generated source filename.
+        Returns the full path of the generated source relative to the build root
+        """
+        # CustomTarget generators output to the build dir of the CustomTarget
+        if isinstance(gensrc, build.CustomTarget):
+            return os.path.join(self.get_target_dir(gensrc), src)
+        # GeneratedList generators output to the private build directory of the
+        # target that the GeneratedList is used in
+        return os.path.join(self.get_target_private_dir(target), src)
+
     def generate_unity_files(self, target, unity_src):
         langlist = {}
         abs_files = []
