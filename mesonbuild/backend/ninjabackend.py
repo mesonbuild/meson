@@ -219,7 +219,7 @@ int dummy;
         for gensource in target.get_generated_sources():
             if isinstance(gensource, build.CustomTarget):
                 continue
-            for src in gensource.get_outfilelist():
+            for src in gensource.get_outputs():
                 if self.environment.is_header(src):
                     header_deps.append(os.path.join(self.get_target_private_dir(target), src))
         for dep in target.link_targets:
@@ -295,7 +295,7 @@ int dummy;
                         # in their source files.
                         header_deps.append(RawFilename(src))
             else:
-                for src in gensource.get_outfilelist():
+                for src in gensource.get_outputs():
                     generated_output_sources.append(src)
                     if self.environment.is_object(src):
                         obj_list.append(os.path.join(self.get_target_private_dir(target), src))
@@ -376,10 +376,9 @@ int dummy;
             # FIXME, should not grab element at zero but rather expand all.
             if isinstance(i, list):
                 i = i[0]
-            fname = i.get_filename()
-            if isinstance(fname, list):
-                fname = fname[0]
-            deps.append(os.path.join(self.get_target_dir(i), fname))
+            # Add a dependency on all the outputs of this target
+            for output in i.get_outputs():
+                deps.append(os.path.join(self.get_target_dir(i), output))
         return deps
 
     def generate_custom_target(self, target, outfile):
@@ -401,11 +400,9 @@ int dummy;
                 deps.append(os.path.join(self.build_to_src, i))
         elem.add_dep(deps)
         for d in target.extra_depends:
-            tmp = d.get_filename()
-            if not isinstance(tmp, list):
-                tmp = [tmp]
-            for fname in tmp:
-                elem.add_dep(os.path.join(self.get_target_dir(d), fname))
+            # Add a dependency on all the outputs of this target
+            for output in d.get_outputs():
+                elem.add_dep(os.path.join(self.get_target_dir(d), output))
         # If the target requires capturing stdout, then use the serialized
         # executable wrapper to capture that output and save it to a file.
         #
@@ -541,7 +538,8 @@ int dummy;
         should_strip = self.environment.coredata.get_builtin_option('strip')
         for t in self.build.get_targets().values():
             if t.should_install():
-                # Find the installation directory
+                # Find the installation directory. FIXME: Currently only one
+                # installation directory is supported for each target
                 outdir = t.get_custom_install_dir()
                 if outdir is not None:
                     pass
@@ -572,9 +570,14 @@ int dummy;
                         # stripped, and doesn't have an install_rpath
                         i = [self.get_target_debug_filename(t), outdir, [], False, '']
                         d.targets.append(i)
-                i = [self.get_target_filename(t), outdir, t.get_aliaslist(),\
-                    should_strip, t.install_rpath]
-                d.targets.append(i)
+                if isinstance(t, build.BuildTarget):
+                    i = [self.get_target_filename(t), outdir, t.get_aliaslist(),\
+                        should_strip, t.install_rpath]
+                    d.targets.append(i)
+                elif isinstance(t, build.CustomTarget):
+                    for output in t.get_outputs():
+                        f = os.path.join(self.get_target_dir(t), output)
+                        d.targets.append([f, outdir, [], False, None])
 
     def generate_custom_install_script(self, d):
         d.install_scripts = self.build.install_scripts
@@ -1013,7 +1016,7 @@ int dummy;
                     rel = os.path.join(self.get_target_dir(genlist), ifile)
                     all_srcs.append(rel)
             else:
-                for ifile in genlist.get_outfilelist():
+                for ifile in genlist.get_outputs():
                     rel = os.path.join(self.get_target_private_dir(target), ifile)
                     all_srcs.append(rel)
         srcs = []
@@ -1402,8 +1405,8 @@ rule FORTRAN_DEP_HACK
         generator = genlist.get_generator()
         exe = generator.get_exe()
         exe_arr = self.exe_object_to_cmd_array(exe)
-        infilelist = genlist.get_infilelist()
-        outfilelist = genlist.get_outfilelist()
+        infilelist = genlist.get_inputs()
+        outfilelist = genlist.get_outputs()
         base_args = generator.get_arglist()
         extra_dependencies = [os.path.join(self.build_to_src, i) for i in genlist.extra_depends]
         for i in range(len(infilelist)):
@@ -1941,7 +1944,9 @@ rule FORTRAN_DEP_HACK
             # are used by something else or are meant to be always built
             if isinstance(t, build.CustomTarget) and not (t.install or t.build_always):
                 continue
-            targetlist.append(self.get_target_filename(t))
+            # Add the first output of each target to the 'all' target so that
+            # they are all built
+            targetlist.append(os.path.join(self.get_target_dir(t), t.get_outputs()[0]))
 
         elem = NinjaBuildElement(self.all_outputs, 'all', 'phony', targetlist)
         elem.write(outfile)
