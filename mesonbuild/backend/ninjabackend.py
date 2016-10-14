@@ -236,6 +236,11 @@ int dummy;
         vala_gen_sources = []
         if name in self.processed_targets:
             return
+        self.processed_targets[name] = True
+        # Generate rules for all dependency targets
+        self.process_target_dependencies(target, outfile)
+        # If target uses a language that cannot link to C objects,
+        # just generate for that language and return.
         if isinstance(target, build.Jar):
             self.generate_jar_target(target, outfile)
             return
@@ -251,8 +256,10 @@ int dummy;
         if 'vala' in target.compilers:
             vala_gen_sources = self.generate_vala_compile(target, outfile)
         self.scan_fortran_module_outputs(target)
-        self.process_target_dependencies(target, outfile)
-        self.generate_custom_generator_rules(target, outfile)
+        # Generate rules for GeneratedLists
+        self.generate_generator_list_rules(target, outfile)
+
+        # Generate rules for building the remaining source files in this target
         outname = self.get_target_filename(target)
         obj_list = []
         use_pch = self.environment.coredata.base_options.get('b_pch', False)
@@ -355,7 +362,6 @@ int dummy;
         elem = self.generate_link(target, outfile, outname, obj_list, linker, pch_objects)
         self.generate_shlib_aliases(target, self.get_target_dir(target))
         elem.write(outfile)
-        self.processed_targets[name] = True
 
     def process_target_dependencies(self, target, outfile):
         for t in target.get_dependencies():
@@ -1395,10 +1401,12 @@ rule FORTRAN_DEP_HACK
                 self.generate_pch_rule_for(langname, compiler, qstr, True, outfile)
         outfile.write('\n')
 
-    def generate_custom_generator_rules(self, target, outfile):
+    def generate_generator_list_rules(self, target, outfile):
+        # CustomTargets have already written their rules,
+        # so write rules for GeneratedLists here
         for genlist in target.get_generated_sources():
             if isinstance(genlist, build.CustomTarget):
-                continue # Customtarget has already written its output rules
+                continue
             self.generate_genlist_for_target(genlist, target, outfile)
 
     def generate_genlist_for_target(self, genlist, target, outfile):
