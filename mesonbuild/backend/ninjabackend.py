@@ -992,11 +992,11 @@ int dummy;
             # Library name
             args += ['--library=' + target.name]
             # Outputted header
-            hname = os.path.join(self.get_target_dir(target), target.name + '.h')
+            hname = os.path.join(self.get_target_dir(target), target.vala_header if isinstance(target.vala_header, str) else (target.name + '.h'))
             args += ['-H', hname]
             valac_outputs.append(hname)
             # Outputted vapi file
-            base_vapi = target.name + '.vapi'
+            base_vapi = target.vala_vapi if isinstance(target.vala_vapi, str) else (target.name + '.vapi')
             vapiname = os.path.join(self.get_target_dir(target), base_vapi)
             # Force valac to write the vapi file in the target build dir.
             # Without this, it will write it inside c_out_dir
