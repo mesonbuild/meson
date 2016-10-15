@@ -9,6 +9,10 @@ assert(dep.version().version_compare('>=1.2.8'), 'Pkg-config version numbers exp
 
 test('zlibtest', exe)
 
+zprefix = dep.get_pkgconfig_variable('prefix') # Always set but we can't be sure what the value is.
+# pkg-config returns empty string for not defined variables
+assert(dep.get_pkgconfig_variable('nonexisting') == '', 'Value of unknown variable is not empty.')
+
 # Test that dependencies of dependencies work.
 dep2 = declare_dependency(dependencies : dep)
 exe2 = executable('zlibprog2', 'prog.c', dependencies : dep2)
