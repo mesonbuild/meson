@@ -227,6 +227,9 @@ def run_script_command(args):
     elif cmdname == 'gettext':
         import mesonbuild.scripts.gettext as abc
         cmdfunc = abc.run
+    elif cmdname == 'yelphelper':
+        import mesonbuild.scripts.yelphelper as abc
+        cmdfunc = abc.run
     else:
         raise MesonException('Unknown internal command {}.'.format(cmdname))
     return cmdfunc(cmdargs)

@@ -17,6 +17,7 @@ functionality such as gobject-introspection and gresources.'''
 
 from .. import build
 import os
+import sys
 import subprocess
 from ..mesonlib import MesonException
 from .. import dependencies
@@ -451,6 +452,65 @@ class GnomeModule:
             targetname = 'gsettings-compile-' + state.subdir
         target_g = build.CustomTarget(targetname, state.subdir, kwargs)
         return target_g
+
+    def yelp(self, state, args, kwargs):
+        if len(args) < 1:
+            raise MesonException('Yelp requires a project id')
+
+        project_id = args[0]
+        sources = mesonlib.stringlistify(kwargs.pop('sources', []))
+        if not sources:
+            if len(args) > 1:
+                sources = mesonlib.stringlistify(args[1:])
+            if not sources:
+                raise MesonException('Yelp requires a list of sources')
+        source_str = '@@'.join(sources)
+
+        langs = mesonlib.stringlistify(kwargs.pop('languages', []))
+        media = mesonlib.stringlistify(kwargs.pop('media', []))
+        symlinks = kwargs.pop('symlink_media', False)
+
+        if not isinstance(symlinks, bool):
+            raise MesonException('symlink_media must be a boolean')
+
+        if kwargs:
+            raise MesonException('Unknown arguments passed: {}'.format(', '.join(kwargs.keys())))
+
+        install_cmd = [
+            sys.executable,
+            state.environment.get_build_command(),
+            '--internal',
+            'yelphelper',
+            'install',
+            '--subdir=' + state.subdir,
+            '--id=' + project_id,
+            '--installdir=' + os.path.join(state.environment.get_datadir(), 'help'),
+            '--sources=' + source_str,
+        ]
+        if symlinks:
+            install_cmd.append('--symlinks=true')
+        if media:
+            install_cmd.append('--media=' + '@@'.join(media))
+        if langs:
+            install_cmd.append('--langs=' + '@@'.join(langs))
+        inscript = build.InstallScript(install_cmd)
+
+        potargs = [state.environment.get_build_command(), '--internal', 'yelphelper', 'pot',
+                   '--subdir=' + state.subdir,
+                   '--id=' + project_id,
+                   '--sources=' + source_str]
+        pottarget = build.RunTarget('help-' + project_id + '-pot', sys.executable,
+                                     potargs, [], state.subdir)
+
+        poargs = [state.environment.get_build_command(), '--internal', 'yelphelper', 'update-po',
+                   '--subdir=' + state.subdir,
+                   '--id=' + project_id,
+                   '--sources=' + source_str,
+                   '--langs=' + '@@'.join(langs)]
+        potarget = build.RunTarget('help-' + project_id + '-update-po', sys.executable,
+                                     poargs, [], state.subdir)
+
+        return [inscript, pottarget, potarget]
 
     def gtkdoc(self, state, args, kwargs):
         if len(args) != 1:
