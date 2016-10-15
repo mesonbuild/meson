@@ -24,8 +24,12 @@ class I18nModule:
         languages = mesonlib.stringlistify(kwargs.get('languages', []))
         if len(languages) == 0:
             raise coredata.MesonException('List of languages empty.')
+        datadirs = mesonlib.stringlistify(kwargs.get('data_dirs', []))
         extra_args = mesonlib.stringlistify(kwargs.get('args', []))
-        potargs = [state.environment.get_build_command(), '--internal', 'gettext', 'pot', packagename] + extra_args
+        potargs = [state.environment.get_build_command(), '--internal', 'gettext', 'pot', packagename]
+        if datadirs:
+            potargs.append('--datadirs=' + ':'.join(datadirs))
+        potargs += extra_args
         pottarget = build.RunTarget(packagename + '-pot', sys.executable, potargs, [], state.subdir)
         gmoargs = [state.environment.get_build_command(), '--internal', 'gettext', 'gen_gmo'] + languages
         gmotarget = build.RunTarget(packagename + '-gmo', sys.executable, gmoargs, [], state.subdir)

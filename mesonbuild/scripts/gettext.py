@@ -15,7 +15,7 @@
 import os, subprocess, shutil
 from mesonbuild.scripts import destdir_join
 
-def run_potgen(src_sub, pkgname, args):
+def run_potgen(src_sub, pkgname, datadirs, args):
     listfile = os.path.join(src_sub, 'POTFILES')
     if not os.path.exists(listfile):
         listfile = os.path.join(src_sub, 'POTFILES.in')
@@ -23,9 +23,14 @@ def run_potgen(src_sub, pkgname, args):
             print('Could not find file POTFILES in %s' % src_sub)
             return 1
 
+    child_env = os.environ.copy()
+    if datadirs:
+        child_env['GETTEXTDATADIRS'] = datadirs
+
     ofile = os.path.join(src_sub, pkgname + '.pot')
     return subprocess.call(['xgettext', '--package-name=' + pkgname, '-p', src_sub, '-f', listfile,
-                            '-D', os.environ['MESON_SOURCE_ROOT'], '-k_', '-o', ofile] + args)
+                            '-D', os.environ['MESON_SOURCE_ROOT'], '-k_', '-o', ofile] + args,
+                            env=child_env)
 
 def gen_gmo(src_sub, bld_sub, langs):
     for l in langs:
@@ -47,9 +52,12 @@ def do_install(src_sub, bld_sub, dest, pkgname, langs):
 def run(args):
     subcmd = args[0]
     if subcmd == 'pot':
+        pkgname = args[1]
+        datadirs = args[2][11:] if args[2].startswith('--datadirs=') else None
+        extra_args = args[3:] if datadirs is not None else args[2:]
         src_sub = os.path.join(os.environ['MESON_SOURCE_ROOT'], os.environ['MESON_SUBDIR'])
         bld_sub = os.path.join(os.environ['MESON_BUILD_ROOT'], os.environ['MESON_SUBDIR'])
-        return run_potgen(src_sub, args[1], args[2:])
+        return run_potgen(src_sub, pkgname, datadirs, extra_args)
     elif subcmd == 'gen_gmo':
         src_sub = os.path.join(os.environ['MESON_SOURCE_ROOT'], os.environ['MESON_SUBDIR'])
         bld_sub = os.path.join(os.environ['MESON_BUILD_ROOT'], os.environ['MESON_SUBDIR'])
