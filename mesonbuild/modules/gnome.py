@@ -266,7 +266,7 @@ class GnomeModule:
                     ldflags.update([lib])
 
                 if isinstance(dep, dependencies.PkgConfigDependency):
-                    girdir = dep.get_variable("girdir")
+                    girdir = dep.get_pkgconfig_variable("girdir")
                     if girdir:
                         gi_includes.update([girdir])
             elif isinstance(dep, (build.StaticLibrary, build.SharedLibrary)):
@@ -421,7 +421,7 @@ class GnomeModule:
                             )
                         ]
             elif isinstance(dep, dependencies.PkgConfigDependency):
-                girdir = dep.get_variable("girdir")
+                girdir = dep.get_pkgconfig_variable("girdir")
                 if girdir:
                     typelib_cmd += ["--includedir=%s" % (girdir, )]
 
