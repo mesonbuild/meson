@@ -18,7 +18,7 @@
 
 import subprocess, sys, os, argparse
 import pickle
-from mesonbuild.scripts import meson_test
+from mesonbuild.scripts import meson_test, meson_benchmark
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--repeat', default=1, dest='repeat', type=int,
@@ -53,6 +53,8 @@ def gdbrun(test):
 
 def run(args):
     datafile = 'meson-private/meson_test_setup.dat'
+    if args[0] == '--benchmark':
+        return meson_benchmark.run(args[1:] + ['meson-private/meson_benchmark_setup.dat'])
     options = parser.parse_args(args)
     if len(options.tests) == 0:
         # Run basic tests.
