@@ -1,7 +1,29 @@
-myres = gnome.compile_resources('myresources', 'myresource.gresource.xml',
-source_dir : 'data',
-c_name : 'myres')
+# There are two tests here, because the 2nd one depends on a version of
+# GLib (2.48.2) that is very recent at the time of writing.
 
-resexe = executable('resprog', 'main.c', myres,
-dependencies : gio)
-test('resource test', resexe)
+simple_resources = gnome.compile_resources('simple-resources',
+  'simple.gresource.xml',
+  source_dir : '../resources-data',
+  c_name : 'simple_resources')
+
+simple_res_exe = executable('simple-resources-test',
+  'simple-main.c', simple_resources,
+  dependencies: gio)
+test('simple resource test', simple_res_exe)
+
+if glib.version() >= '2.48.2'
+  # This test cannot pass if GLib version is older than 2.48.2.
+  # Meson will raise an error if the user tries to use the 'dependencies'
+  # argument and the version of GLib is too old for generated resource
+  # dependencies to work correctly.
+  generated_resources = gnome.compile_resources('generated-resources',
+    'generated.gresource.xml',
+    source_dir : '../resources-data',
+    c_name : 'generated_resources',
+    dependencies : [res3_txt, res4_txt])
+
+  generated_res_exe = executable('generated-resources-test',
+    'generated-main.c', generated_resources,
+    dependencies: gio)
+  test('generated resource test', generated_res_exe)
+endif
