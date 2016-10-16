@@ -1,0 +1,25 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+
+[*.[ch]]
+indent_size = 4
+
+[*.cpp]
+indent_size = 4
+
+[*.py]
+indent_size = 4
+
+[*.vala]
+indent_size = 4
+
+[*.xml]
+indent_size = 2
+
+[meson.build]
+indent_size = 2
+
