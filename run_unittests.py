@@ -43,6 +43,7 @@ class LinuxlikeTests(unittest.TestCase):
         self.builddir = tempfile.mkdtemp()
         self.meson_command = [sys.executable, os.path.join(src_root, 'meson.py')]
         self.mconf_command = [sys.executable, os.path.join(src_root, 'mesonconf.py')]
+        self.mintro_command = [sys.executable, os.path.join(src_root, 'mesonintrospect.py')]
         self.ninja_command = [detect_ninja(), '-C', self.builddir]
         self.common_test_dir = os.path.join(src_root, 'test cases/common')
         self.vala_test_dir = os.path.join(src_root, 'test cases/vala')
@@ -66,6 +67,10 @@ class LinuxlikeTests(unittest.TestCase):
     def get_compdb(self):
         with open(os.path.join(self.builddir, 'compile_commands.json')) as ifile:
             return json.load(ifile)
+
+    def introspect(self, arg):
+        out = subprocess.check_output(self.mintro_command + [arg, self.builddir])
+        return json.loads(out.decode('utf-8'))
 
     def test_basic_soname(self):
         testdir = os.path.join(self.common_test_dir, '4 shared')
@@ -146,6 +151,15 @@ class LinuxlikeTests(unittest.TestCase):
         self.assertTrue(compdb[2]['file'].endswith("libfile3.c"))
         self.assertTrue(compdb[3]['file'].endswith("libfile4.c"))
         # FIXME: We don't have access to the linker command
+
+    def test_install_introspection(self):
+        testdir = os.path.join(self.common_test_dir, '8 install')
+        self.init(testdir)
+        intro = self.introspect('--targets')
+        if intro[0]['type'] == 'executable':
+            intro = intro[::-1]
+        self.assertEqual(intro[0]['install_filename'], '/usr/local/libtest/libstat.a')
+        self.assertEqual(intro[1]['install_filename'], '/usr/local/bin/prog')
 
 if __name__ == '__main__':
     unittest.main()
