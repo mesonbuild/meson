@@ -41,6 +41,10 @@ parser.add_argument('--no-stdsplit', default=True, dest='split', action='store_f
                     help='Do not split stderr and stdout in test logs.')
 parser.add_argument('--print-errorlogs', default=False, action='store_true',
                     help="Whether to print faling tests' logs.")
+parser.add_argument('--logbase', default='testlog',
+                    help="Base name for log file.")
+parser.add_argument('--num-processes', default=None,
+                    help='How many parallel processes to use.')
 parser.add_argument('args', nargs='+')
 
 
@@ -198,9 +202,30 @@ def filter_tests(suite, tests):
         return tests
     return [x for x in tests if suite in x.suite]
 
-def run_tests(datafilename):
+def determine_worker_count():
+    varname = 'MESON_TESTTHREADS'
+    if varname in os.environ:
+        try:
+            num_workers = int(os.environ[varname])
+        except ValueError:
+            print('Invalid value in %s, using 1 thread.' % varname)
+            num_workers = 1
+    else:
+        try:
+            # Fails in some weird environments such as Debian
+            # reproducible build.
+            num_workers = multiprocessing.cpu_count()
+        except Exception:
+            num_workers = 1
+    return num_workers
+
+def run_tests(datafilename, log_base, num_workers=None):
     global options
-    logfile_base = 'meson-logs/testlog'
+    if num_workers is None:
+        num_workers = determine_worker_count()
+    else:
+        num_workers = int(num_workers)
+    logfile_base = os.path.join('meson-logs', log_base)
     if options.wrapper is None:
         wrap = []
         logfilename = logfile_base + '.txt'
@@ -215,15 +240,6 @@ def run_tests(datafilename):
         print('No tests defined.')
         return
     numlen = len('%d' % len(tests))
-    varname = 'MESON_TESTTHREADS'
-    if varname in os.environ:
-        try:
-            num_workers = int(os.environ[varname])
-        except ValueError:
-            print('Invalid value in %s, using 1 thread.' % varname)
-            num_workers = 1
-    else:
-        num_workers = multiprocessing.cpu_count()
     executor = conc.ThreadPoolExecutor(max_workers=num_workers)
     futures = []
     filtered_tests = filter_tests(options.suite, tests)
@@ -265,7 +281,7 @@ def run(args):
     if options.wd is not None:
         os.chdir(options.wd)
     datafile = options.args[0]
-    logfilename = run_tests(datafile)
+    logfilename = run_tests(datafile, options.logbase, options.num_processes)
     if len(collected_logs) > 0:
         if len(collected_logs) > 10:
             print('\nThe output from 10 first failed tests:\n')
