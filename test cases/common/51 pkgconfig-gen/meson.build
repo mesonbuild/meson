@@ -7,7 +7,7 @@ libver = '1.0'
 h = install_headers('simple.h')
 
 pkgg.generate(
-  libraries : lib,
+  libraries : [lib, '-lz'],
   subdirs : '.',
   version : libver,
   name : 'libsimple',
@@ -15,7 +15,16 @@ pkgg.generate(
   description : 'A simple demo library.',
   requires : 'glib-2.0', # Not really, but only here to test that this works.
   requires_private : ['gio-2.0', 'gobject-2.0'],
-  libraries_private : '-lz')
+  libraries_private : [lib, '-lz'],
+)
+
+pkgconfig = find_program('pkg-config', required: false)
+if pkgconfig.found()
+  test('pkgconfig-validation', pkgconfig,
+    args: ['--validate', 'simple'],
+    env: ['PKG_CONFIG_PATH=' + meson.current_build_dir() + '/meson-private' ],
+  )
+endif
 
 # Test that name_prefix='' and name='libfoo' results in '-lfoo'
 lib2 = shared_library('libfoo', 'simple.c',

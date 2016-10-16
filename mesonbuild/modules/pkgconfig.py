@@ -37,8 +37,9 @@ class PkgConfigModule:
         mlog.log(mlog.red('WARNING:'), msg.format(l.name, 'name_prefix', l.name, pcfile))
         return l.name
 
-    def generate_pkgconfig_file(self, state, libraries, subdirs, name, description, version, pcfile,
-                                pub_reqs, priv_reqs, priv_libs):
+    def generate_pkgconfig_file(self, state, libraries, subdirs, name, description,
+                                url, version, pcfile, pub_reqs, priv_reqs,
+                                conflicts, priv_libs):
         coredata = state.environment.get_coredata()
         outdir = state.environment.scratch_dir
         fname = os.path.join(outdir, pcfile)
@@ -51,6 +52,8 @@ class PkgConfigModule:
             ofile.write('Name: %s\n' % name)
             if len(description) > 0:
                 ofile.write('Description: %s\n' % description)
+            if len(url) > 0:
+                ofile.write('URL: %s\n' % url)
             if len(version) > 0:
                 ofile.write('Version: %s\n' % version)
             if len(pub_reqs) > 0:
@@ -58,45 +61,55 @@ class PkgConfigModule:
             if len(priv_reqs) > 0:
                 ofile.write(
                     'Requires.private: {}\n'.format(' '.join(priv_reqs)))
+            if len(conflicts) > 0:
+                ofile.write('Conflicts: {}\n'.format(' '.join(conflicts)))
+            def generate_libs_flags(libs):
+                msg = 'Library target {0!r} has {1!r} set. Compilers ' \
+                      'may not find it from its \'-l{2}\' linker flag in the ' \
+                      '{3!r} pkg-config file.'
+                for l in libs:
+                    if isinstance(l, str):
+                        yield l
+                    else:
+                        if l.custom_install_dir:
+                            yield '-L${prefix}/%s ' % l.custom_install_dir
+                        else:
+                            yield '-L${libdir}'
+                        lname = self._get_lname(l, msg, pcfile)
+                        # If using a custom suffix, the compiler may not be able to
+                        # find the library
+                        if l.name_suffix_set:
+                            mlog.log(mlog.red('WARNING:'), msg.format(l.name, 'name_suffix', lname, pcfile))
+                        yield '-l%s' % lname
+            if len(libraries) > 0:
+                ofile.write('Libs: {}\n'.format(' '.join(generate_libs_flags(libraries))))
             if len(priv_libs) > 0:
-                ofile.write(
-                    'Libraries.private: {}\n'.format(' '.join(priv_libs)))
-            ofile.write('Libs: -L${libdir} ')
-            msg = 'Library target {0!r} has {1!r} set. Compilers ' \
-                  'may not find it from its \'-l{2}\' linker flag in the ' \
-                  '{3!r} pkg-config file.'
-            for l in libraries:
-                if l.custom_install_dir:
-                    ofile.write('-L${prefix}/%s ' % l.custom_install_dir)
-                lname = self._get_lname(l, msg, pcfile)
-                # If using a custom suffix, the compiler may not be able to
-                # find the library
-                if l.name_suffix_set:
-                    mlog.log(mlog.red('WARNING:'), msg.format(l.name, 'name_suffix', lname, pcfile))
-                ofile.write('-l{} '.format(lname))
-            ofile.write('\n')
-            ofile.write('CFlags: ')
+                ofile.write('Libs.private: {}\n'.format(' '.join(generate_libs_flags(priv_libs))))
+            ofile.write('Cflags:')
             for h in subdirs:
                 if h == '.':
                     h = ''
-                ofile.write(os.path.join('-I${includedir}', h))
                 ofile.write(' ')
+                ofile.write(os.path.join('-I${includedir}', h))
             ofile.write('\n')
 
-    def generate(self, state, args, kwargs):
-        if len(args) > 0:
-            raise mesonlib.MesonException('Pkgconfig_gen takes no positional arguments.')
-        libs = kwargs.get('libraries', [])
+    def process_libs(self, libs):
         if not isinstance(libs, list):
             libs = [libs]
         processed_libs = []
         for l in libs:
             if hasattr(l, 'held_object'):
                 l = l.held_object
-            if not isinstance(l, (build.SharedLibrary, build.StaticLibrary)):
-                raise mesonlib.MesonException('Library argument not a library object.')
+            if not isinstance(l, (build.SharedLibrary, build.StaticLibrary, str)):
+                raise mesonlib.MesonException('Library argument not a library object nor a string.')
             processed_libs.append(l)
-        libs = processed_libs
+        return processed_libs
+
+    def generate(self, state, args, kwargs):
+        if len(args) > 0:
+            raise mesonlib.MesonException('Pkgconfig_gen takes no positional arguments.')
+        libs = self.process_libs(kwargs.get('libraries', []))
+        priv_libs = self.process_libs(kwargs.get('libraries_private', []))
         subdirs = mesonlib.stringlistify(kwargs.get('subdirs', ['.']))
         version = kwargs.get('version', '')
         if not isinstance(version, str):
@@ -110,17 +123,21 @@ class PkgConfigModule:
         description = kwargs.get('description', None)
         if not isinstance(description, str):
             raise mesonlib.MesonException('Description is not a string.')
+        url = kwargs.get('url', '')
+        if not isinstance(url, str):
+            raise mesonlib.MesonException('URL is not a string.')
         pub_reqs = mesonlib.stringlistify(kwargs.get('requires', []))
         priv_reqs = mesonlib.stringlistify(kwargs.get('requires_private', []))
-        priv_libs = mesonlib.stringlistify(kwargs.get('libraries_private', []))
+        conflicts = mesonlib.stringlistify(kwargs.get('conflicts', []))
         pcfile = filebase + '.pc'
         pkgroot = kwargs.get('install_dir',None)
         if pkgroot is None:
             pkgroot = os.path.join(state.environment.coredata.get_builtin_option('libdir'), 'pkgconfig')
         if not isinstance(pkgroot, str):
             raise mesonlib.MesonException('Install_dir must be a string.')
-        self.generate_pkgconfig_file(state, libs, subdirs, name, description, version, pcfile,
-                                     pub_reqs, priv_reqs, priv_libs)
+        self.generate_pkgconfig_file(state, libs, subdirs, name, description, url,
+                                     version, pcfile, pub_reqs, priv_reqs,
+                                     conflicts, priv_libs)
         return build.Data(False, state.environment.get_scratch_dir(), [pcfile], pkgroot)
 
 def initialize():
