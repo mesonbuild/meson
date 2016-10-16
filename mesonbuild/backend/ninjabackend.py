@@ -142,7 +142,6 @@ class NinjaBackend(backends.Backend):
         self.ninja_filename = 'build.ninja'
         self.fortran_deps = {}
         self.all_outputs = {}
-        self.valgrind = environment.find_valgrind()
 
     def detect_vs_dep_prefix(self, tempfilename):
         '''VS writes its dependency in a locale dependent format.
@@ -728,13 +727,6 @@ int dummy;
             elem.add_item('pool', 'console')
             elem.write(outfile)
 
-            if self.valgrind:
-                velem = NinjaBuildElement(self.all_outputs, 'test-valgrind:' + s, 'CUSTOM_COMMAND', ['all', 'PHONY'])
-                velem.add_item('COMMAND', cmd + ['--wrapper=' + self.valgrind, '--suite=' + s])
-                velem.add_item('DESC', 'Running test suite %s under Valgrind.' % visible_name)
-                velem.add_item('pool', 'console')
-                velem.write(outfile)
-
     def generate_tests(self, outfile):
         (test_data, benchmark_data) = self.serialise_tests()
         script_root = self.environment.get_script_dir()
@@ -750,13 +742,6 @@ int dummy;
         elem.add_item('pool', 'console')
         elem.write(outfile)
         self.write_test_suite_targets(cmd, outfile)
-
-        if self.valgrind:
-            velem = NinjaBuildElement(self.all_outputs, 'test-valgrind', 'CUSTOM_COMMAND', ['all', 'PHONY'])
-            velem.add_item('COMMAND', cmd + ['--wrapper=' + self.valgrind])
-            velem.add_item('DESC', 'Running test suite under Valgrind.')
-            velem.add_item('pool', 'console')
-            velem.write(outfile)
 
         # And then benchmarks.
         cmd = [sys.executable, self.environment.get_build_command(), '--internal', 'benchmark', benchmark_data]

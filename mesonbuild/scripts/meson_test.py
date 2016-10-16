@@ -123,10 +123,7 @@ def run_single_test(wrap, test):
         stde = None
         returncode = -1
     else:
-        if len(wrap) > 0 and 'valgrind' in wrap[0]:
-            cmd = wrap + test.valgrind_args + cmd + test.cmd_args
-        else:
-            cmd = wrap + cmd + test.cmd_args
+        cmd = wrap + cmd + test.cmd_args
         starttime = time.time()
         child_env = os.environ.copy()
         if isinstance(test.env, build.EnvironmentVariables):

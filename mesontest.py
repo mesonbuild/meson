@@ -17,7 +17,7 @@
 # A tool to run tests in many different ways.
 
 import subprocess, sys, os, argparse
-import pickle, statistics, json
+import pickle
 from mesonbuild.scripts import meson_test
 
 parser = argparse.ArgumentParser()
