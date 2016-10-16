@@ -54,6 +54,9 @@ def gdbrun(test):
 def run(args):
     datafile = 'meson-private/meson_test_setup.dat'
     options = parser.parse_args(args)
+    if len(options.tests) == 0:
+        # Run basic tests.
+        return meson_test.run(args + ['meson-private/meson_test_setup.dat'])
     if options.wrapper != '':
         wrap = options.wrapper.split(' ')
     else:

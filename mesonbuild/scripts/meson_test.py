@@ -45,7 +45,7 @@ parser.add_argument('--logbase', default='testlog',
                     help="Base name for log file.")
 parser.add_argument('--num-processes', default=None,
                     help='How many parallel processes to use.')
-parser.add_argument('args', nargs='+')
+parser.add_argument('args', nargs='*')
 
 
 class TestRun():
@@ -231,9 +231,10 @@ def run_tests(datafilename, log_base, num_workers=None):
         logfilename = logfile_base + '.txt'
         jsonlogfilename = logfile_base+ '.json'
     else:
-        wrap = [options.wrapper]
-        logfilename = logfile_base + '-' + options.wrapper.replace(' ', '_') + '.txt'
-        jsonlogfilename = logfile_base + '-' + options.wrapper.replace(' ', '_') + '.json'
+        wrap = options.wrapper.split()
+        namebase = wrap[0]
+        logfilename = logfile_base + '-' + namebase.replace(' ', '_') + '.txt'
+        jsonlogfilename = logfile_base + '-' + namebase.replace(' ', '_') + '.json'
     with open(datafilename, 'rb') as f:
         tests = pickle.load(f)
     if len(tests) == 0:
