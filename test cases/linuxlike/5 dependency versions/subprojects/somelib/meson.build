@@ -6,3 +6,6 @@ someinc = include_directories('.')
 
 some_dep = declare_dependency(link_with : somelib,
   include_directories : someinc)
+
+fakezlib_dep = declare_dependency(link_with : somelib,
+  include_directories : someinc)

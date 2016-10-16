@@ -32,9 +32,10 @@ class DependencyException(MesonException):
         MesonException.__init__(self, *args, **kwargs)
 
 class Dependency():
-    def __init__(self):
+    def __init__(self, type_name='unknown'):
         self.name = "null"
         self.is_found = False
+        self.type_name = type_name
 
     def get_compile_args(self):
         return []
@@ -59,9 +60,12 @@ class Dependency():
     def need_threads(self):
         return False
 
+    def type_name(self):
+        return self.type_name
+
 class InternalDependency(Dependency):
     def __init__(self, version, incdirs, compile_args, link_args, libraries, sources, ext_deps):
-        super().__init__()
+        super().__init__('internal')
         self.version = version
         self.include_directories = incdirs
         self.compile_args = compile_args
@@ -83,7 +87,7 @@ class PkgConfigDependency(Dependency):
     pkgconfig_found = None
 
     def __init__(self, name, environment, kwargs):
-        Dependency.__init__(self)
+        Dependency.__init__(self, 'pkgconfig')
         self.is_libtool = False
         self.required = kwargs.get('required', True)
         self.static = kwargs.get('static', False)
@@ -270,7 +274,7 @@ class WxDependency(Dependency):
     wx_found = None
 
     def __init__(self, environment, kwargs):
-        Dependency.__init__(self)
+        Dependency.__init__(self, 'wx')
         self.is_found = False
         if WxDependency.wx_found is None:
             self.check_wxconfig()
@@ -445,7 +449,7 @@ class ExternalProgram():
 
 class ExternalLibrary(Dependency):
     def __init__(self, name, link_args=None, silent=False):
-        super().__init__()
+        super().__init__('external')
         self.name = name
         # Rename fullpath to link_args once standalone find_library() gets removed.
         if link_args is not None:
@@ -476,7 +480,7 @@ class BoostDependency(Dependency):
     name2lib = {'test' : 'unit_test_framework'}
 
     def __init__(self, environment, kwargs):
-        Dependency.__init__(self)
+        Dependency.__init__(self, 'boost')
         self.name = 'boost'
         self.environment = environment
         self.libdir = ''
@@ -677,7 +681,7 @@ class BoostDependency(Dependency):
 
 class GTestDependency(Dependency):
     def __init__(self, environment, kwargs):
-        Dependency.__init__(self)
+        Dependency.__init__(self, 'gtest')
         self.main = kwargs.get('main', False)
         self.name = 'gtest'
         self.libname = 'libgtest.so'
@@ -744,7 +748,7 @@ class GTestDependency(Dependency):
 
 class GMockDependency(Dependency):
     def __init__(self, environment, kwargs):
-        Dependency.__init__(self)
+        Dependency.__init__(self, 'gmock')
         # GMock may be a library or just source.
         # Work with both.
         self.name = 'gmock'
@@ -798,7 +802,7 @@ class GMockDependency(Dependency):
 
 class Qt5Dependency(Dependency):
     def __init__(self, environment, kwargs):
-        Dependency.__init__(self)
+        Dependency.__init__(self, 'qt5')
         self.name = 'qt5'
         self.root = '/usr'
         mods = kwargs.get('modules', [])
@@ -909,7 +913,7 @@ class Qt5Dependency(Dependency):
 
 class Qt4Dependency(Dependency):
     def __init__(self, environment, kwargs):
-        Dependency.__init__(self)
+        Dependency.__init__(self, 'qt4')
         self.name = 'qt4'
         self.root = '/usr'
         self.modules = []
@@ -947,7 +951,7 @@ class Qt4Dependency(Dependency):
 
 class GnuStepDependency(Dependency):
     def __init__(self, environment, kwargs):
-        Dependency.__init__(self)
+        Dependency.__init__(self, 'gnustep')
         self.modules = kwargs.get('modules', [])
         self.detect()
 
@@ -1019,7 +1023,7 @@ why. As a hack filter out everything that is not a flag."""
 
 class AppleFrameworks(Dependency):
     def __init__(self, environment, kwargs):
-        Dependency.__init__(self)
+        Dependency.__init__(self, 'appleframeworks')
         modules = kwargs.get('modules', [])
         if isinstance(modules, str):
             modules = [modules]
@@ -1039,13 +1043,14 @@ class AppleFrameworks(Dependency):
 
 class GLDependency(Dependency):
     def __init__(self, environment, kwargs):
-        Dependency.__init__(self)
+        Dependency.__init__(self, 'gl')
         self.is_found = False
         self.cargs = []
         self.linkargs = []
         try:
             pcdep = PkgConfigDependency('gl', environment, kwargs)
             if pcdep.found():
+                self.type_name = 'pkgconfig'
                 self.is_found = True
                 self.cargs = pcdep.get_compile_args()
                 self.linkargs = pcdep.get_link_args()
@@ -1068,13 +1073,14 @@ class GLDependency(Dependency):
 # sdl2-config, pkg-config and OSX framework
 class SDL2Dependency(Dependency):
     def __init__(self, environment, kwargs):
-        Dependency.__init__(self)
+        Dependency.__init__(self, 'sdl2')
         self.is_found = False
         self.cargs = []
         self.linkargs = []
         try:
             pcdep = PkgConfigDependency('sdl2', environment, kwargs)
             if pcdep.found():
+                self.type_name = 'pkgconfig'
                 self.is_found = True
                 self.cargs = pcdep.get_compile_args()
                 self.linkargs = pcdep.get_link_args()
@@ -1124,7 +1130,7 @@ class SDL2Dependency(Dependency):
 
 class ExtraFrameworkDependency(Dependency):
     def __init__(self, name, required, path=None):
-        Dependency.__init__(self)
+        Dependency.__init__(self, 'extraframeworks')
         self.name = None
         self.detect(name, path)
         if self.found():
@@ -1165,7 +1171,7 @@ class ExtraFrameworkDependency(Dependency):
 
 class ThreadDependency(Dependency):
     def __init__(self, environment, kwargs):
-        super().__init__()
+        super().__init__('threads')
         self.name = 'threads'
         self.is_found = True
         mlog.log('Dependency', mlog.bold(self.name), 'found:', mlog.green('YES'))
@@ -1175,7 +1181,7 @@ class ThreadDependency(Dependency):
 
 class Python3Dependency(Dependency):
     def __init__(self, environment, kwargs):
-        super().__init__()
+        super().__init__('python3')
         self.name = 'python3'
         self.is_found = False
         self.version = "3.something_maybe"

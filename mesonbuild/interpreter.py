@@ -27,6 +27,7 @@ import os, sys, subprocess, shutil, uuid, re
 from functools import wraps
 
 import importlib
+import copy
 
 run_depr_printed = False
 
@@ -188,6 +189,7 @@ class EnvironmentVariablesHolder(InterpreterObject):
         self.methods.update({'set': self.set_method,
                              'append': self.append_method,
                              'prepend' : self.prepend_method,
+                             'copy' : self.copy_method,
                             })
 
     @stringArgs
@@ -209,6 +211,9 @@ class EnvironmentVariablesHolder(InterpreterObject):
 
     def prepend_method(self, args, kwargs):
         self.add_var(self.held_object.prepend, args, kwargs)
+
+    def copy_method(self, args, kwargs):
+        return copy.deepcopy(self)
 
 
 class ConfigurationDataHolder(InterpreterObject):
@@ -278,27 +283,21 @@ class DependencyHolder(InterpreterObject):
         InterpreterObject.__init__(self)
         self.held_object = dep
         self.methods.update({'found' : self.found_method,
+                             'type_name': self.type_name_method,
                              'version': self.version_method})
 
+    def type_name_method(self, args, kwargs):
+        return self.held_object.type_name
+
     def found_method(self, args, kwargs):
+        if self.held_object.type_name == 'internal':
+            return True
+
         return self.held_object.found()
 
     def version_method(self, args, kwargs):
         return self.held_object.get_version()
 
-class InternalDependencyHolder(InterpreterObject):
-    def __init__(self, dep):
-        InterpreterObject.__init__(self)
-        self.held_object = dep
-        self.methods.update({'found' : self.found_method,
-                             'version': self.version_method,
-                             })
-
-    def found_method(self, args, kwargs):
-        return True
-
-    def version_method(self, args, kwargs):
-        return self.held_object.get_version()
 
 class ExternalProgramHolder(InterpreterObject):
     def __init__(self, ep):
@@ -1394,7 +1393,7 @@ class Interpreter():
                 raise InterpreterException('Dependencies must be external deps')
             final_deps.append(d)
         dep = dependencies.InternalDependency(version, incs, compile_args, link_args, libs, sources, final_deps)
-        return InternalDependencyHolder(dep)
+        return DependencyHolder(dep)
 
     @noKwargs
     def func_assert(self, node, args, kwargs):
@@ -1835,11 +1834,23 @@ class Interpreter():
             # We need to actually search for this dep
             exception = None
             dep = None
-            try:
-                dep = dependencies.find_external_dependency(name, self.environment, kwargs)
-            except dependencies.DependencyException as e:
-                exception = e
-                pass
+            # If the fallback has already been configured (possibly by a higher level project)
+            # try to use it before using the native version
+            if 'fallback' in kwargs:
+                dirname, varname = self.get_subproject_infos(kwargs)
+                if dirname in self.subprojects:
+                    try:
+                        dep = self.subprojects[dirname].get_variable_method([varname], {})
+                        dep = dep.held_object
+                    except KeyError:
+                        pass
+
+            if not dep:
+                try:
+                    dep = dependencies.find_external_dependency(name, self.environment, kwargs)
+                except dependencies.DependencyException as e:
+                    exception = e
+                    pass
 
             if not dep or not dep.found():
                 if 'fallback' in kwargs:
@@ -1853,12 +1864,15 @@ class Interpreter():
         self.coredata.deps[identifier] = dep
         return DependencyHolder(dep)
 
-    def dependency_fallback(self, name, kwargs):
+    def get_subproject_infos(self, kwargs):
         fbinfo = kwargs['fallback']
         check_stringlist(fbinfo)
         if len(fbinfo) != 2:
             raise InterpreterException('Fallback info must have exactly two items.')
-        dirname, varname = fbinfo
+        return fbinfo
+
+    def dependency_fallback(self, name, kwargs):
+        dirname, varname = self.get_subproject_infos(kwargs)
         try:
             self.do_subproject(dirname, {})
         except:
@@ -1873,7 +1887,7 @@ class Interpreter():
             dep = self.subprojects[dirname].get_variable_method([varname], {})
         except KeyError:
             raise InterpreterException('Fallback variable {!r} in the subproject {!r} does not exist'.format(varname, dirname))
-        if not isinstance(dep, (DependencyHolder, InternalDependencyHolder)):
+        if not isinstance(dep, DependencyHolder):
             raise InterpreterException('Fallback variable {!r} in the subproject {!r} is not a dependency object.'.format(varname, dirname))
         # Check if the version of the declared dependency matches what we want
         if 'version' in kwargs:
