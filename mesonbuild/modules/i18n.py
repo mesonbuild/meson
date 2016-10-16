@@ -33,6 +33,12 @@ class I18nModule:
         pottarget = build.RunTarget(packagename + '-pot', sys.executable, potargs, [], state.subdir)
         gmoargs = [state.environment.get_build_command(), '--internal', 'gettext', 'gen_gmo'] + languages
         gmotarget = build.RunTarget(packagename + '-gmo', sys.executable, gmoargs, [], state.subdir)
+        updatepoargs = [state.environment.get_build_command(), '--internal', 'gettext', 'update_po', packagename]
+        updatepoargs.append('@@'.join(languages))
+        if datadirs:
+            updatepoargs.append('--datadirs=' + ':'.join(datadirs))
+        updatepoargs += extra_args
+        updatepotarget = build.RunTarget(packagename + '-update-po', sys.executable, updatepoargs, [], state.subdir)
         installcmd = [sys.executable,
                       state.environment.get_build_command(),
                       '--internal',
@@ -43,7 +49,7 @@ class I18nModule:
                       state.environment.coredata.get_builtin_option('localedir'),
                       ] + languages
         iscript = build.InstallScript(installcmd)
-        return [pottarget, gmotarget, iscript]
+        return [pottarget, gmotarget, iscript, updatepotarget]
 
 def initialize():
     return I18nModule()
