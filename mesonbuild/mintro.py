@@ -20,7 +20,7 @@ Currently only works for the Ninja backend. Others use generated
 project files and don't need this info."""
 
 import json, pickle
-from . import coredata, build, mesonlib
+from . import coredata, build
 import argparse
 import sys, os
 
@@ -41,7 +41,20 @@ parser.add_argument('--dependencies', action='store_true', dest='dependencies', 
                     help='list external dependencies.')
 parser.add_argument('args', nargs='+')
 
-def list_targets(coredata, builddata):
+def determine_installed_path(target, installdata):
+    install_target = None
+    for i in installdata.targets:
+        if os.path.split(i[0])[1] == target.get_filename(): # FIXME, might clash due to subprojects.
+            install_target = i
+            break
+    if install_target is None:
+        raise RuntimeError('Something weird happened. File a bug.')
+    fname = i[0]
+    outdir = i[1]
+    outname = os.path.join(installdata.prefix, outdir, os.path.split(fname)[-1])
+    return outname
+
+def list_targets(coredata, builddata, installdata):
     tlist = []
     for (idname, target) in builddata.get_targets().items():
         t = {}
@@ -68,6 +81,7 @@ def list_targets(coredata, builddata):
         t['type'] = typename
         if target.should_install():
             t['installed'] = True
+            t['install_filename'] = determine_installed_path(target, installdata)
         else:
             t['installed'] = False
         tlist.append(t)
@@ -173,6 +187,7 @@ def run(args):
         bdir = ''
     corefile = os.path.join(bdir, 'meson-private/coredata.dat')
     buildfile = os.path.join(bdir, 'meson-private/build.dat')
+    installfile = os.path.join(bdir, 'meson-private/install.dat')
     testfile = os.path.join(bdir, 'meson-private/meson_test_setup.dat')
     benchmarkfile = os.path.join(bdir, 'meson-private/meson_benchmark_setup.dat')
     with open(corefile, 'rb') as f:
@@ -180,11 +195,13 @@ def run(args):
     with open(buildfile, 'rb') as f:
         builddata = pickle.load(f)
     with open(testfile, 'rb') as f:
-       testdata = pickle.load(f)
+        testdata = pickle.load(f)
     with open(benchmarkfile, 'rb') as f:
-       benchmarkdata = pickle.load(f)
+        benchmarkdata = pickle.load(f)
+    with open(installfile, 'rb') as f:
+        installdata = pickle.load(f)
     if options.list_targets:
-        list_targets(coredata, builddata)
+        list_targets(coredata, builddata, installdata)
     elif options.target_files is not None:
         list_target_files(options.target_files, coredata, builddata)
     elif options.buildsystem_files:

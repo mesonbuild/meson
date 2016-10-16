@@ -1267,6 +1267,9 @@ class CustomTarget:
     def get_outputs(self):
         return self.output
 
+    def get_filename(self):
+        return self.output[0]
+
     def get_sources(self):
         return self.sources
 
