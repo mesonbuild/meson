@@ -709,27 +709,8 @@ int dummy;
             dst_dir = os.path.join(self.environment.get_prefix(), sd.install_dir)
             d.install_subdirs.append([src_dir, inst_dir, dst_dir])
 
-    def write_test_suite_targets(self, cmd, outfile):
-        suites = {}
-        for t in self.build.get_tests():
-            for s in t.suite:
-                suites[s] = True
-        suites = list(suites.keys())
-        suites.sort()
-        for s in suites:
-            if s == '':
-                visible_name = 'for top level tests'
-            else:
-                visible_name = s
-            elem = NinjaBuildElement(self.all_outputs, 'test:' + s, 'CUSTOM_COMMAND', ['all', 'PHONY'])
-            elem.add_item('COMMAND', cmd + ['--suite=' + s])
-            elem.add_item('DESC', 'Running test suite %s.' % visible_name)
-            elem.add_item('pool', 'console')
-            elem.write(outfile)
-
     def generate_tests(self, outfile):
         (test_data, benchmark_data) = self.serialise_tests()
-        script_root = self.environment.get_script_dir()
         cmd = [ sys.executable, self.environment.get_build_command(), '--internal', 'test' ]
         if not self.environment.coredata.get_builtin_option('stdsplit'):
             cmd += ['--no-stdsplit']
@@ -741,7 +722,6 @@ int dummy;
         elem.add_item('DESC', 'Running all tests.')
         elem.add_item('pool', 'console')
         elem.write(outfile)
-        self.write_test_suite_targets(cmd, outfile)
 
         # And then benchmarks.
         cmd = [sys.executable, self.environment.get_build_command(), '--internal', 'benchmark', benchmark_data]
@@ -791,7 +771,6 @@ int dummy;
 
     def generate_jar_target(self, target, outfile):
         fname = target.get_filename()
-        subdir = target.get_subdir()
         outname_rel = os.path.join(self.get_target_dir(target), fname)
         src_list = target.get_sources()
         class_list = []
