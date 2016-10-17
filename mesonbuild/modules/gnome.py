@@ -343,9 +343,18 @@ class GnomeModule:
                 else:
                     raise MesonException(
                         'Gir includes must be str, GirTarget, or list of them')
+
+        cflags = []
         if state.global_args.get('c'):
+            cflags += state.global_args['c']
+        for compiler in state.compilers:
+            if compiler.get_language() == 'c':
+                sanitize = compiler.get_options().get('b_sanitize')
+                if sanitize:
+                    cflags += compilers.sanitizer_compile_args(sanitize)
+        if cflags:
             scan_command += ['--cflags-begin']
-            scan_command += state.global_args['c']
+            scan_command += cflags
             scan_command += ['--cflags-end']
         if kwargs.get('symbol_prefix'):
             sym_prefix = kwargs.pop('symbol_prefix')
