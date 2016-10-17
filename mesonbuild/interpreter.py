@@ -1816,6 +1816,9 @@ class Interpreter():
     def func_dependency(self, node, args, kwargs):
         self.validate_arguments(args, 1, [str])
         name = args[0]
+        if '<' in name or '>' in name or '=' in name:
+            raise InvalidArguments('''Characters <, > and = are forbidden in target names. To specify version
+requirements use the version keyword argument instead.''')
         identifier = dependencies.get_dep_identifier(name, kwargs)
         # Check if we've already searched for and found this dep
         cached_dep = None
