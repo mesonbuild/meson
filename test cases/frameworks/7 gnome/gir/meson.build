@@ -16,6 +16,10 @@ girexe = executable(
 
 fake_dep = dependency('no-way-this-exists', required: false)
 
+gnome.check_gir('GObject', version: '2.0', symbols: ['Binding.get_source'])
+gnome.check_gir('GObject', required: false, symbols: ['FakeObj.fake_method'])
+gnome.check_gir('FakeDep', required: false)
+
 gnome.generate_gir(
   girlib,
   sources : libsources,

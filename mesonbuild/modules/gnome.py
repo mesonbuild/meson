@@ -23,6 +23,8 @@ from .. import dependencies
 from .. import mlog
 from .. import mesonlib
 from .. import interpreter
+import importlib
+import gi
 
 native_glib_version = None
 girwarning_printed = False
@@ -729,6 +731,10 @@ class GnomeModule:
 
         return [body, header]
 
+    def check_gir(self, state, args, kwargs):
+        if len(args) != 1:
+            raise MesonException('check_gir takes one argument, name')
+        girdep = GirDependency(args[0], kwargs)
 
 def initialize():
     return GnomeModule()
@@ -740,3 +746,48 @@ class GirTarget(build.CustomTarget):
 class TypelibTarget(build.CustomTarget):
     def __init__(self, name, subdir, kwargs):
         super().__init__(name, subdir, kwargs)
+
+class GirDependency(dependencies.Dependency):
+    def __init__(self, name, kwargs):
+        self.name = name
+        self.required = kwargs.get('required', True)
+        self.silent = kwargs.get('silent', False)
+        self.version = kwargs.get('version', '')
+        self.symbols = kwargs.get('symbols', [])
+
+        if not isinstance(self.required, bool):
+            raise interpreter.InvalidArguments('"required" argment must be a boolean.')
+
+        if not isinstance(self.version, str):
+            raise interpreter.InvalidArguments('"version" argment must be a string.')
+
+        if not isinstance(self.symbols, list) or any(not isinstance(s, str) for s in self.symbols):
+            raise interpreter.InvalidArguments('"symbols" argment must be a list of strings.')
+
+        self.is_found = self._check_gir_dep()
+
+        fullname = '%s-%s' % (self.name, self.version) if self.version else self.name
+        found_msg = ['Typelib dependency', mlog.bold(fullname), 'found:',
+                     mlog.green('YES') if self.found() else mlog.red('NO')]
+        if not self.silent:
+            mlog.log(*found_msg)
+
+        if not self.found() and self.required:
+            raise dependencies.DependencyException('Required typelib %s not found' % name)
+
+    def _check_gir_dep(self):
+        try:
+            if self.version:
+                gi.require_version(self.name, self.version)
+            mod = importlib.import_module('gi.repository.' + self.name)
+        except:
+            return False
+
+        for s in self.symbols:
+            c = mod
+            for attr in s.split('.'):
+                try:
+                    c = getattr(c, attr)
+                except:
+                    return False
+        return True
