@@ -381,8 +381,8 @@ class GnomeModule:
             deps = [deps]
         deps = (girtarget.get_all_link_deps() + girtarget.get_external_deps() +
                 deps)
-        cflags, ldflags, gi_includes = self.get_dependencies_flags(deps, state, depends)
-        scan_command += list(cflags) + list(ldflags)
+        cflags, _, gi_includes = self.get_dependencies_flags(deps, state, depends)
+        scan_command += list(cflags)
         for i in gi_includes:
             scan_command += ['--add-include-path=%s' % i]
 
