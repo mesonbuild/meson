@@ -281,7 +281,8 @@ def run(args):
                 lines = lines[-99:]
             for line in lines:
                 print(line)
-    print('Full log written to %s.' % logfilename)
+    if logfilename:
+        print('Full log written to %s.' % logfilename)
     return error_count
 
 if __name__ == '__main__':
