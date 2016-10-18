@@ -38,20 +38,19 @@ class GnomeModule:
             native_glib_version = glib_dep.get_modversion()
         return native_glib_version
 
-    def __print_gresources_warning(self):
+    def __print_gresources_warning(self, state):
         global gresource_warning_printed
         if not gresource_warning_printed:
-            mlog.log('Warning, GLib compiled dependencies do not work fully '
-                     'with versions of GLib older than 2.50.0.\n'
-                     'See the following upstream issue:',
-                     mlog.bold('https://bugzilla.gnome.org/show_bug.cgi?id=745754'))
+            if mesonlib.version_compare(self.get_native_glib_version(state), '< 2.50.0'):
+                mlog.log('Warning, GLib compiled dependencies do not work fully '
+                         'with versions of GLib older than 2.50.0.\n'
+                         'See the following upstream issue:',
+                         mlog.bold('https://bugzilla.gnome.org/show_bug.cgi?id=745754'))
             gresource_warning_printed = True
         return []
 
     def compile_resources(self, state, args, kwargs):
-        if mesonlib.version_compare(self.get_native_glib_version(state),
-                                    '< 2.50.0'):
-            self.__print_gresources_warning()
+        self.__print_gresources_warning(state)
 
         cmd = ['glib-compile-resources', '@INPUT@']
 
@@ -114,7 +113,7 @@ class GnomeModule:
         return [target_c, target_h]
 
     def get_gresource_dependencies(self, state, input_file, source_dirs, dependencies):
-        self.__print_gresources_warning()
+        self.__print_gresources_warning(state)
 
         for dep in dependencies:
             if not isinstance(dep, interpreter.CustomTargetHolder) and not \
