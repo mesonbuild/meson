@@ -279,15 +279,15 @@ class Converter:
                     defaultstr = ''
                 else:
                     if default == 'OFF':
-                        typestr = ' type : boolean,'
+                        typestr = ' type : \'boolean\','
                         default = 'false'
                     elif default == 'ON':
                         default = 'true'
-                        typestr = ' type : boolean,'
+                        typestr = ' type : \'boolean\','
                     else:
-                        typestr = ' type : string,'
+                        typestr = ' type : \'string\','
                     defaultstr = ' value : %s,' % default
-                line = "option(%s,%s%s description : '%s')\n" % (optname,
+                line = "option(%r,%s%s description : '%s')\n" % (optname,
                                                                  typestr,
                                                                  defaultstr,
                                                                  description)
