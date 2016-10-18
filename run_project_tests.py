@@ -233,17 +233,17 @@ def parse_test_args(testdir):
         pass
     return args
 
-def run_test(skipped, testdir, extra_args, flags, compile_commands, install_commands, should_succeed):
+def run_test(skipped, testdir, extra_args, flags, compile_commands, install_commands, should_fail):
     if skipped:
         return None
     with AutoDeletedDir(tempfile.mkdtemp(prefix='b ', dir='.')) as build_dir:
         with AutoDeletedDir(tempfile.mkdtemp(prefix='i ', dir=os.getcwd())) as install_dir:
             try:
-                return _run_test(testdir, build_dir, install_dir, extra_args, flags, compile_commands, install_commands, should_succeed)
+                return _run_test(testdir, build_dir, install_dir, extra_args, flags, compile_commands, install_commands, should_fail)
             finally:
                 mlog.shutdown() # Close the log file because otherwise Windows wets itself.
 
-def _run_test(testdir, test_build_dir, install_dir, extra_args, flags, compile_commands, install_commands, should_succeed):
+def _run_test(testdir, test_build_dir, install_dir, extra_args, flags, compile_commands, install_commands, should_fail):
     test_args = parse_test_args(testdir)
     gen_start = time.time()
     gen_command = [meson_command, '--prefix', '/usr', '--libdir', 'lib', testdir, test_build_dir]\
@@ -256,7 +256,7 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, flags, compile_c
     except Exception:
         mesonlog = 'No meson-log.txt found.'
     gen_time = time.time() - gen_start
-    if not should_succeed:
+    if should_fail == 'meson':
         if returncode != 0:
             return TestResult('', stdo, stde, mesonlog, gen_time)
         return TestResult('Test that should have failed succeeded', stdo, stde, mesonlog, gen_time)
@@ -274,6 +274,10 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, flags, compile_c
     build_time = time.time() - build_start
     stdo += o.decode(sys.stdout.encoding)
     stde += e.decode(sys.stdout.encoding)
+    if should_fail == 'build':
+        if pc.returncode != 0:
+            return TestResult('', stdo, stde, mesonlog, gen_time)
+        return TestResult('Test that should have failed to build succeeded', stdo, stde, mesonlog, gen_time)
     if pc.returncode != 0:
         return TestResult('Compiling source code failed.', stdo, stde, mesonlog, gen_time, build_time)
     test_start = time.time()
@@ -284,6 +288,10 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, flags, compile_c
     test_time = time.time() - test_start
     stdo += tstdo
     stde += tstde
+    if should_fail == 'test':
+        if returncode != 0:
+            return TestResult('', stdo, stde, mesonlog, gen_time)
+        return TestResult('Test that should have failed to run unit tests succeeded', stdo, stde, mesonlog, gen_time)
     if returncode != 0:
         return TestResult('Running unit tests failed.', stdo, stde, mesonlog, gen_time, build_time, test_time)
     if len(install_commands) == 0:
@@ -321,7 +329,9 @@ def have_d_compiler():
 def detect_tests_to_run():
     all_tests = []
     all_tests.append(('common', gather_tests('test cases/common'), False))
-    all_tests.append(('failing', gather_tests('test cases/failing'), False))
+    all_tests.append(('failing-meson', gather_tests('test cases/failing'), False))
+    all_tests.append(('failing-build', gather_tests('test cases/failing build'), False))
+    all_tests.append(('failing-tests', gather_tests('test cases/failing tests'), False))
     all_tests.append(('prebuilt', gather_tests('test cases/prebuilt'), False))
 
     all_tests.append(('platform-osx', gather_tests('test cases/osx'), False if mesonlib.is_osx() else True))
@@ -362,7 +372,10 @@ def run_tests(extra_args):
             # and getting it wrong by not doing logical number sorting.
             (testnum, testbase) = os.path.split(t)[-1].split(' ', 1)
             testname = '%.3d %s' % (int(testnum), testbase)
-            result = executor.submit(run_test, skipped, t, extra_args, unity_flags + backend_flags, compile_commands, install_commands, name != 'failing')
+            should_fail = False
+            if name.startswith('failing'):
+                should_fail = name.split('failing-')[1]
+            result = executor.submit(run_test, skipped, t, extra_args, unity_flags + backend_flags, compile_commands, install_commands, should_fail)
             futures.append((testname, t, result))
         for (testname, t, result) in futures:
             result = result.result()

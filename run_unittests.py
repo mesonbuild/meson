@@ -45,6 +45,7 @@ class LinuxlikeTests(unittest.TestCase):
         self.mconf_command = [sys.executable, os.path.join(src_root, 'mesonconf.py')]
         self.ninja_command = [detect_ninja(), '-C', self.builddir]
         self.common_test_dir = os.path.join(src_root, 'test cases/common')
+        self.vala_test_dir = os.path.join(src_root, 'test cases/vala')
         self.output = b''
         self.orig_env = os.environ.copy()
 
@@ -107,6 +108,33 @@ class LinuxlikeTests(unittest.TestCase):
         self.assertTrue(simple_dep.found())
         self.assertEqual(simple_dep.get_version(), '1.0')
         self.assertTrue('-lfoo' in simple_dep.get_link_args())
+
+    def test_vala_c_warnings(self):
+        testdir = os.path.join(self.vala_test_dir, '5 target glib')
+        self.init(testdir)
+        compdb = self.get_compdb()
+        vala_command = None
+        c_command = None
+        for each in compdb:
+            if each['file'].endswith('GLib.Thread.c'):
+                vala_command = each['command']
+            elif each['file'].endswith('retcode.c'):
+                c_command = each['command']
+            else:
+                m = 'Unknown file {!r} in vala_c_warnings test'.format(each['file'])
+                raise AssertionError(m)
+        self.assertIsNotNone(vala_command)
+        self.assertIsNotNone(c_command)
+        # -w suppresses all warnings, should be there in Vala but not in C
+        self.assertTrue('-w' in vala_command)
+        self.assertFalse('-w' in c_command)
+        # -Wall enables all warnings, should be there in C but not in Vala
+        self.assertFalse('-Wall' in vala_command)
+        self.assertTrue('-Wall' in c_command)
+        # -Werror converts warnings to errors, should always be there since it's
+        # injected by an unrelated piece of code and the project has werror=true
+        self.assertTrue('-Werror' in vala_command)
+        self.assertTrue('-Werror' in c_command)
 
 if __name__ == '__main__':
     unittest.main()

@@ -327,11 +327,14 @@ class Backend():
                 extra_args.append(arg)
         return extra_args
 
-    def generate_basic_compiler_args(self, target, compiler):
+    def generate_basic_compiler_args(self, target, compiler, no_warn_args=False):
         commands = []
         commands += self.get_cross_stdlib_args(target, compiler)
         commands += compiler.get_always_args()
-        commands += compiler.get_warn_args(self.environment.coredata.get_builtin_option('warning_level'))
+        if no_warn_args:
+            commands += compiler.get_no_warn_args()
+        else:
+            commands += compiler.get_warn_args(self.environment.coredata.get_builtin_option('warning_level'))
         commands += compiler.get_option_compile_args(self.environment.coredata.compiler_options)
         commands += self.build.get_global_args(compiler)
         commands += self.environment.coredata.external_args[compiler.get_language()]

@@ -473,6 +473,10 @@ class CCompiler(Compiler):
     def get_warn_args(self, level):
         return self.warn_args[level]
 
+    def get_no_warn_args(self):
+        # Almost every compiler uses this for disabling warnings
+        return ['-w']
+
     def get_soname_args(self, prefix, shlib_name, suffix, path, soversion):
         return []
 
@@ -2255,6 +2259,9 @@ end program prog
     def get_warn_args(self, level):
         return ['-Wall']
 
+    def get_no_warn_args(self):
+        return ['-w']
+
 
 class GnuFortranCompiler(FortranCompiler):
     def __init__(self, exelist, version, gcc_type, is_cross, exe_wrapper=None, defines=None):
@@ -2291,6 +2298,10 @@ class G95FortranCompiler(FortranCompiler):
 
     def get_always_args(self):
         return ['-pipe']
+
+    def get_no_warn_args(self):
+        # FIXME: Confirm that there's no compiler option to disable all warnings
+        return []
 
     def gen_import_library_args(self, implibname):
         """
@@ -2356,6 +2367,9 @@ class PGIFortranCompiler(FortranCompiler):
 
     def get_warn_args(self, level):
         return PGIFortranCompiler.std_warn_args
+
+    def get_no_warn_args(self):
+        return ['-silent']
 
 
 class Open64FortranCompiler(FortranCompiler):
