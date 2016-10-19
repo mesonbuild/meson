@@ -93,16 +93,16 @@ class Backend():
             src = src.fname
         raise RuntimeError('No specified compiler can handle file ' + src)
 
-    def get_target_filename(self, target):
-        assert(isinstance(target, (build.BuildTarget, build.CustomTarget)))
-        targetdir = self.get_target_dir(target)
-        fname = target.get_filename()
-        if isinstance(fname, list):
-            # FIXME FIXME FIXME: build.CustomTarget has multiple output files
-            # and get_filename() returns them all
-            fname = fname[0]
-        filename = os.path.join(targetdir, fname)
-        return filename
+    def get_target_filename(self, t):
+        if isinstance(t, build.CustomTarget):
+            if len(t.get_outputs()) != 1:
+                mlog.log(mlog.red('WARNING'), 'custom_target {!r} has more ' \
+                         'than one output! Using the first one.'.format(t.name))
+            filename = t.get_outputs()[0]
+        else:
+            assert(isinstance(t, build.BuildTarget))
+            filename = t.get_filename()
+        return os.path.join(self.get_target_dir(t), filename)
 
     def get_target_filename_abs(self, target):
         return os.path.join(self.environment.get_build_dir(), self.get_target_filename(target))
@@ -139,6 +139,19 @@ class Backend():
     def get_target_private_dir_abs(self, target):
         dirname = os.path.join(self.environment.get_build_dir(), self.get_target_private_dir(target))
         return dirname
+
+    def get_target_generated_dir(self, target, gensrc, src):
+        """
+        Takes a BuildTarget, a generator source (CustomTarget or GeneratedList),
+        and a generated source filename.
+        Returns the full path of the generated source relative to the build root
+        """
+        # CustomTarget generators output to the build dir of the CustomTarget
+        if isinstance(gensrc, build.CustomTarget):
+            return os.path.join(self.get_target_dir(gensrc), src)
+        # GeneratedList generators output to the private build directory of the
+        # target that the GeneratedList is used in
+        return os.path.join(self.get_target_private_dir(target), src)
 
     def generate_unity_files(self, target, unity_src):
         langlist = {}
@@ -520,15 +533,17 @@ class Backend():
             outdir = '.'
         if absolute_paths:
             outdir = os.path.join(self.environment.get_build_dir(), outdir)
-        for i in target.sources:
+        for i in target.get_sources():
             if hasattr(i, 'held_object'):
                 i = i.held_object
             if isinstance(i, str):
                 fname = [os.path.join(self.build_to_src, target.subdir, i)]
-            elif isinstance(i, (build.BuildTarget, build.CustomTarget)):
+            elif isinstance(i, build.BuildTarget):
                 fname = [self.get_target_filename(i)]
+            elif isinstance(i, build.CustomTarget):
+                fname = [os.path.join(self.get_target_dir(i), p) for p in i.get_outputs()]
             elif isinstance(i, build.GeneratedList):
-                fname = [os.path.join(self.get_target_private_dir(target), p) for p in i.get_outfilelist()]
+                fname = [os.path.join(self.get_target_private_dir(target), p) for p in i.get_outputs()]
             else:
                 fname = [i.rel_to_builddir(self.build_to_src)]
             if absolute_paths:
@@ -542,7 +557,7 @@ class Backend():
             elif isinstance(i, build.CustomTarget):
                 # GIR scanner will attempt to execute this binary but
                 # it assumes that it is in path, so always give it a full path.
-                tmp = i.get_filename()[0]
+                tmp = i.get_outputs()[0]
                 i = os.path.join(self.get_target_dir(i), tmp)
             elif isinstance(i, mesonlib.File):
                 i = i.rel_to_builddir(self.build_to_src)

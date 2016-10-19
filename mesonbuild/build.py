@@ -547,6 +547,9 @@ class BuildTarget():
     def get_filename(self):
         return self.filename
 
+    def get_outputs(self):
+        return [self.filename]
+
     def get_debug_filename(self):
         """
         The name of the file that contains debugging symbols for this target
@@ -650,12 +653,6 @@ by calling get_variable() on the subproject object.''')
                 raise InvalidArguments('Tried to mix cross built and native libraries in target {!r}'.format(self.name))
             self.link_targets.append(t)
 
-    def set_generated(self, genlist):
-        for g in genlist:
-            if not(isinstance(g, GeneratedList)):
-                raise InvalidArguments('Generated source argument is not the output of a generator.')
-            self.generated.append(g)
-
     def add_pch(self, language, pchlist):
         if len(pchlist) == 0:
             return
@@ -705,7 +702,7 @@ class Generator():
     def __init__(self, args, kwargs):
         if len(args) != 1:
             raise InvalidArguments('Generator requires one and only one positional argument')
-        
+
         exe = args[0]
         if hasattr(exe, 'held_object'):
             exe = exe.held_object
@@ -779,6 +776,7 @@ class GeneratedList():
         if hasattr(generator, 'held_object'):
             generator = generator.held_object
         self.generator = generator
+        self.name = self.generator.exe
         self.infilelist = []
         self.outfilelist = []
         self.outmap = {}
@@ -791,10 +789,10 @@ class GeneratedList():
         self.outfilelist += outfiles
         self.outmap[newfile] = outfiles
 
-    def get_infilelist(self):
+    def get_inputs(self):
         return self.infilelist
 
-    def get_outfilelist(self):
+    def get_outputs(self):
         return self.outfilelist
 
     def get_outputs_for(self, filename):
@@ -1085,7 +1083,6 @@ class CustomTarget:
         self.depfile = None
         self.process_kwargs(kwargs)
         self.extra_files = []
-        self.install_rpath = ''
         unknowns = []
         for k in kwargs:
             if k not in CustomTarget.known_kwargs:
@@ -1217,11 +1214,8 @@ class CustomTarget:
     def get_subdir(self):
         return self.subdir
 
-    def get_filename(self):
+    def get_outputs(self):
         return self.output
-
-    def get_aliaslist(self):
-        return []
 
     def get_sources(self):
         return self.sources

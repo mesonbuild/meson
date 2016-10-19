@@ -102,7 +102,7 @@ class Vs2010Backend(backends.Backend):
         down = self.target_to_build_root(target)
         for genlist in target.get_generated_sources():
             if isinstance(genlist, build.CustomTarget):
-                for i in genlist.output:
+                for i in genlist.get_outputs():
                     # Path to the generated source from the current vcxproj dir via the build root
                     ipath = os.path.join(down, self.get_target_dir(genlist), i)
                     custom_target_output_files.append(ipath)
@@ -112,8 +112,8 @@ class Vs2010Backend(backends.Backend):
             else:
                 generator = genlist.get_generator()
                 exe = generator.get_exe()
-                infilelist = genlist.get_infilelist()
-                outfilelist = genlist.get_outfilelist()
+                infilelist = genlist.get_inputs()
+                outfilelist = genlist.get_outputs()
                 exe_arr = self.exe_object_to_cmd_array(exe)
                 base_args = generator.get_arglist()
                 for i in range(len(infilelist)):
