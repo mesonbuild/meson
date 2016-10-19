@@ -66,6 +66,8 @@ class PackageDefinition:
                 self.type = 'file'
             elif first == '[wrap-git]':
                 self.type = 'git'
+            elif first == '[wrap-hg]':
+                self.type = 'hg'
             else:
                 raise RuntimeError('Invalid format of package file')
             for line in ifile:
@@ -105,6 +107,8 @@ class Resolver:
             self.extract_package(p)
         elif p.type == 'git':
             self.get_git(p)
+        elif p.type == "hg":
+            self.get_hg(p)
         else:
             raise RuntimeError('Unreachable code.')
         return p.get('directory')
@@ -130,7 +134,27 @@ class Resolver:
             if revno.lower() != 'head':
                 subprocess.check_call(['git', 'checkout', revno],
                                       cwd=checkoutdir)
-
+    def get_hg(self, p):
+        checkoutdir = os.path.join(self.subdir_root, p.get('directory'))
+        revno = p.get('revision')
+        is_there = os.path.isdir(checkoutdir)
+        if is_there:
+            if revno.lower() == 'tip':
+                # Failure to do pull is not a fatal error,
+                # because otherwise you can't develop without
+                # a working net connection.
+                subprocess.call(['hg', 'pull'], cwd=checkoutdir)
+            else:
+                if subprocess.call(['hg', 'checkout', revno], cwd=checkoutdir) != 0:
+                    subprocess.check_call(['hg', 'pull'], cwd=checkoutdir)
+                    subprocess.check_call(['hg', 'checkout', revno],
+                                          cwd=checkoutdir)
+        else:
+            subprocess.check_call(['hg', 'clone', p.get('url'),
+                                   p.get('directory')], cwd=self.subdir_root)
+            if revno.lower() != 'tip':
+                subprocess.check_call(['hg', 'checkout', revno],
+                                      cwd=checkoutdir)
 
     def get_data(self, url):
         blocksize = 10*1024
