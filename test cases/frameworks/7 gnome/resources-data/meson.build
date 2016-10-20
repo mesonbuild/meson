@@ -3,7 +3,7 @@ subdir('subdir')
 fake_generator_script = '''
 import os, sys
 assert os.path.exists(sys.argv[1]), "File %s not found" % sys.argv[1]
-print("This is a generated resource")
+print("This is a generated resource.")
 '''
 
 # Generate file res3.txt from file res3.txt.in. This is then included
