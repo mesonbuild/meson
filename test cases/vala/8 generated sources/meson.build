@@ -5,3 +5,4 @@ cd.set('x', 'y')
 
 subdir('src')
 subdir('tools')
+subdir('onlygen')

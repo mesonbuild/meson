@@ -1,1 +1,2 @@
 usr/bin/generatedtest
+usr/bin/onlygentest
