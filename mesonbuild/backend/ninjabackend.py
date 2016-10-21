@@ -258,6 +258,20 @@ int dummy;
             srcs[f] = s
         return srcs
 
+    # Languages that can mix with C or C++ but don't support unity builds yet
+    # because the syntax we use for unity builds is specific to C/++/ObjC/++.
+    langs_cant_unity = ('d', 'fortran')
+    def get_target_source_can_unity(self, target, source):
+        if isinstance(source, File):
+            source = source.fname
+        suffix = os.path.splitext(source)[1][1:]
+        for lang in self.langs_cant_unity:
+            if not lang in target.compilers:
+                continue
+            if suffix in target.compilers[lang].file_suffixes:
+                return False
+        return True
+
     def generate_target(self, target, outfile):
         if isinstance(target, build.CustomTarget):
             self.generate_custom_target(target, outfile)
@@ -319,6 +333,18 @@ int dummy;
         header_deps += self.get_generated_headers(target)
         src_list = []
 
+        if is_unity:
+            # Warn about incompatible sources if a unity build is enabled
+            langs = set(target.compilers.keys())
+            langs_cant = langs.intersection(self.langs_cant_unity)
+            if langs_cant:
+                langs_are = langs = ', '.join(langs_cant).upper()
+                langs_are += ' are' if len(langs_cant) > 1 else ' is'
+                msg = '{} not supported in Unity builds yet, so {} ' \
+                      'sources in the {!r} target will be compiled normally' \
+                      ''.format(langs_are, langs, target.name)
+                mlog.log(mlog.red('FIXME'), msg)
+
         # Get a list of all generated *sources* (sources files, headers,
         # objects, etc). Needed to determine the linker.
         generated_output_sources = [] 
@@ -331,7 +357,7 @@ int dummy;
             generated_output_sources.append(rel_src)
             raw_src = RawFilename(rel_src)
             if self.environment.is_source(rel_src) and not self.environment.is_header(rel_src):
-                if is_unity:
+                if is_unity and self.get_target_source_can_unity(target, rel_src):
                     unity_deps.append(raw_src)
                     abs_src = os.path.join(self.environment.get_build_dir(), rel_src)
                     unity_src.append(abs_src)
@@ -386,7 +412,7 @@ int dummy;
         for f, src in target_sources.items():
             if not self.environment.is_header(src):
                 src_list.append(src)
-                if is_unity:
+                if is_unity and self.get_target_source_can_unity(target, src):
                     abs_src = os.path.join(self.environment.get_build_dir(),
                                            src.rel_to_builddir(self.build_to_src))
                     unity_src.append(abs_src)
@@ -1677,7 +1703,7 @@ rule FORTRAN_DEP_HACK
 
     def generate_single_compile(self, target, outfile, src, is_generated=False, header_deps=[], order_deps=[]):
         """
-        Compiles only C/C++ and ObjC/ObjC++ sources
+        Compiles C/C++, ObjC/ObjC++, and D sources
         """
         if isinstance(src, str) and src.endswith('.h'):
             raise AssertionError('BUG: sources should not contain headers')
