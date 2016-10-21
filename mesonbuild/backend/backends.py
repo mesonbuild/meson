@@ -278,7 +278,7 @@ class Backend():
             for s in src:
                 if c.can_compile(s):
                     return c
-        raise RuntimeError('Unreachable code')
+        raise AssertionError("BUG: Couldn't determine linker for sources {!r}".format(src))
 
     def object_filename_from_source(self, target, source):
         return source.fname.replace('/', '_').replace('\\', '_') + '.' + self.environment.get_object_suffix()
