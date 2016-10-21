@@ -313,6 +313,13 @@ class BuildTarget():
                 raise InvalidArguments(msg)
 
     @staticmethod
+    def can_compile_sources(compiler, sources):
+        for s in sources:
+            if compiler.can_compile(s):
+                return True
+        return False
+
+    @staticmethod
     def can_compile_remove_sources(compiler, sources):
         removed = False
         for s in sources[:]:
@@ -322,16 +329,23 @@ class BuildTarget():
         return removed
 
     def process_compilers(self):
-        if len(self.sources) == 0:
+        if len(self.sources) + len(self.generated) == 0:
             return
         sources = list(self.sources)
+        for gensrc in self.generated:
+            sources += gensrc.get_outputs()
+        # Populate list of compilers
         if self.is_cross:
             compilers = self.environment.coredata.cross_compilers
         else:
             compilers = self.environment.coredata.compilers
         for lang, compiler in compilers.items():
-            if self.can_compile_remove_sources(compiler, sources):
+            if self.can_compile_sources(compiler, sources):
                 self.compilers[lang] = compiler
+        # If all our sources are Vala, our target also needs the C compiler but
+        # it won't get added above.
+        if 'vala' in self.compilers and 'c' not in self.compilers:
+            self.compilers['c'] = compilers['c']
 
     def validate_sources(self):
         if len(self.sources) == 0:
