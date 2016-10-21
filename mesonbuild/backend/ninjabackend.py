@@ -18,7 +18,7 @@ from .. import build
 from .. import mlog
 from .. import dependencies
 from .. import compilers
-from ..mesonlib import File, MesonException
+from ..mesonlib import File, MesonException, get_compiler_for_source
 from .backends import InstallData
 from ..build import InvalidArguments
 import os, sys, pickle, re
@@ -1684,7 +1684,7 @@ rule FORTRAN_DEP_HACK
         if isinstance(src, RawFilename) and src.fname.endswith('.h'):
             raise AssertionError('BUG: sources should not contain headers')
         extra_orderdeps = []
-        compiler = self.get_compiler_for_source(src, target.is_cross)
+        compiler = get_compiler_for_source(target.compilers.values(), src)
         commands = []
         # The first thing is implicit include directories: source, build and private.
         commands += compiler.get_include_args(self.get_target_private_dir(target), False)
@@ -1867,7 +1867,7 @@ rule FORTRAN_DEP_HACK
                       'directory as source, please put it in a subdirectory.' \
                       ''.format(target.get_basename())
                 raise InvalidArguments(msg)
-            compiler = self.get_compiler_for_lang(lang)
+            compiler = target.compilers[lang]
             if compiler.id == 'msvc':
                 src = os.path.join(self.build_to_src, target.get_source_subdir(), pch[-1])
                 (commands, dep, dst, objs) = self.generate_msvc_pch_command(target, compiler, pch)

@@ -17,7 +17,7 @@ from . import environment
 from . import dependencies
 from . import mlog
 import copy, os, re
-from .mesonlib import File, flatten, MesonException, stringlistify
+from .mesonlib import File, flatten, MesonException, stringlistify, classify_unity_sources
 from .environment import for_windows, for_darwin
 
 known_basic_kwargs = {'install' : True,
@@ -176,9 +176,42 @@ class IncludeDirs():
         return self.extra_build_dirs
 
 class ExtractedObjects():
+    '''
+    Holds a list of sources for which the objects must be extracted
+    '''
     def __init__(self, target, srclist):
         self.target = target
         self.srclist = srclist
+        self.check_unity_compatible()
+
+    def check_unity_compatible(self):
+        # Figure out if the extracted object list is compatible with a Unity
+        # build. When we're doing a Unified build, we go through the sources,
+        # and create a single source file from each subset of the sources that
+        # can be compiled with a specific compiler. Then we create one object
+        # from each unified source file.
+        # If the list of sources for which we want objects is the same as the
+        # list of sources that go into each unified build, we're good.
+        self.unity_compatible = False
+        srclist_set = set(self.srclist)
+        # Objects for all the sources are required, so we're compatible
+        if srclist_set == set(self.target.sources):
+            self.unity_compatible = True
+            return
+        # Check if the srclist is a subset (of the target's sources) that is
+        # going to form a unified source file and a single object
+        compsrcs = classify_unity_sources(self.target.compilers.values(),
+                                          self.target.sources)
+        for srcs in compsrcs.values():
+            if srclist_set == set(srcs):
+                self.unity_compatible = True
+                return
+        msg = 'Single object files can not be extracted in Unity builds. ' \
+              'You can only extract all the object files at once.'
+        raise MesonException(msg)
+
+    def get_want_all_objects(self):
+        return self.want_all_objects
 
 class EnvironmentVariables():
     def __init__(self):
@@ -397,18 +430,15 @@ class BuildTarget():
         if 'link_with' in self.kwargs:
             self.kwargs['link_with'] = self.unpack_holder(self.kwargs['link_with'])
 
-    def extract_objects(self, srcargs):
+    def extract_objects(self, srclist):
         obj_src = []
-        for srclist in srcargs:
-            if not isinstance(srclist, list):
-                srclist = [srclist]
-            for src in srclist:
-                if not isinstance(src, str):
-                    raise MesonException('Extraction arguments must be strings.')
-                src = File(False, self.subdir, src)
-                if src not in self.sources:
-                    raise MesonException('Tried to extract unknown source %s.' % src)
-                obj_src.append(src)
+        for src in srclist:
+            if not isinstance(src, str):
+                raise MesonException('Object extraction arguments must be strings.')
+            src = File(False, self.subdir, src)
+            if src not in self.sources:
+                raise MesonException('Tried to extract unknown source %s.' % src)
+            obj_src.append(src)
         return ExtractedObjects(self, obj_src)
 
     def extract_all_objects(self):
