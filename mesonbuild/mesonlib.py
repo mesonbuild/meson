@@ -174,7 +174,7 @@ def default_libdir():
             return 'lib/' + archpath
     except Exception:
         pass
-    if os.path.isdir('/usr/lib64'):
+    if os.path.isdir('/usr/lib64') and not os.path.islink('/usr/lib64'):
         return 'lib64'
     return 'lib'
 
