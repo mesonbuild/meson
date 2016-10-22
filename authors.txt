@@ -51,3 +51,4 @@ Guillaume Poirier-Morency
 Scott D Phillips
 Gautier Pelloux-Prayer
 Alexandre Foley
+Jouni Kosonen
