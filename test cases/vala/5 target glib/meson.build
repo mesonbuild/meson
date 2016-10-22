@@ -1,4 +1,8 @@
-project('valatest', 'vala', 'c', default_options : ['werror=true'])
+project('valatest', 'vala', 'c')
+
+if not meson.is_unity()
+  add_global_arguments('-Werror', language : 'c')
+endif
 
 valadeps = [dependency('glib-2.0', version : '>=2.32'), dependency('gobject-2.0')]
 

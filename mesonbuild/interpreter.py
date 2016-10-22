@@ -2571,8 +2571,6 @@ requirements use the version keyword argument instead.''')
         else:
             obj = self.evaluate_statement(invokable)
         method_name = node.name
-        if method_name == 'extract_objects' and self.environment.coredata.get_builtin_option('unity'):
-            raise InterpreterException('Single object files can not be extracted in Unity builds.')
         args = node.args
         if isinstance(obj, mparser.StringNode):
             obj = obj.get_value()

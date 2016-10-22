@@ -18,7 +18,7 @@ from .. import build
 from .. import mlog
 from .. import dependencies
 from .. import compilers
-from ..mesonlib import File, MesonException
+from ..mesonlib import File, MesonException, get_compiler_for_source
 from .backends import InstallData
 from ..build import InvalidArguments
 import os, sys, pickle, re
@@ -258,6 +258,20 @@ int dummy;
             srcs[f] = s
         return srcs
 
+    # Languages that can mix with C or C++ but don't support unity builds yet
+    # because the syntax we use for unity builds is specific to C/++/ObjC/++.
+    langs_cant_unity = ('d', 'fortran')
+    def get_target_source_can_unity(self, target, source):
+        if isinstance(source, File):
+            source = source.fname
+        suffix = os.path.splitext(source)[1][1:]
+        for lang in self.langs_cant_unity:
+            if not lang in target.compilers:
+                continue
+            if suffix in target.compilers[lang].file_suffixes:
+                return False
+        return True
+
     def generate_target(self, target, outfile):
         if isinstance(target, build.CustomTarget):
             self.generate_custom_target(target, outfile)
@@ -319,6 +333,18 @@ int dummy;
         header_deps += self.get_generated_headers(target)
         src_list = []
 
+        if is_unity:
+            # Warn about incompatible sources if a unity build is enabled
+            langs = set(target.compilers.keys())
+            langs_cant = langs.intersection(self.langs_cant_unity)
+            if langs_cant:
+                langs_are = langs = ', '.join(langs_cant).upper()
+                langs_are += ' are' if len(langs_cant) > 1 else ' is'
+                msg = '{} not supported in Unity builds yet, so {} ' \
+                      'sources in the {!r} target will be compiled normally' \
+                      ''.format(langs_are, langs, target.name)
+                mlog.log(mlog.red('FIXME'), msg)
+
         # Get a list of all generated *sources* (sources files, headers,
         # objects, etc). Needed to determine the linker.
         generated_output_sources = [] 
@@ -329,13 +355,14 @@ int dummy;
         generated_source_files = []
         for rel_src, gensrc in generated_sources.items():
             generated_output_sources.append(rel_src)
+            raw_src = RawFilename(rel_src)
             if self.environment.is_source(rel_src) and not self.environment.is_header(rel_src):
-                if is_unity:
-                    unity_deps.append(rel_src)
+                if is_unity and self.get_target_source_can_unity(target, rel_src):
+                    unity_deps.append(raw_src)
                     abs_src = os.path.join(self.environment.get_build_dir(), rel_src)
                     unity_src.append(abs_src)
                 else:
-                    generated_source_files.append(RawFilename(rel_src))
+                    generated_source_files.append(raw_src)
             elif self.environment.is_object(rel_src):
                 obj_list.append(rel_src)
             elif self.environment.is_library(rel_src):
@@ -344,7 +371,7 @@ int dummy;
                 # Assume anything not specifically a source file is a header. This is because
                 # people generate files with weird suffixes (.inc, .fh) that they then include
                 # in their source files.
-                header_deps.append(RawFilename(rel_src))
+                header_deps.append(raw_src)
         # These are the generated source files that need to be built for use by
         # this target. We create the Ninja build file elements for this here
         # because we need `header_deps` to be fully generated in the above loop.
@@ -352,14 +379,17 @@ int dummy;
             src_list.append(src)
             obj_list.append(self.generate_single_compile(target, outfile, src, True,
                                                          header_deps=header_deps))
+
         # Generate compilation targets for C sources generated from Vala
         # sources. This can be extended to other $LANG->C compilers later if
         # necessary. This needs to be separate for at least Vala
+        vala_generated_source_files = []
         for src in vala_generated_sources:
+            raw_src = RawFilename(src)
             src_list.append(src)
             if is_unity:
                 unity_src.append(os.path.join(self.environment.get_build_dir(), src))
-                header_deps.append(src)
+                header_deps.append(raw_src)
             else:
                 # Generated targets are ordered deps because the must exist
                 # before the sources compiling them are used. After the first
@@ -367,17 +397,22 @@ int dummy;
                 # This should work in all cases. If it does not, then just
                 # move them from orderdeps to proper deps.
                 if self.environment.is_header(src):
-                    header_deps.append(src)
+                    header_deps.append(raw_src)
                 else:
-                    # Passing 'vala' here signifies that we want the compile
-                    # arguments to be specialized for C code generated by
-                    # valac. For instance, no warnings should be emitted.
-                    obj_list.append(self.generate_single_compile(target, outfile, src, 'vala', [], header_deps))
+                    # We gather all these and generate compile rules below
+                    # after `header_deps` (above) is fully generated
+                    vala_generated_source_files.append(raw_src)
+        for src in vala_generated_source_files:
+            # Passing 'vala' here signifies that we want the compile
+            # arguments to be specialized for C code generated by
+            # valac. For instance, no warnings should be emitted.
+            obj_list.append(self.generate_single_compile(target, outfile, src, 'vala', [], header_deps))
+
         # Generate compile targets for all the pre-existing sources for this target
         for f, src in target_sources.items():
             if not self.environment.is_header(src):
                 src_list.append(src)
-                if is_unity:
+                if is_unity and self.get_target_source_can_unity(target, src):
                     abs_src = os.path.join(self.environment.get_build_dir(),
                                            src.rel_to_builddir(self.build_to_src))
                     unity_src.append(abs_src)
@@ -386,7 +421,7 @@ int dummy;
         obj_list += self.flatten_object_list(target)
         if is_unity:
             for src in self.generate_unity_files(target, unity_src):
-                obj_list.append(self.generate_single_compile(target, outfile, src, True, unity_deps + header_deps))
+                obj_list.append(self.generate_single_compile(target, outfile, RawFilename(src), True, unity_deps + header_deps))
         linker = self.determine_linker(target, src_list + generated_output_sources)
         elem = self.generate_link(target, outfile, outname, obj_list, linker, pch_objects)
         self.generate_shlib_aliases(target, self.get_target_dir(target))
@@ -1668,14 +1703,14 @@ rule FORTRAN_DEP_HACK
 
     def generate_single_compile(self, target, outfile, src, is_generated=False, header_deps=[], order_deps=[]):
         """
-        Compiles only C/C++ and ObjC/ObjC++ sources
+        Compiles C/C++, ObjC/ObjC++, and D sources
         """
-        if(isinstance(src, str) and src.endswith('.h')):
-            raise RuntimeError('Fug')
+        if isinstance(src, str) and src.endswith('.h'):
+            raise AssertionError('BUG: sources should not contain headers')
         if isinstance(src, RawFilename) and src.fname.endswith('.h'):
-            raise RuntimeError('Fug')
+            raise AssertionError('BUG: sources should not contain headers')
         extra_orderdeps = []
-        compiler = self.get_compiler_for_source(src, target.is_cross)
+        compiler = get_compiler_for_source(target.compilers.values(), src)
         commands = []
         # The first thing is implicit include directories: source, build and private.
         commands += compiler.get_include_args(self.get_target_private_dir(target), False)
@@ -1716,12 +1751,12 @@ rule FORTRAN_DEP_HACK
                 break
         if isinstance(src, RawFilename):
             rel_src = src.fname
-        elif is_generated:
-            if self.has_dir_part(src):
-                rel_src = src
+            if os.path.isabs(src.fname):
+                abs_src = src.fname
             else:
-                rel_src = os.path.join(self.get_target_private_dir(target), src)
-                abs_src = os.path.join(self.environment.get_source_dir(), rel_src)
+                abs_src = os.path.join(self.environment.get_build_dir(), src.fname)
+        elif is_generated:
+            raise AssertionError('BUG: broken generated source file handling for {!r}'.format(src))
         else:
             if isinstance(src, File):
                 rel_src = src.rel_to_builddir(self.build_to_src)
@@ -1805,6 +1840,7 @@ rule FORTRAN_DEP_HACK
         return rel_obj
 
     def has_dir_part(self, fname):
+        # FIXME FIXME: The usage of this is a terrible and unreliable hack
         return '/' in fname or '\\' in fname
 
     # Fortran is a bit weird (again). When you link against a library, just compiling a source file
@@ -1857,7 +1893,7 @@ rule FORTRAN_DEP_HACK
                       'directory as source, please put it in a subdirectory.' \
                       ''.format(target.get_basename())
                 raise InvalidArguments(msg)
-            compiler = self.get_compiler_for_lang(lang)
+            compiler = target.compilers[lang]
             if compiler.id == 'msvc':
                 src = os.path.join(self.build_to_src, target.get_source_subdir(), pch[-1])
                 (commands, dep, dst, objs) = self.generate_msvc_pch_command(target, compiler, pch)

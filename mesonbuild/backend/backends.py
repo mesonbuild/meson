@@ -19,7 +19,7 @@ from .. import mesonlib
 from .. import compilers
 import json
 import subprocess
-from ..mesonlib import MesonException
+from ..mesonlib import MesonException, get_compiler_for_source, classify_unity_sources
 
 class InstallData():
     def __init__(self, source_dir, build_dir, prefix):
@@ -77,21 +77,6 @@ class Backend():
         for t in self.build.targets:
             priv_dirname = self.get_target_private_dir_abs(t)
             os.makedirs(priv_dirname, exist_ok=True)
-
-    def get_compiler_for_lang(self, lang):
-        for i in self.build.compilers:
-            if i.language == lang:
-                return i
-        raise RuntimeError('No compiler for language ' + lang)
-
-    def get_compiler_for_source(self, src, is_cross):
-        comp = self.build.cross_compilers if is_cross else self.build.compilers
-        for i in comp:
-            if i.can_compile(src):
-                return i
-        if isinstance(src, mesonlib.File):
-            src = src.fname
-        raise RuntimeError('No specified compiler can handle file ' + src)
 
     def get_target_filename(self, t):
         if isinstance(t, build.CustomTarget):
@@ -153,14 +138,17 @@ class Backend():
         # target that the GeneratedList is used in
         return os.path.join(self.get_target_private_dir(target), src)
 
+    def get_unity_source_filename(self, target, suffix):
+        return target.name + '-unity.' + suffix
+
     def generate_unity_files(self, target, unity_src):
-        langlist = {}
         abs_files = []
         result = []
+        compsrcs = classify_unity_sources(target.compilers.values(), unity_src)
 
-        def init_language_file(language, suffix):
+        def init_language_file(suffix):
             outfilename = os.path.join(self.get_target_private_dir_abs(target),
-                                       target.name + '-unity' + suffix)
+                                       self.get_unity_source_filename(target, suffix))
             outfileabs = os.path.join(self.environment.get_build_dir(),
                                       outfilename)
             outfileabs_tmp = outfileabs + '.tmp'
@@ -171,20 +159,12 @@ class Backend():
             result.append(outfilename)
             return open(outfileabs_tmp, 'w')
 
-        try:
-            for src in unity_src:
-                comp = self.get_compiler_for_source(src, target.is_cross)
-                language = comp.get_language()
-                try:
-                    ofile = langlist[language]
-                except KeyError:
-                    suffix = '.' + comp.get_default_suffix()
-                    ofile = langlist[language] = init_language_file(language,
-                                                                    suffix)
-                ofile.write('#include<%s>\n' % src)
-        finally:
-            for x in langlist.values():
-                x.close()
+        # For each language, generate a unity source file and return the list
+        for comp, srcs in compsrcs.items():
+            lang = comp.get_language()
+            with init_language_file(comp.get_default_suffix()) as ofile:
+                for src in srcs:
+                    ofile.write('#include<%s>\n' % src)
         [mesonlib.replace_if_different(x, x + '.tmp') for x in abs_files]
         return result
 
@@ -278,24 +258,37 @@ class Backend():
             for s in src:
                 if c.can_compile(s):
                     return c
-        raise RuntimeError('Unreachable code')
+        raise AssertionError("BUG: Couldn't determine linker for sources {!r}".format(src))
 
     def object_filename_from_source(self, target, source):
-        return source.fname.replace('/', '_').replace('\\', '_') + '.' + self.environment.get_object_suffix()
+        if isinstance(source, mesonlib.File):
+            source = source.fname
+        return source.replace('/', '_').replace('\\', '_') + '.' + self.environment.get_object_suffix()
 
-    def determine_ext_objs(self, extobj, proj_dir_to_build_root=''):
+    def determine_ext_objs(self, extobj, proj_dir_to_build_root):
         result = []
         targetdir = self.get_target_private_dir(extobj.target)
+        # With unity builds, there's just one object that contains all the
+        # sources, so if we want all the objects, just return that.
+        if self.environment.coredata.get_builtin_option('unity'):
+            if not extobj.unity_compatible:
+                # This should never happen
+                msg = 'BUG: Meson must not allow extracting single objects ' \
+                      'in Unity builds'
+                raise AssertionError(msg)
+            comp = get_compiler_for_source(extobj.target.compilers.values(),
+                                           extobj.srclist[0])
+            # The unity object name uses the full absolute path of the source file
+            osrc = os.path.join(self.get_target_private_dir_abs(extobj.target),
+                                self.get_unity_source_filename(extobj.target,
+                                                               comp.get_default_suffix()))
+            objname = self.object_filename_from_source(extobj.target, osrc)
+            objpath = os.path.join(proj_dir_to_build_root, targetdir, objname)
+            return [objpath]
         for osrc in extobj.srclist:
-            # If extracting in a subproject, the subproject
-            # name gets duplicated in the file name.
-            pathsegs = osrc.subdir.split(os.sep)
-            if pathsegs[0] == 'subprojects':
-                pathsegs = pathsegs[2:]
-            fixedpath = os.sep.join(pathsegs)
-            objname = os.path.join(proj_dir_to_build_root, targetdir,
-                                   self.object_filename_from_source(extobj.target, osrc))
-            result.append(objname)
+            objname = self.object_filename_from_source(extobj.target, osrc)
+            objpath = os.path.join(proj_dir_to_build_root, targetdir, objname)
+            result.append(objpath)
         return result
 
     def get_pch_include_args(self, compiler, target):

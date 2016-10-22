@@ -70,6 +70,22 @@ class File:
     def __hash__(self):
         return hash((self.fname, self.subdir, self.is_built))
 
+def get_compiler_for_source(compilers, src):
+    for comp in compilers:
+        if comp.can_compile(src):
+            return comp
+    raise RuntimeError('No specified compiler can handle file {!s}'.format(src))
+
+def classify_unity_sources(compilers, sources):
+    compsrclist = {}
+    for src in sources:
+        comp = get_compiler_for_source(compilers, src)
+        if comp not in compsrclist:
+            compsrclist[comp] = [src]
+        else:
+            compsrclist[comp].append(src)
+    return compsrclist
+
 def flatten(item):
     if not isinstance(item, list):
         return item

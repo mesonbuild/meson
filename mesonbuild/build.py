@@ -17,7 +17,7 @@ from . import environment
 from . import dependencies
 from . import mlog
 import copy, os, re
-from .mesonlib import File, flatten, MesonException, stringlistify
+from .mesonlib import File, flatten, MesonException, stringlistify, classify_unity_sources
 from .environment import for_windows, for_darwin
 
 known_basic_kwargs = {'install' : True,
@@ -176,9 +176,42 @@ class IncludeDirs():
         return self.extra_build_dirs
 
 class ExtractedObjects():
+    '''
+    Holds a list of sources for which the objects must be extracted
+    '''
     def __init__(self, target, srclist):
         self.target = target
         self.srclist = srclist
+        self.check_unity_compatible()
+
+    def check_unity_compatible(self):
+        # Figure out if the extracted object list is compatible with a Unity
+        # build. When we're doing a Unified build, we go through the sources,
+        # and create a single source file from each subset of the sources that
+        # can be compiled with a specific compiler. Then we create one object
+        # from each unified source file.
+        # If the list of sources for which we want objects is the same as the
+        # list of sources that go into each unified build, we're good.
+        self.unity_compatible = False
+        srclist_set = set(self.srclist)
+        # Objects for all the sources are required, so we're compatible
+        if srclist_set == set(self.target.sources):
+            self.unity_compatible = True
+            return
+        # Check if the srclist is a subset (of the target's sources) that is
+        # going to form a unified source file and a single object
+        compsrcs = classify_unity_sources(self.target.compilers.values(),
+                                          self.target.sources)
+        for srcs in compsrcs.values():
+            if srclist_set == set(srcs):
+                self.unity_compatible = True
+                return
+        msg = 'Single object files can not be extracted in Unity builds. ' \
+              'You can only extract all the object files at once.'
+        raise MesonException(msg)
+
+    def get_want_all_objects(self):
+        return self.want_all_objects
 
 class EnvironmentVariables():
     def __init__(self):
@@ -313,6 +346,13 @@ class BuildTarget():
                 raise InvalidArguments(msg)
 
     @staticmethod
+    def can_compile_sources(compiler, sources):
+        for s in sources:
+            if compiler.can_compile(s):
+                return True
+        return False
+
+    @staticmethod
     def can_compile_remove_sources(compiler, sources):
         removed = False
         for s in sources[:]:
@@ -322,16 +362,23 @@ class BuildTarget():
         return removed
 
     def process_compilers(self):
-        if len(self.sources) == 0:
+        if len(self.sources) + len(self.generated) == 0:
             return
         sources = list(self.sources)
+        for gensrc in self.generated:
+            sources += gensrc.get_outputs()
+        # Populate list of compilers
         if self.is_cross:
             compilers = self.environment.coredata.cross_compilers
         else:
             compilers = self.environment.coredata.compilers
         for lang, compiler in compilers.items():
-            if self.can_compile_remove_sources(compiler, sources):
+            if self.can_compile_sources(compiler, sources):
                 self.compilers[lang] = compiler
+        # If all our sources are Vala, our target also needs the C compiler but
+        # it won't get added above.
+        if 'vala' in self.compilers and 'c' not in self.compilers:
+            self.compilers['c'] = compilers['c']
 
     def validate_sources(self):
         if len(self.sources) == 0:
@@ -383,18 +430,15 @@ class BuildTarget():
         if 'link_with' in self.kwargs:
             self.kwargs['link_with'] = self.unpack_holder(self.kwargs['link_with'])
 
-    def extract_objects(self, srcargs):
+    def extract_objects(self, srclist):
         obj_src = []
-        for srclist in srcargs:
-            if not isinstance(srclist, list):
-                srclist = [srclist]
-            for src in srclist:
-                if not isinstance(src, str):
-                    raise MesonException('Extraction arguments must be strings.')
-                src = File(False, self.subdir, src)
-                if src not in self.sources:
-                    raise MesonException('Tried to extract unknown source %s.' % src)
-                obj_src.append(src)
+        for src in srclist:
+            if not isinstance(src, str):
+                raise MesonException('Object extraction arguments must be strings.')
+            src = File(False, self.subdir, src)
+            if src not in self.sources:
+                raise MesonException('Tried to extract unknown source %s.' % src)
+            obj_src.append(src)
         return ExtractedObjects(self, obj_src)
 
     def extract_all_objects(self):

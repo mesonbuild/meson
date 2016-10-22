@@ -342,6 +342,9 @@ class Compiler():
     def get_language(self):
         return self.language
 
+    def get_default_suffix(self):
+        return self.default_suffix
+
     def get_exelist(self):
         return self.exelist[:]
 
@@ -496,9 +499,6 @@ class CCompiler(Compiler):
 
     def get_depfile_suffix(self):
         return 'd'
-
-    def get_default_suffix(self):
-        return self.default_suffix
 
     def get_exelist(self):
         return self.exelist[:]
@@ -1106,9 +1106,6 @@ class MonoCompiler(Compiler):
     def get_dependency_gen_args(self, outtarget, outfile):
         return []
 
-    def get_default_suffix(self):
-        return self.default_suffix
-
     def get_linker_exelist(self):
         return self.exelist[:]
 
@@ -1192,9 +1189,6 @@ class JavaCompiler(Compiler):
 
     def get_dependency_gen_args(self, outtarget, outfile):
         return []
-
-    def get_default_suffix(self):
-        return self.default_suffix
 
     def get_linker_exelist(self):
         return self.exelist[:]
@@ -1842,7 +1836,6 @@ class VisualStudioCPPCompiler(VisualStudioCCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrap):
         self.language = 'cpp'
         VisualStudioCCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
-        self.default_suffix = 'cpp'
         self.base_options = ['b_pch'] # FIXME add lto, pgo and the like
 
     def get_options(self):
