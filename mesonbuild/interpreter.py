@@ -981,6 +981,8 @@ class ModuleHolder(InterpreterObject):
             fn = getattr(self.held_object, method_name)
         except AttributeError:
             raise InvalidArguments('Module %s does not have method %s.' % (self.modname, method_name))
+        if method_name.startswith('_'):
+            raise InvalidArguments('Function {!r} in module {!r} is private.'.format(method_name, self.modname))
         state = ModuleState()
         state.build_to_src = os.path.relpath(self.interpreter.environment.get_source_dir(),
                                              self.interpreter.environment.get_build_dir())
