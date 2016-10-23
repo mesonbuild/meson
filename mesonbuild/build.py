@@ -514,7 +514,7 @@ class BuildTarget():
         deplist = kwargs.get('dependencies', [])
         if not isinstance(deplist, list):
             deplist = [deplist]
-        self.add_external_deps(deplist)
+        self.add_deps(deplist)
         self.custom_install_dir = kwargs.get('install_dir', None)
         if self.custom_install_dir is not None:
             if not isinstance(self.custom_install_dir, str):
@@ -644,7 +644,7 @@ class BuildTarget():
     def get_include_dirs(self):
         return self.include_dirs
 
-    def add_external_deps(self, deps):
+    def add_deps(self, deps):
         if not isinstance(deps, list):
             deps = [deps]
         for dep in deps:
@@ -664,7 +664,7 @@ class BuildTarget():
                                                           [], [], [])
                 self.external_deps.append(extpart)
                 # Deps of deps.
-                self.add_external_deps(dep.ext_deps)
+                self.add_deps(dep.ext_deps)
             elif isinstance(dep, dependencies.Dependency):
                 self.external_deps.append(dep)
                 self.process_sourcelist(dep.get_sources())
@@ -673,10 +673,13 @@ class BuildTarget():
                 # about the interpreter so we can't import it and use isinstance.
                 # This should be reliable enough.
                 if hasattr(dep, 'subproject'):
-                    raise InvalidArguments('''Tried to use subproject object as a dependency.
-You probably wanted to use a dependency declared in it instead. Access it
-by calling get_variable() on the subproject object.''')
-                raise InvalidArguments('Argument is not an external dependency.')
+                    raise InvalidArguments('Tried to use subproject object as a dependency.\n'
+                            'You probably wanted to use a dependency declared in it instead.\n'
+                            'Access it by calling get_variable() on the subproject object.')
+                raise InvalidArguments('Argument is of an unacceptable type {!r}.\nMust be '
+                        'either an external dependency (returned by find_library() or '
+                        'dependency()) or an internal dependency (returned by '
+                        'declare_dependency()).'.format(type(dep).__name__))
 
     def get_external_deps(self):
         return self.external_deps
@@ -702,7 +705,7 @@ by calling get_variable() on the subproject object.''')
             return
         elif len(pchlist) == 1:
             if not environment.is_header(pchlist[0]):
-                raise InvalidArguments('Pch argument %s is not a header.' % pchlist[0])
+                raise InvalidArguments('PCH argument %s is not a header.' % pchlist[0])
         elif len(pchlist) == 2:
             if environment.is_header(pchlist[0]):
                 if not environment.is_source(pchlist[1]):
@@ -745,8 +748,7 @@ by calling get_variable() on the subproject object.''')
 class Generator():
     def __init__(self, args, kwargs):
         if len(args) != 1:
-            raise InvalidArguments('Generator requires one and only one positional argument')
-
+            raise InvalidArguments('Generator requires exactly one positional argument: the executable')
         exe = args[0]
         if hasattr(exe, 'held_object'):
             exe = exe.held_object
@@ -1168,8 +1170,7 @@ class CustomTarget:
                 raise InvalidArguments('Output must not contain a path segment.')
         self.capture = kwargs.get('capture', False)
         if self.capture and len(self.output) != 1:
-            raise InvalidArguments(
-                'Capturing can only output to a single file.')
+            raise InvalidArguments('Capturing can only output to a single file.')
         if 'command' not in kwargs:
             raise InvalidArguments('Missing keyword argument "command".')
         if 'depfile' in kwargs:
@@ -1190,7 +1191,7 @@ class CustomTarget:
                 final_cmd.append(c)
             elif isinstance(c, dependencies.ExternalProgram):
                 if not c.found():
-                    raise InvalidArguments('Tried to use not found external program in a build rule.')
+                    raise InvalidArguments('Tried to use not found external program {!r} in a build rule.'.format(c.name))
                 final_cmd += c.get_command()
             elif isinstance(c, (BuildTarget, CustomTarget)):
                 self.dependencies.append(c)
@@ -1231,7 +1232,7 @@ class CustomTarget:
             while hasattr(ed, 'held_object'):
                 ed = ed.held_object
             if not isinstance(ed, (CustomTarget, BuildTarget)):
-                raise InvalidArguments('Can only depend on toplevel targets.')
+                raise InvalidArguments('Can only depend on toplevel targets: custom_target or build_target (executable or a library)')
             self.extra_depends.append(ed)
         depend_files = kwargs.get('depend_files', [])
         if not isinstance(depend_files, list):
@@ -1241,7 +1242,7 @@ class CustomTarget:
                 self.depend_files.append(i)
             else:
                 mlog.debug(i)
-                raise InvalidArguments('Unknown type in depend_files.')
+                raise InvalidArguments('Unknown type {!r} in depend_files.'.format(type(i).__name__))
 
     def get_basename(self):
         return self.name

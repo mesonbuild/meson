@@ -37,6 +37,10 @@ class Dependency():
         self.is_found = False
         self.type_name = type_name
 
+    def __repr__(self):
+        s = '<{0} {1}: {2}>'
+        return s.format(self.__class__.__name__, self.name, self.is_found)
+
     def get_compile_args(self):
         return []
 

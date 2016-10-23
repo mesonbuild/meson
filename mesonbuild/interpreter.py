@@ -1559,7 +1559,7 @@ class Interpreter():
         r = wrap.Resolver(os.path.join(self.build.environment.get_source_dir(), self.subproject_dir))
         resolved = r.resolve(dirname)
         if resolved is None:
-            msg = 'Subproject directory {!r} does not exist and can not be downloaded.'
+            msg = 'Subproject directory {!r} does not exist and cannot be downloaded.'
             raise InterpreterException(msg.format(os.path.join(self.subproject_dir, dirname)))
         subdir = os.path.join(self.subproject_dir, resolved)
         os.makedirs(os.path.join(self.build.environment.get_build_dir(), subdir), exist_ok=True)
@@ -2266,9 +2266,18 @@ requirements use the version keyword argument instead.''')
     @stringArgs
     def func_add_global_arguments(self, node, args, kwargs):
         if self.subproject != '':
-            raise InvalidCode('Global arguments can not be set in subprojects because there is no way to make that reliable.')
+            msg = 'Global arguments can not be set in subprojects because ' \
+                  'there is no way to make that reliable.\nPlease only call ' \
+                  'this if is_subproject() returns false. Alternatively, ' \
+                  'define a variable that\ncontains your language-specific ' \
+                  'arguments and add it to the appropriate *_args kwarg ' \
+                  'in each target.'
+            raise InvalidCode(msg)
         if self.global_args_frozen:
-            raise InvalidCode('Tried to set global arguments after a build target has been declared.\nThis is not permitted. Please declare all global arguments before your targets.')
+            msg = 'Tried to set global arguments after a build target has ' \
+                  'been declared.\nThis is not permitted. Please declare all ' \
+                  'global arguments before your targets.'
+            raise InvalidCode(msg)
         if not 'language' in kwargs:
             raise InvalidCode('Missing language definition in add_global_arguments')
         lang = kwargs['language'].lower()
@@ -2280,11 +2289,20 @@ requirements use the version keyword argument instead.''')
     @stringArgs
     def func_add_global_link_arguments(self, node, args, kwargs):
         if self.subproject != '':
-            raise InvalidCode('Global arguments can not be set in subprojects because there is no way to make that reliable.')
+            msg = 'Global link arguments can not be set in subprojects because ' \
+                  'there is no way to make that reliable.\nPlease only call ' \
+                  'this if is_subproject() returns false. Alternatively, ' \
+                  'define a variable that\ncontains your language-specific ' \
+                  'arguments and add it to the appropriate *_args kwarg ' \
+                  'in each target.'
+            raise InvalidCode(msg)
         if self.global_args_frozen:
-            raise InvalidCode('Tried to set global arguments after a build target has been declared.\nThis is not permitted. Please declare all global arguments before your targets.')
+            msg = 'Tried to set global link arguments after a build target has ' \
+                  'been declared.\nThis is not permitted. Please declare all ' \
+                  'global arguments before your targets.'
+            raise InvalidCode(msg)
         if not 'language' in kwargs:
-            raise InvalidCode('Missing language definition in add_global_arguments')
+            raise InvalidCode('Missing language definition in add_global_link_arguments')
         lang = kwargs['language'].lower()
         if lang in self.build.global_link_args:
             self.build.global_link_args[lang] += args
@@ -2405,7 +2423,7 @@ requirements use the version keyword argument instead.''')
         for l in self.get_used_languages(target):
             if self.environment.cross_info.has_stdlib(l) and \
                 self.subproject != self.environment.cross_info.get_stdlib(l)[0]:
-                target.add_external_deps(self.build.cross_stdlibs[l])
+                target.add_deps(self.build.cross_stdlibs[l])
 
     def check_sources_exist(self, subdir, sources):
         for s in sources:
@@ -2413,7 +2431,7 @@ requirements use the version keyword argument instead.''')
                 continue # This means a generated source and they always exist.
             fname = os.path.join(subdir, s)
             if not os.path.isfile(fname):
-                raise InterpreterException('Tried to add non-existing source %s.' % s)
+                raise InterpreterException('Tried to add non-existing source file %s.' % s)
 
     def function_call(self, node):
         func_name = node.func_name
@@ -2469,7 +2487,7 @@ requirements use the version keyword argument instead.''')
                 else:
                     return posargs[1]
             else:
-                raise InterpreterException('bool.to_string() must have either no arguments or exactly two string arguments.')
+                raise InterpreterException('bool.to_string() must have either no arguments or exactly two string arguments that signify what values to return for true and false.')
         elif method_name == 'to_int':
             if obj == True:
                 return 1
@@ -2509,7 +2527,7 @@ requirements use the version keyword argument instead.''')
             return re.sub(r'[^a-zA-Z0-9]', '_', obj)
         elif method_name == 'split':
             if len(posargs) > 1:
-                raise InterpreterException('Split()  must have at most one argument.')
+                raise InterpreterException('Split() must have at most one argument.')
             elif len(posargs) == 1:
                 s = posargs[0]
                 if not isinstance(s, str):
@@ -2530,7 +2548,7 @@ requirements use the version keyword argument instead.''')
             try:
                 return int(obj)
             except Exception:
-                raise InterpreterException('String can not be converted to int: ' + obj)
+                raise InterpreterException('String {!r} cannot be converted to int'.format(obj))
         elif method_name == 'join':
             if len(posargs) != 1:
                 raise InterpreterException('Join() takes exactly one argument.')
@@ -2635,8 +2653,7 @@ requirements use the version keyword argument instead.''')
         for i in node.ifs:
             result = self.evaluate_statement(i.condition)
             if not(isinstance(result, bool)):
-                print(result)
-                raise InvalidCode('If clause does not evaluate to true or false.')
+                raise InvalidCode('If clause {!r} does not evaluate to true or false.'.format(result))
             if result:
                 self.evaluate_codeblock(i.block)
                 return
