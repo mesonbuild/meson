@@ -12,8 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os, subprocess, shutil
+import os
+import shutil
+import argparse
+import subprocess
 from mesonbuild.scripts import destdir_join
+
+parser = argparse.ArgumentParser()
+parser.add_argument('command')
+parser.add_argument('--pkgname', default='')
+parser.add_argument('--datadirs', default='')
+parser.add_argument('--langs', default='')
+parser.add_argument('--localedir', default='')
+parser.add_argument('--subdir', default='')
+parser.add_argument('--extra-args', default='')
 
 def run_potgen(src_sub, pkgname, datadirs, args):
     listfile = os.path.join(src_sub, 'POTFILES')
@@ -57,39 +69,29 @@ def do_install(src_sub, bld_sub, dest, pkgname, langs):
     return 0
 
 def run(args):
-    subcmd = args[0]
+    options = parser.parse_args(args)
+    subcmd = options.command
+    langs = options.langs.split('@@')
+    extra_args = options.extra_args.split('@@')
+    subdir = os.environ.get('MESON_SUBDIR', options.subdir)
+    src_sub = os.path.join(os.environ['MESON_SOURCE_ROOT'], subdir)
+    bld_sub = os.path.join(os.environ['MESON_BUILD_ROOT'], subdir)
+
     if subcmd == 'pot':
-        pkgname = args[1]
-        datadirs = args[2][11:] if args[2].startswith('--datadirs=') else None
-        extra_args = args[3:] if datadirs is not None else args[2:]
-        src_sub = os.path.join(os.environ['MESON_SOURCE_ROOT'], os.environ['MESON_SUBDIR'])
-        bld_sub = os.path.join(os.environ['MESON_BUILD_ROOT'], os.environ['MESON_SUBDIR'])
-        return run_potgen(src_sub, pkgname, datadirs, extra_args)
+        return run_potgen(src_sub, options.pkgname, options.datadirs, extra_args)
     elif subcmd == 'gen_gmo':
-        src_sub = os.path.join(os.environ['MESON_SOURCE_ROOT'], os.environ['MESON_SUBDIR'])
-        bld_sub = os.path.join(os.environ['MESON_BUILD_ROOT'], os.environ['MESON_SUBDIR'])
-        return gen_gmo(src_sub, bld_sub, args[1:])
+        return gen_gmo(src_sub, bld_sub, langs)
     elif subcmd == 'update_po':
-        pkgname = args[1]
-        langs = args[2].split('@@')
-        datadirs = args[3][11:] if args[3].startswith('--datadirs=') else None
-        extra_args = args[4:] if datadirs is not None else args[3:]
-        src_sub = os.path.join(os.environ['MESON_SOURCE_ROOT'], os.environ['MESON_SUBDIR'])
-        if run_potgen(src_sub, pkgname, datadirs, extra_args) != 0:
+        if run_potgen(src_sub, options.pkgname, options.datadirs, extra_args) != 0:
             return 1
-        return update_po(src_sub, pkgname, langs)
+        return update_po(src_sub, options.pkgname, langs)
     elif subcmd == 'install':
-        subdir = args[1]
-        pkgname = args[2]
-        instsubdir = args[3]
-        langs = args[4:]
-        src_sub = os.path.join(os.environ['MESON_SOURCE_ROOT'], subdir)
-        bld_sub = os.path.join(os.environ['MESON_BUILD_ROOT'], subdir)
         destdir = os.environ.get('DESTDIR', '')
-        dest = destdir_join(destdir, os.path.join(os.environ['MESON_INSTALL_PREFIX'], instsubdir))
+        dest = destdir_join(destdir, os.path.join(os.environ['MESON_INSTALL_PREFIX'],
+                                                  options.localedir))
         if gen_gmo(src_sub, bld_sub, langs) != 0:
             return 1
-        do_install(src_sub, bld_sub, dest, pkgname, langs)
+        do_install(src_sub, bld_sub, dest, options.pkgname, langs)
     else:
         print('Unknown subcommand.')
         return 1
