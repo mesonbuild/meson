@@ -6,6 +6,7 @@
 #define EXPECTED "This is a generated resource.\n"
 
 int main(int argc, char **argv) {
+    const gchar *contents;
     GResource *res = generated_resources_get_resource();
     GError *err = NULL;
     GBytes *data = g_resources_lookup_data("/com/example/myprog/res3.txt",
@@ -15,9 +16,10 @@ int main(int argc, char **argv) {
         fprintf(stderr, "Data lookup failed: %s\n", err->message);
         return 1;
     }
-    if(strcmp(g_bytes_get_data(data, NULL), EXPECTED) != 0) {
-        fprintf(stderr, "Resource contents are wrong:\n %s\n",
-                (const char*)g_bytes_get_data(data, NULL));
+    contents = g_bytes_get_data(data, NULL);
+    if(strcmp(contents, EXPECTED) != 0) {
+        fprintf(stderr, "Resource contents are wrong:\n'%s'\n", contents);
+        fprintf(stderr, "Should be:\n'%s'", EXPECTED);
         return 1;
     }
     fprintf(stdout, "All ok.\n");

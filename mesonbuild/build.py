@@ -1153,6 +1153,8 @@ class CustomTarget:
         return deps
 
     def process_kwargs(self, kwargs):
+        # kwargs already flattened and listified when coming from the
+        # interpreter, but not if coming from a module
         self.sources = kwargs.get('input', [])
         if not isinstance(self.sources, list):
             self.sources = [self.sources]
