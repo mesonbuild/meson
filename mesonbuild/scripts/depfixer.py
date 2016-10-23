@@ -23,6 +23,7 @@ DT_RPATH = 15
 DT_RUNPATH = 29
 DT_STRTAB = 5
 DT_SONAME = 14
+DT_MIPS_RLD_MAP_REL = 1879048245
 
 class DataSizes():
     def __init__(self, ptrsize, is_le):
@@ -307,6 +308,11 @@ class Elf(DataSizes):
                 rpentry.d_tag = 0
                 self.dynamic = self.dynamic[:i] + self.dynamic[i+1:] + [rpentry]
                 break;
+        # DT_MIPS_RLD_MAP_REL is relative to the offset of the tag. Adjust it consequently.
+        for entry in self.dynamic[i:]:
+            if entry.d_tag == DT_MIPS_RLD_MAP_REL:
+                entry.val += 2 * (self.ptrsize // 8)
+                break
         self.bf.seek(sec.sh_offset)
         for entry in self.dynamic:
             entry.write(self.bf)
