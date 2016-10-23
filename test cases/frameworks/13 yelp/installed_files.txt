@@ -1,0 +1,5 @@
+usr/share/help/C/meson/index.page
+usr/share/help/C/meson/media/test.txt
+usr/share/help/es/meson/index.page
+usr/share/help/es/meson/media/test.txt
+usr/share/help/de/meson/index.page
