@@ -452,8 +452,8 @@ class BuildTarget():
             valalist = [valalist]
         self.add_compiler_args('vala', valalist)
         if not isinstance(self, Executable):
-            self.vala_header = kwargs.get('vala_header', None)
-            self.vala_vapi = kwargs.get('vala_vapi', None)
+            self.vala_header = kwargs.get('vala_header', self.name + '.h')
+            self.vala_vapi = kwargs.get('vala_vapi', self.name + '.vapi')
         dlist = stringlistify(kwargs.get('d_args', []))
         self.add_compiler_args('d', dlist)
         self.link_args = kwargs.get('link_args', [])
