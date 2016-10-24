@@ -381,8 +381,11 @@ class GnomeModule:
             deps = [deps]
         deps = (girtarget.get_all_link_deps() + girtarget.get_external_deps() +
                 deps)
-        cflags, _, gi_includes = self.get_dependencies_flags(deps, state, depends)
-        scan_command += list(cflags)
+        # ldflags will be misinterpreted by gir scanner (showing
+        # spurious dependencies) but building GStreamer fails if they
+        # are not used here.
+        cflags, ldflags, gi_includes = self.get_dependencies_flags(deps, state, depends)
+        scan_command += list(cflags) + list(ldflags)
         for i in gi_includes:
             scan_command += ['--add-include-path=%s' % i]
 
