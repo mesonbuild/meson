@@ -2071,6 +2071,9 @@ class ClangCompiler():
             raise MesonException('Unreachable code when converting clang type to gcc type.')
         return get_gcc_soname_args(gcc_type, prefix, shlib_name, suffix, path, soversion)
 
+    def has_argument(self, arg, env):
+        return super().has_argument(['-Werror=unknown-warning-option', arg], env)
+
 class ClangCCompiler(ClangCompiler, CCompiler):
     def __init__(self, exelist, version, clang_type, is_cross, exe_wrapper=None):
         CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
@@ -2096,11 +2099,8 @@ class ClangCCompiler(ClangCompiler, CCompiler):
     def get_option_link_args(self, options):
         return []
 
-    def has_argument(self, arg, env):
-        return super().has_argument(['-Werror=unknown-warning-option', arg], env)
 
-
-class ClangCPPCompiler(ClangCompiler,   CPPCompiler):
+class ClangCPPCompiler(ClangCompiler, CPPCompiler):
     def __init__(self, exelist, version, cltype, is_cross, exe_wrapper=None):
         CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
         ClangCompiler.__init__(self, cltype)
@@ -2123,28 +2123,17 @@ class ClangCPPCompiler(ClangCompiler,   CPPCompiler):
     def get_option_link_args(self, options):
         return []
 
-    def has_argument(self, arg, env):
-        return super().has_argument(['-Werror=unknown-warning-option', arg], env)
-
-class ClangObjCCompiler(GnuObjCCompiler):
+class ClangObjCCompiler(ClangCompiler, GnuObjCCompiler):
     def __init__(self, exelist, version, cltype, is_cross, exe_wrapper=None):
-        super().__init__(exelist, version, is_cross, exe_wrapper)
-        self.id = 'clang'
+        GnuObjCCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
+        ClangCompiler.__init__(self, cltype)
         self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage']
-        self.clang_type = cltype
-        if self.clang_type != CLANG_OSX:
-            self.base_options.append('b_lundef')
-            self.base_options.append('b_asneeded')
 
-class ClangObjCPPCompiler(GnuObjCPPCompiler):
+class ClangObjCPPCompiler(ClangCompiler, GnuObjCPPCompiler):
     def __init__(self, exelist, version, cltype, is_cross, exe_wrapper=None):
-        super().__init__(exelist, version, is_cross, exe_wrapper)
-        self.id = 'clang'
-        self.clang_type = cltype
+        GnuObjCPPCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
+        ClangCompiler.__init__(self, cltype)
         self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage']
-        if self.clang_type != CLANG_OSX:
-            self.base_options.append('b_lundef')
-            self.base_options.append('b_asneeded')
 
 class FortranCompiler(Compiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
