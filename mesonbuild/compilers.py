@@ -17,7 +17,7 @@ import subprocess, os.path
 import tempfile
 from .import mesonlib
 from . import mlog
-from .mesonlib import MesonException
+from .mesonlib import MesonException, version_compare
 from . import coredata
 
 """This file contains the data files of all compilers Meson knows
@@ -2102,6 +2102,17 @@ class ClangCompiler():
 
     def has_argument(self, arg, env):
         return super().has_argument(['-Werror=unknown-warning-option', arg], env)
+
+    def has_function(self, funcname, prefix, env, extra_args=None, dependencies=None):
+        if extra_args is None:
+            extra_args = []
+        # Starting with XCode 8, we need to pass this to force linker
+        # visibility to obey OS X and iOS minimum version targets with
+        # -mmacosx-version-min, -miphoneos-version-min, etc.
+        # https://github.com/Homebrew/homebrew-core/issues/3727
+        if self.clang_type == CLANG_OSX and version_compare(self.version, '>=8.0'):
+            extra_args.append('-Wl,-no_weak_imports')
+        return super().has_function(funcname, prefix, env, extra_args, dependencies)
 
 class ClangCCompiler(ClangCompiler, CCompiler):
     def __init__(self, exelist, version, clang_type, is_cross, exe_wrapper=None):
