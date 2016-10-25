@@ -1552,10 +1552,6 @@ class Interpreter():
         return self.do_subproject(dirname, kwargs)
 
     def do_subproject(self, dirname, kwargs):
-        if self.subdir != '':
-            segs = os.path.split(self.subdir)
-            if len(segs) != 2 or segs[0] != self.subproject_dir:
-                raise InterpreterException('Subprojects must be defined at the root directory.')
         if dirname in self.subproject_stack:
             fullstack = self.subproject_stack + [dirname]
             incpath = ' => '.join(fullstack)
