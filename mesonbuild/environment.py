@@ -833,9 +833,9 @@ class Environment():
         return self.coredata.get_builtin_option('datadir')
 
 
-def get_args_from_envvars(lang, compiler_is_linker):
+def get_args_from_envvars(compiler):
     """
-    @lang: Language to fetch environment flags for
+    @compiler: Compiler to fetch environment flags for
 
     Returns a tuple of (compile_flags, link_flags) for the specified language
     from the inherited environment
@@ -844,14 +844,18 @@ def get_args_from_envvars(lang, compiler_is_linker):
         if val:
             mlog.log('Appending {} from environment: {!r}'.format(var, val))
 
+    lang = compiler.get_language()
+    compiler_is_linker = False
+    if hasattr(compiler, 'get_linker_exelist'):
+        compiler_is_linker = (compiler.get_exelist() == compiler.get_linker_exelist())
+
     if lang not in ('c', 'cpp', 'objc', 'objcpp', 'fortran', 'd'):
         return ([], [])
 
     # Compile flags
     cflags_mapping = {'c': 'CFLAGS', 'cpp': 'CXXFLAGS',
         'objc': 'OBJCFLAGS', 'objcpp': 'OBJCXXFLAGS',
-        'fortran': 'FFLAGS',
-        'd': 'DFLAGS'}
+        'fortran': 'FFLAGS', 'd': 'DFLAGS'}
     compile_flags = os.environ.get(cflags_mapping[lang], '')
     log_var(cflags_mapping[lang], compile_flags)
     compile_flags = compile_flags.split()
