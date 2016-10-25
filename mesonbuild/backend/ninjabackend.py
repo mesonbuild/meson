@@ -999,7 +999,7 @@ int dummy;
             vapiname = os.path.join(self.get_target_dir(target), target.vala_vapi)
             # Force valac to write the vapi file in the target build dir.
             # Without this, it will write it inside c_out_dir
-            args += ['--vapi=../' + target.vala_vapi]
+            args += ['--vapi', os.path.join('..', target.vala_vapi)]
             valac_outputs.append(vapiname)
         if self.environment.coredata.get_builtin_option('werror'):
             args += valac.get_werror_args()
