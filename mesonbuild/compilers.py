@@ -920,9 +920,9 @@ int main(int argc, char **argv) {
         """
         # Add the 'prefix', aka defines, includes, etc that the user provides
         head = '#include <limits.h>\n{0}\n'
-        # We don't know what the function takes or returns, so just add
-        # a useless reference to it
-        main = '\nint main() {{ {1}; }}'
+        # We don't know what the function takes or returns, so try to use it as
+        # a function pointer
+        main = '\nint main() {{ int a = (int) &{1}; }}'
         return head, main
 
     def has_function(self, funcname, prefix, env, extra_args=None, dependencies=None):
