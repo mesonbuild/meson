@@ -707,12 +707,16 @@ int main () {{ {1}; }}'''
         args = self.unix_link_flags_to_native(cargs + extra_args)
         # Read c_args/cpp_args/etc from the cross-info file (if needed)
         args += self.get_cross_extra_flags(env, compile=True, link=False)
+        # Add CFLAGS/CXXFLAGS/OBJCFLAGS/OBJCXXFLAGS from the env
+        # We assume that the user has ensured these are compiler-specific
+        args += env.coredata.external_args[self.language]
         # We only want to compile; not link
         args += self.get_compile_only_args()
         with self.compile(code, args) as p:
             return p.returncode == 0
 
-    def links(self, code, env, extra_args=None, dependencies=None):
+    def _links_wrapper(self, code, env, extra_args, dependencies):
+        "Shares common code between self.links and self.run"
         if extra_args is None:
             extra_args = []
         elif isinstance(extra_args, str):
@@ -729,27 +733,19 @@ int main () {{ {1}; }}'''
         args += self.get_linker_debug_crt_args()
         # Read c_args/c_link_args/cpp_args/cpp_link_args/etc from the cross-info file (if needed)
         args += self.get_cross_extra_flags(env, compile=True, link=True)
-        with self.compile(code, args) as p:
+        # Add LDFLAGS from the env. We assume that the user has ensured these
+        # are compiler-specific
+        args += env.coredata.external_link_args[self.language]
+        return self.compile(code, args)
+
+    def links(self, code, env, extra_args=None, dependencies=None):
+        with self._links_wrapper(code, env, extra_args, dependencies) as p:
             return p.returncode == 0
 
     def run(self, code, env, extra_args=None, dependencies=None):
-        if extra_args is None:
-            extra_args = []
-        if dependencies is None:
-            dependencies = []
-        elif not isinstance(dependencies, list):
-            dependencies = [dependencies]
         if self.is_cross and self.exe_wrapper is None:
             raise CrossNoRunException('Can not run test applications in this cross environment.')
-        cargs = [a for d in dependencies for a in d.get_compile_args()]
-        link_args = [a for d in dependencies for a in d.get_link_args()]
-        # Convert flags to the native type of the selected compiler
-        args = self.unix_link_flags_to_native(cargs + link_args + extra_args)
-        # Select a CRT if needed since we're linking
-        args += self.get_linker_debug_crt_args()
-        # Read c_link_args/cpp_link_args/etc from the cross-info file
-        args += self.get_cross_extra_flags(env, compile=True, link=True)
-        with self.compile(code, args) as p:
+        with self._links_wrapper(code, env, extra_args, dependencies) as p:
             if p.returncode != 0:
                 mlog.debug('Could not compile test file %s: %d\n' % (
                     p.input_name,
