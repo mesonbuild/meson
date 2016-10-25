@@ -90,6 +90,8 @@ class NinjaBuildElement():
 
     def write(self, outfile):
         self.check_outputs()
+        self.outfilenames = sorted(self.outfilenames)
+        self.infilenames  = sorted(self.infilenames)
         line = 'build %s: %s %s' % (' '.join([ninja_quote(i) for i in self.outfilenames]),\
                                     self.rule,
                                     ' '.join([ninja_quote(i) for i in self.infilenames]))
