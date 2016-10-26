@@ -809,16 +809,18 @@ def get_args_from_envvars(compiler):
     if hasattr(compiler, 'get_linker_exelist'):
         compiler_is_linker = (compiler.get_exelist() == compiler.get_linker_exelist())
 
-    if lang not in ('c', 'cpp', 'objc', 'objcpp', 'fortran', 'd'):
-        return [], [], []
-
     # Compile flags
     cflags_mapping = {'c': 'CFLAGS',
                       'cpp': 'CXXFLAGS',
                       'objc': 'OBJCFLAGS',
                       'objcpp': 'OBJCXXFLAGS',
                       'fortran': 'FFLAGS',
-                      'd': 'DFLAGS'}
+                      'd': 'DFLAGS',
+                      'vala': 'VALAFLAGS'}
+
+    if lang not in cflags_mapping.keys():
+        return [], [], []
+
     compile_flags = os.environ.get(cflags_mapping[lang], '')
     log_var(cflags_mapping[lang], compile_flags)
     compile_flags = shlex.split(compile_flags)
