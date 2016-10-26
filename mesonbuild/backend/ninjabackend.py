@@ -1056,10 +1056,15 @@ int dummy;
             vala_c_src.append(vala_c_file)
             valac_outputs.append(vala_c_file)
 
+        # TODO: Use self.generate_basic_compiler_args to get something more
+        #       consistent Until then, we should be careful to preserve the
+        #       precedence of arguments if it changes upstream.
         args = []
-        args += self.build.get_global_args(valac)
-        args += self.build.get_project_args(valac, target.subproject)
         args += valac.get_buildtype_args(self.get_option_for_target('buildtype', target))
+        args += self.build.get_project_args(valac, target.subproject)
+        args += self.build.get_global_args(valac)
+        args += self.environment.coredata.external_args[valac.get_language()]
+
         # Tell Valac to output everything in our private directory. Sadly this
         # means it will also preserve the directory components of Vala sources
         # found inside the build tree (generated sources).
