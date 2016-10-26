@@ -136,5 +136,16 @@ class LinuxlikeTests(unittest.TestCase):
         self.assertTrue('-Werror' in vala_command)
         self.assertTrue('-Werror' in c_command)
 
+    def test_static_compile_order(self):
+        testdir = os.path.join(self.common_test_dir, '5 linkstatic')
+        self.init(testdir)
+        compdb = self.get_compdb()
+        # Rules will get written out in this order
+        self.assertTrue(compdb[0]['file'].endswith("libfile.c"))
+        self.assertTrue(compdb[1]['file'].endswith("libfile2.c"))
+        self.assertTrue(compdb[2]['file'].endswith("libfile3.c"))
+        self.assertTrue(compdb[3]['file'].endswith("libfile4.c"))
+        # FIXME: We don't have access to the linker command
+
 if __name__ == '__main__':
     unittest.main()
