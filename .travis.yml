@@ -13,13 +13,13 @@ services:
 before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install ninja python3; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then docker pull jpakkane/mesonci:xenial; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then docker pull jpakkane/mesonci:yakkety; fi
 
 # We need to copy the current checkout inside the Docker container,
 # because it has the MR id to be tested checked out.
 
 script:
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then echo FROM jpakkane/mesonci:xenial > Dockerfile; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then echo FROM jpakkane/mesonci:yakkety > Dockerfile; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then echo ADD . /root >> Dockerfile; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then docker build -t withgit .; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then docker run withgit /bin/sh -c "cd /root && TRAVIS=true ./run_tests.py"; fi
