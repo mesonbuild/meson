@@ -1775,7 +1775,7 @@ class VisualStudioCCompiler(CCompiler):
             # Translate GNU-style -lfoo library name to the import library
             elif i.startswith('-l'):
                 name = i[2:]
-                if name in ('m', 'c'):
+                if name in ('m', 'c', 'pthread'):
                     # With MSVC, these are provided by the C runtime which is
                     # linked in by default
                     continue
@@ -1788,7 +1788,8 @@ class VisualStudioCCompiler(CCompiler):
         result = []
         for i in args:
             # -mms-bitfields is specific to MinGW-GCC
-            if i == '-mms-bitfields':
+            # -pthread is only valid for GCC
+            if i in ('-mms-bitfields', '-pthread'):
                 continue
             result.append(i)
         return result
