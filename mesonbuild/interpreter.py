@@ -1857,6 +1857,13 @@ requirements use the version keyword argument instead.''')
                     # Cached dep has the wrong version. Check if an external
                     # dependency or a fallback dependency provides it.
                     cached_dep = None
+
+            # Don't re-use cached dep if it wasn't required but this one is,
+            # so we properly go into fallback/error code paths
+            if 'required' in kwargs and cached_dep is not None:
+                if not cached_dep.required and kwargs.get('required', True):
+                    cached_dep = None
+
         if cached_dep:
             dep = cached_dep
         else:
