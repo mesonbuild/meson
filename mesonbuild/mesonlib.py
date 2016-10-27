@@ -320,14 +320,17 @@ def dump_conf_header(ofilename, cdata):
 def replace_if_different(dst, dst_tmp):
     # If contents are identical, don't touch the file to prevent
     # unnecessary rebuilds.
+    different = True
     try:
         with open(dst, 'r') as f1, open(dst_tmp, 'r') as f2:
             if f1.read() == f2.read():
-                os.unlink(dst_tmp)
-                return
+                different = False
     except FileNotFoundError:
         pass
-    os.replace(dst_tmp, dst)
+    if different:
+        os.replace(dst_tmp, dst)
+    else:
+        os.unlink(dst_tmp)
 
 def stringlistify(item):
     if isinstance(item, str):
