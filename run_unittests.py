@@ -17,6 +17,7 @@ import unittest, os, sys, shutil, time
 import subprocess
 import re, json
 import tempfile
+import mesonbuild.environment
 from mesonbuild.environment import detect_ninja
 from mesonbuild.dependencies import PkgConfigDependency
 
@@ -32,9 +33,20 @@ def get_soname(fname):
 class FakeEnvironment(object):
     def __init__(self):
         self.cross_info = None
-    
+
     def is_cross_build(self):
         return False
+
+class InternalTests(unittest.TestCase):
+
+    def test_version_number(self):
+        searchfunc = mesonbuild.environment.search_version
+        self.assertEqual(searchfunc('foobar 1.2.3'), '1.2.3')
+        self.assertEqual(searchfunc('1.2.3'), '1.2.3')
+        self.assertEqual(searchfunc('foobar 2016.10.28 1.2.3'), '1.2.3')
+        self.assertEqual(searchfunc('2016.10.28 1.2.3'), '1.2.3')
+        self.assertEqual(searchfunc('foobar 2016.10.128'), 'unknown version')
+        self.assertEqual(searchfunc('2016.10.128'), 'unknown version')
 
 class LinuxlikeTests(unittest.TestCase):
     def setUp(self):
