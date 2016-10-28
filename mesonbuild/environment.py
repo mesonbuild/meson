@@ -173,11 +173,28 @@ def for_darwin(is_cross, env):
     return False
 
 
+def search_version(text):
+    # Usually of the type 4.1.4 but compiler output may contain
+    # stuff like this:
+    # (Sourcery CodeBench Lite 2014.05-29) 4.8.3 20140320 (prerelease)
+    # Limiting major version number to two digits seems to work
+    # thus far. When we get to GCC 100, this will break, but
+    # if we are still relevant when that happens, it can be
+    # considered an achievement in itself.
+    #
+    # This regex is reaching magic levels. If it ever needs
+    # to be updated, do not complexify but convert to something
+    # saner instead.
+    version_regex = '(?<!(\d|\.))(\d{1,2}(\.\d+)+(-[a-zA-Z0-9]+)?)'
+    match = re.search(version_regex, text)
+    if match:
+        return match.group(0)
+    return 'unknown version'
+
 class Environment():
     private_dir = 'meson-private'
     log_dir = 'meson-logs'
     coredata_file = os.path.join(private_dir, 'coredata.dat')
-    version_regex = '\d+(\.\d+)+(-[a-zA-Z0-9]+)?'
 
     def __init__(self, source_dir, build_dir, main_script_launcher, options, original_cmd_line_args):
         self.source_dir = source_dir
@@ -361,11 +378,7 @@ class Environment():
             (out, err) = p.communicate()
             out = out.decode(errors='ignore')
             err = err.decode(errors='ignore')
-            vmatch = re.search(Environment.version_regex, out)
-            if vmatch:
-                version = vmatch.group(0)
-            else:
-                version = 'unknown version'
+            version = search_version(out)
             if 'Free Software Foundation' in out:
                 defines = self.get_gnu_compiler_defines([compiler])
                 if not defines:
@@ -382,7 +395,7 @@ class Environment():
             if 'Microsoft' in out or 'Microsoft' in err:
                 # Visual Studio prints version number to stderr but
                 # everything else to stdout. Why? Lord only knows.
-                version = re.search(Environment.version_regex, err).group()
+                version = search_version(err)
                 return VisualStudioCCompiler([compiler], version, is_cross, exe_wrap)
         errmsg = 'Unknown compiler(s): "' + ', '.join(compilers) + '"'
         if popen_exceptions:
@@ -422,10 +435,7 @@ class Environment():
                 out = out.decode(errors='ignore')
                 err = err.decode(errors='ignore')
 
-                version = 'unknown version'
-                vmatch = re.search(Environment.version_regex, out)
-                if vmatch:
-                    version = vmatch.group(0)
+                version = search_version(out)
 
                 if 'GNU Fortran' in out:
                     defines = self.get_gnu_compiler_defines([compiler])
@@ -439,10 +449,7 @@ class Environment():
                     return G95FortranCompiler([compiler], version, is_cross, exe_wrap)
 
                 if 'Sun Fortran' in err:
-                    version = 'unknown version'
-                    vmatch = re.search(Environment.version_regex, err)
-                    if vmatch:
-                        version = vmatch.group(0)
+                    version = search_version(err)
                     return SunFortranCompiler([compiler], version, is_cross, exe_wrap)
 
                 if 'ifort (IFORT)' in out:
@@ -510,11 +517,7 @@ class Environment():
             (out, err) = p.communicate()
             out = out.decode(errors='ignore')
             err = err.decode(errors='ignore')
-            vmatch = re.search(Environment.version_regex, out)
-            if vmatch:
-                version = vmatch.group(0)
-            else:
-                version = 'unknown version'
+            version = search_version(out)
             if 'Free Software Foundation' in out:
                 defines = self.get_gnu_compiler_defines([compiler])
                 if not defines:
@@ -529,7 +532,7 @@ class Environment():
                     cltype = CLANG_STANDARD
                 return ClangCPPCompiler(ccache + [compiler], version, cltype, is_cross, exe_wrap)
             if 'Microsoft' in out or 'Microsoft' in err:
-                version = re.search(Environment.version_regex, err).group()
+                version = search_version(err)
                 return VisualStudioCPPCompiler([compiler], version, is_cross, exe_wrap)
         errmsg = 'Unknown compiler(s): "' + ', '.join(compilers) + '"'
         if popen_exceptions:
@@ -557,11 +560,7 @@ class Environment():
         (out, err) = p.communicate()
         out = out.decode(errors='ignore')
         err = err.decode(errors='ignore')
-        vmatch = re.search(Environment.version_regex, out)
-        if vmatch:
-            version = vmatch.group(0)
-        else:
-            version = 'unknown version'
+        version = search_version(out)
         if 'Free Software Foundation' in out:
             defines = self.get_gnu_compiler_defines(exelist)
             return GnuObjCCompiler(exelist, version, is_cross, exe_wrap, defines)
@@ -588,11 +587,7 @@ class Environment():
         (out, err) = p.communicate()
         out = out.decode(errors='ignore')
         err = err.decode(errors='ignore')
-        vmatch = re.search(Environment.version_regex, out)
-        if vmatch:
-            version = vmatch.group(0)
-        else:
-            version = 'unknown version'
+        version = search_version(out)
         if 'Free Software Foundation' in out:
             defines = self.get_gnu_compiler_defines(exelist)
             return GnuObjCPPCompiler(exelist, version, is_cross, exe_wrap, defines)
@@ -609,11 +604,7 @@ class Environment():
         (out, err) = p.communicate()
         out = out.decode(errors='ignore')
         err = err.decode(errors='ignore')
-        vmatch = re.search(Environment.version_regex, err)
-        if vmatch:
-            version = vmatch.group(0)
-        else:
-            version = 'unknown version'
+        version = search_version(err)
         if 'javac' in err:
             return JavaCompiler(exelist, version)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
@@ -627,11 +618,7 @@ class Environment():
         (out, err) = p.communicate()
         out = out.decode(errors='ignore')
         err = err.decode(errors='ignore')
-        vmatch = re.search(Environment.version_regex, out)
-        if vmatch:
-            version = vmatch.group(0)
-        else:
-            version = 'unknown version'
+        version = search_version(out)
         if 'Mono' in out:
             return MonoCompiler(exelist, version)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
@@ -644,11 +631,7 @@ class Environment():
             raise EnvironmentException('Could not execute Vala compiler "%s"' % ' '.join(exelist))
         (out, _) = p.communicate()
         out = out.decode(errors='ignore')
-        vmatch = re.search(Environment.version_regex, out)
-        if vmatch:
-            version = vmatch.group(0)
-        else:
-            version = 'unknown version'
+        version = search_version(out)
         if 'Vala' in out:
             return ValaCompiler(exelist, version)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
@@ -661,11 +644,7 @@ class Environment():
             raise EnvironmentException('Could not execute Rust compiler "%s"' % ' '.join(exelist))
         (out, _) = p.communicate()
         out = out.decode(errors='ignore')
-        vmatch = re.search(Environment.version_regex, out)
-        if vmatch:
-            version = vmatch.group(0)
-        else:
-            version = 'unknown version'
+        version = search_version(out)
         if 'rustc' in out:
             return RustCompiler(exelist, version)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
@@ -699,11 +678,7 @@ class Environment():
             raise EnvironmentException('Could not execute D compiler "%s"' % ' '.join(exelist))
         (out, _) = p.communicate()
         out = out.decode(errors='ignore')
-        vmatch = re.search(Environment.version_regex, out)
-        if vmatch:
-            version = vmatch.group(0)
-        else:
-            version = 'unknown version'
+        version = search_version(out)
         if 'LLVM D compiler' in out:
             return LLVMDCompiler(exelist, version, is_cross)
         elif 'gdc' in out:
@@ -720,11 +695,7 @@ class Environment():
             raise EnvironmentException('Could not execute Swift compiler "%s"' % ' '.join(exelist))
         (_, err) = p.communicate()
         err = err.decode(errors='ignore')
-        vmatch = re.search(Environment.version_regex, err)
-        if vmatch:
-            version = vmatch.group(0)
-        else:
-            version = 'unknown version'
+        version = search_version(err)
         if 'Swift' in err:
             return SwiftCompiler(exelist, version)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
