@@ -1950,7 +1950,8 @@ class GnuCCompiler(GnuCompiler, CCompiler):
 
     def get_options(self):
         opts = {'c_std' : coredata.UserComboOption('c_std', 'C language standard to use',
-                                                   ['none', 'c89', 'c99', 'c11', 'gnu89', 'gnu99', 'gnu11'],
+                                                   ['none', 'c89', 'c99', 'c11',
+                                                    'gnu89', 'gnu99', 'gnu11'],
                                                    'none')}
         if self.gcc_type == GCC_MINGW:
             opts.update({
@@ -2084,7 +2085,8 @@ class ClangCCompiler(ClangCompiler, CCompiler):
 
     def get_options(self):
         return {'c_std' : coredata.UserComboOption('c_std', 'C language standard to use',
-                                                   ['none', 'c89', 'c99', 'c11'],
+                                                   ['none', 'c89', 'c99', 'c11',
+                                                    'gnu89', 'gnu99', 'gnu11',],
                                                    'none')}
 
     def get_option_compile_args(self, options):
@@ -2111,8 +2113,9 @@ class ClangCPPCompiler(ClangCompiler,   CPPCompiler):
 
     def get_options(self):
         return {'cpp_std' : coredata.UserComboOption('cpp_std', 'C++ language standard to use',
-                                                   ['none', 'c++03', 'c++11', 'c++14', 'c++1z'],
-                                                   'none')}
+                                                     ['none', 'c++03', 'c++11', 'c++14', 'c++1z',
+                                                      'gnu++03', 'gnu++11', 'gnu++14', 'gnu++1z'],
+                                                     'none')}
 
     def get_option_compile_args(self, options):
         args = []
