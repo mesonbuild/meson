@@ -21,15 +21,7 @@ from mesonbuild import mesonlib
 if __name__ == '__main__':
     returncode = 0
     if mesonlib.is_linux():
-        myenv = os.environ.copy()
-        myenv['CC'] = 'gcc'
-        myenv['CXX'] = 'g++'
-        print('Running unittests with GCC.\n')
-        returncode += subprocess.call([sys.executable, 'run_unittests.py', '-v'], env=myenv)
-        if shutil.which('clang'):
-            myenv['CC'] = 'clang'
-            myenv['CXX'] = 'clang++'
-            print('\nRunning unittests with clang.\n')
-            returncode += subprocess.call([sys.executable, 'run_unittests.py', '-v'], env=myenv)
+        print('Running unittests.\n')
+        returncode += subprocess.call([sys.executable, 'run_unittests.py', '-v'])
     returncode += subprocess.call([sys.executable, 'run_project_tests.py'] + sys.argv[1:])
     sys.exit(returncode)
