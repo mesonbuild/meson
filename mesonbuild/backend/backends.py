@@ -200,11 +200,15 @@ class Backend():
         with open(exe_data, 'wb') as f:
             if isinstance(exe, dependencies.ExternalProgram):
                 exe_fullpath = exe.fullpath
+                exe_needs_wrapper = False
             elif isinstance(exe, (build.BuildTarget, build.CustomTarget)):
                 exe_fullpath = [self.get_target_filename_abs(exe)]
+                exe_needs_wrapper = exe.is_cross
             else:
                 exe_fullpath = [exe]
-            is_cross = self.environment.is_cross_build() and \
+                exe_needs_wrapper = False
+            is_cross = exe_needs_wrapper and \
+                self.environment.is_cross_build() and \
                 self.environment.cross_info.need_cross_compiler() and \
                 self.environment.cross_info.need_exe_wrapper()
             if is_cross:
