@@ -165,7 +165,16 @@ class Conf:
         print('')
         print('Directories:')
         parr = []
-        for key in [ 'prefix', 'libdir', 'libexecdir', 'bindir', 'includedir', 'datadir', 'mandir', 'localedir' ]:
+        for key in ['prefix',
+                    'libdir',
+                    'libexecdir',
+                    'bindir',
+                    'includedir',
+                    'datadir',
+                    'mandir',
+                    'localedir',
+                    'sysconfdir',
+                ]:
             parr.append([key, coredata.get_builtin_option_description(key),
                 self.coredata.get_builtin_option(key), coredata.get_builtin_option_choices(key)])
         self.print_aligned(parr)

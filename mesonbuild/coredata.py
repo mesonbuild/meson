@@ -216,6 +216,10 @@ builtin_options = {
     # uses that. Instead they always set it manually to /etc. This default
     # value is thus pointless and not really used but we set it to this
     # for consistency with other systems.
+    #
+    # Projects installing to sysconfdir probably want to set the following in project():
+    #
+    # default_options : ['sysconfdir=/etc']
         'sysconfdir'        : [ UserStringOption, 'Sysconf data directory.', 'etc' ],
         'werror'            : [ UserBooleanOption, 'Treat warnings as errors.', False ],
         'warning_level'     : [ UserComboOption, 'Compiler warning level to use.', [ '1', '2', '3' ], '1'],
