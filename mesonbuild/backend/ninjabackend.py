@@ -212,10 +212,10 @@ int dummy;
         builddir = self.environment.get_build_dir()
         try:
             jsondb = subprocess.check_output([ninja_exe, '-t', 'compdb', 'c_COMPILER', 'cpp_COMPILER'], cwd=builddir)
+            with open(os.path.join(builddir, 'compile_commands.json'), 'wb') as f:
+                f.write(jsondb)
         except Exception:
-                raise MesonException('Could not create compilation database.')
-        with open(os.path.join(builddir, 'compile_commands.json'), 'wb') as f:
-            f.write(jsondb)
+            mlog.log(mlog.red('Warning:', 'Could not create compilation database.'))
 
     # Get all generated headers. Any source file might need them so
     # we need to add an order dependency to them.
