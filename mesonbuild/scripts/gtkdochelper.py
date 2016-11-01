@@ -39,6 +39,7 @@ parser.add_argument('--ldflags', dest='ldflags', default='')
 parser.add_argument('--cflags', dest='cflags', default='')
 parser.add_argument('--content-files', dest='content_files', default='')
 parser.add_argument('--html-assets', dest='html_assets', default='')
+parser.add_argument('--ignore-headers', dest='ignore_headers', default='')
 parser.add_argument('--installdir', dest='install_dir')
 
 def gtkdoc_run_check(cmd, cwd):
@@ -56,7 +57,7 @@ def gtkdoc_run_check(cmd, cwd):
 def build_gtkdoc(source_root, build_root, doc_subdir, src_subdir,
                  main_file, module, html_args, scan_args, fixxref_args,
                  gobject_typesfile, scanobjs_args, ld, cc, ldflags, cflags,
-                 html_assets, content_files):
+                 html_assets, content_files, ignore_headers):
     print("Building documentation for %s" % module)
 
     abs_src = os.path.join(source_root, src_subdir)
@@ -91,7 +92,8 @@ def build_gtkdoc(source_root, build_root, doc_subdir, src_subdir,
 
     scan_cmd = ['gtkdoc-scan',
                 '--module=' + module,
-                '--source-dir=' + abs_src] + scan_args
+                '--source-dir=' + abs_src,
+                '--ignore-headers=' + ignore_headers] + scan_args
     gtkdoc_run_check(scan_cmd, abs_out)
 
     if gobject_typesfile:
@@ -176,7 +178,8 @@ def run(args):
         options.ldflags,
         options.cflags,
         options.html_assets.split('@@') if options.html_assets else [],
-        options.content_files.split('@@') if options.content_files else [])
+        options.content_files.split('@@') if options.content_files else [],
+        options.ignore_headers.split('@@') if options.ignore_headers else [])
 
     if 'MESON_INSTALL_PREFIX' in os.environ:
         install_dir = options.install_dir if options.install_dir else options.modulename
