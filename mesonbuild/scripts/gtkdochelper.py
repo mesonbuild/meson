@@ -69,6 +69,10 @@ def build_gtkdoc(source_root, build_root, doc_subdir, src_subdir,
     if os.path.exists(sections):
         content_files.append(sections)
 
+    overrides = os.path.join(doc_src, module + "-overrides.txt")
+    if os.path.exists(overrides):
+        content_files.append(overrides)
+
     # Copy files to build directory
     for f in content_files:
         f_abs = os.path.join(doc_src, f)
