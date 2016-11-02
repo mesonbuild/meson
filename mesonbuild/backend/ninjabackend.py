@@ -2100,5 +2100,9 @@ rule FORTRAN_DEP_HACK
         elem.add_item('pool', 'console')
         elem.write(outfile)
 
+        elem = NinjaBuildElement(self.all_outputs, 'reconfigure', 'REGENERATE_BUILD', 'PHONY')
+        elem.add_item('pool', 'console')
+        elem.write(outfile)
+
         elem = NinjaBuildElement(self.all_outputs, deps, 'phony', '')
         elem.write(outfile)
