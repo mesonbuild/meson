@@ -9,6 +9,7 @@ import shutil, subprocess
 with open(sys.argv[1]) as f:
     funcname = f.readline().strip()
 outdir = sys.argv[2]
+buildtype_args = sys.argv[3]
 
 if not os.path.isdir(outdir):
     print('Outdir does not exist.')
@@ -67,7 +68,7 @@ with open(tmpc, 'w') as f:
 ''' % funcname)
 
 if is_vs:
-    subprocess.check_call([compiler, '/nologo', '/c', '/Fo' + outo, tmpc])
+    subprocess.check_call([compiler, '/nologo', '/c', buildtype_args, '/Fo' + outo, tmpc])
 else:
     subprocess.check_call([compiler, '-c', '-o', outo, tmpc])
 
