@@ -2,23 +2,51 @@ version: 1.0.{build}
 
 os: Visual Studio 2015
 
+environment:
+  matrix:
+    - arch: x86
+      compiler: msvc2010
+      backend: ninja
+
+    - arch: x86
+      compiler: msvc2010
+      backend: vs2010
+
+    - arch: x86
+      compiler: msvc2015
+      backend: ninja
+
+    - arch: x86
+      compiler: msvc2015
+      backend: vs2015
+
+    - arch: x64
+      compiler: msvc2015
+      backend: ninja
+
+    - arch: x64
+      compiler: msvc2015
+      backend: vs2015
+
 platform:
-  - x86
+  - x64
 
 branches:
   only:
     - master
 
 install:
- - ps: (new-object net.webclient).DownloadFile('https://dl.dropboxusercontent.com/u/37517477/ninja.exe', 'c:\python34\ninja.exe')
- - cmd: copy c:\python34\python.exe c:\python34\python3.exe
- - '"C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin\SetEnv.cmd" /x86'
+  - ps: (new-object net.webclient).DownloadFile('https://dl.dropboxusercontent.com/u/37517477/ninja.exe', 'c:\python34\ninja.exe')
+  - cmd: copy c:\python34\python.exe c:\python34\python3.exe
+  - cmd: if %compiler%==msvc2010 ( call "C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\vcvarsall.bat" %arch% )
+  - cmd: if %compiler%==msvc2015 ( call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" %arch% )
 
 build_script:
   - cmd: echo No build step.
 
 test_script:
-  - cmd: PATH c:\python34;%PATH%; && python3 run_tests.py --backend=ninja
+  - cmd: echo Running tests for %arch% and %compiler% with the %backend% backend
+  - cmd: PATH=c:\python34;%PATH%; && python3 run_tests.py --backend=%backend%
 
 on_finish:
   - appveyor PushArtifact meson-test-run.txt -DeploymentName "Text test logs"
