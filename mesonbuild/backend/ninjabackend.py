@@ -1694,9 +1694,9 @@ rule FORTRAN_DEP_HACK
 
         if target.has_pch():
             tfilename = self.get_target_filename_abs(target)
-            return compiler.get_compile_debugfile_args(tfilename)
+            return compiler.get_compile_debugfile_args(tfilename, pch=True)
         else:
-            return compiler.get_compile_debugfile_args(objfile)
+            return compiler.get_compile_debugfile_args(objfile, pch=False)
 
     def get_link_debugfile_args(self, linker, target, outname):
         return linker.get_link_debugfile_args(outname)
