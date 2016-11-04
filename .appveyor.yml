@@ -43,6 +43,7 @@ install:
 
 build_script:
   - cmd: echo No build step.
+  - cmd: if %backend%==ninja ( "C:\python34\ninja.exe" --version ) else ( MSBuild /version & echo. )
 
 test_script:
   - cmd: echo Running tests for %arch% and %compiler% with the %backend% backend
