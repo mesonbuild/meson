@@ -8,6 +8,10 @@ compiler:
   - gcc
   - clang
 
+env:
+  - MESON_ARGS=""
+  - MESON_ARGS="--unity"
+
 language:
   - cpp
 
@@ -26,5 +30,5 @@ script:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then echo FROM jpakkane/mesonci:yakkety > Dockerfile; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then echo ADD . /root >> Dockerfile; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then docker build -t withgit .; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then docker run withgit /bin/sh -c "cd /root && TRAVIS=true ./run_tests.py"; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then SDKROOT=$(xcodebuild -version -sdk macosx Path) ./run_tests.py --backend=ninja ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then docker run withgit /bin/sh -c "cd /root && TRAVIS=true ./run_tests.py -- $MESON_ARGS"; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then SDKROOT=$(xcodebuild -version -sdk macosx Path) ./run_tests.py --backend=ninja -- $MESON_ARGS ; fi
