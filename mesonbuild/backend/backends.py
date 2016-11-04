@@ -599,10 +599,7 @@ class Backend():
             elif '@DEPFILE@' in i:
                 if target.depfile is None:
                     raise MesonException('Custom target %s has @DEPFILE@ but no depfile keyword argument.' % target.name)
-                if absolute_paths:
-                    dfilename = os.path.join(self.get_target_private_dir_abs(target), target.depfile)
-                else:
-                    dfilename = os.path.join(self.get_target_private_dir(target), target.depfile)
+                dfilename = os.path.join(outdir, target.depfile)
                 i = i.replace('@DEPFILE@', dfilename)
             elif '@PRIVATE_OUTDIR_' in i:
                 match = re.search('@PRIVATE_OUTDIR_(ABS_)?([-a-zA-Z0-9.@:]*)@', i)
