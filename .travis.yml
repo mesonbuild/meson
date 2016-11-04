@@ -4,6 +4,10 @@ os:
   - linux
   - osx
 
+compiler:
+  - gcc
+  - clang
+
 language:
   - cpp
 
