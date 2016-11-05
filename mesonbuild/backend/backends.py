@@ -236,19 +236,23 @@ class Backend():
 
     def determine_linker(self, target, src):
         if isinstance(target, build.StaticLibrary):
-            if self.build.static_cross_linker is not None:
+            if target.is_cross:
                 return self.build.static_cross_linker
             else:
                 return self.build.static_linker
-        if len(self.build.compilers) == 1:
-            return self.build.compilers[0]
+        if target.is_cross:
+            compilers = self.build.cross_compilers
+        else:
+            compilers = self.build.compilers
+        if len(compilers) == 1:
+            return compilers[0]
         # Currently a bit naive. C++ must
         # be linked with a C++ compiler, but
         # otherwise we don't care. This will
         # become trickier if and when Fortran
         # and the like become supported.
         cpp = None
-        for c in self.build.compilers:
+        for c in compilers:
             if c.get_language() == 'cpp':
                 cpp = c
                 break
@@ -256,7 +260,7 @@ class Backend():
             for s in src:
                 if c.can_compile(s):
                     return cpp
-        for c in self.build.compilers:
+        for c in compilers:
             if c.get_language() == 'vala':
                 continue
             for s in src:
