@@ -27,7 +27,6 @@ import os, sys, subprocess, shutil, uuid, re
 from functools import wraps
 
 import importlib
-import copy
 
 run_depr_printed = False
 
@@ -189,7 +188,6 @@ class EnvironmentVariablesHolder(InterpreterObject):
         self.methods.update({'set': self.set_method,
                              'append': self.append_method,
                              'prepend' : self.prepend_method,
-                             'copy' : self.copy_method,
                             })
 
     @stringArgs
@@ -211,9 +209,6 @@ class EnvironmentVariablesHolder(InterpreterObject):
 
     def prepend_method(self, args, kwargs):
         self.add_var(self.held_object.prepend, args, kwargs)
-
-    def copy_method(self, args, kwargs):
-        return copy.deepcopy(self)
 
 
 class ConfigurationDataHolder(InterpreterObject):
