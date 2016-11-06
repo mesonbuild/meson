@@ -1555,7 +1555,7 @@ class Interpreter():
         if dirname in self.subproject_stack:
             fullstack = self.subproject_stack + [dirname]
             incpath = ' => '.join(fullstack)
-            raise InterpreterException('Recursive include of subprojects: %s.' % incpath)
+            raise InvalidCode('Recursive include of subprojects: %s.' % incpath)
         if dirname in self.subprojects:
             return self.subprojects[dirname]
         r = wrap.Resolver(os.path.join(self.build.environment.get_source_dir(), self.subproject_dir))
@@ -1908,8 +1908,14 @@ requirements use the version keyword argument instead.''')
 
     def dependency_fallback(self, name, kwargs):
         dirname, varname = self.get_subproject_infos(kwargs)
+        # Try to execute the subproject
         try:
             self.do_subproject(dirname, {})
+        # Invalid code is always an error
+        except InvalidCode:
+            raise
+        # If the subproject execution failed in a non-fatal way, don't raise an
+        # exception; let the caller handle things.
         except:
             mlog.log('Also couldn\'t find a fallback subproject in',
                     mlog.bold(os.path.join(self.subproject_dir, dirname)),
@@ -1918,13 +1924,11 @@ requirements use the version keyword argument instead.''')
         try:
             dep = self.subprojects[dirname].get_variable_method([varname], {})
         except KeyError:
-            mlog.log('Fallback variable', mlog.bold(varname),
-                    'in the subproject', mlog.bold(dirname), 'does not exist')
-            return None
+            raise InvalidCode('Fallback variable {!r} in the subproject ' 
+                              '{!r} does not exist'.format(varname, dirname))
         if not isinstance(dep, DependencyHolder):
-            mlog.log('Fallback variable', mlog.bold(varname),
-                    'in the subproject', mlog.bold(dirname),
-                    'is not a dependency object.')
+            raise InvalidCode('Fallback variable {!r} in the subproject {!r} is '
+                              'not a dependency object.'.format(varname, dirname))
             return None
         # Check if the version of the declared dependency matches what we want
         if 'version' in kwargs:
