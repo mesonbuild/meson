@@ -89,6 +89,10 @@ class MesonApp():
     def validate_core_dirs(self, dir1, dir2):
         ndir1 = os.path.abspath(dir1)
         ndir2 = os.path.abspath(dir2)
+        if not os.path.exists(ndir1):
+            os.makedirs(ndir1)
+        if not os.path.exists(ndir2):
+            os.makedirs(ndir2)
         if not stat.S_ISDIR(os.stat(ndir1).st_mode):
             raise RuntimeError('%s is not a directory' % dir1)
         if not stat.S_ISDIR(os.stat(ndir2).st_mode):
