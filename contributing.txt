@@ -32,7 +32,7 @@ those are simple.
 External dependencies
 
 The goal of Meson is to be as easily usable as possible. The user
-experience thould be "get Python3 and Ninja, run", even on
+experience should be "get Python3 and Ninja, run", even on
 Windows. Unfortunately this means that we can't have dependencies on
 projects outside of Python's standard library. This applies only to
 core functionality, though. For additional helper programs etc the use
