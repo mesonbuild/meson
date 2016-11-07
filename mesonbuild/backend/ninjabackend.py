@@ -1720,10 +1720,11 @@ rule FORTRAN_DEP_HACK
         # Add the root source and build directories as include dirs
         curdir = target.get_subdir()
         tmppath = os.path.normpath(os.path.join(self.build_to_src, curdir))
-        commands += compiler.get_include_args(tmppath, False)
+        src_inc = compiler.get_include_args(tmppath, False)
         if curdir ==  '':
             curdir = '.'
-        commands += compiler.get_include_args(curdir, False)
+        build_inc = compiler.get_include_args(curdir, False)
+        commands += build_inc + src_inc
         # -I args work differently than other ones. In them the first found
         # directory is used whereas for other flags (such as -ffoo -fno-foo) the
         # latest one is used.  Therefore put the internal include directories

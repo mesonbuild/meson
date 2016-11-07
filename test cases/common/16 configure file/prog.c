@@ -1,5 +1,8 @@
 #include <string.h>
-#include "config.h"
+/* config.h must not be in quotes:
+ * https://gcc.gnu.org/onlinedocs/cpp/Search-Path.html
+ */
+#include <config.h>
 
 #ifdef SHOULD_BE_UNDEF
 #error "FAIL!"
