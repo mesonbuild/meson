@@ -512,6 +512,13 @@ class CCompiler(Compiler):
     def get_no_optimization_args(self):
         return ['-O0']
 
+    def get_compiler_check_args(self):
+        '''
+        Get arguments useful for compiler checks such as being permissive in
+        the code quality and not doing any optimization.
+        '''
+        return self.get_no_optimization_args()
+
     def get_output_args(self, target):
         return ['-o', target]
 
@@ -643,9 +650,14 @@ int someSymbolHereJustForFun;
             extra_args = []
         templ = '''{2}
 #include <{0}>
-int main () {{ {1}; }}'''
-        # Pass -O0 to ensure that the symbol isn't optimized away
-        args = extra_args + self.get_no_optimization_args()
+int main () {{
+  /* If it's not defined as a macro, try to use as a symbol */
+  #ifndef {1}
+    {1};
+  #endif
+  return 0;
+}}'''
+        args = extra_args + self.get_compiler_check_args()
         return self.compiles(templ.format(hname, symbol, prefix), env, args, dependencies)
 
     @contextlib.contextmanager
@@ -784,7 +796,7 @@ int main(int argc, char **argv) {{
 %s
 int temparray[%d-sizeof(%s)];
 '''
-        args = extra_args + self.get_no_optimization_args()
+        args = extra_args + self.get_compiler_check_args()
         if not self.compiles(element_exists_templ.format(prefix, element), env, args, dependencies):
             return -1
         for i in range(1, 1024):
@@ -833,7 +845,7 @@ struct tmp {
 
 int testarray[%d-offsetof(struct tmp, target)];
 '''
-        args = extra_args + self.get_no_optimization_args()
+        args = extra_args + self.get_compiler_check_args()
         if not self.compiles(type_exists_templ.format(typename), env, args, dependencies):
             return -1
         for i in range(1, 1024):
@@ -967,8 +979,7 @@ int main(int argc, char **argv) {
             head, main = self._no_prototype_templ()
         templ = head + stubs_fail + main
 
-        # Add -O0 to ensure that the symbol isn't optimized away by the compiler
-        args = extra_args + self.get_no_optimization_args()
+        args = extra_args + self.get_compiler_check_args()
         if self.links(templ.format(prefix, funcname), env, extra_args, dependencies):
             return True
         # Some functions like alloca() are defined as compiler built-ins which
@@ -2035,6 +2046,12 @@ class GnuCPPCompiler(GnuCompiler, CPPCompiler):
             return options['cpp_winlibs'].value
         return []
 
+    def get_compiler_check_args(self):
+        # -fpermissive allows non-conforming code to compile which is necessary
+        # for many C++ checks. Particularly, the has_header_symbol check is
+        # too strict without this and always fails.
+        return self.get_no_optimization_args() + ['-fpermissive']
+
 class GnuObjCCompiler(GnuCompiler,ObjCCompiler):
 
     def __init__(self, exelist, version, is_cross, exe_wrapper=None, defines=None):
@@ -2056,6 +2073,12 @@ class GnuObjCPPCompiler(GnuCompiler, ObjCPPCompiler):
         self.warn_args = {'1': ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor'],
                           '2': ['-Wall', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor'],
                           '3' : ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor']}
+
+    def get_compiler_check_args(self):
+        # -fpermissive allows non-conforming code to compile which is necessary
+        # for many ObjC++ checks. Particularly, the has_header_symbol check is
+        # too strict without this and always fails.
+        return self.get_no_optimization_args() + ['-fpermissive']
 
 class ClangCompiler():
     def __init__(self, clang_type):
