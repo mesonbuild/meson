@@ -22,6 +22,7 @@
 import re
 import os, stat, glob, subprocess, shutil
 import sysconfig
+from collections import OrderedDict
 from . mesonlib import MesonException
 from . import mlog
 from . import mesonlib
@@ -806,11 +807,20 @@ class GMockDependency(Dependency):
     def found(self):
         return self.is_found
 
-class Qt5Dependency(Dependency):
-    def __init__(self, environment, kwargs):
-        Dependency.__init__(self, 'qt5')
-        self.name = 'qt5'
+class QtBaseDependency(Dependency):
+    def __init__(self, name, env, kwargs):
+        Dependency.__init__(self, name)
+        self.name = name
+        self.qtname = name.capitalize()
+        self.qtver = name[-1]
         self.root = '/usr'
+        self.bindir = None
+        self.silent = kwargs.get('silent', False)
+        # We store the value of required here instead of passing it on to
+        # PkgConfigDependency etc because we want to try the qmake-based
+        # fallback as well.
+        self.required = kwargs.pop('required', True)
+        kwargs['required'] = False
         mods = kwargs.get('modules', [])
         self.cargs = []
         self.largs = []
@@ -818,69 +828,130 @@ class Qt5Dependency(Dependency):
         if isinstance(mods, str):
             mods = [mods]
         if len(mods) == 0:
-            raise DependencyException('No Qt5 modules specified.')
-        type_text = 'native'
-        if environment.is_cross_build() and kwargs.get('native', False):
-            type_text = 'cross'
-            self.pkgconfig_detect(mods, environment, kwargs)
-        elif not environment.is_cross_build() and shutil.which('pkg-config') is not None:
-            self.pkgconfig_detect(mods, environment, kwargs)
-        elif shutil.which('qmake') is not None:
-            self.qmake_detect(mods, kwargs)
-        else:
-            self.version = 'none'
+            raise DependencyException('No ' + self.qtname + '  modules specified.')
+        type_text = 'cross' if env.is_cross_build() else 'native'
+        found_msg = '{} {} `{{}}` dependency found:'.format(self.qtname, type_text)
+        from_text = 'pkg-config'
+        # Prefer pkg-config, then fallback to `qmake -query`
+        self._pkgconfig_detect(mods, env, kwargs)
         if not self.is_found:
-            mlog.log('Qt5 %s dependency found: ' % type_text, mlog.red('NO'))
-        else:
-            mlog.log('Qt5 %s dependency found: ' % type_text, mlog.green('YES'))
+            from_text = self._qmake_detect(mods, env, kwargs)
+            if not self.is_found:
+                from_text = '(checked pkg-config, qmake-{}, and qmake)' \
+                            ''.format(self.name)
+                self.version = 'none'
+                if self.required:
+                    err_msg = '{} {} dependency not found {}' \
+                              ''.format(self.qtname, type_text, from_text)
+                    raise DependencyException(err_msg)
+                if not self.silent:
+                    mlog.log(found_msg.format(from_text), mlog.red('NO'))
+                return
+        if not self.silent:
+            mlog.log(found_msg.format(from_text), mlog.green('YES'))
 
-    def pkgconfig_detect(self, mods, environment, kwargs):
-        modules = []
+    def compilers_detect(self):
+        "Detect Qt (4 or 5) moc, uic, rcc in the specified bindir or in PATH"
+        if self.bindir:
+            moc = ExternalProgram(os.path.join(self.bindir, 'moc'), silent=True)
+            uic = ExternalProgram(os.path.join(self.bindir, 'uic'), silent=True)
+            rcc = ExternalProgram(os.path.join(self.bindir, 'rcc'), silent=True)
+        else:
+            # We don't accept unsuffixed 'moc', 'uic', and 'rcc' because they
+            # are sometimes older, or newer versions.
+            moc = ExternalProgram('moc-' + self.name, silent=True)
+            uic = ExternalProgram('uic-' + self.name, silent=True)
+            rcc = ExternalProgram('rcc-' + self.name, silent=True)
+        return moc, uic, rcc
+
+    def _pkgconfig_detect(self, mods, env, kwargs):
+        if self.qtver == "4":
+            qtpkgname = 'Qt'
+        else:
+            qtpkgname = self.qtname
+        modules = OrderedDict()
         for module in mods:
-            modules.append(PkgConfigDependency('Qt5' + module, environment, kwargs))
-        for m in modules:
+            modules[module] = PkgConfigDependency(qtpkgname + module, env, kwargs)
+        self.is_found = True
+        for m in modules.values():
+            if not m.found():
+                self.is_found = False
             self.cargs += m.get_compile_args()
             self.largs += m.get_link_args()
-        self.is_found = True
-        self.version = modules[0].modversion
+        self.version = m.modversion
+        # Try to detect moc, uic, rcc
+        if 'Core' in modules:
+            core = modules['Core']
+        else:
+            corekwargs = {'required': 'false', 'silent': 'true'}
+            core = PkgConfigDependency(qtpkgname + 'Core', env, corekwargs)
+        # Used by self.compilers_detect()
+        self.bindir = core.get_pkgconfig_variable('host_bins')
+        if not self.bindir:
+            # If exec_prefix is not defined, the pkg-config file is broken
+            prefix = core.get_pkgconfig_variable('exec_prefix')
+            if prefix:
+                self.bindir = os.path.join(prefix, 'bin')
 
-    def qmake_detect(self, mods, kwargs):
-        pc = subprocess.Popen(['qmake', '-v'], stdout=subprocess.PIPE,
-                              stderr=subprocess.PIPE)
-        (stdo, _) = pc.communicate()
-        if pc.returncode != 0:
+    def _find_qmake(self, qmake, env):
+        # Even when cross-compiling, if we don't get a cross-info qmake, we
+        # fallback to using the qmake in PATH because that's what we used to do
+        if env.is_cross_build():
+            qmake = env.cross_info.config['binaries'].get('qmake', qmake)
+        return ExternalProgram(qmake, silent=True)
+
+    def _qmake_detect(self, mods, env, kwargs):
+        for qmake in ('qmake-' + self.name, 'qmake'):
+            self.qmake = self._find_qmake(qmake, env)
+            if not self.qmake.found():
+                continue
+            # Check that the qmake is for qt5
+            pc = subprocess.Popen(self.qmake.fullpath +  ['-v'],
+                                  stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                  universal_newlines=True)
+            stdo = pc.communicate()[0]
+            if pc.returncode != 0:
+                continue
+            if not 'Qt version ' + self.qtver in stdo:
+                mlog.log('QMake is not for ' + self.qtname)
+                continue
+            # Found qmake for Qt5!
+            break
+        else:
+            # Didn't find qmake :(
             return
-        stdo = stdo.decode()
-        if not 'version 5' in stdo:
-            mlog.log('QMake is not for Qt5.')
-            return
-        self.version = re.search('5(\.\d+)+', stdo).group(0)
-        (stdo, _) = subprocess.Popen(['qmake', '-query'], stdout=subprocess.PIPE).communicate()
+        self.version = re.search(self.qtver + '(\.\d+)+', stdo).group(0)
+        # Query library path, header path, and binary path
+        stdo = subprocess.Popen(self.qmake.fullpath +  ['-query'],
+                                stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                universal_newlines=True).communicate()[0]
         qvars = {}
-        for line in stdo.decode().split('\n'):
+        for line in stdo.split('\n'):
             line = line.strip()
             if line == '':
                 continue
             (k, v) = tuple(line.split(':', 1))
             qvars[k] = v
         if mesonlib.is_osx():
-            return self.framework_detect(qvars, mods, kwargs)
+            return self._framework_detect(qvars, mods, kwargs)
         incdir = qvars['QT_INSTALL_HEADERS']
         self.cargs.append('-I' + incdir)
         libdir = qvars['QT_INSTALL_LIBS']
-        bindir = qvars['QT_INSTALL_BINS']
+        # Used by self.compilers_detect()
+        self.bindir = qvars['QT_INSTALL_BINS']
         #self.largs.append('-L' + libdir)
         for module in mods:
             mincdir = os.path.join(incdir, 'Qt' + module)
             self.cargs.append('-I' + mincdir)
-            libfile = os.path.join(libdir, 'Qt5' + module + '.lib')
+            libfile = os.path.join(libdir, self.qtname + module + '.lib')
             if not os.path.isfile(libfile):
                 # MinGW links directly to .dll, not to .lib.
-                libfile = os.path.join(bindir, 'Qt5' + module + '.dll')
+                libfile = os.path.join(self.bindir, self.qtname + module + '.dll')
             self.largs.append(libfile)
         self.is_found = True
+        return qmake
 
-    def framework_detect(self, qvars, modules, kwargs):
+    def _framework_detect(self, qvars, modules, kwargs):
         libdir = qvars['QT_INSTALL_LIBS']
         for m in modules:
             fname = 'Qt' + m
@@ -890,7 +961,8 @@ class Qt5Dependency(Dependency):
                 self.is_found = True
                 self.cargs += fwdep.get_compile_args()
                 self.largs += fwdep.get_link_args()
-
+        # Used by self.compilers_detect()
+        self.bindir = qvars['QT_INSTALL_BINS']
 
     def get_version(self):
         return self.version
@@ -917,43 +989,13 @@ class Qt5Dependency(Dependency):
         # Fix this to be more portable, especially to MSVC.
         return ['-fPIC']
 
-class Qt4Dependency(Dependency):
-    def __init__(self, environment, kwargs):
-        Dependency.__init__(self, 'qt4')
-        self.name = 'qt4'
-        self.root = '/usr'
-        self.modules = []
-        mods = kwargs.get('modules', [])
-        if isinstance(mods, str):
-            mods = [mods]
-        for module in mods:
-            self.modules.append(PkgConfigDependency('Qt' + module, environment, kwargs))
-        if len(self.modules) == 0:
-            raise DependencyException('No Qt4 modules specified.')
+class Qt5Dependency(QtBaseDependency):
+    def __init__(self, env, kwargs):
+        QtBaseDependency.__init__(self, 'qt5', env, kwargs)
 
-    def get_version(self):
-        return self.modules[0].get_version()
-
-    def get_compile_args(self):
-        args = []
-        for m in self.modules:
-            args += m.get_compile_args()
-        return args
-
-    def get_sources(self):
-        return []
-
-    def get_link_args(self):
-        args = []
-        for module in self.modules:
-            args += module.get_link_args()
-        return args
-
-    def found(self):
-        for i in self.modules:
-            if not i.found():
-                return False
-        return True
+class Qt4Dependency(QtBaseDependency):
+    def __init__(self, env, kwargs):
+        QtBaseDependency.__init__(self, 'qt4', env, kwargs)
 
 class GnuStepDependency(Dependency):
     def __init__(self, environment, kwargs):
