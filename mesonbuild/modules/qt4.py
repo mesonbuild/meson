@@ -115,7 +115,13 @@ class Qt4Module():
         if not isinstance(srctmp, list):
             srctmp = [srctmp]
         sources = args[1:] + srctmp
+        err_msg = "{0} sources specified and couldn't find {1}, " \
+                  "please check your qt4 installation"
+        if len(moc_headers) + len(moc_sources) > 0 and not self.moc.found():
+            raise MesonException(err_msg.format('MOC', 'moc-qt4'))
         if len(rcc_files) > 0:
+            if not self.rcc.found():
+                raise MesonException(err_msg.format('RCC', 'rcc-qt4'))
             rcc_kwargs = {'output' : '@BASENAME@.cpp',
                           'arguments' : ['@INPUT@', '-o', '@OUTPUT@']}
             rcc_gen = build.Generator([self.rcc], rcc_kwargs)
@@ -127,6 +133,8 @@ class Qt4Module():
             [rcc_output.add_file(os.path.join(state.subdir, a)) for a in rcc_files]
             sources.append(rcc_output)
         if len(ui_files) > 0:
+            if not self.uic.found():
+                raise MesonException(err_msg.format('UIC', 'uic-qt4'))
             ui_kwargs = {'output' : 'ui_@BASENAME@.h',
                          'arguments' : ['-o', '@OUTPUT@', '@INPUT@']}
             ui_gen = build.Generator([self.uic], ui_kwargs)

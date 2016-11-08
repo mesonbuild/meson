@@ -122,7 +122,13 @@ class Qt5Module():
         if not isinstance(srctmp, list):
             srctmp = [srctmp]
         sources = args[1:] + srctmp
+        err_msg = "{0} sources specified and couldn't find {1}, " \
+                  "please check your qt5 installation"
+        if len(moc_headers) + len(moc_sources) > 0 and not self.moc.found():
+            raise MesonException(err_msg.format('MOC', 'moc-qt5'))
         if len(rcc_files) > 0:
+            if not self.rcc.found():
+                raise MesonException(err_msg.format('RCC', 'rcc-qt5'))
             qrc_deps = []
             for i in rcc_files:
                 qrc_deps += self.parse_qrc(state, i)
@@ -137,6 +143,8 @@ class Qt5Module():
                                             rcc_kwargs)
             sources.append(res_target)
         if len(ui_files) > 0:
+            if not self.uic.found():
+                raise MesonException(err_msg.format('UIC', 'uic-qt5'))
             ui_kwargs = {'output' : 'ui_@BASENAME@.h',
                          'arguments' : ['-o', '@OUTPUT@', '@INPUT@']}
             ui_gen = build.Generator([self.uic], ui_kwargs)
