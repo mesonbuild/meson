@@ -81,8 +81,8 @@ class Backend():
     def get_target_filename(self, t):
         if isinstance(t, build.CustomTarget):
             if len(t.get_outputs()) != 1:
-                mlog.log(mlog.red('WARNING'), 'custom_target {!r} has more ' \
-                         'than one output! Using the first one.'.format(t.name))
+                mlog.warning('custom_target {!r} has more than one output! ' \
+                             'Using the first one.'.format(t.name))
             filename = t.get_outputs()[0]
         else:
             assert(isinstance(t, build.BuildTarget))

@@ -90,7 +90,7 @@ class Qt4Module():
             result = []
             for child in root[0]:
                 if child.tag != 'file':
-                    mlog.log("Warning, malformed rcc file: ", os.path.join(state.subdir, fname))
+                    mlog.warning("malformed rcc file: ", os.path.join(state.subdir, fname))
                     break
                 else:
                     result.append(os.path.join(state.subdir, relative_part, child.text))
@@ -150,6 +150,6 @@ class Qt4Module():
         return sources
 
 def initialize():
-    mlog.log('Warning, rcc dependencies will not work properly until this upstream issue is fixed:',
-             mlog.bold('https://bugreports.qt.io/browse/QTBUG-45460'))
+    mlog.warning('rcc dependencies will not work properly until this upstream issue is fixed:',
+                 mlog.bold('https://bugreports.qt.io/browse/QTBUG-45460'))
     return Qt4Module()

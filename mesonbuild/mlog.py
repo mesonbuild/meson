@@ -53,6 +53,9 @@ def red(text):
 def green(text):
     return AnsiDecorator(text, "\033[1;32m")
 
+def yellow(text):
+    return AnsiDecorator(text, "\033[1;33m")
+
 def cyan(text):
     return AnsiDecorator(text, "\033[1;36m")
 
@@ -81,3 +84,6 @@ def log(*args, **kwargs):
     if colorize_console:
         arr = process_markup(args, True)
     print(*arr, **kwargs)
+
+def warning(*args, **kwargs):
+    log(yellow('WARNING:'), *args, **kwargs)

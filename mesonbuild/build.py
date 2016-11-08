@@ -309,8 +309,8 @@ class BuildTarget():
             if not k in known_kwargs:
                 unknowns.append(k)
         if len(unknowns) > 0:
-            mlog.log(mlog.bold('Warning:'), 'Unknown keyword argument(s) in target %s: %s.' %
-                     (self.name, ', '.join(unknowns)))
+            mlog.warning('Unknown keyword argument(s) in target %s: %s.' %
+                         (self.name, ', '.join(unknowns)))
 
     def process_objectlist(self, objects):
         assert(isinstance(objects, list))
@@ -583,7 +583,7 @@ class BuildTarget():
             if for_darwin(self.is_cross, self.environment) or for_windows(self.is_cross, self.environment):
                 self.pic = True
             elif '-fPIC' in clist + cpplist:
-                mlog.log(mlog.red('WARNING:'), "Use the 'pic' kwarg instead of passing -fPIC manually to static library {!r}".format(self.name))
+                mlog.warning("Use the 'pic' kwarg instead of passing -fPIC manually to static library {!r}".format(self.name))
                 self.pic = True
             else:
                 self.pic = kwargs.get('pic', False)
@@ -1139,8 +1139,8 @@ class CustomTarget:
             if k not in CustomTarget.known_kwargs:
                 unknowns.append(k)
         if len(unknowns) > 0:
-            mlog.log(mlog.bold('Warning:'), 'Unknown keyword arguments in target %s: %s' %
-                     (self.name, ', '.join(unknowns)))
+            mlog.warning('Unknown keyword arguments in target %s: %s' %
+                         (self.name, ', '.join(unknowns)))
 
     def __repr__(self):
         repr_str = "<{0} {1}: {2}>"

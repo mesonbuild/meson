@@ -215,7 +215,7 @@ int dummy;
             with open(os.path.join(builddir, 'compile_commands.json'), 'wb') as f:
                 f.write(jsondb)
         except Exception:
-            mlog.log(mlog.red('Warning:', 'Could not create compilation database.'))
+            mlog.warning('Could not create compilation database.')
 
     # Get all generated headers. Any source file might need them so
     # we need to add an order dependency to them.
@@ -581,7 +581,7 @@ int dummy;
             elem.add_item('DESC', 'Generating HTML coverage report.')
             elem.write(outfile)
         if not added_rule:
-            mlog.log(mlog.red('Warning:'), 'coverage requested but neither gcovr nor lcov/genhtml found.')
+            mlog.warning('coverage requested but neither gcovr nor lcov/genhtml found.')
 
     def generate_install(self, outfile):
         install_data_file = os.path.join(self.environment.get_scratch_dir(), 'install.dat')

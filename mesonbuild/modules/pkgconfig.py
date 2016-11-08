@@ -34,7 +34,7 @@ class PkgConfigModule:
             return l.name
         # In other cases, we can't guarantee that the compiler will be able to
         # find the library via '-lfoo', so tell the user that.
-        mlog.log(mlog.red('WARNING:'), msg.format(l.name, 'name_prefix', l.name, pcfile))
+        mlog.warning(msg.format(l.name, 'name_prefix', l.name, pcfile))
         return l.name
 
     def generate_pkgconfig_file(self, state, libraries, subdirs, name, description,
@@ -79,7 +79,7 @@ class PkgConfigModule:
                         # If using a custom suffix, the compiler may not be able to
                         # find the library
                         if l.name_suffix_set:
-                            mlog.log(mlog.red('WARNING:'), msg.format(l.name, 'name_suffix', lname, pcfile))
+                            mlog.warning(msg.format(l.name, 'name_suffix', lname, pcfile))
                         yield '-l%s' % lname
             if len(libraries) > 0:
                 ofile.write('Libs: {}\n'.format(' '.join(generate_libs_flags(libraries))))
