@@ -930,7 +930,7 @@ int main(int argc, char **argv) {
         head = '#include <limits.h>\n{0}\n'
         # We don't know what the function takes or returns, so try to use it as
         # a function pointer
-        main = '\nint main() {{ int a = (int) &{1}; }}'
+        main = '\nint main() {{ void *a = (void*) &{1}; }}'
         return head, main
 
     def has_function(self, funcname, prefix, env, extra_args=None, dependencies=None):
