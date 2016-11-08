@@ -94,7 +94,7 @@ class RPMModule:
             for compiler in compiler_deps:
                 fn.write('BuildRequires: %s\n' % compiler)
             for dep in state.environment.coredata.deps:
-                fn.write('BuildRequires: pkgconfig(%s)\n' % dep)
+                fn.write('BuildRequires: pkgconfig(%s)\n' % dep[0])
             for lib in state.environment.coredata.ext_libs.values():
                 fn.write('BuildRequires: %s # FIXME\n' % lib.fullpath)
                 mlog.log('Warning, replace', mlog.bold(lib.fullpath),
