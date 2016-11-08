@@ -44,10 +44,10 @@ class GnomeModule:
         global gresource_warning_printed
         if not gresource_warning_printed:
             if mesonlib.version_compare(self._get_native_glib_version(state), '< 2.50.0'):
-                mlog.log('Warning, GLib compiled dependencies do not work fully '
-                         'with versions of GLib older than 2.50.0.\n'
-                         'See the following upstream issue:',
-                         mlog.bold('https://bugzilla.gnome.org/show_bug.cgi?id=745754'))
+                mlog.warning('GLib compiled dependencies do not work fully '
+                             'with versions of GLib older than 2.50.0.\n'
+                             'See the following upstream issue:',
+                             mlog.bold('https://bugzilla.gnome.org/show_bug.cgi?id=745754'))
             gresource_warning_printed = True
         return []
 
@@ -136,7 +136,7 @@ class GnomeModule:
                               cwd=state.environment.get_source_dir())
         (stdout, _) = pc.communicate()
         if pc.returncode != 0:
-            mlog.log(mlog.bold('Warning:'), 'glib-compile-resources has failed to get the dependencies for {}'.format(cmd[1]))
+            mlog.warning('glib-compile-resources has failed to get the dependencies for {}'.format(cmd[1]))
             raise subprocess.CalledProcessError(pc.returncode, cmd)
 
         dep_files = stdout.split('\n')[:-1]
@@ -297,7 +297,7 @@ class GnomeModule:
         except Exception:
             global girwarning_printed
             if not girwarning_printed:
-                mlog.log(mlog.bold('Warning:'), 'gobject-introspection dependency was not found, disabling gir generation.')
+                mlog.warning('gobject-introspection dependency was not found, disabling gir generation.')
                 girwarning_printed = True
             return []
         pkgargs = pkgstr.decode().strip().split()

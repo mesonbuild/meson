@@ -121,8 +121,8 @@ itself as required.'''
     def check_pkgconfig_envvar(self, env):
         curvar = os.environ.get('PKG_CONFIG_PATH', '')
         if curvar != env.coredata.pkgconf_envvar:
-            mlog.log(mlog.red("WARNING:"), 'PKG_CONFIG_PATH has changed between invocations from "%s" to "%s".' %
-                     (env.coredata.pkgconf_envvar, curvar))
+            mlog.warning('PKG_CONFIG_PATH has changed between invocations from "%s" to "%s".' %
+                         (env.coredata.pkgconf_envvar, curvar))
             env.coredata.pkgconf_envvar = curvar
 
     def generate(self):

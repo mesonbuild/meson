@@ -63,8 +63,8 @@ class RPMModule:
                 so_installed = True
             elif isinstance(target, build.StaticLibrary) and target.need_install:
                 to_delete.add('%%{buildroot}%%{_libdir}/%s' % target.get_filename())
-                mlog.log('Warning, removing', mlog.bold(target.get_filename()),
-                         'from package because packaging static libs not recommended')
+                mlog.warning('removing', mlog.bold(target.get_filename()),
+                             'from package because packaging static libs not recommended')
             elif isinstance(target, gnome.GirTarget) and target.should_install():
                 files_devel.add('%%{_datadir}/gir-1.0/%s' % target.get_filename()[0])
             elif isinstance(target, gnome.TypelibTarget) and target.should_install():
@@ -97,11 +97,10 @@ class RPMModule:
                 fn.write('BuildRequires: pkgconfig(%s)\n' % dep)
             for lib in state.environment.coredata.ext_libs.values():
                 fn.write('BuildRequires: %s # FIXME\n' % lib.fullpath)
-                mlog.log('Warning, replace', mlog.bold(lib.fullpath),
-                         'with real package.',
-                         'You can use following command to find package which '
-                         'contains this lib:',
-                         mlog.bold('dnf provides %s' % lib.fullpath))
+                mlog.warning('replace', mlog.bold(lib.fullpath), 'with real package.',
+                             'You can use following command to find package which '
+                             'contains this lib:',
+                             mlog.bold('dnf provides %s' % lib.fullpath))
             for prog in state.environment.coredata.ext_progs.values():
                 if not prog.found():
                     fn.write('BuildRequires: %{_bindir}/%s # FIXME\n' %

@@ -75,7 +75,7 @@ def install_help(srcdir, blddir, sources, media, langs, install_dir, destdir, pr
             outfile = os.path.join(indir, m)
             if not os.path.exists(infile):
                 if lang == 'C':
-                    mlog.log(mlog.bold('Warning:'), 'Media file "%s" did not exist in C directory' %m)
+                    mlog.warning('Media file "%s" did not exist in C directory' %m)
                 elif symlinks:
                     srcfile = os.path.join(c_install_dir, m)
                     mlog.log('Symlinking %s to %s.' %(outfile, srcfile))
