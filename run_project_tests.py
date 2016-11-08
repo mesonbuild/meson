@@ -338,7 +338,7 @@ def detect_tests_to_run():
     all_tests.append(('platform-windows', gather_tests('test cases/windows'), False if mesonlib.is_windows() else True))
     all_tests.append(('platform-linux', gather_tests('test cases/linuxlike'), False if not (mesonlib.is_osx() or mesonlib.is_windows()) else True))
     all_tests.append(('framework', gather_tests('test cases/frameworks'), False if not mesonlib.is_osx() and not mesonlib.is_windows() else True))
-    all_tests.append(('java', gather_tests('test cases/java'), False if not mesonlib.is_osx() and shutil.which('javac') else True))
+    all_tests.append(('java', gather_tests('test cases/java'), False if not mesonlib.is_osx() and shutil.which('javac') and shutil.which('java') else True))
     all_tests.append(('C#', gather_tests('test cases/csharp'), False if shutil.which('mcs') else True))
     all_tests.append(('vala', gather_tests('test cases/vala'), False if shutil.which('valac') else True))
     all_tests.append(('rust', gather_tests('test cases/rust'), False if shutil.which('rustc') else True))
