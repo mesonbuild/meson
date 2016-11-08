@@ -20,4 +20,13 @@ if cc.has_function('ppoll')
   assert (cc.has_header_symbol('poll.h', 'ppoll', prefix : '#define _GNU_SOURCE'), 'ppoll should be accessible with _GNU_SOURCE')
 endif
 
+assert (cpp.has_header_symbol('iostream', 'std::iostream'), 'iostream not found in iostream.h')
+assert (cpp.has_header_symbol('vector', 'std::vector'), 'vector not found in vector.h')
+assert (not cpp.has_header_symbol('limits.h', 'std::iostream'), 'iostream should not be defined in limits.h')
 
+boost = dependency('boost', required : false)
+if boost.found()
+  assert (cpp.has_header_symbol('boost/math/quaternion.hpp', 'boost::math::quaternion', dependencies : boost), 'quaternion not found')
+else
+  assert (not cpp.has_header_symbol('boost/math/quaternion.hpp', 'boost::math::quaternion', dependencies : boost), 'quaternion found?!')
+endif

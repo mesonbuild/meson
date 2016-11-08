@@ -1059,6 +1059,20 @@ class CPPCompiler(CCompiler):
         code = 'class breakCCompiler;int main(int argc, char **argv) { return 0; }\n'
         return self.sanity_check_impl(work_dir, environment, 'sanitycheckcpp.cc', code)
 
+    def has_header_symbol(self, hname, symbol, prefix, env, extra_args=None, dependencies=None):
+        # Check if it's a C-like symbol
+        if super().has_header_symbol(hname, symbol, prefix, env, extra_args, dependencies):
+            return True
+        # Check if it's a class or a template
+        if extra_args is None:
+            extra_args = []
+        templ = '''{2}
+#include <{0}>
+using {1};
+int main () {{ return 0; }}'''
+        args = extra_args + self.get_compiler_check_args()
+        return self.compiles(templ.format(hname, symbol, prefix), env, args, dependencies)
+
 class ObjCCompiler(CCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrap):
         self.language = 'objc'
