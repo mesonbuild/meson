@@ -980,7 +980,7 @@ int main(int argc, char **argv) {
         templ = head + stubs_fail + main
 
         args = extra_args + self.get_compiler_check_args()
-        if self.links(templ.format(prefix, funcname), env, extra_args, dependencies):
+        if self.links(templ.format(prefix, funcname), env, args, dependencies):
             return True
         # Some functions like alloca() are defined as compiler built-ins which
         # are inlined by the compiler, so test for that instead. Built-ins are
