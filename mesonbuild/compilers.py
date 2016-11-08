@@ -1883,9 +1883,10 @@ class VisualStudioCCompiler(CCompiler):
         pdbarr += ['pdb']
         return ['/DEBUG', '/PDB:' + '.'.join(pdbarr)]
 
-class VisualStudioCPPCompiler(VisualStudioCCompiler):
+class VisualStudioCPPCompiler(VisualStudioCCompiler, CPPCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrap):
         self.language = 'cpp'
+        CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
         VisualStudioCCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
         self.base_options = ['b_pch'] # FIXME add lto, pgo and the like
 
