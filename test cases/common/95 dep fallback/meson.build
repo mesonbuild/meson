@@ -5,6 +5,7 @@ if not bob.found()
     error('Bob is actually needed')
 endif
 jimmy = dependency('jimmylib', fallback : ['jimmylib', 'jimmy_dep'], required: false)
+dummy = dependency('dummylib', fallback : ['dummylib', 'dummy_dep'], required: false)
 
 gensrc_py = find_program('gensrc.py')
 gensrc = custom_target('gensrc.c',
