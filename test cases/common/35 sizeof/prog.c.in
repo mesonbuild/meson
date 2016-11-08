@@ -1,6 +1,6 @@
-#include"config.h"
-#include<stdio.h>
-#include<wchar.h>
+#include "@CONFIG@"
+#include <stdio.h>
+#include <wchar.h>
 
 int main(int argc, char **argv) {
     if(INTSIZE != sizeof(int)) {
