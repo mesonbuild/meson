@@ -18,6 +18,12 @@ language:
 services:
   - docker
 
+matrix:
+  exclude:
+  # On OS X gcc is just a wrapper around clang, so don't waste time testing that
+  - os: osx
+    compiler: gcc
+
 before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install ninja python3; fi
