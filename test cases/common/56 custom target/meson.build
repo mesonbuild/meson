@@ -9,7 +9,7 @@ comp = '@0@/@1@'.format(meson.current_source_dir(), 'my_compiler.py')
 mytarget = custom_target('bindat',
 output : 'data.dat',
 input : 'data_source.txt',
-command : [python, comp, '@INPUT@', '@OUTPUT@'],
+command : [python, comp, '--input=@INPUT@', '--output=@OUTPUT@'],
 install : true,
 install_dir : 'subdir'
 )

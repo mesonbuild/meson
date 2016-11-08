@@ -572,32 +572,49 @@ class Backend():
                 i = i.replace('@INPUT%d@' % j, src)
             for (j, res) in enumerate(ofilenames):
                 i = i.replace('@OUTPUT%d@' % j, res)
-            if i == '@INPUT@':
-                cmd += srcs
-            elif i == '@OUTPUT@':
-                cmd += ofilenames
-            else:
-                if '@OUTDIR@' in i:
-                    i = i.replace('@OUTDIR@', outdir)
-                elif '@DEPFILE@' in i:
-                    if target.depfile is None:
-                        raise MesonException('Custom target %s has @DEPFILE@ but no depfile keyword argument.' % target.name)
-                    if absolute_paths:
-                        dfilename = os.path.join(self.get_target_private_dir_abs(target), target.depfile)
-                    else:
-                        dfilename = os.path.join(self.get_target_private_dir(target), target.depfile)
-                    i = i.replace('@DEPFILE@', dfilename)
-                elif '@PRIVATE_OUTDIR_' in i:
-                    match = re.search('@PRIVATE_OUTDIR_(ABS_)?([-a-zA-Z0-9.@:]*)@', i)
-                    source = match.group(0)
-                    if match.group(1) is None and not absolute_paths:
-                        lead_dir = ''
-                    else:
-                        lead_dir = self.environment.get_build_dir()
-                    i = i.replace(source,
-                                  os.path.join(lead_dir,
-                                               outdir))
-                cmd.append(i)
+            if '@INPUT@' in i:
+                msg = 'Custom target {} has @INPUT@ in the command, but'.format(target.name)
+                if len(srcs) == 0:
+                    raise MesonException(msg + ' no input files')
+                if i == '@INPUT@':
+                    cmd += srcs
+                    continue
+                else:
+                    if len(srcs) > 1:
+                        raise MesonException(msg + ' more than one input file')
+                    i = i.replace('@INPUT@', srcs[0])
+            elif '@OUTPUT@' in i:
+                msg = 'Custom target {} has @OUTPUT@ in the command, but'.format(target.name)
+                if len(ofilenames) == 0:
+                    raise MesonException(msg + ' no output files')
+                if i == '@OUTPUT@':
+                    cmd += ofilenames
+                    continue
+                else:
+                    if len(ofilenames) > 1:
+                        raise MesonException(msg + ' more than one output file')
+                    i = i.replace('@OUTPUT@', ofilenames[0])
+            elif '@OUTDIR@' in i:
+                i = i.replace('@OUTDIR@', outdir)
+            elif '@DEPFILE@' in i:
+                if target.depfile is None:
+                    raise MesonException('Custom target %s has @DEPFILE@ but no depfile keyword argument.' % target.name)
+                if absolute_paths:
+                    dfilename = os.path.join(self.get_target_private_dir_abs(target), target.depfile)
+                else:
+                    dfilename = os.path.join(self.get_target_private_dir(target), target.depfile)
+                i = i.replace('@DEPFILE@', dfilename)
+            elif '@PRIVATE_OUTDIR_' in i:
+                match = re.search('@PRIVATE_OUTDIR_(ABS_)?([-a-zA-Z0-9.@:]*)@', i)
+                source = match.group(0)
+                if match.group(1) is None and not absolute_paths:
+                    lead_dir = ''
+                else:
+                    lead_dir = self.environment.get_build_dir()
+                i = i.replace(source,
+                              os.path.join(lead_dir,
+                                           outdir))
+            cmd.append(i)
         # This should not be necessary but removing it breaks
         # building GStreamer on Windows. The underlying issue
         # is problems with quoting backslashes on Windows
