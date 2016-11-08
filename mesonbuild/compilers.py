@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import shutil
 import contextlib
 import subprocess, os.path
 import tempfile
@@ -1274,11 +1275,20 @@ class JavaCompiler(Compiler):
         pc.wait()
         if pc.returncode != 0:
             raise EnvironmentException('Java compiler %s can not compile programs.' % self.name_string())
-        cmdlist = [self.javarunner, obj]
-        pe = subprocess.Popen(cmdlist, cwd=work_dir)
-        pe.wait()
-        if pe.returncode != 0:
-            raise EnvironmentException('Executables created by Java compiler %s are not runnable.' % self.name_string())
+        runner = shutil.which(self.javarunner)
+        if runner:
+            cmdlist = [runner, obj]
+            pe = subprocess.Popen(cmdlist, cwd=work_dir)
+            pe.wait()
+            if pe.returncode != 0:
+                raise EnvironmentException('Executables created by Java compiler %s are not runnable.' % self.name_string())
+        else:
+            m = "Java Virtual Machine wasn't found, but it's needed by Meson. " \
+                "Please install a JRE.\nIf you have specific needs where this " \
+                "requirement doesn't make sense, please open a bug at " \
+                "https://github.com/mesonbuild/meson/issues/new and tell us " \
+                "all about it."
+            raise EnvironmentException(m)
 
     def needs_static_linker(self):
         return False
