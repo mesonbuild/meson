@@ -12,27 +12,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .. import dependencies, mlog
 import os, subprocess
+from .. import mlog
 from .. import build
 from ..mesonlib import MesonException
+from ..dependencies import Qt5Dependency
 import xml.etree.ElementTree as ET
 
 class Qt5Module():
+    tools_detected = False
 
-    def __init__(self):
-        mlog.log('Detecting Qt tools.')
-        # The binaries have different names on different
-        # distros. Joy.
-        self.moc = dependencies.ExternalProgram('moc-qt5', silent=True)
-        if not self.moc.found():
-            self.moc = dependencies.ExternalProgram('moc', silent=True)
-        self.uic = dependencies.ExternalProgram('uic-qt5', silent=True)
-        if not self.uic.found():
-            self.uic = dependencies.ExternalProgram('uic', silent=True)
-        self.rcc = dependencies.ExternalProgram('rcc-qt5', silent=True)
-        if not self.rcc.found():
-            self.rcc = dependencies.ExternalProgram('rcc', silent=True)
+    def _detect_tools(self, env):
+        if self.tools_detected:
+            return
+        mlog.log('Detecting Qt5 tools')
+        # FIXME: We currently require Qt5 to exist while importing the module.
+        # We should make it gracefully degrade and not create any targets if
+        # the import is marked as 'optional' (not implemented yet)
+        kwargs = {'required': 'true', 'modules': 'Core', 'silent': 'true'}
+        qt5 = Qt5Dependency(env, kwargs)
+        # Get all tools and then make sure that they are the right version
+        self.moc, self.uic, self.rcc = qt5.compilers_detect()
         # Moc, uic and rcc write their version strings to stderr.
         # Moc and rcc return a non-zero result when doing so.
         # What kind of an idiot thought that was a good idea?
@@ -87,6 +87,7 @@ class Qt5Module():
                      % (' '.join(self.rcc.fullpath), rcc_ver.split()[-1]))
         else:
             mlog.log(' rcc:', mlog.red('NO'))
+        self.tools_detected = True
 
     def parse_qrc(self, state, fname):
         abspath = os.path.join(state.environment.source_dir, state.subdir, fname)
@@ -122,6 +123,7 @@ class Qt5Module():
         if not isinstance(srctmp, list):
             srctmp = [srctmp]
         sources = args[1:] + srctmp
+        self._detect_tools(state.environment)
         err_msg = "{0} sources specified and couldn't find {1}, " \
                   "please check your qt5 installation"
         if len(moc_headers) + len(moc_sources) > 0 and not self.moc.found():
@@ -138,9 +140,8 @@ class Qt5Module():
                     'command' : [self.rcc, '-o', '@OUTPUT@', '@INPUT@'],
                     'depend_files' : qrc_deps,
                     }
-            res_target = build.CustomTarget(basename.replace('.', '_'),
-                                            state.subdir,
-                                            rcc_kwargs)
+            name = 'qt5-' + basename.replace('.', '_')
+            res_target = build.CustomTarget(name, state.subdir, rcc_kwargs)
             sources.append(res_target)
         if len(ui_files) > 0:
             if not self.uic.found():
