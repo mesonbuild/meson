@@ -18,6 +18,12 @@ language:
 services:
   - docker
 
+matrix:
+  exclude:
+  # On OS X gcc is just a wrapper around clang, so don't waste time testing that
+  - os: osx
+    compiler: gcc
+
 before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install ninja python3; fi
@@ -30,5 +36,5 @@ script:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then echo FROM jpakkane/mesonci:yakkety > Dockerfile; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then echo ADD . /root >> Dockerfile; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then docker build -t withgit .; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then docker run withgit /bin/sh -c "cd /root && TRAVIS=true ./run_tests.py -- $MESON_ARGS"; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then docker run withgit /bin/sh -c "cd /root && TRAVIS=true CC=$CC CXX=$CXX ./run_tests.py -- $MESON_ARGS"; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then SDKROOT=$(xcodebuild -version -sdk macosx Path) ./run_tests.py --backend=ninja -- $MESON_ARGS ; fi
