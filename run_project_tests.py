@@ -379,7 +379,7 @@ def run_tests(extra_args):
             futures.append((testname, t, result))
         for (testname, t, result) in futures:
             result = result.result()
-            if result is None:
+            if result is None or 'MESON_SKIP_TEST' in result.stdo:
                 print('Skipping:', t)
                 current_test = ET.SubElement(current_suite, 'testcase', {'name' : testname,
                                                                          'classname' : name})

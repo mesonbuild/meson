@@ -13,5 +13,5 @@ if cython.found()
     env : ['PYTHONPATH=' + pydir]
   )
 else
-  message('Cython not found, skipping test.')
+  error('MESON_SKIP_TEST: Cython not found, skipping test.')
 endif
