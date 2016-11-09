@@ -16,10 +16,10 @@ import subprocess
 import shutil
 import tempfile
 
-def scanbuild(srcdir, blddir, privdir, logdir, args):
+def scanbuild(exename, srcdir, blddir, privdir, logdir, args):
     with tempfile.TemporaryDirectory(dir=privdir) as scandir:
-        meson_cmd = ['scan-build'] + args
-        build_cmd = ['scan-build', '-o', logdir, 'ninja']
+        meson_cmd = [exename] + args
+        build_cmd = [exename, '-o', logdir, 'ninja']
         rc = subprocess.call(meson_cmd + [srcdir, scandir])
         if rc != 0:
             return rc
@@ -32,7 +32,8 @@ def run(args):
     privdir = os.path.join(blddir, 'meson-private')
     logdir = os.path.join(blddir, 'meson-logs/scanbuild')
     shutil.rmtree(logdir, ignore_errors=True)
-    if not shutil.which('scan-build'):
-        print('Scan-build not installed')
+    exename = os.environ.get('SCANBUILD', 'scan-build')
+    if not shutil.which(exename):
+        print('Scan-build not installed.')
         return 1
-    return scanbuild(srcdir, blddir, privdir, logdir, meson_cmd)
+    return scanbuild(exename, srcdir, blddir, privdir, logdir, meson_cmd)
