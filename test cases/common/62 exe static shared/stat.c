@@ -1,5 +1,7 @@
+#include "subdir/exports.h"
+
 int shlibfunc();
 
-int statlibfunc() {
+int DLL_PUBLIC statlibfunc() {
     return shlibfunc();
 }

@@ -284,20 +284,13 @@ class Vs2010Backend(backends.Backend):
 
     def generate_projects(self):
         projlist = []
-        comp = None
-        for l, c in self.environment.coredata.compilers.items():
-            if l == 'c' or l == 'cpp':
-                comp = c
-                break
-        if comp is None:
-            raise RuntimeError('C and C++ compilers missing.')
         for name, target in self.build.targets.items():
             outdir = os.path.join(self.environment.get_build_dir(), self.get_target_dir(target))
             fname = name + '.vcxproj'
             relname = os.path.join(target.subdir, fname)
             projfile = os.path.join(outdir, fname)
             uuid = self.environment.coredata.target_guids[name]
-            self.gen_vcxproj(target, projfile, uuid, comp)
+            self.gen_vcxproj(target, projfile, uuid)
             projlist.append((name, relname, uuid))
         return projlist
 
@@ -430,12 +423,26 @@ class Vs2010Backend(backends.Backend):
         pch_out = ET.SubElement(inc_cl, 'PrecompiledHeaderOutputFile')
         pch_out.text = '$(IntDir)$(TargetName)-%s.pch' % lang
 
-    def add_additional_options(self, source_file, parent_node, extra_args, has_additional_options_set):
-        if has_additional_options_set:
+    def add_additional_options(self, lang, parent_node, file_args):
+        if len(file_args[lang]) == 0:
             # We only need per file options if they were not set per project.
             return
-        lang = Vs2010Backend.lang_from_source_file(source_file)
-        ET.SubElement(parent_node, "AdditionalOptions").text = ' '.join(extra_args[lang]) + ' %(AdditionalOptions)'
+        args = file_args[lang] + ['%(AdditionalOptions)']
+        ET.SubElement(parent_node, "AdditionalOptions").text = ' '.join(args)
+
+    def add_preprocessor_defines(self, lang, parent_node, file_defines):
+        if len(file_defines[lang]) == 0:
+            # We only need per file options if they were not set per project.
+            return
+        defines = file_defines[lang] + ['%(PreprocessorDefinitions)']
+        ET.SubElement(parent_node, "PreprocessorDefinitions").text = ';'.join(defines)
+
+    def add_include_dirs(self, lang, parent_node, file_inc_dirs):
+        if len(file_inc_dirs[lang]) == 0:
+            # We only need per file options if they were not set per project.
+            return
+        dirs = file_inc_dirs[lang] + ['%(AdditionalIncludeDirectories)']
+        ET.SubElement(parent_node, "AdditionalIncludeDirectories").text = ';'.join(dirs)
 
     @staticmethod
     def has_objects(objects, additional_objects, generated_objects):
@@ -505,7 +512,19 @@ class Vs2010Backend(backends.Backend):
                 other.append(arg)
         return (lpaths, libs, other)
 
-    def gen_vcxproj(self, target, ofname, guid, compiler):
+    def _get_cl_compiler(self, target):
+        for lang, c in target.compilers.items():
+            if lang in ('c', 'cpp'):
+                return c
+        # No source files, only objects, but we still need a compiler, so
+        # return a found compiler
+        if len(target.objects) > 0:
+            for lang, c in self.environment.coredata.compilers.items():
+                if lang in ('c', 'cpp'):
+                    return c
+        raise MesonException('Could not find a C or C++ compiler. MSVC can only build C/C++ projects.')
+
+    def gen_vcxproj(self, target, ofname, guid):
         mlog.debug('Generating vcxproj %s.' % target.name)
         entrypoint = 'WinMainCRTStartup'
         subsystem = 'Windows'
@@ -532,6 +551,7 @@ class Vs2010Backend(backends.Backend):
         # Prefix to use to access the source tree's subdir from the vcxproj dir
         proj_to_src_dir = os.path.join(proj_to_src_root, target.subdir)
         (sources, headers, objects, languages) = self.split_sources(target.sources)
+        compiler = self._get_cl_compiler(target)
         buildtype_args = compiler.get_buildtype_args(self.buildtype)
         buildtype_link_args = compiler.get_buildtype_linker_args(self.buildtype)
         project_name = target.name
@@ -643,83 +663,86 @@ class Vs2010Backend(backends.Backend):
         # Build information
         compiles = ET.SubElement(root, 'ItemDefinitionGroup')
         clconf = ET.SubElement(compiles, 'ClCompile')
-        inc_dirs = ['.', self.relpath(self.get_target_private_dir(target), self.get_target_dir(target)),
-                    proj_to_src_dir] + generated_files_include_dirs
-
-        extra_args = {'c': [], 'cpp': []}
+        # Arguments, include dirs, defines for all files in the current target
+        target_args = []
+        target_defines = []
+        target_inc_dirs = ['.', self.relpath(self.get_target_private_dir(target),
+                                             self.get_target_dir(target)),
+                           proj_to_src_dir] + generated_files_include_dirs
+        # Arguments, include dirs, defines passed to individual files in
+        # a target; perhaps because the args are language-specific
+        file_args = dict((lang, []) for lang in target.compilers)
+        file_defines = dict((lang, []) for lang in target.compilers)
+        file_inc_dirs = dict((lang, []) for lang in target.compilers)
         for l, args in self.environment.coredata.external_args.items():
-            if l in extra_args:
-                extra_args[l] += args
+            if l in file_args:
+                file_args[l] += args
         for l, args in self.build.global_args.items():
-            if l in extra_args:
-                extra_args[l] += args
+            if l in file_args:
+                file_args[l] += args
         for l, args in target.extra_args.items():
-            if l in extra_args:
-                extra_args[l] += compiler.unix_compile_flags_to_native(args)
-        # FIXME all the internal flags of VS (optimization etc) are represented
-        # by their own XML elements. In theory we should split all flags to those
-        # that have an XML element and those that don't and serialise them
-        # properly. This is a crapton of work for no real gain, so just dump them
-        # here.
-        general_args = compiler.get_option_compile_args(self.environment.coredata.compiler_options)
+            if l in file_args:
+                file_args[l] += compiler.unix_compile_flags_to_native(args)
+        for l, comp in target.compilers.items():
+            if l in file_args:
+                file_args[l] += comp.get_option_compile_args(self.environment.coredata.compiler_options)
         for d in target.get_external_deps():
             # Cflags required by external deps might have UNIX-specific flags,
             # so filter them out if needed
             d_compile_args = compiler.unix_compile_flags_to_native(d.get_compile_args())
             for arg in d_compile_args:
-                if arg.startswith('-I') or arg.startswith('/I'):
+                if arg.startswith(('-D', '/D')):
+                    define = arg[2:]
+                    # De-dup
+                    if define not in target_defines:
+                        target_defines.append(define)
+                elif arg.startswith(('-I', '/I')):
                     inc_dir = arg[2:]
                     # De-dup
-                    if inc_dir not in inc_dirs:
-                        inc_dirs.append(inc_dir)
+                    if inc_dir not in target_inc_dirs:
+                        target_inc_dirs.append(inc_dir)
                 else:
-                    general_args.append(arg)
+                    # De-dup
+                    if arg not in target_args:
+                        target_args.append(arg)
 
-        defines = []
         # Split preprocessor defines and include directories out of the list of
         # all extra arguments. The rest go into %(AdditionalOptions).
-        for l, args in extra_args.items():
-            extra_args[l] = []
+        for l, args in file_args.items():
+            file_args[l] = []
             for arg in args:
-                if arg.startswith('-D') or arg.startswith('/D'):
+                if arg.startswith(('-D', '/D')):
                     define = self.escape_preprocessor_define(arg[2:])
                     # De-dup
-                    if define not in defines:
-                        defines.append(define)
-                elif arg.startswith('-I') or arg.startswith('/I'):
+                    if define not in file_defines[l]:
+                        file_defines[l].append(define)
+                elif arg.startswith(('-I', '/I')):
                     inc_dir = arg[2:]
                     # De-dup
-                    if inc_dir not in inc_dirs:
-                        inc_dirs.append(inc_dir)
+                    if inc_dir not in file_inc_dirs[l]:
+                        file_inc_dirs[l].append(inc_dir)
                 else:
-                    extra_args[l].append(self.escape_additional_option(arg))
+                    file_args[l].append(self.escape_additional_option(arg))
 
         languages += gen_langs
-        has_language_specific_args = any(l != extra_args['c'] for l in extra_args.values())
-        additional_options_set = False
-        if not has_language_specific_args or len(languages) == 1:
-            if len(languages) == 0:
-                extra_args = []
-            else:
-                extra_args = extra_args[languages[0]]
-            extra_args = general_args + extra_args
-            if len(extra_args) > 0:
-                extra_args.append('%(AdditionalOptions)')
-                ET.SubElement(clconf, "AdditionalOptions").text = ' '.join(extra_args)
-            additional_options_set = True
+        if len(target_args) > 0:
+            target_args.append('%(AdditionalOptions)')
+            ET.SubElement(clconf, "AdditionalOptions").text = ' '.join(target_args)
+        additional_options_set = True
 
         for d in target.include_dirs:
             for i in d.incdirs:
                 curdir = os.path.join(d.curdir, i)
-                inc_dirs.append(self.relpath(curdir, target.subdir)) # build dir
-                inc_dirs.append(os.path.join(proj_to_src_root, curdir)) # src dir
+                target_inc_dirs.append(self.relpath(curdir, target.subdir)) # build dir
+                target_inc_dirs.append(os.path.join(proj_to_src_root, curdir)) # src dir
             for i in d.get_extra_build_dirs():
                 curdir = os.path.join(d.curdir, i)
-                inc_dirs.append(self.relpath(curdir, target.subdir))  # build dir
+                target_inc_dirs.append(self.relpath(curdir, target.subdir))  # build dir
 
-        inc_dirs.append('%(AdditionalIncludeDirectories)')
-        ET.SubElement(clconf, 'AdditionalIncludeDirectories').text = ';'.join(inc_dirs)
-        ET.SubElement(clconf, 'PreprocessorDefinitions').text = ';'.join(defines)
+        target_inc_dirs.append('%(AdditionalIncludeDirectories)')
+        ET.SubElement(clconf, 'AdditionalIncludeDirectories').text = ';'.join(target_inc_dirs)
+        target_defines.append('%(PreprocessorDefinitions)')
+        ET.SubElement(clconf, 'PreprocessorDefinitions').text = ';'.join(target_defines)
         rebuild = ET.SubElement(clconf, 'MinimalRebuild')
         rebuild.text = 'true'
         funclink = ET.SubElement(clconf, 'FunctionLevelLinking')
@@ -834,19 +857,26 @@ class Vs2010Backend(backends.Backend):
             for s in sources:
                 relpath = os.path.join(down, s.rel_to_builddir(self.build_to_src))
                 inc_cl = ET.SubElement(inc_src, 'CLCompile', Include=relpath)
+                lang = Vs2010Backend.lang_from_source_file(s)
                 self.add_pch(inc_cl, proj_to_src_dir, pch_sources, s)
-                self.add_additional_options(s, inc_cl, extra_args, additional_options_set)
+                self.add_additional_options(lang, inc_cl, file_args)
+                self.add_preprocessor_defines(lang, inc_cl, file_defines)
+                self.add_include_dirs(lang, inc_cl, file_inc_dirs)
                 basename = os.path.basename(s.fname)
                 if basename in self.sources_conflicts[target.get_id()]:
                     ET.SubElement(inc_cl, 'ObjectFileName').text = "$(IntDir)" + self.object_filename_from_source(target, s)
             for s in gen_src:
                 inc_cl = ET.SubElement(inc_src, 'CLCompile', Include=s)
+                lang = Vs2010Backend.lang_from_source_file(s)
                 self.add_pch(inc_cl, proj_to_src_dir, pch_sources, s)
-                self.add_additional_options(s, inc_cl, extra_args, additional_options_set)
+                self.add_additional_options(lang, inc_cl, file_args)
+                self.add_preprocessor_defines(lang, inc_cl, file_defines)
+                self.add_include_dirs(lang, inc_cl, file_inc_dirs)
             for lang in pch_sources:
                 header, impl, suffix = pch_sources[lang]
                 relpath = os.path.join(proj_to_src_dir, impl)
                 inc_cl = ET.SubElement(inc_src, 'CLCompile', Include=relpath)
+                lang = Vs2010Backend.lang_from_source_file(s)
                 pch = ET.SubElement(inc_cl, 'PrecompiledHeader')
                 pch.text = 'Create'
                 pch_out = ET.SubElement(inc_cl, 'PrecompiledHeaderOutputFile')
@@ -855,7 +885,9 @@ class Vs2010Backend(backends.Backend):
                 # MSBuild searches for the header relative from the implementation, so we have to use
                 # just the file name instead of the relative path to the file.
                 pch_file.text = os.path.split(header)[1]
-                self.add_additional_options(impl, inc_cl, extra_args, additional_options_set)
+                self.add_additional_options(lang, inc_cl, file_args)
+                self.add_preprocessor_defines(lang, inc_cl, file_defines)
+                self.add_include_dirs(lang, inc_cl, file_inc_dirs)
 
         if self.has_objects(objects, additional_objects, gen_objs):
             inc_objs = ET.SubElement(root, 'ItemGroup')

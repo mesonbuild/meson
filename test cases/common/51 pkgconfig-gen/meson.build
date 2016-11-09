@@ -19,7 +19,7 @@ pkgg.generate(
 )
 
 pkgconfig = find_program('pkg-config', required: false)
-if pkgconfig.found()
+if pkgconfig.found() and build_machine.system() != 'windows'
   test('pkgconfig-validation', pkgconfig,
     args: ['--validate', 'simple'],
     env: ['PKG_CONFIG_PATH=' + meson.current_build_dir() + '/meson-private' ],

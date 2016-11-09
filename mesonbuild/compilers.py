@@ -435,7 +435,7 @@ class Compiler():
 
     # Some compilers (msvc) write debug info to a separate file.
     # These args specify where it should be written.
-    def get_compile_debugfile_args(self, rel_obj):
+    def get_compile_debugfile_args(self, rel_obj, **kwargs):
         return []
 
     def get_link_debugfile_args(self, rel_obj):
@@ -1883,10 +1883,19 @@ class VisualStudioCCompiler(CCompiler):
             raise MesonException('Compiling test app failed.')
         return not(warning_text in stde or warning_text in stdo)
 
-    def get_compile_debugfile_args(self, rel_obj):
+    def get_compile_debugfile_args(self, rel_obj, pch=False):
         pdbarr = rel_obj.split('.')[:-1]
         pdbarr += ['pdb']
-        return ['/Fd' + '.'.join(pdbarr)]
+        args = ['/Fd' + '.'.join(pdbarr)]
+        # When generating a PDB file with PCH, all compile commands write
+        # to the same PDB file. Hence, we need to serialize the PDB
+        # writes using /FS since we do parallel builds. This slows down the
+        # build obviously, which is why we only do this when PCH is on.
+        # This was added in Visual Studio 2013 (MSVC 18.0). Before that it was
+        # always on: https://msdn.microsoft.com/en-us/library/dn502518.aspx
+        if pch and mesonlib.version_compare(self.version, '>=18.0'):
+            args = ['/FS'] + args
+        return args
 
     def get_link_debugfile_args(self, targetfile):
         pdbarr = targetfile.split('.')[:-1]
