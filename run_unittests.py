@@ -73,6 +73,9 @@ class LinuxlikeTests(unittest.TestCase):
     def build(self):
         self.output += subprocess.check_output(self.ninja_command)
 
+    def run_target(self, target):
+        self.output += subprocess.check_output(self.ninja_command + [target])
+
     def setconf(self, arg):
         self.output += subprocess.check_output(self.mconf_command + [arg, self.builddir])
 
@@ -172,6 +175,11 @@ class LinuxlikeTests(unittest.TestCase):
             intro = intro[::-1]
         self.assertEqual(intro[0]['install_filename'], '/usr/local/libtest/libstat.a')
         self.assertEqual(intro[1]['install_filename'], '/usr/local/bin/prog')
+
+    def test_run_target_files_path(self):
+        testdir = os.path.join(self.common_test_dir, '58 run target')
+        self.init(testdir)
+        self.run_target('check_exists')
 
 if __name__ == '__main__':
     unittest.main()

@@ -35,8 +35,8 @@ python3 = find_program('python3')
 run_target('py3hi',
   command : [python3, '-c', 'print("I am Python3.")'])
 
-run_target('ct_in_arg',
-  command : ['echo', hex, files('helloprinter.c')])
+run_target('check_exists',
+  command : [find_program('check_exists.py'), files('helloprinter.c')])
 
 # What if the output of a custom_target is the command to
 # execute. Obviously this will not work as hex is not an

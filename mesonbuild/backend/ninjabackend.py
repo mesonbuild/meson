@@ -515,10 +515,10 @@ int dummy;
                 arg_strings.append(os.path.join(self.environment.get_build_dir(), relfname))
                 deps.append(relfname)
             elif isinstance(i, mesonlib.File):
-                arg_strings.append(i.rel_to_builddir(self.build_to_src))
+                relfname = i.rel_to_builddir(self.build_to_src)
+                arg_strings.append(os.path.join(self.environment.get_build_dir(), relfname))
             else:
-                mlog.debug(str(i))
-                raise MesonException('Unreachable code in generate_run_target.')
+                raise AssertionError('Unreachable code in generate_run_target: ' + str(i))
         elem = NinjaBuildElement(self.all_outputs, target.name, 'CUSTOM_COMMAND', [])
         cmd = runnerscript + [self.environment.get_source_dir(), self.environment.get_build_dir(), target.subdir]
         texe = target.command
