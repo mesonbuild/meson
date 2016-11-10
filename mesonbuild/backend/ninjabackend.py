@@ -494,8 +494,8 @@ int dummy;
             cmd_type = 'custom'
 
         if target.depfile is not None:
-            rel_dfile = os.path.join(self.get_target_private_dir(target), target.depfile)
-            abs_pdir = os.path.join(self.environment.get_build_dir(), self.get_target_private_dir(target))
+            rel_dfile = os.path.join(self.get_target_dir(target), target.depfile)
+            abs_pdir = os.path.join(self.environment.get_build_dir(), self.get_target_dir(target))
             os.makedirs(abs_pdir, exist_ok=True)
             elem.add_item('DEPFILE', rel_dfile)
         elem.add_item('COMMAND', cmd)

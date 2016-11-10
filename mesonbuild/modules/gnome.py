@@ -18,6 +18,7 @@ functionality such as gobject-introspection and gresources.'''
 from .. import build
 import os
 import sys
+import copy
 import subprocess
 from ..mesonlib import MesonException
 from .. import dependencies
@@ -43,9 +44,9 @@ class GnomeModule:
     def __print_gresources_warning(self, state):
         global gresource_warning_printed
         if not gresource_warning_printed:
-            if mesonlib.version_compare(self._get_native_glib_version(state), '< 2.50.0'):
+            if mesonlib.version_compare(self._get_native_glib_version(state), '< 2.50.2'):
                 mlog.warning('GLib compiled dependencies do not work fully '
-                             'with versions of GLib older than 2.50.0.\n'
+                             'with versions of GLib older than 2.50.2.\n'
                              'See the following upstream issue:',
                              mlog.bold('https://bugzilla.gnome.org/show_bug.cgi?id=745754'))
             gresource_warning_printed = True
@@ -60,9 +61,6 @@ class GnomeModule:
         if not isinstance(source_dirs, list):
             source_dirs = [source_dirs]
 
-        # Always include current directory, but after paths set by user
-        source_dirs.append(os.path.join(state.environment.get_source_dir(), state.subdir))
-
         if len(args) < 2:
             raise MesonException('Not enough arguments; The name of the resource and the path to the XML file are required')
 
@@ -70,8 +68,8 @@ class GnomeModule:
         if not isinstance(dependencies, list):
             dependencies = [dependencies]
 
-        if mesonlib.version_compare(self._get_native_glib_version(state),
-                                    '< 2.48.2'):
+        glib_version = self._get_native_glib_version(state)
+        if mesonlib.version_compare(glib_version, '< 2.48.2'):
             if len(dependencies) > 0:
                 raise MesonException(
                   'The "dependencies" argument of gnome.compile_resources() '
@@ -87,18 +85,18 @@ class GnomeModule:
         else:
             raise RuntimeError('Unreachable code.')
 
-        kwargs['depend_files'] = self._get_gresource_dependencies(
+        depend_files, depends, subdirs = self._get_gresource_dependencies(
             state, ifile, source_dirs, dependencies)
 
-        for source_dir in source_dirs:
-            sourcedir = os.path.join(state.build_to_src, state.subdir, source_dir)
-            cmd += ['--sourcedir', sourcedir]
+        # Make source dirs relative to build dir now
+        source_dirs = [os.path.join(state.build_to_src, state.subdir, d) for d in source_dirs]
+        # Always include current directory, but after paths set by user
+        source_dirs.append(os.path.join(state.build_to_src, state.subdir))
+        # Ensure build directories of generated deps are included
+        source_dirs += subdirs
 
-            if len(dependencies) > 0:
-                # Add the build variant of each sourcedir if we have any
-                # generated dependencies.
-                sourcedir = os.path.join(state.subdir, source_dir)
-                cmd += ['--sourcedir', sourcedir]
+        for source_dir in set(source_dirs):
+            cmd += ['--sourcedir', source_dir]
 
         if 'c_name' in kwargs:
             cmd += ['--c-name', kwargs.pop('c_name')]
@@ -106,17 +104,30 @@ class GnomeModule:
 
         cmd += mesonlib.stringlistify(kwargs.pop('extra_args', []))
 
-        kwargs['command'] = cmd
         kwargs['input'] = args[1]
         kwargs['output'] = args[0] + '.c'
+        kwargs['depends'] = depends
+        if mesonlib.version_compare(glib_version, '< 2.50.2'):
+            # This will eventually go out of sync if dependencies are added
+            kwargs['depend_files'] = depend_files
+            kwargs['command'] = cmd
+        else:
+            depfile = kwargs['output'] + '.d'
+            kwargs['depfile'] = depfile
+            kwargs['command'] = copy.copy(cmd) + ['--dependency-file', '@DEPFILE@']
         target_c = build.CustomTarget(args[0] + '_c', state.subdir, kwargs)
-        kwargs['output'] = args[0] + '.h'
-        target_h = build.CustomTarget(args[0] + '_h', state.subdir, kwargs)
+
+        h_kwargs = {
+            'command': cmd,
+            'input': args[1],
+            'output': args[0] + '.h',
+            # The header doesn't actually care about the files yet it errors if missing
+            'depends': depends
+        }
+        target_h = build.CustomTarget(args[0] + '_h', state.subdir, h_kwargs)
         return [target_c, target_h]
 
     def _get_gresource_dependencies(self, state, input_file, source_dirs, dependencies):
-        self.__print_gresources_warning(state)
-
         for dep in dependencies:
             if not isinstance(dep, interpreter.CustomTargetHolder) and not \
                     isinstance(dep, mesonlib.File):
@@ -131,6 +142,7 @@ class GnomeModule:
 
         for source_dir in source_dirs:
             cmd += ['--sourcedir', os.path.join(state.subdir, source_dir)]
+        cmd += ['--sourcedir', state.subdir] # Current dir
 
         pc = subprocess.Popen(cmd, stdout=subprocess.PIPE, universal_newlines=True,
                               cwd=state.environment.get_source_dir())
@@ -154,6 +166,8 @@ class GnomeModule:
             return os.path.exists(os.path.join(state.environment.get_source_dir(), f))
         missing_dep_files = [f for f in dep_files if not exists_in_srcdir(f)]
 
+        depends = []
+        subdirs = []
         for missing in missing_dep_files:
             found = False
             missing_basename = os.path.basename(missing)
@@ -164,6 +178,7 @@ class GnomeModule:
                         found = True
                         dep_files.remove(missing)
                         dep_files.append(dep)
+                        subdirs.append(dep.subdir)
                         break
                 elif isinstance(dep, interpreter.CustomTargetHolder):
                     if dep.held_object.get_basename() == missing_basename:
@@ -174,6 +189,8 @@ class GnomeModule:
                                 is_built=True,
                                 subdir=dep.held_object.get_subdir(),
                                 fname=dep.held_object.get_basename()))
+                        depends.append(dep.held_object)
+                        subdirs.append(dep.held_object.get_subdir())
                         break
 
             if not found:
@@ -183,7 +200,7 @@ class GnomeModule:
                     'gnome.compile_resources() using the "dependencies" '
                     'keyword argument.' % (missing, input_file))
 
-        return dep_files
+        return dep_files, depends, subdirs
 
     @staticmethod
     def _get_link_args(state, lib, depends=None):
