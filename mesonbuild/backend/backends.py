@@ -598,11 +598,17 @@ class Backend():
                 i = i.replace('@OUTDIR@', outdir)
             elif '@DEPFILE@' in i:
                 if target.depfile is None:
-                    raise MesonException('Custom target %s has @DEPFILE@ but no depfile keyword argument.' % target.name)
+                    msg = 'Custom target {!r} has @DEPFILE@ but no depfile ' \
+                          'keyword argument.'.format(target.name)
+                    raise MesonException(msg)
                 dfilename = os.path.join(outdir, target.depfile)
                 i = i.replace('@DEPFILE@', dfilename)
             elif '@PRIVATE_OUTDIR_' in i:
-                match = re.search('@PRIVATE_OUTDIR_(ABS_)?([-a-zA-Z0-9.@:]*)@', i)
+                match = re.search('@PRIVATE_OUTDIR_(ABS_)?([^\/\s*]*)@', i)
+                if not match:
+                    msg = 'Custom target {!r} has an invalid argument {!r}' \
+                          ''.format(target.name, i)
+                    raise MesonException(msg)
                 source = match.group(0)
                 if match.group(1) is None and not absolute_paths:
                     lead_dir = ''
