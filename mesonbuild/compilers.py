@@ -430,6 +430,51 @@ class Compiler():
                     extra_flags += environment.cross_info.config['properties'].get(lang_link_args_key, [])
         return extra_flags
 
+    @contextlib.contextmanager
+    def compile(self, code, extra_args=None):
+        if extra_args is None:
+            extra_args = []
+
+        try:
+            with tempfile.TemporaryDirectory() as tmpdirname:
+                if isinstance(code, str):
+                    srcname = os.path.join(tmpdirname,
+                                           'testfile.' + self.default_suffix)
+                    with open(srcname, 'w') as ofile:
+                        ofile.write(code)
+                elif isinstance(code, mesonlib.File):
+                    srcname = code.fname
+
+                # Extension only matters if running results; '.exe' is
+                # guaranteed to be executable on every platform.
+                output = os.path.join(tmpdirname, 'output.exe')
+
+                commands = self.get_exelist()
+                commands.append(srcname)
+                commands += extra_args
+                commands += self.get_output_args(output)
+                mlog.debug('Running compile:')
+                mlog.debug('Working directory: ', tmpdirname)
+                mlog.debug('Command line: ', ' '.join(commands), '\n')
+                mlog.debug('Code:\n', code)
+                p = subprocess.Popen(commands, cwd=tmpdirname,
+                                     stdout=subprocess.PIPE,
+                                     stderr=subprocess.PIPE)
+                (stde, stdo) = p.communicate()
+                stde = stde.decode()
+                stdo = stdo.decode()
+                mlog.debug('Compiler stdout:\n', stdo)
+                mlog.debug('Compiler stderr:\n', stde)
+
+                p.input_name = srcname
+                p.output_name = output
+                yield p
+        except (PermissionError, OSError):
+            # On Windows antivirus programs and the like hold on to files so
+            # they can't be deleted. There's not much to do in this case. Also,
+            # catch OSError because the directory is then no longer empty.
+            pass
+
     def get_colorout_args(self, colortype):
         return []
 
@@ -660,51 +705,6 @@ int main () {{
 }}'''
         args = extra_args + self.get_compiler_check_args()
         return self.compiles(templ.format(hname, symbol, prefix), env, args, dependencies)
-
-    @contextlib.contextmanager
-    def compile(self, code, extra_args=None):
-        if extra_args is None:
-            extra_args = []
-
-        try:
-            with tempfile.TemporaryDirectory() as tmpdirname:
-                if isinstance(code, str):
-                    srcname = os.path.join(tmpdirname,
-                                           'testfile.' + self.default_suffix)
-                    with open(srcname, 'w') as ofile:
-                        ofile.write(code)
-                elif isinstance(code, mesonlib.File):
-                    srcname = code.fname
-
-                # Extension only matters if running results; '.exe' is
-                # guaranteed to be executable on every platform.
-                output = os.path.join(tmpdirname, 'output.exe')
-
-                commands = self.get_exelist()
-                commands.append(srcname)
-                commands += extra_args
-                commands += self.get_output_args(output)
-                mlog.debug('Running compile:')
-                mlog.debug('Working directory: ', tmpdirname)
-                mlog.debug('Command line: ', ' '.join(commands), '\n')
-                mlog.debug('Code:\n', code)
-                p = subprocess.Popen(commands, cwd=tmpdirname,
-                                     stdout=subprocess.PIPE,
-                                     stderr=subprocess.PIPE)
-                (stde, stdo) = p.communicate()
-                stde = stde.decode()
-                stdo = stdo.decode()
-                mlog.debug('Compiler stdout:\n', stdo)
-                mlog.debug('Compiler stderr:\n', stde)
-
-                p.input_name = srcname
-                p.output_name = output
-                yield p
-        except (PermissionError, OSError):
-            # On Windows antivirus programs and the like hold on to files so
-            # they can't be deleted. There's not much to do in this case. Also,
-            # catch OSError because the directory is then no longer empty.
-            pass
 
     def compiles(self, code, env, extra_args=None, dependencies=None):
         if extra_args is None:
@@ -1332,26 +1332,47 @@ class ValaCompiler(Compiler):
     def needs_static_linker(self):
         return False # Because compiles into C.
 
+    def get_output_args(self, target):
+        return ['-o', target]
+
     def get_werror_args(self):
         return ['--fatal-warnings']
 
     def sanity_check(self, work_dir, environment):
-        src = 'valatest.vala'
-        source_name = os.path.join(work_dir, src)
-        with open(source_name, 'w') as ofile:
-            ofile.write('''class SanityCheck : Object {
-}
-''')
-        extra_flags = self.get_cross_extra_flags(environment, compile=True, link=False)
-        pc = subprocess.Popen(self.exelist + extra_flags + ['-C', '-c', src], cwd=work_dir)
-        pc.wait()
-        if pc.returncode != 0:
-            raise EnvironmentException('Vala compiler %s can not compile programs.' % self.name_string())
+        code = 'class MesonSanityCheck : Object { }'
+        args = self.get_cross_extra_flags(environment, compile=True, link=False)
+        args += ['-C']
+        with self.compile(code, args) as p:
+            if p.returncode != 0:
+                msg = 'Vala compiler {!r} can not compile programs' \
+                      ''.format(self.name_string())
+                raise EnvironmentException(msg)
 
     def get_buildtype_args(self, buildtype):
         if buildtype == 'debug' or buildtype == 'debugoptimized' or buildtype == 'minsize':
             return ['--debug']
         return []
+
+    def find_library(self, libname, env, extra_dirs):
+        if extra_dirs and isinstance(extra_dirs, str):
+            extra_dirs = [extra_dirs]
+        # Valac always looks in the default vapi dir, so only search there if
+        # no extra dirs are specified.
+        if len(extra_dirs) == 0:
+            code = 'class MesonFindLibrary : Object { }'
+            vapi_args = ['--pkg', libname]
+            args = self.get_cross_extra_flags(env, compile=True, link=False)
+            args += ['-C'] + vapi_args
+            with self.compile(code, args) as p:
+                if p.returncode == 0:
+                    return vapi_args
+        # Not found? Try to find the vapi file itself.
+        for d in extra_dirs:
+            vapi = os.path.join(d, libname + '.vapi')
+            if os.path.isfile(vapi):
+                return vapi
+        mlog.debug('Searched {!r} and {!r} wasn\'t found'.format(extra_dirs, libname))
+        return None
 
 class RustCompiler(Compiler):
     def __init__(self, exelist, version):

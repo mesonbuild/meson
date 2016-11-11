@@ -454,29 +454,37 @@ class ExternalProgram():
         return self.name
 
 class ExternalLibrary(Dependency):
-    def __init__(self, name, link_args=None, silent=False):
+    # TODO: Add `lang` to the parent Dependency object so that dependencies can
+    # be expressed for languages other than C-like
+    def __init__(self, name, link_args=None, language=None, silent=False):
         super().__init__('external')
         self.name = name
-        # Rename fullpath to link_args once standalone find_library() gets removed.
-        if link_args is not None:
-            if isinstance(link_args, list):
-                self.link_args = link_args
+        self.is_found = False
+        self.link_args = []
+        self.lang_args = []
+        if link_args:
+            self.is_found = True
+            if not isinstance(link_args, list):
+                link_args = [link_args]
+            if language:
+                self.lang_args = {language: link_args}
             else:
-                self.link_args = [link_args]
-        else:
-            self.link_args = link_args
+                self.link_args = link_args
         if not silent:
-            if self.found():
+            if self.is_found:
                 mlog.log('Library', mlog.bold(name), 'found:', mlog.green('YES'))
             else:
                 mlog.log('Library', mlog.bold(name), 'found:', mlog.red('NO'))
 
     def found(self):
-        return self.link_args is not None
+        return self.is_found
 
     def get_link_args(self):
-        if self.found():
-            return self.link_args
+        return self.link_args
+
+    def get_lang_args(self, lang):
+        if lang in self.lang_args:
+            return self.lang_args[lang]
         return []
 
 class BoostDependency(Dependency):

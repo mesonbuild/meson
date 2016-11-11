@@ -1045,6 +1045,8 @@ int dummy;
                    and d.version_requirement.startswith(('>=', '==')):
                     args += ['--target-glib', d.version_requirement[2:]]
                 args += ['--pkg', d.name]
+            elif isinstance(d, dependencies.ExternalLibrary):
+                args += d.get_lang_args('vala')
         extra_args = []
 
         for a in target.extra_args.get('vala', []):
