@@ -331,6 +331,13 @@ class Environment():
             if len(rest) == 2:
                 defines[rest[0]] = rest[1]
         return defines
+    @staticmethod
+    def get_gnu_version_from_defines(defines):
+        dot = '.'
+        major = defines.get('__GNUC__', '0')
+        minor = defines.get('__GNUC_MINOR__', '0')
+        patch = defines.get('__GNUC_PATCHLEVEL__', '0')
+        return dot.join((major, minor, patch))
 
     @staticmethod
     def get_gnu_compiler_type(defines):
