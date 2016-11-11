@@ -1,7 +1,7 @@
 libsources = ['meson-sample.c', 'meson-sample.h']
 
 girlib = shared_library(
-  'girlib',
+  'gir_lib',
   sources : libsources,
   dependencies : gobj,
   install : true
