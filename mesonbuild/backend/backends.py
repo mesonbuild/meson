@@ -271,6 +271,9 @@ class Backend():
     def object_filename_from_source(self, target, source):
         if isinstance(source, mesonlib.File):
             source = source.fname
+        # foo.vala files compile down to foo.c and then foo.c.o, not foo.vala.o
+        if source.endswith('.vala'):
+            source = os.path.join(self.get_target_private_dir(target), source[:-5] + '.c')
         return source.replace('/', '_').replace('\\', '_') + '.' + self.environment.get_object_suffix()
 
     def determine_ext_objs(self, extobj, proj_dir_to_build_root):
