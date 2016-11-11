@@ -90,10 +90,11 @@ def build_gtkdoc(source_root, build_root, doc_subdir, src_subdir,
         f_abs = os.path.join(doc_src, f)
         shutil.copyfile(f_abs, os.path.join(htmldir, os.path.basename(f_abs)))
 
-    scan_cmd = ['gtkdoc-scan',
-                '--module=' + module,
-                '--source-dir=' + abs_src,
-                '--ignore-headers=' + ignore_headers] + scan_args
+    scan_cmd = ['gtkdoc-scan', '--module=' + module, '--source-dir=' + abs_src]
+    if ignore_headers:
+        scan_cmd.append('--ignore-headers=' + ' '.join(ignore_headers))
+    # Add user-specified arguments
+    scan_cmd += scan_args
     gtkdoc_run_check(scan_cmd, abs_out)
 
     if gobject_typesfile:
