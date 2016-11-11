@@ -944,9 +944,17 @@ class CompilerHolder(InterpreterObject):
             if not os.path.isabs(i):
                 raise InvalidCode('Search directory %s is not an absolute path.' % i)
         linkargs = self.compiler.find_library(libname, self.environment, search_dirs)
-        if required and linkargs is None:
-            raise InterpreterException('Library {} not found'.format(libname))
-        lib = dependencies.ExternalLibrary(libname, linkargs)
+        if required and not linkargs:
+            l = self.compiler.language.capitalize()
+            raise InterpreterException('{} library {!r} not found'.format(l, libname))
+        # If this is set to None, the library and link arguments are for
+        # a C-like compiler. Otherwise, it's for some other language that has
+        # a find_library implementation. We do this because it's easier than
+        # maintaining a list of languages that can consume C libraries.
+        lang = None
+        if self.compiler.language == 'vala':
+            lang = 'vala'
+        lib = dependencies.ExternalLibrary(libname, linkargs, language=lang)
         return ExternalLibraryHolder(lib)
 
     def has_argument_method(self, args, kwargs):
