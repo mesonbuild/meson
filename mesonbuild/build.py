@@ -89,7 +89,9 @@ class Build:
         self.compilers = []
         self.cross_compilers = []
         self.global_args = {}
+        self.projects_args = {}
         self.global_link_args = {}
+        self.projects_link_args = {}
         self.tests = []
         self.benchmarks = []
         self.headers = []
@@ -153,8 +155,21 @@ class Build:
     def get_global_args(self, compiler):
         return self.global_args.get(compiler.get_language(), [])
 
+    def get_project_args(self, compiler, project):
+        args = self.projects_args.get(project)
+        if not args:
+            return []
+        return args.get(compiler.get_language(), [])
+
     def get_global_link_args(self, compiler):
         return self.global_link_args.get(compiler.get_language(), [])
+
+    def get_project_link_args(self, compiler, project):
+        link_args = self.projects_link_args.get(project)
+        if not link_args:
+            return []
+
+        return link_args.get(compiler.get_language(), [])
 
 class IncludeDirs():
     def __init__(self, curdir, dirs, is_system, extra_build_dirs=None):

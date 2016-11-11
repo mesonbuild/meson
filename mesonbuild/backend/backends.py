@@ -351,6 +351,7 @@ class Backend():
             commands += compiler.get_warn_args(self.environment.coredata.get_builtin_option('warning_level'))
         commands += compiler.get_option_compile_args(self.environment.coredata.compiler_options)
         commands += self.build.get_global_args(compiler)
+        commands += self.build.get_project_args(compiler, target.subproject)
         commands += self.environment.coredata.external_args[compiler.get_language()]
         commands += self.escape_extra_args(compiler, target.get_extra_args(compiler.get_language()))
         commands += compiler.get_buildtype_args(self.environment.coredata.get_builtin_option('buildtype'))

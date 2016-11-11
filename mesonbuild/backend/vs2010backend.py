@@ -680,6 +680,9 @@ class Vs2010Backend(backends.Backend):
         for l, args in self.build.global_args.items():
             if l in file_args:
                 file_args[l] += args
+        for l, args in self.build.projects_args.get(target.subproject, {}).items():
+            if l in file_args:
+                file_args[l] += args
         for l, args in target.extra_args.items():
             if l in file_args:
                 file_args[l] += compiler.unix_compile_flags_to_native(args)
