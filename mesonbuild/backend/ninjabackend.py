@@ -1018,6 +1018,7 @@ int dummy;
 
         args = []
         args += self.build.get_global_args(valac)
+        args += self.build.get_project_args(valac, target.subproject)
         args += valac.get_buildtype_args(self.environment.coredata.get_builtin_option('buildtype'))
         # Tell Valac to output everything in our private directory. Sadly this
         # means it will also preserve the directory components of Vala sources
@@ -1945,6 +1946,7 @@ rule FORTRAN_DEP_HACK
         abspath = os.path.join(self.environment.get_build_dir(), target.subdir)
         commands = []
         if not isinstance(target, build.StaticLibrary):
+            commands += self.build.get_project_link_args(linker, target.subproject)
             commands += self.build.get_global_link_args(linker)
         commands += self.get_cross_stdlib_link_args(target, linker)
         commands += linker.get_linker_always_args()

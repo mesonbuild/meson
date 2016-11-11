@@ -368,6 +368,8 @@ class GnomeModule:
         cflags = []
         if state.global_args.get('c'):
             cflags += state.global_args['c']
+        if state.project_args.get('c'):
+            cflags += state.project_args['c']
         for compiler in state.compilers:
             if compiler.get_language() == 'c':
                 sanitize = compiler.get_options().get('b_sanitize')

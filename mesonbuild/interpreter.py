@@ -1007,6 +1007,7 @@ class ModuleHolder(InterpreterObject):
         state.headers = self.interpreter.build.get_headers()
         state.man = self.interpreter.build.get_man()
         state.global_args = self.interpreter.build.global_args
+        state.project_args = self.interpreter.build.projects_args.get(self.interpreter.subproject, {})
         value = fn(state, args, kwargs)
         return self.interpreter.module_method_callback(value)
 
@@ -1182,7 +1183,7 @@ class Interpreter():
         self.builtin = {'meson': MesonMain(build, self)}
         self.generators = []
         self.visited_subdirs = {}
-        self.global_args_frozen = False
+        self.args_frozen = False
         self.subprojects = {}
         self.subproject_stack = []
         self.build_func_dict()
@@ -1227,7 +1228,9 @@ class Interpreter():
                       'configure_file' : self.func_configure_file,
                       'include_directories' : self.func_include_directories,
                       'add_global_arguments' : self.func_add_global_arguments,
+                      'add_project_arguments' : self.func_add_project_arguments,
                       'add_global_link_arguments' : self.func_add_global_link_arguments,
+                      'add_project_link_arguments' : self.func_add_project_link_arguments,
                       'add_languages' : self.func_add_languages,
                       'find_program' : self.func_find_program,
                       'find_library' : self.func_find_library,
@@ -1578,7 +1581,7 @@ class Interpreter():
             raise InterpreterException(msg.format(os.path.join(self.subproject_dir, dirname)))
         subdir = os.path.join(self.subproject_dir, resolved)
         os.makedirs(os.path.join(self.build.environment.get_build_dir(), subdir), exist_ok=True)
-        self.global_args_frozen = True
+        self.args_frozen = True
         mlog.log('\nExecuting subproject ', mlog.bold(dirname), '.\n', sep='')
         subi = Interpreter(self.build, self.backend, dirname, subdir, self.subproject_dir)
         subi.subprojects = self.subprojects
@@ -1935,7 +1938,7 @@ requirements use the version keyword argument instead.''')
         try:
             dep = self.subprojects[dirname].get_variable_method([varname], {})
         except KeyError:
-            raise InvalidCode('Fallback variable {!r} in the subproject ' 
+            raise InvalidCode('Fallback variable {!r} in the subproject '
                               '{!r} does not exist'.format(varname, dirname))
         if not isinstance(dep, DependencyHolder):
             raise InvalidCode('Fallback variable {!r} in the subproject {!r} is '
@@ -2291,7 +2294,7 @@ requirements use the version keyword argument instead.''')
                   'arguments and add it to the appropriate *_args kwarg ' \
                   'in each target.'
             raise InvalidCode(msg)
-        if self.global_args_frozen:
+        if self.args_frozen:
             msg = 'Tried to set global arguments after a build target has ' \
                   'been declared.\nThis is not permitted. Please declare all ' \
                   'global arguments before your targets.'
@@ -2314,7 +2317,7 @@ requirements use the version keyword argument instead.''')
                   'arguments and add it to the appropriate *_args kwarg ' \
                   'in each target.'
             raise InvalidCode(msg)
-        if self.global_args_frozen:
+        if self.args_frozen:
             msg = 'Tried to set global link arguments after a build target has ' \
                   'been declared.\nThis is not permitted. Please declare all ' \
                   'global arguments before your targets.'
@@ -2327,6 +2330,39 @@ requirements use the version keyword argument instead.''')
         else:
             self.build.global_link_args[lang] = args
 
+    @stringArgs
+    def func_add_project_link_arguments(self, node, args, kwargs):
+        if self.args_frozen:
+            msg = 'Tried to set project link arguments after a build target has ' \
+                  'been declared.\nThis is not permitted. Please declare all ' \
+                  'project link arguments before your targets.'
+            raise InvalidCode(msg)
+        if not 'language' in kwargs:
+            raise InvalidCode('Missing language definition in add_project_link_arguments')
+        lang = kwargs['language'].lower()
+        if self.subproject not in self.build.projects_link_args:
+            self.build.projects_link_args[self.subproject] = {}
+
+        args = self.build.projects_link_args[self.subproject].get(lang, []) + args
+        self.build.projects_link_args[self.subproject][lang] = args
+
+    @stringArgs
+    def func_add_project_arguments(self, node, args, kwargs):
+        if self.args_frozen:
+            msg = 'Tried to set project arguments after a build target has ' \
+                  'been declared.\nThis is not permitted. Please declare all ' \
+                  'project arguments before your targets.'
+            raise InvalidCode(msg)
+
+        if not 'language' in kwargs:
+            raise InvalidCode('Missing language definition in add_project_arguments')
+
+        if self.subproject not in self.build.projects_args:
+            self.build.projects_args[self.subproject] = {}
+
+        lang = kwargs['language'].lower()
+        args = self.build.projects_args[self.subproject].get(lang, []) + args
+        self.build.projects_args[self.subproject][lang] = args
 
     def func_environment(self, node, args, kwargs):
         return EnvironmentVariablesHolder()
@@ -2425,7 +2461,7 @@ requirements use the version keyword argument instead.''')
             self.add_cross_stdlib_info(target)
         l = targetholder(target, self)
         self.add_target(name, l.held_object)
-        self.global_args_frozen = True
+        self.args_frozen = True
         return l
 
     def get_used_languages(self, target):
