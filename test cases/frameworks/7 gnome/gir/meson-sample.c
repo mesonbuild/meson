@@ -112,8 +112,6 @@ meson_sample_init (MesonSample *self)
  * @self: a #MesonSample.
  *
  * Prints the message.
- *
- * Returns: Nothing.
  */
 void
 meson_sample_print_message (MesonSample *self)

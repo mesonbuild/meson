@@ -7,9 +7,11 @@ girlib = shared_library(
   install : true
 )
 
+privsources = ['private-function.c', 'private-function.h']
+
 girexe = executable(
   'girprog',
-  sources : 'prog.c',
+  sources : ['prog.c'] + privsources,
   dependencies : [glib, gobj, gir],
   link_with : girlib
 )
@@ -25,6 +27,17 @@ gnome.generate_gir(
   identifier_prefix : 'Meson',
   includes : ['GObject-2.0'],
   dependencies : [fake_dep],
+  install : true
+)
+
+gnome.generate_gir(
+  girexe,
+  sources : privsources,
+  nsversion : '1.0',
+  namespace : 'Private',
+  symbol_prefix : 'private_',
+  identifier_preifx : 'Private',
+  includes : 'GObject-2.0',
   install : true
 )
 
