@@ -1854,6 +1854,9 @@ class VisualStudioCCompiler(CCompiler):
             result.append(i)
         return result
 
+    def get_werror_args(self):
+        return ['/WX']
+
     def get_include_args(self, path, is_system):
         if path == '':
             path = '.'
