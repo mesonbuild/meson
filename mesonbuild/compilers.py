@@ -638,13 +638,11 @@ class CCompiler(Compiler):
         code = 'int main(int argc, char **argv) { int class=0; return class; }\n'
         return self.sanity_check_impl(work_dir, environment, 'sanitycheckc.c', code)
 
-    def has_header(self, hname, env, extra_args=None, dependencies=None):
+    def has_header(self, hname, prefix, env, extra_args=None, dependencies=None):
         if extra_args is None:
             extra_args = []
-        templ = '''#include<%s>
-int someSymbolHereJustForFun;
-'''
-        return self.compiles(templ % hname, env, extra_args, dependencies)
+        code = '{}\n#include<{}>\nint someUselessSymbol;'.format(prefix, hname)
+        return self.compiles(code, env, extra_args, dependencies)
 
     def has_header_symbol(self, hname, symbol, prefix, env, extra_args=None, dependencies=None):
         if extra_args is None:
