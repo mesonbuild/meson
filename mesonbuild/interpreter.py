@@ -92,6 +92,10 @@ class InterpreterObject():
             return self.methods[method_name](args, kwargs)
         raise InvalidCode('Unknown method "%s" in object.' % method_name)
 
+class MutableInterpreterObject(InterpreterObject):
+    def __init__(self):
+        super().__init__()
+
 class TryRunResultHolder(InterpreterObject):
     def __init__(self, res):
         super().__init__()
@@ -182,14 +186,13 @@ class ConfigureFileHolder(InterpreterObject):
         self.held_object = build.ConfigureFile(subdir, sourcename, targetname, configuration_data)
 
 
-class EnvironmentVariablesHolder(InterpreterObject):
+class EnvironmentVariablesHolder(MutableInterpreterObject):
     def __init__(self):
         super().__init__()
         self.held_object = build.EnvironmentVariables()
         self.methods.update({'set': self.set_method,
                              'append': self.append_method,
                              'prepend' : self.prepend_method,
-                             'copy' : self.copy_method,
                             })
 
     @stringArgs
@@ -212,11 +215,8 @@ class EnvironmentVariablesHolder(InterpreterObject):
     def prepend_method(self, args, kwargs):
         self.add_var(self.held_object.prepend, args, kwargs)
 
-    def copy_method(self, args, kwargs):
-        return copy.deepcopy(self)
 
-
-class ConfigurationDataHolder(InterpreterObject):
+class ConfigurationDataHolder(MutableInterpreterObject):
     def __init__(self):
         super().__init__()
         self.used = False # These objects become immutable after use in configure_file.
@@ -2461,6 +2461,9 @@ requirements use the version keyword argument instead.''')
         value = self.to_native(value)
         if not self.is_assignable(value):
             raise InvalidCode('Tried to assign an invalid value to variable.')
+        # For mutable objects we need to make a copy on assignment
+        if isinstance(value, MutableInterpreterObject):
+            value = copy.deepcopy(value)
         self.set_variable(var_name, value)
         return value
 
