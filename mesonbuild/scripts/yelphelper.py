@@ -34,7 +34,7 @@ def build_pot(srcdir, project_id, sources):
     # Must be relative paths
     sources = [os.path.join('C', source) for source in sources]
     outfile = os.path.join(srcdir, project_id + '.pot')
-    subprocess.call(['itstool', '-o', outfile, *sources])
+    subprocess.call(['itstool', '-o', outfile]+sources)
 
 def update_po(srcdir, project_id, langs):
     potfile = os.path.join(srcdir, project_id + '.pot')
@@ -55,9 +55,8 @@ def merge_translations(blddir, sources, langs):
     for lang in langs:
         subprocess.call([
             'itstool', '-m', os.path.join(blddir, lang, lang + '.gmo'),
-            '-o', os.path.join(blddir, lang),
-            *sources,
-        ])
+            '-o', os.path.join(blddir, lang)
+        ]+sources)
 
 def install_help(srcdir, blddir, sources, media, langs, install_dir, destdir, project_id, symlinks):
     c_install_dir = os.path.join(install_dir, 'C', project_id)
