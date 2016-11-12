@@ -1024,7 +1024,6 @@ int dummy;
         # found inside the build tree (generated sources).
         args += ['-d', c_out_dir]
         args += ['-C']
-        args += ['--nostdpkg']
         if not isinstance(target, build.Executable):
             # Library name
             args += ['--library=' + target.name]
