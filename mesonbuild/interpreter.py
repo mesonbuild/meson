@@ -896,15 +896,18 @@ class CompilerHolder(InterpreterObject):
         if len(args) != 1:
             raise InterpreterException('has_header method takes exactly one argument.')
         check_stringlist(args)
-        string = args[0]
+        hname = args[0]
+        prefix = kwargs.get('prefix', '')
+        if not isinstance(prefix, str):
+            raise InterpreterException('Prefix argument of has_header must be a string.')
         extra_args = self.determine_args(kwargs)
         deps = self.determine_dependencies(kwargs, allowed_dep_types=(dependencies.Dependency,))
-        haz = self.compiler.has_header(string, self.environment, extra_args, deps)
+        haz = self.compiler.has_header(hname, prefix, self.environment, extra_args, deps)
         if haz:
             h = mlog.green('YES')
         else:
             h = mlog.red('NO')
-        mlog.log('Has header "%s":' % string, h)
+        mlog.log('Has header "%s":' % hname, h)
         return haz
 
     def has_header_symbol_method(self, args, kwargs):
@@ -915,7 +918,7 @@ class CompilerHolder(InterpreterObject):
         symbol = args[1]
         prefix = kwargs.get('prefix', '')
         if not isinstance(prefix, str):
-            raise InterpreterException('Prefix argument of has_function must be a string.')
+            raise InterpreterException('Prefix argument of has_header_symbol must be a string.')
         extra_args = self.determine_args(kwargs)
         deps = self.determine_dependencies(kwargs, allowed_dep_types=(dependencies.Dependency,))
         haz = self.compiler.has_header_symbol(hname, symbol, prefix, self.environment, extra_args, deps)
