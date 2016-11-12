@@ -19,7 +19,7 @@ import re, json
 import tempfile
 import mesonbuild.environment
 from mesonbuild.environment import detect_ninja
-from mesonbuild.dependencies import PkgConfigDependency
+from mesonbuild.dependencies import PkgConfigDependency, Qt5Dependency
 
 def get_soname(fname):
     # HACK, fix to not use shell.
@@ -59,6 +59,7 @@ class LinuxlikeTests(unittest.TestCase):
         self.ninja_command = [detect_ninja(), '-C', self.builddir]
         self.common_test_dir = os.path.join(src_root, 'test cases/common')
         self.vala_test_dir = os.path.join(src_root, 'test cases/vala')
+        self.framework_test_dir = os.path.join(src_root, 'test cases/frameworks')
         self.output = b''
         self.orig_env = os.environ.copy()
 
@@ -67,21 +68,28 @@ class LinuxlikeTests(unittest.TestCase):
         os.environ = self.orig_env
         super().tearDown()
 
+    def _run(self, command):
+        self.output += subprocess.check_output(command, env=os.environ.copy())
+
     def init(self, srcdir):
-        self.output += subprocess.check_output(self.meson_command + [srcdir, self.builddir])
+        self._run(self.meson_command + [srcdir, self.builddir])
 
     def build(self):
-        self.output += subprocess.check_output(self.ninja_command)
+        self._run(self.ninja_command)
 
     def run_target(self, target):
         self.output += subprocess.check_output(self.ninja_command + [target])
 
     def setconf(self, arg):
-        self.output += subprocess.check_output(self.mconf_command + [arg, self.builddir])
+        self._run(self.mconf_command + [arg, self.builddir])
 
     def get_compdb(self):
         with open(os.path.join(self.builddir, 'compile_commands.json')) as ifile:
             return json.load(ifile)
+
+    def get_meson_log(self):
+        with open(os.path.join(self.builddir, 'meson-logs', 'meson-log.txt')) as f:
+            return f.readlines()
 
     def introspect(self, arg):
         out = subprocess.check_output(self.mintro_command + [arg, self.builddir])
@@ -180,6 +188,20 @@ class LinuxlikeTests(unittest.TestCase):
         testdir = os.path.join(self.common_test_dir, '58 run target')
         self.init(testdir)
         self.run_target('check_exists')
+
+    def test_qt5dependency_qmake_detection(self):
+        # Can't be sure that `qmake` is Qt5, so just try qmake-qt5.
+        if not shutil.which('qmake-qt5'):
+            raise unittest.SkipTest('qt5 not found')
+        # Disable pkg-config codepath and force searching with qmake/qmake-qt5
+        os.environ['PKG_CONFIG_LIBDIR'] = self.builddir
+        os.environ['PKG_CONFIG_PATH'] = self.builddir
+        testdir = os.path.join(self.framework_test_dir, '4 qt')
+        self.init(testdir)
+        # Confirm that the dependency was found with qmake
+        msg = 'Qt5 native `qmake-qt5` dependency found: YES\n'
+        mesonlog = self.get_meson_log()
+        self.assertTrue(msg in mesonlog)
 
 if __name__ == '__main__':
     unittest.main()
