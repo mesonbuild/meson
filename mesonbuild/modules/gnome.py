@@ -407,7 +407,13 @@ class GnomeModule:
         # spurious dependencies) but building GStreamer fails if they
         # are not used here.
         cflags, ldflags, gi_includes = self._get_dependencies_flags(deps, state, depends)
-        scan_command += list(cflags) + list(ldflags)
+        scan_command += list(cflags)
+        # need to put our output directory first as we need to use the
+        # generated libraries instead of any possibly installed system/prefix
+        # ones.
+        if isinstance(girtarget, build.SharedLibrary):
+            scan_command += ["-L@PRIVATE_OUTDIR_ABS_%s@" % girtarget.get_id()]
+        scan_command += list(ldflags)
         for i in gi_includes:
             scan_command += ['--add-include-path=%s' % i]
 
@@ -425,7 +431,6 @@ class GnomeModule:
         if isinstance(girtarget, build.Executable):
             scan_command += ['--program', girtarget]
         elif isinstance(girtarget, build.SharedLibrary):
-            scan_command += ["-L@PRIVATE_OUTDIR_ABS_%s@" % girtarget.get_id()]
             libname = girtarget.get_basename()
             scan_command += ['--library', libname]
         scankwargs = {'output' : girfile,
