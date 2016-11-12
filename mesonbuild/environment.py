@@ -331,6 +331,13 @@ class Environment():
             if len(rest) == 2:
                 defines[rest[0]] = rest[1]
         return defines
+    @staticmethod
+    def get_gnu_version_from_defines(defines):
+        dot = '.'
+        major = defines.get('__GNUC__', '0')
+        minor = defines.get('__GNUC_MINOR__', '0')
+        patch = defines.get('__GNUC_PATCHLEVEL__', '0')
+        return dot.join((major, minor, patch))
 
     @staticmethod
     def get_gnu_compiler_type(defines):
@@ -385,6 +392,7 @@ class Environment():
                     popen_exceptions[compiler] = 'no pre-processor defines'
                     continue
                 gtype = self.get_gnu_compiler_type(defines)
+                version = self.get_gnu_version_from_defines(defines)
                 return GnuCCompiler(ccache + [compiler], version, gtype, is_cross, exe_wrap, defines)
             if 'clang' in out:
                 if 'Apple' in out:
@@ -443,6 +451,7 @@ class Environment():
                         popen_exceptions[compiler] = 'no pre-processor defines'
                         continue
                     gtype = self.get_gnu_compiler_type(defines)
+                    version = self.get_gnu_version_from_defines(defines)
                     return GnuFortranCompiler([compiler], version, gtype, is_cross, exe_wrap, defines)
 
                 if 'G95' in out:
@@ -524,6 +533,7 @@ class Environment():
                     popen_exceptions[compiler] = 'no pre-processor defines'
                     continue
                 gtype = self.get_gnu_compiler_type(defines)
+                version = self.get_gnu_version_from_defines(defines)
                 return GnuCPPCompiler(ccache + [compiler], version, gtype, is_cross, exe_wrap, defines)
             if 'clang' in out:
                 if 'Apple' in out:
@@ -563,6 +573,7 @@ class Environment():
         version = search_version(out)
         if 'Free Software Foundation' in out:
             defines = self.get_gnu_compiler_defines(exelist)
+            version = self.get_gnu_version_from_defines(defines)
             return GnuObjCCompiler(exelist, version, is_cross, exe_wrap, defines)
         if out.startswith('Apple LLVM'):
             return ClangObjCCompiler(exelist, version, CLANG_OSX, is_cross, exe_wrap)
