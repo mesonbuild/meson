@@ -403,6 +403,41 @@ class GnomeModule:
             deps = [deps]
         deps = (girtarget.get_all_link_deps() + girtarget.get_external_deps() +
                 deps)
+        # Need to recursively add deps on GirTarget sources from our
+        # dependencies and also find the include directories needed for the
+        # typelib generation custom target below.
+        typelib_includes = []
+        for dep in deps:
+            if hasattr(dep, 'held_object'):
+                dep = dep.held_object
+            # Add a dependency on each GirTarget listed in dependencies and add
+            # the directory where it will be generated to the typelib includes
+            if isinstance(dep, dependencies.InternalDependency):
+                for source in dep.sources:
+                    if hasattr(source, 'held_object'):
+                        source = source.held_object
+                    if isinstance(source, GirTarget) and source not in depends:
+                        depends.append(source)
+                        subdir = os.path.join(state.environment.get_build_dir(),
+                                              source.get_subdir())
+                        if subdir not in typelib_includes:
+                            typelib_includes.append(subdir)
+            # Do the same, but for dependencies of dependencies. These are
+            # stored in the list of generated sources for each link dep (from
+            # girtarget.get_all_link_deps() above).
+            # FIXME: Store this in the original form from declare_dependency()
+            # so it can be used here directly.
+            elif isinstance(dep, build.SharedLibrary):
+                for source in dep.generated:
+                    if isinstance(source, GirTarget):
+                        subdir = os.path.join(state.environment.get_build_dir(),
+                                              source.get_subdir())
+                        if subdir not in typelib_includes:
+                            typelib_includes.append(subdir)
+            elif isinstance(dep, dependencies.PkgConfigDependency):
+                girdir = dep.get_pkgconfig_variable("girdir")
+                if girdir and girdir not in typelib_includes:
+                    typelib_includes.append(girdir)
         # ldflags will be misinterpreted by gir scanner (showing
         # spurious dependencies) but building GStreamer fails if they
         # are not used here.
@@ -448,22 +483,8 @@ class GnomeModule:
         typelib_cmd = ['g-ir-compiler', scan_target, '--output', '@OUTPUT@']
         typelib_cmd += self._get_include_args(state, gir_inc_dirs,
                                               prefix='--includedir=')
-        for dep in deps:
-            if hasattr(dep, 'held_object'):
-                dep = dep.held_object
-            if isinstance(dep, dependencies.InternalDependency):
-                for source in dep.sources:
-                    if isinstance(source.held_object, GirTarget):
-                        typelib_cmd += [
-                            "--includedir=%s" % (
-                                os.path.join(state.environment.get_build_dir(),
-                                             source.held_object.get_subdir()),
-                            )
-                        ]
-            elif isinstance(dep, dependencies.PkgConfigDependency):
-                girdir = dep.get_pkgconfig_variable("girdir")
-                if girdir:
-                    typelib_cmd += ["--includedir=%s" % (girdir, )]
+        for incdir in typelib_includes:
+            typelib_cmd += ["--includedir=" + incdir]
 
         typelib_kwargs = {
             'output': typelib_output,

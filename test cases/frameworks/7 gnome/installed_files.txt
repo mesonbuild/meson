@@ -2,7 +2,13 @@ usr/include/enums.h
 usr/include/enums2.h
 usr/include/enums3.h
 usr/include/marshaller.h
-usr/lib/girepository-1.0/Meson-1.0.typelib
 usr/lib/libgir_lib.so
+usr/lib/libdep1lib.so
+usr/lib/libdep2lib.so
+usr/lib/girepository-1.0/Meson-1.0.typelib
+usr/lib/girepository-1.0/MesonDep1-1.0.typelib
+usr/lib/girepository-1.0/MesonDep2-1.0.typelib
 usr/share/gir-1.0/Meson-1.0.gir
+usr/share/gir-1.0/MesonDep1-1.0.gir
+usr/share/gir-1.0/MesonDep2-1.0.gir
 usr/share/glib-2.0/schemas/com.github.meson.gschema.xml

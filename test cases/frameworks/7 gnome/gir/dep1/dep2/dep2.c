@@ -1,13 +1,13 @@
-#include "meson-sample.h"
+#include "dep2.h"
 
-struct _MesonSample
+struct _MesonDep2
 {
   GObject parent_instance;
 
   gchar *msg;
 };
 
-G_DEFINE_TYPE (MesonSample, meson_sample, G_TYPE_OBJECT)
+G_DEFINE_TYPE (MesonDep2, meson_dep2, G_TYPE_OBJECT)
 
 enum {
   PROP_0,
@@ -18,35 +18,40 @@ enum {
 static GParamSpec *gParamSpecs [LAST_PROP];
 
 /**
- * meson_sample_new:
+ * meson_dep2_new:
+ * @msg: The message to set.
  *
- * Allocates a new #MesonSample.
+ * Allocates a new #MesonDep2.
  *
- * Returns: (transfer full): a #MesonSample.
+ * Returns: (transfer full): a #MesonDep2.
  */
-MesonSample *
-meson_sample_new (void)
+MesonDep2 *
+meson_dep2_new (const gchar *msg)
 {
-  return g_object_new (MESON_TYPE_SAMPLE, NULL);
+  g_return_val_if_fail (msg != NULL, NULL);
+
+  return g_object_new (MESON_TYPE_DEP2,
+                       "message", msg,
+                       NULL);
 }
 
 static void
-meson_sample_finalize (GObject *object)
+meson_dep2_finalize (GObject *object)
 {
-  MesonSample *self = (MesonSample *)object;
+  MesonDep2 *self = (MesonDep2 *)object;
 
   g_clear_pointer (&self->msg, g_free);
 
-  G_OBJECT_CLASS (meson_sample_parent_class)->finalize (object);
+  G_OBJECT_CLASS (meson_dep2_parent_class)->finalize (object);
 }
 
 static void
-meson_sample_get_property (GObject    *object,
+meson_dep2_get_property (GObject    *object,
                            guint       prop_id,
                            GValue     *value,
                            GParamSpec *pspec)
 {
-  MesonSample *self = MESON_SAMPLE (object);
+  MesonDep2 *self = MESON_DEP2 (object);
 
   switch (prop_id)
     {
@@ -59,12 +64,12 @@ meson_sample_get_property (GObject    *object,
 }
 
 static void
-meson_sample_set_property (GObject      *object,
+meson_dep2_set_property (GObject      *object,
                            guint         prop_id,
                            const GValue *value,
                            GParamSpec   *pspec)
 {
-  MesonSample *self = MESON_SAMPLE (object);
+  MesonDep2 *self = MESON_DEP2 (object);
 
   switch (prop_id)
     {
@@ -77,13 +82,13 @@ meson_sample_set_property (GObject      *object,
 }
 
 static void
-meson_sample_class_init (MesonSampleClass *klass)
+meson_dep2_class_init (MesonDep2Class *klass)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
-  object_class->finalize = meson_sample_finalize;
-  object_class->get_property = meson_sample_get_property;
-  object_class->set_property = meson_sample_set_property;
+  object_class->finalize = meson_dep2_finalize;
+  object_class->get_property = meson_dep2_get_property;
+  object_class->set_property = meson_dep2_set_property;
 
   gParamSpecs [PROP_MSG] =
     g_param_spec_string ("message",
@@ -98,24 +103,22 @@ meson_sample_class_init (MesonSampleClass *klass)
 }
 
 static void
-meson_sample_init (MesonSample *self)
+meson_dep2_init (MesonDep2 *self)
 {
 }
 
 /**
- * meson_sample_print_message:
- * @self: a #MesonSample.
+ * meson_dep2_return_message:
+ * @self: a #MesonDep2.
  *
- * Prints the message.
+ * Returns the message.
  *
- * Returns: Nothing.
+ * Returns: (transfer none): a const gchar*
  */
-void
-meson_sample_print_message (MesonSample *self, MesonDep1 *dep1, MesonDep2 *dep2)
+const gchar*
+meson_dep2_return_message (MesonDep2 *self)
 {
-  MesonDep2 *samedep;
-  g_return_if_fail (MESON_IS_SAMPLE (self));
+  g_return_val_if_fail (MESON_IS_DEP2 (self), NULL);
 
-  samedep = meson_dep1_just_return_it (dep1, dep2);
-  g_print ("Message: %s\n", meson_dep2_return_message (samedep));
+  return (const gchar*) self->msg;
 }

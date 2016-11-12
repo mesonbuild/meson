@@ -6,6 +6,7 @@
 #endif
 
 #include <glib-object.h>
+#include "dep1/dep1.h"
 
 G_BEGIN_DECLS
 
@@ -13,8 +14,10 @@ G_BEGIN_DECLS
 
 G_DECLARE_FINAL_TYPE (MesonSample, meson_sample, MESON, SAMPLE, GObject)
 
-MesonSample *meson_sample_new           (const gchar *msg);
-void         meson_sample_print_message (MesonSample *self);
+MesonSample *meson_sample_new           (void);
+void         meson_sample_print_message (MesonSample *self,
+                                         MesonDep1 *dep1,
+                                         MesonDep2 *dep2);
 
 G_END_DECLS
 
