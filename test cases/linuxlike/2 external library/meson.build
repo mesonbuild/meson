@@ -13,8 +13,7 @@ int main(int argc, char **argv) {
 
 nolinkcode='''int nonexisting();
 int main(int argc, char **argv) {
-  void *ptr = (void*)(nonexisting);
-  return ptr == 0;
+  return nonexisting();
 }
 '''
 
