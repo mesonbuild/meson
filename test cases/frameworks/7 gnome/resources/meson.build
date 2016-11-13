@@ -11,8 +11,8 @@ simple_res_exe = executable('simple-resources-test',
   dependencies: gio)
 test('simple resource test', simple_res_exe)
 
-if glib.version() >= '2.48.2'
-  # This test cannot pass if GLib version is older than 2.48.2.
+if glib.version() >= '9.99.9'
+  # This test cannot pass if GLib version is older than 9.99.9.
   # Meson will raise an error if the user tries to use the 'dependencies'
   # argument and the version of GLib is too old for generated resource
   # dependencies to work correctly.
