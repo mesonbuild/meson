@@ -621,6 +621,7 @@ class CompilerHolder(InterpreterObject):
                              'cmd_array' : self.cmd_array_method,
                              'find_library': self.find_library_method,
                              'has_argument' : self.has_argument_method,
+                             'has_multi_arguments' : self.has_multi_arguments_method,
                              'first_supported_argument' : self.first_supported_argument_method,
                              'unittest_args' : self.unittest_args_method,
                             })
@@ -916,6 +917,19 @@ class CompilerHolder(InterpreterObject):
         else:
             h = mlog.red('NO')
         mlog.log('Compiler for {} supports argument {}:'.format(self.compiler.language, args[0]), h)
+        return result
+
+    def has_multi_arguments_method(self, args, kwargs):
+        args = mesonlib.stringlistify(args)
+        result = self.compiler.has_multi_arguments(args, self.environment)
+        if result:
+            h = mlog.green('YES')
+        else:
+            h = mlog.red('NO')
+        mlog.log(
+            'Compiler for {} supports arguments {}:'.format(
+                self.compiler.language, ' '.join(args)),
+            h)
         return result
 
     def first_supported_argument_method(self, args, kwargs):

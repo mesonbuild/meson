@@ -33,3 +33,12 @@ l2 = cpp.first_supported_argument(isnt_arg, isnt_arg, isnt_arg)
 assert(l1.length() == 1, 'First supported returned wrong result.')
 assert(l1.get(0) == is_arg, 'First supported returned wrong argument.')
 assert(l2.length() == 0, 'First supported did not return empty array.')
+
+if cc.get_id() == 'gcc'
+  pre_arg = '-Wformat'
+  anti_pre_arg = '-Wno-format'
+  arg = '-Werror=format-security'
+  assert(not cc.has_multi_arguments([anti_pre_arg, arg]), 'Arg that should be broken is not.')
+  assert(cc.has_multi_arguments(pre_arg), 'Arg that should have worked does not work.')
+  assert(cc.has_multi_arguments([pre_arg, arg]), 'Arg that should have worked does not work.')
+endif
