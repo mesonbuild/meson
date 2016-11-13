@@ -755,7 +755,8 @@ class GTestDependency(Dependency):
         arr = []
         if self.include_dir != '/usr/include':
             arr.append('-I' + self.include_dir)
-        arr.append('-I' + self.src_include_dir)
+        if hasattr(self, 'src_include_dir'):
+            arr.append('-I' + self.src_include_dir)
         return arr
 
     def get_link_args(self):
