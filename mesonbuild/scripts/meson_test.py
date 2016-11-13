@@ -134,7 +134,8 @@ def run_single_test(wrap, test):
 
         child_env.update(test.env)
         if len(test.extra_paths) > 0:
-            child_env['PATH'] = child_env['PATH'] + ';'.join([''] + test.extra_paths)
+            child_env['PATH'] = (child_env['PATH'] +
+                                 os.pathsep.join([''] + test.extra_paths))
         if is_windows():
             setsid = None
         else:
