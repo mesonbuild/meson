@@ -1,7 +1,12 @@
 project('qt4 and 5 build test', 'cpp')
 
+qt5_modules = ['Widgets']
 foreach qt : ['qt4', 'qt5']
-  qtdep = dependency(qt, modules : ['Core', 'Gui', 'Widgets'], required : qt == 'qt5')
+  qt_modules = ['Core', 'Gui']
+  if qt == 'qt5'
+    qt_modules += qt5_modules
+  endif
+  qtdep = dependency(qt, modules : qt_modules, required : qt == 'qt5')
   if qtdep.found()
     qtmodule = import(qt)
 
