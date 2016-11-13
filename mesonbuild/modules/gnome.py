@@ -26,6 +26,13 @@ from .. import mlog
 from .. import mesonlib
 from .. import interpreter
 
+# gresource compilation is broken due to the way
+# the resource compiler and Ninja clash about it
+#
+# https://github.com/ninja-build/ninja/issues/1184
+# https://bugzilla.gnome.org/show_bug.cgi?id=774368
+gresource_dep_needed_version = '>9.99.99'
+
 native_glib_version = None
 girwarning_printed = False
 gresource_warning_printed = False
@@ -44,11 +51,10 @@ class GnomeModule:
     def __print_gresources_warning(self, state):
         global gresource_warning_printed
         if not gresource_warning_printed:
-            if mesonlib.version_compare(self._get_native_glib_version(state), '< 2.50.2'):
-                mlog.warning('GLib compiled dependencies do not work fully '
-                             'with versions of GLib older than 2.50.2.\n'
-                             'See the following upstream issue:',
-                             mlog.bold('https://bugzilla.gnome.org/show_bug.cgi?id=745754'))
+            if not mesonlib.version_compare(self._get_native_glib_version(state), gresource_dep_needed_version):
+                mlog.warning('''GLib compiled dependencies do not work reliably with
+the current version of GLib. See the following upstream issue:''',
+                             mlog.bold('https://bugzilla.gnome.org/show_bug.cgi?id=774368'))
             gresource_warning_printed = True
         return []
 
@@ -69,13 +75,11 @@ class GnomeModule:
             dependencies = [dependencies]
 
         glib_version = self._get_native_glib_version(state)
-        if mesonlib.version_compare(glib_version, '< 2.48.2'):
+        if not mesonlib.version_compare(glib_version, gresource_dep_needed_version):
             if len(dependencies) > 0:
-                raise MesonException(
-                  'The "dependencies" argument of gnome.compile_resources() '
-                  'can only be used with glib-compile-resources version '
-                  '2.48.2 or newer, due to '
-                  '<https://bugzilla.gnome.org/show_bug.cgi?id=673101>')
+                raise MesonException('''The "dependencies" argument of gnome.compile_resources()
+can not be used with the current version of glib-compiled-resources, due to
+<https://bugzilla.gnome.org/show_bug.cgi?id=774368>''')
 
         ifile = args[1]
         if isinstance(ifile, mesonlib.File):
@@ -107,7 +111,7 @@ class GnomeModule:
         kwargs['input'] = args[1]
         kwargs['output'] = args[0] + '.c'
         kwargs['depends'] = depends
-        if mesonlib.version_compare(glib_version, '< 2.50.2'):
+        if not mesonlib.version_compare(glib_version, gresource_dep_needed_version):
             # This will eventually go out of sync if dependencies are added
             kwargs['depend_files'] = depend_files
             kwargs['command'] = cmd
