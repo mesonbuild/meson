@@ -6,6 +6,17 @@ foreach qt : ['qt4', 'qt5']
   if qt == 'qt5'
     qt_modules += qt5_modules
   endif
+  # Test that invalid modules are indeed not found
+  fakeqtdep = dependency(qt, modules : ['DefinitelyNotFound'], required : false)
+  if fakeqtdep.found()
+    error('Invalid qt dep incorrectly found!')
+  endif
+  # Test that partially-invalid modules are indeed not found
+  fakeqtdep = dependency(qt, modules : ['Core', 'DefinitelyNotFound'], required : false)
+  if fakeqtdep.found()
+    error('Invalid qt dep incorrectly found!')
+  endif
+  # If qt4 modules are found, test that. qt5 is required.
   qtdep = dependency(qt, modules : qt_modules, required : qt == 'qt5')
   if qtdep.found()
     qtmodule = import(qt)
