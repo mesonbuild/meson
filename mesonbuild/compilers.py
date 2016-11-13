@@ -425,8 +425,13 @@ class Compiler():
     def get_library_dirs(self):
         return []
 
-    def has_argument(self, arg):
-        raise EnvironmentException('Language {} does not support has_arg.'.format(self.language))
+    def has_argument(self, arg, env):
+        return self.has_multi_arguments([arg], env)
+
+    def has_multi_arguments(self, args, env):
+        raise EnvironmentException(
+            'Language {} does not support has_multi_arguments.'.format(
+                self.language))
 
     def get_cross_extra_flags(self, environment, *, compile, link):
         extra_flags = []
@@ -1091,8 +1096,8 @@ void bar() {
     def thread_link_flags(self):
         return ['-pthread']
 
-    def has_argument(self, arg, env):
-        return self.compiles('int i;\n', env, extra_args=arg)
+    def has_multi_arguments(self, args, env):
+        return self.compiles('int i;\n', env, extra_args=args)
 
 class CPPCompiler(CCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrap):
@@ -1926,7 +1931,7 @@ class VisualStudioCCompiler(CCompiler):
     # Visual Studio is special. It ignores arguments it does not
     # understand and you can't tell it to error out on those.
     # http://stackoverflow.com/questions/15259720/how-can-i-make-the-microsoft-c-compiler-treat-unknown-flags-as-errors-rather-t
-    def has_argument(self, arg, env):
+    def has_multi_arguments(self, args, env):
         warning_text = '9002'
         code = 'int i;\n'
         (fd, srcname) = tempfile.mkstemp(suffix='.'+self.default_suffix)
@@ -1936,7 +1941,7 @@ class VisualStudioCCompiler(CCompiler):
         # Read c_args/cpp_args/etc from the cross-info file (if needed)
         extra_args = self.get_cross_extra_flags(env, compile=True, link=False)
         extra_args += self.get_compile_only_args()
-        commands = self.exelist + [arg] + extra_args + [srcname]
+        commands = self.exelist + args + extra_args + [srcname]
         mlog.debug('Running VS compile:')
         mlog.debug('Command line: ', ' '.join(commands))
         mlog.debug('Code:\n', code)
@@ -2229,8 +2234,10 @@ class ClangCompiler():
             raise MesonException('Unreachable code when converting clang type to gcc type.')
         return get_gcc_soname_args(gcc_type, prefix, shlib_name, suffix, path, soversion, is_shared_module)
 
-    def has_argument(self, arg, env):
-        return super().has_argument(['-Werror=unknown-warning-option', arg], env)
+    def has_multi_arguments(self, args, env):
+        return super().has_multi_arguments(
+            ['-Werror=unknown-warning-option'] + args,
+            env)
 
     def has_function(self, funcname, prefix, env, extra_args=None, dependencies=None):
         if extra_args is None:
