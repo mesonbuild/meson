@@ -26,7 +26,7 @@ from collections import OrderedDict
 from . mesonlib import MesonException
 from . import mlog
 from . import mesonlib
-from .environment import detect_cpu_family
+from .environment import detect_cpu_family, for_windows
 
 class DependencyException(MesonException):
     def __init__(self, *args, **kwargs):
@@ -821,6 +821,10 @@ class QtBaseDependency(Dependency):
         self.name = name
         self.qtname = name.capitalize()
         self.qtver = name[-1]
+        if self.qtver == "4":
+            self.qtpkgname = 'Qt'
+        else:
+            self.qtpkgname = self.qtname
         self.root = '/usr'
         self.bindir = None
         self.silent = kwargs.get('silent', False)
@@ -838,13 +842,17 @@ class QtBaseDependency(Dependency):
         if len(mods) == 0:
             raise DependencyException('No ' + self.qtname + '  modules specified.')
         type_text = 'cross' if env.is_cross_build() else 'native'
-        found_msg = '{} {} `{{}}` dependency found:'.format(self.qtname, type_text)
-        from_text = 'pkg-config'
+        found_msg = '{} {} {{}} dependency (modules: {}) found:' \
+                    ''.format(self.qtname, type_text, ', '.join(mods))
+        from_text = '`pkg-config`'
         # Prefer pkg-config, then fallback to `qmake -query`
         self._pkgconfig_detect(mods, env, kwargs)
         if not self.is_found:
             from_text = self._qmake_detect(mods, env, kwargs)
             if not self.is_found:
+                # Reset compile args and link args
+                self.cargs = []
+                self.largs = []
                 from_text = '(checked pkg-config, qmake-{}, and qmake)' \
                             ''.format(self.name)
                 self.version = 'none'
@@ -855,6 +863,7 @@ class QtBaseDependency(Dependency):
                 if not self.silent:
                     mlog.log(found_msg.format(from_text), mlog.red('NO'))
                 return
+            from_text = '`{}`'.format(from_text)
         if not self.silent:
             mlog.log(found_msg.format(from_text), mlog.green('YES'))
 
@@ -873,17 +882,14 @@ class QtBaseDependency(Dependency):
         return moc, uic, rcc
 
     def _pkgconfig_detect(self, mods, env, kwargs):
-        if self.qtver == "4":
-            qtpkgname = 'Qt'
-        else:
-            qtpkgname = self.qtname
         modules = OrderedDict()
         for module in mods:
-            modules[module] = PkgConfigDependency(qtpkgname + module, env, kwargs)
+            modules[module] = PkgConfigDependency(self.qtpkgname + module, env, kwargs)
         self.is_found = True
         for m in modules.values():
             if not m.found():
                 self.is_found = False
+                return
             self.cargs += m.get_compile_args()
             self.largs += m.get_link_args()
         self.version = m.modversion
@@ -892,7 +898,7 @@ class QtBaseDependency(Dependency):
             core = modules['Core']
         else:
             corekwargs = {'required': 'false', 'silent': 'true'}
-            core = PkgConfigDependency(qtpkgname + 'Core', env, corekwargs)
+            core = PkgConfigDependency(self.qtpkgname + 'Core', env, corekwargs)
         # Used by self.compilers_detect()
         self.bindir = core.get_pkgconfig_variable('host_bins')
         if not self.bindir:
@@ -947,16 +953,24 @@ class QtBaseDependency(Dependency):
         libdir = qvars['QT_INSTALL_LIBS']
         # Used by self.compilers_detect()
         self.bindir = qvars['QT_INSTALL_BINS']
-        #self.largs.append('-L' + libdir)
+        self.is_found = True
         for module in mods:
             mincdir = os.path.join(incdir, 'Qt' + module)
             self.cargs.append('-I' + mincdir)
-            libfile = os.path.join(libdir, self.qtname + module + '.lib')
-            if not os.path.isfile(libfile):
-                # MinGW links directly to .dll, not to .lib.
-                libfile = os.path.join(self.bindir, self.qtname + module + '.dll')
+            if for_windows(env.is_cross_build(), env):
+                libfile = os.path.join(libdir, self.qtpkgname + module + '.lib')
+                if not os.path.isfile(libfile):
+                    # MinGW can link directly to .dll
+                    libfile = os.path.join(self.bindir, self.qtpkgname + module + '.dll')
+                    if not os.path.isfile(libfile):
+                        self.is_found = False
+                        break
+            else:
+                libfile = os.path.join(libdir, 'lib{}{}.so'.format(self.qtpkgname, module))
+                if not os.path.isfile(libfile):
+                    self.is_found = False
+                    break
             self.largs.append(libfile)
-        self.is_found = True
         return qmake
 
     def _framework_detect(self, qvars, modules, kwargs):
