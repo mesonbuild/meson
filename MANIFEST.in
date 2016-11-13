@@ -11,4 +11,7 @@ include COPYING
 include README.md
 include run_cross_test.py
 include run_tests.py
+include run_unittests.py
+include run_project_tests.py
 include ghwt.py
+include __main__.py
