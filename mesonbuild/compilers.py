@@ -1844,7 +1844,11 @@ class VisualStudioCCompiler(CCompiler):
                 }
 
     def get_option_link_args(self, options):
-        return options['c_winlibs'].value[:]
+        # FIXME: See GnuCCompiler.get_option_link_args
+        if 'c_winlibs' in options:
+            return options['c_winlibs'].value[:]
+        else:
+            return msvc_winlibs[:]
 
     def unix_link_flags_to_native(self, args):
         result = []
@@ -1949,7 +1953,11 @@ class VisualStudioCPPCompiler(VisualStudioCCompiler, CPPCompiler):
         return args
 
     def get_option_link_args(self, options):
-        return options['cpp_winlibs'].value[:]
+        # FIXME: See GnuCCompiler.get_option_link_args
+        if 'cpp_winlibs' in options:
+            return options['cpp_winlibs'].value[:]
+        else:
+            return msvc_winlibs[:]
 
 GCC_STANDARD = 0
 GCC_OSX = 1
@@ -2061,7 +2069,17 @@ class GnuCCompiler(GnuCompiler, CCompiler):
 
     def get_option_link_args(self, options):
         if self.gcc_type == GCC_MINGW:
-            return options['c_winlibs'].value
+            # FIXME: This check is needed because we currently pass
+            # cross-compiler options to the native compiler too and when
+            # cross-compiling from Windows to Linux, `options` will contain
+            # Linux-specific options which doesn't include `c_winlibs`. The
+            # proper fix is to allow cross-info files to specify compiler
+            # options and to maintain both cross and native compiler options in
+            # coredata: https://github.com/mesonbuild/meson/issues/1029
+            if 'c_winlibs' in options:
+                return options['c_winlibs'].value[:]
+            else:
+                return gnu_winlibs[:]
         return []
 
 class GnuCPPCompiler(GnuCompiler, CPPCompiler):
@@ -2083,7 +2101,7 @@ class GnuCPPCompiler(GnuCompiler, CPPCompiler):
                                                            False)}
         if self.gcc_type == GCC_MINGW:
             opts.update({
-                'cpp_winlibs': coredata.UserStringArrayOption('c_winlibs', 'Standard Win libraries to link against',
+                'cpp_winlibs': coredata.UserStringArrayOption('cpp_winlibs', 'Standard Win libraries to link against',
                                                               gnu_winlibs),
                 })
         return opts
@@ -2099,7 +2117,11 @@ class GnuCPPCompiler(GnuCompiler, CPPCompiler):
 
     def get_option_link_args(self, options):
         if self.gcc_type == GCC_MINGW:
-            return options['cpp_winlibs'].value
+            # FIXME: See GnuCCompiler.get_option_link_args
+            if 'cpp_winlibs' in options:
+                return options['cpp_winlibs'].value[:]
+            else:
+                return gnu_winlibs[:]
         return []
 
     def get_compiler_check_args(self):
