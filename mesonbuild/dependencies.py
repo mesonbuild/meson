@@ -702,12 +702,7 @@ class GTestDependency(Dependency):
         self.libname = 'libgtest.so'
         self.libmain_name = 'libgtest_main.so'
         self.include_dir = '/usr/include'
-        self.src_include_dir = '/usr/src/gtest'
-        self.src_dir = '/usr/src/gtest/src'
-        self.all_src = mesonlib.File.from_absolute_file(
-            os.path.join(self.src_dir, 'gtest-all.cc'))
-        self.main_src = mesonlib.File.from_absolute_file(
-            os.path.join(self.src_dir, 'gtest_main.cc'))
+        self.src_dirs = ['/usr/src/gtest/src', '/usr/src/googletest/googletest/src']
         self.detect()
 
     def found(self):
@@ -730,7 +725,7 @@ class GTestDependency(Dependency):
                 self.link_args.append('-lgtest_main')
             self.sources = []
             mlog.log('Dependency GTest found:', mlog.green('YES'), '(prebuilt)')
-        elif os.path.exists(self.src_dir):
+        elif self.detect_srcdir():
             self.is_found = True
             self.compile_args = ['-I' + self.src_include_dir]
             self.link_args = []
@@ -743,6 +738,18 @@ class GTestDependency(Dependency):
             mlog.log('Dependency GTest found:', mlog.red('NO'))
             self.is_found = False
         return self.is_found
+
+    def detect_srcdir(self):
+        for s in self.src_dirs:
+            if os.path.exists(s):
+                self.src_dir = s
+                self.all_src = mesonlib.File.from_absolute_file(
+                    os.path.join(self.src_dir, 'gtest-all.cc'))
+                self.main_src = mesonlib.File.from_absolute_file(
+                    os.path.join(self.src_dir, 'gtest_main.cc'))
+                self.src_include_dir = os.path.normpath(os.path.join(self.src_dir, '..'))
+                return True
+        return False
 
     def get_compile_args(self):
         arr = []
@@ -781,12 +788,13 @@ class GMockDependency(Dependency):
             mlog.log('Dependency GMock found:', mlog.green('YES'), '(prebuilt)')
             return
 
-        for d in ['/usr/src/gmock/src', '/usr/src/gmock']:
+        for d in ['/usr/src/googletest/googlemock/src', '/usr/src/gmock/src', '/usr/src/gmock']:
             if os.path.exists(d):
                 self.is_found = True
                 # Yes, we need both because there are multiple
                 # versions of gmock that do different things.
-                self.compile_args = ['-I/usr/src/gmock', '-I/usr/src/gmock/src']
+                d2 = os.path.normpath(os.path.join(d, '..'))
+                self.compile_args = ['-I' + d, '-I' + d2]
                 self.link_args = []
                 all_src = mesonlib.File.from_absolute_file(os.path.join(d, 'gmock-all.cc'))
                 main_src = mesonlib.File.from_absolute_file(os.path.join(d, 'gmock_main.cc'))
