@@ -711,7 +711,7 @@ class GnomeModule:
         known_kwargs = ['comments', 'eprod', 'fhead', 'fprod', 'ftail',
                         'identifier_prefix', 'symbol_prefix', 'template',
                         'vhead', 'vprod', 'vtail']
-        known_custom_target_kwargs = ['install', 'install_dir', 'build_always',
+        known_custom_target_kwargs = ['install_dir', 'build_always',
                                       'depends', 'depend_files']
         c_template = h_template = None
         install_header = False
@@ -720,8 +720,16 @@ class GnomeModule:
                 sources = [value] + sources
             elif arg == 'c_template':
                 c_template = value
+                if 'template' in kwargs:
+                    raise MesonException('Mkenums does not accept both '
+                                         'c_template and template keyword '
+                                         'arguments at the same time.')
             elif arg == 'h_template':
                 h_template = value
+                if 'template' in kwargs:
+                    raise MesonException('Mkenums does not accept both '
+                                         'h_template and template keyword '
+                                         'arguments at the same time.')
             elif arg == 'install_header':
                 install_header = value
             elif arg in known_kwargs:
