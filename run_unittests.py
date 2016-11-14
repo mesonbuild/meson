@@ -199,7 +199,7 @@ class LinuxlikeTests(unittest.TestCase):
         testdir = os.path.join(self.framework_test_dir, '4 qt')
         self.init(testdir)
         # Confirm that the dependency was found with qmake
-        msg = 'Qt5 native `qmake-qt5` dependency found: YES\n'
+        msg = 'Qt5 native `qmake-qt5` dependency (modules: Core) found: YES\n'
         mesonlog = self.get_meson_log()
         self.assertTrue(msg in mesonlog)
 
