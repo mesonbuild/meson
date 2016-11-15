@@ -1432,7 +1432,7 @@ class Interpreter():
         compile_args = mesonlib.stringlistify(kwargs.pop('compile_args', []))
         link_args = mesonlib.stringlistify(kwargs.pop('link_args', []))
         if len(kwargs) > 0:
-            raise InvalidArguments('Unknown keyword arguments')
+            raise InvalidArguments('Unknown keyword arguments: ' + ', '.join (kwargs.keys()))
         final_deps = []
         for d in deps:
             try:
