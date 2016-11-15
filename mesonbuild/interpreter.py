@@ -1413,24 +1413,26 @@ class Interpreter():
 
     @noPosargs
     def func_declare_dependency(self, node, args, kwargs):
-        version = kwargs.get('version', self.project_version)
+        version = kwargs.pop('version', self.project_version)
         if not isinstance(version, str):
             raise InterpreterException('Version must be a string.')
-        incs = kwargs.get('include_directories', [])
+        incs = kwargs.pop('include_directories', [])
         if not isinstance(incs, list):
             incs = [incs]
-        libs = kwargs.get('link_with', [])
+        libs = kwargs.pop('link_with', [])
         if not isinstance(libs, list):
             libs = [libs]
-        sources = kwargs.get('sources', [])
+        sources = kwargs.pop('sources', [])
         if not isinstance(sources, list):
             sources = [sources]
         sources = self.source_strings_to_files(self.flatten(sources))
-        deps = kwargs.get('dependencies', [])
+        deps = kwargs.pop('dependencies', [])
         if not isinstance(deps, list):
             deps = [deps]
-        compile_args = mesonlib.stringlistify(kwargs.get('compile_args', []))
-        link_args = mesonlib.stringlistify(kwargs.get('link_args', []))
+        compile_args = mesonlib.stringlistify(kwargs.pop('compile_args', []))
+        link_args = mesonlib.stringlistify(kwargs.pop('link_args', []))
+        if len(kwargs) > 0:
+            raise InvalidArguments('Unknown keyword arguments')
         final_deps = []
         for d in deps:
             try:
