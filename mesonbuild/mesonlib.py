@@ -58,6 +58,12 @@ class File:
         else:
             return os.path.join(build_to_src, self.subdir, self.fname)
 
+    def absolute_path(self, srcdir, builddir):
+        if self.is_built:
+            return os.path.join(builddir, self.subdir, self.fname)
+        else:
+            return os.path.join(srcdir, self.subdir, self.fname)
+
     def endswith(self, ending):
         return self.fname.endswith(ending)
 
@@ -69,6 +75,9 @@ class File:
 
     def __hash__(self):
         return hash((self.fname, self.subdir, self.is_built))
+
+    def relative_name(self):
+        return os.path.join(self.subdir, self.fname)
 
 def get_compiler_for_source(compilers, src):
     for comp in compilers:

@@ -682,18 +682,16 @@ int dummy;
 
     def generate_data_install(self, d):
         data = self.build.get_data()
+        srcdir = self.environment.get_source_dir()
+        builddir = self.environment.get_build_dir()
         for de in data:
             assert(isinstance(de, build.Data))
             subdir = de.install_dir
             for f in de.sources:
-                plain_f = os.path.split(f)[1]
-                if de.in_sourcetree:
-                    srcprefix = self.environment.get_source_dir()
-                else:
-                    srcprefix = self.environment.get_build_dir()
-                srcabs = os.path.join(srcprefix, de.source_subdir, f)
+                assert(isinstance(f, mesonlib.File))
+                plain_f = os.path.split(f.fname)[1]
                 dstabs = os.path.join(subdir, plain_f)
-                i = [srcabs, dstabs]
+                i = [f.absolute_path(srcdir, builddir), dstabs]
                 d.data.append(i)
 
     def generate_subdir_install(self, d):

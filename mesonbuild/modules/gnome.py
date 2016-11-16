@@ -913,13 +913,13 @@ can not be used with the current version of glib-compiled-resources, due to
         vapi_args = ret + self._vapi_args_to_command('--pkg=', 'packages', kwargs, accept_vapi=True)
         return vapi_args, vapi_depends, vapi_packages, vapi_includes
 
-    def _generate_deps(self, state, library, packages, indir):
+    def _generate_deps(self, state, library, packages, install_dir):
         outdir = state.environment.scratch_dir
         fname = os.path.join(outdir, library + '.deps')
         with open(fname, 'w') as ofile:
             for package in packages:
                 ofile.write(package + '\n')
-        return build.Data(False, outdir, [fname], indir)
+        return build.Data(mesonlib.File(True, outdir, fname), install_dir)
 
     def _get_vapi_link_with(self, target):
         link_with = []
@@ -985,6 +985,7 @@ can not be used with the current version of glib-compiled-resources, due to
 
             # We shouldn't need this locally but we install it
             deps_target = self._generate_deps(state, library, vapi_packages, install_dir)
+            # XXX WRONG, state objects must not be modified! Fix this!
             state.data.append(deps_target)
         vapi_target = VapiTarget(vapi_output, state.subdir, custom_kwargs)
 

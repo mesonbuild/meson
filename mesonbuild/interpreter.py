@@ -483,15 +483,11 @@ class Headers(InterpreterObject):
         return self.custom_install_dir
 
 class DataHolder(InterpreterObject):
-    def __init__(self, in_sourcetree, source_subdir, sources, kwargs):
+    def __init__(self, sources, install_dir):
         super().__init__()
-        kwsource = mesonlib.stringlistify(kwargs.get('sources', []))
-        sources += kwsource
-        check_stringlist(sources)
-        install_dir = kwargs.get('install_dir', None)
         if not isinstance(install_dir, str):
             raise InterpreterException('Custom_install_dir must be a string.')
-        self.held_object = build.Data(in_sourcetree, source_subdir, sources, install_dir)
+        self.held_object = build.Data(sources, install_dir)
 
     def get_source_subdir(self):
         return self.held_object.source_subdir
@@ -2209,9 +2205,19 @@ requirements use the version keyword argument instead.''')
         self.evaluate_codeblock(codeblock)
         self.subdir = prev_subdir
 
-    @stringArgs
     def func_install_data(self, node, args, kwargs):
-        data = DataHolder(True, self.subdir, args, kwargs)
+        kwsource = mesonlib.stringlistify(kwargs.get('sources', []))
+        raw_sources = args + kwsource
+        sources = []
+        source_strings = []
+        for s in raw_sources:
+            if isinstance(s, mesonlib.File):
+                sources.append(s)
+            else:
+                source_strings.append(s)
+        sources += self.source_strings_to_files(source_strings)
+        install_dir = kwargs.get('install_dir', None)
+        data = DataHolder(sources, install_dir)
         self.build.data.append(data.held_object)
         return data
 
@@ -2241,11 +2247,12 @@ requirements use the version keyword argument instead.''')
             raise InterpreterException('Output must be a string.')
         if os.path.split(output)[0] != '':
             raise InterpreterException('Output file name must not contain a subdirectory.')
+        (ofile_path, ofile_fname) = os.path.split(os.path.join(self.subdir, output))
+        ofile_abs = os.path.join(self.environment.build_dir, ofile_path, ofile_fname)
         if 'configuration' in kwargs:
             conf = kwargs['configuration']
             if not isinstance(conf, ConfigurationDataHolder):
                 raise InterpreterException('Argument "configuration" is not of type configuration_data')
-            ofile_abs = os.path.join(self.environment.build_dir, self.subdir, output)
             if inputfile is not None:
                 # Normalize the path of the conffile to avoid duplicates
                 # This is especially important to convert '/' to '\' on Windows
@@ -2267,8 +2274,10 @@ requirements use the version keyword argument instead.''')
                                            (res.stdout, res.stderr))
         else:
             raise InterpreterException('Configure_file must have either "configuration" or "command".')
-        if isinstance(kwargs.get('install_dir', None), str):
-            self.build.data.append(DataHolder(False, self.subdir, [output], kwargs).held_object)
+        idir = kwargs.get('install_dir', None)
+        if isinstance(idir, str):
+            cfile = mesonlib.File.from_built_file(ofile_path, ofile_fname)
+            self.build.data.append(DataHolder([cfile], idir).held_object)
         return mesonlib.File.from_built_file(self.subdir, output)
 
     @stringArgs
