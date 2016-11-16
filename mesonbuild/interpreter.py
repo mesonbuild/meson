@@ -1547,7 +1547,6 @@ class Interpreter():
                 raise InterpreterException('Run_command arguments must be strings or the output of files().')
         args = cmd + expanded_args
         in_builddir = kwargs.get('in_builddir', False)
-        mlog.debug('Running command:', ' '.join(args))
         if not isinstance(in_builddir, bool):
             raise InterpreterException('in_builddir must be boolean.')
         return RunProcess(args, self.environment.source_dir, self.environment.build_dir,
