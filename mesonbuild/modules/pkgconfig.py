@@ -138,7 +138,7 @@ class PkgConfigModule:
         self.generate_pkgconfig_file(state, libs, subdirs, name, description, url,
                                      version, pcfile, pub_reqs, priv_reqs,
                                      conflicts, priv_libs)
-        return build.Data(False, state.environment.get_scratch_dir(), [pcfile], pkgroot)
+        return build.Data(mesonlib.File(True, state.environment.get_scratch_dir(), pcfile), pkgroot)
 
 def initialize():
     return PkgConfigModule()

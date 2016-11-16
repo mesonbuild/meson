@@ -1,4 +1,5 @@
 usr/share/progname/datafile.dat
+usr/share/progname/fileobject_datafile.dat
 usr/share/progname/vanishing.dat
 usr/share/progname/vanishing2.dat
 etc/etcfile.dat

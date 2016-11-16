@@ -1393,11 +1393,13 @@ class ConfigurationData():
 # A bit poorly named, but this represents plain data files to copy
 # during install.
 class Data():
-    def __init__(self, in_sourcetree, source_subdir, sources, install_dir):
-        self.in_sourcetree = in_sourcetree
-        self.source_subdir = source_subdir
+    def __init__(self, sources, install_dir):
         self.sources = sources
         self.install_dir = install_dir
+        if not isinstance(self.sources, list):
+            self.sources = [self.sources]
+        for s in self.sources:
+            assert(isinstance(s, File))
 
 class InstallScript:
     def __init__(self, cmd_arr):
