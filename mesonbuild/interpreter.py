@@ -1762,12 +1762,12 @@ class Interpreter():
             raise InvalidCode('Tried to use unknown language "%s".' % lang)
         comp.sanity_check(self.environment.get_scratch_dir(), self.environment)
         self.coredata.compilers[lang] = comp
+        # Native compiler always exist so always add its options.
+        new_options = comp.get_options()
         if cross_comp is not None:
             cross_comp.sanity_check(self.environment.get_scratch_dir(), self.environment)
             self.coredata.cross_compilers[lang] = cross_comp
-            new_options = cross_comp.get_options()
-        else:
-            new_options = comp.get_options()
+            new_options.update(cross_comp.get_options())
         optprefix = lang + '_'
         for i in new_options:
             if not i.startswith(optprefix):
