@@ -153,6 +153,11 @@ class Resolver:
             if revno.lower() != 'head':
                 subprocess.check_call(['git', 'checkout', revno],
                                       cwd=checkoutdir)
+            push_url = p.get('push-url')
+            if push_url:
+                subprocess.check_call(['git', 'remote', 'set-url',
+                                       '--push', 'origin', push_url],
+                                      cwd=checkoutdir)
     def get_hg(self, p):
         checkoutdir = os.path.join(self.subdir_root, p.get('directory'))
         revno = p.get('revision')
