@@ -36,6 +36,20 @@ gresource_dep_needed_version = '>9.99.99'
 native_glib_version = None
 girwarning_printed = False
 gresource_warning_printed = False
+_gir_has_extra_lib_arg = None
+
+def gir_has_extra_lib_arg():
+    global _gir_has_extra_lib_arg
+    if _gir_has_extra_lib_arg is not None:
+        return _gir_has_extra_lib_arg
+
+    _gir_has_extra_lib_arg = False
+    try:
+        scanner_options = subprocess.check_output(['g-ir-scanner', '--help']).decode()
+        _gir_has_extra_lib_arg = '--extra-library' in scanner_options
+    except (FileNotFound, subprocess.CalledProcessError):
+        pass
+    return _gir_has_extra_lib_arg
 
 class GnomeModule:
 
@@ -206,9 +220,13 @@ can not be used with the current version of glib-compiled-resources, due to
 
         return dep_files, depends, subdirs
 
-    @staticmethod
-    def _get_link_args(state, lib, depends=None):
-        link_command = ['-l%s' % lib.name]
+
+    def _get_link_args(self, state, lib, depends=None):
+        if gir_has_extra_lib_arg():
+            link_command = ['--extra-library=%s' % lib.name]
+        else:
+            link_command = ['-l%s' % lib.name]
+            print('lib: %s - %s' % (lib.name, link_command))
         if isinstance(lib, build.SharedLibrary):
             link_command += ['-L%s' %
                     os.path.join(state.environment.get_build_dir(),
@@ -288,6 +306,8 @@ can not be used with the current version of glib-compiled-resources, due to
                     # Hack to avoid passing some compiler options in
                     if lib.startswith("-W"):
                         continue
+                    if gir_has_extra_lib_arg():
+                        lib = lib.replace('-l', '--extra-library=')
                     ldflags.update([lib])
 
                 if isinstance(dep, dependencies.PkgConfigDependency):
