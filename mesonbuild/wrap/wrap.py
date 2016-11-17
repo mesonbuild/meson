@@ -93,9 +93,19 @@ class Resolver:
     def resolve(self, packagename):
         fname = os.path.join(self.subdir_root, packagename + '.wrap')
         dirname = os.path.join(self.subdir_root, packagename)
-        if os.path.isdir(dirname):
-            # The directory is there? Great, use it.
-            return packagename 
+        try:
+            if os.listdir(dirname):
+                # The directory is there and not empty? Great, use it.
+                return packagename
+            else:
+                mlog.warning('Subproject directory %s is empty, possibly because of an unfinished'
+                      'checkout, removing to reclone' % dirname)
+                os.rmdir(checkoutdir)
+        except NotADirectoryError:
+            raise RuntimeError('%s is not a directory, can not use as subproject.' % dirname)
+        except FileNotFoundError:
+            pass
+
         if not os.path.isfile(fname):
             # No wrap file with this name? Give up.
             return None
@@ -118,6 +128,15 @@ class Resolver:
         revno = p.get('revision')
         is_there = os.path.isdir(checkoutdir)
         if is_there:
+            try:
+                subprocess.check_call(['git', 'rev-parse'])
+                is_there = True
+            except subprocess.CalledProcessError:
+                raise RuntimeError('%s is not empty but is not a valid '
+                                    'git repository, we can not work with it'
+                                    ' as a subproject directory.' % (
+                                        checkoutdir))
+
             if revno.lower() == 'head':
                 # Failure to do pull is not a fatal error,
                 # because otherwise you can't develop without
