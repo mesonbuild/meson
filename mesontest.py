@@ -135,6 +135,10 @@ class TestHarness:
         self.collected_logs = []
         self.error_count = 0
         self.is_run = False
+        if self.options.benchmark:
+            self.datafile = 'meson-private/meson_benchmark_setup.dat'
+        else:
+            self.datafile = 'meson-private/meson_test_setup.dat'
 
     def run_single_test(self, wrap, test):
         if test.fname[0].endswith('.jar'):
@@ -222,14 +226,13 @@ class TestHarness:
         write_json_log(jsonlogfile, name, result)
 
     def doit(self):
-        if self.options.benchmark:
-            datafile = 'meson-private/meson_benchmark_setup.dat'
-        else:
-            datafile = 'meson-private/meson_test_setup.dat'
         if self.is_run:
             raise RuntimeError('Test harness object can only be used once.')
+        if not os.path.isfile(self.datafile):
+            print('Test data file. Probably this means that you did not run this in the build directory.')
+            return 1
         self.is_run = True
-        logfilename = self.run_tests(datafile, self.options.logbase)
+        logfilename = self.run_tests(self.datafile, self.options.logbase)
         if len(self.collected_logs) > 0:
             if len(self.collected_logs) > 10:
                 print('\nThe output from 10 first failed tests:\n')
@@ -299,6 +302,41 @@ class TestHarness:
             (result, numlen, tests, name, i, logfile, jsonlogfile) = i
             self.print_stats(numlen, tests, name, result.result(), i, logfile, jsonlogfile)
 
+    def run_special(self):
+        'Tests run by the user, usually something like "under gdb 1000 times".'
+        if self.is_run:
+            raise RuntimeError('Can not use run_special after a full run.')
+        if self.options.wrapper is not None:
+            wrap = self.options.wrapper.split(' ')
+        else:
+            wrap = []
+        if self.options.gdb and len(wrap) > 0:
+            print('Can not specify both a wrapper and gdb.')
+            return 1
+        if os.path.isfile('build.ninja'):
+            subprocess.check_call([environment.detect_ninja(), 'all'])
+        tests = pickle.load(open(self.datafile, 'rb'))
+        if self.options.list:
+            for i in tests:
+                print(i.name)
+            return 0
+        for t in tests:
+            if t.name in self.options.args:
+                for i in range(self.options.repeat):
+                    print('Running: %s %d/%d' % (t.name, i+1, self.options.repeat))
+                    if self.options.gdb:
+                        gdbrun(t)
+                    else:
+                        res = self.run_single_test(wrap, t)
+                        if (res.returncode == 0 and res.should_fail) or \
+                            (res.returncode != 0 and not res.should_fail):
+                            print('Test failed:\n\n-- stdout --\n')
+                            print(res.stdo)
+                            print('\n-- stderr --\n')
+                            print(res.stde)
+                            return 1
+        return 0
+
 def filter_tests(suite, tests):
     if suite is None:
         return tests
@@ -329,43 +367,9 @@ def run(args):
     if options.benchmark:
         options.num_processes = 1
     th = TestHarness(options)
-    return th.doit()
-    if not os.path.isfile(datafile):
-        print('Test data file. Probably this means that you did not run this in the build directory.')
-        return 1
-    datafile = os.path.join(os.curdir, datafile)
-    if os.path.isfile('build.ninja'):
-        subprocess.check_call([environment.detect_ninja(), 'all'])
-    if options.wd is not None:
-        os.chdir(options.wd)
-    if len(options.tests) == 0:
-        # Run basic tests.
-        return meson_test.run(args + ['meson-private/meson_test_setup.dat'])
-    if options.wrapper != '':
-        wrap = options.wrapper.split(' ')
-    else:
-        wrap = []
-    if options.gdb and len(options.wrapper) > 0:
-        print('Can not specify both a wrapper and gdb.')
-        return 1
-    tests = pickle.load(open(datafile, 'rb'))
-    if options.list:
-        for i in tests:
-            print(i.name)
-        return 0
-    for t in tests:
-        if t.name in options.tests:
-            for i in range(options.repeat):
-                print('Running: %s %d/%d' % (t.name, i+1, options.repeat))
-                if options.gdb:
-                    gdbrun(t)
-                else:
-                    res = run_single_test(wrap, t)
-                    if (res.returncode == 0 and res.should_fail) or \
-                        (res.returncode != 0 and not res.should_fail):
-                        print(res.stdo)
-                        print(res.stde)
-                        raise RuntimeError('Test failed.')
+    if len(options.args) == 0:
+        return th.doit()
+    return th.run_special()
 
 if __name__ == '__main__':
     sys.exit(run(sys.argv[1:]))
