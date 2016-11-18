@@ -19,6 +19,7 @@
 import subprocess, sys, os, argparse
 import pickle
 from mesonbuild.scripts import meson_test, meson_benchmark
+from mesonbuild import environment
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--repeat', default=1, dest='repeat', type=int,
@@ -53,7 +54,12 @@ def gdbrun(test):
 
 def run(args):
     datafile = 'meson-private/meson_test_setup.dat'
-    if args[0] == '--benchmark':
+    if not os.path.isfile(datafile):
+        print('Test data file. Probably this means that you did not run this in the build directory.')
+        return 1
+    if os.path.isfile('build.ninja'):
+        subprocess.check_call([environment.detect_ninja(), 'all'])
+    if len(args) > 0 and args[0] == '--benchmark':
         return meson_benchmark.run(args[1:] + ['meson-private/meson_benchmark_setup.dat'])
     options = parser.parse_args(args)
     if len(options.tests) == 0:
