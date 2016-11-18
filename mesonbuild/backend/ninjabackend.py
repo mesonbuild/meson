@@ -711,7 +711,10 @@ int dummy;
 
     def generate_tests(self, outfile):
         (test_data, benchmark_data) = self.serialise_tests()
-        cmd = [ sys.executable, self.environment.get_build_command(), '--internal', 'test' ]
+        meson_exe = self.environment.get_build_command()
+        (base, ext) = os.path.splitext(meson_exe)
+        test_exe = base + 'test' + ext
+        cmd = [sys.executable, test_exe]
         if not self.environment.coredata.get_builtin_option('stdsplit'):
             cmd += ['--no-stdsplit']
         if self.environment.coredata.get_builtin_option('errorlogs'):
@@ -724,7 +727,8 @@ int dummy;
         elem.write(outfile)
 
         # And then benchmarks.
-        cmd = [sys.executable, self.environment.get_build_command(), '--internal', 'benchmark', benchmark_data]
+        cmd = [sys.executable, test_exe, '--benchmark','--logbase',
+               'benchmarklog', '--num-processes=1', benchmark_data]
         elem = NinjaBuildElement(self.all_outputs, 'benchmark', 'CUSTOM_COMMAND', ['all', 'PHONY'])
         elem.add_item('COMMAND', cmd)
         elem.add_item('DESC', 'Running benchmark suite.')
