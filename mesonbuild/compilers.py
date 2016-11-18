@@ -927,9 +927,11 @@ int main(int argc, char **argv) {
         """
         # Add the 'prefix', aka defines, includes, etc that the user provides
         head = '#include <limits.h>\n{0}\n'
-        # We don't know what the function takes or returns, so try to use it as
-        # a function pointer
-        main = '\nint main() {{ void *a = (void*) &{1}; }}'
+        # We don't know what the function takes or returns, so return it as an int.
+        # Just taking the address or comparing it to void is not enough because
+        # compilers are smart enough to optimize it away. The resulting binary
+        # is not run so we don't care what the return value is.
+        main = '\nint main() {{ void *a = (void*) &{1}; long b = (long) a; return (int) b; }}'
         return head, main
 
     def has_function(self, funcname, prefix, env, extra_args=None, dependencies=None):
