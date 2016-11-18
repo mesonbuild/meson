@@ -1,3 +1,4 @@
 usr/include/rootdir.h
 usr/include/subdir/subdir.h
 usr/include/vanished.h
+usr/include/fileheader.h
