@@ -657,12 +657,15 @@ int dummy;
         incroot = self.environment.get_includedir()
         headers = self.build.get_headers()
 
+        srcdir = self.environment.get_source_dir()
+        builddir = self.environment.get_build_dir()
         for h in headers:
             outdir = h.get_custom_install_dir()
             if outdir is None:
                 outdir = os.path.join(incroot, h.get_install_subdir())
             for f in h.get_sources():
-                abspath = os.path.join(self.environment.get_source_dir(), h.get_source_subdir(), f)
+                assert(isinstance(f, File))
+                abspath = f.absolute_path(srcdir, builddir)
                 i = [abspath, outdir]
                 d.headers.append(i)
 

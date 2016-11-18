@@ -2,7 +2,10 @@ project('header install', 'c')
 
 as_array = ['subdir.h']
 
+subdir('vanishing_subdir')
+subdir('sub')
+
 h1 = install_headers('rootdir.h')
 h2 = install_headers(as_array, subdir : 'subdir')
+h3 = install_headers(subheader)
 
-subdir('vanishing_subdir')

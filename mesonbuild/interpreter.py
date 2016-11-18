@@ -457,10 +457,9 @@ class IncludeDirsHolder(InterpreterObject):
 
 class Headers(InterpreterObject):
 
-    def __init__(self, src_subdir, sources, kwargs):
+    def __init__(self, sources, kwargs):
         InterpreterObject.__init__(self)
         self.sources = sources
-        self.source_subdir = src_subdir
         self.install_subdir = kwargs.get('subdir', '')
         self.custom_install_dir = kwargs.get('install_dir', None)
         if self.custom_install_dir is not None:
@@ -472,9 +471,6 @@ class Headers(InterpreterObject):
 
     def get_install_subdir(self):
         return self.install_subdir
-
-    def get_source_subdir(self):
-        return self.source_subdir
 
     def get_sources(self):
         return self.sources
@@ -2160,9 +2156,9 @@ requirements use the version keyword argument instead.''')
             self.build.benchmarks.append(t)
             mlog.debug('Adding benchmark "', mlog.bold(args[0]), '".', sep='')
 
-    @stringArgs
     def func_install_headers(self, node, args, kwargs):
-        h = Headers(self.subdir, args, kwargs)
+        source_files = self.source_strings_to_files(args)
+        h = Headers(source_files, kwargs)
         self.build.headers.append(h)
         return h
 
