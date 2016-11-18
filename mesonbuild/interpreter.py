@@ -1825,18 +1825,22 @@ class Interpreter():
                     break
             self.coredata.base_options[optname] = oobj
 
+    @stringArgs
     def func_find_program(self, node, args, kwargs):
-        self.validate_arguments(args, 1, [str])
+        if len(args) == 0:
+            raise InterpreterException('No program name specified.')
         required = kwargs.get('required', True)
         if not isinstance(required, bool):
             raise InvalidArguments('"required" argument must be a boolean.')
-        exename = args[0]
         # Search for scripts relative to current subdir.
         # Do not cache found programs because find_program('foobar')
         # might give different results when run from different source dirs.
         search_dir = os.path.join(self.environment.get_source_dir(), self.subdir)
-        extprog = dependencies.ExternalProgram(exename, search_dir=search_dir)
-        progobj = ExternalProgramHolder(extprog)
+        for exename in args:
+            extprog = dependencies.ExternalProgram(exename, search_dir=search_dir)
+            progobj = ExternalProgramHolder(extprog)
+            if progobj.found():
+                return progobj
         if required and not progobj.found():
             raise InvalidArguments('Program "%s" not found.' % exename)
         return progobj

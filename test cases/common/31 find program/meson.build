@@ -9,7 +9,7 @@ if build_machine.system() == 'windows'
   # the program can be found.
   cp = find_program('xcopy')
 else
-  cp = find_program('cp')
+  cp = find_program('donotfindme', 'cp')
   gen = generator(cp, \
    output  : '@BASENAME@.c', \
    arguments : ['@INPUT@', '@OUTPUT@'])
