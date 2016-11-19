@@ -2378,10 +2378,6 @@ requirements use the version keyword argument instead.''')
     @stringArgs
     @noKwargs
     def func_join_paths(self, node, args, kwargs):
-        if isinstance(args, str):
-            st = (args,)
-        else:
-            st = tuple(args)
         return os.path.join(*args).replace('\\', '/')
 
     def flatten(self, args):
