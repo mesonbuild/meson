@@ -190,9 +190,16 @@ class LinuxlikeTests(unittest.TestCase):
         self.run_target('check_exists')
 
     def test_qt5dependency_qmake_detection(self):
-        # Can't be sure that `qmake` is Qt5, so just try qmake-qt5.
+        # Verify that qmake is for Qt5
         if not shutil.which('qmake-qt5'):
-            raise unittest.SkipTest('qt5 not found')
+            if not shutil.which('qmake'):
+                raise unittest.SkipTest('QMake not found')
+            # For some inexplicable reason qmake --version gives different
+            # results when run from the command line vs invoked by Python.
+            # Check for both cases in case this behaviour changes in the future.
+            output = subprocess.getoutput(['qmake', '--version'])
+            if 'Qt version 5' not in output and 'qt5' not in output:
+                raise unittest.SkipTest('Qmake found, but it is not for Qt 5.')
         # Disable pkg-config codepath and force searching with qmake/qmake-qt5
         os.environ['PKG_CONFIG_LIBDIR'] = self.builddir
         os.environ['PKG_CONFIG_PATH'] = self.builddir
@@ -200,8 +207,9 @@ class LinuxlikeTests(unittest.TestCase):
         self.init(testdir)
         # Confirm that the dependency was found with qmake
         msg = 'Qt5 native `qmake-qt5` dependency (modules: Core) found: YES\n'
+        msg2 = 'Qt5 native `qmake` dependency (modules: Core) found: YES\n'
         mesonlog = self.get_meson_log()
-        self.assertTrue(msg in mesonlog)
+        self.assertTrue(msg in mesonlog or msg2 in mesonlog)
 
 if __name__ == '__main__':
     unittest.main()
