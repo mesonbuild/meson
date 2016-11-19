@@ -22,6 +22,8 @@ from . import optinterpreter
 from . import compilers
 from .wrap import wrap
 from . import mesonlib
+from mesonbuild.interpreterbase import InterpreterBase
+from mesonbuild.interpreterbase import InterpreterException, InvalidArguments, InvalidCode
 
 import os, sys, subprocess, shutil, uuid, re
 from functools import wraps
@@ -30,15 +32,6 @@ import importlib
 import copy
 
 run_depr_printed = False
-
-class InterpreterException(mesonlib.MesonException):
-    pass
-
-class InvalidCode(InterpreterException):
-    pass
-
-class InvalidArguments(InterpreterException):
-    pass
 
 # Decorators for method calls.
 
@@ -1144,16 +1137,15 @@ class MesonMain(InterpreterObject):
                 return args[1]
             raise InterpreterException('Unknown cross property: %s.' % propname)
 
-class Interpreter():
+class Interpreter(InterpreterBase):
 
     def __init__(self, build, backend, subproject='', subdir='', subproject_dir='subprojects'):
+        super().__init__(build.environment.get_source_dir(), subdir)
         self.build = build
         self.environment = build.environment
         self.coredata = self.environment.get_coredata()
         self.backend = backend
         self.subproject = subproject
-        self.subdir = subdir
-        self.source_root = build.environment.get_source_dir()
         self.subproject_dir = subproject_dir
         option_file = os.path.join(self.source_root, self.subdir, 'meson_options.txt')
         if os.path.exists(option_file):
@@ -1161,19 +1153,7 @@ class Interpreter():
                                                   self.build.environment.cmd_line_options.projectoptions)
             oi.process(option_file)
             self.build.environment.merge_options(oi.options)
-        mesonfile = os.path.join(self.source_root, self.subdir, environment.build_filename)
-        if not os.path.isfile(mesonfile):
-            raise InvalidArguments('Missing Meson file in %s' % mesonfile)
-        with open(mesonfile, encoding='utf8') as mf:
-            code = mf.read()
-        if len(code.strip()) == 0:
-            raise InvalidCode('Builder file is empty.')
-        assert(isinstance(code, str))
-        try:
-            self.ast = mparser.Parser(code).parse()
-        except mesonlib.MesonException as me:
-            me.file = environment.build_filename
-            raise me
+        self.load_root_meson_file()
         self.sanity_check_ast()
         self.variables = {}
         self.builtin = {'meson': MesonMain(build, self)}
@@ -1201,7 +1181,7 @@ class Interpreter():
         self.build_def_files = [os.path.join(self.subdir, environment.build_filename)]
 
     def build_func_dict(self):
-        self.funcs = {'project' : self.func_project,
+        self.funcs.update({'project' : self.func_project,
                       'message' : self.func_message,
                       'error' : self.func_error,
                       'executable': self.func_executable,
@@ -1246,7 +1226,7 @@ class Interpreter():
                       'assert': self.func_assert,
                       'environment' : self.func_environment,
                       'join_paths' : self.func_join_paths,
-                     }
+                     })
 
     def parse_project(self):
         """
