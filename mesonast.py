@@ -25,7 +25,12 @@
 
 import mesonbuild.astinterpreter
 
+import sys
+
 if __name__ == '__main__':
-    source_root = 'test cases/common/1 trivial'
+    if len(sys.argv) == 1:
+        source_root = 'test cases/common/1 trivial'
+    else:
+        source_root = sys.argv[1]
     ast = mesonbuild.astinterpreter.AstInterpreter(source_root, '')
     ast.dump()

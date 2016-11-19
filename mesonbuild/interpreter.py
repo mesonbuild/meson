@@ -23,49 +23,15 @@ from . import compilers
 from .wrap import wrap
 from . import mesonlib
 from mesonbuild.interpreterbase import InterpreterBase
+from mesonbuild.interpreterbase import check_stringlist, noPosargs, noKwargs, stringArgs
 from mesonbuild.interpreterbase import InterpreterException, InvalidArguments, InvalidCode
 from mesonbuild.interpreterbase import InterpreterObject, MutableInterpreterObject
 
 import os, sys, subprocess, shutil, uuid, re
-from functools import wraps
 
 import importlib
 
 run_depr_printed = False
-
-# Decorators for method calls.
-
-def check_stringlist(a, msg='Arguments must be strings.'):
-    if not isinstance(a, list):
-        mlog.debug('Not a list:', str(a))
-        raise InvalidArguments('Argument not a list.')
-    if not all(isinstance(s, str) for s in a):
-        mlog.debug('Element not a string:', str(a))
-        raise InvalidArguments(msg)
-
-def noPosargs(f):
-    @wraps(f)
-    def wrapped(self, node, args, kwargs):
-        if len(args) != 0:
-            raise InvalidArguments('Function does not take positional arguments.')
-        return f(self, node, args, kwargs)
-    return wrapped
-
-def noKwargs(f):
-    @wraps(f)
-    def wrapped(self, node, args, kwargs):
-        if len(kwargs) != 0:
-            raise InvalidArguments('Function does not take keyword arguments.')
-        return f(self, node, args, kwargs)
-    return wrapped
-
-def stringArgs(f):
-    @wraps(f)
-    def wrapped(self, node, args, kwargs):
-        assert(isinstance(args, list))
-        check_stringlist(args)
-        return f(self, node, args, kwargs)
-    return wrapped
 
 def stringifyUserArguments(args):
     if isinstance(args, list):
@@ -75,6 +41,7 @@ def stringifyUserArguments(args):
     elif isinstance(args, str):
         return "'%s'" % args
     raise InvalidArguments('Function accepts only strings, integers, lists and lists thereof.')
+
 
 class TryRunResultHolder(InterpreterObject):
     def __init__(self, res):
@@ -1274,36 +1241,6 @@ class Interpreter(InterpreterBase):
                     self.build.cross_stdlibs[l] = subproj.get_variable_method([depname], {})
                 except KeyError as e:
                     pass
-
-    def func_set_variable(self, node, args, kwargs):
-        if len(args) != 2:
-            raise InvalidCode('Set_variable takes two arguments.')
-        varname = args[0]
-        value = self.to_native(args[1])
-        self.set_variable(varname, value)
-
-    @noKwargs
-    def func_get_variable(self, node, args, kwargs):
-        if len(args)<1 or len(args)>2:
-            raise InvalidCode('Get_variable takes one or two arguments.')
-        varname = args[0]
-        if not isinstance(varname, str):
-            raise InterpreterException('First argument must be a string.')
-        try:
-            return self.variables[varname]
-        except KeyError:
-            pass
-        if len(args) == 2:
-            return args[1]
-        raise InterpreterException('Tried to get unknown variable "%s".' % varname)
-
-    @stringArgs
-    @noKwargs
-    def func_is_variable(self, node, args, kwargs):
-        if len(args) != 1:
-            raise InvalidCode('Is_variable takes two arguments.')
-        varname = args[0]
-        return varname in self.variables
 
     @stringArgs
     @noKwargs
@@ -2510,18 +2447,6 @@ requirements use the version keyword argument instead.''')
                 pass
         return False
 
-    def evaluate_if(self, node):
-        assert(isinstance(node, mparser.IfClauseNode))
-        for i in node.ifs:
-            result = self.evaluate_statement(i.condition)
-            if not(isinstance(result, bool)):
-                raise InvalidCode('If clause {!r} does not evaluate to true or false.'.format(result))
-            if result:
-                self.evaluate_codeblock(i.block)
-                return
-        if not isinstance(node.elseblock, mparser.EmptyNode):
-            self.evaluate_codeblock(node.elseblock)
-
     def evaluate_ternary(self, node):
         assert(isinstance(node, mparser.TernaryNode))
         result = self.evaluate_statement(node.condition)
@@ -2637,14 +2562,6 @@ requirements use the version keyword argument instead.''')
         if not isinstance(r, bool):
             raise InterpreterException('Second argument to "or" is not a boolean.')
         return r
-
-    def evaluate_notstatement(self, cur):
-        v = self.evaluate_statement(cur.value)
-        if isinstance(v, mparser.BooleanNode):
-            v = v.value
-        if not isinstance(v, bool):
-            raise InterpreterException('Argument to "not" is not a boolean.')
-        return not v
 
     def evaluate_uminusstatement(self, cur):
         v = self.evaluate_statement(cur.value)
