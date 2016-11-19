@@ -34,22 +34,52 @@ class MockStaticLibrary(interpreterbase.InterpreterObject):
 class MockSharedLibrary(interpreterbase.InterpreterObject):
     pass
 
+class MockCustomTarget(interpreterbase.InterpreterObject):
+    pass
+
+class MockRunTarget(interpreterbase.InterpreterObject):
+    pass
+
 class AstInterpreter(interpreterbase.InterpreterBase):
     def __init__(self, source_root, subdir):
         super().__init__(source_root, subdir)
         self.funcs.update({'project' : self.func_do_nothing,
                            'test' : self.func_do_nothing,
+                           'benchmark' : self.func_do_nothing,
                            'install_headers' : self.func_do_nothing,
                            'install_man' : self.func_do_nothing,
                            'install_data' : self.func_do_nothing,
+                           'install_subdir' : self.func_do_nothing,
                            'configuration_data' : self.func_do_nothing,
                            'configure_file' : self.func_do_nothing,
                            'find_program' : self.func_do_nothing,
+                           'include_directories' : self.func_do_nothing,
+                           'add_global_arguments' : self.func_do_nothing,
+                           'add_global_link_arguments' : self.func_do_nothing,
+                           'add_project_arguments' : self.func_do_nothing,
+                           'add_project_link_arguments' : self.func_do_nothing,
+                           'message' : self.func_do_nothing,
+                           'generator' : self.func_do_nothing,
+                           'error' : self.func_do_nothing,
+                           'run_command' : self.func_do_nothing,
+                           'assert' : self.func_do_nothing,
+                           'subproject' : self.func_do_nothing,
+                           'dependency' : self.func_do_nothing,
+                           'get_option' : self.func_do_nothing,
+                           'join_paths' : self.func_do_nothing,
+                           'environment' : self.func_do_nothing,
+                           'import' : self.func_do_nothing,
+                           'vcs_tag' : self.func_do_nothing,
+                           'add_languages' : self.func_do_nothing,
+                           'declare_dependency' : self.func_do_nothing,
                            'files' : self.func_files,
                            'executable': self.func_executable,
                            'static_library' : self.func_static_lib,
                            'shared_library' : self.func_shared_lib,
+                           'library' : self.func_library,
                            'build_target' : self.func_build_target,
+                           'custom_target' : self.func_custom_target,
+                           'run_target' : self.func_run_target,
                            'subdir' : self.func_subdir,
                            'set_variable' : self.func_set_variable,
                            'get_variable' : self.func_get_variable,
@@ -57,7 +87,10 @@ class AstInterpreter(interpreterbase.InterpreterBase):
                            })
 
     def func_do_nothing(self, *args, **kwargs):
-        return DontCareObject()
+        return True
+
+    def method_call(self, node):
+        return True
 
     def func_executable(self, *args, **kwargs):
         return MockExecutable()
@@ -67,6 +100,15 @@ class AstInterpreter(interpreterbase.InterpreterBase):
 
     def func_shared_lib(self, *args, **kwargs):
         return MockSharedLibrary()
+
+    def func_library(self, *args, **kwargs):
+        return self.func_shared_lib(*args, **kwargs)
+
+    def func_custom_target(self, *args, **kwargs):
+        return MockCustomTarget()
+
+    def func_run_target(self, *args, **kwargs):
+        return MockRunTarget()
 
     def func_subdir(self, node, args, kwargs):
         prev_subdir = self.subdir
@@ -93,8 +135,14 @@ class AstInterpreter(interpreterbase.InterpreterBase):
             return [args]
         return args
 
-    def method_call(self, node):
-        return DontCareObject()
+    def evaluate_arithmeticstatement(self, cur):
+        return 0
+
+    def evaluate_plusassign(self, node):
+        return 0
+
+    def evaluate_indexing(self, node):
+        return 0
 
     def dump(self):
         self.load_root_meson_file()

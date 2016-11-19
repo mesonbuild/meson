@@ -24,8 +24,9 @@
 # - reindent?
 
 import mesonbuild.astinterpreter
-
-import sys
+from mesonbuild.mesonlib import MesonException
+from mesonbuild import mlog
+import sys, traceback
 
 if __name__ == '__main__':
     if len(sys.argv) == 1:
@@ -33,4 +34,15 @@ if __name__ == '__main__':
     else:
         source_root = sys.argv[1]
     ast = mesonbuild.astinterpreter.AstInterpreter(source_root, '')
-    ast.dump()
+    try:
+        ast.dump()
+    except Exception as e:
+        if isinstance(e, MesonException):
+            if hasattr(e, 'file') and hasattr(e, 'lineno') and hasattr(e, 'colno'):
+                mlog.log(mlog.red('\nMeson encountered an error in file %s, line %d, column %d:' % (e.file, e.lineno, e.colno)))
+            else:
+                mlog.log(mlog.red('\nMeson encountered an error:'))
+            mlog.log(e)
+        else:
+            traceback.print_exc()
+        sys.exit(1)

@@ -203,7 +203,6 @@ class InterpreterBase:
             raise InterpreterException('Argument to "not" is not a boolean.')
         return not v
 
-
     def evaluate_if(self, node):
         assert(isinstance(node, mparser.IfClauseNode))
         for i in node.ifs:
@@ -216,6 +215,155 @@ class InterpreterBase:
         if not isinstance(node.elseblock, mparser.EmptyNode):
             self.evaluate_codeblock(node.elseblock)
 
+    def evaluate_comparison(self, node):
+        v1 = self.evaluate_statement(node.left)
+        v2 = self.evaluate_statement(node.right)
+        if self.is_elementary_type(v1):
+            val1 = v1
+        else:
+            val1 = v1.value
+        if self.is_elementary_type(v2):
+            val2 = v2
+        else:
+            val2 = v2.value
+        if node.ctype == '==':
+            return val1 == val2
+        elif node.ctype == '!=':
+            return val1 != val2
+        elif node.ctype == '<':
+            return val1 < val2
+        elif node.ctype == '<=':
+            return val1 <= val2
+        elif node.ctype == '>':
+            return val1 > val2
+        elif node.ctype == '>=':
+            return val1 >= val2
+        else:
+            raise InvalidCode('You broke my compare eval.')
+
+    def evaluate_andstatement(self, cur):
+        l = self.evaluate_statement(cur.left)
+        if isinstance(l, mparser.BooleanNode):
+            l = l.value
+        if not isinstance(l, bool):
+            raise InterpreterException('First argument to "and" is not a boolean.')
+        if not l:
+            return False
+        r = self.evaluate_statement(cur.right)
+        if isinstance(r, mparser.BooleanNode):
+            r = r.value
+        if not isinstance(r, bool):
+            raise InterpreterException('Second argument to "and" is not a boolean.')
+        return r
+
+    def evaluate_orstatement(self, cur):
+        l = self.evaluate_statement(cur.left)
+        if isinstance(l, mparser.BooleanNode):
+            l = l.get_value()
+        if not isinstance(l, bool):
+            raise InterpreterException('First argument to "or" is not a boolean.')
+        if l:
+            return True
+        r = self.evaluate_statement(cur.right)
+        if isinstance(r, mparser.BooleanNode):
+            r = r.get_value()
+        if not isinstance(r, bool):
+            raise InterpreterException('Second argument to "or" is not a boolean.')
+        return r
+
+    def evaluate_uminusstatement(self, cur):
+        v = self.evaluate_statement(cur.value)
+        if isinstance(v, mparser.NumberNode):
+            v = v.value
+        if not isinstance(v, int):
+            raise InterpreterException('Argument to negation is not an integer.')
+        return -v
+
+    def evaluate_arithmeticstatement(self, cur):
+        l = self.to_native(self.evaluate_statement(cur.left))
+        r = self.to_native(self.evaluate_statement(cur.right))
+
+        if cur.operation == 'add':
+            try:
+                return l + r
+            except Exception as e:
+                raise InvalidCode('Invalid use of addition: ' + str(e))
+        elif cur.operation == 'sub':
+            if not isinstance(l, int) or not isinstance(r, int):
+                raise InvalidCode('Subtraction works only with integers.')
+            return l - r
+        elif cur.operation == 'mul':
+            if not isinstance(l, int) or not isinstance(r, int):
+                raise InvalidCode('Multiplication works only with integers.')
+            return l * r
+        elif cur.operation == 'div':
+            if not isinstance(l, int) or not isinstance(r, int):
+                raise InvalidCode('Division works only with integers.')
+            return l // r
+        elif cur.operation == 'mod':
+            if not isinstance(l, int) or not isinstance(r, int):
+                raise InvalidCode('Modulo works only with integers.')
+            return l % r
+        else:
+            raise InvalidCode('You broke me.')
+
+    def evaluate_ternary(self, node):
+        assert(isinstance(node, mparser.TernaryNode))
+        result = self.evaluate_statement(node.condition)
+        if not isinstance(result, bool):
+            raise InterpreterException('Ternary condition is not boolean.')
+        if result:
+            return self.evaluate_statement(node.trueblock)
+        else:
+            return self.evaluate_statement(node.falseblock)
+
+    def evaluate_foreach(self, node):
+        assert(isinstance(node, mparser.ForeachClauseNode))
+        varname = node.varname.value
+        items = self.evaluate_statement(node.items)
+        if not isinstance(items, list):
+            raise InvalidArguments('Items of foreach loop is not an array')
+        for item in items:
+            self.set_variable(varname, item)
+            self.evaluate_codeblock(node.block)
+
+    def evaluate_plusassign(self, node):
+        assert(isinstance(node, mparser.PlusAssignmentNode))
+        varname = node.var_name
+        addition = self.evaluate_statement(node.value)
+        # Remember that all variables are immutable. We must always create a
+        # full new variable and then assign it.
+        old_variable = self.get_variable(varname)
+        if isinstance(old_variable, str):
+            if not isinstance(addition, str):
+                raise InvalidArguments('The += operator requires a string on the right hand side if the variable on the left is a string')
+            new_value = old_variable + addition
+        elif isinstance(old_variable, int):
+            if not isinstance(addition, int):
+                raise InvalidArguments('The += operator requires an int on the right hand side if the variable on the left is an int')
+            new_value = old_variable + addition
+        elif not isinstance(old_variable, list):
+            raise InvalidArguments('The += operator currently only works with arrays, strings or ints ')
+        # Add other data types here.
+        else:
+            if isinstance(addition, list):
+                new_value = old_variable + addition
+            else:
+                new_value = old_variable + [addition]
+        self.set_variable(varname, new_value)
+
+    def evaluate_indexing(self, node):
+        assert(isinstance(node, mparser.IndexNode))
+        iobject = self.evaluate_statement(node.iobject)
+        if not isinstance(iobject, list):
+            raise InterpreterException('Tried to index a non-array object.')
+        index = self.evaluate_statement(node.index)
+        if not isinstance(index, int):
+            raise InterpreterException('Index value is not an integer.')
+        if index < -len(iobject) or index >= len(iobject):
+            raise InterpreterException('Index %d out of bounds of array of size %d.' % (index, len(iobject)))
+        return iobject[index]
+
     def function_call(self, node):
         func_name = node.func_name
         (posargs, kwargs) = self.reduce_arguments(node.args)
@@ -224,8 +372,141 @@ class InterpreterBase:
         else:
             self.unknown_function_called(func_name)
 
+    def method_call(self, node):
+        invokable = node.source_object
+        if isinstance(invokable, mparser.IdNode):
+            object_name = invokable.value
+            obj = self.get_variable(object_name)
+        else:
+            obj = self.evaluate_statement(invokable)
+        method_name = node.name
+        args = node.args
+        if isinstance(obj, mparser.StringNode):
+            obj = obj.get_value()
+        if isinstance(obj, str):
+            return self.string_method_call(obj, method_name, args)
+        if isinstance(obj, bool):
+            return self.bool_method_call(obj, method_name, args)
+        if isinstance(obj, int):
+            return self.int_method_call(obj, method_name, args)
+        if isinstance(obj, list):
+            return self.array_method_call(obj, method_name, self.reduce_arguments(args)[0])
+        if not isinstance(obj, InterpreterObject):
+            raise InvalidArguments('Variable "%s" is not callable.' % object_name)
+        (args, kwargs) = self.reduce_arguments(args)
+        if method_name == 'extract_objects':
+            self.validate_extraction(obj.held_object)
+        return obj.method_call(method_name, self.flatten(args), kwargs)
+
+    def bool_method_call(self, obj, method_name, args):
+        obj = self.to_native(obj)
+        (posargs, _) = self.reduce_arguments(args)
+        if method_name == 'to_string':
+            if len(posargs) == 0:
+                if obj == True:
+                    return 'true'
+                else:
+                    return 'false'
+            elif len(posargs) == 2 and isinstance(posargs[0], str) and isinstance(posargs[1], str):
+                if obj == True:
+                    return posargs[0]
+                else:
+                    return posargs[1]
+            else:
+                raise InterpreterException('bool.to_string() must have either no arguments or exactly two string arguments that signify what values to return for true and false.')
+        elif method_name == 'to_int':
+            if obj == True:
+                return 1
+            else:
+                return 0
+        else:
+            raise InterpreterException('Unknown method "%s" for a boolean.' % method_name)
+
+    def int_method_call(self, obj, method_name, args):
+        obj = self.to_native(obj)
+        (posargs, _) = self.reduce_arguments(args)
+        if method_name == 'is_even':
+            if len(posargs) == 0:
+                return obj % 2 == 0
+            else:
+                raise InterpreterException('int.is_even() must have no arguments.')
+        elif method_name == 'is_odd':
+            if len(posargs) == 0:
+                return obj % 2 != 0
+            else:
+                raise InterpreterException('int.is_odd() must have no arguments.')
+        else:
+            raise InterpreterException('Unknown method "%s" for an integer.' % method_name)
+
+    def string_method_call(self, obj, method_name, args):
+        obj = self.to_native(obj)
+        (posargs, _) = self.reduce_arguments(args)
+        if method_name == 'strip':
+            return obj.strip()
+        elif method_name == 'format':
+            return self.format_string(obj, args)
+        elif method_name == 'to_upper':
+            return obj.upper()
+        elif method_name == 'to_lower':
+            return obj.lower()
+        elif method_name == 'underscorify':
+            return re.sub(r'[^a-zA-Z0-9]', '_', obj)
+        elif method_name == 'split':
+            if len(posargs) > 1:
+                raise InterpreterException('Split() must have at most one argument.')
+            elif len(posargs) == 1:
+                s = posargs[0]
+                if not isinstance(s, str):
+                    raise InterpreterException('Split() argument must be a string')
+                return obj.split(s)
+            else:
+                return obj.split()
+        elif method_name == 'startswith' or method_name == 'contains' or method_name == 'endswith':
+            s = posargs[0]
+            if not isinstance(s, str):
+                raise InterpreterException('Argument must be a string.')
+            if method_name == 'startswith':
+                return obj.startswith(s)
+            elif method_name == 'contains':
+                return obj.find(s) >= 0
+            return obj.endswith(s)
+        elif method_name == 'to_int':
+            try:
+                return int(obj)
+            except Exception:
+                raise InterpreterException('String {!r} cannot be converted to int'.format(obj))
+        elif method_name == 'join':
+            if len(posargs) != 1:
+                raise InterpreterException('Join() takes exactly one argument.')
+            strlist = posargs[0]
+            check_stringlist(strlist)
+            return obj.join(strlist)
+        elif method_name == 'version_compare':
+            if len(posargs) != 1:
+                raise InterpreterException('Version_compare() takes exactly one argument.')
+            cmpr = posargs[0]
+            if not isinstance(cmpr, str):
+                raise InterpreterException('Version_compare() argument must be a string.')
+            return mesonlib.version_compare(obj, cmpr)
+        raise InterpreterException('Unknown method "%s" for a string.' % method_name)
+
     def unknown_function_called(self, func_name):
             raise InvalidCode('Unknown function "%s".' % func_name)
+
+    def array_method_call(self, obj, method_name, args):
+        if method_name == 'contains':
+            return self.check_contains(obj, args)
+        elif method_name == 'length':
+            return len(obj)
+        elif method_name == 'get':
+            index = args[0]
+            if not isinstance(index, int):
+                raise InvalidArguments('Array index must be a number.')
+            if index < -len(obj) or index >= len(obj):
+                raise InvalidArguments('Array index %s is out of bounds for array of size %d.' % (index, len(obj)))
+            return obj[index]
+        raise InterpreterException('Arrays do not have a method called "%s".' % method_name)
+
 
     def reduce_arguments(self, args):
         assert(isinstance(args, mparser.ArgumentNode))
@@ -349,3 +630,7 @@ class InterpreterBase:
             raise InvalidCode('Is_variable takes two arguments.')
         varname = args[0]
         return varname in self.variables
+
+    def is_elementary_type(self, v):
+        return isinstance(v, (int, float, str, bool, list))
+
