@@ -28,6 +28,7 @@ known_basic_kwargs = {'install' : True,
                       'cs_args' : True,
                       'vala_args' : True,
                       'd_args' : True,
+                      'java_args' : True,
                       'link_args' : True,
                       'link_depends': True,
                       'link_with' : True,
@@ -1342,13 +1343,16 @@ class Jar(BuildTarget):
             if not s.endswith('.java'):
                 raise InvalidArguments('Jar source %s is not a java file.' % s)
         self.filename = self.name + '.jar'
-        incdirs = kwargs.get('include_directories', [])
+        self.java_args = kwargs.get('java_args', [])
 
     def get_main_class(self):
         return self.main_class
 
     def type_suffix(self):
         return "@jar"
+
+    def get_java_args(self):
+        return self.java_args
 
 class ConfigureFile():
 

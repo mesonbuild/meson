@@ -804,7 +804,6 @@ int dummy;
 
     def generate_jar_target(self, target, outfile):
         fname = target.get_filename()
-        subdir = target.get_subdir()
         outname_rel = os.path.join(self.get_target_dir(target), fname)
         src_list = target.get_sources()
         class_list = []
@@ -889,6 +888,9 @@ int dummy;
     def generate_single_java_compile(self, src, target, compiler, outfile):
         args = []
         args += compiler.get_buildtype_args(self.environment.coredata.get_builtin_option('buildtype'))
+        args += self.build.get_global_args(compiler)
+        args += self.build.get_project_args(compiler, target.subproject)
+        args += target.get_java_args()
         args += compiler.get_output_args(self.get_target_private_dir(target))
         for i in target.include_dirs:
             for idir in i.get_incdirs():
