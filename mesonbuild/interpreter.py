@@ -66,6 +66,17 @@ def noKwargs(f):
         return f(self, node, args, kwargs)
     return wrapped
 
+def permittedKwargs(*perm):
+    def expand(f):
+        @wraps(f)
+        def wrapped(self, node, args, kwargs):
+            xs = [x for x in kwargs if x not in perm]
+            if len(xs) > 0:
+                raise InvalidArguments('Unknown keyword argument(s): ' + ', '.join(xs))
+            return f(self, node, args, kwargs)
+        return wrapped
+    return expand
+
 def stringArgs(f):
     @wraps(f)
     def wrapped(self, node, args, kwargs):
@@ -1412,27 +1423,26 @@ class Interpreter():
         return [mesonlib.File.from_source_file(self.environment.source_dir, self.subdir, fname) for fname in args]
 
     @noPosargs
+    @permittedKwargs('version', 'include_directories', 'link_with', 'sources', 'dependencies', 'compile_args', 'link_args')
     def func_declare_dependency(self, node, args, kwargs):
-        version = kwargs.pop('version', self.project_version)
+        version = kwargs.get('version', self.project_version)
         if not isinstance(version, str):
             raise InterpreterException('Version must be a string.')
-        incs = kwargs.pop('include_directories', [])
+        incs = kwargs.get('include_directories', [])
         if not isinstance(incs, list):
             incs = [incs]
-        libs = kwargs.pop('link_with', [])
+        libs = kwargs.get('link_with', [])
         if not isinstance(libs, list):
             libs = [libs]
-        sources = kwargs.pop('sources', [])
+        sources = kwargs.get('sources', [])
         if not isinstance(sources, list):
             sources = [sources]
         sources = self.source_strings_to_files(self.flatten(sources))
-        deps = kwargs.pop('dependencies', [])
+        deps = kwargs.get('dependencies', [])
         if not isinstance(deps, list):
             deps = [deps]
-        compile_args = mesonlib.stringlistify(kwargs.pop('compile_args', []))
-        link_args = mesonlib.stringlistify(kwargs.pop('link_args', []))
-        if len(kwargs) > 0:
-            raise InvalidArguments('Unknown keyword arguments: ' + ', '.join (kwargs.keys()))
+        compile_args = mesonlib.stringlistify(kwargs.get('compile_args', []))
+        link_args = mesonlib.stringlistify(kwargs.get('link_args', []))
         final_deps = []
         for d in deps:
             try:
