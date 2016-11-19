@@ -15,12 +15,26 @@
 # This class contains the basic functionality needed to run any interpreter
 # or an interpreter-based tool.
 
-from . import interpreterbase
+from . import interpreterbase, mlog
+
+class MockExecutable(interpreterbase.InterpreterObject):
+    pass
 
 class AstInterpreter(interpreterbase.InterpreterBase):
     def __init__(self, source_root, subdir):
         super().__init__(source_root, subdir)
+        self.funcs.update({'executable': self.func_executable,
+                           })
+
+    def func_executable(self, *args, **kwargs):
+        return MockExecutable()
 
     def dump(self):
         self.load_root_meson_file()
+        self.sanity_check_ast()
+        self.parse_project()
+        self.run()
         print('AST here')
+
+    def unknown_function_called(self, func_name):
+        mlog.warning('Unknown function called: ' + func_name)

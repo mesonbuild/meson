@@ -24,12 +24,12 @@ from .wrap import wrap
 from . import mesonlib
 from mesonbuild.interpreterbase import InterpreterBase
 from mesonbuild.interpreterbase import InterpreterException, InvalidArguments, InvalidCode
+from mesonbuild.interpreterbase import InterpreterObject, MutableInterpreterObject
 
 import os, sys, subprocess, shutil, uuid, re
 from functools import wraps
 
 import importlib
-import copy
 
 run_depr_printed = False
 
@@ -75,19 +75,6 @@ def stringifyUserArguments(args):
     elif isinstance(args, str):
         return "'%s'" % args
     raise InvalidArguments('Function accepts only strings, integers, lists and lists thereof.')
-
-class InterpreterObject():
-    def __init__(self):
-        self.methods = {}
-
-    def method_call(self, method_name, args, kwargs):
-        if method_name in self.methods:
-            return self.methods[method_name](args, kwargs)
-        raise InvalidCode('Unknown method "%s" in object.' % method_name)
-
-class MutableInterpreterObject(InterpreterObject):
-    def __init__(self):
-        super().__init__()
 
 class TryRunResultHolder(InterpreterObject):
     def __init__(self, res):
@@ -1155,8 +1142,7 @@ class Interpreter(InterpreterBase):
             self.build.environment.merge_options(oi.options)
         self.load_root_meson_file()
         self.sanity_check_ast()
-        self.variables = {}
-        self.builtin = {'meson': MesonMain(build, self)}
+        self.builtin.update({'meson': MesonMain(build, self)})
         self.generators = []
         self.visited_subdirs = {}
         self.args_frozen = False
@@ -1228,13 +1214,6 @@ class Interpreter(InterpreterBase):
                       'join_paths' : self.func_join_paths,
                      })
 
-    def parse_project(self):
-        """
-        Parses project() and initializes languages, compilers etc. Do this
-        early because we need this before we parse the rest of the AST.
-        """
-        self.evaluate_codeblock(self.ast, end=1)
-
     def module_method_callback(self, invalues):
         unwrap_single = False
         if invalues is None:
@@ -1280,16 +1259,6 @@ class Interpreter(InterpreterBase):
     def get_variables(self):
         return self.variables
 
-    def sanity_check_ast(self):
-        if not isinstance(self.ast, mparser.CodeBlockNode):
-            raise InvalidCode('AST is of invalid type. Possibly a bug in the parser.')
-        if len(self.ast.lines) == 0:
-            raise InvalidCode('No statements in code.')
-        first = self.ast.lines[0]
-        if not isinstance(first, mparser.FunctionNode) or first.func_name != 'project':
-            raise InvalidCode('First statement must be a call to project')
-
-
     def check_cross_stdlibs(self):
         if self.build.environment.is_cross_build():
             cross_info = self.build.environment.cross_info
@@ -1305,41 +1274,6 @@ class Interpreter(InterpreterBase):
                     self.build.cross_stdlibs[l] = subproj.get_variable_method([depname], {})
                 except KeyError as e:
                     pass
-
-    def run(self):
-        # Evaluate everything after the first line, which is project() because
-        # we already parsed that in self.parse_project()
-        self.evaluate_codeblock(self.ast, start=1)
-        mlog.log('Build targets in project:', mlog.bold(str(len(self.build.targets))))
-
-    def evaluate_codeblock(self, node, start=0, end=None):
-        if node is None:
-            return
-        if not isinstance(node, mparser.CodeBlockNode):
-            e = InvalidCode('Tried to execute a non-codeblock. Possibly a bug in the parser.')
-            e.lineno = node.lineno
-            e.colno = node.colno
-            raise e
-        statements = node.lines[start:end]
-        i = 0
-        while i < len(statements):
-            cur = statements[i]
-            try:
-                self.evaluate_statement(cur)
-            except Exception as e:
-                if not(hasattr(e, 'lineno')):
-                    e.lineno = cur.lineno
-                    e.colno = cur.colno
-                    e.file = os.path.join(self.subdir, 'meson.build')
-                raise e
-            i += 1 # In THE FUTURE jump over blocks and stuff.
-
-    def get_variable(self, varname):
-        if varname in self.builtin:
-            return self.builtin[varname]
-        if varname in self.variables:
-            return self.variables[varname]
-        raise InvalidCode('Unknown variable "%s".' % varname)
 
     def func_set_variable(self, node, args, kwargs):
         if len(args) != 2:
@@ -1430,63 +1364,6 @@ class Interpreter(InterpreterBase):
             raise InterpreterException('Assert message not a string.')
         if not value:
             raise InterpreterException('Assert failed: ' + message)
-
-    def set_variable(self, varname, variable):
-        if variable is None:
-            raise InvalidCode('Can not assign None to variable.')
-        if not isinstance(varname, str):
-            raise InvalidCode('First argument to set_variable must be a string.')
-        if not self.is_assignable(variable):
-            raise InvalidCode('Assigned value not of assignable type.')
-        if re.match('[_a-zA-Z][_0-9a-zA-Z]*$', varname) is None:
-            raise InvalidCode('Invalid variable name: ' + varname)
-        if varname in self.builtin:
-            raise InvalidCode('Tried to overwrite internal variable "%s"' % varname)
-        self.variables[varname] = variable
-
-    def evaluate_statement(self, cur):
-        if isinstance(cur, mparser.FunctionNode):
-            return self.function_call(cur)
-        elif isinstance(cur, mparser.AssignmentNode):
-            return self.assignment(cur)
-        elif isinstance(cur, mparser.MethodNode):
-            return self.method_call(cur)
-        elif isinstance(cur, mparser.StringNode):
-            return cur.value
-        elif isinstance(cur, mparser.BooleanNode):
-            return cur.value
-        elif isinstance(cur, mparser.IfClauseNode):
-            return self.evaluate_if(cur)
-        elif isinstance(cur, mparser.IdNode):
-            return self.get_variable(cur.value)
-        elif isinstance(cur, mparser.ComparisonNode):
-            return self.evaluate_comparison(cur)
-        elif isinstance(cur, mparser.ArrayNode):
-            return self.evaluate_arraystatement(cur)
-        elif isinstance(cur, mparser.NumberNode):
-            return cur.value
-        elif isinstance(cur, mparser.AndNode):
-            return self.evaluate_andstatement(cur)
-        elif isinstance(cur, mparser.OrNode):
-            return self.evaluate_orstatement(cur)
-        elif isinstance(cur, mparser.NotNode):
-            return self.evaluate_notstatement(cur)
-        elif isinstance(cur, mparser.UMinusNode):
-            return self.evaluate_uminusstatement(cur)
-        elif isinstance(cur, mparser.ArithmeticNode):
-            return self.evaluate_arithmeticstatement(cur)
-        elif isinstance(cur, mparser.ForeachClauseNode):
-            return self.evaluate_foreach(cur)
-        elif isinstance(cur, mparser.PlusAssignmentNode):
-            return self.evaluate_plusassign(cur)
-        elif isinstance(cur, mparser.IndexNode):
-            return self.evaluate_indexing(cur)
-        elif isinstance(cur, mparser.TernaryNode):
-            return self.evaluate_ternary(cur)
-        elif self.is_elementary_type(cur):
-            return cur
-        else:
-            raise InvalidCode("Unknown statement.")
 
     def validate_arguments(self, args, argcount, arg_types):
         if argcount is not None:
@@ -2364,21 +2241,9 @@ requirements use the version keyword argument instead.''')
             st = tuple(args)
         return os.path.join(*args).replace('\\', '/')
 
-    def flatten(self, args):
-        if isinstance(args, mparser.StringNode):
-            return args.value
-        if isinstance(args, (int, str, InterpreterObject)):
-            return args
-        result = []
-        for a in args:
-            if isinstance(a, list):
-                rest = self.flatten(a)
-                result = result + rest
-            elif isinstance(a, mparser.StringNode):
-                result.append(a.value)
-            else:
-                result.append(a)
-        return result
+    def run(self):
+        super().run()
+        mlog.log('Build targets in project:', mlog.bold(str(len(self.build.targets))))
 
     def source_strings_to_files(self, sources):
         results = []
@@ -2475,48 +2340,6 @@ requirements use the version keyword argument instead.''')
             if not os.path.isfile(fname):
                 raise InterpreterException('Tried to add non-existing source file %s.' % s)
 
-    def function_call(self, node):
-        func_name = node.func_name
-        (posargs, kwargs) = self.reduce_arguments(node.args)
-        if func_name in self.funcs:
-            return self.funcs[func_name](node, self.flatten(posargs), kwargs)
-        else:
-            raise InvalidCode('Unknown function "%s".' % func_name)
-
-    def is_assignable(self, value):
-        return isinstance(value, (InterpreterObject, dependencies.Dependency,
-                                  str, int, list, mesonlib.File))
-
-    def assignment(self, node):
-        assert(isinstance(node, mparser.AssignmentNode))
-        var_name = node.var_name
-        if not isinstance(var_name, str):
-            raise InvalidArguments('Tried to assign value to a non-variable.')
-        value = self.evaluate_statement(node.value)
-        value = self.to_native(value)
-        if not self.is_assignable(value):
-            raise InvalidCode('Tried to assign an invalid value to variable.')
-        # For mutable objects we need to make a copy on assignment
-        if isinstance(value, MutableInterpreterObject):
-            value = copy.deepcopy(value)
-        self.set_variable(var_name, value)
-        return value
-
-    def reduce_arguments(self, args):
-        assert(isinstance(args, mparser.ArgumentNode))
-        if args.incorrect_order():
-            raise InvalidArguments('All keyword arguments must be after positional arguments.')
-        reduced_pos = [self.evaluate_statement(arg) for arg in args.arguments]
-        reduced_kw = {}
-        for key in args.kwargs.keys():
-            if not isinstance(key, str):
-                raise InvalidArguments('Keyword argument name is not a string.')
-            a = args.kwargs[key]
-            reduced_kw[key] = self.evaluate_statement(a)
-        if not isinstance(reduced_pos, list):
-            reduced_pos = [reduced_pos]
-        return (reduced_pos, reduced_kw)
-
     def bool_method_call(self, obj, method_name, args):
         obj = self.to_native(obj)
         (posargs, _) = self.reduce_arguments(args)
@@ -2608,12 +2431,6 @@ requirements use the version keyword argument instead.''')
                 raise InterpreterException('Version_compare() argument must be a string.')
             return mesonlib.version_compare(obj, cmpr)
         raise InterpreterException('Unknown method "%s" for a string.' % method_name)
-
-    def to_native(self, arg):
-        if isinstance(arg, (mparser.StringNode, mparser.NumberNode,
-                            mparser.BooleanNode)):
-            return arg.value
-        return arg
 
     def format_string(self, templ, args):
         templ = self.to_native(templ)
@@ -2864,12 +2681,6 @@ requirements use the version keyword argument instead.''')
             return l % r
         else:
             raise InvalidCode('You broke me.')
-
-    def evaluate_arraystatement(self, cur):
-        (arguments, kwargs) = self.reduce_arguments(cur.args)
-        if len(kwargs) > 0:
-            raise InvalidCode('Keyword arguments are invalid in array construction.')
-        return arguments
 
     def is_subproject(self):
         return self.subproject != ''
