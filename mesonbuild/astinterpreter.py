@@ -20,7 +20,7 @@ from . import environment
 
 from .interpreterbase import InterpreterException
 
-import os
+import os, sys
 
 class DontCareObject(interpreterbase.InterpreterObject):
     pass
@@ -39,6 +39,8 @@ class MockCustomTarget(interpreterbase.InterpreterObject):
 
 class MockRunTarget(interpreterbase.InterpreterObject):
     pass
+
+ADD_SOURCE = 0
 
 class AstInterpreter(interpreterbase.InterpreterBase):
     def __init__(self, source_root, subdir):
@@ -86,28 +88,33 @@ class AstInterpreter(interpreterbase.InterpreterBase):
                            'is_variable' : self.func_is_variable,
                            })
 
-    def func_do_nothing(self, *args, **kwargs):
+    def func_do_nothing(self, node, args, kwargs):
         return True
 
     def method_call(self, node):
         return True
 
-    def func_executable(self, *args, **kwargs):
+    def func_executable(self, node, args, kwargs):
+        if args[0] == self.targetname:
+            if self.operation == ADD_SOURCE:
+                self.add_source_to_target(node, args, kwargs)
+            else:
+                raise NotImplementedError('Bleep bloop')
         return MockExecutable()
 
-    def func_static_lib(self, *args, **kwargs):
+    def func_static_lib(self, node, args, kwargs):
         return MockStaticLibrary()
 
-    def func_shared_lib(self, *args, **kwargs):
+    def func_shared_lib(self, node, args, kwargs):
         return MockSharedLibrary()
 
-    def func_library(self, *args, **kwargs):
-        return self.func_shared_lib(*args, **kwargs)
+    def func_library(self, node, args, kwargs):
+        return self.func_shared_lib(node, args, kwargs)
 
-    def func_custom_target(self, *args, **kwargs):
+    def func_custom_target(self, node, args, kwargs):
         return MockCustomTarget()
 
-    def func_run_target(self, *args, **kwargs):
+    def func_run_target(self, node, args, kwargs):
         return MockRunTarget()
 
     def func_subdir(self, node, args, kwargs):
@@ -144,12 +151,26 @@ class AstInterpreter(interpreterbase.InterpreterBase):
     def evaluate_indexing(self, node):
         return 0
 
-    def dump(self):
+    def transform(self):
         self.load_root_meson_file()
         self.sanity_check_ast()
         self.parse_project()
         self.run()
         print('AST here')
 
+    def add_source(self, targetname, filename):
+        self.operation = ADD_SOURCE
+        self.targetname = targetname
+        self.filename = filename
+        self.transform()
+
     def unknown_function_called(self, func_name):
         mlog.warning('Unknown function called: ' + func_name)
+
+    def add_source_to_target(self, node, args, kwargs):
+        namespan = node.args.arguments[0].bytespan
+        buildfilename = os.path.join(self.source_root, self.subdir, environment.build_filename)
+        raw_data = open(buildfilename, 'r').read()
+        updated = raw_data[0:namespan[1]] + (", '%s'" % self.filename) + raw_data[namespan[1]:]
+        open(buildfilename, 'w').write(updated)
+        sys.exit(0)

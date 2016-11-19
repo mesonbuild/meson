@@ -22,10 +22,11 @@ class ParseException(MesonException):
         self.colno = colno
 
 class Token:
-    def __init__(self, tid, lineno, colno, value):
+    def __init__(self, tid, lineno, colno, bytespan, value):
         self.tid = tid
         self.lineno = lineno
         self.colno = colno
+        self.bytespan = bytespan
         self.value = value
 
     def __eq__(self, other):
@@ -87,7 +88,10 @@ class Lexer:
                     curline = lineno
                     col = mo.start()-line_start
                     matched = True
+                    span_start = loc
                     loc = mo.end()
+                    span_end = loc
+                    bytespan = (span_start, span_end)
                     match_text = mo.group()
                     if tid == 'ignore' or tid == 'comment':
                         break
@@ -123,40 +127,40 @@ class Lexer:
                             tid = match_text
                         else:
                             value = match_text
-                    yield Token(tid, curline, col, value)
+                    yield Token(tid, curline, col, bytespan, value)
                     break
             if not matched:
                 raise ParseException('lexer', lineno, col)
 
-class BooleanNode:
-    def __init__(self, token, value):
-        self.lineno = token.lineno
-        self.colno = token.colno
-        self.value = value
-        assert(isinstance(self.value, bool))
-
-class IdNode:
+class ElementaryNode:
     def __init__(self, token):
         self.lineno = token.lineno
         self.colno = token.colno
         self.value = token.value
+        self.bytespan = token.bytespan
+
+class BooleanNode(ElementaryNode):
+    def __init__(self, token, value):
+        super().__init__(token)
+        self.value = value
+        assert(isinstance(self.value, bool))
+
+class IdNode(ElementaryNode):
+    def __init__(self, token):
+        super().__init__(token)
         assert(isinstance(self.value, str))
 
     def __str__(self):
         return "Id node: '%s' (%d, %d)." % (self.value, self.lineno, self.colno)
 
-class NumberNode:
+class NumberNode(ElementaryNode):
     def __init__(self, token):
-        self.lineno = token.lineno
-        self.colno = token.colno
-        self.value = token.value
+        super().__init__(token)
         assert(isinstance(self.value, int))
 
-class StringNode:
+class StringNode(ElementaryNode):
     def __init__(self, token):
-        self.lineno = token.lineno
-        self.colno = token.colno
-        self.value = token.value
+        super().__init__(token)
         assert(isinstance(self.value, str))
 
     def __str__(self):
@@ -360,7 +364,7 @@ class Parser:
         try:
             self.current = next(self.stream)
         except StopIteration:
-            self.current = Token('eof', 0, 0, None)
+            self.current = Token('eof', 0, 0, (0, 0), None)
 
     def accept(self, s):
         if self.current.tid == s:

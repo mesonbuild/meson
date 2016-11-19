@@ -35,7 +35,7 @@ if __name__ == '__main__':
         source_root = sys.argv[1]
     ast = mesonbuild.astinterpreter.AstInterpreter(source_root, '')
     try:
-        ast.dump()
+        ast.add_source('trivialprog', 'newfile.c')
     except Exception as e:
         if isinstance(e, MesonException):
             if hasattr(e, 'file') and hasattr(e, 'lineno') and hasattr(e, 'colno'):
