@@ -41,6 +41,7 @@ class MockRunTarget(interpreterbase.InterpreterObject):
     pass
 
 ADD_SOURCE = 0
+REMOVE_SOURCE = 1
 
 class AstInterpreter(interpreterbase.InterpreterBase):
     def __init__(self, source_root, subdir):
@@ -98,6 +99,8 @@ class AstInterpreter(interpreterbase.InterpreterBase):
         if args[0] == self.targetname:
             if self.operation == ADD_SOURCE:
                 self.add_source_to_target(node, args, kwargs)
+            elif self.operation == REMOVE_SOURCE:
+                self.remove_source_from_target(node, args, kwargs)
             else:
                 raise NotImplementedError('Bleep bloop')
         return MockExecutable()
@@ -164,6 +167,12 @@ class AstInterpreter(interpreterbase.InterpreterBase):
         self.filename = filename
         self.transform()
 
+    def remove_source(self, targetname, filename):
+        self.operation = REMOVE_SOURCE
+        self.targetname = targetname
+        self.filename = filename
+        self.transform()
+
     def unknown_function_called(self, func_name):
         mlog.warning('Unknown function called: ' + func_name)
 
@@ -174,3 +183,16 @@ class AstInterpreter(interpreterbase.InterpreterBase):
         updated = raw_data[0:namespan[1]] + (", '%s'" % self.filename) + raw_data[namespan[1]:]
         open(buildfilename, 'w').write(updated)
         sys.exit(0)
+
+    def remove_source_from_target(self, node, args, kwargs):
+        for i in range(len(args)):
+            if self.filename == args[i]:
+                namespan = node.args.arguments[i].bytespan
+                # SUPER HACK! Should track bytespans of commas instead.
+                namespan = (namespan[0]-2, namespan[1])
+                buildfilename = os.path.join(self.source_root, self.subdir, environment.build_filename)
+                raw_data = open(buildfilename, 'r').read()
+                updated = raw_data[0:namespan[0]] + raw_data[namespan[1]:]
+                open(buildfilename, 'w').write(updated)
+                sys.exit(0)
+        sys.exit('Could not find source %s in target %s.' % (self.filename, args[0]))
