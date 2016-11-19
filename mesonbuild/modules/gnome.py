@@ -108,8 +108,19 @@ can not be used with the current version of glib-compiled-resources, due to
 
         cmd += mesonlib.stringlistify(kwargs.pop('extra_args', []))
 
+        gresource = kwargs.pop('gresource_bundle', False)
+        if gresource:
+            output = args[0] + '.gresource'
+            name = args[0] + '_gresource'
+        else:
+            output = args[0] + '.c'
+            name = args[0] + '_c'
+
+        if kwargs.get('install', False) and not gresource:
+            raise MesonException('Only gresource files can be installed')
+
         kwargs['input'] = args[1]
-        kwargs['output'] = args[0] + '.c'
+        kwargs['output'] = output
         kwargs['depends'] = depends
         if not mesonlib.version_compare(glib_version, gresource_dep_needed_version):
             # This will eventually go out of sync if dependencies are added
@@ -119,7 +130,10 @@ can not be used with the current version of glib-compiled-resources, due to
             depfile = kwargs['output'] + '.d'
             kwargs['depfile'] = depfile
             kwargs['command'] = copy.copy(cmd) + ['--dependency-file', '@DEPFILE@']
-        target_c = build.CustomTarget(args[0] + '_c', state.subdir, kwargs)
+        target_c = build.CustomTarget(name, state.subdir, kwargs)
+
+        if gresource: # Only one target for .gresource files
+            return [target_c]
 
         h_kwargs = {
             'command': cmd,

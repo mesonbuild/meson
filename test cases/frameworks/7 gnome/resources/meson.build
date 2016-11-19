@@ -11,6 +11,15 @@ simple_res_exe = executable('simple-resources-test',
   dependencies: gio)
 test('simple resource test', simple_res_exe)
 
+gnome.compile_resources('simple-resources',
+  'simple.gresource.xml',
+  gresource_bundle: true,
+  install: true,
+  install_dir: get_option('datadir'),
+  source_dir : '../resources-data',
+)
+test('simple resource test (gresource)', find_program('resources.py'))
+
 if glib.version() >= '2.52.0'
   # This test cannot pass if GLib version is older than 9.99.9.
   # Meson will raise an error if the user tries to use the 'dependencies'
