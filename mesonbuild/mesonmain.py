@@ -192,12 +192,6 @@ def run_script_command(args):
     if cmdname == 'exe':
         import mesonbuild.scripts.meson_exe as abc
         cmdfunc = abc.run
-    elif cmdname == 'test':
-        import mesonbuild.scripts.meson_test as abc
-        cmdfunc = abc.run
-    elif cmdname == 'benchmark':
-        import mesonbuild.scripts.meson_benchmark as abc
-        cmdfunc = abc.run
     elif cmdname == 'install':
         import mesonbuild.scripts.meson_install as abc
         cmdfunc = abc.run

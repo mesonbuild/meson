@@ -39,12 +39,6 @@ def find_coverage_tools():
         genhtml_exe = None
     return (gcovr_exe, lcov_exe, genhtml_exe)
 
-def find_valgrind():
-    valgrind_exe = 'valgrind'
-    if not mesonlib.exe_exists([valgrind_exe, '--version']):
-        valgrind_exe = None
-    return valgrind_exe
-
 def detect_ninja():
     for n in ['ninja', 'ninja-build']:
         try:

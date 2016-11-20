@@ -142,7 +142,6 @@ class NinjaBackend(backends.Backend):
         self.ninja_filename = 'build.ninja'
         self.fortran_deps = {}
         self.all_outputs = {}
-        self.valgrind = environment.find_valgrind()
 
     def detect_vs_dep_prefix(self, tempfilename):
         '''VS writes its dependency in a locale dependent format.
@@ -708,56 +707,25 @@ int dummy;
             dst_dir = os.path.join(self.environment.get_prefix(), sd.install_dir)
             d.install_subdirs.append([src_dir, inst_dir, dst_dir])
 
-    def write_test_suite_targets(self, cmd, outfile):
-        suites = {}
-        for t in self.build.get_tests():
-            for s in t.suite:
-                suites[s] = True
-        suites = list(suites.keys())
-        suites.sort()
-        for s in suites:
-            if s == '':
-                visible_name = 'for top level tests'
-            else:
-                visible_name = s
-            elem = NinjaBuildElement(self.all_outputs, 'test:' + s, 'CUSTOM_COMMAND', ['all', 'PHONY'])
-            elem.add_item('COMMAND', cmd + ['--suite=' + s])
-            elem.add_item('DESC', 'Running test suite %s.' % visible_name)
-            elem.add_item('pool', 'console')
-            elem.write(outfile)
-
-            if self.valgrind:
-                velem = NinjaBuildElement(self.all_outputs, 'test-valgrind:' + s, 'CUSTOM_COMMAND', ['all', 'PHONY'])
-                velem.add_item('COMMAND', cmd + ['--wrapper=' + self.valgrind, '--suite=' + s])
-                velem.add_item('DESC', 'Running test suite %s under Valgrind.' % visible_name)
-                velem.add_item('pool', 'console')
-                velem.write(outfile)
-
     def generate_tests(self, outfile):
-        (test_data, benchmark_data) = self.serialise_tests()
-        script_root = self.environment.get_script_dir()
-        cmd = [ sys.executable, self.environment.get_build_command(), '--internal', 'test' ]
+        self.serialise_tests()
+        meson_exe = self.environment.get_build_command()
+        (base, ext) = os.path.splitext(meson_exe)
+        test_exe = base + 'test' + ext
+        cmd = [sys.executable, test_exe]
         if not self.environment.coredata.get_builtin_option('stdsplit'):
             cmd += ['--no-stdsplit']
         if self.environment.coredata.get_builtin_option('errorlogs'):
             cmd += ['--print-errorlogs']
-        cmd += [ test_data ]
         elem = NinjaBuildElement(self.all_outputs, 'test', 'CUSTOM_COMMAND', ['all', 'PHONY'])
         elem.add_item('COMMAND', cmd)
         elem.add_item('DESC', 'Running all tests.')
         elem.add_item('pool', 'console')
         elem.write(outfile)
-        self.write_test_suite_targets(cmd, outfile)
-
-        if self.valgrind:
-            velem = NinjaBuildElement(self.all_outputs, 'test-valgrind', 'CUSTOM_COMMAND', ['all', 'PHONY'])
-            velem.add_item('COMMAND', cmd + ['--wrapper=' + self.valgrind])
-            velem.add_item('DESC', 'Running test suite under Valgrind.')
-            velem.add_item('pool', 'console')
-            velem.write(outfile)
 
         # And then benchmarks.
-        cmd = [sys.executable, self.environment.get_build_command(), '--internal', 'benchmark', benchmark_data]
+        cmd = [sys.executable, test_exe, '--benchmark','--logbase',
+               'benchmarklog', '--num-processes=1']
         elem = NinjaBuildElement(self.all_outputs, 'benchmark', 'CUSTOM_COMMAND', ['all', 'PHONY'])
         elem.add_item('COMMAND', cmd)
         elem.add_item('DESC', 'Running benchmark suite.')
@@ -804,7 +772,6 @@ int dummy;
 
     def generate_jar_target(self, target, outfile):
         fname = target.get_filename()
-        subdir = target.get_subdir()
         outname_rel = os.path.join(self.get_target_dir(target), fname)
         src_list = target.get_sources()
         class_list = []

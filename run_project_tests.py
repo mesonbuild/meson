@@ -19,12 +19,12 @@ import os, subprocess, shutil, sys, signal
 from io import StringIO
 from ast import literal_eval
 import sys, tempfile
+import mesontest
 from mesonbuild import environment
 from mesonbuild import mesonlib
 from mesonbuild import mlog
 from mesonbuild import mesonmain
 from mesonbuild.mesonlib import stringlistify
-from mesonbuild.scripts import meson_test, meson_benchmark
 import argparse
 import xml.etree.ElementTree as ET
 import time
@@ -211,8 +211,8 @@ def run_test_inprocess(testdir):
     old_cwd = os.getcwd()
     os.chdir(testdir)
     try:
-        returncode_test = meson_test.run(['meson-private/meson_test_setup.dat'])
-        returncode_benchmark = meson_benchmark.run(['meson-private/meson_benchmark_setup.dat'])
+        returncode_test = mesontest.run([])
+        returncode_benchmark = mesontest.run(['--benchmark', '--logbase', 'benchmarklog'])
     finally:
         sys.stdout = old_stdout
         sys.stderr = old_stderr
