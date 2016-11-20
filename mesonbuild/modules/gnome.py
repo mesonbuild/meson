@@ -104,6 +104,10 @@ can not be used with the current version of glib-compiled-resources, due to
 
         if 'c_name' in kwargs:
             cmd += ['--c-name', kwargs.pop('c_name')]
+        export = kwargs.pop('export', False)
+        if not export:
+            cmd += ['--internal']
+
         cmd += ['--generate', '--target', '@OUTPUT@']
 
         cmd += mesonlib.stringlistify(kwargs.pop('extra_args', []))
@@ -117,7 +121,13 @@ can not be used with the current version of glib-compiled-resources, due to
             name = args[0] + '_c'
 
         if kwargs.get('install', False) and not gresource:
-            raise MesonException('Only gresource files can be installed')
+            raise MesonException('The install kwarg only applies to gresource bundles, see install_header')
+
+        install_header = kwargs.pop('install_header', False)
+        if install_header and gresource:
+            raise MesonException('The install_header kwarg does not apply to gresource bundles')
+        if install_header and not export:
+            raise MesonException('GResource header is installed yet export is not enabled')
 
         kwargs['input'] = args[1]
         kwargs['output'] = output
@@ -142,6 +152,10 @@ can not be used with the current version of glib-compiled-resources, due to
             # The header doesn't actually care about the files yet it errors if missing
             'depends': depends
         }
+        if install_header:
+            h_kwargs['install'] = install_header
+            h_kwargs['install_dir'] = kwargs.get('install_dir',
+                                                 state.environment.coredata.get_builtin_option('includedir'))
         target_h = build.CustomTarget(args[0] + '_h', state.subdir, h_kwargs)
         return [target_c, target_h]
 

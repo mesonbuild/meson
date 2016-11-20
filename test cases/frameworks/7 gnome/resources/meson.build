@@ -3,6 +3,8 @@
 
 simple_resources = gnome.compile_resources('simple-resources',
   'simple.gresource.xml',
+  install_header : true,
+  export : true,
   source_dir : '../resources-data',
   c_name : 'simple_resources')
 
