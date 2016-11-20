@@ -301,6 +301,7 @@ class ArgumentNode():
         self.lineno = token.lineno
         self.colno = token.colno
         self.arguments = []
+        self.commas = []
         self.kwargs = {}
         self.order_error = False
 
@@ -520,15 +521,19 @@ class Parser:
         a = ArgumentNode(s)
 
         while not isinstance(s, EmptyNode):
+            potential = self.current
             if self.accept('comma'):
+                a.commas.append(potential)
                 a.append(s)
             elif self.accept('colon'):
                 if not isinstance(s, IdNode):
                     raise ParseException('Keyword argument must be a plain identifier.',
                                          s.lineno, s.colno)
                 a.set_kwarg(s.value, self.statement())
+                potential = self.current
                 if not self.accept('comma'):
                     return a
+                a.commas.append(potential)
             else:
                 a.append(s)
                 return a

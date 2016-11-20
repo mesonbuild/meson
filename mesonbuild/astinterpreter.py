@@ -188,11 +188,20 @@ class AstInterpreter(interpreterbase.InterpreterBase):
         for i in range(len(args)):
             if self.filename == args[i]:
                 namespan = node.args.arguments[i].bytespan
-                # SUPER HACK! Should track bytespans of commas instead.
-                namespan = (namespan[0]-2, namespan[1])
+                # Usually remove the comma after this item but if it is
+                # the last argument, we need to remove the one before.
+                if i >= len(node.args.commas):
+                    i -= 1
+                if i < 0:
+                    commaspan = (0, 0) # Removed every entry in the list.
+                else:
+                    commaspan = node.args.commas[i].bytespan
+                if commaspan[0] < namespan[0]:
+                    commaspan, namespan = namespan, commaspan
                 buildfilename = os.path.join(self.source_root, self.subdir, environment.build_filename)
                 raw_data = open(buildfilename, 'r').read()
-                updated = raw_data[0:namespan[0]] + raw_data[namespan[1]:]
+                intermediary = raw_data[0:commaspan[0]] + raw_data[commaspan[1]:]
+                updated = intermediary[0:namespan[0]] + intermediary[namespan[1]:]
                 open(buildfilename, 'w').write(updated)
                 sys.exit(0)
         sys.exit('Could not find source %s in target %s.' % (self.filename, args[0]))
