@@ -246,7 +246,13 @@ def run(mainfile, args):
         return 1
     if len(args) >= 2 and args[0] == '--internal':
         if args[1] != 'regenerate':
-            sys.exit(run_script_command(args[1:]))
+            script = args[1]
+            try:
+                sys.exit(run_script_command(args[1:]))
+            except MesonException as e:
+                mlog.log(mlog.red('\nError in {} helper script:'.format(script)))
+                mlog.log(e)
+                sys.exit(1)
         args = args[2:]
         handshake = True
     else:
