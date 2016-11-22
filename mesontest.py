@@ -57,7 +57,7 @@ parser.add_argument('--list', default=False, dest='list', action='store_true',
                     help='List available tests.')
 parser.add_argument('--wrapper', default=None, dest='wrapper',
                     help='wrapper to run tests with (e.g. Valgrind)')
-parser.add_argument('--wd', default=None, dest='wd',
+parser.add_argument('-C', default='.', dest='wd',
                     help='directory to cd into before running')
 parser.add_argument('--suite', default=None, dest='suite',
                     help='Only run tests belonging to the given suite.')
@@ -136,9 +136,10 @@ class TestHarness:
         self.error_count = 0
         self.is_run = False
         if self.options.benchmark:
-            self.datafile = 'meson-private/meson_benchmark_setup.dat'
+            self.datafile = os.path.join(options.wd, 'meson-private/meson_benchmark_setup.dat')
         else:
-            self.datafile = 'meson-private/meson_test_setup.dat'
+            self.datafile = os.path.join(options.wd, 'meson-private/meson_test_setup.dat')
+        print(self.datafile)
 
     def run_single_test(self, wrap, test):
         if test.fname[0].endswith('.jar'):
@@ -250,7 +251,7 @@ class TestHarness:
         return self.error_count
 
     def run_tests(self, datafilename, log_base):
-        logfile_base = os.path.join('meson-logs', log_base)
+        logfile_base = os.path.join(self.options.wd, 'meson-logs', log_base)
         if self.options.wrapper is None:
             wrap = []
             logfilename = logfile_base + '.txt'
