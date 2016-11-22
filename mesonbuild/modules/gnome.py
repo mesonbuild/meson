@@ -371,14 +371,15 @@ can not be used with the current version of glib-compiled-resources, due to
         if not isinstance(girtarget, (build.Executable, build.SharedLibrary)):
             raise MesonException('Gir target must be an executable or shared library')
         try:
-            pkgstr = subprocess.check_output(['pkg-config', '--cflags', 'gobject-introspection-1.0'])
+            gir_dep = dependencies.PkgConfigDependency(
+                'gobject-introspection-1.0', state.environment, {'native': True})
+            pkgargs = gir_dep.get_compile_args()
         except Exception:
             global girwarning_printed
             if not girwarning_printed:
                 mlog.warning('gobject-introspection dependency was not found, disabling gir generation.')
                 girwarning_printed = True
             return []
-        pkgargs = pkgstr.decode().strip().split()
         ns = kwargs.pop('namespace')
         nsversion = kwargs.pop('nsversion')
         libsources = kwargs.pop('sources')
