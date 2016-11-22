@@ -123,7 +123,11 @@ class PkgConfigDependency(Dependency):
             pkgbin = environment.cross_info.config["binaries"]['pkgconfig']
             self.type_string = 'Cross'
         else:
-            pkgbin = 'pkg-config'
+            evar = 'PKG_CONFIG'
+            if evar in os.environ:
+                pkgbin = os.environ[evar].strip()
+            else:
+                pkgbin = 'pkg-config'
             self.type_string = 'Native'
 
         mlog.debug('Determining dependency %s with pkg-config executable %s.' % (name, pkgbin))
