@@ -367,7 +367,9 @@ def run(args):
     if options.benchmark:
         options.num_processes = 1
     th = TestHarness(options)
-    if len(options.args) == 0:
+    if options.list:
+        return th.run_special()
+    elif len(options.args) == 0:
         return th.doit()
     return th.run_special()
 
