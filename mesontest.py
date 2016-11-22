@@ -345,6 +345,10 @@ def filter_tests(suite, tests):
 
 def gdbrun(test):
     child_env = os.environ.copy()
+
+    if isinstance(test.env, build.EnvironmentVariables):
+        test.env = test.env.get_env(child_env)
+
     child_env.update(test.env)
     # On success will exit cleanly. On failure gdb will ask user
     # if they really want to exit.
