@@ -22,7 +22,7 @@
 # This file is basically a reimplementation of
 # http://cgit.freedesktop.org/libreoffice/core/commit/?id=3213cd54b76bc80a6f0516aac75a48ff3b2ad67c
 
-import sys, subprocess
+import os, sys, subprocess
 from mesonbuild import mesonlib
 import argparse
 
@@ -49,7 +49,12 @@ def write_if_changed(text, outfilename):
         f.write(text)
 
 def linux_syms(libfilename, outfilename):
-    pe = subprocess.Popen(['readelf', '-d', libfilename], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    evar = 'READELF'
+    if evar in os.environ:
+        readelfbin = os.environ[evar].strip()
+    else:
+        readelfbin = 'readelf'
+    pe = subprocess.Popen([readelfbin, '-d', libfilename], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     output = pe.communicate()[0].decode()
     if pe.returncode != 0:
         raise RuntimeError('Readelf does not work')
