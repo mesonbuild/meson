@@ -380,7 +380,14 @@ def run_tests(extra_args):
     build_time = 0
     test_time = 0
 
-    executor = conc.ProcessPoolExecutor(max_workers=multiprocessing.cpu_count())
+    try:
+        # This fails in some CI environments for unknown reasons.
+        num_workers = multiprocessing.cpu_count()
+    except Exception as e:
+        print('Could not determine number of CPUs due to the following reason:' + str(e))
+        print('Defaulting to using only one process')
+        num_workers = 1
+    executor = conc.ProcessPoolExecutor(max_workers=num_workers)
 
     for name, test_cases, skipped in all_tests:
         current_suite = ET.SubElement(junit_root, 'testsuite', {'name' : name, 'tests' : str(len(test_cases))})
