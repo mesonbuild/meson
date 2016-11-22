@@ -229,12 +229,17 @@ class PkgConfigDependency(Dependency):
 
     def check_pkgconfig(self):
         try:
-            p = subprocess.Popen(['pkg-config', '--version'], stdout=subprocess.PIPE,
+            evar = 'PKG_CONFIG'
+            if evar in os.environ:
+                pkgbin = os.environ[evar].strip()
+            else:
+                pkgbin = 'pkg-config'
+            p = subprocess.Popen([pkgbin, '--version'], stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE)
             out = p.communicate()[0]
             if p.returncode == 0:
                 if not self.silent:
-                    mlog.log('Found pkg-config:', mlog.bold(shutil.which('pkg-config')),
+                    mlog.log('Found pkg-config:', mlog.bold(shutil.which(pkgbin)),
                              '(%s)' % out.decode().strip())
                 PkgConfigDependency.pkgconfig_found = True
                 return
