@@ -233,7 +233,7 @@ class PkgConfigDependency(Dependency):
                              '(%s)' % out.decode().strip())
                 PkgConfigDependency.pkgconfig_found = True
                 return
-        except Exception:
+        except (FileNotFoundError, PermissionError):
             pass
         PkgConfigDependency.pkgconfig_found = False
         if not self.silent:
@@ -358,7 +358,7 @@ class WxDependency(Dependency):
                     self.wxc = wxc
                     WxDependency.wx_found = True
                     return
-            except Exception:
+            except (FileNotFoundError, PermissionError):
                 pass
         WxDependency.wxconfig_found = False
         mlog.log('Found wx-config:', mlog.red('NO'))
@@ -1040,7 +1040,7 @@ class GnuStepDependency(Dependency):
             gp = subprocess.Popen([confprog, '--help'],
                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             gp.communicate()
-        except FileNotFoundError:
+        except (FileNotFoundError, PermissionError):
             self.args = None
             mlog.log('Dependency GnuStep found:', mlog.red('NO'), '(no gnustep-config)')
             return

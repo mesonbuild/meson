@@ -43,7 +43,8 @@ def detect_ninja():
     for n in ['ninja', 'ninja-build']:
         try:
             p = subprocess.Popen([n, '--version'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
-        except FileNotFoundError:
+        except (FileNotFoundError, PermissionError):
+            # Doesn't exist in PATH or isn't executable
             continue
         version = p.communicate()[0].decode(errors='ignore')
         # Perhaps we should add a way for the caller to know the failure mode
