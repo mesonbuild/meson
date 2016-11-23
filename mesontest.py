@@ -166,59 +166,83 @@ class TestHarness:
             stdo = 'Not run because can not execute cross compiled binaries.'
             stde = None
             returncode = -1
-        else:
-            cmd = wrap + cmd + test.cmd_args
-            starttime = time.time()
-            child_env = os.environ.copy()
-            if isinstance(test.env, build.EnvironmentVariables):
-                test.env = test.env.get_env(child_env)
 
-            child_env.update(test.env)
-            if len(test.extra_paths) > 0:
-                child_env['PATH'] = child_env['PATH'] + ';'.join([''] + test.extra_paths)
+            return TestRun(res='SKIP', returncode=-1, duration=0.0,
+                           stdo='Not run because can not execute cross compiled binaries.',
+                           stde=None, cmd=None, env=test.env)
 
-            setsid = None
-            stdout = None
-            stderr = None
-            if not self.options.verbose:
-                stdout = subprocess.PIPE
-                stderr = subprocess.PIPE if self.options and self.options.split else subprocess.STDOUT
+        cmd = wrap + cmd + test.cmd_args
+        starttime = time.time()
+        child_env = os.environ.copy()
+        if isinstance(test.env, build.EnvironmentVariables):
+            test.env = test.env.get_env(child_env)
 
-                if not is_windows():
-                    setsid = os.setsid
-
-            p = subprocess.Popen(cmd,
-                                 stdout=stdout,
-                                 stderr=stderr,
-                                 env=child_env,
-                                 cwd=test.workdir,
-                                 preexec_fn=setsid)
-            timed_out = False
-            try:
-                (stdo, stde) = p.communicate(timeout=test.timeout)
-            except subprocess.TimeoutExpired:
-                timed_out = True
-                # Python does not provide multiplatform support for
-                # killing a process and all its children so we need
-                # to roll our own.
-                if is_windows():
-                    subprocess.call(['taskkill', '/F', '/T', '/PID', str(p.pid)])
-                else:
-                    os.killpg(os.getpgid(p.pid), signal.SIGKILL)
-                (stdo, stde) = p.communicate()
-            endtime = time.time()
-            duration = endtime - starttime
-            stdo = decode(stdo)
-            if stde:
-                stde = decode(stde)
-            if timed_out:
-                res = 'TIMEOUT'
-            elif (not test.should_fail and p.returncode == 0) or \
-                (test.should_fail and p.returncode != 0):
-                res = 'OK'
+        gdb_env = None
+        if self.options.gdb:
+            gdb_env = test.extra_args.pop('gdb_env', {})
+            gdb_env = getattr(gdb_env, 'held_object', gdb_env)
+            if isinstance(gdb_env, build.EnvironmentVariables):
+                test.env.update(gdb_env.get_env(child_env))
             else:
-                res = 'FAIL'
-            returncode = p.returncode
+                env = {}
+                for e in gdb_env:
+                    if '=' not in e:
+                        raise RuntimeError('Env var definition must be of type key=val.')
+                    (k, val) = e.split('=', 1)
+                    k = k.strip()
+                    val = val.strip()
+                    if ' ' in k:
+                        raise RuntimeError('Env var key must not have spaces in it.')
+                    env[k] = val
+
+                test.env.update(env)
+
+        child_env.update(test.env)
+        if len(test.extra_paths) > 0:
+            child_env['PATH'] = child_env['PATH'] + ';'.join([''] + test.extra_paths)
+
+        setsid = None
+        stdout = None
+        stderr = None
+        if not self.options.verbose:
+            stdout = subprocess.PIPE
+            stderr = subprocess.PIPE if self.options and self.options.split else subprocess.STDOUT
+
+            if not is_windows():
+                setsid = os.setsid
+
+        p = subprocess.Popen(cmd,
+                                stdout=stdout,
+                                stderr=stderr,
+                                env=child_env,
+                                cwd=test.workdir,
+                                preexec_fn=setsid)
+        timed_out = False
+        try:
+            (stdo, stde) = p.communicate(timeout=test.timeout)
+        except subprocess.TimeoutExpired:
+            timed_out = True
+            # Python does not provide multiplatform support for
+            # killing a process and all its children so we need
+            # to roll our own.
+            if is_windows():
+                subprocess.call(['taskkill', '/F', '/T', '/PID', str(p.pid)])
+            else:
+                os.killpg(os.getpgid(p.pid), signal.SIGKILL)
+            (stdo, stde) = p.communicate()
+        endtime = time.time()
+        duration = endtime - starttime
+        stdo = decode(stdo)
+        if stde:
+            stde = decode(stde)
+        if timed_out:
+            res = 'TIMEOUT'
+        elif (not test.should_fail and p.returncode == 0) or \
+            (test.should_fail and p.returncode != 0):
+            res = 'OK'
+        else:
+            res = 'FAIL'
+        returncode = p.returncode
         return TestRun(res, returncode, test.should_fail, duration, stdo, stde, cmd, test.env)
 
     def print_stats(self, numlen, tests, name, result, i, logfile, jsonlogfile):
