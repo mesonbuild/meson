@@ -59,6 +59,11 @@ def is_source(fname):
     suffix = fname.split('.')[-1]
     return suffix in clike_suffixes
 
+def is_assembly(fname):
+    if hasattr(fname, 'fname'):
+        fname = fname.fname
+    return fname.split('.')[-1].lower() == 's'
+
 def is_llvm_ir(fname):
     if hasattr(fname, 'fname'):
         fname = fname.fname
