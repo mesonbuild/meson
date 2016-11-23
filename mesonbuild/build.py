@@ -198,10 +198,11 @@ class ExtractedObjects():
     '''
     Holds a list of sources for which the objects must be extracted
     '''
-    def __init__(self, target, srclist):
+    def __init__(self, target, srclist, is_unity):
         self.target = target
         self.srclist = srclist
-        self.check_unity_compatible()
+        if is_unity:
+            self.check_unity_compatible()
 
     def check_unity_compatible(self):
         # Figure out if the extracted object list is compatible with a Unity
@@ -211,11 +212,9 @@ class ExtractedObjects():
         # from each unified source file.
         # If the list of sources for which we want objects is the same as the
         # list of sources that go into each unified build, we're good.
-        self.unity_compatible = False
         srclist_set = set(self.srclist)
         # Objects for all the sources are required, so we're compatible
         if srclist_set == set(self.target.sources):
-            self.unity_compatible = True
             return
         # Check if the srclist is a subset (of the target's sources) that is
         # going to form a unified source file and a single object
@@ -223,7 +222,6 @@ class ExtractedObjects():
                                           self.target.sources)
         for srcs in compsrcs.values():
             if srclist_set == set(srcs):
-                self.unity_compatible = True
                 return
         msg = 'Single object files can not be extracted in Unity builds. ' \
               'You can only extract all the object files at once.'
@@ -273,6 +271,7 @@ class BuildTarget():
         self.subdir = subdir
         self.subproject = subproject # Can not be calculated from subdir as subproject dirname can be changed per project.
         self.is_cross = is_cross
+        self.is_unity = environment.coredata.get_builtin_option('unity')
         self.environment = environment
         self.sources = []
         self.compilers = {}
@@ -458,10 +457,10 @@ class BuildTarget():
             if src not in self.sources:
                 raise MesonException('Tried to extract unknown source %s.' % src)
             obj_src.append(src)
-        return ExtractedObjects(self, obj_src)
+        return ExtractedObjects(self, obj_src, self.is_unity)
 
     def extract_all_objects(self):
-        return ExtractedObjects(self, self.sources)
+        return ExtractedObjects(self, self.sources, self.is_unity)
 
     def get_all_link_deps(self):
         return self.get_transitive_link_deps()
