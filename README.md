@@ -40,6 +40,10 @@ executable run the following command:
 Note that the source checkout may not be `meson` because it would
 clash with the generated binary name.
 
+This will zip all files inside the source checkout into the script
+which includes hundreds of tests, so you might want to temporarily
+remove those before running it.
+
 ####Running
 
 Meson requires that you have a source directory and a build directory
