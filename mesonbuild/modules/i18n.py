@@ -13,10 +13,11 @@
 # limitations under the License.
 
 from os import path
-from .. import coredata, mesonlib, build, dependencies
+from .. import coredata, mesonlib, build, dependencies, mlog
 import sys
 
 have_all_gettext_tools = None
+gettext_tools_warning_printed = False
 
 class I18nModule:
 
@@ -49,6 +50,12 @@ class I18nModule:
             raise coredata.MesonException('List of languages empty.')
         datadirs = mesonlib.stringlistify(kwargs.get('data_dirs', []))
         extra_args = mesonlib.stringlistify(kwargs.get('args', []))
+
+        if not self.has_gettext_tools():
+            global gettext_tools_warning_printed
+            if gettext_tools_warning_printed == False:
+                mlog.warning("Some gettext tools were not found. Installation of languages won't be available until all tools are installed")
+                gettext_tools_warning_printed = True
 
         pkg_arg = '--pkgname=' + packagename
         lang_arg = '--langs=' + '@@'.join(languages)
