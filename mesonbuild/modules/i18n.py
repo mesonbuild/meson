@@ -13,8 +13,10 @@
 # limitations under the License.
 
 from os import path
-from .. import coredata, mesonlib, build
+from .. import coredata, mesonlib, build, dependencies
 import sys
+
+have_all_gettext_tools = None
 
 class I18nModule:
 
@@ -26,6 +28,17 @@ class I18nModule:
                 return [line.strip() for line in f if not line.strip().startswith('#')]
         except (FileNotFoundError, PermissionError):
             return []
+
+    def has_gettext_tools(self):
+       global have_all_gettext_tools
+       if have_all_gettext_tools == None:
+           have_all_gettext_tools = True
+           gettext_programs = ['xgettext', 'msgfmt', 'msgmerge']
+           for prog in gettext_programs:
+               dep = dependencies.ExternalProgram(prog)
+               if not dep.found():
+                   have_all_gettext_tools = False
+       return have_all_gettext_tools
 
     def gettext(self, state, args, kwargs):
         if len(args) != 1:
