@@ -279,13 +279,9 @@ class Backend():
         result = []
         targetdir = self.get_target_private_dir(extobj.target)
         # With unity builds, there's just one object that contains all the
-        # sources, so if we want all the objects, just return that.
+        # sources, and we only support extracting all the objects in this mode,
+        # so just return that.
         if self.environment.coredata.get_builtin_option('unity'):
-            if not extobj.unity_compatible:
-                # This should never happen
-                msg = 'BUG: Meson must not allow extracting single objects ' \
-                      'in Unity builds'
-                raise AssertionError(msg)
             comp = get_compiler_for_source(extobj.target.compilers.values(),
                                            extobj.srclist[0])
             # The unity object name uses the full absolute path of the source file
