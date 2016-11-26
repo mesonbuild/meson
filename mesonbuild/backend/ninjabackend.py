@@ -2004,14 +2004,21 @@ rule FORTRAN_DEP_HACK
     def generate_shlib_aliases(self, target, outdir):
         basename = target.get_filename()
         aliases = target.get_aliaslist()
-        for alias in aliases:
+        for i, alias in enumerate(aliases):
             aliasfile = os.path.join(self.environment.get_build_dir(), outdir, alias)
             try:
                 os.remove(aliasfile)
             except Exception:
                 pass
+            # If both soversion and version are set and to different values,
+            # the .so symlink must point to the soversion symlink rather than the
+            # original file.
+            if i == 0 and len(aliases) > 1:
+                pointed_to_filename = aliases[1]
+            else:
+                pointed_to_filename = basename
             try:
-                os.symlink(basename, aliasfile)
+                os.symlink(pointed_to_filename, aliasfile)
             except NotImplementedError:
                 mlog.debug("Library versioning disabled because symlinks are not supported.")
             except OSError:

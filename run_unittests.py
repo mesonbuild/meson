@@ -215,8 +215,7 @@ class LinuxlikeTests(unittest.TestCase):
 
     def test_soname(self):
         testdir = os.path.join(self.unit_test_dir, '1 soname')
-        subprocess.check_call(['cmake', '-DCMAKE_BUILD_TYPE=debug', '-G', 'Ninja', testdir],
-                              cwd=self.builddir, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        self.init(testdir)
         self.build()
 
         # File without aliases set.
@@ -229,9 +228,9 @@ class LinuxlikeTests(unittest.TestCase):
         # File with version set
         verset = os.path.join(self.builddir, 'libverset.so')
         self.assertTrue(os.path.exists(verset + '.4.5.6'))
-        self.assertEqual(os.readlink(verset), 'libverset.so.4.5.6')
-        self.assertEqual(self.get_soname(verset), 'libverset.so.4.5.6')
-        self.assertEqual(len(glob(verset[:-3] + '*')), 2)
+        self.assertEqual(os.readlink(verset), 'libverset.so.4')
+        self.assertEqual(self.get_soname(verset), 'libverset.so.4')
+        self.assertEqual(len(glob(verset[:-3] + '*')), 3)
 
         # File with soversion set
         soverset = os.path.join(self.builddir, 'libsoverset.so')
