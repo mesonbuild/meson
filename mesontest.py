@@ -18,11 +18,10 @@
 
 import subprocess, sys, os, argparse
 import pickle
-import mesonbuild
 from mesonbuild import build
 from mesonbuild import environment
 
-import time, datetime, pickle, multiprocessing, json
+import time, datetime, multiprocessing, json
 import concurrent.futures as conc
 import platform
 import signal
@@ -57,7 +56,7 @@ parser.add_argument('--list', default=False, dest='list', action='store_true',
                     help='List available tests.')
 parser.add_argument('--wrapper', default=None, dest='wrapper',
                     help='wrapper to run tests with (e.g. Valgrind)')
-parser.add_argument('--wd', default=None, dest='wd',
+parser.add_argument('-C', default='.', dest='wd',
                     help='directory to cd into before running')
 parser.add_argument('--suite', default=None, dest='suite',
                     help='Only run tests belonging to the given suite.')
@@ -71,6 +70,8 @@ parser.add_argument('--logbase', default='testlog',
                     help="Base name for log file.")
 parser.add_argument('--num-processes', default=determine_worker_count(), type=int,
                     help='How many parallel processes to use.')
+parser.add_argument('-v', '--verbose', default=False, action='store_true',
+                    help='Do not redirect stdout and stderr')
 parser.add_argument('args', nargs='*')
 
 class TestRun():
@@ -107,6 +108,8 @@ class TestRun():
         return res
 
 def decode(stream):
+    if stream is None:
+        return ''
     try:
         return stream.decode('utf-8')
     except UnicodeDecodeError:
@@ -136,9 +139,10 @@ class TestHarness:
         self.error_count = 0
         self.is_run = False
         if self.options.benchmark:
-            self.datafile = 'meson-private/meson_benchmark_setup.dat'
+            self.datafile = os.path.join(options.wd, 'meson-private/meson_benchmark_setup.dat')
         else:
-            self.datafile = 'meson-private/meson_test_setup.dat'
+            self.datafile = os.path.join(options.wd, 'meson-private/meson_test_setup.dat')
+        print(self.datafile)
 
     def run_single_test(self, wrap, test):
         if test.fname[0].endswith('.jar'):
@@ -155,6 +159,7 @@ class TestHarness:
                     cmd = [test.exe_runner] + test.fname
             else:
                 cmd = test.fname
+
         if cmd is None:
             res = 'SKIP'
             duration = 0.0
@@ -171,13 +176,20 @@ class TestHarness:
             child_env.update(test.env)
             if len(test.extra_paths) > 0:
                 child_env['PATH'] = child_env['PATH'] + ';'.join([''] + test.extra_paths)
-            if is_windows():
-                setsid = None
-            else:
-                setsid = os.setsid
+
+            setsid = None
+            stdout = None
+            stderr = None
+            if not self.options.verbose:
+                stdout = subprocess.PIPE
+                stderr = subprocess.PIPE if self.options and self.options.split else subprocess.STDOUT
+
+                if not is_windows():
+                    setsid = os.setsid
+
             p = subprocess.Popen(cmd,
-                                 stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE if self.options and self.options.split else subprocess.STDOUT,
+                                 stdout=stdout,
+                                 stderr=stderr,
                                  env=child_env,
                                  cwd=test.workdir,
                                  preexec_fn=setsid)
@@ -250,7 +262,7 @@ class TestHarness:
         return self.error_count
 
     def run_tests(self, datafilename, log_base):
-        logfile_base = os.path.join('meson-logs', log_base)
+        logfile_base = os.path.join(self.options.wd, 'meson-logs', log_base)
         if self.options.wrapper is None:
             wrap = []
             logfilename = logfile_base + '.txt'
@@ -270,10 +282,15 @@ class TestHarness:
         futures = []
         filtered_tests = filter_tests(self.options.suite, tests)
 
-        with open(jsonlogfilename, 'w') as jsonlogfile, \
-             open(logfilename, 'w') as logfile:
-            logfile.write('Log of Meson test suite run on %s.\n\n' %
-                          datetime.datetime.now().isoformat())
+        jsonlogfile = None
+        logfile = None
+        try:
+            if not self.options.verbose:
+                jsonlogfile =  open(jsonlogfilename, 'w')
+                logfile = open(logfilename, 'w')
+                logfile.write('Log of Meson test suite run on %s.\n\n' %
+                            datetime.datetime.now().isoformat())
+
             for i, test in enumerate(filtered_tests):
                 if test.suite[0] == '':
                     visible_name = test.name
@@ -287,20 +304,29 @@ class TestHarness:
                     self.drain_futures(futures)
                     futures = []
                     res = self.run_single_test(wrap, test)
-                    self.print_stats(numlen, filtered_tests, visible_name, res, i,
-                                     logfile, jsonlogfile)
+                    if not self.options.verbose:
+                        self.print_stats(numlen, filtered_tests, visible_name, res, i,
+                                        logfile, jsonlogfile)
                 else:
                     f = executor.submit(self.run_single_test, wrap, test)
-                    futures.append((f, numlen, filtered_tests, visible_name, i,
-                                    logfile, jsonlogfile))
-            self.drain_futures(futures)
+                    if not self.options.verbose:
+                        futures.append((f, numlen, filtered_tests, visible_name, i,
+                                        logfile, jsonlogfile))
+            self.drain_futures(futures, logfile, jsonlogfile)
+        finally:
+            if jsonlogfile:
+                jsonlogfile.close()
+            if logfile:
+                logfile.close()
+
         return logfilename
 
 
-    def drain_futures(self, futures):
+    def drain_futures(self, futures, logfile, jsonlogfile):
         for i in futures:
             (result, numlen, tests, name, i, logfile, jsonlogfile) = i
-            self.print_stats(numlen, tests, name, result.result(), i, logfile, jsonlogfile)
+            if not self.options.verbose:
+                self.print_stats(numlen, tests, name, result.result(), i, logfile, jsonlogfile)
 
     def run_special(self):
         'Tests run by the user, usually something like "under gdb 1000 times".'
@@ -325,11 +351,16 @@ class TestHarness:
                 for i in range(self.options.repeat):
                     print('Running: %s %d/%d' % (t.name, i+1, self.options.repeat))
                     if self.options.gdb:
-                        gdbrun(t)
+                        wrap = ['gdb', '--quiet', '-ex', 'run', '-ex', 'quit']
+                        if len(t.cmd_args) > 0:
+                            wrap.append('--args')
+
+                        res = self.run_single_test(wrap, t)
                     else:
                         res = self.run_single_test(wrap, t)
                         if (res.returncode == 0 and res.should_fail) or \
-                            (res.returncode != 0 and not res.should_fail):
+                            (res.returncode != 0 and not res.should_fail) and \
+                                not self.options.verbose:
                             print('Test failed:\n\n-- stdout --\n')
                             print(res.stdo)
                             print('\n-- stderr --\n')
@@ -342,32 +373,19 @@ def filter_tests(suite, tests):
         return tests
     return [x for x in tests if suite in x.suite]
 
-def gdbrun(test):
-    child_env = os.environ.copy()
-    child_env.update(test.env)
-    # On success will exit cleanly. On failure gdb will ask user
-    # if they really want to exit.
-    exe = test.fname
-    args = test.cmd_args
-    if len(args) > 0:
-        argset = ['-ex', 'set args ' + ' '.join(args)]
-    else:
-        argset = []
-    cmd = ['gdb', '--quiet'] + argset + ['-ex', 'run', '-ex', 'quit'] + exe
-    # FIXME a ton of stuff. run_single_test grabs stdout & co,
-    # which we do not want to do when running under gdb.
-    p = subprocess.Popen(cmd,
-                         env=child_env,
-                         cwd=test.workdir,
-                         )
-    p.communicate()
 
 def run(args):
     options = parser.parse_args(args)
     if options.benchmark:
         options.num_processes = 1
+
+    if options.gdb:
+        options.verbose = True
+
     th = TestHarness(options)
-    if len(options.args) == 0:
+    if options.list:
+        return th.run_special()
+    elif len(options.args) == 0:
         return th.doit()
     return th.run_special()
 
