@@ -27,16 +27,30 @@ import mesonbuild.astinterpreter
 from mesonbuild.mesonlib import MesonException
 from mesonbuild import mlog
 import sys, traceback
+import argparse
+
+parser = argparse.ArgumentParser()
+
+parser.add_argument('--sourcedir', default='.',
+                    help='Path to source directory.')
+parser.add_argument('--target', default=None,
+                    help='Name of target to edit.')
+parser.add_argument('--filename', default=None,
+                    help='Name of source file to add or remove to target.')
+parser.add_argument('commands', nargs='+')
 
 if __name__ == '__main__':
-    if len(sys.argv) == 1:
-        source_root = 'test cases/common/1 trivial'
-    else:
-        source_root = sys.argv[1]
-    ast = mesonbuild.astinterpreter.AstInterpreter(source_root, '')
+    options = parser.parse_args()
+    if options.target is None or options.filename is None:
+        sys.exit("Must specify both target and filename.")
+    ast = mesonbuild.astinterpreter.AstInterpreter(options.sourcedir, '')
     try:
-#        ast.add_source('trivialprog', 'newfile.c')
-        ast.remove_source('trivialprog', 'newfile.c')
+        if options.commands[0] == 'add':
+            ast.add_source(options.target, options.filename)
+        elif options.commands[0] == 'remove':
+            ast.remove_source(options.target, options.filename)
+        else:
+            sys.exit('Unknown command: ' + options.commands[0])
     except Exception as e:
         if isinstance(e, MesonException):
             if hasattr(e, 'file') and hasattr(e, 'lineno') and hasattr(e, 'colno'):
