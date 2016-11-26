@@ -66,6 +66,17 @@ def noKwargs(f):
         return f(self, node, args, kwargs)
     return wrapped
 
+def permittedKwargs(*perm):
+    def expand(f):
+        @wraps(f)
+        def wrapped(self, node, args, kwargs):
+            xs = [x for x in kwargs if x not in perm]
+            if len(xs) > 0:
+                raise InvalidArguments('Unknown keyword argument(s): ' + ', '.join(xs))
+            return f(self, node, args, kwargs)
+        return wrapped
+    return expand
+
 def stringArgs(f):
     @wraps(f)
     def wrapped(self, node, args, kwargs):
@@ -1403,6 +1414,7 @@ class Interpreter():
         return [mesonlib.File.from_source_file(self.environment.source_dir, self.subdir, fname) for fname in args]
 
     @noPosargs
+    @permittedKwargs('version', 'include_directories', 'link_with', 'sources', 'dependencies', 'compile_args', 'link_args')
     def func_declare_dependency(self, node, args, kwargs):
         version = kwargs.get('version', self.project_version)
         if not isinstance(version, str):
