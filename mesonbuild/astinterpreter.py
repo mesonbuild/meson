@@ -18,7 +18,7 @@
 from . import interpreterbase, mlog, mparser, mesonlib
 from . import environment
 
-from .interpreterbase import InterpreterException
+from .interpreterbase import InterpreterException, InvalidArguments
 
 import os, sys
 
@@ -154,12 +154,17 @@ class AstInterpreter(interpreterbase.InterpreterBase):
     def evaluate_indexing(self, node):
         return 0
 
+    def reduce_arguments(self, args):
+        assert(isinstance(args, mparser.ArgumentNode))
+        if args.incorrect_order():
+            raise InvalidArguments('All keyword arguments must be after positional arguments.')
+        return (args.arguments, args.kwargs)
+
     def transform(self):
         self.load_root_meson_file()
         self.sanity_check_ast()
         self.parse_project()
         self.run()
-        print('AST here')
 
     def add_source(self, targetname, filename):
         self.operation = ADD_SOURCE
@@ -184,24 +189,50 @@ class AstInterpreter(interpreterbase.InterpreterBase):
         open(buildfilename, 'w').write(updated)
         sys.exit(0)
 
+    def remove_argument_item(self, args, i):
+        assert(isinstance(args, mparser.ArgumentNode))
+        namespan = args.arguments[i].bytespan
+        # Usually remove the comma after this item but if it is
+        # the last argument, we need to remove the one before.
+        if i >= len(args.commas):
+            i -= 1
+        if i < 0:
+            commaspan = (0, 0) # Removed every entry in the list.
+        else:
+            commaspan = args.commas[i].bytespan
+        if commaspan[0] < namespan[0]:
+            commaspan, namespan = namespan, commaspan
+        buildfilename = os.path.join(self.source_root, self.subdir, environment.build_filename)
+        raw_data = open(buildfilename, 'r').read()
+        intermediary = raw_data[0:commaspan[0]] + raw_data[commaspan[1]:]
+        updated = intermediary[0:namespan[0]] + intermediary[namespan[1]:]
+        open(buildfilename, 'w').write(updated)
+        sys.exit(0)
+
+    def hacky_find_and_remove(self, node_to_remove):
+        for a in self.ast.lines:
+            if a.lineno == node_to_remove.lineno:
+                if isinstance(a, mparser.AssignmentNode):
+                    v = a.value
+                    if not isinstance(v, mparser.ArrayNode):
+                        raise NotImplementedError('Not supported yet, bro.')
+                    args = v.args
+                    for i in range(len(args.arguments)):
+                        if isinstance(args.arguments[i], mparser.StringNode) and self.filename == args.arguments[i].value:
+                            self.remove_argument_item(args, i)
+                raise NotImplementedError('Sukkess')
+
     def remove_source_from_target(self, node, args, kwargs):
-        for i in range(len(args)):
-            if self.filename == args[i]:
-                namespan = node.args.arguments[i].bytespan
-                # Usually remove the comma after this item but if it is
-                # the last argument, we need to remove the one before.
-                if i >= len(node.args.commas):
-                    i -= 1
-                if i < 0:
-                    commaspan = (0, 0) # Removed every entry in the list.
-                else:
-                    commaspan = node.args.commas[i].bytespan
-                if commaspan[0] < namespan[0]:
-                    commaspan, namespan = namespan, commaspan
-                buildfilename = os.path.join(self.source_root, self.subdir, environment.build_filename)
-                raw_data = open(buildfilename, 'r').read()
-                intermediary = raw_data[0:commaspan[0]] + raw_data[commaspan[1]:]
-                updated = intermediary[0:namespan[0]] + intermediary[namespan[1]:]
-                open(buildfilename, 'w').write(updated)
-                sys.exit(0)
+        for i in range(1, len(node.args)):
+            # Is file name directly in function call as a string.
+            if isinstance(node.args.arguments[i], mparser.StringNode) and self.filename == node.args.arguments[i].value:
+                self.remove_argument_item(node.args, i)
+            # Is file name in a variable that gets expanded here.
+            if isinstance(node.args.arguments[i], mparser.IdNode):
+                avar = self.get_variable(node.args.arguments[i].value)
+                if not isinstance(avar, list):
+                    raise NotImplementedError('Non-arrays not supported yet, sorry.')
+                for entry in avar:
+                    if isinstance(entry, mparser.StringNode) and entry.value == self.filename:
+                        self.hacky_find_and_remove(entry)
         sys.exit('Could not find source %s in target %s.' % (self.filename, args[0]))
