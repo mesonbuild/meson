@@ -4,9 +4,11 @@
 Meson® is a project to create the best possible next-generation
 build system.
 
-####Build status
+#### Status
 
-[![Build Status](https://travis-ci.org/mesonbuild/meson.svg?branch=master)](https://travis-ci.org/mesonbuild/meson) [![Build status](https://ci.appveyor.com/api/projects/status/l5c8v71ninew2i3p?svg=true)](https://ci.appveyor.com/project/jpakkane/meson)
+[![PyPI](https://img.shields.io/pypi/v/meson.svg)](https://pypi.python.org/pypi/meson)
+[![Travis](https://travis-ci.org/mesonbuild/meson.svg?branch=master)](https://travis-ci.org/mesonbuild/meson)
+[![Appveyor](https://ci.appveyor.com/api/projects/status/l5c8v71ninew2i3p?svg=true)](https://ci.appveyor.com/project/jpakkane/meson)
 
 ####Dependencies
 
@@ -37,6 +39,10 @@ executable run the following command:
 
 Note that the source checkout may not be `meson` because it would
 clash with the generated binary name.
+
+This will zip all files inside the source checkout into the script
+which includes hundreds of tests, so you might want to temporarily
+remove those before running it.
 
 ####Running
 
