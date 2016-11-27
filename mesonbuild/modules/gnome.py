@@ -502,11 +502,9 @@ can not be used with the current version of glib-compiled-resources, due to
         return [scan_target, typelib_target]
 
     def compile_schemas(self, state, args, kwargs):
-        if len(args) != 0:
-            raise MesonException('Compile_schemas does not take positional arguments.')
-        srcdir = os.path.join(state.build_to_src, state.subdir)
-        outdir = state.subdir
-        cmd = ['glib-compile-schemas', '--targetdir', outdir, srcdir]
+        srcdir = os.path.join(state.build_to_src, state.subdir, args[0])
+        outdir = os.path.join(state.environment.get_prefix(), 'share/glib-2.0/schemas')
+        cmd = ['glib-compile-schemas', srcdir, '--targetdir', outdir]
         kwargs['command'] = cmd
         kwargs['input'] = []
         kwargs['output'] = 'gschemas.compiled'
