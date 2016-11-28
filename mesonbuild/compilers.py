@@ -701,8 +701,28 @@ int main () {{
   #endif
   return 0;
 }}'''
-        args = extra_args + self.get_compiler_check_args()
-        return self.compiles(templ.format(hname, symbol, prefix), env, args, dependencies)
+        return self.compiles(templ.format(hname, symbol, prefix), env,
+                             extra_args, dependencies)
+
+    @staticmethod
+    def _override_args(args, override):
+        '''
+        Add @override to @args in such a way that arguments are overrided
+        correctly.
+
+        We want the include directories to be added first (since they are
+        chosen left-to-right) and all other arguments later (since they
+        override previous arguments or add to a list that's chosen
+        right-to-left).
+        '''
+        before_args = []
+        after_args = []
+        for arg in override:
+            if arg.startswith(('-I', '/I')):
+                before_args.append(arg)
+            else:
+                after_args.append(arg)
+        return before_args + args + after_args
 
     def compiles(self, code, env, extra_args=None, dependencies=None):
         if extra_args is None:
@@ -713,9 +733,10 @@ int main () {{
             dependencies = []
         elif not isinstance(dependencies, list):
             dependencies = [dependencies]
+        # Add compile flags needed by dependencies after converting to the
+        # native type of the selected compiler
         cargs = [a for d in dependencies for a in d.get_compile_args()]
-        # Convert flags to the native type of the selected compiler
-        args = self.unix_link_flags_to_native(cargs + extra_args)
+        args = self.unix_link_flags_to_native(cargs)
         # Read c_args/cpp_args/etc from the cross-info file (if needed)
         args += self.get_cross_extra_flags(env, compile=True, link=False)
         # Add CFLAGS/CXXFLAGS/OBJCFLAGS/OBJCXXFLAGS from the env
@@ -723,6 +744,11 @@ int main () {{
         args += env.coredata.external_args[self.language]
         # We only want to compile; not link
         args += self.get_compile_only_args()
+        # Append extra_args to the compiler check args such that it overrides
+        extra_args = self._override_args(self.get_compiler_check_args(), extra_args)
+        extra_args = self.unix_link_flags_to_native(extra_args)
+        # Append both to the compiler args such that they override them
+        args = self._override_args(args, extra_args)
         with self.compile(code, args) as p:
             return p.returncode == 0
 
@@ -736,17 +762,24 @@ int main () {{
             dependencies = []
         elif not isinstance(dependencies, list):
             dependencies = [dependencies]
+        # Add compile and link flags needed by dependencies after converting to
+        # the native type of the selected compiler
         cargs = [a for d in dependencies for a in d.get_compile_args()]
         link_args = [a for d in dependencies for a in d.get_link_args()]
-        # Convert flags to the native type of the selected compiler
-        args = self.unix_link_flags_to_native(cargs + link_args + extra_args)
+        args = self.unix_link_flags_to_native(cargs + link_args)
         # Select a CRT if needed since we're linking
         args += self.get_linker_debug_crt_args()
-        # Read c_args/c_link_args/cpp_args/cpp_link_args/etc from the cross-info file (if needed)
+        # Read c_args/c_link_args/cpp_args/cpp_link_args/etc from the
+        # cross-info file (if needed)
         args += self.get_cross_extra_flags(env, compile=True, link=True)
         # Add LDFLAGS from the env. We assume that the user has ensured these
         # are compiler-specific
         args += env.coredata.external_link_args[self.language]
+        # Append extra_args to the compiler check args such that it overrides
+        extra_args = self._override_args(self.get_compiler_check_args(), extra_args)
+        extra_args = self.unix_link_flags_to_native(extra_args)
+        # Append both to the compiler args such that they override them
+        args = self._override_args(args, extra_args)
         return self.compile(code, args)
 
     def links(self, code, env, extra_args=None, dependencies=None):
@@ -795,7 +828,6 @@ int main(int argc, char **argv) {{
 %s
 int temparray[%d-sizeof(%s)];
 '''
-        args = extra_args + self.get_compiler_check_args()
         if not self.compiles(element_exists_templ.format(prefix, element), env, args, dependencies):
             return -1
         for i in range(1, 1024):
@@ -844,7 +876,6 @@ struct tmp {
 
 int testarray[%d-offsetof(struct tmp, target)];
 '''
-        args = extra_args + self.get_compiler_check_args()
         if not self.compiles(type_exists_templ.format(typename), env, args, dependencies):
             return -1
         for i in range(1, 1024):
@@ -980,14 +1011,14 @@ int main(int argc, char **argv) {
             head, main = self._no_prototype_templ()
         templ = head + stubs_fail + main
 
-        args = extra_args + self.get_compiler_check_args()
-        if self.links(templ.format(prefix, funcname), env, args, dependencies):
+        if self.links(templ.format(prefix, funcname), env, extra_args, dependencies):
             return True
         # Some functions like alloca() are defined as compiler built-ins which
         # are inlined by the compiler, so test for that instead. Built-ins are
         # special functions that ignore all includes and defines, so we just
         # directly try to link via main().
-        return self.links('int main() {{ {0}; }}'.format('__builtin_' + funcname), env, args, dependencies)
+        return self.links('int main() {{ {0}; }}'.format('__builtin_' + funcname),
+                          env, extra_args, dependencies)
 
     def has_members(self, typename, membernames, prefix, env, extra_args=None, dependencies=None):
         if extra_args is None:
@@ -1071,8 +1102,8 @@ class CPPCompiler(CCompiler):
 #include <{0}>
 using {1};
 int main () {{ return 0; }}'''
-        args = extra_args + self.get_compiler_check_args()
-        return self.compiles(templ.format(hname, symbol, prefix), env, args, dependencies)
+        return self.compiles(templ.format(hname, symbol, prefix), env,
+                             extra_args, dependencies)
 
 class ObjCCompiler(CCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrap):

@@ -94,6 +94,16 @@ class LinuxlikeTests(unittest.TestCase):
         with open(os.path.join(self.builddir, 'meson-logs', 'meson-log.txt')) as f:
             return f.readlines()
 
+    def get_meson_log_compiler_checks(self):
+        '''
+        Fetch a list command-lines run by meson for compiler checks.
+        Each command-line is returned as a list of arguments.
+        '''
+        log = self.get_meson_log()
+        prefix = 'Command line:'
+        cmds = [l[len(prefix):].split() for l in log if l.startswith(prefix)]
+        return cmds
+
     def introspect(self, arg):
         out = subprocess.check_output(self.mintro_command + [arg, self.builddir])
         return json.loads(out.decode('utf-8'))
@@ -261,6 +271,24 @@ class LinuxlikeTests(unittest.TestCase):
         self.assertEqual(os.readlink(bothset + '.1.2.3'), 'libbothset.so.4.5.6')
         self.assertEqual(self.get_soname(bothset), 'libbothset.so.1.2.3')
         self.assertEqual(len(glob(bothset[:-3] + '*')), 3)
+
+    def test_compiler_check_flags_order(self):
+        '''
+        Test that compiler check flags override all other flags. This can't be
+        an ordinary test case because it needs the environment to be set.
+        '''
+        Oflag = '-O3'
+        os.environ['CFLAGS'] = os.environ['CXXFLAGS'] = Oflag
+        testdir = os.path.join(self.common_test_dir, '43 has function')
+        self.init(testdir)
+        cmds = self.get_meson_log_compiler_checks()
+        for cmd in cmds:
+            # Verify that -I flags from the `args` kwarg are first
+            # This is set in the '43 has function' test case
+            self.assertEqual(cmd[2], '-I/tmp')
+            # Verify that -O3 set via the environment is overriden by -O0
+            Oargs = [arg for arg in cmd if arg.startswith('-O')]
+            self.assertEqual(Oargs, [Oflag, '-O0'])
 
 if __name__ == '__main__':
     unittest.main()
