@@ -606,7 +606,8 @@ class RunTargetHolder(InterpreterObject):
         self.held_object = build.RunTarget(name, command, args, dependencies, subdir)
 
 class Test(InterpreterObject):
-    def __init__(self, name, suite, exe, is_parallel, cmd_args, env, should_fail, timeout, workdir):
+    def __init__(self, name, suite, exe, is_parallel, cmd_args, env, should_fail, timeout, workdir,
+                 extra_args):
         InterpreterObject.__init__(self)
         self.name = name
         self.suite = suite
@@ -617,6 +618,7 @@ class Test(InterpreterObject):
         self.should_fail = should_fail
         self.timeout = timeout
         self.workdir = workdir
+        self.extra_args = extra_args
 
     def get_exe(self):
         return self.exe
@@ -2098,16 +2100,16 @@ requirements use the version keyword argument instead.''')
             raise InterpreterException('First argument of test must be a string.')
         if not isinstance(args[1], (ExecutableHolder, JarHolder, ExternalProgramHolder)):
             raise InterpreterException('Second argument must be executable.')
-        par = kwargs.get('is_parallel', True)
+        par = kwargs.pop('is_parallel', True)
         if not isinstance(par, bool):
             raise InterpreterException('Keyword argument is_parallel must be a boolean.')
-        cmd_args = kwargs.get('args', [])
+        cmd_args = kwargs.pop('args', [])
         if not isinstance(cmd_args, list):
             cmd_args = [cmd_args]
         for i in cmd_args:
             if not isinstance(i, (str, mesonlib.File)):
                 raise InterpreterException('Command line arguments must be strings')
-        envlist = kwargs.get('env', [])
+        envlist = kwargs.pop('env', [])
         if isinstance(envlist, EnvironmentVariablesHolder):
             env = envlist.held_object
         else:
@@ -2125,21 +2127,21 @@ requirements use the version keyword argument instead.''')
                 env[k] = val
         if not isinstance(envlist, list):
             envlist = [envlist]
-        should_fail = kwargs.get('should_fail', False)
+        should_fail = kwargs.pop('should_fail', False)
         if not isinstance(should_fail, bool):
             raise InterpreterException('Keyword argument should_fail must be a boolean.')
-        timeout = kwargs.get('timeout', 30)
-        if 'workdir' in kwargs:
-            workdir = kwargs['workdir']
+
+        workdir = kwargs.pop('workdir', None)
+        if workdir is not None:
             if not isinstance(workdir, str):
                 raise InterpreterException('Workdir keyword argument must be a string.')
             if not os.path.isabs(workdir):
                 raise InterpreterException('Workdir keyword argument must be an absolute path.')
-        else:
-            workdir = None
+
+        timeout = kwargs.pop('timeout', 30)
         if not isinstance(timeout, int):
             raise InterpreterException('Timeout must be an integer.')
-        suite = mesonlib.stringlistify(kwargs.get('suite', ''))
+        suite = mesonlib.stringlistify(kwargs.pop('suite', ''))
         if self.is_subproject():
             newsuite = []
             for s in suite:
@@ -2147,7 +2149,8 @@ requirements use the version keyword argument instead.''')
                     s = '.' + s
                 newsuite.append(self.subproject.replace(' ', '_').replace('.', '_') + s)
             suite = newsuite
-        t = Test(args[0], suite, args[1].held_object, par, cmd_args, env, should_fail, timeout, workdir)
+        t = Test(args[0], suite, args[1].held_object, par, cmd_args, env, should_fail, timeout, workdir,
+                 kwargs)
         if is_base_test:
             self.build.tests.append(t)
             mlog.debug('Adding test "', mlog.bold(args[0]), '".', sep='')

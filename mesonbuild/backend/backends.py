@@ -50,7 +50,7 @@ class ExecutableSerialisation():
 
 class TestSerialisation:
     def __init__(self, name, suite, fname, is_cross, exe_wrapper, is_parallel, cmd_args, env,
-                 should_fail, timeout, workdir, extra_paths):
+                 should_fail, timeout, workdir, extra_paths, extra_args):
         self.name = name
         self.suite = suite
         self.fname = fname
@@ -63,6 +63,7 @@ class TestSerialisation:
         self.timeout = timeout
         self.workdir = workdir
         self.extra_paths = extra_paths
+        self.extra_args = extra_args
 
 # This class contains the basic functionality that is needed by all backends.
 # Feel free to move stuff in and out of it as you see fit.
@@ -439,7 +440,7 @@ class Backend():
                 cmd_args.append(a)
             ts = TestSerialisation(t.get_name(), t.suite, fname, is_cross, exe_wrapper,
                                    t.is_parallel, cmd_args, t.env, t.should_fail,
-                                   t.timeout, t.workdir, extra_paths)
+                                   t.timeout, t.workdir, extra_paths, t.extra_args)
             arr.append(ts)
         pickle.dump(arr, datafile)
 
