@@ -707,7 +707,7 @@ int main () {{
     @staticmethod
     def _override_args(args, override):
         '''
-        Add @override to @args in such a way that arguments are overrided
+        Add @override to @args in such a way that arguments are overriden
         correctly.
 
         We want the include directories to be added first (since they are
