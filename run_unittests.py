@@ -24,9 +24,10 @@ from mesonbuild.dependencies import PkgConfigDependency, Qt5Dependency
 
 def get_soname(fname):
     # HACK, fix to not use shell.
-    raw_out = subprocess.check_output(['readelf', '-a', fname])
-    pattern = re.compile(b'soname: \[(.*?)\]')
-    for line in raw_out.split(b'\n'):
+    raw_out = subprocess.check_output(['readelf', '-a', fname],
+                                      universal_newlines=True)
+    pattern = re.compile('soname: \[(.*?)\]')
+    for line in raw_out.split('\n'):
         m = pattern.search(line)
         if m is not None:
             return m.group(1)
@@ -105,8 +106,9 @@ class LinuxlikeTests(unittest.TestCase):
         return cmds
 
     def introspect(self, arg):
-        out = subprocess.check_output(self.mintro_command + [arg, self.builddir])
-        return json.loads(out.decode('utf-8'))
+        out = subprocess.check_output(self.mintro_command + [arg, self.builddir],
+                                      universal_newlines=True)
+        return json.loads(out)
 
     def test_basic_soname(self):
         testdir = os.path.join(self.common_test_dir, '4 shared')
@@ -114,7 +116,7 @@ class LinuxlikeTests(unittest.TestCase):
         self.build()
         lib1 = os.path.join(self.builddir, 'libmylib.so')
         soname = get_soname(lib1)
-        self.assertEqual(soname, b'libmylib.so')
+        self.assertEqual(soname, 'libmylib.so')
 
     def test_custom_soname(self):
         testdir = os.path.join(self.common_test_dir, '27 library versions')
@@ -122,7 +124,7 @@ class LinuxlikeTests(unittest.TestCase):
         self.build()
         lib1 = os.path.join(self.builddir, 'prefixsomelib.suffix')
         soname = get_soname(lib1)
-        self.assertEqual(soname, b'prefixsomelib.suffix')
+        self.assertEqual(soname, 'prefixsomelib.suffix')
 
     def test_pic(self):
         testdir = os.path.join(self.common_test_dir, '3 static')
@@ -225,8 +227,9 @@ class LinuxlikeTests(unittest.TestCase):
         self.assertTrue(msg in mesonlog or msg2 in mesonlog)
 
     def get_soname(self, fname):
-        output = subprocess.check_output(['readelf', '-a', fname])
-        for line in output.decode('utf-8', errors='ignore').split('\n'):
+        output = subprocess.check_output(['readelf', '-a', fname],
+                                         universal_newlines=True)
+        for line in output.split('\n'):
             if 'SONAME' in line:
                 return line.split('[')[1].split(']')[0]
         raise RuntimeError('Readelf gave no SONAME.')
