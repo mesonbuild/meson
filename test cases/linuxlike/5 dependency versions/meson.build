@@ -10,6 +10,17 @@ assert(zlib.type_name() == 'pkgconfig', 'zlib should be of type "pkgconfig" not 
 zlibver = dependency('zlib', version : '<1.0', required : false)
 assert(zlibver.found() == false, 'zlib <1.0 should not be found!')
 
+# Find external dependencies with various version restrictions
+dependency('zlib', version : '>=1.0')
+dependency('zlib', version : '<=9999')
+dependency('zlib', version : '=' + zlib.version())
+
+# Find external dependencies with multiple version restrictions
+dependency('zlib', version : ['>=1.0', '<=9999'])
+if dependency('zlib', version : ['<=1.0', '>=9999', '=' + zlib.version()], required : false).found()
+  error('zlib <=1.0 >=9999 should not have been found')
+endif
+
 # Test https://github.com/mesonbuild/meson/pull/610
 dependency('somebrokenlib', version : '>=2.0', required : false)
 dependency('somebrokenlib', version : '>=1.0', required : false)

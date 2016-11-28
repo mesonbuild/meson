@@ -23,7 +23,7 @@ import re
 import os, stat, glob, subprocess, shutil
 import sysconfig
 from collections import OrderedDict
-from . mesonlib import MesonException
+from . mesonlib import MesonException, version_compare, version_compare_many
 from . import mlog
 from . import mesonlib
 from .environment import detect_cpu_family, for_windows
@@ -135,22 +135,27 @@ class PkgConfigDependency(Dependency):
             self.modversion = 'none'
             return
         found_msg = ['%s dependency' % self.type_string, mlog.bold(name), 'found:']
-        self.version_requirement = kwargs.get('version', None)
-        if self.version_requirement is None:
+        self.version_reqs = kwargs.get('version', None)
+        if self.version_reqs is None:
             self.is_found = True
         else:
-            if not isinstance(self.version_requirement, str):
-                raise DependencyException('Version argument must be string.')
-            self.is_found = mesonlib.version_compare(self.modversion, self.version_requirement)
+            if not isinstance(self.version_reqs, (str, list)):
+                raise DependencyException('Version argument must be string or list.')
+            (self.is_found, not_found, found) = \
+                version_compare_many(self.modversion, self.version_reqs)
             if not self.is_found:
-                found_msg += [mlog.red('NO'), 'found {!r}'.format(self.modversion),
-                              'but need {!r}'.format(self.version_requirement)]
+                found_msg += [mlog.red('NO'),
+                              'found {!r} but need:'.format(self.modversion),
+                              ', '.join(["'{}'".format(e) for e in not_found])]
+                if found:
+                    found_msg += ['; matched:',
+                                  ', '.join(["'{}'".format(e) for e in found])]
                 if not self.silent:
                     mlog.log(*found_msg)
                 if self.required:
                     raise DependencyException(
                         'Invalid version of a dependency, needed %s %s found %s.' %
-                        (name, self.version_requirement, self.modversion))
+                        (name, not_found, self.modversion))
                 return
         found_msg += [mlog.green('YES'), self.modversion]
         if not self.silent:
@@ -301,7 +306,7 @@ class WxDependency(Dependency):
             self.modversion = out.decode().strip()
             version_req = kwargs.get('version', None)
             if version_req is not None:
-                if not mesonlib.version_compare(self.modversion, version_req):
+                if not version_compare(self.modversion, version_req, strict=True):
                     mlog.log('Wxwidgets version %s does not fullfill requirement %s' %\
                              (self.modversion, version_req))
                     return
