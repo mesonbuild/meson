@@ -1017,9 +1017,11 @@ int dummy;
             args += valac.get_werror_args()
         for d in target.get_external_deps():
             if isinstance(d, dependencies.PkgConfigDependency):
-                if d.name == 'glib-2.0' and d.version_requirement is not None \
-                   and d.version_requirement.startswith(('>=', '==')):
-                    args += ['--target-glib', d.version_requirement[2:]]
+                if d.name == 'glib-2.0' and d.version_reqs is not None:
+                    for req in d.version_reqs:
+                        if req.startswith(('>=', '==')):
+                            args += ['--target-glib', req[2:]]
+                            break
                 args += ['--pkg', d.name]
             elif isinstance(d, dependencies.ExternalLibrary):
                 args += d.get_lang_args('vala')

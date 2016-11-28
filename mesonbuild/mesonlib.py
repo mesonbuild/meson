@@ -146,21 +146,26 @@ def detect_vcs(source_dir):
                 return vcs
     return None
 
-def grab_leading_numbers(vstr):
+def grab_leading_numbers(vstr, strict=False):
     result = []
     for x in vstr.split('.'):
         try:
             result.append(int(x))
-        except ValueError:
+        except ValueError as e:
+            if strict:
+                msg = 'Invalid version to compare against: {!r}; only ' \
+                      'numeric digits separated by "." are allowed: ' + str(e)
+                raise MesonException(msg.format(vstr))
             break
     return result
 
 numpart = re.compile('[0-9.]+')
 
-def version_compare(vstr1, vstr2):
+def version_compare(vstr1, vstr2, strict=False):
     match = numpart.match(vstr1.strip())
     if match is None:
-        raise MesonException('Uncomparable version string %s.' % vstr1)
+        msg = 'Uncomparable version string {!r}.'
+        raise MesonException(msg.format(vstr1))
     vstr1 = match.group(0)
     if vstr2.startswith('>='):
         cmpop = operator.ge
@@ -185,9 +190,21 @@ def version_compare(vstr1, vstr2):
         vstr2 = vstr2[1:]
     else:
         cmpop = operator.eq
-    varr1 = grab_leading_numbers(vstr1)
-    varr2 = grab_leading_numbers(vstr2)
+    varr1 = grab_leading_numbers(vstr1, strict)
+    varr2 = grab_leading_numbers(vstr2, strict)
     return cmpop(varr1, varr2)
+
+def version_compare_many(vstr1, conditions):
+    if not isinstance(conditions, (list, tuple)):
+        conditions = [conditions]
+    found = []
+    not_found = []
+    for req in conditions:
+        if not version_compare(vstr1, req, strict=True):
+            not_found.append(req)
+        else:
+            found.append(req)
+    return (not_found == [], not_found, found)
 
 def default_libdir():
     if is_debianlike():
