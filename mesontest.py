@@ -366,12 +366,12 @@ class TestHarness:
                     else:
                         res = self.run_single_test(wrap, t)
                         if (res.returncode == 0 and res.should_fail) or \
-                            (res.returncode != 0 and not res.should_fail) and \
-                                not self.options.verbose:
-                            print('Test failed:\n\n-- stdout --\n')
-                            print(res.stdo)
-                            print('\n-- stderr --\n')
-                            print(res.stde)
+                                (res.returncode != 0 and not res.should_fail):
+                            if not self.options.verbose:
+                                print('Test failed:\n\n-- stdout --\n')
+                                print(res.stdo)
+                                print('\n-- stderr --\n')
+                                print(res.stde)
                             return 1
         return 0
 
