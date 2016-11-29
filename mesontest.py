@@ -26,6 +26,10 @@ import concurrent.futures as conc
 import platform
 import signal
 
+# GNU autotools interprets a return code of 77 from tests it executes to
+# mean that the test should be skipped.
+GNU_SKIP_RETURNCODE = 77
+
 def is_windows():
     platname = platform.system().lower()
     return platname == 'windows' or 'mingw' in platname
@@ -213,6 +217,8 @@ class TestHarness:
                 stde = decode(stde)
             if timed_out:
                 res = 'TIMEOUT'
+            if p.returncode == GNU_SKIP_RETURNCODE:
+                res = 'SKIP'
             elif (not test.should_fail and p.returncode == 0) or \
                 (test.should_fail and p.returncode != 0):
                 res = 'OK'
@@ -230,7 +236,8 @@ class TestHarness:
             (num, name, padding1, result.res, padding2, result.duration)
         print(result_str)
         result_str += "\n\n" + result.get_log()
-        if (result.returncode != 0) != result.should_fail:
+        if (result.returncode != GNU_SKIP_RETURNCODE) and \
+            (result.returncode != 0) != result.should_fail:
             self.error_count += 1
             if self.options.print_errorlogs:
                 self.collected_logs.append(result_str)
