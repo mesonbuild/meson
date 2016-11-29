@@ -153,7 +153,7 @@ class Resolver:
             if revno.lower() != 'head':
                 subprocess.check_call(['git', 'checkout', revno],
                                       cwd=checkoutdir)
-            push_url = p.get('push-url')
+            push_url = p.values.get('push-url')
             if push_url:
                 subprocess.check_call(['git', 'remote', 'set-url',
                                        '--push', 'origin', push_url],
