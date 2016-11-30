@@ -168,7 +168,10 @@ def list_tests(testdata):
         else:
             fname = t.fname
         to['cmd'] = fname + t.cmd_args
-        to['env'] = t.env
+        if isinstance(t.env, build.EnvironmentVariables):
+            to['env'] = t.env.get_env(os.environ)
+        else:
+            to['env'] = t.env
         to['name'] = t.name
         to['workdir'] = t.workdir
         to['timeout'] = t.timeout
