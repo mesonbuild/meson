@@ -37,6 +37,13 @@ native_glib_version = None
 girwarning_printed = False
 gresource_warning_printed = False
 
+def find_program(program_name, target_name):
+    program = dependencies.ExternalProgram(program_name)
+    if not program.found():
+        raise MesonException('%s can\'t be generated as %s could not be found' % (
+            target_name, program_name))
+    return program
+
 class GnomeModule:
 
     @staticmethod
@@ -308,6 +315,8 @@ can not be used with the current version of glib-compiled-resources, due to
             raise MesonException('Gir takes one argument')
         if kwargs.get('install_dir'):
             raise MesonException('install_dir is not supported with generate_gir(), see "install_dir_gir" and "install_dir_typelib"')
+        giscanner = find_program('g-ir-scanner', 'Gir')
+        gicompiler = find_program('g-ir-compiler', 'Gir')
         girtarget = args[0]
         while hasattr(girtarget, 'held_object'):
             girtarget = girtarget.held_object
@@ -329,7 +338,7 @@ can not be used with the current version of glib-compiled-resources, due to
         depends = [girtarget]
         gir_inc_dirs = []
 
-        scan_command = ['g-ir-scanner', '@INPUT@']
+        scan_command = giscanner.get_command() + ['@INPUT@']
         scan_command += pkgargs
         scan_command += ['--no-libtool', '--namespace='+ns, '--nsversion=' + nsversion, '--warn-all',
                          '--output', '@OUTPUT@']
@@ -484,7 +493,7 @@ can not be used with the current version of glib-compiled-resources, due to
         scan_target = GirTarget(girfile, state.subdir, scankwargs)
 
         typelib_output = '%s-%s.typelib' % (ns, nsversion)
-        typelib_cmd = ['g-ir-compiler', scan_target, '--output', '@OUTPUT@']
+        typelib_cmd = gicompiler.get_command() + [scan_target, '--output', '@OUTPUT@']
         typelib_cmd += self._get_include_args(state, gir_inc_dirs,
                                               prefix='--includedir=')
         for incdir in typelib_includes:
@@ -506,7 +515,9 @@ can not be used with the current version of glib-compiled-resources, due to
             raise MesonException('Compile_schemas does not take positional arguments.')
         srcdir = os.path.join(state.build_to_src, state.subdir)
         outdir = state.subdir
-        cmd = ['glib-compile-schemas', '--targetdir', outdir, srcdir]
+
+        cmd = find_program('glib-compile-schemas', 'gsettings-compile').get_command()
+        cmd += ['--targetdir', outdir, srcdir]
         kwargs['command'] = cmd
         kwargs['input'] = []
         kwargs['output'] = 'gschemas.compiled'
@@ -684,7 +695,8 @@ can not be used with the current version of glib-compiled-resources, due to
             raise MesonException('Gdbus_codegen takes two arguments, name and xml file.')
         namebase = args[0]
         xml_file = args[1]
-        cmd = ['gdbus-codegen']
+        target_name = namebase + '-gdbus'
+        cmd = find_program('gdbus-codegen', target_name).get_command()
         if 'interface_prefix' in kwargs:
             cmd += ['--interface-prefix', kwargs.pop('interface_prefix')]
         if 'namespace' in kwargs:
@@ -695,7 +707,7 @@ can not be used with the current version of glib-compiled-resources, due to
                          'output' : outputs,
                          'command' : cmd
                          }
-        return build.CustomTarget(namebase + '-gdbus', state.subdir, custom_kwargs)
+        return build.CustomTarget(target_name, state.subdir, custom_kwargs)
 
     def mkenums(self, state, args, kwargs):
         if len(args) != 1:
@@ -741,7 +753,7 @@ can not be used with the current version of glib-compiled-resources, due to
             elif arg not in known_custom_target_kwargs:
                 raise MesonException(
                     'Mkenums does not take a %s keyword argument.' % (arg, ))
-        cmd = ['glib-mkenums'] + cmd
+        cmd = find_program('glib-mkenums', 'mkenums').get_command() + cmd
         custom_kwargs = {}
         for arg in known_custom_target_kwargs:
             if arg in kwargs:
@@ -822,7 +834,7 @@ can not be used with the current version of glib-compiled-resources, due to
             raise MesonException(
                 'Sources keyword argument must be a string or array.')
 
-        cmd = ['glib-genmarshal']
+        cmd = find_program('glib-genmarshal', output + '_genmarshal').get_command()
         known_kwargs = ['internal', 'nostdinc', 'skip_source', 'stdinc',
                         'valist_marshallers']
         known_custom_target_kwargs = ['build_always', 'depends',
@@ -949,7 +961,8 @@ can not be used with the current version of glib-compiled-resources, due to
         build_dir = os.path.join(state.environment.get_build_dir(), state.subdir)
         source_dir = os.path.join(state.environment.get_source_dir(), state.subdir)
         pkg_cmd, vapi_depends, vapi_packages, vapi_includes = self._extract_vapi_packages(state, kwargs)
-        cmd = ['vapigen', '--quiet', '--library=' + library, '--directory=' + build_dir]
+        cmd = find_program('vapigen', 'Vaapi').get_command()
+        cmd += ['--quiet', '--library=' + library, '--directory=' + build_dir]
         cmd += self._vapi_args_to_command('--vapidir=', 'vapi_dirs', kwargs)
         cmd += self._vapi_args_to_command('--metadatadir=', 'metadata_dirs', kwargs)
         cmd += self._vapi_args_to_command('--girdir=', 'gir_dirs', kwargs)
