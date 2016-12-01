@@ -164,6 +164,7 @@ class TestHarness:
             else:
                 cmd = test.fname
 
+        failling = False
         if cmd is None:
             res = 'SKIP'
             duration = 0.0
@@ -217,6 +218,7 @@ class TestHarness:
                 stde = decode(stde)
             if timed_out:
                 res = 'TIMEOUT'
+                failling = True
             if p.returncode == GNU_SKIP_RETURNCODE:
                 res = 'SKIP'
             elif (not test.should_fail and p.returncode == 0) or \
@@ -224,8 +226,14 @@ class TestHarness:
                 res = 'OK'
             else:
                 res = 'FAIL'
+                failling = True
             returncode = p.returncode
-        return TestRun(res, returncode, test.should_fail, duration, stdo, stde, cmd, test.env)
+        result = TestRun(res, returncode, test.should_fail, duration, stdo, stde, cmd, test.env)
+
+        if failling:
+            self.failled_tests.append(result)
+
+        return result
 
     def print_stats(self, numlen, tests, name, result, i, logfile, jsonlogfile):
         startpad = ' '*(numlen - len('%d' % (i+1)))
@@ -298,27 +306,28 @@ class TestHarness:
                 logfile.write('Log of Meson test suite run on %s.\n\n' %
                             datetime.datetime.now().isoformat())
 
-            for i, test in enumerate(filtered_tests):
-                if test.suite[0] == '':
-                    visible_name = test.name
-                else:
-                    if self.options.suite is not None:
-                        visible_name = self.options.suite + ' / ' + test.name
+            for i in range(self.options.repeat):
+                for i, test in enumerate(filtered_tests):
+                    if test.suite[0] == '':
+                        visible_name = test.name
                     else:
-                        visible_name = test.suite[0] + ' / ' + test.name
+                        if self.options.suite is not None:
+                            visible_name = self.options.suite + ' / ' + test.name
+                        else:
+                            visible_name = test.suite[0] + ' / ' + test.name
 
-                if not test.is_parallel:
-                    self.drain_futures(futures)
-                    futures = []
-                    res = self.run_single_test(wrap, test)
-                    if not self.options.verbose:
-                        self.print_stats(numlen, filtered_tests, visible_name, res, i,
-                                        logfile, jsonlogfile)
-                else:
-                    f = executor.submit(self.run_single_test, wrap, test)
-                    if not self.options.verbose:
-                        futures.append((f, numlen, filtered_tests, visible_name, i,
-                                        logfile, jsonlogfile))
+                    if not test.is_parallel:
+                        self.drain_futures(futures)
+                        futures = []
+                        res = self.run_single_test(wrap, test)
+                        if not self.options.verbose:
+                            self.print_stats(numlen, filtered_tests, visible_name, res, i,
+                                            logfile, jsonlogfile)
+                    else:
+                        f = executor.submit(self.run_single_test, wrap, test)
+                        if not self.options.verbose:
+                            futures.append((f, numlen, filtered_tests, visible_name, i,
+                                            logfile, jsonlogfile))
             self.drain_futures(futures, logfile, jsonlogfile)
         finally:
             if jsonlogfile:
@@ -332,8 +341,23 @@ class TestHarness:
     def drain_futures(self, futures, logfile, jsonlogfile):
         for i in futures:
             (result, numlen, tests, name, i, logfile, jsonlogfile) = i
-            if not self.options.verbose:
+            if self.options.repeat > 1 and self.failled_tests:
+                result.cancel()
+            elif not self.options.verbose:
                 self.print_stats(numlen, tests, name, result.result(), i, logfile, jsonlogfile)
+            else:
+                result.result()
+
+        if self.options.repeat > 1 and self.failled_tests:
+            if not self.options.verbose:
+                for res in self.failled_tests:
+                    print('Test failed:\n\n-- stdout --\n')
+                    print(res.stdo)
+                    print('\n-- stderr --\n')
+                    print(res.stde)
+                    return 1
+
+            return
 
     def run_special(self):
         'Tests run by the user, usually something like "under gdb 1000 times".'
