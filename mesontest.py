@@ -199,8 +199,9 @@ class TestHarness:
                                  cwd=test.workdir,
                                  preexec_fn=setsid)
             timed_out = False
+            timeout = test.timeout if not self.options.gdb else None
             try:
-                (stdo, stde) = p.communicate(timeout=test.timeout)
+                (stdo, stde) = p.communicate(timeout=timeout)
             except subprocess.TimeoutExpired:
                 timed_out = True
                 # Python does not provide multiplatform support for
