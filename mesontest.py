@@ -382,9 +382,11 @@ class TestHarness:
                 for i in range(self.options.repeat):
                     print('Running: %s %d/%d' % (t.name, i+1, self.options.repeat))
                     if self.options.gdb:
-                        wrap = ['gdb', '--quiet', '-ex', 'run', '-ex', 'quit']
+                        wrap = ['gdb', '--quiet']
                         if len(t.cmd_args) > 0:
                             wrap.append('--args')
+                        if self.options.repeat > 1:
+                            wrap.append('-ex', 'run', '-ex', 'quit')
 
                         res = self.run_single_test(wrap, t)
                     else:
