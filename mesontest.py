@@ -54,6 +54,8 @@ def determine_worker_count():
 parser = argparse.ArgumentParser()
 parser.add_argument('--repeat', default=1, dest='repeat', type=int,
                     help='Number of times to run the tests.')
+parser.add_argument('--no-rebuild', default=False, action='store_true',
+                    help='Do not rebuild before running tests.')
 parser.add_argument('--gdb', default=False, dest='gdb', action='store_true',
                     help='Run test under gdb.')
 parser.add_argument('--list', default=False, dest='list', action='store_true',
@@ -146,12 +148,35 @@ class TestHarness:
         self.collected_logs = []
         self.error_count = 0
         self.is_run = False
+        self.cant_rebuild = False
         if self.options.benchmark:
             self.datafile = os.path.join(options.wd, 'meson-private/meson_benchmark_setup.dat')
         else:
             self.datafile = os.path.join(options.wd, 'meson-private/meson_test_setup.dat')
 
+    def rebuild_all(self):
+        if not os.path.isfile(os.path.join(self.options.wd, 'build.ninja')):
+            print("Only ninja backend is supported to rebuilt tests before running them.")
+            self.cant_rebuild = True
+            return True
+
+        ninja = environment.detect_ninja()
+        if not ninja:
+            print("Can't find ninja, can't rebuild test.")
+            self.cant_rebuild = True
+            return False
+
+        p = subprocess.Popen([ninja, '-C', self.options.wd])
+        (stdo, stde) = p.communicate()
+
+        if p.returncode != 0:
+            print("Could not rebuild")
+            return False
+
+        return True
+
     def run_single_test(self, wrap, test):
+        failling = False
         if test.fname[0].endswith('.jar'):
             cmd = ['java', '-jar'] + test.fname
         elif not test.is_cross and run_with_mono(test.fname[0]):
@@ -167,7 +192,6 @@ class TestHarness:
             else:
                 cmd = test.fname
 
-        failling = False
         if cmd is None:
             res = 'SKIP'
             duration = 0.0
@@ -265,7 +289,7 @@ class TestHarness:
             print('Test data file. Probably this means that you did not run this in the build directory.')
             return 1
         self.is_run = True
-        logfilename = self.run_tests(self.datafile, self.options.logbase)
+        logfilename = self.run_tests(self.options.logbase)
         if len(self.collected_logs) > 0:
             if len(self.collected_logs) > 10:
                 print('\nThe output from 10 first failed tests:\n')
@@ -282,7 +306,15 @@ class TestHarness:
         print('Full log written to %s.' % logfilename)
         return self.error_count
 
-    def run_tests(self, datafilename, log_base):
+    def get_tests(self):
+        with open(self.datafile, 'rb') as f:
+            tests = pickle.load(f)
+        for test in tests:
+            test.rebuilt = False
+
+        return tests
+
+    def run_tests(self, log_base):
         logfile_base = os.path.join(self.options.wd, 'meson-logs', log_base)
         if self.options.wrapper is None:
             wrap = []
@@ -293,8 +325,7 @@ class TestHarness:
             namebase = wrap[0]
             logfilename = logfile_base + '-' + namebase.replace(' ', '_') + '.txt'
             jsonlogfilename = logfile_base + '-' + namebase.replace(' ', '_') + '.json'
-        with open(datafilename, 'rb') as f:
-            tests = pickle.load(f)
+        tests = self.get_tests()
         if len(tests) == 0:
             print('No tests defined.')
             return
@@ -378,7 +409,7 @@ class TestHarness:
             return 1
         if os.path.isfile('build.ninja'):
             subprocess.check_call([environment.detect_ninja(), 'all'])
-        tests = pickle.load(open(self.datafile, 'rb'))
+        tests = self.get_tests()
         if self.options.list:
             for i in tests:
                 print(i.name)
@@ -421,9 +452,14 @@ def run(args):
     if options.gdb:
         options.verbose = True
 
+    options.wd = os.path.abspath(options.wd)
+
     th = TestHarness(options)
     if options.list:
         return th.run_special()
+    if not options.no_rebuild:
+        if not th.rebuild_all():
+            return -1
     elif len(options.args) == 0:
         return th.doit()
     return th.run_special()

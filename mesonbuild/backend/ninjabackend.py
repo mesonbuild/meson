@@ -715,7 +715,7 @@ int dummy;
         meson_exe = self.environment.get_build_command()
         (base, ext) = os.path.splitext(meson_exe)
         test_exe = base + 'test' + ext
-        cmd = [sys.executable, test_exe]
+        cmd = [sys.executable, test_exe, '--no-rebuild']
         if not self.environment.coredata.get_builtin_option('stdsplit'):
             cmd += ['--no-stdsplit']
         if self.environment.coredata.get_builtin_option('errorlogs'):
@@ -728,7 +728,7 @@ int dummy;
 
         # And then benchmarks.
         cmd = [sys.executable, test_exe, '--benchmark','--logbase',
-               'benchmarklog', '--num-processes=1']
+               'benchmarklog', '--num-processes=1', '--no-rebuild']
         elem = NinjaBuildElement(self.all_outputs, 'benchmark', 'CUSTOM_COMMAND', ['all', 'PHONY'])
         elem.add_item('COMMAND', cmd)
         elem.add_item('DESC', 'Running benchmark suite.')
