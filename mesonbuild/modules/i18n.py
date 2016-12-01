@@ -12,16 +12,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from os import path
 from .. import coredata, mesonlib, build
 import sys
 
 class I18nModule:
 
+    @staticmethod
+    def _read_linguas(state):
+        linguas = path.join(state.environment.get_source_dir(), state.subdir, 'LINGUAS')
+        try:
+            with open(linguas) as f:
+                return [line.strip() for line in f if not line.strip().startswith('#')]
+        except (FileNotFoundError, PermissionError):
+            return []
+
     def gettext(self, state, args, kwargs):
         if len(args) != 1:
             raise coredata.MesonException('Gettext requires one positional argument (package name).')
         packagename = args[0]
-        languages = mesonlib.stringlistify(kwargs.get('languages', []))
+        languages = mesonlib.stringlistify(kwargs.get('languages', self._read_linguas(state)))
         if len(languages) == 0:
             raise coredata.MesonException('List of languages empty.')
         datadirs = mesonlib.stringlistify(kwargs.get('data_dirs', []))
