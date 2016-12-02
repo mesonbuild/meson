@@ -1926,6 +1926,9 @@ class VisualStudioCCompiler(CCompiler):
         pdbarr += ['pdb']
         return ['/DEBUG', '/PDB:' + '.'.join(pdbarr)]
 
+    def get_std_shared_module_link_args(self):
+        return ['/DLL', '/FORCE:UNRESOLVED']
+
 class VisualStudioCPPCompiler(VisualStudioCCompiler, CPPCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrap):
         self.language = 'cpp'
