@@ -76,6 +76,10 @@ parser.add_argument('--num-processes', default=determine_worker_count(), type=in
                     help='How many parallel processes to use.')
 parser.add_argument('-v', '--verbose', default=False, action='store_true',
                     help='Do not redirect stdout and stderr')
+parser.add_argument('-t', '--timeout-multiplier', type=float, default=1.0,
+                    help='Define a multiplier for test timeout, for example '
+                    ' when running tests in particular conditions they might take'
+                    ' more time to execute.')
 parser.add_argument('args', nargs='*')
 
 class TestRun():
@@ -199,7 +203,7 @@ class TestHarness:
                                  cwd=test.workdir,
                                  preexec_fn=setsid)
             timed_out = False
-            timeout = test.timeout if not self.options.gdb else None
+            timeout = test.timeout * self.options.timeout_multiplier
             try:
                 (stdo, stde) = p.communicate(timeout=timeout)
             except subprocess.TimeoutExpired:
