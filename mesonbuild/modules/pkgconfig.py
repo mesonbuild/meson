@@ -49,6 +49,7 @@ class PkgConfigModule:
             # 'os.path.join' for details)
             ofile.write('libdir=%s\n' % os.path.join('${prefix}', coredata.get_builtin_option('libdir')))
             ofile.write('includedir=%s\n' %  os.path.join('${prefix}', coredata.get_builtin_option('includedir')))
+            ofile.write('\n')
             ofile.write('Name: %s\n' % name)
             if len(description) > 0:
                 ofile.write('Description: %s\n' % description)
