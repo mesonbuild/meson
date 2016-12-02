@@ -1937,13 +1937,17 @@ rule FORTRAN_DEP_HACK
         if isinstance(target, build.Executable):
             commands += linker.get_std_exe_link_args()
         elif isinstance(target, build.SharedLibrary):
-            commands += linker.get_std_shared_lib_link_args()
+            if isinstance(target, build.SharedModule):
+                commands += linker.get_std_shared_module_link_args()
+            else:
+                commands += linker.get_std_shared_lib_link_args()
             commands += linker.get_pic_args()
             if hasattr(target, 'soversion'):
                 soversion = target.soversion
             else:
                 soversion = None
-            commands += linker.get_soname_args(target.prefix, target.name, target.suffix, abspath, soversion)
+            commands += linker.get_soname_args(target.prefix, target.name, target.suffix,
+                                               abspath, soversion, isinstance(target, build.SharedModule))
             # This is only visited when using the Visual Studio toolchain
             if target.vs_module_defs and hasattr(linker, 'gen_vs_module_defs_args'):
                 commands += linker.gen_vs_module_defs_args(target.vs_module_defs.rel_to_builddir(self.build_to_src))
