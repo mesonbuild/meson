@@ -115,7 +115,9 @@ class MesonApp():
                 msg = '''Trying to run Meson on a build directory that has already been configured.
 If you want to build it, just run your build command (e.g. ninja) inside the
 build directory. Meson will autodetect any changes in your setup and regenerate
-itself as required.'''
+itself as required.
+
+If you want to change option values, use the mesonconf tool instead.'''
                 raise RuntimeError(msg)
         else:
             if handshake:
