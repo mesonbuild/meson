@@ -1069,12 +1069,10 @@ class SharedLibrary(BuildTarget):
                 self.soversion = str(self.soversion)
             if not isinstance(self.soversion, str):
                 raise InvalidArguments('Shared library soversion is not a string or integer.')
-            try:
-                int(self.soversion)
-            except ValueError:
-                raise InvalidArguments('Shared library soversion must be a valid integer')
         elif self.ltversion:
             # library version is defined, get the soversion from that
+            # We replicate what Autotools does here and take the first
+            # number of the version by default.
             self.soversion = self.ltversion.split('.')[0]
         # Visual Studio module-definitions file
         if 'vs_module_defs' in kwargs:

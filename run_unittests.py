@@ -17,6 +17,7 @@ import unittest, os, sys, shutil, time
 import subprocess
 import re, json
 import tempfile
+from glob import glob
 import mesonbuild.environment
 from mesonbuild.environment import detect_ninja
 from mesonbuild.dependencies import PkgConfigDependency, Qt5Dependency
@@ -52,6 +53,7 @@ class LinuxlikeTests(unittest.TestCase):
     def setUp(self):
         super().setUp()
         src_root = os.path.dirname(__file__)
+        src_root = os.path.join(os.getcwd(), src_root)
         self.builddir = tempfile.mkdtemp()
         self.meson_command = [sys.executable, os.path.join(src_root, 'meson.py')]
         self.mconf_command = [sys.executable, os.path.join(src_root, 'mesonconf.py')]
@@ -60,6 +62,7 @@ class LinuxlikeTests(unittest.TestCase):
         self.common_test_dir = os.path.join(src_root, 'test cases/common')
         self.vala_test_dir = os.path.join(src_root, 'test cases/vala')
         self.framework_test_dir = os.path.join(src_root, 'test cases/frameworks')
+        self.unit_test_dir = os.path.join(src_root, 'test cases/unit')
         self.output = b''
         self.orig_env = os.environ.copy()
 
@@ -210,6 +213,54 @@ class LinuxlikeTests(unittest.TestCase):
         msg2 = 'Qt5 native `qmake` dependency (modules: Core) found: YES\n'
         mesonlog = self.get_meson_log()
         self.assertTrue(msg in mesonlog or msg2 in mesonlog)
+
+    def get_soname(self, fname):
+        output = subprocess.check_output(['readelf', '-a', fname])
+        for line in output.decode('utf-8', errors='ignore').split('\n'):
+            if 'SONAME' in line:
+                return line.split('[')[1].split(']')[0]
+        raise RuntimeError('Readelf gave no SONAME.')
+
+    def test_soname(self):
+        testdir = os.path.join(self.unit_test_dir, '1 soname')
+        self.init(testdir)
+        self.build()
+
+        # File without aliases set.
+        nover = os.path.join(self.builddir, 'libnover.so')
+        self.assertTrue(os.path.exists(nover))
+        self.assertFalse(os.path.islink(nover))
+        self.assertEqual(self.get_soname(nover), 'libnover.so')
+        self.assertEqual(len(glob(nover[:-3] + '*')), 1)
+
+        # File with version set
+        verset = os.path.join(self.builddir, 'libverset.so')
+        self.assertTrue(os.path.exists(verset + '.4.5.6'))
+        self.assertEqual(os.readlink(verset), 'libverset.so.4')
+        self.assertEqual(self.get_soname(verset), 'libverset.so.4')
+        self.assertEqual(len(glob(verset[:-3] + '*')), 3)
+
+        # File with soversion set
+        soverset = os.path.join(self.builddir, 'libsoverset.so')
+        self.assertTrue(os.path.exists(soverset + '.1.2.3'))
+        self.assertEqual(os.readlink(soverset), 'libsoverset.so.1.2.3')
+        self.assertEqual(self.get_soname(soverset), 'libsoverset.so.1.2.3')
+        self.assertEqual(len(glob(soverset[:-3] + '*')), 2)
+
+        # File with version and soversion set to same values
+        settosame = os.path.join(self.builddir, 'libsettosame.so')
+        self.assertTrue(os.path.exists(settosame + '.7.8.9'))
+        self.assertEqual(os.readlink(settosame), 'libsettosame.so.7.8.9')
+        self.assertEqual(self.get_soname(settosame), 'libsettosame.so.7.8.9')
+        self.assertEqual(len(glob(settosame[:-3] + '*')), 2)
+
+        # File with version and soversion set to different values
+        bothset = os.path.join(self.builddir, 'libbothset.so')
+        self.assertTrue(os.path.exists(bothset + '.1.2.3'))
+        self.assertEqual(os.readlink(bothset), 'libbothset.so.1.2.3')
+        self.assertEqual(os.readlink(bothset + '.1.2.3'), 'libbothset.so.4.5.6')
+        self.assertEqual(self.get_soname(bothset), 'libbothset.so.1.2.3')
+        self.assertEqual(len(glob(bothset[:-3] + '*')), 3)
 
 if __name__ == '__main__':
     unittest.main()
