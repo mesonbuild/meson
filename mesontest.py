@@ -207,6 +207,8 @@ class TestHarness:
             try:
                 (stdo, stde) = p.communicate(timeout=timeout)
             except subprocess.TimeoutExpired:
+                if self.options.verbose:
+                    print("%s time out (After %d seconds)" % (test.name, timeout))
                 timed_out = True
                 # Python does not provide multiplatform support for
                 # killing a process and all its children so we need
