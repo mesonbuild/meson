@@ -1129,6 +1129,16 @@ class SharedLibrary(BuildTarget):
     def type_suffix(self):
         return "@sha"
 
+# A shared library that is meant to be used with dlopen rather than linking
+# into something else.
+class SharedModule(SharedLibrary):
+    def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
+        if 'version' in kwargs:
+            raise MesonException('Shared modules must not specify the version kwarg.')
+        if 'soversion' in kwargs:
+            raise MesonException('Shared modules must not specify the soversion kwarg.')
+        super().__init__(name, subdir, subproject, is_cross, sources, objects, environment, kwargs)
+
 class CustomTarget:
     known_kwargs = {'input' : True,
                     'output' : True,

@@ -1927,7 +1927,8 @@ rule FORTRAN_DEP_HACK
         commands += linker.get_linker_always_args()
         if not isinstance(target, build.StaticLibrary):
             commands += compilers.get_base_link_args(self.environment.coredata.base_options,
-                                                     linker)
+                                                     linker,
+                                                     isinstance(target, build.SharedModule))
         commands += linker.get_buildtype_linker_args(self.environment.coredata.get_builtin_option('buildtype'))
         commands += linker.get_option_link_args(self.environment.coredata.compiler_options)
         commands += self.get_link_debugfile_args(linker, target, outname)

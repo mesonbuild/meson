@@ -248,7 +248,7 @@ def get_base_compile_args(options, compiler):
         pass
     return args
 
-def get_base_link_args(options, linker):
+def get_base_link_args(options, linker, is_shared_module):
     args = []
     # FIXME, gcc/clang specific.
     try:
@@ -269,7 +269,7 @@ def get_base_link_args(options, linker):
     except KeyError:
         pass
     try:
-        if options['b_lundef'].value:
+        if not is_shared_module and options['b_lundef'].value:
             args.append('-Wl,--no-undefined')
     except KeyError:
         pass
