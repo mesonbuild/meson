@@ -211,8 +211,8 @@ def run_test_inprocess(testdir):
     old_cwd = os.getcwd()
     os.chdir(testdir)
     try:
-        returncode_test = mesontest.run([])
-        returncode_benchmark = mesontest.run(['--benchmark', '--logbase', 'benchmarklog'])
+        returncode_test = mesontest.run(['--no-rebuild'])
+        returncode_benchmark = mesontest.run(['--no-rebuild', '--benchmark', '--logbase', 'benchmarklog'])
     finally:
         sys.stdout = old_stdout
         sys.stderr = old_stderr
