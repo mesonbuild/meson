@@ -210,7 +210,7 @@ class RewriterTests(unittest.TestCase):
         super().setUp()
         src_root = os.path.dirname(__file__)
         self.testroot = tempfile.mkdtemp()
-        self.rewrite_command = [sys.executable, os.path.join(src_root, 'mesonast.py')]
+        self.rewrite_command = [sys.executable, os.path.join(src_root, 'mesonrewriter.py')]
         self.builddir = tempfile.mkdtemp()
         self.test_dir = os.path.join(src_root, 'test cases/rewrite')
 
