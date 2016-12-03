@@ -31,6 +31,7 @@ def get_soname(fname):
         m = pattern.search(line)
         if m is not None:
             return m.group(1)
+    raise RuntimeError('Could not determine soname:\n\n' + raw_out)
 
 class FakeEnvironment(object):
     def __init__(self):
