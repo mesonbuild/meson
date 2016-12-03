@@ -14,6 +14,6 @@
  * modules.
  */
 
-int func_from_language_runtime() {
+int DLL_PUBLIC func_from_language_runtime() {
     return 86;
 }
