@@ -16,6 +16,32 @@ from os import path
 from .. import coredata, mesonlib, build
 import sys
 
+PRESET_ARGS = {
+    'glib': [
+        '--from-code=UTF-8',
+        '--add-comments',
+
+        # https://developer.gnome.org/glib/stable/glib-I18N.html
+        '--keyword=_',
+        '--keyword=N_',
+        '--keyword=C_:1c,2',
+        '--keyword=NC_:1c,2',
+        '--keyword=g_dcgettext:2',
+        '--keyword=g_dngettext:2,3',
+        '--keyword=g_dpgettext2:2c,3',
+
+        '--flag=N_:1:pass-c-format',
+        '--flag=C_:2:pass-c-format',
+        '--flag=NC_:2:pass-c-format',
+        '--flag=g_dngettext:2:pass-c-format',
+        '--flag=g_strdup_printf:1:c-format',
+        '--flag=g_string_printf:2:c-format',
+        '--flag=g_string_append_printf:2:c-format',
+        '--flag=g_error_new:3:c-format',
+        '--flag=g_set_error:4:c-format',
+    ]
+}
+
 class I18nModule:
 
     @staticmethod
@@ -36,6 +62,14 @@ class I18nModule:
             raise coredata.MesonException('List of languages empty.')
         datadirs = mesonlib.stringlistify(kwargs.get('data_dirs', []))
         extra_args = mesonlib.stringlistify(kwargs.get('args', []))
+
+        preset = kwargs.pop('preset', None)
+        if preset:
+            preset_args = PRESET_ARGS.get(preset)
+            if not preset_args:
+                raise coredata.MesonException('i18n: Preset "{}" is not one of the valid options: {}'.format(
+                                              preset, list(PRESET_ARGS.keys())))
+            extra_args = set(preset_args + extra_args)
 
         pkg_arg = '--pkgname=' + packagename
         lang_arg = '--langs=' + '@@'.join(languages)
