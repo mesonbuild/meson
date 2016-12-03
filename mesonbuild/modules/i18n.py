@@ -14,9 +14,25 @@
 
 from os import path
 from .. import coredata, mesonlib, build
+from ..mesonlib import MesonException
 import sys
 
 class I18nModule:
+
+    def merge_file(self, state, args, kwargs):
+        podir = kwargs.pop('po_dir', None)
+        if not podir:
+            raise MesonException('i18n: po_dir is a required kwarg')
+        podir = path.join(state.build_to_src, state.subdir, podir)
+
+        file_type = kwargs.pop('type', 'xml')
+        VALID_TYPES = ('xml', 'desktop')
+        if not file_type in VALID_TYPES:
+            raise MesonException('i18n: "{}" is not a valid type {}'.format(file_type, VALID_TYPES))
+
+        kwargs['command'] = ['msgfmt', '--' + file_type,
+                             '--template', '@INPUT@', '-d', podir, '-o', '@OUTPUT@']
+        return build.CustomTarget(kwargs['output'] + '_merge', state.subdir, kwargs)
 
     @staticmethod
     def _read_linguas(state):
