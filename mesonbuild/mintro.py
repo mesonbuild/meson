@@ -39,6 +39,8 @@ parser.add_argument('--benchmarks', action='store_true', dest='benchmarks', defa
                     help='List all benchmarks.')
 parser.add_argument('--dependencies', action='store_true', dest='dependencies', default=False,
                     help='list external dependencies.')
+parser.add_argument('--projectinfo', action='store_true', dest='projectinfo', default=False,
+                    help='information about projects.')
 parser.add_argument('args', nargs='+')
 
 def determine_installed_path(target, installdata):
@@ -179,6 +181,18 @@ def list_tests(testdata):
         result.append(to)
     print(json.dumps(result))
 
+def list_projinfo(builddata):
+    result = {}
+    result['name'] = builddata.project_name
+    result['version'] = builddata.project_version
+    subprojects = []
+    for k, v in builddata.subprojects.items():
+        c = {'name' : k,
+             'version' : v}
+        subprojects.append(c)
+    result['subprojects'] = subprojects
+    print(json.dumps(result))
+
 def run(args):
     options = parser.parse_args(args)
     if len(options.args) > 1:
@@ -217,6 +231,8 @@ def run(args):
         list_tests(benchmarkdata)
     elif options.dependencies:
         list_deps(coredata)
+    elif options.projectinfo:
+        list_projinfo(builddata)
     else:
         print('No command specified')
         return 1
