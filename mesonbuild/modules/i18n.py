@@ -60,22 +60,11 @@ class I18nModule:
                              '--template', '@INPUT@', '-d', podir, '-o', '@OUTPUT@']
         return build.CustomTarget(kwargs['output'] + '_merge', state.subdir, kwargs)
 
-    @staticmethod
-    def _read_linguas(state):
-        linguas = path.join(state.environment.get_source_dir(), state.subdir, 'LINGUAS')
-        try:
-            with open(linguas) as f:
-                return [line.strip() for line in f if not line.strip().startswith('#')]
-        except (FileNotFoundError, PermissionError):
-            return []
-
     def gettext(self, state, args, kwargs):
         if len(args) != 1:
             raise coredata.MesonException('Gettext requires one positional argument (package name).')
         packagename = args[0]
-        languages = mesonlib.stringlistify(kwargs.get('languages', self._read_linguas(state)))
-        if len(languages) == 0:
-            raise coredata.MesonException('List of languages empty.')
+        languages = mesonlib.stringlistify(kwargs.get('languages', []))
         datadirs = mesonlib.stringlistify(kwargs.get('data_dirs', []))
         extra_args = mesonlib.stringlistify(kwargs.get('args', []))
 
@@ -88,7 +77,7 @@ class I18nModule:
             extra_args = set(preset_args + extra_args)
 
         pkg_arg = '--pkgname=' + packagename
-        lang_arg = '--langs=' + '@@'.join(languages)
+        lang_arg = '--langs=' + '@@'.join(languages) if languages else None
         datadirs = '--datadirs=' + ':'.join(datadirs) if datadirs else None
         extra_args = '--extra-args=' + '@@'.join(extra_args) if extra_args else None
 
@@ -99,10 +88,14 @@ class I18nModule:
             potargs.append(extra_args)
         pottarget = build.RunTarget(packagename + '-pot', sys.executable, potargs, [], state.subdir)
 
-        gmoargs = [state.environment.get_build_command(), '--internal', 'gettext', 'gen_gmo', lang_arg]
+        gmoargs = [state.environment.get_build_command(), '--internal', 'gettext', 'gen_gmo']
+        if lang_arg:
+            gmoargs.append(lang_arg)
         gmotarget = build.RunTarget(packagename + '-gmo', sys.executable, gmoargs, [], state.subdir)
 
-        updatepoargs = [state.environment.get_build_command(), '--internal', 'gettext', 'update_po', pkg_arg, lang_arg]
+        updatepoargs = [state.environment.get_build_command(), '--internal', 'gettext', 'update_po', pkg_arg]
+        if lang_arg:
+            updatepoargs.append(lang_arg)
         if datadirs:
             updatepoargs.append(datadirs)
         if extra_args:
@@ -113,7 +106,9 @@ class I18nModule:
                       '--internal', 'gettext', 'install',
                       '--subdir=' + state.subdir,
                       '--localedir=' + state.environment.coredata.get_builtin_option('localedir'),
-                      pkg_arg, lang_arg]
+                      pkg_arg]
+        if lang_arg:
+            installcmd.append(lang_arg)
         iscript = build.InstallScript(installcmd)
 
         return [pottarget, gmotarget, iscript, updatepotarget]

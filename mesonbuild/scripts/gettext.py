@@ -27,6 +27,22 @@ parser.add_argument('--localedir', default='')
 parser.add_argument('--subdir', default='')
 parser.add_argument('--extra-args', default='')
 
+def read_linguas(src_sub):
+    # Syntax of this file is documented here:
+    # https://www.gnu.org/software/gettext/manual/html_node/po_002fLINGUAS.html
+    linguas = os.path.join(src_sub, 'LINGUAS')
+    try:
+        langs = []
+        with open(linguas) as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#'):
+                    langs += line.split()
+        return langs
+    except (FileNotFoundError, PermissionError):
+        print('Could not find file LINGUAS in {}'.format(src_sub))
+        return []
+
 def run_potgen(src_sub, pkgname, datadirs, args):
     listfile = os.path.join(src_sub, 'POTFILES')
     if not os.path.exists(listfile):
@@ -71,11 +87,14 @@ def do_install(src_sub, bld_sub, dest, pkgname, langs):
 def run(args):
     options = parser.parse_args(args)
     subcmd = options.command
-    langs = options.langs.split('@@')
+    langs = options.langs.split('@@') if options.langs else None
     extra_args = options.extra_args.split('@@')
     subdir = os.environ.get('MESON_SUBDIR', options.subdir)
     src_sub = os.path.join(os.environ['MESON_SOURCE_ROOT'], subdir)
     bld_sub = os.path.join(os.environ['MESON_BUILD_ROOT'], subdir)
+
+    if not langs:
+        langs = read_linguas(src_sub)
 
     if subcmd == 'pot':
         return run_potgen(src_sub, options.pkgname, options.datadirs, extra_args)
