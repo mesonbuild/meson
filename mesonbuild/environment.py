@@ -289,7 +289,9 @@ class Environment():
             previous_is_plaind = i == '-D'
         return False
 
-    def merge_options(self, options):
+    def merge_options(self, options, suboptions):
+        for (name, value) in suboptions.items():
+            self.coredata.suboptions[name] = value
         for (name, value) in options.items():
             if name not in self.coredata.user_options:
                 self.coredata.user_options[name] = value

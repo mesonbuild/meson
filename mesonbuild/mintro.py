@@ -97,48 +97,110 @@ def list_target_files(target_name, coredata, builddata):
     sources = [os.path.join(i.subdir, i.fname) for i in sources]
     print(json.dumps(sources))
 
-def list_buildoptions(coredata, builddata):
-    buildtype= {'choices': ['plain', 'debug', 'debugoptimized', 'release', 'minsize'],
-                'type' : 'combo',
-                'value' : coredata.get_builtin_option('buildtype'),
-                'description' : 'Build type',
-                'name' : 'type'}
-    strip = {'value' : coredata.get_builtin_option('strip'),
-             'type' : 'boolean',
-             'description' : 'Strip on install',
-             'name' : 'strip'}
-    unity = {'value' : coredata.get_builtin_option('unity'),
-             'type' : 'boolean',
-             'description' : 'Unity build',
-             'name' : 'unity'}
-    optlist = [buildtype, strip, unity]
-    add_keys(optlist, coredata.user_options)
-    add_keys(optlist, coredata.compiler_options)
-    add_keys(optlist, coredata.base_options)
-    print(json.dumps(optlist))
+def split_options(user_options, suboptions):
+    main_options = {}
+    main_suboptions = {}
+    subproject_options = {}
+    subproject_suboptions = {} 
+    for k in user_options.keys():
+        if ':' in k:
+            subproject_options[k] = user_options[k]
+        else:
+            main_options[k] = user_options[k]
+    for k in suboptions.keys():
+        if ':' in k:
+            subproject_suboptions[k] = suboptions[k]
+        else:
+            main_suboptions[k] = suboptions[k]
+    return (main_options, main_suboptions, subproject_options, subproject_suboptions)
 
-def add_keys(optlist, options):
+def list_buildoptions(coredata, builddata):
+    (main_options, main_suboptions, subproject_options, subproject_suboptions) = split_options(coredata.user_options, coredata.suboptions)
+    all_opt = [{'name' : 'builtin',
+                'description': 'Meson builtin options',
+                'type': 'suboption',
+                'value': get_keys(coredata.builtins),
+                }]
+    all_opt.append({'name': 'base',
+                    'description' : 'Base options',
+                    'type' : 'suboption',
+                    'value' : get_keys(coredata.base_options),
+                    })
+    all_opt.append({'name' : 'compilers',
+                    'description' : 'Options for compilers',
+                    'type' : 'suboption',
+                    'value' : get_keys(coredata.compiler_options),
+                    })
+    all_opt.append({'name': 'user',
+                    'description' : 'User options',
+                    'type' : 'suboption',
+                    'value' : build_usertree(main_options, main_suboptions),
+                    })
+    all_opt += build_subprojecttree(subproject_options, subproject_suboptions)
+    print(json.dumps(all_opt, indent=2))
+
+def build_subprojecttree(options, suboptions):
+    result = []
+    sp_names = {}
+    for n in options.keys():
+        sp_names[n.split(':')[0]] = True
+    for n in suboptions.keys():
+        sp_names[n.split(':')[0]] = True
+    for subproject in sorted(sp_names.keys()):
+        prefix = subproject + ':'
+        cur_opt = {x.name : x for x in options.values() if x.name.startswith(prefix)}
+        cur_subopt = {x.name : x for x in suboptions.values() if x.name.startswith(prefix)}
+        result.append({'name' : subproject,
+                      'description' : 'Options of subproject: %s' % subproject,
+                      'type' : 'suboption',
+                      'value' :  build_usertree(cur_opt, cur_subopt)
+                      })
+    return result
+
+def build_usertree(user_options, suboptions, subbranch=None):
+    current = []
+    current_suboptions = [x for x in suboptions.values() if x.parent == subbranch]
+    current_options = [x for x in user_options.values() if x.parent == subbranch]
+    for so in current_suboptions:
+        subentry = {'type' : 'subobject',
+                    'value' : build_usertree(user_options, suboptions, so.name),
+                    'description' : so.description,
+                    'name' : so.name
+                    }
+        current.append(subentry)
+    for opt in current_options:
+        current.append(opt2dict(opt.name, opt))
+    return current
+
+def opt2dict(key, opt):
+    optdict = {}
+    optdict['name'] = key
+    optdict['value'] = opt.value
+    if isinstance(opt, coredata.UserStringOption):
+        typestr = 'string'
+    elif isinstance(opt, coredata.UserBooleanOption):
+        typestr = 'boolean'
+    elif isinstance(opt, coredata.UserComboOption):
+        optdict['choices'] = opt.choices
+        typestr = 'combo'
+    elif isinstance(opt, coredata.UserStringArrayOption):
+        typestr = 'stringarray'
+    else:
+        raise RuntimeError("Unknown option type")
+    optdict['type'] = typestr
+    optdict['description'] = opt.description
+    return optdict
+
+def get_keys(options):
+    optlist = []
     keys = list(options.keys())
     keys.sort()
     for key in keys:
+        if key == 'backend': # The backend can never be changed.
+            continue
         opt = options[key]
-        optdict = {}
-        optdict['name'] = key
-        optdict['value'] = opt.value
-        if isinstance(opt, coredata.UserStringOption):
-            typestr = 'string'
-        elif isinstance(opt, coredata.UserBooleanOption):
-            typestr = 'boolean'
-        elif isinstance(opt, coredata.UserComboOption):
-            optdict['choices'] = opt.choices
-            typestr = 'combo'
-        elif isinstance(opt, coredata.UserStringArrayOption):
-            typestr = 'stringarray'
-        else:
-            raise RuntimeError("Unknown option type")
-        optdict['type'] = typestr
-        optdict['description'] = opt.description
-        optlist.append(optdict)
+        optlist.append(opt2dict(key, opt))
+    return optlist
 
 def list_buildsystem_files(coredata, builddata):
     src_dir = builddata.environment.get_source_dir()
