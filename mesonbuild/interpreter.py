@@ -1586,7 +1586,7 @@ class Interpreter():
                 raise InterpreterException('Subproject %s version is %s but %s required.' % (dirname, pv, wanted))
         self.active_projectname = current_active
         mlog.log('\nSubproject', mlog.bold(dirname), 'finished.')
-        self.build.subprojects[dirname] = True
+        self.build.subprojects[dirname] = subi.project_version
         self.subprojects.update(subi.subprojects)
         self.subprojects[dirname] = SubprojectHolder(subi)
         self.build_def_files += subi.build_def_files
@@ -1660,6 +1660,8 @@ class Interpreter():
             raise InvalidArguments('Not enough arguments to project(). Needs at least the project name and one language')
         self.active_projectname = args[0]
         self.project_version = kwargs.get('version', 'undefined')
+        if self.build.project_version is None:
+            self.build.project_version = self.project_version
         proj_license = mesonlib.stringlistify(kwargs.get('license', 'unknown'))
         self.build.dep_manifest[args[0]] = {'version': self.project_version,
                                             'license': proj_license}
