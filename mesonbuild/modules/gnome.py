@@ -111,12 +111,33 @@ can not be used with the current version of glib-compiled-resources, due to
 
         if 'c_name' in kwargs:
             cmd += ['--c-name', kwargs.pop('c_name')]
+        export = kwargs.pop('export', False)
+        if not export:
+            cmd += ['--internal']
+
         cmd += ['--generate', '--target', '@OUTPUT@']
 
         cmd += mesonlib.stringlistify(kwargs.pop('extra_args', []))
 
+        gresource = kwargs.pop('gresource_bundle', False)
+        if gresource:
+            output = args[0] + '.gresource'
+            name = args[0] + '_gresource'
+        else:
+            output = args[0] + '.c'
+            name = args[0] + '_c'
+
+        if kwargs.get('install', False) and not gresource:
+            raise MesonException('The install kwarg only applies to gresource bundles, see install_header')
+
+        install_header = kwargs.pop('install_header', False)
+        if install_header and gresource:
+            raise MesonException('The install_header kwarg does not apply to gresource bundles')
+        if install_header and not export:
+            raise MesonException('GResource header is installed yet export is not enabled')
+
         kwargs['input'] = args[1]
-        kwargs['output'] = args[0] + '.c'
+        kwargs['output'] = output
         kwargs['depends'] = depends
         if not mesonlib.version_compare(glib_version, gresource_dep_needed_version):
             # This will eventually go out of sync if dependencies are added
@@ -126,7 +147,10 @@ can not be used with the current version of glib-compiled-resources, due to
             depfile = kwargs['output'] + '.d'
             kwargs['depfile'] = depfile
             kwargs['command'] = copy.copy(cmd) + ['--dependency-file', '@DEPFILE@']
-        target_c = build.CustomTarget(args[0] + '_c', state.subdir, kwargs)
+        target_c = build.CustomTarget(name, state.subdir, kwargs)
+
+        if gresource: # Only one target for .gresource files
+            return [target_c]
 
         h_kwargs = {
             'command': cmd,
@@ -135,6 +159,10 @@ can not be used with the current version of glib-compiled-resources, due to
             # The header doesn't actually care about the files yet it errors if missing
             'depends': depends
         }
+        if install_header:
+            h_kwargs['install'] = install_header
+            h_kwargs['install_dir'] = kwargs.get('install_dir',
+                                                 state.environment.coredata.get_builtin_option('includedir'))
         target_h = build.CustomTarget(args[0] + '_h', state.subdir, h_kwargs)
         return [target_c, target_h]
 
