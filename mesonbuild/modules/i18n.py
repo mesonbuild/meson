@@ -13,8 +13,11 @@
 # limitations under the License.
 
 from os import path
-from .. import coredata, mesonlib, build
+from .. import coredata, mesonlib, build, dependencies, mlog
 import sys
+
+have_all_gettext_tools = None
+gettext_tools_warning_printed = False
 
 class I18nModule:
 
@@ -27,6 +30,17 @@ class I18nModule:
         except (FileNotFoundError, PermissionError):
             return []
 
+    def has_gettext_tools(self):
+       global have_all_gettext_tools
+       if have_all_gettext_tools == None:
+           have_all_gettext_tools = True
+           gettext_programs = ['xgettext', 'msgfmt', 'msgmerge']
+           for prog in gettext_programs:
+               dep = dependencies.ExternalProgram(prog)
+               if not dep.found():
+                   have_all_gettext_tools = False
+       return have_all_gettext_tools
+
     def gettext(self, state, args, kwargs):
         if len(args) != 1:
             raise coredata.MesonException('Gettext requires one positional argument (package name).')
@@ -36,6 +50,12 @@ class I18nModule:
             raise coredata.MesonException('List of languages empty.')
         datadirs = mesonlib.stringlistify(kwargs.get('data_dirs', []))
         extra_args = mesonlib.stringlistify(kwargs.get('args', []))
+
+        if not self.has_gettext_tools():
+            global gettext_tools_warning_printed
+            if gettext_tools_warning_printed == False:
+                mlog.warning("Some gettext tools were not found. Installation of languages won't be available until all tools are installed")
+                gettext_tools_warning_printed = True
 
         pkg_arg = '--pkgname=' + packagename
         lang_arg = '--langs=' + '@@'.join(languages)
