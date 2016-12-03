@@ -237,7 +237,7 @@ class TestHarness:
         result = TestRun(res, returncode, test.should_fail, duration, stdo, stde, cmd, test.env)
 
         if failling:
-            self.failled_tests.append(result)
+            self.failed_tests.append(result)
 
         return result
 
@@ -347,16 +347,16 @@ class TestHarness:
     def drain_futures(self, futures, logfile, jsonlogfile):
         for i in futures:
             (result, numlen, tests, name, i, logfile, jsonlogfile) = i
-            if self.options.repeat > 1 and self.failled_tests:
+            if self.options.repeat > 1 and self.failed_tests:
                 result.cancel()
             elif not self.options.verbose:
                 self.print_stats(numlen, tests, name, result.result(), i, logfile, jsonlogfile)
             else:
                 result.result()
 
-        if self.options.repeat > 1 and self.failled_tests:
+        if self.options.repeat > 1 and self.failed_tests:
             if not self.options.verbose:
-                for res in self.failled_tests:
+                for res in self.failed_tests:
                     print('Test failed:\n\n-- stdout --\n')
                     print(res.stdo)
                     print('\n-- stderr --\n')
