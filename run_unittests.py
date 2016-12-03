@@ -17,6 +17,7 @@ import unittest, os, sys, shutil, time
 import subprocess
 import re, json
 import tempfile
+from glob import glob
 import mesonbuild.environment
 from mesonbuild.environment import detect_ninja
 from mesonbuild.dependencies import PkgConfigDependency, Qt5Dependency
@@ -202,6 +203,47 @@ class LinuxlikeTests(unittest.TestCase):
         msg = 'Qt5 native `qmake-qt5` dependency (modules: Core) found: YES\n'
         mesonlog = self.get_meson_log()
         self.assertTrue(msg in mesonlog)
+
+class RewriterTests(unittest.TestCase):
+
+    def setUp(self):
+        super().setUp()
+        src_root = os.path.dirname(__file__)
+        self.testroot = tempfile.mkdtemp()
+        self.rewrite_command = [sys.executable, os.path.join(src_root, 'mesonast.py')]
+        self.builddir = tempfile.mkdtemp()
+        self.test_dir = os.path.join(src_root, 'test cases/rewrite')
+
+    def tearDown(self):
+        shutil.rmtree(self.builddir)
+
+    def check_effectively_same(self, mainfile, truth):
+        with open(os.path.join(self.builddir, mainfile)) as f:
+            mf = f.read()
+        with open(os.path.join(self.builddir, truth)) as f:
+            t = f.read()
+        # Rewriting is not guaranteed to do a perfect job of
+        # maintaining whitespace.
+        self.assertEqual(mf.replace(' ', ''), t.replace(' ', ''))
+
+    def test_basic(self):
+        for f in glob(os.path.join(self.test_dir, '1 basic/*')):
+            shutil.copy(f, self.builddir)
+        subprocess.check_call(self.rewrite_command + ['remove',
+                               '--target=trivialprog',
+                               '--filename=notthere.c',
+                               '--sourcedir', self.builddir])
+        self.check_effectively_same('meson.build', 'removed.txt')
+        subprocess.check_call(self.rewrite_command + ['add',
+                               '--target=trivialprog',
+                               '--filename=notthere.c',
+                               '--sourcedir', self.builddir])
+        self.check_effectively_same('meson.build', 'added.txt')
+        subprocess.check_call(self.rewrite_command + ['remove',
+                               '--target=trivialprog',
+                               '--filename=notthere.c',
+                               '--sourcedir', self.builddir])
+        self.check_effectively_same('meson.build', 'removed.txt')
 
 if __name__ == '__main__':
     unittest.main()
