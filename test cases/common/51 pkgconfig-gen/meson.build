@@ -19,11 +19,17 @@ pkgg.generate(
 )
 
 pkgconfig = find_program('pkg-config', required: false)
-if pkgconfig.found() and build_machine.system() != 'windows'
-  test('pkgconfig-validation', pkgconfig,
-    args: ['--validate', 'simple'],
-    env: ['PKG_CONFIG_PATH=' + meson.current_build_dir() + '/meson-private' ],
-  )
+if pkgconfig.found()
+  v = run_command(pkgconfig, '--version').stdout().strip()
+  if v.version_compare('>=0.29')
+    test('pkgconfig-validation', pkgconfig,
+      args: ['--validate', 'simple'],
+      env: ['PKG_CONFIG_PATH=' + meson.current_build_dir() + '/meson-private' ])
+  else
+    message('pkg-config version \'' + v + '\' too old, skipping validate test')
+  endif
+else
+  message('pkg-config not found, skipping validate test')
 endif
 
 # Test that name_prefix='' and name='libfoo' results in '-lfoo'
