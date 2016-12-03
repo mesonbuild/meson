@@ -43,6 +43,7 @@ if __name__ == '__main__':
     options = parser.parse_args()
     if options.target is None or options.filename is None:
         sys.exit("Must specify both target and filename.")
+    print('This tool is highly experimental, use with care.')
     ast = mesonbuild.astinterpreter.AstInterpreter(options.sourcedir, '')
     try:
         if options.commands[0] == 'add':
