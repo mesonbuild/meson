@@ -146,7 +146,6 @@ class TestHarness:
             self.datafile = os.path.join(options.wd, 'meson-private/meson_benchmark_setup.dat')
         else:
             self.datafile = os.path.join(options.wd, 'meson-private/meson_test_setup.dat')
-        print(self.datafile)
 
     def run_single_test(self, wrap, test):
         if test.fname[0].endswith('.jar'):
