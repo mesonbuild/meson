@@ -2,11 +2,16 @@ project('external dependency', 'c')
 
 # Zlib is probably on all dev machines.
 
-dep = dependency('zlib', version : '>=1.2.8')
-exe = executable('zlibprog', 'prog.c', dependencies : dep)
+dep = dependency('zlib', version : '>=1.2')
+exe = executable('zlibprog', 'prog-checkver.c',
+  dependencies : dep,
+  c_args : '-DFOUND_ZLIB="' + dep.version() + '"')
 
-assert(dep.version().version_compare('>=1.2.8'), 'Pkg-config version numbers exposed incorrectly.')
+assert(dep.version().version_compare('>=1.2'), 'Pkg-config version numbers exposed incorrectly.')
 
+# Check that the version exposed by zlib internally is the same as the one we
+# retrieve from the pkg-config file. This assumes that the packager didn't mess
+# up, but we can be reasonably sure of that.
 test('zlibtest', exe)
 
 zprefix = dep.get_pkgconfig_variable('prefix') # Always set but we can't be sure what the value is.
