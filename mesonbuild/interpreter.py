@@ -623,6 +623,7 @@ class CompilerHolder(InterpreterObject):
                              'has_argument' : self.has_argument_method,
                              'first_supported_argument' : self.first_supported_argument_method,
                              'unittest_args' : self.unittest_args_method,
+                             'symbols_have_underscore_prefix': self.symbols_have_underscore_prefix_method,
                             })
 
     def version_method(self, args, kwargs):
@@ -697,6 +698,13 @@ class CompilerHolder(InterpreterObject):
 
     def get_id_method(self, args, kwargs):
         return self.compiler.get_id()
+
+    def symbols_have_underscore_prefix_method(self, args, kwargs):
+        '''
+        Check if the compiler prefixes _ (underscore) to global C symbols
+        See: https://en.wikipedia.org/wiki/Name_mangling#C
+        '''
+        return self.compiler.symbols_have_underscore_prefix(self.environment)
 
     def unittest_args_method(self, args, kwargs):
         # At time, only D compilers have this feature.

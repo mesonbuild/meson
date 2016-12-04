@@ -1058,6 +1058,40 @@ void bar() {
 '''
         return self.compiles(templ % (prefix, typename), env, extra_args, dependencies)
 
+    def symbols_have_underscore_prefix(self, env):
+        '''
+        Check if the compiler prefixes an underscore to global C symbols
+        '''
+        symbol_name = b'meson_uscore_prefix'
+        code = '''#ifdef __cplusplus
+        extern "C" {
+        #endif
+        void ''' + symbol_name.decode() + ''' () {}
+        #ifdef __cplusplus
+        }
+        #endif
+        '''
+        args = self.get_cross_extra_flags(env, compile=True, link=False)
+        args += self.get_compiler_check_args()
+        n = 'symbols_have_underscore_prefix'
+        with self.compile(code, args, compile_only=True) as p:
+            if p.returncode != 0:
+                m = 'BUG: Unable to compile {!r} check: {}'
+                raise RuntimeError(m.format(n, p.stdo))
+            if not os.path.isfile(p.output_name):
+                m = 'BUG: Can\'t find compiled test code for {!r} check'
+                raise RuntimeError(m.format(n))
+            with open(p.output_name, 'rb') as o:
+                for line in o:
+                    # Check if the underscore form of the symbol is somewhere
+                    # in the output file.
+                    if b'_' + symbol_name in line:
+                        return True
+                    # Else, check if the non-underscored form is present
+                    elif symbol_name in line:
+                        return False
+        raise RuntimeError('BUG: {!r} check failed unexpectedly'.format(n))
+
     def find_library(self, libname, env, extra_dirs):
         # First try if we can just add the library as -l.
         code = '''int main(int argc, char **argv) {
