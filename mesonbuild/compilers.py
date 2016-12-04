@@ -2208,7 +2208,7 @@ class ClangCompiler():
 
     def get_std_shared_module_link_args(self):
         if self.clang_type == CLANG_OSX:
-            return ['-bundle']
+            return ['-bundle', '-Wl,-undefined,dynamic_lookup']
         return ['-shared']
 
 class ClangCCompiler(ClangCompiler, CCompiler):
