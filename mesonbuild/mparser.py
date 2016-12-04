@@ -22,8 +22,9 @@ class ParseException(MesonException):
         self.colno = colno
 
 class Token:
-    def __init__(self, tid, lineno, colno, bytespan, value):
+    def __init__(self, tid, subdir, lineno, colno, bytespan, value):
         self.tid = tid
+        self.subdir = subdir
         self.lineno = lineno
         self.colno = colno
         self.bytespan = bytespan
@@ -72,7 +73,7 @@ class Lexer:
             ('questionmark', re.compile(r'\?')),
         ]
 
-    def lex(self, code):
+    def lex(self, code, subdir):
         lineno = 1
         line_start = 0
         loc = 0;
@@ -127,7 +128,7 @@ class Lexer:
                             tid = match_text
                         else:
                             value = match_text
-                    yield Token(tid, curline, col, bytespan, value)
+                    yield Token(tid, subdir, curline, col, bytespan, value)
                     break
             if not matched:
                 raise ParseException('lexer', lineno, col)
@@ -135,6 +136,7 @@ class Lexer:
 class ElementaryNode:
     def __init__(self, token):
         self.lineno = token.lineno
+        self.subdir = token.subdir
         self.colno = token.colno
         self.value = token.value
         self.bytespan = token.bytespan
@@ -168,20 +170,23 @@ class StringNode(ElementaryNode):
 
 class ArrayNode:
     def __init__(self, args):
+        self.subdir = args.subdir
         self.lineno = args.lineno
         self.colno = args.colno
         self.args = args
 
 class EmptyNode:
     def __init__(self):
+        self.subdir =''
         self.lineno = 0
         self.colno = 0
         self.value = None
 
 class OrNode:
-    def __init__(self, lineno, colno, left, right):
-        self.lineno = lineno
-        self.colno = colno
+    def __init__(self, left, right):
+        self.subdir = left.subdir
+        self.lineno = left.lineno
+        self.colno = left.colno
         self.left = left
         self.right = right
 
@@ -193,42 +198,48 @@ class AndNode:
         self.right = right
 
 class ComparisonNode:
-    def __init__(self, lineno, colno, ctype, left, right):
-        self.lineno = lineno
-        self.colno = colno
+    def __init__(self, ctype, left, right):
+        self.lineno = left.lineno
+        self.colno = left.colno
+        self.subdir = left.subdir
         self.left = left
         self.right = right
         self.ctype = ctype
 
 class ArithmeticNode:
-    def __init__(self, lineno, colno, operation, left, right):
-        self.lineno = lineno
-        self.colno = colno
+    def __init__(self,operation, left, right):
+        self.subdir = left.subdir
+        self.lineno = left.lineno
+        self.colno = left.colno
         self.left = left
         self.right = right
         self.operation = operation
 
 class NotNode:
-    def __init__(self, lineno, colno, value):
-        self.lineno = lineno
-        self.colno = colno
+    def __init__(self, location_node, value):
+        self.subdir = location_node.subdir
+        self.lineno = location_node.lineno
+        self.colno = location_node.colno
         self.value = value
 
 class CodeBlockNode:
-    def __init__(self, lineno, colno):
-        self.lineno = lineno
-        self.colno = colno
+    def __init__(self, location_node):
+        self.subdir = location_node.subdir
+        self.lineno = location_node.lineno
+        self.colno = location_node.colno
         self.lines = []
 
 class IndexNode:
     def __init__(self, iobject, index):
         self.iobject = iobject
         self.index = index
+        self.subdir = iobject.subdir
         self.lineno = iobject.lineno
         self.colno = iobject.colno
 
 class MethodNode:
-    def __init__(self, lineno, colno, source_object, name, args):
+    def __init__(self, subdir, lineno, colno, source_object, name, args):
+        self.subdir = subdir
         self.lineno = lineno
         self.colno = colno
         self.source_object = source_object
@@ -237,7 +248,8 @@ class MethodNode:
         self.args = args
 
 class FunctionNode:
-    def __init__(self, lineno, colno, func_name, args):
+    def __init__(self, subdir, lineno, colno, func_name, args):
+        self.subdir = subdir
         self.lineno = lineno
         self.colno = colno
         self.func_name = func_name
@@ -276,9 +288,10 @@ class IfClauseNode():
         self.elseblock = EmptyNode()
 
 class UMinusNode():
-    def __init__(self, lineno, colno, value):
-        self.lineno = lineno
-        self.colno = colno
+    def __init__(self, current_location, value):
+        self.subdir = current_location.subdir
+        self.lineno = current_location.lineno
+        self.colno = current_location.colno
         self.value = value
 
 class IfNode():
@@ -300,6 +313,7 @@ class ArgumentNode():
     def __init__(self, token):
         self.lineno = token.lineno
         self.colno = token.colno
+        self.subdir = token.subdir
         self.arguments = []
         self.commas = []
         self.kwargs = {}
@@ -356,8 +370,8 @@ comparison_map = {'equal': '==',
 # 9 plain token
 
 class Parser:
-    def __init__(self, code):
-        self.stream = Lexer().lex(code)
+    def __init__(self, code, subdir):
+        self.stream = Lexer().lex(code, subdir)
         self.getsym()
         self.in_ternary = False
 
@@ -365,7 +379,7 @@ class Parser:
         try:
             self.current = next(self.stream)
         except StopIteration:
-            self.current = Token('eof', 0, 0, (0, 0), None)
+            self.current = Token('eof', '', 0, 0, (0, 0), None)
 
     def accept(self, s):
         if self.current.tid == s:
@@ -414,7 +428,7 @@ class Parser:
     def e2(self):
         left = self.e3()
         while self.accept('or'):
-            left = OrNode(left.lineno, left.colno, left, self.e3())
+            left = OrNode(left, self.e3())
         return left
 
     def e3(self):
@@ -427,7 +441,7 @@ class Parser:
         left = self.e5()
         for nodename, operator_type in comparison_map.items():
             if self.accept(nodename):
-                return ComparisonNode(left.lineno, left.colno, operator_type, left, self.e5())
+                return ComparisonNode(operator_type, left, self.e5())
         return left
 
     def e5(self):
@@ -436,38 +450,38 @@ class Parser:
     def e5add(self):
         left = self.e5sub()
         if self.accept('plus'):
-            return ArithmeticNode(left.lineno, left.colno, 'add', left, self.e5add())
+            return ArithmeticNode('add', left, self.e5add())
         return left
 
     def e5sub(self):
         left = self.e5mod()
         if self.accept('dash'):
-            return ArithmeticNode(left.lineno, left.colno, 'sub', left, self.e5sub())
+            return ArithmeticNode('sub', left, self.e5sub())
         return left
 
     def e5mod(self):
         left = self.e5mul()
         if self.accept('percent'):
-            return ArithmeticNode(left.lineno, left.colno, 'mod', left, self.e5mod())
+            return ArithmeticNode('mod', left, self.e5mod())
         return left
 
     def e5mul(self):
         left = self.e5div()
         if self.accept('star'):
-            return ArithmeticNode(left.lineno, left.colno, 'mul', left, self.e5mul())
+            return ArithmeticNode('mul', left, self.e5mul())
         return left
 
     def e5div(self):
         left = self.e6()
         if self.accept('fslash'):
-            return ArithmeticNode(left.lineno, left.colno, 'div', left, self.e5div())
+            return ArithmeticNode('div', left, self.e5div())
         return left
 
     def e6(self):
         if self.accept('not'):
-            return NotNode(self.current.lineno, self.current.colno, self.e7())
+            return NotNode(self.current, self.e7())
         if self.accept('dash'):
-            return UMinusNode(self.current.lineno, self.current.colno, self.e7())
+            return UMinusNode(self.current, self.e7())
         return self.e7()
 
     def e7(self):
@@ -478,7 +492,7 @@ class Parser:
             if not isinstance(left, IdNode):
                 raise ParseException('Function call must be applied to plain id',
                                      left.lineno, left.colno)
-            left = FunctionNode(left.lineno, left.colno, left.value, args)
+            left = FunctionNode(left.subdir, left.lineno, left.colno, left.value, args)
         go_again = True
         while go_again:
             go_again = False
@@ -548,7 +562,7 @@ class Parser:
         self.expect('lparen')
         args = self.args()
         self.expect('rparen')
-        method = MethodNode(methodname.lineno, methodname.colno, source_object, methodname.value, args)
+        method = MethodNode(methodname.subdir, methodname.lineno, methodname.colno, source_object, methodname.value, args)
         if self.accept('dot'):
             return self.method_call(method)
         return method
@@ -602,7 +616,7 @@ class Parser:
         return self.statement()
 
     def codeblock(self):
-        block = CodeBlockNode(self.current.lineno, self.current.colno)
+        block = CodeBlockNode(self.current)
         cond = True
         while cond:
             curline = self.line()

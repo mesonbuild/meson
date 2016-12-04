@@ -44,12 +44,12 @@ if __name__ == '__main__':
     if options.target is None or options.filename is None:
         sys.exit("Must specify both target and filename.")
     print('This tool is highly experimental, use with care.')
-    ast = mesonbuild.astinterpreter.AstInterpreter(options.sourcedir, '')
+    rewriter = mesonbuild.astinterpreter.AstInterpreter(options.sourcedir, '')
     try:
         if options.commands[0] == 'add':
-            ast.add_source(options.target, options.filename)
+            rewriter.add_source(options.target, options.filename)
         elif options.commands[0] == 'remove':
-            ast.remove_source(options.target, options.filename)
+            rewriter.remove_source(options.target, options.filename)
         else:
             sys.exit('Unknown command: ' + options.commands[0])
     except Exception as e:

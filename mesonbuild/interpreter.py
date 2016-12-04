@@ -1991,7 +1991,7 @@ requirements use the version keyword argument instead.''')
             code = f.read()
         assert(isinstance(code, str))
         try:
-            codeblock = mparser.Parser(code).parse()
+            codeblock = mparser.Parser(code, self.subdir).parse()
         except mesonlib.MesonException as me:
             me.file = buildfilename
             raise me

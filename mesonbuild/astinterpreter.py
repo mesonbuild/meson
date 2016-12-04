@@ -46,6 +46,7 @@ REMOVE_SOURCE = 1
 class AstInterpreter(interpreterbase.InterpreterBase):
     def __init__(self, source_root, subdir):
         super().__init__(source_root, subdir)
+        self.asts = {}
         self.funcs.update({'project' : self.func_do_nothing,
                            'test' : self.func_do_nothing,
                            'benchmark' : self.func_do_nothing,
@@ -133,7 +134,8 @@ class AstInterpreter(interpreterbase.InterpreterBase):
             code = f.read()
         assert(isinstance(code, str))
         try:
-            codeblock = mparser.Parser(code).parse()
+            codeblock = mparser.Parser(code, self.subdir).parse()
+            self.asts[subdir] = codeblock
         except mesonlib.MesonException as me:
             me.file = buildfilename
             raise me
@@ -162,6 +164,7 @@ class AstInterpreter(interpreterbase.InterpreterBase):
 
     def transform(self):
         self.load_root_meson_file()
+        self.asts[''] = self.ast
         self.sanity_check_ast()
         self.parse_project()
         self.run()
@@ -202,7 +205,7 @@ class AstInterpreter(interpreterbase.InterpreterBase):
             commaspan = args.commas[i].bytespan
         if commaspan[0] < namespan[0]:
             commaspan, namespan = namespan, commaspan
-        buildfilename = os.path.join(self.source_root, self.subdir, environment.build_filename)
+        buildfilename = os.path.join(self.source_root, args.subdir, environment.build_filename)
         raw_data = open(buildfilename, 'r').read()
         intermediary = raw_data[0:commaspan[0]] + raw_data[commaspan[1]:]
         updated = intermediary[0:namespan[0]] + intermediary[namespan[1]:]
@@ -210,7 +213,7 @@ class AstInterpreter(interpreterbase.InterpreterBase):
         sys.exit(0)
 
     def hacky_find_and_remove(self, node_to_remove):
-        for a in self.ast.lines:
+        for a in self.asts[node_to_remove.subdir].lines:
             if a.lineno == node_to_remove.lineno:
                 if isinstance(a, mparser.AssignmentNode):
                     v = a.value
