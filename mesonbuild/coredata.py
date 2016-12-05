@@ -212,15 +212,17 @@ builtin_options = {
         'datadir'           : [ UserStringOption, 'Data file directory.', 'share' ],
         'mandir'            : [ UserStringOption, 'Manual page directory.', 'share/man' ],
         'localedir'         : [ UserStringOption, 'Locale data directory.', 'share/locale' ],
-    # Sysconfdir is a bit special. It defaults to ${prefix}/etc but nobody
-    # uses that. Instead they always set it manually to /etc. This default
-    # value is thus pointless and not really used but we set it to this
+    # sysconfdir and localstatedir are a bit special. These defaults to ${prefix}/etc and
+    # ${prefix}/var but nobody uses that. Instead they always set it manually to /etc and /var.
+    # This default values is thus pointless and not really used but we set it to this
     # for consistency with other systems.
     #
-    # Projects installing to sysconfdir probably want to set the following in project():
+    # Projects installing to sysconfdir and/or localstatedir probably want
+    # to set the following in project():
     #
-    # default_options : ['sysconfdir=/etc']
+    # default_options : ['sysconfdir=/etc', 'localstatedir=/var']
         'sysconfdir'        : [ UserStringOption, 'Sysconf data directory.', 'etc' ],
+        'localstatedir'     : [ UserStringOption, 'Localstate data directory.', 'var' ],
         'werror'            : [ UserBooleanOption, 'Treat warnings as errors.', False ],
         'warning_level'     : [ UserComboOption, 'Compiler warning level to use.', [ '1', '2', '3' ], '1'],
         'layout'            : [ UserComboOption, 'Build directory layout.', ['mirror', 'flat' ], 'mirror' ],
