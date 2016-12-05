@@ -54,8 +54,7 @@ class PkgConfigModule:
                 ofile.write('Description: %s\n' % description)
             if len(url) > 0:
                 ofile.write('URL: %s\n' % url)
-            if len(version) > 0:
-                ofile.write('Version: %s\n' % version)
+            ofile.write('Version: %s\n' % version)
             if len(pub_reqs) > 0:
                 ofile.write('Requires: {}\n'.format(' '.join(pub_reqs)))
             if len(priv_reqs) > 0:
