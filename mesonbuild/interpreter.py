@@ -23,7 +23,7 @@ from . import compilers
 from .wrap import wrap
 from . import mesonlib
 
-import os, sys, subprocess, shutil, uuid, re
+import os, sys, subprocess, shutil, uuid, re, fnmatch
 from functools import wraps
 
 import importlib
@@ -2592,7 +2592,7 @@ requirements use the version keyword argument instead.''')
                 return obj.split(s)
             else:
                 return obj.split()
-        elif method_name == 'startswith' or method_name == 'contains' or method_name == 'endswith':
+        elif method_name in ['startswith', 'contains', 'endswith', 'matches']:
             s = posargs[0]
             if not isinstance(s, str):
                 raise InterpreterException('Argument must be a string.')
@@ -2600,7 +2600,13 @@ requirements use the version keyword argument instead.''')
                 return obj.startswith(s)
             elif method_name == 'contains':
                 return obj.find(s) >= 0
-            return obj.endswith(s)
+            elif method_name == 'endswith':
+                return obj.endswith(s)
+            elif method_name == 'matches':
+                for glob_pattern in s.split('|'):
+                    if fnmatch.fnmatch(obj, glob_pattern):
+                        return True
+                return False
         elif method_name == 'to_int':
             try:
                 return int(obj)
