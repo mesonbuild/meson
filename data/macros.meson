@@ -10,17 +10,18 @@
     export LDFLAGS="%{?__global_ldflags}"      \
     mkdir -p %{__builddir}                     \
     pushd %{__builddir}                        \
-        %{__meson}                         \\\
-            --buildtype=plain              \\\
-            --prefix=%{_prefix}            \\\
-            --libdir=%{_libdir}            \\\
-            --libexecdir=%{_libexecdir}    \\\
-            --bindir=%{_bindir}            \\\
-            --includedir=%{_includedir}    \\\
-            --datadir=%{_datadir}          \\\
-            --mandir=%{_mandir}            \\\
-            --localedir=%{_datadir}/locale \\\
-            --sysconfdir=%{_sysconfdir}    \\\
+        %{__meson}                            \\\
+            --buildtype=plain                 \\\
+            --prefix=%{_prefix}               \\\
+            --libdir=%{_libdir}               \\\
+            --libexecdir=%{_libexecdir}       \\\
+            --bindir=%{_bindir}               \\\
+            --includedir=%{_includedir}       \\\
+            --datadir=%{_datadir}             \\\
+            --mandir=%{_mandir}               \\\
+            --localedir=%{_datadir}/locale    \\\
+            --sysconfdir=%{_sysconfdir}       \\\
+            --localstatedir=%{_localstatedir} \\\
             $OLDPWD/%{__sourcedir}             \
     popd
 
