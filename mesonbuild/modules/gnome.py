@@ -256,16 +256,16 @@ can not be used with the current version of glib-compiled-resources, due to
         return dep_files, depends, subdirs
 
 
-    def _get_link_args(self, state, lib, depends=None):
+    def _get_link_args(self, state, lib, depends=None, include_rpath=False):
         if gir_has_extra_lib_arg():
             link_command = ['--extra-library=%s' % lib.name]
         else:
             link_command = ['-l%s' % lib.name]
-            print('lib: %s - %s' % (lib.name, link_command))
         if isinstance(lib, build.SharedLibrary):
-            link_command += ['-L%s' %
-                    os.path.join(state.environment.get_build_dir(),
-                        lib.subdir)]
+            libdir = os.path.join(state.environment.get_build_dir(), lib.subdir)
+            link_command += ['-L%s' %libdir]
+            if include_rpath:
+                link_command += ['-Wl,-rpath %s' %libdir]
             if depends:
                 depends.append(lib)
         return link_command
@@ -299,7 +299,7 @@ can not be used with the current version of glib-compiled-resources, due to
 
         return dirs_str
 
-    def _get_dependencies_flags(self, deps, state, depends=None):
+    def _get_dependencies_flags(self, deps, state, depends=None, include_rpath=False):
         cflags = set()
         ldflags = set()
         gi_includes = set()
@@ -312,12 +312,12 @@ can not be used with the current version of glib-compiled-resources, due to
             if isinstance(dep, dependencies.InternalDependency):
                 cflags.update(self._get_include_args(state, dep.include_directories))
                 for lib in dep.libraries:
-                    ldflags.update(self._get_link_args(state, lib.held_object, depends))
-                    libdepflags = self._get_dependencies_flags(lib.held_object.get_external_deps(), state, depends)
+                    ldflags.update(self._get_link_args(state, lib.held_object, depends, include_rpath))
+                    libdepflags = self._get_dependencies_flags(lib.held_object.get_external_deps(), state, depends, include_rpath)
                     cflags.update(libdepflags[0])
                     ldflags.update(libdepflags[1])
                     gi_includes.update(libdepflags[2])
-                extdepflags = self._get_dependencies_flags(dep.ext_deps, state, depends)
+                extdepflags = self._get_dependencies_flags(dep.ext_deps, state, depends, include_rpath)
                 cflags.update(extdepflags[0])
                 ldflags.update(extdepflags[1])
                 gi_includes.update(extdepflags[2])
@@ -332,7 +332,10 @@ can not be used with the current version of glib-compiled-resources, due to
                     if (os.path.isabs(lib) and
                             # For PkgConfigDependency only:
                             getattr(dep, 'is_libtool', False)):
-                        ldflags.update(["-L%s" % os.path.dirname(lib)])
+                        lib_dir = os.path.dirname(lib)
+                        ldflags.update(["-L%s" % lib_dir])
+                        if include_rpath:
+                            ldflags.update(['-Wl,-rpath {}'.format(lib_dir)])
                         libname = os.path.basename(lib)
                         if libname.startswith("lib"):
                             libname = libname[3:]
@@ -705,7 +708,7 @@ can not be used with the current version of glib-compiled-resources, due to
 
     def _get_build_args(self, kwargs, state):
         args = []
-        cflags, ldflags, gi_includes = self._get_dependencies_flags(kwargs.get('dependencies', []), state)
+        cflags, ldflags, gi_includes = self._get_dependencies_flags(kwargs.get('dependencies', []), state, include_rpath=True)
         inc_dirs = kwargs.get('include_directories', [])
         if not isinstance(inc_dirs, list):
             inc_dirs = [inc_dirs]
