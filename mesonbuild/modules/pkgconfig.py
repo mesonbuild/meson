@@ -55,8 +55,7 @@ class PkgConfigModule:
                 ofile.write('Description: %s\n' % description)
             if len(url) > 0:
                 ofile.write('URL: %s\n' % url)
-            if len(version) > 0:
-                ofile.write('Version: %s\n' % version)
+            ofile.write('Version: %s\n' % version)
             if len(pub_reqs) > 0:
                 ofile.write('Requires: {}\n'.format(' '.join(pub_reqs)))
             if len(priv_reqs) > 0:
@@ -112,9 +111,9 @@ class PkgConfigModule:
         libs = self.process_libs(kwargs.get('libraries', []))
         priv_libs = self.process_libs(kwargs.get('libraries_private', []))
         subdirs = mesonlib.stringlistify(kwargs.get('subdirs', ['.']))
-        version = kwargs.get('version', '')
+        version = kwargs.get('version', None)
         if not isinstance(version, str):
-            raise mesonlib.MesonException('Version must be a string.')
+            raise mesonlib.MesonException('Version must be specified.')
         name = kwargs.get('name', None)
         if not isinstance(name, str):
             raise mesonlib.MesonException('Name not specified.')
