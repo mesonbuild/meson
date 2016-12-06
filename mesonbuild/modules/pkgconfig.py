@@ -110,9 +110,9 @@ class PkgConfigModule:
         libs = self.process_libs(kwargs.get('libraries', []))
         priv_libs = self.process_libs(kwargs.get('libraries_private', []))
         subdirs = mesonlib.stringlistify(kwargs.get('subdirs', ['.']))
-        version = kwargs.get('version', '')
+        version = kwargs.get('version', None)
         if not isinstance(version, str):
-            raise mesonlib.MesonException('Version must be a string.')
+            raise mesonlib.MesonException('Version must be specified.')
         name = kwargs.get('name', None)
         if not isinstance(name, str):
             raise mesonlib.MesonException('Name not specified.')
