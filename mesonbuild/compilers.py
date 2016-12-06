@@ -1014,11 +1014,23 @@ int main(int argc, char **argv) {
         if self.links(templ.format(prefix, funcname), env, extra_args, dependencies):
             return True
         # Some functions like alloca() are defined as compiler built-ins which
-        # are inlined by the compiler, so test for that instead. Built-ins are
-        # special functions that ignore all includes and defines, so we just
-        # directly try to link via main().
-        return self.links('int main() {{ {0}; }}'.format('__builtin_' + funcname),
-                          env, extra_args, dependencies)
+        # are inlined by the compiler, so look for __builtin_symbol in the libc
+        # if there's no #include-s in prefix which would've #define-d the
+        # symbol correctly. If there is a #include, just check for the symbol
+        # directly. This is needed because the above #undef fancy footwork
+        # doesn't work for builtins.
+        # This fixes instances such as #1083 where MSYS2 defines
+        # __builtin_posix_memalign in the C library but doesn't define
+        # posix_memalign in the headers to point to that builtin which results
+        # in an invalid detection.
+        if '#include' not in prefix:
+            code = 'int main() {{ {0}; }}'
+            return self.links(code.format('__builtin_' + funcname), env,
+                              extra_args, dependencies)
+        else:
+            code = '{0}\n' + stubs_fail + '\nint main() {{ {1}; }}'
+            return self.links(code.format(prefix, funcname), env, extra_args,
+                              dependencies)
 
     def has_members(self, typename, membernames, prefix, env, extra_args=None, dependencies=None):
         if extra_args is None:
