@@ -657,6 +657,10 @@ can not be used with the current version of glib-compiled-resources, due to
         command = [state.environment.get_build_command(), '--internal', 'gtkdoc']
 
         namespace = kwargs.get('namespace', '')
+        mode = kwargs.get('mode', 'auto')
+        VALID_MODES = ('xml', 'sgml', 'none', 'auto')
+        if not mode in VALID_MODES:
+            raise MesonException('gtkdoc: Mode {} is not a valid mode: {}'.format(mode, VALID_MODES))
 
         src_dirs = kwargs['src_dir']
         if not isinstance(src_dirs, list):
@@ -678,7 +682,8 @@ can not be used with the current version of glib-compiled-resources, due to
                 '--subdir=' + state.subdir,
                 '--headerdirs=' + '@@'.join(header_dirs),
                 '--mainfile=' + main_file,
-                '--modulename=' + modulename]
+                '--modulename=' + modulename,
+                '--mode=' + mode]
         if namespace:
             args.append('--namespace=' + namespace)
         args += self._unpack_args('--htmlargs=', 'html_args', kwargs)
@@ -688,6 +693,7 @@ can not be used with the current version of glib-compiled-resources, due to
         args += self._unpack_args('--fixxrefargs=', 'fixxref_args', kwargs)
         args += self._unpack_args('--html-assets=', 'html_assets', kwargs, state)
         args += self._unpack_args('--content-files=', 'content_files', kwargs, state)
+        args += self._unpack_args('--expand-content-files=', 'expand_content_files', kwargs, state)
         args += self._unpack_args('--ignore-headers=', 'ignore_headers', kwargs)
         args += self._unpack_args('--installdir=', 'install_dir', kwargs, state)
         args += self._get_build_args(kwargs, state)

@@ -38,9 +38,11 @@ parser.add_argument('--cc', dest='cc', default='')
 parser.add_argument('--ldflags', dest='ldflags', default='')
 parser.add_argument('--cflags', dest='cflags', default='')
 parser.add_argument('--content-files', dest='content_files', default='')
+parser.add_argument('--expand-content-files', dest='expand_content_files', default='')
 parser.add_argument('--html-assets', dest='html_assets', default='')
 parser.add_argument('--ignore-headers', dest='ignore_headers', default='')
 parser.add_argument('--namespace', dest='namespace', default='')
+parser.add_argument('--mode', dest='mode', default='')
 parser.add_argument('--installdir', dest='install_dir')
 
 def gtkdoc_run_check(cmd, cwd):
@@ -58,7 +60,8 @@ def gtkdoc_run_check(cmd, cwd):
 def build_gtkdoc(source_root, build_root, doc_subdir, src_subdirs,
                  main_file, module, html_args, scan_args, fixxref_args,
                  gobject_typesfile, scanobjs_args, ld, cc, ldflags, cflags,
-                 html_assets, content_files, ignore_headers, namespace):
+                 html_assets, content_files, ignore_headers, namespace,
+                 expand_content_files, mode):
     print("Building documentation for %s" % module)
 
     src_dir_args = ['--source-dir=' + os.path.join(source_root, src_dir) for src_dir in src_subdirs]
@@ -106,17 +109,29 @@ def build_gtkdoc(source_root, build_root, doc_subdir, src_subdirs,
 
 
     # Make docbook files
-    if main_file.endswith('sgml'):
-        modeflag = '--sgml-mode'
-    else:
+    if mode == 'auto':
+        # Guessing is probably a poor idea but these keeps compat
+        # with previous behavior
+        if main_file.endswith('sgml'):
+            modeflag = '--sgml-mode'
+        else:
+            modeflag = '--xml-mode'
+    elif mode == 'xml':
         modeflag = '--xml-mode'
+    elif mode == 'sgml':
+        modeflag = '--sgml-mode'
+    else: # none
+        modeflag = None
+
     mkdb_cmd = ['gtkdoc-mkdb',
                 '--module=' + module,
                 '--output-format=xml',
-                '--expand-content-files=',
-                modeflag] + src_dir_args
+                '--expand-content-files=' + ' '.join(expand_content_files),
+                ] + src_dir_args
     if namespace:
         mkdb_cmd.append('--name-space=' + namespace)
+    if modeflag:
+        mkdb_cmd.append(modeflag)
     if len(main_file) > 0:
         # Yes, this is the flag even if the file is in xml.
         mkdb_cmd.append('--main-sgml-file=' + main_file)
@@ -183,7 +198,9 @@ def run(args):
         options.html_assets.split('@@') if options.html_assets else [],
         options.content_files.split('@@') if options.content_files else [],
         options.ignore_headers.split('@@') if options.ignore_headers else [],
-        options.namespace)
+        options.namespace,
+        options.expand_content_files.split('@@') if options.expand_content_files else [],
+        options.mode)
 
     if 'MESON_INSTALL_PREFIX' in os.environ:
         install_dir = options.install_dir if options.install_dir else options.modulename
