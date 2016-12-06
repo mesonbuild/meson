@@ -1,7 +1,7 @@
 " Vim syntax file
 " Language:	Meson
 " Maintainer:	Nirbheek Chauhan <nirbheek.chauhan@gmail.com>
-" Last Change:	2015 Feb 23
+" Last Change:	2016 Dec 7
 " Credits:	Zvezdan Petkovic <zpetkovic@acm.org>
 "		Neil Schemenauer <nas@meson.ca>
 "		Dmitry Vasiliev
@@ -62,17 +62,57 @@ syn match   mesonNumber	"\<\d\+\>"
 syn keyword mesonConstant	false true
 
 " Built-in functions
-syn keyword mesonBuiltin	add_global_arguments add_languages benchmark
-syn keyword mesonBuiltin	build_target configuration_data configure_file
-syn keyword mesonBuiltin	custom_target declare_dependency dependency
-syn keyword mesonBuiltin	error executable find_program find_library
-syn keyword mesonBuiltin	files generator get_option get_variable
-syn keyword mesonBuiltin	gettext import include_directories install_data
-syn keyword mesonBuiltin	install_headers install_man install_subdir
-syn keyword mesonBuiltin	is_subproject is_variable jar library message
-syn keyword mesonBuiltin	project run_command run_target set_variable
-syn keyword mesonBuiltin	shared_library static_library subdir subproject
-syn keyword mesonBuiltin	test vcs_tag
+syn keyword mesonBuiltin
+  \ add_global_arguments
+  \ add_global_link_arguments
+  \ add_languages
+  \ add_project_arguments
+  \ add_project_arguments
+  \ add_project_link_arguments
+  \ benchmark
+  \ build_machine
+  \ build_target
+  \ configuration_data
+  \ configure_file
+  \ custom_target
+  \ declare_dependency
+  \ dependency
+  \ environment
+  \ error
+  \ executable
+  \ files
+  \ find_library
+  \ find_program
+  \ generator
+  \ get_option
+  \ get_variable
+  \ gettext
+  \ host_machine
+  \ import
+  \ include_directories
+  \ install_data
+  \ install_headers
+  \ install_man
+  \ install_subdir
+  \ is_subproject
+  \ is_variable
+  \ jar
+  \ join_paths
+  \ library
+  \ meson
+  \ message
+  \ project
+  \ run_command
+  \ run_target
+  \ set_variable
+  \ shared_library
+  \ shared_module
+  \ static_library
+  \ subdir
+  \ subproject
+  \ target_machine
+  \ test
+  \ vcs_tag
 
 if exists("meson_space_error_highlight")
   " trailing whitespace
