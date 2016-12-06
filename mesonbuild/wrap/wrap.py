@@ -99,7 +99,7 @@ class Resolver:
                 ' ensure clean download' % dirname)
                 os.rmdir(dirname)
         except NotADirectoryError:
-            raise RuntimeError('%s is not a directory, can not use as subproject.' % dirname)
+            raise RuntimeError('%s is not a directory, can not use as subproject.' %dirname)
         except FileNotFoundError:
             pass
 
@@ -111,7 +111,7 @@ class Resolver:
             if os.path.isdir(dirname):
                 # project already there? great, use it!
                 # only for the file case because otherwise we prevent git 
-                # and hg from updating the subproject. or doing that fancy git push feature that doesn't belong
+                # and hg from updating the subproject.
                 return packagename
             if not os.path.isdir(self.cachedir):
                 os.mkdir(self.cachedir)
@@ -164,15 +164,16 @@ class Resolver:
         revno = p.get('revision')
         is_there = os.path.isdir(checkoutdir)
         if is_there:
-            #Need to add a check that the directory is a valid HG repo
+            if not os.path.isdir(os.path.join(checkoutdir, '.hg')):
+                raise RuntimeError('Subproject %s is not a valid mercurial repo.'%p.get('directory'))
             if revno.lower() == 'tip':
                 # Failure to do pull is not a fatal error,
                 # because otherwise you can't develop without
                 # a working net connection.
                 subprocess.call(['hg', 'pull'], cwd=checkoutdir)
-                subprocess.call(['hg','update','tip'],cwd = checkoutdir)
+                subprocess.call(['hg', 'update', 'tip'],cwd = checkoutdir)
             else:
-                #check that the tag/branch/revision we want is available in the
+                # check that the tag/branch/revision we want is available in the
                 # repo, if not, pull and update.
                 if subprocess.call(['hg', 'checkout', revno], cwd=checkoutdir) != 0:
                     subprocess.check_call(['hg', 'pull'], cwd=checkoutdir)
