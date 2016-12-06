@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from mesonbuild import mlog, mesonmain
+from mesonbuild import mlog, mesonmain, mesonlib
 import sys, os, locale
 
 def main():
@@ -23,7 +23,7 @@ def main():
     # There is no way to reset both the preferred encoding and the filesystem
     # encoding, so we can just warn about it.
     e = locale.getpreferredencoding()
-    if e.upper() != 'UTF-8':
+    if e.upper() != 'UTF-8' and not mesonlib.is_windows():
         mlog.warning('You are using {!r} which is not a a Unicode-compatible '
                      'locale.'.format(e))
         mlog.warning('You might see errors if you use UTF-8 strings as '
