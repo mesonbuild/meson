@@ -783,6 +783,8 @@ class Vs2010Backend(backends.Backend):
             extra_link_args += l
         if not isinstance(target, build.StaticLibrary):
             extra_link_args += target.link_args
+            if isinstance(target, build.SharedModule):
+                extra_link_args += compiler.get_std_shared_module_link_args()
             # External deps must be last because target link libraries may depend on them.
             for dep in target.get_external_deps():
                 extra_link_args += dep.get_link_args()
