@@ -58,6 +58,7 @@ class RegenInfo():
 class Vs2010Backend(backends.Backend):
     def __init__(self, build):
         super().__init__(build)
+        self.name = 'vs2010'
         self.project_file_version = '10.0.30319.1'
         self.sources_conflicts = {}
         self.platform_toolset = None

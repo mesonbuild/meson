@@ -1027,6 +1027,7 @@ class MesonMain(InterpreterObject):
                              'version': self.version_method,
                              'project_name' : self.project_name_method,
                              'get_cross_property': self.get_cross_property_method,
+                             'backend' : self.backend_method,
                             })
 
     def add_install_script_method(self, args, kwargs):
@@ -1064,6 +1065,9 @@ class MesonMain(InterpreterObject):
         if sub == '':
             return src
         return os.path.join(src, sub)
+
+    def backend_method(self, args, kwargs):
+        return self.interpreter.backend.name
 
     def source_root_method(self, args, kwargs):
         return self.interpreter.environment.source_dir
