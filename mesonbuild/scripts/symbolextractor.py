@@ -22,7 +22,7 @@
 # This file is basically a reimplementation of
 # http://cgit.freedesktop.org/libreoffice/core/commit/?id=3213cd54b76bc80a6f0516aac75a48ff3b2ad67c
 
-import sys, subprocess
+import os, sys, subprocess
 from mesonbuild import mesonlib
 import argparse
 
@@ -49,13 +49,23 @@ def write_if_changed(text, outfilename):
         f.write(text)
 
 def linux_syms(libfilename, outfilename):
-    pe = subprocess.Popen(['readelf', '-d', libfilename], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    evar = 'READELF'
+    if evar in os.environ:
+        readelfbin = os.environ[evar].strip()
+    else:
+        readelfbin = 'readelf'
+    evar = 'NM'
+    if evar in os.environ:
+        nmbin = os.environ[evar].strip()
+    else:
+        nmbin = 'nm'
+    pe = subprocess.Popen([readelfbin, '-d', libfilename], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     output = pe.communicate()[0].decode()
     if pe.returncode != 0:
         raise RuntimeError('Readelf does not work')
     result = [x for x in output.split('\n') if 'SONAME' in x]
     assert(len(result) <= 1)
-    pnm = subprocess.Popen(['nm', '--dynamic', '--extern-only', '--defined-only', '--format=posix', libfilename],
+    pnm = subprocess.Popen([nmbin, '--dynamic', '--extern-only', '--defined-only', '--format=posix', libfilename],
                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     output = pnm.communicate()[0].decode()
     if pnm.returncode != 0:
