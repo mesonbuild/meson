@@ -122,7 +122,7 @@ def build_gtkdoc(source_root, build_root, doc_subdir, src_subdir,
 
     # Make HTML documentation
     mkhtml_cmd = ['gtkdoc-mkhtml',
-                  '--path=' + ':'.join((abs_src, abs_out)),
+                  '--path=' + ':'.join((doc_src, abs_out)),
                   module,
                   ] + html_args
     if len(main_file) > 0:
