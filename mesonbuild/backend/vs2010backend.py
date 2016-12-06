@@ -15,17 +15,16 @@
 import os, sys
 import pickle
 import re
+import xml.dom.minidom
+import xml.etree.ElementTree as ET
 
-from mesonbuild import compilers
-from mesonbuild.build import BuildTarget
-from mesonbuild.mesonlib import File
 from . import backends
 from .. import build
 from .. import dependencies
 from .. import mlog
-import xml.etree.ElementTree as ET
-import xml.dom.minidom
-from ..mesonlib import MesonException
+from .. import compilers
+from ..build import BuildTarget
+from ..mesonlib import MesonException, File
 from ..environment import Environment
 
 def split_o_flags_args(args):
