@@ -23,10 +23,10 @@ from . import compilers
 from .wrap import wrap
 from . import mesonlib
 from .dependencies import InternalDependency, Dependency
-from mesonbuild.interpreterbase import InterpreterBase
-from mesonbuild.interpreterbase import check_stringlist, noPosargs, noKwargs, stringArgs
-from mesonbuild.interpreterbase import InterpreterException, InvalidArguments, InvalidCode
-from mesonbuild.interpreterbase import InterpreterObject, MutableInterpreterObject
+from .interpreterbase import InterpreterBase
+from .interpreterbase import check_stringlist, noPosargs, noKwargs, stringArgs
+from .interpreterbase import InterpreterException, InvalidArguments, InvalidCode
+from .interpreterbase import InterpreterObject, MutableInterpreterObject
 
 import os, sys, subprocess, shutil, uuid, re
 

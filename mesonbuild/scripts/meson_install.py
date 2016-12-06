@@ -16,8 +16,8 @@
 
 import sys, pickle, os, shutil, subprocess, gzip, platform
 from glob import glob
-from mesonbuild.scripts import depfixer
-from mesonbuild.scripts import destdir_join
+from . import depfixer
+from . import destdir_join
 
 install_log_file = None
 

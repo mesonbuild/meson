@@ -17,8 +17,8 @@ import sys, os
 import subprocess
 import shutil
 import argparse
-from mesonbuild.mesonlib import MesonException
-from mesonbuild.scripts import destdir_join
+from ..mesonlib import MesonException
+from . import destdir_join
 
 parser = argparse.ArgumentParser()
 

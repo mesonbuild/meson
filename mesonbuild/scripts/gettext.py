@@ -16,7 +16,7 @@ import os
 import shutil
 import argparse
 import subprocess
-from mesonbuild.scripts import destdir_join
+from . import destdir_join
 
 parser = argparse.ArgumentParser()
 parser.add_argument('command')

@@ -29,7 +29,7 @@ def need_regen(regeninfo, regen_timestamp):
     # We must make sure to recreate it, even if we do not regenerate the solution.
     # Otherwise, Visual Studio will always consider the REGEN project out of date.
     print("Everything is up-to-date, regeneration of build files is not needed.")
-    from mesonbuild.backend.vs2010backend import Vs2010Backend
+    from ..backend.vs2010backend import Vs2010Backend
     Vs2010Backend.touch_regen_timestamp(regeninfo.build_dir)
     return False
 
