@@ -341,5 +341,63 @@ class LinuxlikeTests(unittest.TestCase):
             Oargs = [arg for arg in cmd if arg.startswith('-O')]
             self.assertEqual(Oargs, [Oflag, '-O0'])
 
+class RewriterTests(unittest.TestCase):
+
+    def setUp(self):
+        super().setUp()
+        src_root = os.path.dirname(__file__)
+        self.testroot = tempfile.mkdtemp()
+        self.rewrite_command = [sys.executable, os.path.join(src_root, 'mesonrewriter.py')]
+        self.tmpdir = tempfile.mkdtemp()
+        self.workdir = os.path.join(self.tmpdir, 'foo')
+        self.test_dir = os.path.join(src_root, 'test cases/rewrite')
+
+    def tearDown(self):
+        shutil.rmtree(self.tmpdir)
+
+    def read_contents(self, fname):
+        with open(os.path.join(self.workdir, fname)) as f:
+            return f.read()
+
+    def check_effectively_same(self, mainfile, truth):
+        mf = self.read_contents(mainfile)
+        t = self.read_contents(truth)
+        # Rewriting is not guaranteed to do a perfect job of
+        # maintaining whitespace.
+        self.assertEqual(mf.replace(' ', ''), t.replace(' ', ''))
+
+    def prime(self, dirname):
+        shutil.copytree(os.path.join(self.test_dir, dirname), self.workdir)
+
+    def test_basic(self):
+        self.prime('1 basic')
+        subprocess.check_output(self.rewrite_command + ['remove',
+                                                        '--target=trivialprog',
+                                                        '--filename=notthere.c',
+                                                        '--sourcedir', self.workdir])
+        self.check_effectively_same('meson.build', 'removed.txt')
+        subprocess.check_output(self.rewrite_command + ['add',
+                                                        '--target=trivialprog',
+                                                        '--filename=notthere.c',
+                                                        '--sourcedir', self.workdir])
+        self.check_effectively_same('meson.build', 'added.txt')
+        subprocess.check_output(self.rewrite_command + ['remove',
+                                                        '--target=trivialprog',
+                                                        '--filename=notthere.c',
+                                                        '--sourcedir', self.workdir])
+        self.check_effectively_same('meson.build', 'removed.txt')
+
+    def test_subdir(self):
+        self.prime('2 subdirs')
+        top = self.read_contents('meson.build')
+        s2 = self.read_contents('sub2/meson.build')
+        subprocess.check_output(self.rewrite_command + ['remove',
+                                                        '--target=something',
+                                                        '--filename=second.c',
+                                                        '--sourcedir', self.workdir])
+        self.check_effectively_same('sub1/meson.build', 'sub1/after.txt')
+        self.assertEqual(top, self.read_contents('meson.build'))
+        self.assertEqual(s2, self.read_contents('sub2/meson.build'))
+
 if __name__ == '__main__':
     unittest.main()

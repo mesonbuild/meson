@@ -1,0 +1,5 @@
+project('rewritetest', 'c')
+
+sources = ['trivial.c']
+
+exe = executable('trivialprog', sources)
