@@ -396,6 +396,10 @@ class GeneratedListHolder(InterpreterObject):
         else:
             self.held_object = arg1
 
+    def __repr__(self):
+        r = '<{}: {!r}>'
+        return r.format(self.__class__.__name__, self.held_object.get_outputs())
+
     def add_file(self, a):
         self.held_object.add_file(a)
 
@@ -550,6 +554,11 @@ class BuildTargetHolder(InterpreterObject):
                              'private_dir_include' : self.private_dir_include_method,
                              })
 
+    def __repr__(self):
+        r = '<{} {}: {}>'
+        h = self.held_object
+        return r.format(self.__class__.__name__, h.get_id(), h.filename)
+
     def is_cross(self):
         return self.held_object.is_cross()
 
@@ -598,12 +607,22 @@ class CustomTargetHolder(InterpreterObject):
         self.methods.update({'full_path' : self.full_path_method,
                              })
 
+    def __repr__(self):
+        r = '<{} {}: {}>'
+        h = self.held_object
+        return r.format(self.__class__.__name__, h.get_id(), h.command)
+
     def full_path_method(self, args, kwargs):
         return self.interpreter.backend.get_target_filename_abs(self.held_object)
 
 class RunTargetHolder(InterpreterObject):
     def __init__(self, name, command, args, dependencies, subdir):
         self.held_object = build.RunTarget(name, command, args, dependencies, subdir)
+
+    def __repr__(self):
+        r = '<{} {}: {}>'
+        h = self.held_object
+        return r.format(self.__class__.__name__, h.get_id(), h.command)
 
 class Test(InterpreterObject):
     def __init__(self, name, suite, exe, is_parallel, cmd_args, env, should_fail, timeout, workdir):
