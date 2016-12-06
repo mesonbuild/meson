@@ -40,6 +40,7 @@ parser.add_argument('--cflags', dest='cflags', default='')
 parser.add_argument('--content-files', dest='content_files', default='')
 parser.add_argument('--html-assets', dest='html_assets', default='')
 parser.add_argument('--ignore-headers', dest='ignore_headers', default='')
+parser.add_argument('--namespace', dest='namespace', default='')
 parser.add_argument('--installdir', dest='install_dir')
 
 def gtkdoc_run_check(cmd, cwd):
@@ -57,7 +58,7 @@ def gtkdoc_run_check(cmd, cwd):
 def build_gtkdoc(source_root, build_root, doc_subdir, src_subdirs,
                  main_file, module, html_args, scan_args, fixxref_args,
                  gobject_typesfile, scanobjs_args, ld, cc, ldflags, cflags,
-                 html_assets, content_files, ignore_headers):
+                 html_assets, content_files, ignore_headers, namespace):
     print("Building documentation for %s" % module)
 
     src_dir_args = ['--source-dir=' + os.path.join(source_root, src_dir) for src_dir in src_subdirs]
@@ -114,6 +115,8 @@ def build_gtkdoc(source_root, build_root, doc_subdir, src_subdirs,
                 '--output-format=xml',
                 '--expand-content-files=',
                 modeflag] + src_dir_args
+    if namespace:
+        mkdb_cmd.append('--name-space=' + namespace)
     if len(main_file) > 0:
         # Yes, this is the flag even if the file is in xml.
         mkdb_cmd.append('--main-sgml-file=' + main_file)
@@ -179,7 +182,8 @@ def run(args):
         options.cflags,
         options.html_assets.split('@@') if options.html_assets else [],
         options.content_files.split('@@') if options.content_files else [],
-        options.ignore_headers.split('@@') if options.ignore_headers else [])
+        options.ignore_headers.split('@@') if options.ignore_headers else [],
+        options.namespace)
 
     if 'MESON_INSTALL_PREFIX' in os.environ:
         install_dir = options.install_dir if options.install_dir else options.modulename

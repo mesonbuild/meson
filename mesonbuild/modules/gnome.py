@@ -656,6 +656,8 @@ can not be used with the current version of glib-compiled-resources, due to
         targetname = modulename + '-doc'
         command = [state.environment.get_build_command(), '--internal', 'gtkdoc']
 
+        namespace = kwargs.get('namespace', '')
+
         src_dirs = kwargs['src_dir']
         if not isinstance(src_dirs, list):
             src_dirs = [src_dirs]
@@ -677,6 +679,8 @@ can not be used with the current version of glib-compiled-resources, due to
                 '--headerdirs=' + '@@'.join(header_dirs),
                 '--mainfile=' + main_file,
                 '--modulename=' + modulename]
+        if namespace:
+            args.append('--namespace=' + namespace)
         args += self._unpack_args('--htmlargs=', 'html_args', kwargs)
         args += self._unpack_args('--scanargs=', 'scan_args', kwargs)
         args += self._unpack_args('--scanobjsargs=', 'scanobjs_args', kwargs)
