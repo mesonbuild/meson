@@ -663,7 +663,9 @@ int dummy;
             if outdir is None:
                 outdir = os.path.join(incroot, h.get_install_subdir())
             for f in h.get_sources():
-                assert(isinstance(f, File))
+                if not isinstance(f, File):
+                    msg = 'Invalid header type {!r} can\'t be installed'
+                    raise MesonException(msg.format(f))
                 abspath = f.absolute_path(srcdir, builddir)
                 i = [abspath, outdir]
                 d.headers.append(i)
