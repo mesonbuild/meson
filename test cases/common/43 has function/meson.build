@@ -1,5 +1,7 @@
 project('has function', 'c', 'cpp')
 
+host_system = host_machine.system()
+
 # This is used in the `test_compiler_check_flags_order` unit test
 unit_test_args = '-I/tmp'
 compilers = [meson.get_compiler('c'), meson.get_compiler('cpp')]
@@ -34,7 +36,7 @@ foreach cc : compilers
   # We can't check for the C library used here of course, but if it's not
   # implemented in glibc it's probably not implemented in any other 'slimmer'
   # C library variants either, so the check should be safe either way hopefully.
-  if host_machine.system() == 'linux' and cc.get_id() == 'gcc'
+  if host_system == 'linux' and cc.get_id() == 'gcc'
     assert (cc.has_function('poll', prefix : '#include <poll.h>',
                             args : unit_test_args),
             'couldn\'t detect "poll" when defined by a header')
@@ -42,6 +44,12 @@ foreach cc : compilers
     assert (not cc.has_function('lchmod', prefix : lchmod_prefix,
                                 args : unit_test_args),
             '"lchmod" check should have failed')
+    # Check that built-ins are found properly both with and without headers
+    assert(cc.has_function('alloca', args : unit_test_args),
+           'built-in alloca must be found on Linux')
+    assert(cc.has_function('alloca', prefix : '#include <alloca.h>',
+           args : unit_test_args),
+           'built-in alloca must be found on Linux with #include')
   endif
 
   # For some functions one needs to define _GNU_SOURCE before including the
