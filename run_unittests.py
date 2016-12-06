@@ -334,6 +334,8 @@ class LinuxlikeTests(unittest.TestCase):
         self.init(testdir)
         cmds = self.get_meson_log_compiler_checks()
         for cmd in cmds:
+            if cmd[0] == 'ccache':
+                cmd = cmd[1:]
             # Verify that -I flags from the `args` kwarg are first
             # This is set in the '43 has function' test case
             self.assertEqual(cmd[2], '-I/tmp')
