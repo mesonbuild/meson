@@ -94,7 +94,12 @@ class Resolver:
         fname = os.path.join(self.subdir_root, packagename + '.wrap')
         dirname = os.path.join(self.subdir_root, packagename)
         try:
-            if not os.listdir(dirname):
+            if os.listdir(dirname):
+                if not os.path.isfile(fname) :
+                    # The directory is there, not empty and there isn't a wrap file?
+                    # Great, use it.
+                    return packagename
+            else:
                 mlog.warning('Subproject directory %s is empty, removing to'
                 ' ensure clean download' % dirname)
                 os.rmdir(dirname)
