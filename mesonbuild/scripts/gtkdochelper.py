@@ -25,7 +25,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--sourcedir', dest='sourcedir')
 parser.add_argument('--builddir', dest='builddir')
 parser.add_argument('--subdir', dest='subdir')
-parser.add_argument('--headerdir', dest='headerdir')
+parser.add_argument('--headerdirs', dest='headerdirs')
 parser.add_argument('--mainfile', dest='mainfile')
 parser.add_argument('--modulename', dest='modulename')
 parser.add_argument('--htmlargs', dest='htmlargs', default='')
@@ -54,13 +54,13 @@ def gtkdoc_run_check(cmd, cwd):
             err_msg.append(stdo.decode(errors='ignore'))
         raise MesonException('\n'.join(err_msg))
 
-def build_gtkdoc(source_root, build_root, doc_subdir, src_subdir,
+def build_gtkdoc(source_root, build_root, doc_subdir, src_subdirs,
                  main_file, module, html_args, scan_args, fixxref_args,
                  gobject_typesfile, scanobjs_args, ld, cc, ldflags, cflags,
                  html_assets, content_files, ignore_headers):
     print("Building documentation for %s" % module)
 
-    abs_src = os.path.join(source_root, src_subdir)
+    src_dir_args = ['--source-dir=' + os.path.join(source_root, src_dir) for src_dir in src_subdirs]
     doc_src = os.path.join(source_root, doc_subdir)
     abs_out = os.path.join(build_root, doc_subdir)
     htmldir = os.path.join(abs_out, 'html')
@@ -90,7 +90,7 @@ def build_gtkdoc(source_root, build_root, doc_subdir, src_subdir,
         f_abs = os.path.join(doc_src, f)
         shutil.copyfile(f_abs, os.path.join(htmldir, os.path.basename(f_abs)))
 
-    scan_cmd = ['gtkdoc-scan', '--module=' + module, '--source-dir=' + abs_src]
+    scan_cmd = ['gtkdoc-scan', '--module=' + module] + src_dir_args
     if ignore_headers:
         scan_cmd.append('--ignore-headers=' + ' '.join(ignore_headers))
     # Add user-specified arguments
@@ -113,8 +113,7 @@ def build_gtkdoc(source_root, build_root, doc_subdir, src_subdir,
                 '--module=' + module,
                 '--output-format=xml',
                 '--expand-content-files=',
-                modeflag,
-                '--source-dir=' + abs_src]
+                modeflag] + src_dir_args
     if len(main_file) > 0:
         # Yes, this is the flag even if the file is in xml.
         mkdb_cmd.append('--main-sgml-file=' + main_file)
@@ -166,7 +165,7 @@ def run(args):
         options.sourcedir,
         options.builddir,
         options.subdir,
-        options.headerdir,
+        options.headerdirs.split('@@'),
         options.mainfile,
         options.modulename,
         htmlargs,

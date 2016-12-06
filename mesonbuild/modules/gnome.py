@@ -653,23 +653,28 @@ can not be used with the current version of glib-compiled-resources, due to
             if main_file != '':
                 raise MesonException('You can only specify main_xml or main_sgml, not both.')
             main_file = main_xml
-        src_dir = kwargs['src_dir']
         targetname = modulename + '-doc'
         command = [state.environment.get_build_command(), '--internal', 'gtkdoc']
-        if hasattr(src_dir, 'held_object'):
-            src_dir= src_dir.held_object
-            if not isinstance(src_dir, build.IncludeDirs):
-                raise MesonException('Invalid keyword argument for src_dir.')
-            incdirs = src_dir.get_incdirs()
-            if len(incdirs) != 1:
-                raise MesonException('Argument src_dir has more than one directory specified.')
-            header_dir = os.path.join(state.environment.get_source_dir(), src_dir.get_curdir(), incdirs[0])
-        else:
-            header_dir = os.path.normpath(os.path.join(state.subdir, src_dir))
+
+        src_dirs = kwargs['src_dir']
+        if not isinstance(src_dirs, list):
+            src_dirs = [src_dirs]
+        header_dirs = []
+        for src_dir in src_dirs:
+            if hasattr(src_dir, 'held_object'):
+                src_dir = src_dir.held_object
+                if not isinstance(src_dir, build.IncludeDirs):
+                    raise MesonException('Invalid keyword argument for src_dir.')
+                for inc_dir in src_dir.get_incdirs():
+                    header_dirs.append(os.path.join(state.environment.get_source_dir(),
+                                                    src_dir.get_curdir(), inc_dir))
+            else:
+                header_dirs.append(os.path.normpath(os.path.join(state.subdir, src_dir)))
+
         args = ['--sourcedir=' + state.environment.get_source_dir(),
                 '--builddir=' + state.environment.get_build_dir(),
                 '--subdir=' + state.subdir,
-                '--headerdir=' + header_dir,
+                '--headerdirs=' + '@@'.join(header_dirs),
                 '--mainfile=' + main_file,
                 '--modulename=' + modulename]
         args += self._unpack_args('--htmlargs=', 'html_args', kwargs)
