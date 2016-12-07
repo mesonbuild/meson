@@ -146,6 +146,7 @@ class TestHarness:
     def __init__(self, options):
         self.options = options
         self.collected_logs = []
+        self.failed_tests = []
         self.error_count = 0
         self.is_run = False
         self.cant_rebuild = False
