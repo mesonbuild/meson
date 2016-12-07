@@ -15,7 +15,7 @@
 import os, subprocess
 from .. import mlog
 from .. import build
-from ..mesonlib import MesonException
+from ..mesonlib import MesonException, Popen_safe
 from ..dependencies import Qt4Dependency
 import xml.etree.ElementTree as ET
 
@@ -37,11 +37,9 @@ class Qt4Module():
         # Moc and rcc return a non-zero result when doing so.
         # What kind of an idiot thought that was a good idea?
         if self.moc.found():
-            mp = subprocess.Popen(self.moc.get_command() + ['-v'],
-                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            (stdout, stderr) = mp.communicate()
-            stdout = stdout.decode().strip()
-            stderr = stderr.decode().strip()
+            stdout, stderr = Popen_safe(self.moc.get_command() + ['-v'])[1:3]
+            stdout = stdout.strip()
+            stderr = stderr.strip()
             if 'Qt Meta' in stderr:
                 moc_ver = stderr
             else:
@@ -52,11 +50,9 @@ class Qt4Module():
         else:
             mlog.log(' moc:', mlog.red('NO'))
         if self.uic.found():
-            up = subprocess.Popen(self.uic.get_command() + ['-v'],
-                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            (stdout, stderr) = up.communicate()
-            stdout = stdout.decode().strip()
-            stderr = stderr.decode().strip()
+            stdout, stderr = Popen_safe(self.uic.get_command() + ['-v'])[1:3]
+            stdout = stdout.strip()
+            stderr = stderr.strip()
             if 'version 4.' in stderr:
                 uic_ver = stderr
             else:
@@ -67,11 +63,9 @@ class Qt4Module():
         else:
             mlog.log(' uic:', mlog.red('NO'))
         if self.rcc.found():
-            rp = subprocess.Popen(self.rcc.get_command() + ['-v'],
-                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            (stdout, stderr) = rp.communicate()
-            stdout = stdout.decode().strip()
-            stderr = stderr.decode().strip()
+            stdout, stderr = Popen_safe(self.rcc.get_command() + ['-v'])[1:3]
+            stdout = stdout.strip()
+            stderr = stderr.strip()
             if 'version 4.' in stderr:
                 rcc_ver = stderr
             else:

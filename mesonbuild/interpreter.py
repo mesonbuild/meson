@@ -22,6 +22,7 @@ from . import optinterpreter
 from . import compilers
 from .wrap import wrap
 from . import mesonlib
+from .mesonlib import Popen_safe
 from .dependencies import InternalDependency, Dependency
 from .interpreterbase import InterpreterBase
 from .interpreterbase import check_stringlist, noPosargs, noKwargs, stringArgs
@@ -70,17 +71,8 @@ class RunProcess(InterpreterObject):
 
     def __init__(self, command_array, source_dir, build_dir, subdir, in_builddir=False):
         super().__init__()
-        pc = self.run_command(command_array, source_dir, build_dir, subdir, in_builddir)
-        (stdout, stderr) = pc.communicate()
+        pc, self.stdout, self.stderr = self.run_command(command_array, source_dir, build_dir, subdir, in_builddir)
         self.returncode = pc.returncode
-        if sys.stdout.encoding:
-            self.stdout = stdout.decode(encoding=sys.stdout.encoding, errors='ignore').replace('\r\n', '\n')
-        else:
-            self.stdout = stdout.decode(errors='ignore').replace('\r\n', '\n')
-        if sys.stderr.encoding:
-            self.stderr = stderr.decode(encoding=sys.stderr.encoding, errors='ignore').replace('\r\n', '\n')
-        else:
-            self.stderr = stderr.decode(errors='ignore').replace('\r\n', '\n')
         self.methods.update({'returncode' : self.returncode_method,
                              'stdout' : self.stdout_method,
                              'stderr' : self.stderr_method,
@@ -99,22 +91,19 @@ class RunProcess(InterpreterObject):
         child_env.update(env)
         mlog.debug('Running command:', ' '.join(command_array))
         try:
-            return subprocess.Popen(command_array, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                    env=child_env, cwd=cwd)
+            return Popen_safe(command_array, env=child_env, cwd=cwd)
         except FileNotFoundError:
             pass
         # Was not a command, is a program in path?
         exe = shutil.which(cmd_name)
         if exe is not None:
             command_array = [exe] + command_array[1:]
-            return subprocess.Popen(command_array, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                    env=child_env, cwd=cwd)
+            return Popen_safe(command_array, env=child_env, cwd=cwd)
         # No? Maybe it is a script in the source tree.
         fullpath = os.path.join(source_dir, subdir, cmd_name)
         command_array = [fullpath] + command_array[1:]
         try:
-            return subprocess.Popen(command_array, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                    env=child_env, cwd=cwd)
+            return Popen_safe(command_array, env=child_env, cwd=cwd)
         except FileNotFoundError:
             raise InterpreterException('Could not execute command "%s".' % cmd_name)
 

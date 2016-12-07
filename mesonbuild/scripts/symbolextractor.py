@@ -23,7 +23,8 @@
 # http://cgit.freedesktop.org/libreoffice/core/commit/?id=3213cd54b76bc80a6f0516aac75a48ff3b2ad67c
 
 import os, sys, subprocess
-from mesonbuild import mesonlib
+from .. import mesonlib
+from ..mesonlib import MesonException, Popen_safe
 import argparse
 
 parser = argparse.ArgumentParser()
@@ -59,23 +60,21 @@ def linux_syms(libfilename, outfilename):
         nmbin = os.environ[evar].strip()
     else:
         nmbin = 'nm'
-    pe = subprocess.Popen([readelfbin, '-d', libfilename], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    output = pe.communicate()[0].decode()
+    pe, output = Popen_safe([readelfbin, '-d', libfilename])[0:2]
     if pe.returncode != 0:
         raise RuntimeError('Readelf does not work')
     result = [x for x in output.split('\n') if 'SONAME' in x]
     assert(len(result) <= 1)
-    pnm = subprocess.Popen([nmbin, '--dynamic', '--extern-only', '--defined-only', '--format=posix', libfilename],
-                           stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    output = pnm.communicate()[0].decode()
+    pnm, output = Popen_safe([nmbin, '--dynamic', '--extern-only',
+                              '--defined-only', '--format=posix',
+                              libfilename])[0:2]
     if pnm.returncode != 0:
         raise RuntimeError('nm does not work.')
     result += [' '.join(x.split()[0:2]) for x in output.split('\n') if len(x) > 0]
     write_if_changed('\n'.join(result) + '\n', outfilename)
 
 def osx_syms(libfilename, outfilename):
-    pe = subprocess.Popen(['otool', '-l', libfilename], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    output = pe.communicate()[0].decode()
+    pe, output = Popen_safe(['otool', '-l', libfilename])[0:2]
     if pe.returncode != 0:
         raise RuntimeError('Otool does not work.')
     arr = output.split('\n')
@@ -84,8 +83,7 @@ def osx_syms(libfilename, outfilename):
             match = i
             break
     result = [arr[match+2], arr[match+5]] # Libreoffice stores all 5 lines but the others seem irrelevant.
-    pnm = subprocess.Popen(['nm', '-g', '-P', libfilename], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    output = pnm.communicate()[0].decode()
+    pnm, output = Popen_safe(['nm', '-g', '-P', libfilename])[0:2]
     if pnm.returncode != 0:
         raise RuntimeError('nm does not work.')
     result += [' '.join(x.split()[0:2]) for x in output.split('\n') if len(x) > 0 and not x.endswith('U')]

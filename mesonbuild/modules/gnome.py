@@ -20,7 +20,7 @@ import os
 import sys
 import copy
 import subprocess
-from ..mesonlib import MesonException
+from ..mesonlib import MesonException, Popen_safe
 from .. import dependencies
 from .. import mlog
 from .. import mesonlib
@@ -197,9 +197,7 @@ can not be used with the current version of glib-compiled-resources, due to
             cmd += ['--sourcedir', os.path.join(state.subdir, source_dir)]
         cmd += ['--sourcedir', state.subdir] # Current dir
 
-        pc = subprocess.Popen(cmd, stdout=subprocess.PIPE, universal_newlines=True,
-                              cwd=state.environment.get_source_dir())
-        (stdout, _) = pc.communicate()
+        pc, stdout = Popen_safe(cmd, cwd=state.environment.get_source_dir())[0:2]
         if pc.returncode != 0:
             mlog.warning('glib-compile-resources has failed to get the dependencies for {}'.format(cmd[1]))
             raise subprocess.CalledProcessError(pc.returncode, cmd)

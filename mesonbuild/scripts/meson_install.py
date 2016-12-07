@@ -18,6 +18,7 @@ import sys, pickle, os, shutil, subprocess, gzip, platform
 from glob import glob
 from . import depfixer
 from . import destdir_join
+from ..mesonlib import MesonException, Popen_safe
 
 install_log_file = None
 
@@ -205,12 +206,11 @@ def install_targets(d):
         do_copy(fname, outname)
         if should_strip:
             print('Stripping target')
-            ps = subprocess.Popen(['strip', outname], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            (stdo, stde) = ps.communicate()
+            ps, stdo, stde = Popen_safe(['strip', outname])
             if ps.returncode != 0:
                 print('Could not strip file.\n')
-                print('Stdout:\n%s\n' % stdo.decode())
-                print('Stderr:\n%s\n' % stde.decode())
+                print('Stdout:\n%s\n' % stdo)
+                print('Stderr:\n%s\n' % stde)
                 sys.exit(1)
         printed_symlink_error = False
         for alias in aliases:
