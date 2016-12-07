@@ -543,6 +543,10 @@ class SharedLibraryHolder(BuildTargetHolder):
     def __init__(self, target, interp):
         super().__init__(target, interp)
 
+class SharedModuleHolder(BuildTargetHolder):
+    def __init__(self, target, interp):
+        super().__init__(target, interp)
+
 class JarHolder(BuildTargetHolder):
     def __init__(self, target, interp):
         super().__init__(target, interp)
@@ -988,6 +992,7 @@ class MesonMain(InterpreterObject):
                              'version': self.version_method,
                              'project_name' : self.project_name_method,
                              'get_cross_property': self.get_cross_property_method,
+                             'backend' : self.backend_method,
                             })
 
     def add_install_script_method(self, args, kwargs):
@@ -1025,6 +1030,9 @@ class MesonMain(InterpreterObject):
         if sub == '':
             return src
         return os.path.join(src, sub)
+
+    def backend_method(self, args, kwargs):
+        return self.interpreter.backend.name
 
     def source_root_method(self, args, kwargs):
         return self.interpreter.environment.source_dir
@@ -1154,6 +1162,7 @@ class Interpreter(InterpreterBase):
                       'dependency' : self.func_dependency,
                       'static_library' : self.func_static_lib,
                       'shared_library' : self.func_shared_lib,
+                      'shared_module' : self.func_shared_module,
                       'library' : self.func_library,
                       'jar' : self.func_jar,
                       'build_target': self.func_build_target,
@@ -1777,6 +1786,9 @@ requirements use the version keyword argument instead.''')
     def func_shared_lib(self, node, args, kwargs):
         return self.build_target(node, args, kwargs, SharedLibraryHolder)
 
+    def func_shared_module(self, node, args, kwargs):
+        return self.build_target(node, args, kwargs, SharedModuleHolder)
+
     def func_library(self, node, args, kwargs):
         if self.coredata.get_builtin_option('default_library') == 'shared':
             return self.func_shared_lib(node, args, kwargs)
@@ -2252,6 +2264,8 @@ requirements use the version keyword argument instead.''')
             targetclass = build.Executable
         elif targetholder is SharedLibraryHolder:
             targetclass = build.SharedLibrary
+        elif targetholder is SharedModuleHolder:
+            targetclass = build.SharedModule
         elif targetholder is StaticLibraryHolder:
             targetclass = build.StaticLibrary
         elif targetholder is JarHolder:

@@ -248,7 +248,7 @@ def get_base_compile_args(options, compiler):
         pass
     return args
 
-def get_base_link_args(options, linker):
+def get_base_link_args(options, linker, is_shared_module):
     args = []
     # FIXME, gcc/clang specific.
     try:
@@ -269,7 +269,7 @@ def get_base_link_args(options, linker):
     except KeyError:
         pass
     try:
-        if options['b_lundef'].value:
+        if not is_shared_module and options['b_lundef'].value:
             args.append('-Wl,--no-undefined')
     except KeyError:
         pass
@@ -486,6 +486,12 @@ class Compiler():
     def get_link_debugfile_args(self, rel_obj):
         return []
 
+    def get_std_shared_lib_link_args(self):
+        return []
+
+    def get_std_shared_module_link_args(self):
+        return self.get_std_shared_lib_link_args()
+
 class CCompiler(Compiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
         # If a child ObjC or CPP class has already set it, don't set it ourselves
@@ -526,7 +532,7 @@ class CCompiler(Compiler):
         # Almost every compiler uses this for disabling warnings
         return ['-w']
 
-    def get_soname_args(self, prefix, shlib_name, suffix, path, soversion):
+    def get_soname_args(self, prefix, shlib_name, suffix, path, soversion, is_shared_module):
         return []
 
     def split_shlib_to_parts(self, fname):
@@ -1173,7 +1179,7 @@ class MonoCompiler(Compiler):
     def get_link_args(self, fname):
         return ['-r:' + fname]
 
-    def get_soname_args(self, prefix, shlib_name, suffix, path, soversion):
+    def get_soname_args(self, prefix, shlib_name, suffix, path, soversion, is_shared_module):
         return []
 
     def get_werror_args(self):
@@ -1207,9 +1213,6 @@ class MonoCompiler(Compiler):
         return []
 
     def get_include_args(self, path):
-        return []
-
-    def get_std_shared_lib_link_args(self):
         return []
 
     def get_pic_args(self):
@@ -1257,7 +1260,7 @@ class JavaCompiler(Compiler):
         self.id = 'unknown'
         self.javarunner = 'java'
 
-    def get_soname_args(self, prefix, shlib_name, suffix, path, soversion):
+    def get_soname_args(self, prefix, shlib_name, suffix, path, soversion, is_shared_module):
         return []
 
     def get_werror_args(self):
@@ -1296,9 +1299,6 @@ class JavaCompiler(Compiler):
         return []
 
     def get_include_args(self, path):
-        return []
-
-    def get_std_shared_lib_link_args(self):
         return []
 
     def get_pic_args(self):
@@ -1559,7 +1559,7 @@ class DCompiler(Compiler):
     def get_std_shared_lib_link_args(self):
         return ['-shared']
 
-    def get_soname_args(self, prefix, shlib_name, suffix, path, soversion):
+    def get_soname_args(self, prefix, shlib_name, suffix, path, soversion, is_shared_module):
         return []
 
     def get_unittest_args(self):
@@ -1993,7 +1993,7 @@ CLANG_OSX = 1
 CLANG_WIN = 2
 # Possibly clang-cl?
 
-def get_gcc_soname_args(gcc_type, prefix, shlib_name, suffix, path, soversion):
+def get_gcc_soname_args(gcc_type, prefix, shlib_name, suffix, path, soversion, is_shared_module):
     if soversion is None:
         sostr = ''
     else:
@@ -2003,6 +2003,8 @@ def get_gcc_soname_args(gcc_type, prefix, shlib_name, suffix, path, soversion):
         return ['-Wl,-soname,%s%s.%s%s' % (prefix, shlib_name, suffix, sostr)]
         return ['-Wl,-soname,%s%s' % (shlib_name, sostr)]
     elif gcc_type == GCC_OSX:
+        if is_shared_module:
+            return []
         return ['-install_name', os.path.join(path, 'lib' + shlib_name + '.dylib')]
     else:
         raise RuntimeError('Not implemented yet.')
@@ -2038,7 +2040,7 @@ class GnuCompiler:
 
     def get_define(self, define):
         if define in self.defines:
-            return defines[define]
+            return self.defines[define]
 
     def get_pic_args(self):
         if self.gcc_type in (GCC_MINGW, GCC_OSX):
@@ -2060,8 +2062,13 @@ class GnuCompiler:
     def split_shlib_to_parts(self, fname):
         return (os.path.split(fname)[0], fname)
 
-    def get_soname_args(self, prefix, shlib_name, suffix, path, soversion):
-        return get_gcc_soname_args(self.gcc_type, prefix, shlib_name, suffix, path, soversion)
+    def get_soname_args(self, prefix, shlib_name, suffix, path, soversion, is_shared_module):
+        return get_gcc_soname_args(self.gcc_type, prefix, shlib_name, suffix, path, soversion, is_shared_module)
+
+    def get_std_shared_lib_link_args(self):
+        if self.gcc_type == GCC_OSX:
+            return ['-bundle']
+        return ['-shared']
 
 class GnuCCompiler(GnuCompiler, CCompiler):
     def __init__(self, exelist, version, gcc_type, is_cross, exe_wrapper=None, defines=None):
@@ -2096,6 +2103,9 @@ class GnuCCompiler(GnuCompiler, CCompiler):
         if self.gcc_type == GCC_MINGW:
             return options['c_winlibs'].value[:]
         return []
+
+    def get_std_shared_lib_link_args(self):
+        return ['-shared']
 
 class GnuCPPCompiler(GnuCompiler, CPPCompiler):
 
@@ -2199,7 +2209,7 @@ class ClangCompiler():
         # so it might change semantics at any time.
         return ['-include-pch', os.path.join (pch_dir, self.get_pch_name (header))]
 
-    def get_soname_args(self, prefix, shlib_name, suffix, path, soversion):
+    def get_soname_args(self, prefix, shlib_name, suffix, path, soversion, is_shared_module):
         if self.clang_type == CLANG_STANDARD:
             gcc_type = GCC_STANDARD
         elif self.clang_type == CLANG_OSX:
@@ -2208,7 +2218,7 @@ class ClangCompiler():
             gcc_type = GCC_MINGW
         else:
             raise MesonException('Unreachable code when converting clang type to gcc type.')
-        return get_gcc_soname_args(gcc_type, prefix, shlib_name, suffix, path, soversion)
+        return get_gcc_soname_args(gcc_type, prefix, shlib_name, suffix, path, soversion, is_shared_module)
 
     def has_argument(self, arg, env):
         return super().has_argument(['-Werror=unknown-warning-option', arg], env)
@@ -2223,6 +2233,11 @@ class ClangCompiler():
         if self.clang_type == CLANG_OSX and version_compare(self.version, '>=8.0'):
             extra_args.append('-Wl,-no_weak_imports')
         return super().has_function(funcname, prefix, env, extra_args, dependencies)
+
+    def get_std_shared_module_link_args(self):
+        if self.clang_type == CLANG_OSX:
+            return ['-bundle', '-Wl,-undefined,dynamic_lookup']
+        return ['-shared']
 
 class ClangCCompiler(ClangCompiler, CCompiler):
     def __init__(self, exelist, version, clang_type, is_cross, exe_wrapper=None):
@@ -2348,8 +2363,8 @@ end program prog
     def split_shlib_to_parts(self, fname):
         return (os.path.split(fname)[0], fname)
 
-    def get_soname_args(self, prefix, shlib_name, suffix, path, soversion):
-        return get_gcc_soname_args(self.gcc_type, prefix, shlib_name, suffix, path, soversion)
+    def get_soname_args(self, prefix, shlib_name, suffix, path, soversion, is_shared_module):
+        return get_gcc_soname_args(self.gcc_type, prefix, shlib_name, suffix, path, soversion, is_shared_module)
 
     def get_dependency_gen_args(self, outtarget, outfile):
         # Disabled until this is fixed:

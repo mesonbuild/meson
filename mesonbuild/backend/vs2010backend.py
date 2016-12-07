@@ -57,6 +57,7 @@ class RegenInfo():
 class Vs2010Backend(backends.Backend):
     def __init__(self, build):
         super().__init__(build)
+        self.name = 'vs2010'
         self.project_file_version = '10.0.30319.1'
         self.sources_conflicts = {}
         self.platform_toolset = None
@@ -782,6 +783,8 @@ class Vs2010Backend(backends.Backend):
             extra_link_args += l
         if not isinstance(target, build.StaticLibrary):
             extra_link_args += target.link_args
+            if isinstance(target, build.SharedModule):
+                extra_link_args += compiler.get_std_shared_module_link_args()
             # External deps must be last because target link libraries may depend on them.
             for dep in target.get_external_deps():
                 extra_link_args += dep.get_link_args()

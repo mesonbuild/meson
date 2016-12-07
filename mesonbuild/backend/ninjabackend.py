@@ -139,6 +139,7 @@ class NinjaBackend(backends.Backend):
 
     def __init__(self, build):
         super().__init__(build)
+        self.name = 'ninja'
         self.ninja_filename = 'build.ninja'
         self.fortran_deps = {}
         self.all_outputs = {}
@@ -1931,7 +1932,8 @@ rule FORTRAN_DEP_HACK
         commands += linker.get_linker_always_args()
         if not isinstance(target, build.StaticLibrary):
             commands += compilers.get_base_link_args(self.environment.coredata.base_options,
-                                                     linker)
+                                                     linker,
+                                                     isinstance(target, build.SharedModule))
         commands += linker.get_buildtype_linker_args(self.environment.coredata.get_builtin_option('buildtype'))
         commands += linker.get_option_link_args(self.environment.coredata.compiler_options)
         commands += self.get_link_debugfile_args(linker, target, outname)
@@ -1940,13 +1942,17 @@ rule FORTRAN_DEP_HACK
         if isinstance(target, build.Executable):
             commands += linker.get_std_exe_link_args()
         elif isinstance(target, build.SharedLibrary):
-            commands += linker.get_std_shared_lib_link_args()
+            if isinstance(target, build.SharedModule):
+                commands += linker.get_std_shared_module_link_args()
+            else:
+                commands += linker.get_std_shared_lib_link_args()
             commands += linker.get_pic_args()
             if hasattr(target, 'soversion'):
                 soversion = target.soversion
             else:
                 soversion = None
-            commands += linker.get_soname_args(target.prefix, target.name, target.suffix, abspath, soversion)
+            commands += linker.get_soname_args(target.prefix, target.name, target.suffix,
+                                               abspath, soversion, isinstance(target, build.SharedModule))
             # This is only visited when using the Visual Studio toolchain
             if target.vs_module_defs and hasattr(linker, 'gen_vs_module_defs_args'):
                 commands += linker.gen_vs_module_defs_args(target.vs_module_defs.rel_to_builddir(self.build_to_src))
