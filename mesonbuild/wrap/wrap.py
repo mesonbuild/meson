@@ -95,16 +95,14 @@ class Resolver:
         dirname = os.path.join(self.subdir_root, packagename)
         try:
             if os.listdir(dirname):
-                if not os.path.isfile(fname) :
-                    # The directory is there, not empty and there isn't a wrap file?
-                    # Great, use it.
-                    return packagename
+                # The directory is there and not empty? Great, use it.
+                return packagename
             else:
-                mlog.warning('Subproject directory %s is empty, removing to'
-                ' ensure clean download' % dirname)
-                os.rmdir(dirname)
+                mlog.warning('Subproject directory %s is empty, possibly because of an unfinished'
+                      'checkout, removing to reclone' % dirname)
+                os.rmdir(checkoutdir)
         except NotADirectoryError:
-            raise RuntimeError('%s is not a directory, can not use as subproject.' %dirname)
+            raise RuntimeError('%s is not a directory, can not use as subproject.' % dirname)
         except FileNotFoundError:
             pass
 
@@ -113,11 +111,6 @@ class Resolver:
             return None
         p = PackageDefinition(fname)
         if p.type == 'file':
-            if os.path.isdir(dirname):
-                # project already there? great, use it!
-                # only for the file case because otherwise we prevent git 
-                # and hg from updating the subproject.
-                return packagename
             if not os.path.isdir(self.cachedir):
                 os.mkdir(self.cachedir)
             self.download(p, packagename)
@@ -137,11 +130,12 @@ class Resolver:
         if is_there:
             try:
                 subprocess.check_call(['git', 'rev-parse'])
+                is_there = True
             except subprocess.CalledProcessError:
                 raise RuntimeError('%s is not empty but is not a valid '
                                     'git repository, we can not work with it'
-                                    ' as a subproject directory.' 
-                                    % (checkoutdir))
+                                    ' as a subproject directory.' % (
+                                        checkoutdir))
 
             if revno.lower() == 'head':
                 # Failure to do pull is not a fatal error,
@@ -169,17 +163,12 @@ class Resolver:
         revno = p.get('revision')
         is_there = os.path.isdir(checkoutdir)
         if is_there:
-            if not os.path.isdir(os.path.join(checkoutdir, '.hg')):
-                raise RuntimeError('Subproject %s is not a valid mercurial repo.'%p.get('directory'))
             if revno.lower() == 'tip':
                 # Failure to do pull is not a fatal error,
                 # because otherwise you can't develop without
                 # a working net connection.
                 subprocess.call(['hg', 'pull'], cwd=checkoutdir)
-                subprocess.call(['hg', 'update', 'tip'],cwd = checkoutdir)
             else:
-                # check that the tag/branch/revision we want is available in the
-                # repo, if not, pull and update.
                 if subprocess.call(['hg', 'checkout', revno], cwd=checkoutdir) != 0:
                     subprocess.check_call(['hg', 'pull'], cwd=checkoutdir)
                     subprocess.check_call(['hg', 'checkout', revno],
