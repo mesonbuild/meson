@@ -385,3 +385,10 @@ def expand_arguments(args):
             print(e)
             return None
     return expended_args
+
+def Popen_safe(args, write=None, stderr=subprocess.PIPE, **kwargs):
+    p = subprocess.Popen(args, universal_newlines=True,
+                         stdout=subprocess.PIPE,
+                         stderr=stderr, **kwargs)
+    o, e = p.communicate(write)
+    return (p, o, e)

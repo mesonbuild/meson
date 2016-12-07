@@ -23,7 +23,7 @@ import re
 import os, stat, glob, subprocess, shutil
 import sysconfig
 from collections import OrderedDict
-from . mesonlib import MesonException, version_compare, version_compare_many
+from . mesonlib import MesonException, version_compare, version_compare_many, Popen_safe
 from . import mlog
 from . import mesonlib
 from .environment import detect_cpu_family, for_windows
@@ -170,17 +170,14 @@ class PkgConfigDependency(Dependency):
         self._set_libs()
 
     def _call_pkgbin(self, args):
-        p = subprocess.Popen([self.pkgbin] + args,
-                             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                             env=os.environ, universal_newlines=True)
-        out = p.communicate()[0]
+        p, out = Popen_safe([self.pkgbin] + args, env=os.environ)[0:2]
         return (p.returncode, out.strip())
 
     def _set_cargs(self):
         ret, out = self._call_pkgbin(['--cflags', self.name])
         if ret != 0:
             raise DependencyException('Could not generate cargs for %s:\n\n%s' % \
-                                      (self.name, out.decode(errors='ignore')))
+                                      (self.name, out))
         self.cargs = out.split()
 
     def _set_libs(self):
@@ -190,7 +187,7 @@ class PkgConfigDependency(Dependency):
         ret, out = self._call_pkgbin(libcmd)
         if ret != 0:
             raise DependencyException('Could not generate libs for %s:\n\n%s' % \
-                                      (self.name, out.decode(errors='ignore')))
+                                      (self.name, out))
         self.libs = []
         for lib in out.split():
             if lib.endswith(".la"):
@@ -238,13 +235,11 @@ class PkgConfigDependency(Dependency):
                 pkgbin = os.environ[evar].strip()
             else:
                 pkgbin = 'pkg-config'
-            p = subprocess.Popen([pkgbin, '--version'], stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE)
-            out = p.communicate()[0]
+            p, out = Popen_safe([pkgbin, '--version'])[0:2]
             if p.returncode == 0:
                 if not self.silent:
                     mlog.log('Found pkg-config:', mlog.bold(shutil.which(pkgbin)),
-                             '(%s)' % out.decode().strip())
+                             '(%s)' % out.strip())
                 PkgConfigDependency.pkgconfig_found = True
                 return
         except (FileNotFoundError, PermissionError):
@@ -303,16 +298,13 @@ class WxDependency(Dependency):
             mlog.log("Neither wx-config-3.0 nor wx-config found; can't detect dependency")
             return
 
-        p = subprocess.Popen([self.wxc, '--version'],
-                             stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE)
-        out = p.communicate()[0]
+        p, out = Popen_safe([self.wxc, '--version'])[0:2]
         if p.returncode != 0:
             mlog.log('Dependency wxwidgets found:', mlog.red('NO'))
             self.cargs = []
             self.libs = []
         else:
-            self.modversion = out.decode().strip()
+            self.modversion = out.strip()
             version_req = kwargs.get('version', None)
             if version_req is not None:
                 if not version_compare(self.modversion, version_req, strict=True):
@@ -324,20 +316,15 @@ class WxDependency(Dependency):
             self.requested_modules = self.get_requested(kwargs)
             # wx-config seems to have a cflags as well but since it requires C++,
             # this should be good, at least for now.
-            p = subprocess.Popen([self.wxc, '--cxxflags'],
-                                 stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE)
-            out = p.communicate()[0]
+            p, out = Popen_safe([self.wxc, '--cxxflags'])[0:2]
             if p.returncode != 0:
                 raise DependencyException('Could not generate cargs for wxwidgets.')
-            self.cargs = out.decode().split()
+            self.cargs = out.split()
 
-            p = subprocess.Popen([self.wxc, '--libs'] + self.requested_modules,
-                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            out = p.communicate()[0]
+            p, out = Popen_safe([self.wxc, '--libs'] + self.requested_modules)[0:2]
             if p.returncode != 0:
                 raise DependencyException('Could not generate libs for wxwidgets.')
-            self.libs = out.decode().split()
+            self.libs = out.split()
 
     def get_requested(self, kwargs):
         modules = 'modules'
@@ -363,12 +350,10 @@ class WxDependency(Dependency):
     def check_wxconfig(self):
         for wxc in ['wx-config-3.0', 'wx-config']:
             try:
-                p = subprocess.Popen([wxc, '--version'], stdout=subprocess.PIPE,
-                                     stderr=subprocess.PIPE)
-                out = p.communicate()[0]
+                p, out = Popen_safe([wxc, '--version'])[0:2]
                 if p.returncode == 0:
                     mlog.log('Found wx-config:', mlog.bold(shutil.which(wxc)),
-                             '(%s)' % out.decode().strip())
+                             '(%s)' % out.strip())
                     self.wxc = wxc
                     WxDependency.wx_found = True
                     return
@@ -943,10 +928,7 @@ class QtBaseDependency(Dependency):
             if not self.qmake.found():
                 continue
             # Check that the qmake is for qt5
-            pc = subprocess.Popen(self.qmake.fullpath +  ['-v'],
-                                  stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                                  universal_newlines=True)
-            stdo = pc.communicate()[0]
+            pc, stdo = Popen_safe(self.qmake.fullpath +  ['-v'])[0:2]
             if pc.returncode != 0:
                 continue
             if not 'Qt version ' + self.qtver in stdo:
@@ -959,9 +941,7 @@ class QtBaseDependency(Dependency):
             return
         self.version = re.search(self.qtver + '(\.\d+)+', stdo).group(0)
         # Query library path, header path, and binary path
-        stdo = subprocess.Popen(self.qmake.fullpath +  ['-query'],
-                                stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                                universal_newlines=True).communicate()[0]
+        stdo = Popen_safe(self.qmake.fullpath +  ['-query'])[1]
         qvars = {}
         for line in stdo.split('\n'):
             line = line.strip()
@@ -1051,9 +1031,7 @@ class GnuStepDependency(Dependency):
     def detect(self):
         confprog = 'gnustep-config'
         try:
-            gp = subprocess.Popen([confprog, '--help'],
-                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            gp.communicate()
+            gp = Popen_safe([confprog, '--help'])[0]
         except (FileNotFoundError, PermissionError):
             self.args = None
             mlog.log('Dependency GnuStep found:', mlog.red('NO'), '(no gnustep-config)')
@@ -1066,20 +1044,12 @@ class GnuStepDependency(Dependency):
             arg = '--gui-libs'
         else:
             arg = '--base-libs'
-        fp = subprocess.Popen([confprog, '--objc-flags'],
-                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        (flagtxt, flagerr) = fp.communicate()
-        flagtxt = flagtxt.decode()
-        flagerr = flagerr.decode()
+        fp, flagtxt, flagerr = Popen_safe([confprog, '--objc-flags'])
         if fp.returncode != 0:
             raise DependencyException('Error getting objc-args: %s %s' % (flagtxt, flagerr))
         args = flagtxt.split()
         self.args = self.filter_arsg(args)
-        fp = subprocess.Popen([confprog, arg],
-                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        (libtxt, liberr) = fp.communicate()
-        libtxt = libtxt.decode()
-        liberr = liberr.decode()
+        fp, libtxt, liberr = Popen_safe([confprog, arg])
         if fp.returncode != 0:
             raise DependencyException('Error getting objc-lib args: %s %s' % (libtxt, liberr))
         self.libs = self.weird_filter(libtxt.split())
@@ -1184,16 +1154,10 @@ class SDL2Dependency(Dependency):
             pass
         sdlconf = shutil.which('sdl2-config')
         if sdlconf:
-            pc = subprocess.Popen(['sdl2-config', '--cflags'],
-                                  stdout=subprocess.PIPE,
-                                  stderr=subprocess.DEVNULL)
-            (stdo, _) = pc.communicate()
-            self.cargs = stdo.decode().strip().split()
-            pc = subprocess.Popen(['sdl2-config', '--libs'],
-                                  stdout=subprocess.PIPE,
-                                  stderr=subprocess.DEVNULL)
-            (stdo, _) = pc.communicate()
-            self.linkargs = stdo.decode().strip().split()
+            pc, stdo = Popen_safe(['sdl2-config', '--cflags'])[0:2]
+            self.cargs = stdo.strip().split()
+            pc, stdo = Popen_safe(['sdl2-config', '--libs'])[0:2]
+            self.linkargs = stdo.strip().split()
             self.is_found = True
             mlog.log('Dependency', mlog.bold('sdl2'), 'found:', mlog.green('YES'), '(%s)' % sdlconf)
             self.version = '2' # FIXME

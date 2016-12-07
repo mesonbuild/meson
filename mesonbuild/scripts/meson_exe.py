@@ -21,7 +21,7 @@ import pickle
 import platform
 import subprocess
 
-import mesonbuild
+from ..mesonlib import MesonException, Popen_safe
 
 options = None
 
@@ -45,7 +45,7 @@ def run_exe(exe):
     else:
         if exe.is_cross:
             if exe.exe_runner is None:
-                raise Exception('BUG: Trying to run cross-compiled exes with no wrapper')
+                raise AssertionError('BUG: Trying to run cross-compiled exes with no wrapper')
             else:
                 cmd = [exe.exe_runner] + exe.fname
         else:
@@ -55,17 +55,12 @@ def run_exe(exe):
     if len(exe.extra_paths) > 0:
         child_env['PATH'] = (os.pathsep.join(exe.extra_paths + ['']) +
                              child_env['PATH'])
-    p = subprocess.Popen(cmd + exe.cmd_args,
-                         stdout=subprocess.PIPE,
-                         stderr=subprocess.PIPE,
-                         env=child_env,
-                         cwd=exe.workdir)
-    stdout, stderr = p.communicate()
+    p, stdout, stderr = Popen_safe(cmd + exe.cmd_args, env=child_env, cwd=exe.workdir)
     if exe.capture and p.returncode == 0:
-        with open(exe.capture, 'wb') as output:
+        with open(exe.capture, 'w') as output:
             output.write(stdout)
     if stderr:
-        sys.stderr.buffer.write(stderr)
+        sys.stderr.write(stderr)
     return p.returncode
 
 def run(args):

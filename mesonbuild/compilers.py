@@ -18,7 +18,7 @@ import subprocess, os.path
 import tempfile
 from .import mesonlib
 from . import mlog
-from .mesonlib import MesonException, version_compare
+from .mesonlib import MesonException, version_compare, Popen_safe
 from . import coredata
 
 """This file contains the data files of all compilers Meson knows
@@ -457,12 +457,7 @@ class Compiler():
                 mlog.debug('Working directory: ', tmpdirname)
                 mlog.debug('Command line: ', ' '.join(commands), '\n')
                 mlog.debug('Code:\n', code)
-                p = subprocess.Popen(commands, cwd=tmpdirname,
-                                     stdout=subprocess.PIPE,
-                                     stderr=subprocess.PIPE)
-                (stde, stdo) = p.communicate()
-                stde = stde.decode()
-                stdo = stdo.decode()
+                p, stdo, stde = Popen_safe(commands, cwd=tmpdirname)
                 mlog.debug('Compiler stdout:\n', stdo)
                 mlog.debug('Compiler stderr:\n', stde)
 
@@ -594,9 +589,7 @@ class CCompiler(Compiler):
         return ['-shared']
 
     def get_library_dirs(self):
-        output = subprocess.Popen(self.exelist + ['--print-search-dirs'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
-        (stdo, _) = output.communicate()
-        stdo = stdo.decode('utf-8')
+        stdo = Popen_safe(self.exelist + ['--print-search-dirs'])[1]
         for line in stdo.split('\n'):
             if line.startswith('libraries:'):
                 libstr = line.split('=', 1)[1]
@@ -653,10 +646,7 @@ class CCompiler(Compiler):
             ofile.write(code)
         # Compile sanity check
         cmdlist = self.exelist + extra_flags + [source_name] + self.get_output_args(binary_name)
-        pc = subprocess.Popen(cmdlist, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=work_dir)
-        (stdo, stde) = pc.communicate()
-        stdo = stdo.decode()
-        stde = stde.decode()
+        pc, stdo, stde = Popen_safe(cmdlist, cwd=work_dir)
         mlog.debug('Sanity check compiler command line:', ' '.join(cmdlist))
         mlog.debug('Sanity check compile stdout:')
         mlog.debug(stdo)
@@ -800,15 +790,11 @@ int main () {{
             else:
                 cmdlist = p.output_name
             try:
-                pe = subprocess.Popen(cmdlist, stdout=subprocess.PIPE,
-                                      stderr=subprocess.PIPE)
+                pe, so, se = Popen_safe(cmdlist)
             except Exception as e:
                 mlog.debug('Could not run: %s (error: %s)\n' % (cmdlist, e))
                 return RunResult(False)
 
-            (so, se) = pe.communicate()
-        so = so.decode()
-        se = se.decode()
         mlog.debug('Program stdout:\n')
         mlog.debug(so)
         mlog.debug('Program stderr:\n')
@@ -1919,7 +1905,7 @@ class VisualStudioCCompiler(CCompiler):
     # understand and you can't tell it to error out on those.
     # http://stackoverflow.com/questions/15259720/how-can-i-make-the-microsoft-c-compiler-treat-unknown-flags-as-errors-rather-t
     def has_argument(self, arg, env):
-        warning_text = b'9002'
+        warning_text = '9002'
         code = 'int i;\n'
         (fd, srcname) = tempfile.mkstemp(suffix='.'+self.default_suffix)
         os.close(fd)
@@ -1932,8 +1918,7 @@ class VisualStudioCCompiler(CCompiler):
         mlog.debug('Running VS compile:')
         mlog.debug('Command line: ', ' '.join(commands))
         mlog.debug('Code:\n', code)
-        p = subprocess.Popen(commands, cwd=os.path.split(srcname)[0], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        (stde, stdo) = p.communicate()
+        p, stdo, stde = Popen_safe(commands, cwd=os.path.split(srcname)[0])
         if p.returncode != 0:
             raise MesonException('Compiling test app failed.')
         return not(warning_text in stde or warning_text in stdo)
@@ -2587,10 +2572,9 @@ class ArLinker():
     def __init__(self, exelist):
         self.exelist = exelist
         self.id = 'ar'
-        pc = subprocess.Popen(self.exelist + ['-h'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
-        (stdo, _) = pc.communicate()
+        pc, stdo = Popen_safe(self.exelist + ['-h'])[0:2]
         # Enable deterministic builds if they are available.
-        if b'[D]' in stdo:
+        if '[D]' in stdo:
             self.std_args = ['csrD']
         else:
             self.std_args = ['csr']

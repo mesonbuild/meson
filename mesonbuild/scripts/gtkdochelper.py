@@ -17,7 +17,7 @@ import sys, os
 import subprocess
 import shutil
 import argparse
-from ..mesonlib import MesonException
+from ..mesonlib import MesonException, Popen_safe
 from . import destdir_join
 
 parser = argparse.ArgumentParser()
@@ -46,15 +46,13 @@ parser.add_argument('--mode', dest='mode', default='')
 parser.add_argument('--installdir', dest='install_dir')
 
 def gtkdoc_run_check(cmd, cwd):
-    p = subprocess.Popen(cmd, cwd=cwd,
-                         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    (stde, stdo) = p.communicate()
+    # Put stderr into stdout since we want to print it out anyway.
+    # This preserves the order of messages.
+    p, out = Popen_safe(cmd, cwd=cwd, stderr=subprocess.STDOUT)[0:2]
     if p.returncode != 0:
         err_msg = ["{!r} failed with status {:d}".format(cmd[0], p.returncode)]
-        if stde:
-            err_msg.append(stde.decode(errors='ignore'))
-        if stdo:
-            err_msg.append(stdo.decode(errors='ignore'))
+        if out:
+            err_msg.append(out)
         raise MesonException('\n'.join(err_msg))
 
 def build_gtkdoc(source_root, build_root, doc_subdir, src_subdirs,
