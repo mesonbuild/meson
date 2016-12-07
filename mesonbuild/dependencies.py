@@ -180,7 +180,7 @@ class PkgConfigDependency(Dependency):
         ret, out = self._call_pkgbin(['--cflags', self.name])
         if ret != 0:
             raise DependencyException('Could not generate cargs for %s:\n\n%s' % \
-                                      (self.name, out.decode(errors='ignore')))
+                                      (self.name, out))
         self.cargs = out.split()
 
     def _set_libs(self):
@@ -190,7 +190,7 @@ class PkgConfigDependency(Dependency):
         ret, out = self._call_pkgbin(libcmd)
         if ret != 0:
             raise DependencyException('Could not generate libs for %s:\n\n%s' % \
-                                      (self.name, out.decode(errors='ignore')))
+                                      (self.name, out))
         self.libs = []
         for lib in out.split():
             if lib.endswith(".la"):
