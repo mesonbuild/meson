@@ -1757,9 +1757,8 @@ requirements use the version keyword argument instead.''')
             raise
         # If the subproject execution failed in a non-fatal way, don't raise an
         # exception; let the caller handle things.
-        except Exception as e:
-            mlog.warning(e)
-            mlog.log('Couldn\'t find a fallback subproject in',
+        except:
+            mlog.log('Also couldn\'t find a fallback subproject in',
                     mlog.bold(os.path.join(self.subproject_dir, dirname)),
                     'for the dependency', mlog.bold(name))
             return None
