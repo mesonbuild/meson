@@ -742,6 +742,9 @@ class Vs2010Backend(backends.Backend):
                 curdir = os.path.join(d.curdir, i)
                 target_inc_dirs.append(self.relpath(curdir, target.subdir))  # build dir
 
+        # Append the root include directory
+        incroot = os.path.join(self.environment.get_prefix(), self.environment.get_includedir()).replace('\\', '/')
+        target_inc_dirs.append(incroot)
         target_inc_dirs.append('%(AdditionalIncludeDirectories)')
         ET.SubElement(clconf, 'AdditionalIncludeDirectories').text = ';'.join(target_inc_dirs)
         target_defines.append('%(PreprocessorDefinitions)')
