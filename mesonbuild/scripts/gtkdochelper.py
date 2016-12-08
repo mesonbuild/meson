@@ -64,7 +64,15 @@ def build_gtkdoc(source_root, build_root, doc_subdir, src_subdirs,
                  expand_content_files, mode):
     print("Building documentation for %s" % module)
 
-    src_dir_args = ['--source-dir=' + os.path.join(source_root, src_dir) for src_dir in src_subdirs]
+    src_dir_args = []
+    for src_dir in src_subdirs:
+        if not os.path.isabs(src_dir):
+            dirs = [os.path.join(source_root, src_dir),
+                    os.path.join(build_root, src_dir)]
+        else:
+            dirs = [src_dir]
+        src_dir_args += ['--source-dir=' + d for d in dirs]
+
     doc_src = os.path.join(source_root, doc_subdir)
     abs_out = os.path.join(build_root, doc_subdir)
     htmldir = os.path.join(abs_out, 'html')
