@@ -677,7 +677,7 @@ can not be used with the current version of glib-compiled-resources, due to
                     header_dirs.append(os.path.join(state.environment.get_source_dir(),
                                                     src_dir.get_curdir(), inc_dir))
             else:
-                header_dirs.append(os.path.normpath(os.path.join(state.subdir, src_dir)))
+                header_dirs.append(src_dir)
 
         args = ['--sourcedir=' + state.environment.get_source_dir(),
                 '--builddir=' + state.environment.get_build_dir(),
