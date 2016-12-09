@@ -1290,18 +1290,7 @@ class Python3Dependency(Dependency):
             pass
         if not self.is_found:
             if mesonlib.is_windows():
-                inc = sysconfig.get_path('include')
-                platinc = sysconfig.get_path('platinclude')
-                self.cargs = ['-I' + inc]
-                if inc != platinc:
-                    self.cargs.append('-I' + platinc)
-                # Nothing exposes this directly that I coulf find
-                basedir = sysconfig.get_config_var('base')
-                vernum = sysconfig.get_config_var('py_version_nodot')
-                self.libs = ['-L{}/libs'.format(basedir),
-                             '-lpython{}'.format(vernum)]
-                self.is_found = True
-                self.version = sysconfig.get_config_var('py_version_short')
+                self._find_libpy3_windows(environment)
             elif mesonlib.is_osx():
                 # In OSX the Python 3 framework does not have a version
                 # number in its name.
@@ -1314,6 +1303,42 @@ class Python3Dependency(Dependency):
             mlog.log('Dependency', mlog.bold(self.name), 'found:', mlog.green('YES'))
         else:
             mlog.log('Dependency', mlog.bold(self.name), 'found:', mlog.red('NO'))
+
+    def _find_libpy3_windows(self, env):
+        '''
+        Find python3 libraries on Windows and also verify that the arch matches
+        what we are building for.
+        '''
+        pyarch = sysconfig.get_platform()
+        arch = detect_cpu_family(env.coredata.compilers)
+        if arch == 'x86':
+            arch = '32'
+        elif arch == 'x86_64':
+            arch = '64'
+        else:
+            # We can't cross-compile Python 3 dependencies on Windows yet
+            mlog.log('Unknown architecture {!r} for'.format(arch),
+                     mlog.bold(self.name))
+            self.is_found = False
+            return
+        # Pyarch ends in '32' or '64'
+        if arch != pyarch[-2:]:
+            mlog.log('Need', mlog.bold(self.name),
+                     'for {}-bit, but found {}-bit'.format(arch, pyarch[-2:]))
+            self.is_found = False
+            return
+        inc = sysconfig.get_path('include')
+        platinc = sysconfig.get_path('platinclude')
+        self.cargs = ['-I' + inc]
+        if inc != platinc:
+            self.cargs.append('-I' + platinc)
+        # Nothing exposes this directly that I coulf find
+        basedir = sysconfig.get_config_var('base')
+        vernum = sysconfig.get_config_var('py_version_nodot')
+        self.libs = ['-L{}/libs'.format(basedir),
+                     '-lpython{}'.format(vernum)]
+        self.version = sysconfig.get_config_var('py_version_short')
+        self.is_found = True
 
     def get_compile_args(self):
         return self.cargs
