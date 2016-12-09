@@ -63,17 +63,6 @@ known_lib_kwargs.update({'version' : True, # Only for shared libs
                          'pic' : True, # Only for static libs
                         })
 
-def compilers_are_msvc(compilers):
-    """
-    Check if all the listed compilers are MSVC. Used by Executable,
-    StaticLibrary, and SharedLibrary for deciding when to use MSVC-specific
-    file naming.
-    """
-    for compiler in compilers.values():
-        if compiler.get_id() != 'msvc':
-            return False
-    return True
-
 
 class InvalidArguments(MesonException):
     pass
@@ -818,6 +807,29 @@ class BuildTarget():
             if l in self.compilers:
                 return self.compilers[l]
 
+    def get_using_msvc(self):
+        '''
+        Check if the dynamic linker is MSVC. Used by Executable, StaticLibrary,
+        and SharedLibrary for deciding when to use MSVC-specific file naming
+        and debug filenames.
+
+        If at least some code is built with MSVC and the final library is
+        linked with MSVC, we can be sure that some debug info will be
+        generated. We only check the dynamic linker here because the static
+        linker is guaranteed to be of the same type.
+
+        Interesting cases:
+        1. The Vala compiler outputs C code to be compiled by whatever
+           C compiler we're using, so all objects will still be created by the
+           MSVC compiler.
+        2. If the target contains only objects, process_compilers guesses and
+           picks the first compiler that smells right.
+        '''
+        linker = self.get_clike_dynamic_linker()
+        if linker and linker.get_id() == 'msvc':
+            return True
+        return False
+
 
 class Generator():
     def __init__(self, args, kwargs):
@@ -942,7 +954,7 @@ class Executable(BuildTarget):
             self.filename += '.' + self.suffix
         # See determine_debug_filenames() in build.SharedLibrary
         buildtype = environment.coredata.get_builtin_option('buildtype')
-        if compilers_are_msvc(self.compilers) and buildtype.startswith('debug'):
+        if self.get_using_msvc() and buildtype.startswith('debug'):
             self.debug_filename = self.prefix + self.name + '.pdb'
 
     def type_suffix(self):
@@ -973,7 +985,7 @@ class StaticLibrary(BuildTarget):
         self.filename = self.prefix + self.name + '.' + self.suffix
         # See determine_debug_filenames() in build.SharedLibrary
         buildtype = environment.coredata.get_builtin_option('buildtype')
-        if compilers_are_msvc(self.compilers) and buildtype.startswith('debug'):
+        if self.get_using_msvc() and buildtype.startswith('debug'):
             self.debug_filename = self.prefix + self.name + '.pdb'
 
     def type_suffix(self):
@@ -1049,7 +1061,7 @@ class SharedLibrary(BuildTarget):
             suffix = 'dll'
             self.vs_import_filename = '{0}.lib'.format(self.name)
             self.gcc_import_filename = 'lib{0}.dll.a'.format(self.name)
-            if compilers_are_msvc(self.compilers):
+            if self.get_using_msvc():
                 # Shared library is of the form foo.dll
                 prefix = ''
                 # Import library is called foo.lib
@@ -1096,7 +1108,7 @@ class SharedLibrary(BuildTarget):
         determine_filenames() above.
         """
         buildtype = env.coredata.get_builtin_option('buildtype')
-        if compilers_are_msvc(self.compilers) and buildtype.startswith('debug'):
+        if self.get_using_msvc() and buildtype.startswith('debug'):
             # Currently we only implement separate debug symbol files for MSVC
             # since the toolchain does it for us. Other toolchains embed the
             # debugging symbols in the file itself by default.
