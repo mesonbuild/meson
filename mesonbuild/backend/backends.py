@@ -178,6 +178,8 @@ class Backend():
                 o = os.path.join(proj_dir_to_build_root,
                                  self.build_to_src, target.get_subdir(), obj)
                 obj_list.append(o)
+            elif isinstance(obj, mesonlib.File):
+                obj_list.append(obj.rel_to_builddir(self.build_to_src))
             elif isinstance(obj, build.ExtractedObjects):
                 obj_list += self.determine_ext_objs(obj, proj_dir_to_build_root)
             else:
