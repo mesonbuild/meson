@@ -19,9 +19,9 @@ import os
 class WindowsModule:
 
     def detect_compiler(self, compilers):
-        for c in compilers:
-            if c.language == 'c' or c.language == 'cpp':
-                return c
+        for l in ('c', 'cpp'):
+            if l in compilers:
+                return compilers[l]
         raise MesonException('Resource compilation requires a C or C++ compiler.')
 
     def compile_resources(self, state, args, kwargs):

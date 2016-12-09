@@ -1074,9 +1074,8 @@ class MesonMain(InterpreterObject):
             clist = self.build.compilers
         else:
             clist = self.build.cross_compilers
-        for c in clist:
-            if c.get_language() == cname:
-                return CompilerHolder(c, self.build.environment)
+        if cname in clist:
+            return CompilerHolder(clist[cname], self.build.environment)
         raise InterpreterException('Tried to access compiler for unspecified language "%s".' % cname)
 
     def is_unity_method(self, args, kwargs):
@@ -1254,8 +1253,7 @@ class Interpreter(InterpreterBase):
     def check_cross_stdlibs(self):
         if self.build.environment.is_cross_build():
             cross_info = self.build.environment.cross_info
-            for c in self.build.cross_compilers:
-                l = c.language
+            for l, c in self.build.cross_compilers.items():
                 try:
                     di = mesonlib.stringlistify(cross_info.get_stdlib(l))
                     if len(di) != 2:
@@ -2287,9 +2285,9 @@ requirements use the version keyword argument instead.''')
     def get_used_languages(self, target):
         result = {}
         for i in target.sources:
-            for c in self.build.compilers:
+            for lang, c in self.build.compilers.items():
                 if c.can_compile(i):
-                    result[c.language] = True
+                    result[lang] = True
                     break
         return result
 

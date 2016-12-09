@@ -88,8 +88,8 @@ class Build:
         self.environment = environment
         self.projects = {}
         self.targets = {}
-        self.compilers = []
-        self.cross_compilers = []
+        self.compilers = {}
+        self.cross_compilers = {}
         self.global_args = {}
         self.projects_args = {}
         self.global_link_args = {}
@@ -109,26 +109,19 @@ class Build:
         self.dep_manifest = {}
         self.cross_stdlibs = {}
 
-    def has_language(self, language):
-        for i in self.compilers:
-            if i.get_language() == language:
-                return True
-        return False
-
     def add_compiler(self, compiler):
         if self.static_linker is None and compiler.needs_static_linker():
             self.static_linker = self.environment.detect_static_linker(compiler)
-        if self.has_language(compiler.get_language()):
-            return
-        self.compilers.append(compiler)
+        lang = compiler.get_language()
+        if lang not in self.compilers:
+            self.compilers[lang] = compiler
 
     def add_cross_compiler(self, compiler):
         if len(self.cross_compilers) == 0:
             self.static_cross_linker = self.environment.detect_static_linker(compiler)
-        for i in self.cross_compilers:
-            if i.get_language() == compiler.get_language():
-                return
-        self.cross_compilers.append(compiler)
+        lang = compiler.get_language()
+        if lang not in self.cross_compilers:
+            self.cross_compilers[lang] = compiler
 
     def get_project(self):
         return self.projects['']

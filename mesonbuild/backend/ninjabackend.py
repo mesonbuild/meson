@@ -1210,7 +1210,7 @@ int dummy;
             raise MesonException('Swift supports only executable and static library targets.')
 
     def generate_static_link_rules(self, is_cross, outfile):
-        if self.build.has_language('java'):
+        if 'java' in self.build.compilers:
             if not is_cross:
                 self.generate_java_link(outfile)
         if is_cross:
@@ -1251,8 +1251,7 @@ int dummy;
         else:
             ctypes.append((self.build.cross_compilers, True))
         for (complist, is_cross) in ctypes:
-            for compiler in complist:
-                langname = compiler.get_language()
+            for langname, compiler in complist.items():
                 if langname == 'java' or langname == 'vala' or\
                  langname == 'rust' or langname == 'cs':
                     continue
@@ -1511,8 +1510,7 @@ rule FORTRAN_DEP_HACK
 
     def generate_compile_rules(self, outfile):
         qstr = quote_char + "%s" + quote_char
-        for compiler in self.build.compilers:
-            langname = compiler.get_language()
+        for langname, compiler in self.build.compilers.items():
             if compiler.get_id() == 'clang':
                 self.generate_llvm_ir_compile_rule(compiler, False, outfile)
             self.generate_compile_rule_for(langname, compiler, qstr, False, outfile)
@@ -1524,8 +1522,7 @@ rule FORTRAN_DEP_HACK
                 cclist = self.build.cross_compilers
             else:
                 cclist = self.build.compilers
-            for compiler in cclist:
-                langname = compiler.get_language()
+            for langname, compiler in cclist.items():
                 if compiler.get_id() == 'clang':
                     self.generate_llvm_ir_compile_rule(compiler, True, outfile)
                 self.generate_compile_rule_for(langname, compiler, qstr, True, outfile)
@@ -1588,8 +1585,8 @@ rule FORTRAN_DEP_HACK
 
     def scan_fortran_module_outputs(self, target):
         compiler = None
-        for c in self.build.compilers:
-            if c.get_language() == 'fortran':
+        for lang, c in self.build.compilers.items():
+            if lang == 'fortran':
                 compiler = c
                 break
         if compiler is None:
