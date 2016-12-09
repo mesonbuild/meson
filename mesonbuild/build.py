@@ -804,6 +804,20 @@ class BuildTarget():
     def get_aliaslist(self):
         return []
 
+    def get_clike_dynamic_linker(self):
+        '''
+        We use the order of languages in `clike_langs` to determine which
+        linker to use in case the target has sources compiled with multiple
+        compilers. All languages other than those in this list have their own
+        linker.
+        Note that Vala outputs C code, so Vala sources can use any linker
+        that can link compiled C. We don't actually need to add an exception
+        for Vala here because of that.
+        '''
+        for l in clike_langs:
+            if l in self.compilers:
+                return self.compilers[l]
+
 
 class Generator():
     def __init__(self, args, kwargs):
