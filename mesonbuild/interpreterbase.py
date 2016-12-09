@@ -526,7 +526,7 @@ class InterpreterBase:
     def flatten(self, args):
         if isinstance(args, mparser.StringNode):
             return args.value
-        if isinstance(args, (int, str, InterpreterObject)):
+        if isinstance(args, (int, str, mesonlib.File, InterpreterObject)):
             return args
         result = []
         for a in args:

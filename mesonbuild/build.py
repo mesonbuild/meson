@@ -327,7 +327,7 @@ class BuildTarget():
         for s in objects:
             if hasattr(s, 'held_object'):
                 s = s.held_object
-            if isinstance(s, (str, ExtractedObjects)):
+            if isinstance(s, (str, File, ExtractedObjects)):
                 self.objects.append(s)
             elif isinstance(s, (GeneratedList, CustomTarget)):
                 msg =  'Generated files are not allowed in the \'objects\' kwarg ' + \
