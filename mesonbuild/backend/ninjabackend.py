@@ -966,7 +966,8 @@ int dummy;
         (vala_src, vapi_src, other_src) = self.split_vala_sources(target)
         extra_dep_files = []
         if len(vala_src) == 0:
-            raise InvalidArguments('Vala library has no Vala source files.')
+            msg = 'Vala library {!r} has no Vala source files.'
+            raise InvalidArguments(msg.format(target.name))
 
         valac = target.compilers['vala']
         c_out_dir = self.get_target_private_dir(target)

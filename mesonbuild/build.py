@@ -187,6 +187,10 @@ class ExtractedObjects():
         if is_unity:
             self.check_unity_compatible()
 
+    def __repr__(self):
+        r = '<{0} {1!r}: {2}>'
+        return r.format(self.__class__.__name__, self.target.name, self.srclist)
+
     def check_unity_compatible(self):
         # Figure out if the extracted object list is compatible with a Unity
         # build. When we're doing a Unified build, we go through the sources,
