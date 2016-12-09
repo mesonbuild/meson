@@ -206,27 +206,27 @@ class Resolver:
                 
     def get_hg(self, p):
         checkoutdir = os.path.join(self.subdir_root, p.get('directory'))
-       revision = p.values.get('revision')
-       branch = p.values.get('branch')
-       if branch and revision:
-           raise RuntimeError('Both branch and revision keywords are defined in'
-           'the wrap file for subproject %s. Choose one: branch for moving '
-           'target (check remote for update on build regen), and revision for'
-           ' static target (never attempt automatic update).'%p.get('directory'))
-       if branch:
-           revno = branch
-       else:
-           revno = revision
-       is_there = os.path.isdir(checkoutdir)
-       if is_there:
-           if branch:
-               self.update_hg(revno,checkoutdir,p)
-       else:
-           subprocess.check_call(['hg', 'clone', p.get('url'),
-                                  p.get('directory')], cwd=self.subdir_root)
-           if revno.lower() != 'tip':
-               subprocess.check_call(['hg', 'checkout', revno],
-                                     cwd=checkoutdir)
+        revision = p.values.get('revision')
+        branch = p.values.get('branch')
+        if branch and revision:
+            raise RuntimeError('Both branch and revision keywords are defined in'
+            'the wrap file for subproject %s. Choose one: branch for moving '
+            'target (check remote for update on build regen), and revision for'
+            ' static target (never attempt automatic update).'%p.get('directory'))
+        if branch:
+            revno = branch
+        else:
+            revno = revision
+        is_there = os.path.isdir(checkoutdir)
+        if is_there:
+            if branch:
+                self.update_hg(revno,checkoutdir,p)
+        else:
+            subprocess.check_call(['hg', 'clone', p.get('url'),
+                                   p.get('directory')], cwd=self.subdir_root)
+            if revno.lower() != 'tip':
+                subprocess.check_call(['hg', 'checkout', revno],
+                                      cwd=checkoutdir)
 
     def get_data(self, url):
         blocksize = 10*1024
