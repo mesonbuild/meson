@@ -261,7 +261,6 @@ can not be used with the current version of glib-compiled-resources, due to
             link_command = ['--extra-library=%s' % lib.name]
         else:
             link_command = ['-l%s' % lib.name]
-            print('lib: %s - %s' % (lib.name, link_command))
         if isinstance(lib, build.SharedLibrary):
             link_command += ['-L%s' %
                     os.path.join(state.environment.get_build_dir(),
