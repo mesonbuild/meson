@@ -227,7 +227,10 @@ class TestHarness:
                                  cwd=test.workdir,
                                  preexec_fn=setsid)
             timed_out = False
-            timeout = test.timeout * self.options.timeout_multiplier
+            if test.timeout is None:
+                timeout = None
+            else:
+                timeout = test.timeout * self.options.timeout_multiplier
             try:
                 (stdo, stde) = p.communicate(timeout=timeout)
             except subprocess.TimeoutExpired:
@@ -424,7 +427,9 @@ class TestHarness:
                         if len(t.cmd_args) > 0:
                             wrap.append('--args')
                         if self.options.repeat > 1:
-                            wrap.append('-ex', 'run', '-ex', 'quit')
+                            # The user wants to debug interactively, so no timeout.
+                            t.timeout = None
+                            wrap += ['-ex', 'run', '-ex', 'quit']
 
                         res = self.run_single_test(wrap, t)
                     else:
