@@ -465,8 +465,8 @@ def run(args):
         return th.run_special()
     if not options.no_rebuild:
         if not th.rebuild_all():
-            return -1
-    elif len(options.args) == 0:
+            sys.exit(-1)
+    if len(options.args) == 0:
         return th.doit()
     return th.run_special()
 
