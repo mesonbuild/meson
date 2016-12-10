@@ -803,8 +803,10 @@ int dummy;
         if e != '':
             commands.append(main_class)
         commands.append(self.get_target_filename(target))
-        for cls in class_list:
-            commands += ['-C', self.get_target_private_dir(target), cls]
+        # Java compilation can produce an arbitrary number of output
+        # class files for a single source file. Thus tell jar to just
+        # grab everything in the final package.
+        commands += ['-C', self.get_target_private_dir(target), '.']
         elem = NinjaBuildElement(self.all_outputs, outname_rel, jar_rule, [])
         elem.add_dep(class_dep_list)
         elem.add_item('ARGS', commands)
