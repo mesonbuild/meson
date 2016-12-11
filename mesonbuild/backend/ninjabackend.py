@@ -257,10 +257,14 @@ int dummy;
 
     # Languages that can mix with C or C++ but don't support unity builds yet
     # because the syntax we use for unity builds is specific to C/++/ObjC/++.
+    # Assembly files cannot be unitified and neither can LLVM IR files
     langs_cant_unity = ('d', 'fortran')
     def get_target_source_can_unity(self, target, source):
         if isinstance(source, File):
             source = source.fname
+        if self.environment.is_llvm_ir(source) or \
+           self.environment.is_assembly(source):
+            return False
         suffix = os.path.splitext(source)[1][1:]
         for lang in self.langs_cant_unity:
             if not lang in target.compilers:
@@ -374,6 +378,9 @@ int dummy;
         # because we need `header_deps` to be fully generated in the above loop.
         for src in generated_source_files:
             src_list.append(src)
+            if self.environment.is_llvm_ir(src):
+                obj_list.append(self.generate_llvm_ir_compile(target, outfile, src))
+                continue
             obj_list.append(self.generate_single_compile(target, outfile, src, True,
                                                          header_deps=header_deps))
 
@@ -409,7 +416,9 @@ int dummy;
         for f, src in target_sources.items():
             if not self.environment.is_header(src):
                 src_list.append(src)
-                if is_unity and self.get_target_source_can_unity(target, src):
+                if self.environment.is_llvm_ir(src):
+                    obj_list.append(self.generate_llvm_ir_compile(target, outfile, src))
+                elif is_unity and self.get_target_source_can_unity(target, src):
                     abs_src = os.path.join(self.environment.get_build_dir(),
                                            src.rel_to_builddir(self.build_to_src))
                     unity_src.append(abs_src)
@@ -1365,6 +1374,36 @@ rule FORTRAN_DEP_HACK
 '''
         outfile.write(template % cmd)
 
+    def generate_llvm_ir_compile_rule(self, compiler, is_cross, outfile):
+        if getattr(self, 'created_llvm_ir_rule', False):
+            return
+        rule = 'rule llvm_ir{}_COMPILER\n'.format('_CROSS' if is_cross else '')
+        args = [' '.join([ninja_quote(i) for i in compiler.get_exelist()]),
+                ' '.join(self.get_cross_info_lang_args(compiler, is_cross)),
+                ' '.join(compiler.get_output_args('$out')),
+                ' '.join(compiler.get_compile_only_args())]
+        if mesonlib.is_windows():
+            command_template = ' command = {} @$out.rsp\n' \
+                               ' rspfile = $out.rsp\n' \
+                               ' rspfile_content = {} $ARGS {} {} $in\n'
+        else:
+            command_template = ' command = {} {} $ARGS {} {} $in\n'
+        command = command_template.format(*args)
+        description = ' description = Compiling LLVM IR object $in.\n'
+        outfile.write(rule)
+        outfile.write(command)
+        outfile.write(description)
+        outfile.write('\n')
+        self.created_llvm_ir_rule = True
+
+    def get_cross_info_lang_args(self, lang, is_cross):
+        if is_cross:
+            try:
+                return self.environment.cross_info.config['properties'][lang + '_args']
+            except KeyError:
+                pass
+        return []
+
     def generate_compile_rule_for(self, langname, compiler, qstr, is_cross, outfile):
         if langname == 'java':
             if not is_cross:
@@ -1399,12 +1438,7 @@ rule FORTRAN_DEP_HACK
             if d != '$out' and d != '$in':
                 d = qstr % d
             quoted_depargs.append(d)
-        cross_args = []
-        if is_cross:
-            try:
-                cross_args = self.environment.cross_info.config['properties'][langname + '_args']
-            except KeyError:
-                pass
+        cross_args = self.get_cross_info_lang_args(langname, is_cross)
         if mesonlib.is_windows():
             command_template = ''' command = %s @$out.rsp
  rspfile = $out.rsp
@@ -1477,6 +1511,8 @@ rule FORTRAN_DEP_HACK
         qstr = quote_char + "%s" + quote_char
         for compiler in self.build.compilers:
             langname = compiler.get_language()
+            if compiler.get_id() == 'clang':
+                self.generate_llvm_ir_compile_rule(compiler, False, outfile)
             self.generate_compile_rule_for(langname, compiler, qstr, False, outfile)
             self.generate_pch_rule_for(langname, compiler, qstr, False, outfile)
         if self.environment.is_cross_build():
@@ -1488,6 +1524,8 @@ rule FORTRAN_DEP_HACK
                 cclist = self.build.compilers
             for compiler in cclist:
                 langname = compiler.get_language()
+                if compiler.get_id() == 'clang':
+                    self.generate_llvm_ir_compile_rule(compiler, True, outfile)
                 self.generate_compile_rule_for(langname, compiler, qstr, True, outfile)
                 self.generate_pch_rule_for(langname, compiler, qstr, True, outfile)
         outfile.write('\n')
@@ -1680,9 +1718,39 @@ rule FORTRAN_DEP_HACK
     def get_link_debugfile_args(self, linker, target, outname):
         return linker.get_link_debugfile_args(outname)
 
+    def generate_llvm_ir_compile(self, target, outfile, src):
+        compiler = get_compiler_for_source(target.compilers.values(), src)
+        commands = []
+        # Compiler args for compiling this target
+        commands += compilers.get_base_compile_args(self.environment.coredata.base_options,
+                                                    compiler)
+        if isinstance(src, (RawFilename, File)):
+            src_filename = src.fname
+        elif os.path.isabs(src):
+            src_filename = os.path.basename(src)
+        else:
+            src_filename = src
+        obj_basename = src_filename.replace('/', '_').replace('\\', '_')
+        rel_obj = os.path.join(self.get_target_private_dir(target), obj_basename)
+        rel_obj += '.' + self.environment.get_object_suffix()
+        commands += self.get_compile_debugfile_args(compiler, target, rel_obj)
+        if isinstance(src, RawFilename):
+            rel_src = src.fname
+        elif isinstance(src, File):
+            rel_src = src.rel_to_builddir(self.build_to_src)
+        else:
+            raise InvalidArguments('Invalid source type: {!r}'.format(src))
+        # Write the Ninja build command
+        compiler_name = 'llvm_ir{}_COMPILER'.format('_CROSS' if target.is_cross else '')
+        element = NinjaBuildElement(self.all_outputs, rel_obj, compiler_name, rel_src)
+        commands = self.dedup_arguments(commands)
+        element.add_item('ARGS', commands)
+        element.write(outfile)
+        return rel_obj
+
     def generate_single_compile(self, target, outfile, src, is_generated=False, header_deps=[], order_deps=[]):
         """
-        Compiles C/C++, ObjC/ObjC++, and D sources
+        Compiles C/C++, ObjC/ObjC++, Fortran, and D sources
         """
         if isinstance(src, str) and src.endswith('.h'):
             raise AssertionError('BUG: sources should not contain headers')

@@ -271,6 +271,12 @@ class Environment():
     def is_source(self, fname):
         return is_source(fname)
 
+    def is_assembly(self, fname):
+        return is_assembly(fname)
+
+    def is_llvm_ir(self, fname):
+        return is_llvm_ir(fname)
+
     def is_object(self, fname):
         return is_object(fname)
 

@@ -59,6 +59,16 @@ def is_source(fname):
     suffix = fname.split('.')[-1]
     return suffix in clike_suffixes
 
+def is_assembly(fname):
+    if hasattr(fname, 'fname'):
+        fname = fname.fname
+    return fname.split('.')[-1].lower() == 's'
+
+def is_llvm_ir(fname):
+    if hasattr(fname, 'fname'):
+        fname = fname.fname
+    return fname.split('.')[-1] == 'll'
+
 def is_object(fname):
     if hasattr(fname, 'fname'):
         fname = fname.fname
@@ -2018,6 +2028,8 @@ class GnuCompiler:
         if self.gcc_type != GCC_OSX:
             self.base_options.append('b_lundef')
             self.base_options.append('b_asneeded')
+        # All GCC backends can do assembly
+        self.can_compile_suffixes.add('s')
 
     def get_colorout_args(self, colortype):
         if mesonlib.version_compare(self.version, '>=4.9.0'):
@@ -2071,8 +2083,6 @@ class GnuCCompiler(GnuCompiler, CCompiler):
     def __init__(self, exelist, version, gcc_type, is_cross, exe_wrapper=None, defines=None):
         CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
         GnuCompiler.__init__(self, gcc_type, defines)
-        # Gcc can do asm, too.
-        self.can_compile_suffixes.add('s')
         self.warn_args = {'1': ['-Wall', '-Winvalid-pch'],
                           '2': ['-Wall', '-Wextra', '-Winvalid-pch'],
                           '3' : ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch']}
@@ -2185,6 +2195,8 @@ class ClangCompiler():
         if self.clang_type != CLANG_OSX:
             self.base_options.append('b_lundef')
             self.base_options.append('b_asneeded')
+        # All Clang backends can do assembly and LLVM IR
+        self.can_compile_suffixes.update(['ll', 's'])
 
     def get_pic_args(self):
         if self.clang_type in (CLANG_WIN, CLANG_OSX):
@@ -2240,8 +2252,6 @@ class ClangCCompiler(ClangCompiler, CCompiler):
     def __init__(self, exelist, version, clang_type, is_cross, exe_wrapper=None):
         CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
         ClangCompiler.__init__(self, clang_type)
-        # Clang can do asm, too.
-        self.can_compile_suffixes.add('s')
         self.warn_args = {'1': ['-Wall', '-Winvalid-pch'],
                           '2': ['-Wall', '-Wextra', '-Winvalid-pch'],
                           '3' : ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch']}
