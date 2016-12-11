@@ -1782,7 +1782,16 @@ rule FORTRAN_DEP_HACK
             for d in i.get_incdirs():
                 expdir =  os.path.join(basedir, d)
                 srctreedir = os.path.join(self.build_to_src, expdir)
-                bargs = compiler.get_include_args(expdir, i.is_system)
+                # There may be include dirs where a build directory has not been
+                # created for some source dir. For example if someone does this:
+                #
+                # inc = include_directories('foo/bar/baz')
+                #
+                # But never subdir()s into the actual dir.
+                if os.path.isdir(os.path.join(self.environment.get_build_dir(), expdir)):
+                    bargs = compiler.get_include_args(expdir, i.is_system)
+                else:
+                    bargs = []
                 sargs = compiler.get_include_args(srctreedir, i.is_system)
                 commands += bargs
                 commands += sargs
