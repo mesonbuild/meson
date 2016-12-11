@@ -1975,7 +1975,7 @@ class VisualStudioCCompiler(CCompiler):
         # msvc does not have a concept of system header dirs.
         return ['-I' + path]
 
-    # Visual Studio is special. It ignores arguments it does not
+    # Visual Studio is special. It ignores some arguments it does not
     # understand and you can't tell it to error out on those.
     # http://stackoverflow.com/questions/15259720/how-can-i-make-the-microsoft-c-compiler-treat-unknown-flags-as-errors-rather-t
     def has_multi_arguments(self, args, env):
@@ -1994,7 +1994,7 @@ class VisualStudioCCompiler(CCompiler):
         mlog.debug('Code:\n', code)
         p, stdo, stde = Popen_safe(commands, cwd=os.path.split(srcname)[0])
         if p.returncode != 0:
-            raise MesonException('Compiling test app failed.')
+            return False
         return not(warning_text in stde or warning_text in stdo)
 
     def get_compile_debugfile_args(self, rel_obj, pch=False):
