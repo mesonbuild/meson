@@ -951,7 +951,7 @@ int dummy;
                 else:
                     srctype = othersgen
                 # Duplicate outputs are disastrous
-                if f in srctype:
+                if f in srctype and srctype[f] is not gensrc:
                     msg = 'Duplicate output {0!r} from {1!r} {2!r}; ' \
                           'conflicts with {0!r} from {4!r} {3!r}' \
                           ''.format(f, type(gensrc).__name__, gensrc.name,
