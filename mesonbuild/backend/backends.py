@@ -178,6 +178,8 @@ class Backend():
                 o = os.path.join(proj_dir_to_build_root,
                                  self.build_to_src, target.get_subdir(), obj)
                 obj_list.append(o)
+            elif isinstance(obj, mesonlib.File):
+                obj_list.append(obj.rel_to_builddir(self.build_to_src))
             elif isinstance(obj, build.ExtractedObjects):
                 obj_list += self.determine_ext_objs(obj, proj_dir_to_build_root)
             else:
@@ -233,39 +235,21 @@ class Backend():
             self.write_benchmark_file(datafile)
         return (test_data, benchmark_data)
 
-    def determine_linker(self, target, src):
+    def determine_linker(self, target):
+        '''
+        If we're building a static library, there is only one static linker.
+        Otherwise, we query the target for the dynamic linker.
+        '''
         if isinstance(target, build.StaticLibrary):
             if target.is_cross:
                 return self.build.static_cross_linker
             else:
                 return self.build.static_linker
-        if target.is_cross:
-            compilers = self.build.cross_compilers
-        else:
-            compilers = self.build.compilers
-        if len(compilers) == 1:
-            return compilers[0]
-        # Currently a bit naive. C++ must
-        # be linked with a C++ compiler, but
-        # otherwise we don't care. This will
-        # become trickier if and when Fortran
-        # and the like become supported.
-        cpp = None
-        for c in compilers:
-            if c.get_language() == 'cpp':
-                cpp = c
-                break
-        if cpp is not None:
-            for s in src:
-                if c.can_compile(s):
-                    return cpp
-        for c in compilers:
-            if c.get_language() == 'vala':
-                continue
-            for s in src:
-                if c.can_compile(s):
-                    return c
-        raise AssertionError("BUG: Couldn't determine linker for sources {!r}".format(src))
+        l = target.get_clike_dynamic_linker()
+        if not l:
+            m = "Couldn't determine linker for target {!r}"
+            raise MesonException(m.format(target.name))
+        return l
 
     def object_filename_from_source(self, target, source):
         if isinstance(source, mesonlib.File):

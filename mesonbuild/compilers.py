@@ -45,8 +45,15 @@ lang_suffixes = {
 }
 cpp_suffixes = lang_suffixes['cpp'] + ('h',)
 c_suffixes = lang_suffixes['c'] + ('h',)
-clike_suffixes = lang_suffixes['c'] + lang_suffixes['cpp'] + ('h',)
+# List of languages that can be linked with C code directly by the linker
+# used in build.py:process_compilers() and build.py:get_dynamic_linker()
+clike_langs = ('objcpp', 'objc', 'd', 'cpp', 'c', 'fortran',)
+clike_suffixes = ()
+for l in clike_langs:
+    clike_suffixes += lang_suffixes[l]
+clike_suffixes += ('h',)
 
+# These are used in backend/backends.py:generated_target()
 def is_header(fname):
     if hasattr(fname, 'fname'):
         fname = fname.fname

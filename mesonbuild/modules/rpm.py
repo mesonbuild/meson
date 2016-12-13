@@ -27,7 +27,7 @@ class RPMModule:
 
     def generate_spec_template(self, state, args, kwargs):
         compiler_deps = set()
-        for compiler in state.compilers:
+        for compiler in state.compilers.values():
             if isinstance(compiler, compilers.GnuCCompiler):
                 compiler_deps.add('gcc')
             elif isinstance(compiler, compilers.GnuCPPCompiler):

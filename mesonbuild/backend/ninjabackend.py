@@ -299,6 +299,9 @@ int dummy;
             self.generate_swift_target(target, outfile)
             return
 
+        # Now we handle the following languages:
+        # ObjC++, ObjC, C++, C, D, Fortran, Vala
+
         # Pre-existing target C/C++ sources to be built; dict of full path to
         # source relative to build root and the original File object.
         target_sources = OrderedDict()
@@ -332,7 +335,6 @@ int dummy;
         unity_src = []
         unity_deps = [] # Generated sources that must be built before compiling a Unity target.
         header_deps += self.get_generated_headers(target)
-        src_list = []
 
         if is_unity:
             # Warn about incompatible sources if a unity build is enabled
@@ -346,16 +348,12 @@ int dummy;
                       ''.format(langs_are, langs, target.name)
                 mlog.log(mlog.red('FIXME'), msg)
 
-        # Get a list of all generated *sources* (sources files, headers,
-        # objects, etc). Needed to determine the linker.
-        generated_output_sources = [] 
         # Get a list of all generated headers that will be needed while building
         # this target's sources (generated sources and pre-existing sources).
         # This will be set as dependencies of all the target's sources. At the
         # same time, also deal with generated sources that need to be compiled.
         generated_source_files = []
         for rel_src, gensrc in generated_sources.items():
-            generated_output_sources.append(rel_src)
             raw_src = RawFilename(rel_src)
             if self.environment.is_source(rel_src) and not self.environment.is_header(rel_src):
                 if is_unity and self.get_target_source_can_unity(target, rel_src):
@@ -377,12 +375,12 @@ int dummy;
         # this target. We create the Ninja build file elements for this here
         # because we need `header_deps` to be fully generated in the above loop.
         for src in generated_source_files:
-            src_list.append(src)
             if self.environment.is_llvm_ir(src):
-                obj_list.append(self.generate_llvm_ir_compile(target, outfile, src))
-                continue
-            obj_list.append(self.generate_single_compile(target, outfile, src, True,
-                                                         header_deps=header_deps))
+                o = self.generate_llvm_ir_compile(target, outfile, src)
+            else:
+                o = self.generate_single_compile(target, outfile, src, True,
+                                                 header_deps=header_deps)
+            obj_list.append(o)
 
         # Generate compilation targets for C sources generated from Vala
         # sources. This can be extended to other $LANG->C compilers later if
@@ -390,7 +388,6 @@ int dummy;
         vala_generated_source_files = []
         for src in vala_generated_sources:
             raw_src = RawFilename(src)
-            src_list.append(src)
             if is_unity:
                 unity_src.append(os.path.join(self.environment.get_build_dir(), src))
                 header_deps.append(raw_src)
@@ -415,7 +412,6 @@ int dummy;
         # Generate compile targets for all the pre-existing sources for this target
         for f, src in target_sources.items():
             if not self.environment.is_header(src):
-                src_list.append(src)
                 if self.environment.is_llvm_ir(src):
                     obj_list.append(self.generate_llvm_ir_compile(target, outfile, src))
                 elif is_unity and self.get_target_source_can_unity(target, src):
@@ -428,7 +424,7 @@ int dummy;
         if is_unity:
             for src in self.generate_unity_files(target, unity_src):
                 obj_list.append(self.generate_single_compile(target, outfile, RawFilename(src), True, unity_deps + header_deps))
-        linker = self.determine_linker(target, src_list + generated_output_sources)
+        linker = self.determine_linker(target)
         elem = self.generate_link(target, outfile, outname, obj_list, linker, pch_objects)
         self.generate_shlib_aliases(target, self.get_target_dir(target))
         elem.write(outfile)
@@ -970,7 +966,8 @@ int dummy;
         (vala_src, vapi_src, other_src) = self.split_vala_sources(target)
         extra_dep_files = []
         if len(vala_src) == 0:
-            raise InvalidArguments('Vala library has no Vala source files.')
+            msg = 'Vala library {!r} has no Vala source files.'
+            raise InvalidArguments(msg.format(target.name))
 
         valac = target.compilers['vala']
         c_out_dir = self.get_target_private_dir(target)
@@ -1210,7 +1207,7 @@ int dummy;
             raise MesonException('Swift supports only executable and static library targets.')
 
     def generate_static_link_rules(self, is_cross, outfile):
-        if self.build.has_language('java'):
+        if 'java' in self.build.compilers:
             if not is_cross:
                 self.generate_java_link(outfile)
         if is_cross:
@@ -1251,8 +1248,7 @@ int dummy;
         else:
             ctypes.append((self.build.cross_compilers, True))
         for (complist, is_cross) in ctypes:
-            for compiler in complist:
-                langname = compiler.get_language()
+            for langname, compiler in complist.items():
                 if langname == 'java' or langname == 'vala' or\
                  langname == 'rust' or langname == 'cs':
                     continue
@@ -1511,8 +1507,7 @@ rule FORTRAN_DEP_HACK
 
     def generate_compile_rules(self, outfile):
         qstr = quote_char + "%s" + quote_char
-        for compiler in self.build.compilers:
-            langname = compiler.get_language()
+        for langname, compiler in self.build.compilers.items():
             if compiler.get_id() == 'clang':
                 self.generate_llvm_ir_compile_rule(compiler, False, outfile)
             self.generate_compile_rule_for(langname, compiler, qstr, False, outfile)
@@ -1524,8 +1519,7 @@ rule FORTRAN_DEP_HACK
                 cclist = self.build.cross_compilers
             else:
                 cclist = self.build.compilers
-            for compiler in cclist:
-                langname = compiler.get_language()
+            for langname, compiler in cclist.items():
                 if compiler.get_id() == 'clang':
                     self.generate_llvm_ir_compile_rule(compiler, True, outfile)
                 self.generate_compile_rule_for(langname, compiler, qstr, True, outfile)
@@ -1588,8 +1582,8 @@ rule FORTRAN_DEP_HACK
 
     def scan_fortran_module_outputs(self, target):
         compiler = None
-        for c in self.build.compilers:
-            if c.get_language() == 'fortran':
+        for lang, c in self.build.compilers.items():
+            if lang == 'fortran':
                 compiler = c
                 break
         if compiler is None:

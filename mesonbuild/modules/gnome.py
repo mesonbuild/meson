@@ -433,11 +433,11 @@ can not be used with the current version of glib-compiled-resources, due to
             cflags += state.global_args['c']
         if state.project_args.get('c'):
             cflags += state.project_args['c']
-        for compiler in state.compilers:
-            if compiler.get_language() == 'c':
-                sanitize = compiler.get_options().get('b_sanitize')
-                if sanitize:
-                    cflags += compilers.sanitizer_compile_args(sanitize)
+        if 'c' in state.compilers:
+            compiler = state.compilers['c']
+            sanitize = compiler.get_options().get('b_sanitize')
+            if sanitize:
+                cflags += compilers.sanitizer_compile_args(sanitize)
         if cflags:
             scan_command += ['--cflags-begin']
             scan_command += cflags
