@@ -446,7 +446,7 @@ class Compiler():
         return extra_flags
 
     @contextlib.contextmanager
-    def compile(self, code, extra_args=None):
+    def compile(self, code, extra_args=None, compile_only=False):
         if extra_args is None:
             extra_args = []
 
@@ -462,20 +462,25 @@ class Compiler():
 
                 # Extension only matters if running results; '.exe' is
                 # guaranteed to be executable on every platform.
-                output = os.path.join(tmpdirname, 'output.exe')
+                if compile_only:
+                    suffix = 'obj'
+                else:
+                    suffix = 'exe'
+                output = os.path.join(tmpdirname, 'output.' + suffix)
 
                 commands = self.get_exelist()
                 commands.append(srcname)
                 commands += extra_args
                 commands += self.get_output_args(output)
+                if compile_only:
+                    commands += self.get_compile_only_args()
                 mlog.debug('Running compile:')
                 mlog.debug('Working directory: ', tmpdirname)
                 mlog.debug('Command line: ', ' '.join(commands), '\n')
                 mlog.debug('Code:\n', code)
-                p, stdo, stde = Popen_safe(commands, cwd=tmpdirname)
-                mlog.debug('Compiler stdout:\n', stdo)
-                mlog.debug('Compiler stderr:\n', stde)
-
+                p, p.stdo, p.stde = Popen_safe(commands, cwd=tmpdirname)
+                mlog.debug('Compiler stdout:\n', p.stdo)
+                mlog.debug('Compiler stderr:\n', p.stde)
                 p.input_name = srcname
                 p.output_name = output
                 yield p
@@ -753,14 +758,13 @@ int main () {{
         # Add CFLAGS/CXXFLAGS/OBJCFLAGS/OBJCXXFLAGS from the env
         # We assume that the user has ensured these are compiler-specific
         args += env.coredata.external_args[self.language]
-        # We only want to compile; not link
-        args += self.get_compile_only_args()
         # Append extra_args to the compiler check args such that it overrides
         extra_args = self._override_args(self.get_compiler_check_args(), extra_args)
         extra_args = self.unix_link_flags_to_native(extra_args)
         # Append both to the compiler args such that they override them
         args = self._override_args(args, extra_args)
-        with self.compile(code, args) as p:
+        # We only want to compile; not link
+        with self.compile(code, args, compile_only=True) as p:
             return p.returncode == 0
 
     def _links_wrapper(self, code, env, extra_args, dependencies):
@@ -1062,6 +1066,40 @@ void bar() {
 };
 '''
         return self.compiles(templ % (prefix, typename), env, extra_args, dependencies)
+
+    def symbols_have_underscore_prefix(self, env):
+        '''
+        Check if the compiler prefixes an underscore to global C symbols
+        '''
+        symbol_name = b'meson_uscore_prefix'
+        code = '''#ifdef __cplusplus
+        extern "C" {
+        #endif
+        void ''' + symbol_name.decode() + ''' () {}
+        #ifdef __cplusplus
+        }
+        #endif
+        '''
+        args = self.get_cross_extra_flags(env, compile=True, link=False)
+        args += self.get_compiler_check_args()
+        n = 'symbols_have_underscore_prefix'
+        with self.compile(code, args, compile_only=True) as p:
+            if p.returncode != 0:
+                m = 'BUG: Unable to compile {!r} check: {}'
+                raise RuntimeError(m.format(n, p.stdo))
+            if not os.path.isfile(p.output_name):
+                m = 'BUG: Can\'t find compiled test code for {!r} check'
+                raise RuntimeError(m.format(n))
+            with open(p.output_name, 'rb') as o:
+                for line in o:
+                    # Check if the underscore form of the symbol is somewhere
+                    # in the output file.
+                    if b'_' + symbol_name in line:
+                        return True
+                    # Else, check if the non-underscored form is present
+                    elif symbol_name in line:
+                        return False
+        raise RuntimeError('BUG: {!r} check failed unexpectedly'.format(n))
 
     def find_library(self, libname, env, extra_dirs):
         # First try if we can just add the library as -l.
@@ -1379,14 +1417,16 @@ class ValaCompiler(Compiler):
     def get_output_args(self, target):
         return ['-o', target]
 
+    def get_compile_only_args(self):
+        return ['-C']
+
     def get_werror_args(self):
         return ['--fatal-warnings']
 
     def sanity_check(self, work_dir, environment):
         code = 'class MesonSanityCheck : Object { }'
         args = self.get_cross_extra_flags(environment, compile=True, link=False)
-        args += ['-C']
-        with self.compile(code, args) as p:
+        with self.compile(code, args, compile_only=True) as p:
             if p.returncode != 0:
                 msg = 'Vala compiler {!r} can not compile programs' \
                       ''.format(self.name_string())
@@ -1406,8 +1446,8 @@ class ValaCompiler(Compiler):
             code = 'class MesonFindLibrary : Object { }'
             vapi_args = ['--pkg', libname]
             args = self.get_cross_extra_flags(env, compile=True, link=False)
-            args += ['-C'] + vapi_args
-            with self.compile(code, args) as p:
+            args += vapi_args
+            with self.compile(code, args, compile_only=True) as p:
                 if p.returncode == 0:
                     return vapi_args
         # Not found? Try to find the vapi file itself.
