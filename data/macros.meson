@@ -3,11 +3,11 @@
 %__builddir %{_target_platform}
 
 %meson \
-    export CFLAGS="%{optflags}"                \
-    export CXXFLAGS="%{optflags}"              \
-    export FFLAGS="%{optflags} -I%{_fmoddir}"  \
-    export FCFLAGS="%{optflags} -I%{_fmoddir}" \
-    export LDFLAGS="%{?__global_ldflags}"      \
+    export CFLAGS="${CFLAGS:-%__global_cflags}"       \
+    export CXXFLAGS="${CXXFLAGS:-%__global_cxxflags}" \
+    export FFLAGS="${FFLAGS:-%__global_fflags}"       \
+    export FCFLAGS="${FCFLAGS:-%__global_fcflags}"    \
+    export LDFLAGS="${LDFLAGS:-%__global_ldflags}"    \
     %{__meson}                            \\\
         --buildtype=plain                 \\\
         --prefix=%{_prefix}               \\\
