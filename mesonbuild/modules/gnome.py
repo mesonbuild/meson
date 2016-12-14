@@ -25,6 +25,7 @@ from .. import dependencies
 from .. import mlog
 from .. import mesonlib
 from .. import interpreter
+from . import GResourceTarget, GResourceHeaderTarget, GirTarget, TypelibTarget, VapiTarget
 
 # gresource compilation is broken due to the way
 # the resource compiler and Ninja clash about it
@@ -161,10 +162,7 @@ can not be used with the current version of glib-compiled-resources, due to
             depfile = kwargs['output'] + '.d'
             kwargs['depfile'] = depfile
             kwargs['command'] = copy.copy(cmd) + ['--dependency-file', '@DEPFILE@']
-        target_c = build.CustomTarget(name, state.subdir, kwargs)
-        # Used in backend/ninjabackend.py:generate_vala_compile() to pass
-        # --gresources to valac when GResources are used in Vala targets
-        target_c.gresource_c_output = True
+        target_c = GResourceTarget(name, state.subdir, kwargs)
 
         if gresource: # Only one target for .gresource files
             return [target_c]
@@ -180,7 +178,7 @@ can not be used with the current version of glib-compiled-resources, due to
             h_kwargs['install'] = install_header
             h_kwargs['install_dir'] = kwargs.get('install_dir',
                                                  state.environment.coredata.get_builtin_option('includedir'))
-        target_h = build.CustomTarget(args[0] + '_h', state.subdir, h_kwargs)
+        target_h = GResourceHeaderTarget(args[0] + '_h', state.subdir, h_kwargs)
         return [target_c, target_h]
 
     def _get_gresource_dependencies(self, state, input_file, source_dirs, dependencies):
@@ -1090,15 +1088,3 @@ can not be used with the current version of glib-compiled-resources, due to
 
 def initialize():
     return GnomeModule()
-
-class GirTarget(build.CustomTarget):
-    def __init__(self, name, subdir, kwargs):
-        super().__init__(name, subdir, kwargs)
-
-class TypelibTarget(build.CustomTarget):
-    def __init__(self, name, subdir, kwargs):
-        super().__init__(name, subdir, kwargs)
-
-class VapiTarget(build.CustomTarget):
-    def __init__(self, name, subdir, kwargs):
-        super().__init__(name, subdir, kwargs)
