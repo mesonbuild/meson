@@ -1032,6 +1032,11 @@ int dummy;
                 args += ['--pkg', d.name]
             elif isinstance(d, dependencies.ExternalLibrary):
                 args += d.get_lang_args('vala')
+        # Detect gresources and add --gresources arguments for each
+        for (gres, gensrc) in other_src[1].items():
+            if hasattr(gensrc, 'gresource_c_output'):
+                gres_xml, = self.get_custom_target_sources(gensrc)
+                args += ['--gresources=' + gres_xml]
         extra_args = []
 
         for a in target.extra_args.get('vala', []):

@@ -504,19 +504,13 @@ class Backend():
                     libs.append(os.path.join(self.get_target_dir(t), f))
         return libs
 
-    def eval_custom_target_command(self, target, absolute_paths=False):
-        if not absolute_paths:
-            ofilenames = [os.path.join(self.get_target_dir(target), i) for i in target.output]
-        else:
-            ofilenames = [os.path.join(self.environment.get_build_dir(), self.get_target_dir(target), i) \
-                          for i in target.output]
+    def get_custom_target_sources(self, target, absolute_paths=False):
+        '''
+        Custom target sources can be of various object types; strings, File,
+        BuildTarget, even other CustomTargets.
+        Returns the path to them relative to the build root directory.
+        '''
         srcs = []
-        outdir = self.get_target_dir(target)
-        # Many external programs fail on empty arguments.
-        if outdir == '':
-            outdir = '.'
-        if absolute_paths:
-            outdir = os.path.join(self.environment.get_build_dir(), outdir)
         for i in target.get_sources():
             if hasattr(i, 'held_object'):
                 i = i.held_object
@@ -531,8 +525,23 @@ class Backend():
             else:
                 fname = [i.rel_to_builddir(self.build_to_src)]
             if absolute_paths:
-                fname =[os.path.join(self.environment.get_build_dir(), f) for f in fname]
+                fname = [os.path.join(self.environment.get_build_dir(), f) for f in fname]
             srcs += fname
+        return srcs
+
+    def eval_custom_target_command(self, target, absolute_paths=False):
+        if not absolute_paths:
+            ofilenames = [os.path.join(self.get_target_dir(target), i) for i in target.output]
+        else:
+            ofilenames = [os.path.join(self.environment.get_build_dir(), self.get_target_dir(target), i) \
+                          for i in target.output]
+        srcs = self.get_custom_target_sources(target, absolute_paths)
+        outdir = self.get_target_dir(target)
+        # Many external programs fail on empty arguments.
+        if outdir == '':
+            outdir = '.'
+        if absolute_paths:
+            outdir = os.path.join(self.environment.get_build_dir(), outdir)
         cmd = []
         for i in target.command:
             if isinstance(i, build.Executable):

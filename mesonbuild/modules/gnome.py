@@ -162,6 +162,9 @@ can not be used with the current version of glib-compiled-resources, due to
             kwargs['depfile'] = depfile
             kwargs['command'] = copy.copy(cmd) + ['--dependency-file', '@DEPFILE@']
         target_c = build.CustomTarget(name, state.subdir, kwargs)
+        # Used in backend/ninjabackend.py:generate_vala_compile() to pass
+        # --gresources to valac when GResources are used in Vala targets
+        target_c.gresource_c_output = True
 
         if gresource: # Only one target for .gresource files
             return [target_c]
