@@ -8,4 +8,5 @@ gtk = dependency('gtk+-3.0')
 subdir('gres')
 
 e = executable('gtktemplate', 'test.vala', res, dependencies : [glib, gtk])
-test('test-target-glib', e)
+# No X on the CI, so disable this for now
+#test('test-target-glib', e)
