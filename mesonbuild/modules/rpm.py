@@ -19,7 +19,7 @@ from .. import build
 from .. import compilers
 import datetime
 from .. import mlog
-from ..modules import gnome
+from . import GirTarget, TypelibTarget
 
 import os
 
@@ -65,9 +65,9 @@ class RPMModule:
                 to_delete.add('%%{buildroot}%%{_libdir}/%s' % target.get_filename())
                 mlog.warning('removing', mlog.bold(target.get_filename()),
                              'from package because packaging static libs not recommended')
-            elif isinstance(target, gnome.GirTarget) and target.should_install():
+            elif isinstance(target, GirTarget) and target.should_install():
                 files_devel.add('%%{_datadir}/gir-1.0/%s' % target.get_filename()[0])
-            elif isinstance(target, gnome.TypelibTarget) and target.should_install():
+            elif isinstance(target, TypelibTarget) and target.should_install():
                 files.add('%%{_libdir}/girepository-1.0/%s' % target.get_filename()[0])
         for header in state.headers:
             if len(header.get_install_subdir()) > 0:

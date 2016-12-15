@@ -25,6 +25,7 @@ from .. import dependencies
 from .. import mlog
 from .. import mesonlib
 from .. import interpreter
+from . import find_program, GResourceTarget, GResourceHeaderTarget, GirTarget, TypelibTarget, VapiTarget
 
 # gresource compilation is broken due to the way
 # the resource compiler and Ninja clash about it
@@ -45,18 +46,12 @@ def gir_has_extra_lib_arg():
 
     _gir_has_extra_lib_arg = False
     try:
-        scanner_options = subprocess.check_output(['g-ir-scanner', '--help']).decode()
-        _gir_has_extra_lib_arg = '--extra-library' in scanner_options
-    except (FileNotFound, subprocess.CalledProcessError):
+        g_ir_scanner = find_program('g-ir-scanner', '').get_command()
+        opts = Popen_safe(g_ir_scanner + ['--help'], stderr=subprocess.STDOUT)[1]
+        _gir_has_extra_lib_arg = '--extra-library' in opts
+    except (MesonException, FileNotFoundError, subprocess.CalledProcessError):
         pass
     return _gir_has_extra_lib_arg
-
-def find_program(program_name, target_name):
-    program = dependencies.ExternalProgram(program_name)
-    if not program.found():
-        raise MesonException('%s can\'t be generated as %s could not be found' % (
-            target_name, program_name))
-    return program
 
 class GnomeModule:
 
@@ -161,7 +156,7 @@ can not be used with the current version of glib-compiled-resources, due to
             depfile = kwargs['output'] + '.d'
             kwargs['depfile'] = depfile
             kwargs['command'] = copy.copy(cmd) + ['--dependency-file', '@DEPFILE@']
-        target_c = build.CustomTarget(name, state.subdir, kwargs)
+        target_c = GResourceTarget(name, state.subdir, kwargs)
 
         if gresource: # Only one target for .gresource files
             return [target_c]
@@ -177,7 +172,7 @@ can not be used with the current version of glib-compiled-resources, due to
             h_kwargs['install'] = install_header
             h_kwargs['install_dir'] = kwargs.get('install_dir',
                                                  state.environment.coredata.get_builtin_option('includedir'))
-        target_h = build.CustomTarget(args[0] + '_h', state.subdir, h_kwargs)
+        target_h = GResourceHeaderTarget(args[0] + '_h', state.subdir, h_kwargs)
         return [target_c, target_h]
 
     def _get_gresource_dependencies(self, state, input_file, source_dirs, dependencies):
@@ -798,7 +793,7 @@ can not be used with the current version of glib-compiled-resources, due to
         install_header = False
         for arg, value in kwargs.items():
             if arg == 'sources':
-                sources = [value] + sources
+                raise AssertionError("sources should've already been handled")
             elif arg == 'c_template':
                 c_template = value
                 if 'template' in kwargs:
@@ -882,7 +877,8 @@ can not be used with the current version of glib-compiled-resources, due to
             'command': cmd
         }
         custom_kwargs.update(kwargs)
-        return build.CustomTarget(output, state.subdir, custom_kwargs)
+        return build.CustomTarget(output, state.subdir, custom_kwargs,
+                                  absolute_paths=True)
 
     def genmarshal(self, state, args, kwargs):
         if len(args) != 1:
@@ -1087,15 +1083,3 @@ can not be used with the current version of glib-compiled-resources, due to
 
 def initialize():
     return GnomeModule()
-
-class GirTarget(build.CustomTarget):
-    def __init__(self, name, subdir, kwargs):
-        super().__init__(name, subdir, kwargs)
-
-class TypelibTarget(build.CustomTarget):
-    def __init__(self, name, subdir, kwargs):
-        super().__init__(name, subdir, kwargs)
-
-class VapiTarget(build.CustomTarget):
-    def __init__(self, name, subdir, kwargs):
-        super().__init__(name, subdir, kwargs)

@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from . import backends
+from .. import modules
 from .. import environment, mesonlib
 from .. import build
 from .. import mlog
@@ -951,7 +952,7 @@ int dummy;
                 else:
                     srctype = othersgen
                 # Duplicate outputs are disastrous
-                if f in srctype:
+                if f in srctype and srctype[f] is not gensrc:
                     msg = 'Duplicate output {0!r} from {1!r} {2!r}; ' \
                           'conflicts with {0!r} from {4!r} {3!r}' \
                           ''.format(f, type(gensrc).__name__, gensrc.name,
@@ -1032,6 +1033,11 @@ int dummy;
                 args += ['--pkg', d.name]
             elif isinstance(d, dependencies.ExternalLibrary):
                 args += d.get_lang_args('vala')
+        # Detect gresources and add --gresources arguments for each
+        for (gres, gensrc) in other_src[1].items():
+            if isinstance(gensrc, modules.GResourceTarget):
+                gres_xml, = self.get_custom_target_sources(gensrc)
+                args += ['--gresources=' + gres_xml]
         extra_args = []
 
         for a in target.extra_args.get('vala', []):

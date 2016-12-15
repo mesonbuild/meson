@@ -145,6 +145,8 @@ class PkgConfigDependency(Dependency):
         else:
             if not isinstance(self.version_reqs, (str, list)):
                 raise DependencyException('Version argument must be string or list.')
+            if isinstance(self.version_reqs, str):
+                self.version_reqs = [self.version_reqs]
             (self.is_found, not_found, found) = \
                 version_compare_many(self.modversion, self.version_reqs)
             if not self.is_found:
@@ -168,6 +170,11 @@ class PkgConfigDependency(Dependency):
         self._set_cargs()
         # Fetch the libraries and library paths needed for using this
         self._set_libs()
+
+    def __repr__(self):
+        s = '<{0} {1}: {2} {3}>'
+        return s.format(self.__class__.__name__, self.name, self.is_found,
+                        self.version_reqs)
 
     def _call_pkgbin(self, args):
         p, out = Popen_safe([self.pkgbin] + args, env=os.environ)[0:2]
