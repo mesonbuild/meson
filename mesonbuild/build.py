@@ -1218,7 +1218,7 @@ class CustomTarget:
                     'depfile' : True,
                     }
 
-    def __init__(self, name, subdir, kwargs):
+    def __init__(self, name, subdir, kwargs, absolute_paths=False):
         self.name = name
         self.subdir = subdir
         self.dependencies = []
@@ -1227,6 +1227,8 @@ class CustomTarget:
         self.depfile = None
         self.process_kwargs(kwargs)
         self.extra_files = []
+        # Whether to use absolute paths for all files on the commandline
+        self.absolute_paths = absolute_paths
         unknowns = []
         for k in kwargs:
             if k not in CustomTarget.known_kwargs:

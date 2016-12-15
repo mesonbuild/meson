@@ -799,7 +799,7 @@ can not be used with the current version of glib-compiled-resources, due to
         install_header = False
         for arg, value in kwargs.items():
             if arg == 'sources':
-                sources = [value] + sources
+                raise AssertionError("sources should've already been handled")
             elif arg == 'c_template':
                 c_template = value
                 if 'template' in kwargs:
@@ -883,7 +883,8 @@ can not be used with the current version of glib-compiled-resources, due to
             'command': cmd
         }
         custom_kwargs.update(kwargs)
-        return build.CustomTarget(output, state.subdir, custom_kwargs)
+        return build.CustomTarget(output, state.subdir, custom_kwargs,
+                                  absolute_paths=True)
 
     def genmarshal(self, state, args, kwargs):
         if len(args) != 1:

@@ -504,7 +504,7 @@ class Backend():
                     libs.append(os.path.join(self.get_target_dir(t), f))
         return libs
 
-    def get_custom_target_sources(self, target, absolute_paths=False):
+    def get_custom_target_sources(self, target):
         '''
         Custom target sources can be of various object types; strings, File,
         BuildTarget, even other CustomTargets.
@@ -524,23 +524,24 @@ class Backend():
                 fname = [os.path.join(self.get_target_private_dir(target), p) for p in i.get_outputs()]
             else:
                 fname = [i.rel_to_builddir(self.build_to_src)]
-            if absolute_paths:
+            if target.absolute_paths:
                 fname = [os.path.join(self.environment.get_build_dir(), f) for f in fname]
             srcs += fname
         return srcs
 
-    def eval_custom_target_command(self, target, absolute_paths=False):
-        if not absolute_paths:
+    def eval_custom_target_command(self, target, absolute_outputs=False):
+        # We only want the outputs to be absolute when using the VS backend
+        if not absolute_outputs:
             ofilenames = [os.path.join(self.get_target_dir(target), i) for i in target.output]
         else:
             ofilenames = [os.path.join(self.environment.get_build_dir(), self.get_target_dir(target), i) \
                           for i in target.output]
-        srcs = self.get_custom_target_sources(target, absolute_paths)
+        srcs = self.get_custom_target_sources(target)
         outdir = self.get_target_dir(target)
         # Many external programs fail on empty arguments.
         if outdir == '':
             outdir = '.'
-        if absolute_paths:
+        if target.absolute_paths:
             outdir = os.path.join(self.environment.get_build_dir(), outdir)
         cmd = []
         for i in target.command:
@@ -554,9 +555,9 @@ class Backend():
                 i = os.path.join(self.get_target_dir(i), tmp)
             elif isinstance(i, mesonlib.File):
                 i = i.rel_to_builddir(self.build_to_src)
-                if absolute_paths:
+                if target.absolute_paths:
                     i = os.path.join(self.environment.get_build_dir(), i)
-            # FIXME: str types are blindly added and ignore the 'absolute_paths' argument
+            # FIXME: str types are blindly added ignoring 'target.absolute_paths'
             elif not isinstance(i, str):
                 err_msg = 'Argument {0} is of unknown type {1}'
                 raise RuntimeError(err_msg.format(str(i), str(type(i))))
@@ -602,7 +603,7 @@ class Backend():
                           ''.format(target.name, i)
                     raise MesonException(msg)
                 source = match.group(0)
-                if match.group(1) is None and not absolute_paths:
+                if match.group(1) is None and not target.absolute_paths:
                     lead_dir = ''
                 else:
                     lead_dir = self.environment.get_build_dir()
