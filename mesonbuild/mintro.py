@@ -27,6 +27,8 @@ import sys, os
 parser = argparse.ArgumentParser()
 parser.add_argument('--targets', action='store_true', dest='list_targets', default=False,
                     help='List top level targets.')
+parser.add_argument('--installed', action='store_true', dest='list_installed', default=False,
+                    help='List all installed files and directories.')
 parser.add_argument('--target-files', action='store', dest='target_files', default=None,
                     help='List source files for a given target.')
 parser.add_argument('--buildsystem-files', action='store_true', dest='buildsystem_files', default=False,
@@ -55,6 +57,15 @@ def determine_installed_path(target, installdata):
     outdir = i[1]
     outname = os.path.join(installdata.prefix, outdir, os.path.split(fname)[-1])
     return outname
+
+
+def list_installed(installdata):
+    res = {}
+    for path, installpath in installdata.data:
+        res[path] = os.path.join(installdata.prefix, installpath)
+
+    print(json.dumps(res))
+
 
 def list_targets(coredata, builddata, installdata):
     tlist = []
@@ -219,6 +230,8 @@ def run(args):
         installdata = pickle.load(f)
     if options.list_targets:
         list_targets(coredata, builddata, installdata)
+    elif options.list_installed:
+        list_installed(installdata)
     elif options.target_files is not None:
         list_target_files(options.target_files, coredata, builddata)
     elif options.buildsystem_files:
