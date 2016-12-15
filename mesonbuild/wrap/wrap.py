@@ -130,29 +130,51 @@ class Resolver:
             raise RuntimeError('Unreachable code.')
         return p.get('directory')
 
+        
+    def update_git(self,branch,checkoutdir,p):
+        try:
+            subprocess.check_call(['git', 'rev-parse'],cwd=checkoutdir)
+        except subprocess.CalledProcessError:
+            raise RuntimeError('%s is not empty but is not a valid '
+                               'git repository, we can not work with it'
+                               ' as a subproject directory.' 
+                               % p.get('directory'))
+        if subprocess.call(['git','diff-files','--exit-code','--quiet']
+                                      ,cwd=checkoutdir)!=0:
+            # Checks for changes in tracked files. The mercurial function 
+            # return an empty string when there are no changes.
+            mlog.warning('outstanding changes in subproject ', checkoutdir, 
+                         'Commit changes or revert repository to a clean state'
+                         'to pull changes from remote.')
+            return
+        print('\nUpdating subproject',p.get('directory'),flush = True)
+        if branch.lower() == 'head':
+            subprocess.check_call(['git', 'pull'], cwd=checkoutdir)
+        else:
+            subprocess.check_call(['git', 'fetch'], cwd=checkoutdir)
+            # Attn! branch is case sensitive
+            subprocess.check_call(['git', 'checkout', branch],
+                              cwd=checkoutdir)
+                
+        
     def get_git(self, p):
         checkoutdir = os.path.join(self.subdir_root, p.get('directory'))
-        revno = p.get('revision')
+        revision = p.values.get('revision')
+        branch = p.values.get('branch')
+        if branch and revision:
+            raise RuntimeError('Both branch and revision keywords are defined in'
+            'the wrap file for subproject %s. Choose one: branch for moving '
+            'target (check remote for update on build regen), and revision for'
+            ' static target (never attempt automatic update).'%p.get('directory'))
+            
+        if branch:
+            revno = branch
+        else:
+            revno = revision
         is_there = os.path.isdir(checkoutdir)
         if is_there:
-            try:
-                subprocess.check_call(['git', 'rev-parse'])
-            except subprocess.CalledProcessError:
-                raise RuntimeError('%s is not empty but is not a valid '
-                                    'git repository, we can not work with it'
-                                    ' as a subproject directory.' 
-                                    % (checkoutdir))
-
-            if revno.lower() == 'head':
-                # Failure to do pull is not a fatal error,
-                # because otherwise you can't develop without
-                # a working net connection.
-                subprocess.call(['git', 'pull'], cwd=checkoutdir)
-            else:
-                if subprocess.call(['git', 'checkout', revno], cwd=checkoutdir) != 0:
-                    subprocess.check_call(['git', 'fetch'], cwd=checkoutdir)
-                    subprocess.check_call(['git', 'checkout', revno],
-                                          cwd=checkoutdir)
+            if branch:
+                self.update_git(revno,checkoutdir,p)
         else:
             subprocess.check_call(['git', 'clone', p.get('url'),
                                    p.get('directory')], cwd=self.subdir_root)
@@ -164,26 +186,41 @@ class Resolver:
                 subprocess.check_call(['git', 'remote', 'set-url',
                                        '--push', 'origin', push_url],
                                       cwd=checkoutdir)
+    
+    def update_hg(self,branch,checkoutdir,p):
+        if not os.path.isdir(os.path.join(checkoutdir, '.hg')):
+            raise RuntimeError('Subproject %s is not a valid mercurial repo.'%p.get('directory'))
+        if len(subprocess.check_output(['hg','status','-m','-a','-r','-d']
+                                      ,cwd=checkoutdir))!=0:
+            # Checks for changes in tracked files. The mercurial function 
+            # return an empty string when there are no changes.
+            mlog.warning('outstanding changes in subproject ', checkoutdir, 
+                         'Commit changes or revert repository to a clean state'
+                         'to pull changes from remote.')
+            return
+        print('\nUpdating subproject',p.get('directory'),flush = True)
+        # pull update from repo and update the branch.
+        subprocess.check_call(['hg', 'pull'], cwd=checkoutdir)
+        subprocess.check_call(['hg', 'checkout', branch],
+                                     cwd=checkoutdir)
+                
     def get_hg(self, p):
         checkoutdir = os.path.join(self.subdir_root, p.get('directory'))
-        revno = p.get('revision')
+        revision = p.values.get('revision')
+        branch = p.values.get('branch')
+        if branch and revision:
+            raise RuntimeError('Both branch and revision keywords are defined in'
+            'the wrap file for subproject %s. Choose one: branch for moving '
+            'target (check remote for update on build regen), and revision for'
+            ' static target (never attempt automatic update).'%p.get('directory'))
+        if branch:
+            revno = branch
+        else:
+            revno = revision
         is_there = os.path.isdir(checkoutdir)
         if is_there:
-            if not os.path.isdir(os.path.join(checkoutdir, '.hg')):
-                raise RuntimeError('Subproject %s is not a valid mercurial repo.'%p.get('directory'))
-            if revno.lower() == 'tip':
-                # Failure to do pull is not a fatal error,
-                # because otherwise you can't develop without
-                # a working net connection.
-                subprocess.call(['hg', 'pull'], cwd=checkoutdir)
-                subprocess.call(['hg', 'update', 'tip'],cwd = checkoutdir)
-            else:
-                # check that the tag/branch/revision we want is available in the
-                # repo, if not, pull and update.
-                if subprocess.call(['hg', 'checkout', revno], cwd=checkoutdir) != 0:
-                    subprocess.check_call(['hg', 'pull'], cwd=checkoutdir)
-                    subprocess.check_call(['hg', 'checkout', revno],
-                                          cwd=checkoutdir)
+            if branch:
+                self.update_hg(revno,checkoutdir,p)
         else:
             subprocess.check_call(['hg', 'clone', p.get('url'),
                                    p.get('directory')], cwd=self.subdir_root)
