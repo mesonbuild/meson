@@ -28,15 +28,54 @@ def append_to_log(line):
         install_log_file.write('\n')
     install_log_file.flush()
 
-def do_copy(from_file, to_file):
-    try:
-        # Python's copyfile fails if the target file already exists.
+def do_copyfile(from_file, to_file):
+    if not os.path.isfile(from_file):
+        raise RuntimeError('Tried to install something that isn\'t a file:'
+                           '{!r}'.format(from_file))
+    # copyfile fails if the target file already exists, so remove it to
+    # allow overwriting a previous install. If the target is not a file, we
+    # want to give a readable error.
+    if os.path.exists(to_file):
+        if not os.path.isfile(to_file):
+            raise RuntimeError('Destination {!r} already exists and is not '
+                               'a file'.format(to_file))
         os.unlink(to_file)
-    except FileNotFoundError:
-        pass
     shutil.copyfile(from_file, to_file)
     shutil.copystat(from_file, to_file)
     append_to_log(to_file)
+
+def do_copydir(src_prefix, src_dir, dst_dir):
+    '''
+    Copies the directory @src_prefix (full path) into @dst_dir
+
+    @src_dir is simply the parent directory of @src_prefix
+    '''
+    for root, dirs, files in os.walk(src_prefix):
+        for d in dirs:
+            abs_src = os.path.join(src_dir, root, d)
+            filepart = abs_src[len(src_dir)+1:]
+            abs_dst = os.path.join(dst_dir, filepart)
+            if os.path.isdir(abs_dst):
+                continue
+            if os.path.exists(abs_dst):
+                print('Tried to copy directory %s but a file of that name already exists.' % abs_dst)
+                sys.exit(1)
+            os.makedirs(abs_dst)
+            shutil.copystat(abs_src, abs_dst)
+        for f in files:
+            abs_src = os.path.join(src_dir, root, f)
+            filepart = abs_src[len(src_dir)+1:]
+            abs_dst = os.path.join(dst_dir, filepart)
+            if os.path.isdir(abs_dst):
+                print('Tried to copy file %s but a directory of that name already exists.' % abs_dst)
+            if os.path.exists(abs_dst):
+                os.unlink(abs_dst)
+            parent_dir = os.path.split(abs_dst)[0]
+            if not os.path.isdir(parent_dir):
+                os.mkdir(parent_dir)
+                shutil.copystat(os.path.split(abs_src)[0], parent_dir)
+            shutil.copy2(abs_src, abs_dst, follow_symlinks=False)
+            append_to_log(abs_dst)
 
 def get_destdir_path(d, path):
     if os.path.isabs(path):
@@ -67,32 +106,7 @@ def install_subdirs(data):
         dst_dir = get_destdir_path(data, dst_dir)
         if not os.path.exists(dst_dir):
             os.makedirs(dst_dir)
-        for root, dirs, files in os.walk(src_prefix):
-            for d in dirs:
-                abs_src = os.path.join(src_dir, root, d)
-                filepart = abs_src[len(src_dir)+1:]
-                abs_dst = os.path.join(dst_dir, filepart)
-                if os.path.isdir(abs_dst):
-                    continue
-                if os.path.exists(abs_dst):
-                    print('Tried to copy directory %s but a file of that name already exists.' % abs_dst)
-                    sys.exit(1)
-                os.makedirs(abs_dst)
-                shutil.copystat(abs_src, abs_dst)
-            for f in files:
-                abs_src = os.path.join(src_dir, root, f)
-                filepart = abs_src[len(src_dir)+1:]
-                abs_dst = os.path.join(dst_dir, filepart)
-                if os.path.isdir(abs_dst):
-                    print('Tried to copy file %s but a directory of that name already exists.' % abs_dst)
-                if os.path.exists(abs_dst):
-                    os.unlink(abs_dst)
-                parent_dir = os.path.split(abs_dst)[0]
-                if not os.path.isdir(parent_dir):
-                    os.mkdir(parent_dir)
-                    shutil.copystat(os.path.split(abs_src)[0], parent_dir)
-                shutil.copy2(abs_src, abs_dst, follow_symlinks=False)
-                append_to_log(abs_dst)
+        do_copydir(src_prefix, src_dir, dst_dir)
 
 def install_data(d):
     for i in d.data:
@@ -101,7 +115,7 @@ def install_data(d):
         outdir = os.path.split(outfilename)[0]
         os.makedirs(outdir, exist_ok=True)
         print('Installing %s to %s.' % (fullfilename, outdir))
-        do_copy(fullfilename, outfilename)
+        do_copyfile(fullfilename, outfilename)
 
 def install_man(d):
     for m in d.man:
@@ -117,7 +131,7 @@ def install_man(d):
             shutil.copystat(full_source_filename, outfilename)
             append_to_log(outfilename)
         else:
-            do_copy(full_source_filename, outfilename)
+            do_copyfile(full_source_filename, outfilename)
 
 def install_headers(d):
     for t in d.headers:
@@ -127,7 +141,7 @@ def install_headers(d):
         outfilename = os.path.join(outdir, fname)
         print('Installing %s to %s' % (fname, outdir))
         os.makedirs(outdir, exist_ok=True)
-        do_copy(fullfilename, outfilename)
+        do_copyfile(fullfilename, outfilename)
 
 def run_install_script(d):
     env = {'MESON_SOURCE_ROOT' : d.source_dir,
@@ -203,15 +217,23 @@ def install_targets(d):
         install_rpath = t[4]
         print('Installing %s to %s' % (fname, outname))
         os.makedirs(outdir, exist_ok=True)
-        do_copy(fname, outname)
-        if should_strip:
-            print('Stripping target')
-            ps, stdo, stde = Popen_safe(['strip', outname])
-            if ps.returncode != 0:
-                print('Could not strip file.\n')
-                print('Stdout:\n%s\n' % stdo)
-                print('Stderr:\n%s\n' % stde)
-                sys.exit(1)
+        if not os.path.exists(fname):
+            raise RuntimeError('File {!r} could not be found'.format(fname))
+        elif os.path.isfile(fname):
+            do_copyfile(fname, outname)
+            if should_strip:
+                print('Stripping target {!r}'.format(fname))
+                ps, stdo, stde = Popen_safe(['strip', outname])
+                if ps.returncode != 0:
+                    print('Could not strip file.\n')
+                    print('Stdout:\n%s\n' % stdo)
+                    print('Stderr:\n%s\n' % stde)
+                    sys.exit(1)
+        elif os.path.isdir(fname):
+            fname = os.path.join(d.build_dir, fname.rstrip('/'))
+            do_copydir(fname, os.path.dirname(fname), outdir)
+        else:
+            raise RuntimeError('Unknown file type for {!r}'.format(fname))
         printed_symlink_error = False
         for alias in aliases:
             try:
@@ -224,9 +246,10 @@ def install_targets(d):
                 append_to_log(symlinkfilename)
             except (NotImplementedError, OSError):
                 if not printed_symlink_error:
-                    print("Symlink creation does not work on this platform.")
+                    print("Symlink creation does not work on this platform. "
+                          "Skipping all symlinking.")
                     printed_symlink_error = True
-        if is_elf_platform():
+        if is_elf_platform() and os.path.isfile(outname):
             try:
                 e = depfixer.Elf(outname, False)
                 e.fix_rpath(install_rpath)

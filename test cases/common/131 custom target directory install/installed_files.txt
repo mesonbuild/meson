@@ -1,0 +1,3 @@
+usr/share/doc/testpkgname/html/a.html
+usr/share/doc/testpkgname/html/b.html
+usr/share/doc/testpkgname/html/c.html
