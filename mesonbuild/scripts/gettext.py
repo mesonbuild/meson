@@ -89,7 +89,9 @@ def run(args):
     subcmd = options.command
     langs = options.langs.split('@@') if options.langs else None
     extra_args = options.extra_args.split('@@')
-    subdir = os.environ.get('MESON_SUBDIR', options.subdir)
+    subdir = os.environ.get('MESON_SUBDIR', '')
+    if options.subdir:
+        subdir = options.subdir
     src_sub = os.path.join(os.environ['MESON_SOURCE_ROOT'], subdir)
     bld_sub = os.path.join(os.environ['MESON_BUILD_ROOT'], subdir)
 
