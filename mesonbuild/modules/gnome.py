@@ -21,7 +21,7 @@ import sys
 import copy
 import subprocess
 from ..mesonlib import MesonException, Popen_safe
-from .. import dependencies
+from ..dependencies import Dependency, PkgConfigDependency, InternalDependency
 from .. import mlog
 from .. import mesonlib
 from .. import interpreter
@@ -54,13 +54,14 @@ def gir_has_extra_lib_arg():
     return _gir_has_extra_lib_arg
 
 class GnomeModule:
+    gir_dep = None
 
     @staticmethod
     def _get_native_glib_version(state):
         global native_glib_version
         if native_glib_version is None:
-            glib_dep = dependencies.PkgConfigDependency(
-                'glib-2.0', state.environment, {'native': True})
+            glib_dep = PkgConfigDependency('glib-2.0', state.environment,
+                                           {'native': True})
             native_glib_version = glib_dep.get_modversion()
         return native_glib_version
 
@@ -302,7 +303,7 @@ can not be used with the current version of glib-compiled-resources, due to
         for dep in deps:
             if hasattr(dep, 'held_object'):
                 dep = dep.held_object
-            if isinstance(dep, dependencies.InternalDependency):
+            if isinstance(dep, InternalDependency):
                 cflags.update(self._get_include_args(state, dep.include_directories))
                 for lib in dep.libraries:
                     ldflags.update(self._get_link_args(state, lib.held_object, depends, include_rpath))
@@ -319,7 +320,7 @@ can not be used with the current version of glib-compiled-resources, due to
                         gi_includes.update([os.path.join(state.environment.get_build_dir(),
                                         source.held_object.get_subdir())])
             # This should be any dependency other than an internal one.
-            elif isinstance(dep, dependencies.Dependency):
+            elif isinstance(dep, Dependency):
                 cflags.update(dep.get_compile_args())
                 for lib in dep.get_link_args():
                     if (os.path.isabs(lib) and
@@ -341,7 +342,7 @@ can not be used with the current version of glib-compiled-resources, due to
                         lib = lib.replace('-l', '--extra-library=')
                     ldflags.update([lib])
 
-                if isinstance(dep, dependencies.PkgConfigDependency):
+                if isinstance(dep, PkgConfigDependency):
                     girdir = dep.get_pkgconfig_variable("girdir")
                     if girdir:
                         gi_includes.update([girdir])
@@ -367,9 +368,11 @@ can not be used with the current version of glib-compiled-resources, due to
         if not isinstance(girtarget, (build.Executable, build.SharedLibrary)):
             raise MesonException('Gir target must be an executable or shared library')
         try:
-            gir_dep = dependencies.PkgConfigDependency(
-                'gobject-introspection-1.0', state.environment, {'native': True})
-            pkgargs = gir_dep.get_compile_args()
+            if not self.gir_dep:
+                self.gir_dep = PkgConfigDependency('gobject-introspection-1.0',
+                                                   state.environment,
+                                                   {'native': True})
+            pkgargs = self.gir_dep.get_compile_args()
         except Exception:
             global girwarning_printed
             if not girwarning_printed:
@@ -470,7 +473,7 @@ can not be used with the current version of glib-compiled-resources, due to
                 dep = dep.held_object
             # Add a dependency on each GirTarget listed in dependencies and add
             # the directory where it will be generated to the typelib includes
-            if isinstance(dep, dependencies.InternalDependency):
+            if isinstance(dep, InternalDependency):
                 for source in dep.sources:
                     if hasattr(source, 'held_object'):
                         source = source.held_object
@@ -492,7 +495,7 @@ can not be used with the current version of glib-compiled-resources, due to
                                               source.get_subdir())
                         if subdir not in typelib_includes:
                             typelib_includes.append(subdir)
-            elif isinstance(dep, dependencies.PkgConfigDependency):
+            elif isinstance(dep, PkgConfigDependency):
                 girdir = dep.get_pkgconfig_variable("girdir")
                 if girdir and girdir not in typelib_includes:
                     typelib_includes.append(girdir)
@@ -972,7 +975,7 @@ can not be used with the current version of glib-compiled-resources, due to
         for arg in arg_list:
             if hasattr(arg, 'held_object'):
                 arg = arg.held_object
-            if isinstance(arg, dependencies.InternalDependency):
+            if isinstance(arg, InternalDependency):
                 targets = [t for t in arg.sources if isinstance(t, VapiTarget)]
                 for target in targets:
                     srcdir = os.path.join(state.environment.get_source_dir(),
@@ -1075,11 +1078,9 @@ can not be used with the current version of glib-compiled-resources, due to
         # - link with with the correct library
         # - include the vapi and dependent vapi files in sources
         # - add relevant directories to include dirs
-        includes = [build.IncludeDirs(state.subdir, ['.'] + vapi_includes, False)]
+        incs = [build.IncludeDirs(state.subdir, ['.'] + vapi_includes, False)]
         sources = [vapi_target] + vapi_depends
-        return dependencies.InternalDependency(
-            None, includes, [], [], link_with, sources, []
-        )
+        return InternalDependency(None, incs, [], [], link_with, sources, [])
 
 def initialize():
     return GnomeModule()
