@@ -1953,6 +1953,9 @@ class VisualStudioCCompiler(CCompiler):
                     continue
                 else:
                     i = name + '.lib'
+            # -pthread in link flags is only used on Linux
+            elif i == '-pthread':
+                continue
             result.append(i)
         return result
 
