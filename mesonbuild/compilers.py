@@ -452,11 +452,22 @@ class Compiler():
                     extra_flags += environment.cross_info.config['properties'].get(lang_link_args_key, [])
         return extra_flags
 
+    def _get_compile_output(self, dirname, mode):
+        # In pre-processor mode, the output is sent to stdout and discarded
+        if mode == 'preprocess':
+            return None
+        # Extension only matters if running results; '.exe' is
+        # guaranteed to be executable on every platform.
+        if mode == 'link':
+            suffix = 'exe'
+        else:
+            suffix = 'obj'
+        return os.path.join(dirname, 'output.' + suffix)
+
     @contextlib.contextmanager
-    def compile(self, code, extra_args=None, compile_only=False):
+    def compile(self, code, extra_args=None, mode='link'):
         if extra_args is None:
             extra_args = []
-
         try:
             with tempfile.TemporaryDirectory() as tmpdirname:
                 if isinstance(code, str):
@@ -466,21 +477,19 @@ class Compiler():
                         ofile.write(code)
                 elif isinstance(code, mesonlib.File):
                     srcname = code.fname
+                output = self._get_compile_output(tmpdirname, mode)
 
-                # Extension only matters if running results; '.exe' is
-                # guaranteed to be executable on every platform.
-                if compile_only:
-                    suffix = 'obj'
-                else:
-                    suffix = 'exe'
-                output = os.path.join(tmpdirname, 'output.' + suffix)
-
+                # Construct the compiler command-line
                 commands = self.get_exelist()
                 commands.append(srcname)
                 commands += extra_args
-                commands += self.get_output_args(output)
-                if compile_only:
+                if mode == 'compile':
                     commands += self.get_compile_only_args()
+                # Preprocess mode outputs to stdout, so no output args
+                if mode == 'preprocess':
+                    commands += self.get_preprocess_only_args()
+                else:
+                    commands += self.get_output_args(output)
                 mlog.debug('Running compile:')
                 mlog.debug('Working directory: ', tmpdirname)
                 mlog.debug('Command line: ', ' '.join(commands), '\n')
@@ -579,6 +588,9 @@ class CCompiler(Compiler):
 
     def get_linker_exelist(self):
         return self.exelist[:]
+
+    def get_preprocess_only_args(self):
+        return ['-E']
 
     def get_compile_only_args(self):
         return ['-c']
@@ -710,7 +722,7 @@ class CCompiler(Compiler):
         if extra_args is None:
             extra_args = []
         code = '{}\n#include<{}>\nint someUselessSymbol;'.format(prefix, hname)
-        return self.compiles(code, env, extra_args, dependencies)
+        return self.compiles(code, env, extra_args, dependencies, 'preprocess')
 
     def has_header_symbol(self, hname, symbol, prefix, env, extra_args=None, dependencies=None):
         if extra_args is None:
@@ -747,7 +759,7 @@ int main () {{
                 after_args.append(arg)
         return before_args + args + after_args
 
-    def compiles(self, code, env, extra_args=None, dependencies=None):
+    def compiles(self, code, env, extra_args=None, dependencies=None, mode='compile'):
         if extra_args is None:
             extra_args = []
         if isinstance(extra_args, str):
@@ -771,7 +783,7 @@ int main () {{
         # Append both to the compiler args such that they override them
         args = self._override_args(args, extra_args)
         # We only want to compile; not link
-        with self.compile(code, args, compile_only=True) as p:
+        with self.compile(code, args, mode) as p:
             return p.returncode == 0
 
     def _links_wrapper(self, code, env, extra_args, dependencies):
@@ -1090,7 +1102,7 @@ void bar() {
         args = self.get_cross_extra_flags(env, compile=True, link=False)
         args += self.get_compiler_check_args()
         n = 'symbols_have_underscore_prefix'
-        with self.compile(code, args, compile_only=True) as p:
+        with self.compile(code, args, 'compile') as p:
             if p.returncode != 0:
                 m = 'BUG: Unable to compile {!r} check: {}'
                 raise RuntimeError(m.format(n, p.stdo))
@@ -1433,7 +1445,7 @@ class ValaCompiler(Compiler):
     def sanity_check(self, work_dir, environment):
         code = 'class MesonSanityCheck : Object { }'
         args = self.get_cross_extra_flags(environment, compile=True, link=False)
-        with self.compile(code, args, compile_only=True) as p:
+        with self.compile(code, args, 'compile') as p:
             if p.returncode != 0:
                 msg = 'Vala compiler {!r} can not compile programs' \
                       ''.format(self.name_string())
@@ -1454,7 +1466,7 @@ class ValaCompiler(Compiler):
             vapi_args = ['--pkg', libname]
             args = self.get_cross_extra_flags(env, compile=True, link=False)
             args += vapi_args
-            with self.compile(code, args, compile_only=True) as p:
+            with self.compile(code, args, 'compile') as p:
                 if p.returncode == 0:
                     return vapi_args
         # Not found? Try to find the vapi file itself.
@@ -1607,6 +1619,12 @@ class DCompiler(Compiler):
     def get_linker_exelist(self):
         return self.exelist[:]
 
+    def get_preprocess_only_args(self):
+        return ['-E']
+
+    def get_compile_only_args(self):
+        return ['-c']
+
     def depfile_for_object(self, objfile):
         return objfile + '.' + self.get_depfile_suffix()
 
@@ -1689,9 +1707,6 @@ class GnuDCompiler(DCompiler):
     def get_output_args(self, target):
         return ['-o', target]
 
-    def get_compile_only_args(self):
-        return ['-c']
-
     def get_linker_output_args(self, target):
         return ['-o', target]
 
@@ -1734,9 +1749,6 @@ class LLVMDCompiler(DCompiler):
 
     def get_output_args(self, target):
         return ['-of', target]
-
-    def get_compile_only_args(self):
-        return ['-c']
 
     def get_linker_output_args(self, target):
         return ['-of', target]
@@ -1792,9 +1804,6 @@ class DmdDCompiler(DCompiler):
 
     def get_werror_args(self):
         return ['-w']
-
-    def get_compile_only_args(self):
-        return ['-c']
 
     def get_linker_output_args(self, target):
         return ['-of' + target]
@@ -1872,6 +1881,9 @@ class VisualStudioCCompiler(CCompiler):
         base = os.path.split(header)[-1]
         pchname = self.get_pch_name(header)
         return ['/FI' + base, '/Yu' + base, '/Fp' + os.path.join(pch_dir, pchname)]
+
+    def get_preprocess_only_args(self):
+        return ['/E']
 
     def get_compile_only_args(self):
         return ['/c']
@@ -2435,6 +2447,9 @@ end program prog
 
     def get_output_args(self, target):
         return ['-o', target]
+
+    def get_preprocess_only_args(self):
+        return ['-E']
 
     def get_compile_only_args(self):
         return ['-c']
