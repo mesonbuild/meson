@@ -483,6 +483,7 @@ class Compiler():
                 commands = self.get_exelist()
                 commands.append(srcname)
                 commands += extra_args
+                commands += self.get_always_args()
                 if mode == 'compile':
                     commands += self.get_compile_only_args()
                 # Preprocess mode outputs to stdout, so no output args
@@ -1842,6 +1843,8 @@ class VisualStudioCCompiler(CCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrap):
         CCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
         self.id = 'msvc'
+        # /showIncludes is needed for build dependency tracking in Ninja
+        # See: https://ninja-build.org/manual.html#_deps
         self.always_args = ['/nologo', '/showIncludes']
         self.warn_args = {'1': ['/W2'],
                           '2': ['/W3'],
