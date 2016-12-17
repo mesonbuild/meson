@@ -169,6 +169,7 @@ class Conf:
                     'libdir',
                     'libexecdir',
                     'bindir',
+                    'sbindir',
                     'includedir',
                     'datadir',
                     'mandir',

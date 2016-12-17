@@ -208,6 +208,7 @@ builtin_options = {
         'libdir'            : [ UserStringOption, 'Library directory.', default_libdir() ],
         'libexecdir'        : [ UserStringOption, 'Library executable directory.', default_libexecdir() ],
         'bindir'            : [ UserStringOption, 'Executable directory.', 'bin' ],
+        'sbindir'           : [ UserStringOption, 'System executable directory.', 'sbin' ],
         'includedir'        : [ UserStringOption, 'Header file directory.', 'include' ],
         'datadir'           : [ UserStringOption, 'Data file directory.', 'share' ],
         'mandir'            : [ UserStringOption, 'Manual page directory.', 'share/man' ],

@@ -12,6 +12,7 @@
         --libdir=%{_libdir}                 \\\
         --libexecdir=%{_libexecdir}         \\\
         --bindir=%{_bindir}                 \\\
+        --sbindir=%{_sbindir}               \\\
         --includedir=%{_includedir}         \\\
         --datadir=%{_datadir}               \\\
         --mandir=%{_mandir}                 \\\
