@@ -212,6 +212,7 @@ builtin_options = {
         'includedir'        : [ UserStringOption, 'Header file directory.', 'include' ],
         'datadir'           : [ UserStringOption, 'Data file directory.', 'share' ],
         'mandir'            : [ UserStringOption, 'Manual page directory.', 'share/man' ],
+        'infodir'           : [ UserStringOption, 'Info page directory.', 'share/info' ],
         'localedir'         : [ UserStringOption, 'Locale data directory.', 'share/locale' ],
     # sysconfdir and localstatedir are a bit special. These defaults to ${prefix}/etc and
     # ${prefix}/var but nobody uses that. Instead they always set it manually to /etc and /var.

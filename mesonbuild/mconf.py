@@ -173,6 +173,7 @@ class Conf:
                     'includedir',
                     'datadir',
                     'mandir',
+                    'infodir',
                     'localedir',
                     'sysconfdir',
                     'localstatedir',

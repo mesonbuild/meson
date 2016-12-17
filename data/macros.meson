@@ -16,6 +16,7 @@
         --includedir=%{_includedir}         \\\
         --datadir=%{_datadir}               \\\
         --mandir=%{_mandir}                 \\\
+        --infodir=%{_infodir}               \\\
         --localedir=%{_datadir}/locale      \\\
         --sysconfdir=%{_sysconfdir}         \\\
         --localstatedir=%{_localstatedir}   \\\
