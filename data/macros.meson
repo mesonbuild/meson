@@ -20,6 +20,7 @@
         --localedir=%{_datadir}/locale      \\\
         --sysconfdir=%{_sysconfdir}         \\\
         --localstatedir=%{_localstatedir}   \\\
+        --sharedstatedir=%{_sharedstatedir} \\\
         %{_vpath_srcdir} %{_vpath_builddir} \\\
         %{nil}
 

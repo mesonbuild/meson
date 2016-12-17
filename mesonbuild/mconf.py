@@ -177,6 +177,7 @@ class Conf:
                     'localedir',
                     'sysconfdir',
                     'localstatedir',
+                    'sharedstatedir',
                 ]:
             parr.append([key, coredata.get_builtin_option_description(key),
                 self.coredata.get_builtin_option(key), coredata.get_builtin_option_choices(key)])
