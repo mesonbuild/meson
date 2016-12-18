@@ -2023,7 +2023,7 @@ requirements use the version keyword argument instead.''')
         absname = os.path.join(self.environment.get_source_dir(), buildfilename)
         if not os.path.isfile(absname):
             self.subdir = prev_subdir
-            raise InterpreterException('Nonexistant build def file %s.' % buildfilename)
+            raise InterpreterException('Nonexistent build def file %s.' % buildfilename)
         with open(absname, encoding='utf8') as f:
             code = f.read()
         assert(isinstance(code, str))
