@@ -338,7 +338,7 @@ class Backend():
         commands += compiler.get_always_args()
         if no_warn_args:
             commands += compiler.get_no_warn_args()
-        else:
+        elif self.environment.coredata.get_builtin_option('buildtype') != 'plain':
             commands += compiler.get_warn_args(self.environment.coredata.get_builtin_option('warning_level'))
         commands += compiler.get_option_compile_args(self.environment.coredata.compiler_options)
         commands += self.build.get_global_args(compiler)
