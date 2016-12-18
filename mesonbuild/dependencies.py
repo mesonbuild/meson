@@ -92,7 +92,7 @@ class InternalDependency(Dependency):
         return self.version
 
 class PkgConfigDependency(Dependency):
-    pkgconfig_found = None
+    pkgbin = None
 
     def __init__(self, name, environment, kwargs):
         Dependency.__init__(self, 'pkgconfig')
@@ -109,36 +109,40 @@ class PkgConfigDependency(Dependency):
         else:
             want_cross = environment.is_cross_build()
         self.name = name
-        if PkgConfigDependency.pkgconfig_found is None:
-            self.check_pkgconfig()
+
+        # When finding dependencies for cross-compiling, we don't care about
+        # the 'native' pkg-config
+        if want_cross:
+            if 'pkgconfig' not in env.cross_info.config['binaries']:
+                if self.required:
+                    raise DependencyException('Pkg-config binary missing from cross file')
+            else:
+                pkgbin = environment.cross_info.config['binaries']['pkgconfig']
+        # Only search for the native pkg-config the first time and
+        # store the result in the class definition
+        elif PkgConfigDependency.pkgbin is None:
+            PkgConfigDependency.pkgbin = self.check_pkgconfig()
 
         self.is_found = False
-        if not PkgConfigDependency.pkgconfig_found:
+        if not self.pkgbin:
             if self.required:
                 raise DependencyException('Pkg-config not found.')
             return
-        if environment.is_cross_build() and want_cross:
-            if "pkgconfig" not in environment.cross_info.config["binaries"]:
-                raise DependencyException('Pkg-config binary missing from cross file.')
-            pkgbin = environment.cross_info.config["binaries"]['pkgconfig']
+        if want_cross:
             self.type_string = 'Cross'
         else:
-            evar = 'PKG_CONFIG'
-            if evar in os.environ:
-                pkgbin = os.environ[evar].strip()
-            else:
-                pkgbin = 'pkg-config'
             self.type_string = 'Native'
 
-        mlog.debug('Determining dependency %s with pkg-config executable %s.' % (name, pkgbin))
-        self.pkgbin = pkgbin
+        mlog.debug('Determining dependency {!r} with pkg-config executable '
+                   '{!r}'.format(name, self.pkgbin))
         ret, self.modversion = self._call_pkgbin(['--modversion', name])
         if ret != 0:
             if self.required:
-                raise DependencyException('%s dependency %s not found.' % (self.type_string, name))
+                raise DependencyException('{} dependency {!r} not found'
+                                          ''.format(self.type_string, name))
             self.modversion = 'none'
             return
-        found_msg = ['%s dependency' % self.type_string, mlog.bold(name), 'found:']
+        found_msg = [self.type_string + ' dependency', mlog.bold(name), 'found:']
         self.version_reqs = kwargs.get('version', None)
         if self.version_reqs is None:
             self.is_found = True
@@ -236,24 +240,30 @@ class PkgConfigDependency(Dependency):
         return self.libs
 
     def check_pkgconfig(self):
+        evar = 'PKG_CONFIG'
+        if evar in os.environ:
+            pkgbin = os.environ[evar].strip()
+        else:
+            pkgbin = 'pkg-config'
         try:
-            evar = 'PKG_CONFIG'
-            if evar in os.environ:
-                pkgbin = os.environ[evar].strip()
-            else:
-                pkgbin = 'pkg-config'
             p, out = Popen_safe([pkgbin, '--version'])[0:2]
-            if p.returncode == 0:
-                if not self.silent:
-                    mlog.log('Found pkg-config:', mlog.bold(shutil.which(pkgbin)),
-                             '(%s)' % out.strip())
-                PkgConfigDependency.pkgconfig_found = True
-                return
+            if p.returncode != 0:
+                # Set to False instead of None to signify that we've already
+                # searched for it and not found it
+                pkgbin = False
         except (FileNotFoundError, PermissionError):
-            pass
-        PkgConfigDependency.pkgconfig_found = False
+            pkgbin = False
+        if pkgbin and not os.path.isabs(pkgbin) and shutil.which(pkgbin):
+            # Sometimes shutil.which fails where Popen succeeds, so
+            # only find the abs path if it can be found by shutil.which
+            pkgbin = shutil.which(pkgbin)
         if not self.silent:
-            mlog.log('Found Pkg-config:', mlog.red('NO'))
+            if pkgbin:
+                mlog.log('Found pkg-config:', mlog.bold(pkgbin),
+                         '(%s)' % out.strip())
+            else:
+                mlog.log('Found Pkg-config:', mlog.red('NO'))
+        return pkgbin
 
     def found(self):
         return self.is_found
@@ -373,6 +383,8 @@ class WxDependency(Dependency):
         return self.is_found
 
 class ExternalProgram():
+    windows_exts = ('exe', 'com', 'bat')
+
     def __init__(self, name, fullpath=None, silent=False, search_dir=None):
         self.name = name
         if fullpath is not None:
@@ -410,11 +422,10 @@ class ExternalProgram():
             pass
         return False
 
-    @staticmethod
-    def _is_executable(path):
+    def _is_executable(self, path):
         suffix = os.path.splitext(path)[-1].lower()[1:]
         if mesonlib.is_windows():
-            if suffix == 'exe' or suffix == 'com' or suffix == 'bat':
+            if suffix in self.windows_exts:
                 return True
         elif os.access(path, os.X_OK):
             return True
@@ -424,10 +435,15 @@ class ExternalProgram():
         if search_dir is None:
             return False
         trial = os.path.join(search_dir, name)
-        if not os.path.exists(trial):
+        if os.path.exists(trial):
+            if self._is_executable(trial):
+                return [trial]
+        else:
+            for ext in self.windows_exts:
+                trial_ext = '{}.{}'.format(trial, ext)
+                if os.path.exists(trial_ext):
+                    return [trial_ext]
             return False
-        if self._is_executable(trial):
-            return [trial]
         # Now getting desperate. Maybe it is a script file that is a) not chmodded
         # executable or b) we are on windows so they can't be directly executed.
         return self._shebang_to_cmd(trial)
@@ -441,6 +457,11 @@ class ExternalProgram():
         if fullpath or not mesonlib.is_windows():
             # On UNIX-like platforms, the standard PATH search is enough
             return [fullpath]
+        # On Windows, if name is an absolute path, we need the extension too
+        for ext in self.windows_exts:
+            fullpath = '{}.{}'.format(name, ext)
+            if os.path.exists(fullpath):
+                return [fullpath]
         # On Windows, interpreted scripts must have an extension otherwise they
         # cannot be found by a standard PATH search. So we do a custom search
         # where we manually search for a script with a shebang in PATH.
@@ -1018,8 +1039,9 @@ class QtBaseDependency(Dependency):
         # penalty when using self-built Qt or on platforms
         # where -fPIC is not required. If this is an issue
         # for you, patches are welcome.
-        # Fix this to be more portable, especially to MSVC.
-        return ['-fPIC']
+        if mesonlib.is_linux():
+            return ['-fPIC']
+        return []
 
 class Qt5Dependency(QtBaseDependency):
     def __init__(self, env, kwargs):

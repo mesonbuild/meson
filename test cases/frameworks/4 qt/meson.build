@@ -30,6 +30,9 @@ foreach qt : ['qt4', 'qt5']
       qresources : ['stuff.qrc', 'stuff2.qrc'], # Resource file for rcc compiler.
     )
 
+    # Test that setting a unique name with a positional argument works
+    qtmodule.preprocess(qt + 'teststuff', qresources : ['stuff.qrc'])
+
     qexe = executable(qt + 'app',
       sources : ['main.cpp', 'mainWindow.cpp', # Sources that don't need preprocessing.
       prep],
