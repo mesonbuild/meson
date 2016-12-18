@@ -457,7 +457,7 @@ class Environment():
                 if 'PathScale EKOPath(tm)' in err:
                     return PathScaleFortranCompiler([compiler], version, is_cross, exe_wrap)
 
-                if 'pgf90' in out:
+                if 'PGI Compilers' in out:
                     return PGIFortranCompiler([compiler], version, is_cross, exe_wrap)
 
                 if 'Open64 Compiler Suite' in err:
