@@ -373,6 +373,8 @@ class WxDependency(Dependency):
         return self.is_found
 
 class ExternalProgram():
+    windows_exts = ('exe', 'com', 'bat')
+
     def __init__(self, name, fullpath=None, silent=False, search_dir=None):
         self.name = name
         if fullpath is not None:
@@ -410,11 +412,10 @@ class ExternalProgram():
             pass
         return False
 
-    @staticmethod
-    def _is_executable(path):
+    def _is_executable(self, path):
         suffix = os.path.splitext(path)[-1].lower()[1:]
         if mesonlib.is_windows():
-            if suffix == 'exe' or suffix == 'com' or suffix == 'bat':
+            if suffix in self.windows_exts:
                 return True
         elif os.access(path, os.X_OK):
             return True
@@ -424,10 +425,15 @@ class ExternalProgram():
         if search_dir is None:
             return False
         trial = os.path.join(search_dir, name)
-        if not os.path.exists(trial):
+        if os.path.exists(trial):
+            if self._is_executable(trial):
+                return [trial]
+        else:
+            for ext in self.windows_exts:
+                trial_ext = '{}.{}'.format(trial, ext)
+                if os.path.exists(trial_ext):
+                    return [trial_ext]
             return False
-        if self._is_executable(trial):
-            return [trial]
         # Now getting desperate. Maybe it is a script file that is a) not chmodded
         # executable or b) we are on windows so they can't be directly executed.
         return self._shebang_to_cmd(trial)
@@ -441,6 +447,11 @@ class ExternalProgram():
         if fullpath or not mesonlib.is_windows():
             # On UNIX-like platforms, the standard PATH search is enough
             return [fullpath]
+        # On Windows, if name is an absolute path, we need the extension too
+        for ext in self.windows_exts:
+            fullpath = '{}.{}'.format(name, ext)
+            if os.path.exists(fullpath):
+                return [fullpath]
         # On Windows, interpreted scripts must have an extension otherwise they
         # cannot be found by a standard PATH search. So we do a custom search
         # where we manually search for a script with a shebang in PATH.
