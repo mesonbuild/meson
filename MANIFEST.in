@@ -1,10 +1,10 @@
-graft test?cases
-graft manual?tests
-graft cross
-graft data
-graft graphics
-graft man
-graft tools
+recursive-include test?cases *
+recursive-include manual?tests *
+recursive-include cross *
+recursive-include data *
+recursive-include graphics *
+recursive-include man *
+recursive-include tools *
 include authors.txt
 include contributing.txt
 include COPYING
