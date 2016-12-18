@@ -208,21 +208,24 @@ builtin_options = {
         'libdir'            : [ UserStringOption, 'Library directory.', default_libdir() ],
         'libexecdir'        : [ UserStringOption, 'Library executable directory.', default_libexecdir() ],
         'bindir'            : [ UserStringOption, 'Executable directory.', 'bin' ],
+        'sbindir'           : [ UserStringOption, 'System executable directory.', 'sbin' ],
         'includedir'        : [ UserStringOption, 'Header file directory.', 'include' ],
         'datadir'           : [ UserStringOption, 'Data file directory.', 'share' ],
         'mandir'            : [ UserStringOption, 'Manual page directory.', 'share/man' ],
+        'infodir'           : [ UserStringOption, 'Info page directory.', 'share/info' ],
         'localedir'         : [ UserStringOption, 'Locale data directory.', 'share/locale' ],
-    # sysconfdir and localstatedir are a bit special. These defaults to ${prefix}/etc and
-    # ${prefix}/var but nobody uses that. Instead they always set it manually to /etc and /var.
-    # This default values is thus pointless and not really used but we set it to this
-    # for consistency with other systems.
+    # sysconfdir, localstatedir and sharedstatedir are a bit special. These defaults to ${prefix}/etc,
+    # ${prefix}/var and ${prefix}/com but nobody uses that. Instead they always set it
+    # manually to /etc, /var and /var/lib. This default values is thus pointless and not really used
+    # but we set it to this for consistency with other systems.
     #
-    # Projects installing to sysconfdir and/or localstatedir probably want
+    # Projects installing to sysconfdir, localstatedir or sharedstatedir probably want
     # to set the following in project():
     #
-    # default_options : ['sysconfdir=/etc', 'localstatedir=/var']
+    # default_options : ['sysconfdir=/etc', 'localstatedir=/var', 'sharedstatedir=/var/lib']
         'sysconfdir'        : [ UserStringOption, 'Sysconf data directory.', 'etc' ],
         'localstatedir'     : [ UserStringOption, 'Localstate data directory.', 'var' ],
+        'sharedstatedir'    : [ UserStringOption, 'Architecture-independent data directory.', 'com' ],
         'werror'            : [ UserBooleanOption, 'Treat warnings as errors.', False ],
         'warning_level'     : [ UserComboOption, 'Compiler warning level to use.', [ '1', '2', '3' ], '1'],
         'layout'            : [ UserComboOption, 'Build directory layout.', ['mirror', 'flat' ], 'mirror' ],
