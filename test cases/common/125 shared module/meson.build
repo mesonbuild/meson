@@ -1,9 +1,5 @@
 project('shared module', 'c')
 
-if meson.backend().startswith('vs')
-  error('MESON_SKIP_TEST for some reason /FORCE does not work in the VS backend.')
-endif
-
 dl = meson.get_compiler('c').find_library('dl', required : false)
 l = shared_library('runtime', 'runtime.c')
 # Do NOT link the module with the runtime library. This
