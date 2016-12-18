@@ -102,14 +102,14 @@ class I18nModule:
             updatepoargs.append(extra_args)
         updatepotarget = build.RunTarget(packagename + '-update-po', sys.executable, updatepoargs, [], state.subdir)
 
-        installcmd = [sys.executable, state.environment.get_build_command(),
-                      '--internal', 'gettext', 'install',
-                      '--subdir=' + state.subdir,
-                      '--localedir=' + state.environment.coredata.get_builtin_option('localedir'),
-                      pkg_arg]
+        script = [sys.executable,  state.environment.get_build_command()]
+        args = ['--internal', 'gettext', 'install',
+                '--subdir=' + state.subdir,
+                '--localedir=' + state.environment.coredata.get_builtin_option('localedir'),
+                pkg_arg]
         if lang_arg:
-            installcmd.append(lang_arg)
-        iscript = build.InstallScript(installcmd)
+            args.append(lang_arg)
+        iscript = build.InstallScript(script, args)
 
         return [pottarget, gmotarget, iscript, updatepotarget]
 

@@ -132,34 +132,23 @@ def install_headers(d):
 def run_install_script(d):
     env = {'MESON_SOURCE_ROOT' : d.source_dir,
            'MESON_BUILD_ROOT' : d.build_dir,
-           'MESON_INSTALL_PREFIX' : d.prefix
+           'MESON_INSTALL_PREFIX' : d.prefix,
+           'MESON_INSTALL_DESTDIR_PREFIX' : d.fullprefix,
           }
     child_env = os.environ.copy()
     child_env.update(env)
 
     for i in d.install_scripts:
-        final_command = i.cmd_arr
-        script = i.cmd_arr[0]
-        print('Running custom install script %s' % script)
-        suffix = os.path.splitext(script)[1].lower()
-        if platform.system().lower() == 'windows' and suffix != '.bat':
-            with open(script, encoding='latin_1', errors='ignore') as f:
-                first_line = f.readline().strip()
-            if first_line.startswith('#!'):
-                if shutil.which(first_line[2:]):
-                    commands = [first_line[2:]]
-                else:
-                    commands = first_line[2:].split('#')[0].strip().split()
-                    commands[0] = shutil.which(commands[0].split('/')[-1])
-                    if commands[0] is None:
-                        raise RuntimeError("Don't know how to run script %s." % script)
-                final_command = commands + [script] + i.cmd_arr[1:]
+        script = i['exe']
+        args = i['args']
+        name = ' '.join(script + args)
+        print('Running custom install script {!r}'.format(name))
         try:
-            rc = subprocess.call(final_command, env=child_env)
+            rc = subprocess.call(script + args, env=child_env)
             if rc != 0:
                 sys.exit(rc)
         except:
-            print('Failed to run install script:', *i.cmd_arr)
+            print('Failed to run install script {!r}'.format(name))
             sys.exit(1)
 
 def is_elf_platform():

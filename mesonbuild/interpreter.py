@@ -1007,26 +1007,26 @@ class MesonMain(InterpreterObject):
                             })
 
     def add_install_script_method(self, args, kwargs):
-        if len(args) != 1:
-            raise InterpreterException('Set_install_script takes exactly one argument.')
-        check_stringlist(args)
-        scriptbase = args[0]
-        scriptfile = os.path.join(self.interpreter.environment.source_dir,
-                                  self.interpreter.subdir, scriptbase)
-        if not os.path.isfile(scriptfile):
-            raise InterpreterException('Can not find install script %s.' % scriptbase)
-        self.build.install_scripts.append(build.InstallScript([scriptfile]))
-
-    def add_postconf_script_method(self, args, kwargs):
         if len(args) < 1:
-            raise InterpreterException('Not enough arguments')
-        check_stringlist(args, 'add_postconf_script arguments must be strings.')
+            raise InterpreterException('add_install_script takes one or more arguments')
+        check_stringlist(args, 'add_install_script args must be strings')
         scriptbase = args[0]
         search_dir = os.path.join(self.interpreter.environment.source_dir,
                                   self.interpreter.subdir)
-        exe = dependencies.ExternalProgram(scriptbase, search_dir=search_dir)
+        script = dependencies.ExternalProgram(scriptbase, search_dir=search_dir)
         extras = args[1:]
-        self.build.postconf_scripts.append({'exe': exe, 'args': extras})
+        self.build.install_scripts.append({'exe': script.get_command(), 'args': extras})
+
+    def add_postconf_script_method(self, args, kwargs):
+        if len(args) < 1:
+            raise InterpreterException('add_postconf_script takes one or more arguments')
+        check_stringlist(args, 'add_postconf_script arguments must be strings')
+        scriptbase = args[0]
+        search_dir = os.path.join(self.interpreter.environment.source_dir,
+                                  self.interpreter.subdir)
+        script = dependencies.ExternalProgram(scriptbase, search_dir=search_dir)
+        extras = args[1:]
+        self.build.postconf_scripts.append({'exe': script, 'args': extras})
 
     def current_source_dir_method(self, args, kwargs):
         src = self.interpreter.environment.source_dir

@@ -599,10 +599,8 @@ can not be used with the current version of glib-compiled-resources, due to
         if kwargs:
             raise MesonException('Unknown arguments passed: {}'.format(', '.join(kwargs.keys())))
 
-        install_cmd = [
-            sys.executable,
-            state.environment.get_build_command(),
-            '--internal',
+        script = [sys.executable, state.environment.get_build_command()]
+        args = ['--internal',
             'yelphelper',
             'install',
             '--subdir=' + state.subdir,
@@ -611,12 +609,12 @@ can not be used with the current version of glib-compiled-resources, due to
             '--sources=' + source_str,
         ]
         if symlinks:
-            install_cmd.append('--symlinks=true')
+            args.append('--symlinks=true')
         if media:
-            install_cmd.append('--media=' + '@@'.join(media))
+            args.append('--media=' + '@@'.join(media))
         if langs:
-            install_cmd.append('--langs=' + '@@'.join(langs))
-        inscript = build.InstallScript(install_cmd)
+            args.append('--langs=' + '@@'.join(langs))
+        inscript = build.InstallScript(script, args)
 
         potargs = [state.environment.get_build_command(), '--internal', 'yelphelper', 'pot',
                    '--subdir=' + state.subdir,
@@ -654,7 +652,7 @@ can not be used with the current version of glib-compiled-resources, due to
                 raise MesonException('You can only specify main_xml or main_sgml, not both.')
             main_file = main_xml
         targetname = modulename + '-doc'
-        command = [state.environment.get_build_command(), '--internal', 'gtkdoc']
+        command = [sys.executable, state.environment.get_build_command()]
 
         namespace = kwargs.get('namespace', '')
         mode = kwargs.get('mode', 'auto')
@@ -677,7 +675,8 @@ can not be used with the current version of glib-compiled-resources, due to
             else:
                 header_dirs.append(src_dir)
 
-        args = ['--sourcedir=' + state.environment.get_source_dir(),
+        args = ['--internal', 'gtkdoc',
+                '--sourcedir=' + state.environment.get_source_dir(),
                 '--builddir=' + state.environment.get_build_dir(),
                 '--subdir=' + state.subdir,
                 '--headerdirs=' + '@@'.join(header_dirs),
@@ -697,9 +696,9 @@ can not be used with the current version of glib-compiled-resources, due to
         args += self._unpack_args('--ignore-headers=', 'ignore_headers', kwargs)
         args += self._unpack_args('--installdir=', 'install_dir', kwargs, state)
         args += self._get_build_args(kwargs, state)
-        res = [build.RunTarget(targetname, command[0], command[1:] + args, [], state.subdir)]
+        res = [build.RunTarget(targetname, command[0], command[1:] + sargs, [], state.subdir)]
         if kwargs.get('install', True):
-            res.append(build.InstallScript(command + args))
+            res.append(build.InstallScript(command, args))
         return res
 
     def _get_build_args(self, kwargs, state):
