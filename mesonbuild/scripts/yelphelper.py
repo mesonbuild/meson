@@ -1,4 +1,4 @@
-# Copyright 2016 Patrick Griffis <tingping@tingping.se>
+# Copyright 2016 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
