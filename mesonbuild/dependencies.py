@@ -1029,8 +1029,9 @@ class QtBaseDependency(Dependency):
         # penalty when using self-built Qt or on platforms
         # where -fPIC is not required. If this is an issue
         # for you, patches are welcome.
-        # Fix this to be more portable, especially to MSVC.
-        return ['-fPIC']
+        if mesonlib.is_linux():
+            return ['-fPIC']
+        return []
 
 class Qt5Dependency(QtBaseDependency):
     def __init__(self, env, kwargs):
