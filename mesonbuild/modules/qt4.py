@@ -107,10 +107,10 @@ class Qt4Module():
         moc_sources = kwargs.pop('moc_sources', [])
         if not isinstance(moc_sources, list):
             moc_sources = [moc_sources]
-        srctmp = kwargs.pop('sources', [])
-        if not isinstance(srctmp, list):
-            srctmp = [srctmp]
-        sources = args[1:] + srctmp
+        sources = kwargs.pop('sources', [])
+        if not isinstance(sources, list):
+            sources = [sources]
+        sources += args[1:]
         self._detect_tools(state.environment)
         err_msg = "{0} sources specified and couldn't find {1}, " \
                   "please check your qt4 installation"
@@ -122,8 +122,11 @@ class Qt4Module():
             qrc_deps = []
             for i in rcc_files:
                 qrc_deps += self.parse_qrc(state, i)
-            basename = os.path.split(rcc_files[0])[1]
-            name = 'qt4-' + basename.replace('.', '_')
+            if len(args) > 0:
+                name = args[0]
+            else:
+                basename = os.path.split(rcc_files[0])[1]
+                name = 'qt4-' + basename.replace('.', '_')
             rcc_kwargs = {'input' : rcc_files,
                     'output' : name + '.cpp',
                     'command' : [self.rcc, '-o', '@OUTPUT@', '@INPUT@'],
