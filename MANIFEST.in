@@ -4,6 +4,7 @@ graft cross
 graft data
 graft graphics
 graft man
+graft syntax-highlighting
 graft tools
 include authors.txt
 include contributing.txt
