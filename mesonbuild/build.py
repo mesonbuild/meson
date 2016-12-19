@@ -1482,9 +1482,9 @@ class Data():
         for s in self.sources:
             assert(isinstance(s, File))
 
-class InstallScript(dict):
+class RunScript(dict):
     def __init__(self, script, args):
-        super(InstallScript, self).__init__()
+        super().__init__()
         assert(isinstance(script, list))
         assert(isinstance(args, list))
         self['exe'] = script

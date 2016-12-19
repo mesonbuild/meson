@@ -614,7 +614,7 @@ can not be used with the current version of glib-compiled-resources, due to
             args.append('--media=' + '@@'.join(media))
         if langs:
             args.append('--langs=' + '@@'.join(langs))
-        inscript = build.InstallScript(script, args)
+        inscript = build.RunScript(script, args)
 
         potargs = [state.environment.get_build_command(), '--internal', 'yelphelper', 'pot',
                    '--subdir=' + state.subdir,
@@ -698,7 +698,7 @@ can not be used with the current version of glib-compiled-resources, due to
         args += self._get_build_args(kwargs, state)
         res = [build.RunTarget(targetname, command[0], command[1:] + args, [], state.subdir)]
         if kwargs.get('install', True):
-            res.append(build.InstallScript(command, args))
+            res.append(build.RunScript(command, args))
         return res
 
     def _get_build_args(self, kwargs, state):
