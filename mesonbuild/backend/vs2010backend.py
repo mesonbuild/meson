@@ -733,7 +733,6 @@ class Vs2010Backend(backends.Backend):
         if len(target_args) > 0:
             target_args.append('%(AdditionalOptions)')
             ET.SubElement(clconf, "AdditionalOptions").text = ' '.join(target_args)
-        additional_options_set = True
 
         for d in target.include_dirs:
             for i in d.incdirs:

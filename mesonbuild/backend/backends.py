@@ -161,7 +161,6 @@ class Backend():
 
         # For each language, generate a unity source file and return the list
         for comp, srcs in compsrcs.items():
-            lang = comp.get_language()
             with init_language_file(comp.get_default_suffix()) as ofile:
                 for src in srcs:
                     ofile.write('#include<%s>\n' % src)

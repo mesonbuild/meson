@@ -32,7 +32,6 @@ def need_regen(regeninfo, regen_timestamp):
     return False
 
 def regen(regeninfo, mesonscript, backend):
-    scriptdir = os.path.split(__file__)[0]
     cmd = [sys.executable,
            mesonscript,
            '--internal',

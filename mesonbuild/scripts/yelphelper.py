@@ -81,7 +81,6 @@ def install_help(srcdir, blddir, sources, media, langs, install_dir, destdir, pr
                         os.makedirs(os.path.dirname(outfile), exist_ok=True)
                     os.symlink(srcfile, outfile)
                 continue
-            symfile = os.path.join(install_dir, m)
             mlog.log('Installing %s to %s.' %(infile, outfile))
             if '/' in m or '\\' in m:
                 os.makedirs(os.path.dirname(outfile), exist_ok=True)

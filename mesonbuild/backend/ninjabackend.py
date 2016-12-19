@@ -1283,7 +1283,6 @@ int dummy;
                 outfile.write(command)
                 outfile.write(description)
                 outfile.write('\n')
-        scriptdir = self.environment.get_script_dir()
         outfile.write('\n')
         symrule = 'rule SHSYM\n'
         symcmd = ' command = "%s" "%s" %s %s %s %s $CROSS\n' % (ninja_quote(sys.executable),
