@@ -345,7 +345,7 @@ class WxDependency(Dependency):
 
     def get_requested(self, kwargs):
         modules = 'modules'
-        if not modules in kwargs:
+        if modules not in kwargs:
             return []
         candidates = kwargs[modules]
         if isinstance(candidates, str):

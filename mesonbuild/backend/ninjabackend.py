@@ -268,7 +268,7 @@ int dummy;
             return False
         suffix = os.path.splitext(source)[1][1:]
         for lang in self.langs_cant_unity:
-            if not lang in target.compilers:
+            if lang not in target.compilers:
                 continue
             if suffix in target.compilers[lang].file_suffixes:
                 return False
@@ -433,7 +433,7 @@ int dummy;
     def process_target_dependencies(self, target, outfile):
         for t in target.get_dependencies():
             tname = t.get_basename() + t.type_suffix()
-            if not tname in self.processed_targets:
+            if tname not in self.processed_targets:
                 self.generate_target(t, outfile)
 
     def custom_target_generator_inputs(self, target, outfile):
@@ -2076,7 +2076,7 @@ rule FORTRAN_DEP_HACK
         result = []
         for ld in link_deps:
             prospective = self.get_target_dir(ld)
-            if not prospective in result:
+            if prospective not in result:
                 result.append(prospective)
         return result
 

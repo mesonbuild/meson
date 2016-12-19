@@ -830,9 +830,9 @@ class CrossBuildInfo():
         self.parse_datafile(filename)
         if 'target_machine' in self.config:
             return
-        if not 'host_machine' in self.config:
+        if 'host_machine' not in self.config:
             raise mesonlib.MesonException('Cross info file must have either host or a target machine.')
-        if not 'binaries' in self.config:
+        if 'binaries' not in self.config:
             raise mesonlib.MesonException('Cross file is missing "binaries".')
 
     def ok_type(self, i):
