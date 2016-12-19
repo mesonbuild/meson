@@ -748,7 +748,7 @@ class BuildTarget():
             if hasattr(t, 'held_object'):
                 t = t.held_object
             if not isinstance(t, (StaticLibrary, SharedLibrary)):
-                raise InvalidArguments('Link target {!r} is not library.'.format(t.name))
+                raise InvalidArguments('Link target {!r} is not library.'.format(t))
             if isinstance(self, SharedLibrary) and isinstance(t, StaticLibrary) and not t.pic:
                 msg = "Can't link non-PIC static library {!r} into shared library {!r}. ".format(t.name, self.name)
                 msg += "Use the 'pic' option to static_library to build with PIC."
