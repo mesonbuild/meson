@@ -24,6 +24,7 @@ from ..mesonlib import MesonException, Popen_safe
 from ..dependencies import Dependency, PkgConfigDependency, InternalDependency
 from .. import mlog
 from .. import mesonlib
+from .. import compilers
 from .. import interpreter
 from . import find_program, GResourceTarget, GResourceHeaderTarget, GirTarget, TypelibTarget, VapiTarget
 

@@ -65,9 +65,6 @@ class Dependency():
     def need_threads(self):
         return False
 
-    def type_name(self):
-        return self.type_name
-
     def get_pkgconfig_variable(self, variable_name):
         raise MesonException('Tried to get a pkg-config variable from a non-pkgconfig dependency.')
 

@@ -22,6 +22,10 @@ class MesonException(Exception):
     def __init__(self, *args, **kwargs):
         Exception.__init__(self, *args, **kwargs)
 
+class EnvironmentException(MesonException):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
 class File:
     def __init__(self, is_built, subdir, fname):
         self.is_built = is_built

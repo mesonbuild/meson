@@ -18,7 +18,7 @@ import subprocess, os.path
 import tempfile
 from .import mesonlib
 from . import mlog
-from .mesonlib import MesonException, version_compare, Popen_safe
+from .mesonlib import EnvironmentException, MesonException, version_compare, Popen_safe
 from . import coredata
 
 """This file contains the data files of all compilers Meson knows
@@ -313,10 +313,6 @@ def build_unix_rpath_args(build_dir, rpath_paths, install_rpath):
             else:
                 paths = paths + ':' + padding
         return ['-Wl,-rpath,' + paths]
-
-class EnvironmentException(MesonException):
-    def __init(self, *args, **kwargs):
-        Exception.__init__(self, *args, **kwargs)
 
 class CrossNoRunException(MesonException):
     def __init(self, *args, **kwargs):
