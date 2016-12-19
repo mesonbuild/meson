@@ -132,7 +132,11 @@ def write_json_log(jsonlogfile, test_name, result):
               'duration' : result.duration,
               'returncode' : result.returncode,
               'command' : result.cmd,
-              'env' : result.env}
+              }
+    if isinstance(result.env, dict):
+        jresult['env'] = result.env
+    else:
+        jresult['env'] = result.env.get_env(os.environ)
     if result.stde:
         jresult['stderr'] = result.stde
     jsonlogfile.write(json.dumps(jresult) + '\n')

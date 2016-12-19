@@ -24,9 +24,12 @@ assert (cpp.has_header_symbol('iostream', 'std::iostream'), 'iostream not found 
 assert (cpp.has_header_symbol('vector', 'std::vector'), 'vector not found in vector.h')
 assert (not cpp.has_header_symbol('limits.h', 'std::iostream'), 'iostream should not be defined in limits.h')
 
-boost = dependency('boost', required : false)
-if boost.found()
-  assert (cpp.has_header_symbol('boost/math/quaternion.hpp', 'boost::math::quaternion', dependencies : boost), 'quaternion not found')
-else
-  assert (not cpp.has_header_symbol('boost/math/quaternion.hpp', 'boost::math::quaternion', dependencies : boost), 'quaternion found?!')
+# Cross compilation and boost do not mix.
+if not meson.is_cross_build()
+  boost = dependency('boost', required : false)
+  if boost.found()
+    assert (cpp.has_header_symbol('boost/math/quaternion.hpp', 'boost::math::quaternion', dependencies : boost), 'quaternion not found')
+  else
+    assert (not cpp.has_header_symbol('boost/math/quaternion.hpp', 'boost::math::quaternion',  dependencies : boost), 'quaternion found?!')
+  endif
 endif
