@@ -22,68 +22,27 @@ Not part of the main test suite because of two reasons:
 
 Eventually migrate to something fancier.'''
 
-import os, subprocess, shutil, sys
-import mesonbuild.environment as environment
+import sys, os
 
-from run_project_tests import gather_tests
+from run_project_tests import gather_tests, run_tests, StopException, setup_commands
+from run_project_tests import failing_logs
 
-test_build_dir = 'work area'
-install_dir = os.path.join(os.path.split(os.path.abspath(__file__))[0], 'install dir')
-meson_command = './meson.py'
-
-extra_flags = ['--cross-file', sys.argv[1]]
-ninja_command = environment.detect_ninja()
-if ninja_command is None:
-    raise RuntimeError('Could not find Ninja v1.6 or newer')
-compile_commands = [ninja_command]
-test_commands = [ninja_command, 'test']
-install_commands = [ninja_command, 'install']
-
-def run_test(testdir, should_succeed=True):
-    shutil.rmtree(test_build_dir)
-    shutil.rmtree(install_dir)
-    os.mkdir(test_build_dir)
-    os.mkdir(install_dir)
-    print('Running test: ' + testdir)
-    gen_command = [sys.executable, meson_command, '--prefix', '/usr', '--libdir', 'lib', testdir, test_build_dir] + extra_flags
-    p = subprocess.Popen(gen_command)
-    p.wait()
-    if not should_succeed:
-        if p.returncode != 0:
-            return
-        raise RuntimeError('Test that should fail succeeded.')
-    if p.returncode != 0:
-        raise RuntimeError('Generating the build system failed.')
-    pc = subprocess.Popen(compile_commands, cwd=test_build_dir)
-    pc.wait()
-    if pc.returncode != 0:
-        raise RuntimeError('Compiling source code failed.')
-    pt = subprocess.Popen(test_commands, cwd=test_build_dir)
-    pt.wait()
-    if pt.returncode != 0:
-        raise RuntimeError('Running unit tests failed.')
-    install_env = os.environ.copy()
-    install_env['DESTDIR'] = install_dir
-    pi = subprocess.Popen(install_commands, cwd=test_build_dir, env=install_env)
-    pi.wait()
-    if pi.returncode != 0:
-        raise RuntimeError('Running install failed.')
-
-def run_tests():
-    commontests = gather_tests('test cases/common')
+def runtests(cross_file):
+    commontests = [('common', gather_tests('test cases/common'), False)]
     try:
-        os.mkdir(test_build_dir)
-    except OSError:
+        (passing_tests, failing_tests, skipped_tests) = run_tests(commontests, 'meson-cross-test-run', ['--cross', cross_file])
+    except StopException:
         pass
-    try:
-        os.mkdir(install_dir)
-    except OSError:
-        pass
-    print('\nRunning cross compilation tests.\n')
-    [run_test(t) for t in commontests]
+    print('\nTotal passed cross tests:', passing_tests)
+    print('Total failed cross tests:', failing_tests)
+    print('Total skipped cross tests:', skipped_tests)
+    if failing_tests > 0 and ('TRAVIS' in os.environ or 'APPVEYOR' in os.environ):
+        print('\nMesonlogs of failing tests\n')
+        for l in failing_logs:
+            print(l, '\n')
+    sys.exit(failing_tests)
 
 if __name__ == '__main__':
-    script_dir = os.path.split(__file__)[0]
-    if script_dir != '':
-        os.chdir(script_dir)
-    run_tests()
+    setup_commands('ninja')
+    cross_file = sys.argv[1]
+    runtests(cross_file)
