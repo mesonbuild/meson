@@ -859,11 +859,11 @@ int main(int argc, char **argv) {{
 %s
 int temparray[%d-sizeof(%s)];
 '''
-        if not self.compiles(element_exists_templ.format(prefix, element), env, args, dependencies):
+        if not self.compiles(element_exists_templ.format(prefix, element), env, extra_args, dependencies):
             return -1
         for i in range(1, 1024):
             code = templ % (prefix, i, element)
-            if self.compiles(code, env, args, dependencies):
+            if self.compiles(code, env, extra_args, dependencies):
                 if self.id == 'msvc':
                     # MSVC refuses to construct an array of zero size, so
                     # the test only succeeds when i is sizeof(element) + 1
@@ -907,11 +907,11 @@ struct tmp {
 
 int testarray[%d-offsetof(struct tmp, target)];
 '''
-        if not self.compiles(type_exists_templ.format(typename), env, args, dependencies):
+        if not self.compiles(type_exists_templ.format(typename), env, extra_args, dependencies):
             return -1
         for i in range(1, 1024):
             code = templ % (typename, i)
-            if self.compiles(code, env, args, dependencies):
+            if self.compiles(code, env, extra_args, dependencies):
                 if self.id == 'msvc':
                     # MSVC refuses to construct an array of zero size, so
                     # the test only succeeds when i is sizeof(element) + 1
