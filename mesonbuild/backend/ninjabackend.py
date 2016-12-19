@@ -1383,7 +1383,7 @@ rule FORTRAN_DEP_HACK
             return
         rule = 'rule llvm_ir{}_COMPILER\n'.format('_CROSS' if is_cross else '')
         args = [' '.join([ninja_quote(i) for i in compiler.get_exelist()]),
-                ' '.join(self.get_cross_info_lang_args(compiler, is_cross)),
+                ' '.join(self.get_cross_info_lang_args(compiler.language, is_cross)),
                 ' '.join(compiler.get_output_args('$out')),
                 ' '.join(compiler.get_compile_only_args())]
         if mesonlib.is_windows():
