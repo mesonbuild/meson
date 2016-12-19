@@ -236,6 +236,7 @@ builtin_options = {
         }
 
 forbidden_target_names = {'clean': None,
+                          'clean-ctlist': None,
                           'clean-gcno': None,
                           'clean-gcda': None,
                           'coverage-text': None,
