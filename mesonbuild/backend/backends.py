@@ -645,7 +645,7 @@ class Backend():
 
     # Subprojects of subprojects may cause the same dep args to be used
     # multiple times. Remove duplicates here. Note that we can't dedup
-    # libraries based on name alone, because "-lfoo -lbar -lfoo" is 
+    # libraries based on name alone, because "-lfoo -lbar -lfoo" is
     # a completely valid (though pathological) sequence and removing the
     # latter may fail. Usually only applies to static libs, though.
     def dedup_arguments(self, commands):
@@ -662,4 +662,4 @@ class Backend():
             previous = c
             final_commands.append(c)
         return final_commands
-                                                  
+

@@ -258,7 +258,7 @@ class Vs2010Backend(backends.Backend):
             ofile.write('\tEndGlobalSection\n')
             ofile.write('\tGlobalSection(ProjectConfigurationPlatforms) = '
                         'postSolution\n')
-            ofile.write('\t\t{%s}.%s|%s.ActiveCfg = %s|%s\n' % 
+            ofile.write('\t\t{%s}.%s|%s.ActiveCfg = %s|%s\n' %
                         (self.environment.coredata.regen_guid, self.buildtype,
                          self.platform, self.buildtype, self.platform))
             ofile.write('\t\t{%s}.%s|%s.Build.0 = %s|%s\n' %
@@ -928,7 +928,7 @@ class Vs2010Backend(backends.Backend):
                                       'ToolsVersion' : '4.0',
                                       'xmlns' : 'http://schemas.microsoft.com/developer/msbuild/2003'})
         confitems = ET.SubElement(root, 'ItemGroup', {'Label' : 'ProjectConfigurations'})
-        prjconf = ET.SubElement(confitems, 'ProjectConfiguration', 
+        prjconf = ET.SubElement(confitems, 'ProjectConfiguration',
                                 {'Include' : self.buildtype + '|' + self.platform})
         p = ET.SubElement(prjconf, 'Configuration')
         p.text= self.buildtype
