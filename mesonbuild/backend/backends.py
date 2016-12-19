@@ -22,6 +22,15 @@ import json
 import subprocess
 from ..mesonlib import MesonException, get_compiler_for_source, classify_unity_sources
 
+class CleanTrees():
+    '''
+    Directories outputted by custom targets that have to be manually cleaned
+    because on Linux `ninja clean` only deletes empty directories.
+    '''
+    def __init__(self, build_dir, trees):
+        self.build_dir = build_dir
+        self.trees = trees
+
 class InstallData():
     def __init__(self, source_dir, build_dir, prefix):
         self.source_dir = source_dir

@@ -198,6 +198,9 @@ def run_script_command(args):
     if cmdname == 'exe':
         import mesonbuild.scripts.meson_exe as abc
         cmdfunc = abc.run
+    elif cmdname == 'cleantrees':
+        import mesonbuild.scripts.cleantrees as abc
+        cmdfunc = abc.run
     elif cmdname == 'install':
         import mesonbuild.scripts.meson_install as abc
         cmdfunc = abc.run

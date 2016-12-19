@@ -20,7 +20,7 @@ from .. import mlog
 from .. import dependencies
 from .. import compilers
 from ..mesonlib import File, MesonException, get_compiler_for_source, Popen_safe
-from .backends import InstallData
+from .backends import CleanTrees, InstallData
 from ..build import InvalidArguments
 import os, sys, pickle, re
 import subprocess, shutil
@@ -2109,6 +2109,22 @@ rule FORTRAN_DEP_HACK
             except OSError:
                 mlog.debug("Library versioning disabled because we do not have symlink creation privileges.")
 
+    def generate_custom_target_clean(self, outfile, trees):
+        e = NinjaBuildElement(self.all_outputs, 'clean-ctlist', 'CUSTOM_COMMAND', 'PHONY')
+        d = CleanTrees(self.environment.get_build_dir(), trees)
+        d_file = os.path.join(self.environment.get_scratch_dir(), 'cleantrees.dat')
+        script_root = self.environment.get_script_dir()
+        clean_script = os.path.join(script_root, 'cleantrees.py')
+        e.add_item('COMMAND', [sys.executable,
+                               self.environment.get_build_command(),
+                               '--internal', 'cleantrees', d_file])
+        e.add_item('description', 'Cleaning CustomTarget directories')
+        e.write(outfile)
+        # Write out the data file passed to the script
+        with open(d_file, 'wb') as ofile:
+            pickle.dump(d, ofile)
+        return 'clean-ctlist'
+
     def generate_gcov_clean(self, outfile):
             gcno_elem = NinjaBuildElement(self.all_outputs, 'clean-gcno', 'CUSTOM_COMMAND', 'PHONY')
             script_root = self.environment.get_script_dir()
@@ -2136,14 +2152,19 @@ rule FORTRAN_DEP_HACK
 
     def generate_ending(self, outfile):
         targetlist = []
+        ctlist = []
         for t in self.build.get_targets().values():
             # RunTargets are meant to be invoked manually
             if isinstance(t, build.RunTarget):
                 continue
-            # CustomTargets that aren't installed should only be built if they
-            # are used by something else or are meant to be always built
-            if isinstance(t, build.CustomTarget) and not (t.install or t.build_always):
-                continue
+            if isinstance(t, build.CustomTarget):
+                # Create a list of all custom target outputs
+                for o in t.get_outputs():
+                    ctlist.append(os.path.join(self.get_target_dir(t), o))
+                # CustomTargets that aren't installed should only be built if
+                # they are used by something else or are to always be built
+                if not (t.install or t.build_always):
+                    continue
             # Add the first output of each target to the 'all' target so that
             # they are all built
             targetlist.append(os.path.join(self.get_target_dir(t), t.get_outputs()[0]))
@@ -2160,6 +2181,14 @@ rule FORTRAN_DEP_HACK
         elem = NinjaBuildElement(self.all_outputs, 'clean', 'CUSTOM_COMMAND', 'PHONY')
         elem.add_item('COMMAND', [ninja_command, '-t', 'clean'])
         elem.add_item('description', 'Cleaning')
+        # If we have custom targets in this project, add all their outputs to
+        # the list that is passed to the `cleantrees.py` script. The script
+        # will manually delete all custom_target outputs that are directories
+        # instead of files. This is needed because on platforms other than
+        # Windows, Ninja only deletes directories while cleaning if they are
+        # empty. https://github.com/mesonbuild/meson/issues/1220
+        if ctlist:
+            elem.add_dep(self.generate_custom_target_clean(outfile, ctlist))
         if 'b_coverage' in self.environment.coredata.base_options and \
            self.environment.coredata.base_options['b_coverage'].value:
             self.generate_gcov_clean(outfile)
