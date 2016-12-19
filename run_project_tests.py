@@ -18,7 +18,7 @@ from glob import glob
 import os, subprocess, shutil, sys, signal
 from io import StringIO
 from ast import literal_eval
-import sys, tempfile
+import tempfile
 import mesontest
 from mesonbuild import environment
 from mesonbuild import mesonlib
