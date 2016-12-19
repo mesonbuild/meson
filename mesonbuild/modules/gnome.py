@@ -696,7 +696,7 @@ can not be used with the current version of glib-compiled-resources, due to
         args += self._unpack_args('--ignore-headers=', 'ignore_headers', kwargs)
         args += self._unpack_args('--installdir=', 'install_dir', kwargs, state)
         args += self._get_build_args(kwargs, state)
-        res = [build.RunTarget(targetname, command[0], command[1:] + sargs, [], state.subdir)]
+        res = [build.RunTarget(targetname, command[0], command[1:] + args, [], state.subdir)]
         if kwargs.get('install', True):
             res.append(build.InstallScript(command, args))
         return res

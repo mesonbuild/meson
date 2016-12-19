@@ -251,7 +251,7 @@ int dummy;
             # either in the source root, or generated with configure_file and
             # in the build root
             if not isinstance(s, File):
-                raise InvalidArguments('All sources in target {!r} must be of type mesonlib.File'.format(t))
+                raise InvalidArguments('All sources in target {!r} must be of type mesonlib.File'.format(s))
             f = s.rel_to_builddir(self.build_to_src)
             srcs[f] = s
         return srcs

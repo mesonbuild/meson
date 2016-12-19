@@ -1,5 +1,6 @@
 from .. import build
 from .. import dependencies
+from ..mesonlib import MesonException
 
 _found_programs = {}
 

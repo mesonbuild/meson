@@ -100,7 +100,7 @@ class Resolver:
             else:
                 mlog.warning('Subproject directory %s is empty, possibly because of an unfinished'
                       'checkout, removing to reclone' % dirname)
-                os.rmdir(checkoutdir)
+                os.rmdir(dirname)
         except NotADirectoryError:
             raise RuntimeError('%s is not a directory, can not use as subproject.' % dirname)
         except FileNotFoundError:
