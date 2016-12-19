@@ -17,15 +17,11 @@ from . import coredata
 from . import mesonlib
 from . import mlog
 from .compilers import *
-from .mesonlib import Popen_safe
+from .mesonlib import EnvironmentException, Popen_safe
 import configparser
 import shutil
 
 build_filename = 'meson.build'
-
-class EnvironmentException(mesonlib.MesonException):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
 
 def find_coverage_tools():
     gcovr_exe = 'gcovr'
@@ -65,7 +61,7 @@ def detect_native_windows_arch():
             # If this doesn't exist, something is messing with the environment
             arch = os.environ['PROCESSOR_ARCHITECTURE'].lower()
         except KeyError:
-            raise InterpreterException('Unable to detect native OS architecture')
+            raise EnvironmentException('Unable to detect native OS architecture')
     return arch
 
 def detect_windows_arch(compilers):
@@ -629,7 +625,7 @@ class Environment():
             return RustCompiler(exelist, version)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
 
-    def detect_d_compiler(self):
+    def detect_d_compiler(self, want_cross):
         exelist = None
         is_cross = False
         # Search for a D compiler.
@@ -847,20 +843,20 @@ class CrossBuildInfo():
             for entry in config[s]:
                 value = config[s][entry]
                 if ' ' in entry or '\t' in entry or "'" in entry or '"' in entry:
-                    raise EnvironmentException('Malformed variable name %s in cross file..' % varname)
+                    raise EnvironmentException('Malformed variable name %s in cross file..' % entry)
                 try:
                     res = eval(value, {'true' : True, 'false' : False})
                 except Exception:
-                    raise EnvironmentException('Malformed value in cross file variable %s.' % varname)
+                    raise EnvironmentException('Malformed value in cross file variable %s.' % entry)
                 if self.ok_type(res):
                     self.config[s][entry] = res
                 elif isinstance(res, list):
                     for i in res:
                         if not self.ok_type(i):
-                            raise EnvironmentException('Malformed value in cross file variable %s.' % varname)
+                            raise EnvironmentException('Malformed value in cross file variable %s.' % entry)
                     self.config[s][entry] = res
                 else:
-                    raise EnvironmentException('Malformed value in cross file variable %s.' % varname)
+                    raise EnvironmentException('Malformed value in cross file variable %s.' % entry)
 
     def has_host(self):
         return 'host_machine' in self.config

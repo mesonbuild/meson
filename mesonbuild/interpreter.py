@@ -1229,7 +1229,7 @@ class Interpreter(InterpreterBase):
                 outvalues.append(v)
             elif isinstance(v, build.Executable):
                 self.add_target(v.name, v)
-                outvalues.append(ExecutableHolder(v))
+                outvalues.append(ExecutableHolder(v, self))
             elif isinstance(v, list):
                 outvalues.append(self.module_method_callback(v))
             elif isinstance(v, build.GeneratedList):
@@ -1572,15 +1572,15 @@ class Interpreter(InterpreterBase):
         elif lang == 'vala':
             comp = self.environment.detect_vala_compiler()
             if need_cross_compiler:
-                        cross_comp = comp  # Vala is too (I think).
+                cross_comp = comp  # Vala compiles to platform-independent C
         elif lang == 'd':
-            comp = self.environment.detect_d_compiler()
+            comp = self.environment.detect_d_compiler(False)
             if need_cross_compiler:
-                cross_comp = comp  # D as well (AFAIK).
+                cross_comp = self.environment.detect_d_compiler(True)
         elif lang == 'rust':
             comp = self.environment.detect_rust_compiler()
             if need_cross_compiler:
-                cross_comp = comp  # FIXME, probably not correct.
+                cross_comp = comp  # FIXME, not correct.
         elif lang == 'fortran':
             comp = self.environment.detect_fortran_compiler(False)
             if need_cross_compiler:
