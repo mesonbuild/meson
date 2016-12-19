@@ -109,7 +109,7 @@ class I18nModule:
                 pkg_arg]
         if lang_arg:
             args.append(lang_arg)
-        iscript = build.InstallScript(script, args)
+        iscript = build.RunScript(script, args)
 
         return [pottarget, gmotarget, iscript, updatepotarget]
 

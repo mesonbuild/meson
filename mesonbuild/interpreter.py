@@ -987,6 +987,7 @@ class MesonMain(InterpreterObject):
         InterpreterObject.__init__(self)
         self.build = build
         self.interpreter = interpreter
+        self._found_source_scripts = {}
         self.methods.update({'get_compiler': self.get_compiler_method,
                              'is_cross_build' : self.is_cross_build_method,
                              'has_exe_wrapper' : self.has_exe_wrapper_method,
@@ -1006,27 +1007,34 @@ class MesonMain(InterpreterObject):
                              'backend' : self.backend_method,
                             })
 
+    def _find_source_script(self, name, args):
+        # Prefer scripts in the current source directory
+        search_dir = os.path.join(self.interpreter.environment.source_dir,
+                                  self.interpreter.subdir)
+        key = (name, search_dir)
+        if key in self._found_source_scripts:
+            found = self._found_source_scripts[key]
+        else:
+            found = dependencies.ExternalProgram(name, search_dir=search_dir)
+            if found:
+                self._found_source_scripts[key] = found
+            else:
+                raise InterpreterException('Script {!r} not found'.format(name))
+        return build.RunScript(found.get_command(), args)
+
     def add_install_script_method(self, args, kwargs):
         if len(args) < 1:
             raise InterpreterException('add_install_script takes one or more arguments')
         check_stringlist(args, 'add_install_script args must be strings')
-        scriptbase = args[0]
-        search_dir = os.path.join(self.interpreter.environment.source_dir,
-                                  self.interpreter.subdir)
-        script = dependencies.ExternalProgram(scriptbase, search_dir=search_dir)
-        extras = args[1:]
-        self.build.install_scripts.append({'exe': script.get_command(), 'args': extras})
+        script = self._find_source_script(args[0], args[1:])
+        self.build.install_scripts.append(script)
 
     def add_postconf_script_method(self, args, kwargs):
         if len(args) < 1:
             raise InterpreterException('add_postconf_script takes one or more arguments')
         check_stringlist(args, 'add_postconf_script arguments must be strings')
-        scriptbase = args[0]
-        search_dir = os.path.join(self.interpreter.environment.source_dir,
-                                  self.interpreter.subdir)
-        script = dependencies.ExternalProgram(scriptbase, search_dir=search_dir)
-        extras = args[1:]
-        self.build.postconf_scripts.append({'exe': script, 'args': extras})
+        script = self._find_source_script(args[0], args[1:])
+        self.build.postconf_scripts.append(script)
 
     def current_source_dir_method(self, args, kwargs):
         src = self.interpreter.environment.source_dir
@@ -1236,7 +1244,7 @@ class Interpreter(InterpreterBase):
                 outvalues.append(GeneratedListHolder(v))
             elif isinstance(v, build.RunTarget):
                 self.add_target(v.name, v)
-            elif isinstance(v, build.InstallScript):
+            elif isinstance(v, build.RunScript):
                 self.build.install_scripts.append(v)
             elif isinstance(v, build.Data):
                 self.build.data.append(v)

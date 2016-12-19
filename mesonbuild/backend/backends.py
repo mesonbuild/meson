@@ -641,7 +641,7 @@ class Backend():
         child_env.update(env)
 
         for s in self.build.postconf_scripts:
-            cmd = s['exe'].get_command() + s['args']
+            cmd = s['exe'] + s['args']
             subprocess.check_call(cmd, env=child_env)
 
     # Subprojects of subprojects may cause the same dep args to be used
