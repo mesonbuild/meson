@@ -25,7 +25,7 @@ Eventually migrate to something fancier.'''
 import os, subprocess, shutil, sys
 import mesonbuild.environment as environment
 
-from run_tests import gather_tests
+from run_project_tests import gather_tests
 
 test_build_dir = 'work area'
 install_dir = os.path.join(os.path.split(os.path.abspath(__file__))[0], 'install dir')

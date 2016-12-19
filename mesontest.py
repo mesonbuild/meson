@@ -198,7 +198,7 @@ class TestHarness:
             duration = 0.0
             stdo = 'Not run because can not execute cross compiled binaries.'
             stde = None
-            returncode = -1
+            returncode = GNU_SKIP_RETURNCODE
         else:
             cmd = wrap + cmd + test.cmd_args
             starttime = time.time()
