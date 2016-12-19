@@ -1754,10 +1754,13 @@ class LLVMDCompiler(DCompiler):
         return ['-I' + path]
 
     def get_warn_args(self, level):
-        if level == '2':
-            return ['-wi']
+        if level == '2' or level == '3':
+            return ['-wi', '-dw']
         else:
-            return ['-w']
+            return ['-wi']
+
+    def get_werror_args(self):
+        return ['-w']
 
     def get_coverage_args(self):
         return ['-cov']
@@ -1809,7 +1812,7 @@ class DmdDCompiler(DCompiler):
         return ['-I' + path]
 
     def get_warn_args(self, level):
-        return []
+        return ['-wi']
 
     def get_coverage_args(self):
         return ['-cov']
