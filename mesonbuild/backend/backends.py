@@ -16,6 +16,7 @@ import os, pickle, re
 from .. import build
 from .. import dependencies
 from .. import mesonlib
+from .. import mlog
 from .. import compilers
 import json
 import subprocess

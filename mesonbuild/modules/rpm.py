@@ -103,7 +103,7 @@ class RPMModule:
                              mlog.bold('dnf provides %s' % lib.fullpath))
             for prog in state.environment.coredata.ext_progs.values():
                 if not prog.found():
-                    fn.write('BuildRequires: %{_bindir}/%s # FIXME\n' %
+                    fn.write('BuildRequires: %%{_bindir}/%s # FIXME\n' %
                              prog.get_name())
                 else:
                     fn.write('BuildRequires: %s\n' % ' '.join(prog.fullpath))
