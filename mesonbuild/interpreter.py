@@ -222,7 +222,6 @@ class DependencyHolder(InterpreterObject):
         self.methods.update({'found' : self.found_method,
                              'type_name': self.type_name_method,
                              'version': self.version_method,
-                             'version': self.version_method,
                              'get_pkgconfig_variable': self.pkgconfig_method,
                              })
 
