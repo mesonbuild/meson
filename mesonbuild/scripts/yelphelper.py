@@ -112,4 +112,3 @@ def run(args):
             merge_translations(build_subdir, abs_sources, langs)
         install_help(src_subdir, build_subdir, sources, media, langs, install_dir,
                      destdir, options.project_id, options.symlinks)
-

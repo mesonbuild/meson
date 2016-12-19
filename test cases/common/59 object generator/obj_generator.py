@@ -16,4 +16,3 @@ if __name__ == '__main__':
     else:
         cmd = [compiler, '-c', ifile, '-o', ofile]
     sys.exit(subprocess.call(cmd))
-

@@ -662,4 +662,3 @@ class Backend():
             previous = c
             final_commands.append(c)
         return final_commands
-

@@ -633,4 +633,3 @@ class InterpreterBase:
 
     def is_elementary_type(self, v):
         return isinstance(v, (int, float, str, bool, list))
-
