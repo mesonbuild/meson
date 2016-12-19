@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from . import coredata
 from . import environment
 from . import dependencies
 from . import mlog

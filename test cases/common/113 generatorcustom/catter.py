@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import sys, os
+import sys
 
 output = sys.argv[-1]
 inputs = sys.argv[1:-1]

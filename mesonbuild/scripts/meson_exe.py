@@ -17,9 +17,8 @@ import sys
 import argparse
 import pickle
 import platform
-import subprocess
 
-from ..mesonlib import MesonException, Popen_safe
+from ..mesonlib import Popen_safe
 
 options = None
 

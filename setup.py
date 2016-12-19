@@ -16,7 +16,6 @@
 
 import os
 import sys
-from os import path
 
 if sys.version_info[0] < 3:
     print('Tried to install with Python 2, Meson only supports Python 3.')
@@ -34,7 +33,6 @@ except ImportError:
 
 from distutils.file_util import copy_file
 from distutils.dir_util import mkpath
-from stat import ST_MODE
 
 class install_scripts(orig):
     def run(self):
@@ -49,7 +47,7 @@ class install_scripts(orig):
         # We want the files to be installed without a suffix on Unix
         for infile in self.get_inputs():
             in_stripped = infile[:-3] if infile.endswith('.py') else infile
-            outfile = path.join(self.install_dir, in_stripped)
+            outfile = os.path.join(self.install_dir, in_stripped)
             # NOTE: Mode is preserved by default
             copy_file(infile, outfile, dry_run=self.dry_run)
             self.outfiles.append(outfile)

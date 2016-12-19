@@ -20,7 +20,7 @@
 # package before this gets too big.
 
 import re
-import os, stat, glob, subprocess, shutil
+import os, stat, glob, shutil
 import sysconfig
 from collections import OrderedDict
 from . mesonlib import MesonException, version_compare, version_compare_many, Popen_safe

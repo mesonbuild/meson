@@ -29,7 +29,7 @@ from .interpreterbase import check_stringlist, noPosargs, noKwargs, stringArgs
 from .interpreterbase import InterpreterException, InvalidArguments, InvalidCode
 from .interpreterbase import InterpreterObject, MutableInterpreterObject
 
-import os, sys, subprocess, shutil, uuid, re
+import os, sys, shutil, uuid
 
 import importlib
 

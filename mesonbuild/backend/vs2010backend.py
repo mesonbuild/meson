@@ -14,7 +14,6 @@
 
 import os, sys
 import pickle
-import re
 import xml.dom.minidom
 import xml.etree.ElementTree as ET
 

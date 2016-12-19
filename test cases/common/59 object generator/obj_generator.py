@@ -2,7 +2,7 @@
 
 # Mimic a binary that generates an object file (e.g. windres).
 
-import sys, shutil, subprocess
+import sys, subprocess
 
 if __name__ == '__main__':
     if len(sys.argv) != 4:
