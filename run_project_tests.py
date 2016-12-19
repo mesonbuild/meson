@@ -24,7 +24,7 @@ from mesonbuild import environment
 from mesonbuild import mesonlib
 from mesonbuild import mlog
 from mesonbuild import mesonmain
-from mesonbuild.mesonlib import stringlistify
+from mesonbuild.mesonlib import stringlistify, Popen_safe
 import argparse
 import xml.etree.ElementTree as ET
 import time
@@ -93,26 +93,20 @@ unity_flags = []
 backend_flags = None
 compile_commands = None
 test_commands = None
-install_commands = None
+install_commands = []
+clean_commands = []
 
 def setup_commands(backend):
-    global backend_flags, compile_commands, test_commands, install_commands
+    global backend_flags, compile_commands, test_commands, install_commands, clean_commands
     msbuild_exe = shutil.which('msbuild')
-    if backend == 'vs2010' or (backend is None and msbuild_exe is not None):
-        backend_flags = ['--backend=vs2010']
+    if (backend and backend.startswith('vs')) or (backend is None and msbuild_exe is not None):
+        backend_flags = ['--backend=' + backend]
         compile_commands = ['msbuild']
         test_commands = ['msbuild', 'RUN_TESTS.vcxproj']
-        install_commands = []
-    elif backend == 'vs2015':
-        backend_flags = ['--backend=vs2015']
-        compile_commands = ['msbuild']
-        test_commands = ['msbuild', 'RUN_TESTS.vcxproj']
-        install_commands = []
     elif backend == 'xcode' or (backend is None and mesonlib.is_osx()):
         backend_flags = ['--backend=xcode']
         compile_commands = ['xcodebuild']
         test_commands = ['xcodebuild', '-target', 'RUN_TESTS']
-        install_commands = []
     else:
         backend_flags = []
         ninja_command = environment.detect_ninja()
@@ -125,6 +119,7 @@ def setup_commands(backend):
         compile_commands += ['-w', 'dupbuild=err']
         test_commands = [ninja_command, 'test', 'benchmark']
         install_commands = [ninja_command, 'install']
+        clean_commands = [ninja_command, 'clean']
 
 def get_relative_files_list_from_dir(fromdir):
     paths = []
@@ -233,17 +228,18 @@ def parse_test_args(testdir):
         pass
     return args
 
-def run_test(skipped, testdir, extra_args, flags, compile_commands, install_commands, should_fail):
+def run_test(skipped, testdir, extra_args, flags, compile_commands, should_fail):
     if skipped:
         return None
     with AutoDeletedDir(tempfile.mkdtemp(prefix='b ', dir='.')) as build_dir:
         with AutoDeletedDir(tempfile.mkdtemp(prefix='i ', dir=os.getcwd())) as install_dir:
             try:
-                return _run_test(testdir, build_dir, install_dir, extra_args, flags, compile_commands, install_commands, should_fail)
+                return _run_test(testdir, build_dir, install_dir, extra_args, flags, compile_commands, should_fail)
             finally:
                 mlog.shutdown() # Close the log file because otherwise Windows wets itself.
 
-def _run_test(testdir, test_build_dir, install_dir, extra_args, flags, compile_commands, install_commands, should_fail):
+def _run_test(testdir, test_build_dir, install_dir, extra_args, flags, compile_commands, should_fail):
+    global install_commands, clean_commands
     test_args = parse_test_args(testdir)
     gen_start = time.time()
     gen_command = [meson_command, '--prefix', '/usr', '--libdir', 'lib', testdir, test_build_dir]\
@@ -268,12 +264,10 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, flags, compile_c
     else:
         comp = compile_commands
     build_start = time.time()
-    pc = subprocess.Popen(comp, cwd=test_build_dir,
-                          stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    (o, e) = pc.communicate()
+    pc, o, e = Popen_safe(comp, cwd=test_build_dir)
     build_time = time.time() - build_start
-    stdo += o.decode(sys.stdout.encoding)
-    stde += e.decode(sys.stdout.encoding)
+    stdo += o
+    stde += e
     if should_fail == 'build':
         if pc.returncode != 0:
             return TestResult('', stdo, stde, mesonlog, gen_time)
@@ -294,19 +288,24 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, flags, compile_c
         return TestResult('Test that should have failed to run unit tests succeeded', stdo, stde, mesonlog, gen_time)
     if returncode != 0:
         return TestResult('Running unit tests failed.', stdo, stde, mesonlog, gen_time, build_time, test_time)
+    # Do installation
     if len(install_commands) == 0:
         return TestResult('', '', '', gen_time, build_time, test_time)
-    else:
+    env = os.environ.copy()
+    env['DESTDIR'] = install_dir
+    pi, o, e = Popen_safe(install_commands, cwd=test_build_dir, env=env)
+    stdo += o
+    stde += e
+    if pi.returncode != 0:
+        return TestResult('Running install failed.', stdo, stde, mesonlog, gen_time, build_time, test_time)
+    if len(clean_commands) != 0:
         env = os.environ.copy()
-        env['DESTDIR'] = install_dir
-        pi = subprocess.Popen(install_commands, cwd=test_build_dir, env=env,
-                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        (o, e) = pi.communicate()
-        stdo += o.decode(sys.stdout.encoding)
-        stde += e.decode(sys.stdout.encoding)
+        pi, o, e = Popen_safe(clean_commands, cwd=test_build_dir, env=env)
+        stdo += o
+        stde += e
         if pi.returncode != 0:
-            return TestResult('Running install failed.', stdo, stde, mesonlog, gen_time, build_time, test_time)
-        return TestResult(validate_install(testdir, install_dir), stdo, stde, mesonlog, gen_time, build_time, test_time)
+            return TestResult('Running clean failed.', stdo, stde, mesonlog, gen_time, build_time, test_time)
+    return TestResult(validate_install(testdir, install_dir), stdo, stde, mesonlog, gen_time, build_time, test_time)
 
 def gather_tests(testdir):
     tests = [t.replace('\\', '/').split('/', 2)[2] for t in glob(os.path.join(testdir, '*'))]
@@ -372,7 +371,7 @@ def detect_tests_to_run():
     return all_tests
 
 def run_tests(extra_args):
-    global passing_tests, failing_tests, stop, executor, futures
+    global install_commands, passing_tests, failing_tests, stop, executor, futures
     all_tests = detect_tests_to_run()
     logfile = open('meson-test-run.txt', 'w', encoding="utf_8")
     junit_root = ET.Element('testsuites')
@@ -404,7 +403,7 @@ def run_tests(extra_args):
             should_fail = False
             if name.startswith('failing'):
                 should_fail = name.split('failing-')[1]
-            result = executor.submit(run_test, skipped, t, extra_args, unity_flags + backend_flags, compile_commands, install_commands, should_fail)
+            result = executor.submit(run_test, skipped, t, extra_args, unity_flags + backend_flags, compile_commands, should_fail)
             futures.append((testname, t, result))
         for (testname, t, result) in futures:
             result = result.result()
