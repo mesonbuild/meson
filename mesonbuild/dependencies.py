@@ -113,7 +113,7 @@ class PkgConfigDependency(Dependency):
         # When finding dependencies for cross-compiling, we don't care about
         # the 'native' pkg-config
         if want_cross:
-            if 'pkgconfig' not in env.cross_info.config['binaries']:
+            if 'pkgconfig' not in environment.cross_info.config['binaries']:
                 if self.required:
                     raise DependencyException('Pkg-config binary missing from cross file')
             else:
