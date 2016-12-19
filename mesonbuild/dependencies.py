@@ -476,7 +476,7 @@ class ExternalProgram():
         return self.fullpath[0] is not None
 
     def get_command(self):
-        return self.fullpath
+        return self.fullpath[:]
 
     def get_name(self):
         return self.name
