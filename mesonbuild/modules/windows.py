@@ -16,6 +16,7 @@ import os
 
 from .. import mesonlib, dependencies, build
 from ..mesonlib import MesonException
+from . import find_program
 from . import get_include_args
 from . import ModuleReturnValue
 from . import ExtensionModule
@@ -48,7 +49,7 @@ class WindowsModule(ExtensionModule):
             # Pick-up env var WINDRES if set. This is often used for specifying
             # an arch-specific windres.
             rescomp_name = os.environ.get('WINDRES', 'windres')
-            rescomp = dependencies.ExternalProgram(rescomp_name, silent=True)
+            rescomp = find_program(rescomp_name, 'resources', state.environment)
             res_args = extra_args + ['@INPUT@', '@OUTPUT@']
             suffix = 'o'
         if not rescomp.found():
