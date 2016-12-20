@@ -20,7 +20,7 @@
 # package before this gets too big.
 
 import re
-import os, stat, glob, subprocess, shutil
+import os, stat, glob, shutil
 import sysconfig
 from collections import OrderedDict
 from . mesonlib import MesonException, version_compare, version_compare_many, Popen_safe
@@ -342,7 +342,7 @@ class WxDependency(Dependency):
 
     def get_requested(self, kwargs):
         modules = 'modules'
-        if not modules in kwargs:
+        if modules not in kwargs:
             return []
         candidates = kwargs[modules]
         if isinstance(candidates, str):

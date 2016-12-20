@@ -12,12 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys, os
+import os
 import subprocess
 import shutil
 import argparse
 from .. import mlog
-from ..mesonlib import MesonException
 from . import destdir_join
 
 parser = argparse.ArgumentParser()
@@ -82,7 +81,6 @@ def install_help(srcdir, blddir, sources, media, langs, install_dir, destdir, pr
                         os.makedirs(os.path.dirname(outfile), exist_ok=True)
                     os.symlink(srcfile, outfile)
                 continue
-            symfile = os.path.join(install_dir, m)
             mlog.log('Installing %s to %s.' %(infile, outfile))
             if '/' in m or '\\' in m:
                 os.makedirs(os.path.dirname(outfile), exist_ok=True)
@@ -114,4 +112,3 @@ def run(args):
             merge_translations(build_subdir, abs_sources, langs)
         install_help(src_subdir, build_subdir, sources, media, langs, install_dir,
                      destdir, options.project_id, options.symlinks)
-

@@ -18,7 +18,7 @@ from glob import glob
 import os, subprocess, shutil, sys, signal
 from io import StringIO
 from ast import literal_eval
-import sys, tempfile
+import tempfile
 import mesontest
 from mesonbuild import environment
 from mesonbuild import mesonlib
@@ -554,4 +554,3 @@ if __name__ == '__main__':
         for l in failing_logs:
             print(l, '\n')
     sys.exit(failing_tests)
-

@@ -104,7 +104,7 @@ class Conf:
                 tgt.set_value(v)
             elif k.endswith('_link_args'):
                 lang = k[:-10]
-                if not lang in self.coredata.external_link_args:
+                if lang not in self.coredata.external_link_args:
                     raise ConfException('Unknown language %s in linkargs.' % lang)
                 # TODO, currently split on spaces, make it so that user
                 # can pass in an array string.
@@ -112,7 +112,7 @@ class Conf:
                 self.coredata.external_link_args[lang] = newvalue
             elif k.endswith('_args'):
                 lang = k[:-5]
-                if not lang in self.coredata.external_args:
+                if lang not in self.coredata.external_args:
                     raise ConfException('Unknown language %s in compile args' % lang)
                 # TODO same fix as above
                 newvalue = v.split()

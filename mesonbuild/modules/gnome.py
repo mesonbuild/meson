@@ -640,7 +640,7 @@ can not be used with the current version of glib-compiled-resources, due to
         modulename = args[0]
         if not isinstance(modulename, str):
             raise MesonException('Gtkdoc arg must be string.')
-        if not 'src_dir' in kwargs:
+        if 'src_dir' not in kwargs:
             raise MesonException('Keyword argument src_dir missing.')
         main_file = kwargs.get('main_sgml', '')
         if not isinstance(main_file, str):
@@ -658,7 +658,7 @@ can not be used with the current version of glib-compiled-resources, due to
         namespace = kwargs.get('namespace', '')
         mode = kwargs.get('mode', 'auto')
         VALID_MODES = ('xml', 'sgml', 'none', 'auto')
-        if not mode in VALID_MODES:
+        if mode not in VALID_MODES:
             raise MesonException('gtkdoc: Mode {} is not a valid mode: {}'.format(mode, VALID_MODES))
 
         src_dirs = kwargs['src_dir']

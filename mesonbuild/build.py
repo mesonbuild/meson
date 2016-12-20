@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from . import coredata
 from . import environment
 from . import dependencies
 from . import mlog
@@ -317,7 +316,7 @@ class BuildTarget():
     def check_unknown_kwargs_int(self, kwargs, known_kwargs):
         unknowns = []
         for k in kwargs:
-            if not k in known_kwargs:
+            if k not in known_kwargs:
                 unknowns.append(k)
         if len(unknowns) > 0:
             mlog.warning('Unknown keyword argument(s) in target %s: %s.' %
@@ -349,7 +348,7 @@ class BuildTarget():
             if hasattr(s, 'held_object'):
                 s = s.held_object
             if isinstance(s, File):
-                if not s in added_sources:
+                if s not in added_sources:
                     self.sources.append(s)
                     added_sources[s] = True
             elif isinstance(s, (GeneratedList, CustomTarget)):
@@ -880,7 +879,7 @@ class Generator():
         for rule in outputs:
             if not isinstance(rule, str):
                 raise InvalidArguments('"output" may only contain strings.')
-            if not '@BASENAME@' in rule and not '@PLAINNAME@' in rule:
+            if '@BASENAME@' not in rule and '@PLAINNAME@' not in rule:
                 raise InvalidArguments('Every element of "output" must contain @BASENAME@ or @PLAINNAME@.')
             if '/' in rule or '\\' in rule:
                 raise InvalidArguments('"outputs" must not contain a directory separator.')

@@ -16,7 +16,7 @@ import sys, pickle, os, shutil, subprocess, gzip, platform
 from glob import glob
 from . import depfixer
 from . import destdir_join
-from ..mesonlib import MesonException, Popen_safe
+from ..mesonlib import Popen_safe
 
 install_log_file = None
 

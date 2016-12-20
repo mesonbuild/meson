@@ -205,7 +205,7 @@ base_options = {
                                                          'Enable coverage tracking.',
                                                          False),
                 'b_colorout' : coredata.UserComboOption('b_colorout', 'Use colored output',
-                                                        ['auto', 'always', 'never'], 
+                                                        ['auto', 'always', 'never'],
                                                         'always'),
                 'b_ndebug' : coredata.UserBooleanOption('b_ndebug',
                                                         'Disable asserts',
@@ -2557,12 +2557,12 @@ class SunFortranCompiler(FortranCompiler):
 
 class IntelFortranCompiler(FortranCompiler):
     std_warn_args = ['-warn', 'all']
-    
+
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
         self.file_suffixes = ('f', 'f90')
         super().__init__(exelist, version, is_cross, exe_wrapper=None)
         self.id = 'intel'
-        
+
     def get_module_outdir_args(self, path):
         return ['-module', path]
 

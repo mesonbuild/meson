@@ -14,7 +14,6 @@
 
 import os, sys
 import pickle
-import re
 import xml.dom.minidom
 import xml.etree.ElementTree as ET
 
@@ -259,7 +258,7 @@ class Vs2010Backend(backends.Backend):
             ofile.write('\tEndGlobalSection\n')
             ofile.write('\tGlobalSection(ProjectConfigurationPlatforms) = '
                         'postSolution\n')
-            ofile.write('\t\t{%s}.%s|%s.ActiveCfg = %s|%s\n' % 
+            ofile.write('\t\t{%s}.%s|%s.ActiveCfg = %s|%s\n' %
                         (self.environment.coredata.regen_guid, self.buildtype,
                          self.platform, self.buildtype, self.platform))
             ofile.write('\t\t{%s}.%s|%s.Build.0 = %s|%s\n' %
@@ -734,7 +733,6 @@ class Vs2010Backend(backends.Backend):
         if len(target_args) > 0:
             target_args.append('%(AdditionalOptions)')
             ET.SubElement(clconf, "AdditionalOptions").text = ' '.join(target_args)
-        additional_options_set = True
 
         for d in target.include_dirs:
             for i in d.incdirs:
@@ -930,7 +928,7 @@ class Vs2010Backend(backends.Backend):
                                       'ToolsVersion' : '4.0',
                                       'xmlns' : 'http://schemas.microsoft.com/developer/msbuild/2003'})
         confitems = ET.SubElement(root, 'ItemGroup', {'Label' : 'ProjectConfigurations'})
-        prjconf = ET.SubElement(confitems, 'ProjectConfiguration', 
+        prjconf = ET.SubElement(confitems, 'ProjectConfiguration',
                                 {'Include' : self.buildtype + '|' + self.platform})
         p = ET.SubElement(prjconf, 'Configuration')
         p.text= self.buildtype

@@ -2,7 +2,7 @@
 
 # Mimic a binary that generates an object file (e.g. windres).
 
-import sys, shutil, subprocess
+import sys, subprocess
 
 if __name__ == '__main__':
     if len(sys.argv) != 4:
@@ -16,4 +16,3 @@ if __name__ == '__main__':
     else:
         cmd = [compiler, '-c', ifile, '-o', ofile]
     sys.exit(subprocess.call(cmd))
-

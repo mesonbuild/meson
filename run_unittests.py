@@ -20,7 +20,7 @@ import tempfile
 from glob import glob
 import mesonbuild.environment
 from mesonbuild.environment import detect_ninja
-from mesonbuild.dependencies import PkgConfigDependency, Qt5Dependency
+from mesonbuild.dependencies import PkgConfigDependency
 
 def get_soname(fname):
     # HACK, fix to not use shell.

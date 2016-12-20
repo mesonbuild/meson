@@ -14,7 +14,7 @@
 
 """A library of random helper functionality."""
 
-import platform, subprocess, operator, os, shutil, re, sys
+import platform, subprocess, operator, os, shutil, re
 
 from glob import glob
 

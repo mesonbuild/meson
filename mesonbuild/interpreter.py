@@ -29,7 +29,7 @@ from .interpreterbase import check_stringlist, noPosargs, noKwargs, stringArgs
 from .interpreterbase import InterpreterException, InvalidArguments, InvalidCode
 from .interpreterbase import InterpreterObject, MutableInterpreterObject
 
-import os, sys, subprocess, shutil, uuid, re
+import os, sys, shutil, uuid
 
 import importlib
 
@@ -221,7 +221,6 @@ class DependencyHolder(InterpreterObject):
         self.held_object = dep
         self.methods.update({'found' : self.found_method,
                              'type_name': self.type_name_method,
-                             'version': self.version_method,
                              'version': self.version_method,
                              'get_pkgconfig_variable': self.pkgconfig_method,
                              })
@@ -1287,7 +1286,7 @@ class Interpreter(InterpreterBase):
         if len(args) != 1:
             raise InvalidCode('Import takes one argument.')
         modname = args[0]
-        if not modname in self.environment.coredata.modules:
+        if modname not in self.environment.coredata.modules:
             module = importlib.import_module('mesonbuild.modules.' + modname).initialize()
             self.environment.coredata.modules[modname] = module
         return ModuleHolder(modname, self.environment.coredata.modules[modname], self)
@@ -1518,7 +1517,7 @@ class Interpreter(InterpreterBase):
         self.add_languages(args[1:], True)
         langs = self.coredata.compilers.keys()
         if 'vala' in langs:
-            if not 'c' in langs:
+            if 'c' not in langs:
                 raise InterpreterException('Compiling Vala requires C. Add C to your project languages and rerun Meson.')
         if not self.is_subproject():
             self.check_cross_stdlibs()
@@ -1885,7 +1884,7 @@ requirements use the version keyword argument instead.''')
             all_args = args[1:]
             deps = []
         elif len(args) == 1:
-            if not 'command' in kwargs:
+            if 'command' not in kwargs:
                 raise InterpreterException('Missing "command" keyword argument')
             all_args = kwargs['command']
             if not isinstance(all_args, list):
@@ -2063,7 +2062,7 @@ requirements use the version keyword argument instead.''')
     def func_install_subdir(self, node, args, kwargs):
         if len(args) != 1:
             raise InvalidArguments('Install_subdir requires exactly one argument.')
-        if not 'install_dir' in kwargs:
+        if 'install_dir' not in kwargs:
             raise InvalidArguments('Missing keyword argument install_dir')
         install_dir = kwargs['install_dir']
         if not isinstance(install_dir, str):
@@ -2075,7 +2074,7 @@ requirements use the version keyword argument instead.''')
     def func_configure_file(self, node, args, kwargs):
         if len(args) > 0:
             raise InterpreterException("configure_file takes only keyword arguments.")
-        if not 'output' in kwargs:
+        if 'output' not in kwargs:
             raise InterpreterException('Required keyword argument "output" not defined.')
         inputfile = kwargs.get('input', None)
         output = kwargs['output']
@@ -2146,7 +2145,7 @@ requirements use the version keyword argument instead.''')
                   'been declared.\nThis is not permitted. Please declare all ' \
                   'global arguments before your targets.'
             raise InvalidCode(msg)
-        if not 'language' in kwargs:
+        if 'language' not in kwargs:
             raise InvalidCode('Missing language definition in add_global_arguments')
         lang = kwargs['language'].lower()
         if lang in self.build.global_args:
@@ -2169,7 +2168,7 @@ requirements use the version keyword argument instead.''')
                   'been declared.\nThis is not permitted. Please declare all ' \
                   'global arguments before your targets.'
             raise InvalidCode(msg)
-        if not 'language' in kwargs:
+        if 'language' not in kwargs:
             raise InvalidCode('Missing language definition in add_global_link_arguments')
         lang = kwargs['language'].lower()
         if lang in self.build.global_link_args:
@@ -2184,7 +2183,7 @@ requirements use the version keyword argument instead.''')
                   'been declared.\nThis is not permitted. Please declare all ' \
                   'project link arguments before your targets.'
             raise InvalidCode(msg)
-        if not 'language' in kwargs:
+        if 'language' not in kwargs:
             raise InvalidCode('Missing language definition in add_project_link_arguments')
         lang = kwargs['language'].lower()
         if self.subproject not in self.build.projects_link_args:
@@ -2201,7 +2200,7 @@ requirements use the version keyword argument instead.''')
                   'project arguments before your targets.'
             raise InvalidCode(msg)
 
-        if not 'language' in kwargs:
+        if 'language' not in kwargs:
             raise InvalidCode('Missing language definition in add_project_arguments')
 
         if self.subproject not in self.build.projects_args:

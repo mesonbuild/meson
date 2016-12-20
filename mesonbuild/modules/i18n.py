@@ -53,7 +53,7 @@ class I18nModule:
 
         file_type = kwargs.pop('type', 'xml')
         VALID_TYPES = ('xml', 'desktop')
-        if not file_type in VALID_TYPES:
+        if file_type not in VALID_TYPES:
             raise MesonException('i18n: "{}" is not a valid type {}'.format(file_type, VALID_TYPES))
 
         kwargs['command'] = ['msgfmt', '--' + file_type,
