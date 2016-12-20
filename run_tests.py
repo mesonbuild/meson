@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import subprocess, sys
+import subprocess, sys, shutil
 from mesonbuild import mesonlib
 
 if __name__ == '__main__':
