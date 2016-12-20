@@ -390,6 +390,9 @@ class Compiler():
     def get_option_link_args(self, options):
         return []
 
+    def get_linker_allow_undefined(self):
+        return []
+
     def has_header(self, *args, **kwargs):
         raise EnvironmentException('Language %s does not support header checks.' % self.language)
 
@@ -1950,6 +1953,9 @@ class VisualStudioCCompiler(CCompiler):
     def get_option_link_args(self, options):
         return options['c_winlibs'].value[:]
 
+    def get_linker_allow_undefined(self):
+        return ['/FORCE:UNRESOLVED']
+
     def unix_link_flags_to_native(self, args):
         result = []
         for i in args:
@@ -2134,6 +2140,9 @@ class GnuCompiler:
     def get_pch_suffix(self):
         return 'gch'
 
+    def get_linker_allow_undefined(self):
+        return ['-Wl,--warn-unresolved-symbols']
+
     def split_shlib_to_parts(self, fname):
         return (os.path.split(fname)[0], fname)
 
@@ -2274,6 +2283,14 @@ class ClangCompiler():
 
     def get_buildtype_linker_args(self, buildtype):
         return gnulike_buildtype_linker_args[buildtype]
+
+    def get_linker_allow_undefined(self):
+        if self.clang_type in (CLANG_STANDARD, CLANG_WIN):
+            return ['-Wl,--warn-unresolved-symbols']
+        elif self.clang_type == CLANG_OSX:
+            return ['-Wl,-undefined,dynamic_lookup']
+        else:
+            raise MesonException('Unreachable code when checking clang type.')
 
     def get_pch_suffix(self):
         return 'pch'
@@ -2507,6 +2524,9 @@ class GnuFortranCompiler(FortranCompiler):
     def get_always_args(self):
         return ['-pipe']
 
+    def get_linker_allow_undefined(self):
+        return ['-Wl,--warn-unresolved-symbols']
+
     def gen_import_library_args(self, implibname):
         """
         The name of the outputted import library
@@ -2664,6 +2684,9 @@ class VisualStudioLinker():
     def get_option_link_args(self, options):
         return []
 
+    def get_linker_allow_undefined(self):
+        return []
+
     def unix_link_flags_to_native(self, args):
         return args[:]
 
@@ -2715,6 +2738,9 @@ class ArLinker():
         return []
 
     def get_option_link_args(self, options):
+        return []
+
+    def get_linker_allow_undefined(self):
         return []
 
     def unix_link_flags_to_native(self, args):
