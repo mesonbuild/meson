@@ -140,22 +140,19 @@ class Qt4Module():
             ui_kwargs = {'output' : 'ui_@BASENAME@.h',
                          'arguments' : ['-o', '@OUTPUT@', '@INPUT@']}
             ui_gen = build.Generator([self.uic], ui_kwargs)
-            ui_output = build.GeneratedList(ui_gen)
-            [ui_output.add_file(os.path.join(state.subdir, a)) for a in ui_files]
+            ui_output = ui_gen.process_files('Qt4 ui', ui_files, state)
             sources.append(ui_output)
         if len(moc_headers) > 0:
             moc_kwargs = {'output' : 'moc_@BASENAME@.cpp',
                           'arguments' : ['@INPUT@', '-o', '@OUTPUT@']}
             moc_gen = build.Generator([self.moc], moc_kwargs)
-            moc_output = build.GeneratedList(moc_gen)
-            [moc_output.add_file(os.path.join(state.subdir, a)) for a in moc_headers]
+            moc_output = moc_gen.process_files('Qt4 moc header', moc_headers, state)
             sources.append(moc_output)
         if len(moc_sources) > 0:
             moc_kwargs = {'output' : '@BASENAME@.moc',
                           'arguments' : ['@INPUT@', '-o', '@OUTPUT@']}
             moc_gen = build.Generator([self.moc], moc_kwargs)
-            moc_output = build.GeneratedList(moc_gen)
-            [moc_output.add_file(os.path.join(state.subdir, a)) for a in moc_sources]
+            moc_output = moc_gen.process_files('Qt4 moc source', moc_sources, state)
             sources.append(moc_output)
         return sources
 

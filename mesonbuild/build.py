@@ -911,6 +911,15 @@ class Generator():
     def get_arglist(self):
         return self.arglist
 
+    def process_files(self, name, files, state, extra_args=[]):
+        output = GeneratedList(self, extra_args=extra_args)
+        for f in files:
+            if not isinstance(f, str):
+                raise InvalidArguments('{} arguments must be strings.'.format(name))
+            output.add_file(os.path.join(state.subdir, f))
+        return output
+
+
 class GeneratedList():
     def __init__(self, generator, extra_args=[]):
         if hasattr(generator, 'held_object'):
