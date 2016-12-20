@@ -23,5 +23,8 @@ if __name__ == '__main__':
     if mesonlib.is_linux():
         print('Running unittests.\n')
         returncode += subprocess.call([sys.executable, 'run_unittests.py', '-v'])
+    if shutil.which('arm-linux-gnueabihf-gcc-6'): # Ubuntu packages do not have a binary without -6 suffix.
+        print('Running cross compilation tests.\n')
+        returncode += subprocess.call([sys.executable, 'run_cross_test.py', 'cross/ubuntu-armhf.txt'])
     returncode += subprocess.call([sys.executable, 'run_project_tests.py'] + sys.argv[1:])
     sys.exit(returncode)

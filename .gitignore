@@ -10,6 +10,8 @@ __pycache__
 
 /meson-test-run.txt
 /meson-test-run.xml
+/meson-cross-test-run.txt
+/meson-cross-test-run.xml
 
 .DS_Store
 *~

@@ -132,7 +132,11 @@ def write_json_log(jsonlogfile, test_name, result):
               'duration' : result.duration,
               'returncode' : result.returncode,
               'command' : result.cmd,
-              'env' : result.env}
+              }
+    if isinstance(result.env, dict):
+        jresult['env'] = result.env
+    else:
+        jresult['env'] = result.env.get_env(os.environ)
     if result.stde:
         jresult['stderr'] = result.stde
     jsonlogfile.write(json.dumps(jresult) + '\n')
@@ -198,7 +202,7 @@ class TestHarness:
             duration = 0.0
             stdo = 'Not run because can not execute cross compiled binaries.'
             stde = None
-            returncode = -1
+            returncode = GNU_SKIP_RETURNCODE
         else:
             cmd = wrap + cmd + test.cmd_args
             starttime = time.time()

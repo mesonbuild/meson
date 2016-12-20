@@ -63,9 +63,6 @@ class AutoDeletedDir():
                     raise
                 time.sleep(0.1 * (2**i))
 
-passing_tests = 0
-failing_tests = 0
-skipped_tests = 0
 failing_logs = []
 print_debug = 'MESON_PRINT_TEST_OUTPUT' in os.environ
 do_debug = not {'MESON_PRINT_TEST_OUTPUT', 'TRAVIS', 'APPVEYOR'}.isdisjoint(os.environ)
@@ -370,14 +367,18 @@ def detect_tests_to_run():
     all_tests.append(('python3', gather_tests('test cases/python3'), False if using_backend('ninja') and shutil.which('python3') else True))
     return all_tests
 
-def run_tests(extra_args):
-    global install_commands, passing_tests, failing_tests, stop, executor, futures
-    all_tests = detect_tests_to_run()
-    logfile = open('meson-test-run.txt', 'w', encoding="utf_8")
+def run_tests(all_tests, log_name_base, extra_args):
+    global stop, executor, futures
+    txtname = log_name_base + '.txt'
+    xmlname = log_name_base + '.xml'
+    logfile = open(txtname, 'w', encoding="utf_8")
     junit_root = ET.Element('testsuites')
     conf_time = 0
     build_time = 0
     test_time = 0
+    passing_tests = 0
+    failing_tests = 0
+    skipped_tests = 0
 
     try:
         # This fails in some CI environments for unknown reasons.
@@ -412,7 +413,6 @@ def run_tests(extra_args):
                 current_test = ET.SubElement(current_suite, 'testcase', {'name' : testname,
                                                                          'classname' : name})
                 ET.SubElement(current_test, 'skipped', {})
-                global skipped_tests
                 skipped_tests += 1
             else:
                 without_install = "" if len(install_commands) > 0 else " (without install)"
@@ -442,7 +442,8 @@ def run_tests(extra_args):
     print("\nTotal configuration time: %.2fs" % conf_time)
     print("Total build time: %.2fs" % build_time)
     print("Total test time: %.2fs" % test_time)
-    ET.ElementTree(element=junit_root).write('meson-test-run.xml', xml_declaration=True, encoding='UTF-8')
+    ET.ElementTree(element=junit_root).write(xmlname, xml_declaration=True, encoding='UTF-8')
+    return (passing_tests, failing_tests, skipped_tests)
 
 def check_file(fname):
     linenum = 1
@@ -539,7 +540,8 @@ if __name__ == '__main__':
     check_format()
     pbfiles = generate_prebuilt()
     try:
-        run_tests(options.extra_args)
+        all_tests = detect_tests_to_run()
+        (passing_tests, failing_tests, skipped_tests) = run_tests(all_tests, 'meson-test-run', options.extra_args)
     except StopException:
         pass
     for f in pbfiles:
