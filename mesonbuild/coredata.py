@@ -15,7 +15,7 @@
 import pickle, os, uuid
 from .mesonlib import MesonException, default_libdir, default_libexecdir, default_prefix
 
-version = '0.37.1'
+version = '0.38.0.dev1'
 backendlist = ['ninja', 'vs2010', 'vs2015', 'xcode']
 
 class UserOption:
