@@ -89,7 +89,9 @@ class InternalDependency(Dependency):
         return self.version
 
 class PkgConfigDependency(Dependency):
-    pkgbin = None
+    # The class's copy of the pkg-config path. Avoids having to search for it
+    # multiple times in the same Meson invocation.
+    class_pkgbin = None
 
     def __init__(self, name, environment, kwargs):
         Dependency.__init__(self, 'pkgconfig')
@@ -99,6 +101,9 @@ class PkgConfigDependency(Dependency):
         self.silent = kwargs.get('silent', False)
         if not isinstance(self.static, bool):
             raise DependencyException('Static keyword must be boolean')
+        # Store a copy of the pkg-config path on the object itself so it is
+        # stored in the pickled coredata and recovered.
+        self.pkgbin = None
         self.cargs = []
         self.libs = []
         if 'native' in kwargs and environment.is_cross_build():
@@ -114,11 +119,15 @@ class PkgConfigDependency(Dependency):
                 if self.required:
                     raise DependencyException('Pkg-config binary missing from cross file')
             else:
-                PkgConfigDependency.pkgbin = environment.cross_info.config['binaries']['pkgconfig']
+                self.pkgbin = environment.cross_info.config['binaries']['pkgconfig']
+                PkgConfigDependency.class_pkgbin = self.pkgbin
         # Only search for the native pkg-config the first time and
         # store the result in the class definition
-        elif PkgConfigDependency.pkgbin is None:
-            PkgConfigDependency.pkgbin = self.check_pkgconfig()
+        elif PkgConfigDependency.class_pkgbin is None:
+            self.pkgbin = self.check_pkgconfig()
+            PkgConfigDependency.class_pkgbin = self.pkgbin
+        else:
+            self.pkgbin = PkgConfigDependency.class_pkgbin
 
         self.is_found = False
         if not self.pkgbin:
