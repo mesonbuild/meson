@@ -1754,8 +1754,8 @@ class LLVMDCompiler(DCompiler):
         return ['-I' + path]
 
     def get_warn_args(self, level):
-        if level == '2':
-            return ['-wi']
+        if level == '2' or level == '3':
+            return ['-w', '-wi']
         else:
             return ['-w']
 
