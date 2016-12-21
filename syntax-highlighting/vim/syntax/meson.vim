@@ -27,7 +27,7 @@ endif
 " We need nocompatible mode in order to continue lines with backslashes.
 " Original setting will be restored.
 let s:cpo_save = &cpo
-set cpo&vim
+setlocal cpo&vim
 
 " https://github.com/mesonbuild/meson/wiki/Syntax
 syn keyword mesonConditional	elif else if endif
