@@ -73,7 +73,10 @@ class OptionInterpreter:
         self.subproject = subproject
         self.cmd_line_options = {}
         for o in command_line_options:
-            (key, value) = o.split('=', 1)
+            try:
+                (key, value) = o.split('=', 1)
+            except ValueError:
+                raise OptionException('Option {!r} must have a value separated by equals sign.'.format(o))
             self.cmd_line_options[key] = value
 
     def process(self, option_file):
