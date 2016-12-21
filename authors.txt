@@ -58,3 +58,4 @@ Paulo Antonio Alvarez
 Olexa Bilaniuk
 Daniel Stone
 Marc-Antoine Perennou
+Matthieu Gautier
