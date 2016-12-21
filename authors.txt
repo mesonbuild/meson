@@ -59,3 +59,4 @@ Olexa Bilaniuk
 Daniel Stone
 Marc-Antoine Perennou
 Matthieu Gautier
+Kseniia Vasilchuk
