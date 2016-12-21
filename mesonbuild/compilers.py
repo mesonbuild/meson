@@ -1635,7 +1635,8 @@ class DCompiler(Compiler):
         return ['-shared']
 
     def get_soname_args(self, prefix, shlib_name, suffix, path, soversion, is_shared_module):
-        return []
+        # FIXME: Make this work for Windows, MacOS and cross-compiling
+        return get_gcc_soname_args(GCC_STANDARD, prefix, shlib_name, suffix, path, soversion, is_shared_module)
 
     def get_unittest_args(self):
         return ['-unittest']
@@ -1754,10 +1755,13 @@ class LLVMDCompiler(DCompiler):
         return ['-I' + path]
 
     def get_warn_args(self, level):
-        if level == '2':
-            return ['-wi']
+        if level == '2' or level == '3':
+            return ['-wi', '-dw']
         else:
-            return ['-w']
+            return ['-wi']
+
+    def get_werror_args(self):
+        return ['-w']
 
     def get_coverage_args(self):
         return ['-cov']
@@ -1809,7 +1813,7 @@ class DmdDCompiler(DCompiler):
         return ['-I' + path]
 
     def get_warn_args(self, level):
-        return []
+        return ['-wi']
 
     def get_coverage_args(self):
         return ['-cov']

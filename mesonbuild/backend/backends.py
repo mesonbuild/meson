@@ -373,7 +373,7 @@ class Backend():
             if not isinstance(d, (build.StaticLibrary, build.SharedLibrary)):
                 raise RuntimeError('Tried to link with a non-library target "%s".' % d.get_basename())
             if isinstance(compiler, compilers.LLVMDCompiler):
-                args.extend(['-L', self.get_target_filename_for_linking(d)])
+                args += ['-L' + self.get_target_filename_for_linking(d)]
             else:
                 args.append(self.get_target_filename_for_linking(d))
             # If you have executable e that links to shared lib s1 that links to shared library s2
