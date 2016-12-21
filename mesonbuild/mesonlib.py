@@ -318,7 +318,7 @@ def do_conf_file(src, dst, confdata):
             line = do_replacement(regex, line, confdata)
         result.append(line)
     dst_tmp = dst + '~'
-    with open(dst_tmp, 'w') as f:
+    with open(dst_tmp, 'w', encoding='utf-8') as f:
         f.writelines(result)
     shutil.copymode(src, dst_tmp)
     replace_if_different(dst, dst_tmp)
