@@ -23,15 +23,15 @@ if exists("*GetMesonIndent")
   finish
 endif
 let s:keepcpo= &cpo
-set cpo&vim
+setlocal cpo&vim
 
 " Come here when loading the script the first time.
 
 let s:maxoff = 50	" maximum number of lines to look backwards for ()
 
 " Force sw=2 sts=2 because that's required by convention
-set shiftwidth=2
-set softtabstop=2 
+setlocal shiftwidth=2
+setlocal softtabstop=2 
 
 function GetMesonIndent(lnum)
   echom getline(line("."))
