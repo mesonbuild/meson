@@ -196,6 +196,8 @@ class Elf(DataSizes):
     def parse_dynamic(self):
         sec = self.find_section(b'.dynamic')
         self.dynamic = []
+        if sec is None:
+            return
         self.bf.seek(sec.sh_offset)
         while True:
             e = DynamicEntry(self.bf, self.ptrsize, self.is_le)
@@ -218,6 +220,9 @@ class Elf(DataSizes):
                 soname = i
             if i.d_tag == DT_STRTAB:
                 strtab = i
+        else:
+            print("This file does not have a soname")
+            return
         self.bf.seek(strtab.val + soname.val)
         print(self.read_str())
 
@@ -300,6 +305,8 @@ class Elf(DataSizes):
 
     def remove_rpath_entry(self, entrynum):
         sec = self.find_section(b'.dynamic')
+        if sec is None:
+            return None
         for (i, entry) in enumerate(self.dynamic):
             if entry.d_tag == entrynum:
                 rpentry = self.dynamic[i]
