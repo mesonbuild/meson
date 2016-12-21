@@ -626,7 +626,7 @@ int dummy;
                              self.environment.get_import_lib_dir(),
                              # It has no aliases, should not be stripped, and
                              # doesn't have an install_rpath
-                             [], False, '']
+                             {}, False, '']
                         d.targets.append(i)
                     outdir = self.environment.get_shared_lib_dir()
                 elif isinstance(t, build.StaticLibrary):
@@ -641,16 +641,16 @@ int dummy;
                         # Install the debug symbols file in the same place as
                         # the target itself. It has no aliases, should not be
                         # stripped, and doesn't have an install_rpath
-                        i = [self.get_target_debug_filename(t), outdir, [], False, '']
+                        i = [self.get_target_debug_filename(t), outdir, {}, False, '']
                         d.targets.append(i)
                 if isinstance(t, build.BuildTarget):
-                    i = [self.get_target_filename(t), outdir, t.get_aliaslist(),\
-                        should_strip, t.install_rpath]
+                    i = [self.get_target_filename(t), outdir, t.get_aliases(),
+                         should_strip, t.install_rpath]
                     d.targets.append(i)
                 elif isinstance(t, build.CustomTarget):
                     for output in t.get_outputs():
                         f = os.path.join(self.get_target_dir(t), output)
-                        d.targets.append([f, outdir, [], False, None])
+                        d.targets.append([f, outdir, {}, False, None])
 
     def generate_custom_install_script(self, d):
         d.install_scripts = self.build.install_scripts
@@ -2087,22 +2087,15 @@ rule FORTRAN_DEP_HACK
 
     def generate_shlib_aliases(self, target, outdir):
         basename = target.get_filename()
-        aliases = target.get_aliaslist()
-        for i, alias in enumerate(aliases):
+        aliases = target.get_aliases()
+        for alias, to in aliases.items():
             aliasfile = os.path.join(self.environment.get_build_dir(), outdir, alias)
             try:
                 os.remove(aliasfile)
             except Exception:
                 pass
-            # If both soversion and version are set and to different values,
-            # the .so symlink must point to the soversion symlink rather than the
-            # original file.
-            if i == 0 and len(aliases) > 1:
-                pointed_to_filename = aliases[1]
-            else:
-                pointed_to_filename = basename
             try:
-                os.symlink(pointed_to_filename, aliasfile)
+                os.symlink(to, aliasfile)
             except NotImplementedError:
                 mlog.debug("Library versioning disabled because symlinks are not supported.")
             except OSError:

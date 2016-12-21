@@ -55,7 +55,7 @@ class RPMModule:
                 files.add('%%{_bindir}/%s' % target.get_filename())
             elif isinstance(target, build.SharedLibrary) and target.need_install:
                 files.add('%%{_libdir}/%s' % target.get_filename())
-                for alias in target.get_aliaslist():
+                for alias in target.get_aliases():
                     if alias.endswith('.so'):
                         files_devel.add('%%{_libdir}/%s' % alias)
                     else:
