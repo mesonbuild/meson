@@ -103,9 +103,7 @@ class TestRun():
         if self.cmd is None:
             res += 'NONE\n'
         else:
-            res += "\n%s %s\n" % (' '.join(
-                ["%s='%s'" % (k, v) for k, v in self.env.items()]),
-                ' ' .join(self.cmd))
+            res += "%s%s\n" % (''.join(["%s='%s' " % (k, v) for k, v in self.env.items()]), ' ' .join(self.cmd))
         if self.stdo:
             res += '--- stdout ---\n'
             res += self.stdo
