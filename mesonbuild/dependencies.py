@@ -21,6 +21,7 @@
 
 import re
 import os, stat, glob, shutil
+import subprocess
 import sysconfig
 from collections import OrderedDict
 from . mesonlib import MesonException, version_compare, version_compare_many, Popen_safe
@@ -237,7 +238,7 @@ class PkgConfigDependency(Dependency):
         return self.modversion
 
     def get_version(self):
-        return self.get_modversion()
+        return self.modversion
 
     def get_compile_args(self):
         return self.cargs
@@ -362,6 +363,9 @@ class WxDependency(Dependency):
         return candidates
 
     def get_modversion(self):
+        return self.modversion
+
+    def get_version(self):
         return self.modversion
 
     def get_compile_args(self):
@@ -568,8 +572,7 @@ class BoostDependency(Dependency):
                 info = self.version + ', ' + self.boost_root
             else:
                 info = self.version
-            mlog.log('Dependency Boost (%s) found:' % module_str, mlog.green('YES'),
-                     '(' + info + ')')
+            mlog.log('Dependency Boost (%s) found:' % module_str, mlog.green('YES'), info)
         else:
             mlog.log("Dependency Boost (%s) found:" % module_str, mlog.red('NO'))
 
@@ -1060,13 +1063,14 @@ class Qt4Dependency(QtBaseDependency):
 class GnuStepDependency(Dependency):
     def __init__(self, environment, kwargs):
         Dependency.__init__(self, 'gnustep')
+        self.required = kwargs.get('required', True)
         self.modules = kwargs.get('modules', [])
         self.detect()
 
     def detect(self):
-        confprog = 'gnustep-config'
+        self.confprog = 'gnustep-config'
         try:
-            gp = Popen_safe([confprog, '--help'])[0]
+            gp = Popen_safe([self.confprog, '--help'])[0]
         except (FileNotFoundError, PermissionError):
             self.args = None
             mlog.log('Dependency GnuStep found:', mlog.red('NO'), '(no gnustep-config)')
@@ -1079,16 +1083,18 @@ class GnuStepDependency(Dependency):
             arg = '--gui-libs'
         else:
             arg = '--base-libs'
-        fp, flagtxt, flagerr = Popen_safe([confprog, '--objc-flags'])
+        fp, flagtxt, flagerr = Popen_safe([self.confprog, '--objc-flags'])
         if fp.returncode != 0:
             raise DependencyException('Error getting objc-args: %s %s' % (flagtxt, flagerr))
         args = flagtxt.split()
         self.args = self.filter_arsg(args)
-        fp, libtxt, liberr = Popen_safe([confprog, arg])
+        fp, libtxt, liberr = Popen_safe([self.confprog, arg])
         if fp.returncode != 0:
             raise DependencyException('Error getting objc-lib args: %s %s' % (libtxt, liberr))
         self.libs = self.weird_filter(libtxt.split())
-        mlog.log('Dependency GnuStep found:', mlog.green('YES'))
+        self.version = self.detect_version()
+        mlog.log('Dependency', mlog.bold('GnuStep'), 'found:',
+                 mlog.green('YES'), self.version)
 
     def weird_filter(self, elems):
         """When building packages, the output of the enclosing Make
@@ -1108,8 +1114,40 @@ why. As a hack filter out everything that is not a flag."""
                 result.append(f)
         return result
 
+    def detect_version(self):
+        gmake = self.get_variable('GNUMAKE')
+        makefile_dir = self.get_variable('GNUSTEP_MAKEFILES')
+        # This Makefile has the GNUStep version set
+        base_make = os.path.join(makefile_dir, 'Additional', 'base.make')
+        # Print the Makefile variable passed as the argument. For instance, if
+        # you run the make target `print-SOME_VARIABLE`, this will print the
+        # value of the variable `SOME_VARIABLE`.
+        printver = "print-%:\n\t@echo '$($*)'"
+        env = os.environ.copy()
+        # See base.make to understand why this is set
+        env['FOUNDATION_LIB'] = 'gnu'
+        p, o, e = Popen_safe([gmake, '-f', '-', '-f', base_make,
+                              'print-GNUSTEP_BASE_VERSION'],
+                             env=env, write=printver, stdin=subprocess.PIPE)
+        version = o.strip()
+        if not version:
+            mlog.debug("Couldn't detect GNUStep version, falling back to '1'")
+            # Fallback to setting some 1.x version
+            version = '1'
+        return version
+
+    def get_variable(self, var):
+        p, o, e = Popen_safe([self.confprog, '--variable=' + var])
+        if p.returncode != 0 and self.required:
+            raise DependencyException('{!r} for variable {!r} failed to run'
+                                      ''.format(self.confprog, var))
+        return o.strip()
+
     def found(self):
         return self.args is not None
+
+    def get_version(self):
+        return self.version
 
     def get_compile_args(self):
         if self.args is None:
@@ -1139,6 +1177,9 @@ class AppleFrameworks(Dependency):
     def found(self):
         return mesonlib.is_osx()
 
+    def get_version(self):
+        return 'unknown'
+
 class GLDependency(Dependency):
     def __init__(self, environment, kwargs):
         Dependency.__init__(self, 'gl')
@@ -1152,20 +1193,26 @@ class GLDependency(Dependency):
                 self.is_found = True
                 self.cargs = pcdep.get_compile_args()
                 self.linkargs = pcdep.get_link_args()
+                self.version = pcdep.get_version()
                 return
         except Exception:
             pass
         if mesonlib.is_osx():
             self.is_found = True
             self.linkargs = ['-framework', 'OpenGL']
+            self.version = '1' # FIXME
             return
         if mesonlib.is_windows():
             self.is_found = True
             self.linkargs = ['-lopengl32']
+            self.version = '1' # FIXME: unfixable?
             return
 
     def get_link_args(self):
         return self.linkargs
+
+    def get_version(self):
+        return self.version
 
 # There are three different ways of depending on SDL2:
 # sdl2-config, pkg-config and OSX framework
@@ -1189,13 +1236,15 @@ class SDL2Dependency(Dependency):
             pass
         sdlconf = shutil.which('sdl2-config')
         if sdlconf:
-            pc, stdo = Popen_safe(['sdl2-config', '--cflags'])[0:2]
+            stdo = Popen_safe(['sdl2-config', '--cflags'])[1]
             self.cargs = stdo.strip().split()
-            pc, stdo = Popen_safe(['sdl2-config', '--libs'])[0:2]
+            stdo = Popen_safe(['sdl2-config', '--libs'])[1]
             self.linkargs = stdo.strip().split()
+            stdo = Popen_safe(['sdl2-config', '--version'])[1]
+            self.version = stdo.strip()
             self.is_found = True
-            mlog.log('Dependency', mlog.bold('sdl2'), 'found:', mlog.green('YES'), '(%s)' % sdlconf)
-            self.version = '2' # FIXME
+            mlog.log('Dependency', mlog.bold('sdl2'), 'found:', mlog.green('YES'),
+                     self.version, '(%s)' % sdlconf)
             return
         mlog.debug('Could not find sdl2-config binary, trying next.')
         if mesonlib.is_osx():
@@ -1261,6 +1310,9 @@ class ExtraFrameworkDependency(Dependency):
     def found(self):
         return self.name is not None
 
+    def get_version(self):
+        return 'unknown'
+
 class ThreadDependency(Dependency):
     def __init__(self, environment, kwargs):
         super().__init__('threads')
@@ -1271,12 +1323,16 @@ class ThreadDependency(Dependency):
     def need_threads(self):
         return True
 
+    def get_version(self):
+        return 'unknown'
+
 class Python3Dependency(Dependency):
     def __init__(self, environment, kwargs):
         super().__init__('python3')
         self.name = 'python3'
         self.is_found = False
-        self.version = "3.something_maybe"
+        # We can only be sure that it is Python 3 at this point
+        self.version = '3'
         try:
             pkgdep = PkgConfigDependency('python3', environment, kwargs)
             if pkgdep.found():
