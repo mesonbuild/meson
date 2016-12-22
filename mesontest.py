@@ -305,10 +305,10 @@ class TestHarness:
                 print('\nThe output from the failed tests:\n')
             for log in self.collected_logs[:10]:
                 lines = log.splitlines()
-                if len(lines) > 100:
-                    print(lines[0])
+                if len(lines) > 104:
+                    print('\n'.join(lines[0:4]))
                     print('--- Listing only the last 100 lines from a long log. ---')
-                    lines = lines[-99:]
+                    lines = lines[-100:]
                 for line in lines:
                     print(line)
         print('Full log written to %s.' % logfilename)
