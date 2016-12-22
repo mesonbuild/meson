@@ -271,6 +271,11 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, flags, compile_c
         return TestResult('Test that should have failed to build succeeded', stdo, stde, mesonlog, gen_time)
     if pc.returncode != 0:
         return TestResult('Compiling source code failed.', stdo, stde, mesonlog, gen_time, build_time)
+    # Touch the meson.build file to force a regenerate so we can test that
+    # regeneration works. We need to sleep for 0.2s because Ninja tracks mtimes
+    # at a low resolution: https://github.com/ninja-build/ninja/issues/371
+    time.sleep(0.2)
+    os.utime(os.path.join(testdir, 'meson.build'))
     test_start = time.time()
     # Note that we don't test that running e.g. 'ninja test' actually
     # works. One hopes that this is a common enough happening that
