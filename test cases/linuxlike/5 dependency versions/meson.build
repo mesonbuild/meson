@@ -47,3 +47,10 @@ assert(somelibfail.found() == false, 'somelibfail found via wrong fallback')
 fakezlib_dep = dependency('zlib',
   fallback : ['somelib', 'fakezlib_dep'])
 assert(fakezlib_dep.type_name() == 'internal', 'fakezlib_dep should be of type "internal", not ' + fakezlib_dep.type_name())
+
+foreach d : ['sdl2', 'gnustep', 'wx', 'gl', 'python3', 'boost', 'gtest', 'gmock']
+  dep = dependency(d, required : false)
+  if dep.found()
+    dep.version()
+  endif
+endforeach
