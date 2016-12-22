@@ -149,8 +149,10 @@ class TestHarness:
     def __init__(self, options):
         self.options = options
         self.collected_logs = []
-        self.failed_tests = []
-        self.error_count = 0
+        self.fail_count = 0
+        self.success_count = 0
+        self.skip_count = 0
+        self.timeout_count = 0
         self.is_run = False
         self.cant_rebuild = False
         if self.options.benchmark:
@@ -180,7 +182,6 @@ class TestHarness:
         return True
 
     def run_single_test(self, wrap, test):
-        failling = False
         if test.fname[0].endswith('.jar'):
             cmd = ['java', '-jar'] + test.fname
         elif not test.is_cross and run_with_mono(test.fname[0]):
@@ -256,20 +257,18 @@ class TestHarness:
                 stde = decode(stde)
             if timed_out:
                 res = 'TIMEOUT'
-                failling = True
+                self.timeout_count += 1
             if p.returncode == GNU_SKIP_RETURNCODE:
                 res = 'SKIP'
-            elif (not test.should_fail and p.returncode == 0) or \
-                (test.should_fail and p.returncode != 0):
+                self.skip_count += 1
+            elif test.should_fail == bool(p.returncode):
                 res = 'OK'
+                self.success_count += 1
             else:
                 res = 'FAIL'
-                failling = True
+                self.fail_count += 1
             returncode = p.returncode
         result = TestRun(res, returncode, test.should_fail, duration, stdo, stde, cmd, test.env)
-
-        if failling:
-            self.failed_tests.append(result)
 
         return result
 
@@ -284,20 +283,21 @@ class TestHarness:
         result_str += "\n\n" + result.get_log()
         if (result.returncode != GNU_SKIP_RETURNCODE) and \
             (result.returncode != 0) != result.should_fail:
-            self.error_count += 1
             if self.options.print_errorlogs:
                 self.collected_logs.append(result_str)
-        logfile.write(result_str)
-        write_json_log(jsonlogfile, name, result)
+        if logfile:
+            logfile.write(result_str)
+        if jsonlogfile:
+            write_json_log(jsonlogfile, name, result)
 
-    def doit(self):
-        if self.is_run:
-            raise RuntimeError('Test harness object can only be used once.')
-        if not os.path.isfile(self.datafile):
-            print('Test data file. Probably this means that you did not run this in the build directory.')
-            return 1
-        self.is_run = True
-        logfilename = self.run_tests(self.options.logbase)
+    def print_summary(self, logfile, jsonlogfile):
+        msg = 'Test summary: %d OK, %d FAIL, %d SKIP, %d TIMEOUT' \
+            % (self.success_count, self.fail_count, self.skip_count, self.timeout_count)
+        print(msg)
+        if logfile:
+            logfile.write(msg)
+
+    def print_collected_logs(self):
         if len(self.collected_logs) > 0:
             if len(self.collected_logs) > 10:
                 print('\nThe output from 10 first failed tests:\n')
@@ -311,52 +311,94 @@ class TestHarness:
                     lines = lines[-100:]
                 for line in lines:
                     print(line)
-        print('Full log written to %s.' % logfilename)
-        return self.error_count
+
+    def doit(self):
+        if self.is_run:
+            raise RuntimeError('Test harness object can only be used once.')
+        if not os.path.isfile(self.datafile):
+            print('Test data file. Probably this means that you did not run this in the build directory.')
+            return 1
+        self.is_run = True
+        tests = self.get_tests()
+        if not tests:
+            return 0
+        self.run_tests(tests)
+        return self.fail_count
 
     def get_tests(self):
         with open(self.datafile, 'rb') as f:
             tests = pickle.load(f)
+
+        if not tests:
+            print('No tests defined.')
+            return []
+
+        if self.options.suite:
+            tests = [t for t in tests if self.options.suite in t.suite]
+
+        if self.options.args:
+            tests = [t for t in tests if t.name in self.options.args]
+
+        if not tests:
+            print('No suitable tests defined.')
+            return []
+
         for test in tests:
             test.rebuilt = False
 
         return tests
 
-    def run_tests(self, log_base):
-        logfile_base = os.path.join(self.options.wd, 'meson-logs', log_base)
+    def open_log_files(self):
+        if not self.options.logbase or self.options.verbose:
+            return (None, None, None, None)
+
+        logfile_base = os.path.join(self.options.wd, 'meson-logs', self.options.logbase)
+
         if self.options.wrapper is None:
-            wrap = []
             logfilename = logfile_base + '.txt'
             jsonlogfilename = logfile_base + '.json'
         else:
+            namebase = os.path.split(self.get_wrapper()[0])[1]
+            logfilename = logfile_base + '-' + namebase.replace(' ', '_') + '.txt'
+            jsonlogfilename = logfile_base + '-' + namebase.replace(' ', '_') + '.json'
+
+        jsonlogfile = open(jsonlogfilename, 'w')
+        logfile = open(logfilename, 'w')
+
+        logfile.write('Log of Meson test suite run on %s.\n\n'
+                      % datetime.datetime.now().isoformat())
+
+        return (logfile, logfilename, jsonlogfile, jsonlogfilename)
+
+    def get_wrapper(self):
+        wrap = []
+        if self.options.gdb:
+            wrap = ['gdb', '--quiet', '--nh']
+            if self.options.repeat > 1:
+                wrap += ['-ex', 'run', '-ex', 'quit']
+        elif self.options.wrapper:
             if isinstance(self.options.wrapper, str):
                 wrap = self.options.wrapper.split()
             else:
                 wrap = self.options.wrapper
-            assert(isinstance(wrap, list))
-            namebase = os.path.split(wrap[0])[1]
-            logfilename = logfile_base + '-' + namebase.replace(' ', '_') + '.txt'
-            jsonlogfilename = logfile_base + '-' + namebase.replace(' ', '_') + '.json'
-        tests = self.get_tests()
-        if len(tests) == 0:
-            print('No tests defined.')
-            return
-        numlen = len('%d' % len(tests))
-        executor = conc.ThreadPoolExecutor(max_workers=self.options.num_processes)
-        futures = []
-        filtered_tests = filter_tests(self.options.suite, tests)
+        assert(isinstance(wrap, list))
+        return wrap
 
-        jsonlogfile = None
-        logfile = None
+    def get_suites(self, tests):
+        return set([test.suite[0] for test in tests])
+
+    def run_tests(self, tests):
         try:
-            if not self.options.verbose:
-                jsonlogfile = open(jsonlogfilename, 'w')
-                logfile = open(logfilename, 'w')
-                logfile.write('Log of Meson test suite run on %s.\n\n' %
-                              datetime.datetime.now().isoformat())
+            executor = None
+            logfile = None
+            jsonlogfile = None
+            futures = []
+            numlen = len('%d' % len(tests))
+            (logfile, logfilename, jsonlogfile, jsonlogfilename) = self.open_log_files()
+            wrap = self.get_wrapper()
 
             for i in range(self.options.repeat):
-                for i, test in enumerate(filtered_tests):
+                for i, test in enumerate(tests):
                     if test.suite[0] == '':
                         visible_name = test.name
                     else:
@@ -365,97 +407,72 @@ class TestHarness:
                         else:
                             visible_name = test.suite[0] + ' / ' + test.name
 
-                    if not test.is_parallel:
-                        self.drain_futures(futures)
+                    if self.options.gdb:
+                        test.timeout = None
+                        if len(test.cmd_args):
+                            wrap.append('--args')
+
+                    if not test.is_parallel or self.options.gdb:
+                        self.drain_futures(futures, logfile, jsonlogfile)
                         futures = []
                         res = self.run_single_test(wrap, test)
                         if not self.options.verbose:
-                            self.print_stats(numlen, filtered_tests, visible_name, res, i,
-                                             logfile, jsonlogfile)
+                            self.print_stats(numlen, tests, visible_name, res, i,
+                                            logfile, jsonlogfile)
                     else:
+                        if not executor:
+                            executor = conc.ThreadPoolExecutor(max_workers=self.options.num_processes)
                         f = executor.submit(self.run_single_test, wrap, test)
                         if not self.options.verbose:
-                            futures.append((f, numlen, filtered_tests, visible_name, i,
+                            futures.append((f, numlen, tests, visible_name, i,
                                             logfile, jsonlogfile))
+                    if self.options.repeat > 1 and self.fail_count:
+                        break
+                if self.options.repeat > 1 and self.fail_count:
+                    break
+
             self.drain_futures(futures, logfile, jsonlogfile)
+            self.print_summary(logfile, jsonlogfile)
+            self.print_collected_logs()
+
+            if logfilename:
+                print('Full log written to %s.' % logfilename)
         finally:
             if jsonlogfile:
                 jsonlogfile.close()
             if logfile:
                 logfile.close()
 
-        return logfilename
-
-
     def drain_futures(self, futures, logfile, jsonlogfile):
         for i in futures:
             (result, numlen, tests, name, i, logfile, jsonlogfile) = i
-            if self.options.repeat > 1 and self.failed_tests:
+            if self.options.repeat > 1 and self.fail_count:
                 result.cancel()
+                self.print_stats(numlen, tests, name, result.result(), i, logfile, jsonlogfile)
             elif not self.options.verbose:
                 self.print_stats(numlen, tests, name, result.result(), i, logfile, jsonlogfile)
             else:
                 result.result()
 
-        if self.options.repeat > 1 and self.failed_tests:
-            if not self.options.verbose:
-                for res in self.failed_tests:
-                    print('Test failed:\n\n-- stdout --\n')
-                    print(res.stdo)
-                    print('\n-- stderr --\n')
-                    print(res.stde)
-                    return 1
-
-            return
-
     def run_special(self):
         'Tests run by the user, usually something like "under gdb 1000 times".'
         if self.is_run:
             raise RuntimeError('Can not use run_special after a full run.')
-        if self.options.wrapper is not None:
-            wrap = self.options.wrapper.split(' ')
-        else:
-            wrap = []
-        if self.options.gdb and len(wrap) > 0:
-            print('Can not specify both a wrapper and gdb.')
-            return 1
         if os.path.isfile('build.ninja'):
             subprocess.check_call([environment.detect_ninja(), 'all'])
         tests = self.get_tests()
-        if self.options.list:
-            for i in tests:
-                print(i.name)
-            return 0
-        for t in tests:
-            if t.name in self.options.args:
-                for i in range(self.options.repeat):
-                    print('Running: %s %d/%d' % (t.name, i + 1, self.options.repeat))
-                    if self.options.gdb:
-                        wrap = ['gdb', '--quiet']
-                        if len(t.cmd_args) > 0:
-                            wrap.append('--args')
-                        if self.options.repeat > 1:
-                            # The user wants to debug interactively, so no timeout.
-                            t.timeout = None
-                            wrap += ['-ex', 'run', '-ex', 'quit']
+        self.run_tests(tests)
+        return self.fail_count
 
-                        res = self.run_single_test(wrap, t)
-                    else:
-                        res = self.run_single_test(wrap, t)
-                        if (res.returncode == 0 and res.should_fail) or \
-                                (res.returncode != 0 and not res.should_fail):
-                            if not self.options.verbose:
-                                print('Test failed:\n\n-- stdout --\n')
-                                print(res.stdo)
-                                print('\n-- stderr --\n')
-                                print(res.stde)
-                            return 1
-        return 0
 
-def filter_tests(suite, tests):
-    if suite is None:
-        return tests
-    return [x for x in tests if suite in x.suite]
+def list_tests(th):
+    tests = th.get_tests()
+    print_suites = True if len(th.get_suites(tests)) != 1 else False
+    for i in tests:
+        if print_suites:
+            print("%s / %s" % (i.suite[0], i.name))
+        else:
+            print("%s" % i.name)
 
 
 def merge_suite_options(options):
@@ -480,6 +497,7 @@ def merge_suite_options(options):
 
 def run(args):
     options = parser.parse_args(args)
+
     if options.benchmark:
         options.num_processes = 1
 
@@ -492,12 +510,16 @@ def run(args):
 
     if options.gdb:
         options.verbose = True
+        if options.wrapper:
+            print('Must not specify both a wrapper and gdb at the same time.')
+            return 1
 
     options.wd = os.path.abspath(options.wd)
 
     th = TestHarness(options)
     if options.list:
-        return th.run_special()
+        list_tests(th)
+        return 0
     if not options.no_rebuild:
         if not th.rebuild_all():
             sys.exit(-1)
