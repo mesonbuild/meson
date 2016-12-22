@@ -222,14 +222,14 @@ def install_targets(d):
         else:
             raise RuntimeError('Unknown file type for {!r}'.format(fname))
         printed_symlink_error = False
-        for alias in aliases:
+        for alias, to in aliases.items():
             try:
                 symlinkfilename = os.path.join(outdir, alias)
                 try:
                     os.unlink(symlinkfilename)
                 except FileNotFoundError:
                     pass
-                os.symlink(os.path.split(fname)[-1], symlinkfilename)
+                os.symlink(to, symlinkfilename)
                 append_to_log(symlinkfilename)
             except (NotImplementedError, OSError):
                 if not printed_symlink_error:

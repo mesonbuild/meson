@@ -798,8 +798,8 @@ class BuildTarget():
         else:
             self.extra_args[language] = args
 
-    def get_aliaslist(self):
-        return []
+    def get_aliases(self):
+        return {}
 
     def get_clike_dynamic_linker(self):
         '''
@@ -1038,7 +1038,7 @@ class SharedLibrary(BuildTarget):
         First we determine the filename template (self.filename_tpl), then we
         set the output filename (self.filename).
 
-        The template is needed while creating aliases (self.get_aliaslist),
+        The template is needed while creating aliases (self.get_aliases),
         which are needed while generating .so shared libraries for Linux.
 
         Besides this, there's also the import library name, which is only used
@@ -1184,25 +1184,30 @@ class SharedLibrary(BuildTarget):
     def get_all_link_deps(self):
         return [self] + self.get_transitive_link_deps()
 
-    def get_aliaslist(self):
+    def get_aliases(self):
         """
         If the versioned library name is libfoo.so.0.100.0, aliases are:
-        * libfoo.so.0 (soversion)
-        * libfoo.so (unversioned; for linking)
+        * libfoo.so.0 (soversion) -> libfoo.so.0.100.0
+        * libfoo.so (unversioned; for linking) -> libfoo.so.0
         """
+        aliases = {}
         # Aliases are only useful with .so libraries. Also if the .so library
         # ends with .so (no versioning), we don't need aliases.
         if self.suffix != 'so' or self.filename.endswith('.so'):
-            return []
-        # Unversioned alias: libfoo.so
-        aliases = [self.basic_filename_tpl.format(self)]
-        # If ltversion != soversion we create an soversion alias: libfoo.so.X
+            return {}
+        # If ltversion != soversion we create an soversion alias:
+        # libfoo.so.0 -> libfoo.so.0.100.0
         if self.ltversion and self.ltversion != self.soversion:
             if not self.soversion:
                 # This is done in self.process_kwargs()
                 raise AssertionError('BUG: If library version is defined, soversion must have been defined')
             alias_tpl = self.filename_tpl.replace('ltversion', 'soversion')
-            aliases.append(alias_tpl.format(self))
+            ltversion_filename = alias_tpl.format(self)
+            aliases[ltversion_filename] = self.filename
+        else:
+            ltversion_filename = self.filename
+        # Unversioned alias: libfoo.so -> libfoo.so.0
+        aliases[self.basic_filename_tpl.format(self)] = ltversion_filename
         return aliases
 
     def type_suffix(self):

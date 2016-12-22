@@ -57,6 +57,9 @@ class LinuxlikeTests(unittest.TestCase):
         src_root = os.path.dirname(__file__)
         src_root = os.path.join(os.getcwd(), src_root)
         self.builddir = tempfile.mkdtemp()
+        self.prefix = '/usr'
+        self.libdir = os.path.join(self.prefix, 'lib')
+        self.installdir = os.path.join(self.builddir, 'install')
         self.meson_command = [sys.executable, os.path.join(src_root, 'meson.py')]
         self.mconf_command = [sys.executable, os.path.join(src_root, 'mesonconf.py')]
         self.mintro_command = [sys.executable, os.path.join(src_root, 'mesonintrospect.py')]
@@ -77,10 +80,17 @@ class LinuxlikeTests(unittest.TestCase):
         self.output += subprocess.check_output(command, env=os.environ.copy())
 
     def init(self, srcdir):
-        self._run(self.meson_command + [srcdir, self.builddir])
+        args = [srcdir, self.builddir,
+                '--prefix', self.prefix,
+                '--libdir', self.libdir]
+        self._run(self.meson_command + args)
 
     def build(self):
         self._run(self.ninja_command)
+
+    def install(self):
+        os.environ['DESTDIR'] = self.installdir
+        self._run(self.ninja_command + ['install'])
 
     def run_target(self, target):
         self.output += subprocess.check_output(self.ninja_command + [target])
@@ -236,8 +246,8 @@ class LinuxlikeTests(unittest.TestCase):
         intro = self.introspect('--targets')
         if intro[0]['type'] == 'executable':
             intro = intro[::-1]
-        self.assertEqual(intro[0]['install_filename'], '/usr/local/libtest/libstat.a')
-        self.assertEqual(intro[1]['install_filename'], '/usr/local/bin/prog')
+        self.assertEqual(intro[0]['install_filename'], '/usr/lib/libstat.a')
+        self.assertEqual(intro[1]['install_filename'], '/usr/bin/prog')
 
     def test_run_target_files_path(self):
         '''
@@ -282,46 +292,54 @@ class LinuxlikeTests(unittest.TestCase):
                 return line.split('[')[1].split(']')[0]
         raise RuntimeError('Readelf gave no SONAME.')
 
-    def test_soname(self):
+    def _test_soname_impl(self, libpath, install):
         testdir = os.path.join(self.unit_test_dir, '1 soname')
         self.init(testdir)
         self.build()
+        if install:
+            self.install()
 
         # File without aliases set.
-        nover = os.path.join(self.builddir, 'libnover.so')
+        nover = os.path.join(libpath, 'libnover.so')
         self.assertTrue(os.path.exists(nover))
         self.assertFalse(os.path.islink(nover))
         self.assertEqual(self.get_soname(nover), 'libnover.so')
         self.assertEqual(len(glob(nover[:-3] + '*')), 1)
 
         # File with version set
-        verset = os.path.join(self.builddir, 'libverset.so')
+        verset = os.path.join(libpath, 'libverset.so')
         self.assertTrue(os.path.exists(verset + '.4.5.6'))
         self.assertEqual(os.readlink(verset), 'libverset.so.4')
         self.assertEqual(self.get_soname(verset), 'libverset.so.4')
         self.assertEqual(len(glob(verset[:-3] + '*')), 3)
 
         # File with soversion set
-        soverset = os.path.join(self.builddir, 'libsoverset.so')
+        soverset = os.path.join(libpath, 'libsoverset.so')
         self.assertTrue(os.path.exists(soverset + '.1.2.3'))
         self.assertEqual(os.readlink(soverset), 'libsoverset.so.1.2.3')
         self.assertEqual(self.get_soname(soverset), 'libsoverset.so.1.2.3')
         self.assertEqual(len(glob(soverset[:-3] + '*')), 2)
 
         # File with version and soversion set to same values
-        settosame = os.path.join(self.builddir, 'libsettosame.so')
+        settosame = os.path.join(libpath, 'libsettosame.so')
         self.assertTrue(os.path.exists(settosame + '.7.8.9'))
         self.assertEqual(os.readlink(settosame), 'libsettosame.so.7.8.9')
         self.assertEqual(self.get_soname(settosame), 'libsettosame.so.7.8.9')
         self.assertEqual(len(glob(settosame[:-3] + '*')), 2)
 
         # File with version and soversion set to different values
-        bothset = os.path.join(self.builddir, 'libbothset.so')
+        bothset = os.path.join(libpath, 'libbothset.so')
         self.assertTrue(os.path.exists(bothset + '.1.2.3'))
         self.assertEqual(os.readlink(bothset), 'libbothset.so.1.2.3')
         self.assertEqual(os.readlink(bothset + '.1.2.3'), 'libbothset.so.4.5.6')
         self.assertEqual(self.get_soname(bothset), 'libbothset.so.1.2.3')
         self.assertEqual(len(glob(bothset[:-3] + '*')), 3)
+
+    def test_soname(self):
+        self._test_soname_impl(self.builddir, False)
+
+    def test_installed_soname(self):
+        self._test_soname_impl(self.installdir + self.libdir, True)
 
     def test_compiler_check_flags_order(self):
         '''
