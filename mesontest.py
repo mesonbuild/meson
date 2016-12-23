@@ -416,16 +416,12 @@ class TestHarness:
                         self.drain_futures(futures, logfile, jsonlogfile)
                         futures = []
                         res = self.run_single_test(wrap, test)
-                        if not self.options.verbose:
-                            self.print_stats(numlen, tests, visible_name, res, i,
-                                            logfile, jsonlogfile)
+                        self.print_stats(numlen, tests, visible_name, res, i, logfile, jsonlogfile)
                     else:
                         if not executor:
                             executor = conc.ThreadPoolExecutor(max_workers=self.options.num_processes)
                         f = executor.submit(self.run_single_test, wrap, test)
-                        if not self.options.verbose:
-                            futures.append((f, numlen, tests, visible_name, i,
-                                            logfile, jsonlogfile))
+                        futures.append((f, numlen, tests, visible_name, i, logfile, jsonlogfile))
                     if self.options.repeat > 1 and self.fail_count:
                         break
                 if self.options.repeat > 1 and self.fail_count:
@@ -448,11 +444,9 @@ class TestHarness:
             (result, numlen, tests, name, i, logfile, jsonlogfile) = i
             if self.options.repeat > 1 and self.fail_count:
                 result.cancel()
-                self.print_stats(numlen, tests, name, result.result(), i, logfile, jsonlogfile)
-            elif not self.options.verbose:
-                self.print_stats(numlen, tests, name, result.result(), i, logfile, jsonlogfile)
-            else:
+            if self.options.verbose:
                 result.result()
+            self.print_stats(numlen, tests, name, result.result(), i, logfile, jsonlogfile)
 
     def run_special(self):
         'Tests run by the user, usually something like "under gdb 1000 times".'
