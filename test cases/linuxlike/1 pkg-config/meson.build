@@ -26,3 +26,23 @@ test('zlibtest2', exe2)
 # Try to find a nonexistant library to ensure requires:false works.
 
 dep = dependency('nvakuhrabnsdfasdf', required : false)
+
+# Try to compile a test that takes a dep and an include_directories
+
+cc = meson.get_compiler('c')
+zlibdep = cc.find_library('z')
+code = '''#include<myinc.h>
+
+int main(int argc, char **argv) {
+    void * something = deflate;
+    if(something != 0)
+        return 0;
+    return 1;
+}
+'''
+
+inc = include_directories('incdir')
+
+r = cc.run(code, include_directories : inc, dependencies : zlibdep)
+assert(r.returncode() == 0, 'Running manual zlib test failed.')
+
