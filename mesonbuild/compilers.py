@@ -1698,9 +1698,7 @@ class GnuDCompiler(DCompiler):
         return []
 
     def get_dependency_gen_args(self, outtarget, outfile):
-        # FIXME: Passing -fmake-deps results in a file-not-found message.
-        # Investigate why.
-        return []
+        return ['-fmake-deps=' + outfile]
 
     def get_output_args(self, target):
         return ['-o', target]
