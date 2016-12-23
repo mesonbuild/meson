@@ -636,6 +636,15 @@ class CompilerHolder(InterpreterObject):
         if not isinstance(nobuiltins, bool):
             raise InterpreterException('Type of no_builtin_args not a boolean.')
         args = []
+        incdirs = kwargs.get('include_directories', [])
+        if not isinstance(incdirs, list):
+            incdirs = [incdirs]
+        for i in incdirs:
+            if not isinstance(i, IncludeDirsHolder):
+                raise InterpreterException('Include directories argument must be an include_directories object.')
+            for idir in i.held_object.get_incdirs():
+                idir = os.path.join(self.environment.get_source_dir(), idir)
+                args += self.compiler.get_include_args(idir, False)
         if not nobuiltins:
             opts = self.environment.coredata.compiler_options
             args += self.compiler.get_option_compile_args(opts)
