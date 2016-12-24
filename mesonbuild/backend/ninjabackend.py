@@ -1837,6 +1837,8 @@ rule FORTRAN_DEP_HACK
             pchlist = []
         if len(pchlist) == 0:
             pch_dep = []
+        elif compiler.id == 'intel':
+            pch_dep = []
         else:
             arr = []
             i = os.path.join(self.get_target_private_dir(target), compiler.get_pch_name(pchlist[0]))
@@ -1956,6 +1958,9 @@ rule FORTRAN_DEP_HACK
                 src = os.path.join(self.build_to_src, target.get_source_subdir(), pch[-1])
                 (commands, dep, dst, objs) = self.generate_msvc_pch_command(target, compiler, pch)
                 extradep = os.path.join(self.build_to_src, target.get_source_subdir(), pch[0])
+            elif compiler.id == 'intel':
+                # Intel generates on target generation
+                continue
             else:
                 src = os.path.join(self.build_to_src, target.get_source_subdir(), pch[0])
                 (commands, dep, dst, objs) = self.generate_gcc_pch_command(target, compiler, pch[0])

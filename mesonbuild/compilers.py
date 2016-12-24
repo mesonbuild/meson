@@ -1923,7 +1923,7 @@ class VisualStudioCCompiler(CCompiler):
 
     def gen_pch_args(self, header, source, pchname):
         objname = os.path.splitext(pchname)[0] + '.obj'
-        return (objname, ['/Yc' + header, '/Fp' + pchname, '/Fo' + objname ])
+        return (objname, ['/Yc' + header, '/Fp' + pchname, '/Fo' + objname])
 
     def gen_import_library_args(self, implibname):
         "The name of the outputted import library"
@@ -2063,6 +2063,10 @@ CLANG_STANDARD = 0
 CLANG_OSX = 1
 CLANG_WIN = 2
 # Possibly clang-cl?
+
+ICC_STANDARD = 0
+ICC_OSX = 1
+ICC_WIN = 2
 
 def get_gcc_soname_args(gcc_type, prefix, shlib_name, suffix, path, soversion, is_shared_module):
     if soversion is None:
@@ -2223,6 +2227,7 @@ class GnuCPPCompiler(GnuCompiler, CPPCompiler):
         # too strict without this and always fails.
         return self.get_no_optimization_args() + ['-fpermissive']
 
+
 class GnuObjCCompiler(GnuCompiler, ObjCCompiler):
 
     def __init__(self, exelist, version, is_cross, exe_wrapper=None, defines=None):
@@ -2283,7 +2288,7 @@ class ClangCompiler():
         # Workaround for Clang bug http://llvm.org/bugs/show_bug.cgi?id=15136
         # This flag is internal to Clang (or at least not documented on the man page)
         # so it might change semantics at any time.
-        return ['-include-pch', os.path.join (pch_dir, self.get_pch_name (header))]
+        return ['-include-pch', os.path.join(pch_dir, self.get_pch_name(header))]
 
     def get_soname_args(self, prefix, shlib_name, suffix, path, soversion, is_shared_module):
         if self.clang_type == CLANG_STANDARD:
@@ -2377,6 +2382,137 @@ class ClangObjCPPCompiler(ClangCompiler, GnuObjCPPCompiler):
         GnuObjCPPCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
         ClangCompiler.__init__(self, cltype)
         self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage']
+
+
+# Only tested on linux for ICC 17.0.0
+#    * object extraction does not compile (don't know) (25 object extraction fails)
+#    * ICC 17.0.0 does not support c++03 and g++03 (94 default options fails)
+class IntelCompiler:
+    def __init__(self, icc_type):
+        self.id = 'intel'
+        self.icc_type = icc_type
+        self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage',
+                             'b_colorout', 'b_ndebug', 'b_staticpic', 'b_lundef', 'b_asneeded']
+        # Assembly
+        self.can_compile_suffixes.add('s')
+
+    def get_pic_args(self):
+        return ['-fPIC']
+
+    def get_buildtype_args(self, buildtype):
+        return gnulike_buildtype_args[buildtype]
+
+    def get_buildtype_linker_args(self, buildtype):
+        return gnulike_buildtype_linker_args[buildtype]
+
+    def get_pch_suffix(self):
+        return 'pchi'
+
+    def get_pch_use_args(self, pch_dir, header):
+        return ['-pch', '-pch_dir', os.path.join(pch_dir), '-include', header]
+
+    def get_pch_name(self, header_name):
+        return os.path.split(header_name)[-1] + '.' + self.get_pch_suffix()
+
+    # Not required, but possible if backend should create pch files. However Intel does it automatically
+    # def gen_pch_args(self, header, source, pchname):
+    #    return ['-pch_create', os.path.join(pchname, self.get_pch_name(header)), '-include', header, source])
+
+    def split_shlib_to_parts(self, fname):
+        return (os.path.split(fname)[0], fname)
+
+    def get_soname_args(self, prefix, shlib_name, suffix, path, soversion, is_shared_module):
+        if self.icc_type == ICC_STANDARD:
+            gcc_type = GCC_STANDARD
+        elif self.icc_type == ICC_OSX:
+            gcc_type = GCC_OSX
+        elif self.icc_type == ICC_WIN:
+            gcc_type = GCC_MINGW
+        else:
+            raise MesonException('Unreachable code when converting icc type to gcc type.')
+        return get_gcc_soname_args(gcc_type, prefix, shlib_name, suffix, path, soversion, is_shared_module)
+
+    def get_std_shared_lib_link_args(self):
+        # Don't know how icc works on OSX
+        # if self.icc_type == ICC_OSX:
+        #     return ['-bundle']
+        return ['-shared']
+
+
+class IntelCCompiler(IntelCompiler, CCompiler):
+    def __init__(self, exelist, version, icc_type, is_cross, exe_wrapper=None):
+        CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
+        IntelCompiler.__init__(self, icc_type)
+        self.warn_args = {'1': ['-Wall', '-w3', '-diag-disable:remark', '-Wpch-messages'],
+                          '2': ['-Wall', '-w3', '-diag-disable:remark', '-Wextra-tokens', '-Wpch-messages'],
+                          '3': ['-Wall', '-w3', '-diag-disable:remark', '-Wpedantic', '-Wextra', '-Wpch-messages']}
+
+    def get_options(self):
+        opts = {'c_std': coredata.UserComboOption('c_std', 'C language standard to use',
+                                                  ['none', 'c89', 'c99',
+                                                   'gnu89', 'gnu99'],
+                                                  'none')}
+        return opts
+
+    def get_option_compile_args(self, options):
+        args = []
+        std = options['c_std']
+        if std.value != 'none':
+            args.append('-std=' + std.value)
+        return args
+
+    def get_std_shared_lib_link_args(self):
+        return ['-shared']
+
+    def has_multi_arguments(self, args, env):
+        return super(IntelCCompiler, self).has_multi_arguments(args + ['-diag-error', '10006'], env)
+
+
+class IntelCPPCompiler(IntelCompiler, CPPCompiler):
+    def __init__(self, exelist, version, icc_type, is_cross, exe_wrap):
+        CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
+        IntelCompiler.__init__(self, icc_type)
+        self.warn_args = {'1': ['-Wall', '-w3', '-diag-disable:remark', '-Wpch-messages', '-Wnon-virtual-dtor'],
+                          '2': ['-Wall', '-w3', '-diag-disable:remark', '-Wextra', '-Wpch-messages', '-Wnon-virtual-dtor'],
+                          '3': ['-Wall', '-w3', '-diag-disable:remark', '-Wpedantic', '-Wextra', '-Wpch-messages', '-Wnon-virtual-dtor']}
+
+    def get_options(self):
+        if mesonlib.version_compare(self.version, '>=17.0.0'):
+            opts = {'cpp_std': coredata.UserComboOption('cpp_std', 'C++ language standard to use',
+                                                        ['none', 'c++11', 'c++0x', 'c++14',
+                                                         'gnu++98', 'gnu++11', 'gnu++0x', 'gnu++14'],
+                                                        'none'),
+                    'cpp_debugstl': coredata.UserBooleanOption('cpp_debugstl',
+                                                               'STL debug mode',
+                                                               False)}
+        else:
+            opts = {'cpp_std': coredata.UserComboOption('cpp_std', 'C++ language standard to use',
+                                                        ['none', 'c++03', 'c++11', 'c++0x',
+                                                         'gnu++98', 'gnu++03', 'gnu++11', 'gnu++0x'],
+                                                        'none'),
+                    'cpp_debugstl': coredata.UserBooleanOption('cpp_debugstl',
+                                                               'STL debug mode',
+                                                               False)}
+        return opts
+
+    def get_option_compile_args(self, options):
+        args = []
+        std = options['cpp_std']
+        if std.value != 'none':
+            args.append('-std=' + std.value)
+        if options['cpp_debugstl'].value:
+            args.append('-D_GLIBCXX_DEBUG=1')
+        return args
+
+    def get_option_link_args(self, options):
+        return []
+
+    def get_compiler_check_args(self):
+        return self.get_no_optimization_args()
+
+    def has_multi_arguments(self, args, env):
+        return super(IntelCPPCompiler, self).has_multi_arguments(args + ['-diag-error', '10006'], env)
+
 
 class FortranCompiler(Compiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
@@ -2634,6 +2770,7 @@ class NAGFortranCompiler(FortranCompiler):
 
 class VisualStudioLinker():
     always_args = ['/NOLOGO']
+
     def __init__(self, exelist):
         self.exelist = exelist
 

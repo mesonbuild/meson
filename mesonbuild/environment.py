@@ -396,6 +396,10 @@ class Environment():
                 # everything else to stdout. Why? Lord only knows.
                 version = search_version(err)
                 return VisualStudioCCompiler([compiler], version, is_cross, exe_wrap)
+            if '(ICC)' in out:
+                # TODO: add microsoft add check OSX
+                inteltype = ICC_STANDARD
+                return IntelCCompiler(ccache + [compiler], version, inteltype, is_cross, exe_wrap)
         errmsg = 'Unknown compiler(s): "' + ', '.join(compilers) + '"'
         if popen_exceptions:
             errmsg += '\nThe follow exceptions were encountered:'
@@ -525,6 +529,10 @@ class Environment():
             if 'Microsoft' in out or 'Microsoft' in err:
                 version = search_version(err)
                 return VisualStudioCPPCompiler([compiler], version, is_cross, exe_wrap)
+            if '(ICC)' in out:
+                # TODO: add microsoft add check OSX
+                inteltype = ICC_STANDARD
+                return IntelCPPCompiler(ccache + [compiler], version, inteltype, is_cross, exe_wrap)
         errmsg = 'Unknown compiler(s): "' + ', '.join(compilers) + '"'
         if popen_exceptions:
             errmsg += '\nThe follow exceptions were encountered:'
