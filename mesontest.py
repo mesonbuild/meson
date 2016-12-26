@@ -208,6 +208,7 @@ class TestHarness:
             cmd = wrap + cmd + test.cmd_args
             starttime = time.time()
             child_env = os.environ.copy()
+            child_env.update(self.options.global_env.get_env(child_env))
             if isinstance(test.env, build.EnvironmentVariables):
                 test.env = test.env.get_env(child_env)
 
@@ -477,6 +478,7 @@ def merge_suite_options(options):
         sys.exit('Conflict: both test setup and command line specify an exe wrapper.')
     if options.wrapper is None:
         options.wrapper = current.exe_wrapper
+    return current.env
 
 def run(args):
     options = parser.parse_args(args)
@@ -484,7 +486,11 @@ def run(args):
         options.num_processes = 1
 
     if options.setup is not None:
-        merge_suite_options(options)
+        global_env = merge_suite_options(options)
+    else:
+        global_env = build.EnvironmentVariables()
+
+    setattr(options, 'global_env', global_env)
 
     if options.gdb:
         options.verbose = True

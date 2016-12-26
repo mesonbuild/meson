@@ -30,6 +30,7 @@ from .interpreterbase import InterpreterException, InvalidArguments, InvalidCode
 from .interpreterbase import InterpreterObject, MutableInterpreterObject
 
 import os, sys, shutil, uuid
+import re
 
 import importlib
 
@@ -1207,7 +1208,7 @@ class Interpreter(InterpreterBase):
                            'add_project_arguments': self.func_add_project_arguments,
                            'add_global_link_arguments': self.func_add_global_link_arguments,
                            'add_project_link_arguments': self.func_add_project_link_arguments,
-                           'add_test_setup' : self.func_add_test_setup,
+                           'add_test_setup': self.func_add_test_setup,
                            'add_languages': self.func_add_languages,
                            'find_program': self.func_find_program,
                            'find_library': self.func_find_library,
@@ -2146,6 +2147,8 @@ requirements use the version keyword argument instead.''')
         if len(args) != 1:
             raise InterpreterException('Add_test_setup needs one argument for the setup name.')
         setup_name = args[0]
+        if re.fullmatch('[_a-zA-Z][_0-9a-zA-Z]*', setup_name) is None:
+            raise InterpreterException('Setup name may only contain alphanumeric characters.')
         try:
             exe_wrapper = mesonlib.stringlistify(kwargs['exe_wrapper'])
         except KeyError:

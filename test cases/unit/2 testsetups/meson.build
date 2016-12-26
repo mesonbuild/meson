@@ -2,6 +2,7 @@ project('testsetups', 'c')
 
 vg = find_program('valgrind', required : false)
 
+# This is only set when running under Valgrind test setup.
 env = environment()
 env.set('TEST_ENV', '1')
 
