@@ -1207,6 +1207,7 @@ class Interpreter(InterpreterBase):
                            'add_project_arguments': self.func_add_project_arguments,
                            'add_global_link_arguments': self.func_add_global_link_arguments,
                            'add_project_link_arguments': self.func_add_project_link_arguments,
+                           'add_test_setup' : self.func_add_test_setup,
                            'add_languages': self.func_add_languages,
                            'find_program': self.func_find_program,
                            'find_library': self.func_find_library,
@@ -1942,22 +1943,7 @@ requirements use the version keyword argument instead.''')
     def func_test(self, node, args, kwargs):
         self.add_test(node, args, kwargs, True)
 
-    def add_test(self, node, args, kwargs, is_base_test):
-        if len(args) != 2:
-            raise InterpreterException('Incorrect number of arguments')
-        if not isinstance(args[0], str):
-            raise InterpreterException('First argument of test must be a string.')
-        if not isinstance(args[1], (ExecutableHolder, JarHolder, ExternalProgramHolder)):
-            raise InterpreterException('Second argument must be executable.')
-        par = kwargs.get('is_parallel', True)
-        if not isinstance(par, bool):
-            raise InterpreterException('Keyword argument is_parallel must be a boolean.')
-        cmd_args = kwargs.get('args', [])
-        if not isinstance(cmd_args, list):
-            cmd_args = [cmd_args]
-        for i in cmd_args:
-            if not isinstance(i, (str, mesonlib.File)):
-                raise InterpreterException('Command line arguments must be strings')
+    def unpack_env_kwarg(self, kwargs):
         envlist = kwargs.get('env', [])
         if isinstance(envlist, EnvironmentVariablesHolder):
             env = envlist.held_object
@@ -1974,8 +1960,25 @@ requirements use the version keyword argument instead.''')
                 if ' ' in k:
                     raise InterpreterException('Env var key must not have spaces in it.')
                 env[k] = val
-        if not isinstance(envlist, list):
-            envlist = [envlist]
+        return env
+
+    def add_test(self, node, args, kwargs, is_base_test):
+        if len(args) != 2:
+            raise InterpreterException('Incorrect number of arguments')
+        if not isinstance(args[0], str):
+            raise InterpreterException('First argument of test must be a string.')
+        if not isinstance(args[1], (ExecutableHolder, JarHolder, ExternalProgramHolder)):
+            raise InterpreterException('Second argument must be executable.')
+        par = kwargs.get('is_parallel', True)
+        if not isinstance(par, bool):
+            raise InterpreterException('Keyword argument is_parallel must be a boolean.')
+        cmd_args = kwargs.get('args', [])
+        if not isinstance(cmd_args, list):
+            cmd_args = [cmd_args]
+        for i in cmd_args:
+            if not isinstance(i, (str, mesonlib.File)):
+                raise InterpreterException('Command line arguments must be strings')
+        env = self.unpack_env_kwarg(kwargs)
         should_fail = kwargs.get('should_fail', False)
         if not isinstance(should_fail, bool):
             raise InterpreterException('Keyword argument should_fail must be a boolean.')
@@ -2137,6 +2140,31 @@ requirements use the version keyword argument instead.''')
             raise InvalidArguments('Is_system must be boolean.')
         i = IncludeDirsHolder(build.IncludeDirs(self.subdir, args, is_system))
         return i
+
+    @stringArgs
+    def func_add_test_setup(self, node, args, kwargs):
+        if len(args) != 1:
+            raise InterpreterException('Add_test_setup needs one argument for the setup name.')
+        setup_name = args[0]
+        try:
+            exe_wrapper = mesonlib.stringlistify(kwargs['exe_wrapper'])
+        except KeyError:
+            exe_wrapper = None
+        gdb = kwargs.get('gdb', False)
+        if not isinstance(gdb, bool):
+            raise InterpreterException('Gdb option must be a boolean')
+        timeout_multiplier = kwargs.get('timeout_multiplier', 1)
+        if not isinstance(timeout_multiplier, int):
+            raise InterpreterException('Timeout multiplier must be a number.')
+        env = self.unpack_env_kwarg(kwargs)
+        setupobj = build.TestSetup(exe_wrapper=exe_wrapper,
+                                   gdb=gdb,
+                                   timeout_multiplier=timeout_multiplier,
+                                   env=env)
+        if self.subproject == '':
+            # Dunno what we should do with subprojects really. Let's start simple
+            # and just use the master project ones.
+            self.build.test_setups[setup_name] = setupobj
 
     @stringArgs
     def func_add_global_arguments(self, node, args, kwargs):

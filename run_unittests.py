@@ -63,6 +63,7 @@ class LinuxlikeTests(unittest.TestCase):
         self.meson_command = [sys.executable, os.path.join(src_root, 'meson.py')]
         self.mconf_command = [sys.executable, os.path.join(src_root, 'mesonconf.py')]
         self.mintro_command = [sys.executable, os.path.join(src_root, 'mesonintrospect.py')]
+        self.mtest_command = [sys.executable, os.path.join(src_root, 'mesontest.py'), '-C', self.builddir]
         self.ninja_command = [detect_ninja(), '-C', self.builddir]
         self.common_test_dir = os.path.join(src_root, 'test cases/common')
         self.vala_test_dir = os.path.join(src_root, 'test cases/vala')
@@ -88,6 +89,9 @@ class LinuxlikeTests(unittest.TestCase):
 
     def build(self):
         self._run(self.ninja_command)
+
+    def run_tests(self):
+        self._run(self.ninja_command + ['test'])
 
     def install(self):
         os.environ['DESTDIR'] = self.installdir
@@ -387,6 +391,13 @@ class LinuxlikeTests(unittest.TestCase):
         meson_exe_dat2 = glob(os.path.join(self.privatedir, 'meson_exe*.dat'))
         self.assertListEqual(meson_exe_dat1, meson_exe_dat2)
 
+    def test_testsetups(self):
+        testdir = os.path.join(self.unit_test_dir, '2 testsetups')
+        self.init(testdir)
+        self.build()
+        self.run_tests()
+        self.assertRaises(subprocess.CalledProcessError,
+                          self._run, self.mtest_command  + ['--setup=valgrind'])
 
 class RewriterTests(unittest.TestCase):
 
@@ -445,6 +456,7 @@ class RewriterTests(unittest.TestCase):
         self.check_effectively_same('sub1/meson.build', 'sub1/after.txt')
         self.assertEqual(top, self.read_contents('meson.build'))
         self.assertEqual(s2, self.read_contents('sub2/meson.build'))
+
 
 if __name__ == '__main__':
     unittest.main()
