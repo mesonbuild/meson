@@ -103,23 +103,19 @@ msvc_buildtype_args = {'plain': [],
                        'minsize': ["/MD", "/Zi", "/Os", "/Ob1"],
                        }
 
-gnulike_buildtype_linker_args = {}
+apple_buildtype_linker_args = {'plain': [],
+                               'debug': [],
+                               'debugoptimized': [],
+                               'release': [],
+                               'minsize': [],
+                               }
 
-
-if mesonlib.is_osx():
-    gnulike_buildtype_linker_args.update({'plain': [],
-                                          'debug': [],
-                                          'debugoptimized': [],
-                                          'release': [],
-                                          'minsize': [],
-                                          })
-else:
-    gnulike_buildtype_linker_args.update({'plain': [],
-                                          'debug': [],
-                                          'debugoptimized': [],
-                                          'release': ['-Wl,-O1'],
-                                          'minsize': [],
-                                          })
+gnulike_buildtype_linker_args = {'plain': [],
+                                 'debug': [],
+                                 'debugoptimized': [],
+                                 'release': ['-Wl,-O1'],
+                                 'minsize': [],
+                                 }
 
 msvc_buildtype_linker_args = {'plain': [],
                               'debug': [],
@@ -286,12 +282,12 @@ def get_base_link_args(options, linker, is_shared_module):
     except KeyError:
         pass
     try:
-        if not is_shared_module and options['b_lundef'].value:
+        if not is_shared_module and 'b_lundef' in linker.base_options and options['b_lundef'].value:
             args.append('-Wl,--no-undefined')
     except KeyError:
         pass
     try:
-        if options['b_asneeded'].value:
+        if 'b_asneeded' in linker.base_options and options['b_asneeded'].value:
             args.append('-Wl,--as-needed')
     except KeyError:
         pass
@@ -2128,6 +2124,8 @@ class GnuCompiler:
         return gnulike_buildtype_args[buildtype]
 
     def get_buildtype_linker_args(self, buildtype):
+        if self.gcc_type == GCC_OSX:
+            return apple_buildtype_linker_args[buildtype]
         return gnulike_buildtype_linker_args[buildtype]
 
     def get_always_args(self):
@@ -2275,6 +2273,8 @@ class ClangCompiler():
         return gnulike_buildtype_args[buildtype]
 
     def get_buildtype_linker_args(self, buildtype):
+        if self.clang_type == CLANG_OSX:
+            return apple_buildtype_linker_args[buildtype]
         return gnulike_buildtype_linker_args[buildtype]
 
     def get_pch_suffix(self):
@@ -2435,6 +2435,8 @@ end program prog
         return gnulike_buildtype_args[buildtype]
 
     def get_buildtype_linker_args(self, buildtype):
+        if mesonlib.is_osx():
+            return apple_buildtype_linker_args[buildtype]
         return gnulike_buildtype_linker_args[buildtype]
 
     def split_shlib_to_parts(self, fname):

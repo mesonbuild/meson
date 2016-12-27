@@ -386,7 +386,7 @@ class Environment():
                 version = self.get_gnu_version_from_defines(defines)
                 return GnuCCompiler(ccache + [compiler], version, gtype, is_cross, exe_wrap, defines)
             if 'clang' in out:
-                if 'Apple' in out:
+                if 'Apple' in out or for_darwin(want_cross, self):
                     cltype = CLANG_OSX
                 else:
                     cltype = CLANG_STANDARD
