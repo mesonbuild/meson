@@ -92,6 +92,9 @@ class LinuxlikeTests(unittest.TestCase):
         os.environ['DESTDIR'] = self.installdir
         self._run(self.ninja_command + ['install'])
 
+    def uninstall(self):
+        self._run(self.ninja_command + ['uninstall'])
+
     def run_target(self, target):
         self.output += subprocess.check_output(self.ninja_command + [target])
 
@@ -360,6 +363,16 @@ class LinuxlikeTests(unittest.TestCase):
             # Verify that -O3 set via the environment is overriden by -O0
             Oargs = [arg for arg in cmd if arg.startswith('-O')]
             self.assertEqual(Oargs, [Oflag, '-O0'])
+
+    def test_uninstall(self):
+        exename = os.path.join(self.installdir, 'usr/bin/prog')
+        testdir = os.path.join(self.common_test_dir, '8 install')
+        self.init(testdir)
+        self.assertFalse(os.path.exists(exename))
+        self.install()
+        self.assertTrue(os.path.exists(exename))
+        self.uninstall()
+        self.assertFalse(os.path.exists(exename))
 
 class RewriterTests(unittest.TestCase):
 

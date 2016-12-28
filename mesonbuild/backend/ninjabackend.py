@@ -2141,6 +2141,12 @@ rule FORTRAN_DEP_HACK
         elem.add_item('COMMAND', cmd)
         elem.add_item('pool', 'console')
         elem.write(outfile)
+        cmd = [sys.executable, self.environment.get_build_command(),
+               '--internal', 'uninstall']
+        elem = NinjaBuildElement(self.all_outputs, 'uninstall', 'CUSTOM_COMMAND', 'PHONY')
+        elem.add_item('COMMAND', cmd)
+        elem.add_item('pool', 'console')
+        elem.write(outfile)
 
     def generate_ending(self, outfile):
         targetlist = []
