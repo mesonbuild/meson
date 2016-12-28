@@ -918,9 +918,11 @@ class Generator():
     def process_files(self, name, files, state, extra_args=[]):
         output = GeneratedList(self, extra_args=extra_args)
         for f in files:
-            if not isinstance(f, str):
-                raise InvalidArguments('{} arguments must be strings.'.format(name))
-            output.add_file(os.path.join(state.subdir, f))
+            if isinstance(f, str):
+                f = File.from_source_file(state.environment.source_dir, state.subdir, f)
+            elif not isinstance(f, File):
+                raise InvalidArguments('{} arguments must be strings or files not {!r}.'.format(name, f))
+            output.add_file(f)
         return output
 
 
@@ -938,7 +940,7 @@ class GeneratedList():
 
     def add_file(self, newfile):
         self.infilelist.append(newfile)
-        outfiles = self.generator.get_base_outnames(newfile)
+        outfiles = self.generator.get_base_outnames(newfile.fname)
         self.outfilelist += outfiles
         self.outmap[newfile] = outfiles
 

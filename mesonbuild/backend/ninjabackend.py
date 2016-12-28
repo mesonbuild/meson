@@ -1557,7 +1557,7 @@ rule FORTRAN_DEP_HACK
             else:
                 sole_output = ''
             curfile = infilelist[i]
-            infilename = os.path.join(self.build_to_src, curfile)
+            infilename = curfile.rel_to_builddir(self.build_to_src)
             outfiles = genlist.get_outputs_for(curfile)
             outfiles = [os.path.join(self.get_target_private_dir(target), of) for of in outfiles]
             if generator.depfile is None:
