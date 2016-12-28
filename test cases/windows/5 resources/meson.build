@@ -1,9 +1,12 @@
 project('winmain', 'c')
 
 win = import('windows')
+res = win.compile_resources('myres.rc',
+  include_directories : include_directories('inc')
+)
 
 exe = executable('prog', 'prog.c',
-  win.compile_resources('myres.rc'),
+  res,
   gui_app : true)
 
 test('winmain', exe)
