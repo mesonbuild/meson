@@ -26,7 +26,9 @@ from .. import mlog
 from .. import mesonlib
 from .. import compilers
 from .. import interpreter
-from . import find_program, GResourceTarget, GResourceHeaderTarget, GirTarget, TypelibTarget, VapiTarget
+from . import GResourceTarget, GResourceHeaderTarget, GirTarget, TypelibTarget, VapiTarget
+from . import find_program, get_include_args
+
 
 # gresource compilation is broken due to the way
 # the resource compiler and Ninja clash about it
@@ -265,35 +267,6 @@ can not be used with the current version of glib-compiled-resources, due to
                 depends.append(lib)
         return link_command
 
-    @staticmethod
-    def _get_include_args(state, include_dirs, prefix='-I'):
-        if not include_dirs:
-            return []
-
-        dirs_str = []
-        for incdirs in include_dirs:
-            if hasattr(incdirs, "held_object"):
-                dirs = incdirs.held_object
-            else:
-                dirs = incdirs
-
-            if isinstance(dirs, str):
-                dirs_str += ['%s%s' % (prefix, dirs)]
-                continue
-
-            # Should be build.IncludeDirs object.
-            basedir = dirs.get_curdir()
-            for d in dirs.get_incdirs():
-                expdir =  os.path.join(basedir, d)
-                srctreedir = os.path.join(state.environment.get_source_dir(), expdir)
-                buildtreedir = os.path.join(state.environment.get_build_dir(), expdir)
-                dirs_str += ['%s%s' % (prefix, buildtreedir),
-                             '%s%s' % (prefix, srctreedir)]
-            for d in dirs.get_extra_build_dirs():
-                dirs_str += ['%s%s' % (prefix, d)]
-
-        return dirs_str
-
     def _get_dependencies_flags(self, deps, state, depends=None, include_rpath=False):
         cflags = set()
         ldflags = set()
@@ -305,7 +278,7 @@ can not be used with the current version of glib-compiled-resources, due to
             if hasattr(dep, 'held_object'):
                 dep = dep.held_object
             if isinstance(dep, InternalDependency):
-                cflags.update(self._get_include_args(state, dep.include_directories))
+                cflags.update(get_include_args(state.environment, dep.include_directories))
                 for lib in dep.libraries:
                     ldflags.update(self._get_link_args(state, lib.held_object, depends, include_rpath))
                     libdepflags = self._get_dependencies_flags(lib.held_object.get_external_deps(), state, depends, include_rpath)
@@ -396,7 +369,7 @@ can not be used with the current version of glib-compiled-resources, due to
         scan_command += extra_args
         scan_command += ['-I' + os.path.join(state.environment.get_source_dir(), state.subdir),
                          '-I' + os.path.join(state.environment.get_build_dir(), state.subdir)]
-        scan_command += self._get_include_args(state, girtarget.get_include_dirs())
+        scan_command += get_include_args(state.environment, girtarget.get_include_dirs())
 
         if 'link_with' in kwargs:
             link_with = kwargs.pop('link_with')
@@ -521,9 +494,9 @@ can not be used with the current version of glib-compiled-resources, due to
             if not isinstance(incd.held_object, (str, build.IncludeDirs)):
                 raise MesonException(
                     'Gir include dirs should be include_directories().')
-        scan_command += self._get_include_args(state, inc_dirs)
-        scan_command += self._get_include_args(state, gir_inc_dirs + inc_dirs,
-                                               prefix='--add-include-path=')
+        scan_command += get_include_args(state.environment, inc_dirs)
+        scan_command += get_include_args(state.environment, gir_inc_dirs + inc_dirs,
+                                         prefix='--add-include-path=')
 
         if isinstance(girtarget, build.Executable):
             scan_command += ['--program', girtarget]
@@ -543,8 +516,8 @@ can not be used with the current version of glib-compiled-resources, due to
 
         typelib_output = '%s-%s.typelib' % (ns, nsversion)
         typelib_cmd = gicompiler.get_command() + [scan_target, '--output', '@OUTPUT@']
-        typelib_cmd += self._get_include_args(state, gir_inc_dirs,
-                                              prefix='--includedir=')
+        typelib_cmd += get_include_args(state.environment, gir_inc_dirs,
+                                        prefix='--includedir=')
         for incdir in typelib_includes:
             typelib_cmd += ["--includedir=" + incdir]
 
@@ -712,7 +685,7 @@ can not be used with the current version of glib-compiled-resources, due to
             if not isinstance(incd.held_object, (str, build.IncludeDirs)):
                 raise MesonException(
                     'Gir include dirs should be include_directories().')
-        cflags.update(self._get_include_args(state, inc_dirs))
+        cflags.update(get_include_args(state.environment, inc_dirs))
         if cflags:
             args += ['--cflags=%s' % ' '.join(cflags)]
         if ldflags:
