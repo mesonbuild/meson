@@ -1,20 +1,20 @@
 project('default options', 'cpp', 'c', default_options : [
   'buildtype=debugoptimized',
-  'cpp_std=c++03',
+  'cpp_std=c++11',
   'cpp_eh=none',
   'warning_level=3',
   ])
 
-cpp = meson.get_compiler('cpp')
+cpp_id = meson.get_compiler('cpp').get_id()
 
 assert(get_option('buildtype') == 'debugoptimized', 'Build type default value wrong.')
 
-if cpp.get_id() == 'msvc'
+if cpp_id == 'msvc'
   cpp_eh = get_option('cpp_eh')
   assert(cpp_eh == 'none', 'MSVC eh value is "' + cpp_eh + '" instead of "none"')
 else
   cpp_std = get_option('cpp_std')
-  assert(cpp_std == 'c++03', 'C++ std value is "' + cpp_std + '" instead of c++03.')
+  assert(cpp_std == 'c++11', 'C++ std value is "' + cpp_std + '" instead of c++11.')
 endif
 
 w_level = get_option('warning_level')
