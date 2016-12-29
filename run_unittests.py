@@ -221,15 +221,15 @@ class LinuxlikeTests(unittest.TestCase):
         self.assertIsNotNone(vala_command)
         self.assertIsNotNone(c_command)
         # -w suppresses all warnings, should be there in Vala but not in C
-        self.assertTrue('-w' in vala_command)
-        self.assertFalse('-w' in c_command)
+        self.assertTrue("'-w'" in vala_command)
+        self.assertFalse("'-w'" in c_command)
         # -Wall enables all warnings, should be there in C but not in Vala
-        self.assertFalse('-Wall' in vala_command)
-        self.assertTrue('-Wall' in c_command)
+        self.assertFalse("'-Wall'" in vala_command)
+        self.assertTrue("'-Wall'" in c_command)
         # -Werror converts warnings to errors, should always be there since it's
         # injected by an unrelated piece of code and the project has werror=true
-        self.assertTrue('-Werror' in vala_command)
-        self.assertTrue('-Werror' in c_command)
+        self.assertTrue("'-Werror'" in vala_command)
+        self.assertTrue("'-Werror'" in c_command)
 
     def test_static_compile_order(self):
         '''
