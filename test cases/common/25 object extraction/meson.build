@@ -9,8 +9,8 @@ else
   obj1 = lib1.extract_objects('src/lib.c')
   obj2 = lib2.extract_objects(['lib.c'])
 
-  e1 = executable('main 1', 'main.c', objects : obj1)
-  e2 = executable('main 2', 'main.c', objects : obj2)
+  e1 = executable('main1', 'main.c', objects : obj1)
+  e2 = executable('main2', 'main.c', objects : obj2)
 
   test('extraction test 1', e1)
   test('extraction test 2', e2)
