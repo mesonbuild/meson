@@ -28,8 +28,10 @@ gnome.generate_gir(
 
 message('TEST: ' + girsubproject.outdir())
 
+envdata = environment()
+envdata.append('GI_TYPELIB_PATH', girsubproject.outdir(), 'subprojects/mesongir', separator : ':')
+envdata.append('LD_LIBRARY_PATH', girsubproject.outdir(), 'subprojects/mesongir')
+
 test('gobject introspection/subproject/c', girexe)
 test('gobject introspection/subproject/py', find_program('prog.py'),
-     env : ['GI_TYPELIB_PATH=' + girsubproject.outdir() + ':subprojects/mesongir',
-            'LD_LIBRARY_PATH=' + girsubproject.outdir() + ':subprojects/mesongir',
-     ])
+     env : envdata)
