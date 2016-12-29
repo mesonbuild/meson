@@ -1147,12 +1147,7 @@ class Interpreter(InterpreterBase):
         self.backend = backend
         self.subproject = subproject
         self.subproject_dir = subproject_dir
-        option_file = os.path.join(self.source_root, self.subdir, 'meson_options.txt')
-        if os.path.exists(option_file):
-            oi = optinterpreter.OptionInterpreter(self.subproject, \
-                                                  self.build.environment.cmd_line_options.projectoptions)
-            oi.process(option_file)
-            self.build.environment.merge_options(oi.options)
+        self.option_file = os.path.join(self.source_root, self.subdir, 'meson_options.txt')
         self.load_root_meson_file()
         self.sanity_check_ast()
         self.builtin.update({'meson': MesonMain(build, self)})
@@ -1501,6 +1496,12 @@ class Interpreter(InterpreterBase):
             self.build.project_name = args[0]
             if self.environment.first_invocation and 'default_options' in kwargs:
                 self.parse_default_options(kwargs['default_options'])
+        if os.path.exists(self.option_file):
+            oi = optinterpreter.OptionInterpreter(self.subproject, \
+                                                  self.build.environment.cmd_line_options.projectoptions,
+                                                  )
+            oi.process(self.option_file)
+            self.build.environment.merge_options(oi.options)
         if len(args) < 2:
             raise InvalidArguments('Not enough arguments to project(). Needs at least the project name and one language')
         self.active_projectname = args[0]
