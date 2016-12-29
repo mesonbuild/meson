@@ -15,6 +15,7 @@
 # limitations under the License.
 
 import subprocess, sys, shutil
+import platform
 from mesonbuild import mesonlib
 
 if __name__ == '__main__':
@@ -22,7 +23,8 @@ if __name__ == '__main__':
     if mesonlib.is_linux():
         print('Running unittests.\n')
         returncode += subprocess.call([sys.executable, 'run_unittests.py', '-v'])
-    if shutil.which('arm-linux-gnueabihf-gcc-6'): # Ubuntu packages do not have a binary without -6 suffix.
+    # Ubuntu packages do not have a binary without -6 suffix.
+    if shutil.which('arm-linux-gnueabihf-gcc-6') and not platform.machine().startswith('arm'):
         print('Running cross compilation tests.\n')
         returncode += subprocess.call([sys.executable, 'run_cross_test.py', 'cross/ubuntu-armhf.txt'])
     returncode += subprocess.call([sys.executable, 'run_project_tests.py'] + sys.argv[1:])
