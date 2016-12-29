@@ -1483,19 +1483,25 @@ class Interpreter(InterpreterBase):
                 raise InterpreterException('All default options must be of type key=value.')
             key, value = option.split('=', 1)
             if coredata.is_builtin_option(key):
+                if self.subproject != '':
+                    continue # Only the master project is allowed to set global options.
                 if not self.environment.had_argument_for(key):
                     self.coredata.set_builtin_option(key, value)
                 # If this was set on the command line, do not override.
             else:
+                # If we are in a subproject, add the subproject prefix to option
+                # name.
+                if self.subproject != '':
+                    option = self.subproject + ':' + option
                 newoptions = [option] + self.environment.cmd_line_options.projectoptions
                 self.environment.cmd_line_options.projectoptions = newoptions
 
     @stringArgs
     def func_project(self, node, args, kwargs):
+        if self.environment.first_invocation and 'default_options' in kwargs:
+            self.parse_default_options(kwargs['default_options'])
         if not self.is_subproject():
             self.build.project_name = args[0]
-            if self.environment.first_invocation and 'default_options' in kwargs:
-                self.parse_default_options(kwargs['default_options'])
         if os.path.exists(self.option_file):
             oi = optinterpreter.OptionInterpreter(self.subproject, \
                                                   self.build.environment.cmd_line_options.projectoptions,

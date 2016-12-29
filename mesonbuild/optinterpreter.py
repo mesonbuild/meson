@@ -71,8 +71,15 @@ class OptionInterpreter:
     def __init__(self, subproject, command_line_options):
         self.options = {}
         self.subproject = subproject
+        self.sbprefix = subproject + ':'
         self.cmd_line_options = {}
         for o in command_line_options:
+            if self.subproject != '': # Strip the beginning.
+                if not o.startswith(self.sbprefix):
+                    continue
+            else:
+                if ':' in o:
+                    continue
             try:
                 (key, value) = o.split('=', 1)
             except ValueError:
