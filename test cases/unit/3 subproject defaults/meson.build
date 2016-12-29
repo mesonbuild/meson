@@ -3,7 +3,7 @@ project('subproject defaults', 'c',
                      'fromcmdline=defopt']   # This should get the value set in command line.
   )
 
-subproject('foob')
+subproject('foob', default_options : ['fromspfunc=spfunc', 'fromspfunconly=spfunc'])
 
 assert(get_option('fromcmdline') == 'cmdline', 'Default option defined in cmd line is incorrect: ' + get_option('fromcmdline'))
 assert(get_option('defopoverride') == 'defopt', 'Default option without cmd line override is incorrect: ' + get_option('defopoverride'))
