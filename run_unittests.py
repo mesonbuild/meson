@@ -178,7 +178,7 @@ class LinuxlikeTests(unittest.TestCase):
         testdir = os.path.join(self.common_test_dir, '3 static')
         self.init(testdir)
         compdb = self.get_compdb()
-        self.assertTrue('-fPIC' in compdb[0]['command'])
+        self.assertIn('-fPIC', compdb[0]['command'])
         # This is needed to increase the difference between build.ninja's
         # timestamp and coredata.dat's timestamp due to a Ninja bug.
         # https://github.com/ninja-build/ninja/issues/371
@@ -187,7 +187,7 @@ class LinuxlikeTests(unittest.TestCase):
         # Regenerate build
         self.build()
         compdb = self.get_compdb()
-        self.assertTrue('-fPIC' not in compdb[0]['command'])
+        self.assertNotIn('-fPIC', compdb[0]['command'])
 
     def test_pkgconfig_gen(self):
         '''
@@ -204,7 +204,7 @@ class LinuxlikeTests(unittest.TestCase):
         simple_dep = PkgConfigDependency('libfoo', env, kwargs)
         self.assertTrue(simple_dep.found())
         self.assertEqual(simple_dep.get_version(), '1.0')
-        self.assertTrue('-lfoo' in simple_dep.get_link_args())
+        self.assertIn('-lfoo', simple_dep.get_link_args())
 
     def test_vala_c_warnings(self):
         '''
@@ -229,15 +229,15 @@ class LinuxlikeTests(unittest.TestCase):
         self.assertIsNotNone(vala_command)
         self.assertIsNotNone(c_command)
         # -w suppresses all warnings, should be there in Vala but not in C
-        self.assertTrue("'-w'" in vala_command)
-        self.assertFalse("'-w'" in c_command)
+        self.assertIn("'-w'", vala_command)
+        self.assertNotIn("'-w'", c_command)
         # -Wall enables all warnings, should be there in C but not in Vala
-        self.assertFalse("'-Wall'" in vala_command)
-        self.assertTrue("'-Wall'" in c_command)
+        self.assertNotIn("'-Wall'", vala_command)
+        self.assertIn("'-Wall'", c_command)
         # -Werror converts warnings to errors, should always be there since it's
         # injected by an unrelated piece of code and the project has werror=true
-        self.assertTrue("'-Werror'" in vala_command)
-        self.assertTrue("'-Werror'" in c_command)
+        self.assertIn("'-Werror'", vala_command)
+        self.assertIn("'-Werror'", c_command)
 
     def test_static_compile_order(self):
         '''
