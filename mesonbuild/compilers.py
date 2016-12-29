@@ -2448,9 +2448,12 @@ class IntelCCompiler(IntelCompiler, CCompiler):
                           '3': ['-Wall', '-w3', '-diag-disable:remark', '-Wpedantic', '-Wextra', '-Wpch-messages']}
 
     def get_options(self):
+        c_stds = ['c89', 'c99']
+        g_stds = ['gnu89', 'gnu99']
+        if mesonlib.version_compare(self.version, '>=16.0.0'):
+            c_stds += ['c11']
         opts = {'c_std': coredata.UserComboOption('c_std', 'C language standard to use',
-                                                  ['none', 'c89', 'c99',
-                                                   'gnu89', 'gnu99'],
+                                                  ['none'] + c_stds + g_stds,
                                                   'none')}
         return opts
 
@@ -2469,6 +2472,7 @@ class IntelCCompiler(IntelCompiler, CCompiler):
 
 
 class IntelCPPCompiler(IntelCompiler, CPPCompiler):
+
     def __init__(self, exelist, version, icc_type, is_cross, exe_wrap):
         CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
         IntelCompiler.__init__(self, icc_type)
@@ -2477,22 +2481,21 @@ class IntelCPPCompiler(IntelCompiler, CPPCompiler):
                           '3': ['-Wall', '-w3', '-diag-disable:remark', '-Wpedantic', '-Wextra', '-Wpch-messages', '-Wnon-virtual-dtor']}
 
     def get_options(self):
+        c_stds = []
+        g_stds = ['gnu++98']
+        if mesonlib.version_compare(self.version, '>=15.0.0'):
+            c_stds += ['c++11', 'c++14']
+            g_stds += ['gnu++11']
+        if mesonlib.version_compare(self.version, '>=16.0.0'):
+            c_stds += ['c++17']
         if mesonlib.version_compare(self.version, '>=17.0.0'):
-            opts = {'cpp_std': coredata.UserComboOption('cpp_std', 'C++ language standard to use',
-                                                        ['none', 'c++11', 'c++0x', 'c++14',
-                                                         'gnu++98', 'gnu++11', 'gnu++0x', 'gnu++14'],
-                                                        'none'),
-                    'cpp_debugstl': coredata.UserBooleanOption('cpp_debugstl',
-                                                               'STL debug mode',
-                                                               False)}
-        else:
-            opts = {'cpp_std': coredata.UserComboOption('cpp_std', 'C++ language standard to use',
-                                                        ['none', 'c++03', 'c++11', 'c++0x',
-                                                         'gnu++98', 'gnu++03', 'gnu++11', 'gnu++0x'],
-                                                        'none'),
-                    'cpp_debugstl': coredata.UserBooleanOption('cpp_debugstl',
-                                                               'STL debug mode',
-                                                               False)}
+            g_stds += ['gnu++14']
+        opts = {'cpp_std': coredata.UserComboOption('cpp_std', 'C++ language standard to use',
+                                                    ['none'] + c_stds + g_stds,
+                                                    'none'),
+                'cpp_debugstl': coredata.UserBooleanOption('cpp_debugstl',
+                                                           'STL debug mode',
+                                                           False)}
         return opts
 
     def get_option_compile_args(self, options):

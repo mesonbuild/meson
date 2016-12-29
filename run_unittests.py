@@ -19,7 +19,7 @@ import re, json
 import tempfile
 from glob import glob
 import mesonbuild.environment
-from mesonbuild.environment import detect_ninja
+from mesonbuild.environment import detect_ninja, Environment
 from mesonbuild.dependencies import PkgConfigDependency
 
 def get_soname(fname):
@@ -32,6 +32,12 @@ def get_soname(fname):
         if m is not None:
             return m.group(1)
     raise RuntimeError('Could not determine soname:\n\n' + raw_out)
+
+def get_fake_options():
+    import argparse
+    opts = argparse.Namespace()
+    opts.cross_file = None
+    return opts
 
 class FakeEnvironment(object):
     def __init__(self):
@@ -81,11 +87,13 @@ class LinuxlikeTests(unittest.TestCase):
     def _run(self, command):
         self.output += subprocess.check_output(command, env=os.environ.copy())
 
-    def init(self, srcdir):
+    def init(self, srcdir, extra_args=None):
+        if extra_args is None:
+            extra_args = []
         args = [srcdir, self.builddir,
                 '--prefix', self.prefix,
                 '--libdir', self.libdir]
-        self._run(self.meson_command + args)
+        self._run(self.meson_command + args + extra_args)
         self.privatedir = os.path.join(self.builddir, 'meson-private')
 
     def build(self):
@@ -409,6 +417,59 @@ class LinuxlikeTests(unittest.TestCase):
         self.assertFalse('Memcheck' in basic_log)
         self.assertTrue('TEST_ENV is set' in vg_log)
         self.assertTrue('Memcheck' in vg_log)
+
+    def _test_stds_impl(self, testdir, compiler, p):
+        lang_std = p + '_std'
+        # Check that all the listed -std=xxx options for this compiler work
+        # just fine when used
+        for v in compiler.get_options()[lang_std].choices:
+            std_opt = '{}={}'.format(lang_std, v)
+            self.init(testdir, ['-D' + std_opt])
+            cmd = self.get_compdb()[0]['command']
+            if v != 'none':
+                cmd_std = "'-std={}'".format(v)
+                self.assertIn(cmd_std, cmd)
+            try:
+                self.build()
+            except:
+                print('{} was {!r}'.format(lang_std, v))
+                raise
+            self.wipe()
+        # Check that an invalid std option in CFLAGS/CPPFLAGS fails
+        # Needed because by default ICC ignores invalid options
+        cmd_std = '-std=FAIL'
+        env_flags = p.upper() + 'FLAGS'
+        os.environ[env_flags] = cmd_std
+        self.init(testdir)
+        cmd = self.get_compdb()[0]['command']
+        qcmd_std = "'{}'".format(cmd_std)
+        self.assertIn(qcmd_std, cmd)
+        with self.assertRaises(subprocess.CalledProcessError,
+                               msg='{} should have failed'.format(qcmd_std)):
+            self.build()
+
+    def test_compiler_c_stds(self):
+        '''
+        Test that C stds specified for this compiler can all be used. Can't be
+        an ordinary test because it requires passing options to meson.
+        '''
+        testdir = os.path.join(self.common_test_dir, '1 trivial')
+        env = Environment(testdir, self.builddir, self.meson_command,
+                          get_fake_options(), [])
+        cc = env.detect_c_compiler(False)
+        self._test_stds_impl(testdir, cc, 'c')
+
+    def test_compiler_cpp_stds(self):
+        '''
+        Test that C++ stds specified for this compiler can all be used. Can't
+        be an ordinary test because it requires passing options to meson.
+        '''
+        testdir = os.path.join(self.common_test_dir, '2 cpp')
+        env = Environment(testdir, self.builddir, self.meson_command,
+                          get_fake_options(), [])
+        cpp = env.detect_cpp_compiler(False)
+        self._test_stds_impl(testdir, cpp, 'cpp')
+
 
 class RewriterTests(unittest.TestCase):
 
