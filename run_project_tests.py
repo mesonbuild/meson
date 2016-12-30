@@ -554,7 +554,7 @@ if __name__ == '__main__':
     print('\nTotal passed tests:', passing_tests)
     print('Total failed tests:', failing_tests)
     print('Total skipped tests:', skipped_tests)
-    if failing_tests > 0 and ('TRAVIS' in os.environ or 'APPVEYOR' in os.environ):
+    if failing_tests > 0:
         print('\nMesonlogs of failing tests\n')
         for l in failing_logs:
             print(l, '\n')
