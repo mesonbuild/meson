@@ -33,7 +33,9 @@ lib_suffixes = ('a', 'lib', 'dll', 'dylib', 'so')
 lang_suffixes = {
     'c': ('c',),
     'cpp': ('cpp', 'cc', 'cxx', 'c++', 'hh', 'hpp', 'ipp', 'hxx'),
-    'fortran': ('f', 'f90', 'f95'),
+    # f90, f95, f03, f08 are for free-form fortran ('f90' recommended)
+    # f, for, ftn, fpp are for fixed-form fortran ('f' or 'for' recommended)
+    'fortran': ('f90', 'f95', 'f03', 'f08', 'f', 'for', 'ftn', 'fpp'),
     'd': ('d', 'di'),
     'objc': ('m',),
     'objcpp': ('mm',),
@@ -2704,12 +2706,15 @@ class SunFortranCompiler(FortranCompiler):
     def get_module_outdir_args(self, path):
         return ['-moddir=' + path]
 
-class IntelFortranCompiler(FortranCompiler):
+class IntelFortranCompiler(IntelCompiler, FortranCompiler):
     std_warn_args = ['-warn', 'all']
 
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
-        self.file_suffixes = ('f', 'f90')
-        super().__init__(exelist, version, is_cross, exe_wrapper=None)
+        self.file_suffixes = ('f90', 'f', 'for', 'ftn', 'fpp')
+        FortranCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
+        # FIXME: Add support for OS X and Windows in detect_fortran_compiler so
+        # we are sent the type of compiler
+        IntelCompiler.__init__(self, ICC_STANDARD)
         self.id = 'intel'
 
     def get_module_outdir_args(self, path):
@@ -2770,9 +2775,6 @@ class NAGFortranCompiler(FortranCompiler):
 
     def get_module_outdir_args(self, path):
         return ['-mdir', path]
-
-    def get_always_args(self):
-        return []
 
     def get_warn_args(self, level):
         return NAGFortranCompiler.std_warn_args
