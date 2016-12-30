@@ -2396,6 +2396,7 @@ class IntelCompiler:
     def __init__(self, icc_type):
         self.id = 'intel'
         self.icc_type = icc_type
+        self.lang_header = 'none'
         self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage',
                              'b_colorout', 'b_ndebug', 'b_staticpic', 'b_lundef', 'b_asneeded']
         # Assembly
@@ -2414,7 +2415,8 @@ class IntelCompiler:
         return 'pchi'
 
     def get_pch_use_args(self, pch_dir, header):
-        return ['-pch', '-pch_dir', os.path.join(pch_dir), '-include', header]
+        return ['-pch', '-pch_dir', os.path.join(pch_dir), '-x',
+                self.lang_header, '-include', header, '-x', 'none']
 
     def get_pch_name(self, header_name):
         return os.path.split(header_name)[-1] + '.' + self.get_pch_suffix()
@@ -2444,6 +2446,7 @@ class IntelCCompiler(IntelCompiler, CCompiler):
     def __init__(self, exelist, version, icc_type, is_cross, exe_wrapper=None):
         CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
         IntelCompiler.__init__(self, icc_type)
+        self.lang_header = 'c-header'
         default_warn_args = ['-Wall', '-w3', '-diag-disable:remark', '-Wpch-messages']
         self.warn_args = {'1': default_warn_args,
                           '2': default_warn_args + ['-Wextra'],
@@ -2477,6 +2480,7 @@ class IntelCPPCompiler(IntelCompiler, CPPCompiler):
     def __init__(self, exelist, version, icc_type, is_cross, exe_wrap):
         CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
         IntelCompiler.__init__(self, icc_type)
+        self.lang_header = 'c++-header'
         default_warn_args = ['-Wall', '-w3', '-diag-disable:remark',
                              '-Wpch-messages', '-Wnon-virtual-dtor']
         self.warn_args = {'1': default_warn_args,
