@@ -16,11 +16,12 @@ import os
 import subprocess
 import shutil
 import tempfile
+from ..environment import detect_ninja
 
 def scanbuild(exename, srcdir, blddir, privdir, logdir, args):
     with tempfile.TemporaryDirectory(dir=privdir) as scandir:
         meson_cmd = [exename] + args
-        build_cmd = [exename, '-o', logdir, 'ninja']
+        build_cmd = [exename, '-o', logdir, detect_ninja(), '-C', scandir]
         rc = subprocess.call(meson_cmd + [srcdir, scandir])
         if rc != 0:
             return rc
