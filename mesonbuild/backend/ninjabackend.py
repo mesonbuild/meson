@@ -2086,7 +2086,6 @@ rule FORTRAN_DEP_HACK
         return self.get_target_filename(t)
 
     def generate_shlib_aliases(self, target, outdir):
-        basename = target.get_filename()
         aliases = target.get_aliases()
         for alias, to in aliases.items():
             aliasfile = os.path.join(self.environment.get_build_dir(), outdir, alias)
@@ -2106,7 +2105,6 @@ rule FORTRAN_DEP_HACK
         d = CleanTrees(self.environment.get_build_dir(), trees)
         d_file = os.path.join(self.environment.get_scratch_dir(), 'cleantrees.dat')
         script_root = self.environment.get_script_dir()
-        clean_script = os.path.join(script_root, 'cleantrees.py')
         e.add_item('COMMAND', [sys.executable,
                                self.environment.get_build_command(),
                                '--internal', 'cleantrees', d_file])
