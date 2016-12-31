@@ -48,7 +48,7 @@ class PkgConfigModule:
             # '${prefix}' is ignored if the second path is absolute (see
             # 'os.path.join' for details)
             ofile.write('libdir=%s\n' % os.path.join('${prefix}', coredata.get_builtin_option('libdir')))
-            ofile.write('includedir=%s\n' %  os.path.join('${prefix}', coredata.get_builtin_option('includedir')))
+            ofile.write('includedir=%s\n' % os.path.join('${prefix}', coredata.get_builtin_option('includedir')))
             ofile.write('\n')
             ofile.write('Name: %s\n' % name)
             if len(description) > 0:

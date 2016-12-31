@@ -1769,7 +1769,7 @@ rule FORTRAN_DEP_HACK
         curdir = target.get_subdir()
         tmppath = os.path.normpath(os.path.join(self.build_to_src, curdir))
         src_inc = compiler.get_include_args(tmppath, False)
-        if curdir ==  '':
+        if curdir == '':
             curdir = '.'
         build_inc = compiler.get_include_args(curdir, False)
         commands += build_inc + src_inc
@@ -1781,7 +1781,7 @@ rule FORTRAN_DEP_HACK
         for i in target.get_include_dirs():
             basedir = i.get_curdir()
             for d in i.get_incdirs():
-                expdir =  os.path.join(basedir, d)
+                expdir = os.path.join(basedir, d)
                 srctreedir = os.path.join(self.build_to_src, expdir)
                 # There may be include dirs where a build directory has not been
                 # created for some source dir. For example if someone does this:
