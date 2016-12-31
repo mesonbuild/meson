@@ -14,6 +14,7 @@
 
 from .. import mesonlib, dependencies, build
 from ..mesonlib import MesonException
+from . import get_include_args
 import os
 
 class WindowsModule:
@@ -26,7 +27,16 @@ class WindowsModule:
 
     def compile_resources(self, state, args, kwargs):
         comp = self.detect_compiler(state.compilers)
+
         extra_args = mesonlib.stringlistify(kwargs.get('args', []))
+        inc_dirs = kwargs.pop('include_directories', [])
+        if not isinstance(inc_dirs, list):
+            inc_dirs = [inc_dirs]
+        for incd in inc_dirs:
+            if not isinstance(incd.held_object, (str, build.IncludeDirs)):
+                raise MesonException('Resource include dirs should be include_directories().')
+        extra_args += get_include_args(state.environment, inc_dirs)
+
         if comp.id == 'msvc':
             rescomp = dependencies.ExternalProgram('rc', silent=True)
             res_args = extra_args + ['/nologo', '/fo@OUTPUT@', '@INPUT@']

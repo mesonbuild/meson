@@ -1,3 +1,5 @@
+import os
+
 from .. import build
 from .. import dependencies
 from ..mesonlib import MesonException
@@ -13,6 +15,36 @@ def find_program(program_name, target_name):
         raise MesonException(m.format(target_name, program_name))
     _found_programs[program_name] = program
     return program
+
+
+def get_include_args(environment, include_dirs, prefix='-I'):
+    if not include_dirs:
+        return []
+
+    dirs_str = []
+    for incdirs in include_dirs:
+        if hasattr(incdirs, "held_object"):
+            dirs = incdirs.held_object
+        else:
+            dirs = incdirs
+
+        if isinstance(dirs, str):
+            dirs_str += ['%s%s' % (prefix, dirs)]
+            continue
+
+        # Should be build.IncludeDirs object.
+        basedir = dirs.get_curdir()
+        for d in dirs.get_incdirs():
+            expdir = os.path.join(basedir, d)
+            srctreedir = os.path.join(environment.get_source_dir(), expdir)
+            buildtreedir = os.path.join(environment.get_build_dir(), expdir)
+            dirs_str += ['%s%s' % (prefix, buildtreedir),
+                         '%s%s' % (prefix, srctreedir)]
+        for d in dirs.get_extra_build_dirs():
+            dirs_str += ['%s%s' % (prefix, d)]
+
+    return dirs_str
+
 
 class GResourceTarget(build.CustomTarget):
     def __init__(self, name, subdir, kwargs):
