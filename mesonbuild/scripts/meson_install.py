@@ -142,10 +142,10 @@ def install_headers(d):
         do_copyfile(fullfilename, outfilename)
 
 def run_install_script(d):
-    env = {'MESON_SOURCE_ROOT' : d.source_dir,
-           'MESON_BUILD_ROOT' : d.build_dir,
-           'MESON_INSTALL_PREFIX' : d.prefix,
-           'MESON_INSTALL_DESTDIR_PREFIX' : d.fullprefix,
+    env = {'MESON_SOURCE_ROOT': d.source_dir,
+           'MESON_BUILD_ROOT': d.build_dir,
+           'MESON_INSTALL_PREFIX': d.prefix,
+           'MESON_INSTALL_DESTDIR_PREFIX': d.fullprefix,
           }
     child_env = os.environ.copy()
     child_env.update(env)

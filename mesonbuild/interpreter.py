@@ -49,10 +49,10 @@ class TryRunResultHolder(InterpreterObject):
     def __init__(self, res):
         super().__init__()
         self.res = res
-        self.methods.update({'returncode' : self.returncode_method,
-                             'compiled' : self.compiled_method,
-                             'stdout' : self.stdout_method,
-                             'stderr' : self.stderr_method,
+        self.methods.update({'returncode': self.returncode_method,
+                             'compiled': self.compiled_method,
+                             'stdout': self.stdout_method,
+                             'stderr': self.stderr_method,
                             })
 
     def returncode_method(self, args, kwargs):
@@ -73,16 +73,16 @@ class RunProcess(InterpreterObject):
         super().__init__()
         pc, self.stdout, self.stderr = self.run_command(command_array, source_dir, build_dir, subdir, in_builddir)
         self.returncode = pc.returncode
-        self.methods.update({'returncode' : self.returncode_method,
-                             'stdout' : self.stdout_method,
-                             'stderr' : self.stderr_method,
+        self.methods.update({'returncode': self.returncode_method,
+                             'stdout': self.stdout_method,
+                             'stderr': self.stderr_method,
                             })
 
     def run_command(self, command_array, source_dir, build_dir, subdir, in_builddir):
         cmd_name = command_array[0]
-        env = {'MESON_SOURCE_ROOT' : source_dir,
-               'MESON_BUILD_ROOT' : build_dir,
-               'MESON_SUBDIR' : subdir}
+        env = {'MESON_SOURCE_ROOT': source_dir,
+               'MESON_BUILD_ROOT': build_dir,
+               'MESON_SUBDIR': subdir}
         if in_builddir:
             cwd = os.path.join(build_dir, subdir)
         else:
@@ -129,7 +129,7 @@ class EnvironmentVariablesHolder(MutableInterpreterObject):
         self.held_object = build.EnvironmentVariables()
         self.methods.update({'set': self.set_method,
                              'append': self.append_method,
-                             'prepend' : self.prepend_method,
+                             'prepend': self.prepend_method,
                             })
 
     @stringArgs
@@ -161,7 +161,7 @@ class ConfigurationDataHolder(MutableInterpreterObject):
         self.methods.update({'set': self.set_method,
                              'set10': self.set10_method,
                              'set_quoted': self.set_quoted_method,
-                             'has' : self.has_method,
+                             'has': self.has_method,
                             })
 
     def is_used(self):
@@ -219,7 +219,7 @@ class DependencyHolder(InterpreterObject):
     def __init__(self, dep):
         InterpreterObject.__init__(self)
         self.held_object = dep
-        self.methods.update({'found' : self.found_method,
+        self.methods.update({'found': self.found_method,
                              'type_name': self.type_name_method,
                              'version': self.version_method,
                              'get_pkgconfig_variable': self.pkgconfig_method,
@@ -251,7 +251,7 @@ class InternalDependencyHolder(InterpreterObject):
     def __init__(self, dep):
         InterpreterObject.__init__(self)
         self.held_object = dep
-        self.methods.update({'found' : self.found_method,
+        self.methods.update({'found': self.found_method,
                              'version': self.version_method,
                              })
 
@@ -315,7 +315,7 @@ class GeneratorHolder(InterpreterObject):
         super().__init__()
         self.interpreter = interpreter
         self.held_object = build.Generator(args, kwargs)
-        self.methods.update({'process' : self.process_method})
+        self.methods.update({'process': self.process_method})
 
     def process_method(self, args, kwargs):
         extras = mesonlib.stringlistify(kwargs.get('extra_args', []))
@@ -342,10 +342,10 @@ class BuildMachine(InterpreterObject):
     def __init__(self, compilers):
         self.compilers = compilers
         InterpreterObject.__init__(self)
-        self.methods.update({'system' : self.system_method,
-                             'cpu_family' : self.cpu_family_method,
-                             'cpu' : self.cpu_method,
-                             'endian' : self.endian_method,
+        self.methods.update({'system': self.system_method,
+                             'cpu_family': self.cpu_family_method,
+                             'cpu': self.cpu_method,
+                             'endian': self.endian_method,
                             })
 
     def cpu_family_method(self, args, kwargs):
@@ -371,10 +371,10 @@ class CrossMachineInfo(InterpreterObject):
                 'Machine info is currently {}\n'.format(cross_info) +
                 'but is missing {}.'.format(minimum_cross_info - set(cross_info)))
         self.info = cross_info
-        self.methods.update({'system' : self.system_method,
-                             'cpu' : self.cpu_method,
-                             'cpu_family' : self.cpu_family_method,
-                             'endian' : self.endian_method,
+        self.methods.update({'system': self.system_method,
+                             'cpu': self.cpu_method,
+                             'cpu_family': self.cpu_family_method,
+                             'endian': self.endian_method,
                             })
 
     def system_method(self, args, kwargs):
@@ -481,12 +481,12 @@ class BuildTargetHolder(InterpreterObject):
         super().__init__()
         self.held_object = target
         self.interpreter = interp
-        self.methods.update({'extract_objects' : self.extract_objects_method,
-                             'extract_all_objects' : self.extract_all_objects_method,
+        self.methods.update({'extract_objects': self.extract_objects_method,
+                             'extract_all_objects': self.extract_all_objects_method,
                              'get_id': self.get_id_method,
-                             'outdir' : self.outdir_method,
-                             'full_path' : self.full_path_method,
-                             'private_dir_include' : self.private_dir_include_method,
+                             'outdir': self.outdir_method,
+                             'full_path': self.full_path_method,
+                             'private_dir_include': self.private_dir_include_method,
                              })
 
     def __repr__(self):
@@ -543,7 +543,7 @@ class CustomTargetHolder(InterpreterObject):
         super().__init__()
         self.held_object = object_to_hold
         self.interpreter = interp
-        self.methods.update({'full_path' : self.full_path_method,
+        self.methods.update({'full_path': self.full_path_method,
                              })
 
     def __repr__(self):
@@ -587,7 +587,7 @@ class SubprojectHolder(InterpreterObject):
     def __init__(self, subinterpreter):
         super().__init__()
         self.held_object = subinterpreter
-        self.methods.update({'get_variable' : self.get_variable_method,
+        self.methods.update({'get_variable': self.get_variable_method,
                             })
 
     def get_variable_method(self, args, kwargs):
@@ -609,19 +609,19 @@ class CompilerHolder(InterpreterObject):
                              'sizeof': self.sizeof_method,
                              'has_header': self.has_header_method,
                              'has_header_symbol': self.has_header_symbol_method,
-                             'run' : self.run_method,
-                             'has_function' : self.has_function_method,
-                             'has_member' : self.has_member_method,
-                             'has_members' : self.has_members_method,
-                             'has_type' : self.has_type_method,
-                             'alignment' : self.alignment_method,
-                             'version' : self.version_method,
-                             'cmd_array' : self.cmd_array_method,
+                             'run': self.run_method,
+                             'has_function': self.has_function_method,
+                             'has_member': self.has_member_method,
+                             'has_members': self.has_members_method,
+                             'has_type': self.has_type_method,
+                             'alignment': self.alignment_method,
+                             'version': self.version_method,
+                             'cmd_array': self.cmd_array_method,
                              'find_library': self.find_library_method,
-                             'has_argument' : self.has_argument_method,
-                             'has_multi_arguments' : self.has_multi_arguments_method,
-                             'first_supported_argument' : self.first_supported_argument_method,
-                             'unittest_args' : self.unittest_args_method,
+                             'has_argument': self.has_argument_method,
+                             'has_multi_arguments': self.has_multi_arguments_method,
+                             'first_supported_argument': self.first_supported_argument_method,
+                             'unittest_args': self.unittest_args_method,
                              'symbols_have_underscore_prefix': self.symbols_have_underscore_prefix_method,
                             })
 
@@ -701,7 +701,7 @@ class CompilerHolder(InterpreterObject):
                 h = mlog.green('YES')
             else:
                 h = mlog.red('NO (%d)' % result.returncode)
-            mlog.log('Checking if "', mlog.bold(testname), '" runs : ', h, sep='')
+            mlog.log('Checking if "', mlog.bold(testname), '" runs: ', h, sep='')
         return TryRunResultHolder(result)
 
     def get_id_method(self, args, kwargs):
@@ -831,7 +831,7 @@ class CompilerHolder(InterpreterObject):
                 h = mlog.green('YES')
             else:
                 h = mlog.red('NO')
-            mlog.log('Checking if "', mlog.bold(testname), '" compiles : ', h, sep='')
+            mlog.log('Checking if "', mlog.bold(testname), '" compiles: ', h, sep='')
         return result
 
     def links_method(self, args, kwargs):
@@ -854,7 +854,7 @@ class CompilerHolder(InterpreterObject):
                 h = mlog.green('YES')
             else:
                 h = mlog.red('NO')
-            mlog.log('Checking if "', mlog.bold(testname), '" links : ', h, sep='')
+            mlog.log('Checking if "', mlog.bold(testname), '" links: ', h, sep='')
         return result
 
     def has_header_method(self, args, kwargs):
@@ -996,22 +996,22 @@ class MesonMain(InterpreterObject):
         self.interpreter = interpreter
         self._found_source_scripts = {}
         self.methods.update({'get_compiler': self.get_compiler_method,
-                             'is_cross_build' : self.is_cross_build_method,
-                             'has_exe_wrapper' : self.has_exe_wrapper_method,
-                             'is_unity' : self.is_unity_method,
-                             'is_subproject' : self.is_subproject_method,
-                             'current_source_dir' : self.current_source_dir_method,
-                             'current_build_dir' : self.current_build_dir_method,
-                             'source_root' : self.source_root_method,
-                             'build_root' : self.build_root_method,
-                             'add_install_script' : self.add_install_script_method,
-                             'add_postconf_script' : self.add_postconf_script_method,
+                             'is_cross_build': self.is_cross_build_method,
+                             'has_exe_wrapper': self.has_exe_wrapper_method,
+                             'is_unity': self.is_unity_method,
+                             'is_subproject': self.is_subproject_method,
+                             'current_source_dir': self.current_source_dir_method,
+                             'current_build_dir': self.current_build_dir_method,
+                             'source_root': self.source_root_method,
+                             'build_root': self.build_root_method,
+                             'add_install_script': self.add_install_script_method,
+                             'add_postconf_script': self.add_postconf_script_method,
                              'install_dependency_manifest': self.install_dependency_manifest_method,
                              'project_version': self.project_version_method,
                              'version': self.version_method,
-                             'project_name' : self.project_name_method,
+                             'project_name': self.project_name_method,
                              'get_cross_property': self.get_cross_property_method,
-                             'backend' : self.backend_method,
+                             'backend': self.backend_method,
                             })
 
     def _find_source_script(self, name, args):
@@ -1180,53 +1180,53 @@ class Interpreter(InterpreterBase):
         self.build_def_files = [os.path.join(self.subdir, environment.build_filename)]
 
     def build_func_dict(self):
-        self.funcs.update({'project' : self.func_project,
-                      'message' : self.func_message,
-                      'error' : self.func_error,
-                      'executable': self.func_executable,
-                      'dependency' : self.func_dependency,
-                      'static_library' : self.func_static_lib,
-                      'shared_library' : self.func_shared_lib,
-                      'shared_module' : self.func_shared_module,
-                      'library' : self.func_library,
-                      'jar' : self.func_jar,
-                      'build_target': self.func_build_target,
-                      'custom_target' : self.func_custom_target,
-                      'run_target' : self.func_run_target,
-                      'generator' : self.func_generator,
-                      'test' : self.func_test,
-                      'benchmark' : self.func_benchmark,
-                      'install_headers' : self.func_install_headers,
-                      'install_man' : self.func_install_man,
-                      'subdir' : self.func_subdir,
-                      'install_data' : self.func_install_data,
-                      'install_subdir' : self.func_install_subdir,
-                      'configure_file' : self.func_configure_file,
-                      'include_directories' : self.func_include_directories,
-                      'add_global_arguments' : self.func_add_global_arguments,
-                      'add_project_arguments' : self.func_add_project_arguments,
-                      'add_global_link_arguments' : self.func_add_global_link_arguments,
-                      'add_project_link_arguments' : self.func_add_project_link_arguments,
-                      'add_languages' : self.func_add_languages,
-                      'find_program' : self.func_find_program,
-                      'find_library' : self.func_find_library,
-                      'configuration_data' : self.func_configuration_data,
-                      'run_command' : self.func_run_command,
-                      'gettext' : self.func_gettext,
-                      'option' : self.func_option,
-                      'get_option' : self.func_get_option,
-                      'subproject' : self.func_subproject,
-                      'vcs_tag' : self.func_vcs_tag,
-                      'set_variable' : self.func_set_variable,
-                      'is_variable' : self.func_is_variable,
-                      'get_variable' : self.func_get_variable,
-                      'import' : self.func_import,
-                      'files' : self.func_files,
-                      'declare_dependency': self.func_declare_dependency,
-                      'assert': self.func_assert,
-                      'environment' : self.func_environment,
-                      'join_paths' : self.func_join_paths,
-                     })
+        self.funcs.update({'project': self.func_project,
+                           'message': self.func_message,
+                           'error': self.func_error,
+                           'executable': self.func_executable,
+                           'dependency': self.func_dependency,
+                           'static_library': self.func_static_lib,
+                           'shared_library': self.func_shared_lib,
+                           'shared_module': self.func_shared_module,
+                           'library': self.func_library,
+                           'jar': self.func_jar,
+                           'build_target': self.func_build_target,
+                           'custom_target': self.func_custom_target,
+                           'run_target': self.func_run_target,
+                           'generator': self.func_generator,
+                           'test': self.func_test,
+                           'benchmark': self.func_benchmark,
+                           'install_headers': self.func_install_headers,
+                           'install_man': self.func_install_man,
+                           'subdir': self.func_subdir,
+                           'install_data': self.func_install_data,
+                           'install_subdir': self.func_install_subdir,
+                           'configure_file': self.func_configure_file,
+                           'include_directories': self.func_include_directories,
+                           'add_global_arguments': self.func_add_global_arguments,
+                           'add_project_arguments': self.func_add_project_arguments,
+                           'add_global_link_arguments': self.func_add_global_link_arguments,
+                           'add_project_link_arguments': self.func_add_project_link_arguments,
+                           'add_languages': self.func_add_languages,
+                           'find_program': self.func_find_program,
+                           'find_library': self.func_find_library,
+                           'configuration_data': self.func_configuration_data,
+                           'run_command': self.func_run_command,
+                           'gettext': self.func_gettext,
+                           'option': self.func_option,
+                           'get_option': self.func_get_option,
+                           'subproject': self.func_subproject,
+                           'vcs_tag': self.func_vcs_tag,
+                           'set_variable': self.func_set_variable,
+                           'is_variable': self.func_is_variable,
+                           'get_variable': self.func_get_variable,
+                           'import': self.func_import,
+                           'files': self.func_files,
+                           'declare_dependency': self.func_declare_dependency,
+                           'assert': self.func_assert,
+                           'environment': self.func_environment,
+                           'join_paths': self.func_join_paths,
+                           })
 
     def module_method_callback(self, invalues):
         unwrap_single = False

@@ -18,9 +18,9 @@ what to run, sets up the environment and executes the command."""
 import sys, os, subprocess, shutil
 
 def run_command(source_dir, build_dir, subdir, command, arguments):
-    env = {'MESON_SOURCE_ROOT' : source_dir,
-           'MESON_BUILD_ROOT' : build_dir,
-           'MESON_SUBDIR' : subdir
+    env = {'MESON_SOURCE_ROOT': source_dir,
+           'MESON_BUILD_ROOT': build_dir,
+           'MESON_SUBDIR': subdir
           }
     cwd = os.path.join(source_dir, subdir)
     child_env = os.environ.copy()

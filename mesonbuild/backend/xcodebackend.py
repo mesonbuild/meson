@@ -27,21 +27,22 @@ class XCodeBackend(backends.Backend):
         self.project_conflist = self.gen_id()
         self.indent = '       '
         self.indent_level = 0
-        self.xcodetypemap = {'c' : 'sourcecode.c.c',
-                             'a' : 'archive.ar',
+        self.xcodetypemap = {'c': 'sourcecode.c.c',
+                             'a': 'archive.ar',
                              'cc': 'sourcecode.cpp.cpp',
-                             'cxx' : 'sourcecode.cpp.cpp',
-                             'cpp' : 'sourcecode.cpp.cpp',
-                             'c++' : 'sourcecode.cpp.cpp',
-                             'm' : 'sourcecode.c.objc',
-                             'mm' : 'sourcecode.cpp.objcpp',
-                             'h' : 'sourcecode.c.h',
-                             'hpp' : 'sourcecode.cpp.h',
-                             'hxx' : 'sourcecode.cpp.h',
-                             'hh' : 'sourcecode.cpp.hh',
-                             'inc' : 'sourcecode.c.h',
-                             'dylib' : 'compiled.mach-o.dylib',
-                             'o' : 'compiled.mach-o.objfile',}
+                             'cxx': 'sourcecode.cpp.cpp',
+                             'cpp': 'sourcecode.cpp.cpp',
+                             'c++': 'sourcecode.cpp.cpp',
+                             'm': 'sourcecode.c.objc',
+                             'mm': 'sourcecode.cpp.objcpp',
+                             'h': 'sourcecode.c.h',
+                             'hpp': 'sourcecode.cpp.h',
+                             'hxx': 'sourcecode.cpp.h',
+                             'hh': 'sourcecode.cpp.hh',
+                             'inc': 'sourcecode.c.h',
+                             'dylib': 'compiled.mach-o.dylib',
+                             'o': 'compiled.mach-o.objfile',
+                            }
         self.maingroup_id = self.gen_id()
         self.all_id = self.gen_id()
         self.all_buildconf_id = self.gen_id()
@@ -129,7 +130,7 @@ class XCodeBackend(backends.Backend):
                     self.buildmap[o] = self.gen_id()
 
     def generate_buildstylemap(self):
-        self.buildstylemap = {'debug' : self.gen_id()}
+        self.buildstylemap = {'debug': self.gen_id()}
 
     def generate_build_phase_map(self):
         self.buildphasemap = {}
@@ -139,17 +140,17 @@ class XCodeBackend(backends.Backend):
     def generate_build_configuration_map(self):
         self.buildconfmap = {}
         for t in self.build.targets:
-            bconfs = {'debug' : self.gen_id()}
+            bconfs = {'debug': self.gen_id()}
             self.buildconfmap[t] = bconfs
 
     def generate_project_configurations_map(self):
-        self.project_configurations = {'debug' : self.gen_id()}
+        self.project_configurations = {'debug': self.gen_id()}
 
     def generate_buildall_configurations_map(self):
-        self.buildall_configurations = {'debug' : self.gen_id()}
+        self.buildall_configurations = {'debug': self.gen_id()}
 
     def generate_test_configurations_map(self):
-        self.test_configurations = {'debug' : self.gen_id()}
+        self.test_configurations = {'debug': self.gen_id()}
 
     def generate_build_configurationlist_map(self):
         self.buildconflistmap = {}
@@ -608,7 +609,7 @@ class XCodeBackend(backends.Backend):
             self.write_line('};')
 
         # Now finally targets.
-        langnamemap = {'c' : 'C', 'cpp' : 'CPLUSPLUS', 'objc' : 'OBJC', 'objcpp' : 'OBJCPLUSPLUS'}
+        langnamemap = {'c': 'C', 'cpp': 'CPLUSPLUS', 'objc': 'OBJC', 'objcpp': 'OBJCPLUSPLUS'}
         for target_name, target in self.build.targets.items():
             for buildtype in self.buildtypes:
                 dep_libs = []

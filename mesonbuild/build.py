@@ -20,30 +20,30 @@ from .mesonlib import File, flatten, MesonException, stringlistify, classify_uni
 from .environment import for_windows, for_darwin
 from .compilers import is_object, clike_langs, lang_suffixes
 
-known_basic_kwargs = {'install' : True,
-                      'c_pch' : True,
-                      'cpp_pch' : True,
-                      'c_args' : True,
-                      'cpp_args' : True,
-                      'cs_args' : True,
-                      'vala_args' : True,
-                      'fortran_args' : True,
-                      'd_args' : True,
-                      'java_args' : True,
-                      'link_args' : True,
+known_basic_kwargs = {'install': True,
+                      'c_pch': True,
+                      'cpp_pch': True,
+                      'c_args': True,
+                      'cpp_args': True,
+                      'cs_args': True,
+                      'vala_args': True,
+                      'fortran_args': True,
+                      'd_args': True,
+                      'java_args': True,
+                      'link_args': True,
                       'link_depends': True,
-                      'link_with' : True,
+                      'link_with': True,
                       'include_directories': True,
-                      'dependencies' : True,
-                      'install_dir' : True,
-                      'main_class' : True,
-                      'gui_app' : True,
-                      'extra_files' : True,
-                      'install_rpath' : True,
-                      'resources' : True,
-                      'sources' : True,
-                      'objects' : True,
-                      'native' : True,
+                      'dependencies': True,
+                      'install_dir': True,
+                      'main_class': True,
+                      'gui_app': True,
+                      'extra_files': True,
+                      'install_rpath': True,
+                      'resources': True,
+                      'sources': True,
+                      'objects': True,
+                      'native': True,
                      }
 
 # These contain kwargs supported by both static and shared libraries. These are
@@ -52,15 +52,15 @@ known_basic_kwargs = {'install' : True,
 # FIXME: Find a way to pass that info down here so we can have proper target
 # kwargs checking when specifically using shared_library() or static_library().
 known_lib_kwargs = known_basic_kwargs.copy()
-known_lib_kwargs.update({'version' : True, # Only for shared libs
-                         'soversion' : True, # Only for shared libs
-                         'name_prefix' : True,
-                         'name_suffix' : True,
-                         'vs_module_defs' : True, # Only for shared libs
+known_lib_kwargs.update({'version': True, # Only for shared libs
+                         'soversion': True, # Only for shared libs
+                         'name_prefix': True,
+                         'name_suffix': True,
+                         'vs_module_defs': True, # Only for shared libs
                          'vala_header': True,
                          'vala_vapi': True,
-                         'vala_gir' : True,
-                         'pic' : True, # Only for static libs
+                         'vala_gir': True,
+                         'pic': True, # Only for static libs
                         })
 
 
@@ -1224,16 +1224,16 @@ class SharedModule(SharedLibrary):
         super().__init__(name, subdir, subproject, is_cross, sources, objects, environment, kwargs)
 
 class CustomTarget:
-    known_kwargs = {'input' : True,
-                    'output' : True,
-                    'command' : True,
-                    'capture' : False,
-                    'install' : True,
-                    'install_dir' : True,
-                    'build_always' : True,
-                    'depends' : True,
-                    'depend_files' : True,
-                    'depfile' : True,
+    known_kwargs = {'input': True,
+                    'output': True,
+                    'command': True,
+                    'capture': False,
+                    'install': True,
+                    'install_dir': True,
+                    'build_always': True,
+                    'depends': True,
+                    'depend_files': True,
+                    'depfile': True,
                     }
 
     def __init__(self, name, subdir, kwargs, absolute_paths=False):

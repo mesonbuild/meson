@@ -327,12 +327,12 @@ class Vs2010Backend(backends.Backend):
 
     def create_basic_crap(self, target):
         project_name = target.name
-        root = ET.Element('Project', {'DefaultTargets' : "Build",
-                                      'ToolsVersion' : '4.0',
-                                      'xmlns' : 'http://schemas.microsoft.com/developer/msbuild/2003'})
-        confitems = ET.SubElement(root, 'ItemGroup', {'Label' : 'ProjectConfigurations'})
+        root = ET.Element('Project', {'DefaultTargets': "Build",
+                                      'ToolsVersion': '4.0',
+                                      'xmlns': 'http://schemas.microsoft.com/developer/msbuild/2003'})
+        confitems = ET.SubElement(root, 'ItemGroup', {'Label': 'ProjectConfigurations'})
         prjconf = ET.SubElement(confitems, 'ProjectConfiguration',
-                                {'Include' : self.buildtype + '|' + self.platform})
+                                {'Include': self.buildtype + '|' + self.platform})
         p = ET.SubElement(prjconf, 'Configuration')
         p.text= self.buildtype
         pl = ET.SubElement(prjconf, 'Platform')
@@ -558,12 +558,12 @@ class Vs2010Backend(backends.Backend):
         buildtype_link_args = compiler.get_buildtype_linker_args(self.buildtype)
         project_name = target.name
         target_name = target.name
-        root = ET.Element('Project', {'DefaultTargets' : "Build",
-                                      'ToolsVersion' : '4.0',
-                                      'xmlns' : 'http://schemas.microsoft.com/developer/msbuild/2003'})
-        confitems = ET.SubElement(root, 'ItemGroup', {'Label' : 'ProjectConfigurations'})
+        root = ET.Element('Project', {'DefaultTargets': "Build",
+                                      'ToolsVersion': '4.0',
+                                      'xmlns': 'http://schemas.microsoft.com/developer/msbuild/2003'})
+        confitems = ET.SubElement(root, 'ItemGroup', {'Label': 'ProjectConfigurations'})
         prjconf = ET.SubElement(confitems, 'ProjectConfiguration',
-                                {'Include' : self.buildtype + '|' + self.platform})
+                                {'Include': self.buildtype + '|' + self.platform})
         p = ET.SubElement(prjconf, 'Configuration')
         p.text= self.buildtype
         pl = ET.SubElement(prjconf, 'Platform')
@@ -925,11 +925,11 @@ class Vs2010Backend(backends.Backend):
 
     def gen_regenproj(self, project_name, ofname):
         root = ET.Element('Project', {'DefaultTargets': 'Build',
-                                      'ToolsVersion' : '4.0',
-                                      'xmlns' : 'http://schemas.microsoft.com/developer/msbuild/2003'})
-        confitems = ET.SubElement(root, 'ItemGroup', {'Label' : 'ProjectConfigurations'})
+                                      'ToolsVersion': '4.0',
+                                      'xmlns': 'http://schemas.microsoft.com/developer/msbuild/2003'})
+        confitems = ET.SubElement(root, 'ItemGroup', {'Label': 'ProjectConfigurations'})
         prjconf = ET.SubElement(confitems, 'ProjectConfiguration',
-                                {'Include' : self.buildtype + '|' + self.platform})
+                                {'Include': self.buildtype + '|' + self.platform})
         p = ET.SubElement(prjconf, 'Configuration')
         p.text= self.buildtype
         pl = ET.SubElement(prjconf, 'Platform')
@@ -1003,12 +1003,12 @@ if %%errorlevel%% neq 0 goto :VCEnd'''
 
     def gen_testproj(self, target_name, ofname):
         project_name = target_name
-        root = ET.Element('Project', {'DefaultTargets' : "Build",
-                                      'ToolsVersion' : '4.0',
-                                      'xmlns' : 'http://schemas.microsoft.com/developer/msbuild/2003'})
-        confitems = ET.SubElement(root, 'ItemGroup', {'Label' : 'ProjectConfigurations'})
+        root = ET.Element('Project', {'DefaultTargets': "Build",
+                                      'ToolsVersion': '4.0',
+                                      'xmlns': 'http://schemas.microsoft.com/developer/msbuild/2003'})
+        confitems = ET.SubElement(root, 'ItemGroup', {'Label': 'ProjectConfigurations'})
         prjconf = ET.SubElement(confitems, 'ProjectConfiguration',
-                                {'Include' : self.buildtype + '|' + self.platform})
+                                {'Include': self.buildtype + '|' + self.platform})
         p = ET.SubElement(prjconf, 'Configuration')
         p.text= self.buildtype
         pl = ET.SubElement(prjconf, 'Platform')

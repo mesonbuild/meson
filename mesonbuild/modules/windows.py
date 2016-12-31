@@ -50,7 +50,7 @@ class WindowsModule:
             suffix = 'o'
         if not rescomp.found():
             raise MesonException('Could not find Windows resource compiler %s.' % ' '.join(rescomp.get_command()))
-        res_kwargs = {'output' : '@BASENAME@.' + suffix,
+        res_kwargs = {'output': '@BASENAME@.' + suffix,
                       'arguments': res_args}
         res_gen = build.Generator([rescomp], res_kwargs)
         res_output = res_gen.process_files('Windows resource', args, state)
