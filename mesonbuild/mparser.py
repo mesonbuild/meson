@@ -207,7 +207,7 @@ class ComparisonNode:
         self.ctype = ctype
 
 class ArithmeticNode:
-    def __init__(self,operation, left, right):
+    def __init__(self, operation, left, right):
         self.subdir = left.subdir
         self.lineno = left.lineno
         self.colno = left.colno

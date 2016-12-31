@@ -35,7 +35,7 @@ def run_command(source_dir, build_dir, subdir, command, arguments):
     fullpath = os.path.join(source_dir, subdir, command)
     command_array = [fullpath] + arguments
     try:
-        return subprocess.Popen(command_array,env=child_env, cwd=cwd)
+        return subprocess.Popen(command_array, env=child_env, cwd=cwd)
     except FileNotFoundError:
         print('Could not execute command "%s".' % command)
         sys.exit(1)

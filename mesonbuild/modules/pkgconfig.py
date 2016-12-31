@@ -130,7 +130,7 @@ class PkgConfigModule:
         priv_reqs = mesonlib.stringlistify(kwargs.get('requires_private', []))
         conflicts = mesonlib.stringlistify(kwargs.get('conflicts', []))
         pcfile = filebase + '.pc'
-        pkgroot = kwargs.get('install_dir',None)
+        pkgroot = kwargs.get('install_dir', None)
         if pkgroot is None:
             pkgroot = os.path.join(state.environment.coredata.get_builtin_option('libdir'), 'pkgconfig')
         if not isinstance(pkgroot, str):
