@@ -518,7 +518,7 @@ def generate_prebuilt():
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Run the test suite of Meson.")
     parser.add_argument('extra_args', nargs='*',
-                   help='arguments that are passed directly to Meson (remember to have -- before these).')
+                        help='arguments that are passed directly to Meson (remember to have -- before these).')
     parser.add_argument('--backend', default=None, dest='backend',
                         choices = backendlist)
     options = parser.parse_args()

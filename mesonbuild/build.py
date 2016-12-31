@@ -731,12 +731,12 @@ class BuildTarget():
                 # This should be reliable enough.
                 if hasattr(dep, 'subproject'):
                     raise InvalidArguments('Tried to use subproject object as a dependency.\n'
-                            'You probably wanted to use a dependency declared in it instead.\n'
-                            'Access it by calling get_variable() on the subproject object.')
+                                           'You probably wanted to use a dependency declared in it instead.\n'
+                                           'Access it by calling get_variable() on the subproject object.')
                 raise InvalidArguments('Argument is of an unacceptable type {!r}.\nMust be '
-                        'either an external dependency (returned by find_library() or '
-                        'dependency()) or an internal dependency (returned by '
-                        'declare_dependency()).'.format(type(dep).__name__))
+                                       'either an external dependency (returned by find_library() or '
+                                       'dependency()) or an internal dependency (returned by '
+                                       'declare_dependency()).'.format(type(dep).__name__))
 
     def get_external_deps(self):
         return self.external_deps

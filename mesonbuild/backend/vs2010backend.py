@@ -462,18 +462,18 @@ class Vs2010Backend(backends.Backend):
     def escape_preprocessor_define(define):
         # See: https://msdn.microsoft.com/en-us/library/bb383819.aspx
         table = str.maketrans({'%': '%25', '$': '%24', '@': '%40',
-            "'": '%27', ';': '%3B', '?': '%3F', '*': '%2A',
-            # We need to escape backslash because it'll be un-escaped by
-            # Windows during process creation when it parses the arguments
-            # Basically, this converts `\` to `\\`.
-            '\\': '\\\\'})
+                               "'": '%27', ';': '%3B', '?': '%3F', '*': '%2A',
+                               # We need to escape backslash because it'll be un-escaped by
+                               # Windows during process creation when it parses the arguments
+                               # Basically, this converts `\` to `\\`.
+                               '\\': '\\\\'})
         return define.translate(table)
 
     @staticmethod
     def escape_additional_option(option):
         # See: https://msdn.microsoft.com/en-us/library/bb383819.aspx
         table = str.maketrans({'%': '%25', '$': '%24', '@': '%40',
-            "'": '%27', ';': '%3B', '?': '%3F', '*': '%2A', ' ': '%20'})
+                               "'": '%27', ';': '%3B', '?': '%3F', '*': '%2A', ' ': '%20'})
         option = option.translate(table)
         # Since we're surrounding the option with ", if it ends in \ that will
         # escape the " when the process arguments are parsed and the starting
