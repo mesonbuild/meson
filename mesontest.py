@@ -131,8 +131,7 @@ def write_json_log(jsonlogfile, test_name, result):
                'result': result.res,
                'duration': result.duration,
                'returncode': result.returncode,
-               'command': result.cmd,
-    }
+               'command': result.cmd}
     if isinstance(result.env, dict):
         jresult['env'] = result.env
     else:

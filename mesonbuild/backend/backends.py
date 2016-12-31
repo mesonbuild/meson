@@ -643,8 +643,8 @@ class Backend():
 
     def run_postconf_scripts(self):
         env = {'MESON_SOURCE_ROOT': self.environment.get_source_dir(),
-               'MESON_BUILD_ROOT': self.environment.get_build_dir()
-              }
+               'MESON_BUILD_ROOT': self.environment.get_build_dir(),
+               }
         child_env = os.environ.copy()
         child_env.update(env)
 

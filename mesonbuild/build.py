@@ -44,7 +44,7 @@ known_basic_kwargs = {'install': True,
                       'sources': True,
                       'objects': True,
                       'native': True,
-                     }
+                      }
 
 # These contain kwargs supported by both static and shared libraries. These are
 # combined here because a library() call might be shared_library() or
@@ -61,7 +61,7 @@ known_lib_kwargs.update({'version': True, # Only for shared libs
                          'vala_vapi': True,
                          'vala_gir': True,
                          'pic': True, # Only for static libs
-                        })
+                         })
 
 
 class InvalidArguments(MesonException):

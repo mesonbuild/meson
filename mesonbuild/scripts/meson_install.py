@@ -146,7 +146,7 @@ def run_install_script(d):
            'MESON_BUILD_ROOT': d.build_dir,
            'MESON_INSTALL_PREFIX': d.prefix,
            'MESON_INSTALL_DESTDIR_PREFIX': d.fullprefix,
-          }
+           }
     child_env = os.environ.copy()
     child_env.update(env)
 

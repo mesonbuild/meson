@@ -217,7 +217,7 @@ function_data = \
      'HAVE_SETJMP': ('setjmp', 'setjmp.h'),
      'HAVE_PTHREAD_SETNAME_NP': ('pthread_setname_np', 'pthread.h'),
      'HAVE_PTHREAD_SET_NAME_NP': ('pthread_set_name_np', 'pthread.h'),
-    }
+     }
 
 headers = []
 functions = []

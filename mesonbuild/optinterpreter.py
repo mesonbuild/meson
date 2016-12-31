@@ -65,7 +65,7 @@ def ComboParser(name, description, kwargs):
 option_types = {'string': StringParser,
                 'boolean': BooleanParser,
                 'combo': ComboParser,
-               }
+                }
 
 class OptionInterpreter:
     def __init__(self, subproject, command_line_options):
