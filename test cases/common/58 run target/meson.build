@@ -31,7 +31,7 @@ run_target('upload2',
   depends : hex,
 )
 
-python3 = find_program('python3')
+python3 = find_python3()
 run_target('py3hi',
   command : [python3, '-c', 'print("I am Python3.")'])
 

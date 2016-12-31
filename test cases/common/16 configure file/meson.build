@@ -19,7 +19,7 @@ cfile)
 test('inctest', e)
 
 # Now generate a header file with an external script.
-genprog = find_program('python3')
+genprog = find_python3()
 scriptfile = '@0@/generator.py'.format(meson.current_source_dir())
 ifile = '@0@/dummy.dat'.format(meson.current_source_dir())
 ofile = '@0@/config2.h'.format(meson.current_build_dir())

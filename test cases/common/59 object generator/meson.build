@@ -1,6 +1,6 @@
 project('object generator', 'c')
 
-python = find_program('python3')
+python = find_python3()
 
 # Note that this will not add a dependency to the compiler executable.
 # Code will not be rebuilt if it changes.

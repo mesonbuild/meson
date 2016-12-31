@@ -1,6 +1,6 @@
 project('custom target', 'c')
 
-python = find_program('python3')
+python = find_python3()
 
 comp = '@0@/@1@'.format(meson.current_source_dir(), 'my_compiler.py')
 comp2 = '@0@/@1@'.format(meson.current_source_dir(), 'my_compiler2.py')
