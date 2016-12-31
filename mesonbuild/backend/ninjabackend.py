@@ -732,7 +732,7 @@ int dummy;
         elem.write(outfile)
 
         # And then benchmarks.
-        cmd = [sys.executable, test_exe, '--benchmark','--logbase',
+        cmd = [sys.executable, test_exe, '--benchmark', '--logbase',
                'benchmarklog', '--num-processes=1', '--no-rebuild']
         elem = NinjaBuildElement(self.all_outputs, 'benchmark', 'CUSTOM_COMMAND', ['all', 'PHONY'])
         elem.add_item('COMMAND', cmd)

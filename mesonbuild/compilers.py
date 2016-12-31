@@ -2226,7 +2226,7 @@ class GnuCPPCompiler(GnuCompiler, CPPCompiler):
         # too strict without this and always fails.
         return self.get_no_optimization_args() + ['-fpermissive']
 
-class GnuObjCCompiler(GnuCompiler,ObjCCompiler):
+class GnuObjCCompiler(GnuCompiler, ObjCCompiler):
 
     def __init__(self, exelist, version, is_cross, exe_wrapper=None, defines=None):
         ObjCCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
@@ -2329,7 +2329,7 @@ class ClangCCompiler(ClangCompiler, CCompiler):
     def get_options(self):
         return {'c_std': coredata.UserComboOption('c_std', 'C language standard to use',
                                                   ['none', 'c89', 'c99', 'c11',
-                                                   'gnu89', 'gnu99', 'gnu11',],
+                                                   'gnu89', 'gnu99', 'gnu11'],
                                                   'none')}
 
     def get_option_compile_args(self, options):
