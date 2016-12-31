@@ -84,7 +84,7 @@ def stop_handler(signal, frame):
 signal.signal(signal.SIGINT, stop_handler)
 signal.signal(signal.SIGTERM, stop_handler)
 
-#unity_flags = ['--unity']
+# unity_flags = ['--unity']
 unity_flags = []
 
 backend_flags = None

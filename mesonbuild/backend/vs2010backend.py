@@ -1070,5 +1070,5 @@ if %%errorlevel%% neq 0 goto :VCEnd'''
         tree = ET.ElementTree(root)
         tree.write(ofname, encoding='utf-8', xml_declaration=True)
         # ElementTree can not do prettyprinting so do it manually
-        #doc = xml.dom.minidom.parse(ofname)
-        #open(ofname, 'w').write(doc.toprettyxml())
+        # doc = xml.dom.minidom.parse(ofname)
+        # open(ofname, 'w').write(doc.toprettyxml())

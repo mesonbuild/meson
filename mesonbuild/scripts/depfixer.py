@@ -76,29 +76,29 @@ class SectionHeader(DataSizes):
             is_64 = True
         else:
             is_64 = False
-#Elf64_Word
+# Elf64_Word
         self.sh_name = struct.unpack(self.Word, ifile.read(self.WordSize))[0];
-#Elf64_Word
+# Elf64_Word
         self.sh_type = struct.unpack(self.Word, ifile.read(self.WordSize))[0]
-#Elf64_Xword
+# Elf64_Xword
         if is_64:
             self.sh_flags = struct.unpack(self.XWord, ifile.read(self.XWordSize))[0]
         else:
             self.sh_flags = struct.unpack(self.Word, ifile.read(self.WordSize))[0]
-#Elf64_Addr
+# Elf64_Addr
         self.sh_addr = struct.unpack(self.Addr, ifile.read(self.AddrSize))[0];
-#Elf64_Off
+# Elf64_Off
         self.sh_offset = struct.unpack(self.Off, ifile.read(self.OffSize))[0]
-#Elf64_Xword
+# Elf64_Xword
         if is_64:
             self.sh_size = struct.unpack(self.XWord, ifile.read(self.XWordSize))[0]
         else:
             self.sh_size = struct.unpack(self.Word, ifile.read(self.WordSize))[0]
-#Elf64_Word
+# Elf64_Word
         self.sh_link = struct.unpack(self.Word, ifile.read(self.WordSize))[0];
-#Elf64_Word
+# Elf64_Word
         self.sh_info = struct.unpack(self.Word, ifile.read(self.WordSize))[0];
-#Elf64_Xword
+# Elf64_Xword
         if is_64:
             self.sh_addralign = struct.unpack(self.XWord, ifile.read(self.XWordSize))[0]
         else:
