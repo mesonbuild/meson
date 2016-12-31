@@ -177,7 +177,7 @@ class ArrayNode:
 
 class EmptyNode:
     def __init__(self):
-        self.subdir =''
+        self.subdir = ''
         self.lineno = 0
         self.colno = 0
         self.value = None

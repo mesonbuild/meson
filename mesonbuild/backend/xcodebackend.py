@@ -186,35 +186,35 @@ class XCodeBackend(backends.Backend):
     def generate_pbx_aggregate_target(self):
         self.ofile.write('\n/* Begin PBXAggregateTarget section */\n')
         self.write_line('%s /* ALL_BUILD */ = {' % self.all_id)
-        self.indent_level+=1
+        self.indent_level += 1
         self.write_line('isa = PBXAggregateTarget;')
         self.write_line('buildConfigurationList = %s;' % self.all_buildconf_id)
         self.write_line('buildPhases = (')
         self.write_line(');')
         self.write_line('dependencies = (')
-        self.indent_level+=1
+        self.indent_level += 1
         for t in self.build.targets:
             self.write_line('%s /* PBXTargetDependency */,' % self.pbx_dep_map[t])
-        self.indent_level-=1
+        self.indent_level -= 1
         self.write_line(');')
         self.write_line('name = ALL_BUILD;')
         self.write_line('productName = ALL_BUILD;')
-        self.indent_level-=1
+        self.indent_level -= 1
         self.write_line('};')
         self.write_line('%s /* RUN_TESTS */ = {' % self.test_id)
-        self.indent_level +=1
+        self.indent_level += 1
         self.write_line('isa = PBXAggregateTarget;')
         self.write_line('buildConfigurationList = %s;' % self.test_buildconf_id)
         self.write_line('buildPhases = (')
-        self.indent_level+=1
+        self.indent_level += 1
         self.write_line('%s /* test run command */,' % self.test_command_id)
-        self.indent_level-=1
+        self.indent_level -= 1
         self.write_line(');')
         self.write_line('dependencies = (')
         self.write_line(');')
         self.write_line('name = RUN_TESTS;')
         self.write_line('productName = RUN_TESTS;')
-        self.indent_level-=1
+        self.indent_level -= 1
         self.write_line('};')
         self.ofile.write('/* End PBXAggregateTarget section */\n')
 
@@ -270,7 +270,7 @@ class XCodeBackend(backends.Backend):
             self.write_line('proxyType = 1;')
             self.write_line('remoteGlobalIDString = %s;' % self.native_targets[t])
             self.write_line('remoteInfo = "%s";' % t)
-            self.indent_level-=1
+            self.indent_level -= 1
             self.write_line('};')
         self.ofile.write('/* End PBXContainerItemProxy section */\n')
 
@@ -311,14 +311,14 @@ class XCodeBackend(backends.Backend):
         resources_id = self.gen_id()
         products_id = self.gen_id()
         self.write_line('%s = {' % self.maingroup_id)
-        self.indent_level+=1
+        self.indent_level += 1
         self.write_line('isa = PBXGroup;')
         self.write_line('children = (')
-        self.indent_level+=1
+        self.indent_level += 1
         self.write_line('%s /* Sources */,' % sources_id)
         self.write_line('%s /* Resources */,' % resources_id)
         self.write_line('%s /* Products */,' % products_id)
-        self.indent_level-=1
+        self.indent_level -= 1
         self.write_line(');')
         self.write_line('sourceTree = "<group>";')
         self.indent_level -= 1
@@ -326,48 +326,48 @@ class XCodeBackend(backends.Backend):
 
         # Sources
         self.write_line('%s /* Sources */ = {' % sources_id)
-        self.indent_level+=1
+        self.indent_level += 1
         self.write_line('isa = PBXGroup;')
         self.write_line('children = (')
-        self.indent_level+=1
+        self.indent_level += 1
         for t in self.build.targets:
             self.write_line('%s /* %s */,' % (groupmap[t], t))
-        self.indent_level-=1
+        self.indent_level -= 1
         self.write_line(');')
         self.write_line('name = Sources;')
         self.write_line('sourcetree = "<group>";')
-        self.indent_level-=1
+        self.indent_level -= 1
         self.write_line('};')
 
         self.write_line('%s /* Resources */ = {' % resources_id)
-        self.indent_level+=1
+        self.indent_level += 1
         self.write_line('isa = PBXGroup;')
         self.write_line('children = (')
         self.write_line(');')
         self.write_line('name = Resources;')
         self.write_line('sourceTree = "<group>";')
-        self.indent_level-=1
+        self.indent_level -= 1
         self.write_line('};')
 
         # Targets
         for t in self.build.targets:
             self.write_line('%s /* %s */ = {' % (groupmap[t], t))
-            self.indent_level+=1
+            self.indent_level += 1
             self.write_line('isa = PBXGroup;')
             self.write_line('children = (')
-            self.indent_level+=1
+            self.indent_level += 1
             self.write_line('%s /* Source files */,' % target_src_map[t])
-            self.indent_level-=1
+            self.indent_level -= 1
             self.write_line(');')
             self.write_line('name = "%s";' % t)
             self.write_line('sourceTree = "<group>";')
-            self.indent_level-=1
+            self.indent_level -= 1
             self.write_line('};')
             self.write_line('%s /* Source files */ = {' % target_src_map[t])
-            self.indent_level+=1
+            self.indent_level += 1
             self.write_line('isa = PBXGroup;')
             self.write_line('children = (')
-            self.indent_level+=1
+            self.indent_level += 1
             for s in self.build.targets[t].sources:
                 s = os.path.join(s.subdir, s.fname)
                 if isinstance(s, str):
@@ -375,26 +375,26 @@ class XCodeBackend(backends.Backend):
             for o in self.build.targets[t].objects:
                 o = os.path.join(self.build.targets[t].subdir, o)
                 self.write_line('%s /* %s */,' % (self.filemap[o], o))
-            self.indent_level-=1
+            self.indent_level -= 1
             self.write_line(');')
             self.write_line('name = "Source files";')
             self.write_line('sourceTree = "<group>";')
-            self.indent_level-=1
+            self.indent_level -= 1
             self.write_line('};')
 
         # And finally products
         self.write_line('%s /* Products */ = {' % products_id)
-        self.indent_level+=1
+        self.indent_level += 1
         self.write_line('isa = PBXGroup;')
         self.write_line('children = (')
-        self.indent_level+=1
+        self.indent_level += 1
         for t in self.build.targets:
             self.write_line('%s /* %s */,' % (self.target_filemap[t], t))
-        self.indent_level-=1
+        self.indent_level -= 1
         self.write_line(');')
         self.write_line('name = Products;')
         self.write_line('sourceTree = "<group>";')
-        self.indent_level-=1
+        self.indent_level -= 1
         self.write_line('};')
         self.ofile.write('/* End PBXGroup section */\n')
 
@@ -403,25 +403,25 @@ class XCodeBackend(backends.Backend):
         for tname, idval in self.native_targets.items():
             t = self.build.targets[tname]
             self.write_line('%s /* %s */ = {' % (idval, tname))
-            self.indent_level+=1
+            self.indent_level += 1
             self.write_line('isa = PBXNativeTarget;')
             self.write_line('buildConfigurationList = %s /* Build configuration list for PBXNativeTarget "%s" */;'\
                             % (self.buildconflistmap[tname], tname))
             self.write_line('buildPhases = (')
-            self.indent_level+=1
+            self.indent_level += 1
             self.write_line('%s /* Sources */,' % self.buildphasemap[tname])
-            self.indent_level-=1
+            self.indent_level -= 1
             self.write_line(');')
             self.write_line('buildRules = (')
             self.write_line(');')
             self.write_line('dependencies = (')
-            self.indent_level+=1
+            self.indent_level += 1
             for lt in self.build.targets[tname].link_targets:
                 # NOT DOCUMENTED, may need to make different links
                 # to same target have different targetdependency item.
                 idval = self.pbx_dep_map[lt.get_id()]
                 self.write_line('%s /* PBXTargetDependency */,' % idval)
-            self.indent_level -=1
+            self.indent_level -= 1
             self.write_line(");")
             self.write_line('name = "%s";' % tname)
             self.write_line('productName = "%s";' % tname)
@@ -435,7 +435,7 @@ class XCodeBackend(backends.Backend):
             else:
                 raise MesonException('Unknown target type for %s' % tname)
             self.write_line('productType = "%s";' % typestr)
-            self.indent_level-=1
+            self.indent_level -= 1
             self.write_line('};')
         self.ofile.write('/* End PBXNativeTarget section */\n')
 
@@ -496,7 +496,7 @@ class XCodeBackend(backends.Backend):
         cmdstr = ' '.join(["'%s'" % i for i in cmd])
         self.write_line('shellScript = "%s";' % cmdstr)
         self.write_line('showEnvVarsInLog = 0;')
-        self.indent_level-=1
+        self.indent_level -= 1
         self.write_line('};')
         self.ofile.write('/* End PBXShellScriptBuildPhase section */\n')
 
@@ -504,19 +504,19 @@ class XCodeBackend(backends.Backend):
         self.ofile.write('\n/* Begin PBXSourcesBuildPhase section */\n')
         for name, phase_id in self.source_phase.items():
             self.write_line('%s /* Sources */ = {' % self.buildphasemap[name])
-            self.indent_level+=1
+            self.indent_level += 1
             self.write_line('isa = PBXSourcesBuildPhase;')
             self.write_line('buildActionMask = 2147483647;')
             self.write_line('files = (')
-            self.indent_level+=1
+            self.indent_level += 1
             for s in self.build.targets[name].sources:
                 s = os.path.join(s.subdir, s.fname)
                 if not self.environment.is_header(s):
                     self.write_line('%s /* %s */,' % (self.buildmap[s], os.path.join(self.environment.get_source_dir(), s)))
-            self.indent_level-=1
+            self.indent_level -= 1
             self.write_line(');')
             self.write_line('runOnlyForDeploymentPostprocessing = 0;')
-            self.indent_level-=1
+            self.indent_level -= 1
             self.write_line('};')
         self.ofile.write('/* End PBXSourcesBuildPhase section */\n')
 
@@ -529,7 +529,7 @@ class XCodeBackend(backends.Backend):
             self.write_line('isa = PBXTargetDependency;')
             self.write_line('target = %s /* %s */;' % (self.native_targets[t], t))
             self.write_line('targetProxy = %s /* PBXContainerItemProxy */;' % self.containerproxy_map[t])
-            self.indent_level-=1
+            self.indent_level -= 1
             self.write_line('};')
         self.ofile.write('/* End PBXTargetDependency section */\n')
 
@@ -538,24 +538,24 @@ class XCodeBackend(backends.Backend):
         # First the setup for the toplevel project.
         for buildtype in self.buildtypes:
             self.write_line('%s /* %s */ = {' % (self.project_configurations[buildtype], buildtype))
-            self.indent_level+=1
+            self.indent_level += 1
             self.write_line('isa = XCBuildConfiguration;')
             self.write_line('buildSettings = {')
-            self.indent_level+=1
+            self.indent_level += 1
             self.write_line('ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";')
             self.write_line('ONLY_ACTIVE_ARCH = YES;')
             self.write_line('SDKROOT = "macosx";')
             self.write_line('SYMROOT = "%s/build";' % self.environment.get_build_dir())
-            self.indent_level-=1
+            self.indent_level -= 1
             self.write_line('};')
             self.write_line('name = "%s";' % buildtype)
-            self.indent_level-=1
+            self.indent_level -= 1
             self.write_line('};')
 
         # Then the all target.
         for buildtype in self.buildtypes:
             self.write_line('%s /* %s */ = {' % (self.buildall_configurations[buildtype], buildtype))
-            self.indent_level+=1
+            self.indent_level += 1
             self.write_line('isa = XCBuildConfiguration;')
             self.write_line('buildSettings = {')
             self.indent_level += 1
@@ -574,16 +574,16 @@ class XCodeBackend(backends.Backend):
             self.write_line('SYMROOT = "%s";' % self.environment.get_build_dir())
             self.write_line('USE_HEADERMAP = NO;')
             self.write_line('WARNING_CFLAGS = ("-Wmost", "-Wno-four-char-constants", "-Wno-unknown-pragmas", );')
-            self.indent_level-=1
+            self.indent_level -= 1
             self.write_line('};')
             self.write_line('name = "%s";' % buildtype)
-            self.indent_level-=1
+            self.indent_level -= 1
             self.write_line('};')
 
         # Then the test target.
         for buildtype in self.buildtypes:
             self.write_line('%s /* %s */ = {' % (self.test_configurations[buildtype], buildtype))
-            self.indent_level+=1
+            self.indent_level += 1
             self.write_line('isa = XCBuildConfiguration;')
             self.write_line('buildSettings = {')
             self.indent_level += 1
@@ -602,10 +602,10 @@ class XCodeBackend(backends.Backend):
             self.write_line('SYMROOT = "%s";' % self.environment.get_build_dir())
             self.write_line('USE_HEADERMAP = NO;')
             self.write_line('WARNING_CFLAGS = ("-Wmost", "-Wno-four-char-constants", "-Wno-unknown-pragmas", );')
-            self.indent_level-=1
+            self.indent_level -= 1
             self.write_line('};')
             self.write_line('name = "%s";' % buildtype)
-            self.indent_level-=1
+            self.indent_level -= 1
             self.write_line('};')
 
         # Now finally targets.
@@ -654,7 +654,7 @@ class XCodeBackend(backends.Backend):
                         langargs[langnamemap[lang]] = args
                 symroot = os.path.join(self.environment.get_build_dir(), target.subdir)
                 self.write_line('%s /* %s */ = {' % (valid, buildtype))
-                self.indent_level+=1
+                self.indent_level += 1
                 self.write_line('isa = XCBuildConfiguration;')
                 self.write_line('buildSettings = {')
                 self.indent_level += 1
@@ -689,57 +689,57 @@ class XCodeBackend(backends.Backend):
                 self.write_line('SYMROOT = "%s";' % symroot)
                 self.write_line('USE_HEADERMAP = NO;')
                 self.write_line('WARNING_CFLAGS = ("-Wmost", "-Wno-four-char-constants", "-Wno-unknown-pragmas", );')
-                self.indent_level-=1
+                self.indent_level -= 1
                 self.write_line('};')
                 self.write_line('name = "%s";' % buildtype)
-                self.indent_level-=1
+                self.indent_level -= 1
                 self.write_line('};')
         self.ofile.write('/* End XCBuildConfiguration section */\n')
 
     def generate_xc_configurationList(self):
         self.ofile.write('\n/* Begin XCConfigurationList section */\n')
         self.write_line('%s /* Build configuration list for PBXProject "%s" */ = {' % (self.project_conflist, self.build.project_name))
-        self.indent_level+=1
+        self.indent_level += 1
         self.write_line('isa = XCConfigurationList;')
         self.write_line('buildConfigurations = (')
-        self.indent_level+=1
+        self.indent_level += 1
         for buildtype in self.buildtypes:
             self.write_line('%s /* %s */,' % (self.project_configurations[buildtype], buildtype))
-        self.indent_level-=1
+        self.indent_level -= 1
         self.write_line(');')
         self.write_line('defaultConfigurationIsVisible = 0;')
         self.write_line('defaultConfigurationName = debug;')
-        self.indent_level-=1
+        self.indent_level -= 1
         self.write_line('};')
 
         # Now the all target
         self.write_line('%s /* Build configuration list for PBXAggregateTarget "ALL_BUILD" */ = {' % self.all_buildconf_id)
-        self.indent_level+=1
+        self.indent_level += 1
         self.write_line('isa = XCConfigurationList;')
         self.write_line('buildConfigurations = (')
-        self.indent_level+=1
+        self.indent_level += 1
         for buildtype in self.buildtypes:
             self.write_line('%s /* %s */,' % (self.buildall_configurations[buildtype], buildtype))
-        self.indent_level-=1
+        self.indent_level -= 1
         self.write_line(');')
         self.write_line('defaultConfigurationIsVisible = 0;')
         self.write_line('defaultConfigurationName = debug;')
-        self.indent_level-=1
+        self.indent_level -= 1
         self.write_line('};')
 
         # Test target
         self.write_line('%s /* Build configuration list for PBXAggregateTarget "ALL_BUILD" */ = {' % self.test_buildconf_id)
-        self.indent_level+=1
+        self.indent_level += 1
         self.write_line('isa = XCConfigurationList;')
         self.write_line('buildConfigurations = (')
-        self.indent_level+=1
+        self.indent_level += 1
         for buildtype in self.buildtypes:
             self.write_line('%s /* %s */,' % (self.test_configurations[buildtype], buildtype))
-        self.indent_level-=1
+        self.indent_level -= 1
         self.write_line(');')
         self.write_line('defaultConfigurationIsVisible = 0;')
         self.write_line('defaultConfigurationName = debug;')
-        self.indent_level-=1
+        self.indent_level -= 1
         self.write_line('};')
 
         for target_name in self.build.targets:

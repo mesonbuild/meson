@@ -260,9 +260,9 @@ can not be used with the current version of glib-compiled-resources, due to
             link_command = ['-l%s' % lib.name]
         if isinstance(lib, build.SharedLibrary):
             libdir = os.path.join(state.environment.get_build_dir(), lib.subdir)
-            link_command += ['-L%s' %libdir]
+            link_command += ['-L%s' % libdir]
             if include_rpath:
-                link_command += ['-Wl,-rpath %s' %libdir]
+                link_command += ['-Wl,-rpath %s' % libdir]
             if depends:
                 depends.append(lib)
         return link_command

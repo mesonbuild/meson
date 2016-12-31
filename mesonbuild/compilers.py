@@ -1836,7 +1836,7 @@ class DmdDCompiler(DCompiler):
 
 class VisualStudioCCompiler(CCompiler):
     std_warn_args = ['/W3']
-    std_opt_args= ['/O2']
+    std_opt_args = ['/O2']
 
     def __init__(self, exelist, version, is_cross, exe_wrap):
         CCompiler.__init__(self, exelist, version, is_cross, exe_wrap)

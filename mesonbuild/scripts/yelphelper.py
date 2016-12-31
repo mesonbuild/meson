@@ -65,7 +65,7 @@ def install_help(srcdir, blddir, sources, media, langs, install_dir, destdir, pr
         for source in sources:
             infile = os.path.join(srcdir if lang == 'C' else blddir, lang, source)
             outfile = os.path.join(indir, source)
-            mlog.log('Installing %s to %s.' %(infile, outfile))
+            mlog.log('Installing %s to %s.' % (infile, outfile))
             shutil.copyfile(infile, outfile)
             shutil.copystat(infile, outfile)
         for m in media:
@@ -73,15 +73,15 @@ def install_help(srcdir, blddir, sources, media, langs, install_dir, destdir, pr
             outfile = os.path.join(indir, m)
             if not os.path.exists(infile):
                 if lang == 'C':
-                    mlog.warning('Media file "%s" did not exist in C directory' %m)
+                    mlog.warning('Media file "%s" did not exist in C directory' % m)
                 elif symlinks:
                     srcfile = os.path.join(c_install_dir, m)
-                    mlog.log('Symlinking %s to %s.' %(outfile, srcfile))
+                    mlog.log('Symlinking %s to %s.' % (outfile, srcfile))
                     if '/' in m or '\\' in m:
                         os.makedirs(os.path.dirname(outfile), exist_ok=True)
                     os.symlink(srcfile, outfile)
                 continue
-            mlog.log('Installing %s to %s.' %(infile, outfile))
+            mlog.log('Installing %s to %s.' % (infile, outfile))
             if '/' in m or '\\' in m:
                 os.makedirs(os.path.dirname(outfile), exist_ok=True)
             shutil.copyfile(infile, outfile)

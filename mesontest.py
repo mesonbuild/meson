@@ -101,7 +101,7 @@ class TestRun():
         if self.cmd is None:
             res += 'NONE\n'
         else:
-            res += "\n%s %s\n" %(' '.join(
+            res += "\n%s %s\n" % (' '.join(
                 ["%s='%s'" % (k, v) for k, v in self.env.items()]),
                 ' ' .join(self.cmd))
         if self.stdo:
@@ -327,7 +327,7 @@ class TestHarness:
         if self.options.wrapper is None:
             wrap = []
             logfilename = logfile_base + '.txt'
-            jsonlogfilename = logfile_base+ '.json'
+            jsonlogfilename = logfile_base + '.json'
         else:
             wrap = self.options.wrapper.split()
             namebase = wrap[0]

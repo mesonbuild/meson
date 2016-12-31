@@ -680,7 +680,7 @@ class Environment():
             if evar in os.environ:
                 linker = os.environ[evar].strip()
             elif isinstance(compiler, VisualStudioCCompiler):
-                linker= self.vs_static_linker
+                linker = self.vs_static_linker
             else:
                 linker = self.default_static_linker
         basename = os.path.basename(linker).lower()
