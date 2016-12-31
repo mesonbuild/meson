@@ -274,10 +274,10 @@ class TestHarness:
         return result
 
     def print_stats(self, numlen, tests, name, result, i, logfile, jsonlogfile):
-        startpad = ' '*(numlen - len('%d' % (i+1)))
-        num = '%s%d/%d' % (startpad, i+1, len(tests))
-        padding1 = ' '*(38-len(name))
-        padding2 = ' '*(8-len(result.res))
+        startpad = ' ' * (numlen - len('%d' % (i + 1)))
+        num = '%s%d/%d' % (startpad, i + 1, len(tests))
+        padding1 = ' ' * (38 - len(name))
+        padding2 = ' ' * (8 - len(result.res))
         result_str = '%s %s  %s%s%s%5.2f s' % \
             (num, name, padding1, result.res, padding2, result.duration)
         print(result_str)
@@ -425,7 +425,7 @@ class TestHarness:
         for t in tests:
             if t.name in self.options.args:
                 for i in range(self.options.repeat):
-                    print('Running: %s %d/%d' % (t.name, i+1, self.options.repeat))
+                    print('Running: %s %d/%d' % (t.name, i + 1, self.options.repeat))
                     if self.options.gdb:
                         wrap = ['gdb', '--quiet']
                         if len(t.cmd_args) > 0:

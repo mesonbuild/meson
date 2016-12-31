@@ -51,7 +51,7 @@ def do_copydir(src_prefix, src_dir, dst_dir):
     for root, dirs, files in os.walk(src_prefix):
         for d in dirs:
             abs_src = os.path.join(src_dir, root, d)
-            filepart = abs_src[len(src_dir)+1:]
+            filepart = abs_src[len(src_dir) + 1:]
             abs_dst = os.path.join(dst_dir, filepart)
             if os.path.isdir(abs_dst):
                 continue
@@ -62,7 +62,7 @@ def do_copydir(src_prefix, src_dir, dst_dir):
             shutil.copystat(abs_src, abs_dst)
         for f in files:
             abs_src = os.path.join(src_dir, root, f)
-            filepart = abs_src[len(src_dir)+1:]
+            filepart = abs_src[len(src_dir) + 1:]
             abs_dst = os.path.join(dst_dir, filepart)
             if os.path.isdir(abs_dst):
                 print('Tried to copy file %s but a directory of that name already exists.' % abs_dst)

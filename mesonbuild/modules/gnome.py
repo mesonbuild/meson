@@ -362,7 +362,7 @@ can not be used with the current version of glib-compiled-resources, due to
 
         scan_command = giscanner.get_command() + ['@INPUT@']
         scan_command += pkgargs
-        scan_command += ['--no-libtool', '--namespace='+ns, '--nsversion=' + nsversion, '--warn-all',
+        scan_command += ['--no-libtool', '--namespace=' + ns, '--nsversion=' + nsversion, '--warn-all',
                          '--output', '@OUTPUT@']
 
         extra_args = mesonlib.stringlistify(kwargs.pop('extra_args', []))

@@ -796,7 +796,7 @@ int dummy;
             class_list.append(plain_class_path)
         class_dep_list = [os.path.join(self.get_target_private_dir(target), i) for i in class_list]
         jar_rule = 'java_LINKER'
-        commands = [c+m+e+f]
+        commands = [c + m + e + f]
         if e != '':
             commands.append(main_class)
         commands.append(self.get_target_filename(target))

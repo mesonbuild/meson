@@ -29,25 +29,25 @@ class DataSizes():
             p = '<'
         else:
             p = '>'
-        self.Half = p+'h'
+        self.Half = p + 'h'
         self.HalfSize = 2
-        self.Word = p+'I'
+        self.Word = p + 'I'
         self.WordSize = 4
-        self.Sword = p+'i'
+        self.Sword = p + 'i'
         self.SwordSize = 4
         if ptrsize == 64:
-            self.Addr = p+'Q'
+            self.Addr = p + 'Q'
             self.AddrSize = 8
-            self.Off = p+'Q'
+            self.Off = p + 'Q'
             self.OffSize = 8
-            self.XWord = p+'Q'
+            self.XWord = p + 'Q'
             self.XWordSize = 8
-            self.Sxword = p+'q'
+            self.Sxword = p + 'q'
             self.SxwordSize = 8
         else:
-            self.Addr = p+'I'
+            self.Addr = p + 'I'
             self.AddrSize = 4
-            self.Off = p+'I'
+            self.Off = p + 'I'
             self.OffSize = 4
 
 class DynamicEntry(DataSizes):
@@ -273,7 +273,7 @@ class Elf(DataSizes):
             name = self.read_str()
             if name.startswith(prefix):
                 basename = name.split(b'/')[-1]
-                padding = b'\0'*(len(name) - len(basename))
+                padding = b'\0' * (len(name) - len(basename))
                 newname = basename + padding
                 assert(len(newname) == len(name))
                 self.bf.seek(offset)
@@ -299,7 +299,7 @@ class Elf(DataSizes):
             sys.exit("New rpath must not be longer than the old one.")
         self.bf.seek(rp_off)
         self.bf.write(new_rpath)
-        self.bf.write(b'\0'*(len(old_rpath) - len(new_rpath) + 1))
+        self.bf.write(b'\0' * (len(old_rpath) - len(new_rpath) + 1))
         if len(new_rpath) == 0:
             self.remove_rpath_entry(entrynum)
 
@@ -311,7 +311,7 @@ class Elf(DataSizes):
             if entry.d_tag == entrynum:
                 rpentry = self.dynamic[i]
                 rpentry.d_tag = 0
-                self.dynamic = self.dynamic[:i] + self.dynamic[i+1:] + [rpentry]
+                self.dynamic = self.dynamic[:i] + self.dynamic[i + 1:] + [rpentry]
                 break;
         # DT_MIPS_RLD_MAP_REL is relative to the offset of the tag. Adjust it consequently.
         for entry in self.dynamic[i:]:

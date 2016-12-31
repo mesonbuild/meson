@@ -67,8 +67,8 @@ class Conf:
 
         if longest_possible_value > 0:
             titles[3] = 'Possible Values'
-        print('  %s%s %s%s %s%s %s' % (titles[0], ' '*(longest_name - len(titles[0])), titles[1], ' '*(longest_descr - len(titles[1])), titles[2], ' '*(longest_value - len(titles[2])), titles[3]))
-        print('  %s%s %s%s %s%s %s' % ('-'*len(titles[0]), ' '*(longest_name - len(titles[0])), '-'*len(titles[1]), ' '*(longest_descr - len(titles[1])), '-'*len(titles[2]), ' '*(longest_value - len(titles[2])), '-'*len(titles[3])))
+        print('  %s%s %s%s %s%s %s' % (titles[0], ' ' * (longest_name - len(titles[0])), titles[1], ' ' * (longest_descr - len(titles[1])), titles[2], ' ' * (longest_value - len(titles[2])), titles[3]))
+        print('  %s%s %s%s %s%s %s' % ('-' * len(titles[0]), ' ' * (longest_name - len(titles[0])), '-' * len(titles[1]), ' ' * (longest_descr - len(titles[1])), '-' * len(titles[2]), ' ' * (longest_value - len(titles[2])), '-' * len(titles[3])))
         for i in arr:
             name = i[0]
             descr = i[1]
@@ -80,9 +80,9 @@ class Conf:
                     possible_values = '[%s]' % ', '.join(map(str, i[3]))
             elif i[3]:
                 possible_values = i[3] if isinstance(i[3], str) else str(i[3]).lower()
-            namepad = ' '*(longest_name - len(name))
-            descrpad = ' '*(longest_descr - len(descr))
-            valuepad = ' '*(longest_value - len(str(value)))
+            namepad = ' ' * (longest_name - len(name))
+            descrpad = ' ' * (longest_descr - len(descr))
+            valuepad = ' ' * (longest_value - len(str(value)))
             f = '  %s%s %s%s %s%s %s' % (name, namepad, descr, descrpad, value, valuepad, possible_values)
             print(f)
 

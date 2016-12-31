@@ -59,7 +59,7 @@ class AutoDeletedDir():
                 shutil.rmtree(self.dir)
                 return
             except OSError:
-                if i == retries-1:
+                if i == retries - 1:
                     raise
                 time.sleep(0.1 * (2**i))
 
@@ -472,7 +472,7 @@ def check_format():
 
 def pbcompile(compiler, source, objectfile):
     if compiler == 'cl':
-        cmd = [compiler, '/nologo', '/Fo'+objectfile, '/c', source]
+        cmd = [compiler, '/nologo', '/Fo' + objectfile, '/c', source]
     else:
         cmd = [compiler, '-c', source, '-o', objectfile]
     subprocess.check_call(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)

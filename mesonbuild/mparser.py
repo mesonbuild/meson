@@ -87,7 +87,7 @@ class Lexer:
                 mo = reg.match(code, loc)
                 if mo:
                     curline = lineno
-                    col = mo.start()-line_start
+                    col = mo.start() - line_start
                     matched = True
                     span_start = loc
                     loc = mo.end()
