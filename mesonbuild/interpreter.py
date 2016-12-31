@@ -499,7 +499,7 @@ class BuildTargetHolder(InterpreterObject):
 
     def private_dir_include_method(self, args, kwargs):
         return IncludeDirsHolder(build.IncludeDirs('', [], False,
-                    [self.interpreter.backend.get_target_private_dir(self.held_object)]))
+                                                   [self.interpreter.backend.get_target_private_dir(self.held_object)]))
 
     def full_path_method(self, args, kwargs):
         return self.interpreter.backend.get_target_filename_abs(self.held_object)
@@ -1774,8 +1774,8 @@ requirements use the version keyword argument instead.''')
         # exception; let the caller handle things.
         except:
             mlog.log('Also couldn\'t find a fallback subproject in',
-                    mlog.bold(os.path.join(self.subproject_dir, dirname)),
-                    'for the dependency', mlog.bold(name))
+                     mlog.bold(os.path.join(self.subproject_dir, dirname)),
+                     'for the dependency', mlog.bold(name))
             return None
         try:
             dep = self.subprojects[dirname].get_variable_method([varname], {})
@@ -1792,8 +1792,8 @@ requirements use the version keyword argument instead.''')
             found = dep.version_method([], {})
             if found == 'undefined' or not mesonlib.version_compare(found, wanted):
                 mlog.log('Subproject', mlog.bold(dirname), 'dependency',
-                        mlog.bold(varname), 'version is', mlog.bold(found),
-                        'but', mlog.bold(wanted), 'is required.')
+                         mlog.bold(varname), 'version is', mlog.bold(found),
+                         'but', mlog.bold(wanted), 'is required.')
                 return None
         mlog.log('Found a', mlog.green('fallback'), 'subproject',
                  mlog.bold(os.path.join(self.subproject_dir, dirname)), 'for',

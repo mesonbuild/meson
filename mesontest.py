@@ -349,7 +349,7 @@ class TestHarness:
                 jsonlogfile = open(jsonlogfilename, 'w')
                 logfile = open(logfilename, 'w')
                 logfile.write('Log of Meson test suite run on %s.\n\n' %
-                            datetime.datetime.now().isoformat())
+                              datetime.datetime.now().isoformat())
 
             for i in range(self.options.repeat):
                 for i, test in enumerate(filtered_tests):
@@ -367,7 +367,7 @@ class TestHarness:
                         res = self.run_single_test(wrap, test)
                         if not self.options.verbose:
                             self.print_stats(numlen, filtered_tests, visible_name, res, i,
-                                            logfile, jsonlogfile)
+                                             logfile, jsonlogfile)
                     else:
                         f = executor.submit(self.run_single_test, wrap, test)
                         if not self.options.verbose:

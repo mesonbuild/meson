@@ -292,7 +292,7 @@ can not be used with the current version of glib-compiled-resources, due to
                 for source in dep.sources:
                     if hasattr(source, 'held_object') and isinstance(source.held_object, GirTarget):
                         gi_includes.update([os.path.join(state.environment.get_build_dir(),
-                                        source.held_object.get_subdir())])
+                                            source.held_object.get_subdir())])
             # This should be any dependency other than an internal one.
             elif isinstance(dep, Dependency):
                 cflags.update(dep.get_compile_args())
@@ -511,7 +511,7 @@ can not be used with the current version of glib-compiled-resources, due to
         if kwargs.get('install'):
             scankwargs['install'] = kwargs['install']
             scankwargs['install_dir'] = kwargs.get('install_dir_gir',
-                os.path.join(state.environment.get_datadir(), 'gir-1.0'))
+                                                   os.path.join(state.environment.get_datadir(), 'gir-1.0'))
         scan_target = GirTarget(girfile, state.subdir, scankwargs)
 
         typelib_output = '%s-%s.typelib' % (ns, nsversion)
@@ -528,7 +528,7 @@ can not be used with the current version of glib-compiled-resources, due to
         if kwargs.get('install'):
             typelib_kwargs['install'] = kwargs['install']
             typelib_kwargs['install_dir'] = kwargs.get('install_dir_typelib',
-                os.path.join(state.environment.get_libdir(), 'girepository-1.0'))
+                                                       os.path.join(state.environment.get_libdir(), 'girepository-1.0'))
         typelib_target = TypelibTarget(typelib_output, state.subdir, typelib_kwargs)
         return [scan_target, typelib_target]
 
@@ -575,13 +575,12 @@ can not be used with the current version of glib-compiled-resources, due to
 
         script = [sys.executable, state.environment.get_build_command()]
         args = ['--internal',
-            'yelphelper',
-            'install',
-            '--subdir=' + state.subdir,
-            '--id=' + project_id,
-            '--installdir=' + os.path.join(state.environment.get_datadir(), 'help'),
-            '--sources=' + source_str,
-        ]
+                'yelphelper',
+                'install',
+                '--subdir=' + state.subdir,
+                '--id=' + project_id,
+                '--installdir=' + os.path.join(state.environment.get_datadir(), 'help'),
+                '--sources=' + source_str]
         if symlinks:
             args.append('--symlinks=true')
         if media:
@@ -1035,8 +1034,8 @@ can not be used with the current version of glib-compiled-resources, due to
             'depends': vapi_depends,
         }
         install_dir = kwargs.get('install_dir',
-                os.path.join(state.environment.coredata.get_builtin_option('datadir'),
-                             'vala', 'vapi'))
+                                 os.path.join(state.environment.coredata.get_builtin_option('datadir'),
+                                              'vala', 'vapi'))
         if kwargs.get('install'):
             custom_kwargs['install'] = kwargs['install']
             custom_kwargs['install_dir'] = install_dir

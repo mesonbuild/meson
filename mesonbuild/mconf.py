@@ -130,7 +130,7 @@ class Conf:
         carr = []
         for key in [ 'buildtype', 'warning_level', 'werror', 'strip', 'unity', 'default_library' ]:
             carr.append([key, coredata.get_builtin_option_description(key),
-                self.coredata.get_builtin_option(key), coredata.get_builtin_option_choices(key)])
+                         self.coredata.get_builtin_option(key), coredata.get_builtin_option_choices(key)])
         self.print_aligned(carr)
         print('')
         print('Base options:')
@@ -180,7 +180,7 @@ class Conf:
                     'sharedstatedir',
                 ]:
             parr.append([key, coredata.get_builtin_option_description(key),
-                self.coredata.get_builtin_option(key), coredata.get_builtin_option_choices(key)])
+                         self.coredata.get_builtin_option(key), coredata.get_builtin_option_choices(key)])
         self.print_aligned(parr)
         print('')
         print('Project options:')
@@ -206,7 +206,7 @@ class Conf:
         tarr = []
         for key in [ 'stdsplit', 'errorlogs' ]:
             tarr.append([key, coredata.get_builtin_option_description(key),
-                self.coredata.get_builtin_option(key), coredata.get_builtin_option_choices(key)])
+                         self.coredata.get_builtin_option(key), coredata.get_builtin_option_choices(key)])
         self.print_aligned(tarr)
 
 def run(args):

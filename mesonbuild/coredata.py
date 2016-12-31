@@ -159,7 +159,7 @@ def load(filename):
         raise MesonException(load_fail_msg)
     if obj.version != version:
         raise MesonException('Build directory has been generated with Meson version %s, which is incompatible with current version %s.\nPlease delete this build directory AND create a new one.' %
-                           (obj.version, version))
+                             (obj.version, version))
     return obj
 
 def save(obj, filename):

@@ -484,11 +484,11 @@ int dummy;
         # a serialized executable wrapper for that and check if the
         # CustomTarget command needs extra paths first.
         if target.capture or (mesonlib.is_windows() and
-                self.determine_windows_extra_paths(target.command[0])):
+                              self.determine_windows_extra_paths(target.command[0])):
             exe_data = self.serialise_executable(target.command[0], cmd[1:],
-                # All targets are built from the build dir
-                self.environment.get_build_dir(),
-                capture=ofilenames[0] if target.capture else None)
+                                                 # All targets are built from the build dir
+                                                 self.environment.get_build_dir(),
+                                                 capture=ofilenames[0] if target.capture else None)
             cmd = [sys.executable, self.environment.get_build_command(),
                    '--internal', 'exe', exe_data]
             cmd_type = 'meson_exe.py custom'
@@ -1200,7 +1200,7 @@ int dummy;
         elem.write(outfile)
         if isinstance(target, build.StaticLibrary):
             elem = self.generate_link(target, outfile, self.get_target_filename(target),
-                               rel_objects, self.build.static_linker)
+                                      rel_objects, self.build.static_linker)
             elem.write(outfile)
         elif isinstance(target, build.Executable):
             elem = NinjaBuildElement(self.all_outputs, self.get_target_filename(target), 'swift_COMPILER', [])

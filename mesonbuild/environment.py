@@ -793,9 +793,12 @@ def get_args_from_envvars(compiler):
         return ([], [])
 
     # Compile flags
-    cflags_mapping = {'c': 'CFLAGS', 'cpp': 'CXXFLAGS',
-        'objc': 'OBJCFLAGS', 'objcpp': 'OBJCXXFLAGS',
-        'fortran': 'FFLAGS', 'd': 'DFLAGS'}
+    cflags_mapping = {'c': 'CFLAGS',
+                      'cpp': 'CXXFLAGS',
+                      'objc': 'OBJCFLAGS',
+                      'objcpp': 'OBJCXXFLAGS',
+                      'fortran': 'FFLAGS',
+                      'd': 'DFLAGS'}
     compile_flags = os.environ.get(cflags_mapping[lang], '')
     log_var(cflags_mapping[lang], compile_flags)
     compile_flags = compile_flags.split()
