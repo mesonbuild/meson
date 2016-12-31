@@ -88,93 +88,93 @@ def is_library(fname):
     suffix = fname.split('.')[-1]
     return suffix in lib_suffixes
 
-gnulike_buildtype_args = {'plain' : [],
+gnulike_buildtype_args = {'plain': [],
                           # -O0 is passed for improved debugging information with gcc
                           # See https://github.com/mesonbuild/meson/pull/509
-                          'debug' : ['-O0', '-g'],
-                          'debugoptimized' : ['-O2', '-g'],
-                          'release' : ['-O3'],
-                          'minsize' : ['-Os', '-g']}
+                          'debug': ['-O0', '-g'],
+                          'debugoptimized': ['-O2', '-g'],
+                          'release': ['-O3'],
+                          'minsize': ['-Os', '-g']}
 
-msvc_buildtype_args = {'plain' : [],
-                       'debug' : ["/MDd", "/ZI", "/Ob0", "/Od", "/RTC1"],
-                       'debugoptimized' : ["/MD", "/Zi", "/O2", "/Ob1"],
-                       'release' : ["/MD", "/O2", "/Ob2"],
-                       'minsize' : ["/MD", "/Zi", "/Os", "/Ob1"],
+msvc_buildtype_args = {'plain': [],
+                       'debug': ["/MDd", "/ZI", "/Ob0", "/Od", "/RTC1"],
+                       'debugoptimized': ["/MD", "/Zi", "/O2", "/Ob1"],
+                       'release': ["/MD", "/O2", "/Ob2"],
+                       'minsize': ["/MD", "/Zi", "/Os", "/Ob1"],
                        }
 
 gnulike_buildtype_linker_args = {}
 
 
 if mesonlib.is_osx():
-    gnulike_buildtype_linker_args.update({'plain' : [],
-                                          'debug' : [],
-                                          'debugoptimized' : [],
-                                          'release' : [],
-                                          'minsize' : [],
+    gnulike_buildtype_linker_args.update({'plain': [],
+                                          'debug': [],
+                                          'debugoptimized': [],
+                                          'release': [],
+                                          'minsize': [],
                                          })
 else:
-    gnulike_buildtype_linker_args.update({'plain' : [],
-                                          'debug' : [],
-                                          'debugoptimized' : [],
-                                          'release' : ['-Wl,-O1'],
-                                          'minsize' : [],
+    gnulike_buildtype_linker_args.update({'plain': [],
+                                          'debug': [],
+                                          'debugoptimized': [],
+                                          'release': ['-Wl,-O1'],
+                                          'minsize': [],
                                          })
 
-msvc_buildtype_linker_args = {'plain' : [],
-                              'debug' : [],
-                              'debugoptimized' : [],
-                              'release' : [],
-                              'minsize' : ['/INCREMENTAL:NO'],
+msvc_buildtype_linker_args = {'plain': [],
+                              'debug': [],
+                              'debugoptimized': [],
+                              'release': [],
+                              'minsize': ['/INCREMENTAL:NO'],
                               }
 
-java_buildtype_args = {'plain' : [],
-                       'debug' : ['-g'],
-                       'debugoptimized' : ['-g'],
-                       'release' : [],
-                       'minsize' : [],
+java_buildtype_args = {'plain': [],
+                       'debug': ['-g'],
+                       'debugoptimized': ['-g'],
+                       'release': [],
+                       'minsize': [],
                        }
 
-rust_buildtype_args = {'plain' : [],
-                       'debug' : ['-g'],
-                       'debugoptimized' : ['-g', '--opt-level', '2'],
-                       'release' : ['--opt-level', '3'],
-                       'minsize' : [],
+rust_buildtype_args = {'plain': [],
+                       'debug': ['-g'],
+                       'debugoptimized': ['-g', '--opt-level', '2'],
+                       'release': ['--opt-level', '3'],
+                       'minsize': [],
                        }
 
-d_gdc_buildtype_args = {'plain' : [],
-                       'debug' : ['-g', '-O0'],
-                       'debugoptimized' : ['-g', '-O'],
-                       'release' : ['-O3', '-frelease'],
-                       'minsize' : [],
-                       }
-
-d_ldc_buildtype_args = {'plain' : [],
-                       'debug' : ['-g', '-O0'],
-                       'debugoptimized' : ['-g', '-O'],
-                       'release' : ['-O3', '-release'],
-                       'minsize' : [],
-                       }
-
-d_dmd_buildtype_args = {'plain' : [],
-                       'debug' : ['-g'],
-                       'debugoptimized' : ['-g', '-O'],
-                       'release' : ['-O', '-release'],
-                       'minsize' : [],
-                       }
-
-mono_buildtype_args = {'plain' : [],
-                       'debug' : ['-debug'],
-                       'debugoptimized': ['-debug', '-optimize+'],
-                       'release' : ['-optimize+'],
-                       'minsize' : [],
-                       }
-
-swift_buildtype_args = {'plain' : [],
-                        'debug' : ['-g'],
+d_gdc_buildtype_args = {'plain': [],
+                        'debug': ['-g', '-O0'],
                         'debugoptimized': ['-g', '-O'],
-                        'release' : ['-O'],
-                        'minsize' : [],
+                        'release': ['-O3', '-frelease'],
+                        'minsize': [],
+                       }
+
+d_ldc_buildtype_args = {'plain': [],
+                        'debug': ['-g', '-O0'],
+                        'debugoptimized': ['-g', '-O'],
+                        'release': ['-O3', '-release'],
+                        'minsize': [],
+                       }
+
+d_dmd_buildtype_args = {'plain': [],
+                        'debug': ['-g'],
+                        'debugoptimized': ['-g', '-O'],
+                        'release': ['-O', '-release'],
+                        'minsize': [],
+                       }
+
+mono_buildtype_args = {'plain': [],
+                       'debug': ['-debug'],
+                       'debugoptimized': ['-debug', '-optimize+'],
+                       'release': ['-optimize+'],
+                       'minsize': [],
+                       }
+
+swift_buildtype_args = {'plain': [],
+                        'debug': ['-g'],
+                        'debugoptimized': ['-g', '-O'],
+                        'release': ['-O'],
+                        'minsize': [],
                         }
 
 gnu_winlibs = ['-lkernel32', '-luser32', '-lgdi32', '-lwinspool', '-lshell32',
@@ -184,9 +184,9 @@ msvc_winlibs = ['kernel32.lib', 'user32.lib', 'gdi32.lib',
                 'winspool.lib', 'shell32.lib', 'ole32.lib', 'oleaut32.lib',
                 'uuid.lib', 'comdlg32.lib', 'advapi32.lib']
 
-gnu_color_args = {'auto' : ['-fdiagnostics-color=auto'],
+gnu_color_args = {'auto': ['-fdiagnostics-color=auto'],
                   'always': ['-fdiagnostics-color=always'],
-                  'never' : ['-fdiagnostics-color=never'],
+                  'never': ['-fdiagnostics-color=never'],
                   }
 
 base_options = {
@@ -204,15 +204,15 @@ base_options = {
                 'b_coverage': coredata.UserBooleanOption('b_coverage',
                                                          'Enable coverage tracking.',
                                                          False),
-                'b_colorout' : coredata.UserComboOption('b_colorout', 'Use colored output',
+                'b_colorout': coredata.UserComboOption('b_colorout', 'Use colored output',
                                                         ['auto', 'always', 'never'],
                                                         'always'),
-                'b_ndebug' : coredata.UserBooleanOption('b_ndebug',
-                                                        'Disable asserts',
-                                                        False),
-                'b_staticpic' : coredata.UserBooleanOption('b_staticpic',
-                                                           'Build static libraries as position independent',
-                                                           True),
+                'b_ndebug': coredata.UserBooleanOption('b_ndebug',
+                                                       'Disable asserts',
+                                                       False),
+                'b_staticpic': coredata.UserBooleanOption('b_staticpic',
+                                                          'Build static libraries as position independent',
+                                                          True),
                 }
 
 def sanitizer_compile_args(value):
@@ -1944,9 +1944,9 @@ class VisualStudioCCompiler(CCompiler):
         return []
 
     def get_options(self):
-        return {'c_winlibs' : coredata.UserStringArrayOption('c_winlibs',
-                                                             'Windows libs to link against.',
-                                                             msvc_winlibs)
+        return {'c_winlibs': coredata.UserStringArrayOption('c_winlibs',
+                                                            'Windows libs to link against.',
+                                                            msvc_winlibs)
                 }
 
     def get_option_link_args(self, options):
@@ -2040,13 +2040,13 @@ class VisualStudioCPPCompiler(VisualStudioCCompiler, CPPCompiler):
         self.base_options = ['b_pch'] # FIXME add lto, pgo and the like
 
     def get_options(self):
-        return {'cpp_eh' : coredata.UserComboOption('cpp_eh',
-                                                    'C++ exception handling type.',
-                                                    ['none', 'a', 's', 'sc'],
-                                                    'sc'),
-                'cpp_winlibs' : coredata.UserStringArrayOption('cpp_winlibs',
-                                                               'Windows libs to link against.',
-                                                               msvc_winlibs)
+        return {'cpp_eh': coredata.UserComboOption('cpp_eh',
+                                                   'C++ exception handling type.',
+                                                   ['none', 'a', 's', 'sc'],
+                                                   'sc'),
+                'cpp_winlibs': coredata.UserStringArrayOption('cpp_winlibs',
+                                                              'Windows libs to link against.',
+                                                              msvc_winlibs)
                 }
 
     def get_option_compile_args(self, options):
@@ -2153,13 +2153,13 @@ class GnuCCompiler(GnuCompiler, CCompiler):
         GnuCompiler.__init__(self, gcc_type, defines)
         self.warn_args = {'1': ['-Wall', '-Winvalid-pch'],
                           '2': ['-Wall', '-Wextra', '-Winvalid-pch'],
-                          '3' : ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch']}
+                          '3': ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch']}
 
     def get_options(self):
-        opts = {'c_std' : coredata.UserComboOption('c_std', 'C language standard to use',
-                                                   ['none', 'c89', 'c99', 'c11',
-                                                    'gnu89', 'gnu99', 'gnu11'],
-                                                   'none')}
+        opts = {'c_std': coredata.UserComboOption('c_std', 'C language standard to use',
+                                                  ['none', 'c89', 'c99', 'c11',
+                                                   'gnu89', 'gnu99', 'gnu11'],
+                                                  'none')}
         if self.gcc_type == GCC_MINGW:
             opts.update({
                 'c_winlibs': coredata.UserStringArrayOption('c_winlibs', 'Standard Win libraries to link against',
@@ -2192,10 +2192,10 @@ class GnuCPPCompiler(GnuCompiler, CPPCompiler):
                           '3': ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor']}
 
     def get_options(self):
-        opts = {'cpp_std' : coredata.UserComboOption('cpp_std', 'C++ language standard to use',
-                                                     ['none', 'c++03', 'c++11', 'c++14', 'c++1z',
-                                                      'gnu++03', 'gnu++11', 'gnu++14', 'gnu++1z'],
-                                                     'none'),
+        opts = {'cpp_std': coredata.UserComboOption('cpp_std', 'C++ language standard to use',
+                                                    ['none', 'c++03', 'c++11', 'c++14', 'c++1z',
+                                                     'gnu++03', 'gnu++11', 'gnu++14', 'gnu++1z'],
+                                                    'none'),
                 'cpp_debugstl': coredata.UserBooleanOption('cpp_debugstl',
                                                            'STL debug mode',
                                                            False)}
@@ -2235,7 +2235,7 @@ class GnuObjCCompiler(GnuCompiler,ObjCCompiler):
         GnuCompiler.__init__(self, GCC_STANDARD, defines)
         self.warn_args = {'1': ['-Wall', '-Winvalid-pch'],
                           '2': ['-Wall', '-Wextra', '-Winvalid-pch'],
-                          '3' : ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch']}
+                          '3': ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch']}
 
 class GnuObjCPPCompiler(GnuCompiler, ObjCPPCompiler):
 
@@ -2246,7 +2246,7 @@ class GnuObjCPPCompiler(GnuCompiler, ObjCPPCompiler):
         GnuCompiler.__init__(self, GCC_STANDARD, defines)
         self.warn_args = {'1': ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor'],
                           '2': ['-Wall', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor'],
-                          '3' : ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor']}
+                          '3': ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor']}
 
     def get_compiler_check_args(self):
         # -fpermissive allows non-conforming code to compile which is necessary
@@ -2324,13 +2324,13 @@ class ClangCCompiler(ClangCompiler, CCompiler):
         ClangCompiler.__init__(self, clang_type)
         self.warn_args = {'1': ['-Wall', '-Winvalid-pch'],
                           '2': ['-Wall', '-Wextra', '-Winvalid-pch'],
-                          '3' : ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch']}
+                          '3': ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch']}
 
     def get_options(self):
-        return {'c_std' : coredata.UserComboOption('c_std', 'C language standard to use',
-                                                   ['none', 'c89', 'c99', 'c11',
-                                                    'gnu89', 'gnu99', 'gnu11',],
-                                                   'none')}
+        return {'c_std': coredata.UserComboOption('c_std', 'C language standard to use',
+                                                  ['none', 'c89', 'c99', 'c11',
+                                                   'gnu89', 'gnu99', 'gnu11',],
+                                                  'none')}
 
     def get_option_compile_args(self, options):
         args = []
@@ -2352,10 +2352,10 @@ class ClangCPPCompiler(ClangCompiler, CPPCompiler):
                           '3': ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor']}
 
     def get_options(self):
-        return {'cpp_std' : coredata.UserComboOption('cpp_std', 'C++ language standard to use',
-                                                     ['none', 'c++03', 'c++11', 'c++14', 'c++1z',
-                                                      'gnu++03', 'gnu++11', 'gnu++14', 'gnu++1z'],
-                                                     'none')}
+        return {'cpp_std': coredata.UserComboOption('cpp_std', 'C++ language standard to use',
+                                                    ['none', 'c++03', 'c++11', 'c++14', 'c++1z',
+                                                     'gnu++03', 'gnu++11', 'gnu++14', 'gnu++1z'],
+                                                    'none')}
 
     def get_option_compile_args(self, options):
         args = []

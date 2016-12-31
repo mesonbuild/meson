@@ -395,7 +395,7 @@ def run_tests(all_tests, log_name_base, extra_args):
     executor = conc.ProcessPoolExecutor(max_workers=num_workers)
 
     for name, test_cases, skipped in all_tests:
-        current_suite = ET.SubElement(junit_root, 'testsuite', {'name' : name, 'tests' : str(len(test_cases))})
+        current_suite = ET.SubElement(junit_root, 'testsuite', {'name': name, 'tests': str(len(test_cases))})
         if skipped:
             print('\nNot running %s tests.\n' % name)
         else:
@@ -415,8 +415,8 @@ def run_tests(all_tests, log_name_base, extra_args):
             result = result.result()
             if result is None or 'MESON_SKIP_TEST' in result.stdo:
                 print('Skipping:', t)
-                current_test = ET.SubElement(current_suite, 'testcase', {'name' : testname,
-                                                                         'classname' : name})
+                current_test = ET.SubElement(current_suite, 'testcase', {'name': testname,
+                                                                         'classname': name})
                 ET.SubElement(current_test, 'skipped', {})
                 skipped_tests += 1
             else:
@@ -435,11 +435,11 @@ def run_tests(all_tests, log_name_base, extra_args):
                 test_time += result.testtime
                 total_time = conf_time + build_time + test_time
                 log_text_file(logfile, t, result.stdo, result.stde)
-                current_test = ET.SubElement(current_suite, 'testcase', {'name' : testname,
-                                                                         'classname' : name,
-                                                                         'time' : '%.3f' % total_time})
+                current_test = ET.SubElement(current_suite, 'testcase', {'name': testname,
+                                                                         'classname': name,
+                                                                         'time': '%.3f' % total_time})
                 if result.msg != '':
-                    ET.SubElement(current_test, 'failure', {'message' : result.msg})
+                    ET.SubElement(current_test, 'failure', {'message': result.msg})
                 stdoel = ET.SubElement(current_test, 'system-out')
                 stdoel.text = result.stdo
                 stdeel = ET.SubElement(current_test, 'system-err')

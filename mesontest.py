@@ -126,13 +126,13 @@ def decode(stream):
         return stream.decode('iso-8859-1', errors='ignore')
 
 def write_json_log(jsonlogfile, test_name, result):
-    jresult = {'name' : test_name,
-              'stdout' : result.stdo,
-              'result' : result.res,
-              'duration' : result.duration,
-              'returncode' : result.returncode,
-              'command' : result.cmd,
-              }
+    jresult = {'name': test_name,
+               'stdout': result.stdo,
+               'result': result.res,
+               'duration': result.duration,
+               'returncode': result.returncode,
+               'command': result.cmd,
+    }
     if isinstance(result.env, dict):
         jresult['env'] = result.env
     else:

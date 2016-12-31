@@ -503,10 +503,10 @@ can not be used with the current version of glib-compiled-resources, due to
         elif isinstance(girtarget, build.SharedLibrary):
             libname = girtarget.get_basename()
             scan_command += ['--library', libname]
-        scankwargs = {'output' : girfile,
-                      'input' : libsources,
-                      'command' : scan_command,
-                      'depends' : depends,
+        scankwargs = {'output': girfile,
+                      'input': libsources,
+                      'command': scan_command,
+                      'depends': depends,
                      }
         if kwargs.get('install'):
             scankwargs['install'] = kwargs['install']
@@ -739,9 +739,9 @@ can not be used with the current version of glib-compiled-resources, due to
             cmd += ['--c-namespace', kwargs.pop('namespace')]
         cmd += ['--generate-c-code', '@OUTDIR@/' + namebase, '@INPUT@']
         outputs = [namebase + '.c', namebase + '.h']
-        custom_kwargs = {'input' : xml_file,
-                         'output' : outputs,
-                         'command' : cmd
+        custom_kwargs = {'input': xml_file,
+                         'output': outputs,
+                         'command': cmd
                          }
         return build.CustomTarget(target_name, state.subdir, custom_kwargs)
 

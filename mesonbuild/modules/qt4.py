@@ -127,30 +127,30 @@ class Qt4Module():
             else:
                 basename = os.path.split(rcc_files[0])[1]
                 name = 'qt4-' + basename.replace('.', '_')
-            rcc_kwargs = {'input' : rcc_files,
-                    'output' : name + '.cpp',
-                    'command' : [self.rcc, '-o', '@OUTPUT@', '@INPUT@'],
-                    'depend_files' : qrc_deps,
-                    }
+            rcc_kwargs = {'input': rcc_files,
+                          'output': name + '.cpp',
+                          'command': [self.rcc, '-o', '@OUTPUT@', '@INPUT@'],
+                          'depend_files': qrc_deps,
+                         }
             res_target = build.CustomTarget(name, state.subdir, rcc_kwargs)
             sources.append(res_target)
         if len(ui_files) > 0:
             if not self.uic.found():
                 raise MesonException(err_msg.format('UIC', 'uic-qt4'))
-            ui_kwargs = {'output' : 'ui_@BASENAME@.h',
-                         'arguments' : ['-o', '@OUTPUT@', '@INPUT@']}
+            ui_kwargs = {'output': 'ui_@BASENAME@.h',
+                         'arguments': ['-o', '@OUTPUT@', '@INPUT@']}
             ui_gen = build.Generator([self.uic], ui_kwargs)
             ui_output = ui_gen.process_files('Qt4 ui', ui_files, state)
             sources.append(ui_output)
         if len(moc_headers) > 0:
-            moc_kwargs = {'output' : 'moc_@BASENAME@.cpp',
-                          'arguments' : ['@INPUT@', '-o', '@OUTPUT@']}
+            moc_kwargs = {'output': 'moc_@BASENAME@.cpp',
+                          'arguments': ['@INPUT@', '-o', '@OUTPUT@']}
             moc_gen = build.Generator([self.moc], moc_kwargs)
             moc_output = moc_gen.process_files('Qt4 moc header', moc_headers, state)
             sources.append(moc_output)
         if len(moc_sources) > 0:
-            moc_kwargs = {'output' : '@BASENAME@.moc',
-                          'arguments' : ['@INPUT@', '-o', '@OUTPUT@']}
+            moc_kwargs = {'output': '@BASENAME@.moc',
+                          'arguments': ['@INPUT@', '-o', '@OUTPUT@']}
             moc_gen = build.Generator([self.moc], moc_kwargs)
             moc_output = moc_gen.process_files('Qt4 moc source', moc_sources, state)
             sources.append(moc_output)

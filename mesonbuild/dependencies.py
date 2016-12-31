@@ -529,7 +529,7 @@ class BoostDependency(Dependency):
     # Some boost libraries have different names for
     # their sources and libraries. This dict maps
     # between the two.
-    name2lib = {'test' : 'unit_test_framework'}
+    name2lib = {'test': 'unit_test_framework'}
 
     def __init__(self, environment, kwargs):
         Dependency.__init__(self, 'boost')
@@ -1458,9 +1458,9 @@ packages = {'boost': BoostDependency,
             'qt4': Qt4Dependency,
             'gnustep': GnuStepDependency,
             'appleframeworks': AppleFrameworks,
-            'wxwidgets' : WxDependency,
-            'sdl2' : SDL2Dependency,
-            'gl' : GLDependency,
-            'threads' : ThreadDependency,
-            'python3' : Python3Dependency,
+            'wxwidgets': WxDependency,
+            'sdl2': SDL2Dependency,
+            'gl': GLDependency,
+            'threads': ThreadDependency,
+            'python3': Python3Dependency,
            }
