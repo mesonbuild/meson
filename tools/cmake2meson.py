@@ -53,7 +53,7 @@ class Lexer:
             for (tid, reg) in self.token_specification:
                 mo = reg.match(code, loc)
                 if mo:
-                    col = mo.start()-line_start
+                    col = mo.start() - line_start
                     matched = True
                     loc = mo.end()
                     match_text = mo.group()
@@ -240,7 +240,7 @@ class Converter:
         else:
             line = '''# %s(%s)''' % (t.name, self.convert_args(t.args))
         self.indent_level += preincrement
-        indent = self.indent_level*self.indent_unit
+        indent = self.indent_level * self.indent_unit
         outfile.write(indent)
         outfile.write(line)
         if not(line.endswith('\n')):

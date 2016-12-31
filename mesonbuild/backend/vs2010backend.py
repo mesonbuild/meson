@@ -320,7 +320,7 @@ class Vs2010Backend(backends.Backend):
             return ''
 
         directories = os.path.normpath(target.subdir).split(os.sep)
-        return os.sep.join(['..']*len(directories))
+        return os.sep.join(['..'] * len(directories))
 
     def special_quote(self, arr):
         return ['&quot;%s&quot;' % i for i in arr]
@@ -380,7 +380,7 @@ class Vs2010Backend(backends.Backend):
                 cmd += i.fullpath
             else:
                 cmd.append(i)
-        cmd_templ = '''"%s" '''*len(cmd)
+        cmd_templ = '''"%s" ''' * len(cmd)
         ET.SubElement(customstep, 'Command').text = cmd_templ % tuple(cmd)
         ET.SubElement(customstep, 'Message').text = 'Running custom command.'
         ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.targets')
@@ -395,7 +395,7 @@ class Vs2010Backend(backends.Backend):
         # from the target dir, not the build root.
         target.absolute_paths = True
         (srcs, ofilenames, cmd) = self.eval_custom_target_command(target, True)
-        cmd_templ = '''"%s" '''*len(cmd)
+        cmd_templ = '''"%s" ''' * len(cmd)
         ET.SubElement(customstep, 'Command').text = cmd_templ % tuple(cmd)
         ET.SubElement(customstep, 'Outputs').text = ';'.join(ofilenames)
         ET.SubElement(customstep, 'Inputs').text = ';'.join(srcs)

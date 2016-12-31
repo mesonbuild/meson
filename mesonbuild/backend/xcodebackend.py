@@ -60,7 +60,7 @@ class XCodeBackend(backends.Backend):
         return dirname
 
     def write_line(self, text):
-        self.ofile.write(self.indent*self.indent_level + text)
+        self.ofile.write(self.indent * self.indent_level + text)
         if not text.endswith('\n'):
             self.ofile.write('\n')
 

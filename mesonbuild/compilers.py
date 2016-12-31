@@ -307,7 +307,7 @@ def build_unix_rpath_args(build_dir, rpath_paths, install_rpath):
             return []
         paths = ':'.join([os.path.join(build_dir, p) for p in rpath_paths])
         if len(paths) < len(install_rpath):
-            padding = 'X'*(len(install_rpath) - len(paths))
+            padding = 'X' * (len(install_rpath) - len(paths))
             if len(paths) == 0:
                 paths = padding
             else:
@@ -651,7 +651,7 @@ class CCompiler(Compiler):
         return os.path.split(header_name)[-1] + '.' + self.get_pch_suffix()
 
     def get_linker_search_args(self, dirname):
-        return ['-L'+dirname]
+        return ['-L' + dirname]
 
     def gen_import_library_args(self, implibname):
         """
@@ -1654,7 +1654,7 @@ class DCompiler(Compiler):
             return []
         paths = ':'.join([os.path.join(build_dir, p) for p in rpath_paths])
         if len(paths) < len(install_rpath):
-            padding = 'X'*(len(install_rpath) - len(paths))
+            padding = 'X' * (len(install_rpath) - len(paths))
             if len(paths) == 0:
                 paths = padding
             else:
@@ -1671,7 +1671,7 @@ class DCompiler(Compiler):
             if arg == '-pthread':
                 continue
             if arg.startswith('-Wl,'):
-                linkargs = arg[arg.index(',')+1:].split(',')
+                linkargs = arg[arg.index(',') + 1:].split(',')
                 for la in linkargs:
                     dcargs.append('-L' + la.strip())
                 continue
@@ -1716,7 +1716,7 @@ class GnuDCompiler(DCompiler):
         return ['-Werror']
 
     def get_linker_search_args(self, dirname):
-        return ['-L'+dirname]
+        return ['-L' + dirname]
 
     def get_buildtype_args(self, buildtype):
         return d_gdc_buildtype_args[buildtype]
@@ -1774,7 +1774,7 @@ class LLVMDCompiler(DCompiler):
         # -L is recognized as "add this to the search path" by the linker,
         # while the compiler recognizes it as "pass to linker". So, the first
         # -L is for the compiler, telling it to pass the second -L to the linker.
-        return ['-L-L'+dirname]
+        return ['-L-L' + dirname]
 
     def unix_link_flags_to_native(self, args):
         return self.translate_args_to_nongnu(args)
@@ -1820,7 +1820,7 @@ class DmdDCompiler(DCompiler):
         # -L is recognized as "add this to the search path" by the linker,
         # while the compiler recognizes it as "pass to linker". So, the first
         # -L is for the compiler, telling it to pass the second -L to the linker.
-        return ['-L-L'+dirname]
+        return ['-L-L' + dirname]
 
     def get_buildtype_args(self, buildtype):
         return d_dmd_buildtype_args[buildtype]
@@ -1997,7 +1997,7 @@ class VisualStudioCCompiler(CCompiler):
     def has_multi_arguments(self, args, env):
         warning_text = '9002'
         code = 'int i;\n'
-        (fd, srcname) = tempfile.mkstemp(suffix='.'+self.default_suffix)
+        (fd, srcname) = tempfile.mkstemp(suffix='.' + self.default_suffix)
         os.close(fd)
         with open(srcname, 'w') as ofile:
             ofile.write(code)
@@ -2523,7 +2523,7 @@ class G95FortranCompiler(FortranCompiler):
         self.id = 'g95'
 
     def get_module_outdir_args(self, path):
-        return ['-fmod='+path]
+        return ['-fmod=' + path]
 
     def get_always_args(self):
         return ['-pipe']
@@ -2555,7 +2555,7 @@ class SunFortranCompiler(FortranCompiler):
         return []
 
     def get_module_outdir_args(self, path):
-        return ['-moddir='+path]
+        return ['-moddir=' + path]
 
 class IntelFortranCompiler(FortranCompiler):
     std_warn_args = ['-warn', 'all']

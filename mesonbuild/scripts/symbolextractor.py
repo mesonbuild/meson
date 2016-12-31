@@ -80,7 +80,7 @@ def osx_syms(libfilename, outfilename):
         if 'LC_ID_DYLIB' in val:
             match = i
             break
-    result = [arr[match+2], arr[match+5]] # Libreoffice stores all 5 lines but the others seem irrelevant.
+    result = [arr[match + 2], arr[match + 5]] # Libreoffice stores all 5 lines but the others seem irrelevant.
     pnm, output = Popen_safe(['nm', '-g', '-P', libfilename])[0:2]
     if pnm.returncode != 0:
         raise RuntimeError('nm does not work.')

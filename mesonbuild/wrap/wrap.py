@@ -181,7 +181,7 @@ class Resolver:
                                       cwd=checkoutdir)
 
     def get_data(self, url):
-        blocksize = 10*1024
+        blocksize = 10 * 1024
         if url.startswith('https://wrapdb.mesonbuild.com'):
             resp = open_wrapdburl(url)
         else:
@@ -206,7 +206,7 @@ class Resolver:
                     break
                 downloaded += len(block)
                 blocks.append(block)
-                ratio = int(downloaded/dlsize * 10)
+                ratio = int(downloaded / dlsize * 10)
                 while printed_dots < ratio:
                     print('.', end='')
                     sys.stdout.flush()
