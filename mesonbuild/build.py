@@ -241,7 +241,7 @@ class EnvironmentVariables():
     def prepend(self, env, name, values, kwargs):
         sep, value = self.get_value(name, values, kwargs)
         if name in env:
-            return  value + sep + env[name]
+            return value + sep + env[name]
 
         return value
 
