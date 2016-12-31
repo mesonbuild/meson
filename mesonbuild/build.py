@@ -1433,7 +1433,7 @@ class RunTarget:
 
 class Jar(BuildTarget):
     def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
-        super().__init__(name, subdir, subproject, is_cross, sources, objects, environment, kwargs);
+        super().__init__(name, subdir, subproject, is_cross, sources, objects, environment, kwargs)
         for s in self.sources:
             if not s.endswith('.java'):
                 raise InvalidArguments('Jar source %s is not a java file.' % s)

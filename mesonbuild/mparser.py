@@ -76,7 +76,7 @@ class Lexer:
     def lex(self, code, subdir):
         lineno = 1
         line_start = 0
-        loc = 0;
+        loc = 0
         par_count = 0
         bracket_count = 0
         col = 0
@@ -519,7 +519,7 @@ class Parser:
     def e9(self):
         t = self.current
         if self.accept('true'):
-            return BooleanNode(t, True);
+            return BooleanNode(t, True)
         if self.accept('false'):
             return BooleanNode(t, False)
         if self.accept('id'):

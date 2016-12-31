@@ -46,7 +46,7 @@ class Lexer:
     def lex(self, code):
         lineno = 1
         line_start = 0
-        loc = 0;
+        loc = 0
         col = 0
         while(loc < len(code)):
             matched = False

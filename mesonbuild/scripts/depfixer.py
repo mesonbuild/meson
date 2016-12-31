@@ -55,8 +55,8 @@ class DynamicEntry(DataSizes):
         super().__init__(ptrsize, is_le)
         self.ptrsize = ptrsize
         if ptrsize == 64:
-            self.d_tag = struct.unpack(self.Sxword, ifile.read(self.SxwordSize))[0];
-            self.val = struct.unpack(self.XWord, ifile.read(self.XWordSize))[0];
+            self.d_tag = struct.unpack(self.Sxword, ifile.read(self.SxwordSize))[0]
+            self.val = struct.unpack(self.XWord, ifile.read(self.XWordSize))[0]
         else:
             self.d_tag = struct.unpack(self.Sword, ifile.read(self.SwordSize))[0]
             self.val = struct.unpack(self.Word, ifile.read(self.WordSize))[0]
@@ -77,7 +77,7 @@ class SectionHeader(DataSizes):
         else:
             is_64 = False
 # Elf64_Word
-        self.sh_name = struct.unpack(self.Word, ifile.read(self.WordSize))[0];
+        self.sh_name = struct.unpack(self.Word, ifile.read(self.WordSize))[0]
 # Elf64_Word
         self.sh_type = struct.unpack(self.Word, ifile.read(self.WordSize))[0]
 # Elf64_Xword
@@ -86,7 +86,7 @@ class SectionHeader(DataSizes):
         else:
             self.sh_flags = struct.unpack(self.Word, ifile.read(self.WordSize))[0]
 # Elf64_Addr
-        self.sh_addr = struct.unpack(self.Addr, ifile.read(self.AddrSize))[0];
+        self.sh_addr = struct.unpack(self.Addr, ifile.read(self.AddrSize))[0]
 # Elf64_Off
         self.sh_offset = struct.unpack(self.Off, ifile.read(self.OffSize))[0]
 # Elf64_Xword
@@ -95,9 +95,9 @@ class SectionHeader(DataSizes):
         else:
             self.sh_size = struct.unpack(self.Word, ifile.read(self.WordSize))[0]
 # Elf64_Word
-        self.sh_link = struct.unpack(self.Word, ifile.read(self.WordSize))[0];
+        self.sh_link = struct.unpack(self.Word, ifile.read(self.WordSize))[0]
 # Elf64_Word
-        self.sh_info = struct.unpack(self.Word, ifile.read(self.WordSize))[0];
+        self.sh_info = struct.unpack(self.Word, ifile.read(self.WordSize))[0]
 # Elf64_Xword
         if is_64:
             self.sh_addralign = struct.unpack(self.XWord, ifile.read(self.XWordSize))[0]
@@ -312,7 +312,7 @@ class Elf(DataSizes):
                 rpentry = self.dynamic[i]
                 rpentry.d_tag = 0
                 self.dynamic = self.dynamic[:i] + self.dynamic[i + 1:] + [rpentry]
-                break;
+                break
         # DT_MIPS_RLD_MAP_REL is relative to the offset of the tag. Adjust it consequently.
         for entry in self.dynamic[i:]:
             if entry.d_tag == DT_MIPS_RLD_MAP_REL:

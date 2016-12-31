@@ -195,10 +195,10 @@ class Conf:
                 opt = options[key]
                 if (opt.choices is None) or (len(opt.choices) == 0):
                     # Zero length list or string
-                    choices = '';
+                    choices = ''
                 else:
                     # A non zero length list or string, convert to string
-                    choices = str(opt.choices);
+                    choices = str(opt.choices)
                 optarr.append([key, opt.description, opt.value, choices])
             self.print_aligned(optarr)
         print('')
