@@ -763,11 +763,11 @@ int dummy;
         outfile.write(' restat = 1\n\n')
         outfile.write('rule REGENERATE_BUILD\n')
         c = (quote_char + ninja_quote(sys.executable) + quote_char,
-             quote_char + ninja_quote(self.environment.get_build_command())  + quote_char,
+             quote_char + ninja_quote(self.environment.get_build_command()) + quote_char,
              '--internal',
              'regenerate',
-             quote_char + ninja_quote(self.environment.get_source_dir())  + quote_char,
-             quote_char + ninja_quote(self.environment.get_build_dir())  + quote_char)
+             quote_char + ninja_quote(self.environment.get_source_dir()) + quote_char,
+             quote_char + ninja_quote(self.environment.get_build_dir()) + quote_char)
         outfile.write(" command = %s %s %s %s %s %s --backend ninja\n" % c)
         outfile.write(' description = Regenerating build files\n')
         outfile.write(' generator = 1\n\n')
