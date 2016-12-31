@@ -70,7 +70,7 @@ class Lexer:
                     elif tid == 'id':
                         yield(Token('id', match_text))
                     elif tid == 'eol':
-                        #yield('eol')
+                        # yield('eol')
                         lineno += 1
                         col = 1
                         line_start = mo.end()
