@@ -2132,11 +2132,17 @@ rule FORTRAN_DEP_HACK
             gcda_elem.add_item('description', 'Deleting gcda files')
             gcda_elem.write(outfile)
 
+    def get_user_option_args(self):
+        cmds = []
+        for (k, v) in self.environment.coredata.user_options.items():
+            cmds.append('-D' + k + '=' + (v.value if isinstance(v.value, str) else str(v.value).lower()))
+        return cmds
+
     # For things like scan-build and other helper tools we might have.
     def generate_utils(self, outfile):
         cmd = [sys.executable, self.environment.get_build_command(),
                '--internal', 'scanbuild', self.environment.source_dir, self.environment.build_dir,
-               sys.executable, self.environment.get_build_command()]
+               sys.executable, self.environment.get_build_command()] + self.get_user_option_args()
         elem = NinjaBuildElement(self.all_outputs, 'scan-build', 'CUSTOM_COMMAND', 'PHONY')
         elem.add_item('COMMAND', cmd)
         elem.add_item('pool', 'console')
