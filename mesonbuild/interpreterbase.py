@@ -610,7 +610,7 @@ class InterpreterBase:
 
 #    @noKwargs
     def func_get_variable(self, node, args, kwargs):
-        if len(args)<1 or len(args)>2:
+        if len(args) < 1 or len(args) > 2:
             raise InvalidCode('Get_variable takes one or two arguments.')
         varname = args[0]
         if not isinstance(varname, str):

@@ -1623,7 +1623,7 @@ rule FORTRAN_DEP_HACK
         mod_files = []
         usere = re.compile(r"\s*use\s+(\w+)", re.IGNORECASE)
         dirname = self.get_target_private_dir(target)
-        tdeps= self.fortran_deps[target.get_basename()]
+        tdeps = self.fortran_deps[target.get_basename()]
         with open(src) as f:
             for line in f:
                 usematch = usere.match(line)
@@ -1850,7 +1850,7 @@ rule FORTRAN_DEP_HACK
             if idir not in custom_target_include_dirs:
                 custom_target_include_dirs.append(idir)
         for i in custom_target_include_dirs:
-            commands+= compiler.get_include_args(i, False)
+            commands += compiler.get_include_args(i, False)
         if self.environment.coredata.base_options.get('b_pch', False):
             commands += self.get_pch_include_args(compiler, target)
 

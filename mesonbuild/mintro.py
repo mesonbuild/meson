@@ -111,11 +111,11 @@ def list_target_files(target_name, coredata, builddata):
     print(json.dumps(sources))
 
 def list_buildoptions(coredata, builddata):
-    buildtype= {'choices': ['plain', 'debug', 'debugoptimized', 'release', 'minsize'],
-                'type': 'combo',
-                'value': coredata.get_builtin_option('buildtype'),
-                'description': 'Build type',
-                'name': 'type'}
+    buildtype = {'choices': ['plain', 'debug', 'debugoptimized', 'release', 'minsize'],
+                 'type': 'combo',
+                 'value': coredata.get_builtin_option('buildtype'),
+                 'description': 'Build type',
+                 'name': 'type'}
     strip = {'value': coredata.get_builtin_option('strip'),
              'type': 'boolean',
              'description': 'Strip on install',

@@ -334,7 +334,7 @@ class Vs2010Backend(backends.Backend):
         prjconf = ET.SubElement(confitems, 'ProjectConfiguration',
                                 {'Include': self.buildtype + '|' + self.platform})
         p = ET.SubElement(prjconf, 'Configuration')
-        p.text= self.buildtype
+        p.text = self.buildtype
         pl = ET.SubElement(prjconf, 'Platform')
         pl.text = self.platform
         globalgroup = ET.SubElement(root, 'PropertyGroup', Label='Globals')
@@ -343,8 +343,8 @@ class Vs2010Backend(backends.Backend):
         kw = ET.SubElement(globalgroup, 'Keyword')
         kw.text = self.platform + 'Proj'
         p = ET.SubElement(globalgroup, 'Platform')
-        p.text= self.platform
-        pname= ET.SubElement(globalgroup, 'ProjectName')
+        p.text = self.platform
+        pname = ET.SubElement(globalgroup, 'ProjectName')
         pname.text = project_name
         ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.Default.props')
         type_config = ET.SubElement(root, 'PropertyGroup', Label='Configuration')
@@ -565,7 +565,7 @@ class Vs2010Backend(backends.Backend):
         prjconf = ET.SubElement(confitems, 'ProjectConfiguration',
                                 {'Include': self.buildtype + '|' + self.platform})
         p = ET.SubElement(prjconf, 'Configuration')
-        p.text= self.buildtype
+        p.text = self.buildtype
         pl = ET.SubElement(prjconf, 'Platform')
         pl.text = self.platform
         # Globals
@@ -577,8 +577,8 @@ class Vs2010Backend(backends.Backend):
         ns = ET.SubElement(globalgroup, 'RootNamespace')
         ns.text = target_name
         p = ET.SubElement(globalgroup, 'Platform')
-        p.text= self.platform
-        pname= ET.SubElement(globalgroup, 'ProjectName')
+        p.text = self.platform
+        pname = ET.SubElement(globalgroup, 'ProjectName')
         pname.text = project_name
         ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.Default.props')
         # Start configuration
@@ -931,7 +931,7 @@ class Vs2010Backend(backends.Backend):
         prjconf = ET.SubElement(confitems, 'ProjectConfiguration',
                                 {'Include': self.buildtype + '|' + self.platform})
         p = ET.SubElement(prjconf, 'Configuration')
-        p.text= self.buildtype
+        p.text = self.buildtype
         pl = ET.SubElement(prjconf, 'Platform')
         pl.text = self.platform
         globalgroup = ET.SubElement(root, 'PropertyGroup', Label='Globals')
@@ -941,7 +941,7 @@ class Vs2010Backend(backends.Backend):
         kw.text = self.platform + 'Proj'
         p = ET.SubElement(globalgroup, 'Platform')
         p.text = self.platform
-        pname= ET.SubElement(globalgroup, 'ProjectName')
+        pname = ET.SubElement(globalgroup, 'ProjectName')
         pname.text = project_name
         ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.Default.props')
         type_config = ET.SubElement(root, 'PropertyGroup', Label='Configuration')
@@ -1010,7 +1010,7 @@ if %%errorlevel%% neq 0 goto :VCEnd'''
         prjconf = ET.SubElement(confitems, 'ProjectConfiguration',
                                 {'Include': self.buildtype + '|' + self.platform})
         p = ET.SubElement(prjconf, 'Configuration')
-        p.text= self.buildtype
+        p.text = self.buildtype
         pl = ET.SubElement(prjconf, 'Platform')
         pl.text = self.platform
         globalgroup = ET.SubElement(root, 'PropertyGroup', Label='Globals')
@@ -1019,8 +1019,8 @@ if %%errorlevel%% neq 0 goto :VCEnd'''
         kw = ET.SubElement(globalgroup, 'Keyword')
         kw.text = self.platform + 'Proj'
         p = ET.SubElement(globalgroup, 'Platform')
-        p.text= self.platform
-        pname= ET.SubElement(globalgroup, 'ProjectName')
+        p.text = self.platform
+        pname = ET.SubElement(globalgroup, 'ProjectName')
         pname.text = project_name
         ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.Default.props')
         type_config = ET.SubElement(root, 'PropertyGroup', Label='Configuration')

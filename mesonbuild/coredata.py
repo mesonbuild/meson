@@ -158,7 +158,7 @@ def load(filename):
     if not isinstance(obj, CoreData):
         raise MesonException(load_fail_msg)
     if obj.version != version:
-        raise MesonException('Build directory has been generated with Meson version %s, which is incompatible with current version %s.\nPlease delete this build directory AND create a new one.'%
+        raise MesonException('Build directory has been generated with Meson version %s, which is incompatible with current version %s.\nPlease delete this build directory AND create a new one.' %
                            (obj.version, version))
     return obj
 

@@ -34,7 +34,7 @@ class CleanTrees():
 class InstallData():
     def __init__(self, source_dir, build_dir, prefix):
         self.source_dir = source_dir
-        self.build_dir= build_dir
+        self.build_dir = build_dir
         self.prefix = prefix
         self.targets = []
         self.headers = []
