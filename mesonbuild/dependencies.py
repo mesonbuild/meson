@@ -965,7 +965,7 @@ class QtBaseDependency(Dependency):
             if not self.qmake.found():
                 continue
             # Check that the qmake is for qt5
-            pc, stdo = Popen_safe(self.qmake.fullpath +  ['-v'])[0:2]
+            pc, stdo = Popen_safe(self.qmake.fullpath + ['-v'])[0:2]
             if pc.returncode != 0:
                 continue
             if not 'Qt version ' + self.qtver in stdo:
@@ -978,7 +978,7 @@ class QtBaseDependency(Dependency):
             return
         self.version = re.search(self.qtver + '(\.\d+)+', stdo).group(0)
         # Query library path, header path, and binary path
-        stdo = Popen_safe(self.qmake.fullpath +  ['-query'])[1]
+        stdo = Popen_safe(self.qmake.fullpath + ['-query'])[1]
         qvars = {}
         for line in stdo.split('\n'):
             line = line.strip()

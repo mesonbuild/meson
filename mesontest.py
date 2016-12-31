@@ -346,7 +346,7 @@ class TestHarness:
         logfile = None
         try:
             if not self.options.verbose:
-                jsonlogfile =  open(jsonlogfilename, 'w')
+                jsonlogfile = open(jsonlogfilename, 'w')
                 logfile = open(logfilename, 'w')
                 logfile.write('Log of Meson test suite run on %s.\n\n' %
                             datetime.datetime.now().isoformat())

@@ -330,7 +330,7 @@ class BuildTarget():
             if isinstance(s, (str, File, ExtractedObjects)):
                 self.objects.append(s)
             elif isinstance(s, (GeneratedList, CustomTarget)):
-                msg =  'Generated files are not allowed in the \'objects\' kwarg ' + \
+                msg = 'Generated files are not allowed in the \'objects\' kwarg ' + \
                     'for target {!r}.\nIt is meant only for '.format(self.name) + \
                     'pre-built object files that are shipped with the\nsource ' + \
                     'tree. Try adding it in the list of sources.'
