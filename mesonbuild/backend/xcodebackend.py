@@ -42,7 +42,7 @@ class XCodeBackend(backends.Backend):
                              'inc': 'sourcecode.c.h',
                              'dylib': 'compiled.mach-o.dylib',
                              'o': 'compiled.mach-o.objfile',
-                            }
+                             }
         self.maingroup_id = self.gen_id()
         self.all_id = self.gen_id()
         self.all_buildconf_id = self.gen_id()

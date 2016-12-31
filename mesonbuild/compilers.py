@@ -112,14 +112,14 @@ if mesonlib.is_osx():
                                           'debugoptimized': [],
                                           'release': [],
                                           'minsize': [],
-                                         })
+                                          })
 else:
     gnulike_buildtype_linker_args.update({'plain': [],
                                           'debug': [],
                                           'debugoptimized': [],
                                           'release': ['-Wl,-O1'],
                                           'minsize': [],
-                                         })
+                                          })
 
 msvc_buildtype_linker_args = {'plain': [],
                               'debug': [],
@@ -147,21 +147,21 @@ d_gdc_buildtype_args = {'plain': [],
                         'debugoptimized': ['-g', '-O'],
                         'release': ['-O3', '-frelease'],
                         'minsize': [],
-                       }
+                        }
 
 d_ldc_buildtype_args = {'plain': [],
                         'debug': ['-g', '-O0'],
                         'debugoptimized': ['-g', '-O'],
                         'release': ['-O3', '-release'],
                         'minsize': [],
-                       }
+                        }
 
 d_dmd_buildtype_args = {'plain': [],
                         'debug': ['-g'],
                         'debugoptimized': ['-g', '-O'],
                         'release': ['-O', '-release'],
                         'minsize': [],
-                       }
+                        }
 
 mono_buildtype_args = {'plain': [],
                        'debug': ['-debug'],

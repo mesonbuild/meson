@@ -53,7 +53,7 @@ class TryRunResultHolder(InterpreterObject):
                              'compiled': self.compiled_method,
                              'stdout': self.stdout_method,
                              'stderr': self.stderr_method,
-                            })
+                             })
 
     def returncode_method(self, args, kwargs):
         return self.res.returncode
@@ -76,7 +76,7 @@ class RunProcess(InterpreterObject):
         self.methods.update({'returncode': self.returncode_method,
                              'stdout': self.stdout_method,
                              'stderr': self.stderr_method,
-                            })
+                             })
 
     def run_command(self, command_array, source_dir, build_dir, subdir, in_builddir):
         cmd_name = command_array[0]
@@ -130,7 +130,7 @@ class EnvironmentVariablesHolder(MutableInterpreterObject):
         self.methods.update({'set': self.set_method,
                              'append': self.append_method,
                              'prepend': self.prepend_method,
-                            })
+                             })
 
     @stringArgs
     def add_var(self, method, args, kwargs):
@@ -162,7 +162,7 @@ class ConfigurationDataHolder(MutableInterpreterObject):
                              'set10': self.set10_method,
                              'set_quoted': self.set_quoted_method,
                              'has': self.has_method,
-                            })
+                             })
 
     def is_used(self):
         return self.used
@@ -346,7 +346,7 @@ class BuildMachine(InterpreterObject):
                              'cpu_family': self.cpu_family_method,
                              'cpu': self.cpu_method,
                              'endian': self.endian_method,
-                            })
+                             })
 
     def cpu_family_method(self, args, kwargs):
         return environment.detect_cpu_family(self.compilers)
@@ -375,7 +375,7 @@ class CrossMachineInfo(InterpreterObject):
                              'cpu': self.cpu_method,
                              'cpu_family': self.cpu_family_method,
                              'endian': self.endian_method,
-                            })
+                             })
 
     def system_method(self, args, kwargs):
         return self.info['system']
@@ -588,7 +588,7 @@ class SubprojectHolder(InterpreterObject):
         super().__init__()
         self.held_object = subinterpreter
         self.methods.update({'get_variable': self.get_variable_method,
-                            })
+                             })
 
     def get_variable_method(self, args, kwargs):
         if len(args) != 1:
@@ -623,7 +623,7 @@ class CompilerHolder(InterpreterObject):
                              'first_supported_argument': self.first_supported_argument_method,
                              'unittest_args': self.unittest_args_method,
                              'symbols_have_underscore_prefix': self.symbols_have_underscore_prefix_method,
-                            })
+                             })
 
     def version_method(self, args, kwargs):
         return self.compiler.version
@@ -1012,7 +1012,7 @@ class MesonMain(InterpreterObject):
                              'project_name': self.project_name_method,
                              'get_cross_property': self.get_cross_property_method,
                              'backend': self.backend_method,
-                            })
+                             })
 
     def _find_source_script(self, name, args):
         # Prefer scripts in the current source directory

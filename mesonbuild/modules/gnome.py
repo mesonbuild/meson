@@ -506,8 +506,7 @@ can not be used with the current version of glib-compiled-resources, due to
         scankwargs = {'output': girfile,
                       'input': libsources,
                       'command': scan_command,
-                      'depends': depends,
-                     }
+                      'depends': depends}
         if kwargs.get('install'):
             scankwargs['install'] = kwargs['install']
             scankwargs['install_dir'] = kwargs.get('install_dir_gir',
