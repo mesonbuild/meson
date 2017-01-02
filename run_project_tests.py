@@ -58,9 +58,10 @@ class AutoDeletedDir():
             try:
                 shutil.rmtree(self.dir)
                 return
-            except OSError:
+            except (OSError, PermissionError):
                 if i == retries - 1:
-                    raise
+                    mlog.warning('Could not delete temporary directory.')
+                    return
                 time.sleep(0.1 * (2**i))
 
 failing_logs = []
