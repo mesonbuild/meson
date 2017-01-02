@@ -1923,7 +1923,7 @@ class VisualStudioCCompiler(CCompiler):
 
     def gen_pch_args(self, header, source, pchname):
         objname = os.path.splitext(pchname)[0] + '.obj'
-        return (objname, ['/Yc' + header, '/Fp' + pchname, '/Fo' + objname ])
+        return (objname, ['/Yc' + header, '/Fp' + pchname, '/Fo' + objname])
 
     def gen_import_library_args(self, implibname):
         "The name of the outputted import library"
