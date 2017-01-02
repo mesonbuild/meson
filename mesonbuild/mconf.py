@@ -128,7 +128,7 @@ class Conf:
         print('')
         print('Core options:')
         carr = []
-        for key in [ 'buildtype', 'warning_level', 'werror', 'strip', 'unity', 'default_library' ]:
+        for key in ['buildtype', 'warning_level', 'werror', 'strip', 'unity', 'default_library' ]:
             carr.append([key, coredata.get_builtin_option_description(key),
                          self.coredata.get_builtin_option(key), coredata.get_builtin_option_choices(key)])
         self.print_aligned(carr)
@@ -204,7 +204,7 @@ class Conf:
         print('')
         print('Testing options:')
         tarr = []
-        for key in [ 'stdsplit', 'errorlogs' ]:
+        for key in ['stdsplit', 'errorlogs' ]:
             tarr.append([key, coredata.get_builtin_option_description(key),
                          self.coredata.get_builtin_option(key), coredata.get_builtin_option_choices(key)])
         self.print_aligned(tarr)

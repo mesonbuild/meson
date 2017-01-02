@@ -43,7 +43,7 @@ class UserStringOption(UserOption):
 
 class UserBooleanOption(UserOption):
     def __init__(self, name, description, value):
-        super().__init__(name, description, [ True, False ])
+        super().__init__(name, description, [True, False ])
         self.set_value(value)
 
     def tobool(self, thing):
@@ -134,7 +134,7 @@ class CoreData():
     def init_builtins(self, options):
         self.builtins = {}
         for key in get_builtin_options():
-            args = [key] + builtin_options[key][1:-1] + [ getattr(options, key, get_builtin_option_default(key)) ]
+            args = [key] + builtin_options[key][1:-1] + [getattr(options, key, get_builtin_option_default(key)) ]
             self.builtins[key] = builtin_options[key][0](*args)
 
     def get_builtin_option(self, optname):
@@ -179,7 +179,7 @@ def get_builtin_option_choices(optname):
         if builtin_options[optname][0] == UserStringOption:
             return None
         elif builtin_options[optname][0] == UserBooleanOption:
-            return [ True, False ]
+            return [True, False ]
         else:
             return builtin_options[optname][2]
     else:
@@ -227,7 +227,7 @@ builtin_options = {
         'localstatedir':   [UserStringOption, 'Localstate data directory.', 'var'],
         'sharedstatedir':  [UserStringOption, 'Architecture-independent data directory.', 'com'],
         'werror':          [UserBooleanOption, 'Treat warnings as errors.', False],
-        'warning_level':   [UserComboOption, 'Compiler warning level to use.', [ '1', '2', '3' ], '1'],
+        'warning_level':   [UserComboOption, 'Compiler warning level to use.', ['1', '2', '3' ], '1'],
         'layout':          [UserComboOption, 'Build directory layout.', ['mirror', 'flat'], 'mirror'],
         'default_library': [UserComboOption, 'Default library type.', ['shared', 'static'], 'shared'],
         'backend':         [UserComboOption, 'Backend to use.', backendlist, 'ninja'],
