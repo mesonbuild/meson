@@ -23,10 +23,10 @@ libs = glob(os.path.join('build', sdl_dir, 'lib/x86/*'))
 # Sorry for this hack but this needs to work during development
 # when Meson is not in path.
 subprocess.check_call(['python3', r'..\..\meson.py', 'build',
-                        '--backend=ninja', '--buildtype=release'])
+                       '--backend=ninja', '--buildtype=release'])
 subprocess.check_call(['ninja'], cwd='build')
 shutil.copy('myapp.iss', 'build')
 subprocess.check_call([r'\Program Files\Inno Setup 5\ISCC.exe', 'myapp.iss'],
-                       cwd = 'build')
+                      cwd = 'build')
 shutil.copy('build/setup.exe', 'myapp 1.0.exe')
 shutil.rmtree('build')
