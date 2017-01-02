@@ -1798,7 +1798,12 @@ requirements use the version keyword argument instead.''')
         dirname, varname = self.get_subproject_infos(kwargs)
         # Try to execute the subproject
         try:
-            self.do_subproject(dirname, {})
+            sp_kwargs = {}
+            try:
+                sp_kwargs['default_options'] = kwargs['default_options']
+            except KeyError:
+                pass
+            self.do_subproject(dirname, sp_kwargs)
         # Invalid code is always an error
         except InvalidCode:
             raise
