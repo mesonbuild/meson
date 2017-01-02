@@ -336,7 +336,7 @@ class TestHarness:
             else:
                 wrap = self.options.wrapper
             assert(isinstance(wrap, list))
-            namebase = wrap[0]
+            namebase = os.path.split(wrap[0])[1]
             logfilename = logfile_base + '-' + namebase.replace(' ', '_') + '.txt'
             jsonlogfilename = logfile_base + '-' + namebase.replace(' ', '_') + '.json'
         tests = self.get_tests()

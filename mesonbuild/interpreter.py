@@ -2150,7 +2150,21 @@ requirements use the version keyword argument instead.''')
         if re.fullmatch('[_a-zA-Z][_0-9a-zA-Z]*', setup_name) is None:
             raise InterpreterException('Setup name may only contain alphanumeric characters.')
         try:
-            exe_wrapper = mesonlib.stringlistify(kwargs['exe_wrapper'])
+            inp = kwargs.get('exe_wrapper', [])
+            if not isinstance(inp, list):
+                inp = [inp]
+            exe_wrapper = []
+            for i in inp:
+                if hasattr(i, 'held_object'):
+                    i = i.held_object
+                if isinstance(i, str):
+                    exe_wrapper.append(i)
+                elif isinstance(i, dependencies.ExternalProgram):
+                    if not i.found():
+                        raise InterpreterException('Tried to use non-found external executable.')
+                    exe_wrapper += i.get_command()
+                else:
+                    raise InterpreterException('Exe wrapper can only contain strings or external binaries.')
         except KeyError:
             exe_wrapper = None
         gdb = kwargs.get('gdb', False)
