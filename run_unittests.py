@@ -84,6 +84,7 @@ class LinuxlikeTests(unittest.TestCase):
                 '--prefix', self.prefix,
                 '--libdir', self.libdir]
         self._run(self.meson_command + args)
+        self.privatedir = os.path.join(self.builddir, 'meson-private')
 
     def build(self):
         self._run(self.ninja_command)
@@ -100,6 +101,9 @@ class LinuxlikeTests(unittest.TestCase):
 
     def setconf(self, arg):
         self._run(self.mconf_command + [arg, self.builddir])
+
+    def wipe(self):
+        shutil.rmtree(self.builddir)
 
     def get_compdb(self):
         with open(os.path.join(self.builddir, 'compile_commands.json')) as ifile:
@@ -183,7 +187,7 @@ class LinuxlikeTests(unittest.TestCase):
         self.init(testdir)
         env = FakeEnvironment()
         kwargs = {'required': True, 'silent': True}
-        os.environ['PKG_CONFIG_LIBDIR'] = os.path.join(self.builddir, 'meson-private')
+        os.environ['PKG_CONFIG_LIBDIR'] = self.privatedir
         simple_dep = PkgConfigDependency('libfoo', env, kwargs)
         self.assertTrue(simple_dep.found())
         self.assertEqual(simple_dep.get_version(), '1.0')
@@ -373,6 +377,16 @@ class LinuxlikeTests(unittest.TestCase):
         self.assertTrue(os.path.exists(exename))
         self.uninstall()
         self.assertFalse(os.path.exists(exename))
+
+    def test_custom_target_exe_data_deterministic(self):
+        testdir = os.path.join(self.common_test_dir, '117 custom target capture')
+        self.init(testdir)
+        meson_exe_dat1 = glob(os.path.join(self.privatedir, 'meson_exe*.dat'))
+        self.wipe()
+        self.init(testdir)
+        meson_exe_dat2 = glob(os.path.join(self.privatedir, 'meson_exe*.dat'))
+        self.assertListEqual(meson_exe_dat1, meson_exe_dat2)
+
 
 class RewriterTests(unittest.TestCase):
 

@@ -197,15 +197,20 @@ class Backend():
 
     def serialise_executable(self, exe, cmd_args, workdir, env={},
                              capture=None):
-        import uuid
+        import hashlib
         # Can't just use exe.name here; it will likely be run more than once
         if isinstance(exe, (dependencies.ExternalProgram,
                             build.BuildTarget, build.CustomTarget)):
             basename = exe.name
         else:
             basename = os.path.basename(exe)
-        scratch_file = 'meson_exe_{0}_{1}.dat'.format(basename,
-                                                      str(uuid.uuid4())[:8])
+        # Take a digest of the cmd args, env, workdir, and capture. This avoids
+        # collisions and also makes the name deterministic over regenerations
+        # which avoids a rebuild by Ninja because the cmdline stays the same.
+        data = bytes(str(sorted(env.items())) + str(cmd_args) + str(workdir) + str(capture),
+                     encoding='utf-8')
+        digest = hashlib.sha1(data).hexdigest()
+        scratch_file = 'meson_exe_{0}_{1}.dat'.format(basename, digest)
         exe_data = os.path.join(self.environment.get_scratch_dir(), scratch_file)
         with open(exe_data, 'wb') as f:
             if isinstance(exe, dependencies.ExternalProgram):
