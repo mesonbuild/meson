@@ -501,7 +501,7 @@ int dummy;
             os.makedirs(abs_pdir, exist_ok=True)
             elem.add_item('DEPFILE', rel_dfile)
         elem.add_item('COMMAND', cmd)
-        elem.add_item('description',  desc.format(target.name, cmd_type))
+        elem.add_item('description', desc.format(target.name, cmd_type))
         elem.write(outfile)
         self.processed_targets[target.name + target.type_suffix()] = True
 
@@ -1019,7 +1019,7 @@ int dummy;
             valac_outputs.append(vapiname)
             if isinstance(target.vala_gir, str):
                 girname = os.path.join(self.get_target_dir(target), target.vala_gir)
-                args += ['--gir', os.path.join('..',  target.vala_gir)]
+                args += ['--gir', os.path.join('..', target.vala_gir)]
                 valac_outputs.append(girname)
         if self.environment.coredata.get_builtin_option('werror'):
             args += valac.get_werror_args()

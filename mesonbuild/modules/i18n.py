@@ -102,7 +102,7 @@ class I18nModule:
             updatepoargs.append(extra_args)
         updatepotarget = build.RunTarget(packagename + '-update-po', sys.executable, updatepoargs, [], state.subdir)
 
-        script = [sys.executable,  state.environment.get_build_command()]
+        script = [sys.executable, state.environment.get_build_command()]
         args = ['--internal', 'gettext', 'install',
                 '--subdir=' + state.subdir,
                 '--localedir=' + state.environment.coredata.get_builtin_option('localedir'),
