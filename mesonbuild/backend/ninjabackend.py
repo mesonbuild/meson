@@ -2104,7 +2104,6 @@ rule FORTRAN_DEP_HACK
         e = NinjaBuildElement(self.all_outputs, 'clean-ctlist', 'CUSTOM_COMMAND', 'PHONY')
         d = CleanTrees(self.environment.get_build_dir(), trees)
         d_file = os.path.join(self.environment.get_scratch_dir(), 'cleantrees.dat')
-        script_root = self.environment.get_script_dir()
         e.add_item('COMMAND', [sys.executable,
                                self.environment.get_build_command(),
                                '--internal', 'cleantrees', d_file])
