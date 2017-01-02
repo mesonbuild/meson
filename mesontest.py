@@ -69,7 +69,7 @@ parser.add_argument('--suite', default=None, dest='suite',
 parser.add_argument('--no-stdsplit', default=True, dest='split', action='store_false',
                     help='Do not split stderr and stdout in test logs.')
 parser.add_argument('--print-errorlogs', default=False, action='store_true',
-                    help="Whether to print faling tests' logs.")
+                    help="Whether to print failing tests' logs.")
 parser.add_argument('--benchmark', default=False, action='store_true',
                     help="Run benchmarks instead of tests.")
 parser.add_argument('--logbase', default='testlog',
@@ -82,6 +82,8 @@ parser.add_argument('-t', '--timeout-multiplier', type=float, default=1.0,
                     help='Define a multiplier for test timeout, for example '
                     ' when running tests in particular conditions they might take'
                     ' more time to execute.')
+parser.add_argument('--setup', default=None, dest='setup',
+                    help='Which test setup to use.')
 parser.add_argument('args', nargs='*')
 
 class TestRun():
@@ -206,6 +208,7 @@ class TestHarness:
             cmd = wrap + cmd + test.cmd_args
             starttime = time.time()
             child_env = os.environ.copy()
+            child_env.update(self.options.global_env.get_env(child_env))
             if isinstance(test.env, build.EnvironmentVariables):
                 test.env = test.env.get_env(child_env)
 
@@ -328,8 +331,12 @@ class TestHarness:
             logfilename = logfile_base + '.txt'
             jsonlogfilename = logfile_base + '.json'
         else:
-            wrap = self.options.wrapper.split()
-            namebase = wrap[0]
+            if isinstance(self.options.wrapper, str):
+                wrap = self.options.wrapper.split()
+            else:
+                wrap = self.options.wrapper
+            assert(isinstance(wrap, list))
+            namebase = os.path.split(wrap[0])[1]
             logfilename = logfile_base + '-' + namebase.replace(' ', '_') + '.txt'
             jsonlogfilename = logfile_base + '-' + namebase.replace(' ', '_') + '.json'
         tests = self.get_tests()
@@ -453,10 +460,37 @@ def filter_tests(suite, tests):
     return [x for x in tests if suite in x.suite]
 
 
+def merge_suite_options(options):
+    buildfile = os.path.join(options.wd, 'meson-private/build.dat')
+    with open(buildfile, 'rb') as f:
+        build = pickle.load(f)
+    setups = build.test_setups
+    if options.setup not in setups:
+        sys.exit('Unknown test setup: %s' % options.setup)
+    current = setups[options.setup]
+    if not options.gdb:
+        options.gdb = current.gdb
+    if options.timeout_multiplier is None:
+        options.timeout_multiplier = current.timeout_multiplier
+#    if options.env is None:
+#        options.env = current.env # FIXME, should probably merge options here.
+    if options.wrapper is not None and current.exe_wrapper is not None:
+        sys.exit('Conflict: both test setup and command line specify an exe wrapper.')
+    if options.wrapper is None:
+        options.wrapper = current.exe_wrapper
+    return current.env
+
 def run(args):
     options = parser.parse_args(args)
     if options.benchmark:
         options.num_processes = 1
+
+    if options.setup is not None:
+        global_env = merge_suite_options(options)
+    else:
+        global_env = build.EnvironmentVariables()
+
+    setattr(options, 'global_env', global_env)
 
     if options.gdb:
         options.verbose = True

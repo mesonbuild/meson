@@ -98,6 +98,7 @@ class Build:
         self.dep_manifest_name = None
         self.dep_manifest = {}
         self.cross_stdlibs = {}
+        self.test_setups = {}
 
     def add_compiler(self, compiler):
         if self.static_linker is None and compiler.needs_static_linker():
@@ -1507,3 +1508,10 @@ class RunScript(dict):
         assert(isinstance(args, list))
         self['exe'] = script
         self['args'] = args
+
+class TestSetup:
+    def __init__(self, *, exe_wrapper=None, gdb=None, timeout_multiplier=None, env=None):
+        self.exe_wrapper = exe_wrapper
+        self.gdb = gdb
+        self.timeout_multiplier = timeout_multiplier
+        self.env = env
