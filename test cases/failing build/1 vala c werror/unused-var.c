@@ -1,3 +1,5 @@
+#warning "something"
+
 int
 somelib(void)
 {

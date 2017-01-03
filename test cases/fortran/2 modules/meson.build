@@ -1,4 +1,4 @@
 project('modules', 'fortran')
 
-e = executable('modprog', 'stuff.f95', 'prog.f95')
+e = executable('modprog', 'stuff.f90', 'prog.f90')
 test('moduletest', e)

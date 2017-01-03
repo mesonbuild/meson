@@ -33,7 +33,9 @@ lib_suffixes = ('a', 'lib', 'dll', 'dylib', 'so')
 lang_suffixes = {
     'c': ('c',),
     'cpp': ('cpp', 'cc', 'cxx', 'c++', 'hh', 'hpp', 'ipp', 'hxx'),
-    'fortran': ('f', 'f90', 'f95'),
+    # f90, f95, f03, f08 are for free-form fortran ('f90' recommended)
+    # f, for, ftn, fpp are for fixed-form fortran ('f' or 'for' recommended)
+    'fortran': ('f90', 'f95', 'f03', 'f08', 'f', 'for', 'ftn', 'fpp'),
     'd': ('d', 'di'),
     'objc': ('m',),
     'objcpp': ('mm',),
@@ -1683,9 +1685,10 @@ class GnuDCompiler(DCompiler):
     def __init__(self, exelist, version, is_cross):
         DCompiler.__init__(self, exelist, version, is_cross)
         self.id = 'gcc'
-        self.warn_args = {'1': ['-Wall', '-Wdeprecated'],
-                          '2': ['-Wall', '-Wextra', '-Wdeprecated'],
-                          '3': ['-Wall', '-Wextra', '-Wdeprecated', '-Wpedantic']}
+        default_warn_args = ['-Wall', '-Wdeprecated']
+        self.warn_args = {'1': default_warn_args,
+                          '2': default_warn_args + ['-Wextra'],
+                          '3': default_warn_args + ['-Wextra', '-Wpedantic']}
         self.base_options = ['b_colorout', 'b_sanitize', 'b_staticpic']
 
     def get_colorout_args(self, colortype):
@@ -1923,7 +1926,7 @@ class VisualStudioCCompiler(CCompiler):
 
     def gen_pch_args(self, header, source, pchname):
         objname = os.path.splitext(pchname)[0] + '.obj'
-        return (objname, ['/Yc' + header, '/Fp' + pchname, '/Fo' + objname ])
+        return (objname, ['/Yc' + header, '/Fp' + pchname, '/Fo' + objname])
 
     def gen_import_library_args(self, implibname):
         "The name of the outputted import library"
@@ -2064,6 +2067,10 @@ CLANG_OSX = 1
 CLANG_WIN = 2
 # Possibly clang-cl?
 
+ICC_STANDARD = 0
+ICC_OSX = 1
+ICC_WIN = 2
+
 def get_gcc_soname_args(gcc_type, prefix, shlib_name, suffix, path, soversion, is_shared_module):
     if soversion is None:
         sostr = ''
@@ -2148,9 +2155,10 @@ class GnuCCompiler(GnuCompiler, CCompiler):
     def __init__(self, exelist, version, gcc_type, is_cross, exe_wrapper=None, defines=None):
         CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
         GnuCompiler.__init__(self, gcc_type, defines)
-        self.warn_args = {'1': ['-Wall', '-Winvalid-pch'],
-                          '2': ['-Wall', '-Wextra', '-Winvalid-pch'],
-                          '3': ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch']}
+        default_warn_args = ['-Wall', '-Winvalid-pch']
+        self.warn_args = {'1': default_warn_args,
+                          '2': default_warn_args + ['-Wextra'],
+                          '3': default_warn_args + ['-Wextra', '-Wpedantic']}
 
     def get_options(self):
         opts = {'c_std': coredata.UserComboOption('c_std', 'C language standard to use',
@@ -2184,9 +2192,10 @@ class GnuCPPCompiler(GnuCompiler, CPPCompiler):
     def __init__(self, exelist, version, gcc_type, is_cross, exe_wrap, defines):
         CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
         GnuCompiler.__init__(self, gcc_type, defines)
-        self.warn_args = {'1': ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor'],
-                          '2': ['-Wall', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor'],
-                          '3': ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor']}
+        default_warn_args = ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor']
+        self.warn_args = {'1': default_warn_args,
+                          '2': default_warn_args + ['-Wextra'],
+                          '3': default_warn_args + ['-Wextra', '-Wpedantic']}
 
     def get_options(self):
         opts = {'cpp_std': coredata.UserComboOption('cpp_std', 'C++ language standard to use',
@@ -2223,6 +2232,7 @@ class GnuCPPCompiler(GnuCompiler, CPPCompiler):
         # too strict without this and always fails.
         return self.get_no_optimization_args() + ['-fpermissive']
 
+
 class GnuObjCCompiler(GnuCompiler, ObjCCompiler):
 
     def __init__(self, exelist, version, is_cross, exe_wrapper=None, defines=None):
@@ -2230,9 +2240,10 @@ class GnuObjCCompiler(GnuCompiler, ObjCCompiler):
         # Not really correct, but GNU objc is only used on non-OSX non-win. File a bug
         # if this breaks your use case.
         GnuCompiler.__init__(self, GCC_STANDARD, defines)
-        self.warn_args = {'1': ['-Wall', '-Winvalid-pch'],
-                          '2': ['-Wall', '-Wextra', '-Winvalid-pch'],
-                          '3': ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch']}
+        default_warn_args = ['-Wall', '-Winvalid-pch']
+        self.warn_args = {'1': default_warn_args,
+                          '2': default_warn_args + ['-Wextra'],
+                          '3': default_warn_args + ['-Wextra', '-Wpedantic']}
 
 class GnuObjCPPCompiler(GnuCompiler, ObjCPPCompiler):
 
@@ -2241,9 +2252,10 @@ class GnuObjCPPCompiler(GnuCompiler, ObjCPPCompiler):
         # Not really correct, but GNU objc is only used on non-OSX non-win. File a bug
         # if this breaks your use case.
         GnuCompiler.__init__(self, GCC_STANDARD, defines)
-        self.warn_args = {'1': ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor'],
-                          '2': ['-Wall', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor'],
-                          '3': ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor']}
+        default_warn_args = ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor']
+        self.warn_args = {'1': default_warn_args,
+                          '2': default_warn_args + ['-Wextra'],
+                          '3': default_warn_args + ['-Wextra', '-Wpedantic']}
 
     def get_compiler_check_args(self):
         # -fpermissive allows non-conforming code to compile which is necessary
@@ -2283,7 +2295,7 @@ class ClangCompiler():
         # Workaround for Clang bug http://llvm.org/bugs/show_bug.cgi?id=15136
         # This flag is internal to Clang (or at least not documented on the man page)
         # so it might change semantics at any time.
-        return ['-include-pch', os.path.join (pch_dir, self.get_pch_name (header))]
+        return ['-include-pch', os.path.join(pch_dir, self.get_pch_name(header))]
 
     def get_soname_args(self, prefix, shlib_name, suffix, path, soversion, is_shared_module):
         if self.clang_type == CLANG_STANDARD:
@@ -2321,9 +2333,10 @@ class ClangCCompiler(ClangCompiler, CCompiler):
     def __init__(self, exelist, version, clang_type, is_cross, exe_wrapper=None):
         CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
         ClangCompiler.__init__(self, clang_type)
-        self.warn_args = {'1': ['-Wall', '-Winvalid-pch'],
-                          '2': ['-Wall', '-Wextra', '-Winvalid-pch'],
-                          '3': ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch']}
+        default_warn_args = ['-Wall', '-Winvalid-pch']
+        self.warn_args = {'1': default_warn_args,
+                          '2': default_warn_args + ['-Wextra'],
+                          '3': default_warn_args + ['-Wextra', '-Wpedantic']}
 
     def get_options(self):
         return {'c_std': coredata.UserComboOption('c_std', 'C language standard to use',
@@ -2346,14 +2359,15 @@ class ClangCPPCompiler(ClangCompiler, CPPCompiler):
     def __init__(self, exelist, version, cltype, is_cross, exe_wrapper=None):
         CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
         ClangCompiler.__init__(self, cltype)
-        self.warn_args = {'1': ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor'],
-                          '2': ['-Wall', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor'],
-                          '3': ['-Wall', '-Wpedantic', '-Wextra', '-Winvalid-pch', '-Wnon-virtual-dtor']}
+        default_warn_args = ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor']
+        self.warn_args = {'1': default_warn_args,
+                          '2': default_warn_args + ['-Wextra'],
+                          '3': default_warn_args + ['-Wextra', '-Wpedantic']}
 
     def get_options(self):
         return {'cpp_std': coredata.UserComboOption('cpp_std', 'C++ language standard to use',
                                                     ['none', 'c++03', 'c++11', 'c++14', 'c++1z',
-                                                     'gnu++03', 'gnu++11', 'gnu++14', 'gnu++1z'],
+                                                     'gnu++11', 'gnu++14', 'gnu++1z'],
                                                     'none')}
 
     def get_option_compile_args(self, options):
@@ -2377,6 +2391,140 @@ class ClangObjCPPCompiler(ClangCompiler, GnuObjCPPCompiler):
         GnuObjCPPCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
         ClangCompiler.__init__(self, cltype)
         self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage']
+
+
+# Tested on linux for ICC 14.0.3, 15.0.6, 16.0.4, 17.0.1
+class IntelCompiler:
+    def __init__(self, icc_type):
+        self.id = 'intel'
+        self.icc_type = icc_type
+        self.lang_header = 'none'
+        self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage',
+                             'b_colorout', 'b_ndebug', 'b_staticpic', 'b_lundef', 'b_asneeded']
+        # Assembly
+        self.can_compile_suffixes.add('s')
+
+    def get_pic_args(self):
+        return ['-fPIC']
+
+    def get_buildtype_args(self, buildtype):
+        return gnulike_buildtype_args[buildtype]
+
+    def get_buildtype_linker_args(self, buildtype):
+        return gnulike_buildtype_linker_args[buildtype]
+
+    def get_pch_suffix(self):
+        return 'pchi'
+
+    def get_pch_use_args(self, pch_dir, header):
+        return ['-pch', '-pch_dir', os.path.join(pch_dir), '-x',
+                self.lang_header, '-include', header, '-x', 'none']
+
+    def get_pch_name(self, header_name):
+        return os.path.split(header_name)[-1] + '.' + self.get_pch_suffix()
+
+    def split_shlib_to_parts(self, fname):
+        return (os.path.split(fname)[0], fname)
+
+    def get_soname_args(self, prefix, shlib_name, suffix, path, soversion, is_shared_module):
+        if self.icc_type == ICC_STANDARD:
+            gcc_type = GCC_STANDARD
+        elif self.icc_type == ICC_OSX:
+            gcc_type = GCC_OSX
+        elif self.icc_type == ICC_WIN:
+            gcc_type = GCC_MINGW
+        else:
+            raise MesonException('Unreachable code when converting icc type to gcc type.')
+        return get_gcc_soname_args(gcc_type, prefix, shlib_name, suffix, path, soversion, is_shared_module)
+
+    def get_std_shared_lib_link_args(self):
+        # FIXME: Don't know how icc works on OSX
+        # if self.icc_type == ICC_OSX:
+        #     return ['-bundle']
+        return ['-shared']
+
+
+class IntelCCompiler(IntelCompiler, CCompiler):
+    def __init__(self, exelist, version, icc_type, is_cross, exe_wrapper=None):
+        CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
+        IntelCompiler.__init__(self, icc_type)
+        self.lang_header = 'c-header'
+        default_warn_args = ['-Wall', '-w3', '-diag-disable:remark', '-Wpch-messages']
+        self.warn_args = {'1': default_warn_args,
+                          '2': default_warn_args + ['-Wextra'],
+                          '3': default_warn_args + ['-Wextra', '-Wpedantic']}
+
+    def get_options(self):
+        c_stds = ['c89', 'c99']
+        g_stds = ['gnu89', 'gnu99']
+        if mesonlib.version_compare(self.version, '>=16.0.0'):
+            c_stds += ['c11']
+        opts = {'c_std': coredata.UserComboOption('c_std', 'C language standard to use',
+                                                  ['none'] + c_stds + g_stds,
+                                                  'none')}
+        return opts
+
+    def get_option_compile_args(self, options):
+        args = []
+        std = options['c_std']
+        if std.value != 'none':
+            args.append('-std=' + std.value)
+        return args
+
+    def get_std_shared_lib_link_args(self):
+        return ['-shared']
+
+    def has_multi_arguments(self, args, env):
+        return super(IntelCCompiler, self).has_multi_arguments(args + ['-diag-error', '10006'], env)
+
+
+class IntelCPPCompiler(IntelCompiler, CPPCompiler):
+    def __init__(self, exelist, version, icc_type, is_cross, exe_wrap):
+        CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
+        IntelCompiler.__init__(self, icc_type)
+        self.lang_header = 'c++-header'
+        default_warn_args = ['-Wall', '-w3', '-diag-disable:remark',
+                             '-Wpch-messages', '-Wnon-virtual-dtor']
+        self.warn_args = {'1': default_warn_args,
+                          '2': default_warn_args + ['-Wextra'],
+                          '3': default_warn_args + ['-Wextra', '-Wpedantic']}
+
+    def get_options(self):
+        c_stds = []
+        g_stds = ['gnu++98']
+        if mesonlib.version_compare(self.version, '>=15.0.0'):
+            c_stds += ['c++11', 'c++14']
+            g_stds += ['gnu++11']
+        if mesonlib.version_compare(self.version, '>=16.0.0'):
+            c_stds += ['c++17']
+        if mesonlib.version_compare(self.version, '>=17.0.0'):
+            g_stds += ['gnu++14']
+        opts = {'cpp_std': coredata.UserComboOption('cpp_std', 'C++ language standard to use',
+                                                    ['none'] + c_stds + g_stds,
+                                                    'none'),
+                'cpp_debugstl': coredata.UserBooleanOption('cpp_debugstl',
+                                                           'STL debug mode',
+                                                           False)}
+        return opts
+
+    def get_option_compile_args(self, options):
+        args = []
+        std = options['cpp_std']
+        if std.value != 'none':
+            args.append('-std=' + std.value)
+        if options['cpp_debugstl'].value:
+            args.append('-D_GLIBCXX_DEBUG=1')
+        return args
+
+    def get_option_link_args(self, options):
+        return []
+
+    def get_compiler_check_args(self):
+        return self.get_no_optimization_args()
+
+    def has_multi_arguments(self, args, env):
+        return super(IntelCPPCompiler, self).has_multi_arguments(args + ['-diag-error', '10006'], env)
+
 
 class FortranCompiler(Compiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
@@ -2558,12 +2706,15 @@ class SunFortranCompiler(FortranCompiler):
     def get_module_outdir_args(self, path):
         return ['-moddir=' + path]
 
-class IntelFortranCompiler(FortranCompiler):
+class IntelFortranCompiler(IntelCompiler, FortranCompiler):
     std_warn_args = ['-warn', 'all']
 
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
-        self.file_suffixes = ('f', 'f90')
-        super().__init__(exelist, version, is_cross, exe_wrapper=None)
+        self.file_suffixes = ('f90', 'f', 'for', 'ftn', 'fpp')
+        FortranCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
+        # FIXME: Add support for OS X and Windows in detect_fortran_compiler so
+        # we are sent the type of compiler
+        IntelCompiler.__init__(self, ICC_STANDARD)
         self.id = 'intel'
 
     def get_module_outdir_args(self, path):
@@ -2625,15 +2776,13 @@ class NAGFortranCompiler(FortranCompiler):
     def get_module_outdir_args(self, path):
         return ['-mdir', path]
 
-    def get_always_args(self):
-        return []
-
     def get_warn_args(self, level):
         return NAGFortranCompiler.std_warn_args
 
 
 class VisualStudioLinker():
     always_args = ['/NOLOGO']
+
     def __init__(self, exelist):
         self.exelist = exelist
 

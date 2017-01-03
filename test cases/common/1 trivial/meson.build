@@ -6,6 +6,11 @@ project('trivial test',
 #this is a comment
 sources = 'trivial.c'
 
+if meson.get_compiler('c').get_id() == 'intel'
+  # Error out if the -std=xxx option is incorrect
+  add_project_arguments('-diag-error', '10159', language : 'c')
+endif
+
 exe = executable('trivialprog', sources : sources)
 
 test('runtest', exe) # This is a comment

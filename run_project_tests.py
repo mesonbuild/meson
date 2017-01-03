@@ -58,6 +58,11 @@ class AutoDeletedDir():
             try:
                 shutil.rmtree(self.dir)
                 return
+            # Sometimes we get: ValueError: I/O operation on closed file.
+            except ValueError:
+                return
+            # Deleting can raise OSError or PermissionError on Windows
+            # (most likely because of anti-virus locking the file)
             except (OSError, PermissionError):
                 if i == retries - 1:
                     mlog.warning('Could not delete temporary directory.')
