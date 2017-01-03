@@ -593,15 +593,15 @@ can not be used with the current version of glib-compiled-resources, due to
                    '--id=' + project_id,
                    '--sources=' + source_str]
         pottarget = build.RunTarget('help-' + project_id + '-pot', sys.executable,
-                                     potargs, [], state.subdir)
+                                    potargs, [], state.subdir)
 
         poargs = [state.environment.get_build_command(), '--internal', 'yelphelper', 'update-po',
-                   '--subdir=' + state.subdir,
-                   '--id=' + project_id,
-                   '--sources=' + source_str,
-                   '--langs=' + '@@'.join(langs)]
+                  '--subdir=' + state.subdir,
+                  '--id=' + project_id,
+                  '--sources=' + source_str,
+                  '--langs=' + '@@'.join(langs)]
         potarget = build.RunTarget('help-' + project_id + '-update-po', sys.executable,
-                                     poargs, [], state.subdir)
+                                   poargs, [], state.subdir)
 
         return [inscript, pottarget, potarget]
 
@@ -1015,8 +1015,7 @@ can not be used with the current version of glib-compiled-resources, due to
         for i in inputs:
             if isinstance(i, str):
                 cmd.append(os.path.join(source_dir, i))
-            elif hasattr(i, 'held_object') \
-                 and isinstance(i.held_object, GirTarget):
+            elif hasattr(i, 'held_object') and isinstance(i.held_object, GirTarget):
                 link_with += self._get_vapi_link_with(i.held_object)
                 subdir = os.path.join(state.environment.get_build_dir(),
                                       i.held_object.get_subdir())

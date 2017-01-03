@@ -133,9 +133,9 @@ class Resolver:
                 is_there = True
             except subprocess.CalledProcessError:
                 raise RuntimeError('%s is not empty but is not a valid '
-                                    'git repository, we can not work with it'
-                                    ' as a subproject directory.' % (
-                                        checkoutdir))
+                                   'git repository, we can not work with it'
+                                   ' as a subproject directory.' % (
+                                       checkoutdir))
 
             if revno.lower() == 'head':
                 # Failure to do pull is not a fatal error,

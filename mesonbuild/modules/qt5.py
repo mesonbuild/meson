@@ -46,7 +46,7 @@ class Qt5Module():
                 moc_ver = stdout
             else:
                 raise MesonException('Moc preprocessor is not for Qt 5. Output:\n%s\n%s' %
-                                          (stdout, stderr))
+                                     (stdout, stderr))
             mlog.log(' moc:', mlog.green('YES'), '(%s, %s)' % \
                      (' '.join(self.moc.fullpath), moc_ver.split()[-1]))
         else:
@@ -61,7 +61,7 @@ class Qt5Module():
                 uic_ver = stdout
             else:
                 raise MesonException('Uic compiler is not for Qt 5. Output:\n%s\n%s' %
-                                          (stdout, stderr))
+                                     (stdout, stderr))
             mlog.log(' uic:', mlog.green('YES'), '(%s, %s)' % \
                      (' '.join(self.uic.fullpath), uic_ver.split()[-1]))
         else:
@@ -76,7 +76,7 @@ class Qt5Module():
                 rcc_ver = stdout
             else:
                 raise MesonException('Rcc compiler is not for Qt 5. Output:\n%s\n%s' %
-                                          (stdout, stderr))
+                                     (stdout, stderr))
             mlog.log(' rcc:', mlog.green('YES'), '(%s, %s)'\
                      % (' '.join(self.rcc.fullpath), rcc_ver.split()[-1]))
         else:

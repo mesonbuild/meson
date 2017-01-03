@@ -44,7 +44,7 @@ class Qt4Module():
                 moc_ver = stderr
             else:
                 raise MesonException('Moc preprocessor is not for Qt 4. Output:\n%s\n%s' %
-                                          (stdout, stderr))
+                                     (stdout, stderr))
             mlog.log(' moc:', mlog.green('YES'), '(%s, %s)' % \
                      (' '.join(self.moc.fullpath), moc_ver.split()[-1]))
         else:
@@ -57,7 +57,7 @@ class Qt4Module():
                 uic_ver = stderr
             else:
                 raise MesonException('Uic compiler is not for Qt4. Output:\n%s\n%s' %
-                                          (stdout, stderr))
+                                     (stdout, stderr))
             mlog.log(' uic:', mlog.green('YES'), '(%s, %s)' % \
                      (' '.join(self.uic.fullpath), uic_ver.split()[-1]))
         else:
@@ -70,7 +70,7 @@ class Qt4Module():
                 rcc_ver = stderr
             else:
                 raise MesonException('Rcc compiler is not for Qt 4. Output:\n%s\n%s' %
-                                          (stdout, stderr))
+                                     (stdout, stderr))
             mlog.log(' rcc:', mlog.green('YES'), '(%s, %s)'\
                      % (' '.join(self.rcc.fullpath), rcc_ver.split()[-1]))
         else:
