@@ -155,6 +155,7 @@ class TestHarness:
         self.timeout_count = 0
         self.is_run = False
         self.cant_rebuild = False
+        self.failed_tests = []
         if self.options.benchmark:
             self.datafile = os.path.join(options.wd, 'meson-private/meson_benchmark_setup.dat')
         else:
