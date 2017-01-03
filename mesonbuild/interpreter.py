@@ -1140,7 +1140,8 @@ class MesonMain(InterpreterObject):
 
 class Interpreter(InterpreterBase):
 
-    def __init__(self, build, backend, subproject='', subdir='', subproject_dir='subprojects'):
+    def __init__(self, build, backend, subproject='', subdir='', subproject_dir='subprojects',
+                 default_project_options=[]):
         super().__init__(build.environment.get_source_dir(), subdir)
         self.build = build
         self.environment = build.environment
@@ -1148,12 +1149,7 @@ class Interpreter(InterpreterBase):
         self.backend = backend
         self.subproject = subproject
         self.subproject_dir = subproject_dir
-        option_file = os.path.join(self.source_root, self.subdir, 'meson_options.txt')
-        if os.path.exists(option_file):
-            oi = optinterpreter.OptionInterpreter(self.subproject, \
-                                                  self.build.environment.cmd_line_options.projectoptions)
-            oi.process(option_file)
-            self.build.environment.merge_options(oi.options)
+        self.option_file = os.path.join(self.source_root, self.subdir, 'meson_options.txt')
         self.load_root_meson_file()
         self.sanity_check_ast()
         self.builtin.update({'meson': MesonMain(build, self)})
@@ -1162,6 +1158,7 @@ class Interpreter(InterpreterBase):
         self.args_frozen = False
         self.subprojects = {}
         self.subproject_stack = []
+        self.default_project_options = default_project_options[:] # Passed from the outside, only used in subprojects.
         self.build_func_dict()
         self.parse_project()
         self.builtin['build_machine'] = BuildMachine(self.coredata.compilers)
@@ -1420,7 +1417,8 @@ class Interpreter(InterpreterBase):
         os.makedirs(os.path.join(self.build.environment.get_build_dir(), subdir), exist_ok=True)
         self.args_frozen = True
         mlog.log('\nExecuting subproject ', mlog.bold(dirname), '.\n', sep='')
-        subi = Interpreter(self.build, self.backend, dirname, subdir, self.subproject_dir)
+        subi = Interpreter(self.build, self.backend, dirname, subdir, self.subproject_dir,
+                           mesonlib.stringlistify(kwargs.get('default_options', [])))
         subi.subprojects = self.subprojects
 
         subi.subproject_stack = self.subproject_stack + [dirname]
@@ -1490,19 +1488,53 @@ class Interpreter(InterpreterBase):
                 raise InterpreterException('All default options must be of type key=value.')
             key, value = option.split('=', 1)
             if coredata.is_builtin_option(key):
+                if self.subproject != '':
+                    continue # Only the master project is allowed to set global options.
                 if not self.environment.had_argument_for(key):
                     self.coredata.set_builtin_option(key, value)
                 # If this was set on the command line, do not override.
             else:
+                # Option values set with subproject() default_options override those
+                # set in project() default_options.
+                pref = key + '='
+                for i in self.default_project_options:
+                    if i.startswith(pref):
+                        option = i
+                        break
+                # If we are in a subproject, add the subproject prefix to option
+                # name.
+                if self.subproject != '':
+                    option = self.subproject + ':' + option
                 newoptions = [option] + self.environment.cmd_line_options.projectoptions
                 self.environment.cmd_line_options.projectoptions = newoptions
+        # Add options that are only in default_options.
+        for defopt in self.default_project_options:
+            key, value = defopt.split('=')
+            pref = key + '='
+            was_found = False
+            for i in default_options:
+                if i.startswith(pref):
+                    was_found = True
+                    break
+                if was_found:
+                    break
+            defopt = self.subproject + ':' + defopt
+            newoptions = [defopt] + self.environment.cmd_line_options.projectoptions
+            self.environment.cmd_line_options.projectoptions = newoptions
 
     @stringArgs
     def func_project(self, node, args, kwargs):
+        if self.environment.first_invocation and ('default_options' in kwargs or \
+                                                  len(self.default_project_options) > 0):
+            self.parse_default_options(kwargs['default_options'])
         if not self.is_subproject():
             self.build.project_name = args[0]
-            if self.environment.first_invocation and 'default_options' in kwargs:
-                self.parse_default_options(kwargs['default_options'])
+        if os.path.exists(self.option_file):
+            oi = optinterpreter.OptionInterpreter(self.subproject, \
+                                                  self.build.environment.cmd_line_options.projectoptions,
+                                                  )
+            oi.process(self.option_file)
+            self.build.environment.merge_options(oi.options)
         if len(args) < 2:
             raise InvalidArguments('Not enough arguments to project(). Needs at least the project name and one language')
         self.active_projectname = args[0]
@@ -1768,7 +1800,12 @@ requirements use the version keyword argument instead.''')
         dirname, varname = self.get_subproject_infos(kwargs)
         # Try to execute the subproject
         try:
-            self.do_subproject(dirname, {})
+            sp_kwargs = {}
+            try:
+                sp_kwargs['default_options'] = kwargs['default_options']
+            except KeyError:
+                pass
+            self.do_subproject(dirname, sp_kwargs)
         # Invalid code is always an error
         except InvalidCode:
             raise
