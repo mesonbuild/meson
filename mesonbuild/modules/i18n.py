@@ -16,6 +16,7 @@ from os import path
 from .. import coredata, mesonlib, build
 from ..mesonlib import MesonException
 import sys
+import shutil
 
 PRESET_ARGS = {
     'glib': [
@@ -63,6 +64,8 @@ class I18nModule:
     def gettext(self, state, args, kwargs):
         if len(args) != 1:
             raise coredata.MesonException('Gettext requires one positional argument (package name).')
+        if not shutil.which('xgettext'):
+            raise coredata.MesonException('Can not do gettext because xgettext is not installed.')
         packagename = args[0]
         languages = mesonlib.stringlistify(kwargs.get('languages', []))
         datadirs = mesonlib.stringlistify(kwargs.get('data_dirs', []))
