@@ -220,7 +220,7 @@ class Elf(DataSizes):
                 soname = i
             if i.d_tag == DT_STRTAB:
                 strtab = i
-        else:
+        if soname is None or strtab is None:
             print("This file does not have a soname")
             return
         self.bf.seek(strtab.val + soname.val)
