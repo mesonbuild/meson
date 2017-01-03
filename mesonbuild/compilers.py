@@ -2072,7 +2072,6 @@ def get_gcc_soname_args(gcc_type, prefix, shlib_name, suffix, path, soversion, i
     if gcc_type == GCC_STANDARD or gcc_type == GCC_MINGW:
         # Might not be correct for mingw but seems to work.
         return ['-Wl,-soname,%s%s.%s%s' % (prefix, shlib_name, suffix, sostr)]
-        return ['-Wl,-soname,%s%s' % (shlib_name, sostr)]
     elif gcc_type == GCC_OSX:
         if is_shared_module:
             return []

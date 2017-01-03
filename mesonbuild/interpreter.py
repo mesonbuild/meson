@@ -1787,7 +1787,6 @@ requirements use the version keyword argument instead.''')
         if not isinstance(dep, DependencyHolder):
             raise InvalidCode('Fallback variable {!r} in the subproject {!r} is '
                               'not a dependency object.'.format(varname, dirname))
-            return None
         # Check if the version of the declared dependency matches what we want
         if 'version' in kwargs:
             wanted = kwargs['version']
