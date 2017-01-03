@@ -2553,7 +2553,7 @@ class SunFortranCompiler(FortranCompiler):
     def get_always_args(self):
         return []
 
-    def get_warn_args(self):
+    def get_warn_args(self, level):
         return []
 
     def get_module_outdir_args(self, path):
