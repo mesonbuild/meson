@@ -28,6 +28,7 @@ from .interpreterbase import InterpreterBase
 from .interpreterbase import check_stringlist, noPosargs, noKwargs, stringArgs
 from .interpreterbase import InterpreterException, InvalidArguments, InvalidCode
 from .interpreterbase import InterpreterObject, MutableInterpreterObject
+from .modules import ModuleReturnValue
 
 import os, sys, shutil, uuid
 import re
@@ -973,6 +974,7 @@ class ModuleHolder(InterpreterObject):
             raise InvalidArguments('Module %s does not have method %s.' % (self.modname, method_name))
         if method_name.startswith('_'):
             raise InvalidArguments('Function {!r} in module {!r} is private.'.format(method_name, self.modname))
+        build_hash = hash(self.interpreter.build)
         state = ModuleState()
         state.build_to_src = os.path.relpath(self.interpreter.environment.get_source_dir(),
                                              self.interpreter.environment.get_build_dir())
@@ -988,6 +990,8 @@ class ModuleHolder(InterpreterObject):
         state.global_args = self.interpreter.build.global_args
         state.project_args = self.interpreter.build.projects_args.get(self.interpreter.subproject, {})
         value = fn(state, args, kwargs)
+        if hash(self.interpreter.build) != build_hash:
+            raise InterpreterException('Extension module altered internal state illegally.')
         return self.interpreter.module_method_callback(value)
 
 class MesonMain(InterpreterObject):
@@ -1227,7 +1231,10 @@ class Interpreter(InterpreterBase):
                            'join_paths': self.func_join_paths,
                            })
 
-    def module_method_callback(self, invalues):
+    def module_method_callback(self, return_object):
+        if not isinstance(return_object, ModuleReturnValue):
+            raise InterpreterException('Bug in module, it returned an invalid object')
+        invalues = return_object.new_objects
         unwrap_single = False
         if invalues is None:
             return
@@ -1264,7 +1271,7 @@ class Interpreter(InterpreterBase):
                 raise InterpreterException('Module returned a value of unknown type.')
         if len(outvalues) == 1 and unwrap_single:
             return outvalues[0]
-        return outvalues
+        return return_object.return_value
 
     def get_build_def_files(self):
         return self.build_def_files
