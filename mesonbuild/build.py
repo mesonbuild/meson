@@ -726,11 +726,14 @@ class BuildTarget():
             elif isinstance(dep, dependencies.Dependency):
                 self.external_deps.append(dep)
                 self.process_sourcelist(dep.get_sources())
+            elif isinstance(dep, BuildTarget):
+                raise InvalidArguments('''Tried to use a build target as a dependency.
+You probably should put it in link_with instead.''')
             else:
                 # This is a bit of a hack. We do not want Build to know anything
                 # about the interpreter so we can't import it and use isinstance.
                 # This should be reliable enough.
-                if hasattr(dep, 'subproject'):
+                if hasattr(dep, 'args_frozen'):
                     raise InvalidArguments('Tried to use subproject object as a dependency.\n'
                                            'You probably wanted to use a dependency declared in it instead.\n'
                                            'Access it by calling get_variable() on the subproject object.')
