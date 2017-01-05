@@ -1,4 +1,4 @@
-# Copyright 2012-2016 The Meson development team
+# Copyright 2012-2017 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -163,6 +163,7 @@ class ConfigurationDataHolder(MutableInterpreterObject):
                              'set10': self.set10_method,
                              'set_quoted': self.set_quoted_method,
                              'has': self.has_method,
+                             'get': self.get_method,
                              })
 
     def is_used(self):
@@ -206,6 +207,16 @@ class ConfigurationDataHolder(MutableInterpreterObject):
 
     def has_method(self, args, kwargs):
         return args[0] in self.held_object.values
+
+    def get_method(self, args, kwargs):
+        if len(args) < 1 or len(args) > 2:
+            raise InterpreterException('Get method takes one or two arguments.')
+        name = args[0]
+        if name in self.held_object:
+            return self.held_object.get(name)[0]
+        if len(args) > 1:
+            return args[1]
+        raise InterpreterException('Entry %s not in configuration data.' % name)
 
     def get(self, name):
         return self.held_object.values[name]     # (val, desc)

@@ -7,6 +7,10 @@ conf.set('other', 'string 2')
 conf.set('second', ' bonus')
 conf.set('BE_TRUE', true)
 
+assert(conf.get('var') == 'mystring', 'Get function is not working.')
+assert(conf.get('var', 'default') == 'mystring', 'Get function is not working.')
+assert(conf.get('notthere', 'default') == 'default', 'Default value getting is not working.')
+
 cfile = configure_file(input : 'config.h.in',
 output : 'config.h',
 configuration : conf)
