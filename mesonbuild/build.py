@@ -1,4 +1,4 @@
-# Copyright 2012-2014 The Meson development team
+# Copyright 2012-2017 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -1487,8 +1487,11 @@ class ConfigurationData():
     def __repr__(self):
         return repr(self.values)
 
+    def __contains__(self, value):
+        return value in self.values
+
     def get(self, name):
-        return self.values[name]                 # (val, desc)
+        return self.values[name] # (val, desc)
 
     def keys(self):
         return self.values.keys()
