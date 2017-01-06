@@ -1405,7 +1405,7 @@ class Interpreter(InterpreterBase):
         for i in range(min(len(args), len(arg_types))):
             wanted = arg_types[i]
             actual = args[i]
-            if wanted != None:
+            if wanted is not None:
                 if not isinstance(actual, wanted):
                     raise InvalidArguments('Incorrect argument type.')
 
