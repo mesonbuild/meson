@@ -18,6 +18,7 @@ from .. import build
 from ..mesonlib import MesonException, Popen_safe
 from ..dependencies import Qt5Dependency
 import xml.etree.ElementTree as ET
+from . import ModuleReturnValue
 
 class Qt5Module():
     tools_detected = False
@@ -159,7 +160,7 @@ class Qt5Module():
             moc_gen = build.Generator([self.moc], moc_kwargs)
             moc_output = moc_gen.process_files('Qt5 moc source', moc_sources, state)
             sources.append(moc_output)
-        return sources
+        return ModuleReturnValue(sources, sources)
 
 def initialize():
     mlog.warning('rcc dependencies will not work reliably until this upstream issue is fixed:',

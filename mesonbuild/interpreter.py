@@ -420,11 +420,9 @@ class Headers(InterpreterObject):
         return self.custom_install_dir
 
 class DataHolder(InterpreterObject):
-    def __init__(self, sources, install_dir):
+    def __init__(self, data):
         super().__init__()
-        if not isinstance(install_dir, str):
-            raise InterpreterException('Custom_install_dir must be a string.')
-        self.held_object = build.Data(sources, install_dir)
+        self.held_object = data
 
     def get_source_subdir(self):
         return self.held_object.source_subdir
@@ -1231,6 +1229,29 @@ class Interpreter(InterpreterBase):
                            'join_paths': self.func_join_paths,
                            })
 
+    def holderify(self, item):
+        if isinstance(item, list):
+            return [self.holderify(x) for x in item]
+        if isinstance(item, build.CustomTarget):
+            return CustomTargetHolder(item, self)
+        elif isinstance(item, (int, str)) or item is None:
+            return item
+        elif isinstance(item, build.Executable):
+            return ExecutableHolder(item, self)
+        elif isinstance(item, build.GeneratedList):
+            return GeneratedListHolder(item)
+        elif isinstance(item, build.RunTarget):
+            raise RuntimeError('This is not a pipe.')
+        elif isinstance(item, build.RunScript):
+            raise RuntimeError('Do not do this.')
+        elif isinstance(item, build.Data):
+            return DataHolder(item)
+        elif isinstance(item, dependencies.InternalDependency):
+            return InternalDependencyHolder(item)
+        else:
+            print(item)
+            raise InterpreterException('Module returned a value of unknown type.')
+
     def module_method_callback(self, return_object):
         if not isinstance(return_object, ModuleReturnValue):
             raise InterpreterException('Bug in module, it returned an invalid object')
@@ -1271,7 +1292,7 @@ class Interpreter(InterpreterBase):
                 raise InterpreterException('Module returned a value of unknown type.')
         if len(outvalues) == 1 and unwrap_single:
             return outvalues[0]
-        return return_object.return_value
+        return self.holderify(return_object.return_value)
 
     def get_build_def_files(self):
         return self.build_def_files
@@ -2109,7 +2130,7 @@ requirements use the version keyword argument instead.''')
                 source_strings.append(s)
         sources += self.source_strings_to_files(source_strings)
         install_dir = kwargs.get('install_dir', None)
-        data = DataHolder(sources, install_dir)
+        data = DataHolder(build.Data(sources, install_dir))
         self.build.data.append(data.held_object)
         return data
 
@@ -2169,7 +2190,7 @@ requirements use the version keyword argument instead.''')
         idir = kwargs.get('install_dir', None)
         if isinstance(idir, str):
             cfile = mesonlib.File.from_built_file(ofile_path, ofile_fname)
-            self.build.data.append(DataHolder([cfile], idir).held_object)
+            self.build.data.append(build.Data([cfile], idir))
         return mesonlib.File.from_built_file(self.subdir, output)
 
     @stringArgs
