@@ -194,7 +194,7 @@ class PkgConfigDependency(Dependency):
     def _set_cargs(self):
         ret, out = self._call_pkgbin(['--cflags', self.name])
         if ret != 0:
-            raise DependencyException('Could not generate cargs for %s:\n\n%s' % \
+            raise DependencyException('Could not generate cargs for %s:\n\n%s' %
                                       (self.name, out))
         self.cargs = out.split()
 
@@ -204,7 +204,7 @@ class PkgConfigDependency(Dependency):
             libcmd.append('--static')
         ret, out = self._call_pkgbin(libcmd)
         if ret != 0:
-            raise DependencyException('Could not generate libs for %s:\n\n%s' % \
+            raise DependencyException('Could not generate libs for %s:\n\n%s' %
                                       (self.name, out))
         self.libs = []
         for lib in out.split():
@@ -332,7 +332,7 @@ class WxDependency(Dependency):
             version_req = kwargs.get('version', None)
             if version_req is not None:
                 if not version_compare(self.modversion, version_req, strict=True):
-                    mlog.log('Wxwidgets version %s does not fullfill requirement %s' %\
+                    mlog.log('Wxwidgets version %s does not fullfill requirement %s' %
                              (self.modversion, version_req))
                     return
             mlog.log('Dependency wxwidgets found:', mlog.green('YES'))

@@ -90,7 +90,7 @@ class Backend():
     def get_target_filename(self, t):
         if isinstance(t, build.CustomTarget):
             if len(t.get_outputs()) != 1:
-                mlog.warning('custom_target {!r} has more than one output! ' \
+                mlog.warning('custom_target {!r} has more than one output! '
                              'Using the first one.'.format(t.name))
             filename = t.get_outputs()[0]
         else:
@@ -177,7 +177,7 @@ class Backend():
         return result
 
     def relpath(self, todir, fromdir):
-        return os.path.relpath(os.path.join('dummyprefixdir', todir),\
+        return os.path.relpath(os.path.join('dummyprefixdir', todir),
                                os.path.join('dummyprefixdir', fromdir))
 
     def flatten_object_list(self, target, proj_dir_to_build_root=''):
@@ -457,7 +457,7 @@ class Backend():
     def get_regen_filelist(self):
         '''List of all files whose alteration means that the build
         definition needs to be regenerated.'''
-        deps = [os.path.join(self.build_to_src, df) \
+        deps = [os.path.join(self.build_to_src, df)
                 for df in self.interpreter.get_build_def_files()]
         if self.environment.is_cross_build():
             deps.append(os.path.join(self.build_to_src,
@@ -548,7 +548,7 @@ class Backend():
         if not absolute_outputs:
             ofilenames = [os.path.join(self.get_target_dir(target), i) for i in target.output]
         else:
-            ofilenames = [os.path.join(self.environment.get_build_dir(), self.get_target_dir(target), i) \
+            ofilenames = [os.path.join(self.environment.get_build_dir(), self.get_target_dir(target), i)
                           for i in target.output]
         srcs = self.get_custom_target_sources(target)
         outdir = self.get_target_dir(target)
