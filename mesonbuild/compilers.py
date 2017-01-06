@@ -325,9 +325,9 @@ class RunResult():
 
 class Compiler():
     def __init__(self, exelist, version):
-        if type(exelist) == type(''):
+        if isinstance(exelist, str):
             self.exelist = [exelist]
-        elif type(exelist) == type([]):
+        elif isinstance(exelist, list):
             self.exelist = exelist
         else:
             raise TypeError('Unknown argument to Compiler')
