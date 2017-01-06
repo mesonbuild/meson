@@ -972,7 +972,9 @@ class ModuleHolder(InterpreterObject):
             raise InvalidArguments('Module %s does not have method %s.' % (self.modname, method_name))
         if method_name.startswith('_'):
             raise InvalidArguments('Function {!r} in module {!r} is private.'.format(method_name, self.modname))
-        build_hash = hash(self.interpreter.build)
+        # This is not 100% reliable but we can't use hash()
+        # because the Build object contains dicts and lists.
+        num_targets = len(self.interpreter.build.targets)
         state = ModuleState()
         state.build_to_src = os.path.relpath(self.interpreter.environment.get_source_dir(),
                                              self.interpreter.environment.get_build_dir())
@@ -988,7 +990,7 @@ class ModuleHolder(InterpreterObject):
         state.global_args = self.interpreter.build.global_args
         state.project_args = self.interpreter.build.projects_args.get(self.interpreter.subproject, {})
         value = fn(state, args, kwargs)
-        if hash(self.interpreter.build) != build_hash:
+        if num_targets != len(self.interpreter.build.targets):
             raise InterpreterException('Extension module altered internal state illegally.')
         return self.interpreter.module_method_callback(value)
 
@@ -1252,32 +1254,16 @@ class Interpreter(InterpreterBase):
             print(item)
             raise InterpreterException('Module returned a value of unknown type.')
 
-    def module_method_callback(self, return_object):
-        if not isinstance(return_object, ModuleReturnValue):
-            raise InterpreterException('Bug in module, it returned an invalid object')
-        invalues = return_object.new_objects
-        unwrap_single = False
-        if invalues is None:
-            return
+    def process_new_values(self, invalues):
         if not isinstance(invalues, list):
-            unwrap_single = True
             invalues = [invalues]
-        outvalues = []
         for v in invalues:
-            if isinstance(v, build.CustomTarget):
+            if isinstance(v, (build.BuildTarget, build.CustomTarget, build.RunTarget)):
                 self.add_target(v.name, v)
-                outvalues.append(CustomTargetHolder(v, self))
-            elif isinstance(v, (int, str)):
-                outvalues.append(v)
-            elif isinstance(v, build.Executable):
-                self.add_target(v.name, v)
-                outvalues.append(ExecutableHolder(v, self))
             elif isinstance(v, list):
-                outvalues.append(self.module_method_callback(v))
+                self.module_method_callback(v)
             elif isinstance(v, build.GeneratedList):
-                outvalues.append(GeneratedListHolder(v))
-            elif isinstance(v, build.RunTarget):
-                self.add_target(v.name, v)
+                pass
             elif isinstance(v, build.RunScript):
                 self.build.install_scripts.append(v)
             elif isinstance(v, build.Data):
@@ -1285,13 +1271,17 @@ class Interpreter(InterpreterBase):
             elif isinstance(v, dependencies.InternalDependency):
                 # FIXME: This is special cased and not ideal:
                 # The first source is our new VapiTarget, the rest are deps
-                self.module_method_callback(v.sources[0])
-                outvalues.append(InternalDependencyHolder(v))
+                self.process_new_values(v.sources[0])
             else:
-                print(v)
                 raise InterpreterException('Module returned a value of unknown type.')
-        if len(outvalues) == 1 and unwrap_single:
-            return outvalues[0]
+
+    def module_method_callback(self, return_object):
+        if not isinstance(return_object, ModuleReturnValue):
+            print(return_object)
+            assert(False)
+            raise InterpreterException('Bug in module, it returned an invalid object')
+        invalues = return_object.new_objects
+        self.process_new_values(invalues)
         return self.holderify(return_object.return_value)
 
     def get_build_def_files(self):

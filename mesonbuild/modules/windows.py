@@ -15,6 +15,8 @@
 from .. import mesonlib, dependencies, build
 from ..mesonlib import MesonException
 from . import get_include_args
+from . import ModuleReturnValue
+
 import os
 
 class WindowsModule:
@@ -54,7 +56,7 @@ class WindowsModule:
                       'arguments': res_args}
         res_gen = build.Generator([rescomp], res_kwargs)
         res_output = res_gen.process_files('Windows resource', args, state)
-        return res_output
+        return ModuleReturnValue(res_output, [res_output])
 
 def initialize():
     return WindowsModule()
