@@ -88,6 +88,7 @@ class AstInterpreter(interpreterbase.InterpreterBase):
                            'set_variable': self.func_set_variable,
                            'get_variable': self.func_get_variable,
                            'is_variable': self.func_is_variable,
+                           'query_exists': self.func_do_nothing
                            })
 
     def func_do_nothing(self, node, args, kwargs):
