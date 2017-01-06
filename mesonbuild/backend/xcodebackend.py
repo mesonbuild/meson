@@ -405,7 +405,7 @@ class XCodeBackend(backends.Backend):
             self.write_line('%s /* %s */ = {' % (idval, tname))
             self.indent_level += 1
             self.write_line('isa = PBXNativeTarget;')
-            self.write_line('buildConfigurationList = %s /* Build configuration list for PBXNativeTarget "%s" */;'\
+            self.write_line('buildConfigurationList = %s /* Build configuration list for PBXNativeTarget "%s" */;'
                             % (self.buildconflistmap[tname], tname))
             self.write_line('buildPhases = (')
             self.indent_level += 1

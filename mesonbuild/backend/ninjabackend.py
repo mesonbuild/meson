@@ -92,9 +92,10 @@ class NinjaBuildElement():
 
     def write(self, outfile):
         self.check_outputs()
-        line = 'build %s: %s %s' % (' '.join([ninja_quote(i) for i in self.outfilenames]),\
-                                    self.rule,
-                                    ' '.join([ninja_quote(i) for i in self.infilenames]))
+        line = 'build %s: %s %s' % (
+            ' '.join([ninja_quote(i) for i in self.outfilenames]),
+            self.rule,
+            ' '.join([ninja_quote(i) for i in self.infilenames]))
         if len(self.deps) > 0:
             line += ' | ' + ' '.join([ninja_quote(x) for x in self.deps])
         if len(self.orderdeps) > 0:
@@ -558,12 +559,12 @@ int dummy;
         if gcovr_exe:
             added_rule = True
             elem = NinjaBuildElement(self.all_outputs, 'coverage-xml', 'CUSTOM_COMMAND', '')
-            elem.add_item('COMMAND', [gcovr_exe, '-x', '-r', self.environment.get_source_dir(),\
+            elem.add_item('COMMAND', [gcovr_exe, '-x', '-r', self.environment.get_source_dir(),
                                       '-o', os.path.join(self.environment.get_log_dir(), 'coverage.xml')])
             elem.add_item('DESC', 'Generating XML coverage report.')
             elem.write(outfile)
             elem = NinjaBuildElement(self.all_outputs, 'coverage-text', 'CUSTOM_COMMAND', '')
-            elem.add_item('COMMAND', [gcovr_exe, '-r', self.environment.get_source_dir(),\
+            elem.add_item('COMMAND', [gcovr_exe, '-r', self.environment.get_source_dir(),
                                       '-o', os.path.join(self.environment.get_log_dir(), 'coverage.txt')])
             elem.add_item('DESC', 'Generating text coverage report.')
             elem.write(outfile)
@@ -574,10 +575,10 @@ int dummy;
             phony_elem = NinjaBuildElement(self.all_outputs, 'coverage-html', 'phony', os.path.join(htmloutdir, 'index.html'))
             phony_elem.write(outfile)
             elem = NinjaBuildElement(self.all_outputs, os.path.join(htmloutdir, 'index.html'), 'CUSTOM_COMMAND', '')
-            command = [lcov_exe, '--directory', self.environment.get_build_dir(),\
-                       '--capture', '--output-file', covinfo, '--no-checksum',\
-                       '&&', genhtml_exe, '--prefix', self.environment.get_build_dir(),\
-                       '--output-directory', htmloutdir, '--title', 'Code coverage',\
+            command = [lcov_exe, '--directory', self.environment.get_build_dir(),
+                       '--capture', '--output-file', covinfo, '--no-checksum',
+                       '&&', genhtml_exe, '--prefix', self.environment.get_build_dir(),
+                       '--output-directory', htmloutdir, '--title', 'Code coverage',
                        '--legend', '--show-details', covinfo]
             elem.add_item('COMMAND', command)
             elem.add_item('DESC', 'Generating HTML coverage report.')
@@ -1235,9 +1236,9 @@ int dummy;
 '''
         else:
             command_templ = ' command = %s $LINK_ARGS %s $in\n'
-        command = command_templ %\
-        (' '.join(static_linker.get_exelist()),
-         ' '.join(static_linker.get_output_args('$out')))
+        command = command_templ % (
+            ' '.join(static_linker.get_exelist()),
+            ' '.join(static_linker.get_output_args('$out')))
         description = ' description = Static linking library $out\n\n'
         outfile.write(rule)
         outfile.write(command)
@@ -1274,10 +1275,10 @@ int dummy;
 '''
                 else:
                     command_template = ' command = %s %s $ARGS  %s $in $LINK_ARGS $aliasing\n'
-                command = command_template % \
-                (' '.join(compiler.get_linker_exelist()),\
-                 ' '.join(cross_args),\
-                 ' '.join(compiler.get_linker_output_args('$out')))
+                command = command_template % (
+                    ' '.join(compiler.get_linker_exelist()),
+                    ' '.join(cross_args),
+                    ' '.join(compiler.get_linker_output_args('$out')))
                 description = ' description = Linking target $out'
                 outfile.write(rule)
                 outfile.write(command)
@@ -1449,12 +1450,12 @@ rule FORTRAN_DEP_HACK
 '''
         else:
             command_template = ' command = %s %s $ARGS %s %s %s $in\n'
-        command = command_template % \
-            (' '.join([ninja_quote(i) for i in compiler.get_exelist()]),\
-             ' '.join(cross_args),
-             ' '.join(quoted_depargs),\
-             ' '.join(compiler.get_output_args('$out')),\
-             ' '.join(compiler.get_compile_only_args()))
+        command = command_template % (
+            ' '.join([ninja_quote(i) for i in compiler.get_exelist()]),
+            ' '.join(cross_args),
+            ' '.join(quoted_depargs),
+            ' '.join(compiler.get_output_args('$out')),
+            ' '.join(compiler.get_compile_only_args()))
         description = ' description = Compiling %s object $out\n' % langname
         if compiler.get_id() == 'msvc':
             deps = ' deps = msvc\n'
@@ -1492,12 +1493,12 @@ rule FORTRAN_DEP_HACK
             output = ''
         else:
             output = ' '.join(compiler.get_output_args('$out'))
-        command = " command = %s %s $ARGS %s %s %s $in\n" % \
-            (' '.join(compiler.get_exelist()),\
-             ' '.join(cross_args),\
-             ' '.join(quoted_depargs),\
-             output,\
-             ' '.join(compiler.get_compile_only_args()))
+        command = " command = %s %s $ARGS %s %s %s $in\n" % (
+            ' '.join(compiler.get_exelist()),
+            ' '.join(cross_args),
+            ' '.join(quoted_depargs),
+            output,
+            ' '.join(compiler.get_compile_only_args()))
         description = ' description = Precompiling header %s\n' % '$in'
         if compiler.get_id() == 'msvc':
             deps = ' deps = msvc\n'
@@ -1564,7 +1565,7 @@ rule FORTRAN_DEP_HACK
                 depfilename = generator.get_dep_outname(infilename)
                 depfile = os.path.join(self.get_target_private_dir(target), depfilename)
                 args = [x.replace('@DEPFILE@', depfile)  for x in base_args]
-            args = [x.replace("@INPUT@", infilename).replace('@OUTPUT@', sole_output)\
+            args = [x.replace("@INPUT@", infilename).replace('@OUTPUT@', sole_output)
                     for x in args]
             args = self.replace_outputs(args, self.get_target_private_dir(target), outfilelist)
             # We have consumed output files, so drop them from the list of remaining outputs.
@@ -2062,7 +2063,7 @@ rule FORTRAN_DEP_HACK
                 if isinstance(d, build.StaticLibrary):
                     for dep in d.get_external_deps():
                         commands += dep.get_link_args()
-        commands += linker.build_rpath_args(self.environment.get_build_dir(),\
+        commands += linker.build_rpath_args(self.environment.get_build_dir(),
                                             self.determine_rpath_dirs(target), target.install_rpath)
         custom_target_libraries = self.get_custom_target_provided_libraries(target)
         commands += extra_args

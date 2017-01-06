@@ -1329,7 +1329,7 @@ class Interpreter(InterpreterBase):
                 try:
                     di = mesonlib.stringlistify(cross_info.get_stdlib(l))
                     if len(di) != 2:
-                        raise InterpreterException('Stdlib definition for %s should have exactly two elements.' \
+                        raise InterpreterException('Stdlib definition for %s should have exactly two elements.'
                                                    % l)
                     projname, depname = di
                     subproj = self.do_subproject(projname, {})
@@ -1574,13 +1574,13 @@ class Interpreter(InterpreterBase):
 
     @stringArgs
     def func_project(self, node, args, kwargs):
-        if self.environment.first_invocation and ('default_options' in kwargs or \
+        if self.environment.first_invocation and ('default_options' in kwargs or
                                                   len(self.default_project_options) > 0):
             self.parse_default_options(kwargs['default_options'])
         if not self.is_subproject():
             self.build.project_name = args[0]
         if os.path.exists(self.option_file):
-            oi = optinterpreter.OptionInterpreter(self.subproject, \
+            oi = optinterpreter.OptionInterpreter(self.subproject,
                                                   self.build.environment.cmd_line_options.projectoptions,
                                                   )
             oi.process(self.option_file)
@@ -2118,7 +2118,7 @@ requirements use the version keyword argument instead.''')
         prev_subdir = self.subdir
         subdir = os.path.join(prev_subdir, args[0])
         if subdir in self.visited_subdirs:
-            raise InvalidArguments('Tried to enter directory "%s", which has already been visited.'\
+            raise InvalidArguments('Tried to enter directory "%s", which has already been visited.'
                                    % subdir)
         self.visited_subdirs[subdir] = True
         self.subdir = subdir
@@ -2378,7 +2378,7 @@ requirements use the version keyword argument instead.''')
         if name == '':
             raise InterpreterException('Target name must not be empty.')
         if name in coredata.forbidden_target_names:
-            raise InvalidArguments('Target name "%s" is reserved for Meson\'s internal use. Please rename.'\
+            raise InvalidArguments('Target name "%s" is reserved for Meson\'s internal use. Please rename.'
                                    % name)
         # To permit an executable and a shared library to have the
         # same name, such as "foo.exe" and "libfoo.a".
