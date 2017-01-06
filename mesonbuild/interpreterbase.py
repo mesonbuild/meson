@@ -403,19 +403,19 @@ class InterpreterBase:
         (posargs, _) = self.reduce_arguments(args)
         if method_name == 'to_string':
             if len(posargs) == 0:
-                if obj == True:
+                if obj:
                     return 'true'
                 else:
                     return 'false'
             elif len(posargs) == 2 and isinstance(posargs[0], str) and isinstance(posargs[1], str):
-                if obj == True:
+                if obj:
                     return posargs[0]
                 else:
                     return posargs[1]
             else:
                 raise InterpreterException('bool.to_string() must have either no arguments or exactly two string arguments that signify what values to return for true and false.')
         elif method_name == 'to_int':
-            if obj == True:
+            if obj:
                 return 1
             else:
                 return 0
