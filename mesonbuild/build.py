@@ -1062,7 +1062,7 @@ class SharedLibrary(BuildTarget):
         # If the user already provided the prefix and suffix to us, we don't
         # need to do any filename suffix/prefix detection.
         # NOTE: manual prefix/suffix override is currently only tested for C/C++
-        if self.prefix != None and self.suffix != None:
+        if self.prefix is not None and self.suffix is not None:
             pass
         # C# and Mono
         elif 'cs' in self.compilers:
@@ -1117,9 +1117,9 @@ class SharedLibrary(BuildTarget):
             else:
                 # No versioning, libfoo.so
                 self.filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
-        if self.prefix == None:
+        if self.prefix is None:
             self.prefix = prefix
-        if self.suffix == None:
+        if self.suffix is None:
             self.suffix = suffix
         self.filename = self.filename_tpl.format(self)
 
