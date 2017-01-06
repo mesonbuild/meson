@@ -1306,13 +1306,13 @@ class Interpreter(InterpreterBase):
 
     @stringArgs
     def func_query_exists(self, node, args, kwargs):
-        check_files = kwargs.get('check_files',True)
-        check_folders = kwargs.get('check_folders',True)
+        check_files = kwargs.get('check_files', True)
+        check_folders = kwargs.get('check_folders', True)
         for fname in args:
             fullpath = os.path.join(self.environment.source_dir, self.subdir, fname)
             if (check_files and os.path.isfile(fullpath)) or (check_folders and os.path.isdir(fullpath)):
                 return fname
-        if (kwargs.get('fail',True)):
+        if (kwargs.get('fail', True)):
             error_string = 'None of these paths do exist:\n'
             for fname in args:
                 error_string += '\t{:s}\n'.format(fname)
