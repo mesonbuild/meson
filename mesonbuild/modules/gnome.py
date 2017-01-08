@@ -255,7 +255,6 @@ can not be used with the current version of glib-compiled-resources, due to
 
         return dep_files, depends, subdirs
 
-
     def _get_link_args(self, state, lib, depends=None, include_rpath=False):
         if gir_has_extra_lib_arg():
             link_command = ['--extra-library=%s' % lib.name]

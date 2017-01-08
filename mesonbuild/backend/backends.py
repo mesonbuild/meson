@@ -441,7 +441,6 @@ class Backend():
             arr.append(ts)
         pickle.dump(arr, datafile)
 
-
     def generate_depmf_install(self, d):
         if self.build.dep_manifest_name is None:
             return
