@@ -12,13 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import sys
+import shutil
+
 from os import path
 from .. import coredata, mesonlib, build
 from ..mesonlib import MesonException
 from . import ModuleReturnValue
-
-import sys
-import shutil
+from . import ExtensionModule
 
 PRESET_ARGS = {
     'glib': [
@@ -46,7 +47,7 @@ PRESET_ARGS = {
     ]
 }
 
-class I18nModule:
+class I18nModule(ExtensionModule):
 
     def merge_file(self, state, args, kwargs):
         podir = kwargs.pop('po_dir', None)

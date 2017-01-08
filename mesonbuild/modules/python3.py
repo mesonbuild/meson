@@ -12,13 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .. import coredata, build
 from .. import mesonlib
-import os
 
-class Python3Module:
+from . import ExtensionModule
 
-    def extension_module(self, state, args, kwargs):
+class Python3Module(ExtensionModule):
+    def __init__(self):
+        super().__init__()
+        self.snippets.add('extension_module')
+
+    def extension_module(self, interpreter, state, args, kwargs):
         if 'name_prefix' in kwargs:
             raise mesonlib.MesonException('Name_prefix is set automatically, specifying it is forbidden.')
         if 'name_suffix' in kwargs:
@@ -34,7 +37,7 @@ class Python3Module:
             suffix = []
         kwargs['name_prefix'] = ''
         kwargs['name_suffix'] = suffix
-        return state.interpreter.func_shared_module(None, args, kwargs)
+        return interpreter.func_shared_module(None, args, kwargs)
 
 def initialize():
     return Python3Module()

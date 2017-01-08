@@ -12,14 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+
 from .. import build
 from .. import mesonlib
 from .. import mlog
 from . import ModuleReturnValue
+from . import ExtensionModule
 
-import os
 
-class PkgConfigModule:
+class PkgConfigModule(ExtensionModule):
 
     def _get_lname(self, l, msg, pcfile):
         # Nothing special

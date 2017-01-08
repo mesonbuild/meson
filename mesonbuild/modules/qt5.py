@@ -17,10 +17,11 @@ from .. import mlog
 from .. import build
 from ..mesonlib import MesonException, Popen_safe
 from ..dependencies import Qt5Dependency
+from . import ExtensionModule
 import xml.etree.ElementTree as ET
 from . import ModuleReturnValue
 
-class Qt5Module():
+class Qt5Module(ExtensionModule):
     tools_detected = False
 
     def _detect_tools(self, env):

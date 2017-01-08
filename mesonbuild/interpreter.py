@@ -359,11 +359,11 @@ class BuildMachine(InterpreterObject):
                                                    environment.detect_cpu_family(self.compilers),
                                                    environment.detect_cpu(self.compilers),
                                                    sys.byteorder)
-        self.methods.update({'system' : self.system_method,
-                             'cpu_family' : self.cpu_family_method,
-                             'cpu' : self.cpu_method,
-                             'endian' : self.endian_method,
-                            })
+        self.methods.update({'system': self.system_method,
+                             'cpu_family': self.cpu_family_method,
+                             'cpu': self.cpu_method,
+                             'endian': self.endian_method,
+                             })
 
     def cpu_family_method(self, args, kwargs):
         return self.held_object.cpu_family
@@ -392,11 +392,11 @@ class CrossMachineInfo(InterpreterObject):
                                                    cross_info['cpu_family'],
                                                    cross_info['cpu'],
                                                    cross_info['endian'])
-        self.methods.update({'system' : self.system_method,
-                             'cpu' : self.cpu_method,
-                             'cpu_family' : self.cpu_family_method,
-                             'endian' : self.endian_method,
-                            })
+        self.methods.update({'system': self.system_method,
+                             'cpu': self.cpu_method,
+                             'cpu_family': self.cpu_family_method,
+                             'endian': self.endian_method,
+                             })
 
     def cpu_family_method(self, args, kwargs):
         return self.held_object.cpu_family
@@ -1011,10 +1011,12 @@ class ModuleHolder(InterpreterObject):
         state.build_machine = self.interpreter.builtin['build_machine'].held_object
         state.host_machine = self.interpreter.builtin['host_machine'].held_object
         state.target_machine = self.interpreter.builtin['target_machine'].held_object
-        state.interpreter = self.interpreter
-        value = fn(state, args, kwargs)
-        if num_targets != len(self.interpreter.build.targets):
-            raise InterpreterException('Extension module altered internal state illegally.')
+        if self.held_object.is_snippet(method_name):
+            value = fn(self.interpreter, state, args, kwargs)
+        else:
+            value = fn(state, args, kwargs)
+            if num_targets != len(self.interpreter.build.targets):
+                raise InterpreterException('Extension module altered internal state illegally.')
         return self.interpreter.module_method_callback(value)
 
 class MesonMain(InterpreterObject):

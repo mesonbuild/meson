@@ -29,6 +29,7 @@ from .. import compilers
 from .. import interpreter
 from . import GResourceTarget, GResourceHeaderTarget, GirTarget, TypelibTarget, VapiTarget
 from . import find_program, get_include_args
+from . import ExtensionModule
 
 
 # gresource compilation is broken due to the way
@@ -57,7 +58,7 @@ def gir_has_extra_lib_arg():
         pass
     return _gir_has_extra_lib_arg
 
-class GnomeModule:
+class GnomeModule(ExtensionModule):
     gir_dep = None
 
     @staticmethod

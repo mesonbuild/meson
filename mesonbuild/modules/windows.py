@@ -12,14 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+
 from .. import mesonlib, dependencies, build
 from ..mesonlib import MesonException
 from . import get_include_args
 from . import ModuleReturnValue
+from . import ExtensionModule
 
-import os
-
-class WindowsModule:
+class WindowsModule(ExtensionModule):
 
     def detect_compiler(self, compilers):
         for l in ('c', 'cpp'):
