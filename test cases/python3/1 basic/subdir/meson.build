@@ -1,5 +1,4 @@
-submain = find_program('subprog.py')
-
 test('subdir',
-  submain,
+  py3,
+  args : files('subprog.py'),
   env : 'PYTHONPATH=' + meson.source_root())

@@ -1013,11 +1013,12 @@ class ModuleHolder(InterpreterObject):
         state.target_machine = self.interpreter.builtin['target_machine'].held_object
         if self.held_object.is_snippet(method_name):
             value = fn(self.interpreter, state, args, kwargs)
+            return self.interpreter.holderify(value)
         else:
             value = fn(state, args, kwargs)
             if num_targets != len(self.interpreter.build.targets):
                 raise InterpreterException('Extension module altered internal state illegally.')
-        return self.interpreter.module_method_callback(value)
+            return self.interpreter.module_method_callback(value)
 
 class MesonMain(InterpreterObject):
     def __init__(self, build, interpreter):
@@ -1275,8 +1276,11 @@ class Interpreter(InterpreterBase):
             return DataHolder(item)
         elif isinstance(item, dependencies.InternalDependency):
             return InternalDependencyHolder(item)
+        elif isinstance(item, dependencies.ExternalProgram):
+            return ExternalProgramHolder(item)
+        elif hasattr(item, 'held_object'):
+            return item
         else:
-            print(item)
             raise InterpreterException('Module returned a value of unknown type.')
 
     def process_new_values(self, invalues):
@@ -1293,6 +1297,8 @@ class Interpreter(InterpreterBase):
                 self.build.install_scripts.append(v)
             elif isinstance(v, build.Data):
                 self.build.data.append(v)
+            elif isinstance(v, dependencies.ExternalProgram):
+                return ExternalProgramHolder(v)
             elif isinstance(v, dependencies.InternalDependency):
                 # FIXME: This is special cased and not ideal:
                 # The first source is our new VapiTarget, the rest are deps
@@ -1304,7 +1310,6 @@ class Interpreter(InterpreterBase):
 
     def module_method_callback(self, return_object):
         if not isinstance(return_object, ModuleReturnValue):
-            print(return_object)
             assert(False)
             raise InterpreterException('Bug in module, it returned an invalid object')
         invalues = return_object.new_objects

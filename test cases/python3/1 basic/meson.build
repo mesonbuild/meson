@@ -1,6 +1,7 @@
 project('python sample', 'c')
 
-py3 = find_program('python3')
+py3_mod = import('python3')
+py3 = py3_mod.find_python()
 
 main = files('prog.py')
 

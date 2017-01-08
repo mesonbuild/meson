@@ -12,9 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .. import mesonlib
+import sys
+from .. import mesonlib, dependencies
 
 from . import ExtensionModule
+from mesonbuild.modules import ModuleReturnValue
 
 class Python3Module(ExtensionModule):
     def __init__(self):
@@ -38,6 +40,10 @@ class Python3Module(ExtensionModule):
         kwargs['name_prefix'] = ''
         kwargs['name_suffix'] = suffix
         return interpreter.func_shared_module(None, args, kwargs)
+
+    def find_python(self, state, args, kwargs):
+        py3 = dependencies.ExternalProgram('python3', sys.executable, silent=True)
+        return ModuleReturnValue(py3, [py3])
 
 def initialize():
     return Python3Module()
