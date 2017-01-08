@@ -507,7 +507,6 @@ class InterpreterBase:
             return obj[index]
         raise InterpreterException('Arrays do not have a method called "%s".' % method_name)
 
-
     def reduce_arguments(self, args):
         assert(isinstance(args, mparser.ArgumentNode))
         if args.incorrect_order():

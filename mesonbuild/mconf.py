@@ -120,7 +120,6 @@ class Conf:
             else:
                 raise ConfException('Unknown option %s.' % k)
 
-
     def print_conf(self):
         print('Core properties:')
         print('  Source dir', self.build.environment.source_dir)

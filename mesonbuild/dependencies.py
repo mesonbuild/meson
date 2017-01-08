@@ -1104,7 +1104,6 @@ is sometimes mixed among the subprocess output. I have no idea
 why. As a hack filter out everything that is not a flag."""
         return [e for e in elems if e.startswith('-')]
 
-
     def filter_arsg(self, args):
         """gnustep-config returns a bunch of garbage args such
         as -O2 and so on. Drop everything that is not needed."""
