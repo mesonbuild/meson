@@ -16,6 +16,10 @@
 
 import os
 import sys
+from distutils.dir_util import mkpath
+from distutils.file_util import copy_file
+
+from mesonbuild.coredata import version
 
 if sys.version_info[0] < 3:
     print('Tried to install with Python 2, Meson only supports Python 3.')
@@ -30,9 +34,6 @@ try:
 except ImportError:
     from distutils.core import setup
     from distutils.command.install_scripts import install_scripts as orig
-
-from distutils.file_util import copy_file
-from distutils.dir_util import mkpath
 
 class install_scripts(orig):
     def run(self):
@@ -51,8 +52,6 @@ class install_scripts(orig):
             # NOTE: Mode is preserved by default
             copy_file(infile, outfile, dry_run=self.dry_run)
             self.outfiles.append(outfile)
-
-from mesonbuild.coredata import version
 
 setup(name='meson',
       version=version,
