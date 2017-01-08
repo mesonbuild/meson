@@ -136,6 +136,7 @@ class Converter:
     ignored_funcs = {'cmake_minimum_required': True,
                      'enable_testing': True,
                      'include': True}
+
     def __init__(self, cmake_root):
         self.cmake_root = cmake_root
         self.indent_unit = '  '

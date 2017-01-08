@@ -797,8 +797,10 @@ class GTestDependency(Dependency):
 
     def get_link_args(self):
         return self.link_args
+
     def get_version(self):
         return '1.something_maybe'
+
     def get_sources(self):
         return self.sources
 

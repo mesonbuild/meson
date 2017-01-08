@@ -67,6 +67,7 @@ class PkgConfigModule(ExtensionModule):
                     'Requires.private: {}\n'.format(' '.join(priv_reqs)))
             if len(conflicts) > 0:
                 ofile.write('Conflicts: {}\n'.format(' '.join(conflicts)))
+
             def generate_libs_flags(libs):
                 msg = 'Library target {0!r} has {1!r} set. Compilers ' \
                       'may not find it from its \'-l{2}\' linker flag in the ' \
@@ -85,6 +86,7 @@ class PkgConfigModule(ExtensionModule):
                         if l.name_suffix_set:
                             mlog.warning(msg.format(l.name, 'name_suffix', lname, pcfile))
                         yield '-l%s' % lname
+
             if len(libraries) > 0:
                 ofile.write('Libs: {}\n'.format(' '.join(generate_libs_flags(libraries))))
             if len(priv_libs) > 0:

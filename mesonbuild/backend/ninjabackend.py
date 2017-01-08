@@ -261,6 +261,7 @@ int dummy;
     # because the syntax we use for unity builds is specific to C/++/ObjC/++.
     # Assembly files cannot be unitified and neither can LLVM IR files
     langs_cant_unity = ('d', 'fortran')
+
     def get_target_source_can_unity(self, target, source):
         if isinstance(source, File):
             source = source.fname

@@ -46,9 +46,11 @@ class TestResult:
 class AutoDeletedDir():
     def __init__(self, d):
         self.dir = d
+
     def __enter__(self):
         os.makedirs(self.dir, exist_ok=True)
         return self.dir
+
     def __exit__(self, _type, value, traceback):
         # On Windows, shutil.rmtree fails sometimes, because 'the directory is not empty'.
         # Retrying fixes this.
