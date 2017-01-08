@@ -326,6 +326,7 @@ class Environment():
             if len(rest) == 2:
                 defines[rest[0]] = rest[1]
         return defines
+
     @staticmethod
     def get_gnu_version_from_defines(defines):
         dot = '.'
