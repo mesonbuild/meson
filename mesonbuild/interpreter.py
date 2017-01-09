@@ -2446,8 +2446,8 @@ requirements use the version keyword argument instead.''')
 
     def add_cross_stdlib_info(self, target):
         for l in self.get_used_languages(target):
-            if self.environment.cross_info.has_stdlib(l) and \
-                self.subproject != self.environment.cross_info.get_stdlib(l)[0]:
+            if self.environment.cross_info.has_stdlib(l) \
+                    and self.subproject != self.environment.cross_info.get_stdlib(l)[0]:
                 target.add_deps(self.build.cross_stdlibs[l])
 
     def check_sources_exist(self, subdir, sources):

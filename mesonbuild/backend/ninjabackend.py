@@ -317,7 +317,7 @@ int dummy;
             # Sources consumed by valac are filtered out. These only contain
             # C/C++ sources, objects, generated libs, and unknown sources now.
             target_sources, generated_sources, \
-            vala_generated_sources = self.generate_vala_compile(target, outfile)
+                vala_generated_sources = self.generate_vala_compile(target, outfile)
         else:
             target_sources = self.get_target_sources(target)
             generated_sources = self.get_target_generated_sources(target)
@@ -1257,8 +1257,10 @@ int dummy;
             ctypes.append((self.build.cross_compilers, True))
         for (complist, is_cross) in ctypes:
             for langname, compiler in complist.items():
-                if langname == 'java' or langname == 'vala' or\
-                 langname == 'rust' or langname == 'cs':
+                if langname == 'java' \
+                        or langname == 'vala' \
+                        or langname == 'rust' \
+                        or langname == 'cs':
                     continue
                 crstr = ''
                 cross_args = []
@@ -1617,7 +1619,7 @@ rule FORTRAN_DEP_HACK
                             raise InvalidArguments(
                                 'Namespace collision: module %s defined in '
                                 'two files %s and %s.' %
-                                    (modname, module_files[modname], s))
+                                (modname, module_files[modname], s))
                         module_files[modname] = s
         self.fortran_deps[target.get_basename()] = module_files
 

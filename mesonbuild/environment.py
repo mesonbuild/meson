@@ -231,7 +231,7 @@ class Environment():
         # Versioning is added to these names in the backends as-needed.
         cross = self.is_cross_build()
         if (not cross and mesonlib.is_windows()) \
-        or (cross and self.cross_info.has_host() and self.cross_info.config['host_machine']['system'] == 'windows'):
+                or (cross and self.cross_info.has_host() and self.cross_info.config['host_machine']['system'] == 'windows'):
             self.exe_suffix = 'exe'
             self.object_suffix = 'obj'
             self.win_libdir_layout = True

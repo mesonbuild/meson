@@ -201,19 +201,19 @@ def get_builtin_option_default(optname):
         raise RuntimeError('Tried to get the default value for an unknown builtin option \'%s\'.' % optname)
 
 builtin_options = {
-        'buildtype':  [UserComboOption, 'Build type to use.', ['plain', 'debug', 'debugoptimized', 'release', 'minsize'], 'debug'],
-        'strip':      [UserBooleanOption, 'Strip targets on install.', False],
-        'unity':      [UserBooleanOption, 'Unity build.', False],
-        'prefix':     [UserStringOption, 'Installation prefix.', default_prefix()],
-        'libdir':     [UserStringOption, 'Library directory.', default_libdir()],
-        'libexecdir': [UserStringOption, 'Library executable directory.', default_libexecdir()],
-        'bindir':     [UserStringOption, 'Executable directory.', 'bin'],
-        'sbindir':    [UserStringOption, 'System executable directory.', 'sbin'],
-        'includedir': [UserStringOption, 'Header file directory.', 'include'],
-        'datadir':    [UserStringOption, 'Data file directory.', 'share'],
-        'mandir':     [UserStringOption, 'Manual page directory.', 'share/man'],
-        'infodir':    [UserStringOption, 'Info page directory.', 'share/info'],
-        'localedir':  [UserStringOption, 'Locale data directory.', 'share/locale'],
+    'buildtype':  [UserComboOption, 'Build type to use.', ['plain', 'debug', 'debugoptimized', 'release', 'minsize'], 'debug'],
+    'strip':      [UserBooleanOption, 'Strip targets on install.', False],
+    'unity':      [UserBooleanOption, 'Unity build.', False],
+    'prefix':     [UserStringOption, 'Installation prefix.', default_prefix()],
+    'libdir':     [UserStringOption, 'Library directory.', default_libdir()],
+    'libexecdir': [UserStringOption, 'Library executable directory.', default_libexecdir()],
+    'bindir':     [UserStringOption, 'Executable directory.', 'bin'],
+    'sbindir':    [UserStringOption, 'System executable directory.', 'sbin'],
+    'includedir': [UserStringOption, 'Header file directory.', 'include'],
+    'datadir':    [UserStringOption, 'Data file directory.', 'share'],
+    'mandir':     [UserStringOption, 'Manual page directory.', 'share/man'],
+    'infodir':    [UserStringOption, 'Info page directory.', 'share/info'],
+    'localedir':  [UserStringOption, 'Locale data directory.', 'share/locale'],
     # sysconfdir, localstatedir and sharedstatedir are a bit special. These defaults to ${prefix}/etc,
     # ${prefix}/var and ${prefix}/com but nobody uses that. Instead they always set it
     # manually to /etc, /var and /var/lib. This default values is thus pointless and not really used
@@ -223,17 +223,17 @@ builtin_options = {
     # to set the following in project():
     #
     # default_options : ['sysconfdir=/etc', 'localstatedir=/var', 'sharedstatedir=/var/lib']
-        'sysconfdir':      [UserStringOption, 'Sysconf data directory.', 'etc'],
-        'localstatedir':   [UserStringOption, 'Localstate data directory.', 'var'],
-        'sharedstatedir':  [UserStringOption, 'Architecture-independent data directory.', 'com'],
-        'werror':          [UserBooleanOption, 'Treat warnings as errors.', False],
-        'warning_level':   [UserComboOption, 'Compiler warning level to use.', ['1', '2', '3'], '1'],
-        'layout':          [UserComboOption, 'Build directory layout.', ['mirror', 'flat'], 'mirror'],
-        'default_library': [UserComboOption, 'Default library type.', ['shared', 'static'], 'shared'],
-        'backend':         [UserComboOption, 'Backend to use.', backendlist, 'ninja'],
-        'stdsplit':        [UserBooleanOption, 'Split stdout and stderr in test logs.', True],
-        'errorlogs':       [UserBooleanOption, "Whether to print the logs from failing tests.", True],
-        }
+    'sysconfdir':      [UserStringOption, 'Sysconf data directory.', 'etc'],
+    'localstatedir':   [UserStringOption, 'Localstate data directory.', 'var'],
+    'sharedstatedir':  [UserStringOption, 'Architecture-independent data directory.', 'com'],
+    'werror':          [UserBooleanOption, 'Treat warnings as errors.', False],
+    'warning_level':   [UserComboOption, 'Compiler warning level to use.', ['1', '2', '3'], '1'],
+    'layout':          [UserComboOption, 'Build directory layout.', ['mirror', 'flat'], 'mirror'],
+    'default_library': [UserComboOption, 'Default library type.', ['shared', 'static'], 'shared'],
+    'backend':         [UserComboOption, 'Backend to use.', backendlist, 'ninja'],
+    'stdsplit':        [UserBooleanOption, 'Split stdout and stderr in test logs.', True],
+    'errorlogs':       [UserBooleanOption, "Whether to print the logs from failing tests.", True],
+}
 
 forbidden_target_names = {'clean': None,
                           'clean-ctlist': None,

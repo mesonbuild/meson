@@ -281,8 +281,8 @@ class TestHarness:
             (num, name, padding1, result.res, padding2, result.duration)
         print(result_str)
         result_str += "\n\n" + result.get_log()
-        if (result.returncode != GNU_SKIP_RETURNCODE) and \
-            (result.returncode != 0) != result.should_fail:
+        if (result.returncode != GNU_SKIP_RETURNCODE) \
+                and (result.returncode != 0) != result.should_fail:
             if self.options.print_errorlogs:
                 self.collected_logs.append(result_str)
         if logfile:
