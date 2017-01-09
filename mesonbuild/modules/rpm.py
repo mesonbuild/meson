@@ -20,6 +20,7 @@ from .. import compilers
 import datetime
 from .. import mlog
 from . import GirTarget, TypelibTarget
+from . import ModuleReturnValue
 
 import os
 
@@ -153,6 +154,7 @@ class RPMModule:
             fn.write('- \n')
             fn.write('\n')
         mlog.log('RPM spec template written to %s.spec.\n' % proj)
+        return ModuleReturnValue(None, [])
 
 def initialize():
     return RPMModule()

@@ -45,6 +45,11 @@ def get_include_args(environment, include_dirs, prefix='-I'):
 
     return dirs_str
 
+class ModuleReturnValue:
+    def __init__(self, return_value, new_objects):
+        self.return_value = return_value
+        assert(isinstance(new_objects, list))
+        self.new_objects = new_objects
 
 class GResourceTarget(build.CustomTarget):
     def __init__(self, name, subdir, kwargs):

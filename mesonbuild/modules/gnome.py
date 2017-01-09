@@ -20,6 +20,7 @@ import os
 import sys
 import copy
 import subprocess
+from . import ModuleReturnValue
 from ..mesonlib import MesonException, Popen_safe
 from ..dependencies import Dependency, PkgConfigDependency, InternalDependency
 from .. import mlog
@@ -163,7 +164,7 @@ can not be used with the current version of glib-compiled-resources, due to
         target_c = GResourceTarget(name, state.subdir, kwargs)
 
         if gresource: # Only one target for .gresource files
-            return [target_c]
+            return ModuleReturnValue(target_c, [target_c])
 
         h_kwargs = {
             'command': cmd,
@@ -177,7 +178,8 @@ can not be used with the current version of glib-compiled-resources, due to
             h_kwargs['install_dir'] = kwargs.get('install_dir',
                                                  state.environment.coredata.get_builtin_option('includedir'))
         target_h = GResourceHeaderTarget(args[0] + '_h', state.subdir, h_kwargs)
-        return [target_c, target_h]
+        rv = [target_c, target_h]
+        return ModuleReturnValue(rv, rv)
 
     def _get_gresource_dependencies(self, state, input_file, source_dirs, dependencies):
         for dep in dependencies:
@@ -352,7 +354,7 @@ can not be used with the current version of glib-compiled-resources, due to
             if not girwarning_printed:
                 mlog.warning('gobject-introspection dependency was not found, disabling gir generation.')
                 girwarning_printed = True
-            return []
+            return ModuleReturnValue(None, [])
         ns = kwargs.pop('namespace')
         nsversion = kwargs.pop('nsversion')
         libsources = kwargs.pop('sources')
@@ -529,7 +531,8 @@ can not be used with the current version of glib-compiled-resources, due to
             typelib_kwargs['install_dir'] = kwargs.get('install_dir_typelib',
                                                        os.path.join(state.environment.get_libdir(), 'girepository-1.0'))
         typelib_target = TypelibTarget(typelib_output, state.subdir, typelib_kwargs)
-        return [scan_target, typelib_target]
+        rv = [scan_target, typelib_target]
+        return ModuleReturnValue(rv, rv)
 
     def compile_schemas(self, state, args, kwargs):
         if len(args) != 0:
@@ -547,7 +550,7 @@ can not be used with the current version of glib-compiled-resources, due to
         else:
             targetname = 'gsettings-compile-' + state.subdir
         target_g = build.CustomTarget(targetname, state.subdir, kwargs)
-        return target_g
+        return ModuleReturnValue(target_g, [target_g])
 
     def yelp(self, state, args, kwargs):
         if len(args) < 1:
@@ -603,7 +606,8 @@ can not be used with the current version of glib-compiled-resources, due to
         potarget = build.RunTarget('help-' + project_id + '-update-po', sys.executable,
                                    poargs, [], state.subdir)
 
-        return [inscript, pottarget, potarget]
+        rv = [inscript, pottarget, potarget]
+        return ModuleReturnValue(None, rv)
 
     def gtkdoc(self, state, args, kwargs):
         if len(args) != 1:
@@ -671,7 +675,7 @@ can not be used with the current version of glib-compiled-resources, due to
         res = [build.RunTarget(targetname, command[0], command[1:] + args, [], state.subdir)]
         if kwargs.get('install', True):
             res.append(build.RunScript(command, args))
-        return res
+        return ModuleReturnValue(None, res)
 
     def _get_build_args(self, kwargs, state):
         args = []
@@ -701,7 +705,7 @@ can not be used with the current version of glib-compiled-resources, due to
         modulename = args[0]
         if not isinstance(modulename, str):
             raise MesonException('Argument must be a string')
-        return os.path.join('share/gtkdoc/html', modulename)
+        return ModuleReturnValue(os.path.join('share/gtkdoc/html', modulename), [])
 
     @staticmethod
     def _unpack_args(arg, kwarg_name, kwargs, expend_file_state=None):
@@ -741,7 +745,8 @@ can not be used with the current version of glib-compiled-resources, due to
                          'output': outputs,
                          'command': cmd
                          }
-        return build.CustomTarget(target_name, state.subdir, custom_kwargs)
+        ct = build.CustomTarget(target_name, state.subdir, custom_kwargs)
+        return ModuleReturnValue(ct, [ct])
 
     def mkenums(self, state, args, kwargs):
         if len(args) != 1:
@@ -836,11 +841,11 @@ can not be used with the current version of glib-compiled-resources, due to
                     state.environment.coredata.get_builtin_option('includedir')
             target = self._make_mkenum_custom_target(state, sources, basename,
                                                      generic_cmd, custom_kwargs)
-            return target
+            return ModuleReturnValue(target, [target])
         elif len(targets) == 1:
-            return targets[0]
+            return ModuleReturnValue(targets[0], [targets[0]])
         else:
-            return targets
+            return ModuleReturnValue(targets, targets)
 
     @staticmethod
     def _make_mkenum_custom_target(state, sources, output, cmd, kwargs):
@@ -907,7 +912,8 @@ can not be used with the current version of glib-compiled-resources, due to
         custom_kwargs['output'] = output + '.h'
         header = build.CustomTarget(output + '_h', state.subdir, custom_kwargs)
 
-        return [body, header]
+        rv = [body, header]
+        return ModuleReturnValue(rv, rv)
 
     @staticmethod
     def _vapi_args_to_command(prefix, variable, kwargs, accept_vapi=False):
@@ -991,6 +997,7 @@ can not be used with the current version of glib-compiled-resources, due to
 
         if not isinstance(args[0], str):
             raise MesonException('The first argument must be the name of the library')
+        created_values = []
 
         library = args[0]
         build_dir = os.path.join(state.environment.get_build_dir(), state.subdir)
@@ -1040,8 +1047,7 @@ can not be used with the current version of glib-compiled-resources, due to
 
             # We shouldn't need this locally but we install it
             deps_target = self._generate_deps(state, library, vapi_packages, install_dir)
-            # XXX WRONG, state objects must not be modified! Fix this!
-            state.data.append(deps_target)
+            created_values.append(deps_target)
         vapi_target = VapiTarget(vapi_output, state.subdir, custom_kwargs)
 
         # So to try our best to get this to just work we need:
@@ -1050,7 +1056,9 @@ can not be used with the current version of glib-compiled-resources, due to
         # - add relevant directories to include dirs
         incs = [build.IncludeDirs(state.subdir, ['.'] + vapi_includes, False)]
         sources = [vapi_target] + vapi_depends
-        return InternalDependency(None, incs, [], [], link_with, sources, [])
+        rv = InternalDependency(None, incs, [], [], link_with, sources, [])
+        created_values.append(rv)
+        return ModuleReturnValue(rv, created_values)
 
 def initialize():
     return GnomeModule()

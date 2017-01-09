@@ -28,6 +28,7 @@ from .interpreterbase import InterpreterBase
 from .interpreterbase import check_stringlist, noPosargs, noKwargs, stringArgs
 from .interpreterbase import InterpreterException, InvalidArguments, InvalidCode
 from .interpreterbase import InterpreterObject, MutableInterpreterObject
+from .modules import ModuleReturnValue
 
 import os, sys, shutil, uuid
 import re
@@ -430,11 +431,9 @@ class Headers(InterpreterObject):
         return self.custom_install_dir
 
 class DataHolder(InterpreterObject):
-    def __init__(self, sources, install_dir):
+    def __init__(self, data):
         super().__init__()
-        if not isinstance(install_dir, str):
-            raise InterpreterException('Custom_install_dir must be a string.')
-        self.held_object = build.Data(sources, install_dir)
+        self.held_object = data
 
     def get_source_subdir(self):
         return self.held_object.source_subdir
@@ -984,6 +983,9 @@ class ModuleHolder(InterpreterObject):
             raise InvalidArguments('Module %s does not have method %s.' % (self.modname, method_name))
         if method_name.startswith('_'):
             raise InvalidArguments('Function {!r} in module {!r} is private.'.format(method_name, self.modname))
+        # This is not 100% reliable but we can't use hash()
+        # because the Build object contains dicts and lists.
+        num_targets = len(self.interpreter.build.targets)
         state = ModuleState()
         state.build_to_src = os.path.relpath(self.interpreter.environment.get_source_dir(),
                                              self.interpreter.environment.get_build_dir())
@@ -999,6 +1001,8 @@ class ModuleHolder(InterpreterObject):
         state.global_args = self.interpreter.build.global_args
         state.project_args = self.interpreter.build.projects_args.get(self.interpreter.subproject, {})
         value = fn(state, args, kwargs)
+        if num_targets != len(self.interpreter.build.targets):
+            raise InterpreterException('Extension module altered internal state illegally.')
         return self.interpreter.module_method_callback(value)
 
 class MesonMain(InterpreterObject):
@@ -1238,29 +1242,39 @@ class Interpreter(InterpreterBase):
                            'join_paths': self.func_join_paths,
                            })
 
-    def module_method_callback(self, invalues):
-        unwrap_single = False
-        if invalues is None:
-            return
+    def holderify(self, item):
+        if isinstance(item, list):
+            return [self.holderify(x) for x in item]
+        if isinstance(item, build.CustomTarget):
+            return CustomTargetHolder(item, self)
+        elif isinstance(item, (int, str)) or item is None:
+            return item
+        elif isinstance(item, build.Executable):
+            return ExecutableHolder(item, self)
+        elif isinstance(item, build.GeneratedList):
+            return GeneratedListHolder(item)
+        elif isinstance(item, build.RunTarget):
+            raise RuntimeError('This is not a pipe.')
+        elif isinstance(item, build.RunScript):
+            raise RuntimeError('Do not do this.')
+        elif isinstance(item, build.Data):
+            return DataHolder(item)
+        elif isinstance(item, dependencies.InternalDependency):
+            return InternalDependencyHolder(item)
+        else:
+            print(item)
+            raise InterpreterException('Module returned a value of unknown type.')
+
+    def process_new_values(self, invalues):
         if not isinstance(invalues, list):
-            unwrap_single = True
             invalues = [invalues]
-        outvalues = []
         for v in invalues:
-            if isinstance(v, build.CustomTarget):
+            if isinstance(v, (build.BuildTarget, build.CustomTarget, build.RunTarget)):
                 self.add_target(v.name, v)
-                outvalues.append(CustomTargetHolder(v, self))
-            elif isinstance(v, (int, str)):
-                outvalues.append(v)
-            elif isinstance(v, build.Executable):
-                self.add_target(v.name, v)
-                outvalues.append(ExecutableHolder(v, self))
             elif isinstance(v, list):
-                outvalues.append(self.module_method_callback(v))
+                self.module_method_callback(v)
             elif isinstance(v, build.GeneratedList):
-                outvalues.append(GeneratedListHolder(v))
-            elif isinstance(v, build.RunTarget):
-                self.add_target(v.name, v)
+                pass
             elif isinstance(v, build.RunScript):
                 self.build.install_scripts.append(v)
             elif isinstance(v, build.Data):
@@ -1268,14 +1282,18 @@ class Interpreter(InterpreterBase):
             elif isinstance(v, dependencies.InternalDependency):
                 # FIXME: This is special cased and not ideal:
                 # The first source is our new VapiTarget, the rest are deps
-                self.module_method_callback(v.sources[0])
-                outvalues.append(InternalDependencyHolder(v))
+                self.process_new_values(v.sources[0])
             else:
-                print(v)
                 raise InterpreterException('Module returned a value of unknown type.')
-        if len(outvalues) == 1 and unwrap_single:
-            return outvalues[0]
-        return outvalues
+
+    def module_method_callback(self, return_object):
+        if not isinstance(return_object, ModuleReturnValue):
+            print(return_object)
+            assert(False)
+            raise InterpreterException('Bug in module, it returned an invalid object')
+        invalues = return_object.new_objects
+        self.process_new_values(invalues)
+        return self.holderify(return_object.return_value)
 
     def get_build_def_files(self):
         return self.build_def_files
@@ -2113,7 +2131,7 @@ requirements use the version keyword argument instead.''')
                 source_strings.append(s)
         sources += self.source_strings_to_files(source_strings)
         install_dir = kwargs.get('install_dir', None)
-        data = DataHolder(sources, install_dir)
+        data = DataHolder(build.Data(sources, install_dir))
         self.build.data.append(data.held_object)
         return data
 
@@ -2173,7 +2191,7 @@ requirements use the version keyword argument instead.''')
         idir = kwargs.get('install_dir', None)
         if isinstance(idir, str):
             cfile = mesonlib.File.from_built_file(ofile_path, ofile_fname)
-            self.build.data.append(DataHolder([cfile], idir).held_object)
+            self.build.data.append(build.Data([cfile], idir))
         return mesonlib.File.from_built_file(self.subdir, output)
 
     @stringArgs

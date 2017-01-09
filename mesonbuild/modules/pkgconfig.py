@@ -15,6 +15,8 @@
 from .. import build
 from .. import mesonlib
 from .. import mlog
+from . import ModuleReturnValue
+
 import os
 
 class PkgConfigModule:
@@ -138,7 +140,8 @@ class PkgConfigModule:
         self.generate_pkgconfig_file(state, libs, subdirs, name, description, url,
                                      version, pcfile, pub_reqs, priv_reqs,
                                      conflicts, priv_libs)
-        return build.Data(mesonlib.File(True, state.environment.get_scratch_dir(), pcfile), pkgroot)
+        res = build.Data(mesonlib.File(True, state.environment.get_scratch_dir(), pcfile), pkgroot)
+        return ModuleReturnValue(res, [res])
 
 def initialize():
     return PkgConfigModule()

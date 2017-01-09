@@ -15,6 +15,8 @@
 from os import path
 from .. import coredata, mesonlib, build
 from ..mesonlib import MesonException
+from . import ModuleReturnValue
+
 import sys
 import shutil
 
@@ -59,7 +61,8 @@ class I18nModule:
 
         kwargs['command'] = ['msgfmt', '--' + file_type,
                              '--template', '@INPUT@', '-d', podir, '-o', '@OUTPUT@']
-        return build.CustomTarget(kwargs['output'] + '_merge', state.subdir, kwargs)
+        ct = build.CustomTarget(kwargs['output'] + '_merge', state.subdir, kwargs)
+        return ModuleReturnValue(ct, [ct])
 
     def gettext(self, state, args, kwargs):
         if len(args) != 1:
@@ -114,7 +117,7 @@ class I18nModule:
             args.append(lang_arg)
         iscript = build.RunScript(script, args)
 
-        return [pottarget, gmotarget, iscript, updatepotarget]
+        return ModuleReturnValue(None, [pottarget, gmotarget, iscript, updatepotarget])
 
 def initialize():
     return I18nModule()
