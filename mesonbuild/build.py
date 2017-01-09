@@ -289,9 +289,9 @@ class BuildTarget():
         self.process_objectlist(objects)
         self.process_kwargs(kwargs, environment)
         self.check_unknown_kwargs(kwargs)
-        if len(self.sources) == 0 and \
-            len(self.generated) == 0 and \
-            len(self.objects) == 0:
+        if len(self.sources) == 0 \
+                and len(self.generated) == 0 \
+                and len(self.objects) == 0:
             raise InvalidArguments('Build target %s has no sources.' % name)
         self.process_compilers()
         self.validate_sources()

@@ -14,7 +14,7 @@
 
 def destdir_join(d1, d2):
     # c:\destdir + c:\prefix must produce c:\destdir\prefix
-    if len(d1) > 1 and d1[1] == ':' and \
-        len(d2) > 1 and d2[1] == ':':
+    if len(d1) > 1 and d1[1] == ':' \
+            and len(d2) > 1 and d2[1] == ':':
         return d1 + d2[2:]
     return d1 + d2

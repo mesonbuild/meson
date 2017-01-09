@@ -107,8 +107,10 @@ class Lexer:
                     elif tid == 'dblquote':
                         raise ParseException('Double quotes are not supported. Use single quotes.', lineno, col)
                     elif tid == 'string':
-                        value = match_text[1:-1].replace(r"\'", "'").replace(r" \\ ".strip(), r" \ ".strip())\
-                        .replace("\\n", "\n")
+                        value = match_text[1:-1]\
+                            .replace(r"\'", "'")\
+                            .replace(r" \\ ".strip(), r" \ ".strip())\
+                            .replace("\\n", "\n")
                     elif tid == 'multiline_string':
                         tid = 'string'
                         value = match_text[3:-3]

@@ -121,8 +121,9 @@ class Parser():
             args.append(self.arguments())
             self.expect('rparen')
         arg = self.current
-        if self.accept('string') or self.accept('varexp') or\
-        self.accept('id'):
+        if self.accept('string') \
+                or self.accept('varexp') \
+                or self.accept('id'):
             args.append(arg)
             rest = self.arguments()
             args += rest

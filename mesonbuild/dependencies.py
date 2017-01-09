@@ -1109,9 +1109,11 @@ why. As a hack filter out everything that is not a flag."""
         as -O2 and so on. Drop everything that is not needed."""
         result = []
         for f in args:
-            if f.startswith('-D') or f.startswith('-f') or \
-            f.startswith('-I') or f == '-pthread' or\
-            (f.startswith('-W') and not f == '-Wall'):
+            if f.startswith('-D') \
+                    or f.startswith('-f') \
+                    or f.startswith('-I') \
+                    or f == '-pthread' \
+                    or (f.startswith('-W') and not f == '-Wall'):
                 result.append(f)
         return result
 

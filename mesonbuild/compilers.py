@@ -187,8 +187,7 @@ gnu_color_args = {'auto': ['-fdiagnostics-color=auto'],
                   'never': ['-fdiagnostics-color=never'],
                   }
 
-base_options = {
-                'b_pch': coredata.UserBooleanOption('b_pch', 'Use precompiled headers', True),
+base_options = {'b_pch': coredata.UserBooleanOption('b_pch', 'Use precompiled headers', True),
                 'b_lto': coredata.UserBooleanOption('b_lto', 'Use link time optimization', False),
                 'b_sanitize': coredata.UserComboOption('b_sanitize',
                                                        'Code sanitizer to use',
@@ -2168,8 +2167,7 @@ class GnuCCompiler(GnuCompiler, CCompiler):
         if self.gcc_type == GCC_MINGW:
             opts.update({
                 'c_winlibs': coredata.UserStringArrayOption('c_winlibs', 'Standard Win libraries to link against',
-                                                            gnu_winlibs),
-                })
+                                                            gnu_winlibs), })
         return opts
 
     def get_option_compile_args(self, options):
@@ -2208,8 +2206,7 @@ class GnuCPPCompiler(GnuCompiler, CPPCompiler):
         if self.gcc_type == GCC_MINGW:
             opts.update({
                 'cpp_winlibs': coredata.UserStringArrayOption('cpp_winlibs', 'Standard Win libraries to link against',
-                                                              gnu_winlibs),
-                })
+                                                              gnu_winlibs), })
         return opts
 
     def get_option_compile_args(self, options):
