@@ -1565,7 +1565,7 @@ rule FORTRAN_DEP_HACK
                 rulename = 'CUSTOM_COMMAND_DEP'
                 depfilename = generator.get_dep_outname(infilename)
                 depfile = os.path.join(self.get_target_private_dir(target), depfilename)
-                args = [x.replace('@DEPFILE@', depfile)  for x in base_args]
+                args = [x.replace('@DEPFILE@', depfile) for x in base_args]
             args = [x.replace("@INPUT@", infilename).replace('@OUTPUT@', sole_output)
                     for x in args]
             args = self.replace_outputs(args, self.get_target_private_dir(target), outfilelist)
