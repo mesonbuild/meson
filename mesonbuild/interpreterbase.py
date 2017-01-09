@@ -20,6 +20,7 @@ from . import environment, dependencies
 
 import os, copy, re
 from functools import wraps
+import json
 
 # Decorators for method calls.
 
@@ -391,6 +392,8 @@ class InterpreterBase:
             return self.int_method_call(obj, method_name, args)
         if isinstance(obj, list):
             return self.array_method_call(obj, method_name, self.reduce_arguments(args)[0])
+        if isinstance(obj, dict):
+            return self.dict_method_call(obj, method_name, self.reduce_arguments(args)[0])
         if not isinstance(obj, InterpreterObject):
             raise InvalidArguments('Variable "%s" is not callable.' % object_name)
         (args, kwargs) = self.reduce_arguments(args)
@@ -488,6 +491,14 @@ class InterpreterBase:
             if not isinstance(cmpr, str):
                 raise InterpreterException('Version_compare() argument must be a string.')
             return mesonlib.version_compare(obj, cmpr)
+        elif method_name == 'parse_json':
+            if len(posargs) != 0:
+                raise InterpreterException('parse_json() takes no arguments.')
+            try:
+                parsed = json.loads(obj)
+            except json.decoder.JSONDecodeError as e:
+                raise InterpreterException('{} parsing the following as json:\n{}'.format(str(e), obj))
+            return parsed
         raise InterpreterException('Unknown method "%s" for a string.' % method_name)
 
     def unknown_function_called(self, func_name):
@@ -507,6 +518,38 @@ class InterpreterBase:
             return obj[index]
         raise InterpreterException('Arrays do not have a method called "%s".' % method_name)
 
+    def dict_method_call(self, obj, method_name, args):
+        if method_name in ('contains', 'get'):
+            if method_name == 'contains':
+                if len(args) != 1:
+                    raise InterpreterException('contains() takes exactly one argument.')
+            else:
+                if len(args) not in (1, 2):
+                    raise InterpreterException('get() takes one or two arguments.')
+
+            key = args[0]
+            if not isinstance(key, (int, str)):
+                raise InvalidArguments('Dictionary key must be either a number or a string.')
+
+            contains = key in obj
+
+            if method_name == 'contains':
+                return contains
+
+            if contains:
+                return obj[key]
+
+            if len(args) == 2:
+                return args[1]
+
+            raise InterpreterException('Key {!r} is not in the dictionary.'.format(key))
+
+        if method_name == 'keys':
+            if len(args) != 0:
+                raise InterpreterException('keys() takes no arguments.')
+            return list(obj.keys())
+
+        raise InterpreterException('Dictionaries do not have a method called "%s".' % method_name)
 
     def reduce_arguments(self, args):
         assert(isinstance(args, mparser.ArgumentNode))
@@ -582,7 +625,7 @@ class InterpreterBase:
 
     def is_assignable(self, value):
         return isinstance(value, (InterpreterObject, dependencies.Dependency,
-                                  str, int, list, mesonlib.File))
+                                  str, int, list, dict, mesonlib.File))
 
     def func_build_target(self, node, args, kwargs):
         if 'target_type' not in kwargs:
