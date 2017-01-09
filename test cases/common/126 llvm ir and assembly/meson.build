@@ -1,5 +1,8 @@
 project('llvm-ir', 'c', 'cpp')
 
+cpu = host_machine.cpu_family()
+supported_cpus = ['arm', 'x86', 'x86_64']
+
 foreach lang : ['c', 'cpp']
   cc = meson.get_compiler(lang)
   cc_id = cc.get_id()
@@ -20,7 +23,6 @@ foreach lang : ['c', 'cpp']
     uscore_args = []
     message('underscore is NOT prefixed')
   endif
-  cpu = host_machine.cpu_family()
   square_base = 'square-' + cpu
   square_impl = square_base + '.S'
   # MSVC cannot directly compile assembly files, so we pass it through the
@@ -46,9 +48,12 @@ foreach lang : ['c', 'cpp']
         input : square_preproc,
         output : lang + square_base + '.obj',
         command : [ml, '/Fo', '@OUTPUT@', '/c', '@INPUT@'])
-
   endif
-  e = executable('square_asm_' + lang, square_impl, 'main.' + lang,
-      c_args : uscore_args, cpp_args : uscore_args)
-  test('test ASM square' + lang, e)
+  if supported_cpus.contains(cpu)
+    e = executable('square_asm_' + lang, square_impl, 'main.' + lang,
+        c_args : uscore_args, cpp_args : uscore_args)
+    test('test ASM square' + lang, e)
+  elif cc_id != 'clang'
+    error('MESON_SKIP_TEST: Unsupported cpu: "' + cpu + '", and LLVM not found')
+  endif
 endforeach
