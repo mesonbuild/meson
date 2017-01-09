@@ -6,6 +6,13 @@ from ..mesonlib import MesonException
 
 _found_programs = {}
 
+class ExtensionModule:
+    def __init__(self):
+        self.snippets = set() # List of methods that operate only on the interpreter.
+
+    def is_snippet(self, funcname):
+        return funcname in self.snippets
+
 def find_program(program_name, target_name):
     if program_name in _found_programs:
         return _found_programs[program_name]

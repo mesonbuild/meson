@@ -13,8 +13,9 @@
 # limitations under the License.
 
 from . import ModuleReturnValue
+from . import ExtensionModule
 
-class TestModule:
+class TestModule(ExtensionModule):
 
     def print_hello(self, state, args, kwargs):
         print('Hello from a Meson module')

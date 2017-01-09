@@ -355,6 +355,10 @@ class BuildMachine(InterpreterObject):
     def __init__(self, compilers):
         self.compilers = compilers
         InterpreterObject.__init__(self)
+        self.held_object = environment.MachineInfo(environment.detect_system(),
+                                                   environment.detect_cpu_family(self.compilers),
+                                                   environment.detect_cpu(self.compilers),
+                                                   sys.byteorder)
         self.methods.update({'system': self.system_method,
                              'cpu_family': self.cpu_family_method,
                              'cpu': self.cpu_method,
@@ -362,16 +366,16 @@ class BuildMachine(InterpreterObject):
                              })
 
     def cpu_family_method(self, args, kwargs):
-        return environment.detect_cpu_family(self.compilers)
+        return self.held_object.cpu_family
 
     def cpu_method(self, args, kwargs):
-        return environment.detect_cpu(self.compilers)
+        return self.held_object.cpu
 
     def system_method(self, args, kwargs):
-        return environment.detect_system()
+        return self.held_object.system
 
     def endian_method(self, args, kwargs):
-        return sys.byteorder
+        return self.held_object.endian
 
 # This class will provide both host_machine and
 # target_machine
@@ -384,23 +388,27 @@ class CrossMachineInfo(InterpreterObject):
                 'Machine info is currently {}\n'.format(cross_info) +
                 'but is missing {}.'.format(minimum_cross_info - set(cross_info)))
         self.info = cross_info
+        self.held_object = environment.MachineInfo(cross_info['system'],
+                                                   cross_info['cpu_family'],
+                                                   cross_info['cpu'],
+                                                   cross_info['endian'])
         self.methods.update({'system': self.system_method,
                              'cpu': self.cpu_method,
                              'cpu_family': self.cpu_family_method,
                              'endian': self.endian_method,
                              })
 
-    def system_method(self, args, kwargs):
-        return self.info['system']
+    def cpu_family_method(self, args, kwargs):
+        return self.held_object.cpu_family
 
     def cpu_method(self, args, kwargs):
-        return self.info['cpu']
+        return self.held_object.cpu
 
-    def cpu_family_method(self, args, kwargs):
-        return self.info['cpu_family']
+    def system_method(self, args, kwargs):
+        return self.held_object.system
 
     def endian_method(self, args, kwargs):
-        return self.info['endian']
+        return self.held_object.endian
 
 class IncludeDirsHolder(InterpreterObject):
     def __init__(self, idobj):
@@ -1000,10 +1008,17 @@ class ModuleHolder(InterpreterObject):
         state.man = self.interpreter.build.get_man()
         state.global_args = self.interpreter.build.global_args
         state.project_args = self.interpreter.build.projects_args.get(self.interpreter.subproject, {})
-        value = fn(state, args, kwargs)
-        if num_targets != len(self.interpreter.build.targets):
-            raise InterpreterException('Extension module altered internal state illegally.')
-        return self.interpreter.module_method_callback(value)
+        state.build_machine = self.interpreter.builtin['build_machine'].held_object
+        state.host_machine = self.interpreter.builtin['host_machine'].held_object
+        state.target_machine = self.interpreter.builtin['target_machine'].held_object
+        if self.held_object.is_snippet(method_name):
+            value = fn(self.interpreter, state, args, kwargs)
+            return self.interpreter.holderify(value)
+        else:
+            value = fn(state, args, kwargs)
+            if num_targets != len(self.interpreter.build.targets):
+                raise InterpreterException('Extension module altered internal state illegally.')
+            return self.interpreter.module_method_callback(value)
 
 class MesonMain(InterpreterObject):
     def __init__(self, build, interpreter):
@@ -1261,8 +1276,11 @@ class Interpreter(InterpreterBase):
             return DataHolder(item)
         elif isinstance(item, dependencies.InternalDependency):
             return InternalDependencyHolder(item)
+        elif isinstance(item, dependencies.ExternalProgram):
+            return ExternalProgramHolder(item)
+        elif hasattr(item, 'held_object'):
+            return item
         else:
-            print(item)
             raise InterpreterException('Module returned a value of unknown type.')
 
     def process_new_values(self, invalues):
@@ -1279,16 +1297,19 @@ class Interpreter(InterpreterBase):
                 self.build.install_scripts.append(v)
             elif isinstance(v, build.Data):
                 self.build.data.append(v)
+            elif isinstance(v, dependencies.ExternalProgram):
+                return ExternalProgramHolder(v)
             elif isinstance(v, dependencies.InternalDependency):
                 # FIXME: This is special cased and not ideal:
                 # The first source is our new VapiTarget, the rest are deps
                 self.process_new_values(v.sources[0])
+            elif hasattr(v, 'held_object'):
+                pass
             else:
                 raise InterpreterException('Module returned a value of unknown type.')
 
     def module_method_callback(self, return_object):
         if not isinstance(return_object, ModuleReturnValue):
-            print(return_object)
             assert(False)
             raise InterpreterException('Bug in module, it returned an invalid object')
         invalues = return_object.new_objects

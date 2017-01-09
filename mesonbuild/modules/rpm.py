@@ -21,10 +21,11 @@ import datetime
 from .. import mlog
 from . import GirTarget, TypelibTarget
 from . import ModuleReturnValue
+from . import ExtensionModule
 
 import os
 
-class RPMModule:
+class RPMModule(ExtensionModule):
 
     def generate_spec_template(self, state, args, kwargs):
         compiler_deps = set()
