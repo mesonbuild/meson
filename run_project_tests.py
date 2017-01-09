@@ -112,7 +112,8 @@ def setup_commands(backend):
         test_commands = ['xcodebuild', '-target', 'RUN_TESTS']
     else:
         backend_flags = []
-        ninja_command = environment.detect_ninja()
+        # We need at least 1.6 because of -w dupbuild=err
+        ninja_command = environment.detect_ninja(version='1.6')
         if ninja_command is None:
             raise RuntimeError('Could not find Ninja v1.6 or newer')
         if do_debug:
