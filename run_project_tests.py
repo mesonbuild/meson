@@ -529,7 +529,7 @@ if __name__ == '__main__':
     parser.add_argument('extra_args', nargs='*',
                         help='arguments that are passed directly to Meson (remember to have -- before these).')
     parser.add_argument('--backend', default=None, dest='backend',
-                        choices = backendlist)
+                        choices=backendlist)
     options = parser.parse_args()
     setup_commands(options.backend)
 
