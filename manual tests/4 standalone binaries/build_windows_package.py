@@ -27,6 +27,6 @@ subprocess.check_call(['python3', r'..\..\meson.py', 'build',
 subprocess.check_call(['ninja'], cwd='build')
 shutil.copy('myapp.iss', 'build')
 subprocess.check_call([r'\Program Files\Inno Setup 5\ISCC.exe', 'myapp.iss'],
-                      cwd = 'build')
+                      cwd='build')
 shutil.copy('build/setup.exe', 'myapp 1.0.exe')
 shutil.rmtree('build')
