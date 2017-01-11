@@ -495,7 +495,11 @@ class GeneratedObjectsHolder(InterpreterObject):
         super().__init__()
         self.held_object = held_object
 
-class BuildTargetHolder(InterpreterObject):
+class TargetHolder(InterpreterObject):
+    def __init__(self):
+        super().__init__()
+
+class BuildTargetHolder(TargetHolder):
     def __init__(self, target, interp):
         super().__init__()
         self.held_object = target
@@ -557,7 +561,7 @@ class JarHolder(BuildTargetHolder):
     def __init__(self, target, interp):
         super().__init__(target, interp)
 
-class CustomTargetHolder(InterpreterObject):
+class CustomTargetHolder(TargetHolder):
     def __init__(self, object_to_hold, interp):
         super().__init__()
         self.held_object = object_to_hold
@@ -2063,8 +2067,8 @@ requirements use the version keyword argument instead.''')
         if not isinstance(cmd_args, list):
             cmd_args = [cmd_args]
         for i in cmd_args:
-            if not isinstance(i, (str, mesonlib.File)):
-                raise InterpreterException('Command line arguments must be strings')
+            if not isinstance(i, (str, mesonlib.File, TargetHolder)):
+                raise InterpreterException('Command line arguments must be strings, files or targets.')
         env = self.unpack_env_kwarg(kwargs)
         should_fail = kwargs.get('should_fail', False)
         if not isinstance(should_fail, bool):

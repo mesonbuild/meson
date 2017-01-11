@@ -432,9 +432,17 @@ class Backend():
                 extra_paths = []
             cmd_args = []
             for a in t.cmd_args:
+                if hasattr(a, 'held_object'):
+                    a = a.held_object
                 if isinstance(a, mesonlib.File):
                     a = os.path.join(self.environment.get_build_dir(), a.rel_to_builddir(self.build_to_src))
-                cmd_args.append(a)
+                    cmd_args.append(a)
+                elif isinstance(a, str):
+                    cmd_args.append(a)
+                elif isinstance(a, build.Target):
+                    cmd_args.append(self.get_target_filename(a))
+                else:
+                    raise MesonException('Bad object in test command.')
             ts = TestSerialisation(t.get_name(), t.suite, fname, is_cross, exe_wrapper,
                                    t.is_parallel, cmd_args, t.env, t.should_fail,
                                    t.timeout, t.workdir, extra_paths)
