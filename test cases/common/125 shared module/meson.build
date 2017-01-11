@@ -8,5 +8,5 @@ l = shared_library('runtime', 'runtime.c')
 # at runtime
 m = shared_module('mymodule', 'module.c')
 e = executable('prog', 'prog.c', link_with : l, dependencies : dl)
-test('import test', e, args : [m.full_path()])
+test('import test', e, args : m)
 
