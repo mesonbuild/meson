@@ -418,6 +418,61 @@ class LinuxlikeTests(unittest.TestCase):
         self.assertTrue('TEST_ENV is set' in vg_log)
         self.assertTrue('Memcheck' in vg_log)
 
+    def assertFailedTestCount(self, failure_count, command):
+        try:
+            self._run(command)
+            self.assertEqual(0, failure_count, 'Expected %d tests to fail.' % failure_count)
+        except subprocess.CalledProcessError as e:
+            self.assertEqual(e.returncode, failure_count)
+
+    def test_suite_selection(self):
+        testdir = os.path.join(self.unit_test_dir, '4 suite selection')
+        self.init(testdir)
+        self.build()
+
+        self.assertFailedTestCount(3, self.mtest_command)
+
+        self.assertFailedTestCount(0, self.mtest_command + ['--suite', ':success'])
+        self.assertFailedTestCount(3, self.mtest_command + ['--suite', ':fail'])
+        self.assertFailedTestCount(3, self.mtest_command + ['--no-suite', ':success'])
+        self.assertFailedTestCount(0, self.mtest_command + ['--no-suite', ':fail'])
+
+        self.assertFailedTestCount(1, self.mtest_command + ['--suite', 'mainprj'])
+        self.assertFailedTestCount(0, self.mtest_command + ['--suite', 'subprjsucc'])
+        self.assertFailedTestCount(1, self.mtest_command + ['--suite', 'subprjfail'])
+        self.assertFailedTestCount(1, self.mtest_command + ['--suite', 'subprjmix'])
+        self.assertFailedTestCount(2, self.mtest_command + ['--no-suite', 'mainprj'])
+        self.assertFailedTestCount(3, self.mtest_command + ['--no-suite', 'subprjsucc'])
+        self.assertFailedTestCount(2, self.mtest_command + ['--no-suite', 'subprjfail'])
+        self.assertFailedTestCount(2, self.mtest_command + ['--no-suite', 'subprjmix'])
+
+        self.assertFailedTestCount(1, self.mtest_command + ['--suite', 'mainprj:fail'])
+        self.assertFailedTestCount(0, self.mtest_command + ['--suite', 'mainprj:success'])
+        self.assertFailedTestCount(2, self.mtest_command + ['--no-suite', 'mainprj:fail'])
+        self.assertFailedTestCount(3, self.mtest_command + ['--no-suite', 'mainprj:success'])
+
+        self.assertFailedTestCount(1, self.mtest_command + ['--suite', 'subprjfail:fail'])
+        self.assertFailedTestCount(0, self.mtest_command + ['--suite', 'subprjfail:success'])
+        self.assertFailedTestCount(2, self.mtest_command + ['--no-suite', 'subprjfail:fail'])
+        self.assertFailedTestCount(3, self.mtest_command + ['--no-suite', 'subprjfail:success'])
+
+        self.assertFailedTestCount(0, self.mtest_command + ['--suite', 'subprjsucc:fail'])
+        self.assertFailedTestCount(0, self.mtest_command + ['--suite', 'subprjsucc:success'])
+        self.assertFailedTestCount(3, self.mtest_command + ['--no-suite', 'subprjsucc:fail'])
+        self.assertFailedTestCount(3, self.mtest_command + ['--no-suite', 'subprjsucc:success'])
+
+        self.assertFailedTestCount(1, self.mtest_command + ['--suite', 'subprjmix:fail'])
+        self.assertFailedTestCount(0, self.mtest_command + ['--suite', 'subprjmix:success'])
+        self.assertFailedTestCount(2, self.mtest_command + ['--no-suite', 'subprjmix:fail'])
+        self.assertFailedTestCount(3, self.mtest_command + ['--no-suite', 'subprjmix:success'])
+
+        self.assertFailedTestCount(2, self.mtest_command + ['--suite', 'subprjfail', '--suite', 'subprjmix:fail'])
+        self.assertFailedTestCount(3, self.mtest_command + ['--suite', 'subprjfail', '--suite', 'subprjmix', '--suite', 'mainprj'])
+        self.assertFailedTestCount(2, self.mtest_command + ['--suite', 'subprjfail', '--suite', 'subprjmix', '--suite', 'mainprj', '--no-suite', 'subprjmix:fail'])
+        self.assertFailedTestCount(1, self.mtest_command + ['--suite', 'subprjfail', '--suite', 'subprjmix', '--suite', 'mainprj', '--no-suite', 'subprjmix:fail', 'mainprj-failing_test'])
+
+        self.assertFailedTestCount(1, self.mtest_command + ['--no-suite', 'subprjfail:fail', '--no-suite', 'subprjmix:fail'])
+
     def _test_stds_impl(self, testdir, compiler, p):
         lang_std = p + '_std'
         # Check that all the listed -std=xxx options for this compiler work
