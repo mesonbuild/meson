@@ -2163,13 +2163,10 @@ rule FORTRAN_DEP_HACK
     def get_build_on_all_targets(self):
         result = []
         for t in self.build.get_targets().values():
-            if t.build_on_all:
+            if t.build_on_all or \
+                (hasattr(t, 'install') and t.install) or\
+                (hasattr(t, 'build_always') and t.build_always):
                 result.append(t)
-            # CustomTargets that aren't installed should only be built if
-            # they are used by something else or are to always be built
-            if isinstance(t, build.CustomTarget):
-                if t.install or t.build_always:
-                    result.append(t)
         return result
 
     def generate_ending(self, outfile):

@@ -44,6 +44,7 @@ known_basic_kwargs = {'install': True,
                       'sources': True,
                       'objects': True,
                       'native': True,
+                      'build_on_all': True,
                       }
 
 # These contain kwargs supported by both static and shared libraries. These are
@@ -264,6 +265,11 @@ class Target:
     def get_subdir(self):
         return self.subdir
 
+    def process_kwargs(self, kwargs):
+        if 'build_on_all' in kwargs:
+            self.build_on_all = kwargs['build_on_all']
+            if not isinstance(self.build_on_all, bool):
+                raise InvalidArguments('build_on_all must be a boolean value.')
 
 class BuildTarget(Target):
     def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
@@ -518,6 +524,7 @@ class BuildTarget(Target):
         return self.custom_install_dir
 
     def process_kwargs(self, kwargs, environment):
+        super().process_kwargs(kwargs)
         self.copy_kwargs(kwargs)
         kwargs.get('modules', [])
         self.need_install = kwargs.get('install', self.need_install)
@@ -1281,6 +1288,7 @@ class CustomTarget(Target):
         return deps
 
     def process_kwargs(self, kwargs):
+        super().process_kwargs(kwargs)
         self.sources = kwargs.get('input', [])
         if not isinstance(self.sources, list):
             self.sources = [self.sources]
