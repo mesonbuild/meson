@@ -252,11 +252,22 @@ class EnvironmentVariables():
             env[name] = method(full_env, name, values, kwargs)
         return env
 
-
-class BuildTarget():
-    def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
+class Target:
+    def __init__(self, name, subdir, build_on_all):
         self.name = name
         self.subdir = subdir
+        self.build_on_all = build_on_all
+
+    def get_basename(self):
+        return self.name
+
+    def get_subdir(self):
+        return self.subdir
+
+
+class BuildTarget(Target):
+    def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
+        super().__init__(name, subdir, True)
         self.subproject = subproject # Can not be calculated from subdir as subproject dirname can be changed per project.
         self.is_cross = is_cross
         self.is_unity = environment.coredata.get_builtin_option('unity')
@@ -643,9 +654,6 @@ class BuildTarget():
                 if not isinstance(self.pic, bool):
                     raise InvalidArguments('Argument pic to static library {!r} must be boolean'.format(self.name))
 
-    def get_subdir(self):
-        return self.subdir
-
     def get_filename(self):
         return self.filename
 
@@ -671,9 +679,6 @@ class BuildTarget():
             if isinstance(t, StaticLibrary):
                 transitive_deps += t.get_dependencies()
         return transitive_deps
-
-    def get_basename(self):
-        return self.name
 
     def get_source_subdir(self):
         return self.subdir
@@ -1227,7 +1232,7 @@ class SharedModule(SharedLibrary):
             raise MesonException('Shared modules must not specify the soversion kwarg.')
         super().__init__(name, subdir, subproject, is_cross, sources, objects, environment, kwargs)
 
-class CustomTarget:
+class CustomTarget(Target):
     known_kwargs = {'input': True,
                     'output': True,
                     'command': True,
@@ -1241,8 +1246,7 @@ class CustomTarget:
                     }
 
     def __init__(self, name, subdir, kwargs, absolute_paths=False):
-        self.name = name
-        self.subdir = subdir
+        super().__init__(name, subdir, False)
         self.dependencies = []
         self.extra_depends = []
         self.depend_files = [] # Files that this target depends on but are not on the command line.
@@ -1366,9 +1370,6 @@ class CustomTarget:
                 mlog.debug(i)
                 raise InvalidArguments('Unknown type {!r} in depend_files.'.format(type(i).__name__))
 
-    def get_basename(self):
-        return self.name
-
     def get_dependencies(self):
         return self.dependencies
 
@@ -1377,9 +1378,6 @@ class CustomTarget:
 
     def get_custom_install_dir(self):
         return self.install_dir
-
-    def get_subdir(self):
-        return self.subdir
 
     def get_outputs(self):
         return self.output
@@ -1396,13 +1394,12 @@ class CustomTarget:
     def type_suffix(self):
         return "@cus"
 
-class RunTarget:
+class RunTarget(Target):
     def __init__(self, name, command, args, dependencies, subdir):
-        self.name = name
+        super().__init__(name, subdir, False)
         self.command = command
         self.args = args
         self.dependencies = dependencies
-        self.subdir = subdir
 
     def __repr__(self):
         repr_str = "<{0} {1}: {2}>"
@@ -1410,9 +1407,6 @@ class RunTarget:
 
     def get_id(self):
         return self.name + self.type_suffix()
-
-    def get_basename(self):
-        return self.name
 
     def get_dependencies(self):
         return self.dependencies
@@ -1422,9 +1416,6 @@ class RunTarget:
 
     def get_sources(self):
         return []
-
-    def get_subdir(self):
-        return self.subdir
 
     def should_install(self):
         return False
