@@ -13,12 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import stat
 import unittest, os, sys, shutil, time
 import subprocess
 import re, json
 import tempfile
 from glob import glob
 import mesonbuild.environment
+import mesonbuild.mesonlib
 from mesonbuild.environment import detect_ninja, Environment
 from mesonbuild.dependencies import PkgConfigDependency
 
@@ -57,6 +59,42 @@ class InternalTests(unittest.TestCase):
         self.assertEqual(searchfunc('2016.10.28 1.2.3'), '1.2.3')
         self.assertEqual(searchfunc('foobar 2016.10.128'), 'unknown version')
         self.assertEqual(searchfunc('2016.10.128'), 'unknown version')
+
+    def test_mode_symbolic_to_bits(self):
+        modefunc = mesonbuild.mesonlib.FileMode.perms_s_to_bits
+        self.assertEqual(modefunc('---------'), 0)
+        self.assertEqual(modefunc('r--------'), stat.S_IRUSR)
+        self.assertEqual(modefunc('---r-----'), stat.S_IRGRP)
+        self.assertEqual(modefunc('------r--'), stat.S_IROTH)
+        self.assertEqual(modefunc('-w-------'), stat.S_IWUSR)
+        self.assertEqual(modefunc('----w----'), stat.S_IWGRP)
+        self.assertEqual(modefunc('-------w-'), stat.S_IWOTH)
+        self.assertEqual(modefunc('--x------'), stat.S_IXUSR)
+        self.assertEqual(modefunc('-----x---'), stat.S_IXGRP)
+        self.assertEqual(modefunc('--------x'), stat.S_IXOTH)
+        self.assertEqual(modefunc('--S------'), stat.S_ISUID)
+        self.assertEqual(modefunc('-----S---'), stat.S_ISGID)
+        self.assertEqual(modefunc('--------T'), stat.S_ISVTX)
+        self.assertEqual(modefunc('--s------'), stat.S_ISUID | stat.S_IXUSR)
+        self.assertEqual(modefunc('-----s---'), stat.S_ISGID | stat.S_IXGRP)
+        self.assertEqual(modefunc('--------t'), stat.S_ISVTX | stat.S_IXOTH)
+        self.assertEqual(modefunc('rwx------'), stat.S_IRWXU)
+        self.assertEqual(modefunc('---rwx---'), stat.S_IRWXG)
+        self.assertEqual(modefunc('------rwx'), stat.S_IRWXO)
+        # We could keep listing combinations exhaustively but that seems
+        # tedious and pointless. Just test a few more.
+        self.assertEqual(modefunc('rwxr-xr-x'),
+                         stat.S_IRWXU |
+                         stat.S_IRGRP | stat.S_IXGRP |
+                         stat.S_IROTH | stat.S_IXOTH)
+        self.assertEqual(modefunc('rw-r--r--'),
+                         stat.S_IRUSR | stat.S_IWUSR |
+                         stat.S_IRGRP |
+                         stat.S_IROTH)
+        self.assertEqual(modefunc('rwsr-x---'),
+                         stat.S_IRWXU | stat.S_ISUID |
+                         stat.S_IRGRP | stat.S_IXGRP)
+
 
 class LinuxlikeTests(unittest.TestCase):
     def setUp(self):
@@ -551,6 +589,57 @@ class LinuxlikeTests(unittest.TestCase):
         # libdir must be inside prefix even when set via mesonconf
         self.init(testdir)
         self.assertRaises(subprocess.CalledProcessError, self.setconf, '-Dlibdir=/opt')
+
+    def test_installed_modes(self):
+        '''
+        Test that files installed by these tests have the correct permissions.
+        Can't be an ordinary test because our installed_files.txt is very basic.
+        '''
+        # Test file modes
+        testdir = os.path.join(self.common_test_dir, '12 data')
+        self.init(testdir)
+        self.install()
+
+        f = os.path.join(self.installdir, 'etc', 'etcfile.dat')
+        found_mode = stat.filemode(os.stat(f).st_mode)
+        want_mode = 'rw------T'
+        self.assertEqual(want_mode, found_mode[1:])
+
+        f = os.path.join(self.installdir, 'usr', 'bin', 'runscript.sh')
+        statf = os.stat(f)
+        found_mode = stat.filemode(statf.st_mode)
+        want_mode = 'rwxr-sr-x'
+        self.assertEqual(want_mode, found_mode[1:])
+        if os.getuid() == 0:
+            # The chown failed nonfatally if we're not root
+            self.assertEqual(0, statf.st_uid)
+            self.assertEqual(0, statf.st_gid)
+
+        f = os.path.join(self.installdir, 'usr', 'share', 'progname',
+                         'fileobject_datafile.dat')
+        statf = os.stat(f)
+        found_mode = stat.filemode(statf.st_mode)
+        want_mode = 'rw-rw-r--'
+        self.assertEqual(want_mode, found_mode[1:])
+        self.assertEqual(os.getuid(), statf.st_uid)
+        if os.getuid() == 0:
+            # The chown failed nonfatally if we're not root
+            self.assertEqual(0, statf.st_gid)
+
+        self.wipe()
+        # Test directory modes
+        testdir = os.path.join(self.common_test_dir, '66 install subdir')
+        self.init(testdir)
+        self.install()
+
+        f = os.path.join(self.installdir, 'usr', 'share', 'sub1')
+        statf = os.stat(f)
+        found_mode = stat.filemode(statf.st_mode)
+        want_mode = 'rwxr-x--t'
+        self.assertEqual(want_mode, found_mode[1:])
+        if os.getuid() == 0:
+            # The chown failed nonfatally if we're not root
+            self.assertEqual(0, statf.st_uid)
 
 
 class RewriterTests(unittest.TestCase):
