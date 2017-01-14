@@ -2160,21 +2160,26 @@ rule FORTRAN_DEP_HACK
         elem.add_item('pool', 'console')
         elem.write(outfile)
 
+    def get_build_on_all_targets(self):
+        result = []
+        for t in self.build.get_targets().values():
+            if t.build_on_all:
+                result.append(t)
+            # CustomTargets that aren't installed should only be built if
+            # they are used by something else or are to always be built
+            if isinstance(t, build.CustomTarget):
+                if t.install or t.build_always:
+                    result.append(t)
+        return result
+
     def generate_ending(self, outfile):
         targetlist = []
         ctlist = []
-        for t in self.build.get_targets().values():
-            # RunTargets are meant to be invoked manually
-            if isinstance(t, build.RunTarget):
-                continue
+        for t in self.get_build_on_all_targets():
             if isinstance(t, build.CustomTarget):
                 # Create a list of all custom target outputs
                 for o in t.get_outputs():
                     ctlist.append(os.path.join(self.get_target_dir(t), o))
-                # CustomTargets that aren't installed should only be built if
-                # they are used by something else or are to always be built
-                if not (t.install or t.build_always):
-                    continue
             # Add the first output of each target to the 'all' target so that
             # they are all built
             targetlist.append(os.path.join(self.get_target_dir(t), t.get_outputs()[0]))
