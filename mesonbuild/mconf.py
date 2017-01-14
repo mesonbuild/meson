@@ -22,6 +22,8 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-D', action='append', default=[], dest='sets',
                     help='Set an option to the given value.')
 parser.add_argument('directory', nargs='*')
+parser.add_argument('--clearcache', action='store_true', default=False,
+                    help='Clear cached state (e.g. found dependencies)')
 
 class ConfException(mesonlib.MesonException):
     def __init__(self, *args, **kwargs):
@@ -42,13 +44,16 @@ class Conf:
             raise ConfException('Version mismatch (%s vs %s)' %
                                 (coredata.version, self.coredata.version))
 
+    def clear_cache(self):
+        self.coredata.deps = {}
+
     def save(self):
         # Only called if something has changed so overwrite unconditionally.
         with open(self.coredata_file, 'wb') as f:
             pickle.dump(self.coredata, f)
         # We don't write the build file because any changes to it
-        # are erased when Meson is executed the nex time, i.e. the next
-        # time Ninja is run.
+        # are erased when Meson is executed the next time, i.e. whne
+        # Ninja is run.
 
     def print_aligned(self, arr):
         if len(arr) == 0:
@@ -223,11 +228,17 @@ def run(args):
         builddir = options.directory[0]
     try:
         c = Conf(builddir)
+        save = False
         if len(options.sets) > 0:
             c.set_options(options.sets)
-            c.save()
+            save = True
+        elif options.clearcache:
+            c.clear_cache()
+            save = True
         else:
             c.print_conf()
+        if save:
+            c.save()
     except ConfException as e:
         print('Meson configurator encountered an error:\n')
         print(e)
