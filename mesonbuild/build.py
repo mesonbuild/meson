@@ -258,6 +258,8 @@ class Target:
         self.name = name
         self.subdir = subdir
         self.build_on_all = build_on_all
+        self.install = False
+        self.build_always = False
 
     def get_basename(self):
         return self.name

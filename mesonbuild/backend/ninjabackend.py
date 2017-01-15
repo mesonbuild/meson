@@ -2163,9 +2163,7 @@ rule FORTRAN_DEP_HACK
     def get_build_on_all_targets(self):
         result = []
         for t in self.build.get_targets().values():
-            if t.build_on_all or \
-                (hasattr(t, 'install') and t.install) or\
-                (hasattr(t, 'build_always') and t.build_always):
+            if t.build_on_all or t.install or t.build_always:
                 result.append(t)
         return result
 
