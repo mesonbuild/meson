@@ -526,8 +526,8 @@ class LinuxlikeTests(unittest.TestCase):
         self._test_stds_impl(testdir, cpp, 'cpp')
 
 
-    def test_build_on_all(self):
-        testdir = os.path.join(self.unit_test_dir, '4 build on all')
+    def test_build_by_default(self):
+        testdir = os.path.join(self.unit_test_dir, '5 build by default')
         self.init(testdir)
         self.build()
         genfile = os.path.join(self.builddir, 'generated.dat')

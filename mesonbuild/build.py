@@ -44,7 +44,7 @@ known_basic_kwargs = {'install': True,
                       'sources': True,
                       'objects': True,
                       'native': True,
-                      'build_on_all': True,
+                      'build_by_default': True,
                       }
 
 # These contain kwargs supported by both static and shared libraries. These are
@@ -254,10 +254,10 @@ class EnvironmentVariables():
         return env
 
 class Target:
-    def __init__(self, name, subdir, build_on_all):
+    def __init__(self, name, subdir, build_by_default):
         self.name = name
         self.subdir = subdir
-        self.build_on_all = build_on_all
+        self.build_by_default = build_by_default
         self.install = False
         self.build_always = False
 
@@ -268,10 +268,10 @@ class Target:
         return self.subdir
 
     def process_kwargs(self, kwargs):
-        if 'build_on_all' in kwargs:
-            self.build_on_all = kwargs['build_on_all']
-            if not isinstance(self.build_on_all, bool):
-                raise InvalidArguments('build_on_all must be a boolean value.')
+        if 'build_by_default' in kwargs:
+            self.build_by_default = kwargs['build_by_default']
+            if not isinstance(self.build_by_default, bool):
+                raise InvalidArguments('build_by_default must be a boolean value.')
 
 class BuildTarget(Target):
     def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
