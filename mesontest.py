@@ -64,8 +64,10 @@ parser.add_argument('--wrapper', default=None, dest='wrapper',
                     help='wrapper to run tests with (e.g. Valgrind)')
 parser.add_argument('-C', default='.', dest='wd',
                     help='directory to cd into before running')
-parser.add_argument('--suite', default=None, dest='suite',
+parser.add_argument('--suite', default=[], dest='include_suites', action='append', metavar='SUITE',
                     help='Only run tests belonging to the given suite.')
+parser.add_argument('--no-suite', default=[], dest='exclude_suites', action='append', metavar='SUITE',
+                    help='Do not run tests belonging to the given suite.')
 parser.add_argument('--no-stdsplit', default=True, dest='split', action='store_false',
                     help='Do not split stderr and stdout in test logs.')
 parser.add_argument('--print-errorlogs', default=False, action='store_true',
@@ -155,10 +157,12 @@ class TestHarness:
         self.timeout_count = 0
         self.is_run = False
         self.cant_rebuild = False
+        self.tests = None
+        self.suites = None
         if self.options.benchmark:
-            self.datafile = os.path.join(options.wd, 'meson-private/meson_benchmark_setup.dat')
+            self.load_datafile(os.path.join(options.wd, 'meson-private/meson_benchmark_setup.dat'))
         else:
-            self.datafile = os.path.join(options.wd, 'meson-private/meson_test_setup.dat')
+            self.load_datafile(os.path.join(options.wd, 'meson-private/meson_test_setup.dat'))
 
     def rebuild_all(self):
         if not os.path.isfile(os.path.join(self.options.wd, 'build.ninja')):
@@ -325,16 +329,56 @@ class TestHarness:
         self.run_tests(tests)
         return self.fail_count
 
-    def get_tests(self):
-        with open(self.datafile, 'rb') as f:
-            tests = pickle.load(f)
+    def split_suite_string(suite):
+        if ':' in suite:
+            return suite.split(':', 1)
+        else:
+            return (suite, "")
 
-        if not tests:
+    def test_in_suites(test, suites):
+        for suite in suites:
+            (prj_match, st_match) = TestHarness.split_suite_string(suite)
+            for prjst in test.suite:
+                (prj, st) = TestHarness.split_suite_string(prjst)
+                if prj_match and prj != prj_match:
+                    continue
+                if st_match and st != st_match:
+                    continue
+                return True
+        return False
+
+    def test_suitable(self, test):
+        return (len(self.options.include_suites) == 0 or TestHarness.test_in_suites(test, self.options.include_suites)) \
+            and not TestHarness.test_in_suites(test, self.options.exclude_suites)
+
+    def load_suites(self):
+        ss = set()
+        for t in self.tests:
+            for s in t.suite:
+                ss.add(s)
+        self.suites = list(ss)
+
+    def load_tests(self):
+        with open(self.datafile, 'rb') as f:
+            self.tests = pickle.load(f)
+
+    def load_datafile(self, datafile):
+        self.datafile = datafile
+        self.load_tests()
+        self.load_suites()
+
+    def get_tests(self):
+        if not self.tests:
             print('No tests defined.')
             return []
 
-        if self.options.suite:
-            tests = [t for t in tests if self.options.suite in t.suite]
+        if len(self.options.include_suites) or len(self.options.exclude_suites):
+            tests = []
+            for tst in self.tests:
+                if self.test_suitable(tst):
+                    tests.append(tst)
+        else:
+            tests = self.tests
 
         if self.options.args:
             tests = [t for t in tests if t.name in self.options.args]
@@ -384,8 +428,15 @@ class TestHarness:
         assert(isinstance(wrap, list))
         return wrap
 
-    def get_suites(self, tests):
-        return set([test.suite[0] for test in tests])
+    def get_pretty_suite(self, test, tests):
+        if len(self.suites) > 1:
+            rv = TestHarness.split_suite_string(test.suite[0])[0]
+            s = "+".join(TestHarness.split_suite_string(s)[1] for s in test.suite)
+            if len(s):
+                rv += ":"
+            return rv + s + " / " + test.name
+        else:
+            return test.name
 
     def run_tests(self, tests):
         try:
@@ -399,13 +450,7 @@ class TestHarness:
 
             for i in range(self.options.repeat):
                 for i, test in enumerate(tests):
-                    if test.suite[0] == '':
-                        visible_name = test.name
-                    else:
-                        if self.options.suite is not None:
-                            visible_name = self.options.suite + ' / ' + test.name
-                        else:
-                            visible_name = test.suite[0] + ' / ' + test.name
+                    visible_name = self.get_pretty_suite(test, tests)
 
                     if self.options.gdb:
                         test.timeout = None
@@ -461,13 +506,8 @@ class TestHarness:
 
 def list_tests(th):
     tests = th.get_tests()
-    print_suites = True if len(th.get_suites(tests)) != 1 else False
-    for i in tests:
-        if print_suites:
-            print("%s / %s" % (i.suite[0], i.name))
-        else:
-            print("%s" % i.name)
-
+    for t in tests:
+        print(th.get_pretty_suite(t, tests))
 
 def merge_suite_options(options):
     buildfile = os.path.join(options.wd, 'meson-private/build.dat')

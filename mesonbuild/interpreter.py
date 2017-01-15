@@ -2080,14 +2080,14 @@ requirements use the version keyword argument instead.''')
             workdir = None
         if not isinstance(timeout, int):
             raise InterpreterException('Timeout must be an integer.')
-        suite = mesonlib.stringlistify(kwargs.get('suite', ''))
-        if self.is_subproject():
-            newsuite = []
-            for s in suite:
-                if len(s) > 0:
-                    s = '.' + s
-                newsuite.append(self.subproject.replace(' ', '_').replace('.', '_') + s)
-            suite = newsuite
+        suite = []
+        for s in mesonlib.stringlistify(kwargs.get('suite', '')):
+            if len(s) > 0:
+                s = ':' + s
+            if self.is_subproject():
+                suite.append(self.subproject.replace(' ', '_').replace(':', '_') + s)
+            else:
+                suite.append(self.build.project_name.replace(' ', '_').replace(':', '_') + s)
         t = Test(args[0], suite, args[1].held_object, par, cmd_args, env, should_fail, timeout, workdir)
         if is_base_test:
             self.build.tests.append(t)
