@@ -295,8 +295,12 @@ class TestHarness:
             write_json_log(jsonlogfile, name, result)
 
     def print_summary(self, logfile, jsonlogfile):
-        msg = 'Test summary: %d OK, %d FAIL, %d SKIP, %d TIMEOUT' \
-            % (self.success_count, self.fail_count, self.skip_count, self.timeout_count)
+        msg = '''
+OK:      %4d
+FAIL:    %4d
+SKIP:    %4d
+TIMEOUT: %4d
+''' % (self.success_count, self.fail_count, self.skip_count, self.timeout_count)
         print(msg)
         if logfile:
             logfile.write(msg)
