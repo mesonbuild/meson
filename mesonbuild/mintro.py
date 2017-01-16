@@ -40,10 +40,10 @@ parser.add_argument('--tests', action='store_true', dest='tests', default=False,
 parser.add_argument('--benchmarks', action='store_true', dest='benchmarks', default=False,
                     help='List all benchmarks.')
 parser.add_argument('--dependencies', action='store_true', dest='dependencies', default=False,
-                    help='list external dependencies.')
+                    help='List external dependencies.')
 parser.add_argument('--projectinfo', action='store_true', dest='projectinfo', default=False,
-                    help='information about projects.')
-parser.add_argument('args', nargs='+')
+                    help='Information about projects.')
+parser.add_argument('builddir', nargs='?', help='The build directory')
 
 def determine_installed_path(target, installdata):
     install_target = None
@@ -61,9 +61,9 @@ def determine_installed_path(target, installdata):
 
 def list_installed(installdata):
     res = {}
-    for path, installpath in installdata.data:
-        res[path] = os.path.join(installdata.prefix, installpath)
-
+    if installdata is not None:
+        for path, installpath in installdata.data:
+            res[path] = os.path.join(installdata.prefix, installpath)
     print(json.dumps(res))
 
 
@@ -92,7 +92,7 @@ def list_targets(coredata, builddata, installdata):
         else:
             typename = 'unknown'
         t['type'] = typename
-        if target.should_install():
+        if installdata and target.should_install():
             t['installed'] = True
             t['install_filename'] = determine_installed_path(target, installdata)
         else:
@@ -205,19 +205,22 @@ def list_projinfo(builddata):
     print(json.dumps(result))
 
 def run(args):
+    datadir = 'meson-private'
     options = parser.parse_args(args)
-    if len(options.args) > 1:
-        print('Too many arguments')
+    if options.builddir is not None:
+        datadir = os.path.join(options.builddir, datadir)
+    if not os.path.isdir(datadir):
+        print('Current directory is not a build dir. Please specify it or '
+              'change the working directory to it.')
         return 1
-    elif len(options.args) == 1:
-        bdir = options.args[0]
-    else:
-        bdir = ''
-    corefile = os.path.join(bdir, 'meson-private/coredata.dat')
-    buildfile = os.path.join(bdir, 'meson-private/build.dat')
-    installfile = os.path.join(bdir, 'meson-private/install.dat')
-    testfile = os.path.join(bdir, 'meson-private/meson_test_setup.dat')
-    benchmarkfile = os.path.join(bdir, 'meson-private/meson_benchmark_setup.dat')
+
+    corefile = os.path.join(datadir, 'coredata.dat')
+    buildfile = os.path.join(datadir, 'build.dat')
+    installfile = os.path.join(datadir, 'install.dat')
+    testfile = os.path.join(datadir, 'meson_test_setup.dat')
+    benchmarkfile = os.path.join(datadir, 'meson_benchmark_setup.dat')
+
+    # Load all data files
     with open(corefile, 'rb') as f:
         coredata = pickle.load(f)
     with open(buildfile, 'rb') as f:
@@ -226,8 +229,13 @@ def run(args):
         testdata = pickle.load(f)
     with open(benchmarkfile, 'rb') as f:
         benchmarkdata = pickle.load(f)
-    with open(installfile, 'rb') as f:
-        installdata = pickle.load(f)
+    # Install data is only available with the Ninja backend
+    if os.path.isfile(installfile):
+        with open(installfile, 'rb') as f:
+            installdata = pickle.load(f)
+    else:
+        installdata = None
+
     if options.list_targets:
         list_targets(coredata, builddata, installdata)
     elif options.list_installed:
