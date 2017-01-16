@@ -33,10 +33,11 @@ def get_soname(fname):
             return m.group(1)
     raise RuntimeError('Could not determine soname:\n\n' + raw_out)
 
-def get_fake_options():
+def get_fake_options(prefix):
     import argparse
     opts = argparse.Namespace()
     opts.cross_file = None
+    opts.prefix = prefix
     return opts
 
 class FakeEnvironment(object):
@@ -85,7 +86,8 @@ class LinuxlikeTests(unittest.TestCase):
         super().tearDown()
 
     def _run(self, command):
-        self.output += subprocess.check_output(command, env=os.environ.copy())
+        self.output += subprocess.check_output(command, stderr=subprocess.STDOUT,
+                                               env=os.environ.copy())
 
     def init(self, srcdir, extra_args=None):
         if extra_args is None:
@@ -510,7 +512,7 @@ class LinuxlikeTests(unittest.TestCase):
         '''
         testdir = os.path.join(self.common_test_dir, '1 trivial')
         env = Environment(testdir, self.builddir, self.meson_command,
-                          get_fake_options(), [])
+                          get_fake_options(self.prefix), [])
         cc = env.detect_c_compiler(False)
         self._test_stds_impl(testdir, cc, 'c')
 
@@ -521,10 +523,9 @@ class LinuxlikeTests(unittest.TestCase):
         '''
         testdir = os.path.join(self.common_test_dir, '2 cpp')
         env = Environment(testdir, self.builddir, self.meson_command,
-                          get_fake_options(), [])
+                          get_fake_options(self.prefix), [])
         cpp = env.detect_cpp_compiler(False)
         self._test_stds_impl(testdir, cpp, 'cpp')
-
 
     def test_build_by_default(self):
         testdir = os.path.join(self.unit_test_dir, '5 build by default')
@@ -536,6 +537,21 @@ class LinuxlikeTests(unittest.TestCase):
         self.assertFalse(os.path.exists(exe))
         self._run(self.ninja_command + ['fooprog'])
         self.assertTrue(os.path.exists(exe))
+
+    def test_libdir_must_be_inside_prefix(self):
+        testdir = os.path.join(self.common_test_dir, '1 trivial')
+        # libdir being inside prefix is ok
+        args = ['--prefix', '/opt', '--libdir', '/opt/lib32']
+        self.init(testdir, args)
+        self.wipe()
+        # libdir not being inside prefix is not ok
+        args = ['--prefix', '/usr', '--libdir', '/opt/lib32']
+        self.assertRaises(subprocess.CalledProcessError, self.init, testdir, args)
+        self.wipe()
+        # libdir must be inside prefix even when set via mesonconf
+        self.init(testdir)
+        self.assertRaises(subprocess.CalledProcessError, self.setconf, '-Dlibdir=/opt')
+
 
 class RewriterTests(unittest.TestCase):
 

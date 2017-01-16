@@ -131,10 +131,54 @@ class CoreData:
         # Only to print a warning if it changes between Meson invocations.
         self.pkgconf_envvar = os.environ.get('PKG_CONFIG_PATH', '')
 
+    def sanitize_prefix(self, prefix):
+        if not os.path.isabs(prefix):
+            raise MesonException('prefix value {!r} must be an absolute path'
+                                 ''.format(prefix))
+        if prefix.endswith('/') or prefix.endswith('\\'):
+            # On Windows we need to preserve the trailing slash if the
+            # string is of type 'C:\' because 'C:' is not an absolute path.
+            if len(prefix) == 3 and prefix[1] == ':':
+                pass
+            else:
+                prefix = prefix[:-1]
+        return prefix
+
+    def sanitize_dir_option_value(self, prefix, option, value):
+        '''
+        If the option is an installation directory option and the value is an
+        absolute path, check that it resides within prefix and return the value
+        as a path relative to the prefix.
+
+        This way everyone can do f.ex, get_option('libdir') and be sure to get
+        the library directory relative to prefix.
+        '''
+        if option.endswith('dir') and os.path.isabs(value) and \
+           option not in builtin_dir_noprefix_options:
+            # Value must be a subdir of the prefix
+            if os.path.commonpath([value, prefix]) != prefix:
+                m = 'The value of the {!r} option is {!r} which must be a ' \
+                    'subdir of the prefix {!r}.\nNote that if you pass a ' \
+                    'relative path, it is assumed to be a subdir of prefix.'
+                raise MesonException(m.format(option, value, prefix))
+            # Convert path to be relative to prefix
+            skip = len(prefix) + 1
+            value = value[skip:]
+        return value
+
     def init_builtins(self, options):
         self.builtins = {}
+        # Sanitize prefix
+        options.prefix = self.sanitize_prefix(options.prefix)
+        # Initialize other builtin options
         for key in get_builtin_options():
-            args = [key] + builtin_options[key][1:-1] + [getattr(options, key, get_builtin_option_default(key))]
+            if hasattr(options, key):
+                value = getattr(options, key)
+                value = self.sanitize_dir_option_value(options.prefix, key, value)
+                setattr(options, key, value)
+            else:
+                value = get_builtin_option_default(key)
+            args = [key] + builtin_options[key][1:-1] + [value]
             self.builtins[key] = builtin_options[key][0](*args)
 
     def get_builtin_option(self, optname):
@@ -143,7 +187,11 @@ class CoreData:
         raise RuntimeError('Tried to get unknown builtin option %s.' % optname)
 
     def set_builtin_option(self, optname, value):
-        if optname in self.builtins:
+        if optname == 'prefix':
+            value = self.sanitize_prefix(value)
+        elif optname in self.builtins:
+            prefix = self.builtins['prefix'].value
+            value = self.sanitize_dir_option_value(prefix, optname, value)
             self.builtins[optname].set_value(value)
         else:
             raise RuntimeError('Tried to set unknown builtin option %s.' % optname)
@@ -234,6 +282,9 @@ builtin_options = {
     'stdsplit':        [UserBooleanOption, 'Split stdout and stderr in test logs.', True],
     'errorlogs':       [UserBooleanOption, "Whether to print the logs from failing tests.", True],
 }
+
+# Installation directories that can reside in a path outside of the prefix
+builtin_dir_noprefix_options = {'sysconfdir', 'localstatedir', 'sharedstatedir'}
 
 forbidden_target_names = {'clean': None,
                           'clean-ctlist': None,
