@@ -19,12 +19,10 @@ import platform, subprocess, operator, os, shutil, re
 from glob import glob
 
 class MesonException(Exception):
-    def __init__(self, *args, **kwargs):
-        Exception.__init__(self, *args, **kwargs)
+    '''Exceptions thrown by Meson'''
 
 class EnvironmentException(MesonException):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    '''Exceptions thrown while processing and creating the build environment'''
 
 class File:
     def __init__(self, is_built, subdir, fname):

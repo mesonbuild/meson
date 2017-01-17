@@ -30,8 +30,7 @@ from . import mesonlib
 from .environment import detect_cpu_family, for_windows
 
 class DependencyException(MesonException):
-    def __init__(self, *args, **kwargs):
-        MesonException.__init__(self, *args, **kwargs)
+    '''Exceptions raised while trying to find dependencies'''
 
 class Dependency():
     def __init__(self, type_name='unknown'):
@@ -170,9 +169,8 @@ class PkgConfigDependency(Dependency):
                 if not self.silent:
                     mlog.log(*found_msg)
                 if self.required:
-                    raise DependencyException(
-                        'Invalid version of a dependency, needed %s %s found %s.' %
-                        (name, not_found, self.modversion))
+                    m = 'Invalid version of dependency, need {!r} {!r} found {!r}.'
+                    raise DependencyException(m.format(name, not_found, self.modversion))
                 return
         found_msg += [mlog.green('YES'), self.modversion]
         if not self.silent:
