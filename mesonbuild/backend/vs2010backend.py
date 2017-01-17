@@ -224,7 +224,7 @@ class Vs2010Backend(backends.Backend):
             ofile.write('Microsoft Visual Studio Solution File, Format '
                         'Version 11.00\n')
             ofile.write('# Visual Studio ' + self.vs_version + '\n')
-            prj_templ = prj_line = 'Project("{%s}") = "%s", "%s", "{%s}"\n'
+            prj_templ = 'Project("{%s}") = "%s", "%s", "{%s}"\n'
             for p in projlist:
                 prj_line = prj_templ % (self.environment.coredata.guid,
                                         p[0], p[1], p[2])
