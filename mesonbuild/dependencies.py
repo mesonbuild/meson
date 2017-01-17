@@ -173,12 +173,14 @@ class PkgConfigDependency(Dependency):
                     raise DependencyException(m.format(name, not_found, self.modversion))
                 return
         found_msg += [mlog.green('YES'), self.modversion]
-        if not self.silent:
-            mlog.log(*found_msg)
         # Fetch cargs to be used while using this dependency
         self._set_cargs()
         # Fetch the libraries and library paths needed for using this
         self._set_libs()
+        # Print the found message only at the very end because fetching cflags
+        # and libs can also fail if other needed pkg-config files aren't found.
+        if not self.silent:
+            mlog.log(*found_msg)
 
     def __repr__(self):
         s = '<{0} {1}: {2} {3}>'
