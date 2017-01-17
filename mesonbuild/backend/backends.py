@@ -618,7 +618,7 @@ class Backend():
                 dfilename = os.path.join(outdir, target.depfile)
                 i = i.replace('@DEPFILE@', dfilename)
             elif '@PRIVATE_OUTDIR_' in i:
-                match = re.search('@PRIVATE_OUTDIR_(ABS_)?([^\/\s*]*)@', i)
+                match = re.search('@PRIVATE_OUTDIR_(ABS_)?([^/\s*]*)@', i)
                 if not match:
                     msg = 'Custom target {!r} has an invalid argument {!r}' \
                           ''.format(target.name, i)
