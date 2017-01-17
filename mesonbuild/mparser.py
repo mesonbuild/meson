@@ -80,7 +80,7 @@ class Lexer:
         par_count = 0
         bracket_count = 0
         col = 0
-        while(loc < len(code)):
+        while loc < len(code):
             matched = False
             value = None
             for (tid, reg) in self.token_specification:
@@ -274,7 +274,7 @@ class PlusAssignmentNode:
         assert(isinstance(var_name, str))
         self.value = value
 
-class ForeachClauseNode():
+class ForeachClauseNode:
     def __init__(self, lineno, colno, varname, items, block):
         self.lineno = lineno
         self.colno = colno
@@ -282,28 +282,28 @@ class ForeachClauseNode():
         self.items = items
         self.block = block
 
-class IfClauseNode():
+class IfClauseNode:
     def __init__(self, lineno, colno):
         self.lineno = lineno
         self.colno = colno
         self.ifs = []
         self.elseblock = EmptyNode()
 
-class UMinusNode():
+class UMinusNode:
     def __init__(self, current_location, value):
         self.subdir = current_location.subdir
         self.lineno = current_location.lineno
         self.colno = current_location.colno
         self.value = value
 
-class IfNode():
+class IfNode:
     def __init__(self, lineno, colno, condition, block):
         self.lineno = lineno
         self.colno = colno
         self.condition = condition
         self.block = block
 
-class TernaryNode():
+class TernaryNode:
     def __init__(self, lineno, colno, condition, trueblock, falseblock):
         self.lineno = lineno
         self.colno = colno
@@ -311,7 +311,7 @@ class TernaryNode():
         self.trueblock = trueblock
         self.falseblock = falseblock
 
-class ArgumentNode():
+class ArgumentNode:
     def __init__(self, token):
         self.lineno = token.lineno
         self.colno = token.colno

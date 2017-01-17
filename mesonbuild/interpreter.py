@@ -186,7 +186,7 @@ class ConfigurationDataHolder(MutableInterpreterObject):
         if desc is not None and not isinstance(desc, str):
             raise InterpreterException('Description must be a string.')
 
-        return (name, val, desc)
+        return name, val, desc
 
     def set_method(self, args, kwargs):
         (name, val, desc) = self.validate_args(args, kwargs)
@@ -1314,7 +1314,7 @@ class Interpreter(InterpreterBase):
 
     def module_method_callback(self, return_object):
         if not isinstance(return_object, ModuleReturnValue):
-            assert(False)
+            assert False
             raise InterpreterException('Bug in module, it returned an invalid object')
         invalues = return_object.new_objects
         self.process_new_values(invalues)
@@ -1711,7 +1711,7 @@ class Interpreter(InterpreterBase):
                     new_options[i].set_value(value)
         new_options.update(self.coredata.compiler_options)
         self.coredata.compiler_options = new_options
-        return (comp, cross_comp)
+        return comp, cross_comp
 
     def add_languages(self, args, required):
         success = True

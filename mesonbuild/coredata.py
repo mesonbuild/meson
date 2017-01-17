@@ -105,7 +105,7 @@ class UserStringArrayOption(UserOption):
 # invocations of Meson. It is roughly the same thing as
 # cmakecache.
 
-class CoreData():
+class CoreData:
 
     def __init__(self, options):
         self.guid = str(uuid.uuid4()).upper()

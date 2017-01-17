@@ -208,7 +208,7 @@ def version_compare_many(vstr1, conditions):
             not_found.append(req)
         else:
             found.append(req)
-    return (not_found == [], not_found, found)
+    return not_found == [], not_found, found
 
 def default_libdir():
     if is_debianlike():
@@ -395,4 +395,4 @@ def Popen_safe(args, write=None, stderr=subprocess.PIPE, **kwargs):
                          stdout=subprocess.PIPE,
                          stderr=stderr, **kwargs)
     o, e = p.communicate(write)
-    return (p, o, e)
+    return p, o, e

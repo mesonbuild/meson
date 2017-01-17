@@ -158,7 +158,7 @@ class Build:
 
         return link_args.get(compiler.get_language(), [])
 
-class IncludeDirs():
+class IncludeDirs:
     def __init__(self, curdir, dirs, is_system, extra_build_dirs=None):
         self.curdir = curdir
         self.incdirs = dirs
@@ -179,7 +179,7 @@ class IncludeDirs():
     def get_extra_build_dirs(self):
         return self.extra_build_dirs
 
-class ExtractedObjects():
+class ExtractedObjects:
     '''
     Holds a list of sources for which the objects must be extracted
     '''
@@ -219,7 +219,7 @@ class ExtractedObjects():
     def get_want_all_objects(self):
         return self.want_all_objects
 
-class EnvironmentVariables():
+class EnvironmentVariables:
     def __init__(self):
         self.envvars = []
 
@@ -857,7 +857,7 @@ You probably should put it in link_with instead.''')
         return False
 
 
-class Generator():
+class Generator:
     def __init__(self, args, kwargs):
         if len(args) != 1:
             raise InvalidArguments('Generator requires exactly one positional argument: the executable')
@@ -940,7 +940,7 @@ class Generator():
         return output
 
 
-class GeneratedList():
+class GeneratedList:
     def __init__(self, generator, extra_args=[]):
         if hasattr(generator, 'held_object'):
             generator = generator.held_object
@@ -1178,7 +1178,7 @@ class SharedLibrary(BuildTarget):
         # Visual Studio module-definitions file
         if 'vs_module_defs' in kwargs:
             path = kwargs['vs_module_defs']
-            if (os.path.isabs(path)):
+            if os.path.isabs(path):
                 self.vs_module_defs = File.from_absolute_file(path)
             else:
                 self.vs_module_defs = File.from_source_file(environment.source_dir, self.subdir, path)
@@ -1456,7 +1456,7 @@ class Jar(BuildTarget):
     def get_java_args(self):
         return self.java_args
 
-class ConfigureFile():
+class ConfigureFile:
 
     def __init__(self, subdir, sourcename, targetname, configuration_data):
         self.subdir = subdir
@@ -1482,7 +1482,7 @@ class ConfigureFile():
     def get_target_name(self):
         return self.targetname
 
-class ConfigurationData():
+class ConfigurationData:
     def __init__(self):
         super().__init__()
         self.values = {}
@@ -1501,7 +1501,7 @@ class ConfigurationData():
 
 # A bit poorly named, but this represents plain data files to copy
 # during install.
-class Data():
+class Data:
     def __init__(self, sources, install_dir):
         self.sources = sources
         self.install_dir = install_dir

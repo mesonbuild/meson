@@ -160,7 +160,7 @@ class AstInterpreter(interpreterbase.InterpreterBase):
         assert(isinstance(args, mparser.ArgumentNode))
         if args.incorrect_order():
             raise InvalidArguments('All keyword arguments must be after positional arguments.')
-        return (args.arguments, args.kwargs)
+        return args.arguments, args.kwargs
 
     def transform(self):
         self.load_root_meson_file()

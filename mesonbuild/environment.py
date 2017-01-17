@@ -34,7 +34,7 @@ def find_coverage_tools():
         lcov_exe = None
     if not mesonlib.exe_exists([genhtml_exe, '--version']):
         genhtml_exe = None
-    return (gcovr_exe, lcov_exe, genhtml_exe)
+    return gcovr_exe, lcov_exe, genhtml_exe
 
 def detect_ninja(version='1.5'):
     for n in ['ninja', 'ninja-build']:
@@ -182,7 +182,7 @@ def search_version(text):
         return match.group(0)
     return 'unknown version'
 
-class Environment():
+class Environment:
     private_dir = 'meson-private'
     log_dir = 'meson-logs'
     coredata_file = os.path.join(private_dir, 'coredata.dat')
@@ -798,7 +798,7 @@ def get_args_from_envvars(compiler):
         compiler_is_linker = (compiler.get_exelist() == compiler.get_linker_exelist())
 
     if lang not in ('c', 'cpp', 'objc', 'objcpp', 'fortran', 'd'):
-        return ([], [])
+        return [], []
 
     # Compile flags
     cflags_mapping = {'c': 'CFLAGS',
@@ -829,9 +829,9 @@ def get_args_from_envvars(compiler):
     log_var('CPPFLAGS', preproc_flags)
     compile_flags += preproc_flags.split()
 
-    return (compile_flags, link_flags)
+    return compile_flags, link_flags
 
-class CrossBuildInfo():
+class CrossBuildInfo:
     def __init__(self, filename):
         self.config = {'properties': {}}
         self.parse_datafile(filename)

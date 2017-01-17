@@ -74,7 +74,7 @@ def get_latest_version(name):
     jd = get_result(API_ROOT + 'query/get_latest/' + name)
     branch = jd['branch']
     revision = jd['revision']
-    return (branch, revision)
+    return branch, revision
 
 def install(name):
     if not os.path.isdir('subprojects'):
@@ -102,7 +102,7 @@ def get_current_version(wrapfile):
     arr = patch_url.split('/')
     branch = arr[-3]
     revision = int(arr[-2])
-    return (branch, revision, cp['directory'], cp['source_filename'], cp['patch_filename'])
+    return branch, revision, cp['directory'], cp['source_filename'], cp['patch_filename']
 
 def update(name):
     if not os.path.isdir('subprojects'):
