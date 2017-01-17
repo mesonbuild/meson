@@ -668,7 +668,6 @@ class BoostDependency(Dependency):
             self.lib_modules_mt[modname] = fname
 
     def detect_lib_modules_nix(self):
-        libsuffix = None
         if mesonlib.is_osx():
             libsuffix = 'dylib'
         else:

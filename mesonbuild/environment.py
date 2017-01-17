@@ -635,7 +635,6 @@ class Environment():
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
 
     def detect_d_compiler(self, want_cross):
-        exelist = None
         is_cross = False
         # Search for a D compiler.
         # We prefer LDC over GDC unless overridden with the DC

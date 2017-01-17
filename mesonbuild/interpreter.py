@@ -1338,7 +1338,7 @@ class Interpreter(InterpreterBase):
                     projname, depname = di
                     subproj = self.do_subproject(projname, {})
                     self.build.cross_stdlibs[l] = subproj.get_variable_method([depname], {})
-                except KeyError as e:
+                except KeyError:
                     pass
 
     @stringArgs
@@ -1565,16 +1565,13 @@ class Interpreter(InterpreterBase):
         for defopt in self.default_project_options:
             key, value = defopt.split('=')
             pref = key + '='
-            was_found = False
             for i in default_options:
                 if i.startswith(pref):
-                    was_found = True
                     break
-                if was_found:
-                    break
-            defopt = self.subproject + ':' + defopt
-            newoptions = [defopt] + self.environment.cmd_line_options.projectoptions
-            self.environment.cmd_line_options.projectoptions = newoptions
+            else:
+                defopt = self.subproject + ':' + defopt
+                newoptions = [defopt] + self.environment.cmd_line_options.projectoptions
+                self.environment.cmd_line_options.projectoptions = newoptions
 
     @stringArgs
     def func_project(self, node, args, kwargs):
