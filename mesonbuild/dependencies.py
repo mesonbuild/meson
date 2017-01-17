@@ -1443,7 +1443,9 @@ def find_external_dependency(name, environment, kwargs):
     if mesonlib.is_osx():
         fwdep = ExtraFrameworkDependency(name, required)
         if required and not fwdep.found():
-            raise DependencyException('Dependency "%s" not found' % name)
+            m = 'Dependency {!r} not found, tried Extra Frameworks ' \
+                'and Pkg-Config:\n\n' + str(pkg_exc)
+            raise DependencyException(m.format(name))
         return fwdep
     if pkg_exc is not None:
         raise pkg_exc
