@@ -22,7 +22,7 @@ import json
 import subprocess
 from ..mesonlib import MesonException, get_compiler_for_source, classify_unity_sources
 
-class CleanTrees():
+class CleanTrees:
     '''
     Directories outputted by custom targets that have to be manually cleaned
     because on Linux `ninja clean` only deletes empty directories.
@@ -31,7 +31,7 @@ class CleanTrees():
         self.build_dir = build_dir
         self.trees = trees
 
-class InstallData():
+class InstallData:
     def __init__(self, source_dir, build_dir, prefix):
         self.source_dir = source_dir
         self.build_dir = build_dir
@@ -45,7 +45,7 @@ class InstallData():
         self.install_scripts = []
         self.install_subdirs = []
 
-class ExecutableSerialisation():
+class ExecutableSerialisation:
     def __init__(self, name, fname, cmd_args, env, is_cross, exe_wrapper,
                  workdir, extra_paths, capture):
         self.name = name
@@ -76,7 +76,7 @@ class TestSerialisation:
 
 # This class contains the basic functionality that is needed by all backends.
 # Feel free to move stuff in and out of it as you see fit.
-class Backend():
+class Backend:
     def __init__(self, build):
         self.build = build
         self.environment = build.environment
@@ -247,7 +247,7 @@ class Backend():
         benchmark_data = os.path.join(self.environment.get_scratch_dir(), 'meson_benchmark_setup.dat')
         with open(benchmark_data, 'wb') as datafile:
             self.write_benchmark_file(datafile)
-        return (test_data, benchmark_data)
+        return test_data, benchmark_data
 
     def determine_linker(self, target):
         '''
@@ -651,7 +651,7 @@ class Backend():
         #
         # https://github.com/mesonbuild/meson/pull/737
         cmd = [i.replace('\\', '/') for i in cmd]
-        return (srcs, ofilenames, cmd)
+        return srcs, ofilenames, cmd
 
     def run_postconf_scripts(self):
         env = {'MESON_SOURCE_ROOT': self.environment.get_source_dir(),

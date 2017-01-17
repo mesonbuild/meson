@@ -315,14 +315,14 @@ class CrossNoRunException(MesonException):
     def __init(self, *args, **kwargs):
         Exception.__init__(self, *args, **kwargs)
 
-class RunResult():
+class RunResult:
     def __init__(self, compiled, returncode=999, stdout='UNDEFINED', stderr='UNDEFINED'):
         self.compiled = compiled
         self.returncode = returncode
         self.stdout = stdout
         self.stderr = stderr
 
-class Compiler():
+class Compiler:
     def __init__(self, exelist, version):
         if isinstance(exelist, str):
             self.exelist = [exelist]
@@ -561,7 +561,7 @@ class CCompiler(Compiler):
         return []
 
     def split_shlib_to_parts(self, fname):
-        return (None, fname)
+        return None, fname
 
     # The default behaviour is this, override in
     # OSX and MSVC.
@@ -1250,7 +1250,7 @@ class MonoCompiler(Compiler):
         return ['-warnaserror']
 
     def split_shlib_to_parts(self, fname):
-        return (None, fname)
+        return None, fname
 
     def build_rpath_args(self, build_dir, rpath_paths, install_rpath):
         return []
@@ -1331,7 +1331,7 @@ class JavaCompiler(Compiler):
         return ['-Werror']
 
     def split_shlib_to_parts(self, fname):
-        return (None, fname)
+        return None, fname
 
     def build_rpath_args(self, build_dir, rpath_paths, install_rpath):
         return []
@@ -1925,7 +1925,7 @@ class VisualStudioCCompiler(CCompiler):
 
     def gen_pch_args(self, header, source, pchname):
         objname = os.path.splitext(pchname)[0] + '.obj'
-        return (objname, ['/Yc' + header, '/Fp' + pchname, '/Fo' + objname])
+        return objname, ['/Yc' + header, '/Fp' + pchname, '/Fo' + objname]
 
     def gen_import_library_args(self, implibname):
         "The name of the outputted import library"
@@ -2140,7 +2140,7 @@ class GnuCompiler:
         return 'gch'
 
     def split_shlib_to_parts(self, fname):
-        return (os.path.split(fname)[0], fname)
+        return os.path.split(fname)[0], fname
 
     def get_soname_args(self, prefix, shlib_name, suffix, path, soversion, is_shared_module):
         return get_gcc_soname_args(self.gcc_type, prefix, shlib_name, suffix, path, soversion, is_shared_module)
@@ -2260,7 +2260,7 @@ class GnuObjCPPCompiler(GnuCompiler, ObjCPPCompiler):
         # too strict without this and always fails.
         return self.get_no_optimization_args() + ['-fpermissive']
 
-class ClangCompiler():
+class ClangCompiler:
     def __init__(self, clang_type):
         self.id = 'clang'
         self.clang_type = clang_type
@@ -2421,7 +2421,7 @@ class IntelCompiler:
         return os.path.split(header_name)[-1] + '.' + self.get_pch_suffix()
 
     def split_shlib_to_parts(self, fname):
-        return (os.path.split(fname)[0], fname)
+        return os.path.split(fname)[0], fname
 
     def get_soname_args(self, prefix, shlib_name, suffix, path, soversion, is_shared_module):
         if self.icc_type == ICC_STANDARD:
@@ -2584,7 +2584,7 @@ end program prog
         return gnulike_buildtype_linker_args[buildtype]
 
     def split_shlib_to_parts(self, fname):
-        return (os.path.split(fname)[0], fname)
+        return os.path.split(fname)[0], fname
 
     def get_soname_args(self, prefix, shlib_name, suffix, path, soversion, is_shared_module):
         return get_gcc_soname_args(self.gcc_type, prefix, shlib_name, suffix, path, soversion, is_shared_module)
@@ -2777,7 +2777,7 @@ class NAGFortranCompiler(FortranCompiler):
         return NAGFortranCompiler.std_warn_args
 
 
-class VisualStudioLinker():
+class VisualStudioLinker:
     always_args = ['/NOLOGO']
 
     def __init__(self, exelist):
@@ -2824,7 +2824,7 @@ class VisualStudioLinker():
         pdbarr += ['pdb']
         return ['/DEBUG', '/PDB:' + '.'.join(pdbarr)]
 
-class ArLinker():
+class ArLinker:
 
     def __init__(self, exelist):
         self.exelist = exelist

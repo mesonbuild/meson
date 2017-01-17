@@ -36,7 +36,7 @@ else:
 def ninja_quote(text):
     return text.replace(' ', '$ ').replace(':', '$:')
 
-class RawFilename():
+class RawFilename:
     """
     Used when a filename is already relative to the root build directory, so
     that we know not to add the target's private build directory to it.
@@ -56,7 +56,7 @@ class RawFilename():
     def startswith(self, s):
         return self.fname.startswith(s)
 
-class NinjaBuildElement():
+class NinjaBuildElement:
     def __init__(self, all_outputs, outfilenames, rule, infilenames):
         if isinstance(outfilenames, str):
             self.outfilenames = [outfilenames]
@@ -830,7 +830,7 @@ int dummy;
             else:
                 raise InvalidArguments('Unknown resource file %s.' % r)
             args.append(a)
-        return (args, deps)
+        return args, deps
 
     def generate_cs_target(self, target, outfile):
         buildtype = self.environment.coredata.get_builtin_option('buildtype')
@@ -962,7 +962,7 @@ int dummy;
                     raise InvalidArguments(msg)
                 # Store 'somefile.vala': GeneratedList (or CustomTarget)
                 srctype[f] = gensrc
-        return (vala, vapi, (others, othersgen))
+        return vala, vapi, (others, othersgen)
 
     def generate_vala_compile(self, target, outfile):
         """Vala is compiled into C. Set up all necessary build steps here."""
@@ -1139,7 +1139,7 @@ int dummy;
                 srcs.append(i)
             else:
                 others.append(i)
-        return (srcs, others)
+        return srcs, others
 
     def generate_swift_target(self, target, outfile):
         module_name = self.target_swift_modulename(target)
@@ -1933,7 +1933,7 @@ rule FORTRAN_DEP_HACK
         commands += pch_args
         commands += self.get_compile_debugfile_args(compiler, target, objname)
         dep = dst + '.' + compiler.get_depfile_suffix()
-        return (commands, dep, dst, [objname])
+        return commands, dep, dst, [objname]
 
     def generate_gcc_pch_command(self, target, compiler, pch):
         commands = []
@@ -1941,7 +1941,7 @@ rule FORTRAN_DEP_HACK
         dst = os.path.join(self.get_target_private_dir(target),
                            os.path.split(pch)[-1] + '.' + compiler.get_pch_suffix())
         dep = dst + '.' + compiler.get_depfile_suffix()
-        return (commands, dep, dst, []) # Gcc does not create an object file during pch generation.
+        return commands, dep, dst, []  # Gcc does not create an object file during pch generation.
 
     def generate_pch(self, target, outfile):
         cstr = ''

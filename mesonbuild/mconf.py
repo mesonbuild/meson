@@ -231,7 +231,7 @@ def run(args):
     except ConfException as e:
         print('Meson configurator encountered an error:\n')
         print(e)
-        return(1)
+        return 1
     return 0
 
 if __name__ == '__main__':

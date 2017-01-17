@@ -88,7 +88,7 @@ parser.add_argument('--setup', default=None, dest='setup',
                     help='Which test setup to use.')
 parser.add_argument('args', nargs='*')
 
-class TestRun():
+class TestRun:
     def __init__(self, res, returncode, should_fail, duration, stdo, stde, cmd,
                  env):
         self.res = res
@@ -337,7 +337,7 @@ TIMEOUT: %4d
         if ':' in suite:
             return suite.split(':', 1)
         else:
-            return (suite, "")
+            return suite, ""
 
     def test_in_suites(test, suites):
         for suite in suites:
@@ -398,7 +398,7 @@ TIMEOUT: %4d
 
     def open_log_files(self):
         if not self.options.logbase or self.options.verbose:
-            return (None, None, None, None)
+            return None, None, None, None
 
         logfile_base = os.path.join(self.options.wd, 'meson-logs', self.options.logbase)
 
@@ -416,7 +416,7 @@ TIMEOUT: %4d
         logfile.write('Log of Meson test suite run on %s.\n\n'
                       % datetime.datetime.now().isoformat())
 
-        return (logfile, logfilename, jsonlogfile, jsonlogfilename)
+        return logfile, logfilename, jsonlogfile, jsonlogfilename
 
     def get_wrapper(self):
         wrap = []

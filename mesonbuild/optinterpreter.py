@@ -128,7 +128,7 @@ class OptionInterpreter:
                 raise OptionException('Keyword argument name is not a string.')
             a = args.kwargs[key]
             reduced_kw[key] = self.reduce_single(a)
-        return (reduced_pos, reduced_kw)
+        return reduced_pos, reduced_kw
 
     def evaluate_statement(self, node):
         if not isinstance(node, mparser.FunctionNode):

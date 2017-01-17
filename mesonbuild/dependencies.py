@@ -33,7 +33,7 @@ class DependencyException(MesonException):
     def __init__(self, *args, **kwargs):
         MesonException.__init__(self, *args, **kwargs)
 
-class Dependency():
+class Dependency:
     def __init__(self, type_name='unknown'):
         self.name = "null"
         self.is_found = False
@@ -189,7 +189,7 @@ class PkgConfigDependency(Dependency):
 
     def _call_pkgbin(self, args):
         p, out = Popen_safe([self.pkgbin] + args, env=os.environ)[0:2]
-        return (p.returncode, out.strip())
+        return p.returncode, out.strip()
 
     def _set_cargs(self):
         ret, out = self._call_pkgbin(['--cflags', self.name])
@@ -392,7 +392,7 @@ class WxDependency(Dependency):
     def found(self):
         return self.is_found
 
-class ExternalProgram():
+class ExternalProgram:
     windows_exts = ('exe', 'com', 'bat')
 
     def __init__(self, name, fullpath=None, silent=False, search_dir=None):

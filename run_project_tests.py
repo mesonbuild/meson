@@ -43,7 +43,7 @@ class TestResult:
         self.buildtime = buildtime
         self.testtime = testtime
 
-class AutoDeletedDir():
+class AutoDeletedDir:
     def __init__(self, d):
         self.dir = d
 
@@ -202,7 +202,7 @@ def run_configure_inprocess(commandlist):
     finally:
         sys.stdout = old_stdout
         sys.stderr = old_stderr
-    return (returncode, mystdout.getvalue(), mystderr.getvalue())
+    return returncode, mystdout.getvalue(), mystderr.getvalue()
 
 def run_test_inprocess(testdir):
     old_stdout = sys.stdout
@@ -218,7 +218,7 @@ def run_test_inprocess(testdir):
         sys.stdout = old_stdout
         sys.stderr = old_stderr
         os.chdir(old_cwd)
-    return (max(returncode_test, returncode_benchmark), mystdout.getvalue(), mystderr.getvalue())
+    return max(returncode_test, returncode_benchmark), mystdout.getvalue(), mystderr.getvalue()
 
 def parse_test_args(testdir):
     args = []
@@ -457,7 +457,7 @@ def run_tests(all_tests, log_name_base, extra_args):
     print("Total build time: %.2fs" % build_time)
     print("Total test time: %.2fs" % test_time)
     ET.ElementTree(element=junit_root).write(xmlname, xml_declaration=True, encoding='UTF-8')
-    return (passing_tests, failing_tests, skipped_tests)
+    return passing_tests, failing_tests, skipped_tests
 
 def check_file(fname):
     linenum = 1
@@ -522,7 +522,7 @@ def generate_prebuilt():
         object_suffix = 'o'
     objectfile = generate_pb_object(compiler, object_suffix)
     stlibfile = generate_pb_static(compiler, object_suffix, static_suffix)
-    return (objectfile, stlibfile)
+    return objectfile, stlibfile
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Run the test suite of Meson.")

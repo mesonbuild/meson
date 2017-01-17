@@ -24,7 +24,7 @@ class Token:
         self.lineno = 0
         self.colno = 0
 
-class Statement():
+class Statement:
     def __init__(self, name, args):
         self.name = name
         self.args = args
@@ -48,7 +48,7 @@ class Lexer:
         line_start = 0
         loc = 0
         col = 0
-        while(loc < len(code)):
+        while loc < len(code):
             matched = False
             for (tid, reg) in self.token_specification:
                 mo = reg.match(code, loc)
@@ -83,7 +83,7 @@ class Lexer:
             if not matched:
                 raise RuntimeError('Lexer got confused line %d column %d' % (lineno, col))
 
-class Parser():
+class Parser:
     def __init__(self, code):
         self.stream = Lexer().lex(code)
         self.getsym()

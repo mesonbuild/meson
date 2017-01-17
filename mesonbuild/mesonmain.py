@@ -69,7 +69,7 @@ parser.add_argument('-v', '--version', action='version',
                     version=coredata.version)
 parser.add_argument('directories', nargs='*')
 
-class MesonApp():
+class MesonApp:
 
     def __init__(self, dir1, dir2, script_launcher, handshake, options, original_cmd_line_args):
         (self.source_dir, self.build_dir) = self.validate_dirs(dir1, dir2, handshake)
@@ -106,9 +106,9 @@ class MesonApp():
         if self.has_build_file(ndir1):
             if self.has_build_file(ndir2):
                 raise RuntimeError('Both directories contain a build file %s.' % environment.build_filename)
-            return (ndir1, ndir2)
+            return ndir1, ndir2
         if self.has_build_file(ndir2):
-            return (ndir2, ndir1)
+            return ndir2, ndir1
         raise RuntimeError('Neither directory contains a build file %s.' % environment.build_filename)
 
     def validate_dirs(self, dir1, dir2, handshake):
@@ -126,7 +126,7 @@ If you want to change option values, use the mesonconf tool instead.'''
         else:
             if handshake:
                 raise RuntimeError('Something went terribly wrong. Please file a bug.')
-        return (src_dir, build_dir)
+        return src_dir, build_dir
 
     def check_pkgconfig_envvar(self, env):
         curvar = os.environ.get('PKG_CONFIG_PATH', '')

@@ -32,7 +32,7 @@ def shutdown():
     if log_file is not None:
         log_file.close()
 
-class AnsiDecorator():
+class AnsiDecorator:
     plain_code = "\033[0m"
 
     def __init__(self, text, code):

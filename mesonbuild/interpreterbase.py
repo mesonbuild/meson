@@ -65,7 +65,7 @@ class InvalidCode(InterpreterException):
 class InvalidArguments(InterpreterException):
     pass
 
-class InterpreterObject():
+class InterpreterObject:
     def __init__(self):
         self.methods = {}
 
@@ -520,7 +520,7 @@ class InterpreterBase:
             reduced_kw[key] = self.evaluate_statement(a)
         if not isinstance(reduced_pos, list):
             reduced_pos = [reduced_pos]
-        return (reduced_pos, reduced_kw)
+        return reduced_pos, reduced_kw
 
     def flatten(self, args):
         if isinstance(args, mparser.StringNode):

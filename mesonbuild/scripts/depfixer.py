@@ -23,7 +23,7 @@ DT_STRTAB = 5
 DT_SONAME = 14
 DT_MIPS_RLD_MAP_REL = 1879048245
 
-class DataSizes():
+class DataSizes:
     def __init__(self, ptrsize, is_le):
         if is_le:
             p = '<'
@@ -150,7 +150,7 @@ class Elf(DataSizes):
             is_le = False
         else:
             sys.exit('File "%s" has unknown ELF endianness.' % self.bfile)
-        return (ptrsize, is_le)
+        return ptrsize, is_le
 
     def parse_header(self):
         self.bf.seek(0)

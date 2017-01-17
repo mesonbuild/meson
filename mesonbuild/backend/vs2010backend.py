@@ -47,7 +47,7 @@ def split_o_flags_args(args):
             o_flags += ['/O' + f for f in flags]
     return o_flags
 
-class RegenInfo():
+class RegenInfo:
     def __init__(self, source_dir, build_dir, depfiles):
         self.source_dir = source_dir
         self.build_dir = build_dir
@@ -313,7 +313,7 @@ class Vs2010Backend(backends.Backend):
             else:
                 # Everything that is not an object or source file is considered a header.
                 headers.append(i)
-        return (sources, headers, objects, languages)
+        return sources, headers, objects, languages
 
     def target_to_build_root(self, target):
         if target.subdir == '':
@@ -512,7 +512,7 @@ class Vs2010Backend(backends.Backend):
                     libs.append(arg)
             else:
                 other.append(arg)
-        return (lpaths, libs, other)
+        return lpaths, libs, other
 
     def _get_cl_compiler(self, target):
         for lang, c in target.compilers.items():
