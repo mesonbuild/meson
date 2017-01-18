@@ -30,8 +30,7 @@ from . import mesonlib
 from .environment import detect_cpu_family, for_windows
 
 class DependencyException(MesonException):
-    def __init__(self, *args, **kwargs):
-        MesonException.__init__(self, *args, **kwargs)
+    '''Exceptions raised while trying to find dependencies'''
 
 class Dependency:
     def __init__(self, type_name='unknown'):
@@ -170,17 +169,18 @@ class PkgConfigDependency(Dependency):
                 if not self.silent:
                     mlog.log(*found_msg)
                 if self.required:
-                    raise DependencyException(
-                        'Invalid version of a dependency, needed %s %s found %s.' %
-                        (name, not_found, self.modversion))
+                    m = 'Invalid version of dependency, need {!r} {!r} found {!r}.'
+                    raise DependencyException(m.format(name, not_found, self.modversion))
                 return
         found_msg += [mlog.green('YES'), self.modversion]
-        if not self.silent:
-            mlog.log(*found_msg)
         # Fetch cargs to be used while using this dependency
         self._set_cargs()
         # Fetch the libraries and library paths needed for using this
         self._set_libs()
+        # Print the found message only at the very end because fetching cflags
+        # and libs can also fail if other needed pkg-config files aren't found.
+        if not self.silent:
+            mlog.log(*found_msg)
 
     def __repr__(self):
         s = '<{0} {1}: {2} {3}>'
@@ -1444,7 +1444,9 @@ def find_external_dependency(name, environment, kwargs):
     if mesonlib.is_osx():
         fwdep = ExtraFrameworkDependency(name, required)
         if required and not fwdep.found():
-            raise DependencyException('Dependency "%s" not found' % name)
+            m = 'Dependency {!r} not found, tried Extra Frameworks ' \
+                'and Pkg-Config:\n\n' + str(pkg_exc)
+            raise DependencyException(m.format(name))
         return fwdep
     if pkg_exc is not None:
         raise pkg_exc
