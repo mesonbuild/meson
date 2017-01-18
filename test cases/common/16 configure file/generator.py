@@ -1,5 +1,9 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
+# On some platforms "python" points to Python 2
+# on others to Python 3. Work with both.
+
+from __future__ import print_function
 import sys, os
 
 if len(sys.argv) != 3:

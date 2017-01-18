@@ -41,7 +41,6 @@ install:
   - ps: (new-object net.webclient).DownloadFile('https://dl.dropboxusercontent.com/u/37517477/ninja.exe', 'C:\projects\meson\ninja.exe')
   - cmd: if %arch%==x86 (set MESON_PYTHON_PATH=C:\python34) else (set MESON_PYTHON_PATH=C:\python34-x64)
   - cmd: echo Using Python at %MESON_PYTHON_PATH%
-  - cmd: copy %MESON_PYTHON_PATH%\python.exe %MESON_PYTHON_PATH%\python3.exe
   - cmd: if %compiler%==msvc2010 ( call "C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\vcvarsall.bat" %arch% )
   - cmd: if %compiler%==msvc2015 ( call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" %arch% )
 
@@ -51,7 +50,7 @@ build_script:
 
 test_script:
   - cmd: echo Running tests for %arch% and %compiler% with the %backend% backend
-  - cmd: PATH=%cd%;%MESON_PYTHON_PATH%;%PATH%; && python3 run_tests.py --backend=%backend%
+  - cmd: PATH=%cd%;%MESON_PYTHON_PATH%;%PATH%; && python run_tests.py --backend=%backend%
 
 on_finish:
   - appveyor PushArtifact meson-test-run.txt -DeploymentName "Text test logs"
