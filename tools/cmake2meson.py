@@ -278,6 +278,7 @@ class Converter:
             for o in self.options:
                 (optname, description, default) = o
                 if default is None:
+                    typestr = ''
                     defaultstr = ''
                 else:
                     if default == 'OFF':

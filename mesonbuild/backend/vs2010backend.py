@@ -882,7 +882,6 @@ class Vs2010Backend(backends.Backend):
                 header, impl, suffix = pch_sources[lang]
                 relpath = os.path.join(proj_to_src_dir, impl)
                 inc_cl = ET.SubElement(inc_src, 'CLCompile', Include=relpath)
-                lang = Vs2010Backend.lang_from_source_file(s)
                 pch = ET.SubElement(inc_cl, 'PrecompiledHeader')
                 pch.text = 'Create'
                 pch_out = ET.SubElement(inc_cl, 'PrecompiledHeaderOutputFile')
