@@ -331,7 +331,7 @@ class ArgumentNode:
         if self.num_kwargs() > 0:
             self.order_error = True
         if not isinstance(statement, EmptyNode):
-            self.arguments = self.arguments + [statement]
+            self.arguments += [statement]
 
     def set_kwarg(self, name, value):
         self.kwargs[name] = value
