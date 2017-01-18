@@ -1,7 +1,12 @@
 project('custom target', 'c')
 
-python = find_program('python3')
+python = find_program('python3', required : false)
+if not python.found()
+  python = find_program('python')
+endif
 
+# files() is the correct way to do this, but some people
+# do this so test that it works.
 comp = '@0@/@1@'.format(meson.current_source_dir(), 'my_compiler.py')
 comp2 = '@0@/@1@'.format(meson.current_source_dir(), 'my_compiler2.py')
 infile = files('data_source.txt')[0]

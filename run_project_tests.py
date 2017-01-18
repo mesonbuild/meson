@@ -105,6 +105,8 @@ def setup_commands(backend):
     global backend_flags, compile_commands, test_commands, install_commands, clean_commands
     msbuild_exe = shutil.which('msbuild')
     if (backend and backend.startswith('vs')) or (backend is None and msbuild_exe is not None):
+        if backend is None:
+            backend = 'vs2010'
         backend_flags = ['--backend=' + backend]
         compile_commands = ['msbuild']
         test_commands = ['msbuild', 'RUN_TESTS.vcxproj']

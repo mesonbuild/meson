@@ -1,6 +1,9 @@
 project('object generator', 'c')
 
-python = find_program('python3')
+python = find_program('python3', required : false)
+if not python.found()
+  python = find_program('python')
+endif
 
 # Note that this will not add a dependency to the compiler executable.
 # Code will not be rebuilt if it changes.
