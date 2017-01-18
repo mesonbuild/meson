@@ -333,12 +333,14 @@ TIMEOUT: %4d
         self.run_tests(tests)
         return self.fail_count
 
+    @staticmethod
     def split_suite_string(suite):
         if ':' in suite:
             return suite.split(':', 1)
         else:
             return suite, ""
 
+    @staticmethod
     def test_in_suites(test, suites):
         for suite in suites:
             (prj_match, st_match) = TestHarness.split_suite_string(suite)
