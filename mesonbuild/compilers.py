@@ -53,9 +53,10 @@ clike_langs = ('objcpp', 'objc', 'd', 'cpp', 'c', 'fortran',)
 clike_suffixes = ()
 for l in clike_langs:
     clike_suffixes += lang_suffixes[l]
-clike_suffixes += ('h',)
+clike_suffixes += ('h', 'll', 's')
 
-# These are used in backend/backends.py:generated_target()
+# All these are only for C-like languages; see `clike_langs` above.
+
 def is_header(fname):
     if hasattr(fname, 'fname'):
         fname = fname.fname
@@ -65,7 +66,7 @@ def is_header(fname):
 def is_source(fname):
     if hasattr(fname, 'fname'):
         fname = fname.fname
-    suffix = fname.split('.')[-1]
+    suffix = fname.split('.')[-1].lower()
     return suffix in clike_suffixes
 
 def is_assembly(fname):
