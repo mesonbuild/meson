@@ -323,6 +323,175 @@ class RunResult:
         self.stdout = stdout
         self.stderr = stderr
 
+class CompilerArgs(list):
+    '''
+    Class derived from list() that manages a list of compiler arguments. Should
+    be used while constructing compiler arguments from various sources. Can be
+    operated with ordinary lists, so this does not need to be used everywhere.
+
+    All arguments must be inserted and stored in GCC-style (-lfoo, -Idir, etc)
+    and can converted to the native type of each compiler by using the
+    .to_native() method to which you must pass an instance of the compiler or
+    the compiler class.
+
+    New arguments added to this class (either with .append(), .extend(), or +=)
+    are added in a way that ensures that they override previous arguments.
+    For example:
+
+    >>> a = ['-Lfoo', '-lbar']
+    >>> a += ['-Lpho', '-lbaz']
+    >>> print(a)
+    ['-Lpho', '-Lfoo', '-lbar', '-lbaz']
+
+    Arguments will also be de-duped if they can be de-duped safely.
+
+    Note that because of all this, this class is not commutative and does not
+    preserve the order of arguments if it is safe to not. For example:
+    >>> ['-Ifoo', '-Ibar'] + ['-Ifez', '-Ibaz', '-Werror']
+    ['-Ifez', '-Ibaz', '-Ifoo', '-Ibar', '-Werror']
+    >>> ['-Ifez', '-Ibaz', '-Werror'] + ['-Ifoo', '-Ibar']
+    ['-Ifoo', '-Ibar', '-Ifez', '-Ibaz', '-Werror']
+
+    '''
+    # NOTE: currently this class is only for C-like compilers, but it can be
+    # extended to other languages easily. Just move the following to the
+    # compiler class and initialize when self.compiler is set.
+
+    # Arg prefixes that override by prepending instead of appending
+    prepend_prefixes = ('-I', '-L')
+    # Arg prefixes and args that must be de-duped by returning 2
+    dedup2_prefixes = ('-I', '-L', '-D')
+    dedup2_args = ()
+    # Arg prefixes and args that must be de-duped by returning 1
+    dedup1_prefixes = ()
+    dedup1_args = ('-c', '-S', '-E', '-pipe')
+    compiler = None
+
+    def _check_args(self, args):
+        cargs = []
+        if len(args) > 2:
+            raise TypeError("CompilerArgs() only accepts at most 2 arguments: "
+                            "The compiler, and optionally an initial list")
+        elif len(args) == 0:
+            return cargs
+        elif len(args) == 1:
+            if isinstance(args[0], (Compiler, StaticLinker)):
+                self.compiler = args[0]
+            else:
+                raise TypeError("you must pass a Compiler instance as one of "
+                                "the arguments")
+        elif len(args) == 2:
+            if isinstance(args[0], (Compiler, StaticLinker)):
+                self.compiler = args[0]
+                cargs = args[1]
+            elif isinstance(args[1], (Compiler, StaticLinker)):
+                cargs = args[0]
+                self.compiler = args[1]
+            else:
+                raise TypeError("you must pass a Compiler instance as one of "
+                                "the two arguments")
+        else:
+            raise AssertionError('Not reached')
+        return cargs
+
+    def __init__(self, *args):
+        super().__init__(self._check_args(args))
+
+    @classmethod
+    def _can_dedup(cls, arg):
+        '''
+        Returns whether the argument can be safely de-duped. This is dependent
+        on two things:
+
+        a) Whether an argument can be 'overriden' by a later argument.  For
+           example, -DFOO defines FOO and -UFOO undefines FOO. In this case, we
+           can safely remove the previous occurance and add a new one. The same
+           is true for include paths and library paths with -I and -L. For
+           these we return `2`. See `dedup2_prefixes` and `dedup2_args`.
+        b) Arguments that once specifie cannot be undone, such as `-c` or
+           `-pipe`. New instances of these can be completely skipped. For these
+           we return `1`. See `dedup1_prefixes` and `dedup1_args`.
+        c) Whether it matters where or how many times on the command-line
+           a particular argument is present. This can matter for symbol
+           resolution in static or shared libraries, so we cannot de-dup or
+           reorder them. For these we return `0`. This is the default.
+        '''
+        if arg.startswith(cls.dedup2_prefixes) or arg in cls.dedup2_args:
+            return 2
+        if arg.startswith(cls.dedup1_prefixes) or arg in cls.dedup1_args:
+            return 1
+        return 0
+
+    @classmethod
+    def _should_prepend(cls, arg):
+        if arg.startswith(cls.prepend_prefixes):
+            return True
+        return False
+
+    def to_native(self):
+        return self.compiler.unix_args_to_native(self)
+
+    def __add__(self, args):
+        new = CompilerArgs(self, self.compiler)
+        new += args
+        return new
+
+    def __iadd__(self, args):
+        '''
+        Add two CompilerArgs while taking into account overriding of arguments
+        and while preserving the order of arguments as much as possible
+        '''
+        pre = []
+        post = []
+        if not isinstance(args, list):
+            raise TypeError('can only concatenate list (not "{}") to list'.format(args))
+        for arg in args:
+            # If the argument can be de-duped, do it either by removing the
+            # previous occurance of it and adding a new one, or not adding the
+            # new occurance.
+            dedup = self._can_dedup(arg)
+            if dedup == 1:
+                # Argument already exists and adding a new instance is useless
+                if arg in self or arg in pre or arg in post:
+                    continue
+            if dedup == 2:
+                # Remove all previous occurances of the arg and add it anew
+                if arg in self:
+                    self.remove(arg)
+                if arg in pre:
+                    pre.remove(arg)
+                if arg in post:
+                    post.remove(arg)
+            if self._should_prepend(arg):
+                pre.append(arg)
+            else:
+                post.append(arg)
+        # Insert at the beginning
+        self[:0] = pre
+        # Append to the end
+        super().__iadd__(post)
+        return self
+
+    def __radd__(self, args):
+        new = CompilerArgs(args, self.compiler)
+        new += self
+        return new
+
+    def __mul__(self, args):
+        raise TypeError("can't multiply compiler arguments")
+
+    def __imul__(self, args):
+        raise TypeError("can't multiply compiler arguments")
+
+    def __rmul__(self, args):
+        raise TypeError("can't multiply compiler arguments")
+
+    def append(self, arg):
+        self.__iadd__([arg])
+
+    def extend(self, args):
+        self.__iadd__(args)
+
 class Compiler:
     def __init__(self, exelist, version):
         if isinstance(exelist, str):
@@ -412,11 +581,8 @@ class Compiler:
     def has_function(self, *args, **kwargs):
         raise EnvironmentException('Language %s does not support function checks.' % self.language)
 
-    def unix_link_flags_to_native(self, args):
-        "Always returns a copy that can be independently mutated"
-        return args[:]
-
-    def unix_compile_flags_to_native(self, args):
+    @classmethod
+    def unix_args_to_native(cls, args):
         "Always returns a copy that can be independently mutated"
         return args[:]
 
@@ -435,7 +601,7 @@ class Compiler:
                 self.language))
 
     def get_cross_extra_flags(self, environment, *, compile, link):
-        extra_flags = []
+        extra_flags = CompilerArgs(self)
         if self.is_cross and environment:
             if 'properties' in environment.cross_info.config:
                 lang_args_key = self.language + '_args'
@@ -474,7 +640,7 @@ class Compiler:
                 output = self._get_compile_output(tmpdirname, mode)
 
                 # Construct the compiler command-line
-                commands = self.get_exelist()
+                commands = CompilerArgs(self)
                 commands.append(srcname)
                 commands += extra_args
                 commands += self.get_always_args()
@@ -485,6 +651,8 @@ class Compiler:
                     commands += self.get_preprocess_only_args()
                 else:
                     commands += self.get_output_args(output)
+                # Generate full command-line with the exelist
+                commands = self.get_exelist() + commands.to_native()
                 mlog.debug('Running compile:')
                 mlog.debug('Working directory: ', tmpdirname)
                 mlog.debug('Command line: ', ' '.join(commands), '\n')
@@ -663,7 +831,7 @@ class CCompiler(Compiler):
         mlog.debug('Sanity testing ' + self.language + ' compiler:', ' '.join(self.exelist))
         mlog.debug('Is cross compiler: %s.' % str(self.is_cross))
 
-        extra_flags = []
+        extra_flags = CompilerArgs(self)
         source_name = os.path.join(work_dir, sname)
         binname = sname.rsplit('.', 1)[0]
         if self.is_cross:
@@ -742,51 +910,29 @@ class CCompiler(Compiler):
         }}'''
         return self.compiles(t.format(**fargs), env, extra_args, dependencies)
 
-    @staticmethod
-    def _override_args(args, override):
-        '''
-        Add @override to @args in such a way that arguments are overriden
-        correctly.
-
-        We want the include directories to be added first (since they are
-        chosen left-to-right) and all other arguments later (since they
-        override previous arguments or add to a list that's chosen
-        right-to-left).
-        '''
-        before_args = []
-        after_args = []
-        for arg in override:
-            if arg.startswith(('-I', '/I')):
-                before_args.append(arg)
-            else:
-                after_args.append(arg)
-        return before_args + args + after_args
-
     def compiles(self, code, env, extra_args=None, dependencies=None, mode='compile'):
         if extra_args is None:
             extra_args = []
-        if isinstance(extra_args, str):
+        elif isinstance(extra_args, str):
             extra_args = [extra_args]
         if dependencies is None:
             dependencies = []
         elif not isinstance(dependencies, list):
             dependencies = [dependencies]
-        # Add compile flags needed by dependencies after converting to the
-        # native type of the selected compiler
-        cargs = [a for d in dependencies for a in d.get_compile_args()]
-        args = self.unix_link_flags_to_native(cargs)
+        # Add compile flags needed by dependencies
+        args = CompilerArgs(self)
+        for d in dependencies:
+            args += d.get_compile_args()
         # Read c_args/cpp_args/etc from the cross-info file (if needed)
         args += self.get_cross_extra_flags(env, compile=True, link=False)
         # Add CFLAGS/CXXFLAGS/OBJCFLAGS/OBJCXXFLAGS from the env
         # We assume that the user has ensured these are compiler-specific
         args += env.coredata.external_args[self.language]
-        # Append extra_args to the compiler check args such that it overrides
-        extra_args = self._override_args(self.get_compiler_check_args(), extra_args)
-        extra_args = self.unix_link_flags_to_native(extra_args)
-        # Append both to the compiler args such that they override them
-        args = self._override_args(args, extra_args)
+        args += self.get_compiler_check_args()
+        # extra_args must override all other arguments, so we add them last
+        args += extra_args
         # We only want to compile; not link
-        with self.compile(code, args, mode) as p:
+        with self.compile(code, args.to_native(), mode) as p:
             return p.returncode == 0
 
     def _links_wrapper(self, code, env, extra_args, dependencies):
@@ -799,11 +945,11 @@ class CCompiler(Compiler):
             dependencies = []
         elif not isinstance(dependencies, list):
             dependencies = [dependencies]
-        # Add compile and link flags needed by dependencies after converting to
-        # the native type of the selected compiler
-        cargs = [a for d in dependencies for a in d.get_compile_args()]
-        link_args = [a for d in dependencies for a in d.get_link_args()]
-        args = self.unix_link_flags_to_native(cargs + link_args)
+        # Add compile and link flags needed by dependencies
+        args = CompilerArgs(self)
+        for d in dependencies:
+            args += d.get_compile_args()
+            args += d.get_link_args()
         # Select a CRT if needed since we're linking
         args += self.get_linker_debug_crt_args()
         # Read c_args/c_link_args/cpp_args/cpp_link_args/etc from the
@@ -812,12 +958,11 @@ class CCompiler(Compiler):
         # Add LDFLAGS from the env. We assume that the user has ensured these
         # are compiler-specific
         args += env.coredata.external_link_args[self.language]
-        # Append extra_args to the compiler check args such that it overrides
-        extra_args = self._override_args(self.get_compiler_check_args(), extra_args)
-        extra_args = self.unix_link_flags_to_native(extra_args)
-        # Append both to the compiler args such that they override them
-        args = self._override_args(args, extra_args)
-        return self.compile(code, args)
+        # Add compiler check args such that they override
+        args += self.get_compiler_check_args()
+        # extra_args must override all other arguments, so we add them last
+        args += extra_args
+        return self.compile(code, args.to_native())
 
     def links(self, code, env, extra_args=None, dependencies=None):
         with self._links_wrapper(code, env, extra_args, dependencies) as p:
@@ -1686,7 +1831,8 @@ class DCompiler(Compiler):
                 paths = paths + ':' + padding
         return ['-L-rpath={}'.format(paths)]
 
-    def translate_args_to_nongnu(self, args):
+    @classmethod
+    def translate_args_to_nongnu(cls, args):
         dcargs = []
         # Translate common arguments to flags the LDC/DMD compilers
         # can understand.
@@ -1802,11 +1948,9 @@ class LLVMDCompiler(DCompiler):
         # -L is for the compiler, telling it to pass the second -L to the linker.
         return ['-L-L' + dirname]
 
-    def unix_link_flags_to_native(self, args):
-        return self.translate_args_to_nongnu(args)
-
-    def unix_compile_flags_to_native(self, args):
-        return self.translate_args_to_nongnu(args)
+    @classmethod
+    def unix_args_to_native(cls, args):
+        return cls.translate_args_to_nongnu(args)
 
 class DmdDCompiler(DCompiler):
     def __init__(self, exelist, version, is_cross):
@@ -1854,11 +1998,9 @@ class DmdDCompiler(DCompiler):
     def get_std_shared_lib_link_args(self):
         return ['-shared', '-defaultlib=libphobos2.so']
 
-    def unix_link_flags_to_native(self, args):
-        return self.translate_args_to_nongnu(args)
-
-    def unix_compile_flags_to_native(self, args):
-        return self.translate_args_to_nongnu(args)
+    @classmethod
+    def unix_args_to_native(cls, args):
+        return cls.translate_args_to_nongnu(args)
 
 class VisualStudioCCompiler(CCompiler):
     std_warn_args = ['/W3']
@@ -1978,9 +2120,14 @@ class VisualStudioCCompiler(CCompiler):
     def get_option_link_args(self, options):
         return options['c_winlibs'].value[:]
 
-    def unix_link_flags_to_native(self, args):
+    @classmethod
+    def unix_args_to_native(cls, args):
         result = []
         for i in args:
+            # -mms-bitfields is specific to MinGW-GCC
+            # -pthread is only valid for GCC
+            if i in ('-mms-bitfields', '-pthread'):
+                continue
             if i.startswith('-L'):
                 i = '/LIBPATH:' + i[2:]
             # Translate GNU-style -lfoo library name to the import library
@@ -1994,16 +2141,6 @@ class VisualStudioCCompiler(CCompiler):
                     i = name + '.lib'
             # -pthread in link flags is only used on Linux
             elif i == '-pthread':
-                continue
-            result.append(i)
-        return result
-
-    def unix_compile_flags_to_native(self, args):
-        result = []
-        for i in args:
-            # -mms-bitfields is specific to MinGW-GCC
-            # -pthread is only valid for GCC
-            if i in ('-mms-bitfields', '-pthread'):
                 continue
             result.append(i)
         return result
@@ -2795,8 +2932,10 @@ class NAGFortranCompiler(FortranCompiler):
     def get_warn_args(self, level):
         return NAGFortranCompiler.std_warn_args
 
+class StaticLinker:
+    pass
 
-class VisualStudioLinker:
+class VisualStudioLinker(StaticLinker):
     always_args = ['/NOLOGO']
 
     def __init__(self, exelist):
@@ -2832,18 +2971,16 @@ class VisualStudioLinker:
     def get_option_link_args(self, options):
         return []
 
-    def unix_link_flags_to_native(self, args):
-        return args[:]
-
-    def unix_compile_flags_to_native(self, args):
-        return args[:]
+    @classmethod
+    def unix_args_to_native(cls, args):
+        return VisualStudioCCompiler.unix_args_to_native(args)
 
     def get_link_debugfile_args(self, targetfile):
         pdbarr = targetfile.split('.')[:-1]
         pdbarr += ['pdb']
         return ['/DEBUG', '/PDB:' + '.'.join(pdbarr)]
 
-class ArLinker:
+class ArLinker(StaticLinker):
 
     def __init__(self, exelist):
         self.exelist = exelist
@@ -2885,10 +3022,8 @@ class ArLinker:
     def get_option_link_args(self, options):
         return []
 
-    def unix_link_flags_to_native(self, args):
-        return args[:]
-
-    def unix_compile_flags_to_native(self, args):
+    @classmethod
+    def unix_args_to_native(cls, args):
         return args[:]
 
     def get_link_debugfile_args(self, targetfile):

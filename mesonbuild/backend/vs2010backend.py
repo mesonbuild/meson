@@ -687,14 +687,14 @@ class Vs2010Backend(backends.Backend):
                 file_args[l] += args
         for l, args in target.extra_args.items():
             if l in file_args:
-                file_args[l] += compiler.unix_compile_flags_to_native(args)
+                file_args[l] += compiler.unix_args_to_native(args)
         for l, comp in target.compilers.items():
             if l in file_args:
                 file_args[l] += comp.get_option_compile_args(self.environment.coredata.compiler_options)
         for d in target.get_external_deps():
             # Cflags required by external deps might have UNIX-specific flags,
             # so filter them out if needed
-            d_compile_args = compiler.unix_compile_flags_to_native(d.get_compile_args())
+            d_compile_args = compiler.unix_args_to_native(d.get_compile_args())
             for arg in d_compile_args:
                 if arg.startswith(('-D', '/D')):
                     define = arg[2:]
@@ -793,7 +793,7 @@ class Vs2010Backend(backends.Backend):
                 if isinstance(d, build.StaticLibrary):
                     for dep in d.get_external_deps():
                         extra_link_args += dep.get_link_args()
-        extra_link_args = compiler.unix_link_flags_to_native(extra_link_args)
+        extra_link_args = compiler.unix_args_to_native(extra_link_args)
         (additional_libpaths, additional_links, extra_link_args) = self.split_link_args(extra_link_args)
         if len(extra_link_args) > 0:
             extra_link_args.append('%(AdditionalOptions)')

@@ -360,7 +360,7 @@ class Backend:
         for dep in target.get_external_deps():
             # Cflags required by external deps might have UNIX-specific flags,
             # so filter them out if needed
-            commands += compiler.unix_compile_flags_to_native(dep.get_compile_args())
+            commands += compiler.unix_args_to_native(dep.get_compile_args())
             if isinstance(target, build.Executable):
                 commands += dep.get_exe_args()
 
