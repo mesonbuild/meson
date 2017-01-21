@@ -14,6 +14,7 @@
 # limitations under the License.
 
 import stat
+import shlex
 import unittest, os, sys, shutil, time
 import subprocess
 import re, json
@@ -697,6 +698,38 @@ class LinuxlikeTests(unittest.TestCase):
         if os.getuid() == 0:
             # The chown failed nonfatally if we're not root
             self.assertEqual(0, statf.st_uid)
+
+    def test_internal_include_order(self):
+        testdir = os.path.join(self.common_test_dir, '138 include order')
+        self.init(testdir)
+        for cmd in self.get_compdb():
+            if cmd['file'].endswith('/main.c'):
+                cmd = cmd['command']
+                break
+        else:
+            raise Exception('Could not find main.c command')
+        incs = [a for a in shlex.split(cmd) if a.startswith("-I")]
+        self.assertEqual(len(incs), 8)
+        # target private dir
+        self.assertEqual(incs[0], "-Isub4/someexe@exe")
+        # target build subdir
+        self.assertEqual(incs[1], "-Isub4")
+        # target source subdir
+        msg = "{!r} does not end with '/sub4'".format(incs[2])
+        self.assertTrue(incs[2].endswith("/sub4"), msg)
+        # include paths added via per-target c_args: ['-I'...]
+        msg = "{!r} does not end with '/sub3'".format(incs[3])
+        self.assertTrue(incs[3].endswith("/sub3"), msg)
+        # target include_directories: build dir
+        self.assertEqual(incs[4], "-Isub2")
+        # target include_directories: source dir
+        msg = "{!r} does not end with '/sub2'".format(incs[5])
+        self.assertTrue(incs[5].endswith("/sub2"), msg)
+        # target internal dependency include_directories: build dir
+        self.assertEqual(incs[6], "-Isub1")
+        # target internal dependency include_directories: source dir
+        msg = "{!r} does not end with '/sub1'".format(incs[7])
+        self.assertTrue(incs[7].endswith("/sub1"), msg)
 
 
 class RewriterTests(unittest.TestCase):

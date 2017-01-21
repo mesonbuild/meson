@@ -1,0 +1,4 @@
+e = executable('someexe', 'main.c',
+               c_args : ['-I' + sub3],
+               include_directories : j,
+               dependencies : dep)

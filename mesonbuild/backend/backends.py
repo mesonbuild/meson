@@ -21,6 +21,7 @@ from .. import compilers
 import json
 import subprocess
 from ..mesonlib import MesonException, get_compiler_for_source, classify_unity_sources
+from ..compilers import CompilerArgs
 
 class CleanTrees:
     '''
@@ -338,32 +339,59 @@ class Backend:
         return extra_args
 
     def generate_basic_compiler_args(self, target, compiler, no_warn_args=False):
-        commands = []
+        # Create an empty commands list, and start adding arguments from
+        # various sources in the order in which they must override each other
+        # starting from hard-coded defaults followed by build options and so on.
+        commands = CompilerArgs(compiler)
+        # First, the trivial ones that are impossible to override.
+        #
+        # Add -nostdinc/-nostdinc++ if needed; can't be overriden
         commands += self.get_cross_stdlib_args(target, compiler)
+        # Add things like /NOLOGO or -pipe; usually can't be overriden
         commands += compiler.get_always_args()
+        # Only add warning-flags by default if the buildtype enables it, and if
+        # we weren't explicitly asked to not emit warnings (for Vala, f.ex)
         if no_warn_args:
             commands += compiler.get_no_warn_args()
         elif self.environment.coredata.get_builtin_option('buildtype') != 'plain':
             commands += compiler.get_warn_args(self.environment.coredata.get_builtin_option('warning_level'))
-        commands += compiler.get_option_compile_args(self.environment.coredata.compiler_options)
-        commands += self.build.get_global_args(compiler)
-        commands += self.build.get_project_args(compiler, target.subproject)
-        commands += self.environment.coredata.external_args[compiler.get_language()]
-        commands += self.escape_extra_args(compiler, target.get_extra_args(compiler.get_language()))
-        commands += compiler.get_buildtype_args(self.environment.coredata.get_builtin_option('buildtype'))
+        # Add -Werror if werror=true is set in the build options set on the
+        # command-line or default_options inside project(). This only sets the
+        # action to be done for warnings if/when they are emitted, so it's ok
+        # to set it after get_no_warn_args() or get_warn_args().
         if self.environment.coredata.get_builtin_option('werror'):
             commands += compiler.get_werror_args()
+        # Add compile args for c_* or cpp_* build options set on the
+        # command-line or default_options inside project().
+        commands += compiler.get_option_compile_args(self.environment.coredata.compiler_options)
+        # Add buildtype args: optimization level, debugging, etc.
+        commands += compiler.get_buildtype_args(self.environment.coredata.get_builtin_option('buildtype'))
+        # Add compile args added using add_project_arguments()
+        commands += self.build.get_project_args(compiler, target.subproject)
+        # Add compile args added using add_global_arguments()
+        # These override per-project arguments
+        commands += self.build.get_global_args(compiler)
+        # Compile args added from the env: CFLAGS/CXXFLAGS, etc. We want these
+        # to override all the defaults, but not the per-target compile args.
+        commands += self.environment.coredata.external_args[compiler.get_language()]
+        # Always set -fPIC for shared libraries
         if isinstance(target, build.SharedLibrary):
             commands += compiler.get_pic_args()
+        # Set -fPIC for static libraries by default unless explicitly disabled
         if isinstance(target, build.StaticLibrary) and target.pic:
             commands += compiler.get_pic_args()
+        # Add compile args needed to find external dependencies
+        # Link args are added while generating the link command
         for dep in target.get_external_deps():
-            # Cflags required by external deps might have UNIX-specific flags,
-            # so filter them out if needed
-            commands += compiler.unix_args_to_native(dep.get_compile_args())
+            commands += dep.get_compile_args()
+            # Qt needs -fPIC for executables
+            # XXX: We should move to -fPIC for all executables
             if isinstance(target, build.Executable):
-                commands += dep.get_exe_args()
-
+                commands += dep.get_exe_args(compiler)
+            # For 'automagic' deps: Boost and GTest. Also dependency('threads').
+            # pkg-config puts the thread flags itself via `Cflags:`
+            if dep.need_threads():
+                commands += compiler.thread_flags()
         # Fortran requires extra include directives.
         if compiler.language == 'fortran':
             for lt in target.link_targets:
