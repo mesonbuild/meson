@@ -692,23 +692,3 @@ class Backend:
         for s in self.build.postconf_scripts:
             cmd = s['exe'] + s['args']
             subprocess.check_call(cmd, env=child_env)
-
-    # Subprojects of subprojects may cause the same dep args to be used
-    # multiple times. Remove duplicates here. Note that we can't dedup
-    # libraries based on name alone, because "-lfoo -lbar -lfoo" is
-    # a completely valid (though pathological) sequence and removing the
-    # latter may fail. Usually only applies to static libs, though.
-    def dedup_arguments(self, commands):
-        includes = {}
-        final_commands = []
-        previous = '-fsuch_arguments=woof'
-        for c in commands:
-            if c.startswith(('-I', '-L', '/LIBPATH')):
-                if c in includes:
-                    continue
-                includes[c] = True
-            if previous == c:
-                continue
-            previous = c
-            final_commands.append(c)
-        return final_commands

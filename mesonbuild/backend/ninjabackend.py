@@ -2043,6 +2043,35 @@ rule FORTRAN_DEP_HACK
             return []
         return linker.get_no_stdlib_link_args()
 
+    def get_target_type_link_args(self, target, linker):
+        abspath = os.path.join(self.environment.get_build_dir(), target.subdir)
+        commands = []
+        if isinstance(target, build.Executable):
+            # Currently only used with the Swift compiler to add '-emit-executable'
+            commands += linker.get_std_exe_link_args()
+        elif isinstance(target, build.SharedLibrary):
+            if isinstance(target, build.SharedModule):
+                commands += linker.get_std_shared_module_link_args()
+            else:
+                commands += linker.get_std_shared_lib_link_args()
+            # All shared libraries are PIC
+            commands += linker.get_pic_args()
+            # Add -Wl,-soname arguments on Linux, -install_name on OS X
+            commands += linker.get_soname_args(target.prefix, target.name, target.suffix,
+                                               abspath, target.soversion,
+                                               isinstance(target, build.SharedModule))
+            # This is only visited when using the Visual Studio toolchain
+            if target.vs_module_defs and hasattr(linker, 'gen_vs_module_defs_args'):
+                commands += linker.gen_vs_module_defs_args(target.vs_module_defs.rel_to_builddir(self.build_to_src))
+            # This is only visited when building for Windows using either MinGW/GCC or Visual Studio
+            if target.import_filename:
+                commands += linker.gen_import_library_args(os.path.join(target.subdir, target.import_filename))
+        elif isinstance(target, build.StaticLibrary):
+            commands += linker.get_std_link_args()
+        else:
+            raise RuntimeError('Unknown build target type.')
+        return commands
+
     def generate_link(self, target, outfile, outname, obj_list, linker, extra_args=[]):
         if isinstance(target, build.StaticLibrary):
             linker_base = 'STATIC'
@@ -2054,57 +2083,62 @@ rule FORTRAN_DEP_HACK
         if target.is_cross:
             crstr = '_CROSS'
         linker_rule = linker_base + crstr + '_LINKER'
-        abspath = os.path.join(self.environment.get_build_dir(), target.subdir)
-        commands = []
-        if not isinstance(target, build.StaticLibrary):
-            commands += self.build.get_project_link_args(linker, target.subproject)
-            commands += self.build.get_global_link_args(linker)
-        commands += self.get_cross_stdlib_link_args(target, linker)
-        commands += linker.get_linker_always_args()
+
+        # Create an empty commands list, and start adding link arguments from
+        # various sources in the order in which they must override each other
+        # starting from hard-coded defaults followed by build options and so on.
+        #
+        # Once all the linker options have been passed, we will start passing
+        # libraries and library paths from internal and external sources.
+        commands = CompilerArgs(linker)
+        # First, the trivial ones that are impossible to override.
+        #
+        # Add linker args for linking this target derived from 'base' build
+        # options passed on the command-line, in default_options, etc.
+        # These have the lowest priority.
         if not isinstance(target, build.StaticLibrary):
             commands += compilers.get_base_link_args(self.environment.coredata.base_options,
                                                      linker,
                                                      isinstance(target, build.SharedModule))
+        # Add -nostdlib if needed; can't be overriden
+        commands += self.get_cross_stdlib_link_args(target, linker)
+        # Add things like /NOLOGO; usually can't be overriden
+        commands += linker.get_linker_always_args()
+        # Add buildtype linker args: optimization level, etc.
         commands += linker.get_buildtype_linker_args(self.environment.coredata.get_builtin_option('buildtype'))
-        commands += linker.get_option_link_args(self.environment.coredata.compiler_options)
+        # Add /DEBUG and the pdb filename when using MSVC
         commands += self.get_link_debugfile_args(linker, target, outname)
-        if not(isinstance(target, build.StaticLibrary)):
+        # Add link args specific to this BuildTarget type, such as soname args,
+        # PIC, import library generation, etc.
+        commands += self.get_target_type_link_args(target, linker)
+        if not isinstance(target, build.StaticLibrary):
+            # Add link args added using add_project_link_arguments()
+            commands += self.build.get_project_link_args(linker, target.subproject)
+            # Add link args added using add_global_link_arguments()
+            # These override per-project link arguments
+            commands += self.build.get_global_link_args(linker)
+            # Link args added from the env: LDFLAGS. We want these to
+            # override all the defaults but not the per-target link args.
             commands += self.environment.coredata.external_link_args[linker.get_language()]
-        if isinstance(target, build.Executable):
-            commands += linker.get_std_exe_link_args()
-        elif isinstance(target, build.SharedLibrary):
-            if isinstance(target, build.SharedModule):
-                commands += linker.get_std_shared_module_link_args()
-            else:
-                commands += linker.get_std_shared_lib_link_args()
-            commands += linker.get_pic_args()
-            if hasattr(target, 'soversion'):
-                soversion = target.soversion
-            else:
-                soversion = None
-            commands += linker.get_soname_args(target.prefix, target.name, target.suffix,
-                                               abspath, soversion, isinstance(target, build.SharedModule))
-            # This is only visited when using the Visual Studio toolchain
-            if target.vs_module_defs and hasattr(linker, 'gen_vs_module_defs_args'):
-                commands += linker.gen_vs_module_defs_args(target.vs_module_defs.rel_to_builddir(self.build_to_src))
-            # This is only visited when building for Windows using either MinGW/GCC or Visual Studio
-            if target.import_filename:
-                commands += linker.gen_import_library_args(os.path.join(target.subdir, target.import_filename))
-        elif isinstance(target, build.StaticLibrary):
-            commands += linker.get_std_link_args()
-        else:
-            raise RuntimeError('Unknown build target type.')
-        # Link arguments of static libraries are not put in the command line of
-        # the library. They are instead appended to the command line where
-        # the static library is used.
+
+        # Now we will add libraries and library paths from various sources
+
+        # Add link args to link to all internal libraries (link_with:) and
+        # internal dependencies needed by this target.
         if linker_base == 'STATIC':
+            # Link arguments of static libraries are not put in the command
+            # line of the library. They are instead appended to the command
+            # line where the static library is used.
             dependencies = []
         else:
             dependencies = target.get_dependencies()
         commands += self.build_target_link_arguments(linker, dependencies)
+        # For 'automagic' deps: Boost and GTest. Also dependency('threads').
+        # pkg-config puts the thread flags itself via `Cflags:`
         for d in target.external_deps:
             if d.need_threads():
                 commands += linker.thread_link_flags()
+        # Only non-static built targets need link args and link dependencies
         if not isinstance(target, build.StaticLibrary):
             commands += target.link_args
             # External deps must be last because target link libraries may depend on them.
@@ -2114,12 +2148,24 @@ rule FORTRAN_DEP_HACK
                 if isinstance(d, build.StaticLibrary):
                     for dep in d.get_external_deps():
                         commands += dep.get_link_args()
+        # Add link args for c_* or cpp_* build options. Currently this only
+        # adds c_winlibs and cpp_winlibs when building for Windows. This needs
+        # to be after all internal and external libraries so that unresolved
+        # symbols from those can be found here. This is needed when the
+        # *_winlibs that we want to link to are static mingw64 libraries.
+        commands += linker.get_option_link_args(self.environment.coredata.compiler_options)
+        # Set runtime-paths so we can run executables without needing to set
+        # LD_LIBRARY_PATH, etc in the environment. Doesn't work on Windows.
         commands += linker.build_rpath_args(self.environment.get_build_dir(),
-                                            self.determine_rpath_dirs(target), target.install_rpath)
+                                            self.determine_rpath_dirs(target),
+                                            target.install_rpath)
+        # Add libraries generated by custom targets
         custom_target_libraries = self.get_custom_target_provided_libraries(target)
         commands += extra_args
         commands += custom_target_libraries
-        commands = linker.unix_args_to_native(self.dedup_arguments(commands))
+        # Convert from GCC-style link argument naming to the naming used by the
+        # current compiler.
+        commands = commands.to_native()
         dep_targets = [self.get_dependency_filename(t) for t in dependencies]
         dep_targets += [os.path.join(self.environment.source_dir,
                                      target.subdir, t) for t in target.link_depends]
