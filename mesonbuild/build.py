@@ -170,6 +170,10 @@ class IncludeDirs:
         else:
             self.extra_build_dirs = extra_build_dirs
 
+    def __repr__(self):
+        r = '<{} {}/{}>'
+        return r.format(self.__class__.__name__, self.curdir, self.incdirs)
+
     def get_curdir(self):
         return self.curdir
 
