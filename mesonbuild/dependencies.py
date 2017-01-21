@@ -119,8 +119,10 @@ class PkgConfigDependency(Dependency):
                 if self.required:
                     raise DependencyException('Pkg-config binary missing from cross file')
             else:
-                self.pkgbin = environment.cross_info.config['binaries']['pkgconfig']
-                PkgConfigDependency.class_pkgbin = self.pkgbin
+                potential_pkgbin = environment.cross_info.config['binaries'].get('pkgconfig', 'non_existing_binary')
+                if shutil.which(potential_pkgbin):
+                    self.pkgbin = potential_pkgbin
+                    PkgConfigDependency.class_pkgbin = self.pkgbin
         # Only search for the native pkg-config the first time and
         # store the result in the class definition
         elif PkgConfigDependency.class_pkgbin is None:
