@@ -1324,6 +1324,9 @@ class CPPCompiler(CCompiler):
             self.language = 'cpp'
         CCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
 
+    def get_no_stdinc_args(self):
+        return ['-nostdinc++']
+
     def sanity_check(self, work_dir, environment):
         code = 'class breakCCompiler;int main(int argc, char **argv) { return 0; }\n'
         return self.sanity_check_impl(work_dir, environment, 'sanitycheckcpp.cc', code)
