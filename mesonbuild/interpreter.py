@@ -32,6 +32,7 @@ from .modules import ModuleReturnValue
 
 import os, sys, shutil, uuid
 import re
+from collections import namedtuple
 
 import importlib
 
@@ -980,8 +981,11 @@ class CompilerHolder(InterpreterObject):
         mlog.log('First supported argument:', mlog.red('None'))
         return []
 
-class ModuleState:
-    pass
+ModuleState = namedtuple('ModuleState', [
+    'build_to_src', 'subdir', 'environment', 'project_name',
+    'project_version', 'compilers', 'targets', 'data', 'headers',
+    'man', 'global_args', 'project_args', 'build_machine',
+    'host_machine', 'target_machine'])
 
 class ModuleHolder(InterpreterObject):
     def __init__(self, modname, module, interpreter):
@@ -1000,23 +1004,24 @@ class ModuleHolder(InterpreterObject):
         # This is not 100% reliable but we can't use hash()
         # because the Build object contains dicts and lists.
         num_targets = len(self.interpreter.build.targets)
-        state = ModuleState()
-        state.build_to_src = os.path.relpath(self.interpreter.environment.get_source_dir(),
-                                             self.interpreter.environment.get_build_dir())
-        state.subdir = self.interpreter.subdir
-        state.environment = self.interpreter.environment
-        state.project_name = self.interpreter.build.project_name
-        state.project_version = self.interpreter.build.dep_manifest[self.interpreter.active_projectname]
-        state.compilers = self.interpreter.build.compilers
-        state.targets = self.interpreter.build.targets
-        state.data = self.interpreter.build.data
-        state.headers = self.interpreter.build.get_headers()
-        state.man = self.interpreter.build.get_man()
-        state.global_args = self.interpreter.build.global_args
-        state.project_args = self.interpreter.build.projects_args.get(self.interpreter.subproject, {})
-        state.build_machine = self.interpreter.builtin['build_machine'].held_object
-        state.host_machine = self.interpreter.builtin['host_machine'].held_object
-        state.target_machine = self.interpreter.builtin['target_machine'].held_object
+        state = ModuleState(
+            build_to_src=os.path.relpath(self.interpreter.environment.get_source_dir(),
+                                         self.interpreter.environment.get_build_dir()),
+            subdir=self.interpreter.subdir,
+            environment=self.interpreter.environment,
+            project_name=self.interpreter.build.project_name,
+            project_version=self.interpreter.build.dep_manifest[self.interpreter.active_projectname],
+            compilers=self.interpreter.build.compilers,
+            targets=self.interpreter.build.targets,
+            data=self.interpreter.build.data,
+            headers=self.interpreter.build.get_headers(),
+            man=self.interpreter.build.get_man(),
+            global_args=self.interpreter.build.global_args,
+            project_args=self.interpreter.build.projects_args.get(self.interpreter.subproject, {}),
+            build_machine=self.interpreter.builtin['build_machine'].held_object,
+            host_machine=self.interpreter.builtin['host_machine'].held_object,
+            target_machine=self.interpreter.builtin['target_machine'].held_object,
+        )
         if self.held_object.is_snippet(method_name):
             value = fn(self.interpreter, state, args, kwargs)
             return self.interpreter.holderify(value)
