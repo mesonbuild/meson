@@ -2473,7 +2473,7 @@ class IntelCCompiler(IntelCompiler, CCompiler):
         return ['-shared']
 
     def has_multi_arguments(self, args, env):
-        return super(IntelCCompiler, self).has_multi_arguments(args + ['-diag-error', '10006'], env)
+        return super().has_multi_arguments(args + ['-diag-error', '10006'], env)
 
 
 class IntelCPPCompiler(IntelCompiler, CPPCompiler):
@@ -2521,7 +2521,7 @@ class IntelCPPCompiler(IntelCompiler, CPPCompiler):
         return self.get_no_optimization_args()
 
     def has_multi_arguments(self, args, env):
-        return super(IntelCPPCompiler, self).has_multi_arguments(args + ['-diag-error', '10006'], env)
+        return super().has_multi_arguments(args + ['-diag-error', '10006'], env)
 
 
 class FortranCompiler(Compiler):
