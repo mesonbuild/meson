@@ -716,31 +716,31 @@ class CCompiler(Compiler):
     def has_header(self, hname, prefix, env, extra_args=None, dependencies=None):
         if extra_args is None:
             extra_args = []
-        code = '''{0}
+        fargs = {'prefix': prefix, 'header': hname}
+        code = '''{prefix}
         #ifdef __has_include
-         #if !__has_include(<{1}>)
-          #error "Header '{1}' could not be found"
+         #if !__has_include(<{header}>)
+          #error "Header '{header}' could not be found"
          #endif
         #else
-         #include<{1}>
+         #include<{header}>
         #endif'''
-        return self.compiles(code.format(prefix, hname), env, extra_args,
+        return self.compiles(code.format(**fargs), env, extra_args,
                              dependencies, 'preprocess')
 
     def has_header_symbol(self, hname, symbol, prefix, env, extra_args=None, dependencies=None):
         if extra_args is None:
             extra_args = []
-        templ = '''{2}
-#include <{0}>
-int main () {{
-  /* If it's not defined as a macro, try to use as a symbol */
-  #ifndef {1}
-    {1};
-  #endif
-  return 0;
-}}'''
-        return self.compiles(templ.format(hname, symbol, prefix), env,
-                             extra_args, dependencies)
+        fargs = {'prefix': prefix, 'header': hname, 'symbol': symbol}
+        t = '''{prefix}
+        #include <{header}>
+        int main () {{
+            /* If it's not defined as a macro, try to use as a symbol */
+            #ifndef {symbol}
+                {symbol};
+            #endif
+        }}'''
+        return self.compiles(t.format(**fargs), env, extra_args, dependencies)
 
     @staticmethod
     def _override_args(args, override):
@@ -848,45 +848,47 @@ int main () {{
         mlog.debug(se)
         return RunResult(True, pe.returncode, so, se)
 
-    def cross_sizeof(self, element, prefix, env, extra_args=None, dependencies=None):
-        if extra_args is None:
-            extra_args = []
-        element_exists_templ = '''#include <stdio.h>
-{0}
-int main(int argc, char **argv) {{
-    {1} something;
-}}
-'''
-        templ = '''#include <stdio.h>
-%s
-int temparray[%d-sizeof(%s)];
-'''
-        if not self.compiles(element_exists_templ.format(prefix, element), env, extra_args, dependencies):
-            return -1
+    def _bisect_compiles(self, t, fargs, env, extra_args, dependencies):
+        # FIXME: Does not actually do bisection right now
         for i in range(1, 1024):
-            code = templ % (prefix, i, element)
-            if self.compiles(code, env, extra_args, dependencies):
+            fargs['size'] = i
+            if self.compiles(t.format(**fargs), env, extra_args, dependencies):
                 if self.id == 'msvc':
                     # MSVC refuses to construct an array of zero size, so
                     # the test only succeeds when i is sizeof(element) + 1
                     return i - 1
                 return i
-        raise EnvironmentException('Cross checking sizeof overflowed.')
+        raise EnvironmentException('Cross-compile check overflowed')
+
+    def cross_sizeof(self, element, prefix, env, extra_args=None, dependencies=None):
+        if extra_args is None:
+            extra_args = []
+        fargs = {'prefix': prefix, 'name': element}
+        t = '''#include <stdio.h>
+        {prefix}
+        int main(int argc, char **argv) {{
+            {name} something;
+        }}'''
+        if not self.compiles(t.format(**fargs), env, extra_args, dependencies):
+            return -1
+        t = '''#include <stdio.h>
+        {prefix}
+        int temparray[{size}-sizeof({name})];'''
+        return self._bisect_compiles(t, fargs, env, extra_args, dependencies)
 
     def sizeof(self, element, prefix, env, extra_args=None, dependencies=None):
         if extra_args is None:
             extra_args = []
+        fargs = {'prefix': prefix, 'name': element}
         if self.is_cross:
             return self.cross_sizeof(element, prefix, env, extra_args, dependencies)
-        templ = '''#include<stdio.h>
-%s
-
-int main(int argc, char **argv) {
-    printf("%%ld\\n", (long)(sizeof(%s)));
-    return 0;
-};
-'''
-        res = self.run(templ % (prefix, element), env, extra_args, dependencies)
+        t = '''#include<stdio.h>
+        {prefix}
+        int main(int argc, char **argv) {{
+            printf("%ld\\n", (long)(sizeof({name})));
+            return 0;
+        }};'''
+        res = self.run(t.format(**fargs), env, extra_args, dependencies)
         if not res.compiled:
             return -1
         if res.returncode != 0:
@@ -896,50 +898,38 @@ int main(int argc, char **argv) {
     def cross_alignment(self, typename, env, extra_args=None, dependencies=None):
         if extra_args is None:
             extra_args = []
-        type_exists_templ = '''#include <stdio.h>
-int main(int argc, char **argv) {{
-    {0} something;
-}}
-'''
-        templ = '''#include<stddef.h>
-struct tmp {
-  char c;
-  %s target;
-};
-
-int testarray[%d-offsetof(struct tmp, target)];
-'''
-        if not self.compiles(type_exists_templ.format(typename), env, extra_args, dependencies):
+        fargs = {'type': typename}
+        t = '''#include <stdio.h>
+        int main(int argc, char **argv) {{
+            {type} something;
+        }}'''
+        if not self.compiles(t.format(**fargs), env, extra_args, dependencies):
             return -1
-        for i in range(1, 1024):
-            code = templ % (typename, i)
-            if self.compiles(code, env, extra_args, dependencies):
-                if self.id == 'msvc':
-                    # MSVC refuses to construct an array of zero size, so
-                    # the test only succeeds when i is sizeof(element) + 1
-                    return i - 1
-                return i
-        raise EnvironmentException('Cross checking offsetof overflowed.')
+        t = '''#include <stddef.h>
+        struct tmp {{
+            char c;
+            {type} target;
+        }};
+        int testarray[{size}-offsetof(struct tmp, target)];'''
+        return self._bisect_compiles(t, fargs, env, extra_args, dependencies)
 
     def alignment(self, typename, env, extra_args=None, dependencies=None):
         if extra_args is None:
             extra_args = []
         if self.is_cross:
             return self.cross_alignment(typename, env, extra_args, dependencies)
-        templ = '''#include<stdio.h>
-#include<stddef.h>
-
-struct tmp {
-  char c;
-  %s target;
-};
-
-int main(int argc, char **argv) {
-  printf("%%d", (int)offsetof(struct tmp, target));
-  return 0;
-}
-'''
-        res = self.run(templ % typename, env, extra_args, dependencies)
+        fargs = {'type': typename}
+        t = '''#include <stdio.h>
+        #include <stddef.h>
+        struct tmp {{
+            char c;
+            {type} target;
+        }};
+        int main(int argc, char **argv) {{
+            printf("%d", (int)offsetof(struct tmp, target));
+            return 0;
+        }}'''
+        res = self.run(t.format(**fargs), env, extra_args, dependencies)
         if not res.compiled:
             raise EnvironmentException('Could not compile alignment test.')
         if res.returncode != 0:
@@ -958,13 +948,14 @@ int main(int argc, char **argv) {
         to the check performed by Autoconf for AC_CHECK_FUNCS.
         """
         # Define the symbol to something else since it is defined by the
-        # includes or defines listed by the user (prefix -> {0}) or by the
-        # compiler. Then, undef the symbol to get rid of it completely.
+        # includes or defines listed by the user or by the compiler. This may
+        # include, for instance _GNU_SOURCE. Then, undef the symbol to get rid
+        # of it completely.
         head = '''
-        #define {1} meson_disable_define_of_{1}
+        #define {func} meson_disable_define_of_{func}
         #include <limits.h>
-        {0}
-        #undef {1}
+        {prefix}
+        #undef {func}
         '''
         # Override any GCC internal prototype and declare our own definition for
         # the symbol. Use char because that's unlikely to be an actual return
@@ -973,13 +964,12 @@ int main(int argc, char **argv) {
         #ifdef __cplusplus
         extern "C"
         #endif
-        char {1} ();
+        char {func} ();
         '''
         # The actual function call
         main = '''
-        int main ()
-        {{
-          return {1} ();
+        int main () {{
+          return {func} ();
         }}'''
         return head, main
 
@@ -990,12 +980,17 @@ int main(int argc, char **argv) {
         user for the function prototype while checking if a function exists.
         """
         # Add the 'prefix', aka defines, includes, etc that the user provides
-        head = '#include <limits.h>\n{0}\n'
+        # This may include, for instance _GNU_SOURCE
+        head = '#include <limits.h>\n{prefix}\n'
         # We don't know what the function takes or returns, so return it as an int.
         # Just taking the address or comparing it to void is not enough because
         # compilers are smart enough to optimize it away. The resulting binary
         # is not run so we don't care what the return value is.
-        main = '\nint main() {{ void *a = (void*) &{1}; long b = (long) a; return (int) b; }}'
+        main = '''\nint main() {{
+            void *a = (void*) &{func};
+            long b = (long) a;
+            return (int) b;
+        }}'''
         return head, main
 
     def has_function(self, funcname, prefix, env, extra_args=None, dependencies=None):
@@ -1019,13 +1014,15 @@ int main(int argc, char **argv) {
                     return val
                 raise EnvironmentException('Cross variable {0} is not a boolean.'.format(varname))
 
+        fargs = {'prefix': prefix, 'func': funcname}
+
         # glibc defines functions that are not available on Linux as stubs that
         # fail with ENOSYS (such as e.g. lchmod). In this case we want to fail
         # instead of detecting the stub as a valid symbol.
         # We already included limits.h earlier to ensure that these are defined
         # for stub functions.
         stubs_fail = '''
-        #if defined __stub_{1} || defined __stub___{1}
+        #if defined __stub_{func} || defined __stub___{func}
         fail fail fail this function is not going to work
         #endif
         '''
@@ -1044,7 +1041,7 @@ int main(int argc, char **argv) {
             head, main = self._no_prototype_templ()
         templ = head + stubs_fail + main
 
-        if self.links(templ.format(prefix, funcname), env, extra_args, dependencies):
+        if self.links(templ.format(**fargs), env, extra_args, dependencies):
             return True
         # Some functions like alloca() are defined as compiler built-ins which
         # are inlined by the compiler, so look for __builtin_symbol in the libc
@@ -1057,46 +1054,46 @@ int main(int argc, char **argv) {
         # posix_memalign in the headers to point to that builtin which results
         # in an invalid detection.
         if '#include' not in prefix:
+            # Detect function as a built-in
+            fargs['func'] = '__builtin_' + fargs['func']
             code = '''
             int main() {{
             #ifdef __has_builtin
-                #if !__has_builtin({0})
-                    #error "built-in {0} not found"
+                #if !__has_builtin({func})
+                    #error "built-in {func} not found"
                 #endif
             #else
-                {0};
+                {func};
             #endif
             }}'''
-            return self.links(code.format('__builtin_' + funcname), env,
-                              extra_args, dependencies)
         else:
-            code = '{0}\n' + stubs_fail + '\nint main() {{ {1}; }}'
-            return self.links(code.format(prefix, funcname), env, extra_args,
-                              dependencies)
+            # Directly look for the function itself
+            code = '{prefix}\n' + stubs_fail + '\nint main() {{ {func}; }}'
+        return self.links(code.format(**fargs), env, extra_args, dependencies)
 
     def has_members(self, typename, membernames, prefix, env, extra_args=None, dependencies=None):
         if extra_args is None:
             extra_args = []
-        templ = '''{0}
-void bar() {{
-    {1} {2};
-    {3}
-}};
-'''
+        fargs = {'prefix': prefix, 'type': typename, 'name': 'foo'}
         # Create code that accesses all members
         members = ''
-        for m in membernames:
-            members += 'foo.{};\n'.format(m)
-        code = templ.format(prefix, typename, 'foo', members)
-        return self.compiles(code, env, extra_args, dependencies)
+        for member in membernames:
+            members += '{}.{};\n'.format(fargs['name'], member)
+        fargs['members'] = members
+        t = '''{prefix}
+        void bar() {{
+            {type} {name};
+            {members}
+        }};'''
+        return self.compiles(t.format(**fargs), env, extra_args, dependencies)
 
     def has_type(self, typename, prefix, env, extra_args, dependencies=None):
-        templ = '''%s
-void bar() {
-    sizeof(%s);
-};
-'''
-        return self.compiles(templ % (prefix, typename), env, extra_args, dependencies)
+        fargs = {'prefix': prefix, 'type': typename}
+        t = '''{prefix}
+        void bar() {{
+            sizeof({type});
+        }};'''
+        return self.compiles(t.format(**fargs), env, extra_args, dependencies)
 
     def symbols_have_underscore_prefix(self, env):
         '''
@@ -1186,12 +1183,12 @@ class CPPCompiler(CCompiler):
         # Check if it's a class or a template
         if extra_args is None:
             extra_args = []
-        templ = '''{2}
-#include <{0}>
-using {1};
-int main () {{ return 0; }}'''
-        return self.compiles(templ.format(hname, symbol, prefix), env,
-                             extra_args, dependencies)
+        fargs = {'prefix': prefix, 'header': hname, 'symbol': symbol}
+        t = '''{prefix}
+        #include <{header}>
+        using {symbol};
+        int main () {{ return 0; }}'''
+        return self.compiles(t.format(**fargs), env, extra_args, dependencies)
 
 class ObjCCompiler(CCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrap):
