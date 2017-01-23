@@ -1,4 +1,4 @@
-# Copyright 2016 The Meson development team
+# Copyright 2016-2017 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -86,6 +86,7 @@ class InterpreterBase:
         self.builtin = {}
         self.subdir = subdir
         self.variables = {}
+        self.argument_depth = 0
 
     def load_root_meson_file(self):
         mesonfile = os.path.join(self.source_root, self.subdir, environment.build_filename)
@@ -511,6 +512,7 @@ class InterpreterBase:
         assert(isinstance(args, mparser.ArgumentNode))
         if args.incorrect_order():
             raise InvalidArguments('All keyword arguments must be after positional arguments.')
+        self.argument_depth += 1
         reduced_pos = [self.evaluate_statement(arg) for arg in args.arguments]
         reduced_kw = {}
         for key in args.kwargs.keys():
@@ -520,6 +522,7 @@ class InterpreterBase:
             reduced_kw[key] = self.evaluate_statement(a)
         if not isinstance(reduced_pos, list):
             reduced_pos = [reduced_pos]
+        self.argument_depth -= 1
         return reduced_pos, reduced_kw
 
     def flatten(self, args):
@@ -540,6 +543,9 @@ class InterpreterBase:
 
     def assignment(self, node):
         assert(isinstance(node, mparser.AssignmentNode))
+        if self.argument_depth != 0:
+            raise InvalidArguments('''Tried to assign values inside an argument list.
+To specify a keyword argument, use : instead of =.''')
         var_name = node.var_name
         if not isinstance(var_name, str):
             raise InvalidArguments('Tried to assign value to a non-variable.')
@@ -551,7 +557,7 @@ class InterpreterBase:
         if isinstance(value, MutableInterpreterObject):
             value = copy.deepcopy(value)
         self.set_variable(var_name, value)
-        return value
+        return None
 
     def set_variable(self, varname, variable):
         if variable is None:
