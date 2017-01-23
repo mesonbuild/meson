@@ -459,7 +459,8 @@ class Backend:
         mfobj['projects'] = self.build.dep_manifest
         with open(ifilename, 'w') as f:
             f.write(json.dumps(mfobj))
-        d.data.append([ifilename, ofilename])
+        # Copy file from, to, and with mode unchanged
+        d.data.append([ifilename, ofilename, None])
 
     def get_regen_filelist(self):
         '''List of all files whose alteration means that the build

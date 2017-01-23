@@ -22,7 +22,7 @@ from . import optinterpreter
 from . import compilers
 from .wrap import wrap
 from . import mesonlib
-from .mesonlib import Popen_safe
+from .mesonlib import FileMode, Popen_safe
 from .dependencies import InternalDependency, Dependency
 from .interpreterbase import InterpreterBase
 from .interpreterbase import check_stringlist, noPosargs, noKwargs, stringArgs
@@ -453,11 +453,12 @@ class DataHolder(InterpreterObject):
         return self.held_object.install_dir
 
 class InstallDir(InterpreterObject):
-    def __init__(self, source_subdir, installable_subdir, install_dir):
+    def __init__(self, src_subdir, inst_subdir, install_dir, install_mode):
         InterpreterObject.__init__(self)
-        self.source_subdir = source_subdir
-        self.installable_subdir = installable_subdir
+        self.source_subdir = src_subdir
+        self.installable_subdir = inst_subdir
         self.install_dir = install_dir
+        self.install_mode = install_mode
 
 class Man(InterpreterObject):
 
@@ -2141,6 +2142,25 @@ requirements use the version keyword argument instead.''')
         self.evaluate_codeblock(codeblock)
         self.subdir = prev_subdir
 
+    def _get_kwarg_install_mode(self, kwargs):
+        if 'install_mode' not in kwargs:
+            return None
+        install_mode = []
+        mode = mesonlib.stringintlistify(kwargs.get('install_mode', []))
+        for m in mode:
+            # We skip any arguments that are set to `false`
+            if m is False:
+                m = None
+            install_mode.append(m)
+        if len(install_mode) > 3:
+            raise InvalidArguments('Keyword argument install_mode takes at '
+                                   'most 3 arguments.')
+        if len(install_mode) > 0 and install_mode[0] is not None and \
+           not isinstance(install_mode[0], str):
+            raise InvalidArguments('Keyword argument install_mode requires the '
+                                   'permissions arg to be a string or false')
+        return FileMode(*install_mode)
+
     def func_install_data(self, node, args, kwargs):
         kwsource = mesonlib.stringlistify(kwargs.get('sources', []))
         raw_sources = args + kwsource
@@ -2153,7 +2173,10 @@ requirements use the version keyword argument instead.''')
                 source_strings.append(s)
         sources += self.source_strings_to_files(source_strings)
         install_dir = kwargs.get('install_dir', None)
-        data = DataHolder(build.Data(sources, install_dir))
+        if not isinstance(install_dir, (str, type(None))):
+            raise InvalidArguments('Keyword argument install_dir not a string.')
+        install_mode = self._get_kwarg_install_mode(kwargs)
+        data = DataHolder(build.Data(sources, install_dir, install_mode))
         self.build.data.append(data.held_object)
         return data
 
@@ -2166,7 +2189,8 @@ requirements use the version keyword argument instead.''')
         install_dir = kwargs['install_dir']
         if not isinstance(install_dir, str):
             raise InvalidArguments('Keyword argument install_dir not a string.')
-        idir = InstallDir(self.subdir, args[0], install_dir)
+        install_mode = self._get_kwarg_install_mode(kwargs)
+        idir = InstallDir(self.subdir, args[0], install_dir, install_mode)
         self.build.install_dirs.append(idir)
         return idir
 

@@ -14,6 +14,7 @@
 
 """A library of random helper functionality."""
 
+import stat
 import platform, subprocess, operator, os, shutil, re
 
 from glob import glob
@@ -23,6 +24,97 @@ class MesonException(Exception):
 
 class EnvironmentException(MesonException):
     '''Exceptions thrown while processing and creating the build environment'''
+
+class FileMode:
+    # The first triad is for owner permissions, the second for group permissions,
+    # and the third for others (everyone else).
+    # For the 1st character:
+    #  'r' means can read
+    #  '-' means not allowed
+    # For the 2nd character:
+    #  'w' means can write
+    #  '-' means not allowed
+    # For the 3rd character:
+    #  'x' means can execute
+    #  's' means can execute and setuid/setgid is set (owner/group triads only)
+    #  'S' means cannot execute and setuid/setgid is set (owner/group triads only)
+    #  't' means can execute and sticky bit is set ("others" triads only)
+    #  'T' means cannot execute and sticky bit is set ("others" triads only)
+    #  '-' means none of these are allowed
+    #
+    # The meanings of 'rwx' perms is not obvious for directories; see:
+    # https://www.hackinglinuxexposed.com/articles/20030424.html
+    #
+    # For information on this notation such as setuid/setgid/sticky bits, see:
+    # https://en.wikipedia.org/wiki/File_system_permissions#Symbolic_notation
+    symbolic_perms_regex = re.compile('[r-][w-][xsS-]' # Owner perms
+                                      '[r-][w-][xsS-]' # Group perms
+                                      '[r-][w-][xtT-]') # Others perms
+
+    def __init__(self, perms=None, owner=None, group=None):
+        self.perms_s = perms
+        self.perms = self.perms_s_to_bits(perms)
+        self.owner = owner
+        self.group = group
+
+    def __repr__(self):
+        ret = '<FileMode: {!r} owner={} group={}'
+        return ret.format(self.perms_s, self.owner, self.group)
+
+    @classmethod
+    def perms_s_to_bits(cls, perms_s):
+        '''
+        Does the opposite of stat.filemode(), converts strings of the form
+        'rwxr-xr-x' to st_mode enums which can be passed to os.chmod()
+        '''
+        if perms_s is None:
+            # No perms specified, we will not touch the permissions
+            return -1
+        eg = 'rwxr-xr-x'
+        if not isinstance(perms_s, str):
+            msg = 'Install perms must be a string. For example, {!r}'
+            raise MesonException(msg.format(eg))
+        if len(perms_s) != 9 or not cls.symbolic_perms_regex.match(perms_s):
+            msg = 'File perms {!r} must be exactly 9 chars. For example, {!r}'
+            raise MesonException(msg.format(perms_s, eg))
+        perms = 0
+        # Owner perms
+        if perms_s[0] == 'r':
+            perms |= stat.S_IRUSR
+        if perms_s[1] == 'w':
+            perms |= stat.S_IWUSR
+        if perms_s[2] == 'x':
+            perms |= stat.S_IXUSR
+        elif perms_s[2] == 'S':
+            perms |= stat.S_ISUID
+        elif perms_s[2] == 's':
+            perms |= stat.S_IXUSR
+            perms |= stat.S_ISUID
+        # Group perms
+        if perms_s[3] == 'r':
+            perms |= stat.S_IRGRP
+        if perms_s[4] == 'w':
+            perms |= stat.S_IWGRP
+        if perms_s[5] == 'x':
+            perms |= stat.S_IXGRP
+        elif perms_s[5] == 'S':
+            perms |= stat.S_ISGID
+        elif perms_s[5] == 's':
+            perms |= stat.S_IXGRP
+            perms |= stat.S_ISGID
+        # Others perms
+        if perms_s[6] == 'r':
+            perms |= stat.S_IROTH
+        if perms_s[7] == 'w':
+            perms |= stat.S_IWOTH
+        if perms_s[8] == 'x':
+            perms |= stat.S_IXOTH
+        elif perms_s[8] == 'T':
+            perms |= stat.S_ISVTX
+        elif perms_s[8] == 't':
+            perms |= stat.S_IXOTH
+            perms |= stat.S_ISVTX
+        return perms
 
 class File:
     def __init__(self, is_built, subdir, fname):
@@ -360,11 +452,21 @@ def replace_if_different(dst, dst_tmp):
     else:
         os.unlink(dst_tmp)
 
+def stringintlistify(item):
+    if isinstance(item, (str, int)):
+        item = [item]
+    if not isinstance(item, list):
+        raise MesonException('Item must be a list, a string, or an int')
+    for i in item:
+        if not isinstance(i, (str, int, type(None))):
+            raise MesonException('List item must be a string or an int')
+    return item
+
 def stringlistify(item):
     if isinstance(item, str):
         item = [item]
     if not isinstance(item, list):
-        raise MesonException('Item is not an array')
+        raise MesonException('Item is not a list')
     for i in item:
         if not isinstance(i, str):
             raise MesonException('List item not a string.')

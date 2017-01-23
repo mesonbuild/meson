@@ -16,9 +16,33 @@ import sys, pickle, os, shutil, subprocess, gzip, platform
 from glob import glob
 from . import depfixer
 from . import destdir_join
-from ..mesonlib import Popen_safe
+from ..mesonlib import is_windows, Popen_safe
 
 install_log_file = None
+
+def set_mode(path, mode):
+    if mode is None:
+        # Keep mode unchanged
+        return
+    if (mode.perms_s or mode.owner or mode.group) is None:
+        # Nothing to set
+        return
+    # No chown() on Windows, and must set one of owner/group
+    if not is_windows() and (mode.owner or mode.group) is not None:
+        try:
+            shutil.chown(path, mode.owner, mode.group)
+        except PermissionError as e:
+            msg = '{!r}: Unable to set owner {!r} and group {!r}: {}, ignoring...'
+            print(msg.format(path, mode.owner, mode.group, e.strerror))
+    # Must set permissions *after* setting owner/group otherwise the
+    # setuid/setgid bits will get wiped by chmod
+    # NOTE: On Windows you can set read/write perms; the rest are ignored
+    if mode.perms_s is not None:
+        try:
+            os.chmod(path, mode.perms)
+        except PermissionError as e:
+            msg = '{!r}: Unable to set permissions {!r}: {}, ignoring...'
+            print(msg.format(path, mode.perms_s, e.strerror))
 
 def append_to_log(line):
     install_log_file.write(line)
@@ -96,7 +120,7 @@ def do_install(datafilename):
     run_install_script(d)
 
 def install_subdirs(data):
-    for (src_dir, inst_dir, dst_dir) in data.install_subdirs:
+    for (src_dir, inst_dir, dst_dir, mode) in data.install_subdirs:
         if src_dir.endswith('/') or src_dir.endswith('\\'):
             src_dir = src_dir[:-1]
         src_prefix = os.path.join(src_dir, inst_dir)
@@ -105,15 +129,19 @@ def install_subdirs(data):
         if not os.path.exists(dst_dir):
             os.makedirs(dst_dir)
         do_copydir(src_prefix, src_dir, dst_dir)
+        dst_prefix = os.path.join(dst_dir, inst_dir)
+        set_mode(dst_prefix, mode)
 
 def install_data(d):
     for i in d.data:
         fullfilename = i[0]
         outfilename = get_destdir_path(d, i[1])
+        mode = i[2]
         outdir = os.path.split(outfilename)[0]
         os.makedirs(outdir, exist_ok=True)
         print('Installing %s to %s.' % (fullfilename, outdir))
         do_copyfile(fullfilename, outfilename)
+        set_mode(outfilename, mode)
 
 def install_man(d):
     for m in d.man:

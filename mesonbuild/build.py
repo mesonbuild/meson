@@ -1502,9 +1502,10 @@ class ConfigurationData:
 # A bit poorly named, but this represents plain data files to copy
 # during install.
 class Data:
-    def __init__(self, sources, install_dir):
+    def __init__(self, sources, install_dir, install_mode=None):
         self.sources = sources
         self.install_dir = install_dir
+        self.install_mode = install_mode
         if not isinstance(self.sources, list):
             self.sources = [self.sources]
         for s in self.sources:

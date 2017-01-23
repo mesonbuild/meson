@@ -318,6 +318,7 @@ class WxDependency(Dependency):
     def __init__(self, environment, kwargs):
         Dependency.__init__(self, 'wx')
         self.is_found = False
+        self.modversion = 'none'
         if WxDependency.wx_found is None:
             self.check_wxconfig()
         if not WxDependency.wx_found:

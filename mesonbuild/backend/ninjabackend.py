@@ -700,7 +700,7 @@ int dummy;
                 assert(isinstance(f, mesonlib.File))
                 plain_f = os.path.split(f.fname)[1]
                 dstabs = os.path.join(subdir, plain_f)
-                i = [f.absolute_path(srcdir, builddir), dstabs]
+                i = [f.absolute_path(srcdir, builddir), dstabs, de.install_mode]
                 d.data.append(i)
 
     def generate_subdir_install(self, d):
@@ -715,7 +715,7 @@ int dummy;
                 inst_dir = sd.installable_subdir
             src_dir = os.path.join(self.environment.get_source_dir(), subdir)
             dst_dir = os.path.join(self.environment.get_prefix(), sd.install_dir)
-            d.install_subdirs.append([src_dir, inst_dir, dst_dir])
+            d.install_subdirs.append([src_dir, inst_dir, dst_dir, sd.install_mode])
 
     def generate_tests(self, outfile):
         self.serialise_tests()
