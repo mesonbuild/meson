@@ -1,4 +1,5 @@
-gen = find_program('manygen.py')
+gen = files('manygen.py')
+py3_bin = import('python3').find_python()
 
 buildtype = get_option('buildtype')
 buildtype_args = '-Dfooxxx' # a useless compiler argument
@@ -20,5 +21,5 @@ endif
 generated = custom_target('manygen',
   output : outfiles,
   input : ['funcinfo.def'],
-  command : [gen, '@INPUT@', '@OUTDIR@', buildtype_args],
+  command : [py3_bin, gen[0], '@INPUT@', '@OUTDIR@', buildtype_args],
 )
