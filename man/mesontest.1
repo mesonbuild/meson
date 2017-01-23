@@ -1,0 +1,57 @@
+.TH MESON "1" "December 2016" "meson 0.37.1" "User Commands"
+.SH NAME
+mesontest - test tool for the Meson build system
+.SH DESCRIPTION
+
+Mesontest is a helper tool for running test suites of projects using Meson.
+The default way of running tests is to invoke the default build command:
+
+\fBninja [\fR \fItest\fR \fB]\fR
+
+Mesontest provides a much richer set of tools for invoking tests.
+
+.SS "options:"
+.TP
+\fB\-\-repeat\fR
+run tests as many times as specified
+.TP
+\fB\-\-gdb\fR
+run tests under gdb
+.TP
+\fB\-\-list\fR
+list all available tests
+.TP
+\fB\-\-wrapper\fR
+invoke all tests via the given wrapper (e.g. valgrind)
+.TP
+\fB\-C\fR
+Change into the given directory before running tests (must be root of build directory).
+.TP
+\fB\-\-suite\fR
+run tests in this suite
+.TP
+\fB\-\-no\-suite\fR
+do not run tests in this suite
+.TP
+\fB\-\-no\-stdsplit\fR
+do not split stderr and stdout in test logs
+.TP
+\fB\-\-benchmark\fR
+run benchmarks instead of tests
+.TP
+\fB\-\-logbase\fR
+base of file name to use for writing test logs
+.TP
+\fB\-\-num-processes\fR
+how many parallel processes to use to run tests
+.TP
+\fB\-\-verbose\fR
+do not redirect stdout and stderr
+.TP
+\fB\-t\fR
+a multiplier to use for test timeout values (usually something like 100 for Valgrind)
+.TP
+\fB\-\-setup\fR
+use the specified test setup
+.SH SEE ALSO
+http://mesonbuild.com/
