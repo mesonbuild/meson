@@ -1176,6 +1176,12 @@ class CPPCompiler(CCompiler):
         code = 'class breakCCompiler;int main(int argc, char **argv) { return 0; }\n'
         return self.sanity_check_impl(work_dir, environment, 'sanitycheckcpp.cc', code)
 
+    def get_compiler_check_args(self):
+        # -fpermissive allows non-conforming code to compile which is necessary
+        # for many C++ checks. Particularly, the has_header_symbol check is
+        # too strict without this and always fails.
+        return super().get_compiler_check_args() + ['-fpermissive']
+
     def has_header_symbol(self, hname, symbol, prefix, env, extra_args=None, dependencies=None):
         # Check if it's a C-like symbol
         if super().has_header_symbol(hname, symbol, prefix, env, extra_args, dependencies):
@@ -2072,6 +2078,11 @@ class VisualStudioCPPCompiler(VisualStudioCCompiler, CPPCompiler):
     def get_option_link_args(self, options):
         return options['cpp_winlibs'].value[:]
 
+    def get_compiler_check_args(self):
+        # Visual Studio C++ compiler doesn't support -fpermissive,
+        # so just use the plain C args.
+        return super(VisualStudioCCompiler, self).get_compiler_check_args()
+
 GCC_STANDARD = 0
 GCC_OSX = 1
 GCC_MINGW = 2
@@ -2238,12 +2249,6 @@ class GnuCPPCompiler(GnuCompiler, CPPCompiler):
             return options['cpp_winlibs'].value[:]
         return []
 
-    def get_compiler_check_args(self):
-        # -fpermissive allows non-conforming code to compile which is necessary
-        # for many C++ checks. Particularly, the has_header_symbol check is
-        # too strict without this and always fails.
-        return self.get_no_optimization_args() + ['-fpermissive']
-
 
 class GnuObjCCompiler(GnuCompiler, ObjCCompiler):
 
@@ -2269,11 +2274,6 @@ class GnuObjCPPCompiler(GnuCompiler, ObjCPPCompiler):
                           '2': default_warn_args + ['-Wextra'],
                           '3': default_warn_args + ['-Wextra', '-Wpedantic']}
 
-    def get_compiler_check_args(self):
-        # -fpermissive allows non-conforming code to compile which is necessary
-        # for many ObjC++ checks. Particularly, the has_header_symbol check is
-        # too strict without this and always fails.
-        return self.get_no_optimization_args() + ['-fpermissive']
 
 class ClangCompiler:
     def __init__(self, clang_type):
@@ -2530,9 +2530,6 @@ class IntelCPPCompiler(IntelCompiler, CPPCompiler):
 
     def get_option_link_args(self, options):
         return []
-
-    def get_compiler_check_args(self):
-        return self.get_no_optimization_args()
 
     def has_multi_arguments(self, args, env):
         return super().has_multi_arguments(args + ['-diag-error', '10006'], env)
