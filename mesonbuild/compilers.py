@@ -610,7 +610,7 @@ class CCompiler(Compiler):
         return ['--coverage']
 
     def get_coverage_link_args(self):
-        return ['-lgcov']
+        return ['--coverage']
 
     def get_werror_args(self):
         return ['-Werror']
