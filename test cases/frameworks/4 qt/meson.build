@@ -1,4 +1,6 @@
-project('qt4 and 5 build test', 'cpp')
+project('qt4 and 5 build test', 'cpp',
+  # Qt5 now requires C++ 11 support
+  default_options : ['cpp_std=c++11'])
 
 qt5_modules = ['Widgets']
 foreach qt : ['qt4', 'qt5']

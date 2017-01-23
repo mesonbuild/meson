@@ -1758,9 +1758,9 @@ rule FORTRAN_DEP_HACK
         Compiles C/C++, ObjC/ObjC++, Fortran, and D sources
         """
         if isinstance(src, str) and src.endswith('.h'):
-            raise AssertionError('BUG: sources should not contain headers')
+            raise AssertionError('BUG: sources should not contain headers {!r}'.format(src))
         if isinstance(src, RawFilename) and src.fname.endswith('.h'):
-            raise AssertionError('BUG: sources should not contain headers')
+            raise AssertionError('BUG: sources should not contain headers {!r}'.format(src.fname))
         extra_orderdeps = []
         compiler = get_compiler_for_source(target.compilers.values(), src)
         commands = []
