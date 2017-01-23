@@ -949,12 +949,13 @@ class CCompiler(Compiler):
         """
         # Define the symbol to something else since it is defined by the
         # includes or defines listed by the user or by the compiler. This may
-        # include, for instance _GNU_SOURCE. Then, undef the symbol to get rid
-        # of it completely.
+        # include, for instance _GNU_SOURCE which must be defined before
+        # limits.h, which includes features.h
+        # Then, undef the symbol to get rid of it completely.
         head = '''
         #define {func} meson_disable_define_of_{func}
-        #include <limits.h>
         {prefix}
+        #include <limits.h>
         #undef {func}
         '''
         # Override any GCC internal prototype and declare our own definition for
@@ -980,8 +981,9 @@ class CCompiler(Compiler):
         user for the function prototype while checking if a function exists.
         """
         # Add the 'prefix', aka defines, includes, etc that the user provides
-        # This may include, for instance _GNU_SOURCE
-        head = '#include <limits.h>\n{prefix}\n'
+        # This may include, for instance _GNU_SOURCE which must be defined
+        # before limits.h, which includes features.h
+        head = '{prefix}\n#include <limits.h>\n'
         # We don't know what the function takes or returns, so return it as an int.
         # Just taking the address or comparing it to void is not enough because
         # compilers are smart enough to optimize it away. The resulting binary
