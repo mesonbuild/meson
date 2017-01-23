@@ -716,8 +716,16 @@ class CCompiler(Compiler):
     def has_header(self, hname, prefix, env, extra_args=None, dependencies=None):
         if extra_args is None:
             extra_args = []
-        code = '{}\n#include<{}>\nint someUselessSymbol;'.format(prefix, hname)
-        return self.compiles(code, env, extra_args, dependencies, 'preprocess')
+        code = '''{0}
+        #ifdef __has_include
+         #if !__has_include(<{1}>)
+          #error "Header '{1}' could not be found"
+         #endif
+        #else
+         #include<{1}>
+        #endif'''
+        return self.compiles(code.format(prefix, hname), env, extra_args,
+                             dependencies, 'preprocess')
 
     def has_header_symbol(self, hname, symbol, prefix, env, extra_args=None, dependencies=None):
         if extra_args is None:
