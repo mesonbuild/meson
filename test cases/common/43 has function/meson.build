@@ -31,12 +31,16 @@ foreach cc : compilers
     error('Found non-existent function "hfkerhisadf".')
   endif
 
+  if cc.has_function('hfkerhisadf', args : unit_test_args)
+    error('Found non-existent function "hfkerhisadf".')
+  endif
+
   # With glibc on Linux lchmod is a stub that will always return an error,
   # we want to detect that and declare that the function is not available.
   # We can't check for the C library used here of course, but if it's not
   # implemented in glibc it's probably not implemented in any other 'slimmer'
   # C library variants either, so the check should be safe either way hopefully.
-  if host_system == 'linux' and cc.get_id() == 'gcc'
+  if host_system == 'linux'
     assert (cc.has_function('poll', prefix : '#include <poll.h>',
                             args : unit_test_args),
             'couldn\'t detect "poll" when defined by a header')

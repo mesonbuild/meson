@@ -1057,7 +1057,16 @@ int main(int argc, char **argv) {
         # posix_memalign in the headers to point to that builtin which results
         # in an invalid detection.
         if '#include' not in prefix:
-            code = 'int main() {{ {0}; }}'
+            code = '''
+            int main() {{
+            #ifdef __has_builtin
+                #if !__has_builtin({0})
+                    #error "built-in {0} not found"
+                #endif
+            #else
+                {0};
+            #endif
+            }}'''
             return self.links(code.format('__builtin_' + funcname), env,
                               extra_args, dependencies)
         else:
