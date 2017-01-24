@@ -1953,6 +1953,47 @@ endian = 'little'
         self.init(testdir, ['-Db_lto=true'], default_args=False)
         self.build('reconfigure')
 
+    def test_components(self):
+        testdir = os.path.join(self.common_test_dir, '159 components')
+        test_data = [
+            (['-Dhello1=disabled'], 'disabled', 'enabled', 'disabled', 'enabled', 'enabled'),
+            (['-Dhello1=disabled', '-Dhello2=disabled'],
+             'disabled', 'disabled', 'disabled', 'enabled', 'enabled'),
+            (['-Dhello1=disabled', '-Dhello2=disabled', '-Dhello3=enabled'],
+             'disabled', 'disabled', 'enabled', 'enabled', 'enabled'),
+            (['-Dsubcomponent=disabled'], 'enabled', 'enabled', 'disabled', 'disabled', 'disabled'),
+            (['-Dsubsubcomponent=disabled'], 'enabled', 'enabled', 'disabled', 'enabled', 'disabled'),
+        ]
+
+        for (options, ehello1, ehello2, ehello3, esubhello, esubsubhello) in test_data:
+            self.setUp()
+            hello1 = os.path.join(self.builddir, 'hello1')
+            hello2 = os.path.join(self.builddir, 'hello2')
+            hello3 = os.path.join(self.builddir, 'hello3')
+            subhello = os.path.join(self.builddir, 'subdir', 'subhello')
+            subsubhello = os.path.join(self.builddir, 'subdir', 'subsubdir', 'subsubhello')
+
+            self.init(testdir, options)
+            self.build()
+            self.assertEqual(os.path.exists(hello1), ehello1 == 'enabled',
+                             'Buildding: %s Options: %s' % (self.builddir, str(options)))
+            self.assertEqual(os.path.exists(hello2), ehello2 == 'enabled', str(options))
+            self.assertEqual(os.path.exists(hello3), ehello3 == 'enabled', str(options))
+            self.assertEqual(os.path.exists(subhello), esubhello == 'enabled', str(options))
+            self.assertEqual(os.path.exists(subsubhello), esubsubhello == 'enabled', str(options))
+
+    def test_enabled_component_with_missing_dep_fails(self):
+        testdir = os.path.join(self.common_test_dir, '159 components')
+        self.setUp()
+        with self.assertRaises(subprocess.CalledProcessError):
+            self.init(testdir, ['-Dwithdep1=enabled'])
+
+    def test_adding_missing_dep_with_enabled_component_fails(self):
+        testdir = os.path.join(self.common_test_dir, '159 components')
+        self.setUp()
+        with self.assertRaises(subprocess.CalledProcessError):
+            self.init(testdir, ['-Ddisabled=enabled'])
+
 
 class LinuxArmCrossCompileTests(BasePlatformTests):
     '''

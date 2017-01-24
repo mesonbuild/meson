@@ -132,6 +132,49 @@ The object returned by `build_target` and all convenience wrappers for
 [`library`](#library) has methods that are documented in the [object
 methods section](#build-target-object) below.
 
+### component()
+
+**Since: 0.XX**
+
+``` meson
+some_component = component(<component_name>,
+                           targets: [],
+                           dependencies: [])
+```
+
+Create a component object to pass in target definition so they are optionally built
+depending on user choices.
+
+The component name will generate a new command line option based on its name with tree
+options:
+
+  * `enabled`: The component is enabled, meson configuration fails if a dependency is missing.
+  * `disabled`: The component is disabled not matter what
+  * `auto`: The component is enabled if all dependency are resolved, and disabled otherwise.
+    It is the default value.
+
+___Example___:
+
+Create a component which depends on some external dependency and start building an
+executable depending on whether user activated it or not (and depending on the presence
+of the dependency):
+
+``` meson
+some_dep = dependency('some-dep', required: false)
+my_component = component(<component_name>, dependencies: [some_dep])
+executable(some_component,
+           dependencies: [some_dep],
+           component: my_component)
+```
+
+**Arguments**:
+
+  * `name`: (positional first argument): The name of the component.
+  * `dependency`: A list of [dependencies](#dependency-object) or
+    [components](#component-object) this component depends on.
+
+Returns a [Component](#component-object).
+
 ### configuration_data()
 
 ``` meson
@@ -310,9 +353,13 @@ otherwise. This function supports the following keyword arguments:
   `>1.0.0`, `<=2.3.5` or `3.1.4` for exact matching. (*Added 0.37.0*)
   You can also specify multiple restrictions by passing a list to this
   keyword argument, such as: `['>=3.14.0', '<=4.1.0']`.
+- `components`, specifies a list of component on which the dependency applies,
+  avoiding any check if the component is disabled. This implies adding the
+  new dependency to the component dependency list
 
 The returned object also has methods that are documented in the
 [object methods section](#dependency-object) below.
+
 
 ### error()
 
@@ -1553,6 +1600,16 @@ result file. The replacement assumes a file with C syntax. If your
 generated file is source code in some other language, you probably
 don't want to add a description field because it most likely will
 cause a syntax error.
+
+### `component` object
+
+This object is returned by [`component()`](#component) and is an opaque object representing it.
+
+- `targets()`: Lists all the targets belonging to the component.
+- `enabled()`: Whether the component is enabled or not.
+- `value()`: Current value in [‘enabled’, ‘disabled’, ‘auto’]
+- `dependencies()`: Returns the list of dependency this component has
+- `add_dependencies()`: Adds provided dependencies to the list of dependencies
 
 ### `custom target` object
 

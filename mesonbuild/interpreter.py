@@ -48,6 +48,11 @@ def stringifyUserArguments(args):
     raise InvalidArguments('Function accepts only strings, integers, lists and lists thereof.')
 
 
+def _components_add_dependency(components, dep):
+    for component in components:
+        component.add_dependency(dep)
+
+
 class TryRunResultHolder(InterpreterObject):
     def __init__(self, res):
         super().__init__()
@@ -157,6 +162,126 @@ class EnvironmentVariablesHolder(MutableInterpreterObject):
     def prepend_method(self, args, kwargs):
         self.add_var(self.held_object.prepend, args, kwargs)
 
+
+class Component(MutableInterpreterObject):
+    def __init__(self, name, interpreter, option_name, dependencies=None, silent=False):
+        super().__init__()
+
+        self.name = name
+        self.interpreter = interpreter
+        self.option_name = option_name
+        self.targets = set()
+        if dependencies is None:
+            self.dependencies = set()
+        else:
+            self.dependencies = set(dependencies)
+
+        self.methods.update({'targets': self.func_targets,
+                             'enabled': self.func_enabled,
+                             'value': self.func_value,
+                             'add_dependencies': self.func_add_dependency,
+                             'dependencies': self.func_dependencies})
+
+        value = self.interpreter.environment.coredata.user_options[self.option_name].value
+        if value == 'enabled':
+            missing_deps = self.check_dependencies()[1]
+            if missing_deps:
+                raise InterpreterException("Component %s is enabled but the following"
+                                           " dependencies are not present: %s" % (
+                                               name, missing_deps))
+            value = mlog.green(value)
+        elif self.func_enabled():
+            value = mlog.green(value)
+        else:
+            value = mlog.red(value)
+
+        if not silent:
+            mlog.log('Component', mlog.bold(name), ':', value)
+
+    def func_enabled(self, *args, **kwargs):
+        return self.check_dependencies()[0]
+
+    def func_value(self, *args, **kwargs):
+        return self.interpreter.environment.coredata.user_options[self.option_name].value
+
+    def func_add_dependency(self, args, kwargs):
+        for dep in mesonlib.flatten(args):
+            self.add_dependency(dep)
+
+    def add_dependency(self, dep):
+        dep = getattr(dep, "held_object", dep)
+        if not isinstance(dep, dependencies.Dependency):
+            raise InterpreterException("component.add_dependencies only takes "
+                                       " dependency objects as argument (not: %s)" % (
+                                           dep))
+        value = self.interpreter.environment.coredata.user_options[self.option_name].value
+        if value == 'enabled' and not dep.found():
+            raise InterpreterException("Component %s is enabled but the following"
+                                       " dependencies are not present: %s" % (
+                                           self.name, dep.get_name()))
+
+        if dep not in self.dependencies:
+            if not dep.found() and self.func_enabled():
+                mlog.log('component', mlog.bold(self.name), 'is now disabled by:',
+                         mlog.red(dep.name if dep.name else str(dep)))
+
+            self.dependencies.add(dep)
+
+    def is_disabled(self):
+        return self.interpreter.environment.coredata.user_options[self.option_name].value == 'disabled'
+
+    def check_dependencies(self):
+        value = self.interpreter.environment.coredata.user_options[self.option_name].value
+        res = True
+        if value == 'disabled':
+            res = False
+
+        missing_deps = []
+        for dep in self.dependencies:
+            dep = getattr(dep, "held_object", dep)
+            if isinstance(dep, Dependency):
+                if not dep.found():
+                    missing_deps.append(dep.get_name())
+                    res = False
+            else:
+                # Recurse into dependencies
+                if not dep.func_enabled():
+                    missing_deps.append(dep.name)
+                    res = False
+
+        return res, missing_deps
+
+    def func_dependencies(self, *args, **kwargs):
+        return list(self.dependencies)
+
+    def func_targets(self, *args, **kwargs):
+        res = []
+        for target in self.targets:
+            target = getattr(target, "held_object", target)
+            is_enabled = True
+            for component in target.components:
+                if not component.func_enabled():
+                    is_enabled = False
+            if is_enabled:
+                res.append(self.interpreter.holderify(target))
+
+        return res
+
+    def add_target(self, target):
+        self.targets.add(getattr(target, 'held_object', target))
+        target.components.add(self)
+
+    def __deepcopy__(self, memo):
+        return Component(self.name, self.interpreter,
+                         self.option_name,
+                         dependencies=self.dependencies.copy(),
+                         silent=True)
+
+    def __getstate__(self):
+        assert "Not reached"
+
+    def __repr__(self):
+        return "<%s dependencies: %s>" % (self.name, [d for d in self.dependencies])
 
 class ConfigurationDataHolder(MutableInterpreterObject):
     def __init__(self):
@@ -1014,6 +1139,16 @@ class CompilerHolder(InterpreterObject):
         if not isinstance(required, bool):
             raise InterpreterException('required must be boolean.')
 
+        components = mesonlib.flatten(kwargs.pop('components', []))
+        disabled = False
+        for component in components:
+            if component.is_disabled():
+                disabled = True
+
+        if disabled:
+            return DependencyHolder(dependencies.ExternalDependency(depname, self.environment,
+                                                                    None, kwargs))
+
         found = True
         libs = []
         not_found_reasons = []
@@ -1068,6 +1203,8 @@ class CompilerHolder(InterpreterObject):
         dep = dependencies.CustomDependency(self.compiler.get_id() + '_custom',
                                             found, build_args, link_args,
                                             libs, deps, kwargs)
+
+        _components_add_dependency(components, dep)
 
         if found:
             h = mlog.green('YES')
@@ -1183,7 +1320,9 @@ class ModuleHolder(InterpreterObject):
             value = fn(state, args, kwargs)
             if num_targets != len(self.interpreter.build.targets):
                 raise InterpreterException('Extension module altered internal state illegally.')
-            return self.interpreter.module_method_callback(value)
+            components = mesonlib.flatten(kwargs.pop('components', []))
+
+            return self.interpreter.module_method_callback(value, components)
 
 class MesonMain(InterpreterObject):
     def __init__(self, build, interpreter):
@@ -1380,6 +1519,7 @@ buildtarget_kwargs = set(['build_by_default',
                           'pic',
                           'sources',
                           'vs_module_defs',
+                          'components',
                       ])
 
 build_target_common_kwargs = (
@@ -1410,7 +1550,7 @@ permitted_kwargs = {'add_global_arguments': {'language'},
                     'benchmark': {'args', 'env', 'should_fail', 'timeout', 'workdir', 'suite'},
                     'build_target': build_target_kwargs,
                     'configure_file': {'input', 'output', 'configuration', 'command', 'install_dir', 'capture', 'install'},
-                    'custom_target': {'input', 'output', 'command', 'install', 'install_dir', 'build_always', 'capture', 'depends', 'depend_files', 'depfile', 'build_by_default'},
+                    'custom_target': {'input', 'output', 'command', 'install', 'install_dir', 'build_always', 'capture', 'depends', 'depend_files', 'depfile', 'build_by_default', 'components'},
                     'declare_dependency': {'include_directories', 'link_with', 'sources', 'dependencies', 'compile_args', 'link_args', 'version'},
                     'executable': exe_kwargs,
                     'find_program': {'required', 'native'},
@@ -1422,13 +1562,14 @@ permitted_kwargs = {'add_global_arguments': {'language'},
                     'install_subdir': {'exclude_files', 'exclude_directories', 'install_dir', 'install_mode'},
                     'jar': jar_kwargs,
                     'project': {'version', 'meson_version', 'default_options', 'license', 'subproject_dir'},
-                    'run_target': {'command', 'depends'},
+                    'run_target': {'command', 'depends', 'components'},
                     'shared_library': shlib_kwargs,
                     'shared_module': shmod_kwargs,
                     'static_library': stlib_kwargs,
                     'subproject': {'version', 'default_options'},
                     'test': {'args', 'env', 'is_parallel', 'should_fail', 'timeout', 'workdir', 'suite'},
                     'vcs_tag': {'input', 'output', 'fallback', 'command', 'replace_string'},
+                    'subdir': {'components'},
                     }
 
 
@@ -1454,6 +1595,7 @@ class Interpreter(InterpreterBase):
         self.global_args_frozen = False  # implies self.project_args_frozen
         self.subprojects = {}
         self.subproject_stack = []
+        self.current_components = []
         self.default_project_options = default_project_options[:] # Passed from the outside, only used in subprojects.
         self.build_func_dict()
         self.parse_project()
@@ -1521,6 +1663,7 @@ class Interpreter(InterpreterBase):
                            'static_library': self.func_static_lib,
                            'test': self.func_test,
                            'vcs_tag': self.func_vcs_tag,
+                           'component': self.func_component,
                            })
 
     def holderify(self, item):
@@ -1544,18 +1687,20 @@ class Interpreter(InterpreterBase):
             return InternalDependencyHolder(item)
         elif isinstance(item, dependencies.ExternalProgram):
             return ExternalProgramHolder(item)
+        elif isinstance(item, build.SharedLibrary):
+            return SharedLibraryHolder(item, self)
         elif hasattr(item, 'held_object'):
             return item
         else:
-            raise InterpreterException('Module returned a value of unknown type.')
+            raise InterpreterException('Module returned a value of unknown type. (%s)' % item)
 
-    def process_new_values(self, invalues):
+    def process_new_values(self, invalues, components):
         invalues = listify(invalues)
         for v in invalues:
             if isinstance(v, (build.BuildTarget, build.CustomTarget, build.RunTarget)):
-                self.add_target(v.name, v)
+                self.add_target(v.name, v, components)
             elif isinstance(v, list):
-                self.module_method_callback(v)
+                self.module_method_callback(v, components)
             elif isinstance(v, build.GeneratedList):
                 pass
             elif isinstance(v, build.RunScript):
@@ -1567,17 +1712,17 @@ class Interpreter(InterpreterBase):
             elif isinstance(v, dependencies.InternalDependency):
                 # FIXME: This is special cased and not ideal:
                 # The first source is our new VapiTarget, the rest are deps
-                self.process_new_values(v.sources[0])
+                self.process_new_values(v.sources[0], components)
             elif hasattr(v, 'held_object'):
                 pass
             else:
                 raise InterpreterException('Module returned a value of unknown type.')
 
-    def module_method_callback(self, return_object):
+    def module_method_callback(self, return_object, components):
         if not isinstance(return_object, ModuleReturnValue):
             raise InterpreterException('Bug in module, it returned an invalid object')
         invalues = return_object.new_objects
-        self.process_new_values(invalues)
+        self.process_new_values(invalues, components)
         return self.holderify(return_object.return_value)
 
     def get_build_def_files(self):
@@ -2156,8 +2301,18 @@ class Interpreter(InterpreterBase):
         if '<' in name or '>' in name or '=' in name:
             raise InvalidArguments('Characters <, > and = are forbidden in dependency names. To specify'
                                    'version\n requirements use the \'version\' keyword argument instead.')
-        identifier, cached_dep = self._find_cached_dep(name, kwargs)
 
+        components = mesonlib.flatten(kwargs.pop('components', []))
+        disabled = False
+        for component in components:
+            if component.is_disabled():
+                disabled = True
+
+        if disabled:
+            return DependencyHolder(dependencies.ExternalDependency(name, self.environment,
+                                                                    None, kwargs))
+
+        identifier, cached_dep = self._find_cached_dep(name, kwargs)
         if cached_dep:
             if kwargs.get('required', True) and not cached_dep.found():
                 m = 'Dependency {!r} was already checked and was not found'
@@ -2172,7 +2327,9 @@ class Interpreter(InterpreterBase):
                     subproject = self.subprojects[dirname]
                     try:
                         # Never add fallback deps to self.coredata.deps
-                        return subproject.get_variable_method([varname], {})
+                        fallback_dep = subproject.get_variable_method([varname], {})
+                        _components_add_dependency(components, fallback_dep)
+                        return fallback_dep
                     except KeyError:
                         pass
 
@@ -2191,6 +2348,7 @@ class Interpreter(InterpreterBase):
                 if 'fallback' in kwargs:
                     fallback_dep = self.dependency_fallback(name, kwargs)
                     if fallback_dep:
+                        _components_add_dependency(components, fallback_dep)
                         # Never add fallback deps to self.coredata.deps since we
                         # cannot cache them. They must always be evaluated else
                         # we won't actually read all the build files.
@@ -2199,9 +2357,11 @@ class Interpreter(InterpreterBase):
                     assert(exception is not None)
                     raise exception
 
+        _components_add_dependency(components, dep)
         # Only store found-deps in the cache
         if dep.found():
             self.coredata.deps[identifier] = dep
+
         return DependencyHolder(dep)
 
     def get_subproject_infos(self, kwargs):
@@ -2285,6 +2445,37 @@ class Interpreter(InterpreterBase):
             return self.func_shared_lib(node, args, kwargs)
         return self.func_static_lib(node, args, kwargs)
 
+    def func_component(self, node, args, kwargs):
+        if len(args) != 1:
+            raise InterpreterException('Component takes exactly one argument',
+                                       'its name, not "%s"' % args)
+
+        name = args[0]
+        deps = mesonlib.flatten(kwargs.get('dependencies', []))
+        default_value = kwargs.get('default', 'auto')
+        if self.is_subproject():
+            option_name = self.subproject + ':' + name
+            description = 'Enable %s component for project "%s"' % (name, self.subproject)
+        else:
+            option_name = name
+            description = 'Enable %s component' % (name)
+
+        command_line_options = optinterpreter.OptionInterpreter.get_command_line_options(
+            self.subproject, self.build.environment.cmd_line_options.projectoptions)
+        enabled = command_line_options.get(option_name, default_value)
+
+        value = coredata.UserComboOption(option_name, description,
+                                         ['enabled', 'disabled', 'auto'],
+                                         enabled)
+        self.build.environment.merge_options({option_name: value})
+
+        if self.is_subproject() and not name.startswith(self.subproject + ':'):
+            name = self.subproject + ':' + name
+
+        component = Component(name, self, option_name, deps)
+
+        return component
+
     @permittedKwargs(permitted_kwargs['jar'])
     def func_jar(self, node, args, kwargs):
         kwargs['target_type'] = 'jar'
@@ -2351,8 +2542,9 @@ class Interpreter(InterpreterBase):
         if len(args) != 1:
             raise InterpreterException('custom_target: Only one positional argument is allowed, and it must be a string name')
         name = args[0]
+        components = mesonlib.flatten(kwargs.pop('components', []))
         tg = CustomTargetHolder(build.CustomTarget(name, self.subdir, kwargs), self)
-        self.add_target(name, tg.held_object)
+        self.add_target(name, tg.held_object, components)
         return tg
 
     @permittedKwargs(permitted_kwargs['run_target'])
@@ -2398,8 +2590,20 @@ class Interpreter(InterpreterBase):
             cleaned_deps.append(d)
         command = cleaned_args[0]
         cmd_args = cleaned_args[1:]
+        components = mesonlib.flatten(kwargs.pop('components', []))
+        if self.is_subproject():
+            if not isinstance(components, list):
+                components = [components]
+            tmpcomponents = []
+
+            for component in components:
+                if isinstance(component, str) and not name.startswith(self.subproject + ':'):
+                    tmpcomponents.append(self.subproject + ':' + component)
+                else:
+                    tmpcomponents.append(component)
+            components = tmpcomponents
         tg = RunTargetHolder(name, command, cmd_args, cleaned_deps, self.subdir)
-        self.add_target(name, tg.held_object)
+        self.add_target(name, tg.held_object, components)
         return tg
 
     @permittedKwargs(permitted_kwargs['generator'])
@@ -2500,7 +2704,7 @@ class Interpreter(InterpreterBase):
         self.build.man.append(m)
         return m
 
-    @noKwargs
+    @permittedKwargs(permitted_kwargs['subdir'])
     def func_subdir(self, node, args, kwargs):
         self.validate_arguments(args, 1, [str])
         if '..' in args[0]:
@@ -2518,7 +2722,19 @@ class Interpreter(InterpreterBase):
         if symlinkless_dir in self.visited_subdirs:
             raise InvalidArguments('Tried to enter directory "%s", which has already been visited.'
                                    % subdir)
+
+        prev_components = self.current_components
+        components = mesonlib.flatten(kwargs.pop('components', []))
         self.visited_subdirs[symlinkless_dir] = True
+        for component in components:
+            if not isinstance(component, Component):
+                raise InvalidArguments('Invalid type for component: %s' % component)
+
+            if not component.func_enabled():
+                mlog.log('Subdir: ', mlog.bold(subdir), 'disabled by component:',
+                         mlog.red(component.name))
+                return
+
         self.subdir = subdir
         os.makedirs(os.path.join(self.environment.build_dir, subdir), exist_ok=True)
         buildfilename = os.path.join(self.subdir, environment.build_filename)
@@ -2535,7 +2751,10 @@ class Interpreter(InterpreterBase):
         except mesonlib.MesonException as me:
             me.file = buildfilename
             raise me
+
+        self.current_components = components
         self.evaluate_codeblock(codeblock)
+        self.current_components = prev_components
         self.subdir = prev_subdir
 
     def _get_kwarg_install_mode(self, kwargs):
@@ -2872,21 +3091,32 @@ different subdirectory.
             results.append(s)
         return results
 
-    def add_target(self, name, tobj):
+    def add_target(self, name, tobj, components):
         if name == '':
             raise InterpreterException('Target name must not be empty.')
         if name.startswith('meson-'):
             raise InvalidArguments("Target names starting with 'meson-' are reserved "
                                    "for Meson's internal use. Please rename.")
         if name in coredata.forbidden_target_names:
-            raise InvalidArguments("Target name '%s' is reserved for Meson's "
-                                   "internal use. Please rename." % name)
+            raise InvalidArguments('Target name "%s" is reserved for Meson\'s internal use. Please rename.'
+                                   % name)
+
         # To permit an executable and a shared library to have the
         # same name, such as "foo.exe" and "libfoo.a".
         idname = tobj.get_id()
         if idname in self.build.targets:
             raise InvalidCode('Tried to create target "%s", but a target of that name already exists.' % name)
         self.build.targets[idname] = tobj
+
+        if not isinstance(components, list):
+            components = [components]
+        components += self.current_components
+        if components:
+            for component in components:
+                if not isinstance(component, Component):
+                    raise InvalidArguments('Invalid type for component: %s' % component)
+
+                component.add_target(tobj)
         if idname not in self.coredata.target_guids:
             self.coredata.target_guids[idname] = str(uuid.uuid4()).upper()
 
@@ -2929,11 +3159,12 @@ different subdirectory.
         else:
             mlog.debug('Unknown target type:', str(targetholder))
             raise RuntimeError('Unreachable code')
+        components = mesonlib.flatten(kwargs.pop('components', []))
         target = targetclass(name, self.subdir, self.subproject, is_cross, sources, objs, self.environment, kwargs)
         if is_cross:
             self.add_cross_stdlib_info(target)
         l = targetholder(target, self)
-        self.add_target(name, l.held_object)
+        self.add_target(name, l.held_object, components)
         self.project_args_frozen = True
         return l
 

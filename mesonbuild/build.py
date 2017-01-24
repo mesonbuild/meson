@@ -137,8 +137,16 @@ class Build:
     def get_project(self):
         return self.projects['']
 
-    def get_targets(self):
-        return self.targets
+    def get_targets(self, filter_disabled=False):
+        if not filter_disabled:
+            return self.targets
+
+        targets = {}
+        for n, t in self.targets.items():
+            if t.should_build():
+                targets[n] = t
+
+        return targets
 
     def get_tests(self):
         return self.tests
@@ -291,6 +299,13 @@ a hard error in the future.''' % name)
         self.install = False
         self.build_always = False
         self.option_overrides = {}
+        self.components = set()
+
+    def should_build(self):
+        for component in self.components:
+            if not component.func_enabled():
+                return False
+        return True
 
     def get_basename(self):
         return self.name
@@ -317,6 +332,12 @@ a hard error in the future.''' % name)
             result[k] = v
         return result
 
+    def __getstate__(self):
+        # Make sure we do not try to pickle components
+        res = self.__dict__.copy()
+        res['components'] = set()
+
+        return res
 
 class BuildTarget(Target):
     def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
