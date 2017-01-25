@@ -1254,6 +1254,7 @@ class CustomTarget(Target):
                     'depends': True,
                     'depend_files': True,
                     'depfile': True,
+                    'build_by_default': True,
                     }
 
     def __init__(self, name, subdir, kwargs, absolute_paths=False):
