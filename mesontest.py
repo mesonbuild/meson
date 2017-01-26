@@ -416,7 +416,7 @@ TIMEOUT: %4d
         jsonlogfile = open(jsonlogfilename, 'w')
         logfile = open(logfilename, 'w')
 
-        logfile.write('Log of Meson test suite run on %s.\n\n'
+        logfile.write('Log of Meson test suite run on %s\n\n'
                       % datetime.datetime.now().isoformat())
 
         return logfile, logfilename, jsonlogfile, jsonlogfilename
@@ -484,7 +484,7 @@ TIMEOUT: %4d
             self.print_collected_logs()
 
             if logfilename:
-                print('Full log written to %s.' % logfilename)
+                print('Full log written to %s' % logfilename)
         finally:
             if jsonlogfile:
                 jsonlogfile.close()
