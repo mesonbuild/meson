@@ -262,7 +262,8 @@ class TestHarness:
             if timed_out:
                 res = 'TIMEOUT'
                 self.timeout_count += 1
-            if p.returncode == GNU_SKIP_RETURNCODE:
+                self.fail_count += 1
+            elif p.returncode == GNU_SKIP_RETURNCODE:
                 res = 'SKIP'
                 self.skip_count += 1
             elif test.should_fail == bool(p.returncode):
