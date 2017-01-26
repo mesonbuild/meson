@@ -191,35 +191,40 @@ class Vs2010Backend(backends.Backend):
         result = {}
         for o in obj_list:
             if isinstance(o, build.ExtractedObjects):
-                result[o.target.get_id()] = True
-        return result.keys()
+                result[o.target.get_id()] = o.target
+        return result.items()
 
-    def determine_deps(self, p):
+    def get_target_deps(self, t, recursive=False):
         all_deps = {}
-        target = self.build.targets[p[0]]
-        if isinstance(target, build.CustomTarget):
-            for d in target.get_target_dependencies():
-                all_deps[d.get_id()] = True
-            return all_deps
-        if isinstance(target, build.RunTarget):
-            for d in [target.command] + target.args:
-                if isinstance(d, build.BuildTarget):
-                    all_deps[d.get_id()] = True
-                return all_deps
-        for ldep in target.link_targets:
-            all_deps[ldep.get_id()] = True
-        for objdep in self.get_obj_target_deps(target.objects):
-            all_deps[objdep] = True
-        for gendep in target.generated:
-            if isinstance(gendep, build.CustomTarget):
-                all_deps[gendep.get_id()] = True
+        for target in t.values():
+            if isinstance(target, build.CustomTarget):
+                for d in target.get_target_dependencies():
+                    all_deps[d.get_id()] = d
+            elif isinstance(target, build.RunTarget):
+                for d in [target.command] + target.args:
+                    if isinstance(d, (build.BuildTarget, build.CustomTarget)):
+                        all_deps[d.get_id()] = d
+            # BuildTarget
             else:
-                gen_exe = gendep.generator.get_exe()
-                if isinstance(gen_exe, build.Executable):
-                    all_deps[gen_exe.get_id()] = True
-        return all_deps
+                for ldep in target.link_targets:
+                    all_deps[ldep.get_id()] = ldep
+                for obj_id, objdep in self.get_obj_target_deps(target.objects):
+                    all_deps[obj_id] = objdep
+                for gendep in target.get_generated_sources():
+                    if isinstance(gendep, build.CustomTarget):
+                        all_deps[gendep.get_id()] = gendep
+                    else:
+                        gen_exe = gendep.generator.get_exe()
+                        if isinstance(gen_exe, build.Executable):
+                            all_deps[gen_exe.get_id()] = gen_exe
+        if not t or not recursive:
+            return all_deps
+        ret = self.get_target_deps(all_deps, recursive)
+        ret.update(all_deps)
+        return ret
 
     def generate_solution(self, sln_filename, projlist):
+        default_projlist = self.get_build_by_default_targets()
         with open(sln_filename, 'w') as ofile:
             ofile.write('Microsoft Visual Studio Solution File, Format '
                         'Version 11.00\n')
@@ -229,7 +234,12 @@ class Vs2010Backend(backends.Backend):
                 prj_line = prj_templ % (self.environment.coredata.guid,
                                         p[0], p[1], p[2])
                 ofile.write(prj_line)
-                all_deps = self.determine_deps(p)
+                target = self.build.targets[p[0]]
+                t = {target.get_id(): target}
+                # Get direct deps
+                all_deps = self.get_target_deps(t)
+                # Get recursive deps
+                recursive_deps = self.get_target_deps(t, recursive=True)
                 ofile.write('\tProjectSection(ProjectDependencies) = '
                             'postProject\n')
                 regen_guid = self.environment.coredata.regen_guid
@@ -239,6 +249,9 @@ class Vs2010Backend(backends.Backend):
                     ofile.write('\t\t{%s} = {%s}\n' % (guid, guid))
                 ofile.write('EndProjectSection\n')
                 ofile.write('EndProject\n')
+                for dep, target in recursive_deps.items():
+                    if p[0] in default_projlist:
+                        default_projlist[dep] = target
             test_line = prj_templ % (self.environment.coredata.guid,
                                      'RUN_TESTS', 'RUN_TESTS.vcxproj',
                                      self.environment.coredata.test_guid)
@@ -264,11 +277,15 @@ class Vs2010Backend(backends.Backend):
             ofile.write('\t\t{%s}.%s|%s.Build.0 = %s|%s\n' %
                         (self.environment.coredata.regen_guid, self.buildtype,
                          self.platform, self.buildtype, self.platform))
+            # Create the solution configuration
             for p in projlist:
+                # Add to the list of projects in this solution
                 ofile.write('\t\t{%s}.%s|%s.ActiveCfg = %s|%s\n' %
                             (p[2], self.buildtype, self.platform,
                              self.buildtype, self.platform))
-                if not isinstance(self.build.targets[p[0]], build.RunTarget):
+                if p[0] in default_projlist and \
+                   not isinstance(self.build.targets[p[0]], build.RunTarget):
+                    # Add to the list of projects to be built
                     ofile.write('\t\t{%s}.%s|%s.Build.0 = %s|%s\n' %
                                 (p[2], self.buildtype, self.platform,
                                  self.buildtype, self.platform))

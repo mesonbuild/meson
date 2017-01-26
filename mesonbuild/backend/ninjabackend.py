@@ -2160,34 +2160,10 @@ rule FORTRAN_DEP_HACK
         elem.add_item('pool', 'console')
         elem.write(outfile)
 
-    def get_build_by_default_targets(self):
-        result = {}
-        # Get all build and custom targets that must be built by default
-        for t in self.build.get_targets().values():
-            if t.build_by_default or t.install or t.build_always:
-                result[t] = True
-        # Get all targets used as test executables and arguments. These must
-        # also be built by default. XXX: Sometime in the future these should be
-        # built only before running tests.
-        for t in self.build.get_tests():
-            exe = t.exe
-            if hasattr(exe, 'held_object'):
-                exe = exe.held_object
-            if isinstance(exe, (build.CustomTarget, build.BuildTarget)) and exe not in result:
-                result[exe] = True
-            for arg in t.cmd_args:
-                if hasattr(arg, 'held_object'):
-                    arg = arg.held_object
-                if not isinstance(arg, (build.CustomTarget, build.BuildTarget)):
-                    continue
-                if arg not in result:
-                    result[arg] = True
-        return result.keys()
-
     def generate_ending(self, outfile):
         targetlist = []
         ctlist = []
-        for t in self.get_build_by_default_targets():
+        for t in self.get_build_by_default_targets().values():
             if isinstance(t, build.CustomTarget):
                 # Create a list of all custom target outputs
                 for o in t.get_outputs():
