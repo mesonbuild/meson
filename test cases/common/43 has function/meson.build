@@ -28,6 +28,11 @@ foreach cc : compilers
     assert(cc.has_function('fprintf', prefix : '#include <stdio.h>',
                            args : unit_test_args),
            '"fprintf" function not found with include (on msvc).')
+    # Compiler intrinsics
+    assert(cc.has_function('strcmp'),
+           'strcmp intrinsic should have been found on MSVC')
+    assert(cc.has_function('strcmp', prefix : '#include <string.h>'),
+           'strcmp intrinsic should have been found with #include on MSVC')
   endif
 
   if cc.has_function('hfkerhisadf', prefix : '#include<stdio.h>',

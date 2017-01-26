@@ -1046,6 +1046,10 @@ class CCompiler(Compiler):
         if self.links(templ.format(**fargs), env, extra_args, dependencies):
             return True
 
+        # MSVC does not have compiler __builtin_-s.
+        if self.get_id() == 'msvc':
+            return False
+
         # Detect function as a built-in
         #
         # Some functions like alloca() are defined as compiler built-ins which
