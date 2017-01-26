@@ -501,12 +501,24 @@ class InterpreterBase:
             return len(obj)
         elif method_name == 'get':
             index = args[0]
+            fallback = None
+            if len(args) == 2:
+                fallback = args[1]
+            elif len(args) > 2:
+                m = 'Array method \'get()\' only takes two arguments: the ' \
+                    'index and an optional fallback value if the index is ' \
+                    'out of range.'
+                raise InvalidArguments(m)
             if not isinstance(index, int):
                 raise InvalidArguments('Array index must be a number.')
             if index < -len(obj) or index >= len(obj):
-                raise InvalidArguments('Array index %s is out of bounds for array of size %d.' % (index, len(obj)))
+                if fallback is None:
+                    m = 'Array index {!r} is out of bounds for array of size {!r}.'
+                    raise InvalidArguments(m.format(index, len(obj)))
+                return fallback
             return obj[index]
-        raise InterpreterException('Arrays do not have a method called "%s".' % method_name)
+        m = 'Arrays do not have a method called {!r}.'
+        raise InterpreterException(m.format(method_name))
 
     def reduce_arguments(self, args):
         assert(isinstance(args, mparser.ArgumentNode))
