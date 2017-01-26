@@ -80,6 +80,8 @@ parser.add_argument('--num-processes', default=determine_worker_count(), type=in
                     help='How many parallel processes to use.')
 parser.add_argument('-v', '--verbose', default=False, action='store_true',
                     help='Do not redirect stdout and stderr')
+parser.add_argument('-q', '--quiet', default=False, action='store_true',
+                    help='Produce less output to the terminal.')
 parser.add_argument('-t', '--timeout-multiplier', type=float, default=1.0,
                     help='Define a multiplier for test timeout, for example '
                     ' when running tests in particular conditions they might take'
@@ -284,7 +286,8 @@ class TestHarness:
         padding2 = ' ' * (8 - len(result.res))
         result_str = '%s %s  %s%s%s%5.2f s' % \
             (num, name, padding1, result.res, padding2, result.duration)
-        print(result_str)
+        if not self.options.quiet or result.res != 'OK':
+            print(result_str)
         result_str += "\n\n" + result.get_log()
         if (result.returncode != GNU_SKIP_RETURNCODE) \
                 and (result.returncode != 0) != result.should_fail:
@@ -548,6 +551,10 @@ def run(args):
         global_env = build.EnvironmentVariables()
 
     setattr(options, 'global_env', global_env)
+
+    if options.verbose and options.quiet:
+        print('Can not be both quiet and verbose at the same time.')
+        return 1
 
     if options.gdb:
         options.verbose = True
