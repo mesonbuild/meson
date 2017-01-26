@@ -1045,33 +1045,34 @@ class CCompiler(Compiler):
 
         if self.links(templ.format(**fargs), env, extra_args, dependencies):
             return True
+
+        # Detect function as a built-in
+        #
         # Some functions like alloca() are defined as compiler built-ins which
-        # are inlined by the compiler, so look for __builtin_symbol in the libc
-        # if there's no #include-s in prefix which would've #define-d the
-        # symbol correctly. If there is a #include, just check for the symbol
-        # directly. This is needed because the above #undef fancy footwork
-        # doesn't work for builtins.
-        # This fixes instances such as #1083 where MSYS2 defines
-        # __builtin_posix_memalign in the C library but doesn't define
-        # posix_memalign in the headers to point to that builtin which results
-        # in an invalid detection.
-        if '#include' not in prefix:
-            # Detect function as a built-in
-            fargs['func'] = '__builtin_' + fargs['func']
-            code = '''
-            int main() {{
-            #ifdef __has_builtin
-                #if !__has_builtin({func})
-                    #error "built-in {func} not found"
-                #endif
-            #else
-                {func};
+        # are inlined by the compiler and you can't take their address, so we
+        # need to look for them differently. On nice compilers like clang, we
+        # can just directly use the __has_builtin() macro.
+        fargs['no_includes'] = '#include' not in prefix
+        t = '''{prefix}
+        int main() {{
+        #ifdef __has_builtin
+            #if !__has_builtin(__builtin_{func})
+                #error "__builtin_{func} not found"
             #endif
-            }}'''
-        else:
-            # Directly look for the function itself
-            code = '{prefix}\n' + stubs_fail + '\nint main() {{ {func}; }}'
-        return self.links(code.format(**fargs), env, extra_args, dependencies)
+        #elif ! defined({func})
+            /* Check for __builtin_{func} only if no includes were added to the
+             * prefix above, which means no definition of {func} can be found.
+             * We would always check for this, but we get false positives on
+             * MSYS2 if we do. Their toolchain is broken, but we can at least
+             * give them a workaround. */
+            #if {no_includes:d}
+                __builtin_{func};
+            #else
+                #error "No definition for __builtin_{func} found in the prefix"
+            #endif
+        #endif
+        }}'''
+        return self.links(t.format(**fargs), env, extra_args, dependencies)
 
     def has_members(self, typename, membernames, prefix, env, extra_args=None, dependencies=None):
         if extra_args is None:

@@ -4,6 +4,10 @@ host_system = host_machine.system()
 
 # This is used in the `test_compiler_check_flags_order` unit test
 unit_test_args = '-I/tmp'
+defines_has_builtin = '''#ifndef __has_builtin
+#error "no __has_builtin"
+#endif
+'''
 compilers = [meson.get_compiler('c'), meson.get_compiler('cpp')]
 
 foreach cc : compilers
@@ -40,20 +44,33 @@ foreach cc : compilers
   # We can't check for the C library used here of course, but if it's not
   # implemented in glibc it's probably not implemented in any other 'slimmer'
   # C library variants either, so the check should be safe either way hopefully.
-  if host_system == 'linux'
+  if host_system == 'linux' or host_system == 'darwin'
     assert (cc.has_function('poll', prefix : '#include <poll.h>',
                             args : unit_test_args),
             'couldn\'t detect "poll" when defined by a header')
     lchmod_prefix = '#include <sys/stat.h>\n#include <unistd.h>'
-    assert (not cc.has_function('lchmod', prefix : lchmod_prefix,
-                                args : unit_test_args),
-            '"lchmod" check should have failed')
+    if host_system == 'linux'
+      assert (not cc.has_function('lchmod', prefix : lchmod_prefix,
+                                  args : unit_test_args),
+              '"lchmod" check should have failed')
+    else
+      # macOS and *BSD have lchmod
+      assert (cc.has_function('lchmod', prefix : lchmod_prefix,
+                                  args : unit_test_args),
+              '"lchmod" check should have succeeded')
+    endif
     # Check that built-ins are found properly both with and without headers
     assert(cc.has_function('alloca', args : unit_test_args),
-           'built-in alloca must be found on Linux')
+           'built-in alloca must be found on ' + host_system)
     assert(cc.has_function('alloca', prefix : '#include <alloca.h>',
            args : unit_test_args),
-           'built-in alloca must be found on Linux with #include')
+           'built-in alloca must be found with #include')
+    if not cc.compiles(defines_has_builtin, args : unit_test_args)
+      assert(not cc.has_function('alloca',
+             prefix : '#include <alloca.h>\n#undef alloca',
+             args : unit_test_args),
+             'built-in alloca must not be found with #include and #undef')
+    endif
   endif
 
   # For some functions one needs to define _GNU_SOURCE before including the
