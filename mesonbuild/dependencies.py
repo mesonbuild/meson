@@ -20,6 +20,7 @@
 # package before this gets too big.
 
 import re
+import sys
 import os, stat, glob, shutil
 import subprocess
 import sysconfig
@@ -426,10 +427,15 @@ class ExternalProgram:
             if first_line.startswith('#!'):
                 commands = first_line[2:].split('#')[0].strip().split()
                 if mesonlib.is_windows():
-                    # Windows does not have /usr/bin.
-                    commands[0] = commands[0].split('/')[-1]
-                    if commands[0] == 'env':
+                    # Windows does not have UNIX paths so remove them,
+                    # but don't remove Windows paths
+                    if commands[0].startswith('/'):
+                        commands[0] = commands[0].split('/')[-1]
+                    if len(commands) > 0 and commands[0] == 'env':
                         commands = commands[1:]
+                    # Windows does not ship python3.exe, but we know the path to it
+                    if len(commands) > 0 and commands[0] == 'python3':
+                        commands[0] = sys.executable
                 return commands + [script]
         except Exception:
             pass
