@@ -1066,12 +1066,19 @@ if %%errorlevel%% neq 0 goto :VCEnd'''
         ET.SubElement(midl, 'ProxyFileName').text = '%(Filename)_p.c'
         postbuild = ET.SubElement(action, 'PostBuildEvent')
         ET.SubElement(postbuild, 'Message')
+        # FIXME: No benchmarks?
+        meson_py = self.environment.get_build_command()
+        (base, ext) = os.path.splitext(meson_py)
+        mesontest_py = base + 'test' + ext
         test_command = [sys.executable,
-                        self.environment.get_build_command(),
-                        '--internal',
-                        'test']
+                        mesontest_py,
+                        '--no-rebuild']
+        if not self.environment.coredata.get_builtin_option('stdsplit'):
+            test_command += ['--no-stdsplit']
+        if self.environment.coredata.get_builtin_option('errorlogs'):
+            test_command += ['--print-errorlogs']
         cmd_templ = '''setlocal
-"%s" "%s"
+"%s"
 if %%errorlevel%% neq 0 goto :cmEnd
 :cmEnd
 endlocal & call :cmErrorLevel %%errorlevel%% & goto :cmDone
@@ -1079,9 +1086,9 @@ endlocal & call :cmErrorLevel %%errorlevel%% & goto :cmDone
 exit /b %%1
 :cmDone
 if %%errorlevel%% neq 0 goto :VCEnd'''
-        test_data = self.serialise_tests()[0]
+        self.serialise_tests()
         ET.SubElement(postbuild, 'Command').text =\
-            cmd_templ % ('" "'.join(test_command), test_data)
+            cmd_templ % ('" "'.join(test_command))
         ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.targets')
         tree = ET.ElementTree(root)
         tree.write(ofname, encoding='utf-8', xml_declaration=True)

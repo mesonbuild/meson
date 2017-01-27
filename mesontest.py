@@ -160,9 +160,9 @@ class TestHarness:
         self.tests = None
         self.suites = None
         if self.options.benchmark:
-            self.load_datafile(os.path.join(options.wd, 'meson-private/meson_benchmark_setup.dat'))
+            self.load_datafile(os.path.join(options.wd, 'meson-private', 'meson_benchmark_setup.dat'))
         else:
-            self.load_datafile(os.path.join(options.wd, 'meson-private/meson_test_setup.dat'))
+            self.load_datafile(os.path.join(options.wd, 'meson-private', 'meson_test_setup.dat'))
 
     def rebuild_all(self):
         if not os.path.isfile(os.path.join(self.options.wd, 'build.ninja')):
