@@ -790,11 +790,12 @@ class Vs2010Backend(backends.Backend):
         ET.SubElement(clconf, 'AdditionalIncludeDirectories').text = ';'.join(target_inc_dirs)
         target_defines.append('%(PreprocessorDefinitions)')
         ET.SubElement(clconf, 'PreprocessorDefinitions').text = ';'.join(target_defines)
-        rebuild = ET.SubElement(clconf, 'MinimalRebuild')
-        rebuild.text = 'true'
-        funclink = ET.SubElement(clconf, 'FunctionLevelLinking')
-        funclink.text = 'true'
+        ET.SubElement(clconf, 'MinimalRebuild').text = 'true'
+        ET.SubElement(clconf, 'FunctionLevelLinking').text = 'true'
         pch_node = ET.SubElement(clconf, 'PrecompiledHeader')
+        if self.environment.coredata.get_builtin_option('werror'):
+            ET.SubElement(clconf, 'TreatWarningAsError').text = 'true'
+        # Note: SuppressStartupBanner is /NOLOGO and is 'true' by default
         pch_sources = {}
         for lang in ['c', 'cpp']:
             pch = target.get_pch(lang)
