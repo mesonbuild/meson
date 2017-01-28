@@ -129,6 +129,14 @@ def setup_commands(backend):
         install_commands = [ninja_command, 'install']
         clean_commands = [ninja_command, 'clean']
 
+def get_compile_commands_for_dir(compile_commands, test_build_dir):
+    if 'msbuild' in compile_commands[0]:
+        sln_name = glob(os.path.join(test_build_dir, '*.sln'))[0]
+        comp = compile_commands + [os.path.split(sln_name)[-1]]
+    else:
+        comp = compile_commands
+    return comp
+
 def get_relative_files_list_from_dir(fromdir):
     paths = []
     for (root, _, files) in os.walk(fromdir):
@@ -250,6 +258,7 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, flags, compile_c
     global install_commands, clean_commands
     test_args = parse_test_args(testdir)
     gen_start = time.time()
+    # Configure in-process
     gen_command = [meson_command, '--prefix', '/usr', '--libdir', 'lib', testdir, test_build_dir]\
         + flags + test_args + extra_args
     (returncode, stdo, stde) = run_configure_inprocess(gen_command)
@@ -266,11 +275,8 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, flags, compile_c
         return TestResult('Test that should have failed succeeded', stdo, stde, mesonlog, gen_time)
     if returncode != 0:
         return TestResult('Generating the build system failed.', stdo, stde, mesonlog, gen_time)
-    if 'msbuild' in compile_commands[0]:
-        sln_name = glob(os.path.join(test_build_dir, '*.sln'))[0]
-        comp = compile_commands + [os.path.split(sln_name)[-1]]
-    else:
-        comp = compile_commands
+    # Build with subprocess
+    comp = get_compile_commands_for_dir(compile_commands, test_build_dir)
     build_start = time.time()
     pc, o, e = Popen_safe(comp, cwd=test_build_dir)
     build_time = time.time() - build_start
@@ -288,9 +294,7 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, flags, compile_c
     time.sleep(0.2)
     os.utime(os.path.join(testdir, 'meson.build'))
     test_start = time.time()
-    # Note that we don't test that running e.g. 'ninja test' actually
-    # works. One hopes that this is a common enough happening that
-    # it is picked up immediately on development.
+    # Test in-process
     (returncode, tstdo, tstde) = run_test_inprocess(test_build_dir)
     test_time = time.time() - test_start
     stdo += tstdo
@@ -301,11 +305,11 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, flags, compile_c
         return TestResult('Test that should have failed to run unit tests succeeded', stdo, stde, mesonlog, gen_time)
     if returncode != 0:
         return TestResult('Running unit tests failed.', stdo, stde, mesonlog, gen_time, build_time, test_time)
-    # Do installation
     if len(install_commands) == 0:
         return TestResult('', '', '', gen_time, build_time, test_time)
     env = os.environ.copy()
     env['DESTDIR'] = install_dir
+    # Install with subprocess
     pi, o, e = Popen_safe(install_commands, cwd=test_build_dir, env=env)
     stdo += o
     stde += e
@@ -313,6 +317,7 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, flags, compile_c
         return TestResult('Running install failed.', stdo, stde, mesonlog, gen_time, build_time, test_time)
     if len(clean_commands) != 0:
         env = os.environ.copy()
+        # Clean with subprocess
         pi, o, e = Popen_safe(clean_commands, cwd=test_build_dir, env=env)
         stdo += o
         stde += e
@@ -526,6 +531,30 @@ def generate_prebuilt():
     stlibfile = generate_pb_static(compiler, object_suffix, static_suffix)
     return objectfile, stlibfile
 
+def check_meson_commands_work():
+    global meson_command, compile_commands, test_commands, install_commands
+    testdir = 'test cases/common/1 trivial'
+    with AutoDeletedDir(tempfile.mkdtemp(prefix='b ', dir='.')) as build_dir:
+        print('Checking that configuring works...')
+        gen_cmd = [sys.executable, meson_command, testdir, build_dir] + backend_flags
+        pc, o, e = Popen_safe(gen_cmd)
+        if pc.returncode != 0:
+            raise RuntimeError('Failed to configure {!r}:\n{}\n{}'.format(testdir, e, o))
+        print('Checking that building works...')
+        compile_cmd = get_compile_commands_for_dir(compile_commands, build_dir)
+        pc, o, e = Popen_safe(compile_cmd, cwd=build_dir)
+        if pc.returncode != 0:
+            raise RuntimeError('Failed to build {!r}:\n{}\n{}'.format(testdir, e, o))
+        print('Checking that testing works...')
+        pc, o, e = Popen_safe(test_commands, cwd=build_dir)
+        if pc.returncode != 0:
+            raise RuntimeError('Failed to test {!r}:\n{}\n{}'.format(testdir, e, o))
+        if install_commands:
+            print('Checking that installing works...')
+            pc, o, e = Popen_safe(install_commands, cwd=build_dir)
+            if pc.returncode != 0:
+                raise RuntimeError('Failed to install {!r}:\n{}\n{}'.format(testdir, e, o))
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Run the test suite of Meson.")
     parser.add_argument('extra_args', nargs='*',
@@ -554,6 +583,7 @@ if __name__ == '__main__':
     if script_dir != '':
         os.chdir(script_dir)
     check_format()
+    check_meson_commands_work()
     pbfiles = generate_prebuilt()
     try:
         all_tests = detect_tests_to_run()

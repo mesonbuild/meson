@@ -544,6 +544,29 @@ class Backend:
             newargs.append(arg)
         return newargs
 
+    def get_build_by_default_targets(self):
+        result = {}
+        # Get all build and custom targets that must be built by default
+        for name, t in self.build.get_targets().items():
+            if t.build_by_default or t.install or t.build_always:
+                result[name] = t
+        # Get all targets used as test executables and arguments. These must
+        # also be built by default. XXX: Sometime in the future these should be
+        # built only before running tests.
+        for t in self.build.get_tests():
+            exe = t.exe
+            if hasattr(exe, 'held_object'):
+                exe = exe.held_object
+            if isinstance(exe, (build.CustomTarget, build.BuildTarget)):
+                result[exe.get_id()] = exe
+            for arg in t.cmd_args:
+                if hasattr(arg, 'held_object'):
+                    arg = arg.held_object
+                if not isinstance(arg, (build.CustomTarget, build.BuildTarget)):
+                    continue
+                result[arg.get_id()] = arg
+        return result
+
     def get_custom_target_provided_libraries(self, target):
         libs = []
         for t in target.get_generated_sources():

@@ -2254,17 +2254,10 @@ rule FORTRAN_DEP_HACK
         elem.add_item('pool', 'console')
         elem.write(outfile)
 
-    def get_build_by_default_targets(self):
-        result = []
-        for t in self.build.get_targets().values():
-            if t.build_by_default or t.install or t.build_always:
-                result.append(t)
-        return result
-
     def generate_ending(self, outfile):
         targetlist = []
         ctlist = []
-        for t in self.get_build_by_default_targets():
+        for t in self.get_build_by_default_targets().values():
             if isinstance(t, build.CustomTarget):
                 # Create a list of all custom target outputs
                 for o in t.get_outputs():
