@@ -59,7 +59,7 @@ class Dependency:
     def get_name(self):
         return self.name
 
-    def get_exe_args(self):
+    def get_exe_args(self, compiler):
         return []
 
     def need_threads(self):
@@ -1045,16 +1045,14 @@ class QtBaseDependency(Dependency):
     def found(self):
         return self.is_found
 
-    def get_exe_args(self):
+    def get_exe_args(self, compiler):
         # Originally this was -fPIE but nowadays the default
         # for upstream and distros seems to be -reduce-relocations
         # which requires -fPIC. This may cause a performance
         # penalty when using self-built Qt or on platforms
         # where -fPIC is not required. If this is an issue
         # for you, patches are welcome.
-        if mesonlib.is_linux():
-            return ['-fPIC']
-        return []
+        return compiler.get_pic_args()
 
 class Qt5Dependency(QtBaseDependency):
     def __init__(self, env, kwargs):

@@ -14,11 +14,13 @@
 # limitations under the License.
 
 import stat
+import shlex
 import unittest, os, sys, shutil, time
 import subprocess
 import re, json
 import tempfile
 from glob import glob
+import mesonbuild.compilers
 import mesonbuild.environment
 import mesonbuild.mesonlib
 from mesonbuild.environment import detect_ninja, Environment
@@ -94,6 +96,62 @@ class InternalTests(unittest.TestCase):
         self.assertEqual(modefunc('rwsr-x---'),
                          stat.S_IRWXU | stat.S_ISUID |
                          stat.S_IRGRP | stat.S_IXGRP)
+
+    def test_compiler_args_class(self):
+        cargsfunc = mesonbuild.compilers.CompilerArgs
+        c = mesonbuild.environment.CCompiler([], 'fake', False)
+        # Test that bad initialization fails
+        self.assertRaises(TypeError, cargsfunc, [])
+        self.assertRaises(TypeError, cargsfunc, [], [])
+        self.assertRaises(TypeError, cargsfunc, c, [], [])
+        # Test that empty initialization works
+        a = cargsfunc(c)
+        self.assertEqual(a, [])
+        # Test that list initialization works
+        a = cargsfunc(['-I.', '-I..'], c)
+        self.assertEqual(a, ['-I.', '-I..'])
+        # Test that there is no de-dup on initialization
+        self.assertEqual(cargsfunc(['-I.', '-I.'], c), ['-I.', '-I.'])
+
+        ## Test that appending works
+        a.append('-I..')
+        self.assertEqual(a, ['-I..', '-I.'])
+        a.append('-O3')
+        self.assertEqual(a, ['-I..', '-I.', '-O3'])
+
+        ## Test that in-place addition works
+        a += ['-O2', '-O2']
+        self.assertEqual(a, ['-I..', '-I.', '-O3', '-O2', '-O2'])
+        # Test that removal works
+        a.remove('-O2')
+        self.assertEqual(a, ['-I..', '-I.', '-O3', '-O2'])
+        # Test that de-dup happens on addition
+        a += ['-Ifoo', '-Ifoo']
+        self.assertEqual(a, ['-Ifoo', '-I..', '-I.', '-O3', '-O2'])
+
+        # .extend() is just +=, so we don't test it
+
+        ## Test that addition works
+        # Test that adding a list with just one old arg works and yields the same array
+        a = a + ['-Ifoo']
+        self.assertEqual(a, ['-Ifoo', '-I..', '-I.', '-O3', '-O2'])
+        # Test that adding a list with one arg new and one old works
+        a = a + ['-Ifoo', '-Ibaz']
+        self.assertEqual(a, ['-Ifoo', '-Ibaz', '-I..', '-I.', '-O3', '-O2'])
+        # Test that adding args that must be prepended and appended works
+        a = a + ['-Ibar', '-Wall']
+        self.assertEqual(a, ['-Ibar', '-Ifoo', '-Ibaz', '-I..', '-I.', '-O3', '-O2', '-Wall'])
+
+        ## Test that reflected addition works
+        # Test that adding to a list with just one old arg works and DOES NOT yield the same array
+        a = ['-Ifoo'] + a
+        self.assertEqual(a, ['-Ibar', '-Ifoo', '-Ibaz', '-I..', '-I.', '-O3', '-O2', '-Wall'])
+        # Test that adding to a list with just one new arg that is not pre-pended works
+        a = ['-Werror'] + a
+        self.assertEqual(a, ['-Ibar', '-Ifoo', '-Ibaz', '-I..', '-I.', '-Werror', '-O3', '-O2', '-Wall'])
+        # Test that adding to a list with two new args preserves the order
+        a = ['-Ldir', '-Lbah'] + a
+        self.assertEqual(a, ['-Ibar', '-Ifoo', '-Ibaz', '-I..', '-I.', '-Ldir', '-Lbah', '-Werror', '-O3', '-O2', '-Wall'])
 
 
 class LinuxlikeTests(unittest.TestCase):
@@ -416,7 +474,7 @@ class LinuxlikeTests(unittest.TestCase):
                 cmd = cmd[1:]
             # Verify that -I flags from the `args` kwarg are first
             # This is set in the '43 has function' test case
-            self.assertEqual(cmd[2], '-I/tmp')
+            self.assertEqual(cmd[1], '-I/tmp')
             # Verify that -O3 set via the environment is overriden by -O0
             Oargs = [arg for arg in cmd if arg.startswith('-O')]
             self.assertEqual(Oargs, [Oflag, '-O0'])
@@ -640,6 +698,38 @@ class LinuxlikeTests(unittest.TestCase):
         if os.getuid() == 0:
             # The chown failed nonfatally if we're not root
             self.assertEqual(0, statf.st_uid)
+
+    def test_internal_include_order(self):
+        testdir = os.path.join(self.common_test_dir, '138 include order')
+        self.init(testdir)
+        for cmd in self.get_compdb():
+            if cmd['file'].endswith('/main.c'):
+                cmd = cmd['command']
+                break
+        else:
+            raise Exception('Could not find main.c command')
+        incs = [a for a in shlex.split(cmd) if a.startswith("-I")]
+        self.assertEqual(len(incs), 8)
+        # target private dir
+        self.assertEqual(incs[0], "-Isub4/someexe@exe")
+        # target build subdir
+        self.assertEqual(incs[1], "-Isub4")
+        # target source subdir
+        msg = "{!r} does not end with '/sub4'".format(incs[2])
+        self.assertTrue(incs[2].endswith("/sub4"), msg)
+        # include paths added via per-target c_args: ['-I'...]
+        msg = "{!r} does not end with '/sub3'".format(incs[3])
+        self.assertTrue(incs[3].endswith("/sub3"), msg)
+        # target include_directories: build dir
+        self.assertEqual(incs[4], "-Isub2")
+        # target include_directories: source dir
+        msg = "{!r} does not end with '/sub2'".format(incs[5])
+        self.assertTrue(incs[5].endswith("/sub2"), msg)
+        # target internal dependency include_directories: build dir
+        self.assertEqual(incs[6], "-Isub1")
+        # target internal dependency include_directories: source dir
+        msg = "{!r} does not end with '/sub1'".format(incs[7])
+        self.assertTrue(incs[7].endswith("/sub1"), msg)
 
 
 class RewriterTests(unittest.TestCase):

@@ -23,6 +23,7 @@ from .. import dependencies
 from .. import mlog
 from .. import compilers
 from ..build import BuildTarget
+from ..compilers import CompilerArgs
 from ..mesonlib import MesonException, File
 from ..environment import Environment
 
@@ -426,24 +427,25 @@ class Vs2010Backend(backends.Backend):
         pch_out.text = '$(IntDir)$(TargetName)-%s.pch' % lang
 
     def add_additional_options(self, lang, parent_node, file_args):
-        if len(file_args[lang]) == 0:
-            # We only need per file options if they were not set per project.
-            return
-        args = file_args[lang] + ['%(AdditionalOptions)']
+        args = []
+        for arg in file_args[lang].to_native():
+            if arg == '%(AdditionalOptions)':
+                args.append(arg)
+            else:
+                args.append(self.escape_additional_option(arg))
         ET.SubElement(parent_node, "AdditionalOptions").text = ' '.join(args)
 
     def add_preprocessor_defines(self, lang, parent_node, file_defines):
-        if len(file_defines[lang]) == 0:
-            # We only need per file options if they were not set per project.
-            return
-        defines = file_defines[lang] + ['%(PreprocessorDefinitions)']
+        defines = []
+        for define in file_defines[lang]:
+            if define == '%(PreprocessorDefinitions)':
+                defines.append(define)
+            else:
+                defines.append(self.escape_preprocessor_define(define))
         ET.SubElement(parent_node, "PreprocessorDefinitions").text = ';'.join(defines)
 
     def add_include_dirs(self, lang, parent_node, file_inc_dirs):
-        if len(file_inc_dirs[lang]) == 0:
-            # We only need per file options if they were not set per project.
-            return
-        dirs = file_inc_dirs[lang] + ['%(AdditionalIncludeDirectories)']
+        dirs = file_inc_dirs[lang]
         ET.SubElement(parent_node, "AdditionalIncludeDirectories").text = ';'.join(dirs)
 
     @staticmethod
@@ -668,90 +670,132 @@ class Vs2010Backend(backends.Backend):
         # Arguments, include dirs, defines for all files in the current target
         target_args = []
         target_defines = []
-        target_inc_dirs = ['.', self.relpath(self.get_target_private_dir(target),
-                                             self.get_target_dir(target)),
-                           proj_to_src_dir] + generated_files_include_dirs
+        target_inc_dirs = []
         # Arguments, include dirs, defines passed to individual files in
         # a target; perhaps because the args are language-specific
-        file_args = dict((lang, []) for lang in target.compilers)
+        #
+        # file_args is also later split out into defines and include_dirs in
+        # case someone passed those in there
+        file_args = dict((lang, CompilerArgs(comp)) for lang, comp in target.compilers.items())
         file_defines = dict((lang, []) for lang in target.compilers)
         file_inc_dirs = dict((lang, []) for lang in target.compilers)
-        for l, args in self.environment.coredata.external_args.items():
+        # The order in which these compile args are added must match
+        # generate_single_compile() and generate_basic_compiler_args()
+        for l, comp in target.compilers.items():
             if l in file_args:
-                file_args[l] += args
-        for l, args in self.build.global_args.items():
-            if l in file_args:
-                file_args[l] += args
+                file_args[l] += compilers.get_base_compile_args(self.environment.coredata.base_options, comp)
+                file_args[l] += comp.get_option_compile_args(self.environment.coredata.compiler_options)
+        # Add compile args added using add_project_arguments()
         for l, args in self.build.projects_args.get(target.subproject, {}).items():
             if l in file_args:
                 file_args[l] += args
+        # Add compile args added using add_global_arguments()
+        # These override per-project arguments
+        for l, args in self.build.global_args.items():
+            if l in file_args:
+                file_args[l] += args
+        # Compile args added from the env: CFLAGS/CXXFLAGS, etc. We want these
+        # to override all the defaults, but not the per-target compile args.
+        for l, args in self.environment.coredata.external_args.items():
+            if l in file_args:
+                file_args[l] += args
+        for args in file_args.values():
+            # This is where Visual Studio will insert target_args, target_defines,
+            # etc, which are added later from external deps (see below).
+            args += ['%(AdditionalOptions)', '%(PreprocessorDefinitions)', '%(AdditionalIncludeDirectories)']
+            # Add include dirs from the `include_directories:` kwarg on the target
+            # and from `include_directories:` of internal deps of the target.
+            #
+            # Target include dirs should override internal deps include dirs.
+            #
+            # Include dirs from internal deps should override include dirs from
+            # external deps.
+            # These are per-target, but we still add them as per-file because we
+            # need them to be looked in first.
+            for d in target.get_include_dirs():
+                for i in d.get_incdirs():
+                    curdir = os.path.join(d.get_curdir(), i)
+                    args.append('-I' + self.relpath(curdir, target.subdir)) # build dir
+                    args.append('-I' + os.path.join(proj_to_src_root, curdir)) # src dir
+                for i in d.get_extra_build_dirs():
+                    curdir = os.path.join(d.get_curdir(), i)
+                    args.append('-I' + self.relpath(curdir, target.subdir))  # build dir
+        # Add per-target compile args, f.ex, `c_args : ['/DFOO']`. We set these
+        # near the end since these are supposed to override everything else.
         for l, args in target.extra_args.items():
             if l in file_args:
-                file_args[l] += compiler.unix_compile_flags_to_native(args)
-        for l, comp in target.compilers.items():
-            if l in file_args:
-                file_args[l] += comp.get_option_compile_args(self.environment.coredata.compiler_options)
+                file_args[l] += args
+        # The highest priority includes. In order of directory search:
+        # target private dir, target build dir, generated sources include dirs,
+        # target source dir
+        for args in file_args.values():
+            t_inc_dirs = ['.', self.relpath(self.get_target_private_dir(target),
+                                            self.get_target_dir(target))]
+            t_inc_dirs += generated_files_include_dirs + [proj_to_src_dir]
+            args += ['-I' + arg for arg in t_inc_dirs]
+
+        # Split preprocessor defines and include directories out of the list of
+        # all extra arguments. The rest go into %(AdditionalOptions).
+        for l, args in file_args.items():
+            for arg in args[:]:
+                if arg.startswith(('-D', '/D')) or arg == '%(PreprocessorDefinitions)':
+                    file_args[l].remove(arg)
+                    # Don't escape the marker
+                    if arg == '%(PreprocessorDefinitions)':
+                        define = arg
+                    else:
+                        define = arg[2:]
+                    # De-dup
+                    if define in file_defines[l]:
+                        file_defines[l].remove(define)
+                    file_defines[l].append(define)
+                elif arg.startswith(('-I', '/I')) or arg == '%(AdditionalIncludeDirectories)':
+                    file_args[l].remove(arg)
+                    # Don't escape the marker
+                    if arg == '%(AdditionalIncludeDirectories)':
+                        inc_dir = arg
+                    else:
+                        inc_dir = arg[2:]
+                    # De-dup
+                    if inc_dir not in file_inc_dirs[l]:
+                        file_inc_dirs[l].append(inc_dir)
+
+        # Split compile args needed to find external dependencies
+        # Link args are added while generating the link command
         for d in target.get_external_deps():
             # Cflags required by external deps might have UNIX-specific flags,
             # so filter them out if needed
-            d_compile_args = compiler.unix_compile_flags_to_native(d.get_compile_args())
+            d_compile_args = compiler.unix_args_to_native(d.get_compile_args())
             for arg in d_compile_args:
                 if arg.startswith(('-D', '/D')):
                     define = arg[2:]
                     # De-dup
-                    if define not in target_defines:
-                        target_defines.append(define)
+                    if define in target_defines:
+                        target_defines.remove(define)
+                    target_defines.append(define)
                 elif arg.startswith(('-I', '/I')):
                     inc_dir = arg[2:]
                     # De-dup
                     if inc_dir not in target_inc_dirs:
                         target_inc_dirs.append(inc_dir)
                 else:
-                    # De-dup
-                    if arg not in target_args:
-                        target_args.append(arg)
-
-        # Split preprocessor defines and include directories out of the list of
-        # all extra arguments. The rest go into %(AdditionalOptions).
-        for l, args in file_args.items():
-            file_args[l] = []
-            for arg in args:
-                if arg.startswith(('-D', '/D')):
-                    define = self.escape_preprocessor_define(arg[2:])
-                    # De-dup
-                    if define not in file_defines[l]:
-                        file_defines[l].append(define)
-                elif arg.startswith(('-I', '/I')):
-                    inc_dir = arg[2:]
-                    # De-dup
-                    if inc_dir not in file_inc_dirs[l]:
-                        file_inc_dirs[l].append(inc_dir)
-                else:
-                    file_args[l].append(self.escape_additional_option(arg))
+                    target_args.append(arg)
 
         languages += gen_langs
         if len(target_args) > 0:
             target_args.append('%(AdditionalOptions)')
             ET.SubElement(clconf, "AdditionalOptions").text = ' '.join(target_args)
 
-        for d in target.include_dirs:
-            for i in d.incdirs:
-                curdir = os.path.join(d.curdir, i)
-                target_inc_dirs.append(self.relpath(curdir, target.subdir)) # build dir
-                target_inc_dirs.append(os.path.join(proj_to_src_root, curdir)) # src dir
-            for i in d.get_extra_build_dirs():
-                curdir = os.path.join(d.curdir, i)
-                target_inc_dirs.append(self.relpath(curdir, target.subdir))  # build dir
-
         target_inc_dirs.append('%(AdditionalIncludeDirectories)')
         ET.SubElement(clconf, 'AdditionalIncludeDirectories').text = ';'.join(target_inc_dirs)
         target_defines.append('%(PreprocessorDefinitions)')
         ET.SubElement(clconf, 'PreprocessorDefinitions').text = ';'.join(target_defines)
-        rebuild = ET.SubElement(clconf, 'MinimalRebuild')
-        rebuild.text = 'true'
-        funclink = ET.SubElement(clconf, 'FunctionLevelLinking')
-        funclink.text = 'true'
+        ET.SubElement(clconf, 'MinimalRebuild').text = 'true'
+        ET.SubElement(clconf, 'FunctionLevelLinking').text = 'true'
         pch_node = ET.SubElement(clconf, 'PrecompiledHeader')
+        if self.environment.coredata.get_builtin_option('werror'):
+            ET.SubElement(clconf, 'TreatWarningAsError').text = 'true'
+        # Note: SuppressStartupBanner is /NOLOGO and is 'true' by default
         pch_sources = {}
         for lang in ['c', 'cpp']:
             pch = target.get_pch(lang)
@@ -773,19 +817,27 @@ class Vs2010Backend(backends.Backend):
 
         resourcecompile = ET.SubElement(compiles, 'ResourceCompile')
         ET.SubElement(resourcecompile, 'PreprocessorDefinitions')
+
+        # Linker options
         link = ET.SubElement(compiles, 'Link')
-        # Put all language args here, too.
-        extra_link_args = compiler.get_option_link_args(self.environment.coredata.compiler_options)
+        extra_link_args = CompilerArgs(compiler)
         # FIXME: Can these buildtype linker args be added as tags in the
         # vcxproj file (similar to buildtype compiler args) instead of in
         # AdditionalOptions?
         extra_link_args += compiler.get_buildtype_linker_args(self.buildtype)
-        for l in self.environment.coredata.external_link_args.values():
-            extra_link_args += l
         if not isinstance(target, build.StaticLibrary):
-            extra_link_args += target.link_args
             if isinstance(target, build.SharedModule):
                 extra_link_args += compiler.get_std_shared_module_link_args()
+            # Add link args added using add_project_link_arguments()
+            extra_link_args += self.build.get_project_link_args(compiler, target.subproject)
+            # Add link args added using add_global_link_arguments()
+            # These override per-project link arguments
+            extra_link_args += self.build.get_global_link_args(compiler)
+            # Link args added from the env: LDFLAGS. We want these to
+            # override all the defaults but not the per-target link args.
+            extra_link_args += self.environment.coredata.external_link_args[compiler.get_language()]
+            # Only non-static built targets need link args and link dependencies
+            extra_link_args += target.link_args
             # External deps must be last because target link libraries may depend on them.
             for dep in target.get_external_deps():
                 extra_link_args += dep.get_link_args()
@@ -793,8 +845,13 @@ class Vs2010Backend(backends.Backend):
                 if isinstance(d, build.StaticLibrary):
                     for dep in d.get_external_deps():
                         extra_link_args += dep.get_link_args()
-        extra_link_args = compiler.unix_link_flags_to_native(extra_link_args)
-        (additional_libpaths, additional_links, extra_link_args) = self.split_link_args(extra_link_args)
+        # Add link args for c_* or cpp_* build options. Currently this only
+        # adds c_winlibs and cpp_winlibs when building for Windows. This needs
+        # to be after all internal and external libraries so that unresolved
+        # symbols from those can be found here. This is needed when the
+        # *_winlibs that we want to link to are static mingw64 libraries.
+        extra_link_args += compiler.get_option_link_args(self.environment.coredata.compiler_options)
+        (additional_libpaths, additional_links, extra_link_args) = self.split_link_args(extra_link_args.to_native())
         if len(extra_link_args) > 0:
             extra_link_args.append('%(AdditionalOptions)')
             ET.SubElement(link, "AdditionalOptions").text = ' '.join(extra_link_args)
