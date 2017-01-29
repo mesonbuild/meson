@@ -675,10 +675,12 @@ class LinuxlikeTests(unittest.TestCase):
 
         f = os.path.join(self.installdir, 'usr', 'share', 'progname',
                          'fileobject_datafile.dat')
+        orig = os.path.join(testdir, 'fileobject_datafile.dat')
         statf = os.stat(f)
+        statorig = os.stat(orig)
         found_mode = stat.filemode(statf.st_mode)
-        want_mode = 'rw-rw-r--'
-        self.assertEqual(want_mode, found_mode[1:])
+        orig_mode = stat.filemode(statorig.st_mode)
+        self.assertEqual(orig_mode[1:], found_mode[1:])
         self.assertEqual(os.getuid(), statf.st_uid)
         if os.getuid() == 0:
             # The chown failed nonfatally if we're not root
