@@ -13,7 +13,8 @@
 # limitations under the License.
 
 import pickle, os, uuid
-from .mesonlib import MesonException, default_libdir, default_libexecdir, default_prefix
+from .mesonlib import MesonException, commonpath
+from .mesonlib import default_libdir, default_libexecdir, default_prefix
 
 version = '0.38.0.dev1'
 backendlist = ['ninja', 'vs2010', 'vs2015', 'xcode']
@@ -158,7 +159,7 @@ class CoreData:
         if option.endswith('dir') and os.path.isabs(value) and \
            option not in builtin_dir_noprefix_options:
             # Value must be a subdir of the prefix
-            if os.path.commonpath([value, prefix]) != prefix:
+            if commonpath([value, prefix]) != prefix:
                 m = 'The value of the {!r} option is {!r} which must be a ' \
                     'subdir of the prefix {!r}.\nNote that if you pass a ' \
                     'relative path, it is assumed to be a subdir of prefix.'
