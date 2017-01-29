@@ -1,4 +1,4 @@
-# Copyright 2012-2016 The Meson development team
+# Copyright 2012-2017 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@
 import pickle, os, uuid
 from .mesonlib import MesonException, default_libdir, default_libexecdir, default_prefix
 
-version = '0.38.0.dev1'
+version = '0.38.0'
 backendlist = ['ninja', 'vs2010', 'vs2015', 'xcode']
 
 class UserOption:
