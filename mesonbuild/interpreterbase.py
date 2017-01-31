@@ -392,6 +392,8 @@ class InterpreterBase:
             return self.int_method_call(obj, method_name, args)
         if isinstance(obj, list):
             return self.array_method_call(obj, method_name, self.reduce_arguments(args)[0])
+        if isinstance(obj, mesonlib.File):
+            raise InvalidArguments('File object "%s" is not callable.' % obj)
         if not isinstance(obj, InterpreterObject):
             raise InvalidArguments('Variable "%s" is not callable.' % object_name)
         (args, kwargs) = self.reduce_arguments(args)
