@@ -195,9 +195,9 @@ class CoreData:
         elif optname in self.builtins:
             prefix = self.builtins['prefix'].value
             value = self.sanitize_dir_option_value(prefix, optname, value)
-            self.builtins[optname].set_value(value)
         else:
             raise RuntimeError('Tried to set unknown builtin option %s.' % optname)
+        self.builtins[optname].set_value(value)
 
 def load(filename):
     load_fail_msg = 'Coredata file {!r} is corrupted. Try with a fresh build tree.'.format(filename)
