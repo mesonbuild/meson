@@ -1913,7 +1913,12 @@ rule FORTRAN_DEP_HACK
         compiler_name = '%s%s_COMPILER' % (compiler.get_language(), crstr)
         extra_deps = []
         if compiler.get_language() == 'fortran':
-            extra_deps += self.get_fortran_deps(compiler, abs_src, target)
+            # Can't read source file to scan for deps if it's generated later
+            # at build-time. Skip scanning for deps, and just set the module
+            # outdir argument instead.
+            # https://github.com/mesonbuild/meson/issues/1348
+            if not is_generated:
+                extra_deps += self.get_fortran_deps(compiler, abs_src, target)
             # Dependency hack. Remove once multiple outputs in Ninja is fixed:
             # https://groups.google.com/forum/#!topic/ninja-build/j-2RfBIOd_8
             for modname, srcfile in self.fortran_deps[target.get_basename()].items():
