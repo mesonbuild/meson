@@ -237,6 +237,9 @@ def install_targets(d):
         elif os.path.isfile(fname):
             do_copyfile(fname, outname)
             if should_strip:
+                if fname.endswith('.jar'):
+                    print('Not stripping jar target:', os.path.split(fname)[1])
+                    continue
                 print('Stripping target {!r}'.format(fname))
                 ps, stdo, stde = Popen_safe(['strip', outname])
                 if ps.returncode != 0:
