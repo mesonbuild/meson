@@ -17,7 +17,7 @@ if cc.symbols_have_underscore_prefix()
   add_project_arguments('-DMESON_TEST__UNDERSCORE_SYMBOL', language : 'c')
 endif
 
-copy = find_program('copy.py')
+copy = find_program('copyfile.py')
 output = 'square-@0@.S'.format(cpu)
 input = output + '.in'
 
