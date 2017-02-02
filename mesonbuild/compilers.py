@@ -601,7 +601,7 @@ class Compiler:
                 self.language))
 
     def get_cross_extra_flags(self, environment, *, compile, link):
-        extra_flags = CompilerArgs(self)
+        extra_flags = []
         if self.is_cross and environment:
             if 'properties' in environment.cross_info.config:
                 lang_args_key = self.language + '_args'
@@ -831,7 +831,7 @@ class CCompiler(Compiler):
         mlog.debug('Sanity testing ' + self.language + ' compiler:', ' '.join(self.exelist))
         mlog.debug('Is cross compiler: %s.' % str(self.is_cross))
 
-        extra_flags = CompilerArgs(self)
+        extra_flags = []
         source_name = os.path.join(work_dir, sname)
         binname = sname.rsplit('.', 1)[0]
         if self.is_cross:
