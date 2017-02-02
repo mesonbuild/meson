@@ -153,6 +153,23 @@ class InternalTests(unittest.TestCase):
         a = ['-Ldir', '-Lbah'] + a
         self.assertEqual(a, ['-Ibar', '-Ifoo', '-Ibaz', '-I..', '-I.', '-Ldir', '-Lbah', '-Werror', '-O3', '-O2', '-Wall'])
 
+    def test_commonpath(self):
+        from os.path import sep
+        commonpath = mesonbuild.mesonlib.commonpath
+        self.assertRaises(ValueError, commonpath, [])
+        self.assertEqual(commonpath(['/usr', '/usr']), sep + 'usr')
+        self.assertEqual(commonpath(['/usr', '/usr/']), sep + 'usr')
+        self.assertEqual(commonpath(['/usr', '/usr/bin']), sep + 'usr')
+        self.assertEqual(commonpath(['/usr/', '/usr/bin']), sep + 'usr')
+        self.assertEqual(commonpath(['/usr/./', '/usr/bin']), sep + 'usr')
+        self.assertEqual(commonpath(['/usr/bin', '/usr/bin']), sep + 'usr' + sep + 'bin')
+        self.assertEqual(commonpath(['/usr//bin', '/usr/bin']), sep + 'usr' + sep + 'bin')
+        self.assertEqual(commonpath(['/usr/./bin', '/usr/bin']), sep + 'usr' + sep + 'bin')
+        self.assertEqual(commonpath(['/usr/local', '/usr/lib']), sep + 'usr')
+        self.assertEqual(commonpath(['/usr', '/bin']), sep)
+        self.assertEqual(commonpath(['/usr', 'bin']), '')
+        self.assertEqual(commonpath(['blam', 'bin']), '')
+
 
 class LinuxlikeTests(unittest.TestCase):
     def setUp(self):

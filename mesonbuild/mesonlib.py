@@ -496,3 +496,28 @@ def Popen_safe(args, write=None, stderr=subprocess.PIPE, **kwargs):
                          stderr=stderr, **kwargs)
     o, e = p.communicate(write)
     return p, o, e
+
+def commonpath(paths):
+    '''
+    For use on Python 3.4 where os.path.commonpath is not available.
+    We currently use it everywhere so this receives enough testing.
+    '''
+    # XXX: Replace me with os.path.commonpath when we start requiring Python 3.5
+    import pathlib
+    if not paths:
+        raise ValueError('arg is an empty sequence')
+    common = pathlib.PurePath(paths[0])
+    for path in paths[1:]:
+        new = []
+        path = pathlib.PurePath(path)
+        for c, p in zip(common.parts, path.parts):
+            if c != p:
+                break
+            new.append(c)
+        # Don't convert '' into '.'
+        if not new:
+            common = ''
+            break
+        new = os.path.join(*new)
+        common = pathlib.PurePath(new)
+    return str(common)
