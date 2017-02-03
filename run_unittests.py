@@ -175,7 +175,7 @@ class InternalTests(unittest.TestCase):
         self.assertEqual(commonpath([prefix, libdir]), str(pathlib.PurePath(prefix)))
 
 
-class LinuxlikeTests(unittest.TestCase):
+class BasePlatformTests(unittest.TestCase):
     def setUp(self):
         super().setUp()
         src_root = os.path.dirname(__file__)
@@ -206,12 +206,13 @@ class LinuxlikeTests(unittest.TestCase):
         self.output += subprocess.check_output(command, stderr=subprocess.STDOUT,
                                                env=os.environ.copy())
 
-    def init(self, srcdir, extra_args=None):
+    def init(self, srcdir, extra_args=None, default_args=True):
         if extra_args is None:
             extra_args = []
-        args = [srcdir, self.builddir,
-                '--prefix', self.prefix,
-                '--libdir', self.libdir]
+        args = [srcdir, self.builddir]
+        if default_args:
+            args += ['--prefix', self.prefix,
+                     '--libdir', self.libdir]
         self._run(self.meson_command + args + extra_args)
         self.privatedir = os.path.join(self.builddir, 'meson-private')
 
@@ -260,6 +261,70 @@ class LinuxlikeTests(unittest.TestCase):
                                       universal_newlines=True)
         return json.loads(out)
 
+
+class AllPlatformTests(BasePlatformTests):
+    '''
+    Tests that should run on all platforms
+    '''
+    def test_default_options_prefix(self):
+        '''
+        Tests that setting a prefix in default_options in project() works.
+        Can't be an ordinary test because we pass --prefix to meson there.
+        https://github.com/mesonbuild/meson/issues/1349
+        '''
+        testdir = os.path.join(self.common_test_dir, '94 default options')
+        self.init(testdir, default_args=False)
+        opts = self.introspect('--buildoptions')
+        for opt in opts:
+            if opt['name'] == 'prefix':
+                prefix = opt['value']
+        self.assertEqual(prefix, '/absoluteprefix')
+
+    def test_absolute_prefix_libdir(self):
+        '''
+        Tests that setting absolute paths for --prefix and --libdir work. Can't
+        be an ordinary test because these are set via the command-line.
+        https://github.com/mesonbuild/meson/issues/1341
+        https://github.com/mesonbuild/meson/issues/1345
+        '''
+        testdir = os.path.join(self.common_test_dir, '94 default options')
+        prefix = '/someabs'
+        libdir = 'libdir'
+        extra_args = ['--prefix=' + prefix,
+                      # This can just be a relative path, but we want to test
+                      # that passing this as an absolute path also works
+                      '--libdir=' + prefix + '/' + libdir]
+        self.init(testdir, extra_args, default_args=False)
+        opts = self.introspect('--buildoptions')
+        for opt in opts:
+            if opt['name'] == 'prefix':
+                self.assertEqual(prefix, opt['value'])
+            elif opt['name'] == 'libdir':
+                self.assertEqual(libdir, opt['value'])
+
+    def test_libdir_must_be_inside_prefix(self):
+        '''
+        Tests that libdir is forced to be inside prefix no matter how it is set.
+        Must be a unit test for obvious reasons.
+        '''
+        testdir = os.path.join(self.common_test_dir, '1 trivial')
+        # libdir being inside prefix is ok
+        args = ['--prefix', '/opt', '--libdir', '/opt/lib32']
+        self.init(testdir, args)
+        self.wipe()
+        # libdir not being inside prefix is not ok
+        args = ['--prefix', '/usr', '--libdir', '/opt/lib32']
+        self.assertRaises(subprocess.CalledProcessError, self.init, testdir, args)
+        self.wipe()
+        # libdir must be inside prefix even when set via mesonconf
+        self.init(testdir)
+        self.assertRaises(subprocess.CalledProcessError, self.setconf, '-Dlibdir=/opt')
+
+
+class LinuxlikeTests(BasePlatformTests):
+    '''
+    Tests that should run on Linux and *BSD
+    '''
     def test_basic_soname(self):
         '''
         Test that the soname is set correctly for shared libraries. This can't
@@ -654,20 +719,6 @@ class LinuxlikeTests(unittest.TestCase):
         self.assertFalse(os.path.exists(exe))
         self._run(self.ninja_command + ['fooprog'])
         self.assertTrue(os.path.exists(exe))
-
-    def test_libdir_must_be_inside_prefix(self):
-        testdir = os.path.join(self.common_test_dir, '1 trivial')
-        # libdir being inside prefix is ok
-        args = ['--prefix', '/opt', '--libdir', '/opt/lib32']
-        self.init(testdir, args)
-        self.wipe()
-        # libdir not being inside prefix is not ok
-        args = ['--prefix', '/usr', '--libdir', '/opt/lib32']
-        self.assertRaises(subprocess.CalledProcessError, self.init, testdir, args)
-        self.wipe()
-        # libdir must be inside prefix even when set via mesonconf
-        self.init(testdir)
-        self.assertRaises(subprocess.CalledProcessError, self.setconf, '-Dlibdir=/opt')
 
     def test_installed_modes(self):
         '''
