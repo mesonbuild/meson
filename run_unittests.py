@@ -356,7 +356,7 @@ class AllPlatformTests(BasePlatformTests):
         self.build()
         before = self._run(['ar', 't', os.path.join(self.builddir, libname)]).split()
         # Filter out non-object-file contents
-        before = [f for f in before if f.endswith((b'.o', b'.obj'))]
+        before = [f for f in before if f.endswith(('.o', '.obj'))]
         # Static library should contain only one object
         self.assertEqual(len(before), 1, msg=before)
         # Change the source to be built into the static library
@@ -364,7 +364,7 @@ class AllPlatformTests(BasePlatformTests):
         self.build()
         after = self._run(['ar', 't', os.path.join(self.builddir, libname)]).split()
         # Filter out non-object-file contents
-        after = [f for f in after if f.endswith((b'.o', b'.obj'))]
+        after = [f for f in after if f.endswith(('.o', '.obj'))]
         # Static library should contain only one object
         self.assertEqual(len(after), 1, msg=after)
         # and the object must have changed
