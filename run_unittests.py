@@ -194,7 +194,6 @@ class BasePlatformTests(unittest.TestCase):
         self.vala_test_dir = os.path.join(src_root, 'test cases/vala')
         self.framework_test_dir = os.path.join(src_root, 'test cases/frameworks')
         self.unit_test_dir = os.path.join(src_root, 'test cases/unit')
-        self.output = b''
         self.orig_env = os.environ.copy()
 
     def tearDown(self):
@@ -202,12 +201,12 @@ class BasePlatformTests(unittest.TestCase):
         os.environ = self.orig_env
         super().tearDown()
 
-    def _run(self, command, return_output=False):
+    def _run(self, command):
         output = subprocess.check_output(command, stderr=subprocess.STDOUT,
-                                         env=os.environ.copy())
-        self.output += output
-        if return_output:
-            return output
+                                         env=os.environ.copy(),
+                                         universal_newlines=True)
+        print(output)
+        return output
 
     def init(self, srcdir, extra_args=None, default_args=True):
         if extra_args is None:
@@ -233,7 +232,11 @@ class BasePlatformTests(unittest.TestCase):
         self._run(self.ninja_command + ['uninstall'])
 
     def run_target(self, target):
-        self.output += subprocess.check_output(self.ninja_command + [target])
+        output = subprocess.check_output(self.ninja_command + [target],
+                                         stderr=subprocess.STDOUT,
+                                         universal_newlines=True)
+        print(output)
+        return output
 
     def setconf(self, arg, will_build=True):
         # This is needed to increase the difference between build.ninja's
@@ -351,8 +354,7 @@ class AllPlatformTests(BasePlatformTests):
         libname = targets[0]['filename']
         # Build and get contents of static library
         self.build()
-        before = self._run(['ar', 't', os.path.join(self.builddir, libname)],
-                           return_output=True).split()
+        before = self._run(['ar', 't', os.path.join(self.builddir, libname)]).split()
         # Filter out non-object-file contents
         before = [f for f in before if f.endswith((b'.o', b'.obj'))]
         # Static library should contain only one object
@@ -360,8 +362,7 @@ class AllPlatformTests(BasePlatformTests):
         # Change the source to be built into the static library
         self.setconf('-Dsource=libfile2.c')
         self.build()
-        after = self._run(['ar', 't', os.path.join(self.builddir, libname)],
-                          return_output=True).split()
+        after = self._run(['ar', 't', os.path.join(self.builddir, libname)]).split()
         # Filter out non-object-file contents
         after = [f for f in after if f.endswith((b'.o', b'.obj'))]
         # Static library should contain only one object
@@ -881,34 +882,38 @@ class RewriterTests(unittest.TestCase):
 
     def test_basic(self):
         self.prime('1 basic')
-        subprocess.check_output(self.rewrite_command + ['remove',
-                                                        '--target=trivialprog',
-                                                        '--filename=notthere.c',
-                                                        '--sourcedir', self.workdir])
+        subprocess.check_call(self.rewrite_command + ['remove',
+                                                      '--target=trivialprog',
+                                                      '--filename=notthere.c',
+                                                      '--sourcedir', self.workdir],
+                              universal_newlines=True)
         self.check_effectively_same('meson.build', 'removed.txt')
-        subprocess.check_output(self.rewrite_command + ['add',
-                                                        '--target=trivialprog',
-                                                        '--filename=notthere.c',
-                                                        '--sourcedir', self.workdir])
+        subprocess.check_call(self.rewrite_command + ['add',
+                                                      '--target=trivialprog',
+                                                      '--filename=notthere.c',
+                                                      '--sourcedir', self.workdir],
+                              universal_newlines=True)
         self.check_effectively_same('meson.build', 'added.txt')
-        subprocess.check_output(self.rewrite_command + ['remove',
-                                                        '--target=trivialprog',
-                                                        '--filename=notthere.c',
-                                                        '--sourcedir', self.workdir])
+        subprocess.check_call(self.rewrite_command + ['remove',
+                                                      '--target=trivialprog',
+                                                      '--filename=notthere.c',
+                                                      '--sourcedir', self.workdir],
+                              universal_newlines=True)
         self.check_effectively_same('meson.build', 'removed.txt')
 
     def test_subdir(self):
         self.prime('2 subdirs')
         top = self.read_contents('meson.build')
         s2 = self.read_contents('sub2/meson.build')
-        subprocess.check_output(self.rewrite_command + ['remove',
-                                                        '--target=something',
-                                                        '--filename=second.c',
-                                                        '--sourcedir', self.workdir])
+        subprocess.check_call(self.rewrite_command + ['remove',
+                                                      '--target=something',
+                                                      '--filename=second.c',
+                                                      '--sourcedir', self.workdir],
+                              universal_newlines=True)
         self.check_effectively_same('sub1/meson.build', 'sub1/after.txt')
         self.assertEqual(top, self.read_contents('meson.build'))
         self.assertEqual(s2, self.read_contents('sub2/meson.build'))
 
 
 if __name__ == '__main__':
-    unittest.main()
+    unittest.main(buffer=True)
