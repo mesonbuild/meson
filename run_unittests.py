@@ -328,6 +328,47 @@ class AllPlatformTests(BasePlatformTests):
         self.init(testdir)
         self.assertRaises(subprocess.CalledProcessError, self.setconf, '-Dlibdir=/opt', False)
 
+    def test_static_library_overwrite(self):
+        '''
+        Tests that static libraries are never appended to, always overwritten.
+        Has to be a unit test because this involves building a project,
+        reconfiguring, and building it again so that `ar` is run twice on the
+        same static library.
+        https://github.com/mesonbuild/meson/issues/1355
+        '''
+        testdir = os.path.join(self.common_test_dir, '3 static')
+        env = Environment(testdir, self.builddir, self.meson_command,
+                          get_fake_options(self.prefix), [])
+        cc = env.detect_c_compiler(False)
+        static_linker = env.detect_static_linker(cc)
+        if not isinstance(static_linker, mesonbuild.compilers.ArLinker):
+                raise unittest.SkipTest('static linker is not `ar`')
+        # Configure
+        self.init(testdir)
+        # Get name of static library
+        targets = self.introspect('--targets')
+        self.assertEqual(len(targets), 1)
+        libname = targets[0]['filename']
+        # Build and get contents of static library
+        self.build()
+        before = self._run(['ar', 't', os.path.join(self.builddir, libname)],
+                           return_output=True).split()
+        # Filter out non-object-file contents
+        before = [f for f in before if f.endswith((b'.o', b'.obj'))]
+        # Static library should contain only one object
+        self.assertEqual(len(before), 1, msg=before)
+        # Change the source to be built into the static library
+        self.setconf('-Dsource=libfile2.c')
+        self.build()
+        after = self._run(['ar', 't', os.path.join(self.builddir, libname)],
+                          return_output=True).split()
+        # Filter out non-object-file contents
+        after = [f for f in after if f.endswith((b'.o', b'.obj'))]
+        # Static library should contain only one object
+        self.assertEqual(len(after), 1, msg=after)
+        # and the object must have changed
+        self.assertNotEqual(before, after)
+
 
 class LinuxlikeTests(BasePlatformTests):
     '''
