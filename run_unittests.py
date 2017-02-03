@@ -202,9 +202,12 @@ class BasePlatformTests(unittest.TestCase):
         os.environ = self.orig_env
         super().tearDown()
 
-    def _run(self, command):
-        self.output += subprocess.check_output(command, stderr=subprocess.STDOUT,
-                                               env=os.environ.copy())
+    def _run(self, command, return_output=False):
+        output = subprocess.check_output(command, stderr=subprocess.STDOUT,
+                                         env=os.environ.copy())
+        self.output += output
+        if return_output:
+            return output
 
     def init(self, srcdir, extra_args=None, default_args=True):
         if extra_args is None:
