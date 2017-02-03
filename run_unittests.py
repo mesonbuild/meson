@@ -15,10 +15,11 @@
 
 import stat
 import shlex
-import unittest, os, sys, shutil, time
 import subprocess
 import re, json
 import tempfile
+import pathlib
+import unittest, os, sys, shutil, time
 from glob import glob
 import mesonbuild.compilers
 import mesonbuild.environment
@@ -169,6 +170,9 @@ class InternalTests(unittest.TestCase):
         self.assertEqual(commonpath(['/usr', '/bin']), sep)
         self.assertEqual(commonpath(['/usr', 'bin']), '')
         self.assertEqual(commonpath(['blam', 'bin']), '')
+        prefix = '/some/path/to/prefix'
+        libdir = '/some/path/to/prefix/libdir'
+        self.assertEqual(commonpath([prefix, libdir]), str(pathlib.PurePath(prefix)))
 
 
 class LinuxlikeTests(unittest.TestCase):
