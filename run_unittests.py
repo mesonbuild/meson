@@ -235,7 +235,12 @@ class BasePlatformTests(unittest.TestCase):
     def run_target(self, target):
         self.output += subprocess.check_output(self.ninja_command + [target])
 
-    def setconf(self, arg):
+    def setconf(self, arg, will_build=True):
+        # This is needed to increase the difference between build.ninja's
+        # timestamp and coredata.dat's timestamp due to a Ninja bug.
+        # https://github.com/ninja-build/ninja/issues/371
+        if will_build:
+            time.sleep(1)
         self._run(self.mconf_command + [arg, self.builddir])
 
     def wipe(self):
@@ -321,7 +326,7 @@ class AllPlatformTests(BasePlatformTests):
         self.wipe()
         # libdir must be inside prefix even when set via mesonconf
         self.init(testdir)
-        self.assertRaises(subprocess.CalledProcessError, self.setconf, '-Dlibdir=/opt')
+        self.assertRaises(subprocess.CalledProcessError, self.setconf, '-Dlibdir=/opt', False)
 
 
 class LinuxlikeTests(BasePlatformTests):
@@ -366,10 +371,6 @@ class LinuxlikeTests(BasePlatformTests):
         self.init(testdir)
         compdb = self.get_compdb()
         self.assertIn('-fPIC', compdb[0]['command'])
-        # This is needed to increase the difference between build.ninja's
-        # timestamp and coredata.dat's timestamp due to a Ninja bug.
-        # https://github.com/ninja-build/ninja/issues/371
-        time.sleep(1)
         self.setconf('-Db_staticpic=false')
         # Regenerate build
         self.build()
