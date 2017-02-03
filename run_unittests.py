@@ -180,7 +180,9 @@ class BasePlatformTests(unittest.TestCase):
         super().setUp()
         src_root = os.path.dirname(__file__)
         src_root = os.path.join(os.getcwd(), src_root)
-        self.builddir = tempfile.mkdtemp()
+        # In case the directory is inside a symlinked directory, find the real
+        # path otherwise we might not find the srcdir from inside the builddir.
+        self.builddir = os.path.realpath(tempfile.mkdtemp())
         self.logdir = os.path.join(self.builddir, 'meson-logs')
         self.prefix = '/usr'
         self.libdir = os.path.join(self.prefix, 'lib')
@@ -857,9 +859,9 @@ class RewriterTests(unittest.TestCase):
     def setUp(self):
         super().setUp()
         src_root = os.path.dirname(__file__)
-        self.testroot = tempfile.mkdtemp()
+        self.testroot = os.path.realpath(tempfile.mkdtemp())
         self.rewrite_command = [sys.executable, os.path.join(src_root, 'mesonrewriter.py')]
-        self.tmpdir = tempfile.mkdtemp()
+        self.tmpdir = os.path.realpath(tempfile.mkdtemp())
         self.workdir = os.path.join(self.tmpdir, 'foo')
         self.test_dir = os.path.join(src_root, 'test cases/rewrite')
 
