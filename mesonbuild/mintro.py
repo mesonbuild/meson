@@ -23,6 +23,7 @@ import json, pickle
 from . import coredata, build
 import argparse
 import sys, os
+import pathlib
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--targets', action='store_true', dest='list_targets', default=False,
@@ -56,7 +57,9 @@ def determine_installed_path(target, installdata):
     fname = i[0]
     outdir = i[1]
     outname = os.path.join(installdata.prefix, outdir, os.path.split(fname)[-1])
-    return outname
+    # Normalize the path by using os.path.sep consistently, etc.
+    # Does not change the effective path.
+    return str(pathlib.PurePath(outname))
 
 
 def list_installed(installdata):
