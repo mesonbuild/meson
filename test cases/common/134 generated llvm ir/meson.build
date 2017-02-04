@@ -4,7 +4,7 @@ if meson.get_compiler('c').get_id() != 'clang'
   error('MESON_SKIP_TEST: LLVM IR files can only be built with clang')
 endif
 
-copy = find_program('copy.py')
+copy = find_program('copyfile.py')
 
 copygen = generator(copy,
   arguments : ['@INPUT@', '@OUTPUT@'],
