@@ -1788,6 +1788,15 @@ class Interpreter(InterpreterBase):
             raise InvalidArguments('''Characters <, > and = are forbidden in target names. To specify version
 requirements use the version keyword argument instead.''')
         identifier = dependencies.get_dep_identifier(name, kwargs)
+        # Check if we want this as a cross-dep or a native-dep
+        # FIXME: Not all dependencies support such a distinction right now,
+        # and we repeat this check inside dependencies that do. We need to
+        # consolidate this somehow.
+        is_cross = self.environment.is_cross_build()
+        if 'native' in kwargs and is_cross:
+            want_cross = not kwargs['native']
+        else:
+            want_cross = is_cross
         # Check if we've already searched for and found this dep
         cached_dep = None
         if identifier in self.coredata.deps:
@@ -1803,6 +1812,9 @@ requirements use the version keyword argument instead.''')
             # Don't re-use cached dep if it wasn't required but this one is,
             # so we properly go into fallback/error code paths
             if kwargs.get('required', True) and not getattr(cached_dep, 'required', False):
+                cached_dep = None
+            # Don't reuse cached dep if one is a cross-dep and the other is a native dep
+            if not getattr(cached_dep, 'want_cross', is_cross) == want_cross:
                 cached_dep = None
 
         if cached_dep:
