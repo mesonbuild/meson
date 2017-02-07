@@ -1576,9 +1576,10 @@ class Interpreter(InterpreterBase):
 
     @stringArgs
     def func_project(self, node, args, kwargs):
-        if self.environment.first_invocation and ('default_options' in kwargs or
+        default_options = kwargs.get('default_options', [])
+        if self.environment.first_invocation and (len(default_options) > 0 or
                                                   len(self.default_project_options) > 0):
-            self.parse_default_options(kwargs['default_options'])
+            self.parse_default_options(default_options)
         if not self.is_subproject():
             self.build.project_name = args[0]
         if os.path.exists(self.option_file):
