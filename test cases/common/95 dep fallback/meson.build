@@ -1,6 +1,7 @@
 project('dep fallback', 'c')
 
-bob = dependency('boblib', fallback : ['boblib', 'bob_dep'], required: false)
+bob = dependency('boblib', fallback : ['boblib', 'bob_dep'], required: false,
+  default_options : 'warning_level=1')
 if not bob.found()
     error('Bob is actually needed')
 endif
