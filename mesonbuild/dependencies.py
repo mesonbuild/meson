@@ -108,14 +108,14 @@ class PkgConfigDependency(Dependency):
         self.cargs = []
         self.libs = []
         if 'native' in kwargs and environment.is_cross_build():
-            want_cross = not kwargs['native']
+            self.want_cross = not kwargs['native']
         else:
-            want_cross = environment.is_cross_build()
+            self.want_cross = environment.is_cross_build()
         self.name = name
 
         # When finding dependencies for cross-compiling, we don't care about
         # the 'native' pkg-config
-        if want_cross:
+        if self.want_cross:
             if 'pkgconfig' not in environment.cross_info.config['binaries']:
                 if self.required:
                     raise DependencyException('Pkg-config binary missing from cross file')
@@ -142,7 +142,7 @@ class PkgConfigDependency(Dependency):
             if self.required:
                 raise DependencyException('Pkg-config not found.')
             return
-        if want_cross:
+        if self.want_cross:
             self.type_string = 'Cross'
         else:
             self.type_string = 'Native'
@@ -551,9 +551,9 @@ class BoostDependency(Dependency):
         self.environment = environment
         self.libdir = ''
         if 'native' in kwargs and environment.is_cross_build():
-            want_cross = not kwargs['native']
+            self.want_cross = not kwargs['native']
         else:
-            want_cross = environment.is_cross_build()
+            self.want_cross = environment.is_cross_build()
         try:
             self.boost_root = os.environ['BOOST_ROOT']
             if not os.path.isabs(self.boost_root):
@@ -561,7 +561,7 @@ class BoostDependency(Dependency):
         except KeyError:
             self.boost_root = None
         if self.boost_root is None:
-            if want_cross:
+            if self.want_cross:
                 raise DependencyException('BOOST_ROOT is needed while cross-compiling')
             if mesonlib.is_windows():
                 self.boost_root = self.detect_win_root()
