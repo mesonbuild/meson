@@ -402,7 +402,7 @@ class WxDependency(Dependency):
         return self.is_found
 
 class ExternalProgram:
-    windows_exts = ('exe', 'com', 'bat')
+    windows_exts = ('exe', 'msc', 'com', 'bat')
 
     def __init__(self, name, fullpath=None, silent=False, search_dir=None):
         self.name = name
@@ -419,6 +419,10 @@ class ExternalProgram:
                          '(%s)' % ' '.join(self.fullpath))
             else:
                 mlog.log('Program', mlog.bold(name), 'found:', mlog.red('NO'))
+
+    def __repr__(self):
+        r = '<{} {!r} -> {!r}>'
+        return r.format(self.__class__.__name__, self.name, self.fullpath)
 
     @staticmethod
     def _shebang_to_cmd(script):
@@ -473,27 +477,49 @@ class ExternalProgram:
         return self._shebang_to_cmd(trial)
 
     def _search(self, name, search_dir):
+        '''
+        Search in the specified dir for the specified executable by name
+        and if not found search in PATH
+        '''
         commands = self._search_dir(name, search_dir)
         if commands:
             return commands
         # Do a standard search in PATH
         fullpath = shutil.which(name)
-        if fullpath or not mesonlib.is_windows():
+        if not mesonlib.is_windows():
             # On UNIX-like platforms, the standard PATH search is enough
             return [fullpath]
-        # On Windows, if name is an absolute path, we need the extension too
-        for ext in self.windows_exts:
-            fullpath = '{}.{}'.format(name, ext)
-            if os.path.exists(fullpath):
+        # HERE BEGINS THE TERROR OF WINDOWS
+        if fullpath:
+            # On Windows, even if the PATH search returned a full path, we can't be
+            # sure that it can be run directly if it's not a native executable.
+            # For instance, interpreted scripts sometimes need to be run explicitly
+            # with an interpreter if the file association is not done properly.
+            name_ext = os.path.splitext(fullpath)[1]
+            if name_ext[1:].lower() in self.windows_exts:
+                # Good, it can be directly executed
                 return [fullpath]
-        # On Windows, interpreted scripts must have an extension otherwise they
-        # cannot be found by a standard PATH search. So we do a custom search
-        # where we manually search for a script with a shebang in PATH.
-        search_dirs = os.environ.get('PATH', '').split(';')
-        for search_dir in search_dirs:
-            commands = self._search_dir(name, search_dir)
+            # Try to extract the interpreter from the shebang
+            commands = self._shebang_to_cmd(fullpath)
             if commands:
                 return commands
+        else:
+            # Maybe the name is an absolute path to a native Windows
+            # executable, but without the extension. This is technically wrong,
+            # but many people do it because it works in the MinGW shell.
+            if os.path.isabs(name):
+                for ext in self.windows_exts:
+                    fullpath = '{}.{}'.format(name, ext)
+                    if os.path.exists(fullpath):
+                        return [fullpath]
+            # On Windows, interpreted scripts must have an extension otherwise they
+            # cannot be found by a standard PATH search. So we do a custom search
+            # where we manually search for a script with a shebang in PATH.
+            search_dirs = os.environ.get('PATH', '').split(';')
+            for search_dir in search_dirs:
+                commands = self._search_dir(name, search_dir)
+                if commands:
+                    return commands
         return [None]
 
     def found(self):

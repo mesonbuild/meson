@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2016 The Meson development team
+# Copyright 2016-2017 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ import mesonbuild.environment
 import mesonbuild.mesonlib
 from mesonbuild.mesonlib import is_windows
 from mesonbuild.environment import detect_ninja, Environment
-from mesonbuild.dependencies import PkgConfigDependency
+from mesonbuild.dependencies import PkgConfigDependency, ExternalProgram
 
 if is_windows():
     exe_suffix = '.exe'
@@ -186,6 +186,7 @@ class BasePlatformTests(unittest.TestCase):
         super().setUp()
         src_root = os.path.dirname(__file__)
         src_root = os.path.join(os.getcwd(), src_root)
+        self.src_root = src_root
         # In case the directory is inside a symlinked directory, find the real
         # path otherwise we might not find the srcdir from inside the builddir.
         self.builddir = os.path.realpath(tempfile.mkdtemp())
@@ -562,6 +563,50 @@ class AllPlatformTests(BasePlatformTests):
         self.assertPathEqual(incs[6], "-Isub1")
         # target internal dependency include_directories: source dir
         self.assertPathBasenameEqual(incs[7], 'sub1')
+
+
+class WindowsTests(BasePlatformTests):
+    '''
+    Tests that should run on Cygwin, MinGW, and MSVC
+    '''
+    def setUp(self):
+        super().setUp()
+        self.platform_test_dir = os.path.join(self.src_root, 'test cases/windows')
+
+    def test_find_program(self):
+        '''
+        Test that Windows-specific edge-cases in find_program are functioning
+        correctly. Cannot be an ordinary test because it involves manipulating
+        PATH to point to a directory with Python scripts.
+        '''
+        testdir = os.path.join(self.platform_test_dir, '9 find program')
+        # Find `cmd` and `cmd.exe`
+        prog1 = ExternalProgram('cmd')
+        self.assertTrue(prog1.found(), msg='cmd not found')
+        prog2 = ExternalProgram('cmd.exe')
+        self.assertTrue(prog2.found(), msg='cmd.exe not found')
+        self.assertPathEqual(prog1.fullpath[0], prog2.fullpath[0])
+        # Find cmd with an absolute path that's missing the extension
+        cmd_path = prog2.fullpath[0][:-4]
+        prog = ExternalProgram(cmd_path)
+        self.assertTrue(prog.found(), msg='{!r} not found'.format(cmd_path))
+        # Finding a script with no extension inside a directory works
+        prog = ExternalProgram(os.path.join(testdir, 'test-script'))
+        self.assertTrue(prog.found(), msg='test-script not found')
+        # Finding a script with an extension inside a directory works
+        prog = ExternalProgram(os.path.join(testdir, 'test-script-ext.py'))
+        self.assertTrue(prog.found(), msg='test-script-ext.py not found')
+        # Finding a script in PATH w/o extension works and adds the interpreter
+        os.environ['PATH'] += os.pathsep + testdir
+        prog = ExternalProgram('test-script-ext')
+        self.assertTrue(prog.found(), msg='test-script-ext not found in PATH')
+        self.assertPathEqual(prog.fullpath[0], sys.executable)
+        self.assertPathBasenameEqual(prog.fullpath[1], 'test-script-ext.py')
+        # Finding a script in PATH with extension works and adds the interpreter
+        prog = ExternalProgram('test-script-ext.py')
+        self.assertTrue(prog.found(), msg='test-script-ext.py not found in PATH')
+        self.assertPathEqual(prog.fullpath[0], sys.executable)
+        self.assertPathBasenameEqual(prog.fullpath[1], 'test-script-ext.py')
 
 
 class LinuxlikeTests(BasePlatformTests):
