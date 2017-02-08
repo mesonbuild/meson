@@ -255,8 +255,9 @@ can not be used with the current version of glib-compiled-resources, due to
 
         return dep_files, depends, subdirs
 
-    def _get_link_args(self, state, lib, depends=None, include_rpath=False):
-        if gir_has_extra_lib_arg():
+    def _get_link_args(self, state, lib, depends=None, include_rpath=False,
+                       use_gir_args=False):
+        if gir_has_extra_lib_arg() and use_gir_args:
             link_command = ['--extra-library=%s' % lib.name]
         else:
             link_command = ['-l%s' % lib.name]
@@ -269,7 +270,8 @@ can not be used with the current version of glib-compiled-resources, due to
                 depends.append(lib)
         return link_command
 
-    def _get_dependencies_flags(self, deps, state, depends=None, include_rpath=False):
+    def _get_dependencies_flags(self, deps, state, depends=None, include_rpath=False,
+                                use_gir_args=False):
         cflags = set()
         ldflags = set()
         gi_includes = set()
@@ -283,11 +285,13 @@ can not be used with the current version of glib-compiled-resources, due to
                 cflags.update(get_include_args(state.environment, dep.include_directories))
                 for lib in dep.libraries:
                     ldflags.update(self._get_link_args(state, lib.held_object, depends, include_rpath))
-                    libdepflags = self._get_dependencies_flags(lib.held_object.get_external_deps(), state, depends, include_rpath)
+                    libdepflags = self._get_dependencies_flags(lib.held_object.get_external_deps(), state, depends, include_rpath,
+                                                               use_gir_args)
                     cflags.update(libdepflags[0])
                     ldflags.update(libdepflags[1])
                     gi_includes.update(libdepflags[2])
-                extdepflags = self._get_dependencies_flags(dep.ext_deps, state, depends, include_rpath)
+                extdepflags = self._get_dependencies_flags(dep.ext_deps, state, depends, include_rpath,
+                                                           use_gir_args)
                 cflags.update(extdepflags[0])
                 ldflags.update(extdepflags[1])
                 gi_includes.update(extdepflags[2])
@@ -314,7 +318,7 @@ can not be used with the current version of glib-compiled-resources, due to
                     # Hack to avoid passing some compiler options in
                     if lib.startswith("-W"):
                         continue
-                    if gir_has_extra_lib_arg():
+                    if gir_has_extra_lib_arg() and use_gir_args:
                         lib = lib.replace('-l', '--extra-library=')
                     ldflags.update([lib])
 
@@ -378,7 +382,8 @@ can not be used with the current version of glib-compiled-resources, due to
             if not isinstance(link_with, list):
                 link_with = [link_with]
             for link in link_with:
-                scan_command += self._get_link_args(state, link.held_object, depends)
+                scan_command += self._get_link_args(state, link.held_object, depends,
+                                                    use_gir_args=True)
 
         if 'includes' in kwargs:
             includes = kwargs.pop('includes')
@@ -478,7 +483,8 @@ can not be used with the current version of glib-compiled-resources, due to
         # ldflags will be misinterpreted by gir scanner (showing
         # spurious dependencies) but building GStreamer fails if they
         # are not used here.
-        cflags, ldflags, gi_includes = self._get_dependencies_flags(deps, state, depends)
+        cflags, ldflags, gi_includes = self._get_dependencies_flags(deps, state, depends,
+                                                                    use_gir_args=True)
         scan_command += list(cflags)
         # need to put our output directory first as we need to use the
         # generated libraries instead of any possibly installed system/prefix
