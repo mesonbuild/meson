@@ -2,28 +2,36 @@
 #include<stdio.h>
 
 /*
- * A function that checks at runtime if simd acceleration is
- * available and calls the respective function if it is. Falls
- * back to plain C implementation if not.
+ * A function that checks at runtime which simd accelerations are
+ * available and calls the best one. Falls
+ * back to plain C implementation if SIMD is not available.
  */
 
 int main(int argc, char **argv) {
     float four[4] = {2.0, 3.0, 4.0, 5.0};
     const float expected[4] = {3.0, 4.0, 5.0, 6.0};
     void (*fptr)(float[4]) = NULL;
+    const char *type;
 
-#if HAVE_MMX
-    if(mmx_available()) {
+#if HAVE_SSE
+    /* Add here. The first matched one is used so put "better" instruction
+     * sets at the top.
+     */
+#elif HAVE_MMX
+    if(fptr == NULL && mmx_available()) {
         fptr = increment_mmx;
+        type = "MMX";
     }
 #endif
     if(fptr == NULL) {
         fptr = increment_fallback;
+        type = "fallback";
     }
+    printf("Using %s.\n", type);
     fptr(four);
     for(int i=0; i<4; i++) {
         if(four[i] != expected[i]) {
-            printf("Increment function failed.\n");
+            printf("Increment function failed, got %f expected %f.\n", four[i], expected[i]);
             return 1;
         }
     }
