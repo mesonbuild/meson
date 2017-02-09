@@ -62,3 +62,4 @@ Matthieu Gautier
 Kseniia Vasilchuk
 Philipp Geier
 Mike Sinkovsky
+Dima Krasner
