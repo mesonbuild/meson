@@ -15,9 +15,33 @@ void increment_mmx(float arr[4]);
 #endif
 
 #if HAVE_SSE
+int sse_available();
+void increment_sse(float arr[4]);
 #endif
 
 #if HAVE_SSE2
+int sse2_available();
+void increment_sse2(float arr[4]);
+#endif
+
+#if HAVE_AVX
+int avx_available();
+void increment_avx(float arr[4]);
+#endif
+
+#if HAVE_AVX2
+int avx2_available();
+void increment_avx2(float arr[4]);
+#endif
+
+#if HAVE_THUMB
+int thumb_available();
+void increment_thumb(float arr[4]);
+#endif
+
+#if HAVE_ALTIVEC
+int altivec_available();
+void increment_altivec(float arr[4]);
 #endif
 
 /* And so on. */
