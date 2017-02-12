@@ -1,3 +1,6 @@
+#include<simdconfig.h>
+#include<simdfuncs.h>
+
 #include<mmintrin.h>
 #include<cpuid.h>
 #include<stdint.h>

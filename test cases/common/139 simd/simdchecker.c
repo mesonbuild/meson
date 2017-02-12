@@ -12,12 +12,18 @@ int main(int argc, char **argv) {
     const float expected[4] = {3.0, 4.0, 5.0, 6.0};
     void (*fptr)(float[4]) = NULL;
     const char *type;
+    int i;
 
+/* Add here. The first matched one is used so put "better" instruction
+ * sets at the top.
+ */
 #if HAVE_SSE
-    /* Add here. The first matched one is used so put "better" instruction
-     * sets at the top.
-     */
-#elif HAVE_MMX
+    if(fptr == NULL && sse_available()) {
+        fptr = increment_sse;
+        type = "SSE";
+    }
+#endif
+#if HAVE_MMX
     if(fptr == NULL && mmx_available()) {
         fptr = increment_mmx;
         type = "MMX";
@@ -29,7 +35,7 @@ int main(int argc, char **argv) {
     }
     printf("Using %s.\n", type);
     fptr(four);
-    for(int i=0; i<4; i++) {
+    for(i=0; i<4; i++) {
         if(four[i] != expected[i]) {
             printf("Increment function failed, got %f expected %f.\n", four[i], expected[i]);
             return 1;
