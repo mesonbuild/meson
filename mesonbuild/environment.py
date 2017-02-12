@@ -121,6 +121,18 @@ def detect_cpu_family(compilers):
     if trial.startswith('arm'):
         return 'arm'
     if trial in ('amd64', 'x64'):
+        trial = 'x86_64'
+    if trial == 'x86_64':
+        # On Linux (and maybe others) there can be any mixture of 32/64 bit
+        # code in the kernel, Python, system etc. The only reliable way
+        # to know is to check the compiler defines.
+        for c in compilers.values():
+            try:
+                if c.has_define('__i386__'):
+                    return 'x86'
+            except mesonlib.MesonException:
+                # Ignore compilers that do not support has_define.
+                pass
         return 'x86_64'
     # Add fixes here as bugs are reported.
     return trial
@@ -131,6 +143,15 @@ def detect_cpu(compilers):
     else:
         trial = platform.machine().lower()
     if trial in ('amd64', 'x64'):
+        trial = 'x86_64'
+    if trial == 'x86_64':
+        # Same check as above for cpu_family
+        for c in compilers.values():
+            try:
+                if c.has_define('__i386__'):
+                    return 'i686' # All 64 bit cpus have at least this level of x86 support.
+            except mesonlib.MesonException:
+                pass
         return 'x86_64'
     # Add fixes here as bugs are reported.
     return trial
