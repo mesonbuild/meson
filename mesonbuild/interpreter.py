@@ -2131,6 +2131,8 @@ requirements use the version keyword argument instead.''')
             raise InvalidArguments('Must not go into subprojects dir with subdir(), use subproject() instead.')
         prev_subdir = self.subdir
         subdir = os.path.join(prev_subdir, args[0])
+        if os.path.isabs(subdir):
+            raise InvalidArguments('Subdir argument must be a relative path.')
         if subdir in self.visited_subdirs:
             raise InvalidArguments('Tried to enter directory "%s", which has already been visited.'
                                    % subdir)
