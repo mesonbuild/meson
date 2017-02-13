@@ -24,6 +24,11 @@ int sse2_available();
 void increment_sse2(float arr[4]);
 #endif
 
+#if HAVE_SSE3
+int sse3_available();
+void increment_sse3(float arr[4]);
+#endif
+
 #if HAVE_AVX
 int avx_available();
 void increment_avx(float arr[4]);
