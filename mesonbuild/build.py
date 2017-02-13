@@ -16,7 +16,9 @@ from . import environment
 from . import dependencies
 from . import mlog
 import copy, os, re
-from .mesonlib import File, flatten, MesonException, stringlistify, classify_unity_sources
+from .mesonlib import File, MesonException
+from .mesonlib import flatten, stringlistify, classify_unity_sources
+from .mesonlib import get_filenames_templates_dict, substitute_values
 from .environment import for_windows, for_darwin
 from .compilers import is_object, clike_langs, lang_suffixes
 
@@ -1331,11 +1333,25 @@ class CustomTarget(Target):
         self.output = kwargs['output']
         if not isinstance(self.output, list):
             self.output = [self.output]
+        # This will substitute values from the input into output and return it.
+        inputs = get_sources_string_names(self.sources)
+        values = get_filenames_templates_dict(inputs, [])
         for i in self.output:
             if not(isinstance(i, str)):
                 raise InvalidArguments('Output argument not a string.')
             if '/' in i:
                 raise InvalidArguments('Output must not contain a path segment.')
+            if '@INPUT@' in i or '@INPUT0@' in i:
+                m = 'Output cannot contain @INPUT@ or @INPUT0@, did you ' \
+                    'mean @PLAINNAME@ or @BASENAME@?'
+                raise InvalidArguments(m)
+            # We already check this during substitution, but the error message
+            # will be unclear/confusing, so check it here.
+            if len(inputs) != 1 and ('@PLAINNAME@' in i or '@BASENAME@' in i):
+                m = "Output cannot contain @PLAINNAME@ or @BASENAME@ when " \
+                    "there is more than one input (we can't know which to use)"
+                raise InvalidArguments(m)
+        self.output = substitute_values(self.output, values)
         self.capture = kwargs.get('capture', False)
         if self.capture and len(self.output) != 1:
             raise InvalidArguments('Capturing can only output to a single file.')
@@ -1531,7 +1547,7 @@ class TestSetup:
         self.timeout_multiplier = timeout_multiplier
         self.env = env
 
-def get_sources_output_names(sources):
+def get_sources_string_names(sources):
     '''
     For the specified list of @sources which can be strings, Files, or targets,
     get all the output basenames.
