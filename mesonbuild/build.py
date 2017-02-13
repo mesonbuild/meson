@@ -1530,3 +1530,22 @@ class TestSetup:
         self.gdb = gdb
         self.timeout_multiplier = timeout_multiplier
         self.env = env
+
+def get_sources_output_names(sources):
+    '''
+    For the specified list of @sources which can be strings, Files, or targets,
+    get all the output basenames.
+    '''
+    names = []
+    for s in sources:
+        if hasattr(s, 'held_object'):
+            s = s.held_object
+        if isinstance(s, str):
+            names.append(s)
+        elif isinstance(s, (BuildTarget, CustomTarget, GeneratedList)):
+            names += s.get_outputs()
+        elif isinstance(s, File):
+            names.append(s.fname)
+        else:
+            raise AssertionError('Unknown source type: {!r}'.format(s))
+    return names
