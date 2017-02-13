@@ -108,8 +108,15 @@ can not be used with the current version of glib-compiled-resources, due to
             ifile = os.path.join(ifile.subdir, ifile.fname)
         elif isinstance(ifile, str):
             ifile = os.path.join(state.subdir, ifile)
+        elif isinstance(ifile, (interpreter.CustomTargetHolder,
+                                interpreter.GeneratedObjectsHolder)):
+            m = 'Resource xml files generated at build-time cannot be used ' \
+                'with gnome.compile_resources() because we need to scan ' \
+                'the xml for dependencies. Use configure_file() instead ' \
+                'to generate it at configure-time.'
+            raise MesonException(m)
         else:
-            raise RuntimeError('Unreachable code.')
+            raise MesonException('Invalid file argument: {!r}'.format(ifile))
 
         depend_files, depends, subdirs = self._get_gresource_dependencies(
             state, ifile, source_dirs, dependencies)
