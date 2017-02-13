@@ -17,7 +17,6 @@ cdata = configuration_data()
 # and then have a target that uses the result in links_with.
 
 # The following headers need to be added. Also Thumb and Altivec.
-#<emmintrin.h> SSE2
 #<pmmintrin.h> SSE3
 #<tmmintrin.h> SSSE3
 #<smmintrin.h> SSE4.1
@@ -29,15 +28,21 @@ cdata = configuration_data()
 
 simdlibs = []
 
-if cc.has_argument('-mmmx')
-  cdata.set('HAVE_MMX', 1)
-  simdlibs += static_library('simd_mmx', 'simd_mmx.c', c_args : '-mmmx')
-endif
+simdarr = [['-mmx', 'HAVE_MMX', 'simd_mmx', 'simd_mmx.c'],
+ ['-msse', 'HAVE_SSE', 'simd_sse', 'simd_sse.c'],
+ ['-msse2', 'HAVE_SSE2', 'simd_sse2', 'simd_sse2.c'],
+]
 
-if cc.has_argument('-msse')
-  cdata.set('HAVE_SSE', 1)
-  simdlibs += static_library('simd_sse', 'simd_sse.c', c_args : '-msse')
-endif
+foreach ia : simdarr
+  arg = ia[0]
+  def = ia[1]
+  libname = ia[2]
+  filename = ia[3]
+  if cc.has_argument(arg)
+    cdata.set(def, 1)
+    simdlibs += static_library(libname, filename, c_args : arg)
+  endif
+endforeach
 
 configure_file(output : 'simdconfig.h',
   configuration : cdata)
