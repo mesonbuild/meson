@@ -1232,15 +1232,16 @@ int dummy;
             return
         rule = 'rule STATIC%s_LINKER\n' % crstr
         if mesonlib.is_windows():
-            command_templ = ''' command = %s @$out.rsp
+            command_template = ''' command = {executable} @$out.rsp
  rspfile = $out.rsp
- rspfile_content = $LINK_ARGS %s $in
+ rspfile_content = $LINK_ARGS {output_args} $in
 '''
         else:
-            command_templ = ' command = %s $LINK_ARGS %s $in\n'
-        command = command_templ % (
-            ' '.join(static_linker.get_exelist()),
-            ' '.join(static_linker.get_output_args('$out')))
+            command_template = ' command = {executable} $LINK_ARGS {output_args} $in\n'
+        command = command_template.format(
+            executable=' '.join(static_linker.get_exelist()),
+            output_args=' '.join(static_linker.get_output_args('$out'))
+        )
         description = ' description = Static linking library $out\n\n'
         outfile.write(rule)
         outfile.write(command)
@@ -1273,16 +1274,17 @@ int dummy;
                         pass
                 rule = 'rule %s%s_LINKER\n' % (langname, crstr)
                 if mesonlib.is_windows():
-                    command_template = ''' command = %s @$out.rsp
+                    command_template = ''' command = {executable} @$out.rsp
  rspfile = $out.rsp
- rspfile_content = %s $ARGS  %s $in $LINK_ARGS $aliasing
+ rspfile_content = $ARGS  {output_args} $in $LINK_ARGS {cross_args} $aliasing
 '''
                 else:
-                    command_template = ' command = %s %s $ARGS  %s $in $LINK_ARGS $aliasing\n'
-                command = command_template % (
-                    ' '.join(compiler.get_linker_exelist()),
-                    ' '.join(cross_args),
-                    ' '.join(compiler.get_linker_output_args('$out')))
+                    command_template = ' command = {executable} $ARGS {output_args} $in $LINK_ARGS {cross_args} $aliasing\n'
+                command = command_template.format(
+                    executable=' '.join(compiler.get_linker_exelist()),
+                    cross_args=' '.join(cross_args),
+                    output_args=' '.join(compiler.get_linker_output_args('$out'))
+                )
                 description = ' description = Linking target $out'
                 outfile.write(rule)
                 outfile.write(command)
@@ -1386,17 +1388,18 @@ rule FORTRAN_DEP_HACK
         if getattr(self, 'created_llvm_ir_rule', False):
             return
         rule = 'rule llvm_ir{}_COMPILER\n'.format('_CROSS' if is_cross else '')
-        args = [' '.join([ninja_quote(i) for i in compiler.get_exelist()]),
-                ' '.join(self.get_cross_info_lang_args(compiler.language, is_cross)),
-                ' '.join(compiler.get_output_args('$out')),
-                ' '.join(compiler.get_compile_only_args())]
         if mesonlib.is_windows():
-            command_template = ' command = {} @$out.rsp\n' \
+            command_template = ' command = {executable} @$out.rsp\n' \
                                ' rspfile = $out.rsp\n' \
-                               ' rspfile_content = {} $ARGS {} {} $in\n'
+                               ' rspfile_content = {cross_args} $ARGS {output_args} {compile_only_args} $in\n'
         else:
-            command_template = ' command = {} {} $ARGS {} {} $in\n'
-        command = command_template.format(*args)
+            command_template = ' command = {executable} {cross_args} $ARGS {output_args} {compile_only_args} $in\n'
+        command = command_template.format(
+            executable=' '.join([ninja_quote(i) for i in compiler.get_exelist()]),
+            cross_args=' '.join(self.get_cross_info_lang_args(compiler.language, is_cross)),
+            output_args=' '.join(compiler.get_output_args('$out')),
+            compile_only_args=' '.join(compiler.get_compile_only_args())
+        )
         description = ' description = Compiling LLVM IR object $in.\n'
         outfile.write(rule)
         outfile.write(command)
@@ -1448,18 +1451,19 @@ rule FORTRAN_DEP_HACK
             quoted_depargs.append(d)
         cross_args = self.get_cross_info_lang_args(langname, is_cross)
         if mesonlib.is_windows():
-            command_template = ''' command = %s @$out.rsp
+            command_template = ''' command = {executable} @$out.rsp
  rspfile = $out.rsp
- rspfile_content = %s $ARGS %s %s %s $in
+ rspfile_content = {cross_args} $ARGS {dep_args} {output_args} {compile_only_args} $in
 '''
         else:
-            command_template = ' command = %s %s $ARGS %s %s %s $in\n'
-        command = command_template % (
-            ' '.join([ninja_quote(i) for i in compiler.get_exelist()]),
-            ' '.join(cross_args),
-            ' '.join(quoted_depargs),
-            ' '.join(compiler.get_output_args('$out')),
-            ' '.join(compiler.get_compile_only_args()))
+            command_template = ' command = {executable} {cross_args} $ARGS {dep_args} {output_args} {compile_only_args} $in\n'
+        command = command_template.format(
+            executable=' '.join([ninja_quote(i) for i in compiler.get_exelist()]),
+            cross_args=' '.join(cross_args),
+            dep_args=' '.join(quoted_depargs),
+            output_args=' '.join(compiler.get_output_args('$out')),
+            compile_only_args=' '.join(compiler.get_compile_only_args())
+        )
         description = ' description = Compiling %s object $out\n' % langname
         if compiler.get_id() == 'msvc':
             deps = ' deps = msvc\n'
@@ -1497,12 +1501,13 @@ rule FORTRAN_DEP_HACK
             output = ''
         else:
             output = ' '.join(compiler.get_output_args('$out'))
-        command = " command = %s %s $ARGS %s %s %s $in\n" % (
-            ' '.join(compiler.get_exelist()),
-            ' '.join(cross_args),
-            ' '.join(quoted_depargs),
-            output,
-            ' '.join(compiler.get_compile_only_args()))
+        command = " command = {executable} {cross_args} $ARGS {dep_args} {output_args} {compile_only_args} $in\n".format(
+            executable=' '.join(compiler.get_exelist()),
+            cross_args=' '.join(cross_args),
+            dep_args=' '.join(quoted_depargs),
+            output_args=output,
+            compile_only_args=' '.join(compiler.get_compile_only_args())
+        )
         description = ' description = Precompiling header %s\n' % '$in'
         if compiler.get_id() == 'msvc':
             deps = ' deps = msvc\n'
