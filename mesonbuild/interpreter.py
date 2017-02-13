@@ -2214,9 +2214,13 @@ requirements use the version keyword argument instead.''')
             raise InterpreterException("configure_file takes only keyword arguments.")
         if 'output' not in kwargs:
             raise InterpreterException('Required keyword argument "output" not defined.')
+        if 'configuration' in kwargs and 'command' in kwargs:
+            raise InterpreterException('Must not specify both "configuration" '
+                                       'and "command" keyword arguments since '
+                                       'they are mutually exclusive.')
         inputfile = kwargs.get('input', None)
         output = kwargs['output']
-        if not isinstance(inputfile, (str, type(None))):
+        if inputfile is not None and not isinstance(inputfile, str):
             raise InterpreterException('Input must be a string.')
         if not isinstance(output, str):
             raise InterpreterException('Output must be a string.')
