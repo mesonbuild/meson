@@ -349,7 +349,7 @@ class Environment:
         evar = 'CC'
         if self.is_cross_build() and want_cross:
             compilers = [self.cross_info.config['binaries']['c']]
-            ccache = []
+            ccache = self.detect_ccache()
             is_cross = True
             if self.cross_info.need_exe_wrapper():
                 exe_wrap = self.cross_info.config['binaries'].get('exe_wrapper', None)
