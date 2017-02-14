@@ -2255,8 +2255,27 @@ requirements use the version keyword argument instead.''')
 
     @stringArgs
     def func_include_directories(self, node, args, kwargs):
-        absbase = os.path.join(self.environment.get_source_dir(), self.subdir)
+        src_root = self.environment.get_source_dir()
+        absbase = os.path.join(src_root, self.subdir)
         for a in args:
+            if a.startswith(src_root):
+                raise InvalidArguments('''Tried to form an absolute path to a source dir. You should not do that but use
+relative paths instead.
+
+To get include path to any directory relative to the current dir do
+
+incdir = include_directories(dirname)
+
+After this incdir will contain both the current source dir as well as the
+corresponding build dir. It can then be used in any subdirectory and
+Meson will take care of all the busywork to make paths work.
+
+Dirname can even be '.' to mark the current directory. Though you should
+remember that the current source and build directories are always
+put in the include directories by default so you only need to do
+include_directories('.') if you intend to use the result in a
+different subdirectory.
+''')
             absdir = os.path.join(absbase, a)
             if not os.path.isdir(absdir):
                 raise InvalidArguments('Include dir %s does not exist.' % a)
