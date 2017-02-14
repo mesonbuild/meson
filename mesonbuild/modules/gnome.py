@@ -870,6 +870,7 @@ can not be used with the current version of glib-compiled-resources, due to
         }
         custom_kwargs.update(kwargs)
         return build.CustomTarget(output, state.subdir, custom_kwargs,
+                                  # https://github.com/mesonbuild/meson/issues/973
                                   absolute_paths=True)
 
     def genmarshal(self, state, args, kwargs):
