@@ -1298,6 +1298,29 @@ class CustomTarget(Target):
                 deps.append(c)
         return deps
 
+    def flatten_command(self, cmd):
+        if not isinstance(cmd, list):
+            cmd = [cmd]
+        final_cmd = []
+        for c in cmd:
+            if hasattr(c, 'held_object'):
+                c = c.held_object
+            if isinstance(c, (str, File)):
+                final_cmd.append(c)
+            elif isinstance(c, dependencies.ExternalProgram):
+                if not c.found():
+                    m = 'Tried to use not-found external program {!r} in "command"'
+                    raise InvalidArguments(m.format(c.name))
+                final_cmd += c.get_command()
+            elif isinstance(c, (BuildTarget, CustomTarget)):
+                self.dependencies.append(c)
+                final_cmd.append(c)
+            elif isinstance(c, list):
+                final_cmd += self.flatten_command(c)
+            else:
+                raise InvalidArguments('Argument {!r} in "command" is invalid'.format(c))
+        return final_cmd
+
     def process_kwargs(self, kwargs):
         super().process_kwargs(kwargs)
         self.sources = kwargs.get('input', [])
@@ -1325,32 +1348,7 @@ class CustomTarget(Target):
             if os.path.split(depfile)[1] != depfile:
                 raise InvalidArguments('Depfile must be a plain filename without a subdirectory.')
             self.depfile = depfile
-        cmd = kwargs['command']
-        if not(isinstance(cmd, list)):
-            cmd = [cmd]
-        final_cmd = []
-        for i, c in enumerate(cmd):
-            if hasattr(c, 'held_object'):
-                c = c.held_object
-            if isinstance(c, (str, File)):
-                final_cmd.append(c)
-            elif isinstance(c, dependencies.ExternalProgram):
-                if not c.found():
-                    raise InvalidArguments('Tried to use not found external program {!r} in a build rule.'.format(c.name))
-                final_cmd += c.get_command()
-            elif isinstance(c, (BuildTarget, CustomTarget)):
-                self.dependencies.append(c)
-                final_cmd.append(c)
-            elif isinstance(c, list):
-                # Hackety hack, only supports one level of flattening. Should really
-                # work to arbtrary depth.
-                for s in c:
-                    if not isinstance(s, str):
-                        raise InvalidArguments('Array as argument %d contains a non-string.' % i)
-                    final_cmd.append(s)
-            else:
-                raise InvalidArguments('Argument %s in "command" is invalid.' % i)
-        self.command = final_cmd
+        self.command = self.flatten_command(kwargs['command'])
         if self.capture:
             for c in self.command:
                 if isinstance(c, str) and '@OUTPUT@' in c:
