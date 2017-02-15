@@ -32,6 +32,7 @@ known_basic_kwargs = {'install': True,
                       'fortran_args': True,
                       'd_args': True,
                       'java_args': True,
+                      'link_args_pre': True,
                       'link_args': True,
                       'link_depends': True,
                       'link_with': True,
@@ -583,6 +584,14 @@ class BuildTarget(Target):
         self.vala_gir = kwargs.get('vala_gir', None)
         dlist = stringlistify(kwargs.get('d_args', []))
         self.add_compiler_args('d', dlist)
+
+        self.link_args_pre = kwargs.get('link_args_pre', [])
+        if not isinstance(self.link_args_pre, list):
+            self.link_args = [self.link_args_pre]
+        for i in self.link_args_pre:
+            if not isinstance(i, str):
+                raise InvalidArguments('Link_args_pre arguments must be strings.')
+
         self.link_args = kwargs.get('link_args', [])
         if not isinstance(self.link_args, list):
             self.link_args = [self.link_args]

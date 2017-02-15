@@ -1284,10 +1284,10 @@ int dummy;
                 if mesonlib.is_windows():
                     command_template = ''' command = {executable} @$out.rsp
  rspfile = $out.rsp
- rspfile_content = $ARGS  {output_args} $in $LINK_ARGS {cross_args} $aliasing
+ rspfile_content = $ARGS  {output_args} $LINK_ARGS_PRE $in $LINK_ARGS {cross_args} $aliasing
 '''
                 else:
-                    command_template = ' command = {executable} $ARGS {output_args} $in $LINK_ARGS {cross_args} $aliasing\n'
+                    command_template = ' command = {executable} $ARGS {output_args} $LINK_ARGS_PRE $in $LINK_ARGS {cross_args} $aliasing\n'
                 command = command_template.format(
                     executable=' '.join(compiler.get_linker_exelist()),
                     cross_args=' '.join(cross_args),
@@ -2190,6 +2190,7 @@ rule FORTRAN_DEP_HACK
         elem = NinjaBuildElement(self.all_outputs, outname, linker_rule, obj_list)
         elem.add_dep(dep_targets + custom_target_libraries)
         elem.add_item('LINK_ARGS', commands)
+        elem.add_item('LINK_ARGS_PRE', target.link_args_pre)
         return elem
 
     def determine_rpath_dirs(self, target):
