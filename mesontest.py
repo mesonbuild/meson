@@ -159,34 +159,12 @@ class TestHarness:
         self.skip_count = 0
         self.timeout_count = 0
         self.is_run = False
-        self.cant_rebuild = False
         self.tests = None
         self.suites = None
         if self.options.benchmark:
             self.load_datafile(os.path.join(options.wd, 'meson-private', 'meson_benchmark_setup.dat'))
         else:
             self.load_datafile(os.path.join(options.wd, 'meson-private', 'meson_test_setup.dat'))
-
-    def rebuild_all(self):
-        if not os.path.isfile(os.path.join(self.options.wd, 'build.ninja')):
-            print("Only ninja backend is supported to rebuilt tests before running them.")
-            self.cant_rebuild = True
-            return True
-
-        ninja = environment.detect_ninja()
-        if not ninja:
-            print("Can't find ninja, can't rebuild test.")
-            self.cant_rebuild = True
-            return False
-
-        p = subprocess.Popen([ninja, '-C', self.options.wd])
-        (stdo, stde) = p.communicate()
-
-        if p.returncode != 0:
-            print("Could not rebuild")
-            return False
-
-        return True
 
     def run_single_test(self, wrap, test):
         if test.fname[0].endswith('.jar'):
@@ -548,6 +526,25 @@ def merge_suite_options(options):
         options.wrapper = current.exe_wrapper
     return current.env
 
+def rebuild_all(wd):
+    if not os.path.isfile(os.path.join(wd, 'build.ninja')):
+        print("Only ninja backend is supported to rebuild tests before running them.")
+        return True
+
+    ninja = environment.detect_ninja()
+    if not ninja:
+        print("Can't find ninja, can't rebuild test.")
+        return False
+
+    p = subprocess.Popen([ninja, '-C', wd])
+    (stdo, stde) = p.communicate()
+
+    if p.returncode != 0:
+        print("Could not rebuild")
+        return False
+
+    return True
+
 def run(args):
     options = parser.parse_args(args)
 
@@ -573,13 +570,14 @@ def run(args):
 
     options.wd = os.path.abspath(options.wd)
 
+    if not options.no_rebuild:
+        if not rebuild_all(options.wd):
+            sys.exit(-1)
+
     th = TestHarness(options)
     if options.list:
         list_tests(th)
         return 0
-    if not options.no_rebuild:
-        if not th.rebuild_all():
-            sys.exit(-1)
     if len(options.args) == 0:
         return th.doit()
     return th.run_special()
