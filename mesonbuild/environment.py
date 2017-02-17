@@ -19,6 +19,7 @@ from . import mlog
 from .compilers import *
 from .mesonlib import EnvironmentException, Popen_safe
 import configparser
+import shlex
 import shutil
 
 build_filename = 'meson.build'
@@ -356,7 +357,7 @@ class Environment:
             else:
                 exe_wrap = []
         elif evar in os.environ:
-            compilers = os.environ[evar].split()
+            compilers = shlex.split(os.environ[evar])
             ccache = []
             is_cross = False
             exe_wrap = None
