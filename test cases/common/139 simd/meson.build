@@ -31,6 +31,7 @@ simdarr = [['-mmmx', 'HAVE_MMX', 'simd_mmx', 'simd_mmx.c'],
  ['-msse4.2', 'HAVE_SSE42', 'simd_sse42', 'simd_sse42.c'],
  ['-mavx', 'HAVE_AVX', 'simd_avx', 'simd_avx.c'],
  ['-mavx2', 'HAVE_AVX2', 'simd_avx2', 'simd_avx2.c'],
+ ['-mfpu=neon', 'HAVE_NEON', 'simd_neon', 'simd_neon.c'],
 ]
 
 foreach ia : simdarr

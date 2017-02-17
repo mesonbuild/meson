@@ -17,6 +17,12 @@ int main(int argc, char **argv) {
 /* Add here. The first matched one is used so put "better" instruction
  * sets at the top.
  */
+#if HAVE_NEON
+    if(fptr == NULL && neon_available()) {
+        fptr = increment_neon;
+        type = "NEON";
+    }
+#endif
 #if HAVE_AVX2
     if(fptr == NULL && avx2_available()) {
         fptr = increment_avx2;

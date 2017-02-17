@@ -54,9 +54,9 @@ int avx2_available();
 void increment_avx2(float arr[4]);
 #endif
 
-#if HAVE_THUMB
-int thumb_available();
-void increment_thumb(float arr[4]);
+#if HAVE_NEON
+int neon_available();
+void increment_neon(float arr[4]);
 #endif
 
 #if HAVE_ALTIVEC
