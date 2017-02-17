@@ -1,4 +1,4 @@
-project('dep versions', 'c')
+project('dep versions', 'c', 'cpp')
 
 # Find external dependency without version
 zlib = dependency('zlib')

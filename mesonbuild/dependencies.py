@@ -1,4 +1,4 @@
-# Copyright 2013-2015 The Meson development team
+# Copyright 2013-2017 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -589,6 +589,9 @@ class BoostDependency(Dependency):
             mlog.log('Dependency Boost (%s) found:' % module_str, mlog.green('YES'), info)
         else:
             mlog.log("Dependency Boost (%s) found:" % module_str, mlog.red('NO'))
+        if 'cpp' not in self.environment.coredata.compilers:
+            raise DependencyException('Tried to use Boost but a C++ compiler is not defined.')
+        self.cpp_compiler = self.environment.coredata.compilers['cpp']
 
     def detect_win_root(self):
         globtext = 'c:\\local\\boost_*'
@@ -721,8 +724,19 @@ class BoostDependency(Dependency):
             args.append('-L' + os.path.join(self.boost_root, 'lib'))
         for module in self.requested_modules:
             module = BoostDependency.name2lib.get(module, module)
-            if module in self.lib_modules or module in self.lib_modules_mt:
-                linkcmd = '-lboost_' + module
+            libname = 'boost_' + module
+            # The compiler's library detector is the most reliable so use that first.
+            default_detect = self.cpp_compiler.find_library(libname, self.environment, [])
+            if default_detect is not None:
+                if module == 'unit_testing_framework':
+                    emon_args = self.cpp_compiler.find_library('boost_test_exec_monitor')
+                else:
+                    emon_args = None
+                args += default_detect
+                if emon_args is not None:
+                    args += emon_args
+            elif module in self.lib_modules or module in self.lib_modules_mt:
+                linkcmd = '-l' + libname
                 args.append(linkcmd)
                 # FIXME a hack, but Boost's testing framework has a lot of
                 # different options and it's hard to determine what to do
