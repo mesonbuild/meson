@@ -228,6 +228,19 @@ base_options = {'b_pch': coredata.UserBooleanOption('b_pch', 'Use precompiled he
                                                           True),
                 }
 
+gnulike_instruction_set_args = {'mmx': ['-mmmx'],
+                                'sse': ['-msse'],
+                                'sse2': ['-msse2'],
+                                'sse3': ['-msse3'],
+                                'ssse3': ['-mssse3'],
+                                'sse41': ['-msse4.1'],
+                                'sse42': ['-msse4.2'],
+                                'avx': ['-mavx'],
+                                'avx2': ['-mavx2'],
+                                'neon': ['-mfpu=neon'],
+                                }
+
+
 def sanitizer_compile_args(value):
     if value == 'none':
         return []
@@ -755,6 +768,12 @@ class Compiler:
             return []
         raise EnvironmentException('Language %s does not support linking whole archives.' % self.get_display_language())
 
+    # Compiler arguments needed to enable the given instruction set.
+    # May be [] meaning nothing needed or None meaning the given set
+    # is not supported.
+    def get_instruction_set_args(self, instruction_set):
+        return None
+
     def build_unix_rpath_args(self, build_dir, from_dir, rpath_paths, install_rpath):
         if not rpath_paths and not install_rpath:
             return []
@@ -933,6 +952,10 @@ class GnuCompiler:
             return ['-mwindows']
         return []
 
+    def get_instruction_set_args(self, instruction_set):
+        return gnulike_instruction_set_args.get(instruction_set, None)
+
+
 class ClangCompiler:
     def __init__(self, clang_type):
         self.id = 'clang'
@@ -1009,6 +1032,9 @@ class ClangCompiler:
                 result += ['-Wl,-force_load', a]
             return result
         return ['-Wl,--whole-archive'] + args + ['-Wl,--no-whole-archive']
+
+    def get_instruction_set_args(self, instruction_set):
+        return gnulike_instruction_set_args.get(instruction_set, None)
 
 
 # Tested on linux for ICC 14.0.3, 15.0.6, 16.0.4, 17.0.1
