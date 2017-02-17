@@ -34,6 +34,11 @@ int ssse3_available();
 void increment_ssse3(float arr[4]);
 #endif
 
+#if HAVE_SSE41
+int sse41_available();
+void increment_sse41(float arr[4]);
+#endif
+
 #if HAVE_AVX
 int avx_available();
 void increment_avx(float arr[4]);
