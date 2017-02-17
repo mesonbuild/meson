@@ -30,6 +30,7 @@ simdarr = [['-mmmx', 'HAVE_MMX', 'simd_mmx', 'simd_mmx.c'],
  ['-msse4.1', 'HAVE_SSE41', 'simd_sse41', 'simd_sse41.c'],
  ['-msse4.2', 'HAVE_SSE42', 'simd_sse42', 'simd_sse42.c'],
  ['-mavx', 'HAVE_AVX', 'simd_avx', 'simd_avx.c'],
+ ['-mavx2', 'HAVE_AVX2', 'simd_avx2', 'simd_avx2.c'],
 ]
 
 foreach ia : simdarr
