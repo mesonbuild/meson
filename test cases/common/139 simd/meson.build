@@ -18,7 +18,6 @@ cdata = configuration_data()
 
 # The following headers need to be added. Also Thumb and Altivec.
 #<wmmintrin.h> AES
-#<immintrin.h> AVX
 #<zmmintrin.h> AVX512
 
 simdlibs = []
@@ -30,6 +29,7 @@ simdarr = [['-mmmx', 'HAVE_MMX', 'simd_mmx', 'simd_mmx.c'],
  ['-mssse3', 'HAVE_SSSE3', 'simd_ssse3', 'simd_ssse3.c'],
  ['-msse4.1', 'HAVE_SSE41', 'simd_sse41', 'simd_sse41.c'],
  ['-msse4.2', 'HAVE_SSE42', 'simd_sse42', 'simd_sse42.c'],
+ ['-mavx', 'HAVE_AVX', 'simd_avx', 'simd_avx.c'],
 ]
 
 foreach ia : simdarr
