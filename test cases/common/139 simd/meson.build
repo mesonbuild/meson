@@ -17,8 +17,6 @@ cdata = configuration_data()
 # and then have a target that uses the result in links_with.
 
 # The following headers need to be added. Also Thumb and Altivec.
-#<nmmintrin.h> SSE4.2
-#<ammintrin.h> SSE4A
 #<wmmintrin.h> AES
 #<immintrin.h> AVX
 #<zmmintrin.h> AVX512
@@ -31,6 +29,7 @@ simdarr = [['-mmmx', 'HAVE_MMX', 'simd_mmx', 'simd_mmx.c'],
  ['-msse3', 'HAVE_SSE3', 'simd_sse3', 'simd_sse3.c'],
  ['-mssse3', 'HAVE_SSSE3', 'simd_ssse3', 'simd_ssse3.c'],
  ['-msse4.1', 'HAVE_SSE41', 'simd_sse41', 'simd_sse41.c'],
+ ['-msse4.2', 'HAVE_SSE42', 'simd_sse42', 'simd_sse42.c'],
 ]
 
 foreach ia : simdarr

@@ -17,6 +17,12 @@ int main(int argc, char **argv) {
 /* Add here. The first matched one is used so put "better" instruction
  * sets at the top.
  */
+#if HAVE_SSE42
+    if(fptr == NULL && sse42_available()) {
+        fptr = increment_sse42;
+        type = "SSE42";
+    }
+#endif
 #if HAVE_SSE41
     if(fptr == NULL && sse41_available()) {
         fptr = increment_sse41;
