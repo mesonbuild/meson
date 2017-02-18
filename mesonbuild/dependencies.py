@@ -120,8 +120,8 @@ class PkgConfigDependency(Dependency):
                 if self.required:
                     raise DependencyException('Pkg-config binary missing from cross file')
             else:
-                potential_pkgbin = ExternalProgram(environment.cross_info.config['binaries'].get('pkgconfig', 'non_existing_binary'),
-                                                   silent=True)
+                pkgname = environment.cross_info.config['binaries']['pkgconfig']
+                potential_pkgbin = ExternalProgram(pkgname, silent=True)
                 if potential_pkgbin.found():
                     # FIXME, we should store all pkg-configs in ExternalPrograms.
                     # However that is too destabilizing a change to do just before release.
