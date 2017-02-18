@@ -2218,12 +2218,24 @@ requirements use the version keyword argument instead.''')
             raise InterpreterException('Must not specify both "configuration" '
                                        'and "command" keyword arguments since '
                                        'they are mutually exclusive.')
-        inputfile = kwargs.get('input', None)
+        # Validate input
+        inputfile = None
+        if 'input' in kwargs:
+            inputfile = kwargs['input']
+            if isinstance(inputfile, list):
+                if len(inputfile) != 1:
+                    m = "Keyword argument 'input' requires exactly one file"
+                    raise InterpreterException(m)
+                inputfile = inputfile[0]
+            if not isinstance(inputfile, (str, mesonlib.File)):
+                raise InterpreterException('Input must be a string or a file')
+            ifile_abs = os.path.join(self.environment.source_dir, self.subdir, inputfile)
+        elif 'command' in kwargs:
+            raise InterpreterException('Required keyword argument \'input\' missing')
+        # Validate output
         output = kwargs['output']
-        if inputfile is not None and not isinstance(inputfile, str):
-            raise InterpreterException('Input must be a string.')
         if not isinstance(output, str):
-            raise InterpreterException('Output must be a string.')
+            raise InterpreterException('Output file name must be a string')
         if os.path.split(output)[0] != '':
             raise InterpreterException('Output file name must not contain a subdirectory.')
         (ofile_path, ofile_fname) = os.path.split(os.path.join(self.subdir, output))
@@ -2232,6 +2244,7 @@ requirements use the version keyword argument instead.''')
             conf = kwargs['configuration']
             if not isinstance(conf, ConfigurationDataHolder):
                 raise InterpreterException('Argument "configuration" is not of type configuration_data')
+            mlog.log('Configuring', mlog.bold(output), 'using configuration')
             if inputfile is not None:
                 # Normalize the path of the conffile to avoid duplicates
                 # This is especially important to convert '/' to '\' on Windows
@@ -2239,15 +2252,19 @@ requirements use the version keyword argument instead.''')
                 if conffile not in self.build_def_files:
                     self.build_def_files.append(conffile)
                 os.makedirs(os.path.join(self.environment.build_dir, self.subdir), exist_ok=True)
-                ifile_abs = os.path.join(self.environment.source_dir, self.subdir, inputfile)
                 mesonlib.do_conf_file(ifile_abs, ofile_abs, conf.held_object)
             else:
                 mesonlib.dump_conf_header(ofile_abs, conf.held_object)
             conf.mark_used()
         elif 'command' in kwargs:
-            if 'input' not in kwargs:
-                raise InterpreterException('Required keyword input missing.')
-            res = self.func_run_command(node, kwargs['command'], {})
+            # We use absolute paths for input and output here because the cwd
+            # that the command is run from is 'unspecified', so it could change.
+            # Currently it's builddir/subdir for in_builddir else srcdir/subdir.
+            values = mesonlib.get_filenames_templates_dict([ifile_abs], [ofile_abs])
+            # Substitute @INPUT@, @OUTPUT@, etc here.
+            cmd = mesonlib.substitute_values(kwargs['command'], values)
+            mlog.log('Configuring', mlog.bold(output), 'with command')
+            res = self.func_run_command(node, cmd, {'in_builddir': True})
             if res.returncode != 0:
                 raise InterpreterException('Running configure command failed.\n%s\n%s' %
                                            (res.stdout, res.stderr))

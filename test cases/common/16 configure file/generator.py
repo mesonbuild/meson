@@ -1,15 +1,17 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
-# On some platforms "python" points to Python 2
-# on others to Python 3. Work with both.
-
-from __future__ import print_function
 import sys, os
+from pathlib import Path
 
 if len(sys.argv) != 3:
     print("Wrong amount of parameters.")
 
-assert(os.path.exists(sys.argv[1]))
+build_dir = Path(os.environ['MESON_BUILD_ROOT'])
+subdir = Path(os.environ['MESON_SUBDIR'])
+inputf = Path(sys.argv[1])
+outputf = Path(sys.argv[2])
 
-with open(sys.argv[2], 'w') as ofile:
+assert(inputf.exists())
+
+with outputf.open('w') as ofile:
     ofile.write("#define ZERO_RESULT 0\n")
