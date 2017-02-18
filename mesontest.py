@@ -519,6 +519,8 @@ TIMEOUT: %4d
         if os.path.isfile('build.ninja'):
             subprocess.check_call([environment.detect_ninja(), 'all'])
         tests = self.get_tests()
+        if not tests:
+            return 0
         self.run_tests(tests)
         return self.fail_count
 
