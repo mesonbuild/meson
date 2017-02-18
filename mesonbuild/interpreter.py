@@ -308,9 +308,6 @@ class ExternalLibraryHolder(InterpreterObject):
     def found_method(self, args, kwargs):
         return self.found()
 
-    def get_filename(self):
-        return self.held_object.fullpath
-
     def get_name(self):
         return self.held_object.name
 

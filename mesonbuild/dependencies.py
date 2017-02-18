@@ -564,6 +564,9 @@ class ExternalLibrary(Dependency):
     def found(self):
         return self.is_found
 
+    def get_name(self):
+        return self.name
+
     def get_link_args(self):
         return self.link_args
 
