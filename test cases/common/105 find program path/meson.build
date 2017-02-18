@@ -8,3 +8,11 @@ if not python.found()
 endif
 
 run_command(python, prog.path())
+
+progf = files('program.py')
+py = configure_file(input : 'program.py',
+                    output : 'builtprogram.py',
+                    configuration : configuration_data())
+
+find_program(py)
+find_program(progf)

@@ -1759,7 +1759,6 @@ class Interpreter(InterpreterBase):
                     break
             self.coredata.base_options[optname] = oobj
 
-    @stringArgs
     def func_find_program(self, node, args, kwargs):
         if len(args) == 0:
             raise InterpreterException('No program name specified.')
@@ -1769,8 +1768,21 @@ class Interpreter(InterpreterBase):
         # Search for scripts relative to current subdir.
         # Do not cache found programs because find_program('foobar')
         # might give different results when run from different source dirs.
-        search_dir = os.path.join(self.environment.get_source_dir(), self.subdir)
+        source_dir = os.path.join(self.environment.get_source_dir(), self.subdir)
         for exename in args:
+            if isinstance(exename, mesonlib.File):
+                if exename.is_built:
+                    search_dir = os.path.join(self.environment.get_build_dir(),
+                                              exename.subdir)
+                else:
+                    search_dir = os.path.join(self.environment.get_source_dir(),
+                                              exename.subdir)
+                exename = exename.fname
+            elif isinstance(exename, str):
+                search_dir = source_dir
+            else:
+                raise InvalidArguments('find_program only accepts strings and '
+                                       'files, not {!r}'.format(exename))
             extprog = dependencies.ExternalProgram(exename, search_dir=search_dir)
             progobj = ExternalProgramHolder(extprog)
             if progobj.found():
