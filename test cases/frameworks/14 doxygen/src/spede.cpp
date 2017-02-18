@@ -1,5 +1,30 @@
 #include<spede.h>
 
+/**
+ * \file spede.cpp
+ *
+ * This file contains the implementation of the king of comedy.
+ */
+
+/**
+ * \mainpage The Vast Comedian Project
+ *
+ * \section intro Introduction
+ *
+ * The purpose of this project is to model every single comedian
+ * who has ever lived.
+ *
+ * \section sched Project schedule
+ *
+ * There is no real estimate on when this will be finished.
+ */
+
+/**
+ * \namespace Comedy
+ *
+ * This contains everything that is funny.
+ */
+
 namespace Comedy {
 
 /**
