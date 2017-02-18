@@ -1421,7 +1421,8 @@ class Interpreter(InterpreterBase):
         elif isinstance(cmd, str):
             cmd = [cmd]
         else:
-            raise InterpreterException('First argument is of incorrect type.')
+            raise InterpreterException('First argument should be find_program() '
+                                       'or string, not {!r}'.format(cmd))
         expanded_args = []
         for a in mesonlib.flatten(cargs):
             if isinstance(a, str):
