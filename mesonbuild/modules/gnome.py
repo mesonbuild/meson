@@ -37,7 +37,7 @@ from . import ExtensionModule
 #
 # https://github.com/ninja-build/ninja/issues/1184
 # https://bugzilla.gnome.org/show_bug.cgi?id=774368
-gresource_dep_needed_version = '>= 2.52.0'
+gresource_dep_needed_version = '>= 2.51.1'
 
 native_glib_version = None
 girwarning_printed = False
