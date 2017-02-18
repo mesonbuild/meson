@@ -108,7 +108,7 @@ class RPMModule(ExtensionModule):
                     fn.write('BuildRequires: %%{_bindir}/%s # FIXME\n' %
                              prog.get_name())
                 else:
-                    fn.write('BuildRequires: %s\n' % ' '.join(prog.fullpath))
+                    fn.write('BuildRequires: {}\n'.format(prog.get_path()))
             fn.write('BuildRequires: meson\n')
             fn.write('\n')
             fn.write('%description\n')

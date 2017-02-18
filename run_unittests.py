@@ -585,9 +585,9 @@ class WindowsTests(BasePlatformTests):
         self.assertTrue(prog1.found(), msg='cmd not found')
         prog2 = ExternalProgram('cmd.exe')
         self.assertTrue(prog2.found(), msg='cmd.exe not found')
-        self.assertPathEqual(prog1.fullpath[0], prog2.fullpath[0])
+        self.assertPathEqual(prog1.get_path(), prog2.get_path())
         # Find cmd with an absolute path that's missing the extension
-        cmd_path = prog2.fullpath[0][:-4]
+        cmd_path = prog2.get_path()[:-4]
         prog = ExternalProgram(cmd_path)
         self.assertTrue(prog.found(), msg='{!r} not found'.format(cmd_path))
         # Finding a script with no extension inside a directory works
@@ -600,13 +600,13 @@ class WindowsTests(BasePlatformTests):
         os.environ['PATH'] += os.pathsep + testdir
         prog = ExternalProgram('test-script-ext')
         self.assertTrue(prog.found(), msg='test-script-ext not found in PATH')
-        self.assertPathEqual(prog.fullpath[0], sys.executable)
-        self.assertPathBasenameEqual(prog.fullpath[1], 'test-script-ext.py')
+        self.assertPathEqual(prog.get_command()[0], sys.executable)
+        self.assertPathBasenameEqual(prog.get_path(), 'test-script-ext.py')
         # Finding a script in PATH with extension works and adds the interpreter
         prog = ExternalProgram('test-script-ext.py')
         self.assertTrue(prog.found(), msg='test-script-ext.py not found in PATH')
-        self.assertPathEqual(prog.fullpath[0], sys.executable)
-        self.assertPathBasenameEqual(prog.fullpath[1], 'test-script-ext.py')
+        self.assertPathEqual(prog.get_command()[0], sys.executable)
+        self.assertPathBasenameEqual(prog.get_path(), 'test-script-ext.py')
 
 
 class LinuxlikeTests(BasePlatformTests):

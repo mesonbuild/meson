@@ -285,16 +285,16 @@ class ExternalProgramHolder(InterpreterObject):
         return self.found()
 
     def path_method(self, args, kwargs):
-        return self.get_command()
+        return self.held_object.get_path()
 
     def found(self):
         return self.held_object.found()
 
     def get_command(self):
-        return self.held_object.fullpath
+        return self.held_object.get_command()
 
     def get_name(self):
-        return self.held_object.name
+        return self.held_object.get_name()
 
 class ExternalLibraryHolder(InterpreterObject):
     def __init__(self, el):

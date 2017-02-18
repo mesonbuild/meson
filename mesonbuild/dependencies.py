@@ -404,25 +404,25 @@ class WxDependency(Dependency):
 class ExternalProgram:
     windows_exts = ('exe', 'msc', 'com', 'bat')
 
-    def __init__(self, name, fullpath=None, silent=False, search_dir=None):
+    def __init__(self, name, command=None, silent=False, search_dir=None):
         self.name = name
-        if fullpath is not None:
-            if not isinstance(fullpath, list):
-                self.fullpath = [fullpath]
+        if command is not None:
+            if not isinstance(command, list):
+                self.command = [command]
             else:
-                self.fullpath = fullpath
+                self.command = command
         else:
-            self.fullpath = self._search(name, search_dir)
+            self.command = self._search(name, search_dir)
         if not silent:
             if self.found():
                 mlog.log('Program', mlog.bold(name), 'found:', mlog.green('YES'),
-                         '(%s)' % ' '.join(self.fullpath))
+                         '(%s)' % ' '.join(self.command))
             else:
                 mlog.log('Program', mlog.bold(name), 'found:', mlog.red('NO'))
 
     def __repr__(self):
         r = '<{} {!r} -> {!r}>'
-        return r.format(self.__class__.__name__, self.name, self.fullpath)
+        return r.format(self.__class__.__name__, self.name, self.command)
 
     @staticmethod
     def _shebang_to_cmd(script):
@@ -485,22 +485,22 @@ class ExternalProgram:
         if commands:
             return commands
         # Do a standard search in PATH
-        fullpath = shutil.which(name)
+        command = shutil.which(name)
         if not mesonlib.is_windows():
             # On UNIX-like platforms, the standard PATH search is enough
-            return [fullpath]
+            return [command]
         # HERE BEGINS THE TERROR OF WINDOWS
-        if fullpath:
+        if command:
             # On Windows, even if the PATH search returned a full path, we can't be
             # sure that it can be run directly if it's not a native executable.
             # For instance, interpreted scripts sometimes need to be run explicitly
             # with an interpreter if the file association is not done properly.
-            name_ext = os.path.splitext(fullpath)[1]
+            name_ext = os.path.splitext(command)[1]
             if name_ext[1:].lower() in self.windows_exts:
                 # Good, it can be directly executed
-                return [fullpath]
+                return [command]
             # Try to extract the interpreter from the shebang
-            commands = self._shebang_to_cmd(fullpath)
+            commands = self._shebang_to_cmd(command)
             if commands:
                 return commands
         else:
@@ -509,9 +509,9 @@ class ExternalProgram:
             # but many people do it because it works in the MinGW shell.
             if os.path.isabs(name):
                 for ext in self.windows_exts:
-                    fullpath = '{}.{}'.format(name, ext)
-                    if os.path.exists(fullpath):
-                        return [fullpath]
+                    command = '{}.{}'.format(name, ext)
+                    if os.path.exists(command):
+                        return [command]
             # On Windows, interpreted scripts must have an extension otherwise they
             # cannot be found by a standard PATH search. So we do a custom search
             # where we manually search for a script with a shebang in PATH.
@@ -523,10 +523,17 @@ class ExternalProgram:
         return [None]
 
     def found(self):
-        return self.fullpath[0] is not None
+        return self.command[0] is not None
 
     def get_command(self):
-        return self.fullpath[:]
+        return self.command[:]
+
+    def get_path(self):
+        # Assume that the last element is the full path to the script
+        # If it's not a script, this will be an array of length 1
+        if self.found():
+            return self.command[-1]
+        return None
 
     def get_name(self):
         return self.name
@@ -1020,7 +1027,7 @@ class QtBaseDependency(Dependency):
             if not self.qmake.found():
                 continue
             # Check that the qmake is for qt5
-            pc, stdo = Popen_safe(self.qmake.fullpath + ['-v'])[0:2]
+            pc, stdo = Popen_safe(self.qmake.get_command() + ['-v'])[0:2]
             if pc.returncode != 0:
                 continue
             if not 'Qt version ' + self.qtver in stdo:
@@ -1033,7 +1040,7 @@ class QtBaseDependency(Dependency):
             return
         self.version = re.search(self.qtver + '(\.\d+)+', stdo).group(0)
         # Query library path, header path, and binary path
-        stdo = Popen_safe(self.qmake.fullpath + ['-query'])[1]
+        stdo = Popen_safe(self.qmake.get_command() + ['-query'])[1]
         qvars = {}
         for line in stdo.split('\n'):
             line = line.strip()

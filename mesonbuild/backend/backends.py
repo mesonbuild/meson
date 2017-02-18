@@ -215,13 +215,13 @@ class Backend:
         exe_data = os.path.join(self.environment.get_scratch_dir(), scratch_file)
         with open(exe_data, 'wb') as f:
             if isinstance(exe, dependencies.ExternalProgram):
-                exe_fullpath = exe.fullpath
+                exe_cmd = exe.get_command()
                 exe_needs_wrapper = False
             elif isinstance(exe, (build.BuildTarget, build.CustomTarget)):
-                exe_fullpath = [self.get_target_filename_abs(exe)]
+                exe_cmd = [self.get_target_filename_abs(exe)]
                 exe_needs_wrapper = exe.is_cross
             else:
-                exe_fullpath = [exe]
+                exe_cmd = [exe]
                 exe_needs_wrapper = False
             is_cross = exe_needs_wrapper and \
                 self.environment.is_cross_build() and \
@@ -235,7 +235,7 @@ class Backend:
                 extra_paths = self.determine_windows_extra_paths(exe)
             else:
                 extra_paths = []
-            es = ExecutableSerialisation(basename, exe_fullpath, cmd_args, env,
+            es = ExecutableSerialisation(basename, exe_cmd, cmd_args, env,
                                          is_cross, exe_wrapper, workdir,
                                          extra_paths, capture)
             pickle.dump(es, f)
@@ -444,9 +444,9 @@ class Backend:
         for t in tests:
             exe = t.get_exe()
             if isinstance(exe, dependencies.ExternalProgram):
-                fname = exe.fullpath
+                cmd = exe.get_command()
             else:
-                fname = [os.path.join(self.environment.get_build_dir(), self.get_target_filename(t.get_exe()))]
+                cmd = [os.path.join(self.environment.get_build_dir(), self.get_target_filename(t.get_exe()))]
             is_cross = self.environment.is_cross_build() and \
                 self.environment.cross_info.need_cross_compiler() and \
                 self.environment.cross_info.need_exe_wrapper()
@@ -471,7 +471,7 @@ class Backend:
                     cmd_args.append(self.get_target_filename(a))
                 else:
                     raise MesonException('Bad object in test command.')
-            ts = TestSerialisation(t.get_name(), t.suite, fname, is_cross, exe_wrapper,
+            ts = TestSerialisation(t.get_name(), t.suite, cmd, is_cross, exe_wrapper,
                                    t.is_parallel, cmd_args, t.env, t.should_fail,
                                    t.timeout, t.workdir, extra_paths)
             arr.append(ts)
