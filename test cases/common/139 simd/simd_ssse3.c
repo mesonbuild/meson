@@ -1,12 +1,17 @@
 #include<simdconfig.h>
 #include<simdfuncs.h>
 
+#include<emmintrin.h>
 #include<tmmintrin.h>
 #include<cpuid.h>
 #include<stdint.h>
 
 int ssse3_available() {
+#ifdef __APPLE__
+    return 1;
+#else
     return __builtin_cpu_supports("ssse3");
+#endif
 }
 
 void increment_ssse3(float arr[4]) {

@@ -1006,7 +1006,7 @@ class ClangCompiler:
 
     def has_multi_arguments(self, args, env):
         return super().has_multi_arguments(
-            ['-Werror=unknown-warning-option'] + args,
+            ['-Werror=unknown-warning-option', '-Werror=unused-command-line-argument'] + args,
             env)
 
     def has_function(self, funcname, prefix, env, extra_args=None, dependencies=None):
