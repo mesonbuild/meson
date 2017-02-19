@@ -8,7 +8,6 @@
 int mmx_available() {
   return 1;
 }
-
 /* Contrary to MSDN documentation, MMX intrinsics
  * just plain don't work.
  */
@@ -18,7 +17,18 @@ void increment_mmx(float arr[4]) {
   arr[2]++;
   arr[3]++;
 }
-
+#elif defined(__MINGW32__)
+int mmx_available() {
+  return 1;
+}
+/* MinGW does not seem to ship with MMX or it is broken.
+ */
+void increment_mmx(float arr[4]) {
+  arr[0]++;
+  arr[1]++;
+  arr[2]++;
+  arr[3]++;
+}
 #else
 #include<mmintrin.h>
 #include<cpuid.h>
@@ -30,12 +40,13 @@ void increment_mmx(float arr[4]) {
     /* Super ugly but we know that values in arr are always small
      * enough to fit in int16;
      */
+    int i;
     __m64 packed = _mm_set_pi16(arr[3], arr[2], arr[1], arr[0]);
     __m64 incr = _mm_set1_pi16(1);
     __m64 result = _mm_add_pi16(packed, incr);
     int64_t unpacker = _m_to_int64(result);
     _mm_empty();
-    for(int i=0; i<4; i++) {
+    for(i=0; i<4; i++) {
       arr[i] = (float)(unpacker & ((1<<16)-1));
         unpacker >>= 16;
     }

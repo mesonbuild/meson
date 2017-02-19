@@ -262,7 +262,7 @@ vs64_instruction_set_args = {'mmx': ['/arch:AVX'],
                              'avx': ['/arch:AVX'],
                              'avx2': ['/arch:AVX2'],
                              'neon': None,
-}
+                             }
 
 
 def sanitizer_compile_args(value):
