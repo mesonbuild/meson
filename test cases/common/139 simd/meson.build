@@ -6,6 +6,12 @@ cc = meson.get_compiler('c')
 
 cdata = configuration_data()
 
+if not meson.is_cross_build() and host_machine.cpu_family() == 'arm' and cc.get_id() == 'clang'
+  message('Adding -march=armv7 because assuming that this build happens on Raspbian.')
+  message('Its Clang seems to be misconfigured and does not support NEON by default.')
+  add_project_arguments('-march=armv7', language : 'c')
+endif
+
 simdlibs = simd.check('mysimds',
   mmx : 'simd_mmx.c',
   sse : 'simd_sse.c',
