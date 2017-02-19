@@ -240,6 +240,30 @@ gnulike_instruction_set_args = {'mmx': ['-mmmx'],
                                 'neon': ['-mfpu=neon'],
                                 }
 
+vs32_instruction_set_args = {'mmx': ['/arch:SSE'], # There does not seem to be a flag just for MMX
+                             'sse': ['/arch:SSE'],
+                             'sse2': ['/arch:SSE2'],
+                             'sse3': ['/arch:AVX'], # VS leaped from SSE2 directly to AVX.
+                             'sse41': ['/arch:AVX'],
+                             'sse42': ['/arch:AVX'],
+                             'avx': ['/arch:AVX'],
+                             'avx2': ['/arch:AVX2'],
+                             'neon': None,
+}
+
+# The 64 bit compiler defaults to /arch:avx.
+vs64_instruction_set_args = {'mmx': ['/arch:AVX'],
+                             'sse': ['/arch:AVX'],
+                             'sse2': ['/arch:AVX'],
+                             'sse3': ['/arch:AVX'],
+                             'ssse3': ['/arch:AVX'],
+                             'sse41': ['/arch:AVX'],
+                             'sse42': ['/arch:AVX'],
+                             'avx': ['/arch:AVX'],
+                             'avx2': ['/arch:AVX2'],
+                             'neon': None,
+}
+
 
 def sanitizer_compile_args(value):
     if value == 'none':

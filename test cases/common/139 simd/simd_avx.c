@@ -1,13 +1,21 @@
 #include<simdconfig.h>
 #include<simdfuncs.h>
+#include<stdint.h>
+
+#ifdef _MSC_VER
+#include<intrin.h>
+int avx_available() {
+  return 1;
+}
+#else
 
 #include<immintrin.h>
 #include<cpuid.h>
-#include<stdint.h>
 
 int avx_available() {
     return __builtin_cpu_supports("avx");
 }
+#endif
 
 void increment_avx(float arr[4]) {
     double darr[4];

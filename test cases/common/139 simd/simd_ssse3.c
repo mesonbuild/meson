@@ -3,6 +3,16 @@
 
 #include<emmintrin.h>
 #include<tmmintrin.h>
+
+#ifdef _MSC_VER
+#include<intrin.h>
+
+int ssse3_available() {
+  return 1;
+}
+
+#else
+
 #include<cpuid.h>
 #include<stdint.h>
 
@@ -14,11 +24,13 @@ int ssse3_available() {
 #endif
 }
 
+#endif
+
 void increment_ssse3(float arr[4]) {
     double darr[4];
     __m128d val1 = _mm_set_pd(arr[0], arr[1]);
     __m128d val2 = _mm_set_pd(arr[2], arr[3]);
-    __m128d one = _mm_set_pd1(1.0);
+    __m128d one = _mm_set_pd(1.0, 1.0);
     __m128d result = _mm_add_pd(val1, one);
     __m128i tmp1, tmp2;
     tmp1 = tmp2 = _mm_set1_epi16(0);

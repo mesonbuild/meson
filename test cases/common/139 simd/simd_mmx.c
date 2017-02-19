@@ -1,10 +1,27 @@
 #include<simdconfig.h>
 #include<simdfuncs.h>
 
-#include<mmintrin.h>
-#include<cpuid.h>
 #include<stdint.h>
 
+#ifdef _MSC_VER
+#include<intrin.h>
+int mmx_available() {
+  return 1;
+}
+
+/* Contrary to MSDN documentation, MMX intrinsics
+ * just plain don't work.
+ */
+void increment_mmx(float arr[4]) {
+  arr[0]++;
+  arr[1]++;
+  arr[2]++;
+  arr[3]++;
+}
+
+#else
+#include<mmintrin.h>
+#include<cpuid.h>
 int mmx_available() {
     return __builtin_cpu_supports("mmx");
 }
@@ -19,7 +36,9 @@ void increment_mmx(float arr[4]) {
     int64_t unpacker = _m_to_int64(result);
     _mm_empty();
     for(int i=0; i<4; i++) {
-        arr[i] = unpacker & ((1<<16)-1);
+      arr[i] = (float)(unpacker & ((1<<16)-1));
         unpacker >>= 16;
     }
 }
+
+#endif

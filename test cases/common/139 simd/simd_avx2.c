@@ -1,13 +1,24 @@
 #include<simdconfig.h>
 #include<simdfuncs.h>
+#include<stdint.h>
 
+/*
+ * FIXME add proper runtime detection for VS.
+ */
+
+#ifdef _MSC_VER
+#include<intrin.h>
+int avx2_available() {
+    return 0;
+}
+#else
 #include<immintrin.h>
 #include<cpuid.h>
-#include<stdint.h>
 
 int avx2_available() {
     return __builtin_cpu_supports("avx2");
 }
+#endif
 
 void increment_avx2(float arr[4]) {
     double darr[4];

@@ -810,7 +810,7 @@ class VisualStudioCCompiler(CCompiler):
     std_warn_args = ['/W3']
     std_opt_args = ['/O2']
 
-    def __init__(self, exelist, version, is_cross, exe_wrap):
+    def __init__(self, exelist, version, is_cross, exe_wrap, is_64):
         CCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
         self.id = 'msvc'
         # /showIncludes is needed for build dependency tracking in Ninja
@@ -820,6 +820,7 @@ class VisualStudioCCompiler(CCompiler):
                           '2': ['/W3'],
                           '3': ['/W4']}
         self.base_options = ['b_pch'] # FIXME add lto, pgo and the like
+        self.is_64 = True
 
     # Override CCompiler.get_always_args
     def get_always_args(self):
@@ -1005,3 +1006,10 @@ class VisualStudioCCompiler(CCompiler):
         if not isinstance(args, list):
             args = [args]
         return ['/WHOLEARCHIVE:' + x for x in args]
+
+    def get_instruction_set_args(self, instruction_set):
+        if self.is_64:
+            return vs64_instruction_set_args.get(instruction_set, None)
+        return vs32_instruction_set_args.get(instruction_set, None)
+
+
