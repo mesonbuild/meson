@@ -105,7 +105,13 @@ can not be used with the current version of glib-compiled-resources, due to
 
         ifile = args[1]
         if isinstance(ifile, mesonlib.File):
-            ifile = os.path.join(ifile.subdir, ifile.fname)
+            # glib-compile-resources will be run inside the source dir,
+            # so we need either 'src_to_build' or the absolute path.
+            # Absolute path is the easiest choice.
+            if ifile.is_built:
+                ifile = os.path.join(state.environment.get_build_dir(), ifile.subdir, ifile.fname)
+            else:
+                ifile = os.path.join(ifile.subdir, ifile.fname)
         elif isinstance(ifile, str):
             ifile = os.path.join(state.subdir, ifile)
         elif isinstance(ifile, (interpreter.CustomTargetHolder,
@@ -206,9 +212,10 @@ can not be used with the current version of glib-compiled-resources, due to
             cmd += ['--sourcedir', os.path.join(state.subdir, source_dir)]
         cmd += ['--sourcedir', state.subdir] # Current dir
 
-        pc, stdout = Popen_safe(cmd, cwd=state.environment.get_source_dir())[0:2]
+        pc, stdout, stderr = Popen_safe(cmd, cwd=state.environment.get_source_dir())
         if pc.returncode != 0:
-            mlog.warning('glib-compile-resources has failed to get the dependencies for {}'.format(cmd[1]))
+            m = 'glib-compile-resources failed to get dependencies for {}:\n{}'
+            mlog.warning(m.format(cmd[1], stderr))
             raise subprocess.CalledProcessError(pc.returncode, cmd)
 
         dep_files = stdout.split('\n')[:-1]
