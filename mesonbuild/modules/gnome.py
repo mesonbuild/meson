@@ -37,7 +37,7 @@ from . import ExtensionModule
 #
 # https://github.com/ninja-build/ninja/issues/1184
 # https://bugzilla.gnome.org/show_bug.cgi?id=774368
-gresource_dep_needed_version = '>= 2.52.0'
+gresource_dep_needed_version = '>= 2.51.1'
 
 native_glib_version = None
 girwarning_printed = False
@@ -74,14 +74,15 @@ class GnomeModule(ExtensionModule):
         global gresource_warning_printed
         if not gresource_warning_printed:
             if not mesonlib.version_compare(self._get_native_glib_version(state), gresource_dep_needed_version):
-                mlog.warning('''GLib compiled dependencies do not work reliably with
-the current version of GLib. See the following upstream issue:''',
+                mlog.warning('GLib compiled dependencies do not work reliably with \n'
+                             'the current version of GLib. See the following upstream issue:',
                              mlog.bold('https://bugzilla.gnome.org/show_bug.cgi?id=774368'))
             gresource_warning_printed = True
         return []
 
     def compile_resources(self, state, args, kwargs):
         self.__print_gresources_warning(state)
+        glib_version = self._get_native_glib_version(state)
 
         cmd = ['glib-compile-resources', '@INPUT@']
 
@@ -90,18 +91,27 @@ the current version of GLib. See the following upstream issue:''',
             source_dirs = [source_dirs]
 
         if len(args) < 2:
-            raise MesonException('Not enough arguments; The name of the resource and the path to the XML file are required')
+            raise MesonException('Not enough arguments; the name of the resource '
+                                 'and the path to the XML file are required')
 
         dependencies = kwargs.pop('dependencies', [])
         if not isinstance(dependencies, list):
             dependencies = [dependencies]
-
-        glib_version = self._get_native_glib_version(state)
-        if not mesonlib.version_compare(glib_version, gresource_dep_needed_version):
-            if len(dependencies) > 0:
-                raise MesonException('''The "dependencies" argument of gnome.compile_resources()
-can not be used with the current version of glib-compiled-resources, due to
-<https://bugzilla.gnome.org/show_bug.cgi?id=774368>''')
+        # Validate dependencies
+        for (ii, dep) in enumerate(dependencies):
+            if hasattr(dep, 'held_object'):
+                dependencies[ii] = dep = dep.held_object
+            if not isinstance(dep, (mesonlib.File, build.CustomTarget)):
+                m = 'Unexpected dependency type {!r} for gnome.compile_resources() ' \
+                    '"dependencies" argument.\nPlease pass the return value of ' \
+                    'custom_target() or configure_file()'
+                raise MesonException(m.format(dep))
+            if isinstance(dep, build.CustomTarget):
+                if not mesonlib.version_compare(glib_version, gresource_dep_needed_version):
+                    m = 'The "dependencies" argument of gnome.compile_resources() can not\n' \
+                        'be used with the current version of glib-compile-resources due to\n' \
+                        '<https://bugzilla.gnome.org/show_bug.cgi?id=774368>'
+                    raise MesonException(m)
 
         ifile = args[1]
         if isinstance(ifile, mesonlib.File):
@@ -183,13 +193,6 @@ can not be used with the current version of glib-compiled-resources, due to
         return ModuleReturnValue(rv, rv)
 
     def _get_gresource_dependencies(self, state, input_file, source_dirs, dependencies):
-        for dep in dependencies:
-            if not isinstance(dep, interpreter.CustomTargetHolder) and not \
-                    isinstance(dep, mesonlib.File):
-                raise MesonException(
-                    'Unexpected dependency type for gnome.compile_resources() '
-                    '"dependencies" argument. Please pass the output of '
-                    'custom_target() or configure_file().')
 
         cmd = ['glib-compile-resources',
                input_file,
