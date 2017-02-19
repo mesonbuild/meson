@@ -83,7 +83,7 @@ parser.add_argument('-v', '--verbose', default=False, action='store_true',
                     help='Do not redirect stdout and stderr')
 parser.add_argument('-q', '--quiet', default=False, action='store_true',
                     help='Produce less output to the terminal.')
-parser.add_argument('-t', '--timeout-multiplier', type=float, default=1.0,
+parser.add_argument('-t', '--timeout-multiplier', type=float, default=None,
                     help='Define a multiplier for test timeout, for example '
                     ' when running tests in particular conditions they might take'
                     ' more time to execute.')
@@ -563,6 +563,8 @@ def run(args):
         global_env = merge_suite_options(options)
     else:
         global_env = build.EnvironmentVariables()
+        if options.timeout_multiplier is None:
+            options.timeout_multiplier = 1
 
     setattr(options, 'global_env', global_env)
 
