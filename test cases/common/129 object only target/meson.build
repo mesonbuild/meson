@@ -16,7 +16,7 @@ cc = meson.get_compiler('c').cmd_array().get(-1)
 # provided by the source tree
 source1 = configure_file(input : 'source.c',
   output : 'source' + ext,
-  command : [comp, cc, 'source.c',
+  command : [comp, cc, files('source.c'),
              join_paths(meson.current_build_dir(), 'source' + ext)])
 
 obj = static_library('obj', objects : source1)
