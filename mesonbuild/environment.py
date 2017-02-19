@@ -583,6 +583,8 @@ class Environment:
             defines = self.get_gnu_compiler_defines(exelist)
             version = self.get_gnu_version_from_defines(defines)
             return GnuObjCCompiler(exelist, version, is_cross, exe_wrap, defines)
+        if out.startswith('clang'):
+            return ClangObjCCompiler(exelist, version, CLANG_STANDARD, is_cross, exe_wrap)
         if out.startswith('Apple LLVM'):
             return ClangObjCCompiler(exelist, version, CLANG_OSX, is_cross, exe_wrap)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
@@ -607,6 +609,8 @@ class Environment:
         if 'Free Software Foundation' in out:
             defines = self.get_gnu_compiler_defines(exelist)
             return GnuObjCPPCompiler(exelist, version, is_cross, exe_wrap, defines)
+        if out.startswith('clang'):
+            return ClangObjCPPCompiler(exelist, version, CLANG_STANDARD, is_cross, exe_wrap)
         if out.startswith('Apple LLVM'):
             return ClangObjCPPCompiler(exelist, version, CLANG_OSX, is_cross, exe_wrap)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
