@@ -67,8 +67,8 @@ syn keyword mesonBuiltin
   \ add_global_link_arguments
   \ add_languages
   \ add_project_arguments
-  \ add_project_arguments
   \ add_project_link_arguments
+  \ add_test_setup
   \ benchmark
   \ build_machine
   \ build_target
@@ -94,7 +94,6 @@ syn keyword mesonBuiltin
   \ install_headers
   \ install_man
   \ install_subdir
-  \ is_subproject
   \ is_variable
   \ jar
   \ join_paths
