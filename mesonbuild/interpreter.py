@@ -134,6 +134,10 @@ class EnvironmentVariablesHolder(MutableInterpreterObject):
                              'prepend': self.prepend_method,
                              })
 
+    def __repr__(self):
+        repr_str = "<{0}: {1}>"
+        return repr_str.format(self.__class__.__name__, self.held_object.envvars)
+
     @stringArgs
     def add_var(self, method, args, kwargs):
         if not isinstance(kwargs.get("separator", ""), str):

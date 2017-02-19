@@ -227,6 +227,10 @@ class EnvironmentVariables:
     def __init__(self):
         self.envvars = []
 
+    def __repr__(self):
+        repr_str = "<{0}: {1}>"
+        return repr_str.format(self.__class__.__name__, self.envvars)
+
     def get_value(self, name, values, kwargs):
         separator = kwargs.get('separator', os.pathsep)
 
