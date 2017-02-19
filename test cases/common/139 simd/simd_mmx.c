@@ -32,10 +32,14 @@ void increment_mmx(float arr[4]) {
 #else
 #include<mmintrin.h>
 #include<cpuid.h>
+
+#if defined(__APPLE__)
+int mmx_available() { return 1; }
+#else
 int mmx_available() {
     return __builtin_cpu_supports("mmx");
 }
-
+#endif
 void increment_mmx(float arr[4]) {
     /* Super ugly but we know that values in arr are always small
      * enough to fit in int16;

@@ -14,9 +14,16 @@ int sse42_available() {
 #include<nmmintrin.h>
 #include<cpuid.h>
 
+#ifdef __APPLE__
+int sse42_available() {
+    return 1;
+}
+#else
 int sse42_available() {
     return __builtin_cpu_supports("sse4.2");
 }
+#endif
+
 #endif
 
 void increment_sse42(float arr[4]) {

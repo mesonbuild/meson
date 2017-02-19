@@ -11,9 +11,13 @@ int sse2_available() {
 #include<cpuid.h>
 #include<stdint.h>
 
+#if defined(__APPLE__)
+int sse2_available() { return 1; }
+#else
 int sse2_available() {
     return __builtin_cpu_supports("sse2");
 }
+#endif
 #endif
 
 void increment_sse2(float arr[4]) {

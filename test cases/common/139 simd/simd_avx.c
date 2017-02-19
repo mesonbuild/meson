@@ -8,13 +8,17 @@ int avx_available() {
   return 1;
 }
 #else
-
 #include<immintrin.h>
 #include<cpuid.h>
+
+#ifdef __APPLE__
+int avx_available() { return 1; }
+#else
 
 int avx_available() {
     return __builtin_cpu_supports("avx");
 }
+#endif
 #endif
 
 void increment_avx(float arr[4]) {

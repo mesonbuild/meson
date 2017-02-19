@@ -7,13 +7,18 @@ int sse_available() {
   return 1;
 }
 #else
+
 #include<xmmintrin.h>
 #include<cpuid.h>
 #include<stdint.h>
 
+#if defined(__APPLE__)
+int sse_available() { return 1; }
+#else
 int sse_available() {
     return __builtin_cpu_supports("sse");
 }
+#endif
 #endif
 
 void increment_sse(float arr[4]) {

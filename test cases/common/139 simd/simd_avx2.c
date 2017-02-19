@@ -15,9 +15,13 @@ int avx2_available() {
 #include<immintrin.h>
 #include<cpuid.h>
 
+#if defined(__APPLE__)
+int avx2_available() { return 0; }
+#else
 int avx2_available() {
     return __builtin_cpu_supports("avx2");
 }
+#endif
 #endif
 
 void increment_avx2(float arr[4]) {

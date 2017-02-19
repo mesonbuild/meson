@@ -14,10 +14,13 @@ int sse41_available() {
 #include<smmintrin.h>
 #include<cpuid.h>
 
+#if defined(__APPLE__)
+int sse41_available() { return 1; }
+#else
 int sse41_available() {
     return __builtin_cpu_supports("sse4.1");
 }
-
+#endif
 #endif
 
 void increment_sse41(float arr[4]) {

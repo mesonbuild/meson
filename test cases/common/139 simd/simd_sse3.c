@@ -7,13 +7,18 @@ int sse3_available() {
     return 1;
 }
 #else
+
 #include<pmmintrin.h>
 #include<cpuid.h>
 #include<stdint.h>
 
+#if defined(__APPLE__)
+int sse3_available() { return 1; }
+#else
 int sse3_available() {
     return __builtin_cpu_supports("sse3");
 }
+#endif
 #endif
 
 void increment_sse3(float arr[4]) {
