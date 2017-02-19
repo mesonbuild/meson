@@ -367,10 +367,13 @@ class Environment:
         # We ignore Cygwin for now, and treat it as a standard GCC
         return GCC_STANDARD
 
-    def detect_c_compiler(self, want_cross):
-        evar = 'CC'
+    def _get_compilers(self, lang, evar, want_cross):
+        '''
+        The list of compilers is detected in the exact same way for
+        C, C++, ObjC, ObjC++, Fortran so consolidate it here.
+        '''
         if self.is_cross_build() and want_cross:
-            compilers = mesonlib.stringintlistify(self.cross_info.config['binaries']['c'])
+            compilers = mesonlib.stringlistify(self.cross_info.config['binaries'][lang])
             ccache = []
             is_cross = True
             if self.cross_info.need_exe_wrapper():
@@ -383,11 +386,23 @@ class Environment:
             is_cross = False
             exe_wrap = None
         else:
-            compilers = self.default_c
+            compilers = getattr(self, 'default_' + lang)
             ccache = self.detect_ccache()
             is_cross = False
             exe_wrap = None
+        return compilers, ccache, is_cross, exe_wrap
+
+    def _handle_compiler_exceptions(self, exceptions, compilers):
+        errmsg = 'Unknown compiler(s): ' + str(compilers)
+        if exceptions:
+            errmsg += '\nThe follow exceptions were encountered:'
+            for (c, e) in exceptions.items():
+                errmsg += '\nRunning "{0}" gave "{1}"'.format(c, e)
+        raise EnvironmentException(errmsg)
+
+    def detect_c_compiler(self, want_cross):
         popen_exceptions = {}
+        compilers, ccache, is_cross, exe_wrap = self._get_compilers('c', 'CC', want_cross)
         for compiler in compilers:
             if isinstance(compiler, str):
                 compiler = [compiler]
@@ -425,33 +440,13 @@ class Environment:
                 # TODO: add microsoft add check OSX
                 inteltype = ICC_STANDARD
                 return IntelCCompiler(ccache + compiler, version, inteltype, is_cross, exe_wrap)
-        errmsg = 'Unknown compiler(s): ' + str(compilers)
-        if popen_exceptions:
-            errmsg += '\nThe follow exceptions were encountered:'
-            for (c, e) in popen_exceptions.items():
-                errmsg += '\nRunning "{0}" gave "{1}"'.format(c, e)
-        raise EnvironmentException(errmsg)
+        self._handle_compiler_exceptions(popen_exceptions, compilers)
 
     def detect_fortran_compiler(self, want_cross):
-        evar = 'FC'
-        if self.is_cross_build() and want_cross:
-            compilers = meson.stringlistify(self.cross_info['fortran'])
-            is_cross = True
-            if self.cross_info.need_exe_wrapper():
-                exe_wrap = self.cross_info.get('exe_wrapper', None)
-            else:
-                exe_wrap = []
-        elif evar in os.environ:
-            compilers = os.environ[evar].split()
-            is_cross = False
-            exe_wrap = None
-        else:
-            compilers = self.default_fortran
-            is_cross = False
-            exe_wrap = None
         popen_exceptions = {}
+        compilers, ccache, is_cross, exe_wrap = self._get_compilers('fortran', 'FC', want_cross)
         for compiler in compilers:
-            if not isinstance(compiler, list):
+            if isinstance(compiler, str):
                 compiler = [compiler]
             for arg in ['--version', '-V']:
                 try:
@@ -492,12 +487,7 @@ class Environment:
 
                 if 'NAG Fortran' in err:
                     return NAGFortranCompiler(compiler, version, is_cross, exe_wrap)
-        errmsg = 'Unknown compiler(s): ' + str(compilers)
-        if popen_exceptions:
-            errmsg += '\nThe follow exceptions were encountered:'
-            for (c, e) in popen_exceptions.items():
-                errmsg += '\nRunning "{0}" gave "{1}"'.format(c, e)
-        raise EnvironmentException(errmsg)
+        self._handle_compiler_exceptions(popen_exceptions, compilers)
 
     def get_scratch_dir(self):
         return self.scratch_dir
@@ -507,26 +497,8 @@ class Environment:
         return os.path.join(path, 'depfixer.py')
 
     def detect_cpp_compiler(self, want_cross):
-        evar = 'CXX'
-        if self.is_cross_build() and want_cross:
-            compilers = mesonlib.stringlistify(self.cross_info.config['binaries']['cpp'])
-            ccache = []
-            is_cross = True
-            if self.cross_info.need_exe_wrapper():
-                exe_wrap = self.cross_info.config['binaries'].get('exe_wrapper', None)
-            else:
-                exe_wrap = []
-        elif evar in os.environ:
-            compilers = shlex.split(os.environ[evar])
-            ccache = []
-            is_cross = False
-            exe_wrap = None
-        else:
-            compilers = self.default_cpp
-            ccache = self.detect_ccache()
-            is_cross = False
-            exe_wrap = None
         popen_exceptions = {}
+        compilers, ccache, is_cross, exe_wrap = self._get_compilers('cpp', 'CXX', want_cross)
         for compiler in compilers:
             if isinstance(compiler, str):
                 compiler = [compiler]
@@ -562,61 +534,51 @@ class Environment:
                 # TODO: add microsoft add check OSX
                 inteltype = ICC_STANDARD
                 return IntelCPPCompiler(ccache + compiler, version, inteltype, is_cross, exe_wrap)
-        errmsg = 'Unknown compiler(s): "' + ', '.join(compilers) + '"'
-        if popen_exceptions:
-            errmsg += '\nThe follow exceptions were encountered:'
-            for (c, e) in popen_exceptions.items():
-                errmsg += '\nRunning "{0}" gave "{1}"'.format(c, e)
-        raise EnvironmentException(errmsg)
+        self._handle_compiler_exceptions(popen_exceptions, compilers)
 
     def detect_objc_compiler(self, want_cross):
-        if self.is_cross_build() and want_cross:
-            exelist = mesonlib.stringlistify(self.cross_info['objc'])
-            is_cross = True
-            if self.cross_info.need_exe_wrapper():
-                exe_wrap = self.cross_info.get('exe_wrapper', None)
-            else:
-                exe_wrap = []
-        else:
-            exelist = self.get_objc_compiler_exelist()
-            is_cross = False
-            exe_wrap = None
-        try:
-            p, out, err = Popen_safe(exelist + ['--version'])
-        except OSError:
-            raise EnvironmentException('Could not execute ObjC compiler "%s"' % ' '.join(exelist))
-        version = search_version(out)
-        if 'Free Software Foundation' in out:
-            defines = self.get_gnu_compiler_defines(exelist)
-            version = self.get_gnu_version_from_defines(defines)
-            return GnuObjCCompiler(exelist, version, is_cross, exe_wrap, defines)
-        if out.startswith('Apple LLVM'):
-            return ClangObjCCompiler(exelist, version, CLANG_OSX, is_cross, exe_wrap)
-        raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
+        popen_exceptions = {}
+        compilers, ccache, is_cross, exe_wrap = self._get_compilers('objc', 'OBJC', want_cross)
+        for compiler in compilers:
+            if isinstance(compiler, str):
+                compiler = [compiler]
+            try:
+                p, out, err = Popen_safe(compiler + ['--version'])
+            except OSError:
+                popen_exceptions[' '.join(compiler + [arg])] = e
+            version = search_version(out)
+            if 'Free Software Foundation' in out:
+                defines = self.get_gnu_compiler_defines(compiler)
+                if not defines:
+                    popen_exceptions[compiler] = 'no pre-processor defines'
+                    continue
+                version = self.get_gnu_version_from_defines(defines)
+                return GnuObjCCompiler(ccache + compiler, version, is_cross, exe_wrap, defines)
+            if out.startswith('Apple LLVM'):
+                return ClangObjCCompiler(ccache + compiler, version, CLANG_OSX, is_cross, exe_wrap)
+        self._handle_compiler_exceptions(popen_exceptions, compilers)
 
     def detect_objcpp_compiler(self, want_cross):
-        if self.is_cross_build() and want_cross:
-            exelist = mesonlib.stringlistify(self.cross_info['objcpp'])
-            is_cross = True
-            if self.cross_info.need_exe_wrapper():
-                exe_wrap = self.cross_info.get('exe_wrapper', None)
-            else:
-                exe_wrap = []
-        else:
-            exelist = self.get_objcpp_compiler_exelist()
-            is_cross = False
-            exe_wrap = None
-        try:
-            p, out, err = Popen_safe(exelist + ['--version'])
-        except OSError:
-            raise EnvironmentException('Could not execute ObjC++ compiler "%s"' % ' '.join(exelist))
-        version = search_version(out)
-        if 'Free Software Foundation' in out:
-            defines = self.get_gnu_compiler_defines(exelist)
-            return GnuObjCPPCompiler(exelist, version, is_cross, exe_wrap, defines)
-        if out.startswith('Apple LLVM'):
-            return ClangObjCPPCompiler(exelist, version, CLANG_OSX, is_cross, exe_wrap)
-        raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
+        popen_exceptions = {}
+        compilers, ccache, is_cross, exe_wrap = self._get_compilers('objcpp', 'OBJCXX', want_cross)
+        for compiler in compilers:
+            if isinstance(compiler, str):
+                compiler = [compiler]
+            try:
+                p, out, err = Popen_safe(compiler + ['--version'])
+            except OSError:
+                popen_exceptions[' '.join(compiler + [arg])] = e
+            version = search_version(out)
+            if 'Free Software Foundation' in out:
+                defines = self.get_gnu_compiler_defines(compiler)
+                if not defines:
+                    popen_exceptions[compiler] = 'no pre-processor defines'
+                    continue
+                version = self.get_gnu_version_from_defines(defines)
+                return GnuObjCPPCompiler(ccache + compiler, version, is_cross, exe_wrap, defines)
+            if out.startswith('Apple LLVM'):
+                return ClangObjCPPCompiler(ccache + compiler, version, CLANG_OSX, is_cross, exe_wrap)
+        self._handle_compiler_exceptions(popen_exceptions, compilers)
 
     def detect_java_compiler(self):
         exelist = ['javac']
@@ -746,20 +708,6 @@ class Environment:
         else:
             cmdlist = []
         return cmdlist
-
-    def get_objc_compiler_exelist(self):
-        ccachelist = self.detect_ccache()
-        evar = 'OBJCC'
-        if evar in os.environ:
-            return os.environ[evar].split()
-        return ccachelist + self.default_objc
-
-    def get_objcpp_compiler_exelist(self):
-        ccachelist = self.detect_ccache()
-        evar = 'OBJCXX'
-        if evar in os.environ:
-            return os.environ[evar].split()
-        return ccachelist + self.default_objcpp
 
     def get_source_dir(self):
         return self.source_dir
