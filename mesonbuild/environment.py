@@ -680,7 +680,7 @@ class Environment:
         else:
             evar = 'AR'
             if evar in os.environ:
-                linker = os.environ[evar].strip()
+                linker = shlex.split(os.environ[evar])
             elif isinstance(compiler, VisualStudioCCompiler):
                 linker = self.vs_static_linker
             else:
