@@ -5,10 +5,10 @@
 
 int main(int argc, char **argv) {
     char *ten = malloc(10);
-    do_nasty(ten);
-    free(ten);
     if(getenv("TEST_ENV")) {
+        do_nasty(ten);
         printf("TEST_ENV is set.\n");
     }
+    free(ten);
     return 0;
 }
