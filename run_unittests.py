@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2016 The Meson development team
+# Copyright 2016-2017 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,14 +18,20 @@ import shlex
 import subprocess
 import re, json
 import tempfile
-import pathlib
 import unittest, os, sys, shutil, time
 from glob import glob
+from pathlib import PurePath
 import mesonbuild.compilers
 import mesonbuild.environment
 import mesonbuild.mesonlib
+from mesonbuild.mesonlib import is_windows
 from mesonbuild.environment import detect_ninja, Environment
-from mesonbuild.dependencies import PkgConfigDependency
+from mesonbuild.dependencies import PkgConfigDependency, ExternalProgram
+
+if is_windows():
+    exe_suffix = '.exe'
+else:
+    exe_suffix = ''
 
 def get_soname(fname):
     # HACK, fix to not use shell.
@@ -172,15 +178,18 @@ class InternalTests(unittest.TestCase):
         self.assertEqual(commonpath(['blam', 'bin']), '')
         prefix = '/some/path/to/prefix'
         libdir = '/some/path/to/prefix/libdir'
-        self.assertEqual(commonpath([prefix, libdir]), str(pathlib.PurePath(prefix)))
+        self.assertEqual(commonpath([prefix, libdir]), str(PurePath(prefix)))
 
 
-class LinuxlikeTests(unittest.TestCase):
+class BasePlatformTests(unittest.TestCase):
     def setUp(self):
         super().setUp()
         src_root = os.path.dirname(__file__)
         src_root = os.path.join(os.getcwd(), src_root)
-        self.builddir = tempfile.mkdtemp()
+        self.src_root = src_root
+        # In case the directory is inside a symlinked directory, find the real
+        # path otherwise we might not find the srcdir from inside the builddir.
+        self.builddir = os.path.realpath(tempfile.mkdtemp())
         self.logdir = os.path.join(self.builddir, 'meson-logs')
         self.prefix = '/usr'
         self.libdir = os.path.join(self.prefix, 'lib')
@@ -194,7 +203,6 @@ class LinuxlikeTests(unittest.TestCase):
         self.vala_test_dir = os.path.join(src_root, 'test cases/vala')
         self.framework_test_dir = os.path.join(src_root, 'test cases/frameworks')
         self.unit_test_dir = os.path.join(src_root, 'test cases/unit')
-        self.output = b''
         self.orig_env = os.environ.copy()
 
     def tearDown(self):
@@ -203,20 +211,26 @@ class LinuxlikeTests(unittest.TestCase):
         super().tearDown()
 
     def _run(self, command):
-        self.output += subprocess.check_output(command, stderr=subprocess.STDOUT,
-                                               env=os.environ.copy())
+        output = subprocess.check_output(command, stderr=subprocess.STDOUT,
+                                         env=os.environ.copy(),
+                                         universal_newlines=True)
+        print(output)
+        return output
 
-    def init(self, srcdir, extra_args=None):
+    def init(self, srcdir, extra_args=None, default_args=True):
         if extra_args is None:
             extra_args = []
-        args = [srcdir, self.builddir,
-                '--prefix', self.prefix,
-                '--libdir', self.libdir]
+        args = [srcdir, self.builddir]
+        if default_args:
+            args += ['--prefix', self.prefix,
+                     '--libdir', self.libdir]
         self._run(self.meson_command + args + extra_args)
         self.privatedir = os.path.join(self.builddir, 'meson-private')
 
-    def build(self):
-        self._run(self.ninja_command)
+    def build(self, extra_args=None):
+        if extra_args is None:
+            extra_args = []
+        self._run(self.ninja_command + extra_args)
 
     def run_tests(self):
         self._run(self.ninja_command + ['test'])
@@ -229,9 +243,18 @@ class LinuxlikeTests(unittest.TestCase):
         self._run(self.ninja_command + ['uninstall'])
 
     def run_target(self, target):
-        self.output += subprocess.check_output(self.ninja_command + [target])
+        output = subprocess.check_output(self.ninja_command + [target],
+                                         stderr=subprocess.STDOUT,
+                                         universal_newlines=True)
+        print(output)
+        return output
 
-    def setconf(self, arg):
+    def setconf(self, arg, will_build=True):
+        # This is needed to increase the difference between build.ninja's
+        # timestamp and coredata.dat's timestamp due to a Ninja bug.
+        # https://github.com/ninja-build/ninja/issues/371
+        if will_build:
+            time.sleep(1)
         self._run(self.mconf_command + [arg, self.builddir])
 
     def wipe(self):
@@ -260,6 +283,336 @@ class LinuxlikeTests(unittest.TestCase):
                                       universal_newlines=True)
         return json.loads(out)
 
+    def assertPathEqual(self, path1, path2):
+        '''
+        Handles a lot of platform-specific quirks related to paths such as
+        separator, case-sensitivity, etc.
+        '''
+        self.assertEqual(PurePath(path1), PurePath(path2))
+
+    def assertPathBasenameEqual(self, path, basename):
+        msg = '{!r} does not end with {!r}'.format(path, basename)
+        # We cannot use os.path.basename because it returns '' when the path
+        # ends with '/' for some silly reason. This is not how the UNIX utility
+        # `basename` works.
+        path_basename = PurePath(path).parts[-1]
+        self.assertEqual(PurePath(path_basename), PurePath(basename), msg)
+
+
+class AllPlatformTests(BasePlatformTests):
+    '''
+    Tests that should run on all platforms
+    '''
+    def test_default_options_prefix(self):
+        '''
+        Tests that setting a prefix in default_options in project() works.
+        Can't be an ordinary test because we pass --prefix to meson there.
+        https://github.com/mesonbuild/meson/issues/1349
+        '''
+        testdir = os.path.join(self.common_test_dir, '94 default options')
+        self.init(testdir, default_args=False)
+        opts = self.introspect('--buildoptions')
+        for opt in opts:
+            if opt['name'] == 'prefix':
+                prefix = opt['value']
+        self.assertEqual(prefix, '/absoluteprefix')
+
+    def test_absolute_prefix_libdir(self):
+        '''
+        Tests that setting absolute paths for --prefix and --libdir work. Can't
+        be an ordinary test because these are set via the command-line.
+        https://github.com/mesonbuild/meson/issues/1341
+        https://github.com/mesonbuild/meson/issues/1345
+        '''
+        testdir = os.path.join(self.common_test_dir, '94 default options')
+        prefix = '/someabs'
+        libdir = 'libdir'
+        extra_args = ['--prefix=' + prefix,
+                      # This can just be a relative path, but we want to test
+                      # that passing this as an absolute path also works
+                      '--libdir=' + prefix + '/' + libdir]
+        self.init(testdir, extra_args, default_args=False)
+        opts = self.introspect('--buildoptions')
+        for opt in opts:
+            if opt['name'] == 'prefix':
+                self.assertEqual(prefix, opt['value'])
+            elif opt['name'] == 'libdir':
+                self.assertEqual(libdir, opt['value'])
+
+    def test_libdir_must_be_inside_prefix(self):
+        '''
+        Tests that libdir is forced to be inside prefix no matter how it is set.
+        Must be a unit test for obvious reasons.
+        '''
+        testdir = os.path.join(self.common_test_dir, '1 trivial')
+        # libdir being inside prefix is ok
+        args = ['--prefix', '/opt', '--libdir', '/opt/lib32']
+        self.init(testdir, args)
+        self.wipe()
+        # libdir not being inside prefix is not ok
+        args = ['--prefix', '/usr', '--libdir', '/opt/lib32']
+        self.assertRaises(subprocess.CalledProcessError, self.init, testdir, args)
+        self.wipe()
+        # libdir must be inside prefix even when set via mesonconf
+        self.init(testdir)
+        self.assertRaises(subprocess.CalledProcessError, self.setconf, '-Dlibdir=/opt', False)
+
+    def test_static_library_overwrite(self):
+        '''
+        Tests that static libraries are never appended to, always overwritten.
+        Has to be a unit test because this involves building a project,
+        reconfiguring, and building it again so that `ar` is run twice on the
+        same static library.
+        https://github.com/mesonbuild/meson/issues/1355
+        '''
+        testdir = os.path.join(self.common_test_dir, '3 static')
+        env = Environment(testdir, self.builddir, self.meson_command,
+                          get_fake_options(self.prefix), [])
+        cc = env.detect_c_compiler(False)
+        static_linker = env.detect_static_linker(cc)
+        if not isinstance(static_linker, mesonbuild.compilers.ArLinker):
+                raise unittest.SkipTest('static linker is not `ar`')
+        # Configure
+        self.init(testdir)
+        # Get name of static library
+        targets = self.introspect('--targets')
+        self.assertEqual(len(targets), 1)
+        libname = targets[0]['filename']
+        # Build and get contents of static library
+        self.build()
+        before = self._run(['ar', 't', os.path.join(self.builddir, libname)]).split()
+        # Filter out non-object-file contents
+        before = [f for f in before if f.endswith(('.o', '.obj'))]
+        # Static library should contain only one object
+        self.assertEqual(len(before), 1, msg=before)
+        # Change the source to be built into the static library
+        self.setconf('-Dsource=libfile2.c')
+        self.build()
+        after = self._run(['ar', 't', os.path.join(self.builddir, libname)]).split()
+        # Filter out non-object-file contents
+        after = [f for f in after if f.endswith(('.o', '.obj'))]
+        # Static library should contain only one object
+        self.assertEqual(len(after), 1, msg=after)
+        # and the object must have changed
+        self.assertNotEqual(before, after)
+
+    def test_static_compile_order(self):
+        '''
+        Test that the order of files in a compiler command-line while compiling
+        and linking statically is deterministic. This can't be an ordinary test
+        case because we need to inspect the compiler database.
+        https://github.com/mesonbuild/meson/pull/951
+        '''
+        testdir = os.path.join(self.common_test_dir, '5 linkstatic')
+        self.init(testdir)
+        compdb = self.get_compdb()
+        # Rules will get written out in this order
+        self.assertTrue(compdb[0]['file'].endswith("libfile.c"))
+        self.assertTrue(compdb[1]['file'].endswith("libfile2.c"))
+        self.assertTrue(compdb[2]['file'].endswith("libfile3.c"))
+        self.assertTrue(compdb[3]['file'].endswith("libfile4.c"))
+        # FIXME: We don't have access to the linker command
+
+    def test_run_target_files_path(self):
+        '''
+        Test that run_targets are run from the correct directory
+        https://github.com/mesonbuild/meson/issues/957
+        '''
+        testdir = os.path.join(self.common_test_dir, '58 run target')
+        self.init(testdir)
+        self.run_target('check_exists')
+
+    def test_install_introspection(self):
+        '''
+        Tests that the Meson introspection API exposes install filenames correctly
+        https://github.com/mesonbuild/meson/issues/829
+        '''
+        testdir = os.path.join(self.common_test_dir, '8 install')
+        self.init(testdir)
+        intro = self.introspect('--targets')
+        if intro[0]['type'] == 'executable':
+            intro = intro[::-1]
+        self.assertPathEqual(intro[0]['install_filename'], '/usr/lib/libstat.a')
+        self.assertPathEqual(intro[1]['install_filename'], '/usr/bin/prog' + exe_suffix)
+
+    def test_uninstall(self):
+        exename = os.path.join(self.installdir, 'usr/bin/prog' + exe_suffix)
+        testdir = os.path.join(self.common_test_dir, '8 install')
+        self.init(testdir)
+        self.assertFalse(os.path.exists(exename))
+        self.install()
+        self.assertTrue(os.path.exists(exename))
+        self.uninstall()
+        self.assertFalse(os.path.exists(exename))
+
+    def test_testsetups(self):
+        if not shutil.which('valgrind'):
+                raise unittest.SkipTest('Valgrind not installed.')
+        testdir = os.path.join(self.unit_test_dir, '2 testsetups')
+        self.init(testdir)
+        self.build()
+        self.run_tests()
+        with open(os.path.join(self.logdir, 'testlog.txt')) as f:
+            basic_log = f.read()
+        self.assertRaises(subprocess.CalledProcessError,
+                          self._run, self.mtest_command + ['--setup=valgrind'])
+        with open(os.path.join(self.logdir, 'testlog-valgrind.txt')) as f:
+            vg_log = f.read()
+        self.assertFalse('TEST_ENV is set' in basic_log)
+        self.assertFalse('Memcheck' in basic_log)
+        self.assertTrue('TEST_ENV is set' in vg_log)
+        self.assertTrue('Memcheck' in vg_log)
+
+    def assertFailedTestCount(self, failure_count, command):
+        try:
+            self._run(command)
+            self.assertEqual(0, failure_count, 'Expected %d tests to fail.' % failure_count)
+        except subprocess.CalledProcessError as e:
+            self.assertEqual(e.returncode, failure_count)
+
+    def test_suite_selection(self):
+        testdir = os.path.join(self.unit_test_dir, '4 suite selection')
+        self.init(testdir)
+        self.build()
+
+        self.assertFailedTestCount(3, self.mtest_command)
+
+        self.assertFailedTestCount(0, self.mtest_command + ['--suite', ':success'])
+        self.assertFailedTestCount(3, self.mtest_command + ['--suite', ':fail'])
+        self.assertFailedTestCount(3, self.mtest_command + ['--no-suite', ':success'])
+        self.assertFailedTestCount(0, self.mtest_command + ['--no-suite', ':fail'])
+
+        self.assertFailedTestCount(1, self.mtest_command + ['--suite', 'mainprj'])
+        self.assertFailedTestCount(0, self.mtest_command + ['--suite', 'subprjsucc'])
+        self.assertFailedTestCount(1, self.mtest_command + ['--suite', 'subprjfail'])
+        self.assertFailedTestCount(1, self.mtest_command + ['--suite', 'subprjmix'])
+        self.assertFailedTestCount(2, self.mtest_command + ['--no-suite', 'mainprj'])
+        self.assertFailedTestCount(3, self.mtest_command + ['--no-suite', 'subprjsucc'])
+        self.assertFailedTestCount(2, self.mtest_command + ['--no-suite', 'subprjfail'])
+        self.assertFailedTestCount(2, self.mtest_command + ['--no-suite', 'subprjmix'])
+
+        self.assertFailedTestCount(1, self.mtest_command + ['--suite', 'mainprj:fail'])
+        self.assertFailedTestCount(0, self.mtest_command + ['--suite', 'mainprj:success'])
+        self.assertFailedTestCount(2, self.mtest_command + ['--no-suite', 'mainprj:fail'])
+        self.assertFailedTestCount(3, self.mtest_command + ['--no-suite', 'mainprj:success'])
+
+        self.assertFailedTestCount(1, self.mtest_command + ['--suite', 'subprjfail:fail'])
+        self.assertFailedTestCount(0, self.mtest_command + ['--suite', 'subprjfail:success'])
+        self.assertFailedTestCount(2, self.mtest_command + ['--no-suite', 'subprjfail:fail'])
+        self.assertFailedTestCount(3, self.mtest_command + ['--no-suite', 'subprjfail:success'])
+
+        self.assertFailedTestCount(0, self.mtest_command + ['--suite', 'subprjsucc:fail'])
+        self.assertFailedTestCount(0, self.mtest_command + ['--suite', 'subprjsucc:success'])
+        self.assertFailedTestCount(3, self.mtest_command + ['--no-suite', 'subprjsucc:fail'])
+        self.assertFailedTestCount(3, self.mtest_command + ['--no-suite', 'subprjsucc:success'])
+
+        self.assertFailedTestCount(1, self.mtest_command + ['--suite', 'subprjmix:fail'])
+        self.assertFailedTestCount(0, self.mtest_command + ['--suite', 'subprjmix:success'])
+        self.assertFailedTestCount(2, self.mtest_command + ['--no-suite', 'subprjmix:fail'])
+        self.assertFailedTestCount(3, self.mtest_command + ['--no-suite', 'subprjmix:success'])
+
+        self.assertFailedTestCount(2, self.mtest_command + ['--suite', 'subprjfail', '--suite', 'subprjmix:fail'])
+        self.assertFailedTestCount(3, self.mtest_command + ['--suite', 'subprjfail', '--suite', 'subprjmix', '--suite', 'mainprj'])
+        self.assertFailedTestCount(2, self.mtest_command + ['--suite', 'subprjfail', '--suite', 'subprjmix', '--suite', 'mainprj', '--no-suite', 'subprjmix:fail'])
+        self.assertFailedTestCount(1, self.mtest_command + ['--suite', 'subprjfail', '--suite', 'subprjmix', '--suite', 'mainprj', '--no-suite', 'subprjmix:fail', 'mainprj-failing_test'])
+
+        self.assertFailedTestCount(1, self.mtest_command + ['--no-suite', 'subprjfail:fail', '--no-suite', 'subprjmix:fail'])
+
+    def test_build_by_default(self):
+        testdir = os.path.join(self.common_test_dir, '137 build by default')
+        self.init(testdir)
+        self.build()
+        genfile = os.path.join(self.builddir, 'generated.dat')
+        exe = os.path.join(self.builddir, 'fooprog' + exe_suffix)
+        self.assertTrue(os.path.exists(genfile))
+        self.assertFalse(os.path.exists(exe))
+        self._run(self.ninja_command + ['fooprog' + exe_suffix])
+        self.assertTrue(os.path.exists(exe))
+
+    def test_internal_include_order(self):
+        testdir = os.path.join(self.common_test_dir, '138 include order')
+        self.init(testdir)
+        for cmd in self.get_compdb():
+            if cmd['file'].endswith('/main.c'):
+                cmd = cmd['command']
+                break
+        else:
+            raise Exception('Could not find main.c command')
+        if cmd.endswith('.rsp'):
+            # Pretend to build so that the rsp files are generated
+            self.build(['-d', 'keeprsp', '-n'])
+            # Extract the actual command from the rsp file
+            rsp = os.path.join(self.builddir, cmd.split('cl @')[1])
+            with open(rsp, 'r', encoding='utf-8') as f:
+                cmd = f.read()
+        incs = [a for a in shlex.split(cmd) if a.startswith("-I")]
+        self.assertEqual(len(incs), 8)
+        # target private dir
+        self.assertPathEqual(incs[0], "-Isub4/someexe@exe")
+        # target build subdir
+        self.assertPathEqual(incs[1], "-Isub4")
+        # target source subdir
+        self.assertPathBasenameEqual(incs[2], 'sub4')
+        # include paths added via per-target c_args: ['-I'...]
+        self.assertPathBasenameEqual(incs[3], 'sub3')
+        # target include_directories: build dir
+        self.assertPathEqual(incs[4], "-Isub2")
+        # target include_directories: source dir
+        self.assertPathBasenameEqual(incs[5], 'sub2')
+        # target internal dependency include_directories: build dir
+        self.assertPathEqual(incs[6], "-Isub1")
+        # target internal dependency include_directories: source dir
+        self.assertPathBasenameEqual(incs[7], 'sub1')
+
+
+class WindowsTests(BasePlatformTests):
+    '''
+    Tests that should run on Cygwin, MinGW, and MSVC
+    '''
+    def setUp(self):
+        super().setUp()
+        self.platform_test_dir = os.path.join(self.src_root, 'test cases/windows')
+
+    def test_find_program(self):
+        '''
+        Test that Windows-specific edge-cases in find_program are functioning
+        correctly. Cannot be an ordinary test because it involves manipulating
+        PATH to point to a directory with Python scripts.
+        '''
+        testdir = os.path.join(self.platform_test_dir, '9 find program')
+        # Find `cmd` and `cmd.exe`
+        prog1 = ExternalProgram('cmd')
+        self.assertTrue(prog1.found(), msg='cmd not found')
+        prog2 = ExternalProgram('cmd.exe')
+        self.assertTrue(prog2.found(), msg='cmd.exe not found')
+        self.assertPathEqual(prog1.get_path(), prog2.get_path())
+        # Find cmd with an absolute path that's missing the extension
+        cmd_path = prog2.get_path()[:-4]
+        prog = ExternalProgram(cmd_path)
+        self.assertTrue(prog.found(), msg='{!r} not found'.format(cmd_path))
+        # Finding a script with no extension inside a directory works
+        prog = ExternalProgram(os.path.join(testdir, 'test-script'))
+        self.assertTrue(prog.found(), msg='test-script not found')
+        # Finding a script with an extension inside a directory works
+        prog = ExternalProgram(os.path.join(testdir, 'test-script-ext.py'))
+        self.assertTrue(prog.found(), msg='test-script-ext.py not found')
+        # Finding a script in PATH w/o extension works and adds the interpreter
+        os.environ['PATH'] += os.pathsep + testdir
+        prog = ExternalProgram('test-script-ext')
+        self.assertTrue(prog.found(), msg='test-script-ext not found in PATH')
+        self.assertPathEqual(prog.get_command()[0], sys.executable)
+        self.assertPathBasenameEqual(prog.get_path(), 'test-script-ext.py')
+        # Finding a script in PATH with extension works and adds the interpreter
+        prog = ExternalProgram('test-script-ext.py')
+        self.assertTrue(prog.found(), msg='test-script-ext.py not found in PATH')
+        self.assertPathEqual(prog.get_command()[0], sys.executable)
+        self.assertPathBasenameEqual(prog.get_path(), 'test-script-ext.py')
+
+
+class LinuxlikeTests(BasePlatformTests):
+    '''
+    Tests that should run on Linux and *BSD
+    '''
     def test_basic_soname(self):
         '''
         Test that the soname is set correctly for shared libraries. This can't
@@ -298,10 +651,6 @@ class LinuxlikeTests(unittest.TestCase):
         self.init(testdir)
         compdb = self.get_compdb()
         self.assertIn('-fPIC', compdb[0]['command'])
-        # This is needed to increase the difference between build.ninja's
-        # timestamp and coredata.dat's timestamp due to a Ninja bug.
-        # https://github.com/ninja-build/ninja/issues/371
-        time.sleep(1)
         self.setconf('-Db_staticpic=false')
         # Regenerate build
         self.build()
@@ -357,45 +706,6 @@ class LinuxlikeTests(unittest.TestCase):
         # injected by an unrelated piece of code and the project has werror=true
         self.assertIn("'-Werror'", vala_command)
         self.assertIn("'-Werror'", c_command)
-
-    def test_static_compile_order(self):
-        '''
-        Test that the order of files in a compiler command-line while compiling
-        and linking statically is deterministic. This can't be an ordinary test
-        case because we need to inspect the compiler database.
-        https://github.com/mesonbuild/meson/pull/951
-        '''
-        testdir = os.path.join(self.common_test_dir, '5 linkstatic')
-        self.init(testdir)
-        compdb = self.get_compdb()
-        # Rules will get written out in this order
-        self.assertTrue(compdb[0]['file'].endswith("libfile.c"))
-        self.assertTrue(compdb[1]['file'].endswith("libfile2.c"))
-        self.assertTrue(compdb[2]['file'].endswith("libfile3.c"))
-        self.assertTrue(compdb[3]['file'].endswith("libfile4.c"))
-        # FIXME: We don't have access to the linker command
-
-    def test_install_introspection(self):
-        '''
-        Tests that the Meson introspection API exposes install filenames correctly
-        https://github.com/mesonbuild/meson/issues/829
-        '''
-        testdir = os.path.join(self.common_test_dir, '8 install')
-        self.init(testdir)
-        intro = self.introspect('--targets')
-        if intro[0]['type'] == 'executable':
-            intro = intro[::-1]
-        self.assertEqual(intro[0]['install_filename'], '/usr/lib/libstat.a')
-        self.assertEqual(intro[1]['install_filename'], '/usr/bin/prog')
-
-    def test_run_target_files_path(self):
-        '''
-        Test that run_targets are run from the correct directory
-        https://github.com/mesonbuild/meson/issues/957
-        '''
-        testdir = os.path.join(self.common_test_dir, '58 run target')
-        self.init(testdir)
-        self.run_target('check_exists')
 
     def test_qt5dependency_qmake_detection(self):
         '''
@@ -500,16 +810,6 @@ class LinuxlikeTests(unittest.TestCase):
             Oargs = [arg for arg in cmd if arg.startswith('-O')]
             self.assertEqual(Oargs, [Oflag, '-O0'])
 
-    def test_uninstall(self):
-        exename = os.path.join(self.installdir, 'usr/bin/prog')
-        testdir = os.path.join(self.common_test_dir, '8 install')
-        self.init(testdir)
-        self.assertFalse(os.path.exists(exename))
-        self.install()
-        self.assertTrue(os.path.exists(exename))
-        self.uninstall()
-        self.assertFalse(os.path.exists(exename))
-
     def test_custom_target_exe_data_deterministic(self):
         testdir = os.path.join(self.common_test_dir, '117 custom target capture')
         self.init(testdir)
@@ -518,79 +818,6 @@ class LinuxlikeTests(unittest.TestCase):
         self.init(testdir)
         meson_exe_dat2 = glob(os.path.join(self.privatedir, 'meson_exe*.dat'))
         self.assertListEqual(meson_exe_dat1, meson_exe_dat2)
-
-    def test_testsetups(self):
-        if not shutil.which('valgrind'):
-                raise unittest.SkipTest('Valgrind not installed.')
-        testdir = os.path.join(self.unit_test_dir, '2 testsetups')
-        self.init(testdir)
-        self.build()
-        self.run_tests()
-        with open(os.path.join(self.logdir, 'testlog.txt')) as f:
-            basic_log = f.read()
-        self.assertRaises(subprocess.CalledProcessError,
-                          self._run, self.mtest_command + ['--setup=valgrind'])
-        with open(os.path.join(self.logdir, 'testlog-valgrind.txt')) as f:
-            vg_log = f.read()
-        self.assertFalse('TEST_ENV is set' in basic_log)
-        self.assertFalse('Memcheck' in basic_log)
-        self.assertTrue('TEST_ENV is set' in vg_log)
-        self.assertTrue('Memcheck' in vg_log)
-
-    def assertFailedTestCount(self, failure_count, command):
-        try:
-            self._run(command)
-            self.assertEqual(0, failure_count, 'Expected %d tests to fail.' % failure_count)
-        except subprocess.CalledProcessError as e:
-            self.assertEqual(e.returncode, failure_count)
-
-    def test_suite_selection(self):
-        testdir = os.path.join(self.unit_test_dir, '4 suite selection')
-        self.init(testdir)
-        self.build()
-
-        self.assertFailedTestCount(3, self.mtest_command)
-
-        self.assertFailedTestCount(0, self.mtest_command + ['--suite', ':success'])
-        self.assertFailedTestCount(3, self.mtest_command + ['--suite', ':fail'])
-        self.assertFailedTestCount(3, self.mtest_command + ['--no-suite', ':success'])
-        self.assertFailedTestCount(0, self.mtest_command + ['--no-suite', ':fail'])
-
-        self.assertFailedTestCount(1, self.mtest_command + ['--suite', 'mainprj'])
-        self.assertFailedTestCount(0, self.mtest_command + ['--suite', 'subprjsucc'])
-        self.assertFailedTestCount(1, self.mtest_command + ['--suite', 'subprjfail'])
-        self.assertFailedTestCount(1, self.mtest_command + ['--suite', 'subprjmix'])
-        self.assertFailedTestCount(2, self.mtest_command + ['--no-suite', 'mainprj'])
-        self.assertFailedTestCount(3, self.mtest_command + ['--no-suite', 'subprjsucc'])
-        self.assertFailedTestCount(2, self.mtest_command + ['--no-suite', 'subprjfail'])
-        self.assertFailedTestCount(2, self.mtest_command + ['--no-suite', 'subprjmix'])
-
-        self.assertFailedTestCount(1, self.mtest_command + ['--suite', 'mainprj:fail'])
-        self.assertFailedTestCount(0, self.mtest_command + ['--suite', 'mainprj:success'])
-        self.assertFailedTestCount(2, self.mtest_command + ['--no-suite', 'mainprj:fail'])
-        self.assertFailedTestCount(3, self.mtest_command + ['--no-suite', 'mainprj:success'])
-
-        self.assertFailedTestCount(1, self.mtest_command + ['--suite', 'subprjfail:fail'])
-        self.assertFailedTestCount(0, self.mtest_command + ['--suite', 'subprjfail:success'])
-        self.assertFailedTestCount(2, self.mtest_command + ['--no-suite', 'subprjfail:fail'])
-        self.assertFailedTestCount(3, self.mtest_command + ['--no-suite', 'subprjfail:success'])
-
-        self.assertFailedTestCount(0, self.mtest_command + ['--suite', 'subprjsucc:fail'])
-        self.assertFailedTestCount(0, self.mtest_command + ['--suite', 'subprjsucc:success'])
-        self.assertFailedTestCount(3, self.mtest_command + ['--no-suite', 'subprjsucc:fail'])
-        self.assertFailedTestCount(3, self.mtest_command + ['--no-suite', 'subprjsucc:success'])
-
-        self.assertFailedTestCount(1, self.mtest_command + ['--suite', 'subprjmix:fail'])
-        self.assertFailedTestCount(0, self.mtest_command + ['--suite', 'subprjmix:success'])
-        self.assertFailedTestCount(2, self.mtest_command + ['--no-suite', 'subprjmix:fail'])
-        self.assertFailedTestCount(3, self.mtest_command + ['--no-suite', 'subprjmix:success'])
-
-        self.assertFailedTestCount(2, self.mtest_command + ['--suite', 'subprjfail', '--suite', 'subprjmix:fail'])
-        self.assertFailedTestCount(3, self.mtest_command + ['--suite', 'subprjfail', '--suite', 'subprjmix', '--suite', 'mainprj'])
-        self.assertFailedTestCount(2, self.mtest_command + ['--suite', 'subprjfail', '--suite', 'subprjmix', '--suite', 'mainprj', '--no-suite', 'subprjmix:fail'])
-        self.assertFailedTestCount(1, self.mtest_command + ['--suite', 'subprjfail', '--suite', 'subprjmix', '--suite', 'mainprj', '--no-suite', 'subprjmix:fail', 'mainprj-failing_test'])
-
-        self.assertFailedTestCount(1, self.mtest_command + ['--no-suite', 'subprjfail:fail', '--no-suite', 'subprjmix:fail'])
 
     def _test_stds_impl(self, testdir, compiler, p):
         lang_std = p + '_std'
@@ -643,31 +870,6 @@ class LinuxlikeTests(unittest.TestCase):
                           get_fake_options(self.prefix), [])
         cpp = env.detect_cpp_compiler(False)
         self._test_stds_impl(testdir, cpp, 'cpp')
-
-    def test_build_by_default(self):
-        testdir = os.path.join(self.common_test_dir, '137 build by default')
-        self.init(testdir)
-        self.build()
-        genfile = os.path.join(self.builddir, 'generated.dat')
-        exe = os.path.join(self.builddir, 'fooprog')
-        self.assertTrue(os.path.exists(genfile))
-        self.assertFalse(os.path.exists(exe))
-        self._run(self.ninja_command + ['fooprog'])
-        self.assertTrue(os.path.exists(exe))
-
-    def test_libdir_must_be_inside_prefix(self):
-        testdir = os.path.join(self.common_test_dir, '1 trivial')
-        # libdir being inside prefix is ok
-        args = ['--prefix', '/opt', '--libdir', '/opt/lib32']
-        self.init(testdir, args)
-        self.wipe()
-        # libdir not being inside prefix is not ok
-        args = ['--prefix', '/usr', '--libdir', '/opt/lib32']
-        self.assertRaises(subprocess.CalledProcessError, self.init, testdir, args)
-        self.wipe()
-        # libdir must be inside prefix even when set via mesonconf
-        self.init(testdir)
-        self.assertRaises(subprocess.CalledProcessError, self.setconf, '-Dlibdir=/opt')
 
     def test_installed_modes(self):
         '''
@@ -722,47 +924,15 @@ class LinuxlikeTests(unittest.TestCase):
             # The chown failed nonfatally if we're not root
             self.assertEqual(0, statf.st_uid)
 
-    def test_internal_include_order(self):
-        testdir = os.path.join(self.common_test_dir, '138 include order')
-        self.init(testdir)
-        for cmd in self.get_compdb():
-            if cmd['file'].endswith('/main.c'):
-                cmd = cmd['command']
-                break
-        else:
-            raise Exception('Could not find main.c command')
-        incs = [a for a in shlex.split(cmd) if a.startswith("-I")]
-        self.assertEqual(len(incs), 8)
-        # target private dir
-        self.assertEqual(incs[0], "-Isub4/someexe@exe")
-        # target build subdir
-        self.assertEqual(incs[1], "-Isub4")
-        # target source subdir
-        msg = "{!r} does not end with '/sub4'".format(incs[2])
-        self.assertTrue(incs[2].endswith("/sub4"), msg)
-        # include paths added via per-target c_args: ['-I'...]
-        msg = "{!r} does not end with '/sub3'".format(incs[3])
-        self.assertTrue(incs[3].endswith("/sub3"), msg)
-        # target include_directories: build dir
-        self.assertEqual(incs[4], "-Isub2")
-        # target include_directories: source dir
-        msg = "{!r} does not end with '/sub2'".format(incs[5])
-        self.assertTrue(incs[5].endswith("/sub2"), msg)
-        # target internal dependency include_directories: build dir
-        self.assertEqual(incs[6], "-Isub1")
-        # target internal dependency include_directories: source dir
-        msg = "{!r} does not end with '/sub1'".format(incs[7])
-        self.assertTrue(incs[7].endswith("/sub1"), msg)
-
 
 class RewriterTests(unittest.TestCase):
 
     def setUp(self):
         super().setUp()
         src_root = os.path.dirname(__file__)
-        self.testroot = tempfile.mkdtemp()
+        self.testroot = os.path.realpath(tempfile.mkdtemp())
         self.rewrite_command = [sys.executable, os.path.join(src_root, 'mesonrewriter.py')]
-        self.tmpdir = tempfile.mkdtemp()
+        self.tmpdir = os.path.realpath(tempfile.mkdtemp())
         self.workdir = os.path.join(self.tmpdir, 'foo')
         self.test_dir = os.path.join(src_root, 'test cases/rewrite')
 
@@ -785,34 +955,38 @@ class RewriterTests(unittest.TestCase):
 
     def test_basic(self):
         self.prime('1 basic')
-        subprocess.check_output(self.rewrite_command + ['remove',
-                                                        '--target=trivialprog',
-                                                        '--filename=notthere.c',
-                                                        '--sourcedir', self.workdir])
+        subprocess.check_call(self.rewrite_command + ['remove',
+                                                      '--target=trivialprog',
+                                                      '--filename=notthere.c',
+                                                      '--sourcedir', self.workdir],
+                              universal_newlines=True)
         self.check_effectively_same('meson.build', 'removed.txt')
-        subprocess.check_output(self.rewrite_command + ['add',
-                                                        '--target=trivialprog',
-                                                        '--filename=notthere.c',
-                                                        '--sourcedir', self.workdir])
+        subprocess.check_call(self.rewrite_command + ['add',
+                                                      '--target=trivialprog',
+                                                      '--filename=notthere.c',
+                                                      '--sourcedir', self.workdir],
+                              universal_newlines=True)
         self.check_effectively_same('meson.build', 'added.txt')
-        subprocess.check_output(self.rewrite_command + ['remove',
-                                                        '--target=trivialprog',
-                                                        '--filename=notthere.c',
-                                                        '--sourcedir', self.workdir])
+        subprocess.check_call(self.rewrite_command + ['remove',
+                                                      '--target=trivialprog',
+                                                      '--filename=notthere.c',
+                                                      '--sourcedir', self.workdir],
+                              universal_newlines=True)
         self.check_effectively_same('meson.build', 'removed.txt')
 
     def test_subdir(self):
         self.prime('2 subdirs')
         top = self.read_contents('meson.build')
         s2 = self.read_contents('sub2/meson.build')
-        subprocess.check_output(self.rewrite_command + ['remove',
-                                                        '--target=something',
-                                                        '--filename=second.c',
-                                                        '--sourcedir', self.workdir])
+        subprocess.check_call(self.rewrite_command + ['remove',
+                                                      '--target=something',
+                                                      '--filename=second.c',
+                                                      '--sourcedir', self.workdir],
+                              universal_newlines=True)
         self.check_effectively_same('sub1/meson.build', 'sub1/after.txt')
         self.assertEqual(top, self.read_contents('meson.build'))
         self.assertEqual(s2, self.read_contents('sub2/meson.build'))
 
 
 if __name__ == '__main__':
-    unittest.main()
+    unittest.main(buffer=True)

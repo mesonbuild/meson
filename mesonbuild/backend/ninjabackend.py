@@ -30,9 +30,11 @@ from collections import OrderedDict
 if mesonlib.is_windows():
     quote_char = '"'
     execute_wrapper = 'cmd /c'
+    rmfile_prefix = 'del /f /s /q {} &&'
 else:
     quote_char = "'"
     execute_wrapper = ''
+    rmfile_prefix = 'rm -f {} &&'
 
 def ninja_quote(text):
     return text.replace(' ', '$ ').replace(':', '$:')
@@ -1238,10 +1240,16 @@ int dummy;
 '''
         else:
             command_template = ' command = {executable} $LINK_ARGS {output_args} $in\n'
+        cmdlist = []
+        if isinstance(static_linker, compilers.ArLinker):
+            # `ar` has no options to overwrite archives. It always appends,
+            # which is never what we want. Delete an existing library first if
+            # it exists. https://github.com/mesonbuild/meson/issues/1355
+            cmdlist = [execute_wrapper, rmfile_prefix.format('$out')]
+        cmdlist += static_linker.get_exelist()
         command = command_template.format(
-            executable=' '.join(static_linker.get_exelist()),
-            output_args=' '.join(static_linker.get_output_args('$out'))
-        )
+            executable=' '.join(cmdlist),
+            output_args=' '.join(static_linker.get_output_args('$out')))
         description = ' description = Static linking library $out\n\n'
         outfile.write(rule)
         outfile.write(command)

@@ -395,7 +395,7 @@ class Vs2010Backend(backends.Backend):
             if isinstance(i, build.BuildTarget):
                 cmd.append(os.path.join(self.environment.get_build_dir(), self.get_target_filename(i)))
             elif isinstance(i, dependencies.ExternalProgram):
-                cmd += i.fullpath
+                cmd += i.get_command()
             else:
                 cmd.append(i)
         cmd_templ = '''"%s" ''' * len(cmd)

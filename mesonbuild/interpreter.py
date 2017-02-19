@@ -285,16 +285,16 @@ class ExternalProgramHolder(InterpreterObject):
         return self.found()
 
     def path_method(self, args, kwargs):
-        return self.get_command()
+        return self.held_object.get_path()
 
     def found(self):
         return self.held_object.found()
 
     def get_command(self):
-        return self.held_object.fullpath
+        return self.held_object.get_command()
 
     def get_name(self):
-        return self.held_object.name
+        return self.held_object.get_name()
 
 class ExternalLibraryHolder(InterpreterObject):
     def __init__(self, el):
@@ -307,9 +307,6 @@ class ExternalLibraryHolder(InterpreterObject):
 
     def found_method(self, args, kwargs):
         return self.found()
-
-    def get_filename(self):
-        return self.held_object.fullpath
 
     def get_name(self):
         return self.held_object.name
@@ -1424,7 +1421,8 @@ class Interpreter(InterpreterBase):
         elif isinstance(cmd, str):
             cmd = [cmd]
         else:
-            raise InterpreterException('First argument is of incorrect type.')
+            raise InterpreterException('First argument should be find_program() '
+                                       'or string, not {!r}'.format(cmd))
         expanded_args = []
         for a in mesonlib.flatten(cargs):
             if isinstance(a, str):
@@ -1759,7 +1757,6 @@ class Interpreter(InterpreterBase):
                     break
             self.coredata.base_options[optname] = oobj
 
-    @stringArgs
     def func_find_program(self, node, args, kwargs):
         if len(args) == 0:
             raise InterpreterException('No program name specified.')
@@ -1769,8 +1766,21 @@ class Interpreter(InterpreterBase):
         # Search for scripts relative to current subdir.
         # Do not cache found programs because find_program('foobar')
         # might give different results when run from different source dirs.
-        search_dir = os.path.join(self.environment.get_source_dir(), self.subdir)
+        source_dir = os.path.join(self.environment.get_source_dir(), self.subdir)
         for exename in args:
+            if isinstance(exename, mesonlib.File):
+                if exename.is_built:
+                    search_dir = os.path.join(self.environment.get_build_dir(),
+                                              exename.subdir)
+                else:
+                    search_dir = os.path.join(self.environment.get_source_dir(),
+                                              exename.subdir)
+                exename = exename.fname
+            elif isinstance(exename, str):
+                search_dir = source_dir
+            else:
+                raise InvalidArguments('find_program only accepts strings and '
+                                       'files, not {!r}'.format(exename))
             extprog = dependencies.ExternalProgram(exename, search_dir=search_dir)
             progobj = ExternalProgramHolder(extprog)
             if progobj.found():

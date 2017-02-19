@@ -98,17 +98,18 @@ class RPMModule(ExtensionModule):
             for dep in state.environment.coredata.deps:
                 fn.write('BuildRequires: pkgconfig(%s)\n' % dep[0])
             for lib in state.environment.coredata.ext_libs.values():
-                fn.write('BuildRequires: %s # FIXME\n' % lib.fullpath)
-                mlog.warning('replace', mlog.bold(lib.fullpath), 'with real package.',
+                name = lib.get_name()
+                fn.write('BuildRequires: {} # FIXME\n'.format(name))
+                mlog.warning('replace', mlog.bold(name), 'with the real package.',
                              'You can use following command to find package which '
                              'contains this lib:',
-                             mlog.bold('dnf provides %s' % lib.fullpath))
+                             mlog.bold("dnf provides '*/lib{}.so".format(name))
             for prog in state.environment.coredata.ext_progs.values():
                 if not prog.found():
                     fn.write('BuildRequires: %%{_bindir}/%s # FIXME\n' %
                              prog.get_name())
                 else:
-                    fn.write('BuildRequires: %s\n' % ' '.join(prog.fullpath))
+                    fn.write('BuildRequires: {}\n'.format(prog.get_path()))
             fn.write('BuildRequires: meson\n')
             fn.write('\n')
             fn.write('%description\n')

@@ -23,6 +23,7 @@ import json, pickle
 from . import coredata, build
 import argparse
 import sys, os
+import pathlib
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--targets', action='store_true', dest='list_targets', default=False,
@@ -56,7 +57,9 @@ def determine_installed_path(target, installdata):
     fname = i[0]
     outdir = i[1]
     outname = os.path.join(installdata.prefix, outdir, os.path.split(fname)[-1])
-    return outname
+    # Normalize the path by using os.path.sep consistently, etc.
+    # Does not change the effective path.
+    return str(pathlib.PurePath(outname))
 
 
 def list_installed(installdata):
@@ -111,23 +114,11 @@ def list_target_files(target_name, coredata, builddata):
     print(json.dumps(sources))
 
 def list_buildoptions(coredata, builddata):
-    buildtype = {'choices': ['plain', 'debug', 'debugoptimized', 'release', 'minsize'],
-                 'type': 'combo',
-                 'value': coredata.get_builtin_option('buildtype'),
-                 'description': 'Build type',
-                 'name': 'type'}
-    strip = {'value': coredata.get_builtin_option('strip'),
-             'type': 'boolean',
-             'description': 'Strip on install',
-             'name': 'strip'}
-    unity = {'value': coredata.get_builtin_option('unity'),
-             'type': 'boolean',
-             'description': 'Unity build',
-             'name': 'unity'}
-    optlist = [buildtype, strip, unity]
+    optlist = []
     add_keys(optlist, coredata.user_options)
     add_keys(optlist, coredata.compiler_options)
     add_keys(optlist, coredata.base_options)
+    add_keys(optlist, coredata.builtins)
     print(json.dumps(optlist))
 
 def add_keys(optlist, options):
