@@ -2060,7 +2060,7 @@ requirements use the version keyword argument instead.''')
         self.add_test(node, args, kwargs, True)
 
     def unpack_env_kwarg(self, kwargs):
-        envlist = kwargs.get('env', [])
+        envlist = kwargs.get('env', EnvironmentVariablesHolder())
         if isinstance(envlist, EnvironmentVariablesHolder):
             env = envlist.held_object
         else:
