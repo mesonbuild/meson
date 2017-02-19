@@ -556,6 +556,8 @@ class Environment:
                 return GnuObjCCompiler(ccache + compiler, version, is_cross, exe_wrap, defines)
             if out.startswith('Apple LLVM'):
                 return ClangObjCCompiler(ccache + compiler, version, CLANG_OSX, is_cross, exe_wrap)
+            if out.startswith('clang'):
+                return ClangObjCCompiler(ccache + compiler, version, CLANG_STANDARD, is_cross, exe_wrap)
         self._handle_compiler_exceptions(popen_exceptions, compilers)
 
     def detect_objcpp_compiler(self, want_cross):
@@ -578,6 +580,8 @@ class Environment:
                 return GnuObjCPPCompiler(ccache + compiler, version, is_cross, exe_wrap, defines)
             if out.startswith('Apple LLVM'):
                 return ClangObjCPPCompiler(ccache + compiler, version, CLANG_OSX, is_cross, exe_wrap)
+            if out.startswith('clang'):
+                return ClangObjCPPCompiler(ccache + compiler, version, CLANG_STANDARD, is_cross, exe_wrap)
         self._handle_compiler_exceptions(popen_exceptions, compilers)
 
     def detect_java_compiler(self):
