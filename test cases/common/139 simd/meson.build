@@ -12,6 +12,10 @@ if not meson.is_cross_build() and host_machine.cpu_family() == 'arm' and cc.get_
   add_project_arguments('-march=armv7', language : 'c')
 endif
 
+if cc.get_id() == 'msvc' and version_compare(cc.version(), '<17')
+  error('MESON_SKIP_TEST VS2010 produces broken binaries on x86.')
+endif
+
 simdlibs = simd.check('mysimds',
   mmx : 'simd_mmx.c',
   sse : 'simd_sse.c',

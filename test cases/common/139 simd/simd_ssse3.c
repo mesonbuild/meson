@@ -19,6 +19,9 @@ int ssse3_available() {
 int ssse3_available() {
 #ifdef __APPLE__
     return 1;
+#elif defined(__clang__)
+    /* https://github.com/numpy/numpy/issues/8130 */
+    return __builtin_cpu_supports("sse4.1");
 #else
     return __builtin_cpu_supports("ssse3");
 #endif
