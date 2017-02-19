@@ -415,15 +415,18 @@ TIMEOUT: %4d
         if not self.options.logbase or self.options.verbose:
             return None, None, None, None
 
+        namebase = None
         logfile_base = os.path.join(self.options.wd, 'meson-logs', self.options.logbase)
 
-        if self.options.wrapper is None:
-            logfilename = logfile_base + '.txt'
-            jsonlogfilename = logfile_base + '.json'
-        else:
+        if self.options.wrapper:
             namebase = os.path.split(self.get_wrapper()[0])[1]
-            logfilename = logfile_base + '-' + namebase.replace(' ', '_') + '.txt'
-            jsonlogfilename = logfile_base + '-' + namebase.replace(' ', '_') + '.json'
+        elif self.options.setup:
+            namebase = self.options.setup
+
+        if namebase:
+            logfile_base += '-' + namebase.replace(' ', '_')
+        logfilename = logfile_base + '.txt'
+        jsonlogfilename = logfile_base + '.json'
 
         jsonlogfile = open(jsonlogfilename, 'w')
         logfile = open(logfilename, 'w')
