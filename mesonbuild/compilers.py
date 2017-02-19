@@ -188,6 +188,10 @@ gnu_color_args = {'auto': ['-fdiagnostics-color=auto'],
                   'never': ['-fdiagnostics-color=never'],
                   }
 
+clang_color_args = {'always': ['-Xclang', '-fcolor-diagnostics'],
+                    'never': ['-Xclang', '-fno-color-diagnostics'],
+                    }
+
 base_options = {'b_pch': coredata.UserBooleanOption('b_pch', 'Use precompiled headers', True),
                 'b_lto': coredata.UserBooleanOption('b_lto', 'Use link time optimization', False),
                 'b_sanitize': coredata.UserComboOption('b_sanitize',
@@ -2427,7 +2431,7 @@ class ClangCompiler:
         self.id = 'clang'
         self.clang_type = clang_type
         self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage',
-                             'b_ndebug', 'b_staticpic']
+                             'b_ndebug', 'b_staticpic', 'b_colorout']
         if self.clang_type != CLANG_OSX:
             self.base_options.append('b_lundef')
             self.base_options.append('b_asneeded')
@@ -2438,6 +2442,11 @@ class ClangCompiler:
         if self.clang_type in (CLANG_WIN, CLANG_OSX):
             return [] # On Window and OS X, pic is always on.
         return ['-fPIC']
+
+    def get_colorout_args(self, colortype):
+        if mesonlib.version_compare(self.version, '>=3.3'):
+            return clang_color_args[colortype][:]
+        return []
 
     def get_buildtype_args(self, buildtype):
         return gnulike_buildtype_args[buildtype]
