@@ -409,13 +409,13 @@ class Environment:
                     continue
                 gtype = self.get_gnu_compiler_type(defines)
                 version = self.get_gnu_version_from_defines(defines)
-                return GnuCCompiler(ccache + compiler, version, gtype, is_cross, exe_wrap, defines)
+                return GnuCCompiler(ccache + compilers, version, gtype, is_cross, exe_wrap, defines)
             if 'clang' in out:
                 if 'Apple' in out or for_darwin(want_cross, self):
                     cltype = CLANG_OSX
                 else:
                     cltype = CLANG_STANDARD
-                return ClangCCompiler(ccache + compiler, version, cltype, is_cross, exe_wrap)
+                return ClangCCompiler(ccache + compilers, version, cltype, is_cross, exe_wrap)
             if 'Microsoft' in out or 'Microsoft' in err:
                 # Visual Studio prints version number to stderr but
                 # everything else to stdout. Why? Lord only knows.
@@ -424,7 +424,7 @@ class Environment:
             if '(ICC)' in out:
                 # TODO: add microsoft add check OSX
                 inteltype = ICC_STANDARD
-                return IntelCCompiler(ccache + compiler, version, inteltype, is_cross, exe_wrap)
+                return IntelCCompiler(ccache + compilers, version, inteltype, is_cross, exe_wrap)
         errmsg = 'Unknown compiler(s): ' + str(compilers)
         if popen_exceptions:
             errmsg += '\nThe follow exceptions were encountered:'
