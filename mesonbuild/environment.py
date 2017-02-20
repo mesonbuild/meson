@@ -537,7 +537,10 @@ class Environment:
                 # Visual Studio prints version number to stderr but
                 # everything else to stdout. Why? Lord only knows.
                 version = search_version(err)
-                is_64 = err.split()[0].endswith(' x64')
+                if not err or not err.split('\n')[0]:
+                    m = 'Failed to detect MSVC compiler arch: stderr was\n{!r}'
+                    raise EnvironmentException(m.format(err))
+                is_64 = err.split('\n')[0].endswith(' x64')
                 cls = VisualStudioCCompiler if lang == 'c' else VisualStudioCPPCompiler
                 return cls(compiler, version, is_cross, exe_wrap, is_64)
             if '(ICC)' in out:
