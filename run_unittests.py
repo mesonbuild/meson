@@ -735,6 +735,8 @@ class AllPlatformTests(BasePlatformTests):
         clang = mesonbuild.compilers.ClangCompiler
         intel = mesonbuild.compilers.IntelCompiler
         msvc = mesonbuild.compilers.VisualStudioCCompiler
+        ar = mesonbuild.compilers.ArLinker
+        lib = mesonbuild.compilers.VisualStudioLinker
         langs = (('c', 'CC'), ('cpp', 'CXX'), ('objc', 'OBJC'), ('objcpp', 'OBJCXX'))
         testdir = os.path.join(self.unit_test_dir, '5 compiler detection')
         env = Environment(testdir, self.builddir, self.meson_command,
@@ -744,26 +746,33 @@ class AllPlatformTests(BasePlatformTests):
             # Detect with evar and do sanity checks on that
             if evar in os.environ:
                 ecc = getattr(env, 'detect_{}_compiler'.format(lang))(False)
+                elinker = env.detect_static_linker(ecc)
                 # Pop it so we don't use it for the next detection
                 evalue = os.environ.pop(evar)
                 # Very rough/strict heuristics. Would never work for actual
                 # compiler detection, but should be ok for the tests.
                 if os.path.basename(evalue).startswith('g'):
                     self.assertIsInstance(ecc, gnu)
+                    self.assertIsInstance(elinker, ar)
                 elif 'clang' in os.path.basename(evalue):
                     self.assertIsInstance(ecc, clang)
+                    self.assertIsInstance(elinker, ar)
                 elif os.path.basename(evalue).startswith('ic'):
                     self.assertIsInstance(ecc, intel)
+                    self.assertIsInstance(elinker, ar)
                 elif os.path.basename(evalue).startswith('cl'):
                     self.assertIsInstance(ecc, msvc)
+                    self.assertIsInstance(elinker, lib)
                 else:
                     raise AssertionError('Unknown compiler {!r}'.format(evalue))
                 # Check that we actually used the evalue correctly as the compiler
                 self.assertEqual(ecc.get_exelist(), shlex.split(evalue))
             # Do auto-detection of compiler based on platform, PATH, etc.
             cc = getattr(env, 'detect_{}_compiler'.format(lang))(False)
+            linker = env.detect_static_linker(cc)
             # Check compiler type
             if isinstance(cc, gnu):
+                self.assertIsInstance(linker, ar)
                 if is_osx():
                     self.assertEqual(cc.gcc_type, mesonbuild.compilers.GCC_OSX)
                 elif is_windows():
@@ -771,6 +780,7 @@ class AllPlatformTests(BasePlatformTests):
                 else:
                     self.assertEqual(cc.gcc_type, mesonbuild.compilers.GCC_STANDARD)
             if isinstance(cc, clang):
+                self.assertIsInstance(linker, ar)
                 if is_osx():
                     self.assertEqual(cc.clang_type, mesonbuild.compilers.CLANG_OSX)
                 elif is_windows():
@@ -779,26 +789,40 @@ class AllPlatformTests(BasePlatformTests):
                 else:
                     self.assertEqual(cc.clang_type, mesonbuild.compilers.CLANG_STANDARD)
             if isinstance(cc, intel):
+                self.assertIsInstance(linker, ar)
                 if is_osx():
                     self.assertEqual(cc.icc_type, mesonbuild.compilers.ICC_OSX)
                 elif is_windows():
                     self.assertEqual(cc.icc_type, mesonbuild.compilers.ICC_WIN)
                 else:
                     self.assertEqual(cc.icc_type, mesonbuild.compilers.ICC_STANDARD)
+            if isinstance(cc, msvc):
+                self.assertTrue(is_windows())
+                self.assertIsInstance(linker, lib)
+                self.assertEqual(cc.id, 'msvc')
             # Set evar ourselves to a wrapper script that just calls the same
             # exelist. This is meant to test that setting something like
             # `ccache gcc` or `distcc ccache gcc` works fine.
             wrapper = os.path.join(testdir, 'compiler wrapper.py')
-            wrapper = [sys.executable, wrapper] + cc.get_exelist()
-            wrapper_s = ''
-            for w in wrapper:
-                wrapper_s += shlex.quote(w) + ' '
-            os.environ[evar] = wrapper_s
+            wrappercc = [sys.executable, wrapper] + cc.get_exelist()
+            wrappercc_s = ''
+            for w in wrappercc:
+                wrappercc_s += shlex.quote(w) + ' '
+            os.environ[evar] = wrappercc_s
             wcc = getattr(env, 'detect_{}_compiler'.format(lang))(False)
+            # Check static linker too
+            wrapperlinker = [sys.executable, wrapper] + linker.get_exelist()
+            wrapperlinker_s = ''
+            for w in wrapperlinker:
+                wrapperlinker_s += shlex.quote(w) + ' '
+            os.environ['AR'] = wrapperlinker_s
+            wlinker = env.detect_static_linker(wcc)
             # Must be the same type since it's a wrapper around the same exelist
             self.assertIs(type(cc), type(wcc))
+            self.assertIs(type(linker), type(wlinker))
             # Ensure that the exelist is correct
-            self.assertEqual(wcc.get_exelist(), wrapper)
+            self.assertEqual(wcc.get_exelist(), wrappercc)
+            self.assertEqual(wlinker.get_exelist(), wrapperlinker)
 
 
 class WindowsTests(BasePlatformTests):

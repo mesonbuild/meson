@@ -677,30 +677,32 @@ class Environment:
     def detect_static_linker(self, compiler):
         if compiler.is_cross:
             linker = self.cross_info.config['binaries']['ar']
+            if isinstance(linker, str):
+                linker = [linker]
         else:
             evar = 'AR'
             if evar in os.environ:
                 linker = shlex.split(os.environ[evar])
             elif isinstance(compiler, VisualStudioCCompiler):
-                linker = self.vs_static_linker
+                linker = [self.vs_static_linker]
             else:
-                linker = self.default_static_linker
-        basename = os.path.basename(linker).lower()
+                linker = [self.default_static_linker]
+        basename = os.path.basename(linker[-1]).lower()
         if basename == 'lib' or basename == 'lib.exe':
             arg = '/?'
         else:
             arg = '--version'
         try:
-            p, out, err = Popen_safe([linker, arg])
+            p, out, err = Popen_safe(linker + [arg])
         except OSError:
-            raise EnvironmentException('Could not execute static linker "%s".' % linker)
+            raise EnvironmentException('Could not execute static linker "%s".' % ' '.join(linker))
         if '/OUT:' in out or '/OUT:' in err:
-            return VisualStudioLinker([linker])
+            return VisualStudioLinker(linker)
         if p.returncode == 0:
-            return ArLinker([linker])
+            return ArLinker(linker)
         if p.returncode == 1 and err.startswith('usage'): # OSX
-            return ArLinker([linker])
-        raise EnvironmentException('Unknown static linker "%s"' % linker)
+            return ArLinker(linker)
+        raise EnvironmentException('Unknown static linker "%s"' % ' '.join(linker))
 
     def detect_ccache(self):
         try:
