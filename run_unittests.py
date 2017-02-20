@@ -1006,6 +1006,13 @@ class AllPlatformTests(BasePlatformTests):
                 self.assertTrue(is_windows())
                 self.assertIsInstance(linker, lib)
                 self.assertEqual(cc.id, 'msvc')
+                self.assertTrue(hasattr(cc, 'is_64'))
+                # If we're in the appveyor CI, we know what the compiler will be
+                if 'arch' in os.environ:
+                    if os.environ['arch'] == 'x64':
+                        self.assertTrue(cc.is_64)
+                    else:
+                        self.assertFalse(cc.is_64)
             # Set evar ourselves to a wrapper script that just calls the same
             # exelist + some argument. This is meant to test that setting
             # something like `ccache gcc -pipe` or `distcc ccache gcc` works.
@@ -1031,6 +1038,8 @@ class AllPlatformTests(BasePlatformTests):
             self.assertEqual(wlinker.get_exelist(), wrapperlinker)
             # Ensure that the version detection worked correctly
             self.assertEqual(cc.version, wcc.version)
+            if hasattr(cc, 'is_64'):
+                self.assertEqual(cc.is_64, wcc.is_64)
 
     def test_always_prefer_c_compiler_for_asm(self):
         testdir = os.path.join(self.common_test_dir, '141 c cpp and asm')
