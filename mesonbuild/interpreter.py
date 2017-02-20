@@ -134,6 +134,10 @@ class EnvironmentVariablesHolder(MutableInterpreterObject):
                              'prepend': self.prepend_method,
                              })
 
+    def __repr__(self):
+        repr_str = "<{0}: {1}>"
+        return repr_str.format(self.__class__.__name__, self.held_object.envvars)
+
     @stringArgs
     def add_var(self, method, args, kwargs):
         if not isinstance(kwargs.get("separator", ""), str):
@@ -2056,7 +2060,7 @@ requirements use the version keyword argument instead.''')
         self.add_test(node, args, kwargs, True)
 
     def unpack_env_kwarg(self, kwargs):
-        envlist = kwargs.get('env', [])
+        envlist = kwargs.get('env', EnvironmentVariablesHolder())
         if isinstance(envlist, EnvironmentVariablesHolder):
             env = envlist.held_object
         else:

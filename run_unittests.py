@@ -602,9 +602,11 @@ class AllPlatformTests(BasePlatformTests):
         testdir = os.path.join(self.unit_test_dir, '2 testsetups')
         self.init(testdir)
         self.build()
+        # Run tests without setup
         self.run_tests()
         with open(os.path.join(self.logdir, 'testlog.txt')) as f:
             basic_log = f.read()
+        # Run buggy test with setup that has env that will make it fail
         self.assertRaises(subprocess.CalledProcessError,
                           self._run, self.mtest_command + ['--setup=valgrind'])
         with open(os.path.join(self.logdir, 'testlog-valgrind.txt')) as f:
@@ -613,6 +615,14 @@ class AllPlatformTests(BasePlatformTests):
         self.assertFalse('Memcheck' in basic_log)
         self.assertTrue('TEST_ENV is set' in vg_log)
         self.assertTrue('Memcheck' in vg_log)
+        # Run buggy test with setup without env that will pass
+        self._run(self.mtest_command + ['--setup=wrapper'])
+        # Setup with no properties works
+        self._run(self.mtest_command + ['--setup=empty'])
+        # Setup with only env works
+        self._run(self.mtest_command + ['--setup=onlyenv'])
+        # Setup with only a timeout works
+        self._run(self.mtest_command + ['--setup=timeout'])
 
     def assertFailedTestCount(self, failure_count, command):
         try:

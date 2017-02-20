@@ -83,7 +83,7 @@ parser.add_argument('-v', '--verbose', default=False, action='store_true',
                     help='Do not redirect stdout and stderr')
 parser.add_argument('-q', '--quiet', default=False, action='store_true',
                     help='Produce less output to the terminal.')
-parser.add_argument('-t', '--timeout-multiplier', type=float, default=1.0,
+parser.add_argument('-t', '--timeout-multiplier', type=float, default=None,
                     help='Define a multiplier for test timeout, for example '
                     ' when running tests in particular conditions they might take'
                     ' more time to execute.')
@@ -393,15 +393,18 @@ TIMEOUT: %4d
         if not self.options.logbase or self.options.verbose:
             return None, None, None, None
 
+        namebase = None
         logfile_base = os.path.join(self.options.wd, 'meson-logs', self.options.logbase)
 
-        if self.options.wrapper is None:
-            logfilename = logfile_base + '.txt'
-            jsonlogfilename = logfile_base + '.json'
-        else:
+        if self.options.wrapper:
             namebase = os.path.split(self.get_wrapper()[0])[1]
-            logfilename = logfile_base + '-' + namebase.replace(' ', '_') + '.txt'
-            jsonlogfilename = logfile_base + '-' + namebase.replace(' ', '_') + '.json'
+        elif self.options.setup:
+            namebase = self.options.setup
+
+        if namebase:
+            logfile_base += '-' + namebase.replace(' ', '_')
+        logfilename = logfile_base + '.txt'
+        jsonlogfilename = logfile_base + '.json'
 
         jsonlogfile = open(jsonlogfilename, 'w')
         logfile = open(logfilename, 'w')
@@ -497,6 +500,8 @@ TIMEOUT: %4d
         if os.path.isfile('build.ninja'):
             subprocess.check_call([environment.detect_ninja(), 'all'])
         tests = self.get_tests()
+        if not tests:
+            return 0
         self.run_tests(tests)
         return self.fail_count
 
@@ -555,6 +560,8 @@ def run(args):
         global_env = merge_suite_options(options)
     else:
         global_env = build.EnvironmentVariables()
+        if options.timeout_multiplier is None:
+            options.timeout_multiplier = 1
 
     setattr(options, 'global_env', global_env)
 
