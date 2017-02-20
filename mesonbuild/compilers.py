@@ -188,7 +188,8 @@ gnu_color_args = {'auto': ['-fdiagnostics-color=auto'],
                   'never': ['-fdiagnostics-color=never'],
                   }
 
-clang_color_args = {'always': ['-Xclang', '-fcolor-diagnostics'],
+clang_color_args = {'auto': ['-Xclang', '-fcolor-diagnostics'],
+                    'always': ['-Xclang', '-fcolor-diagnostics'],
                     'never': ['-Xclang', '-fno-color-diagnostics'],
                     }
 
@@ -2444,9 +2445,7 @@ class ClangCompiler:
         return ['-fPIC']
 
     def get_colorout_args(self, colortype):
-        if mesonlib.version_compare(self.version, '>=3.1'):
-            return clang_color_args[colortype][:]
-        return []
+        return clang_color_args[colortype][:]
 
     def get_buildtype_args(self, buildtype):
         return gnulike_buildtype_args[buildtype]
