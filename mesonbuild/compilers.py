@@ -2444,7 +2444,7 @@ class ClangCompiler:
         return ['-fPIC']
 
     def get_colorout_args(self, colortype):
-        if mesonlib.version_compare(self.version, '>=3.3'):
+        if mesonlib.version_compare(self.version, '>=3.1'):
             return clang_color_args[colortype][:]
         return []
 
