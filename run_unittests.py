@@ -24,7 +24,7 @@ from pathlib import PurePath
 import mesonbuild.compilers
 import mesonbuild.environment
 import mesonbuild.mesonlib
-from mesonbuild.mesonlib import is_windows
+from mesonbuild.mesonlib import is_windows, is_osx
 from mesonbuild.environment import detect_ninja, Environment
 from mesonbuild.dependencies import PkgConfigDependency, ExternalProgram
 
@@ -724,6 +724,81 @@ class AllPlatformTests(BasePlatformTests):
         self.assertPathEqual(incs[6], "-Isub1")
         # target internal dependency include_directories: source dir
         self.assertPathBasenameEqual(incs[7], 'sub1')
+
+    def test_compiler_detection(self):
+        '''
+        Test that automatic compiler detection and setting from the environment
+        both work just fine. This is needed because while running project tests
+        and other unit tests, we always read CC/CXX/etc from the environment.
+        '''
+        gnu = mesonbuild.compilers.GnuCompiler
+        clang = mesonbuild.compilers.ClangCompiler
+        intel = mesonbuild.compilers.IntelCompiler
+        msvc = mesonbuild.compilers.VisualStudioCCompiler
+        langs = (('c', 'CC'), ('cpp', 'CXX'), ('objc', 'OBJC'), ('objcpp', 'OBJCXX'))
+        testdir = os.path.join(self.unit_test_dir, '5 compiler detection')
+        env = Environment(testdir, self.builddir, self.meson_command,
+                          get_fake_options(self.prefix), [])
+        for lang, evar in langs:
+            evalue = None
+            # Detect with evar and do sanity checks on that
+            if evar in os.environ:
+                ecc = getattr(env, 'detect_{}_compiler'.format(lang))(False)
+                # Pop it so we don't use it for the next detection
+                evalue = os.environ.pop(evar)
+                # Very rough/strict heuristics. Would never work for actual
+                # compiler detection, but should be ok for the tests.
+                if os.path.basename(evalue).startswith('g'):
+                    self.assertIsInstance(ecc, gnu)
+                elif 'clang' in os.path.basename(evalue):
+                    self.assertIsInstance(ecc, clang)
+                elif os.path.basename(evalue).startswith('ic'):
+                    self.assertIsInstance(ecc, intel)
+                elif os.path.basename(evalue).startswith('cl'):
+                    self.assertIsInstance(ecc, msvc)
+                else:
+                    raise AssertionError('Unknown compiler {!r}'.format(evalue))
+                # Check that we actually used the evalue correctly as the compiler
+                self.assertEqual(ecc.get_exelist(), shlex.split(evalue))
+            # Do auto-detection of compiler based on platform, PATH, etc.
+            cc = getattr(env, 'detect_{}_compiler'.format(lang))(False)
+            # Check compiler type
+            if isinstance(cc, gnu):
+                if is_osx():
+                    self.assertEqual(cc.gcc_type, mesonbuild.compilers.GCC_OSX)
+                elif is_windows():
+                    self.assertEqual(cc.gcc_type, mesonbuild.compilers.GCC_MINGW)
+                else:
+                    self.assertEqual(cc.gcc_type, mesonbuild.compilers.GCC_STANDARD)
+            if isinstance(cc, clang):
+                if is_osx():
+                    self.assertEqual(cc.clang_type, mesonbuild.compilers.CLANG_OSX)
+                elif is_windows():
+                    # Not implemented yet
+                    self.assertEqual(cc.clang_type, mesonbuild.compilers.CLANG_WIN)
+                else:
+                    self.assertEqual(cc.clang_type, mesonbuild.compilers.CLANG_STANDARD)
+            if isinstance(cc, intel):
+                if is_osx():
+                    self.assertEqual(cc.icc_type, mesonbuild.compilers.ICC_OSX)
+                elif is_windows():
+                    self.assertEqual(cc.icc_type, mesonbuild.compilers.ICC_WIN)
+                else:
+                    self.assertEqual(cc.icc_type, mesonbuild.compilers.ICC_STANDARD)
+            # Set evar ourselves to a wrapper script that just calls the same
+            # exelist. This is meant to test that setting something like
+            # `ccache gcc` or `distcc ccache gcc` works fine.
+            wrapper = os.path.join(testdir, 'compiler wrapper.py')
+            wrapper = [sys.executable, wrapper] + cc.get_exelist()
+            wrapper_s = ''
+            for w in wrapper:
+                wrapper_s += shlex.quote(w) + ' '
+            os.environ[evar] = wrapper_s
+            wcc = getattr(env, 'detect_{}_compiler'.format(lang))(False)
+            # Must be the same type since it's a wrapper around the same exelist
+            self.assertIs(type(cc), type(wcc))
+            # Ensure that the exelist is correct
+            self.assertEqual(wcc.get_exelist(), wrapper)
 
 
 class WindowsTests(BasePlatformTests):
