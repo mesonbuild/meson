@@ -521,3 +521,154 @@ def commonpath(paths):
         new = os.path.join(*new)
         common = pathlib.PurePath(new)
     return str(common)
+
+def iter_regexin_iter(regexiter, initer):
+    '''
+    Takes each regular expression in @regexiter and tries to search for it in
+    every item in @initer. If there is a match, returns that match.
+    Else returns False.
+    '''
+    for regex in regexiter:
+        for ii in initer:
+            if not isinstance(ii, str):
+                continue
+            match = re.search(regex, ii)
+            if match:
+                return match.group()
+    return False
+
+def _substitute_values_check_errors(command, values):
+    # Error checking
+    inregex = ('@INPUT([0-9]+)?@', '@PLAINNAME@', '@BASENAME@')
+    outregex = ('@OUTPUT([0-9]+)?@', '@OUTDIR@')
+    if '@INPUT@' not in values:
+        # Error out if any input-derived templates are present in the command
+        match = iter_regexin_iter(inregex, command)
+        if match:
+            m = 'Command cannot have {!r}, since no input files were specified'
+            raise MesonException(m.format(match))
+    else:
+        if len(values['@INPUT@']) > 1:
+            # Error out if @PLAINNAME@ or @BASENAME@ is present in the command
+            match = iter_regexin_iter(inregex[1:], command)
+            if match:
+                raise MesonException('Command cannot have {!r} when there is '
+                                     'more than one input file'.format(match))
+        # Error out if an invalid @INPUTnn@ template was specified
+        for each in command:
+            if not isinstance(each, str):
+                continue
+            match = re.search(inregex[0], each)
+            if match and match.group() not in values:
+                m = 'Command cannot have {!r} since there are only {!r} inputs'
+                raise MesonException(m.format(match.group(), len(values['@INPUT@'])))
+    if '@OUTPUT@' not in values:
+        # Error out if any output-derived templates are present in the command
+        match = iter_regexin_iter(outregex, command)
+        if match:
+            m = 'Command cannot have {!r} since there are no outputs'
+            raise MesonException(m.format(match))
+    else:
+        # Error out if an invalid @OUTPUTnn@ template was specified
+        for each in command:
+            if not isinstance(each, str):
+                continue
+            match = re.search(outregex[0], each)
+            if match and match.group() not in values:
+                m = 'Command cannot have {!r} since there are only {!r} outputs'
+                raise MesonException(m.format(match.group(), len(values['@OUTPUT@'])))
+
+def substitute_values(command, values):
+    '''
+    Substitute the template strings in the @values dict into the list of
+    strings @command and return a new list. For a full list of the templates,
+    see get_filenames_templates_dict()
+
+    If multiple inputs/outputs are given in the @values dictionary, we
+    substitute @INPUT@ and @OUTPUT@ only if they are the entire string, not
+    just a part of it, and in that case we substitute *all* of them.
+    '''
+    # Error checking
+    _substitute_values_check_errors(command, values)
+    # Substitution
+    outcmd = []
+    for vv in command:
+        if not isinstance(vv, str):
+            outcmd.append(vv)
+        elif '@INPUT@' in vv:
+            inputs = values['@INPUT@']
+            if vv == '@INPUT@':
+                outcmd += inputs
+            elif len(inputs) == 1:
+                outcmd.append(vv.replace('@INPUT@', inputs[0]))
+            else:
+                raise MesonException("Command has '@INPUT@' as part of a "
+                                     "string and more than one input file")
+        elif '@OUTPUT@' in vv:
+            outputs = values['@OUTPUT@']
+            if vv == '@OUTPUT@':
+                outcmd += outputs
+            elif len(outputs) == 1:
+                outcmd.append(vv.replace('@OUTPUT@', outputs[0]))
+            else:
+                raise MesonException("Command has '@OUTPUT@' as part of a "
+                                     "string and more than one output file")
+        # Append values that are exactly a template string.
+        # This is faster than a string replace.
+        elif vv in values:
+            outcmd.append(values[vv])
+        # Substitute everything else with replacement
+        else:
+            for key, value in values.items():
+                if key in ('@INPUT@', '@OUTPUT@'):
+                    # Already done above
+                    continue
+                vv = vv.replace(key, value)
+            outcmd.append(vv)
+    return outcmd
+
+def get_filenames_templates_dict(inputs, outputs):
+    '''
+    Create a dictionary with template strings as keys and values as values for
+    the following templates:
+
+    @INPUT@  - the full path to one or more input files, from @inputs
+    @OUTPUT@ - the full path to one or more output files, from @outputs
+    @OUTDIR@ - the full path to the directory containing the output files
+
+    If there is only one input file, the following keys are also created:
+
+    @PLAINNAME@ - the filename of the input file
+    @BASENAME@ - the filename of the input file with the extension removed
+
+    If there is more than one input file, the following keys are also created:
+
+    @INPUT0@, @INPUT1@, ... one for each input file
+
+    If there is more than one output file, the following keys are also created:
+
+    @OUTPUT0@, @OUTPUT1@, ... one for each output file
+    '''
+    values = {}
+    # Gather values derived from the input
+    if inputs:
+        # We want to substitute all the inputs.
+        values['@INPUT@'] = inputs
+        for (ii, vv) in enumerate(inputs):
+            # Write out @INPUT0@, @INPUT1@, ...
+            values['@INPUT{}@'.format(ii)] = vv
+        if len(inputs) == 1:
+            # Just one value, substitute @PLAINNAME@ and @BASENAME@
+            values['@PLAINNAME@'] = plain = os.path.split(inputs[0])[1]
+            values['@BASENAME@'] = os.path.splitext(plain)[0]
+    if outputs:
+        # Gather values derived from the outputs, similar to above.
+        values['@OUTPUT@'] = outputs
+        for (ii, vv) in enumerate(outputs):
+            values['@OUTPUT{}@'.format(ii)] = vv
+        # Outdir should be the same for all outputs
+        values['@OUTDIR@'] = os.path.split(outputs[0])[0]
+        # Many external programs fail on empty arguments.
+        if values['@OUTDIR@'] == '':
+            values['@OUTDIR@'] = '.'
+    return values

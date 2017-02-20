@@ -603,19 +603,15 @@ class Backend:
         return srcs
 
     def eval_custom_target_command(self, target, absolute_outputs=False):
-        # We only want the outputs to be absolute when using the VS backend
-        if not absolute_outputs:
-            ofilenames = [os.path.join(self.get_target_dir(target), i) for i in target.output]
-        else:
-            ofilenames = [os.path.join(self.environment.get_build_dir(), self.get_target_dir(target), i)
-                          for i in target.output]
-        srcs = self.get_custom_target_sources(target)
+        # We want the outputs to be absolute only when using the VS backend
         outdir = self.get_target_dir(target)
-        # Many external programs fail on empty arguments.
-        if outdir == '':
-            outdir = '.'
-        if target.absolute_paths:
+        if absolute_outputs:
             outdir = os.path.join(self.environment.get_build_dir(), outdir)
+        outputs = []
+        for i in target.output:
+            outputs.append(os.path.join(outdir, i))
+        inputs = self.get_custom_target_sources(target)
+        # Evaluate the command list
         cmd = []
         for i in target.command:
             if isinstance(i, build.Executable):
@@ -631,37 +627,10 @@ class Backend:
                 if target.absolute_paths:
                     i = os.path.join(self.environment.get_build_dir(), i)
             # FIXME: str types are blindly added ignoring 'target.absolute_paths'
+            # because we can't know if they refer to a file or just a string
             elif not isinstance(i, str):
                 err_msg = 'Argument {0} is of unknown type {1}'
                 raise RuntimeError(err_msg.format(str(i), str(type(i))))
-            for (j, src) in enumerate(srcs):
-                i = i.replace('@INPUT%d@' % j, src)
-            for (j, res) in enumerate(ofilenames):
-                i = i.replace('@OUTPUT%d@' % j, res)
-            if '@INPUT@' in i:
-                msg = 'Custom target {} has @INPUT@ in the command, but'.format(target.name)
-                if len(srcs) == 0:
-                    raise MesonException(msg + ' no input files')
-                if i == '@INPUT@':
-                    cmd += srcs
-                    continue
-                else:
-                    if len(srcs) > 1:
-                        raise MesonException(msg + ' more than one input file')
-                    i = i.replace('@INPUT@', srcs[0])
-            elif '@OUTPUT@' in i:
-                msg = 'Custom target {} has @OUTPUT@ in the command, but'.format(target.name)
-                if len(ofilenames) == 0:
-                    raise MesonException(msg + ' no output files')
-                if i == '@OUTPUT@':
-                    cmd += ofilenames
-                    continue
-                else:
-                    if len(ofilenames) > 1:
-                        raise MesonException(msg + ' more than one output file')
-                    i = i.replace('@OUTPUT@', ofilenames[0])
-            elif '@OUTDIR@' in i:
-                i = i.replace('@OUTDIR@', outdir)
             elif '@DEPFILE@' in i:
                 if target.depfile is None:
                     msg = 'Custom target {!r} has @DEPFILE@ but no depfile ' \
@@ -680,10 +649,11 @@ class Backend:
                     lead_dir = ''
                 else:
                     lead_dir = self.environment.get_build_dir()
-                i = i.replace(source,
-                              os.path.join(lead_dir,
-                                           outdir))
+                i = i.replace(source, os.path.join(lead_dir, outdir))
             cmd.append(i)
+        # Substitute the rest of the template strings
+        values = mesonlib.get_filenames_templates_dict(inputs, outputs)
+        cmd = mesonlib.substitute_values(cmd, values)
         # This should not be necessary but removing it breaks
         # building GStreamer on Windows. The underlying issue
         # is problems with quoting backslashes on Windows
@@ -703,7 +673,7 @@ class Backend:
         #
         # https://github.com/mesonbuild/meson/pull/737
         cmd = [i.replace('\\', '/') for i in cmd]
-        return srcs, ofilenames, cmd
+        return inputs, outputs, cmd
 
     def run_postconf_scripts(self):
         env = {'MESON_SOURCE_ROOT': self.environment.get_source_dir(),

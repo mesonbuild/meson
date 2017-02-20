@@ -23,18 +23,22 @@ cfile)
 test('inctest', e)
 
 # Now generate a header file with an external script.
-genprog = find_program('python3', required : false)
-if not genprog.found()
-  genprog = find_program('python')
-endif
+genprog = import('python3').find_python()
 scriptfile = '@0@/generator.py'.format(meson.current_source_dir())
 ifile = '@0@/dummy.dat'.format(meson.current_source_dir())
 ofile = '@0@/config2.h'.format(meson.current_build_dir())
 
+check_file = find_program('check_file.py')
+# Configure in source root with command and absolute paths
 configure_file(input : 'dummy.dat',
-output : 'config2.h',
-command : [genprog, scriptfile,  ifile, ofile],
-install_dir : 'share/appdir')
+  output : 'config2.h',
+  command : [genprog, scriptfile,  ifile, ofile],
+  install_dir : 'share/appdir')
+run_command(check_file, join_paths(meson.current_build_dir(), 'config2.h'))
+
+found_script = find_program('generator.py')
+# More configure_file tests in here
+subdir('subdir')
 
 test('inctest2', executable('prog2', 'prog2.c'))
 

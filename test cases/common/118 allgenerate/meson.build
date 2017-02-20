@@ -13,7 +13,7 @@ c = g.process('foobar.cpp.in')
 prog = executable('genexe', c)
 
 c2 = custom_target('c2gen',
-  output : 'c2gen.cpp',
+  output : '@BASENAME@',
   input : 'foobar.cpp.in',
   command : [comp, '@INPUT@', '@OUTPUT@'])
 

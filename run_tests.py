@@ -14,12 +14,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import subprocess, sys, shutil
+import os
+import sys
+import shutil
+import subprocess
 import platform
 from mesonbuild import mesonlib
 
 if __name__ == '__main__':
     returncode = 0
+    # Running on a developer machine? Be nice!
+    if not mesonlib.is_windows() and 'TRAVIS' not in os.environ:
+        os.nice(20)
     print('Running unittests.\n')
     units = ['InternalTests', 'AllPlatformTests']
     if mesonlib.is_linux():

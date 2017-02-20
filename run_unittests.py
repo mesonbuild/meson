@@ -180,6 +180,157 @@ class InternalTests(unittest.TestCase):
         libdir = '/some/path/to/prefix/libdir'
         self.assertEqual(commonpath([prefix, libdir]), str(PurePath(prefix)))
 
+    def test_string_templates_substitution(self):
+        dictfunc = mesonbuild.mesonlib.get_filenames_templates_dict
+        substfunc = mesonbuild.mesonlib.substitute_values
+        ME = mesonbuild.mesonlib.MesonException
+
+        # Identity
+        self.assertEqual(dictfunc([], []), {})
+
+        # One input, no outputs
+        inputs = ['bar/foo.c.in']
+        outputs = []
+        ret = dictfunc(inputs, outputs)
+        d = {'@INPUT@': inputs, '@INPUT0@': inputs[0],
+             '@PLAINNAME@': 'foo.c.in', '@BASENAME@': 'foo.c'}
+        # Check dictionary
+        self.assertEqual(ret, d)
+        # Check substitutions
+        cmd = ['some', 'ordinary', 'strings']
+        self.assertEqual(substfunc(cmd, d), cmd)
+        cmd = ['@INPUT@.out', 'ordinary', 'strings']
+        self.assertEqual(substfunc(cmd, d), [inputs[0] + '.out'] + cmd[1:])
+        cmd = ['@INPUT0@.out', '@PLAINNAME@.ok', 'strings']
+        self.assertEqual(substfunc(cmd, d),
+                         [inputs[0] + '.out'] + [d['@PLAINNAME@'] + '.ok'] + cmd[2:])
+        cmd = ['@INPUT@', '@BASENAME@.hah', 'strings']
+        self.assertEqual(substfunc(cmd, d),
+                         inputs + [d['@BASENAME@'] + '.hah'] + cmd[2:])
+        cmd = ['@OUTPUT@']
+        self.assertRaises(ME, substfunc, cmd, d)
+
+        # One input, one output
+        inputs = ['bar/foo.c.in']
+        outputs = ['out.c']
+        ret = dictfunc(inputs, outputs)
+        d = {'@INPUT@': inputs, '@INPUT0@': inputs[0],
+             '@PLAINNAME@': 'foo.c.in', '@BASENAME@': 'foo.c',
+             '@OUTPUT@': outputs, '@OUTPUT0@': outputs[0], '@OUTDIR@': '.'}
+        # Check dictionary
+        self.assertEqual(ret, d)
+        # Check substitutions
+        cmd = ['some', 'ordinary', 'strings']
+        self.assertEqual(substfunc(cmd, d), cmd)
+        cmd = ['@INPUT@.out', '@OUTPUT@', 'strings']
+        self.assertEqual(substfunc(cmd, d),
+                         [inputs[0] + '.out'] + outputs + cmd[2:])
+        cmd = ['@INPUT0@.out', '@PLAINNAME@.ok', '@OUTPUT0@']
+        self.assertEqual(substfunc(cmd, d),
+                         [inputs[0] + '.out', d['@PLAINNAME@'] + '.ok'] + outputs)
+        cmd = ['@INPUT@', '@BASENAME@.hah', 'strings']
+        self.assertEqual(substfunc(cmd, d),
+                         inputs + [d['@BASENAME@'] + '.hah'] + cmd[2:])
+
+        # One input, one output with a subdir
+        outputs = ['dir/out.c']
+        ret = dictfunc(inputs, outputs)
+        d = {'@INPUT@': inputs, '@INPUT0@': inputs[0],
+             '@PLAINNAME@': 'foo.c.in', '@BASENAME@': 'foo.c',
+             '@OUTPUT@': outputs, '@OUTPUT0@': outputs[0], '@OUTDIR@': 'dir'}
+        # Check dictionary
+        self.assertEqual(ret, d)
+
+        # Two inputs, no outputs
+        inputs = ['bar/foo.c.in', 'baz/foo.c.in']
+        outputs = []
+        ret = dictfunc(inputs, outputs)
+        d = {'@INPUT@': inputs, '@INPUT0@': inputs[0], '@INPUT1@': inputs[1]}
+        # Check dictionary
+        self.assertEqual(ret, d)
+        # Check substitutions
+        cmd = ['some', 'ordinary', 'strings']
+        self.assertEqual(substfunc(cmd, d), cmd)
+        cmd = ['@INPUT@', 'ordinary', 'strings']
+        self.assertEqual(substfunc(cmd, d), inputs + cmd[1:])
+        cmd = ['@INPUT0@.out', 'ordinary', 'strings']
+        self.assertEqual(substfunc(cmd, d), [inputs[0] + '.out'] + cmd[1:])
+        cmd = ['@INPUT0@.out', '@INPUT1@.ok', 'strings']
+        self.assertEqual(substfunc(cmd, d), [inputs[0] + '.out', inputs[1] + '.ok'] + cmd[2:])
+        cmd = ['@INPUT0@', '@INPUT1@', 'strings']
+        self.assertEqual(substfunc(cmd, d), inputs + cmd[2:])
+        # Many inputs, can't use @INPUT@ like this
+        cmd = ['@INPUT@.out', 'ordinary', 'strings']
+        # Not enough inputs
+        cmd = ['@INPUT2@.out', 'ordinary', 'strings']
+        self.assertRaises(ME, substfunc, cmd, d)
+        # Too many inputs
+        cmd = ['@PLAINNAME@']
+        self.assertRaises(ME, substfunc, cmd, d)
+        cmd = ['@BASENAME@']
+        self.assertRaises(ME, substfunc, cmd, d)
+        # No outputs
+        cmd = ['@OUTPUT@']
+        self.assertRaises(ME, substfunc, cmd, d)
+        cmd = ['@OUTPUT0@']
+        self.assertRaises(ME, substfunc, cmd, d)
+        cmd = ['@OUTDIR@']
+        self.assertRaises(ME, substfunc, cmd, d)
+
+        # Two inputs, one output
+        outputs = ['dir/out.c']
+        ret = dictfunc(inputs, outputs)
+        d = {'@INPUT@': inputs, '@INPUT0@': inputs[0], '@INPUT1@': inputs[1],
+             '@OUTPUT@': outputs, '@OUTPUT0@': outputs[0], '@OUTDIR@': 'dir'}
+        # Check dictionary
+        self.assertEqual(ret, d)
+        # Check substitutions
+        cmd = ['some', 'ordinary', 'strings']
+        self.assertEqual(substfunc(cmd, d), cmd)
+        cmd = ['@OUTPUT@', 'ordinary', 'strings']
+        self.assertEqual(substfunc(cmd, d), outputs + cmd[1:])
+        cmd = ['@OUTPUT@.out', 'ordinary', 'strings']
+        self.assertEqual(substfunc(cmd, d), [outputs[0] + '.out'] + cmd[1:])
+        cmd = ['@OUTPUT0@.out', '@INPUT1@.ok', 'strings']
+        self.assertEqual(substfunc(cmd, d), [outputs[0] + '.out', inputs[1] + '.ok'] + cmd[2:])
+        # Many inputs, can't use @INPUT@ like this
+        cmd = ['@INPUT@.out', 'ordinary', 'strings']
+        # Not enough inputs
+        cmd = ['@INPUT2@.out', 'ordinary', 'strings']
+        self.assertRaises(ME, substfunc, cmd, d)
+        # Not enough outputs
+        cmd = ['@OUTPUT2@.out', 'ordinary', 'strings']
+        self.assertRaises(ME, substfunc, cmd, d)
+
+        # Two inputs, two outputs
+        outputs = ['dir/out.c', 'dir/out2.c']
+        ret = dictfunc(inputs, outputs)
+        d = {'@INPUT@': inputs, '@INPUT0@': inputs[0], '@INPUT1@': inputs[1],
+             '@OUTPUT@': outputs, '@OUTPUT0@': outputs[0], '@OUTPUT1@': outputs[1],
+             '@OUTDIR@': 'dir'}
+        # Check dictionary
+        self.assertEqual(ret, d)
+        # Check substitutions
+        cmd = ['some', 'ordinary', 'strings']
+        self.assertEqual(substfunc(cmd, d), cmd)
+        cmd = ['@OUTPUT@', 'ordinary', 'strings']
+        self.assertEqual(substfunc(cmd, d), outputs + cmd[1:])
+        cmd = ['@OUTPUT0@', '@OUTPUT1@', 'strings']
+        self.assertEqual(substfunc(cmd, d), outputs + cmd[2:])
+        cmd = ['@OUTPUT0@.out', '@INPUT1@.ok', '@OUTDIR@']
+        self.assertEqual(substfunc(cmd, d), [outputs[0] + '.out', inputs[1] + '.ok', 'dir'])
+        # Many inputs, can't use @INPUT@ like this
+        cmd = ['@INPUT@.out', 'ordinary', 'strings']
+        # Not enough inputs
+        cmd = ['@INPUT2@.out', 'ordinary', 'strings']
+        self.assertRaises(ME, substfunc, cmd, d)
+        # Not enough outputs
+        cmd = ['@OUTPUT2@.out', 'ordinary', 'strings']
+        self.assertRaises(ME, substfunc, cmd, d)
+        # Many outputs, can't use @OUTPUT@ like this
+        cmd = ['@OUTPUT@.out', 'ordinary', 'strings']
+        self.assertRaises(ME, substfunc, cmd, d)
+
 
 class BasePlatformTests(unittest.TestCase):
     def setUp(self):

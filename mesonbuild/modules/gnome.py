@@ -115,11 +115,24 @@ class GnomeModule(ExtensionModule):
 
         ifile = args[1]
         if isinstance(ifile, mesonlib.File):
-            ifile = os.path.join(ifile.subdir, ifile.fname)
+            # glib-compile-resources will be run inside the source dir,
+            # so we need either 'src_to_build' or the absolute path.
+            # Absolute path is the easiest choice.
+            if ifile.is_built:
+                ifile = os.path.join(state.environment.get_build_dir(), ifile.subdir, ifile.fname)
+            else:
+                ifile = os.path.join(ifile.subdir, ifile.fname)
         elif isinstance(ifile, str):
             ifile = os.path.join(state.subdir, ifile)
+        elif isinstance(ifile, (interpreter.CustomTargetHolder,
+                                interpreter.GeneratedObjectsHolder)):
+            m = 'Resource xml files generated at build-time cannot be used ' \
+                'with gnome.compile_resources() because we need to scan ' \
+                'the xml for dependencies. Use configure_file() instead ' \
+                'to generate it at configure-time.'
+            raise MesonException(m)
         else:
-            raise RuntimeError('Unreachable code.')
+            raise MesonException('Invalid file argument: {!r}'.format(ifile))
 
         depend_files, depends, subdirs = self._get_gresource_dependencies(
             state, ifile, source_dirs, dependencies)
@@ -202,9 +215,10 @@ class GnomeModule(ExtensionModule):
             cmd += ['--sourcedir', os.path.join(state.subdir, source_dir)]
         cmd += ['--sourcedir', state.subdir] # Current dir
 
-        pc, stdout = Popen_safe(cmd, cwd=state.environment.get_source_dir())[0:2]
+        pc, stdout, stderr = Popen_safe(cmd, cwd=state.environment.get_source_dir())
         if pc.returncode != 0:
-            mlog.warning('glib-compile-resources has failed to get the dependencies for {}'.format(cmd[1]))
+            m = 'glib-compile-resources failed to get dependencies for {}:\n{}'
+            mlog.warning(m.format(cmd[1], stderr))
             raise subprocess.CalledProcessError(pc.returncode, cmd)
 
         dep_files = stdout.split('\n')[:-1]
@@ -866,6 +880,7 @@ class GnomeModule(ExtensionModule):
         }
         custom_kwargs.update(kwargs)
         return build.CustomTarget(output, state.subdir, custom_kwargs,
+                                  # https://github.com/mesonbuild/meson/issues/973
                                   absolute_paths=True)
 
     def genmarshal(self, state, args, kwargs):
