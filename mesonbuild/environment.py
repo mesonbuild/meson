@@ -521,8 +521,9 @@ class Environment:
                 if not defines:
                     popen_exceptions[compiler] = 'no pre-processor defines'
                     continue
+                gtype = self.get_gnu_compiler_type(defines)
                 version = self.get_gnu_version_from_defines(defines)
-                return GnuObjCCompiler(ccache + compiler, version, is_cross, exe_wrap, defines)
+                return GnuObjCCompiler(ccache + compiler, version, gtype, is_cross, exe_wrap, defines)
             if out.startswith('Apple LLVM'):
                 return ClangObjCCompiler(ccache + compiler, version, CLANG_OSX, is_cross, exe_wrap)
             if out.startswith('clang'):
@@ -545,8 +546,9 @@ class Environment:
                 if not defines:
                     popen_exceptions[compiler] = 'no pre-processor defines'
                     continue
+                gtype = self.get_gnu_compiler_type(defines)
                 version = self.get_gnu_version_from_defines(defines)
-                return GnuObjCPPCompiler(ccache + compiler, version, is_cross, exe_wrap, defines)
+                return GnuObjCPPCompiler(ccache + compiler, version, gtype, is_cross, exe_wrap, defines)
             if out.startswith('Apple LLVM'):
                 return ClangObjCPPCompiler(ccache + compiler, version, CLANG_OSX, is_cross, exe_wrap)
             if out.startswith('clang'):

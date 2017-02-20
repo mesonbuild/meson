@@ -2404,11 +2404,9 @@ class GnuCPPCompiler(GnuCompiler, CPPCompiler):
 
 class GnuObjCCompiler(GnuCompiler, ObjCCompiler):
 
-    def __init__(self, exelist, version, is_cross, exe_wrapper=None, defines=None):
+    def __init__(self, exelist, version, gcc_type, is_cross, exe_wrapper=None, defines=None):
         ObjCCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
-        # Not really correct, but GNU objc is only used on non-OSX non-win. File a bug
-        # if this breaks your use case.
-        GnuCompiler.__init__(self, GCC_STANDARD, defines)
+        GnuCompiler.__init__(self, gcc_type, defines)
         default_warn_args = ['-Wall', '-Winvalid-pch']
         self.warn_args = {'1': default_warn_args,
                           '2': default_warn_args + ['-Wextra'],
@@ -2416,11 +2414,9 @@ class GnuObjCCompiler(GnuCompiler, ObjCCompiler):
 
 class GnuObjCPPCompiler(GnuCompiler, ObjCPPCompiler):
 
-    def __init__(self, exelist, version, is_cross, exe_wrapper=None, defines=None):
+    def __init__(self, exelist, version, gcc_type, is_cross, exe_wrapper=None, defines=None):
         ObjCPPCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
-        # Not really correct, but GNU objc is only used on non-OSX non-win. File a bug
-        # if this breaks your use case.
-        GnuCompiler.__init__(self, GCC_STANDARD, defines)
+        GnuCompiler.__init__(self, gcc_type, defines)
         default_warn_args = ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor']
         self.warn_args = {'1': default_warn_args,
                           '2': default_warn_args + ['-Wextra'],
@@ -2549,13 +2545,13 @@ class ClangCPPCompiler(ClangCompiler, CPPCompiler):
 
 class ClangObjCCompiler(ClangCompiler, GnuObjCCompiler):
     def __init__(self, exelist, version, cltype, is_cross, exe_wrapper=None):
-        GnuObjCCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
+        GnuObjCCompiler.__init__(self, exelist, version, cltype, is_cross, exe_wrapper)
         ClangCompiler.__init__(self, cltype)
         self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage']
 
 class ClangObjCPPCompiler(ClangCompiler, GnuObjCPPCompiler):
     def __init__(self, exelist, version, cltype, is_cross, exe_wrapper=None):
-        GnuObjCPPCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
+        GnuObjCPPCompiler.__init__(self, exelist, version, cltype, is_cross, exe_wrapper)
         ClangCompiler.__init__(self, cltype)
         self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage']
 
