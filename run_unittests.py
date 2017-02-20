@@ -948,6 +948,7 @@ class AllPlatformTests(BasePlatformTests):
             # Detect with evar and do sanity checks on that
             if evar in os.environ:
                 ecc = getattr(env, 'detect_{}_compiler'.format(lang))(False)
+                self.assertTrue(ecc.version)
                 elinker = env.detect_static_linker(ecc)
                 # Pop it so we don't use it for the next detection
                 evalue = os.environ.pop(evar)
@@ -971,6 +972,7 @@ class AllPlatformTests(BasePlatformTests):
                 self.assertEqual(ecc.get_exelist(), shlex.split(evalue))
             # Do auto-detection of compiler based on platform, PATH, etc.
             cc = getattr(env, 'detect_{}_compiler'.format(lang))(False)
+            self.assertTrue(cc.version)
             linker = env.detect_static_linker(cc)
             # Check compiler type
             if isinstance(cc, gnu):
@@ -1027,6 +1029,8 @@ class AllPlatformTests(BasePlatformTests):
             # Ensure that the exelist is correct
             self.assertEqual(wcc.get_exelist(), wrappercc)
             self.assertEqual(wlinker.get_exelist(), wrapperlinker)
+            # Ensure that the version detection worked correctly
+            self.assertEqual(cc.version, wcc.version)
 
     def test_always_prefer_c_compiler_for_asm(self):
         testdir = os.path.join(self.common_test_dir, '141 c cpp and asm')
