@@ -103,7 +103,7 @@ class RPMModule(ExtensionModule):
                 mlog.warning('replace', mlog.bold(name), 'with the real package.',
                              'You can use following command to find package which '
                              'contains this lib:',
-                             mlog.bold("dnf provides '*/lib{}.so".format(name))
+                             mlog.bold("dnf provides '*/lib{}.so'".format(name)))
             for prog in state.environment.coredata.ext_progs.values():
                 if not prog.found():
                     fn.write('BuildRequires: %%{_bindir}/%s # FIXME\n' %
