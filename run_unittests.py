@@ -737,7 +737,9 @@ class AllPlatformTests(BasePlatformTests):
         msvc = mesonbuild.compilers.VisualStudioCCompiler
         ar = mesonbuild.compilers.ArLinker
         lib = mesonbuild.compilers.VisualStudioLinker
-        langs = (('c', 'CC'), ('cpp', 'CXX'), ('objc', 'OBJC'), ('objcpp', 'OBJCXX'))
+        langs = [('c', 'CC'), ('cpp', 'CXX')]
+        if not is_windows():
+            langs += [('objc', 'OBJC'), ('objcpp', 'OBJCXX')]
         testdir = os.path.join(self.unit_test_dir, '5 compiler detection')
         env = Environment(testdir, self.builddir, self.meson_command,
                           get_fake_options(self.prefix), [])
