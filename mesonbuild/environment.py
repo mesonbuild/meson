@@ -400,9 +400,9 @@ class Environment:
                 errmsg += '\nRunning "{0}" gave "{1}"'.format(c, e)
         raise EnvironmentException(errmsg)
 
-    def detect_c_compiler(self, want_cross):
+    def _detect_c_or_cpp_compiler(self, lang, evar, want_cross):
         popen_exceptions = {}
-        compilers, ccache, is_cross, exe_wrap = self._get_compilers('c', 'CC', want_cross)
+        compilers, ccache, is_cross, exe_wrap = self._get_compilers(lang, evar, want_cross)
         for compiler in compilers:
             if isinstance(compiler, str):
                 compiler = [compiler]
@@ -424,23 +424,33 @@ class Environment:
                     continue
                 gtype = self.get_gnu_compiler_type(defines)
                 version = self.get_gnu_version_from_defines(defines)
-                return GnuCCompiler(ccache + compiler, version, gtype, is_cross, exe_wrap, defines)
+                cls = GnuCCompiler if lang == 'c' else GnuCPPCompiler
+                return cls(ccache + compiler, version, gtype, is_cross, exe_wrap, defines)
             if 'clang' in out:
                 if 'Apple' in out or for_darwin(want_cross, self):
                     cltype = CLANG_OSX
                 else:
                     cltype = CLANG_STANDARD
-                return ClangCCompiler(ccache + compiler, version, cltype, is_cross, exe_wrap)
+                cls = ClangCCompiler if lang == 'c' else ClangCPPCompiler
+                return cls(ccache + compiler, version, cltype, is_cross, exe_wrap)
             if 'Microsoft' in out or 'Microsoft' in err:
                 # Visual Studio prints version number to stderr but
                 # everything else to stdout. Why? Lord only knows.
                 version = search_version(err)
-                return VisualStudioCCompiler(compiler, version, is_cross, exe_wrap)
+                cls = VisualStudioCCompiler if lang == 'c' else VisualStudioCPPCompiler
+                return cls(compiler, version, is_cross, exe_wrap)
             if '(ICC)' in out:
                 # TODO: add microsoft add check OSX
                 inteltype = ICC_STANDARD
-                return IntelCCompiler(ccache + compiler, version, inteltype, is_cross, exe_wrap)
+                cls = IntelCCompiler if lang == 'c' else IntelCPPCompiler
+                return cls(ccache + compiler, version, inteltype, is_cross, exe_wrap)
         self._handle_compiler_exceptions(popen_exceptions, compilers)
+
+    def detect_c_compiler(self, want_cross):
+        return self._detect_c_or_cpp_compiler('c', 'CC', want_cross)
+
+    def detect_cpp_compiler(self, want_cross):
+        return self._detect_c_or_cpp_compiler('cpp', 'CXX', want_cross)
 
     def detect_fortran_compiler(self, want_cross):
         popen_exceptions = {}
@@ -495,46 +505,6 @@ class Environment:
     def get_depfixer(self):
         path = os.path.split(__file__)[0]
         return os.path.join(path, 'depfixer.py')
-
-    def detect_cpp_compiler(self, want_cross):
-        popen_exceptions = {}
-        compilers, ccache, is_cross, exe_wrap = self._get_compilers('cpp', 'CXX', want_cross)
-        for compiler in compilers:
-            if isinstance(compiler, str):
-                compiler = [compiler]
-            basename = os.path.basename(compiler[-1]).lower()
-            if basename == 'cl' or basename == 'cl.exe':
-                arg = '/?'
-            else:
-                arg = '--version'
-            try:
-                p, out, err = Popen_safe(compiler + [arg])
-            except OSError as e:
-                popen_exceptions[' '.join(compiler + [arg])] = e
-                continue
-            version = search_version(out)
-            if 'Free Software Foundation' in out:
-                defines = self.get_gnu_compiler_defines(compiler)
-                if not defines:
-                    popen_exceptions[compiler] = 'no pre-processor defines'
-                    continue
-                gtype = self.get_gnu_compiler_type(defines)
-                version = self.get_gnu_version_from_defines(defines)
-                return GnuCPPCompiler(ccache + compiler, version, gtype, is_cross, exe_wrap, defines)
-            if 'clang' in out:
-                if 'Apple' in out:
-                    cltype = CLANG_OSX
-                else:
-                    cltype = CLANG_STANDARD
-                return ClangCPPCompiler(ccache + compiler, version, cltype, is_cross, exe_wrap)
-            if 'Microsoft' in out or 'Microsoft' in err:
-                version = search_version(err)
-                return VisualStudioCPPCompiler(compiler, version, is_cross, exe_wrap)
-            if '(ICC)' in out:
-                # TODO: add microsoft add check OSX
-                inteltype = ICC_STANDARD
-                return IntelCPPCompiler(ccache + compiler, version, inteltype, is_cross, exe_wrap)
-        self._handle_compiler_exceptions(popen_exceptions, compilers)
 
     def detect_objc_compiler(self, want_cross):
         popen_exceptions = {}
