@@ -801,17 +801,17 @@ class AllPlatformTests(BasePlatformTests):
                 self.assertIsInstance(linker, lib)
                 self.assertEqual(cc.id, 'msvc')
             # Set evar ourselves to a wrapper script that just calls the same
-            # exelist. This is meant to test that setting something like
-            # `ccache gcc` or `distcc ccache gcc` works fine.
+            # exelist + some argument. This is meant to test that setting
+            # something like `ccache gcc -pipe` or `distcc ccache gcc` works.
             wrapper = os.path.join(testdir, 'compiler wrapper.py')
-            wrappercc = [sys.executable, wrapper] + cc.get_exelist()
+            wrappercc = [sys.executable, wrapper] + cc.get_exelist() + cc.get_always_args()
             wrappercc_s = ''
             for w in wrappercc:
                 wrappercc_s += shlex.quote(w) + ' '
             os.environ[evar] = wrappercc_s
             wcc = getattr(env, 'detect_{}_compiler'.format(lang))(False)
             # Check static linker too
-            wrapperlinker = [sys.executable, wrapper] + linker.get_exelist()
+            wrapperlinker = [sys.executable, wrapper] + linker.get_exelist() + linker.get_always_args()
             wrapperlinker_s = ''
             for w in wrapperlinker:
                 wrapperlinker_s += shlex.quote(w) + ' '

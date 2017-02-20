@@ -407,8 +407,7 @@ class Environment:
             if isinstance(compiler, str):
                 compiler = [compiler]
             try:
-                basename = os.path.basename(compiler[-1]).lower()
-                if basename == 'cl' or basename == 'cl.exe':
+                if 'cl' in compiler or 'cl.exe' in compiler:
                     arg = '/?'
                 else:
                     arg = '--version'
@@ -657,8 +656,7 @@ class Environment:
                 linker = [self.vs_static_linker]
             else:
                 linker = [self.default_static_linker]
-        basename = os.path.basename(linker[-1]).lower()
-        if basename == 'lib' or basename == 'lib.exe':
+        if 'lib' in linker or 'lib.exe' in linker:
             arg = '/?'
         else:
             arg = '--version'
