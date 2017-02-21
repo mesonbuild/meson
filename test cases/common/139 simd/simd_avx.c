@@ -12,7 +12,12 @@ int avx_available() {
 #include<cpuid.h>
 
 #ifdef __APPLE__
-int avx_available() { return 1; }
+/*
+ * Apple ships a broken __builtin_cpu_supports and
+ * some machines in the CI farm seem to be too
+ * old to have AVX so just always return 0 here.
+ */
+int avx_available() { return 0; }
 #else
 
 int avx_available() {
