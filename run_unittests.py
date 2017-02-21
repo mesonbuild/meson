@@ -1017,7 +1017,7 @@ class AllPlatformTests(BasePlatformTests):
             # exelist + some argument. This is meant to test that setting
             # something like `ccache gcc -pipe` or `distcc ccache gcc` works.
             wrapper = os.path.join(testdir, 'compiler wrapper.py')
-            wrappercc = [sys.executable, wrapper] + cc.get_exelist() + cc.get_always_args()
+            wrappercc = [sys.executable, wrapper] + cc.get_exelist() + ['-DSOME_ARG']
             wrappercc_s = ''
             for w in wrappercc:
                 wrappercc_s += shlex.quote(w) + ' '
