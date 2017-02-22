@@ -421,7 +421,9 @@ TIMEOUT: %4d
             wrap = ['gdb', '--quiet', '--nh']
             if self.options.repeat > 1:
                 wrap += ['-ex', 'run', '-ex', 'quit']
-        elif self.options.wrapper:
+            # Signal the end of arguments to gdb
+            wrap += ['--args']
+        if self.options.wrapper:
             wrap += self.options.wrapper
         assert(isinstance(wrap, list))
         return wrap
@@ -452,8 +454,6 @@ TIMEOUT: %4d
 
                     if self.options.gdb:
                         test.timeout = None
-                        if len(test.cmd_args):
-                            wrap.append('--args')
 
                     if not test.is_parallel or self.options.gdb:
                         self.drain_futures(futures, logfile, jsonlogfile)
