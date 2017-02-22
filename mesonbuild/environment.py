@@ -511,10 +511,11 @@ class Environment:
         for compiler in compilers:
             if isinstance(compiler, str):
                 compiler = [compiler]
+            arg = ['--version']
             try:
-                p, out, err = Popen_safe(compiler + ['--version'])
-            except OSError:
-                popen_exceptions[' '.join(compiler + [arg])] = e
+                p, out, err = Popen_safe(compiler + arg)
+            except OSError as e:
+                popen_exceptions[' '.join(compiler + arg)] = e
             version = search_version(out)
             if 'Free Software Foundation' in out:
                 defines = self.get_gnu_compiler_defines(compiler)
@@ -536,10 +537,11 @@ class Environment:
         for compiler in compilers:
             if isinstance(compiler, str):
                 compiler = [compiler]
+            arg = ['--version']
             try:
-                p, out, err = Popen_safe(compiler + ['--version'])
-            except OSError:
-                popen_exceptions[' '.join(compiler + [arg])] = e
+                p, out, err = Popen_safe(compiler + arg)
+            except OSError as e:
+                popen_exceptions[' '.join(compiler + arg)] = e
             version = search_version(out)
             if 'Free Software Foundation' in out:
                 defines = self.get_gnu_compiler_defines(compiler)
