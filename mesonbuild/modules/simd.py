@@ -46,11 +46,8 @@ class SimdModule(ExtensionModule):
         compiler = kwargs['compiler'].compiler
         if not isinstance(compiler, compilers.Compiler):
             raise mesonlib.MesonException('Compiler argument must be a compiler object.')
-        if 'configuration' not in kwargs:
-            raise mesonlib.MesonException('Must specify configuration object.')
-        conf = kwargs['configuration'].held_object
-        if not isinstance(conf, build.ConfigurationData):
-            raise mesonlib.MesonException('Configuration must be a configuration object.')
+        cdata = interpreter.func_configuration_data(None, [], {})
+        conf = cdata.held_object
         for iset in self.isets:
             if iset not in kwargs:
                 continue
@@ -69,7 +66,7 @@ class SimdModule(ExtensionModule):
             lib_kwargs = {'sources': iset_fname,
                           compiler.get_language() + '_args': args}
             result.append(interpreter.func_static_lib(None, [libname], lib_kwargs))
-        return result
+        return [result, cdata]
 
 def initialize():
     return SimdModule()
