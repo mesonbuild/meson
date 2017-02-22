@@ -16,6 +16,7 @@
 
 # A tool to run tests in many different ways.
 
+import shlex
 import subprocess, sys, os, argparse
 import pickle
 from mesonbuild import build
@@ -61,7 +62,7 @@ parser.add_argument('--gdb', default=False, dest='gdb', action='store_true',
                     help='Run test under gdb.')
 parser.add_argument('--list', default=False, dest='list', action='store_true',
                     help='List available tests.')
-parser.add_argument('--wrapper', default=None, dest='wrapper',
+parser.add_argument('--wrapper', default=None, dest='wrapper', type=shlex.split,
                     help='wrapper to run tests with (e.g. Valgrind)')
 parser.add_argument('-C', default='.', dest='wd',
                     help='directory to cd into before running')
@@ -421,10 +422,7 @@ TIMEOUT: %4d
             if self.options.repeat > 1:
                 wrap += ['-ex', 'run', '-ex', 'quit']
         elif self.options.wrapper:
-            if isinstance(self.options.wrapper, str):
-                wrap = self.options.wrapper.split()
-            else:
-                wrap = self.options.wrapper
+            wrap += self.options.wrapper
         assert(isinstance(wrap, list))
         return wrap
 
