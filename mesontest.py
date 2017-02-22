@@ -90,7 +90,10 @@ parser.add_argument('-t', '--timeout-multiplier', type=float, default=None,
                     ' more time to execute.')
 parser.add_argument('--setup', default=None, dest='setup',
                     help='Which test setup to use.')
-parser.add_argument('args', nargs='*')
+parser.add_argument('--test-args', default=[], type=shlex.split,
+                    help='Arguments to pass to the specified test(s) or all tests')
+parser.add_argument('args', nargs='*',
+                    help='Optional list of tests to run')
 
 class TestRun:
     def __init__(self, res, returncode, should_fail, duration, stdo, stde, cmd,
@@ -190,7 +193,7 @@ class TestHarness:
             stde = None
             returncode = GNU_SKIP_RETURNCODE
         else:
-            cmd = wrap + cmd + test.cmd_args
+            cmd = wrap + cmd + test.cmd_args + self.options.test_args
             starttime = time.time()
             child_env = os.environ.copy()
             child_env.update(self.options.global_env.get_env(child_env))
