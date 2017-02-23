@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # NOTE: this file does not have the executable bit set. This tests that
 # Meson can automatically parse shebang lines.
