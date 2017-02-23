@@ -19,15 +19,17 @@ hex = custom_target('exe.hex',
   ],
 )
 
+fakeburner = find_program('fakeburner.py')
+
 # These emulates the Arduino flasher application. It sandwiches the filename inside
 # a packed argument. Thus we need to declare it manually.
 run_target('upload',
-  command : ['fakeburner.py', 'x:@0@:y'.format(exe.full_path())],
+  command : [fakeburner, 'x:@0@:y'.format(exe.full_path())],
   depends : exe,
 )
 
 run_target('upload2',
-  command : ['fakeburner.py', 'x:@0@:y'.format(hex.full_path())],
+  command : [fakeburner, 'x:@0@:y'.format(hex.full_path())],
   depends : hex,
 )
 

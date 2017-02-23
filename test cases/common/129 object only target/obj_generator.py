@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Mimic a binary that generates an object file (e.g. windres).
 
