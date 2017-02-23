@@ -210,9 +210,11 @@ int dummy;
     # http://clang.llvm.org/docs/JSONCompilationDatabase.html
     def generate_compdb(self):
         ninja_exe = environment.detect_ninja()
+        ninja_compdb = [ninja_exe, '-t', 'compdb', 'c_COMPILER', 'cpp_COMPILER', 'c_CROSS_COMPILER',
+                        'cpp_CROSS_COMPILER']
         builddir = self.environment.get_build_dir()
         try:
-            jsondb = subprocess.check_output([ninja_exe, '-t', 'compdb', 'c_COMPILER', 'cpp_COMPILER'], cwd=builddir)
+            jsondb = subprocess.check_output(ninja_compdb, cwd=builddir)
             with open(os.path.join(builddir, 'compile_commands.json'), 'wb') as f:
                 f.write(jsondb)
         except Exception:
