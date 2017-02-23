@@ -371,11 +371,7 @@ class GnomeModule(ExtensionModule):
                                                    {'native': True})
             pkgargs = self.gir_dep.get_compile_args()
         except Exception:
-            global girwarning_printed
-            if not girwarning_printed:
-                mlog.warning('gobject-introspection dependency was not found, disabling gir generation.')
-                girwarning_printed = True
-            return ModuleReturnValue(None, [])
+            raise MesonException('gobject-introspection dependency was not found, gir cannot be generated.')
         ns = kwargs.pop('namespace')
         nsversion = kwargs.pop('nsversion')
         libsources = kwargs.pop('sources')
