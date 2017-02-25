@@ -241,7 +241,7 @@ def install_targets(d):
                     print('Not stripping jar target:', os.path.split(fname)[1])
                     continue
                 print('Stripping target {!r}'.format(fname))
-                ps, stdo, stde = Popen_safe(['strip', outname])
+                ps, stdo, stde = Popen_safe(['strip', '-s', outname])
                 if ps.returncode != 0:
                     print('Could not strip file.\n')
                     print('Stdout:\n%s\n' % stdo)
