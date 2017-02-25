@@ -97,7 +97,7 @@ gnulike_buildtype_args = {'plain': [],
                           'debug': ['-O0', '-g'],
                           'debugoptimized': ['-O2', '-g'],
                           'release': ['-O3'],
-                          'minsize': ['-Os', '-g']}
+                          'minsize': ['-Os', '-g', '-fomit-frame-pointer', '-ffunction-sections', '-fdata-sections', '-fmerge-all-constants']}
 
 msvc_buildtype_args = {'plain': [],
                        'debug': ["/MDd", "/ZI", "/Ob0", "/Od", "/RTC1"],
@@ -117,7 +117,7 @@ gnulike_buildtype_linker_args = {'plain': [],
                                  'debug': [],
                                  'debugoptimized': [],
                                  'release': ['-Wl,-O1'],
-                                 'minsize': [],
+                                 'minsize': ['-Wl,--gc-sections', '-Wl,--sort-common'],
                                  }
 
 msvc_buildtype_linker_args = {'plain': [],
