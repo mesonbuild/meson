@@ -1785,6 +1785,15 @@ class Interpreter(InterpreterBase):
             else:
                 raise InvalidArguments('find_program only accepts strings and '
                                        'files, not {!r}'.format(exename))
+
+            if isinstance(exename, str) and self.environment.is_cross_build():
+                extprog = self.environment.cross_info.config.get('binaries', {}).get(exename, None)
+                if extprog is not None:
+                    extprog = dependencies.ExternalProgram(extprog, search_dir=search_dir)
+                    progobj = ExternalProgramHolder(extprog)
+                    if progobj.found():
+                        return progobj
+
             extprog = dependencies.ExternalProgram(exename, search_dir=search_dir)
             progobj = ExternalProgramHolder(extprog)
             if progobj.found():

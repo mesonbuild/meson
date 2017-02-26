@@ -44,14 +44,15 @@ girwarning_printed = False
 gresource_warning_printed = False
 _gir_has_extra_lib_arg = None
 
-def gir_has_extra_lib_arg():
+
+def gir_has_extra_lib_arg(state):
     global _gir_has_extra_lib_arg
     if _gir_has_extra_lib_arg is not None:
         return _gir_has_extra_lib_arg
 
     _gir_has_extra_lib_arg = False
     try:
-        g_ir_scanner = find_program('g-ir-scanner', '').get_command()
+        g_ir_scanner = find_program('g-ir-scanner', '', state.environment).get_command()
         opts = Popen_safe(g_ir_scanner + ['--help'], stderr=subprocess.STDOUT)[1]
         _gir_has_extra_lib_arg = '--extra-library' in opts
     except (MesonException, FileNotFoundError, subprocess.CalledProcessError):
@@ -274,7 +275,7 @@ class GnomeModule(ExtensionModule):
 
     def _get_link_args(self, state, lib, depends=None, include_rpath=False,
                        use_gir_args=False):
-        if gir_has_extra_lib_arg() and use_gir_args:
+        if gir_has_extra_lib_arg(state) and use_gir_args:
             link_command = ['--extra-library=%s' % lib.name]
         else:
             link_command = ['-l%s' % lib.name]
@@ -335,7 +336,7 @@ class GnomeModule(ExtensionModule):
                     # Hack to avoid passing some compiler options in
                     if lib.startswith("-W"):
                         continue
-                    if gir_has_extra_lib_arg() and use_gir_args:
+                    if gir_has_extra_lib_arg(state) and use_gir_args:
                         lib = lib.replace('-l', '--extra-library=')
                     ldflags.update([lib])
 
@@ -357,8 +358,8 @@ class GnomeModule(ExtensionModule):
             raise MesonException('Gir takes one argument')
         if kwargs.get('install_dir'):
             raise MesonException('install_dir is not supported with generate_gir(), see "install_dir_gir" and "install_dir_typelib"')
-        giscanner = find_program('g-ir-scanner', 'Gir')
-        gicompiler = find_program('g-ir-compiler', 'Gir')
+        giscanner = find_program('g-ir-scanner', 'Gir', state.environment)
+        gicompiler = find_program('g-ir-compiler', 'Gir', state.environment)
         girtarget = args[0]
         while hasattr(girtarget, 'held_object'):
             girtarget = girtarget.held_object
@@ -559,7 +560,7 @@ class GnomeModule(ExtensionModule):
         srcdir = os.path.join(state.build_to_src, state.subdir)
         outdir = state.subdir
 
-        cmd = find_program('glib-compile-schemas', 'gsettings-compile').get_command()
+        cmd = find_program('glib-compile-schemas', 'gsettings-compile', state.environment).get_command()
         cmd += ['--targetdir', outdir, srcdir]
         kwargs['command'] = cmd
         kwargs['input'] = []
@@ -753,7 +754,7 @@ class GnomeModule(ExtensionModule):
         namebase = args[0]
         xml_file = args[1]
         target_name = namebase + '-gdbus'
-        cmd = find_program('gdbus-codegen', target_name).get_command()
+        cmd = find_program('gdbus-codegen', target_name, state.environment).get_command()
         if 'interface_prefix' in kwargs:
             cmd += ['--interface-prefix', kwargs.pop('interface_prefix')]
         if 'namespace' in kwargs:
@@ -811,7 +812,7 @@ class GnomeModule(ExtensionModule):
             elif arg not in known_custom_target_kwargs:
                 raise MesonException(
                     'Mkenums does not take a %s keyword argument.' % (arg, ))
-        cmd = find_program('glib-mkenums', 'mkenums').get_command() + cmd
+        cmd = find_program('glib-mkenums', 'mkenums', state.environment).get_command() + cmd
         custom_kwargs = {}
         for arg in known_custom_target_kwargs:
             if arg in kwargs:
@@ -894,7 +895,7 @@ class GnomeModule(ExtensionModule):
             raise MesonException(
                 'Sources keyword argument must be a string or array.')
 
-        cmd = find_program('glib-genmarshal', output + '_genmarshal').get_command()
+        cmd = find_program('glib-genmarshal', output + '_genmarshal', state.environment).get_command()
         known_kwargs = ['internal', 'nostdinc', 'skip_source', 'stdinc',
                         'valist_marshallers']
         known_custom_target_kwargs = ['build_always', 'depends',
@@ -1023,7 +1024,7 @@ class GnomeModule(ExtensionModule):
         build_dir = os.path.join(state.environment.get_build_dir(), state.subdir)
         source_dir = os.path.join(state.environment.get_source_dir(), state.subdir)
         pkg_cmd, vapi_depends, vapi_packages, vapi_includes = self._extract_vapi_packages(state, kwargs)
-        cmd = find_program('vapigen', 'Vaapi').get_command()
+        cmd = find_program('vapigen', 'Vaapi', state.environment).get_command()
         cmd += ['--quiet', '--library=' + library, '--directory=' + build_dir]
         cmd += self._vapi_args_to_command('--vapidir=', 'vapi_dirs', kwargs)
         cmd += self._vapi_args_to_command('--metadatadir=', 'metadata_dirs', kwargs)

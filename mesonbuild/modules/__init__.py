@@ -13,9 +13,19 @@ class ExtensionModule:
     def is_snippet(self, funcname):
         return funcname in self.snippets
 
-def find_program(program_name, target_name):
+
+def find_program(program_name, target_name, environment):
     if program_name in _found_programs:
         return _found_programs[program_name]
+
+    if environment.is_cross_build():
+        program = environment.cross_info.config.get('binaries', {}).get(program_name, None)
+        if program is not None:
+            program = dependencies.ExternalProgram(program)
+            if program.found():
+                _found_programs[program_name] = program
+                return program
+
     program = dependencies.ExternalProgram(program_name)
     if not program.found():
         m = "Target {!r} can't be generated as {!r} could not be found"
