@@ -16,6 +16,7 @@
 
 # A tool to run tests in many different ways.
 
+import shlex
 import subprocess, sys, os, argparse
 import pickle
 from mesonbuild import build
@@ -61,7 +62,7 @@ parser.add_argument('--gdb', default=False, dest='gdb', action='store_true',
                     help='Run test under gdb.')
 parser.add_argument('--list', default=False, dest='list', action='store_true',
                     help='List available tests.')
-parser.add_argument('--wrapper', default=None, dest='wrapper',
+parser.add_argument('--wrapper', default=None, dest='wrapper', type=shlex.split,
                     help='wrapper to run tests with (e.g. Valgrind)')
 parser.add_argument('-C', default='.', dest='wd',
                     help='directory to cd into before running')
@@ -89,7 +90,10 @@ parser.add_argument('-t', '--timeout-multiplier', type=float, default=None,
                     ' more time to execute.')
 parser.add_argument('--setup', default=None, dest='setup',
                     help='Which test setup to use.')
-parser.add_argument('args', nargs='*')
+parser.add_argument('--test-args', default=[], type=shlex.split,
+                    help='Arguments to pass to the specified test(s) or all tests')
+parser.add_argument('args', nargs='*',
+                    help='Optional list of tests to run')
 
 class TestRun:
     def __init__(self, res, returncode, should_fail, duration, stdo, stde, cmd,
@@ -189,7 +193,7 @@ class TestHarness:
             stde = None
             returncode = GNU_SKIP_RETURNCODE
         else:
-            cmd = wrap + cmd + test.cmd_args
+            cmd = wrap + cmd + test.cmd_args + self.options.test_args
             starttime = time.time()
             child_env = os.environ.copy()
             child_env.update(self.options.global_env.get_env(child_env))
@@ -420,11 +424,10 @@ TIMEOUT: %4d
             wrap = ['gdb', '--quiet', '--nh']
             if self.options.repeat > 1:
                 wrap += ['-ex', 'run', '-ex', 'quit']
-        elif self.options.wrapper:
-            if isinstance(self.options.wrapper, str):
-                wrap = self.options.wrapper.split()
-            else:
-                wrap = self.options.wrapper
+            # Signal the end of arguments to gdb
+            wrap += ['--args']
+        if self.options.wrapper:
+            wrap += self.options.wrapper
         assert(isinstance(wrap, list))
         return wrap
 
@@ -454,8 +457,6 @@ TIMEOUT: %4d
 
                     if self.options.gdb:
                         test.timeout = None
-                        if len(test.cmd_args):
-                            wrap.append('--args')
 
                     if not test.is_parallel or self.options.gdb:
                         self.drain_futures(futures, logfile, jsonlogfile)
