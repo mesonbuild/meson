@@ -236,12 +236,12 @@ def install_targets(d):
             raise RuntimeError('File {!r} could not be found'.format(fname))
         elif os.path.isfile(fname):
             do_copyfile(fname, outname)
-            if should_strip:
+            if should_strip and d.strip_bin is not None:
                 if fname.endswith('.jar'):
                     print('Not stripping jar target:', os.path.split(fname)[1])
                     continue
                 print('Stripping target {!r}'.format(fname))
-                ps, stdo, stde = Popen_safe(['strip', outname])
+                ps, stdo, stde = Popen_safe(d.strip_bin + [outname])
                 if ps.returncode != 0:
                     print('Could not strip file.\n')
                     print('Stdout:\n%s\n' % stdo)
