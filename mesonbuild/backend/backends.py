@@ -33,10 +33,11 @@ class CleanTrees:
         self.trees = trees
 
 class InstallData:
-    def __init__(self, source_dir, build_dir, prefix):
+    def __init__(self, source_dir, build_dir, prefix, strip_bin):
         self.source_dir = source_dir
         self.build_dir = build_dir
         self.prefix = prefix
+        self.strip_bin = strip_bin
         self.targets = []
         self.headers = []
         self.man = []

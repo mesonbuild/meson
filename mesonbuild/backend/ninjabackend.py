@@ -592,9 +592,19 @@ int dummy;
 
     def generate_install(self, outfile):
         install_data_file = os.path.join(self.environment.get_scratch_dir(), 'install.dat')
+        if self.environment.is_cross_build():
+            bins = self.environment.cross_info.config['binaries']
+            if 'strip' not in bins:
+                mlog.warning('Cross file does not specify strip binary, result will not be stripped.')
+                strip_bin = None
+            else:
+                strip_bin = mesonlib.stringlistify(bins['strip'])
+        else:
+            strip_bin = self.environment.native_strip_bin
         d = InstallData(self.environment.get_source_dir(),
                         self.environment.get_build_dir(),
-                        self.environment.get_prefix())
+                        self.environment.get_prefix(),
+                        strip_bin)
         elem = NinjaBuildElement(self.all_outputs, 'install', 'CUSTOM_COMMAND', 'PHONY')
         elem.add_dep('all')
         elem.add_item('DESC', 'Installing files.')

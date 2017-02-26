@@ -324,10 +324,15 @@ class BuildTarget(Target):
             raise InvalidArguments('Build target %s has no sources.' % name)
         self.process_compilers()
         self.validate_sources()
+        self.validate_cross_install(environment)
 
     def __repr__(self):
         repr_str = "<{0} {1}: {2}>"
         return repr_str.format(self.__class__.__name__, self.get_id(), self.filename)
+
+    def validate_cross_install(self, environment):
+        if environment.is_cross_build() and not self.is_cross and self.install:
+            raise InvalidArguments('Tried to install a natively built target in a cross build.')
 
     def get_id(self):
         # This ID must also be a valid file name on all OSs.
@@ -1480,6 +1485,11 @@ class Jar(BuildTarget):
 
     def get_java_args(self):
         return self.java_args
+
+    def validate_cross_install(self, environment):
+        # All jar targets are installable.
+        pass
+
 
 class ConfigureFile:
 

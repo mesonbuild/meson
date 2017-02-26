@@ -261,6 +261,10 @@ class Environment:
             self.exe_suffix = ''
             self.object_suffix = 'o'
             self.win_libdir_layout = False
+        if 'STRIP' in os.environ:
+            self.native_strip_bin = shlex.split('STRIP')
+        else:
+            self.native_strip_bin = ['strip']
 
     def is_cross_build(self):
         return self.cross_info is not None
