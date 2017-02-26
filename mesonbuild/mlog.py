@@ -25,7 +25,7 @@ log_file = None
 def initialize(logdir):
     global log_dir, log_file
     log_dir = logdir
-    log_file = open(os.path.join(logdir, 'meson-log.txt'), 'w')
+    log_file = open(os.path.join(logdir, 'meson-log.txt'), 'w', encoding='utf8')
 
 def shutdown():
     global log_file
