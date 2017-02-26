@@ -161,6 +161,7 @@ class ConfigurationDataHolder(MutableInterpreterObject):
                              'set_quoted': self.set_quoted_method,
                              'has': self.has_method,
                              'get': self.get_method,
+                             'merge_from': self.merge_from_method,
                              })
 
     def is_used(self):
@@ -220,6 +221,16 @@ class ConfigurationDataHolder(MutableInterpreterObject):
 
     def keys(self):
         return self.held_object.values.keys()
+
+    def merge_from_method(self, args, kwargs):
+        if len(args) != 1:
+            raise InterpreterException('Merge_from takes one positional argument.')
+        from_object = args[0]
+        if not isinstance(from_object, ConfigurationDataHolder):
+            raise InterpreterException('Merge_from argument must be a configuration data object.')
+        from_object = from_object.held_object
+        for k, v in from_object.values.items():
+            self.held_object.values[k] = v
 
 # Interpreter objects can not be pickled so we must have
 # these wrappers.

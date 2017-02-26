@@ -4,6 +4,8 @@ simd = import('simd')
 
 cc = meson.get_compiler('c')
 
+cdata = configuration_data()
+
 if not meson.is_cross_build() and host_machine.cpu_family() == 'arm' and cc.get_id() == 'clang'
   message('Adding -march=armv7 because assuming that this build happens on Raspbian.')
   message('Its Clang seems to be misconfigured and does not support NEON by default.')
@@ -29,8 +31,7 @@ rval = simd.check('mysimds',
   compiler : cc)
 
 simdlibs = rval[0]
-# FIXME add cdata1.merge_from(cdata2)
-cdata = rval[1]
+cdata.merge_from(rval[1])
 
 configure_file(output : 'simdconfig.h',
   configuration : cdata)
