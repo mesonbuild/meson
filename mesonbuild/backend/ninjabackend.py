@@ -37,7 +37,9 @@ else:
     rmfile_prefix = 'rm -f {} &&'
 
 def ninja_quote(text):
-    return text.replace(' ', '$ ').replace(':', '$:')
+    for char in ('$', ' ', ':', '\n'):
+        text = text.replace(char, '$' + char)
+    return text
 
 class RawFilename:
     """
