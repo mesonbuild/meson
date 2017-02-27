@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys, os, platform
+import sys, os, platform, io
 
 """This is (mostly) a standalone module used to write logging
 information about Meson runs. Some output goes to screen,
@@ -70,6 +70,17 @@ def process_markup(args, keep):
             arr.append(str(arg))
     return arr
 
+def force_print(*args, **kwargs):
+    # _Something_ is going to get printed.
+    try:
+        print(*args, **kwargs)
+    except UnicodeEncodeError:
+        iostr = io.StringIO()
+        kwargs['file'] = iostr
+        print(*args, **kwargs)
+        cleaned = iostr.getvalue().encode('ascii', 'replace').decode('ascii')
+        print(cleaned)
+
 def debug(*args, **kwargs):
     arr = process_markup(args, False)
     if log_file is not None:
@@ -83,7 +94,7 @@ def log(*args, **kwargs):
         log_file.flush()
     if colorize_console:
         arr = process_markup(args, True)
-    print(*arr, **kwargs)
+    force_print(*arr, **kwargs)
 
 def warning(*args, **kwargs):
     log(yellow('WARNING:'), *args, **kwargs)
