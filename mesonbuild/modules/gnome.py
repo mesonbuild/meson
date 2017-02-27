@@ -915,8 +915,14 @@ class GnomeModule(ExtensionModule):
 
         custom_kwargs = {
             'input': sources,
-            'capture': True,
         }
+
+        # https://github.com/GNOME/glib/commit/0fbc98097fac4d3e647684f344e508abae109fdf
+        if mesonlib.version_compare(self._get_native_glib_version(state), '>= 2.51.0'):
+            cmd += ['--output', '@OUTPUT@']
+        else:
+            custom_kwargs['capture'] = True
+
         for arg in known_custom_target_kwargs:
             if arg in kwargs:
                 custom_kwargs[arg] = kwargs[arg]
