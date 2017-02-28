@@ -1861,6 +1861,16 @@ class DCompiler(Compiler):
                 # translate library link flag
                 dcargs.append('-L' + arg)
                 continue
+            elif arg.startswith('-L/') or arg.startswith('-L./'):
+                # we need to handle cases where -L is set by e.g. a pkg-config
+                # setting to select a linker search path. We can however not
+                # unconditionally prefix '-L' with '-L' because the user might
+                # have set this flag too to do what it is intended to for this
+                # compiler (pass flag through to the linker)
+                # Hence, we guess here whether the flag was intended to pass
+                # a linker search path.
+                dcargs.append('-L' + arg)
+                continue
             dcargs.append(arg)
 
         return dcargs
