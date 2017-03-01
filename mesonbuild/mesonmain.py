@@ -65,6 +65,8 @@ parser.add_argument('--cross-file', default=None,
                     help='File describing cross compilation environment.')
 parser.add_argument('-D', action='append', dest='projectoptions', default=[],
                     help='Set project options.')
+parser.add_argument('-q', '--quiet', action='store_true',
+                    help='Quiet, suppress feedback messages.')
 parser.add_argument('-v', '--version', action='version',
                     version=coredata.version)
 parser.add_argument('directories', nargs='*')
@@ -132,15 +134,15 @@ If you want to change option values, use the mesonconf tool instead.'''
         mlog.debug('Build started at', datetime.datetime.now().isoformat())
         mlog.debug('Python binary:', sys.executable)
         mlog.debug('Python system:', platform.system())
-        mlog.log(mlog.bold('The Meson build system'))
+        mlog.info(mlog.bold('The Meson build system'))
         self.check_pkgconfig_envvar(env)
-        mlog.log('Version:', coredata.version)
-        mlog.log('Source dir:', mlog.bold(self.source_dir))
-        mlog.log('Build dir:', mlog.bold(self.build_dir))
+        mlog.info('Version:', coredata.version)
+        mlog.info('Source dir:', mlog.bold(self.source_dir))
+        mlog.info('Build dir:', mlog.bold(self.build_dir))
         if env.is_cross_build():
-            mlog.log('Build type:', mlog.bold('cross build'))
+            mlog.info('Build type:', mlog.bold('cross build'))
         else:
-            mlog.log('Build type:', mlog.bold('native build'))
+            mlog.info('Build type:', mlog.bold('native build'))
         b = build.Build(env)
         if self.options.backend == 'ninja':
             from .backend import ninjabackend
@@ -159,12 +161,12 @@ If you want to change option values, use the mesonconf tool instead.'''
 
         intr = interpreter.Interpreter(b, g)
         if env.is_cross_build():
-            mlog.log('Host machine cpu family:', mlog.bold(intr.builtin['host_machine'].cpu_family_method([], {})))
-            mlog.log('Host machine cpu:', mlog.bold(intr.builtin['host_machine'].cpu_method([], {})))
-            mlog.log('Target machine cpu family:', mlog.bold(intr.builtin['target_machine'].cpu_family_method([], {})))
-            mlog.log('Target machine cpu:', mlog.bold(intr.builtin['target_machine'].cpu_method([], {})))
-        mlog.log('Build machine cpu family:', mlog.bold(intr.builtin['build_machine'].cpu_family_method([], {})))
-        mlog.log('Build machine cpu:', mlog.bold(intr.builtin['build_machine'].cpu_method([], {})))
+            mlog.info('Host machine cpu family:', mlog.bold(intr.builtin['host_machine'].cpu_family_method([], {})))
+            mlog.info('Host machine cpu:', mlog.bold(intr.builtin['host_machine'].cpu_method([], {})))
+            mlog.info('Target machine cpu family:', mlog.bold(intr.builtin['target_machine'].cpu_family_method([], {})))
+            mlog.info('Target machine cpu:', mlog.bold(intr.builtin['target_machine'].cpu_method([], {})))
+        mlog.info('Build machine cpu family:', mlog.bold(intr.builtin['build_machine'].cpu_family_method([], {})))
+        mlog.info('Build machine cpu:', mlog.bold(intr.builtin['build_machine'].cpu_method([], {})))
         intr.run()
         coredata_mtime = time.time()
         g.generate(intr)
@@ -256,6 +258,7 @@ def run(mainfile, args):
         handshake = False
     args = mesonlib.expand_arguments(args)
     options = parser.parse_args(args)
+    mlog.quiet = options.quiet
     args = options.directories
     if len(args) == 0 or len(args) > 2:
         # if there's a meson.build in the dir above, and not in the current

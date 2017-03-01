@@ -21,6 +21,7 @@ some to logging dir and some goes to both."""
 colorize_console = platform.system().lower() != 'windows' and os.isatty(sys.stdout.fileno())
 log_dir = None
 log_file = None
+quiet = False
 
 def initialize(logdir):
     global log_dir, log_file
@@ -86,6 +87,16 @@ def debug(*args, **kwargs):
     if log_file is not None:
         print(*arr, file=log_file, **kwargs) # Log file never gets ANSI codes.
         log_file.flush()
+
+def info(*args, **kwargs):
+    arr = process_markup(args, False)
+    if log_file is not None:
+        print(*arr, file=log_file, **kwargs) # Log file never gets ANSI codes.
+        log_file.flush()
+    if colorize_console:
+        arr = process_markup(args, True)
+    if not quiet:
+        force_print(*arr, **kwargs)
 
 def log(*args, **kwargs):
     arr = process_markup(args, False)
