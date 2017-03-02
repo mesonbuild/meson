@@ -951,6 +951,8 @@ class LinuxlikeTests(BasePlatformTests):
         for each in compdb:
             if each['file'].endswith('GLib.Thread.c'):
                 vala_command = each['command']
+            elif each['file'].endswith('GLib.Thread.vala'):
+                continue
             elif each['file'].endswith('retcode.c'):
                 c_command = each['command']
             else:
