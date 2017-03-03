@@ -300,8 +300,6 @@ class BuildTarget(Target):
         self.name_prefix_set = False
         self.name_suffix_set = False
         self.filename = 'no_name'
-        # The file with debugging symbols
-        self.debug_filename = None
         self.need_install = False
         self.pch = {}
         self.extra_args = {}
@@ -686,15 +684,6 @@ class BuildTarget(Target):
     def get_outputs(self):
         return [self.filename]
 
-    def get_debug_filename(self):
-        """
-        The name of the file that contains debugging symbols for this target
-
-        Returns None if there are no debugging symbols or if they are embedded
-        in the filename itself
-        """
-        return self.debug_filename
-
     def get_extra_args(self, language):
         return self.extra_args.get(language, [])
 
@@ -1006,10 +995,6 @@ class Executable(BuildTarget):
         self.filename = self.name
         if self.suffix:
             self.filename += '.' + self.suffix
-        # See determine_debug_filenames() in build.SharedLibrary
-        buildtype = environment.coredata.get_builtin_option('buildtype')
-        if self.get_using_msvc() and buildtype.startswith('debug'):
-            self.debug_filename = self.prefix + self.name + '.pdb'
 
     def type_suffix(self):
         return "@exe"
@@ -1037,10 +1022,6 @@ class StaticLibrary(BuildTarget):
             else:
                 self.suffix = 'a'
         self.filename = self.prefix + self.name + '.' + self.suffix
-        # See determine_debug_filenames() in build.SharedLibrary
-        buildtype = environment.coredata.get_builtin_option('buildtype')
-        if self.get_using_msvc() and buildtype.startswith('debug'):
-            self.debug_filename = self.prefix + self.name + '.pdb'
 
     def type_suffix(self):
         return "@sta"
@@ -1066,7 +1047,6 @@ class SharedLibrary(BuildTarget):
             self.suffix = None
         self.basic_filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
         self.determine_filenames(is_cross, environment)
-        self.determine_debug_filenames(is_cross, environment)
 
     def determine_filenames(self, is_cross, env):
         """
@@ -1155,21 +1135,6 @@ class SharedLibrary(BuildTarget):
         if self.suffix is None:
             self.suffix = suffix
         self.filename = self.filename_tpl.format(self)
-
-    def determine_debug_filenames(self, is_cross, env):
-        """
-        Determine the debug filename(s) using the prefix/name/etc detected in
-        determine_filenames() above.
-        """
-        buildtype = env.coredata.get_builtin_option('buildtype')
-        if self.get_using_msvc() and buildtype.startswith('debug'):
-            # Currently we only implement separate debug symbol files for MSVC
-            # since the toolchain does it for us. Other toolchains embed the
-            # debugging symbols in the file itself by default.
-            if self.soversion:
-                self.debug_filename = '{0.prefix}{0.name}-{0.soversion}.pdb'.format(self)
-            else:
-                self.debug_filename = '{0.prefix}{0.name}.pdb'.format(self)
 
     def process_kwargs(self, kwargs, environment):
         super().process_kwargs(kwargs, environment)

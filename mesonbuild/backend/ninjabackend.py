@@ -653,13 +653,6 @@ int dummy;
                 else:
                     # XXX: Add BuildTarget-specific install dir cases here
                     outdir = self.environment.get_libdir()
-                if isinstance(t, build.SharedLibrary) or isinstance(t, build.Executable):
-                    if t.get_debug_filename():
-                        # Install the debug symbols file in the same place as
-                        # the target itself. It has no aliases, should not be
-                        # stripped, and doesn't have an install_rpath
-                        i = [self.get_target_debug_filename(t), outdir, {}, False, '']
-                        d.targets.append(i)
                 if isinstance(t, build.BuildTarget):
                     i = [self.get_target_filename(t), outdir, t.get_aliases(),
                          should_strip, t.install_rpath]
