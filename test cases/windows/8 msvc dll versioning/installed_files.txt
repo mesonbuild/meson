@@ -1,4 +1,6 @@
 usr/bin/some-0.dll
+usr/bin/some-0.pdb
 usr/lib/some.lib
 usr/bin/noversion.dll
+usr/bin/noversion.pdb
 usr/lib/noversion.lib
