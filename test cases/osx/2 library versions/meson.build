@@ -28,14 +28,14 @@ out = custom_target('library-dependency-hack',
 
 # Manually test if the linker can find the above libraries
 # i.e., whether they were generated with the right naming scheme
-executable('manuallink1', out,
-  link_args : ['-L.', '-lsome'])
+test('manually linked 1', executable('manuallink1', out,
+  link_args : ['-L.', '-lsome']))
 
-executable('manuallink2', out,
-  link_args : ['-L.', '-lnoversion'])
+test('manually linked 2', executable('manuallink2', out,
+  link_args : ['-L.', '-lnoversion']))
 
-executable('manuallink3', out,
-  link_args : ['-L.', '-lonlyversion'])
+test('manually linked 3', executable('manuallink3', out,
+  link_args : ['-L.', '-lonlyversion']))
 
-executable('manuallink4', out,
-  link_args : ['-L.', '-lonlysoversion'])
+test('manually linked 4', executable('manuallink4', out,
+  link_args : ['-L.', '-lonlysoversion']))

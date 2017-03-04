@@ -26,6 +26,8 @@ out = custom_target('library-dependency-hack',
   depends : [some, noversion, onlyversion, onlysoversion],
   command : ['cp', '@INPUT@', '@OUTPUT@'])
 
+# Need to add this manually because Meson can't add it automatically because
+# it doesn't know that we are linking to libraries in the build directory.
 rpath_arg = '-Wl,-rpath,' + meson.current_build_dir()
 
 # Manually test if the linker can find the above libraries
