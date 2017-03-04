@@ -2259,7 +2259,11 @@ def get_gcc_soname_args(gcc_type, prefix, shlib_name, suffix, path, soversion, i
     elif gcc_type == GCC_OSX:
         if is_shared_module:
             return []
-        return ['-install_name', os.path.join(path, 'lib' + shlib_name + '.dylib')]
+        args = ['-install_name', os.path.join(path, 'lib' + shlib_name + '.dylib')]
+        if soversion:
+            # FIXME: What about -current_version?
+            args += ['-compatibility_version', soversion]
+        return args
     else:
         raise RuntimeError('Not implemented yet.')
 
