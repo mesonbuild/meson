@@ -181,6 +181,9 @@ def validate_install(srcdir, installdir):
     # Check if there are any unexpected files
     found = get_relative_files_list_from_dir(installdir)
     for fname in found:
+        # Windows-specific tests check for the existence of installed PDB
+        # files, but common tests do not, for obvious reasons. Ignore any
+        # extra PDB files found.
         if fname not in expected and not fname.endswith('.pdb'):
             ret_msg += 'Extra file {0} found.\n'.format(fname)
     return ret_msg

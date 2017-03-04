@@ -247,6 +247,11 @@ def install_targets(d):
                     print('Stdout:\n%s\n' % stdo)
                     print('Stderr:\n%s\n' % stde)
                     sys.exit(1)
+            pdb_filename = os.path.splitext(fname)[0] + '.pdb'
+            if not should_strip and os.path.exists(pdb_filename):
+                pdb_outname = os.path.splitext(outname)[0] + '.pdb'
+                print('Installing pdb file %s to %s.' % (pdb_filename, pdb_outname))
+                do_copyfile(pdb_filename, pdb_outname)
         elif os.path.isdir(fname):
             fname = os.path.join(d.build_dir, fname.rstrip('/'))
             do_copydir(fname, os.path.dirname(fname), outdir)

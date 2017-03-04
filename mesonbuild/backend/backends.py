@@ -115,12 +115,6 @@ class Backend:
             return os.path.join(self.get_target_dir(target), target.get_filename())
         raise AssertionError('BUG: Tried to link to something that\'s not a library')
 
-    def get_target_debug_filename(self, target):
-        fname = target.get_debug_filename()
-        if not fname:
-            raise AssertionError("BUG: Tried to generate debug filename when it doesn't exist")
-        return os.path.join(self.get_target_dir(target), fname)
-
     def get_target_dir(self, target):
         if self.environment.coredata.get_builtin_option('layout') == 'mirror':
             dirname = target.get_subdir()
