@@ -4,3 +4,7 @@ usr/lib/some.lib
 usr/bin/noversion.dll
 usr/bin/noversion.pdb
 usr/lib/noversion.lib
+usr/bin/onlyversion-1.dll
+usr/lib/onlyversion.lib
+usr/bin/onlysoversion-5.dll
+usr/lib/onlysoversion.lib
