@@ -2302,7 +2302,7 @@ requirements use the version keyword argument instead.''')
         incdirs_postcheck = []
         for n, a in enumerate(args):
             if isinstance(a, str):
-                extargs += a
+                extargs.append(a)
             else:
                 incdirs_postcheck.append((n + 1, a.get_is_system()))
                 extargs += a.get_incdirs()
