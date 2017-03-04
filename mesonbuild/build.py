@@ -1114,10 +1114,13 @@ class SharedLibrary(BuildTarget):
         elif for_darwin(is_cross, env):
             prefix = 'lib'
             suffix = 'dylib'
-            # libfoo.dylib
-            self.filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
-            # On OS X, the filename should never have the soversion
-            # See: https://github.com/mesonbuild/meson/pull/680
+            # On macOS, the filename can only contain the major version
+            if self.soversion:
+                # libfoo.X.dylib
+                self.filename_tpl = '{0.prefix}{0.name}.{0.soversion}.{0.suffix}'
+            else:
+                # libfoo.dylib
+                self.filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
         else:
             prefix = 'lib'
             suffix = 'so'
@@ -1191,24 +1194,28 @@ class SharedLibrary(BuildTarget):
         If the versioned library name is libfoo.so.0.100.0, aliases are:
         * libfoo.so.0 (soversion) -> libfoo.so.0.100.0
         * libfoo.so (unversioned; for linking) -> libfoo.so.0
+        Same for dylib:
+        * libfoo.dylib (unversioned; for linking) -> libfoo.0.dylib
         """
         aliases = {}
-        # Aliases are only useful with .so libraries. Also if the .so library
-        # ends with .so (no versioning), we don't need aliases.
-        if self.suffix != 'so' or self.filename.endswith('.so'):
+        # Aliases are only useful with .so and .dylib libraries. Also if
+        # there's no self.soversion (no versioning), we don't need aliases.
+        if self.suffix not in ('so', 'dylib') or not self.soversion:
             return {}
-        # If ltversion != soversion we create an soversion alias:
+        # With .so libraries, the minor and micro versions are also in the
+        # filename. If ltversion != soversion we create an soversion alias:
         # libfoo.so.0 -> libfoo.so.0.100.0
-        if self.ltversion and self.ltversion != self.soversion:
-            if not self.soversion:
-                # This is done in self.process_kwargs()
-                raise AssertionError('BUG: If library version is defined, soversion must have been defined')
+        # Where libfoo.so.0.100.0 is the actual library
+        if self.suffix == 'so' and self.ltversion and self.ltversion != self.soversion:
             alias_tpl = self.filename_tpl.replace('ltversion', 'soversion')
             ltversion_filename = alias_tpl.format(self)
             aliases[ltversion_filename] = self.filename
+        # libfoo.so.0/libfoo.0.dylib is the actual library
         else:
             ltversion_filename = self.filename
-        # Unversioned alias: libfoo.so -> libfoo.so.0
+        # Unversioned alias:
+        #  libfoo.so -> libfoo.so.0
+        #  libfoo.dylib -> libfoo.0.dylib
         aliases[self.basic_filename_tpl.format(self)] = ltversion_filename
         return aliases
 
