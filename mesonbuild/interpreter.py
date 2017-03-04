@@ -2300,11 +2300,11 @@ requirements use the version keyword argument instead.''')
     def func_include_directories(self, node, args, kwargs):
         extargs = []
         incdirs_postcheck = []
-        for n,a in enumerate(args):
+        for n, a in enumerate(args):
             if isinstance(a, str):
                 extargs += a
             else:
-                incdirs_postcheck.append((n+1, a.get_is_system()))
+                incdirs_postcheck.append((n + 1, a.get_is_system()))
                 extargs += a.get_incdirs()
 
         src_root = self.environment.get_source_dir()
@@ -2337,8 +2337,8 @@ different subdirectory.
         for n, a_is_system in incdirs_postcheck:
             if a_is_system != is_system:
                 raise InvalidArguments(
-                        'Unsupported mixing of system and non-system headers: argument at position {} contains {} headers.'.format(
-                        n, "system" if a_is_system else "non-system"))
+                    'Unsupported mixing of system and non-system headers: argument at position {} contains {} headers.'
+                    .format(n, "system" if a_is_system else "non-system"))
         i = IncludeDirsHolder(build.IncludeDirs(self.subdir, extargs, is_system))
         return i
 
