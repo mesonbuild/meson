@@ -185,6 +185,9 @@ class IncludeDirs:
     def get_extra_build_dirs(self):
         return self.extra_build_dirs
 
+    def get_is_system(self):
+        return self.is_system
+
 class ExtractedObjects:
     '''
     Holds a list of sources for which the objects must be extracted
