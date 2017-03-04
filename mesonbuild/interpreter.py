@@ -25,7 +25,7 @@ from . import mesonlib
 from .mesonlib import FileMode, Popen_safe
 from .dependencies import InternalDependency, Dependency
 from .interpreterbase import InterpreterBase
-from .interpreterbase import check_stringlist, noPosargs, noKwargs, stringArgs
+from .interpreterbase import check_stringlist, noPosargs, noKwargs, stringArgs, stringlikeArgs
 from .interpreterbase import InterpreterException, InvalidArguments, InvalidCode
 from .interpreterbase import InterpreterObject, MutableInterpreterObject
 from .modules import ModuleReturnValue
@@ -415,6 +415,9 @@ class IncludeDirsHolder(InterpreterObject):
     def __init__(self, idobj):
         super().__init__()
         self.held_object = idobj
+
+    def strlist(self):
+        return self.held_object.get_incdirs()
 
 class Headers(InterpreterObject):
 
@@ -2290,11 +2293,18 @@ requirements use the version keyword argument instead.''')
             self.build.data.append(build.Data([cfile], idir))
         return mesonlib.File.from_built_file(self.subdir, output)
 
-    @stringArgs
+    @stringlikeArgs
     def func_include_directories(self, node, args, kwargs):
+        extargs = []
+        for a in args:
+            if isinstance(a, str):
+                extargs += a
+            else:
+                extargs += a.strlist()
+
         src_root = self.environment.get_source_dir()
         absbase = os.path.join(src_root, self.subdir)
-        for a in args:
+        for a in extargs:
             if a.startswith(src_root):
                 raise InvalidArguments('''Tried to form an absolute path to a source dir. You should not do that but use
 relative paths instead.
@@ -2319,7 +2329,7 @@ different subdirectory.
         is_system = kwargs.get('is_system', False)
         if not isinstance(is_system, bool):
             raise InvalidArguments('Is_system must be boolean.')
-        i = IncludeDirsHolder(build.IncludeDirs(self.subdir, args, is_system))
+        i = IncludeDirsHolder(build.IncludeDirs(self.subdir, extargs, is_system))
         return i
 
     @stringArgs

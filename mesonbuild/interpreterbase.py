@@ -31,6 +31,14 @@ def check_stringlist(a, msg='Arguments must be strings.'):
         mlog.debug('Element not a string:', str(a))
         raise InvalidArguments(msg)
 
+def check_stringlistlike(a, msg='Arguments must be interpretable as strings.'):
+    if not isinstance(a, list):
+        mlog.debug('Not a list:', str(a))
+        raise InvalidArguments('Argument not a list.')
+    if not all(isinstance(s, str) or hasattr(s, 'strlist') for s in a):
+        mlog.debug('Element not interpretable as string:', str(a))
+        raise InvalidArguments(msg)
+
 def noPosargs(f):
     @wraps(f)
     def wrapped(self, node, args, kwargs):
@@ -52,6 +60,14 @@ def stringArgs(f):
     def wrapped(self, node, args, kwargs):
         assert(isinstance(args, list))
         check_stringlist(args)
+        return f(self, node, args, kwargs)
+    return wrapped
+
+def stringlikeArgs(f):
+    @wraps(f)
+    def wrapped(self, node, args, kwargs):
+        assert(isinstance(args, list))
+        check_stringlistlike(args)
         return f(self, node, args, kwargs)
     return wrapped
 
