@@ -18,7 +18,8 @@ import sys, os, platform, io
 information about Meson runs. Some output goes to screen,
 some to logging dir and some goes to both."""
 
-colorize_console = platform.system().lower() != 'windows' and os.isatty(sys.stdout.fileno())
+colorize_console = platform.system().lower() != 'windows' and os.isatty(sys.stdout.fileno()) and \
+    os.environ.get('TERM') != 'dumb'
 log_dir = None
 log_file = None
 
