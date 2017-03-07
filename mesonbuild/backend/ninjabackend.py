@@ -1864,7 +1864,7 @@ rule FORTRAN_DEP_HACK
         commands += self.escape_extra_args(compiler,
                                            target.get_extra_args(compiler.get_language()))
         # Add per-target compiler standard version.
-        if(target.get_compiler_standard(compiler.get_language()) != None):
+        if(target.get_compiler_standard(compiler.get_language()) is not None):
             commands += [compiler.get_standard_args(target.get_compiler_standard(compiler.get_language()))]
         # Add source dir and build dir. Project-specific and target-specific
         # include paths must override per-target compile args, include paths

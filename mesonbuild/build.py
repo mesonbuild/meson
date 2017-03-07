@@ -568,9 +568,9 @@ class BuildTarget(Target):
             clist = [clist]
         self.add_compiler_args('c', clist)
         cstd = kwargs.get('c_std', None)
-        if not isinstance(cstd, str) and cstd != None:
+        if not isinstance(cstd, str) and cstd is not None:
             raise InvalidArguments('c_std argument must be a string.')
-        if cstd != None:
+        if cstd is not None:
             self.set_compiler_standard('c', cstd)
         cpplist = kwargs.get('cpp_args', [])
         if not isinstance(cpplist, list):
@@ -581,9 +581,9 @@ class BuildTarget(Target):
             cslist = [cslist]
         self.add_compiler_args('cs', cslist)
         cppstd = kwargs.get('cpp_std', None)
-        if not isinstance(cppstd, str) and cppstd != None:
+        if not isinstance(cppstd, str) and cppstd is not None:
             raise InvalidArguments('cpp_std argument must be a string.')
-        if cppstd != None:
+        if cppstd is not None:
             self.set_compiler_standard('cpp', cppstd)
         valalist = kwargs.get('vala_args', [])
         if not isinstance(valalist, list):

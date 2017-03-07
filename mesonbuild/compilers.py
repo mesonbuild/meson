@@ -2697,7 +2697,7 @@ class IntelCPPCompiler(IntelCompiler, CPPCompiler):
             c_stds += ['c++17']
         if mesonlib.version_compare(self.version, '>=17.0.0'):
             g_stds += ['gnu++14']
-        return c_std + g_stds
+        return c_stds + g_stds
 
     def get_options(self):
         opts = {'cpp_std': coredata.UserComboOption('cpp_std', 'C++ language standard to use',
