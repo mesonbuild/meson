@@ -2532,10 +2532,12 @@ class ClangCCompiler(ClangCompiler, CCompiler):
                           '2': default_warn_args + ['-Wextra'],
                           '3': default_warn_args + ['-Wextra', '-Wpedantic']}
 
+    def get_standard_versions(self):
+        return ['c89', 'c99', 'c11', 'gnu89', 'gnu99', 'gnu11']
+
     def get_options(self):
         return {'c_std': coredata.UserComboOption('c_std', 'C language standard to use',
-                                                  ['none', 'c89', 'c99', 'c11',
-                                                   'gnu89', 'gnu99', 'gnu11'],
+                                                  ['none'] + self.get_standard_versions(),
                                                   'none')}
 
     def get_option_compile_args(self, options):
@@ -2544,6 +2546,12 @@ class ClangCCompiler(ClangCompiler, CCompiler):
         if std.value != 'none':
             args.append('-std=' + std.value)
         return args
+
+    def get_standard_args(self, version):
+        if version in self.get_standard_versions():
+            return '-std=' + version
+        else:
+            raise MesonException('Invalid C++ standard ' + version)
 
     def get_option_link_args(self, options):
         return []
