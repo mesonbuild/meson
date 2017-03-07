@@ -2156,6 +2156,11 @@ class VisualStudioCCompiler(CCompiler):
             result.append(i)
         return result
 
+    def get_standard_args(self, version):
+        # Visual studio doesn't support standard versions in the C
+        # compiler. Give no argument and hope for the best.
+        return ''
+
     def get_werror_args(self):
         return ['/WX']
 
@@ -2229,6 +2234,13 @@ class VisualStudioCPPCompiler(VisualStudioCCompiler, CPPCompiler):
         if std.value != 'none':
             args.append('/EH' + std.value)
         return args
+
+    def get_standard_args(self, version):
+        # Visual studio only has flags for c++14 and later.
+        if version in ['c++03', 'c++11', 'c++14']:
+            return '/std:c++14'
+        else:
+            raise MesonException('Invalid C++ standard ' + version)
 
     def get_option_link_args(self, options):
         return options['cpp_winlibs'].value[:]
