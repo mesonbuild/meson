@@ -709,7 +709,10 @@ class CCompiler(Compiler):
         return True # When compiling static libraries, so yes.
 
     def get_always_args(self):
-        return []
+        '''
+        Args that are always-on for all C compilers other than MSVC
+        '''
+        return ['-pipe'] + get_largefile_args(self)
 
     def get_linker_debug_crt_args(self):
         """
@@ -2025,6 +2028,7 @@ class VisualStudioCCompiler(CCompiler):
                           '3': ['/W4']}
         self.base_options = ['b_pch'] # FIXME add lto, pgo and the like
 
+    # Override CCompiler.get_always_args
     def get_always_args(self):
         return self.always_args
 
@@ -2263,6 +2267,34 @@ def get_gcc_soname_args(gcc_type, prefix, shlib_name, suffix, path, soversion, i
     else:
         raise RuntimeError('Not implemented yet.')
 
+def get_compiler_is_linuxlike(compiler):
+    if (getattr(compiler, 'gcc_type', None) == GCC_STANDARD) or \
+       (getattr(compiler, 'clang_type', None) == CLANG_STANDARD) or \
+       (getattr(compiler, 'icc_type', None) == ICC_STANDARD):
+        return True
+    return False
+
+def get_largefile_args(compiler):
+    '''
+    Enable transparent large-file-support for 32-bit UNIX systems
+    '''
+    if get_compiler_is_linuxlike(compiler):
+        # Enable large-file support unconditionally on all platforms other
+        # than macOS and Windows. macOS is now 64-bit-only so it doesn't
+        # need anything special, and Windows doesn't have automatic LFS.
+        # You must use the 64-bit counterparts explicitly.
+        # glibc, musl, and uclibc, and all BSD libcs support this. On Android,
+        # support for transparent LFS is available depending on the version of
+        # Bionic: https://github.com/android/platform_bionic#32-bit-abi-bugs
+        # https://code.google.com/p/android/issues/detail?id=64613
+        #
+        # If this breaks your code, fix it! It's been 20+ years!
+        return ['-D_FILE_OFFSET_BITS=64']
+        # We don't enable -D_LARGEFILE64_SOURCE since that enables
+        # transitionary features and must be enabled by programs that use
+        # those features explicitly.
+    return []
+
 
 class GnuCompiler:
     # Functionality that is common to all GNU family compilers.
@@ -2310,9 +2342,6 @@ class GnuCompiler:
         if self.gcc_type == GCC_OSX:
             return apple_buildtype_linker_args[buildtype]
         return gnulike_buildtype_linker_args[buildtype]
-
-    def get_always_args(self):
-        return ['-pipe']
 
     def get_pch_suffix(self):
         return 'gch'
