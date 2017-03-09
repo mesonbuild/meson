@@ -1010,6 +1010,34 @@ class CCompiler(Compiler):
                 return i
         raise EnvironmentException('Cross-compile check overflowed')
 
+    def cross_compute_int(self, fragment, prefix, env, extra_args=None, dependencies=None):
+        if extra_args is None:
+            extra_args = []
+        fargs = {'prefix': prefix, 'fragment': fragment}
+        t = '''#include <stdio.h>
+        {prefix}
+        int temparray[{size}-({fragment})];'''
+        return self._bisect_compiles(t, fargs, env, extra_args, dependencies)
+
+    def compute_int(self, fragment, prefix, env, extra_args=None, dependencies=None):
+        if extra_args is None:
+            extra_args = []
+        fargs = {'prefix': prefix, 'fragment': fragment}
+        if self.is_cross:
+            return self.cross_compute_int(fragment, prefix, env, extra_args, dependencies)
+        t = '''#include<stdio.h>
+        {prefix}
+        int main(int argc, char **argv) {{
+            printf("%ld\\n", (long)({fragment}));
+            return 0;
+        }};'''
+        res = self.run(t.format(**fargs), env, extra_args, dependencies)
+        if not res.compiled:
+            return -1
+        if res.returncode != 0:
+            raise EnvironmentException('Could not run compute_int test binary.')
+        return int(res.stdout)
+
     def cross_sizeof(self, element, prefix, env, extra_args=None, dependencies=None):
         if extra_args is None:
             extra_args = []

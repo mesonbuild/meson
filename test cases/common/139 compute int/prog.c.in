@@ -1,0 +1,16 @@
+#include "@CONFIG@"
+#include <stdio.h>
+#include <wchar.h>
+#include "foobar.h"
+
+int main(int argc, char **argv) {
+    if(INTSIZE != sizeof(int)) {
+        fprintf(stderr, "Mismatch: computed int size %d, actual size %d.\n", INTSIZE, (int)sizeof(int));
+        return 1;
+    }
+    if(FOOBAR_IN_CONFIG_H != FOOBAR_IN_FOOBAR_H) {
+        fprintf(stderr, "Mismatch: computed int %d, should be %d.\n", FOOBAR_IN_CONFIG_H, FOOBAR_IN_FOOBAR_H);
+        return 1;
+    }
+    return 0;
+}

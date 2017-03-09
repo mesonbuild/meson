@@ -631,6 +631,7 @@ class CompilerHolder(InterpreterObject):
         self.methods.update({'compiles': self.compiles_method,
                              'links': self.links_method,
                              'get_id': self.get_id_method,
+                             'compute_int': self.compute_int_method,
                              'sizeof': self.sizeof_method,
                              'has_header': self.has_header_method,
                              'has_header_symbol': self.has_header_symbol_method,
@@ -821,6 +822,20 @@ class CompilerHolder(InterpreterObject):
             hadtxt = mlog.red('NO')
         mlog.log('Checking for type "', mlog.bold(typename), '": ', hadtxt, sep='')
         return had
+
+    def compute_int_method(self, args, kwargs):
+        if len(args) != 1:
+            raise InterpreterException('Compute_int takes exactly one argument.')
+        check_stringlist(args)
+        fragment = args[0]
+        prefix = kwargs.get('prefix', '')
+        if not isinstance(prefix, str):
+            raise InterpreterException('Prefix argument of compute_int must be a string.')
+        extra_args = self.determine_args(kwargs)
+        deps = self.determine_dependencies(kwargs)
+        res = self.compiler.compute_int(fragment, prefix, self.environment, extra_args, deps)
+        mlog.log('Computing int of "%s": %d' % (fragment, res))
+        return res
 
     def sizeof_method(self, args, kwargs):
         if len(args) != 1:
