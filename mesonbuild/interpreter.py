@@ -827,14 +827,23 @@ class CompilerHolder(InterpreterObject):
         if len(args) != 1:
             raise InterpreterException('Compute_int takes exactly one argument.')
         check_stringlist(args)
-        fragment = args[0]
+        expression = args[0]
         prefix = kwargs.get('prefix', '')
+        l = kwargs.get('low', -1024)
+        h = kwargs.get('high', 1024)
+        guess = kwargs.get('guess', None)
         if not isinstance(prefix, str):
             raise InterpreterException('Prefix argument of compute_int must be a string.')
+        if not isinstance(l, int):
+            raise InterpreterException('Low argument of compute_int must be an int.')
+        if not isinstance(h, int):
+            raise InterpreterException('High argument of compute_int must be an int.')
+        if guess is not None and not isinstance(guess, int):
+            raise InterpreterException('Guess argument of compute_int must be an int.')
         extra_args = self.determine_args(kwargs)
         deps = self.determine_dependencies(kwargs)
-        res = self.compiler.compute_int(fragment, prefix, self.environment, extra_args, deps)
-        mlog.log('Computing int of "%s": %d' % (fragment, res))
+        res = self.compiler.compute_int(expression, l, h, guess, prefix, self.environment, extra_args, deps)
+        mlog.log('Computing int of "%s": %d' % (expression, res))
         return res
 
     def sizeof_method(self, args, kwargs):

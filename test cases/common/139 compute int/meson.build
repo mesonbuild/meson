@@ -5,7 +5,7 @@ inc = include_directories('.')
 # Test with C
 cc = meson.get_compiler('c')
 
-intsize = cc.compute_int('sizeof(int)')
+intsize = cc.compute_int('sizeof(int)', low : 1, high : 16, guess : 4)
 foobar = cc.compute_int('FOOBAR_IN_FOOBAR_H', prefix : '#include "foobar.h"', include_directories : inc)
 
 cd = configuration_data()

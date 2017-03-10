@@ -998,37 +998,43 @@ class CCompiler(Compiler):
         mlog.debug(se)
         return RunResult(True, pe.returncode, so, se)
 
-    def _bisect_compiles(self, t, fargs, env, extra_args, dependencies):
-        # FIXME: Does not actually do bisection right now
-        for i in range(1, 1024):
-            fargs['size'] = i
-            if self.compiles(t.format(**fargs), env, extra_args, dependencies):
-                if self.id == 'msvc':
-                    # MSVC refuses to construct an array of zero size, so
-                    # the test only succeeds when i is sizeof(element) + 1
-                    return i - 1
-                return i
-        raise EnvironmentException('Cross-compile check overflowed')
-
-    def cross_compute_int(self, fragment, prefix, env, extra_args=None, dependencies=None):
-        if extra_args is None:
-            extra_args = []
-        fargs = {'prefix': prefix, 'fragment': fragment}
+    def _compile_int(self, expression, prefix, env, extra_args, dependencies):
+        fargs = {'prefix': prefix, 'expression': expression}
         t = '''#include <stdio.h>
         {prefix}
-        int temparray[{size}-({fragment})];'''
-        return self._bisect_compiles(t, fargs, env, extra_args, dependencies)
+        int main() {{ static int a[1-2*!({expression})]; a[0]=0; return 0; }}'''
+        return self.compiles(t.format(**fargs), env, extra_args, dependencies)
 
-    def compute_int(self, fragment, prefix, env, extra_args=None, dependencies=None):
+    def cross_compute_int(self, expression, l, h, guess, prefix, env, extra_args, dependencies):
+        if isinstance(guess, int):
+            if self._compile_int('%s == %d' % (expression, guess), prefix, env, extra_args, dependencies):
+                return guess
+
+        cur = l
+        while l < h:
+            cur = int((l + h) / 2)
+            if cur == l:
+                break
+
+            if self._compile_int('%s >= %d' % (expression, cur), prefix, env, extra_args, dependencies):
+                l = cur
+            else:
+                h = cur
+
+        if self._compile_int('%s == %d' % (expression, cur), prefix, env, extra_args, dependencies):
+            return cur
+        raise EnvironmentException('Cross-compile check overflowed')
+
+    def compute_int(self, expression, l, h, guess, prefix, env, extra_args=None, dependencies=None):
         if extra_args is None:
             extra_args = []
-        fargs = {'prefix': prefix, 'fragment': fragment}
         if self.is_cross:
-            return self.cross_compute_int(fragment, prefix, env, extra_args, dependencies)
+            return self.cross_compute_int(expression, l, h, guess, prefix, env, extra_args, dependencies)
+        fargs = {'prefix': prefix, 'expression': expression}
         t = '''#include<stdio.h>
         {prefix}
         int main(int argc, char **argv) {{
-            printf("%ld\\n", (long)({fragment}));
+            printf("%ld\\n", (long)({expression}));
             return 0;
         }};'''
         res = self.run(t.format(**fargs), env, extra_args, dependencies)
@@ -1049,10 +1055,7 @@ class CCompiler(Compiler):
         }}'''
         if not self.compiles(t.format(**fargs), env, extra_args, dependencies):
             return -1
-        t = '''#include <stdio.h>
-        {prefix}
-        int temparray[{size}-sizeof({name})];'''
-        return self._bisect_compiles(t, fargs, env, extra_args, dependencies)
+        return self.cross_compute_int('sizeof(%s)' % element, 1, 128, None, prefix, env, extra_args, dependencies)
 
     def sizeof(self, element, prefix, env, extra_args=None, dependencies=None):
         if extra_args is None:
@@ -1087,9 +1090,8 @@ class CCompiler(Compiler):
         struct tmp {{
             char c;
             {type} target;
-        }};
-        int testarray[{size}-offsetof(struct tmp, target)];'''
-        return self._bisect_compiles(t, fargs, env, extra_args, dependencies)
+        }};'''
+        return self.cross_compute_int('offsetof(struct tmp, target)', 1, 1024, None, t.format(**fargs), env, extra_args, dependencies)
 
     def alignment(self, typename, env, extra_args=None, dependencies=None):
         if extra_args is None:
