@@ -1044,29 +1044,29 @@ class CCompiler(Compiler):
             raise EnvironmentException('Could not run compute_int test binary.')
         return int(res.stdout)
 
-    def cross_sizeof(self, element, prefix, env, extra_args=None, dependencies=None):
+    def cross_sizeof(self, typename, prefix, env, extra_args=None, dependencies=None):
         if extra_args is None:
             extra_args = []
-        fargs = {'prefix': prefix, 'name': element}
+        fargs = {'prefix': prefix, 'type': typename}
         t = '''#include <stdio.h>
         {prefix}
         int main(int argc, char **argv) {{
-            {name} something;
+            {type} something;
         }}'''
         if not self.compiles(t.format(**fargs), env, extra_args, dependencies):
             return -1
-        return self.cross_compute_int('sizeof(%s)' % element, 1, 128, None, prefix, env, extra_args, dependencies)
+        return self.cross_compute_int('sizeof(%s)' % typename, 1, 128, None, prefix, env, extra_args, dependencies)
 
-    def sizeof(self, element, prefix, env, extra_args=None, dependencies=None):
+    def sizeof(self, typename, prefix, env, extra_args=None, dependencies=None):
         if extra_args is None:
             extra_args = []
-        fargs = {'prefix': prefix, 'name': element}
+        fargs = {'prefix': prefix, 'type': typename}
         if self.is_cross:
-            return self.cross_sizeof(element, prefix, env, extra_args, dependencies)
+            return self.cross_sizeof(typename, prefix, env, extra_args, dependencies)
         t = '''#include<stdio.h>
         {prefix}
         int main(int argc, char **argv) {{
-            printf("%ld\\n", (long)(sizeof({name})));
+            printf("%ld\\n", (long)(sizeof({type})));
             return 0;
         }};'''
         res = self.run(t.format(**fargs), env, extra_args, dependencies)
