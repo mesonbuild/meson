@@ -700,8 +700,12 @@ class CompilerHolder(InterpreterObject):
             raise InterpreterException('Alignment method takes exactly one positional argument.')
         check_stringlist(args)
         typename = args[0]
+        prefix = kwargs.get('prefix', '')
+        if not isinstance(prefix, str):
+            raise InterpreterException('Prefix argument of sizeof must be a string.')
         extra_args = mesonlib.stringlistify(kwargs.get('args', []))
-        result = self.compiler.alignment(typename, self.environment, extra_args)
+        deps = self.determine_dependencies(kwargs)
+        result = self.compiler.alignment(typename, prefix, self.environment, extra_args, deps)
         mlog.log('Checking for alignment of "', mlog.bold(typename), '": ', result, sep='')
         return result
 

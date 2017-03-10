@@ -1076,31 +1076,34 @@ class CCompiler(Compiler):
             raise EnvironmentException('Could not run sizeof test binary.')
         return int(res.stdout)
 
-    def cross_alignment(self, typename, env, extra_args=None, dependencies=None):
+    def cross_alignment(self, typename, prefix, env, extra_args=None, dependencies=None):
         if extra_args is None:
             extra_args = []
-        fargs = {'type': typename}
+        fargs = {'prefix': prefix, 'type': typename}
         t = '''#include <stdio.h>
+        {prefix}
         int main(int argc, char **argv) {{
             {type} something;
         }}'''
         if not self.compiles(t.format(**fargs), env, extra_args, dependencies):
             return -1
         t = '''#include <stddef.h>
+        {prefix}
         struct tmp {{
             char c;
             {type} target;
         }};'''
         return self.cross_compute_int('offsetof(struct tmp, target)', 1, 1024, None, t.format(**fargs), env, extra_args, dependencies)
 
-    def alignment(self, typename, env, extra_args=None, dependencies=None):
+    def alignment(self, typename, prefix, env, extra_args=None, dependencies=None):
         if extra_args is None:
             extra_args = []
         if self.is_cross:
-            return self.cross_alignment(typename, env, extra_args, dependencies)
-        fargs = {'type': typename}
+            return self.cross_alignment(typename, prefix, env, extra_args, dependencies)
+        fargs = {'prefix': prefix, 'type': typename}
         t = '''#include <stdio.h>
         #include <stddef.h>
+        {prefix}
         struct tmp {{
             char c;
             {type} target;
