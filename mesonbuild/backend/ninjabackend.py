@@ -283,6 +283,12 @@ int dummy;
                 return False
         return True
 
+    def get_option_for_target(self, option_name, target):
+        if option_name in target.option_overrides:
+            override = target.option_overrides[option_name]
+            return self.environment.coredata.validate_option_value(option_name, override)
+        return self.environment.coredata.get_builtin_option('unity')
+
     def generate_target(self, target, outfile):
         if isinstance(target, build.CustomTarget):
             self.generate_custom_target(target, outfile)
@@ -336,7 +342,7 @@ int dummy;
         outname = self.get_target_filename(target)
         obj_list = []
         use_pch = self.environment.coredata.base_options.get('b_pch', False)
-        is_unity = self.environment.coredata.get_builtin_option('unity')
+        is_unity = self.get_option_for_target('unity', target)
         if use_pch and target.has_pch():
             pch_objects = self.generate_pch(target, outfile)
         else:

@@ -30,6 +30,12 @@ class UserOption:
     def parse_string(self, valuestring):
         return valuestring
 
+    # Check that the input is a valid value and return the
+    # "cleaned" or "native" version. For example the Boolean
+    # option could take the string "true" and return True.
+    def validate_value(self, value):
+        raise RuntimeError('Derived option class did not override validate_value.')
+
 class UserStringOption(UserOption):
     def __init__(self, name, description, value, choices=None):
         super().__init__(name, description, choices)
@@ -42,6 +48,10 @@ class UserStringOption(UserOption):
     def set_value(self, newvalue):
         self.validate(newvalue)
         self.value = newvalue
+
+    def validate_value(self, value):
+        self.validate(value)
+        return value
 
 class UserBooleanOption(UserOption):
     def __init__(self, name, description, value):
@@ -70,6 +80,9 @@ class UserBooleanOption(UserOption):
     def __bool__(self):
         return self.value
 
+    def validate_value(self, value):
+        return self.tobool(value)
+
 class UserComboOption(UserOption):
     def __init__(self, name, description, choices, value):
         super().__init__(name, description, choices)
@@ -86,22 +99,35 @@ class UserComboOption(UserOption):
             raise MesonException('Value "%s" for combo option "%s" is not one of the choices. Possible choices are: %s.' % (newvalue, self.name, optionsstring))
         self.value = newvalue
 
+    def validate_value(self, value):
+        if value not in self.choices:
+            raise MesonException('Value %s not one of accepted values.' % value)
+
 class UserStringArrayOption(UserOption):
     def __init__(self, name, description, value, **kwargs):
         super().__init__(name, description, kwargs.get('choices', []))
         self.set_value(value)
 
-    def set_value(self, newvalue):
-        if isinstance(newvalue, str):
-            if not newvalue.startswith('['):
-                raise MesonException('Valuestring does not define an array: ' + newvalue)
-            newvalue = eval(newvalue, {}, {}) # Yes, it is unsafe.
+    def validate(self, value):
+        if isinstance(value, str):
+            if not value.startswith('['):
+                raise MesonException('Valuestring does not define an array: ' + value)
+            newvalue = eval(value, {}, {}) # Yes, it is unsafe.
+        else:
+            newvalue = value
         if not isinstance(newvalue, list):
             raise MesonException('"{0}" should be a string array, but it is not'.format(str(newvalue)))
         for i in newvalue:
             if not isinstance(i, str):
                 raise MesonException('String array element "{0}" is not a string.'.format(str(newvalue)))
-        self.value = newvalue
+        return newvalue
+
+    def set_value(self, newvalue):
+        self.value = self.validate(newvalue)
+
+    def validate_value(self, value):
+        self.validate(value)
+        return value
 
 # This class contains all data that must persist over multiple
 # invocations of Meson. It is roughly the same thing as
@@ -202,6 +228,13 @@ class CoreData:
         else:
             raise RuntimeError('Tried to set unknown builtin option %s.' % optname)
         self.builtins[optname].set_value(value)
+
+    def validate_option_value(self, option_name, override_value):
+        for opts in (self.builtins, self.base_options, self.compiler_options, self.user_options):
+            if option_name in opts:
+                opt = opts[option_name]
+                return opt.validate_value(override_value)
+        raise MesonException('Tried to validate unknown option %s.' % option_name)
 
 def load(filename):
     load_fail_msg = 'Coredata file {!r} is corrupted. Try with a fresh build tree.'.format(filename)
