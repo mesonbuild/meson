@@ -269,11 +269,13 @@ class Backend:
             raise MesonException(m.format(target.name))
         return l
 
-    def object_filename_from_source(self, target, source):
+    def object_filename_from_source(self, target, source, is_unity):
         if isinstance(source, mesonlib.File):
             source = source.fname
         # foo.vala files compile down to foo.c and then foo.c.o, not foo.vala.o
         if source.endswith('.vala'):
+            if is_unity:
+                return source[:-5] + '.c.' + self.environment.get_object_suffix()
             source = os.path.join(self.get_target_private_dir(target), source[:-5] + '.c')
         return source.replace('/', '_').replace('\\', '_') + '.' + self.environment.get_object_suffix()
 
@@ -286,15 +288,15 @@ class Backend:
         if self.environment.coredata.get_builtin_option('unity'):
             comp = get_compiler_for_source(extobj.target.compilers.values(),
                                            extobj.srclist[0])
-            # The unity object name uses the full absolute path of the source file
-            osrc = os.path.join(self.get_target_private_dir_abs(extobj.target),
-                                self.get_unity_source_filename(extobj.target,
-                                                               comp.get_default_suffix()))
-            objname = self.object_filename_from_source(extobj.target, osrc)
+            # There is a potential conflict here, but it is unlikely that
+            # anyone both enables unity builds and has a file called foo-unity.cpp.
+            osrc = self.get_unity_source_filename(extobj.target,
+                                                  comp.get_default_suffix())
+            objname = self.object_filename_from_source(extobj.target, osrc, True)
             objpath = os.path.join(proj_dir_to_build_root, targetdir, objname)
             return [objpath]
         for osrc in extobj.srclist:
-            objname = self.object_filename_from_source(extobj.target, osrc)
+            objname = self.object_filename_from_source(extobj.target, osrc, False)
             objpath = os.path.join(proj_dir_to_build_root, targetdir, objname)
             result.append(objpath)
         return result
