@@ -283,12 +283,6 @@ int dummy;
                 return False
         return True
 
-    def get_option_for_target(self, option_name, target):
-        if option_name in target.option_overrides:
-            override = target.option_overrides[option_name]
-            return self.environment.coredata.validate_option_value(option_name, override)
-        return self.environment.coredata.get_builtin_option('unity')
-
     def generate_target(self, target, outfile):
         if isinstance(target, build.CustomTarget):
             self.generate_custom_target(target, outfile)
@@ -439,7 +433,7 @@ int dummy;
         obj_list += self.flatten_object_list(target)
         if is_unity:
             for src in self.generate_unity_files(target, unity_src):
-                obj_list.append(self.generate_single_compile(target, outfile, RawFilename(src), True, unity_deps + header_deps))
+                obj_list.append(self.generate_single_compile(target, outfile, src, True, unity_deps + header_deps))
         linker = self.determine_linker(target)
         elem = self.generate_link(target, outfile, outname, obj_list, linker, pch_objects)
         self.generate_shlib_aliases(target, self.get_target_dir(target))
@@ -1911,6 +1905,10 @@ rule FORTRAN_DEP_HACK
                 abs_src = src.fname
             else:
                 abs_src = os.path.join(self.environment.get_build_dir(), src.fname)
+        elif isinstance(src, mesonlib.File):
+            rel_src = src.rel_to_builddir(self.build_to_src)
+            abs_src = src.absolute_path(self.environment.get_source_dir(),
+                                        self.environment.get_build_dir())
         elif is_generated:
             raise AssertionError('BUG: broken generated source file handling for {!r}'.format(src))
         else:

@@ -103,6 +103,12 @@ class Backend:
     def get_target_filename_abs(self, target):
         return os.path.join(self.environment.get_build_dir(), self.get_target_filename(target))
 
+    def get_option_for_target(self, option_name, target):
+        if option_name in target.option_overrides:
+            override = target.option_overrides[option_name]
+            return self.environment.coredata.validate_option_value(option_name, override)
+        return self.environment.coredata.get_builtin_option('unity')
+
     def get_target_filename_for_linking(self, target):
         # On some platforms (msvc for instance), the file that is used for
         # dynamic linking is not the same as the dynamic library itself. This
@@ -152,8 +158,10 @@ class Backend:
         compsrcs = classify_unity_sources(target.compilers.values(), unity_src)
 
         def init_language_file(suffix):
-            outfilename = os.path.join(self.get_target_private_dir_abs(target),
-                                       self.get_unity_source_filename(target, suffix))
+            unity_src_name = self.get_unity_source_filename(target, suffix)
+            unity_src_subdir = self.get_target_private_dir_abs(target)
+            outfilename = os.path.join(unity_src_subdir,
+                                       unity_src_name)
             outfileabs = os.path.join(self.environment.get_build_dir(),
                                       outfilename)
             outfileabs_tmp = outfileabs + '.tmp'
@@ -161,7 +169,7 @@ class Backend:
             outfileabs_tmp_dir = os.path.dirname(outfileabs_tmp)
             if not os.path.exists(outfileabs_tmp_dir):
                 os.makedirs(outfileabs_tmp_dir)
-            result.append(outfilename)
+            result.append(mesonlib.File(True, unity_src_subdir, unity_src_name))
             return open(outfileabs_tmp, 'w')
 
         # For each language, generate a unity source file and return the list
