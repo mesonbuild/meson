@@ -102,6 +102,7 @@ class UserComboOption(UserOption):
     def validate_value(self, value):
         if value not in self.choices:
             raise MesonException('Value %s not one of accepted values.' % value)
+        return value
 
 class UserStringArrayOption(UserOption):
     def __init__(self, name, description, value, **kwargs):

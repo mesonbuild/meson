@@ -76,6 +76,24 @@ class TestSerialisation:
         self.workdir = workdir
         self.extra_paths = extra_paths
 
+class OptionProxy:
+    def __init__(self, name, value):
+        self.name = name
+        self.value = value
+
+class OptionOverrideProxy:
+    '''Mimic an option list but transparently override
+selected option values.'''
+    def __init__(self, overrides, options):
+        self.overrides = overrides
+        self.options = options
+
+    def __getitem__(self, option_name):
+        base_opt = self.options[option_name]
+        if option_name in self.overrides:
+            return OptionProxy(base_opt.name, base_opt.validate_value(self.overrides[option_name]))
+        return base_opt
+
 # This class contains the basic functionality that is needed by all backends.
 # Feel free to move stuff in and out of it as you see fit.
 class Backend:
@@ -348,6 +366,8 @@ class Backend:
         # various sources in the order in which they must override each other
         # starting from hard-coded defaults followed by build options and so on.
         commands = CompilerArgs(compiler)
+
+        copt_proxy = OptionOverrideProxy(target.option_overrides, self.environment.coredata.compiler_options)
         # First, the trivial ones that are impossible to override.
         #
         # Add -nostdinc/-nostdinc++ if needed; can't be overriden
@@ -368,7 +388,7 @@ class Backend:
             commands += compiler.get_werror_args()
         # Add compile args for c_* or cpp_* build options set on the
         # command-line or default_options inside project().
-        commands += compiler.get_option_compile_args(self.environment.coredata.compiler_options)
+        commands += compiler.get_option_compile_args(copt_proxy)
         # Add buildtype args: optimization level, debugging, etc.
         commands += compiler.get_buildtype_args(self.get_option_for_target('buildtype', target))
         # Add compile args added using add_project_arguments()
