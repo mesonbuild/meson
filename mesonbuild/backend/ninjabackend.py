@@ -630,15 +630,17 @@ int dummy;
         for t in self.build.get_targets().values():
             if t.should_install():
                 should_strip = self.get_option_for_target('strip', t)
-                # Find the installation directory. FIXME: Currently only one
-                # installation directory is supported for each target
-                outdir = t.get_custom_install_dir()
-                if outdir is not None:
+                # Find the installation directory.
+                outdirs = t.get_custom_install_dir()
+                if outdirs[0] is not None and outdirs[0] is not True:
+                    # Either the value is set, or is set to False which means
+                    # we want this specific output out of many outputs to not
+                    # be installed.
                     pass
                 elif isinstance(t, build.SharedLibrary):
-                    # For toolchains/platforms that need an import library for
+                    # On toolchains/platforms that use an import library for
                     # linking (separate from the shared library with all the
-                    # code), we need to install the import library (dll.a/.lib)
+                    # code), we need to install that too (dll.a/.lib).
                     if t.get_import_filename():
                         # Install the import library.
                         i = [self.get_target_filename_for_linking(t),
@@ -647,22 +649,56 @@ int dummy;
                              # doesn't have an install_rpath
                              {}, False, '']
                         d.targets.append(i)
-                    outdir = self.environment.get_shared_lib_dir()
+                    outdirs[0] = self.environment.get_shared_lib_dir()
                 elif isinstance(t, build.StaticLibrary):
-                    outdir = self.environment.get_static_lib_dir()
+                    outdirs[0] = self.environment.get_static_lib_dir()
                 elif isinstance(t, build.Executable):
-                    outdir = self.environment.get_bindir()
+                    outdirs[0] = self.environment.get_bindir()
                 else:
+                    assert(isinstance(t, build.BuildTarget))
                     # XXX: Add BuildTarget-specific install dir cases here
-                    outdir = self.environment.get_libdir()
+                    outdirs[0] = self.environment.get_libdir()
+                # Sanity-check the outputs and install_dirs
+                num_outdirs, num_out = len(outdirs), len(t.get_outputs())
+                if num_outdirs != 1 and num_outdirs != num_out:
+                    raise MesonException('Target {!r} has {} outputs, but only '
+                                         '{} "install_dir"s were specified'
+                                         ''.format(t.name, num_out, num_outdirs))
+                # Install the target output(s)
                 if isinstance(t, build.BuildTarget):
-                    i = [self.get_target_filename(t), outdir, t.get_aliases(),
-                         should_strip, t.install_rpath]
-                    d.targets.append(i)
+                    # Install primary build output (library/executable/jar, etc)
+                    # Done separately because of strip/aliases/rpath
+                    if outdirs[0] is not False:
+                        i = [self.get_target_filename(t), outdirs[0],
+                             t.get_aliases(), should_strip, t.install_rpath]
+                        d.targets.append(i)
+                    # Install secondary outputs. Only used for Vala right now.
+                    if num_outdirs > 1:
+                        for output, outdir in zip(t.get_outputs()[1:], outdirs[1:]):
+                            # User requested that we not install this output
+                            if outdir is False:
+                                continue
+                            f = os.path.join(self.get_target_dir(t), output)
+                            d.targets.append([f, outdir, {}, False, None])
                 elif isinstance(t, build.CustomTarget):
-                    for output in t.get_outputs():
-                        f = os.path.join(self.get_target_dir(t), output)
-                        d.targets.append([f, outdir, {}, False, None])
+                    # If only one install_dir is specified, assume that all
+                    # outputs will be installed into it. This is for
+                    # backwards-compatibility and because it makes sense to
+                    # avoid repetition since this is a common use-case.
+                    #
+                    # To selectively install only some outputs, pass `false` as
+                    # the install_dir for the corresponding output by index
+                    if num_outdirs == 1 and num_out > 1:
+                        for output in t.get_outputs():
+                            f = os.path.join(self.get_target_dir(t), output)
+                            d.targets.append([f, outdirs[0], {}, False, None])
+                    else:
+                        for output, outdir in zip(t.get_outputs(), outdirs):
+                            # User requested that we not install this output
+                            if outdir is False:
+                                continue
+                            f = os.path.join(self.get_target_dir(t), output)
+                            d.targets.append([f, outdir, {}, False, None])
 
     def generate_custom_install_script(self, d):
         d.install_scripts = self.build.install_scripts
@@ -1029,10 +1065,12 @@ int dummy;
             # Without this, it will write it inside c_out_dir
             args += ['--vapi', os.path.join('..', target.vala_vapi)]
             valac_outputs.append(vapiname)
+            target.outputs += [target.vala_header, target.vala_vapi]
             if isinstance(target.vala_gir, str):
                 girname = os.path.join(self.get_target_dir(target), target.vala_gir)
                 args += ['--gir', os.path.join('..', target.vala_gir)]
                 valac_outputs.append(girname)
+                target.outputs.append(target.vala_gir)
         if self.get_option_for_target('werror', target):
             args += valac.get_werror_args()
         for d in target.get_external_deps():

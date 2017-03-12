@@ -454,25 +454,22 @@ def replace_if_different(dst, dst_tmp):
     else:
         os.unlink(dst_tmp)
 
-def stringintlistify(item):
-    if isinstance(item, (str, int)):
+def typeslistify(item, types):
+    '''
+    Ensure that type(@item) is one of @types or a
+    list of items all of which are of type @types
+    '''
+    if isinstance(item, types):
         item = [item]
     if not isinstance(item, list):
-        raise MesonException('Item must be a list, a string, or an int')
+        raise MesonException('Item must be a list or one of {!r}'.format(types))
     for i in item:
-        if not isinstance(i, (str, int, type(None))):
-            raise MesonException('List item must be a string or an int')
+        if i is not None and not isinstance(i, types):
+            raise MesonException('List item must be one of {!r}'.format(types))
     return item
 
 def stringlistify(item):
-    if isinstance(item, str):
-        item = [item]
-    if not isinstance(item, list):
-        raise MesonException('Item is not a list')
-    for i in item:
-        if not isinstance(i, str):
-            raise MesonException('List item not a string.')
-    return item
+    return typeslistify(item, str)
 
 def expand_arguments(args):
     expended_args = []
