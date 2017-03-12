@@ -1,5 +1,14 @@
 project('has header', 'c', 'cpp')
 
+host_system = host_machine.system()
+
+non_existant_header = 'ouagadougou.h'
+
+# Copy it into the builddir to ensure that it isn't found even if it's there
+configure_file(input : non_existant_header,
+  output : non_existant_header,
+  configuration : configuration_data())
+
 foreach comp : [meson.get_compiler('c'), meson.get_compiler('cpp')]
   if not comp.has_header('stdio.h')
     error('Stdio missing.')
@@ -25,8 +34,14 @@ foreach comp : [meson.get_compiler('c'), meson.get_compiler('cpp')]
     endif
   endif
 
-
-  if comp.has_header('ouagadougou.h')
-    error('Found non-existant header.')
+  # Test that the following GCC bug doesn't happen:
+  # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=80005
+  # https://github.com/mesonbuild/meson/issues/1458
+  if host_system == 'linux'
+    assert(comp.has_header('linux/if.h'), 'Could not find <linux/if.h>')
   endif
+
+  # This header exists in the source and the builddir, but we still must not
+  # find it since we are looking in the system directories.
+  assert(not comp.has_header(non_existant_header), 'Found non-existant header.')
 endforeach

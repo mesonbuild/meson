@@ -892,11 +892,11 @@ class CCompiler(Compiler):
         fargs = {'prefix': prefix, 'header': hname}
         code = '''{prefix}
         #ifdef __has_include
-         #if !__has_include(<{header}>)
+         #if !__has_include("{header}")
           #error "Header '{header}' could not be found"
          #endif
         #else
-         #include<{header}>
+         #include <{header}>
         #endif'''
         return self.compiles(code.format(**fargs), env, extra_args,
                              dependencies, 'preprocess')
