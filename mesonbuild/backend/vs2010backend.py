@@ -6,7 +6,7 @@
 
 #     http://www.apache.org/licenses/LICENSE-2.0
 
-# Unless required by applicable law or agreed to in writing, software
+# Unless required by applicable law or agreed to in writingget_, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
@@ -692,7 +692,7 @@ class Vs2010Backend(backends.Backend):
         elif '/Od' in o_flags:
             ET.SubElement(type_config, 'Optimization').text = 'Disabled'
         # Warning level
-        warning_level = self.environment.coredata.get_builtin_option('warning_level')
+        warning_level = self.get_option_for_target('warning_level', target)
         ET.SubElement(type_config, 'WarningLevel').text = 'Level' + warning_level
         # End configuration
         ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.props')
@@ -846,7 +846,7 @@ class Vs2010Backend(backends.Backend):
         ET.SubElement(clconf, 'MinimalRebuild').text = 'true'
         ET.SubElement(clconf, 'FunctionLevelLinking').text = 'true'
         pch_node = ET.SubElement(clconf, 'PrecompiledHeader')
-        if self.environment.coredata.get_builtin_option('werror'):
+        if self.get_option_for_target('werror', target):
             ET.SubElement(clconf, 'TreatWarningAsError').text = 'true'
         # Note: SuppressStartupBanner is /NOLOGO and is 'true' by default
         pch_sources = {}

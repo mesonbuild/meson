@@ -627,9 +627,9 @@ int dummy;
             pickle.dump(d, ofile)
 
     def generate_target_install(self, d):
-        should_strip = self.environment.coredata.get_builtin_option('strip')
         for t in self.build.get_targets().values():
             if t.should_install():
+                should_strip = self.get_option_for_target('strip', t)
                 # Find the installation directory. FIXME: Currently only one
                 # installation directory is supported for each target
                 outdir = t.get_custom_install_dir()
@@ -843,7 +843,7 @@ int dummy;
         return args, deps
 
     def generate_cs_target(self, target, outfile):
-        buildtype = self.environment.coredata.get_builtin_option('buildtype')
+        buildtype = self.get_option_for_target('buildtype', target)
         fname = target.get_filename()
         outname_rel = os.path.join(self.get_target_dir(target), fname)
         src_list = target.get_sources()
@@ -877,7 +877,7 @@ int dummy;
 
     def generate_single_java_compile(self, src, target, compiler, outfile):
         args = []
-        args += compiler.get_buildtype_args(self.environment.coredata.get_builtin_option('buildtype'))
+        args += compiler.get_buildtype_args(self.get_option_for_target('buildtype', target))
         args += self.build.get_global_args(compiler)
         args += self.build.get_project_args(compiler, target.subproject)
         args += target.get_java_args()
@@ -1010,7 +1010,7 @@ int dummy;
         args = []
         args += self.build.get_global_args(valac)
         args += self.build.get_project_args(valac, target.subproject)
-        args += valac.get_buildtype_args(self.environment.coredata.get_builtin_option('buildtype'))
+        args += valac.get_buildtype_args(self.get_option_for_target('buildtype', target))
         # Tell Valac to output everything in our private directory. Sadly this
         # means it will also preserve the directory components of Vala sources
         # found inside the build tree (generated sources).
@@ -1033,7 +1033,7 @@ int dummy;
                 girname = os.path.join(self.get_target_dir(target), target.vala_gir)
                 args += ['--gir', os.path.join('..', target.vala_gir)]
                 valac_outputs.append(girname)
-        if self.environment.coredata.get_builtin_option('werror'):
+        if self.get_option_for_target('werror', target):
             args += valac.get_werror_args()
         for d in target.get_external_deps():
             if isinstance(d, dependencies.PkgConfigDependency):
@@ -1088,7 +1088,7 @@ int dummy;
         else:
             raise InvalidArguments('Unknown target type for rustc.')
         args.append(cratetype)
-        args += rustc.get_buildtype_args(self.environment.coredata.get_builtin_option('buildtype'))
+        args += rustc.get_buildtype_args(self.get_option_for_target('buildtype', target))
         depfile = os.path.join(target.subdir, target.name + '.d')
         args += ['--emit', 'dep-info={}'.format(depfile), '--emit', 'link']
         args += ['-o', os.path.join(target.subdir, target.get_filename())]
@@ -2149,7 +2149,7 @@ rule FORTRAN_DEP_HACK
         # Add things like /NOLOGO; usually can't be overriden
         commands += linker.get_linker_always_args()
         # Add buildtype linker args: optimization level, etc.
-        commands += linker.get_buildtype_linker_args(self.environment.coredata.get_builtin_option('buildtype'))
+        commands += linker.get_buildtype_linker_args(self.get_option_for_target('buildtype', target))
         # Add /DEBUG and the pdb filename when using MSVC
         commands += self.get_link_debugfile_args(linker, target, outname)
         # Add link args specific to this BuildTarget type, such as soname args,
