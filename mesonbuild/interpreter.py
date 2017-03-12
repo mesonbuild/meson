@@ -634,6 +634,7 @@ class CompilerHolder(InterpreterObject):
                              'get_id': self.get_id_method,
                              'compute_int': self.compute_int_method,
                              'sizeof': self.sizeof_method,
+                             'get_define': self.get_define_method,
                              'has_header': self.has_header_method,
                              'has_header_symbol': self.has_header_symbol_method,
                              'run': self.run_method,
@@ -864,6 +865,20 @@ class CompilerHolder(InterpreterObject):
         esize = self.compiler.sizeof(element, prefix, self.environment, extra_args, deps)
         mlog.log('Checking for size of "%s": %d' % (element, esize))
         return esize
+
+    def get_define_method(self, args, kwargs):
+        if len(args) != 1:
+            raise InterpreterException('get_define() takes exactly one argument.')
+        check_stringlist(args)
+        element = args[0]
+        prefix = kwargs.get('prefix', '')
+        if not isinstance(prefix, str):
+            raise InterpreterException('Prefix argument of get_define() must be a string.')
+        extra_args = self.determine_args(kwargs)
+        deps = self.determine_dependencies(kwargs)
+        value = self.compiler.get_define(element, prefix, self.environment, extra_args, deps)
+        mlog.log('Checking for value of define "%s": %s' % (element, value))
+        return value
 
     def compiles_method(self, args, kwargs):
         if len(args) != 1:

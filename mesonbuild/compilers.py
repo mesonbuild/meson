@@ -906,8 +906,6 @@ class CCompiler(Compiler):
         return self.sanity_check_impl(work_dir, environment, 'sanitycheckc.c', code)
 
     def has_header(self, hname, prefix, env, extra_args=None, dependencies=None):
-        if extra_args is None:
-            extra_args = []
         fargs = {'prefix': prefix, 'header': hname}
         code = '''{prefix}
         #ifdef __has_include
@@ -921,8 +919,6 @@ class CCompiler(Compiler):
                              dependencies, 'preprocess')
 
     def has_header_symbol(self, hname, symbol, prefix, env, extra_args=None, dependencies=None):
-        if extra_args is None:
-            extra_args = []
         fargs = {'prefix': prefix, 'header': hname, 'symbol': symbol}
         t = '''{prefix}
         #include <{header}>
@@ -934,7 +930,7 @@ class CCompiler(Compiler):
         }}'''
         return self.compiles(t.format(**fargs), env, extra_args, dependencies)
 
-    def compiles(self, code, env, extra_args=None, dependencies=None, mode='compile'):
+    def _get_compiler_check_args(self, env, extra_args, dependencies, mode='compile'):
         if extra_args is None:
             extra_args = []
         elif isinstance(extra_args, str):
@@ -943,49 +939,41 @@ class CCompiler(Compiler):
             dependencies = []
         elif not isinstance(dependencies, list):
             dependencies = [dependencies]
-        # Add compile flags needed by dependencies
+        # Collect compiler arguments
         args = CompilerArgs(self)
         for d in dependencies:
+            # Add compile flags needed by dependencies
             args += d.get_compile_args()
+            if mode == 'link':
+                # Add link flags needed to find dependencies
+                args += d.get_link_args()
+        # Select a CRT if needed since we're linking
+        if mode == 'link':
+            args += self.get_linker_debug_crt_args()
         # Read c_args/cpp_args/etc from the cross-info file (if needed)
-        args += self.get_cross_extra_flags(env, compile=True, link=False)
+        args += self.get_cross_extra_flags(env, compile=(mode != 'preprocess'),
+                                           link=(mode == 'link'))
         # Add CFLAGS/CXXFLAGS/OBJCFLAGS/OBJCXXFLAGS from the env
         # We assume that the user has ensured these are compiler-specific
         args += env.coredata.external_args[self.language]
+        # Add LDFLAGS from the env. We assume that the user has ensured these
+        # are compiler-specific
+        if mode == 'link':
+            args += env.coredata.external_link_args[self.language]
         args += self.get_compiler_check_args()
         # extra_args must override all other arguments, so we add them last
         args += extra_args
+        return args
+
+    def compiles(self, code, env, extra_args=None, dependencies=None, mode='compile'):
+        args = self._get_compiler_check_args(env, extra_args, dependencies, mode)
         # We only want to compile; not link
         with self.compile(code, args.to_native(), mode) as p:
             return p.returncode == 0
 
     def _links_wrapper(self, code, env, extra_args, dependencies):
         "Shares common code between self.links and self.run"
-        if extra_args is None:
-            extra_args = []
-        elif isinstance(extra_args, str):
-            extra_args = [extra_args]
-        if dependencies is None:
-            dependencies = []
-        elif not isinstance(dependencies, list):
-            dependencies = [dependencies]
-        # Add compile and link flags needed by dependencies
-        args = CompilerArgs(self)
-        for d in dependencies:
-            args += d.get_compile_args()
-            args += d.get_link_args()
-        # Select a CRT if needed since we're linking
-        args += self.get_linker_debug_crt_args()
-        # Read c_args/c_link_args/cpp_args/cpp_link_args/etc from the
-        # cross-info file (if needed)
-        args += self.get_cross_extra_flags(env, compile=True, link=True)
-        # Add LDFLAGS from the env. We assume that the user has ensured these
-        # are compiler-specific
-        args += env.coredata.external_link_args[self.language]
-        # Add compiler check args such that they override
-        args += self.get_compiler_check_args()
-        # extra_args must override all other arguments, so we add them last
-        args += extra_args
+        args = self._get_compiler_check_args(env, extra_args, dependencies, mode='link')
         return self.compile(code, args.to_native())
 
     def links(self, code, env, extra_args=None, dependencies=None):
@@ -1140,6 +1128,24 @@ class CCompiler(Compiler):
         if align == 0:
             raise EnvironmentException('Could not determine alignment of %s. Sorry. You might want to file a bug.' % typename)
         return align
+
+    def get_define(self, dname, prefix, env, extra_args, dependencies):
+        delim = '"MESON_GET_DEFINE_DELIMITER"'
+        fargs = {'prefix': prefix, 'define': dname, 'delim': delim}
+        code = '''
+        #ifndef {define}
+        # define {define}
+        #endif
+        {prefix}
+        {delim}\n{define}'''
+        args = self._get_compiler_check_args(env, extra_args, dependencies,
+                                             mode='preprocess').to_native()
+        with self.compile(code.format(**fargs), args, 'preprocess') as p:
+            if p.returncode != 0:
+                raise EnvironmentException('Could not get define {!r}'.format(dname))
+        # Get the preprocessed value after the delimiter,
+        # minus the extra newline at the end
+        return p.stdo.split(delim + '\n')[-1][:-1]
 
     @staticmethod
     def _no_prototype_templ():
