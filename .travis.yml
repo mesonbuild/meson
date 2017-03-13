@@ -14,7 +14,7 @@ compiler:
 
 env:
   - MESON_ARGS=""
-  - MESON_ARGS="--unity"
+  - MESON_ARGS="--unity=on"
 
 language:
   - cpp

@@ -385,8 +385,11 @@ class BasePlatformTests(unittest.TestCase):
         return output
 
     def init(self, srcdir, extra_args=None, default_args=True):
+        self.assertTrue(os.path.exists(srcdir))
         if extra_args is None:
             extra_args = []
+        if not isinstance(extra_args, list):
+            extra_args = [extra_args]
         args = [srcdir, self.builddir]
         if default_args:
             args += ['--prefix', self.prefix,
@@ -1289,6 +1292,14 @@ class LinuxlikeTests(BasePlatformTests):
                           get_fake_options(self.prefix), [])
         cpp = env.detect_cpp_compiler(False)
         self._test_stds_impl(testdir, cpp, 'cpp')
+
+    def test_unity_subproj(self):
+        testdir = os.path.join(self.common_test_dir, '49 subproject')
+        self.init(testdir, extra_args='--unity=subprojects')
+        self.assertTrue(os.path.exists(os.path.join(self.builddir, 'subprojects/sublib/simpletest@exe/simpletest-unity.c')))
+        self.assertTrue(os.path.exists(os.path.join(self.builddir, 'subprojects/sublib/sublib@sha/sublib-unity.c')))
+        self.assertFalse(os.path.exists(os.path.join(self.builddir, 'user@exe/user-unity.c')))
+        self.build()
 
     def test_installed_modes(self):
         '''

@@ -1187,7 +1187,10 @@ class MesonMain(InterpreterObject):
         raise InterpreterException('Tried to access compiler for unspecified language "%s".' % cname)
 
     def is_unity_method(self, args, kwargs):
-        return self.build.environment.coredata.get_builtin_option('unity')
+        optval = self.interpreter.environment.coredata.get_builtin_option('unity')
+        if optval == 'on' or (optval == 'subprojects' and self.interpreter.subproject != ''):
+            return True
+        return False
 
     def is_subproject_method(self, args, kwargs):
         return self.interpreter.is_subproject()
