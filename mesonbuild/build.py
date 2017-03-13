@@ -307,7 +307,8 @@ class BuildTarget(Target):
         super().__init__(name, subdir, True)
         self.subproject = subproject # Can not be calculated from subdir as subproject dirname can be changed per project.
         self.is_cross = is_cross
-        self.is_unity = environment.coredata.get_builtin_option('unity')
+        unity_opt = environment.coredata.get_builtin_option('unity')
+        self.is_unity = unity_opt == 'on' or (unity_opt == 'subprojects' and subproject != '')
         self.environment = environment
         self.sources = []
         self.compilers = OrderedDict()

@@ -295,7 +295,7 @@ def get_builtin_option_default(optname):
 builtin_options = {
     'buildtype':  [UserComboOption, 'Build type to use.', ['plain', 'debug', 'debugoptimized', 'release', 'minsize'], 'debug'],
     'strip':      [UserBooleanOption, 'Strip targets on install.', False],
-    'unity':      [UserBooleanOption, 'Unity build.', False],
+    'unity':      [UserComboOption, 'Unity build.', ['on', 'off', 'subprojects'], 'off'],
     'prefix':     [UserStringOption, 'Installation prefix.', default_prefix()],
     'libdir':     [UserStringOption, 'Library directory.', default_libdir()],
     'libexecdir': [UserStringOption, 'Library executable directory.', default_libexecdir()],
