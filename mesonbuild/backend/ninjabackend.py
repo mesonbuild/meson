@@ -2280,12 +2280,7 @@ rule FORTRAN_DEP_HACK
 
     def generate_ending(self, outfile):
         targetlist = []
-        ctlist = []
         for t in self.get_build_by_default_targets().values():
-            if isinstance(t, build.CustomTarget):
-                # Create a list of all custom target outputs
-                for o in t.get_outputs():
-                    ctlist.append(os.path.join(self.get_target_dir(t), o))
             # Add the first output of each target to the 'all' target so that
             # they are all built
             targetlist.append(os.path.join(self.get_target_dir(t), t.get_outputs()[0]))
@@ -2302,14 +2297,22 @@ rule FORTRAN_DEP_HACK
         elem = NinjaBuildElement(self.all_outputs, 'clean', 'CUSTOM_COMMAND', 'PHONY')
         elem.add_item('COMMAND', [ninja_command, '-t', 'clean'])
         elem.add_item('description', 'Cleaning')
+
         # If we have custom targets in this project, add all their outputs to
         # the list that is passed to the `cleantrees.py` script. The script
         # will manually delete all custom_target outputs that are directories
         # instead of files. This is needed because on platforms other than
         # Windows, Ninja only deletes directories while cleaning if they are
         # empty. https://github.com/mesonbuild/meson/issues/1220
+        ctlist = []
+        for t in self.build.get_targets().values():
+            if isinstance(t, build.CustomTarget):
+                # Create a list of all custom target outputs
+                for o in t.get_outputs():
+                    ctlist.append(os.path.join(self.get_target_dir(t), o))
         if ctlist:
             elem.add_dep(self.generate_custom_target_clean(outfile, ctlist))
+
         if 'b_coverage' in self.environment.coredata.base_options and \
            self.environment.coredata.base_options['b_coverage'].value:
             self.generate_gcov_clean(outfile)
