@@ -41,6 +41,7 @@ gresource_dep_needed_version = '>= 2.51.1'
 
 native_glib_version = None
 girwarning_printed = False
+gdbuswarning_printed = False
 gresource_warning_printed = False
 _gir_has_extra_lib_arg = None
 
@@ -79,6 +80,15 @@ class GnomeModule(ExtensionModule):
                              mlog.bold('https://bugzilla.gnome.org/show_bug.cgi?id=774368'))
             gresource_warning_printed = True
         return []
+
+    @staticmethod
+    def _print_gdbus_warning():
+        global gdbuswarning_printed
+        if not gdbuswarning_printed:
+            mlog.warning('Code generated with gdbus_codegen() requires the root directory be added to\n'
+                         '  include_directories of targets with GLib < 2.51.3:',
+                         mlog.bold('https://github.com/mesonbuild/meson/issues/1387'))
+            gdbuswarning_printed = True
 
     def compile_resources(self, state, args, kwargs):
         self.__print_gresources_warning(state)
@@ -758,7 +768,13 @@ class GnomeModule(ExtensionModule):
             cmd += ['--interface-prefix', kwargs.pop('interface_prefix')]
         if 'namespace' in kwargs:
             cmd += ['--c-namespace', kwargs.pop('namespace')]
-        cmd += ['--generate-c-code', '@OUTDIR@/' + namebase, '@INPUT@']
+
+        # https://git.gnome.org/browse/glib/commit/?id=ee09bb704fe9ccb24d92dd86696a0e6bb8f0dc1a
+        if mesonlib.version_compare(self._get_native_glib_version(state), '>= 2.51.3'):
+            cmd += ['--output-directory', '@OUTDIR@', '--generate-c-code', namebase, '@INPUT@']
+        else:
+            self._print_gdbus_warning()
+            cmd += ['--generate-c-code', '@OUTDIR@/' + namebase, '@INPUT@']
         outputs = [namebase + '.c', namebase + '.h']
         custom_kwargs = {'input': xml_file,
                          'output': outputs,
