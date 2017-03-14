@@ -100,6 +100,7 @@ class PkgConfigDependency(Dependency):
         self.required = kwargs.get('required', True)
         self.static = kwargs.get('static', False)
         self.silent = kwargs.get('silent', False)
+        self.headers_only = kwargs.get('headers_only', False)
         if not isinstance(self.static, bool):
             raise DependencyException('Static keyword must be boolean')
         # Store a copy of the pkg-config path on the object itself so it is
@@ -184,7 +185,8 @@ class PkgConfigDependency(Dependency):
         # Fetch cargs to be used while using this dependency
         self._set_cargs()
         # Fetch the libraries and library paths needed for using this
-        self._set_libs()
+        if not self.headers_only:
+            self._set_libs()
         # Print the found message only at the very end because fetching cflags
         # and libs can also fail if other needed pkg-config files aren't found.
         if not self.silent:
@@ -200,7 +202,10 @@ class PkgConfigDependency(Dependency):
         return p.returncode, out.strip()
 
     def _set_cargs(self):
-        ret, out = self._call_pkgbin(['--cflags', self.name])
+        if not self.headers_only:
+            ret, out = self._call_pkgbin(['--cflags', self.name])
+        else:
+            ret, out = self._call_pkgbin(['--cflags-only-I', self.name])
         if ret != 0:
             raise DependencyException('Could not generate cargs for %s:\n\n%s' %
                                       (self.name, out))
