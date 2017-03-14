@@ -10,7 +10,12 @@ configure_file(input : non_existant_header,
   configuration : configuration_data())
 
 # Test that the fallback to __has_include also works on all compilers
-args = [[], ['-U__has_include']]
+if host_system != 'darwin'
+  args = [[], ['-U__has_include']]
+else
+  # On Darwin's clang you can't redefine builtin macros so the above doesn't work
+  args = [[]]
+endif
 
 foreach arg : args
   foreach comp : [meson.get_compiler('c'), meson.get_compiler('cpp')]
