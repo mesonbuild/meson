@@ -18,6 +18,7 @@ from glob import glob
 import os, subprocess, shutil, sys, signal
 from io import StringIO
 from ast import literal_eval
+from enum import Enum
 import tempfile
 import mesontest
 from mesonbuild import environment
@@ -33,9 +34,17 @@ import concurrent.futures as conc
 
 from mesonbuild.coredata import backendlist
 
+class BuildStep(Enum):
+    configure = 1
+    build = 2
+    test = 3
+    install = 4
+    clean = 5
+
 class TestResult:
-    def __init__(self, msg, stdo, stde, mlog, conftime=0, buildtime=0, testtime=0):
+    def __init__(self, msg, step, stdo, stde, mlog, conftime=0, buildtime=0, testtime=0):
         self.msg = msg
+        self.step = step
         self.stdo = stdo
         self.stde = stde
         self.mlog = mlog
@@ -74,6 +83,7 @@ class AutoDeletedDir:
 failing_logs = []
 print_debug = 'MESON_PRINT_TEST_OUTPUT' in os.environ
 do_debug = not {'MESON_PRINT_TEST_OUTPUT', 'TRAVIS', 'APPVEYOR'}.isdisjoint(os.environ)
+no_meson_log_msg = 'No meson-log.txt found.'
 
 meson_command = os.path.join(os.getcwd(), 'meson')
 if not os.path.exists(meson_command):
@@ -270,14 +280,14 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, flags, compile_c
         with open(logfile, errors='ignore') as f:
             mesonlog = f.read()
     except Exception:
-        mesonlog = 'No meson-log.txt found.'
+        mesonlog = no_meson_log_msg
     gen_time = time.time() - gen_start
     if should_fail == 'meson':
         if returncode != 0:
-            return TestResult('', stdo, stde, mesonlog, gen_time)
-        return TestResult('Test that should have failed succeeded', stdo, stde, mesonlog, gen_time)
+            return TestResult('', BuildStep.configure, stdo, stde, mesonlog, gen_time)
+        return TestResult('Test that should have failed succeeded', BuildStep.configure, stdo, stde, mesonlog, gen_time)
     if returncode != 0:
-        return TestResult('Generating the build system failed.', stdo, stde, mesonlog, gen_time)
+        return TestResult('Generating the build system failed.', BuildStep.configure, stdo, stde, mesonlog, gen_time)
     # Build with subprocess
     comp = get_compile_commands_for_dir(compile_commands, test_build_dir)
     build_start = time.time()
@@ -287,10 +297,10 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, flags, compile_c
     stde += e
     if should_fail == 'build':
         if pc.returncode != 0:
-            return TestResult('', stdo, stde, mesonlog, gen_time)
-        return TestResult('Test that should have failed to build succeeded', stdo, stde, mesonlog, gen_time)
+            return TestResult('', BuildStep.build, stdo, stde, mesonlog, gen_time)
+        return TestResult('Test that should have failed to build succeeded', BuildStep.build, stdo, stde, mesonlog, gen_time)
     if pc.returncode != 0:
-        return TestResult('Compiling source code failed.', stdo, stde, mesonlog, gen_time, build_time)
+        return TestResult('Compiling source code failed.', BuildStep.build, stdo, stde, mesonlog, gen_time, build_time)
     # Touch the meson.build file to force a regenerate so we can test that
     # regeneration works. We need to sleep for 0.2s because Ninja tracks mtimes
     # at a low resolution: https://github.com/ninja-build/ninja/issues/371
@@ -304,12 +314,12 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, flags, compile_c
     stde += tstde
     if should_fail == 'test':
         if returncode != 0:
-            return TestResult('', stdo, stde, mesonlog, gen_time)
-        return TestResult('Test that should have failed to run unit tests succeeded', stdo, stde, mesonlog, gen_time)
+            return TestResult('', BuildStep.test, stdo, stde, mesonlog, gen_time)
+        return TestResult('Test that should have failed to run unit tests succeeded', BuildStep.test, stdo, stde, mesonlog, gen_time)
     if returncode != 0:
-        return TestResult('Running unit tests failed.', stdo, stde, mesonlog, gen_time, build_time, test_time)
+        return TestResult('Running unit tests failed.', BuildStep.test, stdo, stde, mesonlog, gen_time, build_time, test_time)
     if len(install_commands) == 0:
-        return TestResult('', '', '', gen_time, build_time, test_time)
+        return TestResult('', BuildStep.install, '', '', mesonlog, gen_time, build_time, test_time)
     env = os.environ.copy()
     env['DESTDIR'] = install_dir
     # Install with subprocess
@@ -317,7 +327,7 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, flags, compile_c
     stdo += o
     stde += e
     if pi.returncode != 0:
-        return TestResult('Running install failed.', stdo, stde, mesonlog, gen_time, build_time, test_time)
+        return TestResult('Running install failed.', BuildStep.install, stdo, stde, mesonlog, gen_time, build_time, test_time)
     if len(clean_commands) != 0:
         env = os.environ.copy()
         # Clean with subprocess
@@ -325,8 +335,8 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, flags, compile_c
         stdo += o
         stde += e
         if pi.returncode != 0:
-            return TestResult('Running clean failed.', stdo, stde, mesonlog, gen_time, build_time, test_time)
-    return TestResult(validate_install(testdir, install_dir), stdo, stde, mesonlog, gen_time, build_time, test_time)
+            return TestResult('Running clean failed.', BuildStep.clean, stdo, stde, mesonlog, gen_time, build_time, test_time)
+    return TestResult(validate_install(testdir, install_dir), BuildStep.clean, stdo, stde, mesonlog, gen_time, build_time, test_time)
 
 def gather_tests(testdir):
     tests = [t.replace('\\', '/').split('/', 2)[2] for t in glob(os.path.join(testdir, '*'))]
@@ -441,10 +451,16 @@ def run_tests(all_tests, log_name_base, extra_args):
             else:
                 without_install = "" if len(install_commands) > 0 else " (without install)"
                 if result.msg != '':
-                    print('Failed test%s: %s' % (without_install, t))
+                    print('Failed test{} during {}: {!r}'.format(without_install, result.step.name, t))
                     print('Reason:', result.msg)
                     failing_tests += 1
-                    failing_logs.append(result.stdo)
+                    if result.step == BuildStep.configure and result.mlog != no_meson_log_msg:
+                        # For configure failures, instead of printing stdout,
+                        # print the meson log if available since it's a superset
+                        # of stdout and often has very useful information.
+                        failing_logs.append(result.mlog)
+                    else:
+                        failing_logs.append(result.stdo)
                     failing_logs.append(result.stde)
                 else:
                     print('Succeeded test%s: %s' % (without_install, t))

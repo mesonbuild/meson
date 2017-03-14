@@ -356,16 +356,31 @@ class BasePlatformTests(unittest.TestCase):
         self.unit_test_dir = os.path.join(src_root, 'test cases/unit')
         self.orig_env = os.environ.copy()
 
+    def _print_meson_log(self):
+        log = os.path.join(self.logdir, 'meson-log.txt')
+        if not os.path.isfile(log):
+            print("{!r} doesn't exist".format(log))
+            return
+        with open(log, 'r', encoding='utf-8') as f:
+            print(f.read())
+
     def tearDown(self):
         shutil.rmtree(self.builddir)
         os.environ = self.orig_env
         super().tearDown()
 
     def _run(self, command):
-        output = subprocess.check_output(command, stderr=subprocess.STDOUT,
-                                         env=os.environ.copy(),
-                                         universal_newlines=True)
+        '''
+        Run a command while printing the stdout and stderr to stdout,
+        and also return a copy of it
+        '''
+        p = subprocess.Popen(command, stdout=subprocess.PIPE,
+                             stderr=subprocess.STDOUT, env=os.environ.copy(),
+                             universal_newlines=True)
+        output = p.communicate()[0]
         print(output)
+        if p.returncode != 0:
+            raise subprocess.CalledProcessError(p.returncode, command)
         return output
 
     def init(self, srcdir, extra_args=None, default_args=True):
@@ -375,7 +390,11 @@ class BasePlatformTests(unittest.TestCase):
         if default_args:
             args += ['--prefix', self.prefix,
                      '--libdir', self.libdir]
-        self._run(self.meson_command + args + extra_args)
+        try:
+            self._run(self.meson_command + args + extra_args)
+        except:
+            self._print_meson_log()
+            raise
         self.privatedir = os.path.join(self.builddir, 'meson-private')
 
     def build(self, extra_args=None):
@@ -394,11 +413,11 @@ class BasePlatformTests(unittest.TestCase):
         self._run(self.ninja_command + ['uninstall'])
 
     def run_target(self, target):
-        output = subprocess.check_output(self.ninja_command + [target],
-                                         stderr=subprocess.STDOUT,
-                                         universal_newlines=True)
-        print(output)
-        return output
+        '''
+        Run a Ninja target while printing the stdout and stderr to stdout,
+        and also return a copy of it
+        '''
+        return self._run(self.ninja_command + [target])
 
     def setconf(self, arg, will_build=True):
         # This is needed to increase the difference between build.ninja's
