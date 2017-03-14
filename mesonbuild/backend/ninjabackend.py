@@ -632,23 +632,13 @@ int dummy;
                 should_strip = self.get_option_for_target('strip', t)
                 # Find the installation directory.
                 outdirs = t.get_custom_install_dir()
+                custom_install_dir = False
                 if outdirs[0] is not None and outdirs[0] is not True:
                     # Either the value is set, or is set to False which means
                     # we want this specific output out of many outputs to not
                     # be installed.
-                    pass
+                    custom_install_dir = True
                 elif isinstance(t, build.SharedLibrary):
-                    # On toolchains/platforms that use an import library for
-                    # linking (separate from the shared library with all the
-                    # code), we need to install that too (dll.a/.lib).
-                    if t.get_import_filename():
-                        # Install the import library.
-                        i = [self.get_target_filename_for_linking(t),
-                             self.environment.get_import_lib_dir(),
-                             # It has no aliases, should not be stripped, and
-                             # doesn't have an install_rpath
-                             {}, False, '']
-                        d.targets.append(i)
                     outdirs[0] = self.environment.get_shared_lib_dir()
                 elif isinstance(t, build.StaticLibrary):
                     outdirs[0] = self.environment.get_static_lib_dir()
@@ -672,6 +662,24 @@ int dummy;
                         i = [self.get_target_filename(t), outdirs[0],
                              t.get_aliases(), should_strip, t.install_rpath]
                         d.targets.append(i)
+                        # On toolchains/platforms that use an import library for
+                        # linking (separate from the shared library with all the
+                        # code), we need to install that too (dll.a/.lib).
+                        if isinstance(t, build.SharedLibrary) and t.get_import_filename():
+                            if custom_install_dir:
+                                # If the DLL is installed into a custom directory,
+                                # install the import library into the same place so
+                                # it doesn't go into a surprising place
+                                implib_install_dir = outdirs[0]
+                            else:
+                                implib_install_dir = self.environment.get_import_lib_dir()
+                            # Install the import library.
+                            i = [self.get_target_filename_for_linking(t),
+                                 implib_install_dir,
+                                 # It has no aliases, should not be stripped, and
+                                 # doesn't have an install_rpath
+                                 {}, False, '']
+                            d.targets.append(i)
                     # Install secondary outputs. Only used for Vala right now.
                     if num_outdirs > 1:
                         for output, outdir in zip(t.get_outputs()[1:], outdirs[1:]):
