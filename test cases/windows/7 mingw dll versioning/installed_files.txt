@@ -8,3 +8,4 @@ usr/bin/libonlysoversion-5.dll
 usr/lib/libonlysoversion.dll.a
 usr/libexec/libcustomdir.dll
 usr/libexec/libcustomdir.dll.a
+usr/lib/libmodule.dll

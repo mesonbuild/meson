@@ -10,3 +10,4 @@ usr/bin/onlysoversion-5.dll
 usr/lib/onlysoversion.lib
 usr/libexec/customdir.dll
 usr/libexec/customdir.lib
+usr/lib/module.dll

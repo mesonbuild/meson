@@ -1246,6 +1246,7 @@ class SharedModule(SharedLibrary):
         if 'soversion' in kwargs:
             raise MesonException('Shared modules must not specify the soversion kwarg.')
         super().__init__(name, subdir, subproject, is_cross, sources, objects, environment, kwargs)
+        self.import_filename = None
 
 class CustomTarget(Target):
     known_kwargs = {'input': True,

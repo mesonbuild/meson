@@ -5,3 +5,4 @@ usr/lib/libonlyversion.dylib
 usr/lib/libonlyversion.1.dylib
 usr/lib/libonlysoversion.dylib
 usr/lib/libonlysoversion.5.dylib
+usr/lib/libmodule.dylib

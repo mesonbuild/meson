@@ -52,3 +52,5 @@ test('manually linked 4', executable('manuallink4', out,
 shared_library('customdir', 'lib.c',
   install : true,
   install_dir : get_option('libexecdir'))
+
+shared_module('module', 'lib.c', install : true)
