@@ -927,7 +927,7 @@ class GnomeModule(ExtensionModule):
             if arg in kwargs:
                 custom_kwargs[arg] = kwargs[arg]
 
-        custom_kwargs['command'] = cmd + ['--header', '--body', '@INPUT@']
+        custom_kwargs['command'] = cmd + ['--body', '@INPUT@']
         custom_kwargs['output'] = output + '.c'
         body = build.CustomTarget(output + '_c', state.subdir, custom_kwargs)
 
