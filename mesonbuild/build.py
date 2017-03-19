@@ -1277,7 +1277,7 @@ class CustomTarget(Target):
         for c in self.sources:
             if hasattr(c, 'held_object'):
                 c = c.held_object
-            if isinstance(c, (BuildTarget, CustomTarget, GeneratedList)):
+            if isinstance(c, (BuildTarget, CustomTarget)):
                 deps.append(c)
         return deps
 
@@ -1402,8 +1402,17 @@ class CustomTarget(Target):
     def get_sources(self):
         return self.sources
 
+    def get_generated_lists(self):
+        genlists = []
+        for c in self.sources:
+            if hasattr(c, 'held_object'):
+                c = c.held_object
+            if isinstance(c, GeneratedList):
+                genlists.append(c)
+        return genlists
+
     def get_generated_sources(self):
-        return []
+        return self.get_generated_lists()
 
     def type_suffix(self):
         return "@cus"
