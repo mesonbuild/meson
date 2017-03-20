@@ -23,14 +23,3 @@ class Vs2015Backend(Vs2010Backend):
         self.platform_toolset = 'v140'
         self.vs_version = '2015'
 
-    @staticmethod
-    def has_objects(objects, additional_objects, generated_objects):
-        # VS2015 requires generated objects to be added explicitly to the project file.
-        return len(objects) + len(additional_objects) + len(generated_objects) > 0
-
-    @staticmethod
-    def add_generated_objects(node, generated_objects):
-        # VS2015 requires generated objects to be added explicitly to the project file.
-        for s in generated_objects:
-            ET.SubElement(node, 'Object', Include=s)
-        return

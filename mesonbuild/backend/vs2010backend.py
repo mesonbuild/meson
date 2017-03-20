@@ -93,9 +93,6 @@ class Vs2010Backend(backends.Backend):
 
     def generate_custom_generator_commands(self, target, parent_node):
         generator_output_files = []
-        commands = []
-        inputs = []
-        outputs = []
         custom_target_include_dirs = []
         custom_target_output_files = []
         target_private_dir = self.relpath(self.get_target_private_dir(target), self.get_target_dir(target))
@@ -116,6 +113,7 @@ class Vs2010Backend(backends.Backend):
                 outfilelist = genlist.get_outputs()
                 exe_arr = self.exe_object_to_cmd_array(exe)
                 base_args = generator.get_arglist()
+                idgroup = ET.SubElement(parent_node, 'ItemGroup')
                 for i in range(len(infilelist)):
                     if len(infilelist) == len(outfilelist):
                         sole_output = os.path.join(target_private_dir, outfilelist[i])
@@ -131,19 +129,10 @@ class Vs2010Backend(backends.Backend):
                     args = self.replace_outputs(args, target_private_dir, outfiles_rel)
                     args = [x.replace("@SOURCE_DIR@", self.environment.get_source_dir()).replace("@BUILD_DIR@", target_private_dir)
                             for x in args]
-                    fullcmd = exe_arr + self.replace_extra_args(args, genlist)
-                    commands.append(' '.join(self.special_quote(fullcmd)))
-                    inputs.append(infilename)
-                    outputs.extend(outfiles)
-        if len(commands) > 0:
-            idgroup = ET.SubElement(parent_node, 'ItemDefinitionGroup')
-            cbs = ET.SubElement(idgroup, 'CustomBuildStep')
-            ET.SubElement(cbs, 'Command').text = '\r\n'.join(commands)
-            ET.SubElement(cbs, 'Inputs').text = ";".join(inputs)
-            ET.SubElement(cbs, 'Outputs').text = ';'.join(outputs)
-            ET.SubElement(cbs, 'Message').text = 'Generating custom sources.'
-            pg = ET.SubElement(parent_node, 'PropertyGroup')
-            ET.SubElement(pg, 'CustomBuildBeforeTargets').text = 'ClCompile'
+                    cmd = exe_arr + self.replace_extra_args(args, genlist)
+                    cbs = ET.SubElement(idgroup, 'CustomBuild', Include=infilename)
+                    ET.SubElement(cbs, 'Command').text = ' '.join(self.quote_arguments(cmd))
+                    ET.SubElement(cbs, 'Outputs').text = ';'.join(outfiles)
         return generator_output_files, custom_target_output_files, custom_target_include_dirs
 
     def generate(self, interp):
@@ -205,8 +194,7 @@ class Vs2010Backend(backends.Backend):
                 for d in [target.command] + target.args:
                     if isinstance(d, (build.BuildTarget, build.CustomTarget)):
                         all_deps[d.get_id()] = d
-            # BuildTarget
-            else:
+            elif isinstance(target, build.BuildTarget):
                 for ldep in target.link_targets:
                     all_deps[ldep.get_id()] = ldep
                 for obj_id, objdep in self.get_obj_target_deps(target.objects):
@@ -218,6 +206,8 @@ class Vs2010Backend(backends.Backend):
                         gen_exe = gendep.generator.get_exe()
                         if isinstance(gen_exe, build.Executable):
                             all_deps[gen_exe.get_id()] = gen_exe
+            else:
+                raise MesonException('Unknown target type for target %s' % target)
         if not t or not recursive:
             return all_deps
         ret = self.get_target_deps(all_deps, recursive)
@@ -340,8 +330,8 @@ class Vs2010Backend(backends.Backend):
         directories = os.path.normpath(target.subdir).split(os.sep)
         return os.sep.join(['..'] * len(directories))
 
-    def special_quote(self, arr):
-        return ['&quot;%s&quot;' % i for i in arr]
+    def quote_arguments(self, arr):
+        return ['"%s"' % i for i in arr]
 
     def create_basic_crap(self, target):
         project_name = target.name
@@ -413,11 +403,11 @@ class Vs2010Backend(backends.Backend):
         # from the target dir, not the build root.
         target.absolute_paths = True
         (srcs, ofilenames, cmd) = self.eval_custom_target_command(target, True)
-        cmd_templ = '''"%s" ''' * len(cmd)
-        ET.SubElement(customstep, 'Command').text = cmd_templ % tuple(cmd)
+        ET.SubElement(customstep, 'Command').text = ' '.join(self.quote_arguments(cmd))
         ET.SubElement(customstep, 'Outputs').text = ';'.join(ofilenames)
         ET.SubElement(customstep, 'Inputs').text = ';'.join(srcs)
         ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.targets')
+        self.generate_custom_generator_commands(target, root)
         tree = ET.ElementTree(root)
         tree.write(ofname, encoding='utf-8', xml_declaration=True)
 
@@ -467,14 +457,14 @@ class Vs2010Backend(backends.Backend):
 
     @staticmethod
     def has_objects(objects, additional_objects, generated_objects):
-        # Ignore generated objects, those are automatically used by MSBuild for VS2010, because they are part of
-        # the CustomBuildStep Outputs.
+        # Ignore generated objects, those are automatically used by MSBuild because they are part of
+        # the CustomBuild Outputs.
         return len(objects) + len(additional_objects) > 0
 
     @staticmethod
     def add_generated_objects(node, generated_objects):
-        # Do not add generated objects to project file. Those are automatically used by MSBuild for VS2010, because
-        # they are part of the CustomBuildStep Outputs.
+        # Do not add generated objects to project file. Those are automatically used by MSBuild, because
+        # they are part of the CustomBuild Outputs.
         return
 
     @staticmethod
