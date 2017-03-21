@@ -146,6 +146,7 @@ class NinjaBackend(backends.Backend):
         super().__init__(build)
         self.name = 'ninja'
         self.ninja_filename = 'build.ninja'
+        self.target_arg_cache = {}
         self.fortran_deps = {}
         self.all_outputs = {}
 
@@ -1802,17 +1803,7 @@ rule FORTRAN_DEP_HACK
             incs += compiler.get_include_args(i, False)
         return incs
 
-    def generate_single_compile(self, target, outfile, src, is_generated=False, header_deps=[], order_deps=[]):
-        """
-        Compiles C/C++, ObjC/ObjC++, Fortran, and D sources
-        """
-        if isinstance(src, str) and src.endswith('.h'):
-            raise AssertionError('BUG: sources should not contain headers {!r}'.format(src))
-        if isinstance(src, RawFilename) and src.fname.endswith('.h'):
-            raise AssertionError('BUG: sources should not contain headers {!r}'.format(src.fname))
-        extra_orderdeps = []
-        compiler = get_compiler_for_source(target.compilers.values(), src)
-
+    def _generate_single_compile(self, target, compiler, is_generated=False):
         # Create an empty commands list, and start adding arguments from
         # various sources in the order in which they must override each other
         commands = CompilerArgs(compiler)
@@ -1879,6 +1870,24 @@ rule FORTRAN_DEP_HACK
         # Finally add the private dir for the target to the include path. This
         # must override everything else and must be the final path added.
         commands += compiler.get_include_args(self.get_target_private_dir(target), False)
+        return commands
+
+    def generate_single_compile(self, target, outfile, src, is_generated=False, header_deps=[], order_deps=[]):
+        """
+        Compiles C/C++, ObjC/ObjC++, Fortran, and D sources
+        """
+        if isinstance(src, str) and src.endswith('.h'):
+            raise AssertionError('BUG: sources should not contain headers {!r}'.format(src))
+        if isinstance(src, RawFilename) and src.fname.endswith('.h'):
+            raise AssertionError('BUG: sources should not contain headers {!r}'.format(src.fname))
+        compiler = get_compiler_for_source(target.compilers.values(), src)
+        key = (target, compiler, is_generated)
+        if key in self.target_arg_cache:
+            commands = self.target_arg_cache[key]
+        else:
+            commands = self._generate_single_compile(target, compiler, is_generated)
+            self.target_arg_cache[key] = commands
+        commands = CompilerArgs(commands.compiler, commands)
 
         # FIXME: This file handling is atrocious and broken. We need to
         # replace it with File objects used consistently everywhere.
@@ -1964,7 +1973,6 @@ rule FORTRAN_DEP_HACK
                 d = os.path.join(self.get_target_private_dir(target), d)
             element.add_orderdep(d)
         element.add_orderdep(pch_dep)
-        element.add_orderdep(extra_orderdeps)
         # Convert from GCC-style link argument naming to the naming used by the
         # current compiler.
         commands = commands.to_native()
