@@ -87,3 +87,9 @@ if t and t and t and t and t and t and t and t and f
 else
   message('Ok.')
 endif
+
+if t and t or t
+  message('Ok.')
+else
+  error('Combination of and-or failed.')
+endif
