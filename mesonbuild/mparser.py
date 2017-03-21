@@ -193,9 +193,10 @@ class OrNode:
         self.right = right
 
 class AndNode:
-    def __init__(self, lineno, colno, left, right):
-        self.lineno = lineno
-        self.colno = colno
+    def __init__(self, left, right):
+        self.subdir = left.subdir
+        self.lineno = left.lineno
+        self.colno = left.colno
         self.left = left
         self.right = right
 
@@ -436,7 +437,7 @@ class Parser:
     def e3(self):
         left = self.e4()
         while self.accept('and'):
-            left = AndNode(left.lineno, left.colno, left, self.e4())
+            left = AndNode(left, self.e4())
         return left
 
     def e4(self):
