@@ -28,7 +28,7 @@ onlysoversion = shared_library('onlysoversion', 'lib.c',
 # Hack to make the executables below depend on the shared libraries above
 # without actually adding them as `link_with` dependencies since we want to try
 # linking to them with -lfoo linker arguments.
-cp = find_program('cp.bat')
+cp = find_program('copyfile.py')
 out = custom_target('library-dependency-hack',
   input : 'exe.orig.c',
   output : 'exe.c',
