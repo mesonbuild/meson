@@ -62,6 +62,7 @@ class Vs2010Backend(backends.Backend):
         self.sources_conflicts = {}
         self.platform_toolset = None
         self.vs_version = '2010'
+        self.windows_target_platform_version = None
 
     def object_filename_from_source(self, target, source):
         basename = os.path.basename(source.fname)
@@ -354,6 +355,8 @@ class Vs2010Backend(backends.Backend):
         p.text = self.platform
         pname = ET.SubElement(globalgroup, 'ProjectName')
         pname.text = project_name
+        if self.windows_target_platform_version:
+            ET.SubElement(globalgroup, 'WindowsTargetPlatformVersion').text = self.windows_target_platform_version
         ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.Default.props')
         type_config = ET.SubElement(root, 'PropertyGroup', Label='Configuration')
         ET.SubElement(type_config, 'ConfigurationType')
@@ -589,6 +592,8 @@ class Vs2010Backend(backends.Backend):
         p.text = self.platform
         pname = ET.SubElement(globalgroup, 'ProjectName')
         pname.text = project_name
+        if self.windows_target_platform_version:
+            ET.SubElement(globalgroup, 'WindowsTargetPlatformVersion').text = self.windows_target_platform_version
         ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.Default.props')
         # Start configuration
         type_config = ET.SubElement(root, 'PropertyGroup', Label='Configuration')
@@ -1006,6 +1011,8 @@ class Vs2010Backend(backends.Backend):
         p.text = self.platform
         pname = ET.SubElement(globalgroup, 'ProjectName')
         pname.text = project_name
+        if self.windows_target_platform_version:
+            ET.SubElement(globalgroup, 'WindowsTargetPlatformVersion').text = self.windows_target_platform_version
         ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.Default.props')
         type_config = ET.SubElement(root, 'PropertyGroup', Label='Configuration')
         ET.SubElement(type_config, 'ConfigurationType').text = "Utility"
@@ -1085,6 +1092,8 @@ if %%errorlevel%% neq 0 goto :VCEnd'''
         p.text = self.platform
         pname = ET.SubElement(globalgroup, 'ProjectName')
         pname.text = project_name
+        if self.windows_target_platform_version:
+            ET.SubElement(globalgroup, 'WindowsTargetPlatformVersion').text = self.windows_target_platform_version
         ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.Default.props')
         type_config = ET.SubElement(root, 'PropertyGroup', Label='Configuration')
         ET.SubElement(type_config, 'ConfigurationType')
