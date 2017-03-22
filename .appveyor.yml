@@ -20,6 +20,16 @@ environment:
       compiler: msvc2015
       backend: vs2015
 
+    - arch: x86
+      compiler: msvc2017
+      backend: ninja
+      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+
+    - arch: x86
+      compiler: msvc2017
+      backend: vs2015
+      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+
     - arch: x64
       compiler: msvc2015
       backend: ninja
@@ -27,6 +37,16 @@ environment:
     - arch: x64
       compiler: msvc2015
       backend: vs2015
+
+    - arch: x64
+      compiler: msvc2017
+      backend: ninja
+      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+
+    - arch: x64
+      compiler: msvc2017
+      backend: vs2015
+      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
 
 platform:
   - x64
@@ -43,6 +63,7 @@ install:
   - cmd: echo Using Python at %MESON_PYTHON_PATH%
   - cmd: if %compiler%==msvc2010 ( call "C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\vcvarsall.bat" %arch% )
   - cmd: if %compiler%==msvc2015 ( call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" %arch% )
+  - cmd: if %compiler%==msvc2017 ( call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\Tools\VsDevCmd.bat" -arch=%arch% )
 
 build_script:
   - cmd: echo No build step.
