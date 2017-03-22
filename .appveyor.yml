@@ -27,7 +27,7 @@ environment:
 
     - arch: x86
       compiler: msvc2017
-      backend: vs2015
+      backend: vs2017
       APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
 
     - arch: x64
@@ -45,7 +45,7 @@ environment:
 
     - arch: x64
       compiler: msvc2017
-      backend: vs2015
+      backend: vs2017
       APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
 
 platform:
