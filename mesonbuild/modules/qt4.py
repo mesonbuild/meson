@@ -24,14 +24,14 @@ from . import ModuleReturnValue
 class Qt4Module(ExtensionModule):
     tools_detected = False
 
-    def _detect_tools(self, env):
+    def _detect_tools(self, env, method):
         if self.tools_detected:
             return
         mlog.log('Detecting Qt4 tools')
         # FIXME: We currently require Qt4 to exist while importing the module.
         # We should make it gracefully degrade and not create any targets if
         # the import is marked as 'optional' (not implemented yet)
-        kwargs = {'required': 'true', 'modules': 'Core', 'silent': 'true'}
+        kwargs = {'required': 'true', 'modules': 'Core', 'silent': 'true', 'method': method}
         qt4 = Qt4Dependency(env, kwargs)
         # Get all tools and then make sure that they are the right version
         self.moc, self.uic, self.rcc = qt4.compilers_detect()
@@ -113,7 +113,8 @@ class Qt4Module(ExtensionModule):
         if not isinstance(sources, list):
             sources = [sources]
         sources += args[1:]
-        self._detect_tools(state.environment)
+        method = kwargs.get('method', 'auto')
+        self._detect_tools(state.environment, method)
         err_msg = "{0} sources specified and couldn't find {1}, " \
                   "please check your qt4 installation"
         if len(moc_headers) + len(moc_sources) > 0 and not self.moc.found():

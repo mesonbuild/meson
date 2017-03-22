@@ -9,17 +9,17 @@ foreach qt : ['qt4', 'qt5']
     qt_modules += qt5_modules
   endif
   # Test that invalid modules are indeed not found
-  fakeqtdep = dependency(qt, modules : ['DefinitelyNotFound'], required : false)
+  fakeqtdep = dependency(qt, modules : ['DefinitelyNotFound'], required : false, method : get_option('method'))
   if fakeqtdep.found()
     error('Invalid qt dep incorrectly found!')
   endif
   # Test that partially-invalid modules are indeed not found
-  fakeqtdep = dependency(qt, modules : ['Core', 'DefinitelyNotFound'], required : false)
+  fakeqtdep = dependency(qt, modules : ['Core', 'DefinitelyNotFound'], required : false, method : get_option('method'))
   if fakeqtdep.found()
     error('Invalid qt dep incorrectly found!')
   endif
   # If qt4 modules are found, test that. qt5 is required.
-  qtdep = dependency(qt, modules : qt_modules, required : qt == 'qt5')
+  qtdep = dependency(qt, modules : qt_modules, required : qt == 'qt5', method : get_option('method'))
   if qtdep.found()
     qtmodule = import(qt)
 
@@ -30,10 +30,11 @@ foreach qt : ['qt4', 'qt5']
       moc_headers : ['mainWindow.h'],           # These need to be fed through the moc tool before use. 
       ui_files : 'mainWindow.ui',               # XML files that need to be compiled with the uic tol.
       qresources : ['stuff.qrc', 'stuff2.qrc'], # Resource file for rcc compiler.
+      method : get_option('method')
     )
 
     # Test that setting a unique name with a positional argument works
-    qtmodule.preprocess(qt + 'teststuff', qresources : ['stuff.qrc'])
+    qtmodule.preprocess(qt + 'teststuff', qresources : ['stuff.qrc'], method : get_option('method'))
 
     qexe = executable(qt + 'app',
       sources : ['main.cpp', 'mainWindow.cpp', # Sources that don't need preprocessing.
@@ -43,7 +44,7 @@ foreach qt : ['qt4', 'qt5']
     # We need a console test application because some test environments
     # do not have an X server.
 
-    qtcore = dependency(qt, modules : 'Core')
+    qtcore = dependency(qt, modules : 'Core', method : get_option('method'))
 
     qtcoreapp = executable(qt + 'core', 'q5core.cpp',
       dependencies : qtcore)
@@ -55,7 +56,8 @@ foreach qt : ['qt4', 'qt5']
     # files from sources.
     manpreprocessed = qtmodule.preprocess(
       moc_sources : 'manualinclude.cpp',
-      moc_headers : 'manualinclude.h')
+      moc_headers : 'manualinclude.h',
+      method : get_option('method'))
 
     qtmaninclude = executable(qt + 'maninclude',
       sources : ['manualinclude.cpp', manpreprocessed],
