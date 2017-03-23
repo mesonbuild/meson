@@ -632,6 +632,7 @@ class CompilerHolder(InterpreterObject):
         self.methods.update({'compiles': self.compiles_method,
                              'links': self.links_method,
                              'get_id': self.get_id_method,
+                             'compute_int': self.compute_int_method,
                              'sizeof': self.sizeof_method,
                              'has_header': self.has_header_method,
                              'has_header_symbol': self.has_header_symbol_method,
@@ -700,8 +701,12 @@ class CompilerHolder(InterpreterObject):
             raise InterpreterException('Alignment method takes exactly one positional argument.')
         check_stringlist(args)
         typename = args[0]
+        prefix = kwargs.get('prefix', '')
+        if not isinstance(prefix, str):
+            raise InterpreterException('Prefix argument of sizeof must be a string.')
         extra_args = mesonlib.stringlistify(kwargs.get('args', []))
-        result = self.compiler.alignment(typename, self.environment, extra_args)
+        deps = self.determine_dependencies(kwargs)
+        result = self.compiler.alignment(typename, prefix, self.environment, extra_args, deps)
         mlog.log('Checking for alignment of "', mlog.bold(typename), '": ', result, sep='')
         return result
 
@@ -822,6 +827,29 @@ class CompilerHolder(InterpreterObject):
             hadtxt = mlog.red('NO')
         mlog.log('Checking for type "', mlog.bold(typename), '": ', hadtxt, sep='')
         return had
+
+    def compute_int_method(self, args, kwargs):
+        if len(args) != 1:
+            raise InterpreterException('Compute_int takes exactly one argument.')
+        check_stringlist(args)
+        expression = args[0]
+        prefix = kwargs.get('prefix', '')
+        l = kwargs.get('low', -1024)
+        h = kwargs.get('high', 1024)
+        guess = kwargs.get('guess', None)
+        if not isinstance(prefix, str):
+            raise InterpreterException('Prefix argument of compute_int must be a string.')
+        if not isinstance(l, int):
+            raise InterpreterException('Low argument of compute_int must be an int.')
+        if not isinstance(h, int):
+            raise InterpreterException('High argument of compute_int must be an int.')
+        if guess is not None and not isinstance(guess, int):
+            raise InterpreterException('Guess argument of compute_int must be an int.')
+        extra_args = self.determine_args(kwargs)
+        deps = self.determine_dependencies(kwargs)
+        res = self.compiler.compute_int(expression, l, h, guess, prefix, self.environment, extra_args, deps)
+        mlog.log('Computing int of "%s": %d' % (expression, res))
+        return res
 
     def sizeof_method(self, args, kwargs):
         if len(args) != 1:
