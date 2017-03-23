@@ -456,7 +456,7 @@ class ExternalProgram:
             if suffix in self.windows_exts:
                 return True
         elif os.access(path, os.X_OK):
-            return True
+            return not os.path.isdir(path)
         return False
 
     def _search_dir(self, name, search_dir):
