@@ -403,7 +403,16 @@ class Vs2010Backend(backends.Backend):
         # from the target dir, not the build root.
         target.absolute_paths = True
         (srcs, ofilenames, cmd) = self.eval_custom_target_command(target, True)
-        ET.SubElement(customstep, 'Command').text = ' '.join(self.quote_arguments(cmd))
+        # Always use a wrapper because MSBuild eats random characters when
+        # there are many arguments.
+        tdir_abs = os.path.join(self.environment.get_build_dir(), self.get_target_dir(target))
+        exe_data = self.serialise_executable(target.command[0], cmd[1:],
+                                             # All targets run from the target dir
+                                             tdir_abs,
+                                             capture=ofilenames[0] if target.capture else None)
+        wrapper_cmd = [sys.executable, self.environment.get_build_command(),
+                       '--internal', 'exe', exe_data]
+        ET.SubElement(customstep, 'Command').text = ' '.join(self.quote_arguments(wrapper_cmd))
         ET.SubElement(customstep, 'Outputs').text = ';'.join(ofilenames)
         ET.SubElement(customstep, 'Inputs').text = ';'.join(srcs)
         ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.targets')
