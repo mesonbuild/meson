@@ -918,7 +918,7 @@ class Vs2010Backend(backends.Backend):
             assert(isinstance(o, str))
             additional_objects.append(o)
         for o in custom_objs:
-            additional_objects.append(self.relpath(o, self.get_target_dir(target)))
+            additional_objects.append(o)
         if len(additional_links) > 0:
             additional_links.append('%(AdditionalDependencies)')
             ET.SubElement(link, 'AdditionalDependencies').text = ';'.join(additional_links)
