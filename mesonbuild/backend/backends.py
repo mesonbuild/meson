@@ -375,9 +375,11 @@ class Backend:
         # Set -fPIC for static libraries by default unless explicitly disabled
         if isinstance(target, build.StaticLibrary) and target.pic:
             commands += compiler.get_pic_args()
-        # Add compile args needed to find external dependencies
-        # Link args are added while generating the link command
-        for dep in target.get_external_deps():
+        # Add compile args needed to find external dependencies. Link args are
+        # added while generating the link command.
+        # NOTE: We must preserve the order in which external deps are
+        # specified, so we reverse the list before iterating over it.
+        for dep in reversed(target.get_external_deps()):
             commands += dep.get_compile_args()
             # Qt needs -fPIC for executables
             # XXX: We should move to -fPIC for all executables

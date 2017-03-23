@@ -432,7 +432,20 @@ class BasePlatformTests(unittest.TestCase):
 
     def get_compdb(self):
         with open(os.path.join(self.builddir, 'compile_commands.json')) as ifile:
-            return json.load(ifile)
+            contents = json.load(ifile)
+        # If Ninja is using .rsp files, generate them, read their contents, and
+        # replace it as the command for all compile commands in the parsed json.
+        if len(contents) > 0 and contents[0]['command'].endswith('.rsp'):
+            # Pretend to build so that the rsp files are generated
+            self.build(['-d', 'keeprsp', '-n'])
+            for each in contents:
+                # Extract the actual command from the rsp file
+                compiler, rsp = each['command'].split(' @')
+                rsp = os.path.join(self.builddir, rsp)
+                # Replace the command with its contents
+                with open(rsp, 'r', encoding='utf-8') as f:
+                    each['command'] = compiler + ' ' + f.read()
+        return contents
 
     def get_meson_log(self):
         with open(os.path.join(self.builddir, 'meson-logs', 'meson-log.txt')) as f:
@@ -712,20 +725,18 @@ class AllPlatformTests(BasePlatformTests):
     def test_internal_include_order(self):
         testdir = os.path.join(self.common_test_dir, '138 include order')
         self.init(testdir)
+        execmd = fxecmd = None
         for cmd in self.get_compdb():
-            if cmd['file'].endswith('/main.c'):
-                cmd = cmd['command']
-                break
-        else:
-            raise Exception('Could not find main.c command')
-        if cmd.endswith('.rsp'):
-            # Pretend to build so that the rsp files are generated
-            self.build(['-d', 'keeprsp', '-n'])
-            # Extract the actual command from the rsp file
-            rsp = os.path.join(self.builddir, cmd.split('cl @')[1])
-            with open(rsp, 'r', encoding='utf-8') as f:
-                cmd = f.read()
-        incs = [a for a in shlex.split(cmd) if a.startswith("-I")]
+            if 'someexe' in cmd['command']:
+                execmd = cmd['command']
+                continue
+            if 'somefxe' in cmd['command']:
+                fxecmd = cmd['command']
+                continue
+        if not execmd or not fxecmd:
+            raise Exception('Could not find someexe and somfxe commands')
+        # Check include order for 'someexe'
+        incs = [a for a in shlex.split(execmd) if a.startswith("-I")]
         self.assertEqual(len(incs), 8)
         # target private dir
         self.assertPathEqual(incs[0], "-Isub4/someexe@exe")
@@ -743,6 +754,27 @@ class AllPlatformTests(BasePlatformTests):
         self.assertPathEqual(incs[6], "-Isub1")
         # target internal dependency include_directories: source dir
         self.assertPathBasenameEqual(incs[7], 'sub1')
+        # Check include order for 'somefxe'
+        incs = [a for a in shlex.split(fxecmd) if a.startswith('-I')]
+        self.assertEqual(len(incs), 9)
+        # target private dir
+        self.assertPathEqual(incs[0], '-Isomefxe@exe')
+        # target build dir
+        self.assertPathEqual(incs[1], '-I.')
+        # target source dir
+        self.assertPathBasenameEqual(incs[2], os.path.basename(testdir))
+        # target internal dependency correct include_directories: build dir
+        self.assertPathEqual(incs[3], "-Isub4")
+        # target internal dependency correct include_directories: source dir
+        self.assertPathBasenameEqual(incs[4], 'sub4')
+        # target internal dependency dep include_directories: build dir
+        self.assertPathEqual(incs[5], "-Isub1")
+        # target internal dependency dep include_directories: source dir
+        self.assertPathBasenameEqual(incs[6], 'sub1')
+        # target internal dependency wrong include_directories: build dir
+        self.assertPathEqual(incs[7], "-Isub2")
+        # target internal dependency wrong include_directories: source dir
+        self.assertPathBasenameEqual(incs[8], 'sub2')
 
     def test_compiler_detection(self):
         '''

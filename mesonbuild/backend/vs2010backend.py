@@ -714,12 +714,15 @@ class Vs2010Backend(backends.Backend):
             # and from `include_directories:` of internal deps of the target.
             #
             # Target include dirs should override internal deps include dirs.
+            # This is handled in BuildTarget.process_kwargs()
             #
             # Include dirs from internal deps should override include dirs from
-            # external deps.
+            # external deps and must maintain the order in which they are
+            # specified. Hence, we must reverse so that the order is preserved.
+            #
             # These are per-target, but we still add them as per-file because we
             # need them to be looked in first.
-            for d in target.get_include_dirs():
+            for d in reversed(target.get_include_dirs()):
                 for i in d.get_incdirs():
                     curdir = os.path.join(d.get_curdir(), i)
                     args.append('-I' + self.relpath(curdir, target.subdir)) # build dir
@@ -769,7 +772,7 @@ class Vs2010Backend(backends.Backend):
 
         # Split compile args needed to find external dependencies
         # Link args are added while generating the link command
-        for d in target.get_external_deps():
+        for d in reversed(target.get_external_deps()):
             # Cflags required by external deps might have UNIX-specific flags,
             # so filter them out if needed
             d_compile_args = compiler.unix_args_to_native(d.get_compile_args())

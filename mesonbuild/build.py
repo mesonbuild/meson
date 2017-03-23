@@ -598,16 +598,17 @@ class BuildTarget(Target):
         for i in self.link_depends:
             if not isinstance(i, str):
                 raise InvalidArguments('Link_depends arguments must be strings.')
-        deplist = kwargs.get('dependencies', [])
-        if not isinstance(deplist, list):
-            deplist = [deplist]
-        self.add_deps(deplist)
-        # Target-specific include dirs must be added after include dirs from
-        # internal deps (added inside self.add_deps()) to override correctly.
+        # Target-specific include dirs must be added BEFORE include dirs from
+        # internal deps (added inside self.add_deps()) to override them.
         inclist = kwargs.get('include_directories', [])
         if not isinstance(inclist, list):
             inclist = [inclist]
         self.add_include_dirs(inclist)
+        # Add dependencies (which also have include_directories)
+        deplist = kwargs.get('dependencies', [])
+        if not isinstance(deplist, list):
+            deplist = [deplist]
+        self.add_deps(deplist)
         self.custom_install_dir = kwargs.get('install_dir', None)
         if self.custom_install_dir is not None:
             if not isinstance(self.custom_install_dir, str):
