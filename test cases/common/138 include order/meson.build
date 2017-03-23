@@ -19,4 +19,12 @@ subdir('sub3')
 # The directory where the target resides
 subdir('sub4')
 
+# Test that the order in which internal dependencies are specified is
+# preserved. This is needed especially when subprojects get involved and
+# multiple build-root config.h files exist, and we must be sure that the
+# correct one is found: https://github.com/mesonbuild/meson/issues/1495
+f = executable('somefxe', 'sub4/main.c',
+               dependencies : [correctinc, dep, wronginc])
+
 test('eh', e)
+test('oh', f)
