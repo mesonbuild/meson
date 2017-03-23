@@ -27,6 +27,29 @@ from ..compilers import CompilerArgs
 from ..mesonlib import MesonException, File
 from ..environment import Environment
 
+def autodetect_vs_version(build):
+    vs_version = os.getenv('VisualStudioVersion', None)
+    if vs_version:
+        if vs_version == '14.0':
+            from mesonbuild.backend.vs2015backend import Vs2015Backend
+            return Vs2015Backend(build)
+        if vs_version == '15.0':
+            from mesonbuild.backend.vs2017backend import Vs2017Backend
+            return Vs2017Backend(build)
+        raise MesonException('Could not detect Visual Studio (unknown Visual Studio version: "{}")!\n'
+                             'Please specify the exact backend to use.'.format(vs_version))
+
+    vs_install_dir = os.getenv('VSINSTALLDIR', None)
+    if not vs_install_dir:
+        raise MesonException('Could not detect Visual Studio (neither VisualStudioVersion nor VSINSTALLDIR set in '
+                             'environment)!\nPlease specify the exact backend to use.')
+
+    if 'Visual Studio 10.0' in vs_install_dir:
+        return Vs2010Backend(build)
+
+    raise MesonException('Could not detect Visual Studio (unknown VSINSTALLDIR: "{}")!\n'
+                         'Please specify the exact backend to use.'.format(vs_install_dir))
+
 def split_o_flags_args(args):
     """
     Splits any /O args and returns them. Does not take care of flags overriding

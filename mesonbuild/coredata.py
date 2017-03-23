@@ -18,7 +18,7 @@ from .mesonlib import MesonException, commonpath
 from .mesonlib import default_libdir, default_libexecdir, default_prefix
 
 version = '0.40.0.dev1'
-backendlist = ['ninja', 'vs2010', 'vs2015', 'vs2017', 'xcode']
+backendlist = ['ninja', 'vs', 'vs2010', 'vs2015', 'vs2017', 'xcode']
 
 class UserOption:
     def __init__(self, name, description, choices):

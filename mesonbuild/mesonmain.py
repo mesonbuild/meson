@@ -145,6 +145,10 @@ If you want to change option values, use the mesonconf tool instead.'''
         if self.options.backend == 'ninja':
             from .backend import ninjabackend
             g = ninjabackend.NinjaBackend(b)
+        elif self.options.backend == 'vs':
+            from .backend import vs2010backend
+            g = vs2010backend.autodetect_vs_version(b)
+            mlog.log('Auto detected Visual Studio backend:', mlog.bold(g.name))
         elif self.options.backend == 'vs2010':
             from .backend import vs2010backend
             g = vs2010backend.Vs2010Backend(b)
