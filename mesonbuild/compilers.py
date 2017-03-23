@@ -369,7 +369,7 @@ class CompilerArgs(list):
     dedup2_args = ()
     # Arg prefixes and args that must be de-duped by returning 1
     dedup1_prefixes = ()
-    dedup1_args = ('-c', '-S', '-E', '-pipe')
+    dedup1_args = ('-c', '-S', '-E', '-pipe', '-pthread')
     compiler = None
 
     def _check_args(self, args):
@@ -413,7 +413,7 @@ class CompilerArgs(list):
            can safely remove the previous occurance and add a new one. The same
            is true for include paths and library paths with -I and -L. For
            these we return `2`. See `dedup2_prefixes` and `dedup2_args`.
-        b) Arguments that once specifie cannot be undone, such as `-c` or
+        b) Arguments that once specified cannot be undone, such as `-c` or
            `-pipe`. New instances of these can be completely skipped. For these
            we return `1`. See `dedup1_prefixes` and `dedup1_args`.
         c) Whether it matters where or how many times on the command-line
