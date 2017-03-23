@@ -2,10 +2,6 @@ project('custom target', 'c')
 
 python3 = import('python3').find_python()
 
-if meson.backend().startswith('vs')
-  error('MESON_SKIP_TEST: capturing of custom target output is broken with the VS backends')
-endif
-
 # Note that this will not add a dependency to the compiler executable.
 # Code will not be rebuilt if it changes.
 comp = '@0@/@1@'.format(meson.current_source_dir(), 'my_compiler.py')
