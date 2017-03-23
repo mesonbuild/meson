@@ -28,11 +28,12 @@ onlysoversion = shared_library('onlysoversion', 'lib.c',
 # Hack to make the executables below depend on the shared libraries above
 # without actually adding them as `link_with` dependencies since we want to try
 # linking to them with -lfoo linker arguments.
+cp = find_program('copyfile.py')
 out = custom_target('library-dependency-hack',
   input : 'exe.orig.c',
   output : 'exe.c',
   depends : [some, noversion, onlyversion, onlysoversion],
-  command : ['cp', '@INPUT@', '@OUTPUT@'])
+  command : [cp, '@INPUT@', '@OUTPUT@'])
 
 # Manually test if the linker can find the above libraries
 # i.e., whether they were generated with the right naming scheme
