@@ -391,13 +391,6 @@ class BuildTarget(Target):
                 raise InvalidArguments(msg)
 
     @staticmethod
-    def can_compile_sources(compiler, sources):
-        for s in sources:
-            if compiler.can_compile(s):
-                return True
-        return False
-
-    @staticmethod
     def can_compile_remove_sources(compiler, sources):
         removed = False
         for s in sources[:]:
@@ -442,13 +435,15 @@ class BuildTarget(Target):
                 if not s.endswith(lang_suffixes['vala']):
                     sources.append(s)
         if sources:
-            # Add compilers based on the above sources
-            for lang, compiler in compilers.items():
-                # We try to be conservative because sometimes people add files
-                # in the list of sources that we can't determine the type based
-                # just on the suffix.
-                if self.can_compile_sources(compiler, sources):
-                    self.compilers[lang] = compiler
+            # For each source, try to add one compiler that can compile it.
+            # It's ok if no compilers can do so, because users are expected to
+            # be able to add arbitrary non-source files to the sources list.
+            for s in sources:
+                for lang, compiler in compilers.items():
+                    if compiler.can_compile(s):
+                        if lang not in self.compilers:
+                            self.compilers[lang] = compiler
+                        break
         else:
             # No source files, target consists of only object files of unknown
             # origin. Just add the first clike compiler that we have and hope

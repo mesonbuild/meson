@@ -1752,10 +1752,22 @@ class Interpreter(InterpreterBase):
         self.coredata.compiler_options = new_options
         return comp, cross_comp
 
+    @staticmethod
+    def sort_clike(lang):
+        '''
+        Sorting function to sort the list of languages according to
+        reversed(compilers.clike_langs) and append the unknown langs in the end.
+        The purpose is to prefer C over C++ for files that can be compiled by
+        both such as assembly, C, etc. Also applies to ObjC, ObjC++, etc.
+        '''
+        if lang not in compilers.clike_langs:
+            return 1
+        return -compilers.clike_langs.index(lang)
+
     def add_languages(self, args, required):
         success = True
         need_cross_compiler = self.environment.is_cross_build() and self.environment.cross_info.need_cross_compiler()
-        for lang in args:
+        for lang in sorted(args, key=self.sort_clike):
             lang = lang.lower()
             if lang in self.coredata.compilers:
                 comp = self.coredata.compilers[lang]

@@ -14,6 +14,7 @@
 
 import pickle, os, uuid
 from pathlib import PurePath
+from collections import OrderedDict
 from .mesonlib import MesonException, commonpath
 from .mesonlib import default_libdir, default_libexecdir, default_prefix
 
@@ -128,8 +129,8 @@ class CoreData:
         else:
             self.cross_file = None
         self.wrap_mode = options.wrap_mode
-        self.compilers = {}
-        self.cross_compilers = {}
+        self.compilers = OrderedDict()
+        self.cross_compilers = OrderedDict()
         self.deps = {}
         self.modules = {}
         # Only to print a warning if it changes between Meson invocations.
