@@ -2267,6 +2267,7 @@ requirements use the version keyword argument instead.''')
                                        'they are mutually exclusive.')
         # Validate input
         inputfile = None
+        ifile_abs = None
         if 'input' in kwargs:
             inputfile = kwargs['input']
             if isinstance(inputfile, list):
@@ -2277,8 +2278,8 @@ requirements use the version keyword argument instead.''')
             if not isinstance(inputfile, (str, mesonlib.File)):
                 raise InterpreterException('Input must be a string or a file')
             ifile_abs = os.path.join(self.environment.source_dir, self.subdir, inputfile)
-        elif 'command' in kwargs:
-            raise InterpreterException('Required keyword argument \'input\' missing')
+        elif 'command' in kwargs and '@INPUT@' in kwargs['command']:
+            raise InterpreterException('@INPUT@ used as command argument, but no input file specified.')
         # Validate output
         output = kwargs['output']
         if not isinstance(output, str):
@@ -2307,7 +2308,10 @@ requirements use the version keyword argument instead.''')
             # We use absolute paths for input and output here because the cwd
             # that the command is run from is 'unspecified', so it could change.
             # Currently it's builddir/subdir for in_builddir else srcdir/subdir.
-            values = mesonlib.get_filenames_templates_dict([ifile_abs], [ofile_abs])
+            if ifile_abs:
+                values = mesonlib.get_filenames_templates_dict([ifile_abs], [ofile_abs])
+            else:
+                values = mesonlib.get_filenames_templates_dict(None, [ofile_abs])
             # Substitute @INPUT@, @OUTPUT@, etc here.
             cmd = mesonlib.substitute_values(kwargs['command'], values)
             mlog.log('Configuring', mlog.bold(output), 'with command')
