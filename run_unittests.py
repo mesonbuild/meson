@@ -24,7 +24,7 @@ from pathlib import PurePath
 import mesonbuild.compilers
 import mesonbuild.environment
 import mesonbuild.mesonlib
-from mesonbuild.mesonlib import is_windows, is_osx
+from mesonbuild.mesonlib import is_windows, is_osx, is_cygwin
 from mesonbuild.environment import detect_ninja, Environment
 from mesonbuild.dependencies import PkgConfigDependency, ExternalProgram
 
@@ -833,6 +833,8 @@ class AllPlatformTests(BasePlatformTests):
                     self.assertEqual(cc.gcc_type, mesonbuild.compilers.GCC_OSX)
                 elif is_windows():
                     self.assertEqual(cc.gcc_type, mesonbuild.compilers.GCC_MINGW)
+                elif is_cygwin():
+                    self.assertEqual(cc.gcc_type, mesonbuild.compilers.GCC_CYGWIN)
                 else:
                     self.assertEqual(cc.gcc_type, mesonbuild.compilers.GCC_STANDARD)
             if isinstance(cc, clang):

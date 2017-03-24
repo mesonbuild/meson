@@ -2309,6 +2309,7 @@ class VisualStudioCPPCompiler(VisualStudioCCompiler, CPPCompiler):
 GCC_STANDARD = 0
 GCC_OSX = 1
 GCC_MINGW = 2
+GCC_CYGWIN = 3
 
 CLANG_STANDARD = 0
 CLANG_OSX = 1
@@ -2324,7 +2325,7 @@ def get_gcc_soname_args(gcc_type, prefix, shlib_name, suffix, path, soversion, i
         sostr = ''
     else:
         sostr = '.' + soversion
-    if gcc_type == GCC_STANDARD or gcc_type == GCC_MINGW:
+    if gcc_type in (GCC_STANDARD, GCC_MINGW, GCC_CYGWIN):
         # Might not be correct for mingw but seems to work.
         return ['-Wl,-soname,%s%s.%s%s' % (prefix, shlib_name, suffix, sostr)]
     elif gcc_type == GCC_OSX:
@@ -2398,7 +2399,7 @@ class GnuCompiler:
             return self.defines[define]
 
     def get_pic_args(self):
-        if self.gcc_type in (GCC_MINGW, GCC_OSX):
+        if self.gcc_type in (GCC_CYGWIN, GCC_MINGW, GCC_OSX):
             return [] # On Window and OS X, pic is always on.
         return ['-fPIC']
 
@@ -2796,7 +2797,7 @@ class FortranCompiler(Compiler):
         return ' '.join(self.exelist)
 
     def get_pic_args(self):
-        if self.gcc_type in (GCC_MINGW, GCC_OSX):
+        if self.gcc_type in (GCC_CYGWIN, GCC_MINGW, GCC_OSX):
             return [] # On Window and OS X, pic is always on.
         return ['-fPIC']
 

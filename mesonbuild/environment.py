@@ -368,7 +368,8 @@ class Environment:
             return GCC_OSX
         elif '__MINGW32__' in defines or '__MINGW64__' in defines:
             return GCC_MINGW
-        # We ignore Cygwin for now, and treat it as a standard GCC
+        elif '__CYGWIN__' in defines:
+            return GCC_CYGWIN
         return GCC_STANDARD
 
     def _get_compilers(self, lang, evar, want_cross):
