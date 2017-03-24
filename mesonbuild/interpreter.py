@@ -1938,8 +1938,14 @@ class Interpreter(InterpreterBase):
         try:
             dep = self.subprojects[dirname].get_variable_method([varname], {})
         except KeyError:
-            raise InvalidCode('Fallback variable {!r} in the subproject '
-                              '{!r} does not exist'.format(varname, dirname))
+            if kwargs.get('required', True):
+                m = 'Fallback variable {!r} in the subproject {!r} does not exist'
+                raise DependencyException(m.format(varname, dirname))
+            # If the dependency is not required, don't raise an exception
+            mlog.log('Also couldn\'t find the dependency', mlog.bold(name),
+                     'in the fallback subproject',
+                     mlog.bold(os.path.join(self.subproject_dir, dirname)))
+            return None
         if not isinstance(dep, DependencyHolder):
             raise InvalidCode('Fallback variable {!r} in the subproject {!r} is '
                               'not a dependency object.'.format(varname, dirname))
