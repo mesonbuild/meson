@@ -5,7 +5,11 @@ bob = dependency('boblib', fallback : ['boblib', 'bob_dep'], required: false,
 if not bob.found()
     error('Bob is actually needed')
 endif
+# boblib subproject exists, but sita_dep doesn't exist
+sita = dependency('sitalib', fallback : ['boblib', 'sita_dep'], required: false)
+# jimmylib subproject doesn't exist
 jimmy = dependency('jimmylib', fallback : ['jimmylib', 'jimmy_dep'], required: false)
+# dummylib subproject fails to configure
 dummy = dependency('dummylib', fallback : ['dummylib', 'dummy_dep'], required: false)
 
 gensrc_py = find_program('gensrc.py')
