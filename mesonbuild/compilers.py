@@ -514,6 +514,11 @@ class Compiler:
         self.version = version
         self.base_options = []
 
+    def __repr__(self):
+        repr_str = "<{0}: v{1} `{2}`>"
+        return repr_str.format(self.__class__.__name__, self.version,
+                               ' '.join(self.exelist))
+
     def can_compile(self, src):
         if hasattr(src, 'fname'):
             src = src.fname
