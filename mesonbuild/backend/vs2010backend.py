@@ -27,6 +27,29 @@ from ..compilers import CompilerArgs
 from ..mesonlib import MesonException, File
 from ..environment import Environment
 
+def autodetect_vs_version(build):
+    vs_version = os.getenv('VisualStudioVersion', None)
+    if vs_version:
+        if vs_version == '14.0':
+            from mesonbuild.backend.vs2015backend import Vs2015Backend
+            return Vs2015Backend(build)
+        if vs_version == '15.0':
+            from mesonbuild.backend.vs2017backend import Vs2017Backend
+            return Vs2017Backend(build)
+        raise MesonException('Could not detect Visual Studio (unknown Visual Studio version: "{}")!\n'
+                             'Please specify the exact backend to use.'.format(vs_version))
+
+    vs_install_dir = os.getenv('VSINSTALLDIR', None)
+    if not vs_install_dir:
+        raise MesonException('Could not detect Visual Studio (neither VisualStudioVersion nor VSINSTALLDIR set in '
+                             'environment)!\nPlease specify the exact backend to use.')
+
+    if 'Visual Studio 10.0' in vs_install_dir:
+        return Vs2010Backend(build)
+
+    raise MesonException('Could not detect Visual Studio (unknown VSINSTALLDIR: "{}")!\n'
+                         'Please specify the exact backend to use.'.format(vs_install_dir))
+
 def split_o_flags_args(args):
     """
     Splits any /O args and returns them. Does not take care of flags overriding
@@ -62,6 +85,7 @@ class Vs2010Backend(backends.Backend):
         self.sources_conflicts = {}
         self.platform_toolset = None
         self.vs_version = '2010'
+        self.windows_target_platform_version = None
 
     def object_filename_from_source(self, target, source):
         basename = os.path.basename(source.fname)
@@ -354,6 +378,8 @@ class Vs2010Backend(backends.Backend):
         p.text = self.platform
         pname = ET.SubElement(globalgroup, 'ProjectName')
         pname.text = project_name
+        if self.windows_target_platform_version:
+            ET.SubElement(globalgroup, 'WindowsTargetPlatformVersion').text = self.windows_target_platform_version
         ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.Default.props')
         type_config = ET.SubElement(root, 'PropertyGroup', Label='Configuration')
         ET.SubElement(type_config, 'ConfigurationType')
@@ -598,6 +624,8 @@ class Vs2010Backend(backends.Backend):
         p.text = self.platform
         pname = ET.SubElement(globalgroup, 'ProjectName')
         pname.text = project_name
+        if self.windows_target_platform_version:
+            ET.SubElement(globalgroup, 'WindowsTargetPlatformVersion').text = self.windows_target_platform_version
         ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.Default.props')
         # Start configuration
         type_config = ET.SubElement(root, 'PropertyGroup', Label='Configuration')
@@ -1015,6 +1043,8 @@ class Vs2010Backend(backends.Backend):
         p.text = self.platform
         pname = ET.SubElement(globalgroup, 'ProjectName')
         pname.text = project_name
+        if self.windows_target_platform_version:
+            ET.SubElement(globalgroup, 'WindowsTargetPlatformVersion').text = self.windows_target_platform_version
         ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.Default.props')
         type_config = ET.SubElement(root, 'PropertyGroup', Label='Configuration')
         ET.SubElement(type_config, 'ConfigurationType').text = "Utility"
@@ -1094,6 +1124,8 @@ if %%errorlevel%% neq 0 goto :VCEnd'''
         p.text = self.platform
         pname = ET.SubElement(globalgroup, 'ProjectName')
         pname.text = project_name
+        if self.windows_target_platform_version:
+            ET.SubElement(globalgroup, 'WindowsTargetPlatformVersion').text = self.windows_target_platform_version
         ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.Default.props')
         type_config = ET.SubElement(root, 'PropertyGroup', Label='Configuration')
         ET.SubElement(type_config, 'ConfigurationType')
