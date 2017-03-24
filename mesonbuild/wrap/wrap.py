@@ -37,6 +37,13 @@ def build_ssl_context():
     ctx.load_default_certs()
     return ctx
 
+def quiet_git(cmd):
+    pc = subprocess.Popen(['git'] + cmd, stdout=subprocess.PIPE)
+    out, err = pc.communicate()
+    if pc.returncode != 0:
+        return False, err
+    return True, out
+
 def open_wrapdburl(urlstring):
     global ssl_warning_printed
     if has_ssl:
@@ -94,24 +101,31 @@ class Resolver:
     def resolve(self, packagename):
         # Check if the directory is already resolved
         dirname = Path(os.path.join(self.subdir_root, packagename))
+        subprojdir = os.path.join(*dirname.parts[-2:])
         if dirname.is_dir():
             if (dirname / 'meson.build').is_file():
                 # The directory is there and has meson.build? Great, use it.
                 return packagename
-             # Is the dir not empty and also not a git submodule dir that is
-             # not checkout properly? Can't do anything, exception!
+            # Is the dir not empty and also not a git submodule dir that is
+            # not checkout properly? Can't do anything, exception!
             elif next(dirname.iterdir(), None) and not (dirname / '.git').is_file():
                 m = '{!r} is not empty and has no meson.build files'
-                raise RuntimeError(m.format(dirname))
+                raise RuntimeError(m.format(subprojdir))
         elif dirname.exists():
-            m = '{!r} is not a directory, can not use as subproject'
-            raise RuntimeError(m.format(dirname))
+            m = '{!r} already exists and is not a dir; cannot use as subproject'
+            raise RuntimeError(m.format(subprojdir))
+
+        dirname = str(dirname)
+        # Check if the subproject is a git submodule
+        if self.resolve_git_submodule(dirname):
+            return packagename
 
         # Check if there's a .wrap file for this subproject
         fname = os.path.join(self.subdir_root, packagename + '.wrap')
         if not os.path.isfile(fname):
             # No wrap file with this name? Give up.
-            return None
+            m = 'No {}.wrap found for {!r}'
+            raise RuntimeError(m.format(packagename, subprojdir))
         p = PackageDefinition(fname)
         if p.type == 'file':
             if not os.path.isdir(self.cachedir):
@@ -123,8 +137,30 @@ class Resolver:
         elif p.type == "hg":
             self.get_hg(p)
         else:
-            raise RuntimeError('Unreachable code.')
+            raise AssertionError('Unreachable code.')
         return p.get('directory')
+
+    def resolve_git_submodule(self, dirname):
+        # Are we in a git repository?
+        ret, out = quiet_git(['rev-parse'])
+        if not ret:
+            return False
+        # Is `dirname` a submodule?
+        ret, out = quiet_git(['submodule', 'status', dirname])
+        if not ret:
+            return False
+        # Submodule has not been added, add it
+        if out.startswith(b'-'):
+            if subprocess.call(['git', 'submodule', 'update', dirname]) != 0:
+                return False
+        # Submodule was added already, but it wasn't populated. Do a checkout.
+        elif out.startswith(b' '):
+            if subprocess.call(['git', 'checkout', '.'], cwd=dirname):
+                return True
+        else:
+            m = 'Unknown git submodule output: {!r}'
+            raise AssertionError(m.format(out))
+        return True
 
     def get_git(self, p):
         checkoutdir = os.path.join(self.subdir_root, p.get('directory'))

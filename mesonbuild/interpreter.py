@@ -1498,11 +1498,13 @@ class Interpreter(InterpreterBase):
             raise InvalidCode('Recursive include of subprojects: %s.' % incpath)
         if dirname in self.subprojects:
             return self.subprojects[dirname]
-        r = wrap.Resolver(os.path.join(self.build.environment.get_source_dir(), self.subproject_dir))
-        resolved = r.resolve(dirname)
-        if resolved is None:
-            msg = 'Subproject directory {!r} does not exist and cannot be downloaded.'
-            raise InterpreterException(msg.format(os.path.join(self.subproject_dir, dirname)))
+        subproject_dir_abs = os.path.join(self.environment.get_source_dir(), self.subproject_dir)
+        r = wrap.Resolver(subproject_dir_abs)
+        try:
+            resolved = r.resolve(dirname)
+        except RuntimeError as e:
+            msg = 'Subproject directory {!r} does not exist and cannot be downloaded:\n{}'
+            raise InterpreterException(msg.format(os.path.join(self.subproject_dir, dirname), e))
         subdir = os.path.join(self.subproject_dir, resolved)
         os.makedirs(os.path.join(self.build.environment.get_build_dir(), subdir), exist_ok=True)
         self.args_frozen = True
