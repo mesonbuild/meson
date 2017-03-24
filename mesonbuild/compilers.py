@@ -550,11 +550,11 @@ class Compiler:
     def get_exelist(self):
         return self.exelist[:]
 
-    def get_define(self, *args, **kwargs):
-        raise EnvironmentException('%s does not support get_define.' % self.id)
+    def get_builtin_define(self, *args, **kwargs):
+        raise EnvironmentException('%s does not support get_builtin_define.' % self.id)
 
-    def has_define(self, *args, **kwargs):
-        raise EnvironmentException('%s does not support has_define.' % self.id)
+    def has_builtin_define(self, *args, **kwargs):
+        raise EnvironmentException('%s does not support has_builtin_define.' % self.id)
 
     def get_always_args(self):
         return []
@@ -2382,10 +2382,10 @@ class GnuCompiler:
             args[args.index('-Wpedantic')] = '-pedantic'
         return args
 
-    def has_define(self, define):
+    def has_builtin_define(self, define):
         return define in self.defines
 
-    def get_define(self, define):
+    def get_builtin_define(self, define):
         if define in self.defines:
             return self.defines[define]
 
@@ -2896,10 +2896,10 @@ class GnuFortranCompiler(FortranCompiler):
         self.defines = defines or {}
         self.id = 'gcc'
 
-    def has_define(self, define):
+    def has_builtin_define(self, define):
         return define in self.defines
 
-    def get_define(self, define):
+    def get_builtin_define(self, define):
         if define in self.defines:
             return self.defines[define]
 

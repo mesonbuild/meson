@@ -102,7 +102,7 @@ def detect_windows_arch(compilers):
             platform = os.environ.get('Platform', 'x86').lower()
             if platform == 'x86':
                 return platform
-        if compiler.id == 'gcc' and compiler.has_define('__i386__'):
+        if compiler.id == 'gcc' and compiler.has_builtin_define('__i386__'):
             return 'x86'
     return os_arch
 
@@ -129,10 +129,10 @@ def detect_cpu_family(compilers):
         # to know is to check the compiler defines.
         for c in compilers.values():
             try:
-                if c.has_define('__i386__'):
+                if c.has_builtin_define('__i386__'):
                     return 'x86'
             except mesonlib.MesonException:
-                # Ignore compilers that do not support has_define.
+                # Ignore compilers that do not support has_builtin_define.
                 pass
         return 'x86_64'
     # Add fixes here as bugs are reported.
@@ -149,7 +149,7 @@ def detect_cpu(compilers):
         # Same check as above for cpu_family
         for c in compilers.values():
             try:
-                if c.has_define('__i386__'):
+                if c.has_builtin_define('__i386__'):
                     return 'i686' # All 64 bit cpus have at least this level of x86 support.
             except mesonlib.MesonException:
                 pass
