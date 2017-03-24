@@ -947,6 +947,21 @@ class AllPlatformTests(BasePlatformTests):
             m = re.search('build c-asm.*: c_LINKER', contents)
         self.assertIsNotNone(m, msg=contents)
 
+    def test_preprocessor_checks_CPPFLAGS(self):
+        '''
+        Test that preprocessor compiler checks read CPPFLAGS but not CFLAGS
+        '''
+        testdir = os.path.join(self.common_test_dir, '140 get define')
+        define = 'MESON_TEST_DEFINE_VALUE'
+        # NOTE: this list can't have \n, ' or "
+        # \n is never substituted by the GNU pre-processor via a -D define
+        # ' and " confuse shlex.split() even when they are escaped
+        # % and # confuse the MSVC preprocessor
+        value = 'spaces and fun!@$^&*()-=_+{}[]:;<>?,./~`'
+        os.environ['CPPFLAGS'] = '-D{}="{}"'.format(define, value)
+        os.environ['CFLAGS'] = '-DMESON_FAIL_VALUE=cflags-read'.format(define)
+        self.init(testdir, ['-D{}={}'.format(define, value)])
+
 
 class WindowsTests(BasePlatformTests):
     '''

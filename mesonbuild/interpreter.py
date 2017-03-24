@@ -1787,9 +1787,10 @@ class Interpreter(InterpreterBase):
                         raise
             mlog.log('Native %s compiler: ' % lang, mlog.bold(' '.join(comp.get_exelist())), ' (%s %s)' % (comp.id, comp.version), sep='')
             if not comp.get_language() in self.coredata.external_args:
-                (ext_compile_args, ext_link_args) = environment.get_args_from_envvars(comp)
-                self.coredata.external_args[comp.get_language()] = ext_compile_args
-                self.coredata.external_link_args[comp.get_language()] = ext_link_args
+                (preproc_args, compile_args, link_args) = environment.get_args_from_envvars(comp)
+                self.coredata.external_preprocess_args[comp.get_language()] = preproc_args
+                self.coredata.external_args[comp.get_language()] = compile_args
+                self.coredata.external_link_args[comp.get_language()] = link_args
             self.build.add_compiler(comp)
             if need_cross_compiler:
                 mlog.log('Cross %s compiler: ' % lang, mlog.bold(' '.join(cross_comp.get_exelist())), ' (%s %s)' % (cross_comp.id, cross_comp.version), sep='')

@@ -770,7 +770,7 @@ def get_args_from_envvars(compiler):
         compiler_is_linker = (compiler.get_exelist() == compiler.get_linker_exelist())
 
     if lang not in ('c', 'cpp', 'objc', 'objcpp', 'fortran', 'd'):
-        return [], []
+        return [], [], []
 
     # Compile flags
     cflags_mapping = {'c': 'CFLAGS',
@@ -794,7 +794,7 @@ def get_args_from_envvars(compiler):
         # this when the linker is stand-alone such as with MSVC C/C++, etc.
         link_flags = compile_flags + link_flags
 
-    # Pre-processof rlags (not for fortran)
+    # Pre-processor flags (not for fortran or D)
     preproc_flags = ''
     if lang in ('c', 'cpp', 'objc', 'objcpp'):
         preproc_flags = os.environ.get('CPPFLAGS', '')
@@ -802,7 +802,7 @@ def get_args_from_envvars(compiler):
     preproc_flags = shlex.split(preproc_flags)
     compile_flags += preproc_flags
 
-    return compile_flags, link_flags
+    return preproc_flags, compile_flags, link_flags
 
 class CrossBuildInfo:
     def __init__(self, filename):

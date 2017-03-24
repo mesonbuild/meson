@@ -953,12 +953,14 @@ class CCompiler(Compiler):
         # Read c_args/cpp_args/etc from the cross-info file (if needed)
         args += self.get_cross_extra_flags(env, compile=(mode != 'preprocess'),
                                            link=(mode == 'link'))
-        # Add CFLAGS/CXXFLAGS/OBJCFLAGS/OBJCXXFLAGS from the env
-        # We assume that the user has ensured these are compiler-specific
-        args += env.coredata.external_args[self.language]
-        # Add LDFLAGS from the env. We assume that the user has ensured these
-        # are compiler-specific
-        if mode == 'link':
+        if mode == 'preprocess':
+            # Add CPPFLAGS from the env.
+            args += env.coredata.external_preprocess_args[self.language]
+        elif mode == 'compile':
+            # Add CFLAGS/CXXFLAGS/OBJCFLAGS/OBJCXXFLAGS from the env
+            args += env.coredata.external_args[self.language]
+        elif mode == 'link':
+            # Add LDFLAGS from the env
             args += env.coredata.external_link_args[self.language]
         args += self.get_compiler_check_args()
         # extra_args must override all other arguments, so we add them last
