@@ -781,12 +781,12 @@ def get_args_from_envvars(compiler):
                       'd': 'DFLAGS'}
     compile_flags = os.environ.get(cflags_mapping[lang], '')
     log_var(cflags_mapping[lang], compile_flags)
-    compile_flags = compile_flags.split()
+    compile_flags = shlex.split(compile_flags)
 
     # Link flags (same for all languages)
     link_flags = os.environ.get('LDFLAGS', '')
     log_var('LDFLAGS', link_flags)
-    link_flags = link_flags.split()
+    link_flags = shlex.split(link_flags)
     if compiler_is_linker:
         # When the compiler is used as a wrapper around the linker (such as
         # with GCC and Clang), the compile flags can be needed while linking
@@ -799,7 +799,8 @@ def get_args_from_envvars(compiler):
     if lang in ('c', 'cpp', 'objc', 'objcpp'):
         preproc_flags = os.environ.get('CPPFLAGS', '')
     log_var('CPPFLAGS', preproc_flags)
-    compile_flags += preproc_flags.split()
+    preproc_flags = shlex.split(preproc_flags)
+    compile_flags += preproc_flags
 
     return compile_flags, link_flags
 
