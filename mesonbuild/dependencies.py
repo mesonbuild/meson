@@ -112,6 +112,7 @@ class PkgConfigDependency(Dependency):
         else:
             self.want_cross = environment.is_cross_build()
         self.name = name
+        self.modversion = 'none'
 
         # When finding dependencies for cross-compiling, we don't care about
         # the 'native' pkg-config
@@ -154,7 +155,6 @@ class PkgConfigDependency(Dependency):
             if self.required:
                 raise DependencyException('{} dependency {!r} not found'
                                           ''.format(self.type_string, name))
-            self.modversion = 'none'
             return
         found_msg = [self.type_string + ' dependency', mlog.bold(name), 'found:']
         self.version_reqs = kwargs.get('version', None)
