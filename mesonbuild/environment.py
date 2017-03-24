@@ -377,16 +377,30 @@ class Environment:
         C, C++, ObjC, ObjC++, Fortran so consolidate it here.
         '''
         if self.is_cross_build() and want_cross:
-            compilers = [mesonlib.stringlistify(self.cross_info.config['binaries'][lang])]
-            ccache = []
+            compilers = mesonlib.stringlistify(self.cross_info.config['binaries'][lang])
+            # Ensure ccache exists and remove it if it doesn't
+            if compilers[0] == 'ccache':
+                compilers = compilers[1:]
+                ccache = self.detect_ccache()
+            else:
+                ccache = []
+            # Return value has to be a list of compiler 'choices'
+            compilers = [compilers]
             is_cross = True
             if self.cross_info.need_exe_wrapper():
                 exe_wrap = self.cross_info.config['binaries'].get('exe_wrapper', None)
             else:
                 exe_wrap = []
         elif evar in os.environ:
-            compilers = [shlex.split(os.environ[evar])]
-            ccache = []
+            compilers = shlex.split(os.environ[evar])
+            # Ensure ccache exists and remove it if it doesn't
+            if compilers[0] == 'ccache':
+                compilers = compilers[1:]
+                ccache = self.detect_ccache()
+            else:
+                ccache = []
+            # Return value has to be a list of compiler 'choices'
+            compilers = [compilers]
             is_cross = False
             exe_wrap = None
         else:
