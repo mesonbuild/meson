@@ -36,6 +36,16 @@ configure_file(input : 'dummy.dat',
   install_dir : 'share/appdir')
 run_command(check_file, join_paths(meson.current_build_dir(), 'config2.h'))
 
+# Same again as before, but an input file should not be required in
+# this case where we use a command/script to generate the output file.
+genscript2b = '@0@/generator-without-input-file.py'.format(meson.current_source_dir())
+ofile2b = '@0@/config2b.h'.format(meson.current_build_dir())
+configure_file(
+  output : 'config2b.h',
+  command : [genprog, genscript2b, ofile2b],
+  install_dir : 'share/appdir')
+run_command(check_file, join_paths(meson.current_build_dir(), 'config2b.h'))
+
 found_script = find_program('generator.py')
 # More configure_file tests in here
 subdir('subdir')
