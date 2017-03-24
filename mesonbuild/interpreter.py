@@ -1407,7 +1407,7 @@ class Interpreter(InterpreterBase):
         if not isinstance(sources, list):
             sources = [sources]
         sources = self.source_strings_to_files(self.flatten(sources))
-        deps = kwargs.get('dependencies', [])
+        deps = self.flatten(kwargs.get('dependencies', []))
         if not isinstance(deps, list):
             deps = [deps]
         compile_args = mesonlib.stringlistify(kwargs.get('compile_args', []))
