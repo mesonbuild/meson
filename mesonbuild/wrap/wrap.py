@@ -17,6 +17,7 @@ import contextlib
 import urllib.request, os, hashlib, shutil
 import subprocess
 import sys
+from pathlib import Path
 
 try:
     import ssl
@@ -91,21 +92,23 @@ class Resolver:
         self.cachedir = os.path.join(self.subdir_root, 'packagecache')
 
     def resolve(self, packagename):
-        fname = os.path.join(self.subdir_root, packagename + '.wrap')
-        dirname = os.path.join(self.subdir_root, packagename)
-        try:
-            if os.listdir(dirname):
-                # The directory is there and not empty? Great, use it.
+        # Check if the directory is already resolved
+        dirname = Path(os.path.join(self.subdir_root, packagename))
+        if dirname.is_dir():
+            if (dirname / 'meson.build').is_file():
+                # The directory is there and has meson.build? Great, use it.
                 return packagename
-            else:
-                mlog.warning('Subproject directory %s is empty, possibly because of an unfinished'
-                             'checkout, removing to reclone' % dirname)
-                os.rmdir(dirname)
-        except NotADirectoryError:
-            raise RuntimeError('%s is not a directory, can not use as subproject.' % dirname)
-        except FileNotFoundError:
-            pass
+             # Is the dir not empty and also not a git submodule dir that is
+             # not checkout properly? Can't do anything, exception!
+            elif next(dirname.iterdir(), None) and not (dirname / '.git').is_file():
+                m = '{!r} is not empty and has no meson.build files'
+                raise RuntimeError(m.format(dirname))
+        elif dirname.exists():
+            m = '{!r} is not a directory, can not use as subproject'
+            raise RuntimeError(m.format(dirname))
 
+        # Check if there's a .wrap file for this subproject
+        fname = os.path.join(self.subdir_root, packagename + '.wrap')
         if not os.path.isfile(fname):
             # No wrap file with this name? Give up.
             return None
