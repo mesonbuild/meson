@@ -75,15 +75,16 @@ class OptionInterpreter:
         self.cmd_line_options = {}
         for o in command_line_options:
             if self.subproject != '': # Strip the beginning.
+                # Ignore options that aren't for this subproject
                 if not o.startswith(self.sbprefix):
-                    continue
-            else:
-                if ':' in o:
                     continue
             try:
                 (key, value) = o.split('=', 1)
             except ValueError:
                 raise OptionException('Option {!r} must have a value separated by equals sign.'.format(o))
+            # Ignore subproject options if not fetching subproject options
+            if self.subproject == '' and ':' in key:
+                continue
             self.cmd_line_options[key] = value
 
     def process(self, option_file):
