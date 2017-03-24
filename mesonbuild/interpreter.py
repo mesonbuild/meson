@@ -1613,6 +1613,8 @@ class Interpreter(InterpreterBase):
 
     @stringArgs
     def func_project(self, node, args, kwargs):
+        if len(args) < 1:
+            raise InvalidArguments('Not enough arguments to project(). Needs at least the project name.')
         default_options = kwargs.get('default_options', [])
         if self.environment.first_invocation and (len(default_options) > 0 or
                                                   len(self.default_project_options) > 0):
@@ -1625,8 +1627,6 @@ class Interpreter(InterpreterBase):
                                                   )
             oi.process(self.option_file)
             self.build.environment.merge_options(oi.options)
-        if len(args) < 2:
-            raise InvalidArguments('Not enough arguments to project(). Needs at least the project name and one language')
         self.active_projectname = args[0]
         self.project_version = kwargs.get('version', 'undefined')
         if self.build.project_version is None:
