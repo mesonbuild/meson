@@ -22,7 +22,7 @@ from . import optinterpreter
 from . import compilers
 from .wrap import wrap
 from . import mesonlib
-from .mesonlib import FileMode, Popen_safe
+from .mesonlib import FileMode, Popen_safe, get_meson_script
 from .dependencies import InternalDependency, Dependency
 from .interpreterbase import InterpreterBase
 from .interpreterbase import check_stringlist, noPosargs, noKwargs, stringArgs
@@ -72,20 +72,21 @@ class TryRunResultHolder(InterpreterObject):
 
 class RunProcess(InterpreterObject):
 
-    def __init__(self, command_array, source_dir, build_dir, subdir, in_builddir=False):
+    def __init__(self, command_array, source_dir, build_dir, subdir, mesonintrospect, in_builddir=False):
         super().__init__()
-        pc, self.stdout, self.stderr = self.run_command(command_array, source_dir, build_dir, subdir, in_builddir)
+        pc, self.stdout, self.stderr = self.run_command(command_array, source_dir, build_dir, subdir, mesonintrospect, in_builddir)
         self.returncode = pc.returncode
         self.methods.update({'returncode': self.returncode_method,
                              'stdout': self.stdout_method,
                              'stderr': self.stderr_method,
                              })
 
-    def run_command(self, command_array, source_dir, build_dir, subdir, in_builddir):
+    def run_command(self, command_array, source_dir, build_dir, subdir, mesonintrospect, in_builddir):
         cmd_name = command_array[0]
         env = {'MESON_SOURCE_ROOT': source_dir,
                'MESON_BUILD_ROOT': build_dir,
-               'MESON_SUBDIR': subdir}
+               'MESON_SUBDIR': subdir,
+               'MESONINTROSPECT': mesonintrospect}
         if in_builddir:
             cwd = os.path.join(build_dir, subdir)
         else:
@@ -1474,8 +1475,8 @@ class Interpreter(InterpreterBase):
         in_builddir = kwargs.get('in_builddir', False)
         if not isinstance(in_builddir, bool):
             raise InterpreterException('in_builddir must be boolean.')
-        return RunProcess(args, self.environment.source_dir, self.environment.build_dir,
-                          self.subdir, in_builddir)
+        return RunProcess(args, self.environment.source_dir, self.environment.build_dir, self.subdir,
+                          get_meson_script(self.environment, 'mesonintrospect'), in_builddir)
 
     @stringArgs
     def func_gettext(self, nodes, args, kwargs):

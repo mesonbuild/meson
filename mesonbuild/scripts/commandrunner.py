@@ -17,11 +17,11 @@ what to run, sets up the environment and executes the command."""
 
 import sys, os, subprocess, shutil
 
-def run_command(source_dir, build_dir, subdir, command, arguments):
+def run_command(source_dir, build_dir, subdir, mesonintrospect, command, arguments):
     env = {'MESON_SOURCE_ROOT': source_dir,
            'MESON_BUILD_ROOT': build_dir,
            'MESON_SUBDIR': subdir,
-           }
+           'MESONINTROSPECT': mesonintrospect}
     cwd = os.path.join(source_dir, subdir)
     child_env = os.environ.copy()
     child_env.update(env)
@@ -47,9 +47,10 @@ def run(args):
     src_dir = args[0]
     build_dir = args[1]
     subdir = args[2]
-    command = args[3]
-    arguments = args[4:]
-    pc = run_command(src_dir, build_dir, subdir, command, arguments)
+    mesonintrospect = args[3]
+    command = args[4]
+    arguments = args[5:]
+    pc = run_command(src_dir, build_dir, subdir, mesonintrospect, command, arguments)
     pc.wait()
     return pc.returncode
 

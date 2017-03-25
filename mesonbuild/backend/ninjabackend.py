@@ -20,7 +20,8 @@ from .. import mlog
 from .. import dependencies
 from .. import compilers
 from ..compilers import CompilerArgs
-from ..mesonlib import File, MesonException, get_compiler_for_source, Popen_safe
+from ..mesonlib import File, MesonException
+from ..mesonlib import get_meson_script, get_compiler_for_source, Popen_safe
 from .backends import CleanTrees, InstallData
 from ..build import InvalidArguments
 import os, sys, pickle, re
@@ -514,7 +515,7 @@ int dummy;
         self.processed_targets[target.name + target.type_suffix()] = True
 
     def generate_run_target(self, target, outfile):
-        runnerscript = [sys.executable, self.environment.get_build_command(), '--internal', 'commandrunner']
+        cmd = [sys.executable, self.environment.get_build_command(), '--internal', 'commandrunner']
         deps = self.unwrap_dep_list(target)
         arg_strings = []
         for i in target.args:
@@ -530,7 +531,10 @@ int dummy;
             else:
                 raise AssertionError('Unreachable code in generate_run_target: ' + str(i))
         elem = NinjaBuildElement(self.all_outputs, target.name, 'CUSTOM_COMMAND', [])
-        cmd = runnerscript + [self.environment.get_source_dir(), self.environment.get_build_dir(), target.subdir]
+        cmd += [self.environment.get_source_dir(),
+                self.environment.get_build_dir(),
+                target.subdir,
+                get_meson_script(self.environment, 'mesonintrospect')]
         texe = target.command
         try:
             texe = texe.held_object
@@ -607,7 +611,8 @@ int dummy;
         d = InstallData(self.environment.get_source_dir(),
                         self.environment.get_build_dir(),
                         self.environment.get_prefix(),
-                        strip_bin)
+                        strip_bin,
+                        get_meson_script(self.environment, 'mesonintrospect'))
         elem = NinjaBuildElement(self.all_outputs, 'install', 'CUSTOM_COMMAND', 'PHONY')
         elem.add_dep('all')
         elem.add_item('DESC', 'Installing files.')
@@ -728,9 +733,7 @@ int dummy;
 
     def generate_tests(self, outfile):
         self.serialise_tests()
-        meson_exe = self.environment.get_build_command()
-        (base, ext) = os.path.splitext(meson_exe)
-        test_exe = base + 'test' + ext
+        test_exe = get_meson_script(self.environment, 'mesontest')
         cmd = [sys.executable, test_exe, '--no-rebuild']
         if not self.environment.coredata.get_builtin_option('stdsplit'):
             cmd += ['--no-stdsplit']
