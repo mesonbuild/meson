@@ -13,10 +13,12 @@
 # limitations under the License.
 
 import sys
+import sysconfig
 from .. import mesonlib, dependencies
 
 from . import ExtensionModule
 from mesonbuild.modules import ModuleReturnValue
+
 
 class Python3Module(ExtensionModule):
     def __init__(self):
@@ -44,6 +46,12 @@ class Python3Module(ExtensionModule):
     def find_python(self, state, args, kwargs):
         py3 = dependencies.ExternalProgram('python3', sys.executable, silent=True)
         return ModuleReturnValue(py3, [py3])
+
+    def language_version(self, state, args, kwargs):
+        if args or kwargs:
+            raise mesonlib.MesonException('language_version() takes no arguments.')
+        return ModuleReturnValue(sysconfig.get_python_version(), [])
+
 
 def initialize():
     return Python3Module()
