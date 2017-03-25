@@ -10,12 +10,12 @@ build system.
 [![Travis](https://travis-ci.org/mesonbuild/meson.svg?branch=master)](https://travis-ci.org/mesonbuild/meson)
 [![Appveyor](https://ci.appveyor.com/api/projects/status/l5c8v71ninew2i3p?svg=true)](https://ci.appveyor.com/project/jpakkane/meson)
 
-####Dependencies
+#### Dependencies
 
  - [Python](http://python.org) (version 3.4 or newer)
  - [Ninja](https://ninja-build.org) (version 1.5 or newer)
 
-####Installing from source
+#### Installing from source
 
 You can run Meson directly from a revision control checkout or an
 extracted tarball. If you wish you can install it locally with the
@@ -44,7 +44,7 @@ This will zip all files inside the source checkout into the script
 which includes hundreds of tests, so you might want to temporarily
 remove those before running it.
 
-####Running
+#### Running
 
 Meson requires that you have a source directory and a build directory
 and that these two are different. In your source root must exist a file
@@ -77,18 +77,18 @@ Install is the same but it can take an extra argument:
 you may need to run this command with sudo.
 
 
-####Contributing
+#### Contributing
 
 We love code contributions. See the contributing.txt file for
 details.
 
 
-####IRC
+#### IRC
 
 The irc channel for Meson is `#mesonbuild` over at Freenode.
 
 
-####Further info
+#### Further info
 
 More information about the Meson build system can be found at the
 [project's home page](http://mesonbuild.com).
