@@ -1822,10 +1822,12 @@ rule FORTRAN_DEP_HACK
         # and from `include_directories:` of internal deps of the target.
         #
         # Target include dirs should override internal deps include dirs.
+        # This is handled in BuildTarget.process_kwargs()
         #
         # Include dirs from internal deps should override include dirs from
-        # external deps.
-        for i in target.get_include_dirs():
+        # external deps and must maintain the order in which they are specified.
+        # Hence, we must reverse the list so that the order is preserved.
+        for i in reversed(target.get_include_dirs()):
             basedir = i.get_curdir()
             for d in i.get_incdirs():
                 # Avoid superfluous '/.' at the end of paths when d is '.'
