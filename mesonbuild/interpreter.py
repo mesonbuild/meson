@@ -20,7 +20,7 @@ from . import mlog
 from . import build
 from . import optinterpreter
 from . import compilers
-from .wrap import wrap
+from .wrap import wrap, WrapMode
 from . import mesonlib
 from .mesonlib import FileMode, Popen_safe
 from .dependencies import InternalDependency, Dependency
@@ -1499,7 +1499,7 @@ class Interpreter(InterpreterBase):
         if dirname in self.subprojects:
             return self.subprojects[dirname]
         subproject_dir_abs = os.path.join(self.environment.get_source_dir(), self.subproject_dir)
-        r = wrap.Resolver(subproject_dir_abs)
+        r = wrap.Resolver(subproject_dir_abs, self.coredata.wrap_mode)
         try:
             resolved = r.resolve(dirname)
         except RuntimeError as e:
@@ -1911,6 +1911,11 @@ requirements use the version keyword argument instead.''')
         return fbinfo
 
     def dependency_fallback(self, name, kwargs):
+        if self.coredata.wrap_mode in (WrapMode.nofallback, WrapMode.nodownload):
+            mlog.log('Not looking for a fallback subproject for the dependency',
+                     mlog.bold(name), 'because:\nAutomatic wrap-based fallback '
+                     'dependency downloading is disabled.')
+            return None
         dirname, varname = self.get_subproject_infos(kwargs)
         # Try to execute the subproject
         try:

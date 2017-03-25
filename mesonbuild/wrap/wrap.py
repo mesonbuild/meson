@@ -18,6 +18,7 @@ import urllib.request, os, hashlib, shutil
 import subprocess
 import sys
 from pathlib import Path
+from . import WrapMode
 
 try:
     import ssl
@@ -94,7 +95,8 @@ class PackageDefinition:
         return 'patch_url' in self.values
 
 class Resolver:
-    def __init__(self, subdir_root):
+    def __init__(self, subdir_root, wrap_mode=WrapMode(1)):
+        self.wrap_mode = wrap_mode
         self.subdir_root = subdir_root
         self.cachedir = os.path.join(self.subdir_root, 'packagecache')
 
@@ -119,6 +121,12 @@ class Resolver:
         # Check if the subproject is a git submodule
         if self.resolve_git_submodule(dirname):
             return packagename
+
+        # Don't download subproject data based on wrap file if requested.
+        # Git submodules are ok (see above)!
+        if self.wrap_mode is WrapMode.nodownload:
+            m = 'Automatic wrap-based subproject downloading is disabled'
+            raise RuntimeError(m)
 
         # Check if there's a .wrap file for this subproject
         fname = os.path.join(self.subdir_root, packagename + '.wrap')
