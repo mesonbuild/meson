@@ -1790,7 +1790,7 @@ class SwiftCompiler(Compiler):
         source_name = os.path.join(work_dir, src)
         output_name = os.path.join(work_dir, 'swifttest')
         with open(source_name, 'w') as ofile:
-            ofile.write('''1 + 2
+            ofile.write('''print("Swift compilation is working.")
 ''')
         extra_flags = self.get_cross_extra_flags(environment, compile=True, link=True)
         pc = subprocess.Popen(self.exelist + extra_flags + ['-emit-executable', '-o', output_name, src], cwd=work_dir)
