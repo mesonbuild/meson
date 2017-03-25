@@ -17,6 +17,8 @@ import contextlib
 import urllib.request, os, hashlib, shutil
 import subprocess
 import sys
+from pathlib import Path
+from . import WrapMode
 
 try:
     import ssl
@@ -35,6 +37,13 @@ def build_ssl_context():
     ctx.verify_mode = ssl.CERT_REQUIRED
     ctx.load_default_certs()
     return ctx
+
+def quiet_git(cmd):
+    pc = subprocess.Popen(['git'] + cmd, stdout=subprocess.PIPE)
+    out, err = pc.communicate()
+    if pc.returncode != 0:
+        return False, err
+    return True, out
 
 def open_wrapdburl(urlstring):
     global ssl_warning_printed
@@ -86,29 +95,45 @@ class PackageDefinition:
         return 'patch_url' in self.values
 
 class Resolver:
-    def __init__(self, subdir_root):
+    def __init__(self, subdir_root, wrap_mode=WrapMode(1)):
+        self.wrap_mode = wrap_mode
         self.subdir_root = subdir_root
         self.cachedir = os.path.join(self.subdir_root, 'packagecache')
 
     def resolve(self, packagename):
-        fname = os.path.join(self.subdir_root, packagename + '.wrap')
-        dirname = os.path.join(self.subdir_root, packagename)
-        try:
-            if os.listdir(dirname):
-                # The directory is there and not empty? Great, use it.
+        # Check if the directory is already resolved
+        dirname = Path(os.path.join(self.subdir_root, packagename))
+        subprojdir = os.path.join(*dirname.parts[-2:])
+        if dirname.is_dir():
+            if (dirname / 'meson.build').is_file():
+                # The directory is there and has meson.build? Great, use it.
                 return packagename
-            else:
-                mlog.warning('Subproject directory %s is empty, possibly because of an unfinished'
-                             'checkout, removing to reclone' % dirname)
-                os.rmdir(dirname)
-        except NotADirectoryError:
-            raise RuntimeError('%s is not a directory, can not use as subproject.' % dirname)
-        except FileNotFoundError:
-            pass
+            # Is the dir not empty and also not a git submodule dir that is
+            # not checkout properly? Can't do anything, exception!
+            elif next(dirname.iterdir(), None) and not (dirname / '.git').is_file():
+                m = '{!r} is not empty and has no meson.build files'
+                raise RuntimeError(m.format(subprojdir))
+        elif dirname.exists():
+            m = '{!r} already exists and is not a dir; cannot use as subproject'
+            raise RuntimeError(m.format(subprojdir))
 
+        dirname = str(dirname)
+        # Check if the subproject is a git submodule
+        if self.resolve_git_submodule(dirname):
+            return packagename
+
+        # Don't download subproject data based on wrap file if requested.
+        # Git submodules are ok (see above)!
+        if self.wrap_mode is WrapMode.nodownload:
+            m = 'Automatic wrap-based subproject downloading is disabled'
+            raise RuntimeError(m)
+
+        # Check if there's a .wrap file for this subproject
+        fname = os.path.join(self.subdir_root, packagename + '.wrap')
         if not os.path.isfile(fname):
             # No wrap file with this name? Give up.
-            return None
+            m = 'No {}.wrap found for {!r}'
+            raise RuntimeError(m.format(packagename, subprojdir))
         p = PackageDefinition(fname)
         if p.type == 'file':
             if not os.path.isdir(self.cachedir):
@@ -120,8 +145,30 @@ class Resolver:
         elif p.type == "hg":
             self.get_hg(p)
         else:
-            raise RuntimeError('Unreachable code.')
+            raise AssertionError('Unreachable code.')
         return p.get('directory')
+
+    def resolve_git_submodule(self, dirname):
+        # Are we in a git repository?
+        ret, out = quiet_git(['rev-parse'])
+        if not ret:
+            return False
+        # Is `dirname` a submodule?
+        ret, out = quiet_git(['submodule', 'status', dirname])
+        if not ret:
+            return False
+        # Submodule has not been added, add it
+        if out.startswith(b'-'):
+            if subprocess.call(['git', 'submodule', 'update', dirname]) != 0:
+                return False
+        # Submodule was added already, but it wasn't populated. Do a checkout.
+        elif out.startswith(b' '):
+            if subprocess.call(['git', 'checkout', '.'], cwd=dirname):
+                return True
+        else:
+            m = 'Unknown git submodule output: {!r}'
+            raise AssertionError(m.format(out))
+        return True
 
     def get_git(self, p):
         checkoutdir = os.path.join(self.subdir_root, p.get('directory'))

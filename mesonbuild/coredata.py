@@ -127,7 +127,7 @@ class CoreData:
             self.cross_file = os.path.join(os.getcwd(), options.cross_file)
         else:
             self.cross_file = None
-
+        self.wrap_mode = options.wrap_mode
         self.compilers = {}
         self.cross_compilers = {}
         self.deps = {}

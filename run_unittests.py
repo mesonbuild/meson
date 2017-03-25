@@ -48,6 +48,7 @@ def get_fake_options(prefix):
     import argparse
     opts = argparse.Namespace()
     opts.cross_file = None
+    opts.wrap_mode = None
     opts.prefix = prefix
     return opts
 

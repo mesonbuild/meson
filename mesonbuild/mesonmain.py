@@ -20,6 +20,7 @@ from . import build
 import platform
 from . import mlog, coredata
 from .mesonlib import MesonException
+from .wrap import WrapMode
 
 
 parser = argparse.ArgumentParser()
@@ -67,6 +68,10 @@ parser.add_argument('-D', action='append', dest='projectoptions', default=[],
                     help='Set project options.')
 parser.add_argument('-v', '--version', action='version',
                     version=coredata.version)
+                    # See the mesonlib.WrapMode enum for documentation
+parser.add_argument('--wrap-mode', default=WrapMode.default,
+                    type=lambda t: getattr(WrapMode, t), choices=WrapMode,
+                    help='Special wrap mode to use')
 parser.add_argument('directories', nargs='*')
 
 class MesonApp:

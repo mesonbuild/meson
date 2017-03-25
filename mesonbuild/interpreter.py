@@ -20,7 +20,7 @@ from . import mlog
 from . import build
 from . import optinterpreter
 from . import compilers
-from .wrap import wrap
+from .wrap import wrap, WrapMode
 from . import mesonlib
 from .mesonlib import FileMode, Popen_safe
 from .dependencies import InternalDependency, Dependency
@@ -1498,11 +1498,13 @@ class Interpreter(InterpreterBase):
             raise InvalidCode('Recursive include of subprojects: %s.' % incpath)
         if dirname in self.subprojects:
             return self.subprojects[dirname]
-        r = wrap.Resolver(os.path.join(self.build.environment.get_source_dir(), self.subproject_dir))
-        resolved = r.resolve(dirname)
-        if resolved is None:
-            msg = 'Subproject directory {!r} does not exist and cannot be downloaded.'
-            raise InterpreterException(msg.format(os.path.join(self.subproject_dir, dirname)))
+        subproject_dir_abs = os.path.join(self.environment.get_source_dir(), self.subproject_dir)
+        r = wrap.Resolver(subproject_dir_abs, self.coredata.wrap_mode)
+        try:
+            resolved = r.resolve(dirname)
+        except RuntimeError as e:
+            msg = 'Subproject directory {!r} does not exist and cannot be downloaded:\n{}'
+            raise InterpreterException(msg.format(os.path.join(self.subproject_dir, dirname), e))
         subdir = os.path.join(self.subproject_dir, resolved)
         os.makedirs(os.path.join(self.build.environment.get_build_dir(), subdir), exist_ok=True)
         self.args_frozen = True
@@ -1909,6 +1911,11 @@ requirements use the version keyword argument instead.''')
         return fbinfo
 
     def dependency_fallback(self, name, kwargs):
+        if self.coredata.wrap_mode in (WrapMode.nofallback, WrapMode.nodownload):
+            mlog.log('Not looking for a fallback subproject for the dependency',
+                     mlog.bold(name), 'because:\nAutomatic wrap-based fallback '
+                     'dependency downloading is disabled.')
+            return None
         dirname, varname = self.get_subproject_infos(kwargs)
         # Try to execute the subproject
         try:
