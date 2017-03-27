@@ -1248,7 +1248,11 @@ int dummy;
         else:
             command_template = ' command = {executable} $LINK_ARGS {output_args} $in\n'
         cmdlist = []
-        if isinstance(static_linker, compilers.ArLinker):
+        # FIXME: Must normalize file names with pathlib.Path before writing
+        #        them out to fix this properly on Windows. See:
+        # https://github.com/mesonbuild/meson/issues/1517
+        # https://github.com/mesonbuild/meson/issues/1526
+        if isinstance(static_linker, compilers.ArLinker) and not mesonlib.is_windows():
             # `ar` has no options to overwrite archives. It always appends,
             # which is never what we want. Delete an existing library first if
             # it exists. https://github.com/mesonbuild/meson/issues/1355
