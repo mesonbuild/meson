@@ -252,7 +252,7 @@ class Backend:
                 exe_wrapper = self.environment.cross_info.config['binaries'].get('exe_wrapper', None)
             else:
                 exe_wrapper = None
-            if mesonlib.is_windows():
+            if mesonlib.is_windows() or mesonlib.is_cygwin():
                 extra_paths = self.determine_windows_extra_paths(exe)
             else:
                 extra_paths = []
@@ -481,7 +481,7 @@ class Backend:
                 exe_wrapper = self.environment.cross_info.config['binaries'].get('exe_wrapper', None)
             else:
                 exe_wrapper = None
-            if mesonlib.is_windows():
+            if mesonlib.is_windows() or mesonlib.is_cygwin():
                 extra_paths = self.determine_windows_extra_paths(exe)
             else:
                 extra_paths = []
