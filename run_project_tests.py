@@ -34,6 +34,7 @@ import time
 import multiprocessing
 import concurrent.futures as conc
 import re
+from run_unittests import get_fake_options
 
 from run_tests import get_backend_commands, get_backend_args_for_dir, Backend
 
@@ -412,6 +413,25 @@ def have_d_compiler():
         return True
     return False
 
+def have_objc_compiler():
+    with AutoDeletedDir(tempfile.mkdtemp(prefix='b ', dir='.')) as build_dir:
+        env = environment.Environment(None, build_dir, None, get_fake_options('/'), [])
+        objc_comp = env.detect_objc_compiler(False)
+        if not objc_comp:
+            return False
+        try:
+            objc_comp.sanity_check(env.get_scratch_dir(), env)
+        except:
+            return False
+        objcpp_comp = env.detect_objc_compiler(False)
+        if not objcpp_comp:
+            return False
+        try:
+            objcpp_comp.sanity_check(env.get_scratch_dir(), env)
+        except:
+            return False
+    return True
+
 def have_java():
     if shutil.which('javac') and shutil.which('java'):
         return True
@@ -436,7 +456,7 @@ def detect_tests_to_run():
         ('vala', 'vala', backend is not Backend.ninja or not shutil.which('valac')),
         ('rust', 'rust', backend is not Backend.ninja or not shutil.which('rustc')),
         ('d', 'd', backend is not Backend.ninja or not have_d_compiler()),
-        ('objective c', 'objc', backend not in (Backend.ninja, Backend.xcode) or mesonlib.is_windows()),
+        ('objective c', 'objc', backend not in (Backend.ninja, Backend.xcode) or mesonlib.is_windows() or not have_objc_compiler()),
         ('fortran', 'fortran', backend is not Backend.ninja or not shutil.which('gfortran')),
         ('swift', 'swift', backend not in (Backend.ninja, Backend.xcode) or not shutil.which('swiftc')),
         ('python3', 'python3', backend is not Backend.ninja or not shutil.which('python3')),
