@@ -250,7 +250,7 @@ class DependencyHolder(InterpreterObject):
         if self.held_object.type_name == 'internal':
             return True
 
-        return self.held_object.found()
+        return self.held_object.found(from_interpreter=True)
 
     def version_method(self, args, kwargs):
         return self.held_object.get_version()
