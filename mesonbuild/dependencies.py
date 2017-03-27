@@ -38,6 +38,7 @@ class Dependency:
         self.name = "null"
         self.is_found = False
         self.type_name = type_name
+        self.required = False
 
     def __repr__(self):
         s = '<{0} {1}: {2}>'
@@ -50,6 +51,8 @@ class Dependency:
         return []
 
     def found(self, **kwargs):
+        if self.required and kwargs.get('from_interpreter', False):
+            raise MesonException('Cannot call found() on a required dependency; this will always be true.')
         return self.is_found
 
     def get_sources(self):
@@ -1190,6 +1193,8 @@ why. As a hack filter out everything that is not a flag."""
         return o.strip()
 
     def found(self, **kwargs):
+        if self.required and kwargs.get('from_interpreter', False):
+            raise MesonException('Cannot call found() on a required dependency; this will always be true.')
         return self.args is not None
 
     def get_version(self):
