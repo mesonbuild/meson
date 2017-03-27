@@ -1010,7 +1010,7 @@ class QtBaseDependency(Dependency):
             corekwargs = {'required': 'false', 'silent': 'true'}
             core = PkgConfigDependency(self.qtpkgname + 'Core', env, corekwargs)
         # Used by self.compilers_detect()
-        self.bindir = core.get_pkgconfig_variable('host_bins')
+        self.bindir = self.get_pkgconfig_host_bins(core)
         if not self.bindir:
             # If exec_prefix is not defined, the pkg-config file is broken
             prefix = core.get_pkgconfig_variable('exec_prefix')
@@ -1119,9 +1119,24 @@ class Qt5Dependency(QtBaseDependency):
     def __init__(self, env, kwargs):
         QtBaseDependency.__init__(self, 'qt5', env, kwargs)
 
+    def get_pkgconfig_host_bins(self, core):
+        return core.get_pkgconfig_variable('host_bins')
+
 class Qt4Dependency(QtBaseDependency):
     def __init__(self, env, kwargs):
         QtBaseDependency.__init__(self, 'qt4', env, kwargs)
+
+    def get_pkgconfig_host_bins(self, core):
+        # Only return one bins dir, because the tools are generally all in one
+        # directory for Qt4, in Qt5, they must all be in one directory. Return
+        # the first one found among the bin variables, in case one tool is not
+        # configured to be built.
+        applications = ['moc', 'uic', 'rcc', 'lupdate', 'lrelease']
+        for application in applications:
+            try:
+                return os.path.dirname(core.get_pkgconfig_variable('%s_location' % application))
+            except MesonException:
+                pass
 
 class GnuStepDependency(Dependency):
     def __init__(self, environment, kwargs):

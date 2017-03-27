@@ -1023,6 +1023,25 @@ class LinuxlikeTests(BasePlatformTests):
         self.assertIn("'-Werror'", vala_command)
         self.assertIn("'-Werror'", c_command)
 
+    def test_qt5dependency_pkgconfig_detection(self):
+        '''
+        Test that qt4 and qt5 detection with pkgconfig works.
+        '''
+        # Verify Qt4 or Qt5 can be found with pkg-config
+        if not shutil.which('pkg-config'):
+            raise unittest.SkipTest('pkg-config not found')
+        qt4 = subprocess.call(['pkg-config', '--exists', 'QtCore'])
+        qt5 = subprocess.call(['pkg-config', '--exists', 'Qt5Core'])
+        if qt4 != 0 or qt5 != 0:
+            raise unittest.SkipTest('Qt not found with pkg-config')
+        testdir = os.path.join(self.framework_test_dir, '4 qt')
+        self.init(testdir)
+        # Confirm that the dependency was found with qmake
+        msg = 'Qt4 native `pkg-config` dependency (modules: Core, Gui) found: YES\n'
+        msg2 = 'Qt5 native `pkg-config` dependency (modules: Core, Gui) found: YES\n'
+        mesonlog = self.get_meson_log()
+        self.assertTrue(msg in mesonlog or msg2 in mesonlog)
+
     def test_qt5dependency_qmake_detection(self):
         '''
         Test that qt5 detection with qmake works. This can't be an ordinary
