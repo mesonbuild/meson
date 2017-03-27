@@ -880,6 +880,11 @@ class AllPlatformTests(BasePlatformTests):
 
     def test_always_prefer_c_compiler_for_asm(self):
         testdir = os.path.join(self.common_test_dir, '141 c cpp and asm')
+        # Skip if building with MSVC
+        env = Environment(testdir, self.builddir, self.meson_command,
+                          get_fake_options(self.prefix), [])
+        if env.detect_c_compiler(False).get_id() == 'msvc':
+            raise unittest.SkipTest('MSVC can\'t compile assembly')
         self.init(testdir)
         commands = {'cpp-asm': {}, 'cpp-c-asm': {}, 'c-cpp-asm': {}}
         for cmd in self.get_compdb():

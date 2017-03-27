@@ -39,7 +39,7 @@ def build_ssl_context():
     return ctx
 
 def quiet_git(cmd):
-    pc = subprocess.Popen(['git'] + cmd, stdout=subprocess.PIPE)
+    pc = subprocess.Popen(['git'] + cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = pc.communicate()
     if pc.returncode != 0:
         return False, err
