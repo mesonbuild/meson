@@ -12,15 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import copy, os, re
+from collections import OrderedDict
+
 from . import environment
 from . import dependencies
 from . import mlog
-import copy, os, re
 from .mesonlib import File, MesonException
 from .mesonlib import flatten, stringlistify, classify_unity_sources
 from .mesonlib import get_filenames_templates_dict, substitute_values
 from .environment import for_windows, for_darwin
-from .compilers import is_object, clike_langs, lang_suffixes
+from .compilers import is_object, clike_langs, sort_clike, lang_suffixes
 
 known_basic_kwargs = {'install': True,
                       'c_pch': True,
@@ -291,7 +293,7 @@ class BuildTarget(Target):
         self.is_unity = environment.coredata.get_builtin_option('unity')
         self.environment = environment
         self.sources = []
-        self.compilers = {}
+        self.compilers = OrderedDict()
         self.objects = []
         self.external_deps = []
         self.include_dirs = []
@@ -444,6 +446,9 @@ class BuildTarget(Target):
                         if lang not in self.compilers:
                             self.compilers[lang] = compiler
                         break
+            # Re-sort according to clike_langs
+            self.compilers = OrderedDict(sorted(self.compilers.items(),
+                                                key=lambda t: sort_clike(t[0])))
         else:
             # No source files, target consists of only object files of unknown
             # origin. Just add the first clike compiler that we have and hope

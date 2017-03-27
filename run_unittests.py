@@ -878,6 +878,52 @@ class AllPlatformTests(BasePlatformTests):
             self.assertEqual(wcc.get_exelist(), wrappercc)
             self.assertEqual(wlinker.get_exelist(), wrapperlinker)
 
+    def test_always_prefer_c_compiler_for_asm(self):
+        testdir = os.path.join(self.common_test_dir, '141 c cpp and asm')
+        self.init(testdir)
+        commands = {'cpp-asm': {}, 'cpp-c-asm': {}, 'c-cpp-asm': {}}
+        for cmd in self.get_compdb():
+            # Get compiler
+            split = shlex.split(cmd['command'])
+            if split[0] == 'ccache':
+                compiler = split[1]
+            else:
+                compiler = split[0]
+            # Classify commands
+            if 'Icpp-asm' in cmd['command']:
+                if cmd['file'].endswith('.S'):
+                    commands['cpp-asm']['asm'] = compiler
+                elif cmd['file'].endswith('.cpp'):
+                    commands['cpp-asm']['cpp'] = compiler
+                else:
+                    raise AssertionError('{!r} found in cpp-asm?'.format(cmd['command']))
+            elif 'Ic-cpp-asm' in cmd['command']:
+                if cmd['file'].endswith('.S'):
+                    commands['c-cpp-asm']['asm'] = compiler
+                elif cmd['file'].endswith('.c'):
+                    commands['c-cpp-asm']['c'] = compiler
+                elif cmd['file'].endswith('.cpp'):
+                    commands['c-cpp-asm']['cpp'] = compiler
+                else:
+                    raise AssertionError('{!r} found in c-cpp-asm?'.format(cmd['command']))
+            elif 'Icpp-c-asm' in cmd['command']:
+                if cmd['file'].endswith('.S'):
+                    commands['cpp-c-asm']['asm'] = compiler
+                elif cmd['file'].endswith('.c'):
+                    commands['cpp-c-asm']['c'] = compiler
+                elif cmd['file'].endswith('.cpp'):
+                    commands['cpp-c-asm']['cpp'] = compiler
+                else:
+                    raise AssertionError('{!r} found in cpp-c-asm?'.format(cmd['command']))
+            else:
+                raise AssertionError('Unknown command {!r} found'.format(cmd['command']))
+        self.assertEqual(commands['cpp-asm']['asm'], commands['c-cpp-asm']['c'])
+        self.assertEqual(commands['c-cpp-asm']['asm'], commands['c-cpp-asm']['c'])
+        self.assertEqual(commands['cpp-c-asm']['asm'], commands['cpp-c-asm']['c'])
+        self.assertNotEqual(commands['cpp-asm']['asm'], commands['cpp-asm']['cpp'])
+        self.assertNotEqual(commands['c-cpp-asm']['c'], commands['c-cpp-asm']['cpp'])
+        self.assertNotEqual(commands['cpp-c-asm']['c'], commands['cpp-c-asm']['cpp'])
+
 
 class WindowsTests(BasePlatformTests):
     '''

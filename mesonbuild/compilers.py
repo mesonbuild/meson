@@ -57,6 +57,17 @@ clike_suffixes += ('h', 'll', 's')
 
 # All these are only for C-like languages; see `clike_langs` above.
 
+def sort_clike(lang):
+    '''
+    Sorting function to sort the list of languages according to
+    reversed(compilers.clike_langs) and append the unknown langs in the end.
+    The purpose is to prefer C over C++ for files that can be compiled by
+    both such as assembly, C, etc. Also applies to ObjC, ObjC++, etc.
+    '''
+    if lang not in clike_langs:
+        return 1
+    return -clike_langs.index(lang)
+
 def is_header(fname):
     if hasattr(fname, 'fname'):
         fname = fname.fname
