@@ -30,6 +30,14 @@ environment:
       backend: vs2017
       APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
 
+    - arch: x86
+      compiler: msys2-mingw
+      backend: ninja
+
+    - arch: x64
+      compiler: msys2-mingw
+      backend: ninja
+
 platform:
   - x64
 
@@ -46,6 +54,7 @@ install:
   - cmd: if %compiler%==msvc2010 ( call "C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\vcvarsall.bat" %arch% )
   - cmd: if %compiler%==msvc2015 ( call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" %arch% )
   - cmd: if %compiler%==msvc2017 ( call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\Tools\VsDevCmd.bat" -arch=%arch% )
+  - cmd: if %compiler%==msys2-mingw (if %arch%==x86 (set "PATH=C:\msys64\mingw32\bin;%PATH%") else (set "PATH=C:\msys64\mingw64\bin;%PATH%"))
 
 build_script:
   - cmd: echo No build step.
