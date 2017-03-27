@@ -1835,8 +1835,8 @@ class Interpreter(InterpreterBase):
         self.validate_arguments(args, 1, [str])
         name = args[0]
         if '<' in name or '>' in name or '=' in name:
-            raise InvalidArguments('''Characters <, > and = are forbidden in target names. To specify version
-requirements use the version keyword argument instead.''')
+            raise InvalidArguments('Characters <, > and = are forbidden in dependency names. To specify'
+                                   'version\n requirements use the \'version\' keyword argument instead.')
         identifier = dependencies.get_dep_identifier(name, kwargs)
         # Check if we want this as a cross-dep or a native-dep
         # FIXME: Not all dependencies support such a distinction right now,
