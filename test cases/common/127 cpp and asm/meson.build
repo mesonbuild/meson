@@ -1,11 +1,16 @@
 project('c++ and assembly test', 'cpp')
 
+cpp = meson.get_compiler('cpp')
 cpu = host_machine.cpu_family()
 
 supported_cpus = ['arm', 'x86', 'x86_64']
 
 if not supported_cpus.contains(cpu)
   error('MESON_SKIP_TEST unsupported cpu:' + cpu)
+endif
+
+if cpp.symbols_have_underscore_prefix()
+  add_project_arguments('-DMESON_TEST__UNDERSCORE_SYMBOL', language : 'cpp')
 endif
 
 sources = ['trivial.cc']
