@@ -3055,9 +3055,8 @@ class VisualStudioLinker(StaticLinker):
         return VisualStudioCCompiler.unix_args_to_native(args)
 
     def get_link_debugfile_args(self, targetfile):
-        pdbarr = targetfile.split('.')[:-1]
-        pdbarr += ['pdb']
-        return ['/DEBUG', '/PDB:' + '.'.join(pdbarr)]
+        # Static libraries do not have PDB files
+        return []
 
 class ArLinker(StaticLinker):
 
