@@ -16,12 +16,12 @@ if host_machine.system() == 'darwin'
   install_data('Info.plist',
   install_dir : 'Contents')
 
-  meson.set_install_script('osx_bundler.sh')
+  meson.add_install_script('osx_bundler.sh')
 endif
 
 if host_machine.system() == 'linux'
   install_data('myapp.sh', install_dir : '.')
-  meson.set_install_script('linux_bundler.sh')
+  meson.add_install_script('linux_bundler.sh')
 endif
 
 extra_link_args = []
