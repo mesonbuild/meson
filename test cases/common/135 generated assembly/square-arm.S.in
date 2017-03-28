@@ -2,7 +2,8 @@
 
 .text
 .globl SYMBOL_NAME(square_unsigned)
-#ifndef __APPLE__
+/* Only supported on Linux with GAS */
+# ifdef __linux__
 .type	square_unsigned,%function
 #endif
 

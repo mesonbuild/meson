@@ -1,7 +1,5 @@
 #include "symbol-underscore.h"
 
-#include "symbol-underscore.h"
-
 #ifdef _MSC_VER /* MSVC on Windows */
 
 PUBLIC SYMBOL_NAME(square_unsigned)
@@ -20,7 +18,8 @@ END
 
 .text
 .globl SYMBOL_NAME(square_unsigned)
-# ifndef __APPLE__
+/* Only supported on Linux with GAS */
+# ifdef __linux__
 .type  square_unsigned,@function
 # endif
 
