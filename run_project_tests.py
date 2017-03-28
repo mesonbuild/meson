@@ -244,7 +244,7 @@ def validate_install(srcdir, installdir):
         # Windows-specific tests check for the existence of installed PDB
         # files, but common tests do not, for obvious reasons. Ignore any
         # extra PDB files found.
-        if fname not in expected and not fname.endswith('.pdb'):
+        if fname not in expected and not fname.endswith('.pdb') and compiler == 'cl':
             ret_msg += 'Extra file {0} found.\n'.format(fname)
     return ret_msg
 
@@ -587,6 +587,7 @@ def generate_pb_static(compiler, object_suffix, static_suffix):
     return stlibfile
 
 def generate_prebuilt():
+    global compiler
     static_suffix = 'a'
     if shutil.which('cl'):
         compiler = 'cl'
