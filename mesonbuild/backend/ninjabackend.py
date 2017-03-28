@@ -1890,8 +1890,6 @@ rule FORTRAN_DEP_HACK
             raise AssertionError('BUG: sources should not contain headers {!r}'.format(src))
         if isinstance(src, RawFilename) and src.fname.endswith('.h'):
             raise AssertionError('BUG: sources should not contain headers {!r}'.format(src.fname))
-        extra_orderdeps = []
-        compiler = get_compiler_for_source(target.compilers.values(), src)
 
         if isinstance(src, str) and src.endswith('.h'):
             raise AssertionError('BUG: sources should not contain headers {!r}'.format(src))

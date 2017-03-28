@@ -16,6 +16,7 @@ import pickle, os, uuid
 from pathlib import PurePath
 from .mesonlib import MesonException, commonpath
 from .mesonlib import default_libdir, default_libexecdir, default_prefix
+import ast
 
 version = '0.40.0.dev1'
 backendlist = ['ninja', 'vs', 'vs2010', 'vs2015', 'vs2017', 'xcode']
@@ -113,7 +114,7 @@ class UserStringArrayOption(UserOption):
         if isinstance(value, str):
             if not value.startswith('['):
                 raise MesonException('Valuestring does not define an array: ' + value)
-            newvalue = eval(value, {}, {}) # Yes, it is unsafe.
+            newvalue = ast.literal_eval(value)
         else:
             newvalue = value
         if not isinstance(newvalue, list):

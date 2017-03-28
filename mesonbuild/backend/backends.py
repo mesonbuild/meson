@@ -83,7 +83,7 @@ class OptionProxy:
 
 class OptionOverrideProxy:
     '''Mimic an option list but transparently override
-selected option values.'''
+    selected option values.'''
     def __init__(self, overrides, options):
         self.overrides = overrides
         self.options = options
