@@ -24,7 +24,11 @@ def find_program(program_name, target_name):
     return program
 
 
-def get_include_args(environment, include_dirs, prefix='-I'):
+def get_include_args(include_dirs, prefix='-I'):
+    '''
+    Expand include arguments to refer to the source and build dirs
+    by using @SOURCE_ROOT@ and @BUILD_ROOT@ for later substitution
+    '''
     if not include_dirs:
         return []
 
@@ -43,8 +47,8 @@ def get_include_args(environment, include_dirs, prefix='-I'):
         basedir = dirs.get_curdir()
         for d in dirs.get_incdirs():
             expdir = os.path.join(basedir, d)
-            srctreedir = os.path.join(environment.get_source_dir(), expdir)
-            buildtreedir = os.path.join(environment.get_build_dir(), expdir)
+            srctreedir = os.path.join('@SOURCE_ROOT@', expdir)
+            buildtreedir = os.path.join('@BUILD_ROOT@', expdir)
             dirs_str += ['%s%s' % (prefix, buildtreedir),
                          '%s%s' % (prefix, srctreedir)]
         for d in dirs.get_extra_build_dirs():

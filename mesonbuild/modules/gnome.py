@@ -309,7 +309,7 @@ class GnomeModule(ExtensionModule):
             if hasattr(dep, 'held_object'):
                 dep = dep.held_object
             if isinstance(dep, InternalDependency):
-                cflags.update(get_include_args(state.environment, dep.include_directories))
+                cflags.update(get_include_args(dep.include_directories))
                 for lib in dep.libraries:
                     ldflags.update(self._get_link_args(state, lib.held_object, depends, include_rpath))
                     libdepflags = self._get_dependencies_flags(lib.held_object.get_external_deps(), state, depends, include_rpath,
@@ -398,7 +398,7 @@ class GnomeModule(ExtensionModule):
         scan_command += extra_args
         scan_command += ['-I' + os.path.join(state.environment.get_source_dir(), state.subdir),
                          '-I' + os.path.join(state.environment.get_build_dir(), state.subdir)]
-        scan_command += get_include_args(state.environment, girtarget.get_include_dirs())
+        scan_command += get_include_args(girtarget.get_include_dirs())
 
         if 'link_with' in kwargs:
             link_with = kwargs.pop('link_with')
@@ -525,9 +525,8 @@ class GnomeModule(ExtensionModule):
             if not isinstance(incd.held_object, (str, build.IncludeDirs)):
                 raise MesonException(
                     'Gir include dirs should be include_directories().')
-        scan_command += get_include_args(state.environment, inc_dirs)
-        scan_command += get_include_args(state.environment, gir_inc_dirs + inc_dirs,
-                                         prefix='--add-include-path=')
+        scan_command += get_include_args(inc_dirs)
+        scan_command += get_include_args(gir_inc_dirs + inc_dirs, prefix='--add-include-path=')
 
         if isinstance(girtarget, build.Executable):
             scan_command += ['--program', girtarget]
@@ -546,8 +545,7 @@ class GnomeModule(ExtensionModule):
 
         typelib_output = '%s-%s.typelib' % (ns, nsversion)
         typelib_cmd = [gicompiler, scan_target, '--output', '@OUTPUT@']
-        typelib_cmd += get_include_args(state.environment, gir_inc_dirs,
-                                        prefix='--includedir=')
+        typelib_cmd += get_include_args(gir_inc_dirs, prefix='--includedir=')
         for incdir in typelib_includes:
             typelib_cmd += ["--includedir=" + incdir]
 
@@ -716,7 +714,7 @@ class GnomeModule(ExtensionModule):
             if not isinstance(incd.held_object, (str, build.IncludeDirs)):
                 raise MesonException(
                     'Gir include dirs should be include_directories().')
-        cflags.update(get_include_args(state.environment, inc_dirs))
+        cflags.update(get_include_args(inc_dirs))
         if cflags:
             args += ['--cflags=%s' % ' '.join(cflags)]
         if ldflags:

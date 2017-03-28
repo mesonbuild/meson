@@ -1602,6 +1602,8 @@ rule FORTRAN_DEP_HACK
             relout = self.get_target_private_dir(target)
             args = [x.replace("@SOURCE_DIR@", self.build_to_src).replace("@BUILD_DIR@", relout)
                     for x in args]
+            args = [x.replace("@SOURCE_ROOT@", self.build_to_src).replace("@BUILD_ROOT@", '.')
+                    for x in args]
             cmdlist = exe_arr + self.replace_extra_args(args, genlist)
             elem = NinjaBuildElement(self.all_outputs, outfiles, rulename, infilename)
             if generator.depfile is not None:

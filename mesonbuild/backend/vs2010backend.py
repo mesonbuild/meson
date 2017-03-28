@@ -151,7 +151,11 @@ class Vs2010Backend(backends.Backend):
                     args = [x.replace("@INPUT@", infilename).replace('@OUTPUT@', sole_output)
                             for x in base_args]
                     args = self.replace_outputs(args, target_private_dir, outfiles_rel)
-                    args = [x.replace("@SOURCE_DIR@", self.environment.get_source_dir()).replace("@BUILD_DIR@", target_private_dir)
+                    args = [x.replace("@SOURCE_DIR@", self.environment.get_source_dir())
+                             .replace("@BUILD_DIR@", target_private_dir)
+                            for x in args]
+                    args = [x.replace("@SOURCE_ROOT@", self.environment.get_source_dir())
+                             .replace("@BUILD_ROOT@", self.environment.get_build_dir())
                             for x in args]
                     cmd = exe_arr + self.replace_extra_args(args, genlist)
                     cbs = ET.SubElement(idgroup, 'CustomBuild', Include=infilename)
