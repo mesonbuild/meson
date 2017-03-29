@@ -1,0 +1,29 @@
+{
+  "functions": {
+    "add_global_arguments": {
+      "doc": ["Adds the positional arguments to the compiler command line for the language specified in `language` keyword argument. Note that there is no way to remove an argument set in this way.",
+        "If you have an argument that is only used in a subset of targets, you have to specify it in per-target flags.",
+        "The arguments are used in all compiler invocations with the exception of compile tests, because you might need to run a compile test with and without the argument in question. For this reason only the arguments explicitly specified are used during compile tests.",
+        "**Note:** Usually you should use `add_project_arguments` instead, because that works even when you project is used as a subproject.",
+        "**Note:** You must pass always arguments individually `arg1, arg2, ...` rather than as a string `'arg1 arg2', ...`"]
+        "arguments": [
+          {"name": "args1", "doc": "Some argument"}
+        ]
+    }
+  }
+  "objects": [
+    "meson": {
+      "doc": ["The `meson` object allows you to introspect various properties of the system. This object is always mapped in the `meson` variable. It has the following methods."]
+      "methods": [
+        "get_compiler": {
+          "arguments": [
+            {"name": "language", "doc": "returns [an object describing a compiler](#compiler-object), takes one positional argument which is the language to use. ",
+              "It also accepts one keyword argument, `native` which when set to true makes Meson return the compiler for the build machine (the \"native\" compiler)",
+              "and when false it returns the host compiler (the \"cross\" compiler). If `native` is omitted, Meson returns the \"cross\" compiler if we're currently",
+              " cross-compiling and the \"native\" compiler if we're not."}
+          ]
+        }
+      ]
+    }
+  ]
+}
