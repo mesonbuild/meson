@@ -479,14 +479,6 @@ class BuildTarget(Target):
                 # CSharp and Java targets can't contain any other file types
                 assert(len(self.compilers) == 1)
                 return
-        if 'rust' in self.compilers:
-            firstname = self.sources[0]
-            if isinstance(firstname, File):
-                firstname = firstname.fname
-            first = os.path.split(firstname)[1]
-            (base, suffix) = os.path.splitext(first)
-            if suffix != '.rs' or self.name != base:
-                raise InvalidArguments('In Rust targets, the first source file must be named projectname.rs.')
 
     def get_original_kwargs(self):
         return self.kwargs
