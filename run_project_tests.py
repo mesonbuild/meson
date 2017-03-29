@@ -34,12 +34,14 @@ import concurrent.futures as conc
 
 from mesonbuild.coredata import backendlist
 
+
 class BuildStep(Enum):
     configure = 1
     build = 2
     test = 3
     install = 4
     clean = 5
+
 
 class TestResult:
     def __init__(self, msg, step, stdo, stde, mlog, conftime=0, buildtime=0, testtime=0):
@@ -51,6 +53,54 @@ class TestResult:
         self.conftime = conftime
         self.buildtime = buildtime
         self.testtime = testtime
+
+class DummyFuture(conc.Future):
+    '''
+    Dummy Future implementation that executes the provided function when you
+    ask for the result. Used on platforms where sem_open() is not available:
+    MSYS2, OpenBSD, etc: https://bugs.python.org/issue3770
+    '''
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def set_function(self, fn, *args, **kwargs):
+        self.fn = fn
+        self.fn_args = args
+        self.fn_kwargs = kwargs
+
+    def result(self, **kwargs):
+        try:
+            result = self.fn(*self.fn_args, **self.fn_kwargs)
+        except BaseException as e:
+            self.set_exception(e)
+        else:
+            self.set_result(result)
+        return super().result(**kwargs)
+
+
+class DummyExecutor(conc.Executor):
+    '''
+    Dummy single-thread 'concurrent' executor for use on platforms where
+    sem_open is not available: https://bugs.python.org/issue3770
+    '''
+
+    def __init__(self):
+        from threading import Lock
+        self._shutdown = False
+        self._shutdownLock = Lock()
+
+    def submit(self, fn, *args, **kwargs):
+        with self._shutdownLock:
+            if self._shutdown:
+                raise RuntimeError('Cannot schedule new futures after shutdown')
+            f = DummyFuture()
+            f.set_function(fn, *args, **kwargs)
+            return f
+
+    def shutdown(self, wait=True):
+        with self._shutdownLock:
+            self._shutdown = True
+
 
 class AutoDeletedDir:
     def __init__(self, d):
@@ -194,7 +244,7 @@ def validate_install(srcdir, installdir):
         # Windows-specific tests check for the existence of installed PDB
         # files, but common tests do not, for obvious reasons. Ignore any
         # extra PDB files found.
-        if fname not in expected and not fname.endswith('.pdb'):
+        if fname not in expected and not fname.endswith('.pdb') and compiler == 'cl':
             ret_msg += 'Extra file {0} found.\n'.format(fname)
     return ret_msg
 
@@ -421,7 +471,11 @@ def run_tests(all_tests, log_name_base, extra_args):
         print('Could not determine number of CPUs due to the following reason:' + str(e))
         print('Defaulting to using only one process')
         num_workers = 1
-    executor = conc.ProcessPoolExecutor(max_workers=num_workers)
+    try:
+        executor = conc.ProcessPoolExecutor(max_workers=num_workers)
+    except ImportError:
+        print('Platform doesn\'t ProcessPoolExecutor, falling back to single-threaded testing\n')
+        executor = DummyExecutor()
 
     for name, test_cases, skipped in all_tests:
         current_suite = ET.SubElement(junit_root, 'testsuite', {'name': name, 'tests': str(len(test_cases))})
@@ -441,6 +495,7 @@ def run_tests(all_tests, log_name_base, extra_args):
             result = executor.submit(run_test, skipped, t, extra_args, unity_flags + backend_flags, compile_commands, should_fail)
             futures.append((testname, t, result))
         for (testname, t, result) in futures:
+            sys.stdout.flush()
             result = result.result()
             if result is None or 'MESON_SKIP_TEST' in result.stdo:
                 print('Skipping:', t)
@@ -532,6 +587,7 @@ def generate_pb_static(compiler, object_suffix, static_suffix):
     return stlibfile
 
 def generate_prebuilt():
+    global compiler
     static_suffix = 'a'
     if shutil.which('cl'):
         compiler = 'cl'

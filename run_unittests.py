@@ -554,8 +554,10 @@ class AllPlatformTests(BasePlatformTests):
                           get_fake_options(self.prefix), [])
         cc = env.detect_c_compiler(False)
         static_linker = env.detect_static_linker(cc)
+        if is_windows():
+            raise unittest.SkipTest('https://github.com/mesonbuild/meson/issues/1526')
         if not isinstance(static_linker, mesonbuild.compilers.ArLinker):
-                raise unittest.SkipTest('static linker is not `ar`')
+            raise unittest.SkipTest('static linker is not `ar`')
         # Configure
         self.init(testdir)
         # Get name of static library

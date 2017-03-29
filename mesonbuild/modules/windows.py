@@ -14,6 +14,7 @@
 
 import os
 
+from .. import mlog
 from .. import mesonlib, dependencies, build
 from ..mesonlib import MesonException
 from . import get_include_args
@@ -38,13 +39,18 @@ class WindowsModule(ExtensionModule):
         for incd in inc_dirs:
             if not isinstance(incd.held_object, (str, build.IncludeDirs)):
                 raise MesonException('Resource include dirs should be include_directories().')
-        extra_args += get_include_args(state.environment, inc_dirs)
+        extra_args += get_include_args(inc_dirs)
 
         if comp.id == 'msvc':
             rescomp = dependencies.ExternalProgram('rc', silent=True)
             res_args = extra_args + ['/nologo', '/fo@OUTPUT@', '@INPUT@']
             suffix = 'res'
         else:
+            m = 'Argument {!r} has a space which may not work with windres due to ' \
+                'a MinGW bug: https://sourceware.org/bugzilla/show_bug.cgi?id=4933'
+            for arg in extra_args:
+                if ' ' in arg:
+                    mlog.warning(m.format(arg))
             # Pick-up env var WINDRES if set. This is often used for specifying
             # an arch-specific windres.
             rescomp_name = os.environ.get('WINDRES', 'windres')

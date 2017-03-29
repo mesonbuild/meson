@@ -601,8 +601,13 @@ class Backend:
 
     def eval_custom_target_command(self, target, absolute_outputs=False):
         # We want the outputs to be absolute only when using the VS backend
+        # XXX: Maybe allow the vs backend to use relative paths too?
+        source_root = self.build_to_src
+        build_root = '.'
         outdir = self.get_target_dir(target)
         if absolute_outputs:
+            source_root = self.environment.get_source_dir()
+            build_root = self.environment.get_source_dir()
             outdir = os.path.join(self.environment.get_build_dir(), outdir)
         outputs = []
         for i in target.output:
@@ -628,6 +633,10 @@ class Backend:
             elif not isinstance(i, str):
                 err_msg = 'Argument {0} is of unknown type {1}'
                 raise RuntimeError(err_msg.format(str(i), str(type(i))))
+            elif '@SOURCE_ROOT@' in i:
+                i = i.replace('@SOURCE_ROOT@', source_root)
+            elif '@BUILD_ROOT@' in i:
+                i = i.replace('@BUILD_ROOT@', build_root)
             elif '@DEPFILE@' in i:
                 if target.depfile is None:
                     msg = 'Custom target {!r} has @DEPFILE@ but no depfile ' \
