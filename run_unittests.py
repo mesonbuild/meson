@@ -886,7 +886,7 @@ class AllPlatformTests(BasePlatformTests):
         if env.detect_c_compiler(False).get_id() == 'msvc':
             raise unittest.SkipTest('MSVC can\'t compile assembly')
         self.init(testdir)
-        commands = {'cpp-asm': {}, 'cpp-c-asm': {}, 'c-cpp-asm': {}}
+        commands = {'c-asm': {}, 'cpp-asm': {}, 'cpp-c-asm': {}, 'c-cpp-asm': {}}
         for cmd in self.get_compdb():
             # Get compiler
             split = shlex.split(cmd['command'])
@@ -895,7 +895,14 @@ class AllPlatformTests(BasePlatformTests):
             else:
                 compiler = split[0]
             # Classify commands
-            if 'Icpp-asm' in cmd['command']:
+            if 'Ic-asm' in cmd['command']:
+                if cmd['file'].endswith('.S'):
+                    commands['c-asm']['asm'] = compiler
+                elif cmd['file'].endswith('.c'):
+                    commands['c-asm']['c'] = compiler
+                else:
+                    raise AssertionError('{!r} found in cpp-asm?'.format(cmd['command']))
+            elif 'Icpp-asm' in cmd['command']:
                 if cmd['file'].endswith('.S'):
                     commands['cpp-asm']['asm'] = compiler
                 elif cmd['file'].endswith('.cpp'):
@@ -922,12 +929,21 @@ class AllPlatformTests(BasePlatformTests):
                     raise AssertionError('{!r} found in cpp-c-asm?'.format(cmd['command']))
             else:
                 raise AssertionError('Unknown command {!r} found'.format(cmd['command']))
+        # Check that .S files are always built with the C compiler
+        self.assertEqual(commands['c-asm']['asm'], commands['c-asm']['c'])
+        self.assertEqual(commands['c-asm']['asm'], commands['cpp-asm']['asm'])
         self.assertEqual(commands['cpp-asm']['asm'], commands['c-cpp-asm']['c'])
         self.assertEqual(commands['c-cpp-asm']['asm'], commands['c-cpp-asm']['c'])
         self.assertEqual(commands['cpp-c-asm']['asm'], commands['cpp-c-asm']['c'])
         self.assertNotEqual(commands['cpp-asm']['asm'], commands['cpp-asm']['cpp'])
         self.assertNotEqual(commands['c-cpp-asm']['c'], commands['c-cpp-asm']['cpp'])
         self.assertNotEqual(commands['cpp-c-asm']['c'], commands['cpp-c-asm']['cpp'])
+        # Check that the c-asm target is always linked with the C linker
+        build_ninja = os.path.join(self.builddir, 'build.ninja')
+        with open(build_ninja, 'r', encoding='utf-8') as f:
+            contents = f.read()
+            m = re.search('build c-asm.*: c_LINKER', contents)
+        self.assertIsNotNone(m, msg=contents)
 
 
 class WindowsTests(BasePlatformTests):

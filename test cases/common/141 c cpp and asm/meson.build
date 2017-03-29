@@ -12,6 +12,7 @@ if meson.get_compiler('c').get_id() == 'msvc'
   error('MESON_SKIP_TEST MSVC can\'t compile assembly')
 endif
 
+test('test-c-asm', executable('c-asm', ['main.c', 'retval-' + cpu + '.S']))
 test('test-cpp-asm', executable('cpp-asm', ['main.cpp', 'retval-' + cpu + '.S']))
 test('test-c-cpp-asm', executable('c-cpp-asm', ['somelib.c', 'main.cpp', 'retval-' + cpu + '.S']))
 test('test-cpp-c-asm', executable('cpp-c-asm', ['main.cpp', 'somelib.c', 'retval-' + cpu + '.S']))
