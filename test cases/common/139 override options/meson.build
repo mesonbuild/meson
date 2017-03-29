@@ -4,3 +4,5 @@ project('option override', 'c',
 executable('mustunity', 'one.c', 'two.c')
 executable('notunity', 'three.c', 'four.c',
   override_options : ['unity=false'])
+
+
