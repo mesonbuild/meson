@@ -1089,9 +1089,9 @@ int dummy;
             raise InvalidArguments('Unknown target type for rustc.')
         args.append(cratetype)
         args += rustc.get_buildtype_args(self.environment.coredata.get_builtin_option('buildtype'))
-        depfile = target.name + '.d'
-        args += ['--out-dir', target.subdir]
-        args += ['--emit', 'dep-info', '--emit', 'link']
+        depfile = os.path.join(target.subdir, target.name + '.d')
+        args += ['--emit', 'dep-info={}'.format(depfile), '--emit', 'link']
+        args += ['-o', os.path.join(target.subdir, target.get_filename())]
         orderdeps = [os.path.join(t.subdir, t.get_filename()) for t in target.link_targets]
         linkdirs = OrderedDict()
         for d in target.link_targets:

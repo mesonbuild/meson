@@ -1,4 +1,6 @@
 project('rustprog', 'rust')
 
-e = executable('prog', 'prog.rs', install : true)
+e = executable('program', 'prog.rs', install : true)
 test('rusttest', e)
+
+subdir('subdir')
