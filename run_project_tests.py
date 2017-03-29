@@ -444,7 +444,7 @@ def detect_tests_to_run():
     all_tests.append(('prebuilt', gather_tests('test cases/prebuilt'), False))
 
     all_tests.append(('platform-osx', gather_tests('test cases/osx'), False if mesonlib.is_osx() else True))
-    all_tests.append(('platform-windows', gather_tests('test cases/windows'), False if mesonlib.is_windows() else True))
+    all_tests.append(('platform-windows', gather_tests('test cases/windows'), False if mesonlib.is_windows() or mesonlib.is_cygwin() else True))
     all_tests.append(('platform-linux', gather_tests('test cases/linuxlike'), False if not (mesonlib.is_osx() or mesonlib.is_windows()) else True))
     all_tests.append(('framework', gather_tests('test cases/frameworks'), False if not mesonlib.is_osx() and not mesonlib.is_windows() else True))
     all_tests.append(('java', gather_tests('test cases/java'), False if using_backend('ninja') and not mesonlib.is_osx() and have_java() else True))
