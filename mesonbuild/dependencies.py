@@ -1483,6 +1483,14 @@ class Python3Dependency(Dependency):
     def get_version(self):
         return self.version
 
+class ValgrindDependency(PkgConfigDependency):
+
+    def __init__(self, environment, kwargs):
+        PkgConfigDependency.__init__(self, 'valgrind', environment, kwargs)
+
+    def get_link_args(self):
+        return []
+
 def get_dep_identifier(name, kwargs):
     elements = [name]
     modlist = kwargs.get('modules', [])
@@ -1544,4 +1552,5 @@ packages = {'boost': BoostDependency,
             'gl': GLDependency,
             'threads': ThreadDependency,
             'python3': Python3Dependency,
+            'valgrind': ValgrindDependency,
             }
