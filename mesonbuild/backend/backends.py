@@ -453,15 +453,11 @@ class Backend:
         for d in deps:
             if not isinstance(d, (build.StaticLibrary, build.SharedLibrary)):
                 raise RuntimeError('Tried to link with a non-library target "%s".' % d.get_basename())
-            if isinstance(compiler, compilers.LLVMDCompiler) or isinstance(compiler, compilers.DmdDCompiler):
-                args += ['-L' + self.get_target_filename_for_linking(d)]
+            if isinstance(compiler, (compilers.LLVMDCompiler, compilers.DmdDCompiler)):
+                d_arg = '-L' + self.get_target_filename_for_linking(d)
             else:
-                args.append(self.get_target_filename_for_linking(d))
-            # If you have executable e that links to shared lib s1 that links to shared library s2
-            # you have to specify s2 as well as s1 when linking e even if e does not directly use
-            # s2. Gcc handles this case fine but Clang does not for some reason. Thus we need to
-            # explictly specify all libraries every time.
-            args += self.build_target_link_arguments(compiler, d.get_dependencies())
+                d_arg = self.get_target_filename_for_linking(d)
+            args.append(d_arg)
         return args
 
     def determine_windows_extra_paths(self, target):

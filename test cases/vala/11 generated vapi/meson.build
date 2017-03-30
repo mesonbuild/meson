@@ -6,7 +6,7 @@ subdir('libbar')
 
 vapiexe = executable('vapigen-test',
   'main.vala',
-  dependencies: [dependency('gobject-2.0'), libbar_vapi],
+  dependencies: [dependency('gobject-2.0'), libfoo_vapi, libbar_vapi],
   install: true,
 )
 
