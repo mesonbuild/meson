@@ -24,4 +24,4 @@ class Vs2017Backend(Vs2010Backend):
         self.platform_toolset = 'v141'
         self.vs_version = '2017'
         # WindowsSDKVersion should be set by command prompt.
-        self.windows_target_platform_version = os.getenv('WindowsSDKVersion', None)
+        self.windows_target_platform_version = os.getenv('WindowsSDKVersion', None).rstrip('\\')
