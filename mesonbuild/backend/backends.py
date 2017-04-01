@@ -22,6 +22,7 @@ import json
 import subprocess
 from ..mesonlib import MesonException, get_compiler_for_source, classify_unity_sources
 from ..compilers import CompilerArgs
+from collections import OrderedDict
 
 class CleanTrees:
     '''
@@ -542,7 +543,7 @@ class Backend:
         return newargs
 
     def get_build_by_default_targets(self):
-        result = {}
+        result = OrderedDict()
         # Get all build and custom targets that must be built by default
         for name, t in self.build.get_targets().items():
             if t.build_by_default or t.install or t.build_always:
