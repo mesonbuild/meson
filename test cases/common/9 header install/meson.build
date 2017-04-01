@@ -1,4 +1,4 @@
-project('header install', 'c')
+project('header install')
 
 as_array = ['subdir.h']
 

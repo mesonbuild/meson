@@ -12,15 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import copy, os, re
+from collections import OrderedDict
+
 from . import environment
 from . import dependencies
 from . import mlog
-import copy, os, re
 from .mesonlib import File, MesonException
 from .mesonlib import flatten, stringlistify, classify_unity_sources
 from .mesonlib import get_filenames_templates_dict, substitute_values
 from .environment import for_windows, for_darwin
-from .compilers import is_object, clike_langs, lang_suffixes
+from .compilers import is_object, clike_langs, sort_clike, lang_suffixes
 
 known_basic_kwargs = {'install': True,
                       'c_pch': True,
@@ -291,7 +293,7 @@ class BuildTarget(Target):
         self.is_unity = environment.coredata.get_builtin_option('unity')
         self.environment = environment
         self.sources = []
-        self.compilers = {}
+        self.compilers = OrderedDict()
         self.objects = []
         self.external_deps = []
         self.include_dirs = []
@@ -391,13 +393,6 @@ class BuildTarget(Target):
                 raise InvalidArguments(msg)
 
     @staticmethod
-    def can_compile_sources(compiler, sources):
-        for s in sources:
-            if compiler.can_compile(s):
-                return True
-        return False
-
-    @staticmethod
     def can_compile_remove_sources(compiler, sources):
         removed = False
         for s in sources[:]:
@@ -442,13 +437,18 @@ class BuildTarget(Target):
                 if not s.endswith(lang_suffixes['vala']):
                     sources.append(s)
         if sources:
-            # Add compilers based on the above sources
-            for lang, compiler in compilers.items():
-                # We try to be conservative because sometimes people add files
-                # in the list of sources that we can't determine the type based
-                # just on the suffix.
-                if self.can_compile_sources(compiler, sources):
-                    self.compilers[lang] = compiler
+            # For each source, try to add one compiler that can compile it.
+            # It's ok if no compilers can do so, because users are expected to
+            # be able to add arbitrary non-source files to the sources list.
+            for s in sources:
+                for lang, compiler in compilers.items():
+                    if compiler.can_compile(s):
+                        if lang not in self.compilers:
+                            self.compilers[lang] = compiler
+                        break
+            # Re-sort according to clike_langs
+            self.compilers = OrderedDict(sorted(self.compilers.items(),
+                                                key=lambda t: sort_clike(t[0])))
         else:
             # No source files, target consists of only object files of unknown
             # origin. Just add the first clike compiler that we have and hope

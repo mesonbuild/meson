@@ -21,6 +21,12 @@ import subprocess
 import platform
 from mesonbuild import mesonlib
 
+def using_vs_backend():
+    for arg in sys.argv[1:]:
+        if arg.startswith('--backend=vs'):
+            return True
+    return False
+
 if __name__ == '__main__':
     returncode = 0
     # Running on a developer machine? Be nice!
@@ -32,7 +38,10 @@ if __name__ == '__main__':
         units += ['LinuxlikeTests']
     elif mesonlib.is_windows():
         units += ['WindowsTests']
-    returncode += subprocess.call([sys.executable, 'run_unittests.py', '-v'] + units)
+    # Unit tests always use the Ninja backend, so just skip them if we're
+    # testing the VS backend
+    if not using_vs_backend():
+        returncode += subprocess.call([sys.executable, 'run_unittests.py', '-v'] + units)
     # Ubuntu packages do not have a binary without -6 suffix.
     if shutil.which('arm-linux-gnueabihf-gcc-6') and not platform.machine().startswith('arm'):
         print('Running cross compilation tests.\n')

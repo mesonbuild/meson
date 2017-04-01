@@ -3,6 +3,6 @@ project('trivial test',
         meson_version : '>=0.27.0')
 
 executable('trivialc', 'trivial.c')
-executable('trivialcpp', 'trivial.cpp')
+executable('trivialcpp', 'trivial.cc')
 executable('trivialobjc', 'trivial.m')
 executable('trivialobjcpp', 'trivial.mm')

@@ -880,6 +880,73 @@ class AllPlatformTests(BasePlatformTests):
             self.assertEqual(wcc.get_exelist(), wrappercc)
             self.assertEqual(wlinker.get_exelist(), wrapperlinker)
 
+    def test_always_prefer_c_compiler_for_asm(self):
+        testdir = os.path.join(self.common_test_dir, '141 c cpp and asm')
+        # Skip if building with MSVC
+        env = Environment(testdir, self.builddir, self.meson_command,
+                          get_fake_options(self.prefix), [])
+        if env.detect_c_compiler(False).get_id() == 'msvc':
+            raise unittest.SkipTest('MSVC can\'t compile assembly')
+        self.init(testdir)
+        commands = {'c-asm': {}, 'cpp-asm': {}, 'cpp-c-asm': {}, 'c-cpp-asm': {}}
+        for cmd in self.get_compdb():
+            # Get compiler
+            split = shlex.split(cmd['command'])
+            if split[0] == 'ccache':
+                compiler = split[1]
+            else:
+                compiler = split[0]
+            # Classify commands
+            if 'Ic-asm' in cmd['command']:
+                if cmd['file'].endswith('.S'):
+                    commands['c-asm']['asm'] = compiler
+                elif cmd['file'].endswith('.c'):
+                    commands['c-asm']['c'] = compiler
+                else:
+                    raise AssertionError('{!r} found in cpp-asm?'.format(cmd['command']))
+            elif 'Icpp-asm' in cmd['command']:
+                if cmd['file'].endswith('.S'):
+                    commands['cpp-asm']['asm'] = compiler
+                elif cmd['file'].endswith('.cpp'):
+                    commands['cpp-asm']['cpp'] = compiler
+                else:
+                    raise AssertionError('{!r} found in cpp-asm?'.format(cmd['command']))
+            elif 'Ic-cpp-asm' in cmd['command']:
+                if cmd['file'].endswith('.S'):
+                    commands['c-cpp-asm']['asm'] = compiler
+                elif cmd['file'].endswith('.c'):
+                    commands['c-cpp-asm']['c'] = compiler
+                elif cmd['file'].endswith('.cpp'):
+                    commands['c-cpp-asm']['cpp'] = compiler
+                else:
+                    raise AssertionError('{!r} found in c-cpp-asm?'.format(cmd['command']))
+            elif 'Icpp-c-asm' in cmd['command']:
+                if cmd['file'].endswith('.S'):
+                    commands['cpp-c-asm']['asm'] = compiler
+                elif cmd['file'].endswith('.c'):
+                    commands['cpp-c-asm']['c'] = compiler
+                elif cmd['file'].endswith('.cpp'):
+                    commands['cpp-c-asm']['cpp'] = compiler
+                else:
+                    raise AssertionError('{!r} found in cpp-c-asm?'.format(cmd['command']))
+            else:
+                raise AssertionError('Unknown command {!r} found'.format(cmd['command']))
+        # Check that .S files are always built with the C compiler
+        self.assertEqual(commands['c-asm']['asm'], commands['c-asm']['c'])
+        self.assertEqual(commands['c-asm']['asm'], commands['cpp-asm']['asm'])
+        self.assertEqual(commands['cpp-asm']['asm'], commands['c-cpp-asm']['c'])
+        self.assertEqual(commands['c-cpp-asm']['asm'], commands['c-cpp-asm']['c'])
+        self.assertEqual(commands['cpp-c-asm']['asm'], commands['cpp-c-asm']['c'])
+        self.assertNotEqual(commands['cpp-asm']['asm'], commands['cpp-asm']['cpp'])
+        self.assertNotEqual(commands['c-cpp-asm']['c'], commands['c-cpp-asm']['cpp'])
+        self.assertNotEqual(commands['cpp-c-asm']['c'], commands['cpp-c-asm']['cpp'])
+        # Check that the c-asm target is always linked with the C linker
+        build_ninja = os.path.join(self.builddir, 'build.ninja')
+        with open(build_ninja, 'r', encoding='utf-8') as f:
+            contents = f.read()
+            m = re.search('build c-asm.*: c_LINKER', contents)
+        self.assertIsNotNone(m, msg=contents)
+
 
 class WindowsTests(BasePlatformTests):
     '''
