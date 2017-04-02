@@ -2607,6 +2607,11 @@ class ClangCompiler:
         return ['-shared']
 
     def get_link_whole_for(self, args):
+        if self.clang_type == CLANG_OSX:
+            result = []
+            for a in args:
+                result += ['-Wl,-force_load', a]
+            return result
         return ['-Wl,--whole-archive'] + args + ['-Wl,--no-whole-archive']
 
 
