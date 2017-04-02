@@ -21,7 +21,7 @@ import sys
 import copy
 import subprocess
 from . import ModuleReturnValue
-from ..mesonlib import MesonException, Popen_safe
+from ..mesonlib import MesonException, OrderedSet, Popen_safe
 from ..dependencies import Dependency, PkgConfigDependency, InternalDependency
 from .. import mlog
 from .. import mesonlib
@@ -154,7 +154,7 @@ class GnomeModule(ExtensionModule):
         # Ensure build directories of generated deps are included
         source_dirs += subdirs
 
-        for source_dir in set(source_dirs):
+        for source_dir in OrderedSet(source_dirs):
             cmd += ['--sourcedir', source_dir]
 
         if 'c_name' in kwargs:
@@ -299,9 +299,9 @@ class GnomeModule(ExtensionModule):
 
     def _get_dependencies_flags(self, deps, state, depends=None, include_rpath=False,
                                 use_gir_args=False):
-        cflags = set()
-        ldflags = set()
-        gi_includes = set()
+        cflags = OrderedSet()
+        ldflags = OrderedSet()
+        gi_includes = OrderedSet()
         if not isinstance(deps, list):
             deps = [deps]
 
