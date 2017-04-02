@@ -146,10 +146,10 @@ java_buildtype_args = {'plain': [],
                        }
 
 rust_buildtype_args = {'plain': [],
-                       'debug': ['-g'],
-                       'debugoptimized': ['-g', '--opt-level', '2'],
-                       'release': ['--opt-level', '3'],
-                       'minsize': [],
+                       'debug': ['-C', 'debuginfo=2'],
+                       'debugoptimized': ['-C', 'debuginfo=2', '-C', 'opt-level=2'],
+                       'release': ['-C', 'opt-level=3'],
+                       'minsize': [], # In a future release: ['-C', 'opt-level=s'],
                        }
 
 d_gdc_buildtype_args = {'plain': [],
