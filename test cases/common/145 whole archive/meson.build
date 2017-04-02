@@ -1,0 +1,14 @@
+project('whole archive', 'c')
+
+stlib = static_library('allofme', 'libfile.c')
+
+# Nothing in dylib.c uses func1, so the linker would throw it
+# away and thus linking the exe would fail.
+dylib = shared_library('shlib', 'dylib.c',
+  link_whole : stlib)
+
+exe = executable('prog', 'prog.c',
+  link_with : dylib)
+
+test('prog', exe)
+

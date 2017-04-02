@@ -707,6 +707,11 @@ class Compiler:
     def get_std_shared_module_link_args(self):
         return self.get_std_shared_lib_link_args()
 
+    def get_link_whole_for(self, args):
+        if isinstance(args, list) and len(args) == 0:
+            return []
+        raise EnvironmentException('Language %s does not support linking whole archives.' % self.language)
+
 class CCompiler(Compiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
         # If a child ObjC or CPP class has already set it, don't set it ourselves
@@ -2274,6 +2279,11 @@ class VisualStudioCCompiler(CCompiler):
         pdbarr += ['pdb']
         return ['/DEBUG', '/PDB:' + '.'.join(pdbarr)]
 
+    def get_link_whole_for(self, args):
+        # Only since VS2015
+        return ['/WHOLEARCHIVE:' + x for x in args]
+
+
 class VisualStudioCPPCompiler(VisualStudioCCompiler, CPPCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrap):
         self.language = 'cpp'
@@ -2425,6 +2435,10 @@ class GnuCompiler:
             return ['-bundle']
         return ['-shared']
 
+    def get_link_whole_for(self, args):
+        return ['-Wl,--whole-archive'] + args + ['-Wl,--no-whole-archive']
+
+
 class GnuCCompiler(GnuCompiler, CCompiler):
     def __init__(self, exelist, version, gcc_type, is_cross, exe_wrapper=None, defines=None):
         CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
@@ -2459,6 +2473,7 @@ class GnuCCompiler(GnuCompiler, CCompiler):
 
     def get_std_shared_lib_link_args(self):
         return ['-shared']
+
 
 class GnuCPPCompiler(GnuCompiler, CPPCompiler):
 
@@ -2588,6 +2603,10 @@ class ClangCompiler:
         if self.clang_type == CLANG_OSX:
             return ['-bundle', '-Wl,-undefined,dynamic_lookup']
         return ['-shared']
+
+    def get_link_whole_for(self, args):
+        return ['-Wl,--whole-archive'] + args + ['-Wl,--no-whole-archive']
+
 
 class ClangCCompiler(ClangCompiler, CCompiler):
     def __init__(self, exelist, version, clang_type, is_cross, exe_wrapper=None):

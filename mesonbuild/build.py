@@ -37,6 +37,7 @@ known_basic_kwargs = {'install': True,
                       'link_args': True,
                       'link_depends': True,
                       'link_with': True,
+                      'link_whole': True,
                       'include_directories': True,
                       'dependencies': True,
                       'install_dir': True,
@@ -314,6 +315,7 @@ class BuildTarget(Target):
         self.external_deps = []
         self.include_dirs = []
         self.link_targets = []
+        self.link_whole_targets = []
         self.link_depends = []
         self.name_prefix_set = False
         self.name_suffix_set = False
@@ -560,6 +562,15 @@ class BuildTarget(Target):
             if hasattr(linktarget, "held_object"):
                 linktarget = linktarget.held_object
             self.link(linktarget)
+        lwhole = kwargs.get('link_whole', [])
+        if not isinstance(lwhole, list):
+            lwhole = [lwhole]
+        for linktarget in lwhole:
+            # Sorry for this hack. Keyword targets are kept in holders
+            # in kwargs. Unpack here without looking at the exact type.
+            if hasattr(linktarget, "held_object"):
+                linktarget = linktarget.held_object
+            self.link_whole(linktarget)
         c_pchlist = kwargs.get('c_pch', [])
         if not isinstance(c_pchlist, list):
             c_pchlist = [c_pchlist]
@@ -698,7 +709,7 @@ class BuildTarget(Target):
 
     def get_dependencies(self):
         transitive_deps = []
-        for t in self.link_targets:
+        for t in self.link_targets + self.link_whole_targets:
             transitive_deps.append(t)
             if isinstance(t, StaticLibrary):
                 transitive_deps += t.get_dependencies()
@@ -789,6 +800,22 @@ You probably should put it in link_with instead.''')
             if self.is_cross != t.is_cross:
                 raise InvalidArguments('Tried to mix cross built and native libraries in target {!r}'.format(self.name))
             self.link_targets.append(t)
+
+    def link_whole(self, target):
+        if not isinstance(target, list):
+            target = [target]
+        for t in target:
+            if hasattr(t, 'held_object'):
+                t = t.held_object
+            if not isinstance(t, StaticLibrary):
+                raise InvalidArguments('{!r} is not a static library.'.format(t))
+            if isinstance(self, SharedLibrary) and not t.pic:
+                msg = "Can't link non-PIC static library {!r} into shared library {!r}. ".format(t.name, self.name)
+                msg += "Use the 'pic' option to static_library to build with PIC."
+                raise InvalidArguments(msg)
+            if self.is_cross != t.is_cross:
+                raise InvalidArguments('Tried to mix cross built and native libraries in target {!r}'.format(self.name))
+            self.link_whole_targets.append(t)
 
     def add_pch(self, language, pchlist):
         if len(pchlist) == 0:
