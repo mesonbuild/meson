@@ -22,6 +22,11 @@ e = executable('inctest', 'prog.c',
 cfile)
 test('inctest', e)
 
+# Test if we can also pass files() as input
+configure_file(input : files('config.h.in'),
+               output : 'config2.h',
+               configuration : conf)
+
 # Now generate a header file with an external script.
 genprog = import('python3').find_python()
 scriptfile = '@0@/generator.py'.format(meson.current_source_dir())
