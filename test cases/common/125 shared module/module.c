@@ -9,13 +9,23 @@
   #endif
 #endif
 
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__CYGWIN__)
 
 #include <stdio.h>
-#include <windows.h>
-#include <tlhelp32.h>
 
 typedef int (*fptr) (void);
+
+#ifdef __CYGWIN__
+
+#include <dlfcn.h>
+
+fptr find_any_f (const char *name) {
+    return (fptr) dlsym(RTLD_DEFAULT, name);
+}
+#else /* _WIN32 */
+
+#include <windows.h>
+#include <tlhelp32.h>
 
 /* Unlike Linux and OS X, when a library is loaded, all the symbols aren't
  * loaded into a single namespace. You must fetch the symbol by iterating over
@@ -45,6 +55,7 @@ fptr find_any_f (const char *name) {
     CloseHandle (snapshot);
     return f;
 }
+#endif
 
 int DLL_PUBLIC func() {
     fptr f;
