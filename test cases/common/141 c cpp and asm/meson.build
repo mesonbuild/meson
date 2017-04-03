@@ -1,6 +1,7 @@
 project('c cpp and asm', 'c', 'cpp')
 
 cpu = host_machine.cpu_family()
+cc = meson.get_compiler('c')
 
 supported_cpus = ['arm', 'x86', 'x86_64']
 
@@ -10,6 +11,10 @@ endif
 
 if meson.get_compiler('c').get_id() == 'msvc'
   error('MESON_SKIP_TEST MSVC can\'t compile assembly')
+endif
+
+if cc.symbols_have_underscore_prefix()
+  add_project_arguments('-DMESON_TEST__UNDERSCORE_SYMBOL', language: 'c')
 endif
 
 test('test-c-asm', executable('c-asm', ['main.c', 'retval-' + cpu + '.S']))
