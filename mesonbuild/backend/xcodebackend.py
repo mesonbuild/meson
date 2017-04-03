@@ -489,7 +489,7 @@ class XCodeBackend(backends.Backend):
             self.write_line('buildPhases = (')
             self.indent_level += 1
             for bpname, bpval in self.buildphasemap.items():
-                self.write_line('%s /* %s xxx */,' % (self.buildphasemap[bpname], bpname))
+                self.write_line('%s /* %s */,' % (self.buildphasemap[bpname], bpname))
             self.indent_level -= 1
             self.write_line(');')
             self.write_line('buildRules = (')
