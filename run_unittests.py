@@ -1328,6 +1328,27 @@ class LinuxlikeTests(BasePlatformTests):
             # The chown failed nonfatally if we're not root
             self.assertEqual(0, statf.st_uid)
 
+    def test_cpp_std_override(self):
+        testdir = os.path.join(self.unit_test_dir, '6 std override')
+        self.init(testdir)
+        compdb = self.get_compdb()
+        for i in compdb:
+            if 'prog03' in i['file']:
+                c03_comp = i['command']
+            if 'prog11' in i['file']:
+                c11_comp = i['command']
+            if 'progp' in i['file']:
+                plain_comp = i['command']
+        self.assertNotEqual(len(plain_comp), 0)
+        self.assertIn('-std=c++03', c03_comp)
+        self.assertNotIn('-std=c++11', c03_comp)
+        self.assertIn('-std=c++11', c11_comp)
+        self.assertNotIn('-std=c++03', c11_comp)
+        self.assertNotIn('-std=c++03', plain_comp)
+        self.assertNotIn('-std=c++11', plain_comp)
+        # Now werror
+        self.assertIn('-Werror', plain_comp)
+        self.assertNotIn('-Werror', c03_comp)
 
 class RewriterTests(unittest.TestCase):
 

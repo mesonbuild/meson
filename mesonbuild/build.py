@@ -49,6 +49,7 @@ known_basic_kwargs = {'install': True,
                       'objects': True,
                       'native': True,
                       'build_by_default': True,
+                      'override_options': True,
                       }
 
 # These contain kwargs supported by both static and shared libraries. These are
@@ -272,6 +273,7 @@ class Target:
         self.build_by_default = build_by_default
         self.install = False
         self.build_always = False
+        self.option_overrides = {}
 
     def get_basename(self):
         return self.name
@@ -284,6 +286,20 @@ class Target:
             self.build_by_default = kwargs['build_by_default']
             if not isinstance(self.build_by_default, bool):
                 raise InvalidArguments('build_by_default must be a boolean value.')
+        self.option_overrides = self.parse_overrides(kwargs)
+
+    def parse_overrides(self, kwargs):
+        result = {}
+        overrides = stringlistify(kwargs.get('override_options', []))
+        for o in overrides:
+            if '=' not in o:
+                raise InvalidArguments('Overrides must be of form "key=value"')
+            k, v = o.split('=', 1)
+            k = k.strip()
+            v = v.strip()
+            result[k] = v
+        return result
+
 
 class BuildTarget(Target):
     def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
@@ -1237,6 +1253,7 @@ class CustomTarget(Target):
                     'depend_files': True,
                     'depfile': True,
                     'build_by_default': True,
+                    'override_options': True,
                     }
 
     def __init__(self, name, subdir, kwargs, absolute_paths=False):

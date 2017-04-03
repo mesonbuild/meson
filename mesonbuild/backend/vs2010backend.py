@@ -87,7 +87,7 @@ class Vs2010Backend(backends.Backend):
         self.vs_version = '2010'
         self.windows_target_platform_version = None
 
-    def object_filename_from_source(self, target, source):
+    def object_filename_from_source(self, target, source, is_unity=False):
         basename = os.path.basename(source.fname)
         filename_without_extension = '.'.join(basename.split('.')[:-1])
         if basename in self.sources_conflicts[target.get_id()]:
@@ -601,6 +601,8 @@ class Vs2010Backend(backends.Backend):
         # Prefix to use to access the source tree's subdir from the vcxproj dir
         proj_to_src_dir = os.path.join(proj_to_src_root, target.subdir)
         (sources, headers, objects, languages) = self.split_sources(target.sources)
+        if self.get_option_for_target('unity', target):
+            sources = self.generate_unity_files(target, sources)
         compiler = self._get_cl_compiler(target)
         buildtype_args = compiler.get_buildtype_args(self.buildtype)
         buildtype_link_args = compiler.get_buildtype_linker_args(self.buildtype)
@@ -690,7 +692,7 @@ class Vs2010Backend(backends.Backend):
         elif '/Od' in o_flags:
             ET.SubElement(type_config, 'Optimization').text = 'Disabled'
         # Warning level
-        warning_level = self.environment.coredata.get_builtin_option('warning_level')
+        warning_level = self.get_option_for_target('warning_level', target)
         ET.SubElement(type_config, 'WarningLevel').text = 'Level' + warning_level
         # End configuration
         ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.props')
@@ -844,7 +846,7 @@ class Vs2010Backend(backends.Backend):
         ET.SubElement(clconf, 'MinimalRebuild').text = 'true'
         ET.SubElement(clconf, 'FunctionLevelLinking').text = 'true'
         pch_node = ET.SubElement(clconf, 'PrecompiledHeader')
-        if self.environment.coredata.get_builtin_option('werror'):
+        if self.get_option_for_target('werror', target):
             ET.SubElement(clconf, 'TreatWarningAsError').text = 'true'
         # Note: SuppressStartupBanner is /NOLOGO and is 'true' by default
         pch_sources = {}

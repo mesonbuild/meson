@@ -121,6 +121,8 @@ class File:
         self.is_built = is_built
         self.subdir = subdir
         self.fname = fname
+        assert(isinstance(self.subdir, str))
+        assert(isinstance(self.fname, str))
 
     def __str__(self):
         return os.path.join(self.subdir, self.fname)

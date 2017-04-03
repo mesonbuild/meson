@@ -76,6 +76,24 @@ class TestSerialisation:
         self.workdir = workdir
         self.extra_paths = extra_paths
 
+class OptionProxy:
+    def __init__(self, name, value):
+        self.name = name
+        self.value = value
+
+class OptionOverrideProxy:
+    '''Mimic an option list but transparently override
+    selected option values.'''
+    def __init__(self, overrides, options):
+        self.overrides = overrides
+        self.options = options
+
+    def __getitem__(self, option_name):
+        base_opt = self.options[option_name]
+        if option_name in self.overrides:
+            return OptionProxy(base_opt.name, base_opt.validate_value(self.overrides[option_name]))
+        return base_opt
+
 # This class contains the basic functionality that is needed by all backends.
 # Feel free to move stuff in and out of it as you see fit.
 class Backend:
@@ -102,6 +120,12 @@ class Backend:
 
     def get_target_filename_abs(self, target):
         return os.path.join(self.environment.get_build_dir(), self.get_target_filename(target))
+
+    def get_option_for_target(self, option_name, target):
+        if option_name in target.option_overrides:
+            override = target.option_overrides[option_name]
+            return self.environment.coredata.validate_option_value(option_name, override)
+        return self.environment.coredata.get_builtin_option(option_name)
 
     def get_target_filename_for_linking(self, target):
         # On some platforms (msvc for instance), the file that is used for
@@ -152,8 +176,10 @@ class Backend:
         compsrcs = classify_unity_sources(target.compilers.values(), unity_src)
 
         def init_language_file(suffix):
-            outfilename = os.path.join(self.get_target_private_dir_abs(target),
-                                       self.get_unity_source_filename(target, suffix))
+            unity_src_name = self.get_unity_source_filename(target, suffix)
+            unity_src_subdir = self.get_target_private_dir_abs(target)
+            outfilename = os.path.join(unity_src_subdir,
+                                       unity_src_name)
             outfileabs = os.path.join(self.environment.get_build_dir(),
                                       outfilename)
             outfileabs_tmp = outfileabs + '.tmp'
@@ -161,7 +187,7 @@ class Backend:
             outfileabs_tmp_dir = os.path.dirname(outfileabs_tmp)
             if not os.path.exists(outfileabs_tmp_dir):
                 os.makedirs(outfileabs_tmp_dir)
-            result.append(outfilename)
+            result.append(mesonlib.File(True, unity_src_subdir, unity_src_name))
             return open(outfileabs_tmp, 'w')
 
         # For each language, generate a unity source file and return the list
@@ -186,7 +212,7 @@ class Backend:
             elif isinstance(obj, mesonlib.File):
                 obj_list.append(obj.rel_to_builddir(self.build_to_src))
             elif isinstance(obj, build.ExtractedObjects):
-                obj_list += self.determine_ext_objs(obj, proj_dir_to_build_root)
+                obj_list += self.determine_ext_objs(target, obj, proj_dir_to_build_root)
             else:
                 raise MesonException('Unknown data type in object list.')
         return obj_list
@@ -261,32 +287,34 @@ class Backend:
             raise MesonException(m.format(target.name))
         return l
 
-    def object_filename_from_source(self, target, source):
+    def object_filename_from_source(self, target, source, is_unity):
         if isinstance(source, mesonlib.File):
             source = source.fname
         # foo.vala files compile down to foo.c and then foo.c.o, not foo.vala.o
         if source.endswith('.vala'):
+            if is_unity:
+                return source[:-5] + '.c.' + self.environment.get_object_suffix()
             source = os.path.join(self.get_target_private_dir(target), source[:-5] + '.c')
         return source.replace('/', '_').replace('\\', '_') + '.' + self.environment.get_object_suffix()
 
-    def determine_ext_objs(self, extobj, proj_dir_to_build_root):
+    def determine_ext_objs(self, target, extobj, proj_dir_to_build_root):
         result = []
         targetdir = self.get_target_private_dir(extobj.target)
         # With unity builds, there's just one object that contains all the
         # sources, and we only support extracting all the objects in this mode,
         # so just return that.
-        if self.environment.coredata.get_builtin_option('unity'):
+        if self.get_option_for_target('unity', target):
             comp = get_compiler_for_source(extobj.target.compilers.values(),
                                            extobj.srclist[0])
-            # The unity object name uses the full absolute path of the source file
-            osrc = os.path.join(self.get_target_private_dir_abs(extobj.target),
-                                self.get_unity_source_filename(extobj.target,
-                                                               comp.get_default_suffix()))
-            objname = self.object_filename_from_source(extobj.target, osrc)
+            # There is a potential conflict here, but it is unlikely that
+            # anyone both enables unity builds and has a file called foo-unity.cpp.
+            osrc = self.get_unity_source_filename(extobj.target,
+                                                  comp.get_default_suffix())
+            objname = self.object_filename_from_source(extobj.target, osrc, True)
             objpath = os.path.join(proj_dir_to_build_root, targetdir, objname)
             return [objpath]
         for osrc in extobj.srclist:
-            objname = self.object_filename_from_source(extobj.target, osrc)
+            objname = self.object_filename_from_source(extobj.target, osrc, False)
             objpath = os.path.join(proj_dir_to_build_root, targetdir, objname)
             result.append(objpath)
         return result
@@ -338,6 +366,8 @@ class Backend:
         # various sources in the order in which they must override each other
         # starting from hard-coded defaults followed by build options and so on.
         commands = CompilerArgs(compiler)
+
+        copt_proxy = OptionOverrideProxy(target.option_overrides, self.environment.coredata.compiler_options)
         # First, the trivial ones that are impossible to override.
         #
         # Add -nostdinc/-nostdinc++ if needed; can't be overriden
@@ -348,19 +378,19 @@ class Backend:
         # we weren't explicitly asked to not emit warnings (for Vala, f.ex)
         if no_warn_args:
             commands += compiler.get_no_warn_args()
-        elif self.environment.coredata.get_builtin_option('buildtype') != 'plain':
-            commands += compiler.get_warn_args(self.environment.coredata.get_builtin_option('warning_level'))
+        elif self.get_option_for_target('buildtype', target) != 'plain':
+            commands += compiler.get_warn_args(self.get_option_for_target('warning_level', target))
         # Add -Werror if werror=true is set in the build options set on the
         # command-line or default_options inside project(). This only sets the
         # action to be done for warnings if/when they are emitted, so it's ok
         # to set it after get_no_warn_args() or get_warn_args().
-        if self.environment.coredata.get_builtin_option('werror'):
+        if self.get_option_for_target('werror', target):
             commands += compiler.get_werror_args()
         # Add compile args for c_* or cpp_* build options set on the
         # command-line or default_options inside project().
-        commands += compiler.get_option_compile_args(self.environment.coredata.compiler_options)
+        commands += compiler.get_option_compile_args(copt_proxy)
         # Add buildtype args: optimization level, debugging, etc.
-        commands += compiler.get_buildtype_args(self.environment.coredata.get_builtin_option('buildtype'))
+        commands += compiler.get_buildtype_args(self.get_option_for_target('buildtype', target))
         # Add compile args added using add_project_arguments()
         commands += self.build.get_project_args(compiler, target.subproject)
         # Add compile args added using add_global_arguments()
