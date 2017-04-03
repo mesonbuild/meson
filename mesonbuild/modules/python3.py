@@ -13,10 +13,12 @@
 # limitations under the License.
 
 import sys
+import sysconfig
 from .. import mesonlib, dependencies
 
 from . import ExtensionModule
 from mesonbuild.modules import ModuleReturnValue
+
 
 class Python3Module(ExtensionModule):
     def __init__(self):
@@ -44,6 +46,26 @@ class Python3Module(ExtensionModule):
     def find_python(self, state, args, kwargs):
         py3 = dependencies.ExternalProgram('python3', sys.executable, silent=True)
         return ModuleReturnValue(py3, [py3])
+
+    def language_version(self, state, args, kwargs):
+        if args or kwargs:
+            raise mesonlib.MesonException('language_version() takes no arguments.')
+        return ModuleReturnValue(sysconfig.get_python_version(), [])
+
+    def sysconfig_path(self, state, args, kwargs):
+        if len(args) != 1:
+            raise mesonlib.MesonException('sysconfig_path() requires passing the name of path to get.')
+        if kwargs:
+            raise mesonlib.MesonException('sysconfig_path() does not accept keywords.')
+        path_name = args[0]
+        valid_names = sysconfig.get_path_names()
+        if path_name not in valid_names:
+            raise mesonlib.MesonException('{} is not a valid path name {}.'.format(path_name, valid_names))
+
+        # Get a relative path without a prefix, e.g. lib/python3.6/site-packages
+        path = sysconfig.get_path(path_name, vars={'base': ''})[1:]
+        return ModuleReturnValue(path, [])
+
 
 def initialize():
     return Python3Module()
