@@ -244,6 +244,9 @@ def validate_install(srcdir, installdir):
             expected[fname] = True
     for (fname, found) in expected.items():
         if not found:
+            # Ignore missing PDB files if we aren't using cl
+            if fname.endswith('.pdb') and compiler != 'cl':
+                continue
             ret_msg += 'Expected file {0} missing.\n'.format(fname)
     # Check if there are any unexpected files
     found = get_relative_files_list_from_dir(installdir)
