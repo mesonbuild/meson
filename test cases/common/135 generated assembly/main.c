@@ -1,5 +1,8 @@
 #include <stdio.h>
 
+#if defined(_WIN32) || defined(__CYGWIN__)
+ __declspec(dllimport)
+#endif
 unsigned square_unsigned (unsigned a);
 
 int
