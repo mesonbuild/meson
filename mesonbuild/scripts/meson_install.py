@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys, pickle, os, shutil, subprocess, gzip, platform
+import sys, pickle, os, shutil, subprocess, gzip, platform, errno
 from glob import glob
 from . import depfixer
 from . import destdir_join
@@ -34,6 +34,15 @@ def set_mode(path, mode):
         except PermissionError as e:
             msg = '{!r}: Unable to set owner {!r} and group {!r}: {}, ignoring...'
             print(msg.format(path, mode.owner, mode.group, e.strerror))
+        except LookupError as e:
+            msg = '{!r}: Non-existent owner {!r} or group {!r}: ignoring...'
+            print(msg.format(path, mode.owner, mode.group))
+        except OSError as e:
+            if e.errno == errno.EINVAL:
+                msg = '{!r}: Non-existent numeric owner {!r} or group {!r}: ignoring...'
+                print(msg.format(path, mode.owner, mode.group))
+            else:
+                raise
     # Must set permissions *after* setting owner/group otherwise the
     # setuid/setgid bits will get wiped by chmod
     # NOTE: On Windows you can set read/write perms; the rest are ignored
