@@ -136,9 +136,9 @@ class XCodeBackend(backends.Backend):
         self.buildstylemap = {'debug': self.gen_id()}
 
     def generate_build_phase_map(self):
-        # Probably should be a vector of maps, one vector-entry for each native_targets (e.g. macos/ios/...) 
+        # Probably should be a vector of maps, one vector-entry for each native_targets (e.g. macos/ios/...)
         # and each native-target can have their own Frameworks-section (with its own unique-id)
-        self.buildphasemap = {} 
+        self.buildphasemap = {}
         # system ones
         self.buildphasemap['Frameworks'] = self.gen_id()
         self.buildphasemap['Resources'] = self.gen_id()
@@ -248,7 +248,7 @@ class XCodeBackend(backends.Backend):
             for dep in t.get_external_deps():
                 if isinstance(dep, dependencies.AppleFrameworks):
                     for f in dep.frameworks:
-                        self.ofile.write('%s /* %s.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = %s /* %s.framework */; };\n' %(self.native_frameworks[f], f, self.native_frameworks_fileref[f], f))
+                        self.ofile.write('%s /* %s.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = %s /* %s.framework */; };\n' % (self.native_frameworks[f], f, self.native_frameworks_fileref[f], f))
 
             for s in t.sources:
                 if isinstance(s, mesonlib.File):
@@ -308,8 +308,7 @@ class XCodeBackend(backends.Backend):
             for dep in t.get_external_deps():
                 if isinstance(dep, dependencies.AppleFrameworks):
                     for f in dep.frameworks:
-                        self.ofile.write('%s /* %s.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = %s.framework; path = System/Library/Frameworks/%s.framework; sourceTree = SDKROOT; };\n' %(self.native_frameworks_fileref[f], f, f, f))
-        
+                        self.ofile.write('%s /* %s.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = %s.framework; path = System/Library/Frameworks/%s.framework; sourceTree = SDKROOT; };\n' % (self.native_frameworks_fileref[f], f, f, f))
         src_templ = '%s /* %s */ = { isa = PBXFileReference; explicitFileType = "%s"; fileEncoding = 4; name = "%s"; path = "%s"; sourceTree = SOURCE_ROOT; };\n'
         for fname, idval in self.filemap.items():
             fullpath = os.path.join(self.environment.get_source_dir(), fname)
@@ -337,19 +336,17 @@ class XCodeBackend(backends.Backend):
     def generate_pbx_frameworks_buildphase(self):
         self.ofile.write('\n/* Begin PBXFrameworksBuildPhase section */\n')
         self.indent_level += 1
-        self.write_line('%s /* %s */ = {\n' %(self.buildphasemap['Frameworks'], 'Frameworks'))
+        self.write_line('%s /* %s */ = {\n' % (self.buildphasemap['Frameworks'], 'Frameworks'))
         self.indent_level += 1
         self.write_line('isa = PBXFrameworksBuildPhase;\n')
-        self.write_line('buildActionMask = %s;\n' %(2147483647))
+        self.write_line('buildActionMask = %s;\n' % (2147483647))
         self.write_line('files = (\n')
         self.indent_level += 1
-        
         for t in self.build.targets.values():
             for dep in t.get_external_deps():
                 if isinstance(dep, dependencies.AppleFrameworks):
                     for f in dep.frameworks:
-                        self.write_line('%s /* %s.framework in Frameworks */,\n' %(self.native_frameworks[f], f))
-        
+                        self.write_line('%s /* %s.framework in Frameworks */,\n' % (self.native_frameworks[f], f))
         self.indent_level -= 1
         self.write_line(');\n')
         self.write_line('runOnlyForDeploymentPostprocessing = 0;\n')
@@ -407,7 +404,7 @@ class XCodeBackend(backends.Backend):
         self.write_line('sourceTree = "<group>";')
         self.indent_level -= 1
         self.write_line('};')
-        
+
         self.write_line('%s /* Frameworks */ = {' % frameworks_id)
         self.indent_level += 1
         self.write_line('isa = PBXGroup;')
@@ -419,8 +416,8 @@ class XCodeBackend(backends.Backend):
             for dep in t.get_external_deps():
                 if isinstance(dep, dependencies.AppleFrameworks):
                     for f in dep.frameworks:
-                        self.write_line('%s /* %s.framework */,\n' %(self.native_frameworks_fileref[f], f))
-        
+                        self.write_line('%s /* %s.framework */,\n' % (self.native_frameworks_fileref[f], f))
+
         self.indent_level -= 1
         self.write_line(');')
         self.write_line('name = Frameworks;')
