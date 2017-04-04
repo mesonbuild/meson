@@ -1,8 +1,8 @@
-usr/bin/libsome-0.dll
+usr/bin/?libsome-0.dll
 usr/lib/libsome.dll.a
-usr/bin/libnoversion.dll
+usr/bin/?libnoversion.dll
 usr/lib/libnoversion.dll.a
-usr/bin/libonlyversion-1.dll
+usr/bin/?libonlyversion-1.dll
 usr/lib/libonlyversion.dll.a
-usr/bin/libonlysoversion-5.dll
+usr/bin/?libonlysoversion-5.dll
 usr/lib/libonlysoversion.dll.a
