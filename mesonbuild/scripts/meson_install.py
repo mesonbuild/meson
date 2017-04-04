@@ -193,7 +193,7 @@ def run_install_script(d):
 
 def is_elf_platform():
     platname = platform.system().lower()
-    if platname == 'darwin' or platname == 'windows':
+    if platname == 'darwin' or platname == 'windows' or platname == 'cygwin':
         return False
     return True
 

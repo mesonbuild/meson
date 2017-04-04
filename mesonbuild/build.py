@@ -997,7 +997,8 @@ class Executable(BuildTarget):
             self.prefix = ''
         if not hasattr(self, 'suffix'):
             # Executable for Windows or C#/Mono
-            if for_windows(is_cross, environment) or 'cs' in self.compilers:
+            if (for_windows(is_cross, environment) or
+                for_cygwin(is_cross, environment) or 'cs' in self.compilers):
                 self.suffix = 'exe'
             else:
                 self.suffix = ''

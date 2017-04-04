@@ -218,7 +218,7 @@ def platform_fix_name(fname):
 
     if fname.endswith('?exe'):
         fname = fname[:-4]
-        if mesonlib.is_windows():
+        if mesonlib.is_windows() or mesonlib.is_cygwin():
             return fname + '.exe'
 
     return fname

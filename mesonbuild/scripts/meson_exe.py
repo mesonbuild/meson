@@ -29,8 +29,12 @@ def is_windows():
     platname = platform.system().lower()
     return platname == 'windows' or 'mingw' in platname
 
+def is_cygwin():
+    platname = platform.system().lower()
+    return 'cygwin' in platname
+
 def run_with_mono(fname):
-    if fname.endswith('.exe') and not is_windows():
+    if fname.endswith('.exe') and not (is_windows() or is_cygwin()):
         return True
     return False
 

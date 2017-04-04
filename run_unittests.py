@@ -28,7 +28,7 @@ from mesonbuild.mesonlib import is_windows, is_osx, is_cygwin
 from mesonbuild.environment import detect_ninja, Environment
 from mesonbuild.dependencies import PkgConfigDependency, ExternalProgram
 
-if is_windows():
+if is_windows() or is_cygwin():
     exe_suffix = '.exe'
 else:
     exe_suffix = ''

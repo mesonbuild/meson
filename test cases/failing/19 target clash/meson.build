@@ -7,7 +7,7 @@ project('clash', 'c')
 # This test might fail to work on different backends or when
 # output location is redirected.
 
-if host_machine.system() == 'windows'
+if host_machine.system() == 'windows' or host_machine.system() == 'cygwin'
   error('This is expected.')
 endif
 
