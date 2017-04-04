@@ -1630,25 +1630,29 @@ class Interpreter(InterpreterBase):
     def func_project(self, node, args, kwargs):
         if len(args) < 1:
             raise InvalidArguments('Not enough arguments to project(). Needs at least the project name.')
+        proj_name = args[0]
+        proj_langs = args[1:]
+        if ':' in proj_name:
+            raise InvalidArguments("Project name {!r} must not contain ':'".format(proj_name))
         default_options = kwargs.get('default_options', [])
         if self.environment.first_invocation and (len(default_options) > 0 or
                                                   len(self.default_project_options) > 0):
             self.parse_default_options(default_options)
         if not self.is_subproject():
-            self.build.project_name = args[0]
+            self.build.project_name = proj_name
         if os.path.exists(self.option_file):
             oi = optinterpreter.OptionInterpreter(self.subproject,
                                                   self.build.environment.cmd_line_options.projectoptions,
                                                   )
             oi.process(self.option_file)
             self.build.environment.merge_options(oi.options)
-        self.active_projectname = args[0]
+        self.active_projectname = proj_name
         self.project_version = kwargs.get('version', 'undefined')
         if self.build.project_version is None:
             self.build.project_version = self.project_version
         proj_license = mesonlib.stringlistify(kwargs.get('license', 'unknown'))
-        self.build.dep_manifest[args[0]] = {'version': self.project_version,
-                                            'license': proj_license}
+        self.build.dep_manifest[proj_name] = {'version': self.project_version,
+                                              'license': proj_license}
         if self.subproject in self.build.projects:
             raise InvalidCode('Second call to project().')
         if not self.is_subproject() and 'subproject_dir' in kwargs:
@@ -1659,9 +1663,9 @@ class Interpreter(InterpreterBase):
             pv = kwargs['meson_version']
             if not mesonlib.version_compare(cv, pv):
                 raise InterpreterException('Meson version is %s but project requires %s.' % (cv, pv))
-        self.build.projects[self.subproject] = args[0]
-        mlog.log('Project name: ', mlog.bold(args[0]), sep='')
-        self.add_languages(args[1:], True)
+        self.build.projects[self.subproject] = proj_name
+        mlog.log('Project name: ', mlog.bold(proj_name), sep='')
+        self.add_languages(proj_langs, True)
         langs = self.coredata.compilers.keys()
         if 'vala' in langs:
             if 'c' not in langs:
