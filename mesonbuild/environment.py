@@ -102,7 +102,7 @@ def detect_windows_arch(compilers):
             platform = os.environ.get('Platform', 'x86').lower()
             if platform == 'x86':
                 return platform
-        if compiler.id == 'gcc' and compiler.has_define('__i386__'):
+        if compiler.id == 'gcc' and compiler.has_builtin_define('__i386__'):
             return 'x86'
     return os_arch
 
@@ -129,10 +129,10 @@ def detect_cpu_family(compilers):
         # to know is to check the compiler defines.
         for c in compilers.values():
             try:
-                if c.has_define('__i386__'):
+                if c.has_builtin_define('__i386__'):
                     return 'x86'
             except mesonlib.MesonException:
-                # Ignore compilers that do not support has_define.
+                # Ignore compilers that do not support has_builtin_define.
                 pass
         return 'x86_64'
     # Add fixes here as bugs are reported.
@@ -149,7 +149,7 @@ def detect_cpu(compilers):
         # Same check as above for cpu_family
         for c in compilers.values():
             try:
-                if c.has_define('__i386__'):
+                if c.has_builtin_define('__i386__'):
                     return 'i686' # All 64 bit cpus have at least this level of x86 support.
             except mesonlib.MesonException:
                 pass
@@ -770,7 +770,7 @@ def get_args_from_envvars(compiler):
         compiler_is_linker = (compiler.get_exelist() == compiler.get_linker_exelist())
 
     if lang not in ('c', 'cpp', 'objc', 'objcpp', 'fortran', 'd'):
-        return [], []
+        return [], [], []
 
     # Compile flags
     cflags_mapping = {'c': 'CFLAGS',
@@ -781,12 +781,12 @@ def get_args_from_envvars(compiler):
                       'd': 'DFLAGS'}
     compile_flags = os.environ.get(cflags_mapping[lang], '')
     log_var(cflags_mapping[lang], compile_flags)
-    compile_flags = compile_flags.split()
+    compile_flags = shlex.split(compile_flags)
 
     # Link flags (same for all languages)
     link_flags = os.environ.get('LDFLAGS', '')
     log_var('LDFLAGS', link_flags)
-    link_flags = link_flags.split()
+    link_flags = shlex.split(link_flags)
     if compiler_is_linker:
         # When the compiler is used as a wrapper around the linker (such as
         # with GCC and Clang), the compile flags can be needed while linking
@@ -794,14 +794,15 @@ def get_args_from_envvars(compiler):
         # this when the linker is stand-alone such as with MSVC C/C++, etc.
         link_flags = compile_flags + link_flags
 
-    # Pre-processof rlags (not for fortran)
+    # Pre-processor flags (not for fortran or D)
     preproc_flags = ''
     if lang in ('c', 'cpp', 'objc', 'objcpp'):
         preproc_flags = os.environ.get('CPPFLAGS', '')
     log_var('CPPFLAGS', preproc_flags)
-    compile_flags += preproc_flags.split()
+    preproc_flags = shlex.split(preproc_flags)
+    compile_flags += preproc_flags
 
-    return compile_flags, link_flags
+    return preproc_flags, compile_flags, link_flags
 
 class CrossBuildInfo:
     def __init__(self, filename):

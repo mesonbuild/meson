@@ -1,1 +1,1 @@
-option('invalid/name', type : 'boolean', value : false)
+option('invalid:name', type : 'boolean', value : false)

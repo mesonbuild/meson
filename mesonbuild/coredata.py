@@ -148,10 +148,11 @@ class CoreData:
         self.user_options = {}
         self.compiler_options = {}
         self.base_options = {}
-        # These two, external_*args, are set via env vars CFLAGS, LDFLAGS, etc
+        # These external_*args, are set via env vars CFLAGS, LDFLAGS, etc
         # but only when not cross-compiling.
-        self.external_args = {}
-        self.external_link_args = {}
+        self.external_preprocess_args = {} # CPPFLAGS only
+        self.external_args = {} # CPPFLAGS + CFLAGS
+        self.external_link_args = {} # CFLAGS + LDFLAGS (with MSVC: only LDFLAGS)
         if options.cross_file is not None:
             self.cross_file = os.path.join(os.getcwd(), options.cross_file)
         else:

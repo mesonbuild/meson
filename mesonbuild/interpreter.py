@@ -634,6 +634,7 @@ class CompilerHolder(InterpreterObject):
                              'get_id': self.get_id_method,
                              'compute_int': self.compute_int_method,
                              'sizeof': self.sizeof_method,
+                             'get_define': self.get_define_method,
                              'has_header': self.has_header_method,
                              'has_header_symbol': self.has_header_symbol_method,
                              'run': self.run_method,
@@ -864,6 +865,20 @@ class CompilerHolder(InterpreterObject):
         esize = self.compiler.sizeof(element, prefix, self.environment, extra_args, deps)
         mlog.log('Checking for size of "%s": %d' % (element, esize))
         return esize
+
+    def get_define_method(self, args, kwargs):
+        if len(args) != 1:
+            raise InterpreterException('get_define() takes exactly one argument.')
+        check_stringlist(args)
+        element = args[0]
+        prefix = kwargs.get('prefix', '')
+        if not isinstance(prefix, str):
+            raise InterpreterException('Prefix argument of get_define() must be a string.')
+        extra_args = self.determine_args(kwargs)
+        deps = self.determine_dependencies(kwargs)
+        value = self.compiler.get_define(element, prefix, self.environment, extra_args, deps)
+        mlog.log('Checking for value of define "%s": %s' % (element, value))
+        return value
 
     def compiles_method(self, args, kwargs):
         if len(args) != 1:
@@ -1615,25 +1630,29 @@ class Interpreter(InterpreterBase):
     def func_project(self, node, args, kwargs):
         if len(args) < 1:
             raise InvalidArguments('Not enough arguments to project(). Needs at least the project name.')
+        proj_name = args[0]
+        proj_langs = args[1:]
+        if ':' in proj_name:
+            raise InvalidArguments("Project name {!r} must not contain ':'".format(proj_name))
         default_options = kwargs.get('default_options', [])
         if self.environment.first_invocation and (len(default_options) > 0 or
                                                   len(self.default_project_options) > 0):
             self.parse_default_options(default_options)
         if not self.is_subproject():
-            self.build.project_name = args[0]
+            self.build.project_name = proj_name
         if os.path.exists(self.option_file):
             oi = optinterpreter.OptionInterpreter(self.subproject,
                                                   self.build.environment.cmd_line_options.projectoptions,
                                                   )
             oi.process(self.option_file)
             self.build.environment.merge_options(oi.options)
-        self.active_projectname = args[0]
+        self.active_projectname = proj_name
         self.project_version = kwargs.get('version', 'undefined')
         if self.build.project_version is None:
             self.build.project_version = self.project_version
         proj_license = mesonlib.stringlistify(kwargs.get('license', 'unknown'))
-        self.build.dep_manifest[args[0]] = {'version': self.project_version,
-                                            'license': proj_license}
+        self.build.dep_manifest[proj_name] = {'version': self.project_version,
+                                              'license': proj_license}
         if self.subproject in self.build.projects:
             raise InvalidCode('Second call to project().')
         if not self.is_subproject() and 'subproject_dir' in kwargs:
@@ -1644,9 +1663,9 @@ class Interpreter(InterpreterBase):
             pv = kwargs['meson_version']
             if not mesonlib.version_compare(cv, pv):
                 raise InterpreterException('Meson version is %s but project requires %s.' % (cv, pv))
-        self.build.projects[self.subproject] = args[0]
-        mlog.log('Project name: ', mlog.bold(args[0]), sep='')
-        self.add_languages(args[1:], True)
+        self.build.projects[self.subproject] = proj_name
+        mlog.log('Project name: ', mlog.bold(proj_name), sep='')
+        self.add_languages(proj_langs, True)
         langs = self.coredata.compilers.keys()
         if 'vala' in langs:
             if 'c' not in langs:
@@ -1772,9 +1791,10 @@ class Interpreter(InterpreterBase):
                         raise
             mlog.log('Native %s compiler: ' % lang, mlog.bold(' '.join(comp.get_exelist())), ' (%s %s)' % (comp.id, comp.version), sep='')
             if not comp.get_language() in self.coredata.external_args:
-                (ext_compile_args, ext_link_args) = environment.get_args_from_envvars(comp)
-                self.coredata.external_args[comp.get_language()] = ext_compile_args
-                self.coredata.external_link_args[comp.get_language()] = ext_link_args
+                (preproc_args, compile_args, link_args) = environment.get_args_from_envvars(comp)
+                self.coredata.external_preprocess_args[comp.get_language()] = preproc_args
+                self.coredata.external_args[comp.get_language()] = compile_args
+                self.coredata.external_link_args[comp.get_language()] = link_args
             self.build.add_compiler(comp)
             if need_cross_compiler:
                 mlog.log('Cross %s compiler: ' % lang, mlog.bold(' '.join(cross_comp.get_exelist())), ' (%s %s)' % (cross_comp.id, cross_comp.version), sep='')
