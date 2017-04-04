@@ -2290,7 +2290,11 @@ class Interpreter(InterpreterBase):
                 inputfile = inputfile[0]
             if not isinstance(inputfile, (str, mesonlib.File)):
                 raise InterpreterException('Input must be a string or a file')
-            ifile_abs = os.path.join(self.environment.source_dir, self.subdir, inputfile)
+            if isinstance(inputfile, str):
+                inputfile = os.path.join(self.subdir, inputfile)
+            else:
+                inputfile = inputfile.relative_name()
+            ifile_abs = os.path.join(self.environment.source_dir, inputfile)
         elif 'command' in kwargs and '@INPUT@' in kwargs['command']:
             raise InterpreterException('@INPUT@ used as command argument, but no input file specified.')
         # Validate output
@@ -2309,7 +2313,7 @@ class Interpreter(InterpreterBase):
             if inputfile is not None:
                 # Normalize the path of the conffile to avoid duplicates
                 # This is especially important to convert '/' to '\' on Windows
-                conffile = os.path.normpath(os.path.join(self.subdir, inputfile))
+                conffile = os.path.normpath(inputfile)
                 if conffile not in self.build_def_files:
                     self.build_def_files.append(conffile)
                 os.makedirs(os.path.join(self.environment.build_dir, self.subdir), exist_ok=True)

@@ -125,14 +125,14 @@ class File:
         assert(isinstance(self.fname, str))
 
     def __str__(self):
-        return os.path.join(self.subdir, self.fname)
+        return self.relative_name()
 
     def __repr__(self):
         ret = '<File: {0}'
         if not self.is_built:
             ret += ' (not built)'
         ret += '>'
-        return ret.format(os.path.join(self.subdir, self.fname))
+        return ret.format(self.relative_name())
 
     @staticmethod
     def from_source_file(source_root, subdir, fname):
@@ -150,15 +150,15 @@ class File:
 
     def rel_to_builddir(self, build_to_src):
         if self.is_built:
-            return os.path.join(self.subdir, self.fname)
+            return self.relative_name()
         else:
             return os.path.join(build_to_src, self.subdir, self.fname)
 
     def absolute_path(self, srcdir, builddir):
+        absdir = srcdir
         if self.is_built:
-            return os.path.join(builddir, self.subdir, self.fname)
-        else:
-            return os.path.join(srcdir, self.subdir, self.fname)
+            absdir = builddir
+        return os.path.join(absdir, self.relative_name())
 
     def endswith(self, ending):
         return self.fname.endswith(ending)
