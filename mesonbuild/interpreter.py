@@ -1645,7 +1645,7 @@ class Interpreter(InterpreterBase):
             if not mesonlib.version_compare(cv, pv):
                 raise InterpreterException('Meson version is %s but project requires %s.' % (cv, pv))
         self.build.projects[self.subproject] = args[0]
-        mlog.log('Project name: ', mlog.bold(args[0]), sep='')
+        mlog.info('Project name: ', mlog.bold(args[0]), sep='')
         self.add_languages(args[1:], True)
         langs = self.coredata.compilers.keys()
         if 'vala' in langs:
@@ -1770,14 +1770,14 @@ class Interpreter(InterpreterBase):
                         continue
                     else:
                         raise
-            mlog.log('Native %s compiler: ' % lang, mlog.bold(' '.join(comp.get_exelist())), ' (%s %s)' % (comp.id, comp.version), sep='')
+            mlog.info('Native %s compiler: ' % lang, mlog.bold(' '.join(comp.get_exelist())), ' (%s %s)' % (comp.id, comp.version), sep='')
             if not comp.get_language() in self.coredata.external_args:
                 (ext_compile_args, ext_link_args) = environment.get_args_from_envvars(comp)
                 self.coredata.external_args[comp.get_language()] = ext_compile_args
                 self.coredata.external_link_args[comp.get_language()] = ext_link_args
             self.build.add_compiler(comp)
             if need_cross_compiler:
-                mlog.log('Cross %s compiler: ' % lang, mlog.bold(' '.join(cross_comp.get_exelist())), ' (%s %s)' % (cross_comp.id, cross_comp.version), sep='')
+                mlog.info('Cross %s compiler: ' % lang, mlog.bold(' '.join(cross_comp.get_exelist())), ' (%s %s)' % (cross_comp.id, cross_comp.version), sep='')
                 self.build.add_cross_compiler(cross_comp)
             if self.environment.is_cross_build() and not need_cross_compiler:
                 self.build.add_cross_compiler(comp)
@@ -2507,7 +2507,7 @@ different subdirectory.
 
     def run(self):
         super().run()
-        mlog.log('Build targets in project:', mlog.bold(str(len(self.build.targets))))
+        mlog.info('Build targets in project:', mlog.bold(str(len(self.build.targets))))
 
     def source_strings_to_files(self, sources):
         results = []
