@@ -78,3 +78,4 @@ Dylan Baker
 Aaron Plattner
 Jon Turney
 Wade Berrier
+Richard Hughes
