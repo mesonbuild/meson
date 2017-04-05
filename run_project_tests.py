@@ -168,7 +168,7 @@ def setup_commands(backend):
         if backend is None:
             backend = 'vs2010'
         backend_flags = ['--backend=' + backend]
-        compile_commands = ['msbuild']
+        compile_commands = ['msbuild', '/m']
         test_commands = ['msbuild', 'RUN_TESTS.vcxproj']
     elif backend == 'xcode' or (backend is None and mesonlib.is_osx()):
         backend_flags = ['--backend=xcode']
