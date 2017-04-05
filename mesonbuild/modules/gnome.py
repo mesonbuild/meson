@@ -766,6 +766,8 @@ class GnomeModule(ExtensionModule):
             cmd += ['--interface-prefix', kwargs.pop('interface_prefix')]
         if 'namespace' in kwargs:
             cmd += ['--c-namespace', kwargs.pop('namespace')]
+        if kwargs.get('object_manager', False):
+            cmd += ['--c-generate-object-manager']
 
         # https://git.gnome.org/browse/glib/commit/?id=ee09bb704fe9ccb24d92dd86696a0e6bb8f0dc1a
         if mesonlib.version_compare(self._get_native_glib_version(state), '>= 2.51.3'):
