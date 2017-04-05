@@ -1,5 +1,9 @@
 project('trivial test', 'c')
 
+if host_machine.system() == 'cygwin'
+  error('MESON_SKIP_TEST _FILE_OFFSET_BITS not yet supported on Cygwin.')
+endif
+
 cc = meson.get_compiler('c')
 
 size = cc.sizeof('off_t')
