@@ -407,6 +407,7 @@ class Parser:
     def __init__(self, code, subdir):
         self.lexer = Lexer(code)
         self.stream = self.lexer.lex(subdir)
+        self.current = Token('eof', '', 0, 0, 0, (0, 0), None)
         self.getsym()
         self.in_ternary = False
 
