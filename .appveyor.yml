@@ -38,6 +38,10 @@ environment:
       compiler: msys2-mingw
       backend: ninja
 
+    - arch: x64
+      compiler: cygwin
+      backend: ninja
+
 platform:
   - x64
 
@@ -55,15 +59,22 @@ install:
   - cmd: if %compiler%==msvc2015 ( call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" %arch% )
   - cmd: if %compiler%==msvc2017 ( call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\Tools\VsDevCmd.bat" -arch=%arch% )
   - cmd: if %compiler%==msys2-mingw (if %arch%==x86 (set "PATH=C:\msys64\mingw32\bin;%PATH%") else (set "PATH=C:\msys64\mingw64\bin;%PATH%"))
+  - cmd: if %compiler%==cygwin ( call ci\appveyor-install.bat )
 
 build_script:
   - cmd: echo No build step.
-  - cmd: if %backend%==ninja ( ninja.exe --version ) else ( MSBuild /version & echo. )
+  - cmd: if not %compiler%==cygwin if %backend%==ninja ( ninja.exe --version ) else ( MSBuild /version & echo. )
 
 test_script:
   - cmd: echo Running tests for %arch% and %compiler% with the %backend% backend
-  - cmd: PATH=%cd%;%MESON_PYTHON_PATH%;%PATH%; && python run_tests.py --backend=%backend%
+  - cmd: set "ORIG_PATH=%PATH%"
+  - cmd: if %compiler%==cygwin ( set "PATH=%CYGWIN_ROOT%\bin;%SYSTEMROOT%\system32" && bash -lc "cd $APPVEYOR_BUILD_FOLDER && ci/appveyor-test.sh" )
+  - cmd: if not %compiler%==cygwin ( set "PATH=%cd%;%MESON_PYTHON_PATH%;%PATH%;" && python run_tests.py --backend=%backend% )
 
 on_finish:
+  - set "PATH=%ORIG_PATH%"
   - appveyor PushArtifact meson-test-run.txt -DeploymentName "Text test logs"
   - appveyor PushArtifact meson-test-run.xml -DeploymentName "XML test logs"
+
+cache:
+  - C:\cache
