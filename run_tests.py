@@ -20,15 +20,21 @@ import shutil
 import subprocess
 import platform
 from mesonbuild import mesonlib
+from enum import Enum
 
-def using_vs_backend():
-    for arg in sys.argv[1:]:
-        if arg.startswith('--backend=vs'):
-            return True
-    return False
+Backend = Enum('Backend', 'ninja vs xcode')
 
 if __name__ == '__main__':
     returncode = 0
+    # Iterate over list in reverse order to find the last --backend arg
+    backend = Backend.ninja
+    for arg in reversed(sys.argv[1:]):
+        if arg.startswith('--backend'):
+            if arg.startswith('--backend=vs'):
+                backend = Backend.vs
+            elif arg == '--backend=xcode':
+                backend = Backend.xcode
+            break
     # Running on a developer machine? Be nice!
     if not mesonlib.is_windows() and 'TRAVIS' not in os.environ:
         os.nice(20)
@@ -40,7 +46,7 @@ if __name__ == '__main__':
         units += ['WindowsTests']
     # Unit tests always use the Ninja backend, so just skip them if we're
     # testing the VS backend
-    if not using_vs_backend():
+    if backend is Backend.ninja:
         returncode += subprocess.call([sys.executable, 'run_unittests.py', '-v'] + units)
     # Ubuntu packages do not have a binary without -6 suffix.
     if shutil.which('arm-linux-gnueabihf-gcc-6') and not platform.machine().startswith('arm'):
