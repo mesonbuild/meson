@@ -598,12 +598,18 @@ class BoostDependency(Dependency):
             self.boost_root = None
         if self.boost_root is None:
             if self.want_cross:
-                raise DependencyException('BOOST_ROOT is needed while cross-compiling')
+                if 'BOOST_INCLUDEDIR' in os.environ:
+                    self.incdir = os.environ['BOOST_INCLUDEDIR']
+                else:
+                    raise DependencyException('BOOST_ROOT or BOOST_INCLUDEDIR is needed while cross-compiling')
             if mesonlib.is_windows():
                 self.boost_root = self.detect_win_root()
                 self.incdir = self.boost_root
             else:
-                self.incdir = '/usr/include'
+                if 'BOOST_INCLUDEDIR' in os.environ:
+                    self.incdir = os.environ['BOOST_INCLUDEDIR']
+                else:
+                    self.incdir = '/usr/include'
         else:
             self.incdir = os.path.join(self.boost_root, 'include')
         self.boost_inc_subdir = os.path.join(self.incdir, 'boost')
@@ -727,7 +733,9 @@ class BoostDependency(Dependency):
             libsuffix = 'so'
 
         globber = 'libboost_*.{}'.format(libsuffix)
-        if self.boost_root is None:
+        if 'BOOST_LIBRARYDIR' in os.environ:
+            libdirs = [os.environ['BOOST_LIBRARYDIR']]
+        elif self.boost_root is None:
             libdirs = mesonlib.get_library_dirs()
         else:
             libdirs = [os.path.join(self.boost_root, 'lib')]
@@ -758,6 +766,8 @@ class BoostDependency(Dependency):
         args = []
         if self.boost_root:
             args.append('-L' + os.path.join(self.boost_root, 'lib'))
+        elif 'BOOST_LIBRARYDIR' in os.environ:
+            args.append('-L' + os.environ['BOOST_LIBRARYDIR'])
         for module in self.requested_modules:
             module = BoostDependency.name2lib.get(module, module)
             libname = 'boost_' + module
