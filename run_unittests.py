@@ -401,7 +401,7 @@ class BasePlatformTests(unittest.TestCase):
     def build(self, extra_args=None):
         if extra_args is None:
             extra_args = []
-        self._run(self.ninja_command + extra_args)
+        return self._run(self.ninja_command + extra_args)
 
     def run_tests(self):
         self._run(self.ninja_command + ['test'])
@@ -430,6 +430,11 @@ class BasePlatformTests(unittest.TestCase):
 
     def wipe(self):
         shutil.rmtree(self.builddir)
+
+    def utime(self, f):
+        # See setconf
+        time.sleep(1)
+        os.utime(f)
 
     def get_compdb(self):
         with open(os.path.join(self.builddir, 'compile_commands.json')) as ifile:
@@ -961,6 +966,24 @@ class AllPlatformTests(BasePlatformTests):
         os.environ['CPPFLAGS'] = '-D{}="{}"'.format(define, value)
         os.environ['CFLAGS'] = '-DMESON_FAIL_VALUE=cflags-read'.format(define)
         self.init(testdir, ['-D{}={}'.format(define, value)])
+
+    def test_source_changes_cause_rebuild(self):
+        '''
+        Test that changes to sources and headers cause rebuilds, but not
+        changes to unused files (as determined by the dependency file) in the
+        input files list.
+        '''
+        testdir = os.path.join(self.common_test_dir, '22 header in file list')
+        self.init(testdir)
+        self.build()
+        # Changing mtime of useless.dt should not rebuild anything
+        self.utime(os.path.join(testdir, 'useless.dt'))
+        ret = self.build()
+        self.assertEqual(ret.split('\n')[-2], 'ninja: no work to do.')
+        # Changing mtime of header.h should rebuild everything
+        self.utime(os.path.join(testdir, 'header.h'))
+        ret = self.build()
+        self.assertEqual(ret.split('\n')[-2], '[2/2] Linking target prog')
 
 
 class WindowsTests(BasePlatformTests):

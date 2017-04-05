@@ -1,0 +1,3 @@
+This file is not compiled, and is not a header, but might be used in the
+compilation anyway (such as if it's #include-ed, etc). See:
+https://github.com/mesonbuild/meson/issues/1572
