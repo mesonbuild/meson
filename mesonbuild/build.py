@@ -1318,12 +1318,16 @@ class CustomTarget(Target):
         for c in cmd:
             if hasattr(c, 'held_object'):
                 c = c.held_object
-            if isinstance(c, (str, File)):
+            if isinstance(c, str):
+                final_cmd.append(c)
+            elif isinstance(c, File):
+                self.depend_files.append(c)
                 final_cmd.append(c)
             elif isinstance(c, dependencies.ExternalProgram):
                 if not c.found():
                     m = 'Tried to use not-found external program {!r} in "command"'
                     raise InvalidArguments(m.format(c.name))
+                self.depend_files.append(File.from_absolute_file(c.get_path()))
                 final_cmd += c.get_command()
             elif isinstance(c, (BuildTarget, CustomTarget)):
                 self.dependencies.append(c)

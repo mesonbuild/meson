@@ -346,7 +346,21 @@ class BasePlatformTests(unittest.TestCase):
         self.vala_test_dir = os.path.join(src_root, 'test cases/vala')
         self.framework_test_dir = os.path.join(src_root, 'test cases/frameworks')
         self.unit_test_dir = os.path.join(src_root, 'test cases/unit')
+        # Misc stuff
         self.orig_env = os.environ.copy()
+        if self.backend is Backend.ninja:
+            self.no_rebuild_stdout = 'ninja: no work to do.'
+        else:
+            # VS doesn't have a stable output when no changes are done
+            # XCode backend is untested with unit tests, help welcome!
+            self.no_rebuild_stdout = 'UNKNOWN BACKEND {!r}'.format(self.backend.name)
+
+    def ensure_backend_detects_changes(self):
+        # This is needed to increase the difference between build.ninja's
+        # timestamp and the timestamp of whatever you changed due to a Ninja
+        # bug: https://github.com/ninja-build/ninja/issues/371
+        if self.backend is Backend.ninja:
+            time.sleep(1)
 
     def _print_meson_log(self):
         log = os.path.join(self.logdir, 'meson-log.txt')
@@ -395,7 +409,7 @@ class BasePlatformTests(unittest.TestCase):
         # Add arguments for building the target (if specified),
         # and using the build dir (if required, with VS)
         args = get_builddir_target_args(self.backend, self.builddir, target)
-        self._run(self.build_command + args + extra_args, workdir=self.builddir)
+        return self._run(self.build_command + args + extra_args, workdir=self.builddir)
 
     def clean(self):
         dir_args = get_builddir_target_args(self.backend, self.builddir, None)
@@ -421,15 +435,16 @@ class BasePlatformTests(unittest.TestCase):
         return self.build(target=target)
 
     def setconf(self, arg, will_build=True):
-        # This is needed to increase the difference between build.ninja's
-        # timestamp and coredata.dat's timestamp due to a Ninja bug.
-        # https://github.com/ninja-build/ninja/issues/371
         if will_build:
-            time.sleep(1)
+            self.ensure_backend_detects_changes()
         self._run(self.mconf_command + [arg, self.builddir])
 
     def wipe(self):
         shutil.rmtree(self.builddir)
+
+    def utime(self, f):
+        self.ensure_backend_detects_changes()
+        os.utime(f)
 
     def get_compdb(self):
         if self.backend is not Backend.ninja:
@@ -483,6 +498,40 @@ class BasePlatformTests(unittest.TestCase):
         # `basename` works.
         path_basename = PurePath(path).parts[-1]
         self.assertEqual(PurePath(path_basename), PurePath(basename), msg)
+
+    def assertBuildIsNoop(self):
+        ret = self.build()
+        if self.backend is Backend.ninja:
+            self.assertEqual(ret.split('\n')[-2], self.no_rebuild_stdout)
+        elif self.backend is Backend.vs:
+            # Ensure that some target said that no rebuild was done
+            self.assertIn('CustomBuild:\n  All outputs are up-to-date.', ret)
+            self.assertIn('ClCompile:\n  All outputs are up-to-date.', ret)
+            self.assertIn('Link:\n  All outputs are up-to-date.', ret)
+            # Ensure that no targets were built
+            clre = re.compile('ClCompile:\n [^\n]*cl', flags=re.IGNORECASE)
+            linkre = re.compile('Link:\n [^\n]*link', flags=re.IGNORECASE)
+            self.assertNotRegex(ret, clre)
+            self.assertNotRegex(ret, linkre)
+        elif self.backend is Backend.xcode:
+            raise unittest.SkipTest('Please help us fix this test on the xcode backend')
+        else:
+            raise RuntimeError('Invalid backend: {!r}'.format(self.backend.name))
+
+    def assertRebuiltTarget(self, target):
+        ret = self.build()
+        if self.backend is Backend.ninja:
+            self.assertIn('Linking target {}'.format(target), ret)
+        elif self.backend is Backend.vs:
+            # Ensure that this target was rebuilt
+            clre = re.compile('ClCompile:\n [^\n]*cl[^\n]*' + target, flags=re.IGNORECASE)
+            linkre = re.compile('Link:\n [^\n]*link[^\n]*' + target, flags=re.IGNORECASE)
+            self.assertRegex(ret, clre)
+            self.assertRegex(ret, linkre)
+        elif self.backend is Backend.xcode:
+            raise unittest.SkipTest('Please help us fix this test on the xcode backend')
+        else:
+            raise RuntimeError('Invalid backend: {!r}'.format(self.backend.name))
 
 
 class AllPlatformTests(BasePlatformTests):
@@ -976,6 +1025,37 @@ class AllPlatformTests(BasePlatformTests):
         self.init(testdir)
         meson_exe_dat2 = glob(os.path.join(self.privatedir, 'meson_exe*.dat'))
         self.assertListEqual(meson_exe_dat1, meson_exe_dat2)
+
+    def test_source_changes_cause_rebuild(self):
+        '''
+        Test that changes to sources and headers cause rebuilds, but not
+        changes to unused files (as determined by the dependency file) in the
+        input files list.
+        '''
+        testdir = os.path.join(self.common_test_dir, '22 header in file list')
+        self.init(testdir)
+        self.build()
+        # Immediately rebuilding should not do anything
+        self.assertBuildIsNoop()
+        # Changing mtime of header.h should rebuild everything
+        self.utime(os.path.join(testdir, 'header.h'))
+        self.assertRebuiltTarget('prog')
+
+    def test_custom_target_changes_cause_rebuild(self):
+        '''
+        Test that in a custom target, changes to the input files, the
+        ExternalProgram, and any File objects on the command-line cause
+        a rebuild.
+        '''
+        testdir = os.path.join(self.common_test_dir, '64 custom header generator')
+        self.init(testdir)
+        self.build()
+        # Immediately rebuilding should not do anything
+        self.assertBuildIsNoop()
+        # Changing mtime of these should rebuild everything
+        for f in ('input.def', 'makeheader.py', 'somefile.txt'):
+            self.utime(os.path.join(testdir, f))
+            self.assertRebuiltTarget('prog')
 
 
 class WindowsTests(BasePlatformTests):
