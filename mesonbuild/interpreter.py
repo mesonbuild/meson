@@ -2439,83 +2439,49 @@ different subdirectory.
 
     @stringArgs
     def func_add_global_arguments(self, node, args, kwargs):
-        if self.subproject != '':
-            msg = 'Global arguments can not be set in subprojects because ' \
-                  'there is no way to make that reliable.\nPlease only call ' \
-                  'this if is_subproject() returns false. Alternatively, ' \
-                  'define a variable that\ncontains your language-specific ' \
-                  'arguments and add it to the appropriate *_args kwarg ' \
-                  'in each target.'
-            raise InvalidCode(msg)
-        if self.args_frozen:
-            msg = 'Tried to set global arguments after a build target has ' \
-                  'been declared.\nThis is not permitted. Please declare all ' \
-                  'global arguments before your targets.'
-            raise InvalidCode(msg)
-        if 'language' not in kwargs:
-            raise InvalidCode('Missing language definition in add_global_arguments')
-        lang = kwargs['language'].lower()
-        if lang in self.build.global_args:
-            self.build.global_args[lang] += args
-        else:
-            self.build.global_args[lang] = args
+        self.add_global_arguments(node, self.build.global_args, args, kwargs)
 
     @stringArgs
     def func_add_global_link_arguments(self, node, args, kwargs):
+        self.add_global_arguments(node, self.build.global_link_args, args, kwargs)
+
+    @stringArgs
+    def func_add_project_arguments(self, node, args, kwargs):
+        self.add_project_arguments(node, self.build.projects_args, args, kwargs)
+
+    @stringArgs
+    def func_add_project_link_arguments(self, node, args, kwargs):
+        self.add_project_arguments(node, self.build.projects_link_args, args, kwargs)
+
+    def add_global_arguments(self, node, argsdict, args, kwargs):
         if self.subproject != '':
-            msg = 'Global link arguments can not be set in subprojects because ' \
+            msg = 'Function \'{}\' cannot be used in subprojects because ' \
                   'there is no way to make that reliable.\nPlease only call ' \
                   'this if is_subproject() returns false. Alternatively, ' \
                   'define a variable that\ncontains your language-specific ' \
                   'arguments and add it to the appropriate *_args kwarg ' \
-                  'in each target.'
+                  'in each target.'.format(node.func_name)
             raise InvalidCode(msg)
-        if self.args_frozen:
-            msg = 'Tried to set global link arguments after a build target has ' \
-                  'been declared.\nThis is not permitted. Please declare all ' \
-                  'global arguments before your targets.'
-            raise InvalidCode(msg)
-        if 'language' not in kwargs:
-            raise InvalidCode('Missing language definition in add_global_link_arguments')
-        lang = kwargs['language'].lower()
-        if lang in self.build.global_link_args:
-            self.build.global_link_args[lang] += args
-        else:
-            self.build.global_link_args[lang] = args
+        self.add_arguments(node, argsdict, args, kwargs)
 
-    @stringArgs
-    def func_add_project_link_arguments(self, node, args, kwargs):
-        if self.args_frozen:
-            msg = 'Tried to set project link arguments after a build target has ' \
-                  'been declared.\nThis is not permitted. Please declare all ' \
-                  'project link arguments before your targets.'
-            raise InvalidCode(msg)
-        if 'language' not in kwargs:
-            raise InvalidCode('Missing language definition in add_project_link_arguments')
-        lang = kwargs['language'].lower()
-        if self.subproject not in self.build.projects_link_args:
-            self.build.projects_link_args[self.subproject] = {}
+    def add_project_arguments(self, node, argsdict, args, kwargs):
+        if self.subproject not in argsdict:
+            argsdict[self.subproject] = {}
+        self.add_arguments(node, argsdict[self.subproject], args, kwargs)
 
-        args = self.build.projects_link_args[self.subproject].get(lang, []) + args
-        self.build.projects_link_args[self.subproject][lang] = args
-
-    @stringArgs
-    def func_add_project_arguments(self, node, args, kwargs):
+    def add_arguments(self, node, argsdict, args, kwargs):
         if self.args_frozen:
-            msg = 'Tried to set project arguments after a build target has ' \
-                  'been declared.\nThis is not permitted. Please declare all ' \
-                  'project arguments before your targets.'
+            msg = 'Tried to use \'{}\' after a build target has been declared.\n' \
+                  'This is not permitted. Please declare all ' \
+                  'arguments before your targets.'.format(node.func_name)
             raise InvalidCode(msg)
 
         if 'language' not in kwargs:
-            raise InvalidCode('Missing language definition in add_project_arguments')
-
-        if self.subproject not in self.build.projects_args:
-            self.build.projects_args[self.subproject] = {}
+            raise InvalidCode('Missing language definition in {}'.format(node.func_name))
 
         lang = kwargs['language'].lower()
-        args = self.build.projects_args[self.subproject].get(lang, []) + args
-        self.build.projects_args[self.subproject][lang] = args
+        args = argsdict.get(lang, []) + args
+        argsdict[lang] = args
 
     def func_environment(self, node, args, kwargs):
         return EnvironmentVariablesHolder()
