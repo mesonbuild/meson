@@ -155,6 +155,7 @@ signal.signal(signal.SIGINT, stop_handler)
 signal.signal(signal.SIGTERM, stop_handler)
 
 # Must define these here for compatibility with Python 3.4
+backend = None
 backend_flags = None
 compile_commands = None
 clean_commands = []
@@ -162,20 +163,27 @@ test_commands = None
 install_commands = []
 uninstall_commands = None
 
-def setup_commands(backend):
-    global do_debug, backend_flags
+def setup_commands():
+    global do_debug, backend, backend_flags
     global compile_commands, clean_commands, test_commands, install_commands, uninstall_commands
     msbuild_exe = shutil.which('msbuild')
-    if (backend and backend.startswith('vs')) or (backend is None and msbuild_exe is not None):
-        if backend is None:
-            # Autodetect if unspecified
-            backend = 'vs'
+    # Auto-detect backend if unspecified
+    if backend is None:
+        if msbuild_exe is not None:
+            backend = 'vs' # Meson will auto-detect VS version to use
+        elif mesonlib.is_osx():
+            backend = 'xcode'
+        else:
+            backend = 'ninja'
+    # Set backend arguments for Meson
+    if backend.startswith('vs'):
         backend_flags = ['--backend=' + backend]
-    elif backend == 'xcode' or (backend is None and mesonlib.is_osx()):
+    elif backend == 'xcode':
         backend_flags = ['--backend=xcode']
+    elif backend == 'ninja':
+        backend_flags = ['--backend=ninja']
     else:
-        backend = 'ninja'
-        backend_flags = []
+        raise RuntimeError('Unknown backend: {!r}'.format(backend))
     compile_commands, clean_commands, test_commands, install_commands, \
         uninstall_commands = get_backend_commands(backend, do_debug)
 
@@ -410,23 +418,6 @@ def have_java():
         return True
     return False
 
-def using_backend(backends):
-    if isinstance(backends, str):
-        backends = (backends,)
-    for backend in backends:
-        if backend == 'ninja':
-            if not backend_flags:
-                return True
-        elif backend == 'xcode':
-            if backend_flags == '--backend=xcode':
-                return True
-        elif backend == 'vs':
-            if backend_flags.startswith('--backend=vs'):
-                return True
-        else:
-            raise AssertionError('Unknown backend type: ' + backend)
-    return False
-
 def detect_tests_to_run():
     all_tests = []
     all_tests.append(('common', gather_tests('test cases/common'), False))
@@ -439,15 +430,15 @@ def detect_tests_to_run():
     all_tests.append(('platform-windows', gather_tests('test cases/windows'), False if mesonlib.is_windows() or mesonlib.is_cygwin() else True))
     all_tests.append(('platform-linux', gather_tests('test cases/linuxlike'), False if not (mesonlib.is_osx() or mesonlib.is_windows()) else True))
     all_tests.append(('framework', gather_tests('test cases/frameworks'), False if not mesonlib.is_osx() and not mesonlib.is_windows() and not mesonlib.is_cygwin() else True))
-    all_tests.append(('java', gather_tests('test cases/java'), False if using_backend('ninja') and not mesonlib.is_osx() and have_java() else True))
-    all_tests.append(('C#', gather_tests('test cases/csharp'), False if using_backend('ninja') and shutil.which('mcs') else True))
-    all_tests.append(('vala', gather_tests('test cases/vala'), False if using_backend('ninja') and shutil.which('valac') else True))
-    all_tests.append(('rust', gather_tests('test cases/rust'), False if using_backend('ninja') and shutil.which('rustc') else True))
-    all_tests.append(('d', gather_tests('test cases/d'), False if using_backend('ninja') and have_d_compiler() else True))
-    all_tests.append(('objective c', gather_tests('test cases/objc'), False if using_backend(('ninja', 'xcode')) and not mesonlib.is_windows() else True))
-    all_tests.append(('fortran', gather_tests('test cases/fortran'), False if using_backend('ninja') and shutil.which('gfortran') else True))
-    all_tests.append(('swift', gather_tests('test cases/swift'), False if using_backend(('ninja', 'xcode')) and shutil.which('swiftc') else True))
-    all_tests.append(('python3', gather_tests('test cases/python3'), False if using_backend('ninja') and shutil.which('python3') else True))
+    all_tests.append(('java', gather_tests('test cases/java'), False if backend == 'ninja' and not mesonlib.is_osx() and have_java() else True))
+    all_tests.append(('C#', gather_tests('test cases/csharp'), False if backend == 'ninja' and shutil.which('mcs') else True))
+    all_tests.append(('vala', gather_tests('test cases/vala'), False if backend == 'ninja' and shutil.which('valac') else True))
+    all_tests.append(('rust', gather_tests('test cases/rust'), False if backend == 'ninja' and shutil.which('rustc') else True))
+    all_tests.append(('d', gather_tests('test cases/d'), False if backend == 'ninja' and have_d_compiler() else True))
+    all_tests.append(('objective c', gather_tests('test cases/objc'), False if backend in ('ninja', 'xcode') and not mesonlib.is_windows() else True))
+    all_tests.append(('fortran', gather_tests('test cases/fortran'), False if backend == 'ninja' and shutil.which('gfortran') else True))
+    all_tests.append(('swift', gather_tests('test cases/swift'), False if backend in ('ninja', 'xcode') and shutil.which('swiftc') else True))
+    all_tests.append(('python3', gather_tests('test cases/python3'), False if backend == 'ninja' and shutil.which('python3') else True))
     return all_tests
 
 def run_tests(all_tests, log_name_base, extra_args):
@@ -636,7 +627,8 @@ if __name__ == '__main__':
     parser.add_argument('--backend', default=None, dest='backend',
                         choices=backendlist)
     options = parser.parse_args()
-    setup_commands(options.backend)
+    backend = options.backend
+    setup_commands()
 
     # Appveyor sets the `platform` environment variable which completely messes
     # up building with the vs2010 and vs2015 backends.
