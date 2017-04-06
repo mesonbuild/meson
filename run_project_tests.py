@@ -43,6 +43,7 @@ class BuildStep(Enum):
     test = 3
     install = 4
     clean = 5
+    validate = 6
 
 
 class TestResult:
@@ -393,7 +394,7 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, flags, compile_c
         stde += e
         if pi.returncode != 0:
             return TestResult('Running clean failed.', BuildStep.clean, stdo, stde, mesonlog, gen_time, build_time, test_time)
-    return TestResult(validate_install(testdir, install_dir), BuildStep.clean, stdo, stde, mesonlog, gen_time, build_time, test_time)
+    return TestResult(validate_install(testdir, install_dir), BuildStep.validate, stdo, stde, mesonlog, gen_time, build_time, test_time)
 
 def gather_tests(testdir):
     tests = [t.replace('\\', '/').split('/', 2)[2] for t in glob(os.path.join(testdir, '*'))]
