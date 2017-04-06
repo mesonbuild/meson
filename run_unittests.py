@@ -29,7 +29,7 @@ from mesonbuild.environment import Environment
 from mesonbuild.dependencies import PkgConfigDependency, ExternalProgram
 
 from run_tests import exe_suffix, get_fake_options, FakeEnvironment
-from run_tests import get_build_target_args, get_backend_commands
+from run_tests import get_builddir_target_args, get_backend_commands
 
 
 def get_soname(fname):
@@ -330,12 +330,15 @@ class BasePlatformTests(unittest.TestCase):
         self.prefix = '/usr'
         self.libdir = os.path.join(self.prefix, 'lib')
         self.installdir = os.path.join(self.builddir, 'install')
-        self.meson_command = [sys.executable, os.path.join(src_root, 'meson.py')]
+        # Get the backend
+        # FIXME: Extract this from argv?
+        self.backend = os.environ.get('MESON_UNIT_TEST_BACKEND', 'ninja')
+        self.meson_command = [sys.executable, os.path.join(src_root, 'meson.py'),
+                              '--backend=' + self.backend]
         self.mconf_command = [sys.executable, os.path.join(src_root, 'mesonconf.py')]
         self.mintro_command = [sys.executable, os.path.join(src_root, 'mesonintrospect.py')]
         self.mtest_command = [sys.executable, os.path.join(src_root, 'mesontest.py'), '-C', self.builddir]
-        # Backend-specific commands
-        self.backend = os.environ.get('MESON_UNIT_TEST_BACKEND', 'ninja')
+        # Backend-specific build commands
         self.build_command, self.clean_command, self.test_command, self.install_command, \
             self.uninstall_command = get_backend_commands(self.backend)
         # Test directories
@@ -389,8 +392,14 @@ class BasePlatformTests(unittest.TestCase):
     def build(self, target=None, extra_args=None):
         if extra_args is None:
             extra_args = []
-        target = get_build_target_args(self.backend, target)
-        self._run(self.build_command + target + extra_args, workdir=self.builddir)
+        # Add arguments for building the target (if specified),
+        # and using the build dir (if required, with VS)
+        args = get_builddir_target_args(self.backend, self.builddir, target)
+        self._run(self.build_command + args + extra_args, workdir=self.builddir)
+
+    def clean(self):
+        dir_args = get_builddir_target_args(self.backend, self.builddir, None)
+        self._run(self.clean_command + dir_args, workdir=self.builddir)
 
     def run_tests(self):
         self._run(self.test_command, workdir=self.builddir)

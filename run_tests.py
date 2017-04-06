@@ -40,14 +40,17 @@ def get_backend_args_for_dir(backend, builddir):
         return [os.path.split(sln_name)[-1]]
     return []
 
-def get_build_target_args(backend, target):
+def get_builddir_target_args(backend, builddir, target):
+    dir_args = get_backend_args_for_dir(backend, builddir)
     if target is None:
-        return []
+        return dir_args
     if backend.startswith('vs'):
-        return ['/target:' + target]
-    if backend == 'xcode':
-        return ['-target', target]
-    return [target]
+        target_args = ['/target:' + target]
+    elif backend == 'xcode':
+        target_args = ['-target', target]
+    else:
+        target_args = [target]
+    return target_args + dir_args
 
 def get_backend_commands(backend, debug=False):
     install_cmd = []
@@ -108,10 +111,10 @@ if __name__ == '__main__':
         units += ['LinuxlikeTests']
     elif mesonlib.is_windows():
         units += ['WindowsTests']
-    # Unit tests always use the Ninja backend, so just skip them if we're
-    # testing the VS backend
-    if backend is Backend.ninja:
-        returncode += subprocess.call([sys.executable, 'run_unittests.py', '-v'] + units)
+    # Can't pass arguments to unit tests, so set the backend to use in the environment
+    env = os.environ.copy()
+    env['MESON_UNIT_TEST_BACKEND'] = backend.name
+    returncode += subprocess.call([sys.executable, 'run_unittests.py', '-v'] + units, env=env)
     # Ubuntu packages do not have a binary without -6 suffix.
     if shutil.which('arm-linux-gnueabihf-gcc-6') and not platform.machine().startswith('arm'):
         print('Running cross compilation tests.\n')
