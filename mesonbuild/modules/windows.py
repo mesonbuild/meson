@@ -51,9 +51,17 @@ class WindowsModule(ExtensionModule):
             for arg in extra_args:
                 if ' ' in arg:
                     mlog.warning(m.format(arg))
-            # Pick-up env var WINDRES if set. This is often used for specifying
-            # an arch-specific windres.
-            rescomp_name = os.environ.get('WINDRES', 'windres')
+            rescomp_name = None
+            # FIXME: Does not handle `native: true` executables, see
+            # https://github.com/mesonbuild/meson/issues/1531
+            if state.environment.is_cross_build():
+                # If cross compiling see if windres has been specified in the
+                # cross file before trying to find it another way.
+                rescomp_name = state.environment.cross_info.config['binaries'].get('windres')
+            if rescomp_name is None:
+                # Pick-up env var WINDRES if set. This is often used for
+                # specifying an arch-specific windres.
+                rescomp_name = os.environ.get('WINDRES', 'windres')
             rescomp = dependencies.ExternalProgram(rescomp_name, silent=True)
             res_args = extra_args + ['@INPUT@', '@OUTPUT@']
             suffix = 'o'
