@@ -25,13 +25,12 @@ import mesonbuild.compilers
 import mesonbuild.environment
 import mesonbuild.mesonlib
 from mesonbuild.mesonlib import is_windows, is_osx, is_cygwin
-from mesonbuild.environment import detect_ninja, Environment
+from mesonbuild.environment import Environment
 from mesonbuild.dependencies import PkgConfigDependency, ExternalProgram
 
-if is_windows() or is_cygwin():
-    exe_suffix = '.exe'
-else:
-    exe_suffix = ''
+from run_tests import exe_suffix, get_fake_options, FakeEnvironment
+from run_tests import get_build_target_args, get_backend_commands
+
 
 def get_soname(fname):
     # HACK, fix to not use shell.
@@ -43,21 +42,6 @@ def get_soname(fname):
         if m is not None:
             return m.group(1)
     raise RuntimeError('Could not determine soname:\n\n' + raw_out)
-
-def get_fake_options(prefix):
-    import argparse
-    opts = argparse.Namespace()
-    opts.cross_file = None
-    opts.wrap_mode = None
-    opts.prefix = prefix
-    return opts
-
-class FakeEnvironment(object):
-    def __init__(self):
-        self.cross_info = None
-
-    def is_cross_build(self):
-        return False
 
 class InternalTests(unittest.TestCase):
 
@@ -350,7 +334,11 @@ class BasePlatformTests(unittest.TestCase):
         self.mconf_command = [sys.executable, os.path.join(src_root, 'mesonconf.py')]
         self.mintro_command = [sys.executable, os.path.join(src_root, 'mesonintrospect.py')]
         self.mtest_command = [sys.executable, os.path.join(src_root, 'mesontest.py'), '-C', self.builddir]
-        self.ninja_command = [detect_ninja(), '-C', self.builddir]
+        # Backend-specific commands
+        self.backend = os.environ.get('MESON_UNIT_TEST_BACKEND', 'ninja')
+        self.build_command, self.clean_command, self.test_command, self.install_command, \
+            self.uninstall_command = get_backend_commands(self.backend)
+        # Test directories
         self.common_test_dir = os.path.join(src_root, 'test cases/common')
         self.vala_test_dir = os.path.join(src_root, 'test cases/vala')
         self.framework_test_dir = os.path.join(src_root, 'test cases/frameworks')
@@ -370,14 +358,14 @@ class BasePlatformTests(unittest.TestCase):
         os.environ = self.orig_env
         super().tearDown()
 
-    def _run(self, command):
+    def _run(self, command, workdir=None):
         '''
         Run a command while printing the stdout and stderr to stdout,
         and also return a copy of it
         '''
         p = subprocess.Popen(command, stdout=subprocess.PIPE,
                              stderr=subprocess.STDOUT, env=os.environ.copy(),
-                             universal_newlines=True)
+                             universal_newlines=True, cwd=workdir)
         output = p.communicate()[0]
         print(output)
         if p.returncode != 0:
@@ -398,27 +386,28 @@ class BasePlatformTests(unittest.TestCase):
             raise
         self.privatedir = os.path.join(self.builddir, 'meson-private')
 
-    def build(self, extra_args=None):
+    def build(self, target=None, extra_args=None):
         if extra_args is None:
             extra_args = []
-        self._run(self.ninja_command + extra_args)
+        target = get_build_target_args(self.backend, target)
+        self._run(self.build_command + target + extra_args, workdir=self.builddir)
 
     def run_tests(self):
-        self._run(self.ninja_command + ['test'])
+        self._run(self.test_command, workdir=self.builddir)
 
     def install(self):
         os.environ['DESTDIR'] = self.installdir
-        self._run(self.ninja_command + ['install'])
+        self._run(self.install_command, workdir=self.builddir)
 
     def uninstall(self):
-        self._run(self.ninja_command + ['uninstall'])
+        self._run(self.uninstall_command, workdir=self.builddir)
 
     def run_target(self, target):
         '''
         Run a Ninja target while printing the stdout and stderr to stdout,
         and also return a copy of it
         '''
-        return self._run(self.ninja_command + [target])
+        return self.build(target=target)
 
     def setconf(self, arg, will_build=True):
         # This is needed to increase the difference between build.ninja's
@@ -438,7 +427,7 @@ class BasePlatformTests(unittest.TestCase):
         # replace it as the command for all compile commands in the parsed json.
         if len(contents) > 0 and contents[0]['command'].endswith('.rsp'):
             # Pretend to build so that the rsp files are generated
-            self.build(['-d', 'keeprsp', '-n'])
+            self.build(extra_args=['-d', 'keeprsp', '-n'])
             for each in contents:
                 # Extract the actual command from the rsp file
                 compiler, rsp = each['command'].split(' @')
@@ -722,7 +711,7 @@ class AllPlatformTests(BasePlatformTests):
         exe = os.path.join(self.builddir, 'fooprog' + exe_suffix)
         self.assertTrue(os.path.exists(genfile))
         self.assertFalse(os.path.exists(exe))
-        self._run(self.ninja_command + ['fooprog' + exe_suffix])
+        self.build(target=('fooprog' + exe_suffix))
         self.assertTrue(os.path.exists(exe))
 
     def test_internal_include_order(self):

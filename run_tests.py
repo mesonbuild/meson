@@ -20,9 +20,63 @@ import shutil
 import subprocess
 import platform
 from mesonbuild import mesonlib
+from mesonbuild.environment import detect_ninja
 from enum import Enum
 
 Backend = Enum('Backend', 'ninja vs xcode')
+
+if mesonlib.is_windows():
+    exe_suffix = '.exe'
+else:
+    exe_suffix = ''
+
+def get_build_target_args(backend, target):
+    if target is None:
+        return []
+    if backend.startswith('vs'):
+        return ['/target:' + target]
+    if backend == 'xcode':
+        return ['-target', target]
+    return [target]
+
+def get_backend_commands(backend, debug=False):
+    install_cmd = []
+    uninstall_cmd = []
+    if backend.startswith('vs'):
+        cmd = ['msbuild']
+        clean_cmd = []
+        test_cmd = cmd + ['RUN_TESTS.vcxproj']
+    elif backend == 'xcode':
+        cmd = ['xcodebuild']
+        clean_cmd = cmd + ['-alltargets', 'clean']
+        test_cmd = cmd + ['-target', 'RUN_TESTS']
+    else:
+        # We need at least 1.6 because of -w dupbuild=err
+        cmd = [detect_ninja('1.6'), '-w', 'dupbuild=err']
+        if cmd[0] is None:
+            raise RuntimeError('Could not find Ninja v1.6 or newer')
+        if debug:
+            cmd += ['-v']
+        clean_cmd = cmd + ['clean']
+        test_cmd = cmd + ['test', 'benchmark']
+        install_cmd = cmd + ['install']
+        uninstall_cmd = cmd + ['uninstall']
+    return cmd, clean_cmd, test_cmd, install_cmd, uninstall_cmd
+
+def get_fake_options(prefix):
+    import argparse
+    opts = argparse.Namespace()
+    opts.cross_file = None
+    opts.wrap_mode = None
+    opts.prefix = prefix
+    return opts
+
+class FakeEnvironment(object):
+    def __init__(self):
+        self.cross_info = None
+
+    def is_cross_build(self):
+        return False
 
 if __name__ == '__main__':
     returncode = 0

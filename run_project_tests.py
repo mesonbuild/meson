@@ -26,6 +26,7 @@ from mesonbuild import mesonlib
 from mesonbuild import mlog
 from mesonbuild import mesonmain
 from mesonbuild.mesonlib import stringlistify, Popen_safe
+from mesonbuild.coredata import backendlist
 import argparse
 import xml.etree.ElementTree as ET
 import time
@@ -33,7 +34,7 @@ import multiprocessing
 import concurrent.futures as conc
 import re
 
-from mesonbuild.coredata import backendlist
+from run_tests import get_backend_commands
 
 
 class BuildStep(Enum):
@@ -153,42 +154,30 @@ def stop_handler(signal, frame):
 signal.signal(signal.SIGINT, stop_handler)
 signal.signal(signal.SIGTERM, stop_handler)
 
-# unity_flags = ['--unity']
-unity_flags = []
-
+# Must define these here for compatibility with Python 3.4
 backend_flags = None
 compile_commands = None
+clean_commands = []
 test_commands = None
 install_commands = []
-clean_commands = []
+uninstall_commands = None
 
 def setup_commands(backend):
-    global backend_flags, compile_commands, test_commands, install_commands, clean_commands
+    global do_debug, backend_flags
+    global compile_commands, clean_commands, test_commands, install_commands, uninstall_commands
     msbuild_exe = shutil.which('msbuild')
     if (backend and backend.startswith('vs')) or (backend is None and msbuild_exe is not None):
         if backend is None:
-            backend = 'vs2010'
+            # Autodetect if unspecified
+            backend = 'vs'
         backend_flags = ['--backend=' + backend]
-        compile_commands = ['msbuild']
-        test_commands = ['msbuild', 'RUN_TESTS.vcxproj']
     elif backend == 'xcode' or (backend is None and mesonlib.is_osx()):
         backend_flags = ['--backend=xcode']
-        compile_commands = ['xcodebuild']
-        test_commands = ['xcodebuild', '-target', 'RUN_TESTS']
     else:
+        backend = 'ninja'
         backend_flags = []
-        # We need at least 1.6 because of -w dupbuild=err
-        ninja_command = environment.detect_ninja(version='1.6')
-        if ninja_command is None:
-            raise RuntimeError('Could not find Ninja v1.6 or newer')
-        if do_debug:
-            compile_commands = [ninja_command, '-v']
-        else:
-            compile_commands = [ninja_command]
-        compile_commands += ['-w', 'dupbuild=err']
-        test_commands = [ninja_command, 'test', 'benchmark']
-        install_commands = [ninja_command, 'install']
-        clean_commands = [ninja_command, 'clean']
+    compile_commands, clean_commands, test_commands, install_commands, \
+        uninstall_commands = get_backend_commands(backend, do_debug)
 
 def get_compile_commands_for_dir(compile_commands, test_build_dir):
     if 'msbuild' in compile_commands[0]:
@@ -502,7 +491,7 @@ def run_tests(all_tests, log_name_base, extra_args):
             should_fail = False
             if name.startswith('failing'):
                 should_fail = name.split('failing-')[1]
-            result = executor.submit(run_test, skipped, t, extra_args, unity_flags + backend_flags, compile_commands, should_fail)
+            result = executor.submit(run_test, skipped, t, extra_args, backend_flags, compile_commands, should_fail)
             futures.append((testname, t, result))
         for (testname, t, result) in futures:
             sys.stdout.flush()
