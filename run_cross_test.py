@@ -43,7 +43,6 @@ def runtests(cross_file):
     sys.exit(failing_tests)
 
 if __name__ == '__main__':
-    backend = 'ninja'
-    setup_commands()
+    setup_commands('ninja')
     cross_file = sys.argv[1]
     runtests(cross_file)

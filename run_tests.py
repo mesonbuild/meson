@@ -22,6 +22,7 @@ import platform
 from mesonbuild import mesonlib
 from mesonbuild.environment import detect_ninja
 from enum import Enum
+from glob import glob
 
 Backend = Enum('Backend', 'ninja vs xcode')
 
@@ -29,6 +30,15 @@ if mesonlib.is_windows():
     exe_suffix = '.exe'
 else:
     exe_suffix = ''
+
+def get_backend_args_for_dir(backend, builddir):
+    '''
+    Visual Studio backend needs to be given the solution to build
+    '''
+    if backend.startswith('vs'):
+        sln_name = glob(os.path.join(builddir, '*.sln'))[0]
+        return [os.path.split(sln_name)[-1]]
+    return []
 
 def get_build_target_args(backend, target):
     if target is None:
@@ -44,7 +54,7 @@ def get_backend_commands(backend, debug=False):
     uninstall_cmd = []
     if backend.startswith('vs'):
         cmd = ['msbuild']
-        clean_cmd = []
+        clean_cmd = cmd + ['/target:Clean']
         test_cmd = cmd + ['RUN_TESTS.vcxproj']
     elif backend == 'xcode':
         cmd = ['xcodebuild']

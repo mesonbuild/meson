@@ -34,7 +34,7 @@ import multiprocessing
 import concurrent.futures as conc
 import re
 
-from run_tests import get_backend_commands
+from run_tests import get_backend_commands, get_backend_args_for_dir
 
 
 class BuildStep(Enum):
@@ -155,18 +155,13 @@ def stop_handler(signal, frame):
 signal.signal(signal.SIGINT, stop_handler)
 signal.signal(signal.SIGTERM, stop_handler)
 
-# Must define these here for compatibility with Python 3.4
-backend = None
-backend_flags = None
-compile_commands = None
-clean_commands = []
-test_commands = None
-install_commands = []
-uninstall_commands = None
+# Needed when running cross tests because we don't generate prebuilt files
+compiler = None
 
-def setup_commands():
+def setup_commands(optbackend):
     global do_debug, backend, backend_flags
     global compile_commands, clean_commands, test_commands, install_commands, uninstall_commands
+    backend = optbackend
     msbuild_exe = shutil.which('msbuild')
     # Auto-detect backend if unspecified
     if backend is None:
@@ -187,14 +182,6 @@ def setup_commands():
         raise RuntimeError('Unknown backend: {!r}'.format(backend))
     compile_commands, clean_commands, test_commands, install_commands, \
         uninstall_commands = get_backend_commands(backend, do_debug)
-
-def get_compile_commands_for_dir(compile_commands, test_build_dir):
-    if 'msbuild' in compile_commands[0]:
-        sln_name = glob(os.path.join(test_build_dir, '*.sln'))[0]
-        comp = compile_commands + [os.path.split(sln_name)[-1]]
-    else:
-        comp = compile_commands
-    return comp
 
 def get_relative_files_list_from_dir(fromdir):
     paths = []
@@ -221,7 +208,7 @@ def platform_fix_name(fname):
 
     return fname
 
-def validate_install(srcdir, installdir):
+def validate_install(srcdir, installdir, compiler):
     # List of installed files
     info_file = os.path.join(srcdir, 'installed_files.txt')
     # If this exists, the test does not install any other files
@@ -315,18 +302,18 @@ def parse_test_args(testdir):
         pass
     return args
 
-def run_test(skipped, testdir, extra_args, flags, compile_commands, should_fail):
+def run_test(skipped, testdir, extra_args, compiler, backend, flags, commands, should_fail):
     if skipped:
         return None
     with AutoDeletedDir(tempfile.mkdtemp(prefix='b ', dir='.')) as build_dir:
         with AutoDeletedDir(tempfile.mkdtemp(prefix='i ', dir=os.getcwd())) as install_dir:
             try:
-                return _run_test(testdir, build_dir, install_dir, extra_args, flags, compile_commands, should_fail)
+                return _run_test(testdir, build_dir, install_dir, extra_args, compiler, backend, flags, commands, should_fail)
             finally:
                 mlog.shutdown() # Close the log file because otherwise Windows wets itself.
 
-def _run_test(testdir, test_build_dir, install_dir, extra_args, flags, compile_commands, should_fail):
-    global install_commands, clean_commands
+def _run_test(testdir, test_build_dir, install_dir, extra_args, compiler, backend, flags, commands, should_fail):
+    compile_commands, clean_commands, install_commands, uninstall_commands = commands
     test_args = parse_test_args(testdir)
     gen_start = time.time()
     # Configure in-process
@@ -347,9 +334,9 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, flags, compile_c
     if returncode != 0:
         return TestResult('Generating the build system failed.', BuildStep.configure, stdo, stde, mesonlog, gen_time)
     # Build with subprocess
-    comp = get_compile_commands_for_dir(compile_commands, test_build_dir)
+    dir_args = get_backend_args_for_dir(backend, test_build_dir)
     build_start = time.time()
-    pc, o, e = Popen_safe(comp, cwd=test_build_dir)
+    pc, o, e = Popen_safe(compile_commands + dir_args, cwd=test_build_dir)
     build_time = time.time() - build_start
     stdo += o
     stde += e
@@ -376,25 +363,26 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, flags, compile_c
         return TestResult('Test that should have failed to run unit tests succeeded', BuildStep.test, stdo, stde, mesonlog, gen_time)
     if returncode != 0:
         return TestResult('Running unit tests failed.', BuildStep.test, stdo, stde, mesonlog, gen_time, build_time, test_time)
-    if len(install_commands) == 0:
-        return TestResult('', BuildStep.install, '', '', mesonlog, gen_time, build_time, test_time)
-    env = os.environ.copy()
-    env['DESTDIR'] = install_dir
-    # Install with subprocess
-    pi, o, e = Popen_safe(install_commands, cwd=test_build_dir, env=env)
-    stdo += o
-    stde += e
-    if pi.returncode != 0:
-        return TestResult('Running install failed.', BuildStep.install, stdo, stde, mesonlog, gen_time, build_time, test_time)
-    if len(clean_commands) != 0:
+    # Do installation, if the backend supports it
+    if len(install_commands) != 0:
         env = os.environ.copy()
-        # Clean with subprocess
-        pi, o, e = Popen_safe(clean_commands, cwd=test_build_dir, env=env)
+        env['DESTDIR'] = install_dir
+        # Install with subprocess
+        pi, o, e = Popen_safe(install_commands, cwd=test_build_dir, env=env)
         stdo += o
         stde += e
         if pi.returncode != 0:
-            return TestResult('Running clean failed.', BuildStep.clean, stdo, stde, mesonlog, gen_time, build_time, test_time)
-    return TestResult(validate_install(testdir, install_dir), BuildStep.validate, stdo, stde, mesonlog, gen_time, build_time, test_time)
+            return TestResult('Running install failed.', BuildStep.install, stdo, stde, mesonlog, gen_time, build_time, test_time)
+    # Clean with subprocess
+    env = os.environ.copy()
+    pi, o, e = Popen_safe(clean_commands + dir_args, cwd=test_build_dir, env=env)
+    stdo += o
+    stde += e
+    if pi.returncode != 0:
+        return TestResult('Running clean failed.', BuildStep.clean, stdo, stde, mesonlog, gen_time, build_time, test_time)
+    if len(install_commands) == 0:
+        return TestResult('', BuildStep.install, '', '', mesonlog, gen_time, build_time, test_time)
+    return TestResult(validate_install(testdir, install_dir, compiler), BuildStep.validate, stdo, stde, mesonlog, gen_time, build_time, test_time)
 
 def gather_tests(testdir):
     tests = [t.replace('\\', '/').split('/', 2)[2] for t in glob(os.path.join(testdir, '*'))]
@@ -454,6 +442,7 @@ def run_tests(all_tests, log_name_base, extra_args):
     passing_tests = 0
     failing_tests = 0
     skipped_tests = 0
+    commands = (compile_commands, clean_commands, install_commands, uninstall_commands)
 
     try:
         # This fails in some CI environments for unknown reasons.
@@ -483,7 +472,7 @@ def run_tests(all_tests, log_name_base, extra_args):
             should_fail = False
             if name.startswith('failing'):
                 should_fail = name.split('failing-')[1]
-            result = executor.submit(run_test, skipped, t, extra_args, backend_flags, compile_commands, should_fail)
+            result = executor.submit(run_test, skipped, t, extra_args, compiler, backend, backend_flags, commands, should_fail)
             futures.append((testname, t, result))
         for (testname, t, result) in futures:
             sys.stdout.flush()
@@ -598,7 +587,7 @@ def generate_prebuilt():
     return objectfile, stlibfile
 
 def check_meson_commands_work():
-    global meson_command, compile_commands, test_commands, install_commands
+    global backend, meson_command, compile_commands, test_commands, install_commands
     testdir = 'test cases/common/1 trivial'
     with AutoDeletedDir(tempfile.mkdtemp(prefix='b ', dir='.')) as build_dir:
         print('Checking that configuring works...')
@@ -607,8 +596,8 @@ def check_meson_commands_work():
         if pc.returncode != 0:
             raise RuntimeError('Failed to configure {!r}:\n{}\n{}'.format(testdir, e, o))
         print('Checking that building works...')
-        compile_cmd = get_compile_commands_for_dir(compile_commands, build_dir)
-        pc, o, e = Popen_safe(compile_cmd, cwd=build_dir)
+        dir_args = get_backend_args_for_dir(backend, build_dir)
+        pc, o, e = Popen_safe(compile_commands + dir_args, cwd=build_dir)
         if pc.returncode != 0:
             raise RuntimeError('Failed to build {!r}:\n{}\n{}'.format(testdir, e, o))
         print('Checking that testing works...')
@@ -628,8 +617,7 @@ if __name__ == '__main__':
     parser.add_argument('--backend', default=None, dest='backend',
                         choices=backendlist)
     options = parser.parse_args()
-    backend = options.backend
-    setup_commands()
+    setup_commands(options.backend)
 
     # Appveyor sets the `platform` environment variable which completely messes
     # up building with the vs2010 and vs2015 backends.
