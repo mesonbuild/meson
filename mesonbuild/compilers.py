@@ -1394,7 +1394,7 @@ class CPPCompiler(CCompiler):
 
     def sanity_check(self, work_dir, environment):
         code = 'class breakCCompiler;int main(int argc, char **argv) { return 0; }\n'
-        return self.sanity_check_impl(work_dir, environment, 'sanitycheckcpp.cc', code)
+        return self.sanity_check_impl(work_dir, environment, 'sanitycheckcpp.c', code)
 
     def get_compiler_check_args(self):
         # -fpermissive allows non-conforming code to compile which is necessary

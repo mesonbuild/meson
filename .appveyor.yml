@@ -9,34 +9,13 @@ environment:
       backend: ninja
 
     - arch: x86
-      compiler: msvc2010
-      backend: vs2010
-
-    - arch: x86
       compiler: msvc2015
       backend: ninja
 
     - arch: x86
-      compiler: msvc2015
-      backend: vs2015
-
-    - arch: x86
-      compiler: msys2-mingw
-      backend: ninja
-
-    - arch: x64
       compiler: msvc2017
       backend: ninja
       APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
-
-    - arch: x64
-      compiler: msvc2017
-      backend: vs2017
-      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
-
-    - arch: x64
-      compiler: msys2-mingw
-      backend: ninja
 
 platform:
   - x64
