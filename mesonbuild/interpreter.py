@@ -2479,9 +2479,9 @@ different subdirectory.
         if 'language' not in kwargs:
             raise InvalidCode('Missing language definition in {}'.format(node.func_name))
 
-        lang = kwargs['language'].lower()
-        args = argsdict.get(lang, []) + args
-        argsdict[lang] = args
+        for lang in mesonlib.stringlistify(kwargs['language']):
+            lang = lang.lower()
+            argsdict[lang] = argsdict.get(lang, []) + args
 
     def func_environment(self, node, args, kwargs):
         return EnvironmentVariablesHolder()
