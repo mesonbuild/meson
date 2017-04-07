@@ -1239,7 +1239,8 @@ class Interpreter(InterpreterBase):
         self.builtin.update({'meson': MesonMain(build, self)})
         self.generators = []
         self.visited_subdirs = {}
-        self.args_frozen = False
+        self.project_args_frozen = False
+        self.global_args_frozen = False  # implies self.project_args_frozen
         self.subprojects = {}
         self.subproject_stack = []
         self.default_project_options = default_project_options[:] # Passed from the outside, only used in subprojects.
@@ -1522,7 +1523,7 @@ class Interpreter(InterpreterBase):
             raise InterpreterException(msg.format(os.path.join(self.subproject_dir, dirname), e))
         subdir = os.path.join(self.subproject_dir, resolved)
         os.makedirs(os.path.join(self.build.environment.get_build_dir(), subdir), exist_ok=True)
-        self.args_frozen = True
+        self.global_args_frozen = True
         mlog.log('\nExecuting subproject ', mlog.bold(dirname), '.\n', sep='')
         subi = Interpreter(self.build, self.backend, dirname, subdir, self.subproject_dir,
                            mesonlib.stringlistify(kwargs.get('default_options', [])))
@@ -2462,15 +2463,17 @@ different subdirectory.
                   'arguments and add it to the appropriate *_args kwarg ' \
                   'in each target.'.format(node.func_name)
             raise InvalidCode(msg)
-        self.add_arguments(node, argsdict, args, kwargs)
+        frozen = self.project_args_frozen or self.global_args_frozen
+        self.add_arguments(node, argsdict, frozen, args, kwargs)
 
     def add_project_arguments(self, node, argsdict, args, kwargs):
         if self.subproject not in argsdict:
             argsdict[self.subproject] = {}
-        self.add_arguments(node, argsdict[self.subproject], args, kwargs)
+        self.add_arguments(node, argsdict[self.subproject],
+                           self.project_args_frozen, args, kwargs)
 
-    def add_arguments(self, node, argsdict, args, kwargs):
-        if self.args_frozen:
+    def add_arguments(self, node, argsdict, args_frozen, args, kwargs):
+        if args_frozen:
             msg = 'Tried to use \'{}\' after a build target has been declared.\n' \
                   'This is not permitted. Please declare all ' \
                   'arguments before your targets.'.format(node.func_name)
@@ -2566,7 +2569,7 @@ different subdirectory.
             self.add_cross_stdlib_info(target)
         l = targetholder(target, self)
         self.add_target(name, l.held_object)
-        self.args_frozen = True
+        self.project_args_frozen = True
         return l
 
     def get_used_languages(self, target):
