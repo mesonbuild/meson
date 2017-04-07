@@ -675,13 +675,38 @@ class BoostDependency(Dependency):
 
     def get_compile_args(self):
         args = []
+        include_dir = ''
         if self.boost_root is not None:
             if mesonlib.is_windows():
-                args.append('-I' + self.boost_root)
+                include_dir = self.boost_root
             else:
-                args.append('-I' + os.path.join(self.boost_root, 'include'))
+                include_dir = os.path.join(self.boost_root, 'include')
         else:
-            args.append('-I' + self.incdir)
+            include_dir = self.incdir
+
+        # Use "-isystem" when including boost headers instead of "-I"
+        # to avoid compiler warnings/failures when "-Werror" is used
+
+        # Careful not to use "-isystem" on default include dirs as it
+        # breaks some of the headers for certain gcc versions
+
+        # For example, doing g++ -isystem /usr/include on a simple
+        # "int main()" source results in the error:
+        # "/usr/include/c++/6.3.1/cstdlib:75:25: fatal error: stdlib.h: No such file or directory"
+
+        # See https://gcc.gnu.org/bugzilla/show_bug.cgi?id=70129
+        # and http://stackoverflow.com/questions/37218953/isystem-on-a-system-include-directory-causes-errors
+        # for more details
+
+        # TODO: The correct solution would probably be to ask the
+        # compiler for it's default include paths (ie: "gcc -xc++ -E
+        # -v -") and avoid including those with -isystem
+
+        # For now, use -isystem for all includes except for some
+        # typical defaults (which don't need to be included at all
+        # since they are in the default include paths)
+        if include_dir != '/usr/include' and include_dir != '/usr/local/include':
+            args.append("".join(self.cpp_compiler.get_include_args(include_dir, True)))
         return args
 
     def get_requested(self, kwargs):
