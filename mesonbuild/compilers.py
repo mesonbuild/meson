@@ -2281,6 +2281,8 @@ class VisualStudioCCompiler(CCompiler):
 
     def get_link_whole_for(self, args):
         # Only since VS2015
+        if not isinstance(args, list):
+            args = [args]
         return ['/WHOLEARCHIVE:' + x for x in args]
 
 
