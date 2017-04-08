@@ -20,7 +20,8 @@ from .. import mlog
 from .. import compilers
 import json
 import subprocess
-from ..mesonlib import MesonException, get_compiler_for_source, classify_unity_sources
+from ..mesonlib import MesonException, get_meson_script
+from ..mesonlib import get_compiler_for_source, classify_unity_sources
 from ..compilers import CompilerArgs
 
 class CleanTrees:
@@ -33,7 +34,7 @@ class CleanTrees:
         self.trees = trees
 
 class InstallData:
-    def __init__(self, source_dir, build_dir, prefix, strip_bin):
+    def __init__(self, source_dir, build_dir, prefix, strip_bin, mesonintrospect):
         self.source_dir = source_dir
         self.build_dir = build_dir
         self.prefix = prefix
@@ -46,6 +47,7 @@ class InstallData:
         self.po = []
         self.install_scripts = []
         self.install_subdirs = []
+        self.mesonintrospect = mesonintrospect
 
 class ExecutableSerialisation:
     def __init__(self, name, fname, cmd_args, env, is_cross, exe_wrapper,
@@ -714,7 +716,7 @@ class Backend:
     def run_postconf_scripts(self):
         env = {'MESON_SOURCE_ROOT': self.environment.get_source_dir(),
                'MESON_BUILD_ROOT': self.environment.get_build_dir(),
-               }
+               'MESONINTROSPECT': get_meson_script(self.environment, 'mesonintrospect')}
         child_env = os.environ.copy()
         child_env.update(env)
 

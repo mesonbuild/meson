@@ -24,7 +24,7 @@ from .. import mlog
 from .. import compilers
 from ..build import BuildTarget
 from ..compilers import CompilerArgs
-from ..mesonlib import MesonException, File
+from ..mesonlib import MesonException, File, get_meson_script
 from ..environment import Environment
 
 def autodetect_vs_version(build):
@@ -409,8 +409,10 @@ class Vs2010Backend(backends.Backend):
         customstep = ET.SubElement(action, 'PostBuildEvent')
         cmd_raw = [target.command] + target.args
         cmd = [sys.executable, os.path.join(self.environment.get_script_dir(), 'commandrunner.py'),
-               self.environment.get_build_dir(), self.environment.get_source_dir(),
-               self.get_target_dir(target)]
+               self.environment.get_build_dir(),
+               self.environment.get_source_dir(),
+               self.get_target_dir(target),
+               get_meson_script(self.environment, 'mesonintrospect')]
         for i in cmd_raw:
             if isinstance(i, build.BuildTarget):
                 cmd.append(os.path.join(self.environment.get_build_dir(), self.get_target_filename(i)))
@@ -1164,11 +1166,8 @@ if %%errorlevel%% neq 0 goto :VCEnd'''
         postbuild = ET.SubElement(action, 'PostBuildEvent')
         ET.SubElement(postbuild, 'Message')
         # FIXME: No benchmarks?
-        meson_py = self.environment.get_build_command()
-        (base, ext) = os.path.splitext(meson_py)
-        mesontest_py = base + 'test' + ext
         test_command = [sys.executable,
-                        mesontest_py,
+                        get_meson_script(self.environment, 'mesontest'),
                         '--no-rebuild']
         if not self.environment.coredata.get_builtin_option('stdsplit'):
             test_command += ['--no-stdsplit']
