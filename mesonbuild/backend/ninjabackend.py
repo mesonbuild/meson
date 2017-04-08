@@ -421,15 +421,17 @@ int dummy;
 
         # Generate compile targets for all the pre-existing sources for this target
         for f, src in target_sources.items():
-            if not self.environment.is_header(src):
-                if self.environment.is_llvm_ir(src):
-                    obj_list.append(self.generate_llvm_ir_compile(target, outfile, src))
-                elif is_unity and self.get_target_source_can_unity(target, src):
-                    abs_src = os.path.join(self.environment.get_build_dir(),
-                                           src.rel_to_builddir(self.build_to_src))
-                    unity_src.append(abs_src)
-                else:
-                    obj_list.append(self.generate_single_compile(target, outfile, src, False, [], header_deps))
+            # Don't try to compile headers and non-source files
+            if self.environment.is_header(src) or not self.environment.is_source(src):
+                continue
+            elif self.environment.is_llvm_ir(src):
+                obj_list.append(self.generate_llvm_ir_compile(target, outfile, src))
+            elif is_unity and self.get_target_source_can_unity(target, src):
+                abs_src = os.path.join(self.environment.get_build_dir(),
+                                       src.rel_to_builddir(self.build_to_src))
+                unity_src.append(abs_src)
+            else:
+                obj_list.append(self.generate_single_compile(target, outfile, src, False, [], header_deps))
         obj_list += self.flatten_object_list(target)
         if is_unity:
             for src in self.generate_unity_files(target, unity_src):

@@ -28,6 +28,8 @@ from mesonbuild.mesonlib import is_windows, is_osx
 from mesonbuild.environment import detect_ninja, Environment
 from mesonbuild.dependencies import PkgConfigDependency, ExternalProgram
 
+no_rebuild_stdout = 'ninja: no work to do.'
+
 if is_windows():
     exe_suffix = '.exe'
 else:
@@ -357,6 +359,12 @@ class BasePlatformTests(unittest.TestCase):
         self.unit_test_dir = os.path.join(src_root, 'test cases/unit')
         self.orig_env = os.environ.copy()
 
+    def ensure_backend_detects_changes(self):
+        # This is needed to increase the difference between build.ninja's
+        # timestamp and the timestamp of whatever you changed due to a Ninja
+        # bug: https://github.com/ninja-build/ninja/issues/371
+        time.sleep(1)
+
     def _print_meson_log(self):
         log = os.path.join(self.logdir, 'meson-log.txt')
         if not os.path.isfile(log):
@@ -401,7 +409,7 @@ class BasePlatformTests(unittest.TestCase):
     def build(self, extra_args=None):
         if extra_args is None:
             extra_args = []
-        self._run(self.ninja_command + extra_args)
+        return self._run(self.ninja_command + extra_args)
 
     def run_tests(self):
         self._run(self.ninja_command + ['test'])
@@ -421,15 +429,16 @@ class BasePlatformTests(unittest.TestCase):
         return self._run(self.ninja_command + [target])
 
     def setconf(self, arg, will_build=True):
-        # This is needed to increase the difference between build.ninja's
-        # timestamp and coredata.dat's timestamp due to a Ninja bug.
-        # https://github.com/ninja-build/ninja/issues/371
         if will_build:
-            time.sleep(1)
+            self.ensure_backend_detects_changes()
         self._run(self.mconf_command + [arg, self.builddir])
 
     def wipe(self):
         shutil.rmtree(self.builddir)
+
+    def utime(self, f):
+        self.ensure_backend_detects_changes()
+        os.utime(f)
 
     def get_compdb(self):
         with open(os.path.join(self.builddir, 'compile_commands.json')) as ifile:
@@ -961,6 +970,42 @@ class AllPlatformTests(BasePlatformTests):
         os.environ['CPPFLAGS'] = '-D{}="{}"'.format(define, value)
         os.environ['CFLAGS'] = '-DMESON_FAIL_VALUE=cflags-read'.format(define)
         self.init(testdir, ['-D{}={}'.format(define, value)])
+
+    def test_source_changes_cause_rebuild(self):
+        '''
+        Test that changes to sources and headers cause rebuilds, but not
+        changes to unused files (as determined by the dependency file) in the
+        input files list.
+        '''
+        testdir = os.path.join(self.common_test_dir, '22 header in file list')
+        self.init(testdir)
+        self.build()
+        # Changing mtime of useless.dt should not rebuild anything
+        self.utime(os.path.join(testdir, 'useless.dt'))
+        ret = self.build()
+        self.assertEqual(ret.split('\n')[-2], no_rebuild_stdout)
+        # Changing mtime of header.h should rebuild everything
+        self.utime(os.path.join(testdir, 'header.h'))
+        ret = self.build()
+        self.assertEqual(ret.split('\n')[-2], '[2/2] Linking target prog' + exe_suffix)
+
+    def test_custom_target_changes_cause_rebuild(self):
+        '''
+        Test that in a custom target, changes to the input files, the
+        ExternalProgram, and any File objects on the command-line cause
+        a rebuild.
+        '''
+        testdir = os.path.join(self.common_test_dir, '64 custom header generator')
+        self.init(testdir)
+        self.build()
+        # Immediately rebuilding should not do anything
+        ret = self.build()
+        self.assertEqual(ret.split('\n')[-2], no_rebuild_stdout)
+        # Changing mtime of these should rebuild everything
+        for f in ('input.def', 'makeheader.py', 'somefile.txt'):
+            self.utime(os.path.join(testdir, f))
+            ret = self.build()
+            self.assertEqual(ret.split('\n')[-2], '[3/3] Linking target prog' + exe_suffix)
 
 
 class WindowsTests(BasePlatformTests):
