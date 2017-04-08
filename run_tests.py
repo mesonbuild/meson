@@ -127,6 +127,21 @@ if __name__ == '__main__':
     # Running on a developer machine? Be nice!
     if not mesonlib.is_windows() and 'TRAVIS' not in os.environ:
         os.nice(20)
+    # Appveyor sets the `platform` environment variable which completely messes
+    # up building with the vs2010 and vs2015 backends.
+    #
+    # Specifically, MSBuild reads the `platform` environment variable to set
+    # the configured value for the platform (Win32/x64/arm), which breaks x86
+    # builds.
+    #
+    # Appveyor setting this also breaks our 'native build arch' detection for
+    # Windows in environment.py:detect_windows_arch() by overwriting the value
+    # of `platform` set by vcvarsall.bat.
+    #
+    # While building for x86, `platform` should be unset.
+    if 'APPVEYOR' in os.environ and os.environ['arch'] == 'x86':
+        os.environ.pop('platform')
+    # Run tests
     print('Running unittests.\n')
     units = ['InternalTests', 'AllPlatformTests']
     if mesonlib.is_linux():

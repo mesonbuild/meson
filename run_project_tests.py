@@ -622,21 +622,6 @@ if __name__ == '__main__':
     options = parser.parse_args()
     setup_commands(options.backend)
 
-    # Appveyor sets the `platform` environment variable which completely messes
-    # up building with the vs2010 and vs2015 backends.
-    #
-    # Specifically, MSBuild reads the `platform` environment variable to set
-    # the configured value for the platform (Win32/x64/arm), which breaks x86
-    # builds.
-    #
-    # Appveyor setting this also breaks our 'native build arch' detection for
-    # Windows in environment.py:detect_windows_arch() by overwriting the value
-    # of `platform` set by vcvarsall.bat.
-    #
-    # While building for x86, `platform` should be unset.
-    if 'APPVEYOR' in os.environ and os.environ['arch'] == 'x86':
-        os.environ.pop('platform')
-
     script_dir = os.path.split(__file__)[0]
     if script_dir != '':
         os.chdir(script_dir)
