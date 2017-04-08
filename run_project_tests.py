@@ -31,6 +31,7 @@ import xml.etree.ElementTree as ET
 import time
 import multiprocessing
 import concurrent.futures as conc
+import re
 
 from mesonbuild.coredata import backendlist
 
@@ -208,12 +209,18 @@ def get_relative_files_list_from_dir(fromdir):
             paths.append(path)
     return paths
 
-def platform_fix_exe_name(fname):
-    if not fname.endswith('?exe'):
-        return fname
-    fname = fname[:-4]
-    if mesonlib.is_windows():
-        return fname + '.exe'
+def platform_fix_name(fname):
+    if '?lib' in fname:
+        if mesonlib.is_cygwin():
+            fname = re.sub(r'\?lib(.*)\.dll$', r'cyg\1.dll', fname)
+        else:
+            fname = re.sub(r'\?lib', 'lib', fname)
+
+    if fname.endswith('?exe'):
+        fname = fname[:-4]
+        if mesonlib.is_windows() or mesonlib.is_cygwin():
+            return fname + '.exe'
+
     return fname
 
 def validate_install(srcdir, installdir):
@@ -230,13 +237,16 @@ def validate_install(srcdir, installdir):
     elif os.path.exists(info_file):
         with open(info_file) as f:
             for line in f:
-                expected[platform_fix_exe_name(line.strip())] = False
+                expected[platform_fix_name(line.strip())] = False
     # Check if expected files were found
     for fname in expected:
         if os.path.exists(os.path.join(installdir, fname)):
             expected[fname] = True
     for (fname, found) in expected.items():
         if not found:
+            # Ignore missing PDB files if we aren't using cl
+            if fname.endswith('.pdb') and compiler != 'cl':
+                continue
             ret_msg += 'Expected file {0} missing.\n'.format(fname)
     # Check if there are any unexpected files
     found = get_relative_files_list_from_dir(installdir)
@@ -437,9 +447,9 @@ def detect_tests_to_run():
     all_tests.append(('prebuilt', gather_tests('test cases/prebuilt'), False))
 
     all_tests.append(('platform-osx', gather_tests('test cases/osx'), False if mesonlib.is_osx() else True))
-    all_tests.append(('platform-windows', gather_tests('test cases/windows'), False if mesonlib.is_windows() else True))
+    all_tests.append(('platform-windows', gather_tests('test cases/windows'), False if mesonlib.is_windows() or mesonlib.is_cygwin() else True))
     all_tests.append(('platform-linux', gather_tests('test cases/linuxlike'), False if not (mesonlib.is_osx() or mesonlib.is_windows()) else True))
-    all_tests.append(('framework', gather_tests('test cases/frameworks'), False if not mesonlib.is_osx() and not mesonlib.is_windows() else True))
+    all_tests.append(('framework', gather_tests('test cases/frameworks'), False if not mesonlib.is_osx() and not mesonlib.is_windows() and not mesonlib.is_cygwin() else True))
     all_tests.append(('java', gather_tests('test cases/java'), False if using_backend('ninja') and not mesonlib.is_osx() and have_java() else True))
     all_tests.append(('C#', gather_tests('test cases/csharp'), False if using_backend('ninja') and shutil.which('mcs') else True))
     all_tests.append(('vala', gather_tests('test cases/vala'), False if using_backend('ninja') and shutil.which('valac') else True))

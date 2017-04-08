@@ -212,6 +212,10 @@ def is_windows():
     platname = platform.system().lower()
     return platname == 'windows' or 'mingw' in platname
 
+def is_cygwin():
+    platname = platform.system().lower()
+    return platname.startswith('cygwin')
+
 def is_debianlike():
     return os.path.isfile('/etc/debian_version')
 

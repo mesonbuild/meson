@@ -19,12 +19,12 @@ END
 .text
 .globl SYMBOL_NAME(square_unsigned)
 
-# ifdef _WIN32 /* MinGW */
+# if defined(_WIN32) || defined(__CYGWIN__) /* msabi */
 SYMBOL_NAME(square_unsigned):
 	imull	%ecx, %ecx
 	movl	%ecx, %eax
 	retq
-# else /* Linux and OS X */
+# else /* sysvabi */
 SYMBOL_NAME(square_unsigned):
 	imull	%edi, %edi
 	movl	%edi, %eax

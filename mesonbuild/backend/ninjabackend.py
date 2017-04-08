@@ -492,7 +492,7 @@ int dummy;
         # the project, we need to set PATH so the DLLs are found. We use
         # a serialized executable wrapper for that and check if the
         # CustomTarget command needs extra paths first.
-        if target.capture or (mesonlib.is_windows() and
+        if target.capture or ((mesonlib.is_windows() or mesonlib.is_cygwin()) and
                               self.determine_windows_extra_paths(target.command[0])):
             exe_data = self.serialise_executable(target.command[0], cmd[1:],
                                                  # All targets are built from the build dir

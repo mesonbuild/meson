@@ -1,5 +1,9 @@
 project('library versions', 'c')
 
+if host_machine.system() == 'cygwin'
+  error('MESON_SKIP_TEST linuxlike soversions not supported on Cygwin.')
+endif
+
 some = shared_library('some', 'lib.c',
   version : '1.2.3',
   soversion : '0',

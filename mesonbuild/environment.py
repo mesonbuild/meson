@@ -158,7 +158,10 @@ def detect_cpu(compilers):
     return trial
 
 def detect_system():
-    return platform.system().lower()
+    system = platform.system().lower()
+    if system.startswith('cygwin'):
+        return 'cygwin'
+    return system
 
 
 def for_windows(is_cross, env):
@@ -172,6 +175,20 @@ def for_windows(is_cross, env):
     elif env.cross_info.has_host():
         return env.cross_info.config['host_machine']['system'] == 'windows'
     return False
+
+
+def for_cygwin(is_cross, env):
+    """
+    Host machine is cygwin?
+
+    Note: 'host' is the machine on which compiled binaries will run
+    """
+    if not is_cross:
+        return mesonlib.is_cygwin()
+    elif env.cross_info.has_host():
+        return env.cross_info.config['host_machine']['system'] == 'cygwin'
+    return False
+
 
 def for_darwin(is_cross, env):
     """
@@ -256,6 +273,11 @@ class Environment:
                 or (cross and self.cross_info.has_host() and self.cross_info.config['host_machine']['system'] == 'windows'):
             self.exe_suffix = 'exe'
             self.object_suffix = 'obj'
+            self.win_libdir_layout = True
+        elif (not cross and mesonlib.is_cygwin()) \
+                or (cross and self.cross_info.has_host() and self.cross_info.config['host_machine']['system'] == 'cygwin'):
+            self.exe_suffix = 'exe'
+            self.object_suffix = 'o'
             self.win_libdir_layout = True
         else:
             self.exe_suffix = ''
@@ -368,7 +390,8 @@ class Environment:
             return GCC_OSX
         elif '__MINGW32__' in defines or '__MINGW64__' in defines:
             return GCC_MINGW
-        # We ignore Cygwin for now, and treat it as a standard GCC
+        elif '__CYGWIN__' in defines:
+            return GCC_CYGWIN
         return GCC_STANDARD
 
     def _get_compilers(self, lang, evar, want_cross):

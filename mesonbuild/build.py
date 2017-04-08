@@ -21,7 +21,7 @@ from . import mlog
 from .mesonlib import File, MesonException
 from .mesonlib import flatten, stringlistify, classify_unity_sources
 from .mesonlib import get_filenames_templates_dict, substitute_values
-from .environment import for_windows, for_darwin
+from .environment import for_windows, for_darwin, for_cygwin
 from .compilers import is_object, clike_langs, sort_clike, lang_suffixes
 
 known_basic_kwargs = {'install': True,
@@ -997,7 +997,8 @@ class Executable(BuildTarget):
             self.prefix = ''
         if not hasattr(self, 'suffix'):
             # Executable for Windows or C#/Mono
-            if for_windows(is_cross, environment) or 'cs' in self.compilers:
+            if (for_windows(is_cross, environment) or
+                for_cygwin(is_cross, environment) or 'cs' in self.compilers):
                 self.suffix = 'exe'
             else:
                 self.suffix = ''
@@ -1116,6 +1117,18 @@ class SharedLibrary(BuildTarget):
                 # Import library is called libfoo.dll.a
                 self.import_filename = self.gcc_import_filename
             # Shared library has the soversion if it is defined
+            if self.soversion:
+                self.filename_tpl = '{0.prefix}{0.name}-{0.soversion}.{0.suffix}'
+            else:
+                self.filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
+        elif for_cygwin(is_cross, env):
+            suffix = 'dll'
+            self.gcc_import_filename = 'lib{0}.dll.a'.format(self.name)
+            # Shared library is of the form cygfoo.dll
+            # (ld --dll-search-prefix=cyg is the default)
+            prefix = 'cyg'
+            # Import library is called libfoo.dll.a
+            self.import_filename = self.gcc_import_filename
             if self.soversion:
                 self.filename_tpl = '{0.prefix}{0.name}-{0.soversion}.{0.suffix}'
             else:

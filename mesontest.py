@@ -36,6 +36,10 @@ def is_windows():
     platname = platform.system().lower()
     return platname == 'windows' or 'mingw' in platname
 
+def is_cygwin():
+    platname = platform.system().lower()
+    return 'cygwin' in platname
+
 def determine_worker_count():
     varname = 'MESON_TESTTHREADS'
     if varname in os.environ:
@@ -150,7 +154,7 @@ def write_json_log(jsonlogfile, test_name, result):
     jsonlogfile.write(json.dumps(jresult) + '\n')
 
 def run_with_mono(fname):
-    if fname.endswith('.exe') and not is_windows():
+    if fname.endswith('.exe') and not (is_windows() or is_cygwin()):
         return True
     return False
 
@@ -202,7 +206,7 @@ class TestHarness:
 
             child_env.update(test.env)
             if len(test.extra_paths) > 0:
-                child_env['PATH'] += ';'.join([''] + test.extra_paths)
+                child_env['PATH'] += os.pathsep.join([''] + test.extra_paths)
 
             # If MALLOC_PERTURB_ is not set, or if it is set to an empty value,
             # (i.e., the test or the environment don't explicitly set it), set
