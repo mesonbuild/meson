@@ -418,6 +418,9 @@ class Vs2010Backend(backends.Backend):
                 cmd.append(os.path.join(self.environment.get_build_dir(), self.get_target_filename(i)))
             elif isinstance(i, dependencies.ExternalProgram):
                 cmd += i.get_command()
+            elif isinstance(i, File):
+                relfname = i.rel_to_builddir(self.build_to_src)
+                cmd.append(os.path.join(self.environment.get_build_dir(), relfname))
             else:
                 cmd.append(i)
         cmd_templ = '''"%s" ''' * len(cmd)
