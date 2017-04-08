@@ -405,6 +405,8 @@ class BasePlatformTests(unittest.TestCase):
         self._run(self.test_command, workdir=self.builddir)
 
     def install(self):
+        if self.backend is not Backend.ninja:
+            raise unittest.SkipTest('{!r} backend can\'t install files'.format(self.backend.name))
         os.environ['DESTDIR'] = self.installdir
         self._run(self.install_command, workdir=self.builddir)
 
@@ -430,6 +432,8 @@ class BasePlatformTests(unittest.TestCase):
         shutil.rmtree(self.builddir)
 
     def get_compdb(self):
+        if self.backend is not Backend.ninja:
+            raise unittest.SkipTest('Compiler db not available with {} backend'.format(self.backend.name))
         with open(os.path.join(self.builddir, 'compile_commands.json')) as ifile:
             contents = json.load(ifile)
         # If Ninja is using .rsp files, generate them, read their contents, and
@@ -611,6 +615,8 @@ class AllPlatformTests(BasePlatformTests):
         Tests that the Meson introspection API exposes install filenames correctly
         https://github.com/mesonbuild/meson/issues/829
         '''
+        if self.backend is not Backend.ninja:
+            raise unittest.SkipTest('{!r} backend can\'t install files'.format(self.backend.name))
         testdir = os.path.join(self.common_test_dir, '8 install')
         self.init(testdir)
         intro = self.introspect('--targets')
