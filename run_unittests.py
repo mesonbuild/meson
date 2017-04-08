@@ -29,7 +29,7 @@ from mesonbuild.environment import Environment
 from mesonbuild.dependencies import PkgConfigDependency, ExternalProgram
 
 from run_tests import exe_suffix, get_fake_options, FakeEnvironment
-from run_tests import get_builddir_target_args, get_backend_commands
+from run_tests import get_builddir_target_args, get_backend_commands, Backend
 
 
 def get_soname(fname):
@@ -332,9 +332,9 @@ class BasePlatformTests(unittest.TestCase):
         self.installdir = os.path.join(self.builddir, 'install')
         # Get the backend
         # FIXME: Extract this from argv?
-        self.backend = os.environ.get('MESON_UNIT_TEST_BACKEND', 'ninja')
+        self.backend = getattr(Backend, os.environ.get('MESON_UNIT_TEST_BACKEND', 'ninja'))
         self.meson_command = [sys.executable, os.path.join(src_root, 'meson.py'),
-                              '--backend=' + self.backend]
+                              '--backend=' + self.backend.name]
         self.mconf_command = [sys.executable, os.path.join(src_root, 'mesonconf.py')]
         self.mintro_command = [sys.executable, os.path.join(src_root, 'mesonintrospect.py')]
         self.mtest_command = [sys.executable, os.path.join(src_root, 'mesontest.py'), '-C', self.builddir]

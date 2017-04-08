@@ -34,7 +34,7 @@ import multiprocessing
 import concurrent.futures as conc
 import re
 
-from run_tests import get_backend_commands, get_backend_args_for_dir
+from run_tests import get_backend_commands, get_backend_args_for_dir, Backend
 
 
 class BuildStep(Enum):
@@ -174,10 +174,13 @@ def setup_commands(optbackend):
     # Set backend arguments for Meson
     if backend.startswith('vs'):
         backend_flags = ['--backend=' + backend]
+        backend = Backend.vs
     elif backend == 'xcode':
         backend_flags = ['--backend=xcode']
+        backend = Backend.xcode
     elif backend == 'ninja':
         backend_flags = ['--backend=ninja']
+        backend = Backend.ninja
     else:
         raise RuntimeError('Unknown backend: {!r}'.format(backend))
     compile_commands, clean_commands, test_commands, install_commands, \
@@ -419,15 +422,15 @@ def detect_tests_to_run():
     all_tests.append(('platform-windows', gather_tests('test cases/windows'), False if mesonlib.is_windows() or mesonlib.is_cygwin() else True))
     all_tests.append(('platform-linux', gather_tests('test cases/linuxlike'), False if not (mesonlib.is_osx() or mesonlib.is_windows()) else True))
     all_tests.append(('framework', gather_tests('test cases/frameworks'), False if not mesonlib.is_osx() and not mesonlib.is_windows() and not mesonlib.is_cygwin() else True))
-    all_tests.append(('java', gather_tests('test cases/java'), False if backend == 'ninja' and not mesonlib.is_osx() and have_java() else True))
-    all_tests.append(('C#', gather_tests('test cases/csharp'), False if backend == 'ninja' and shutil.which('mcs') else True))
-    all_tests.append(('vala', gather_tests('test cases/vala'), False if backend == 'ninja' and shutil.which('valac') else True))
-    all_tests.append(('rust', gather_tests('test cases/rust'), False if backend == 'ninja' and shutil.which('rustc') else True))
-    all_tests.append(('d', gather_tests('test cases/d'), False if backend == 'ninja' and have_d_compiler() else True))
-    all_tests.append(('objective c', gather_tests('test cases/objc'), False if backend in ('ninja', 'xcode') and not mesonlib.is_windows() else True))
-    all_tests.append(('fortran', gather_tests('test cases/fortran'), False if backend == 'ninja' and shutil.which('gfortran') else True))
-    all_tests.append(('swift', gather_tests('test cases/swift'), False if backend in ('ninja', 'xcode') and shutil.which('swiftc') else True))
-    all_tests.append(('python3', gather_tests('test cases/python3'), False if backend == 'ninja' and shutil.which('python3') else True))
+    all_tests.append(('java', gather_tests('test cases/java'), False if backend is Backend.ninja and not mesonlib.is_osx() and have_java() else True))
+    all_tests.append(('C#', gather_tests('test cases/csharp'), False if backend is Backend.ninja and shutil.which('mcs') else True))
+    all_tests.append(('vala', gather_tests('test cases/vala'), False if backend is Backend.ninja and shutil.which('valac') else True))
+    all_tests.append(('rust', gather_tests('test cases/rust'), False if backend is Backend.ninja and shutil.which('rustc') else True))
+    all_tests.append(('d', gather_tests('test cases/d'), False if backend is Backend.ninja and have_d_compiler() else True))
+    all_tests.append(('objective c', gather_tests('test cases/objc'), False if backend in (Backend.ninja, Backend.xcode) and not mesonlib.is_windows() else True))
+    all_tests.append(('fortran', gather_tests('test cases/fortran'), False if backend is Backend.ninja and shutil.which('gfortran') else True))
+    all_tests.append(('swift', gather_tests('test cases/swift'), False if backend in (Backend.ninja, Backend.xcode) and shutil.which('swiftc') else True))
+    all_tests.append(('python3', gather_tests('test cases/python3'), False if backend is Backend.ninja and shutil.which('python3') else True))
     return all_tests
 
 def run_tests(all_tests, log_name_base, extra_args):

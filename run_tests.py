@@ -35,35 +35,55 @@ def get_backend_args_for_dir(backend, builddir):
     '''
     Visual Studio backend needs to be given the solution to build
     '''
-    if backend.startswith('vs'):
+    if backend is Backend.vs:
         sln_name = glob(os.path.join(builddir, '*.sln'))[0]
         return [os.path.split(sln_name)[-1]]
     return []
 
+def find_vcxproj_with_target(builddir, target):
+    import re, fnmatch
+    t, ext = os.path.splitext(target)
+    if ext:
+        p = '<TargetName>{}</TargetName>\s*<TargetExt>\{}</TargetExt>'.format(t, ext)
+    else:
+        p = '<TargetName>{}</TargetName>'.format(t)
+    for root, dirs, files in os.walk(builddir):
+        for f in fnmatch.filter(files, '*.vcxproj'):
+            f = os.path.join(builddir, f)
+            with open(f, 'r', encoding='utf-8') as o:
+                if re.search(p, o.read(), flags=re.MULTILINE):
+                    return f
+    raise RuntimeError('No vcxproj matching {!r} in {!r}'.format(p, builddir))
+
 def get_builddir_target_args(backend, builddir, target):
-    dir_args = get_backend_args_for_dir(backend, builddir)
+    dir_args = []
+    if not target:
+        dir_args = get_backend_args_for_dir(backend, builddir)
     if target is None:
         return dir_args
-    if backend.startswith('vs'):
-        target_args = ['/target:' + target]
-    elif backend == 'xcode':
+    if backend is Backend.vs:
+        vcxproj = find_vcxproj_with_target(builddir, target)
+        target_args = [vcxproj]
+    elif backend is Backend.xcode:
         target_args = ['-target', target]
-    else:
+    elif backend is Backend.ninja:
         target_args = [target]
+    else:
+        raise AssertionError('Unknown backend: {!r}'.format(backend))
     return target_args + dir_args
 
 def get_backend_commands(backend, debug=False):
     install_cmd = []
     uninstall_cmd = []
-    if backend.startswith('vs'):
+    if backend is Backend.vs:
         cmd = ['msbuild']
         clean_cmd = cmd + ['/target:Clean']
         test_cmd = cmd + ['RUN_TESTS.vcxproj']
-    elif backend == 'xcode':
+    elif backend is Backend.xcode:
         cmd = ['xcodebuild']
         clean_cmd = cmd + ['-alltargets', 'clean']
         test_cmd = cmd + ['-target', 'RUN_TESTS']
-    else:
+    elif backend is Backend.ninja:
         # We need at least 1.6 because of -w dupbuild=err
         cmd = [detect_ninja('1.6'), '-w', 'dupbuild=err']
         if cmd[0] is None:
@@ -74,6 +94,8 @@ def get_backend_commands(backend, debug=False):
         test_cmd = cmd + ['test', 'benchmark']
         install_cmd = cmd + ['install']
         uninstall_cmd = cmd + ['uninstall']
+    else:
+        raise AssertionError('Unknown backend: {!r}'.format(backend))
     return cmd, clean_cmd, test_cmd, install_cmd, uninstall_cmd
 
 def get_fake_options(prefix):
