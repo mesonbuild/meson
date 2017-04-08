@@ -18,6 +18,10 @@
 #error
 #endif
 
+#ifndef PROJECT_OPTION_C_CPP
+#error
+#endif
+
 int main(int argc, char **argv) {
     return 0;
 }

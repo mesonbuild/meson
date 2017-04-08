@@ -1239,7 +1239,8 @@ class Interpreter(InterpreterBase):
         self.builtin.update({'meson': MesonMain(build, self)})
         self.generators = []
         self.visited_subdirs = {}
-        self.args_frozen = False
+        self.project_args_frozen = False
+        self.global_args_frozen = False  # implies self.project_args_frozen
         self.subprojects = {}
         self.subproject_stack = []
         self.default_project_options = default_project_options[:] # Passed from the outside, only used in subprojects.
@@ -1522,7 +1523,7 @@ class Interpreter(InterpreterBase):
             raise InterpreterException(msg.format(os.path.join(self.subproject_dir, dirname), e))
         subdir = os.path.join(self.subproject_dir, resolved)
         os.makedirs(os.path.join(self.build.environment.get_build_dir(), subdir), exist_ok=True)
-        self.args_frozen = True
+        self.global_args_frozen = True
         mlog.log('\nExecuting subproject ', mlog.bold(dirname), '.\n', sep='')
         subi = Interpreter(self.build, self.backend, dirname, subdir, self.subproject_dir,
                            mesonlib.stringlistify(kwargs.get('default_options', [])))
@@ -2439,83 +2440,51 @@ different subdirectory.
 
     @stringArgs
     def func_add_global_arguments(self, node, args, kwargs):
-        if self.subproject != '':
-            msg = 'Global arguments can not be set in subprojects because ' \
-                  'there is no way to make that reliable.\nPlease only call ' \
-                  'this if is_subproject() returns false. Alternatively, ' \
-                  'define a variable that\ncontains your language-specific ' \
-                  'arguments and add it to the appropriate *_args kwarg ' \
-                  'in each target.'
-            raise InvalidCode(msg)
-        if self.args_frozen:
-            msg = 'Tried to set global arguments after a build target has ' \
-                  'been declared.\nThis is not permitted. Please declare all ' \
-                  'global arguments before your targets.'
-            raise InvalidCode(msg)
-        if 'language' not in kwargs:
-            raise InvalidCode('Missing language definition in add_global_arguments')
-        lang = kwargs['language'].lower()
-        if lang in self.build.global_args:
-            self.build.global_args[lang] += args
-        else:
-            self.build.global_args[lang] = args
+        self.add_global_arguments(node, self.build.global_args, args, kwargs)
 
     @stringArgs
     def func_add_global_link_arguments(self, node, args, kwargs):
+        self.add_global_arguments(node, self.build.global_link_args, args, kwargs)
+
+    @stringArgs
+    def func_add_project_arguments(self, node, args, kwargs):
+        self.add_project_arguments(node, self.build.projects_args, args, kwargs)
+
+    @stringArgs
+    def func_add_project_link_arguments(self, node, args, kwargs):
+        self.add_project_arguments(node, self.build.projects_link_args, args, kwargs)
+
+    def add_global_arguments(self, node, argsdict, args, kwargs):
         if self.subproject != '':
-            msg = 'Global link arguments can not be set in subprojects because ' \
+            msg = 'Function \'{}\' cannot be used in subprojects because ' \
                   'there is no way to make that reliable.\nPlease only call ' \
                   'this if is_subproject() returns false. Alternatively, ' \
                   'define a variable that\ncontains your language-specific ' \
                   'arguments and add it to the appropriate *_args kwarg ' \
-                  'in each target.'
+                  'in each target.'.format(node.func_name)
             raise InvalidCode(msg)
-        if self.args_frozen:
-            msg = 'Tried to set global link arguments after a build target has ' \
-                  'been declared.\nThis is not permitted. Please declare all ' \
-                  'global arguments before your targets.'
-            raise InvalidCode(msg)
-        if 'language' not in kwargs:
-            raise InvalidCode('Missing language definition in add_global_link_arguments')
-        lang = kwargs['language'].lower()
-        if lang in self.build.global_link_args:
-            self.build.global_link_args[lang] += args
-        else:
-            self.build.global_link_args[lang] = args
+        frozen = self.project_args_frozen or self.global_args_frozen
+        self.add_arguments(node, argsdict, frozen, args, kwargs)
 
-    @stringArgs
-    def func_add_project_link_arguments(self, node, args, kwargs):
-        if self.args_frozen:
-            msg = 'Tried to set project link arguments after a build target has ' \
-                  'been declared.\nThis is not permitted. Please declare all ' \
-                  'project link arguments before your targets.'
-            raise InvalidCode(msg)
-        if 'language' not in kwargs:
-            raise InvalidCode('Missing language definition in add_project_link_arguments')
-        lang = kwargs['language'].lower()
-        if self.subproject not in self.build.projects_link_args:
-            self.build.projects_link_args[self.subproject] = {}
+    def add_project_arguments(self, node, argsdict, args, kwargs):
+        if self.subproject not in argsdict:
+            argsdict[self.subproject] = {}
+        self.add_arguments(node, argsdict[self.subproject],
+                           self.project_args_frozen, args, kwargs)
 
-        args = self.build.projects_link_args[self.subproject].get(lang, []) + args
-        self.build.projects_link_args[self.subproject][lang] = args
-
-    @stringArgs
-    def func_add_project_arguments(self, node, args, kwargs):
-        if self.args_frozen:
-            msg = 'Tried to set project arguments after a build target has ' \
-                  'been declared.\nThis is not permitted. Please declare all ' \
-                  'project arguments before your targets.'
+    def add_arguments(self, node, argsdict, args_frozen, args, kwargs):
+        if args_frozen:
+            msg = 'Tried to use \'{}\' after a build target has been declared.\n' \
+                  'This is not permitted. Please declare all ' \
+                  'arguments before your targets.'.format(node.func_name)
             raise InvalidCode(msg)
 
         if 'language' not in kwargs:
-            raise InvalidCode('Missing language definition in add_project_arguments')
+            raise InvalidCode('Missing language definition in {}'.format(node.func_name))
 
-        if self.subproject not in self.build.projects_args:
-            self.build.projects_args[self.subproject] = {}
-
-        lang = kwargs['language'].lower()
-        args = self.build.projects_args[self.subproject].get(lang, []) + args
-        self.build.projects_args[self.subproject][lang] = args
+        for lang in mesonlib.stringlistify(kwargs['language']):
+            lang = lang.lower()
+            argsdict[lang] = argsdict.get(lang, []) + args
 
     def func_environment(self, node, args, kwargs):
         return EnvironmentVariablesHolder()
@@ -2600,7 +2569,7 @@ different subdirectory.
             self.add_cross_stdlib_info(target)
         l = targetholder(target, self)
         self.add_target(name, l.held_object)
-        self.args_frozen = True
+        self.project_args_frozen = True
         return l
 
     def get_used_languages(self, target):

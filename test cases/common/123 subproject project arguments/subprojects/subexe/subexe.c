@@ -6,6 +6,10 @@
 #error
 #endif
 
+#ifdef PROJECT_OPTION_C_CPP
+#error
+#endif
+
 #ifndef GLOBAL_ARGUMENT
 #error
 #endif
