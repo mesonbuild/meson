@@ -49,6 +49,12 @@ PRESET_ARGS = {
 
 class I18nModule(ExtensionModule):
 
+    @staticmethod
+    def _get_data_dirs(state, dirs):
+        """Returns source directories of relative paths"""
+        src_dir = path.join(state.environment.get_source_dir(), state.subdir)
+        return [path.join(src_dir, d) for d in dirs]
+
     def merge_file(self, state, args, kwargs):
         podir = kwargs.pop('po_dir', None)
         if not podir:
@@ -60,7 +66,7 @@ class I18nModule(ExtensionModule):
         if file_type not in VALID_TYPES:
             raise MesonException('i18n: "{}" is not a valid type {}'.format(file_type, VALID_TYPES))
 
-        datadirs = mesonlib.stringlistify(kwargs.pop('data_dirs', []))
+        datadirs = self._get_data_dirs(state, mesonlib.stringlistify(kwargs.pop('data_dirs', [])))
         datadirs = '--datadirs=' + ':'.join(datadirs) if datadirs else None
 
         command = [state.environment.get_build_command(), '--internal', 'msgfmthelper',
@@ -79,7 +85,7 @@ class I18nModule(ExtensionModule):
             raise coredata.MesonException('Can not do gettext because xgettext is not installed.')
         packagename = args[0]
         languages = mesonlib.stringlistify(kwargs.get('languages', []))
-        datadirs = mesonlib.stringlistify(kwargs.get('data_dirs', []))
+        datadirs = self._get_data_dirs(state, mesonlib.stringlistify(kwargs.get('data_dirs', [])))
         extra_args = mesonlib.stringlistify(kwargs.get('args', []))
 
         preset = kwargs.pop('preset', None)
