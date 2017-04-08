@@ -750,7 +750,7 @@ class CCompiler(Compiler):
         # Almost every compiler uses this for disabling warnings
         return ['-w']
 
-    def get_soname_args(self, prefix, shlib_name, suffix, path, soversion, is_shared_module):
+    def get_soname_args(self, *args):
         return []
 
     def split_shlib_to_parts(self, fname):
@@ -1484,7 +1484,7 @@ class MonoCompiler(Compiler):
     def get_link_args(self, fname):
         return ['-r:' + fname]
 
-    def get_soname_args(self, prefix, shlib_name, suffix, path, soversion, is_shared_module):
+    def get_soname_args(self, *args):
         return []
 
     def get_werror_args(self):
@@ -1565,7 +1565,7 @@ class JavaCompiler(Compiler):
         self.id = 'unknown'
         self.javarunner = 'java'
 
-    def get_soname_args(self, prefix, shlib_name, suffix, path, soversion, is_shared_module):
+    def get_soname_args(self, *args):
         return []
 
     def get_werror_args(self):
@@ -1872,9 +1872,9 @@ class DCompiler(Compiler):
     def get_std_shared_lib_link_args(self):
         return ['-shared']
 
-    def get_soname_args(self, prefix, shlib_name, suffix, path, soversion, is_shared_module):
+    def get_soname_args(self, *args):
         # FIXME: Make this work for Windows, MacOS and cross-compiling
-        return get_gcc_soname_args(GCC_STANDARD, prefix, shlib_name, suffix, path, soversion, is_shared_module)
+        return get_gcc_soname_args(GCC_STANDARD, *args)
 
     def get_unittest_args(self):
         return ['-unittest']
@@ -2324,13 +2324,17 @@ def get_gcc_soname_args(gcc_type, prefix, shlib_name, suffix, path, soversion, i
         sostr = ''
     else:
         sostr = '.' + soversion
-    if gcc_type == GCC_STANDARD or gcc_type == GCC_MINGW:
+    if gcc_type in (GCC_STANDARD, GCC_MINGW):
         # Might not be correct for mingw but seems to work.
         return ['-Wl,-soname,%s%s.%s%s' % (prefix, shlib_name, suffix, sostr)]
     elif gcc_type == GCC_OSX:
         if is_shared_module:
             return []
-        return ['-install_name', os.path.join(path, 'lib' + shlib_name + '.dylib')]
+        args = ['-install_name', os.path.join(path, 'lib' + shlib_name + '.dylib')]
+        if soversion:
+            # FIXME: What about -current_version?
+            args += ['-compatibility_version', soversion]
+        return args
     else:
         raise RuntimeError('Not implemented yet.')
 
@@ -2416,8 +2420,8 @@ class GnuCompiler:
     def split_shlib_to_parts(self, fname):
         return os.path.split(fname)[0], fname
 
-    def get_soname_args(self, prefix, shlib_name, suffix, path, soversion, is_shared_module):
-        return get_gcc_soname_args(self.gcc_type, prefix, shlib_name, suffix, path, soversion, is_shared_module)
+    def get_soname_args(self, *args):
+        return get_gcc_soname_args(self.gcc_type, *args)
 
     def get_std_shared_lib_link_args(self):
         if self.gcc_type == GCC_OSX:
@@ -2556,7 +2560,7 @@ class ClangCompiler:
         # so it might change semantics at any time.
         return ['-include-pch', os.path.join(pch_dir, self.get_pch_name(header))]
 
-    def get_soname_args(self, prefix, shlib_name, suffix, path, soversion, is_shared_module):
+    def get_soname_args(self, *args):
         if self.clang_type == CLANG_STANDARD:
             gcc_type = GCC_STANDARD
         elif self.clang_type == CLANG_OSX:
@@ -2565,7 +2569,7 @@ class ClangCompiler:
             gcc_type = GCC_MINGW
         else:
             raise MesonException('Unreachable code when converting clang type to gcc type.')
-        return get_gcc_soname_args(gcc_type, prefix, shlib_name, suffix, path, soversion, is_shared_module)
+        return get_gcc_soname_args(gcc_type, *args)
 
     def has_multi_arguments(self, args, env):
         return super().has_multi_arguments(
@@ -2685,7 +2689,7 @@ class IntelCompiler:
     def split_shlib_to_parts(self, fname):
         return os.path.split(fname)[0], fname
 
-    def get_soname_args(self, prefix, shlib_name, suffix, path, soversion, is_shared_module):
+    def get_soname_args(self, *args):
         if self.icc_type == ICC_STANDARD:
             gcc_type = GCC_STANDARD
         elif self.icc_type == ICC_OSX:
@@ -2694,7 +2698,7 @@ class IntelCompiler:
             gcc_type = GCC_MINGW
         else:
             raise MesonException('Unreachable code when converting icc type to gcc type.')
-        return get_gcc_soname_args(gcc_type, prefix, shlib_name, suffix, path, soversion, is_shared_module)
+        return get_gcc_soname_args(gcc_type, *args)
 
     def get_std_shared_lib_link_args(self):
         # FIXME: Don't know how icc works on OSX
@@ -2845,8 +2849,8 @@ end program prog
     def split_shlib_to_parts(self, fname):
         return os.path.split(fname)[0], fname
 
-    def get_soname_args(self, prefix, shlib_name, suffix, path, soversion, is_shared_module):
-        return get_gcc_soname_args(self.gcc_type, prefix, shlib_name, suffix, path, soversion, is_shared_module)
+    def get_soname_args(self, *args):
+        return get_gcc_soname_args(self.gcc_type, *args)
 
     def get_dependency_gen_args(self, outtarget, outfile):
         # Disabled until this is fixed:

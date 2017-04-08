@@ -39,3 +39,23 @@ test('manually linked 3', executable('manuallink3', out,
 
 test('manually linked 4', executable('manuallink4', out,
   link_args : ['-L.', '-lonlysoversion']))
+
+# Test that the -compatibility_version option enforces a minimum library
+# version at runtime
+subdir('oldlib')
+
+newversion = shared_library('testversion', 'lib.c',
+  soversion : 4)
+
+# Link with the newer dylib and run with it too
+pass = executable('library-version-matching', out,
+  link_with : newversion)
+
+# Link with the newer dylib, and try to run using the older one
+fail = executable('library-version-notmatching', out,
+  # Set the runtime path to the old-version library's build directory
+  link_args : ['-Wl,-rpath,' + oldlib_builddir],
+  link_with : newversion)
+
+test('passing-library-version', pass)
+test('failing-library-version', fail, should_fail : true)
