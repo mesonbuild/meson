@@ -60,8 +60,15 @@ class I18nModule(ExtensionModule):
         if file_type not in VALID_TYPES:
             raise MesonException('i18n: "{}" is not a valid type {}'.format(file_type, VALID_TYPES))
 
-        kwargs['command'] = ['msgfmt', '--' + file_type,
-                             '--template', '@INPUT@', '-d', podir, '-o', '@OUTPUT@']
+        datadirs = mesonlib.stringlistify(kwargs.pop('data_dirs', []))
+        datadirs = '--datadirs=' + ':'.join(datadirs) if datadirs else None
+
+        command = [state.environment.get_build_command(), '--internal', 'msgfmthelper',
+                   '@INPUT@', '@OUTPUT@', file_type, podir]
+        if datadirs:
+            command.append(datadirs)
+
+        kwargs['command'] = command
         ct = build.CustomTarget(kwargs['output'] + '_merge', state.subdir, kwargs)
         return ModuleReturnValue(ct, [ct])
 

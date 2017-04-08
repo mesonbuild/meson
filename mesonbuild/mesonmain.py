@@ -222,6 +222,9 @@ def run_script_command(args):
     elif cmdname == 'gtkdoc':
         import mesonbuild.scripts.gtkdochelper as abc
         cmdfunc = abc.run
+    elif cmdname == 'msgfmthelper':
+        import mesonbuild.scripts.msgfmthelper as abc
+        cmdfunc = abc.run
     elif cmdname == 'regencheck':
         import mesonbuild.scripts.regen_checker as abc
         cmdfunc = abc.run
