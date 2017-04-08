@@ -968,6 +968,15 @@ class AllPlatformTests(BasePlatformTests):
         os.environ['CFLAGS'] = '-DMESON_FAIL_VALUE=cflags-read'.format(define)
         self.init(testdir, ['-D{}={}'.format(define, value)])
 
+    def test_custom_target_exe_data_deterministic(self):
+        testdir = os.path.join(self.common_test_dir, '117 custom target capture')
+        self.init(testdir)
+        meson_exe_dat1 = glob(os.path.join(self.privatedir, 'meson_exe*.dat'))
+        self.wipe()
+        self.init(testdir)
+        meson_exe_dat2 = glob(os.path.join(self.privatedir, 'meson_exe*.dat'))
+        self.assertListEqual(meson_exe_dat1, meson_exe_dat2)
+
 
 class WindowsTests(BasePlatformTests):
     '''
@@ -1234,15 +1243,6 @@ class LinuxlikeTests(BasePlatformTests):
             # Verify that -O3 set via the environment is overriden by -O0
             Oargs = [arg for arg in cmd if arg.startswith('-O')]
             self.assertEqual(Oargs, [Oflag, '-O0'])
-
-    def test_custom_target_exe_data_deterministic(self):
-        testdir = os.path.join(self.common_test_dir, '117 custom target capture')
-        self.init(testdir)
-        meson_exe_dat1 = glob(os.path.join(self.privatedir, 'meson_exe*.dat'))
-        self.wipe()
-        self.init(testdir)
-        meson_exe_dat2 = glob(os.path.join(self.privatedir, 'meson_exe*.dat'))
-        self.assertListEqual(meson_exe_dat1, meson_exe_dat2)
 
     def _test_stds_impl(self, testdir, compiler, p):
         lang_std = p + '_std'
