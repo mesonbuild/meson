@@ -26,7 +26,7 @@ from glob import glob
 
 Backend = Enum('Backend', 'ninja vs xcode')
 
-if mesonlib.is_windows():
+if mesonlib.is_windows() or mesonlib.is_cygwin():
     exe_suffix = '.exe'
 else:
     exe_suffix = ''
