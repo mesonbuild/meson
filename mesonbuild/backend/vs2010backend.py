@@ -437,6 +437,7 @@ class Vs2010Backend(backends.Backend):
         # from the target dir, not the build root.
         target.absolute_paths = True
         (srcs, ofilenames, cmd) = self.eval_custom_target_command(target, True)
+        depend_files = self.get_custom_target_depend_files(target, True)
         # Always use a wrapper because MSBuild eats random characters when
         # there are many arguments.
         tdir_abs = os.path.join(self.environment.get_build_dir(), self.get_target_dir(target))
@@ -448,7 +449,7 @@ class Vs2010Backend(backends.Backend):
                        '--internal', 'exe', exe_data]
         ET.SubElement(customstep, 'Command').text = ' '.join(self.quote_arguments(wrapper_cmd))
         ET.SubElement(customstep, 'Outputs').text = ';'.join(ofilenames)
-        ET.SubElement(customstep, 'Inputs').text = ';'.join(srcs)
+        ET.SubElement(customstep, 'Inputs').text = ';'.join([exe_data] + srcs + depend_files)
         ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.targets')
         self.generate_custom_generator_commands(target, root)
         self._prettyprint_vcxproj_xml(ET.ElementTree(root), ofname)
