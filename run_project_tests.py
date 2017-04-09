@@ -26,6 +26,7 @@ from mesonbuild import mesonlib
 from mesonbuild import mlog
 from mesonbuild import mesonmain
 from mesonbuild.mesonlib import stringlistify, Popen_safe
+from mesonbuild.coredata import backendlist
 import argparse
 import xml.etree.ElementTree as ET
 import time
@@ -33,7 +34,7 @@ import multiprocessing
 import concurrent.futures as conc
 import re
 
-from mesonbuild.coredata import backendlist
+from run_tests import get_backend_commands, get_backend_args_for_dir, Backend
 
 
 class BuildStep(Enum):
@@ -42,6 +43,7 @@ class BuildStep(Enum):
     test = 3
     install = 4
     clean = 5
+    validate = 6
 
 
 class TestResult:
@@ -153,50 +155,36 @@ def stop_handler(signal, frame):
 signal.signal(signal.SIGINT, stop_handler)
 signal.signal(signal.SIGTERM, stop_handler)
 
-# unity_flags = ['--unity']
-unity_flags = []
+# Needed when running cross tests because we don't generate prebuilt files
+compiler = None
 
-backend_flags = None
-compile_commands = None
-test_commands = None
-install_commands = []
-clean_commands = []
-
-def setup_commands(backend):
-    global backend_flags, compile_commands, test_commands, install_commands, clean_commands
+def setup_commands(optbackend):
+    global do_debug, backend, backend_flags
+    global compile_commands, clean_commands, test_commands, install_commands, uninstall_commands
+    backend = optbackend
     msbuild_exe = shutil.which('msbuild')
-    if (backend and backend.startswith('vs')) or (backend is None and msbuild_exe is not None):
-        if backend is None:
-            backend = 'vs2010'
-        backend_flags = ['--backend=' + backend]
-        compile_commands = ['msbuild']
-        test_commands = ['msbuild', 'RUN_TESTS.vcxproj']
-    elif backend == 'xcode' or (backend is None and mesonlib.is_osx()):
-        backend_flags = ['--backend=xcode']
-        compile_commands = ['xcodebuild']
-        test_commands = ['xcodebuild', '-target', 'RUN_TESTS']
-    else:
-        backend_flags = []
-        # We need at least 1.6 because of -w dupbuild=err
-        ninja_command = environment.detect_ninja(version='1.6')
-        if ninja_command is None:
-            raise RuntimeError('Could not find Ninja v1.6 or newer')
-        if do_debug:
-            compile_commands = [ninja_command, '-v']
+    # Auto-detect backend if unspecified
+    if backend is None:
+        if msbuild_exe is not None:
+            backend = 'vs' # Meson will auto-detect VS version to use
+        elif mesonlib.is_osx():
+            backend = 'xcode'
         else:
-            compile_commands = [ninja_command]
-        compile_commands += ['-w', 'dupbuild=err']
-        test_commands = [ninja_command, 'test', 'benchmark']
-        install_commands = [ninja_command, 'install']
-        clean_commands = [ninja_command, 'clean']
-
-def get_compile_commands_for_dir(compile_commands, test_build_dir):
-    if 'msbuild' in compile_commands[0]:
-        sln_name = glob(os.path.join(test_build_dir, '*.sln'))[0]
-        comp = compile_commands + [os.path.split(sln_name)[-1]]
+            backend = 'ninja'
+    # Set backend arguments for Meson
+    if backend.startswith('vs'):
+        backend_flags = ['--backend=' + backend]
+        backend = Backend.vs
+    elif backend == 'xcode':
+        backend_flags = ['--backend=xcode']
+        backend = Backend.xcode
+    elif backend == 'ninja':
+        backend_flags = ['--backend=ninja']
+        backend = Backend.ninja
     else:
-        comp = compile_commands
-    return comp
+        raise RuntimeError('Unknown backend: {!r}'.format(backend))
+    compile_commands, clean_commands, test_commands, install_commands, \
+        uninstall_commands = get_backend_commands(backend, do_debug)
 
 def get_relative_files_list_from_dir(fromdir):
     paths = []
@@ -223,7 +211,7 @@ def platform_fix_name(fname):
 
     return fname
 
-def validate_install(srcdir, installdir):
+def validate_install(srcdir, installdir, compiler):
     # List of installed files
     info_file = os.path.join(srcdir, 'installed_files.txt')
     # If this exists, the test does not install any other files
@@ -317,18 +305,18 @@ def parse_test_args(testdir):
         pass
     return args
 
-def run_test(skipped, testdir, extra_args, flags, compile_commands, should_fail):
+def run_test(skipped, testdir, extra_args, compiler, backend, flags, commands, should_fail):
     if skipped:
         return None
     with AutoDeletedDir(tempfile.mkdtemp(prefix='b ', dir='.')) as build_dir:
         with AutoDeletedDir(tempfile.mkdtemp(prefix='i ', dir=os.getcwd())) as install_dir:
             try:
-                return _run_test(testdir, build_dir, install_dir, extra_args, flags, compile_commands, should_fail)
+                return _run_test(testdir, build_dir, install_dir, extra_args, compiler, backend, flags, commands, should_fail)
             finally:
                 mlog.shutdown() # Close the log file because otherwise Windows wets itself.
 
-def _run_test(testdir, test_build_dir, install_dir, extra_args, flags, compile_commands, should_fail):
-    global install_commands, clean_commands
+def _run_test(testdir, test_build_dir, install_dir, extra_args, compiler, backend, flags, commands, should_fail):
+    compile_commands, clean_commands, install_commands, uninstall_commands = commands
     test_args = parse_test_args(testdir)
     gen_start = time.time()
     # Configure in-process
@@ -349,9 +337,9 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, flags, compile_c
     if returncode != 0:
         return TestResult('Generating the build system failed.', BuildStep.configure, stdo, stde, mesonlog, gen_time)
     # Build with subprocess
-    comp = get_compile_commands_for_dir(compile_commands, test_build_dir)
+    dir_args = get_backend_args_for_dir(backend, test_build_dir)
     build_start = time.time()
-    pc, o, e = Popen_safe(comp, cwd=test_build_dir)
+    pc, o, e = Popen_safe(compile_commands + dir_args, cwd=test_build_dir)
     build_time = time.time() - build_start
     stdo += o
     stde += e
@@ -378,25 +366,26 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, flags, compile_c
         return TestResult('Test that should have failed to run unit tests succeeded', BuildStep.test, stdo, stde, mesonlog, gen_time)
     if returncode != 0:
         return TestResult('Running unit tests failed.', BuildStep.test, stdo, stde, mesonlog, gen_time, build_time, test_time)
-    if len(install_commands) == 0:
-        return TestResult('', BuildStep.install, '', '', mesonlog, gen_time, build_time, test_time)
-    env = os.environ.copy()
-    env['DESTDIR'] = install_dir
-    # Install with subprocess
-    pi, o, e = Popen_safe(install_commands, cwd=test_build_dir, env=env)
-    stdo += o
-    stde += e
-    if pi.returncode != 0:
-        return TestResult('Running install failed.', BuildStep.install, stdo, stde, mesonlog, gen_time, build_time, test_time)
-    if len(clean_commands) != 0:
+    # Do installation, if the backend supports it
+    if len(install_commands) != 0:
         env = os.environ.copy()
-        # Clean with subprocess
-        pi, o, e = Popen_safe(clean_commands, cwd=test_build_dir, env=env)
+        env['DESTDIR'] = install_dir
+        # Install with subprocess
+        pi, o, e = Popen_safe(install_commands, cwd=test_build_dir, env=env)
         stdo += o
         stde += e
         if pi.returncode != 0:
-            return TestResult('Running clean failed.', BuildStep.clean, stdo, stde, mesonlog, gen_time, build_time, test_time)
-    return TestResult(validate_install(testdir, install_dir), BuildStep.clean, stdo, stde, mesonlog, gen_time, build_time, test_time)
+            return TestResult('Running install failed.', BuildStep.install, stdo, stde, mesonlog, gen_time, build_time, test_time)
+    # Clean with subprocess
+    env = os.environ.copy()
+    pi, o, e = Popen_safe(clean_commands + dir_args, cwd=test_build_dir, env=env)
+    stdo += o
+    stde += e
+    if pi.returncode != 0:
+        return TestResult('Running clean failed.', BuildStep.clean, stdo, stde, mesonlog, gen_time, build_time, test_time)
+    if len(install_commands) == 0:
+        return TestResult('', BuildStep.install, '', '', mesonlog, gen_time, build_time, test_time)
+    return TestResult(validate_install(testdir, install_dir, compiler), BuildStep.validate, stdo, stde, mesonlog, gen_time, build_time, test_time)
 
 def gather_tests(testdir):
     tests = [t.replace('\\', '/').split('/', 2)[2] for t in glob(os.path.join(testdir, '*'))]
@@ -421,23 +410,6 @@ def have_java():
         return True
     return False
 
-def using_backend(backends):
-    if isinstance(backends, str):
-        backends = (backends,)
-    for backend in backends:
-        if backend == 'ninja':
-            if not backend_flags:
-                return True
-        elif backend == 'xcode':
-            if backend_flags == '--backend=xcode':
-                return True
-        elif backend == 'vs':
-            if backend_flags.startswith('--backend=vs'):
-                return True
-        else:
-            raise AssertionError('Unknown backend type: ' + backend)
-    return False
-
 def detect_tests_to_run():
     all_tests = []
     all_tests.append(('common', gather_tests('test cases/common'), False))
@@ -450,15 +422,15 @@ def detect_tests_to_run():
     all_tests.append(('platform-windows', gather_tests('test cases/windows'), False if mesonlib.is_windows() or mesonlib.is_cygwin() else True))
     all_tests.append(('platform-linux', gather_tests('test cases/linuxlike'), False if not (mesonlib.is_osx() or mesonlib.is_windows()) else True))
     all_tests.append(('framework', gather_tests('test cases/frameworks'), False if not mesonlib.is_osx() and not mesonlib.is_windows() and not mesonlib.is_cygwin() else True))
-    all_tests.append(('java', gather_tests('test cases/java'), False if using_backend('ninja') and not mesonlib.is_osx() and have_java() else True))
-    all_tests.append(('C#', gather_tests('test cases/csharp'), False if using_backend('ninja') and shutil.which('mcs') else True))
-    all_tests.append(('vala', gather_tests('test cases/vala'), False if using_backend('ninja') and shutil.which('valac') else True))
-    all_tests.append(('rust', gather_tests('test cases/rust'), False if using_backend('ninja') and shutil.which('rustc') else True))
-    all_tests.append(('d', gather_tests('test cases/d'), False if using_backend('ninja') and have_d_compiler() else True))
-    all_tests.append(('objective c', gather_tests('test cases/objc'), False if using_backend(('ninja', 'xcode')) and not mesonlib.is_windows() else True))
-    all_tests.append(('fortran', gather_tests('test cases/fortran'), False if using_backend('ninja') and shutil.which('gfortran') else True))
-    all_tests.append(('swift', gather_tests('test cases/swift'), False if using_backend(('ninja', 'xcode')) and shutil.which('swiftc') else True))
-    all_tests.append(('python3', gather_tests('test cases/python3'), False if using_backend('ninja') and shutil.which('python3') else True))
+    all_tests.append(('java', gather_tests('test cases/java'), False if backend is Backend.ninja and not mesonlib.is_osx() and have_java() else True))
+    all_tests.append(('C#', gather_tests('test cases/csharp'), False if backend is Backend.ninja and shutil.which('mcs') else True))
+    all_tests.append(('vala', gather_tests('test cases/vala'), False if backend is Backend.ninja and shutil.which('valac') else True))
+    all_tests.append(('rust', gather_tests('test cases/rust'), False if backend is Backend.ninja and shutil.which('rustc') else True))
+    all_tests.append(('d', gather_tests('test cases/d'), False if backend is Backend.ninja and have_d_compiler() else True))
+    all_tests.append(('objective c', gather_tests('test cases/objc'), False if backend in (Backend.ninja, Backend.xcode) and not mesonlib.is_windows() else True))
+    all_tests.append(('fortran', gather_tests('test cases/fortran'), False if backend is Backend.ninja and shutil.which('gfortran') else True))
+    all_tests.append(('swift', gather_tests('test cases/swift'), False if backend in (Backend.ninja, Backend.xcode) and shutil.which('swiftc') else True))
+    all_tests.append(('python3', gather_tests('test cases/python3'), False if backend is Backend.ninja and shutil.which('python3') else True))
     return all_tests
 
 def run_tests(all_tests, log_name_base, extra_args):
@@ -473,6 +445,7 @@ def run_tests(all_tests, log_name_base, extra_args):
     passing_tests = 0
     failing_tests = 0
     skipped_tests = 0
+    commands = (compile_commands, clean_commands, install_commands, uninstall_commands)
 
     try:
         # This fails in some CI environments for unknown reasons.
@@ -502,7 +475,7 @@ def run_tests(all_tests, log_name_base, extra_args):
             should_fail = False
             if name.startswith('failing'):
                 should_fail = name.split('failing-')[1]
-            result = executor.submit(run_test, skipped, t, extra_args, unity_flags + backend_flags, compile_commands, should_fail)
+            result = executor.submit(run_test, skipped, t, extra_args, compiler, backend, backend_flags, commands, should_fail)
             futures.append((testname, t, result))
         for (testname, t, result) in futures:
             sys.stdout.flush()
@@ -617,7 +590,7 @@ def generate_prebuilt():
     return objectfile, stlibfile
 
 def check_meson_commands_work():
-    global meson_command, compile_commands, test_commands, install_commands
+    global backend, meson_command, compile_commands, test_commands, install_commands
     testdir = 'test cases/common/1 trivial'
     with AutoDeletedDir(tempfile.mkdtemp(prefix='b ', dir='.')) as build_dir:
         print('Checking that configuring works...')
@@ -626,8 +599,8 @@ def check_meson_commands_work():
         if pc.returncode != 0:
             raise RuntimeError('Failed to configure {!r}:\n{}\n{}'.format(testdir, e, o))
         print('Checking that building works...')
-        compile_cmd = get_compile_commands_for_dir(compile_commands, build_dir)
-        pc, o, e = Popen_safe(compile_cmd, cwd=build_dir)
+        dir_args = get_backend_args_for_dir(backend, build_dir)
+        pc, o, e = Popen_safe(compile_commands + dir_args, cwd=build_dir)
         if pc.returncode != 0:
             raise RuntimeError('Failed to build {!r}:\n{}\n{}'.format(testdir, e, o))
         print('Checking that testing works...')
@@ -648,21 +621,6 @@ if __name__ == '__main__':
                         choices=backendlist)
     options = parser.parse_args()
     setup_commands(options.backend)
-
-    # Appveyor sets the `platform` environment variable which completely messes
-    # up building with the vs2010 and vs2015 backends.
-    #
-    # Specifically, MSBuild reads the `platform` environment variable to set
-    # the configured value for the platform (Win32/x64/arm), which breaks x86
-    # builds.
-    #
-    # Appveyor setting this also breaks our 'native build arch' detection for
-    # Windows in environment.py:detect_windows_arch() by overwriting the value
-    # of `platform` set by vcvarsall.bat.
-    #
-    # While building for x86, `platform` should be unset.
-    if 'APPVEYOR' in os.environ and os.environ['arch'] == 'x86':
-        os.environ.pop('platform')
 
     script_dir = os.path.split(__file__)[0]
     if script_dir != '':

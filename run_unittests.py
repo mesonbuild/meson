@@ -25,13 +25,12 @@ import mesonbuild.compilers
 import mesonbuild.environment
 import mesonbuild.mesonlib
 from mesonbuild.mesonlib import is_windows, is_osx, is_cygwin
-from mesonbuild.environment import detect_ninja, Environment
+from mesonbuild.environment import Environment
 from mesonbuild.dependencies import PkgConfigDependency, ExternalProgram
 
-if is_windows() or is_cygwin():
-    exe_suffix = '.exe'
-else:
-    exe_suffix = ''
+from run_tests import exe_suffix, get_fake_options, FakeEnvironment
+from run_tests import get_builddir_target_args, get_backend_commands, Backend
+
 
 def get_soname(fname):
     # HACK, fix to not use shell.
@@ -43,21 +42,6 @@ def get_soname(fname):
         if m is not None:
             return m.group(1)
     raise RuntimeError('Could not determine soname:\n\n' + raw_out)
-
-def get_fake_options(prefix):
-    import argparse
-    opts = argparse.Namespace()
-    opts.cross_file = None
-    opts.wrap_mode = None
-    opts.prefix = prefix
-    return opts
-
-class FakeEnvironment(object):
-    def __init__(self):
-        self.cross_info = None
-
-    def is_cross_build(self):
-        return False
 
 class InternalTests(unittest.TestCase):
 
@@ -346,11 +330,18 @@ class BasePlatformTests(unittest.TestCase):
         self.prefix = '/usr'
         self.libdir = os.path.join(self.prefix, 'lib')
         self.installdir = os.path.join(self.builddir, 'install')
-        self.meson_command = [sys.executable, os.path.join(src_root, 'meson.py')]
+        # Get the backend
+        # FIXME: Extract this from argv?
+        self.backend = getattr(Backend, os.environ.get('MESON_UNIT_TEST_BACKEND', 'ninja'))
+        self.meson_command = [sys.executable, os.path.join(src_root, 'meson.py'),
+                              '--backend=' + self.backend.name]
         self.mconf_command = [sys.executable, os.path.join(src_root, 'mesonconf.py')]
         self.mintro_command = [sys.executable, os.path.join(src_root, 'mesonintrospect.py')]
         self.mtest_command = [sys.executable, os.path.join(src_root, 'mesontest.py'), '-C', self.builddir]
-        self.ninja_command = [detect_ninja(), '-C', self.builddir]
+        # Backend-specific build commands
+        self.build_command, self.clean_command, self.test_command, self.install_command, \
+            self.uninstall_command = get_backend_commands(self.backend)
+        # Test directories
         self.common_test_dir = os.path.join(src_root, 'test cases/common')
         self.vala_test_dir = os.path.join(src_root, 'test cases/vala')
         self.framework_test_dir = os.path.join(src_root, 'test cases/frameworks')
@@ -370,14 +361,14 @@ class BasePlatformTests(unittest.TestCase):
         os.environ = self.orig_env
         super().tearDown()
 
-    def _run(self, command):
+    def _run(self, command, workdir=None):
         '''
         Run a command while printing the stdout and stderr to stdout,
         and also return a copy of it
         '''
         p = subprocess.Popen(command, stdout=subprocess.PIPE,
                              stderr=subprocess.STDOUT, env=os.environ.copy(),
-                             universal_newlines=True)
+                             universal_newlines=True, cwd=workdir)
         output = p.communicate()[0]
         print(output)
         if p.returncode != 0:
@@ -398,27 +389,36 @@ class BasePlatformTests(unittest.TestCase):
             raise
         self.privatedir = os.path.join(self.builddir, 'meson-private')
 
-    def build(self, extra_args=None):
+    def build(self, target=None, extra_args=None):
         if extra_args is None:
             extra_args = []
-        self._run(self.ninja_command + extra_args)
+        # Add arguments for building the target (if specified),
+        # and using the build dir (if required, with VS)
+        args = get_builddir_target_args(self.backend, self.builddir, target)
+        self._run(self.build_command + args + extra_args, workdir=self.builddir)
+
+    def clean(self):
+        dir_args = get_builddir_target_args(self.backend, self.builddir, None)
+        self._run(self.clean_command + dir_args, workdir=self.builddir)
 
     def run_tests(self):
-        self._run(self.ninja_command + ['test'])
+        self._run(self.test_command, workdir=self.builddir)
 
     def install(self):
+        if self.backend is not Backend.ninja:
+            raise unittest.SkipTest('{!r} backend can\'t install files'.format(self.backend.name))
         os.environ['DESTDIR'] = self.installdir
-        self._run(self.ninja_command + ['install'])
+        self._run(self.install_command, workdir=self.builddir)
 
     def uninstall(self):
-        self._run(self.ninja_command + ['uninstall'])
+        self._run(self.uninstall_command, workdir=self.builddir)
 
     def run_target(self, target):
         '''
         Run a Ninja target while printing the stdout and stderr to stdout,
         and also return a copy of it
         '''
-        return self._run(self.ninja_command + [target])
+        return self.build(target=target)
 
     def setconf(self, arg, will_build=True):
         # This is needed to increase the difference between build.ninja's
@@ -432,13 +432,15 @@ class BasePlatformTests(unittest.TestCase):
         shutil.rmtree(self.builddir)
 
     def get_compdb(self):
+        if self.backend is not Backend.ninja:
+            raise unittest.SkipTest('Compiler db not available with {} backend'.format(self.backend.name))
         with open(os.path.join(self.builddir, 'compile_commands.json')) as ifile:
             contents = json.load(ifile)
         # If Ninja is using .rsp files, generate them, read their contents, and
         # replace it as the command for all compile commands in the parsed json.
         if len(contents) > 0 and contents[0]['command'].endswith('.rsp'):
             # Pretend to build so that the rsp files are generated
-            self.build(['-d', 'keeprsp', '-n'])
+            self.build(extra_args=['-d', 'keeprsp', '-n'])
             for each in contents:
                 # Extract the actual command from the rsp file
                 compiler, rsp = each['command'].split(' @')
@@ -613,6 +615,8 @@ class AllPlatformTests(BasePlatformTests):
         Tests that the Meson introspection API exposes install filenames correctly
         https://github.com/mesonbuild/meson/issues/829
         '''
+        if self.backend is not Backend.ninja:
+            raise unittest.SkipTest('{!r} backend can\'t install files'.format(self.backend.name))
         testdir = os.path.join(self.common_test_dir, '8 install')
         self.init(testdir)
         intro = self.introspect('--targets')
@@ -722,7 +726,7 @@ class AllPlatformTests(BasePlatformTests):
         exe = os.path.join(self.builddir, 'fooprog' + exe_suffix)
         self.assertTrue(os.path.exists(genfile))
         self.assertFalse(os.path.exists(exe))
-        self._run(self.ninja_command + ['fooprog' + exe_suffix])
+        self.build(target=('fooprog' + exe_suffix))
         self.assertTrue(os.path.exists(exe))
 
     def test_internal_include_order(self):
@@ -963,6 +967,15 @@ class AllPlatformTests(BasePlatformTests):
         os.environ['CPPFLAGS'] = '-D{}="{}"'.format(define, value)
         os.environ['CFLAGS'] = '-DMESON_FAIL_VALUE=cflags-read'.format(define)
         self.init(testdir, ['-D{}={}'.format(define, value)])
+
+    def test_custom_target_exe_data_deterministic(self):
+        testdir = os.path.join(self.common_test_dir, '117 custom target capture')
+        self.init(testdir)
+        meson_exe_dat1 = glob(os.path.join(self.privatedir, 'meson_exe*.dat'))
+        self.wipe()
+        self.init(testdir)
+        meson_exe_dat2 = glob(os.path.join(self.privatedir, 'meson_exe*.dat'))
+        self.assertListEqual(meson_exe_dat1, meson_exe_dat2)
 
 
 class WindowsTests(BasePlatformTests):
@@ -1230,15 +1243,6 @@ class LinuxlikeTests(BasePlatformTests):
             # Verify that -O3 set via the environment is overriden by -O0
             Oargs = [arg for arg in cmd if arg.startswith('-O')]
             self.assertEqual(Oargs, [Oflag, '-O0'])
-
-    def test_custom_target_exe_data_deterministic(self):
-        testdir = os.path.join(self.common_test_dir, '117 custom target capture')
-        self.init(testdir)
-        meson_exe_dat1 = glob(os.path.join(self.privatedir, 'meson_exe*.dat'))
-        self.wipe()
-        self.init(testdir)
-        meson_exe_dat2 = glob(os.path.join(self.privatedir, 'meson_exe*.dat'))
-        self.assertListEqual(meson_exe_dat1, meson_exe_dat2)
 
     def _test_stds_impl(self, testdir, compiler, p):
         lang_std = p + '_std'
