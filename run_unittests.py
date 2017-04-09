@@ -1121,7 +1121,7 @@ class LinuxlikeTests(BasePlatformTests):
         if qt4 != 0 or qt5 != 0:
             raise unittest.SkipTest('Qt not found with pkg-config')
         testdir = os.path.join(self.framework_test_dir, '4 qt')
-        self.init(testdir, ['-Dmethod=pkgconfig'])
+        self.init(testdir, ['-Dmethod=pkg-config'])
         # Confirm that the dependency was found with qmake
         msg = 'Qt4 native `pkg-config` dependency (modules: Core, Gui) found: YES\n'
         msg2 = 'Qt5 native `pkg-config` dependency (modules: Core, Gui) found: YES\n'

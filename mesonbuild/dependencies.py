@@ -268,7 +268,7 @@ class PkgConfigDependency(Dependency):
         return self.libs
 
     def get_methods(self):
-        return ['pkgconfig']
+        return ['pkg-config']
 
     def check_pkgconfig(self):
         evar = 'PKG_CONFIG'
@@ -985,7 +985,7 @@ class QtBaseDependency(Dependency):
         # Keep track of the detection methods used, for logging purposes.
         methods = []
         # Prefer pkg-config, then fallback to `qmake -query`
-        if 'pkgconfig' in self.methods:
+        if 'pkg-config' in self.methods:
             self._pkgconfig_detect(mods, env, kwargs)
             methods.append('pkgconfig')
         if not self.is_found and 'qmake' in self.methods:
@@ -1137,7 +1137,7 @@ class QtBaseDependency(Dependency):
         return self.largs
 
     def get_methods(self):
-        return ['pkgconfig', 'qmake']
+        return ['pkg-config', 'qmake']
 
     def found(self):
         return self.is_found
@@ -1301,7 +1301,7 @@ class GLDependency(Dependency):
         self.is_found = False
         self.cargs = []
         self.linkargs = []
-        if 'pkgconfig' in self.methods:
+        if 'pkg-config' in self.methods:
             try:
                 pcdep = PkgConfigDependency('gl', environment, kwargs)
                 if pcdep.found():
@@ -1333,9 +1333,9 @@ class GLDependency(Dependency):
 
     def get_methods(self):
         if mesonlib.is_osx() or mesonlib.is_windows():
-            return ['pkgconfig', 'system']
+            return ['pkg-config', 'system']
         else:
-            return ['pkgconfig']
+            return ['pkg-config']
 
 # There are three different ways of depending on SDL2:
 # sdl2-config, pkg-config and OSX framework
@@ -1345,7 +1345,7 @@ class SDL2Dependency(Dependency):
         self.is_found = False
         self.cargs = []
         self.linkargs = []
-        if 'pkgconfig' in self.methods:
+        if 'pkg-config' in self.methods:
             try:
                 pcdep = PkgConfigDependency('sdl2', environment, kwargs)
                 if pcdep.found():
@@ -1397,9 +1397,9 @@ class SDL2Dependency(Dependency):
 
     def get_methods(self):
         if mesonlib.is_osx():
-            return ['pkgconfig', 'sdlconfig', 'extraframework']
+            return ['pkg-config', 'sdlconfig', 'extraframework']
         else:
-            return ['pkgconfig', 'sdlconfig']
+            return ['pkg-config', 'sdlconfig']
 
 class ExtraFrameworkDependency(Dependency):
     def __init__(self, name, required, path, kwargs):
@@ -1465,7 +1465,7 @@ class Python3Dependency(Dependency):
         self.is_found = False
         # We can only be sure that it is Python 3 at this point
         self.version = '3'
-        if 'pkgconfig' in self.methods:
+        if 'pkg-config' in self.methods:
             try:
                 pkgdep = PkgConfigDependency('python3', environment, kwargs)
                 if pkgdep.found():
@@ -1536,11 +1536,11 @@ class Python3Dependency(Dependency):
 
     def get_methods(self):
         if mesonlib.is_windows():
-            return ['pkgconfig', 'sysconfig']
+            return ['pkg-config', 'sysconfig']
         elif mesonlib.is_osx():
-            return ['pkgconfig', 'extraframework']
+            return ['pkg-config', 'extraframework']
         else:
-            return ['pkgconfig']
+            return ['pkg-config']
 
     def get_version(self):
         return self.version
