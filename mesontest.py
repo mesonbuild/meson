@@ -21,6 +21,7 @@ import subprocess, sys, os, argparse
 import pickle
 from mesonbuild import build
 from mesonbuild import environment
+from mesonbuild.dependencies import ExternalProgram
 
 import time, datetime, multiprocessing, json
 import concurrent.futures as conc
@@ -574,12 +575,21 @@ def run(args):
         print('Can not be both quiet and verbose at the same time.')
         return 1
 
+    check_bin = None
     if options.gdb:
         options.verbose = True
         if options.wrapper:
             print('Must not specify both a wrapper and gdb at the same time.')
             return 1
+        check_bin = 'gdb'
 
+    if options.wrapper:
+        check_bin = options.wrapper[0]
+
+    if check_bin is not None:
+        exe = ExternalProgram(check_bin, silent=True)
+        if not exe.found():
+            sys.exit("Could not find requested program: %s" % check_bin)
     options.wd = os.path.abspath(options.wd)
 
     if not options.no_rebuild:
