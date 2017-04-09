@@ -19,7 +19,7 @@ from . import environment
 from . import dependencies
 from . import mlog
 from .mesonlib import File, MesonException
-from .mesonlib import flatten, stringlistify, classify_unity_sources
+from .mesonlib import flatten, typeslistify, stringlistify, classify_unity_sources
 from .mesonlib import get_filenames_templates_dict, substitute_values
 from .environment import for_windows, for_darwin, for_cygwin
 from .compilers import is_object, clike_langs, sort_clike, lang_suffixes
@@ -318,6 +318,9 @@ class BuildTarget(Target):
         self.name_prefix_set = False
         self.name_suffix_set = False
         self.filename = 'no_name'
+        # The list of all files outputted by this target. Useful in cases such
+        # as Vala which generates .vapi and .h besides the compiled output.
+        self.outputs = [self.filename]
         self.need_install = False
         self.pch = {}
         self.extra_args = {}
@@ -544,7 +547,7 @@ class BuildTarget(Target):
         return result
 
     def get_custom_install_dir(self):
-        return self.custom_install_dir
+        return self.install_dir
 
     def process_kwargs(self, kwargs, environment):
         super().process_kwargs(kwargs)
@@ -591,7 +594,7 @@ class BuildTarget(Target):
         if not isinstance(self, Executable):
             self.vala_header = kwargs.get('vala_header', self.name + '.h')
             self.vala_vapi = kwargs.get('vala_vapi', self.name + '.vapi')
-        self.vala_gir = kwargs.get('vala_gir', None)
+            self.vala_gir = kwargs.get('vala_gir', None)
         dlist = stringlistify(kwargs.get('d_args', []))
         self.add_compiler_args('d', dlist)
         self.link_args = kwargs.get('link_args', [])
@@ -617,10 +620,10 @@ class BuildTarget(Target):
         if not isinstance(deplist, list):
             deplist = [deplist]
         self.add_deps(deplist)
-        self.custom_install_dir = kwargs.get('install_dir', None)
-        if self.custom_install_dir is not None:
-            if not isinstance(self.custom_install_dir, str):
-                raise InvalidArguments('Custom_install_dir must be a string')
+        # If an item in this list is False, the output corresponding to
+        # the list index of that item will not be installed
+        self.install_dir = typeslistify(kwargs.get('install_dir', [None]),
+                                        (str, bool))
         main_class = kwargs.get('main_class', '')
         if not isinstance(main_class, str):
             raise InvalidArguments('Main class must be a string')
@@ -691,7 +694,7 @@ class BuildTarget(Target):
         return self.filename
 
     def get_outputs(self):
-        return [self.filename]
+        return self.outputs
 
     def get_extra_args(self, language):
         return self.extra_args.get(language, [])
@@ -1005,6 +1008,7 @@ class Executable(BuildTarget):
         self.filename = self.name
         if self.suffix:
             self.filename += '.' + self.suffix
+        self.outputs = [self.filename]
 
     def type_suffix(self):
         return "@exe"
@@ -1032,6 +1036,7 @@ class StaticLibrary(BuildTarget):
             else:
                 self.suffix = 'a'
         self.filename = self.prefix + self.name + '.' + self.suffix
+        self.outputs = [self.filename]
 
     def type_suffix(self):
         return "@sta"
@@ -1160,6 +1165,7 @@ class SharedLibrary(BuildTarget):
         if self.suffix is None:
             self.suffix = suffix
         self.filename = self.filename_tpl.format(self)
+        self.outputs = [self.filename]
 
     def process_kwargs(self, kwargs, environment):
         super().process_kwargs(kwargs, environment)
@@ -1253,6 +1259,7 @@ class SharedModule(SharedLibrary):
         if 'soversion' in kwargs:
             raise MesonException('Shared modules must not specify the soversion kwarg.')
         super().__init__(name, subdir, subproject, is_cross, sources, objects, environment, kwargs)
+        self.import_filename = None
 
 class CustomTarget(Target):
     known_kwargs = {'input': True,
@@ -1334,13 +1341,13 @@ class CustomTarget(Target):
             self.sources = [self.sources]
         if 'output' not in kwargs:
             raise InvalidArguments('Missing keyword argument "output".')
-        self.output = kwargs['output']
-        if not isinstance(self.output, list):
-            self.output = [self.output]
+        self.outputs = kwargs['output']
+        if not isinstance(self.outputs, list):
+            self.outputs = [self.outputs]
         # This will substitute values from the input into output and return it.
         inputs = get_sources_string_names(self.sources)
         values = get_filenames_templates_dict(inputs, [])
-        for i in self.output:
+        for i in self.outputs:
             if not(isinstance(i, str)):
                 raise InvalidArguments('Output argument not a string.')
             if '/' in i:
@@ -1355,9 +1362,9 @@ class CustomTarget(Target):
                 m = "Output cannot contain @PLAINNAME@ or @BASENAME@ when " \
                     "there is more than one input (we can't know which to use)"
                 raise InvalidArguments(m)
-        self.output = substitute_values(self.output, values)
+        self.outputs = substitute_values(self.outputs, values)
         self.capture = kwargs.get('capture', False)
-        if self.capture and len(self.output) != 1:
+        if self.capture and len(self.outputs) != 1:
             raise InvalidArguments('Capturing can only output to a single file.')
         if 'command' not in kwargs:
             raise InvalidArguments('Missing keyword argument "command".')
@@ -1379,12 +1386,14 @@ class CustomTarget(Target):
                 raise InvalidArguments('"install" must be boolean.')
             if self.install:
                 if 'install_dir' not in kwargs:
-                    raise InvalidArguments('"install_dir" not specified.')
-                self.install_dir = kwargs['install_dir']
-                if not(isinstance(self.install_dir, str)):
-                    raise InvalidArguments('"install_dir" must be a string.')
+                    raise InvalidArguments('"install_dir" must be specified '
+                                           'when installing a target')
+                # If an item in this list is False, the output corresponding to
+                # the list index of that item will not be installed
+                self.install_dir = typeslistify(kwargs['install_dir'], (str, bool))
         else:
             self.install = False
+            self.install_dir = [None]
         self.build_always = kwargs.get('build_always', False)
         if not isinstance(self.build_always, bool):
             raise InvalidArguments('Argument build_always must be a boolean.')
@@ -1417,10 +1426,10 @@ class CustomTarget(Target):
         return self.install_dir
 
     def get_outputs(self):
-        return self.output
+        return self.outputs
 
     def get_filename(self):
-        return self.output[0]
+        return self.outputs[0]
 
     def get_sources(self):
         return self.sources
@@ -1479,6 +1488,7 @@ class Jar(BuildTarget):
             if not s.endswith('.java'):
                 raise InvalidArguments('Jar source %s is not a java file.' % s)
         self.filename = self.name + '.jar'
+        self.outputs = [self.filename]
         self.java_args = kwargs.get('java_args', [])
 
     def get_main_class(self):

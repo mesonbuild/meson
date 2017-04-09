@@ -601,7 +601,7 @@ class Backend:
         for t in target.get_generated_sources():
             if not isinstance(t, build.CustomTarget):
                 continue
-            for f in t.output:
+            for f in t.get_outputs():
                 if self.environment.is_library(f):
                     libs.append(os.path.join(self.get_target_dir(t), f))
         return libs
@@ -642,7 +642,7 @@ class Backend:
             build_root = self.environment.get_source_dir()
             outdir = os.path.join(self.environment.get_build_dir(), outdir)
         outputs = []
-        for i in target.output:
+        for i in target.get_outputs():
             outputs.append(os.path.join(outdir, i))
         inputs = self.get_custom_target_sources(target)
         # Evaluate the command list

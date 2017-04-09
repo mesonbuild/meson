@@ -76,8 +76,9 @@ class PkgConfigModule(ExtensionModule):
                     if isinstance(l, str):
                         yield l
                     else:
-                        if l.custom_install_dir:
-                            yield '-L${prefix}/%s ' % l.custom_install_dir
+                        install_dir = l.get_custom_install_dir()[0]
+                        if install_dir:
+                            yield '-L${prefix}/%s ' % install_dir
                         else:
                             yield '-L${libdir}'
                         lname = self._get_lname(l, msg, pcfile)

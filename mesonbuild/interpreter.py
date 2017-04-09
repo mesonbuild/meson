@@ -2243,7 +2243,7 @@ class Interpreter(InterpreterBase):
         if 'install_mode' not in kwargs:
             return None
         install_mode = []
-        mode = mesonlib.stringintlistify(kwargs.get('install_mode', []))
+        mode = mesonlib.typeslistify(kwargs.get('install_mode', []), (str, int))
         for m in mode:
             # We skip any arguments that are set to `false`
             if m is False:

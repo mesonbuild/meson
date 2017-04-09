@@ -1001,7 +1001,7 @@ class GnomeModule(ExtensionModule):
                                           target.get_subdir())
                     outdir = os.path.join(state.environment.get_build_dir(),
                                           target.get_subdir())
-                    outfile = target.output[0][:-5] # Strip .vapi
+                    outfile = target.get_outputs()[0][:-5] # Strip .vapi
                     ret.append('--vapidir=' + outdir)
                     ret.append('--girdir=' + outdir)
                     ret.append('--pkg=' + outfile)
@@ -1068,7 +1068,7 @@ class GnomeModule(ExtensionModule):
                 link_with += self._get_vapi_link_with(i.held_object)
                 subdir = os.path.join(state.environment.get_build_dir(),
                                       i.held_object.get_subdir())
-                gir_file = os.path.join(subdir, i.held_object.output[0])
+                gir_file = os.path.join(subdir, i.held_object.get_outputs()[0])
                 cmd.append(gir_file)
             else:
                 raise MesonException('Input must be a str or GirTarget')

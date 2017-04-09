@@ -1,0 +1,6 @@
+usr/include/diff.h
+usr/include/first.h
+usr/bin/diff.sh
+usr/bin/second.sh
+opt/same.h
+opt/same.sh
