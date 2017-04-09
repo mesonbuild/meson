@@ -22,6 +22,7 @@ import pickle
 from mesonbuild import build
 from mesonbuild import environment
 from mesonbuild.dependencies import ExternalProgram
+from mesonbuild import mlog
 
 import time, datetime, multiprocessing, json
 import concurrent.futures as conc
@@ -283,7 +284,16 @@ class TestHarness:
         result_str = '%s %s  %s%s%s%5.2f s' % \
             (num, name, padding1, result.res, padding2, result.duration)
         if not self.options.quiet or result.res != 'OK':
-            print(result_str)
+            if result.res != 'OK' and mlog.colorize_console:
+                if result.res == 'FAIL' or result.res == 'TIMEOUT':
+                    decorator = mlog.red
+                elif result.res == 'SKIP':
+                    decorator = mlog.yellow
+                else:
+                    sys.exit('Unreachable code was ... well ... reached.')
+                print(decorator(result_str).get_text(True))
+            else:
+                print(result_str)
         result_str += "\n\n" + result.get_log()
         if (result.returncode != GNU_SKIP_RETURNCODE) \
                 and (result.returncode != 0) != result.should_fail:
