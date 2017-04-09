@@ -5,6 +5,8 @@ gobject = dependency('gobject-2.0')
 g_ir_compiler = find_program('g-ir-compiler')
 
 foo = shared_library('foo', 'foo.vala',
+                     install : true,
+                     install_dir : [true, false, false, true],
                      vala_gir: 'Foo-1.0.gir',
                      dependencies: [glib, gobject])
 

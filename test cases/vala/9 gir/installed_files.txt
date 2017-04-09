@@ -1,0 +1,2 @@
+usr/lib/libfoo.so
+usr/share/gir-1.0/Foo-1.0.gir
