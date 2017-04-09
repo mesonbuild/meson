@@ -427,8 +427,7 @@ class Vs2010Backend(backends.Backend):
         ET.SubElement(customstep, 'Command').text = cmd_templ % tuple(cmd)
         ET.SubElement(customstep, 'Message').text = 'Running custom command.'
         ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.targets')
-        tree = ET.ElementTree(root)
-        tree.write(ofname, encoding='utf-8', xml_declaration=True)
+        self._prettyprint_vcxproj_xml(ET.ElementTree(root), ofname)
 
     def gen_custom_target_vcxproj(self, target, ofname, guid):
         root = self.create_basic_crap(target)
@@ -452,8 +451,7 @@ class Vs2010Backend(backends.Backend):
         ET.SubElement(customstep, 'Inputs').text = ';'.join(srcs)
         ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.targets')
         self.generate_custom_generator_commands(target, root)
-        tree = ET.ElementTree(root)
-        tree.write(ofname, encoding='utf-8', xml_declaration=True)
+        self._prettyprint_vcxproj_xml(ET.ElementTree(root), ofname)
 
     @classmethod
     def lang_from_source_file(cls, src):
@@ -578,6 +576,13 @@ class Vs2010Backend(backends.Backend):
                 if lang in ('c', 'cpp'):
                     return c
         raise MesonException('Could not find a C or C++ compiler. MSVC can only build C/C++ projects.')
+
+    def _prettyprint_vcxproj_xml(self, tree, ofname):
+        tree.write(ofname, encoding='utf-8', xml_declaration=True)
+        # ElementTree can not do prettyprinting so do it manually
+        doc = xml.dom.minidom.parse(ofname)
+        with open(ofname, 'w') as of:
+            of.write(doc.toprettyxml())
 
     def gen_vcxproj(self, target, ofname, guid):
         mlog.debug('Generating vcxproj %s.' % target.name)
@@ -1023,19 +1028,7 @@ class Vs2010Backend(backends.Backend):
         ig = ET.SubElement(root, 'ItemGroup')
         pref = ET.SubElement(ig, 'ProjectReference', Include=os.path.join(self.environment.get_build_dir(), 'REGEN.vcxproj'))
         ET.SubElement(pref, 'Project').text = self.environment.coredata.regen_guid
-        tree = ET.ElementTree(root)
-        tree.write(ofname, encoding='utf-8', xml_declaration=True)
-        # ElementTree can not do prettyprinting so do it manually
-        doc = xml.dom.minidom.parse(ofname)
-        with open(ofname, 'w') as of:
-            of.write(doc.toprettyxml())
-        # World of horror! Python insists on not quoting quotes and
-        # fixing the escaped &quot; into &amp;quot; whereas MSVS
-        # requires quoted but not fixed elements. Enter horrible hack.
-        with open(ofname, 'r') as of:
-            txt = of.read()
-        with open(ofname, 'w') as of:
-            of.write(txt.replace('&amp;quot;', '&quot;'))
+        self._prettyprint_vcxproj_xml(ET.ElementTree(root), ofname)
 
     def gen_regenproj(self, project_name, ofname):
         root = ET.Element('Project', {'DefaultTargets': 'Build',
@@ -1114,8 +1107,7 @@ if %%errorlevel%% neq 0 goto :VCEnd'''
         ET.SubElement(custombuild, 'AdditionalInputs').text = ';'.join(deps)
         ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.targets')
         ET.SubElement(root, 'ImportGroup', Label='ExtensionTargets')
-        tree = ET.ElementTree(root)
-        tree.write(ofname, encoding='utf-8', xml_declaration=True)
+        self._prettyprint_vcxproj_xml(ET.ElementTree(root), ofname)
 
     def gen_testproj(self, target_name, ofname):
         project_name = target_name
@@ -1189,8 +1181,4 @@ if %%errorlevel%% neq 0 goto :VCEnd'''
         ET.SubElement(postbuild, 'Command').text =\
             cmd_templ % ('" "'.join(test_command))
         ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.targets')
-        tree = ET.ElementTree(root)
-        tree.write(ofname, encoding='utf-8', xml_declaration=True)
-        # ElementTree can not do prettyprinting so do it manually
-        # doc = xml.dom.minidom.parse(ofname)
-        # open(ofname, 'w').write(doc.toprettyxml())
+        self._prettyprint_vcxproj_xml(ET.ElementTree(root), ofname)
