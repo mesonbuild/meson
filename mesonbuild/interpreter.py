@@ -1109,7 +1109,7 @@ class MesonMain(InterpreterObject):
             found = self._found_source_scripts[key]
         else:
             found = dependencies.ExternalProgram(name, search_dir=search_dir)
-            if found:
+            if found.found():
                 self._found_source_scripts[key] = found
             else:
                 raise InterpreterException('Script {!r} not found'.format(name))
