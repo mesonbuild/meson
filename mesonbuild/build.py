@@ -1203,6 +1203,10 @@ class SharedLibrary(BuildTarget):
                 self.vs_module_defs = path
                 # link_depends can be an absolute path or relative to self.subdir
                 self.link_depends.append(path.absolute_path(environment.source_dir, environment.build_dir))
+            else:
+                raise InvalidArguments(
+                    'Shared library vs_module_defs must be either a string, '
+                    'or a file object')
 
     def check_unknown_kwargs(self, kwargs):
         self.check_unknown_kwargs_int(kwargs, known_lib_kwargs)
