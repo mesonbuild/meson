@@ -741,6 +741,10 @@ class Environment:
         "Install dir for the import library (library used for linking)"
         return self.get_libdir()
 
+    def get_shared_module_dir(self):
+        "Install dir for shared modules that are loaded at runtime"
+        return self.get_libdir()
+
     def get_shared_lib_dir(self):
         "Install dir for the shared library"
         if self.win_libdir_layout:

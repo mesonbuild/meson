@@ -643,6 +643,8 @@ int dummy;
                 # we want this specific output out of many outputs to not
                 # be installed.
                 custom_install_dir = True
+            elif isinstance(t, build.SharedModule):
+                outdirs[0] = self.environment.get_shared_module_dir()
             elif isinstance(t, build.SharedLibrary):
                 outdirs[0] = self.environment.get_shared_lib_dir()
             elif isinstance(t, build.StaticLibrary):
