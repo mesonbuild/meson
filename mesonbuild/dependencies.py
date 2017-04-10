@@ -38,6 +38,7 @@ class Dependency:
         self.name = "null"
         self.is_found = False
         self.type_name = type_name
+        self.required = False
 
     def __repr__(self):
         s = '<{0} {1}: {2}>'
@@ -49,7 +50,9 @@ class Dependency:
     def get_link_args(self):
         return []
 
-    def found(self):
+    def found(self, **kwargs):
+        if self.required and kwargs.get('from_interpreter', False):
+            raise MesonException('Cannot call found() on a required dependency; this will always be true.')
         return self.is_found
 
     def get_sources(self):
@@ -280,9 +283,6 @@ class PkgConfigDependency(Dependency):
                 mlog.log('Found Pkg-config:', mlog.red('NO'))
         return pkgbin
 
-    def found(self):
-        return self.is_found
-
     def extract_field(self, la_file, fieldname):
         with open(la_file) as f:
             for line in f:
@@ -397,9 +397,6 @@ class WxDependency(Dependency):
                 pass
         WxDependency.wxconfig_found = False
         mlog.log('Found wx-config:', mlog.red('NO'))
-
-    def found(self):
-        return self.is_found
 
 class ExternalProgram:
     windows_exts = ('exe', 'msc', 'com', 'bat')
@@ -522,7 +519,7 @@ class ExternalProgram:
                     return commands
         return [None]
 
-    def found(self):
+    def found(self, **kwargs):
         return self.command[0] is not None
 
     def get_command(self):
@@ -560,9 +557,6 @@ class ExternalLibrary(Dependency):
                 mlog.log('Library', mlog.bold(name), 'found:', mlog.green('YES'))
             else:
                 mlog.log('Library', mlog.bold(name), 'found:', mlog.red('NO'))
-
-    def found(self):
-        return self.is_found
 
     def get_name(self):
         return self.name
@@ -667,7 +661,7 @@ class BoostDependency(Dependency):
             if m not in self.src_modules:
                 raise DependencyException('Requested Boost module "%s" not found.' % m)
 
-    def found(self):
+    def found(self, **kwargs):
         return self.version is not None
 
     def get_version(self):
@@ -814,9 +808,6 @@ class GTestDependency(Dependency):
         self.src_dirs = ['/usr/src/gtest/src', '/usr/src/googletest/googletest/src']
         self.detect()
 
-    def found(self):
-        return self.is_found
-
     def detect(self):
         trial_dirs = mesonlib.get_library_dirs()
         glib_found = False
@@ -931,9 +922,6 @@ class GMockDependency(Dependency):
 
     def get_link_args(self):
         return self.link_args
-
-    def found(self):
-        return self.is_found
 
 class QtBaseDependency(Dependency):
     def __init__(self, name, env, kwargs):
@@ -1113,9 +1101,6 @@ class QtBaseDependency(Dependency):
     def get_link_args(self):
         return self.largs
 
-    def found(self):
-        return self.is_found
-
     def get_exe_args(self, compiler):
         # Originally this was -fPIE but nowadays the default
         # for upstream and distros seems to be -reduce-relocations
@@ -1232,7 +1217,9 @@ why. As a hack filter out everything that is not a flag."""
                                       ''.format(self.confprog, var))
         return o.strip()
 
-    def found(self):
+    def found(self, **kwargs):
+        if self.required and kwargs.get('from_interpreter', False):
+            raise MesonException('Cannot call found() on a required dependency; this will always be true.')
         return self.args is not None
 
     def get_version(self):
@@ -1263,7 +1250,7 @@ class AppleFrameworks(Dependency):
             args.append(f)
         return args
 
-    def found(self):
+    def found(self, **kwargs):
         return mesonlib.is_osx()
 
     def get_version(self):
@@ -1352,9 +1339,6 @@ class SDL2Dependency(Dependency):
     def get_link_args(self):
         return self.linkargs
 
-    def found(self):
-        return self.is_found
-
     def get_version(self):
         return self.version
 
@@ -1396,7 +1380,7 @@ class ExtraFrameworkDependency(Dependency):
             return ['-F' + self.path, '-framework', self.name.split('.')[0]]
         return []
 
-    def found(self):
+    def found(self, **kwargs):
         return self.name is not None
 
     def get_version(self):
