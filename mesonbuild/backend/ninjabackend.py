@@ -1085,7 +1085,7 @@ int dummy;
             if len(target.install_dir) > 1 and target.install_dir[1] is True:
                 target.install_dir[1] = self.environment.get_includedir()
             if len(target.install_dir) > 2 and target.install_dir[2] is True:
-                target.install_dir[2] = os.path.join(self.environment.get_datadir(), 'vala', 'vapi')
+                target.install_dir[2] = os.path.join(self.environment.get_vapidir())
             # Generate GIR if requested
             if isinstance(target.vala_gir, str):
                 girname = os.path.join(self.get_target_dir(target), target.vala_gir)
@@ -1094,7 +1094,7 @@ int dummy;
                 target.outputs.append(target.vala_gir)
                 # Install GIR to default location if requested by user
                 if len(target.install_dir) > 3 and target.install_dir[3] is True:
-                    target.install_dir[3] = os.path.join(self.environment.get_datadir(), 'gir-1.0')
+                    target.install_dir[3] = os.path.join(self.environment.get_girdir())
         if self.get_option_for_target('werror', target):
             args += valac.get_werror_args()
         for d in target.get_external_deps():

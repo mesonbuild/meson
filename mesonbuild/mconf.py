@@ -179,6 +179,8 @@ class Conf:
                     'mandir',
                     'infodir',
                     'localedir',
+                    'girdir',
+                    'vapidir',
                     'sysconfdir',
                     'localstatedir',
                     'sharedstatedir',

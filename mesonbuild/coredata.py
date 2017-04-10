@@ -306,6 +306,8 @@ builtin_options = {
     'mandir':     [UserStringOption, 'Manual page directory.', 'share/man'],
     'infodir':    [UserStringOption, 'Info page directory.', 'share/info'],
     'localedir':  [UserStringOption, 'Locale data directory.', 'share/locale'],
+    'girdir':     [UserStringOption, 'GObject Introspection directory.', 'share/gir-1.0'],
+    'vapidir':    [UserStringOption, 'VAPI directory.', 'share/vala/vapi'],
     # sysconfdir, localstatedir and sharedstatedir are a bit special. These defaults to ${prefix}/etc,
     # ${prefix}/var and ${prefix}/com but nobody uses that. Instead they always set it
     # manually to /etc, /var and /var/lib. This default values is thus pointless and not really used
