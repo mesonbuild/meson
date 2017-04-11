@@ -1191,12 +1191,22 @@ class SharedLibrary(BuildTarget):
         # Visual Studio module-definitions file
         if 'vs_module_defs' in kwargs:
             path = kwargs['vs_module_defs']
-            if os.path.isabs(path):
-                self.vs_module_defs = File.from_absolute_file(path)
+            if isinstance(path, str):
+                if os.path.isabs(path):
+                    self.vs_module_defs = File.from_absolute_file(path)
+                else:
+                    self.vs_module_defs = File.from_source_file(environment.source_dir, self.subdir, path)
+                # link_depends can be an absolute path or relative to self.subdir
+                self.link_depends.append(path)
+            elif isinstance(path, File):
+                # When passing a generated file.
+                self.vs_module_defs = path
+                # link_depends can be an absolute path or relative to self.subdir
+                self.link_depends.append(path.absolute_path(environment.source_dir, environment.build_dir))
             else:
-                self.vs_module_defs = File.from_source_file(environment.source_dir, self.subdir, path)
-            # link_depends can be an absolute path or relative to self.subdir
-            self.link_depends.append(path)
+                raise InvalidArguments(
+                    'Shared library vs_module_defs must be either a string, '
+                    'or a file object')
 
     def check_unknown_kwargs(self, kwargs):
         self.check_unknown_kwargs_int(kwargs, known_lib_kwargs)
