@@ -468,6 +468,7 @@ int dummy;
         self.custom_target_generator_inputs(target, outfile)
         (srcs, ofilenames, cmd) = self.eval_custom_target_command(target)
         deps = self.unwrap_dep_list(target)
+        deps += self.get_custom_target_depend_files(target)
         desc = 'Generating {0} with a {1} command.'
         if target.build_always:
             deps.append('PHONY')
@@ -476,11 +477,6 @@ int dummy;
         else:
             rulename = 'CUSTOM_COMMAND_DEP'
         elem = NinjaBuildElement(self.all_outputs, ofilenames, rulename, srcs)
-        for i in target.depend_files:
-            if isinstance(i, mesonlib.File):
-                deps.append(i.rel_to_builddir(self.build_to_src))
-            else:
-                deps.append(os.path.join(self.build_to_src, i))
         elem.add_dep(deps)
         for d in target.extra_depends:
             # Add a dependency on all the outputs of this target

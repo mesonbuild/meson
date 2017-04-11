@@ -631,6 +631,22 @@ class Backend:
             srcs += fname
         return srcs
 
+    def get_custom_target_depend_files(self, target, absolute_paths=False):
+        deps = []
+        for i in target.depend_files:
+            if isinstance(i, mesonlib.File):
+                if absolute_paths:
+                    deps.append(i.absolute_path(self.environment.get_source_dir(),
+                                                self.environment.get_build_dir()))
+                else:
+                    deps.append(i.rel_to_builddir(self.build_to_src))
+            else:
+                if absolute_paths:
+                    deps.append(os.path.join(self.environment.get_build_dir(), i))
+                else:
+                    deps.append(os.path.join(self.build_to_src, i))
+        return deps
+
     def eval_custom_target_command(self, target, absolute_outputs=False):
         # We want the outputs to be absolute only when using the VS backend
         # XXX: Maybe allow the vs backend to use relative paths too?
