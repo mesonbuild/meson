@@ -24,6 +24,7 @@ import sys
 import os, stat, glob, shutil
 import subprocess
 import sysconfig
+from enum import Enum
 from collections import OrderedDict
 from . mesonlib import MesonException, version_compare, version_compare_many, Popen_safe
 from . import mlog
@@ -33,11 +34,35 @@ from .environment import detect_cpu_family, for_windows
 class DependencyException(MesonException):
     '''Exceptions raised while trying to find dependencies'''
 
+class DependencyMethods(Enum):
+    # Auto means to use whatever dependency checking mechanisms in whatever order meson thinks is best.
+    AUTO = 'auto'
+    PKGCONFIG = 'pkg-config'
+    QMAKE = 'qmake'
+    # Just specify the standard link arguments, assuming the operating system provides the library.
+    SYSTEM = 'system'
+    # Detect using sdl2-config
+    SDLCONFIG = 'sdlconfig'
+    # This is only supported on OSX - search the frameworks directory by name.
+    EXTRAFRAMEWORK = 'extraframework'
+    # Detect using the sysconfig module.
+    SYSCONFIG = 'sysconfig'
+
 class Dependency:
-    def __init__(self, type_name='unknown'):
+    def __init__(self, type_name, kwargs):
         self.name = "null"
         self.is_found = False
         self.type_name = type_name
+        method = DependencyMethods(kwargs.get('method', 'auto'))
+
+        # Set the detection method. If the method is set to auto, use any available method.
+        # If method is set to a specific string, allow only that detection method.
+        if method == DependencyMethods.AUTO:
+            self.methods = self.get_methods()
+        elif method in self.get_methods():
+            self.methods = [method]
+        else:
+            raise MesonException('Unsupported detection method: {}, allowed methods are {}'.format(method.value, mlog.format_list(map(lambda x: x.value, [DependencyMethods.AUTO] + self.get_methods()))))
 
     def __repr__(self):
         s = '<{0} {1}: {2}>'
@@ -57,6 +82,9 @@ class Dependency:
         As an example, gtest-all.cc when using GTest."""
         return []
 
+    def get_methods(self):
+        return [DependencyMethods.AUTO]
+
     def get_name(self):
         return self.name
 
@@ -71,7 +99,7 @@ class Dependency:
 
 class InternalDependency(Dependency):
     def __init__(self, version, incdirs, compile_args, link_args, libraries, sources, ext_deps):
-        super().__init__('internal')
+        super().__init__('internal', {})
         self.version = version
         self.include_directories = incdirs
         self.compile_args = compile_args
@@ -95,7 +123,7 @@ class PkgConfigDependency(Dependency):
     class_pkgbin = None
 
     def __init__(self, name, environment, kwargs):
-        Dependency.__init__(self, 'pkgconfig')
+        Dependency.__init__(self, 'pkgconfig', kwargs)
         self.is_libtool = False
         self.required = kwargs.get('required', True)
         self.static = kwargs.get('static', False)
@@ -254,6 +282,9 @@ class PkgConfigDependency(Dependency):
     def get_link_args(self):
         return self.libs
 
+    def get_methods(self):
+        return [DependencyMethods.PKGCONFIG]
+
     def check_pkgconfig(self):
         evar = 'PKG_CONFIG'
         if evar in os.environ:
@@ -322,7 +353,7 @@ class WxDependency(Dependency):
     wx_found = None
 
     def __init__(self, environment, kwargs):
-        Dependency.__init__(self, 'wx')
+        Dependency.__init__(self, 'wx', kwargs)
         self.is_found = False
         self.modversion = 'none'
         if WxDependency.wx_found is None:
@@ -542,7 +573,7 @@ class ExternalLibrary(Dependency):
     # TODO: Add `lang` to the parent Dependency object so that dependencies can
     # be expressed for languages other than C-like
     def __init__(self, name, link_args=None, language=None, silent=False):
-        super().__init__('external')
+        super().__init__('external', {})
         self.name = name
         self.is_found = False
         self.link_args = []
@@ -582,7 +613,7 @@ class BoostDependency(Dependency):
     name2lib = {'test': 'unit_test_framework'}
 
     def __init__(self, environment, kwargs):
-        Dependency.__init__(self, 'boost')
+        Dependency.__init__(self, 'boost', kwargs)
         self.name = 'boost'
         self.environment = environment
         self.libdir = ''
@@ -805,7 +836,7 @@ class BoostDependency(Dependency):
 
 class GTestDependency(Dependency):
     def __init__(self, environment, kwargs):
-        Dependency.__init__(self, 'gtest')
+        Dependency.__init__(self, 'gtest', kwargs)
         self.main = kwargs.get('main', False)
         self.name = 'gtest'
         self.libname = 'libgtest.so'
@@ -882,7 +913,7 @@ class GTestDependency(Dependency):
 
 class GMockDependency(Dependency):
     def __init__(self, environment, kwargs):
-        Dependency.__init__(self, 'gmock')
+        Dependency.__init__(self, 'gmock', kwargs)
         # GMock may be a library or just source.
         # Work with both.
         self.name = 'gmock'
@@ -937,7 +968,7 @@ class GMockDependency(Dependency):
 
 class QtBaseDependency(Dependency):
     def __init__(self, name, env, kwargs):
-        Dependency.__init__(self, name)
+        Dependency.__init__(self, name, kwargs)
         self.name = name
         self.qtname = name.capitalize()
         self.qtver = name[-1]
@@ -964,26 +995,32 @@ class QtBaseDependency(Dependency):
         type_text = 'cross' if env.is_cross_build() else 'native'
         found_msg = '{} {} {{}} dependency (modules: {}) found:' \
                     ''.format(self.qtname, type_text, ', '.join(mods))
-        from_text = '`pkg-config`'
+        from_text = 'pkg-config'
+
+        # Keep track of the detection methods used, for logging purposes.
+        methods = []
         # Prefer pkg-config, then fallback to `qmake -query`
-        self._pkgconfig_detect(mods, env, kwargs)
-        if not self.is_found:
+        if DependencyMethods.PKGCONFIG in self.methods:
+            self._pkgconfig_detect(mods, env, kwargs)
+            methods.append('pkgconfig')
+        if not self.is_found and DependencyMethods.QMAKE in self.methods:
             from_text = self._qmake_detect(mods, env, kwargs)
-            if not self.is_found:
-                # Reset compile args and link args
-                self.cargs = []
-                self.largs = []
-                from_text = '(checked pkg-config, qmake-{}, and qmake)' \
-                            ''.format(self.name)
-                self.version = 'none'
-                if self.required:
-                    err_msg = '{} {} dependency not found {}' \
-                              ''.format(self.qtname, type_text, from_text)
-                    raise DependencyException(err_msg)
-                if not self.silent:
-                    mlog.log(found_msg.format(from_text), mlog.red('NO'))
-                return
-            from_text = '`{}`'.format(from_text)
+            methods.append('qmake-' + self.name)
+            methods.append('qmake')
+        if not self.is_found:
+            # Reset compile args and link args
+            self.cargs = []
+            self.largs = []
+            from_text = '(checked {})'.format(mlog.format_list(methods))
+            self.version = 'none'
+            if self.required:
+                err_msg = '{} {} dependency not found {}' \
+                          ''.format(self.qtname, type_text, from_text)
+                raise DependencyException(err_msg)
+            if not self.silent:
+                mlog.log(found_msg.format(from_text), mlog.red('NO'))
+            return
+        from_text = '`{}`'.format(from_text)
         if not self.silent:
             mlog.log(found_msg.format(from_text), mlog.green('YES'))
 
@@ -1053,6 +1090,7 @@ class QtBaseDependency(Dependency):
             return
         self.version = re.search(self.qtver + '(\.\d+)+', stdo).group(0)
         # Query library path, header path, and binary path
+        mlog.log("Found qmake:", mlog.bold(self.qmake.get_name()), '(%s)' % self.version)
         stdo = Popen_safe(self.qmake.get_command() + ['-query'])[1]
         qvars = {}
         for line in stdo.split('\n'):
@@ -1092,7 +1130,7 @@ class QtBaseDependency(Dependency):
         libdir = qvars['QT_INSTALL_LIBS']
         for m in modules:
             fname = 'Qt' + m
-            fwdep = ExtraFrameworkDependency(fname, kwargs.get('required', True), libdir)
+            fwdep = ExtraFrameworkDependency(fname, kwargs.get('required', True), libdir, kwargs)
             self.cargs.append('-F' + libdir)
             if fwdep.found():
                 self.is_found = True
@@ -1112,6 +1150,9 @@ class QtBaseDependency(Dependency):
 
     def get_link_args(self):
         return self.largs
+
+    def get_methods(self):
+        return [DependencyMethods.PKGCONFIG, DependencyMethods.QMAKE]
 
     def found(self):
         return self.is_found
@@ -1150,7 +1191,7 @@ class Qt4Dependency(QtBaseDependency):
 
 class GnuStepDependency(Dependency):
     def __init__(self, environment, kwargs):
-        Dependency.__init__(self, 'gnustep')
+        Dependency.__init__(self, 'gnustep', kwargs)
         self.required = kwargs.get('required', True)
         self.modules = kwargs.get('modules', [])
         self.detect()
@@ -1248,7 +1289,7 @@ why. As a hack filter out everything that is not a flag."""
 
 class AppleFrameworks(Dependency):
     def __init__(self, environment, kwargs):
-        Dependency.__init__(self, 'appleframeworks')
+        Dependency.__init__(self, 'appleframeworks', kwargs)
         modules = kwargs.get('modules', [])
         if isinstance(modules, str):
             modules = [modules]
@@ -1271,31 +1312,33 @@ class AppleFrameworks(Dependency):
 
 class GLDependency(Dependency):
     def __init__(self, environment, kwargs):
-        Dependency.__init__(self, 'gl')
+        Dependency.__init__(self, 'gl', kwargs)
         self.is_found = False
         self.cargs = []
         self.linkargs = []
-        try:
-            pcdep = PkgConfigDependency('gl', environment, kwargs)
-            if pcdep.found():
-                self.type_name = 'pkgconfig'
+        if DependencyMethods.PKGCONFIG in self.methods:
+            try:
+                pcdep = PkgConfigDependency('gl', environment, kwargs)
+                if pcdep.found():
+                    self.type_name = 'pkgconfig'
+                    self.is_found = True
+                    self.cargs = pcdep.get_compile_args()
+                    self.linkargs = pcdep.get_link_args()
+                    self.version = pcdep.get_version()
+                    return
+            except Exception:
+                pass
+        if DependencyMethods.SYSTEM in self.methods:
+            if mesonlib.is_osx():
                 self.is_found = True
-                self.cargs = pcdep.get_compile_args()
-                self.linkargs = pcdep.get_link_args()
-                self.version = pcdep.get_version()
+                self.linkargs = ['-framework', 'OpenGL']
+                self.version = '1' # FIXME
                 return
-        except Exception:
-            pass
-        if mesonlib.is_osx():
-            self.is_found = True
-            self.linkargs = ['-framework', 'OpenGL']
-            self.version = '1' # FIXME
-            return
-        if mesonlib.is_windows():
-            self.is_found = True
-            self.linkargs = ['-lopengl32']
-            self.version = '1' # FIXME: unfixable?
-            return
+            if mesonlib.is_windows():
+                self.is_found = True
+                self.linkargs = ['-lopengl32']
+                self.version = '1' # FIXME: unfixable?
+                return
 
     def get_link_args(self):
         return self.linkargs
@@ -1303,48 +1346,57 @@ class GLDependency(Dependency):
     def get_version(self):
         return self.version
 
+    def get_methods(self):
+        if mesonlib.is_osx() or mesonlib.is_windows():
+            return [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM]
+        else:
+            return [DependencyMethods.PKGCONFIG]
+
 # There are three different ways of depending on SDL2:
 # sdl2-config, pkg-config and OSX framework
 class SDL2Dependency(Dependency):
     def __init__(self, environment, kwargs):
-        Dependency.__init__(self, 'sdl2')
+        Dependency.__init__(self, 'sdl2', kwargs)
         self.is_found = False
         self.cargs = []
         self.linkargs = []
-        try:
-            pcdep = PkgConfigDependency('sdl2', environment, kwargs)
-            if pcdep.found():
-                self.type_name = 'pkgconfig'
+        if DependencyMethods.PKGCONFIG in self.methods:
+            try:
+                pcdep = PkgConfigDependency('sdl2', environment, kwargs)
+                if pcdep.found():
+                    self.type_name = 'pkgconfig'
+                    self.is_found = True
+                    self.cargs = pcdep.get_compile_args()
+                    self.linkargs = pcdep.get_link_args()
+                    self.version = pcdep.get_version()
+                    return
+            except Exception as e:
+                mlog.debug('SDL 2 not found via pkgconfig. Trying next, error was:', str(e))
+                pass
+        if DependencyMethods.SDLCONFIG in self.methods:
+            sdlconf = shutil.which('sdl2-config')
+            if sdlconf:
+                stdo = Popen_safe(['sdl2-config', '--cflags'])[1]
+                self.cargs = stdo.strip().split()
+                stdo = Popen_safe(['sdl2-config', '--libs'])[1]
+                self.linkargs = stdo.strip().split()
+                stdo = Popen_safe(['sdl2-config', '--version'])[1]
+                self.version = stdo.strip()
                 self.is_found = True
-                self.cargs = pcdep.get_compile_args()
-                self.linkargs = pcdep.get_link_args()
-                self.version = pcdep.get_version()
+                mlog.log('Dependency', mlog.bold('sdl2'), 'found:', mlog.green('YES'),
+                         self.version, '(%s)' % sdlconf)
                 return
-        except Exception as e:
-            mlog.debug('SDL 2 not found via pkgconfig. Trying next, error was:', str(e))
-            pass
-        sdlconf = shutil.which('sdl2-config')
-        if sdlconf:
-            stdo = Popen_safe(['sdl2-config', '--cflags'])[1]
-            self.cargs = stdo.strip().split()
-            stdo = Popen_safe(['sdl2-config', '--libs'])[1]
-            self.linkargs = stdo.strip().split()
-            stdo = Popen_safe(['sdl2-config', '--version'])[1]
-            self.version = stdo.strip()
-            self.is_found = True
-            mlog.log('Dependency', mlog.bold('sdl2'), 'found:', mlog.green('YES'),
-                     self.version, '(%s)' % sdlconf)
-            return
-        mlog.debug('Could not find sdl2-config binary, trying next.')
-        if mesonlib.is_osx():
-            fwdep = ExtraFrameworkDependency('sdl2', kwargs.get('required', True))
-            if fwdep.found():
-                self.is_found = True
-                self.cargs = fwdep.get_compile_args()
-                self.linkargs = fwdep.get_link_args()
-                self.version = '2' # FIXME
-                return
-        mlog.log('Dependency', mlog.bold('sdl2'), 'found:', mlog.red('NO'))
+            mlog.debug('Could not find sdl2-config binary, trying next.')
+        if DependencyMethods.EXTRAFRAMEWORK in self.methods:
+            if mesonlib.is_osx():
+                fwdep = ExtraFrameworkDependency('sdl2', kwargs.get('required', True), None, kwargs)
+                if fwdep.found():
+                    self.is_found = True
+                    self.cargs = fwdep.get_compile_args()
+                    self.linkargs = fwdep.get_link_args()
+                    self.version = '2' # FIXME
+                    return
+            mlog.log('Dependency', mlog.bold('sdl2'), 'found:', mlog.red('NO'))
 
     def get_compile_args(self):
         return self.cargs
@@ -1358,9 +1410,15 @@ class SDL2Dependency(Dependency):
     def get_version(self):
         return self.version
 
+    def get_methods(self):
+        if mesonlib.is_osx():
+            return [DependencyMethods.PKGCONFIG, DependencyMethods.SDLCONFIG, DependencyMethods.EXTRAFRAMEWORK]
+        else:
+            return [DependencyMethods.PKGCONFIG, DependencyMethods.SDLCONFIG]
+
 class ExtraFrameworkDependency(Dependency):
-    def __init__(self, name, required, path=None):
-        Dependency.__init__(self, 'extraframeworks')
+    def __init__(self, name, required, path, kwargs):
+        Dependency.__init__(self, 'extraframeworks', kwargs)
         self.name = None
         self.detect(name, path)
         if self.found():
@@ -1404,7 +1462,7 @@ class ExtraFrameworkDependency(Dependency):
 
 class ThreadDependency(Dependency):
     def __init__(self, environment, kwargs):
-        super().__init__('threads')
+        super().__init__('threads', {})
         self.name = 'threads'
         self.is_found = True
         mlog.log('Dependency', mlog.bold(self.name), 'found:', mlog.green('YES'))
@@ -1417,28 +1475,29 @@ class ThreadDependency(Dependency):
 
 class Python3Dependency(Dependency):
     def __init__(self, environment, kwargs):
-        super().__init__('python3')
+        super().__init__('python3', kwargs)
         self.name = 'python3'
         self.is_found = False
         # We can only be sure that it is Python 3 at this point
         self.version = '3'
-        try:
-            pkgdep = PkgConfigDependency('python3', environment, kwargs)
-            if pkgdep.found():
-                self.cargs = pkgdep.cargs
-                self.libs = pkgdep.libs
-                self.version = pkgdep.get_version()
-                self.is_found = True
-                return
-        except Exception:
-            pass
+        if DependencyMethods.PKGCONFIG in self.methods:
+            try:
+                pkgdep = PkgConfigDependency('python3', environment, kwargs)
+                if pkgdep.found():
+                    self.cargs = pkgdep.cargs
+                    self.libs = pkgdep.libs
+                    self.version = pkgdep.get_version()
+                    self.is_found = True
+                    return
+            except Exception:
+                pass
         if not self.is_found:
-            if mesonlib.is_windows():
+            if mesonlib.is_windows() and DependencyMethods.SYSCONFIG in self.methods:
                 self._find_libpy3_windows(environment)
-            elif mesonlib.is_osx():
+            elif mesonlib.is_osx() and DependencyMethods.EXTRAFRAMEWORK in self.methods:
                 # In OSX the Python 3 framework does not have a version
                 # number in its name.
-                fw = ExtraFrameworkDependency('python', False)
+                fw = ExtraFrameworkDependency('python', False, None, kwargs)
                 if fw.found():
                     self.cargs = fw.get_compile_args()
                     self.libs = fw.get_link_args()
@@ -1490,6 +1549,14 @@ class Python3Dependency(Dependency):
     def get_link_args(self):
         return self.libs
 
+    def get_methods(self):
+        if mesonlib.is_windows():
+            return [DependencyMethods.PKGCONFIG, DependencyMethods.SYSCONFIG]
+        elif mesonlib.is_osx():
+            return [DependencyMethods.PKGCONFIG, DependencyMethods.EXTRAFRAMEWORK]
+        else:
+            return [DependencyMethods.PKGCONFIG]
+
     def get_version(self):
         return self.version
 
@@ -1522,6 +1589,8 @@ def find_external_dependency(name, environment, kwargs):
     required = kwargs.get('required', True)
     if not isinstance(required, bool):
         raise DependencyException('Keyword "required" must be a boolean.')
+    if not isinstance(kwargs.get('method', ''), str):
+        raise DependencyException('Keyword "method" must be a string.')
     lname = name.lower()
     if lname in packages:
         dep = packages[lname](environment, kwargs)
@@ -1537,7 +1606,7 @@ def find_external_dependency(name, environment, kwargs):
     except Exception as e:
         pkg_exc = e
     if mesonlib.is_osx():
-        fwdep = ExtraFrameworkDependency(name, required)
+        fwdep = ExtraFrameworkDependency(name, required, None, kwargs)
         if required and not fwdep.found():
             m = 'Dependency {!r} not found, tried Extra Frameworks ' \
                 'and Pkg-Config:\n\n' + str(pkg_exc)

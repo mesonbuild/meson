@@ -99,3 +99,16 @@ def log(*args, **kwargs):
 
 def warning(*args, **kwargs):
     log(yellow('WARNING:'), *args, **kwargs)
+
+# Format a list for logging purposes as a string. It separates
+# all but the last item with commas, and the last with 'and'.
+def format_list(list):
+    l = len(list)
+    if l > 2:
+        return ' and '.join([', '.join(list[:-1]), list[-1]])
+    elif l == 2:
+        return ' and '.join(list)
+    elif l == 1:
+        return list[0]
+    else:
+        return ''
