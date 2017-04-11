@@ -539,8 +539,7 @@ class GnomeModule(ExtensionModule):
                       'depends': depends}
         if kwargs.get('install'):
             scankwargs['install'] = kwargs['install']
-            scankwargs['install_dir'] = kwargs.get('install_dir_gir',
-                                                   os.path.join(state.environment.get_datadir(), 'gir-1.0'))
+            scankwargs['install_dir'] = kwargs.get('install_dir_gir', state.environment.get_girdir())
         scan_target = GirTarget(girfile, state.subdir, scankwargs)
 
         typelib_output = '%s-%s.typelib' % (ns, nsversion)

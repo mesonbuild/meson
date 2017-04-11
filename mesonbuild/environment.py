@@ -779,6 +779,11 @@ class Environment:
     def get_datadir(self):
         return self.coredata.get_builtin_option('datadir')
 
+    def get_girdir(self):
+        return self.coredata.get_builtin_option('girdir')
+
+    def get_vapidir(self):
+        return self.coredata.get_builtin_option('vapidir')
 
 def get_args_from_envvars(compiler):
     """
