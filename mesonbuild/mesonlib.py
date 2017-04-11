@@ -504,6 +504,7 @@ def expand_arguments(args):
 
 def Popen_safe(args, write=None, stderr=subprocess.PIPE, **kwargs):
     p = subprocess.Popen(args, universal_newlines=True,
+                         close_fds=False,
                          stdout=subprocess.PIPE,
                          stderr=stderr, **kwargs)
     o, e = p.communicate(write)
