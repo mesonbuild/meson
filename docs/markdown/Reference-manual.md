@@ -1286,6 +1286,10 @@ the following methods:
 - `get_id()` returns a string identifying the compiler. For example,
   `gcc`, `msvc`, [and more](Compiler-properties.md#compiler-id).
 
+- `get_supported_arguments(list_of_string)` returns an array
+  containing only the arguments supported by the compiler, as if
+  `has_argument` were called on them individually.
+
 - `compiles(code)` returns true if the code fragment given in the
   positional argument compiles, you can specify external dependencies
   to use with `dependencies` keyword argument, `code` can be either a

@@ -652,6 +652,7 @@ class CompilerHolder(InterpreterObject):
                              'find_library': self.find_library_method,
                              'has_argument': self.has_argument_method,
                              'has_multi_arguments': self.has_multi_arguments_method,
+                             'get_supported_arguments': self.get_supported_arguments_method,
                              'first_supported_argument': self.first_supported_argument_method,
                              'unittest_args': self.unittest_args_method,
                              'symbols_have_underscore_prefix': self.symbols_have_underscore_prefix_method,
@@ -1012,6 +1013,22 @@ class CompilerHolder(InterpreterObject):
                 self.compiler.get_display_language(), ' '.join(args)),
             h)
         return result
+
+    def get_supported_arguments_method(self, args, kwargs):
+        args = mesonlib.stringlistify(args)
+        result = self.compiler.get_supported_arguments(args, self.environment)
+        if len(result) == len(args):
+            h = mlog.green('YES')
+        elif len(result) > 0:
+            h = mlog.yellow('SOME')
+        else:
+            h = mlog.red('NO')
+        mlog.log(
+            'Compiler for {} supports arguments {}:'.format(
+                self.compiler.get_display_language(), ' '.join(args)),
+            h)
+        return result
+
 
     def first_supported_argument_method(self, args, kwargs):
         for i in mesonlib.stringlistify(args):
