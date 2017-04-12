@@ -166,14 +166,20 @@ class NinjaBackend(backends.Backend):
 int dummy;
 ''')
 
-        pc, stdo = Popen_safe(['cl', '/showIncludes', '/c', 'incdetect.c'],
-                              cwd=self.environment.get_scratch_dir())[0:2]
+        # The output of cl dependency information is language
+        # and locale dependent. Any attempt at converting it to
+        # Python strings leads to failure. We _must_ do this detection
+        # in raw byte mode and write the result in raw bytes.
+        pc = subprocess.Popen(['cl', '/showIncludes', '/c', 'incdetect.c'],
+                              cwd=self.environment.get_scratch_dir(),
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        (stdo, _) = pc.communicate()
 
-        for line in stdo.split('\n'):
-            if line.endswith('stdio.h'):
-                matchstr = ':'.join(line.split(':')[0:2]) + ':'
-                with open(tempfilename, 'a') as binfile:
-                    binfile.write('msvc_deps_prefix = ' + matchstr + '\n')
+        for line in stdo.split(b'\r\n'):
+            if line.endswith(b'stdio.h'):
+                matchstr = b':'.join(line.split(b':')[0:2]) + b':'
+                with open(tempfilename, 'ab') as binfile:
+                    binfile.write(b'msvc_deps_prefix = ' + matchstr + b'\n')
                 return open(tempfilename, 'a')
         raise MesonException('Could not determine vs dep dependency prefix string.')
 
