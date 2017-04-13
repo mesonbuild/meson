@@ -452,6 +452,7 @@ def detect_tests_to_run():
         ('failing-build', 'failing build', False),
         ('failing-tests', 'failing tests', False),
         ('prebuilt', 'prebuilt', False),
+        ('kconfig', gather_tests('test cases/kconfig'), False)
 
         ('platform-osx', 'osx', not mesonlib.is_osx()),
         ('platform-windows', 'windows', not mesonlib.is_windows() and not mesonlib.is_cygwin()),
