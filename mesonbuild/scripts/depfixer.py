@@ -297,11 +297,20 @@ class Elf(DataSizes):
         old_rpath = self.read_str()
         if len(old_rpath) < len(new_rpath):
             sys.exit("New rpath must not be longer than the old one.")
-        self.bf.seek(rp_off)
-        self.bf.write(new_rpath)
-        self.bf.write(b'\0' * (len(old_rpath) - len(new_rpath) + 1))
+        # The linker does read-only string deduplication. If there is a
+        # string that shares a suffix with the rpath, they might get
+        # dedupped. This means changing the rpath string might break something
+        # completely unrelated. This has already happened once with X.org.
+        # Thus we want to keep this change as small as possible to minimize
+        # the chance of obliterating other strings. It might still happen
+        # but our behaviour is identical to what chrpath does and it has
+        # been in use for ages so based on that this should be rare.
         if len(new_rpath) == 0:
             self.remove_rpath_entry(entrynum)
+        else:
+            self.bf.seek(rp_off)
+            self.bf.write(new_rpath)
+            self.bf.write(b'\0')
 
     def remove_rpath_entry(self, entrynum):
         sec = self.find_section(b'.dynamic')
