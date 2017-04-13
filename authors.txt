@@ -79,3 +79,4 @@ Aaron Plattner
 Jon Turney
 Wade Berrier
 Richard Hughes
+Rafael Fontenelle
