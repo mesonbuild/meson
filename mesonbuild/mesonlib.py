@@ -16,6 +16,7 @@
 
 import stat
 import platform, subprocess, operator, os, shutil, re
+import collections
 
 from glob import glob
 
@@ -685,3 +686,18 @@ def get_filenames_templates_dict(inputs, outputs):
         if values['@OUTDIR@'] == '':
             values['@OUTDIR@'] = '.'
     return values
+
+class OrderedSet(collections.OrderedDict):
+    '''
+    A 'set' equivalent that preserves the order in which items are added.
+
+    This is a hack implementation that wraps OrderedDict. It may not be the
+    most efficient solution and might need fixing to override more methods.
+    '''
+    def __init__(self, iterable=None):
+        if iterable:
+            self.update(iterable)
+
+    def update(self, iterable):
+        for item in iterable:
+            self[item] = True

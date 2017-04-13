@@ -83,9 +83,9 @@ class Build:
         self.project_version = None
         self.environment = environment
         self.projects = {}
-        self.targets = {}
-        self.compilers = {}
-        self.cross_compilers = {}
+        self.targets = OrderedDict()
+        self.compilers = OrderedDict()
+        self.cross_compilers = OrderedDict()
         self.global_args = {}
         self.projects_args = {}
         self.global_link_args = {}
@@ -344,6 +344,9 @@ class BuildTarget(Target):
         self.process_compilers()
         self.validate_sources()
         self.validate_cross_install(environment)
+
+    def __lt__(self, other):
+        return self.get_id() < other.get_id()
 
     def __repr__(self):
         repr_str = "<{0} {1}: {2}>"
@@ -1304,6 +1307,9 @@ class CustomTarget(Target):
             mlog.warning('Unknown keyword arguments in target %s: %s' %
                          (self.name, ', '.join(unknowns)))
 
+    def __lt__(self, other):
+        return self.get_id() < other.get_id()
+
     def __repr__(self):
         repr_str = "<{0} {1}: {2}>"
         return repr_str.format(self.__class__.__name__, self.get_id(), self.command)
@@ -1469,6 +1475,9 @@ class RunTarget(Target):
         self.command = command
         self.args = args
         self.dependencies = dependencies
+
+    def __lt__(self, other):
+        return self.get_id() < other.get_id()
 
     def __repr__(self):
         repr_str = "<{0} {1}: {2}>"

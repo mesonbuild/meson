@@ -2351,7 +2351,10 @@ rule FORTRAN_DEP_HACK
         cmds = []
         for (k, v) in self.environment.coredata.user_options.items():
             cmds.append('-D' + k + '=' + (v.value if isinstance(v.value, str) else str(v.value).lower()))
-        return cmds
+        # The order of these arguments must be the same between runs of Meson
+        # to ensure reproducible output. The order we pass them shouldn't
+        # affect behaviour in any other way.
+        return sorted(cmds)
 
     # For things like scan-build and other helper tools we might have.
     def generate_utils(self, outfile):
