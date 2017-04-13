@@ -1460,6 +1460,28 @@ class LinuxlikeTests(BasePlatformTests):
         self.assertIn('-Werror', plain_comp)
         self.assertNotIn('-Werror', c03_comp)
 
+    def test_run_installed(self):
+        testdir = os.path.join(self.unit_test_dir, '7 run installed')
+        self.init(testdir)
+        self.build()
+        self.install()
+        installed_exe = os.path.join(self.installdir, 'usr/bin/prog')
+        installed_libdir = os.path.join(self.installdir, 'usr/foo')
+        installed_lib = os.path.join(installed_libdir, 'libfoo.so')
+        self.assertTrue(os.path.isfile(installed_exe))
+        self.assertTrue(os.path.isdir(installed_libdir))
+        self.assertTrue(os.path.isfile(installed_lib))
+        # Must fail when run without LD_LIBRARY_PATH to ensure that
+        # rpath has been properly stripped rather than pointing to the builddir.
+        self.assertNotEqual(subprocess.call(installed_exe, stderr=subprocess.DEVNULL), 0)
+        # When LD_LIBRARY_PATH is set it should start working.
+        # For some reason setting LD_LIBRARY_PATH in os.environ fails
+        # when all tests are run (but works when only this test is run),
+        # but doing this explicitly works.
+        env = os.environ.copy()
+        env['LD_LIBRARY_PATH'] = installed_libdir
+        self.assertEqual(subprocess.call(installed_exe, env=env), 0)
+
 class RewriterTests(unittest.TestCase):
 
     def setUp(self):
