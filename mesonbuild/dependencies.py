@@ -22,6 +22,7 @@
 import re
 import sys
 import os, stat, glob, shutil
+import shlex
 import subprocess
 import sysconfig
 from enum import Enum
@@ -1612,6 +1613,131 @@ class ValgrindDependency(PkgConfigDependency):
     def get_link_args(self):
         return []
 
+class LLVMDependency(Dependency):
+    """LLVM dependency.
+
+    LLVM uses a special tool, llvm-config, which has arguments for getting
+    c args, cxx args, and ldargs as well as version.
+    """
+
+    # Ordered list of llvm-config binaries to try. Start with base, then try
+    # newest back to oldest (3.5 is abitrary), and finally the devel version.
+    llvm_config_bins = [
+        'llvm-config', 'llvm-config-4.0', 'llvm-config-3.9', 'llvm-config39',
+        'llvm-config-3.8', 'llvm-config38', 'llvm-config-3.7', 'llvm-config37',
+        'llvm-config-3.6', 'llvm-config36', 'llvm-config-3.5', 'llvm-config35',
+        'llvm-config-devel',
+    ]
+    llvmconfig = None
+    _llvmconfig_found = False
+    __best_found = None
+
+    def __init__(self, environment, kwargs):
+        super().__init__('llvm-config', kwargs)
+        # It's necessary for LLVM <= 3.8 to use the C++ linker. For 3.9 and 4.0
+        # the C linker works fine if only using the C API.
+        self.language = 'cpp'
+        self.cargs = []
+        self.libs = []
+        self.modules = []
+
+        required = kwargs.get('required', True)
+        req_version = kwargs.get('version', None)
+        if self.llvmconfig is None:
+            self.check_llvmconfig(req_version)
+        if not self._llvmconfig_found:
+            if self.__best_found is not None:
+                mlog.log('found {!r} but need:'.format(self.version),
+                         req_version)
+            else:
+                mlog.log("No llvm-config found; can't detect dependency")
+            mlog.log('Dependency LLVM found:', mlog.red('NO'))
+            if required:
+                raise DependencyException('Dependency LLVM not found')
+            return
+
+        p, out, err = Popen_safe([self.llvmconfig, '--version'])
+        if p.returncode != 0:
+            mlog.debug('stdout: {}\nstderr: {}'.format(out, err))
+            if required:
+                raise DependencyException('Dependency LLVM not found')
+            return
+        else:
+            self.version = out.strip()
+            mlog.log('Dependency LLVM found:', mlog.green('YES'))
+            self.is_found = True
+
+            p, out = Popen_safe(
+                [self.llvmconfig, '--libs', '--ldflags', '--system-libs'])[:2]
+            if p.returncode != 0:
+                raise DependencyException('Could not generate libs for LLVM.')
+            self.libs = shlex.split(out)
+
+            p, out = Popen_safe([self.llvmconfig, '--cppflags'])[:2]
+            if p.returncode != 0:
+                raise DependencyException('Could not generate includedir for LLVM.')
+            self.cargs = shlex.split(out)
+
+            p, out = Popen_safe([self.llvmconfig, '--components'])[:2]
+            if p.returncode != 0:
+                raise DependencyException('Could not generate modules for LLVM.')
+            self.modules = shlex.split(out)
+
+        modules = mesonlib.stringlistify(kwargs.get('modules', []))
+        for mod in modules:
+            if mod not in self.modules:
+                mlog.log('LLVM module', mod, 'found:', mlog.red('NO'))
+                self.is_found = False
+                if required:
+                    raise DependencyException(
+                        'Could not find required LLVM Component: {}'.format(mod))
+            else:
+                mlog.log('LLVM module', mod, 'found:', mlog.green('YES'))
+
+    def get_version(self):
+        return self.version
+
+    def get_compile_args(self):
+        return self.cargs
+
+    def get_link_args(self):
+        return self.libs
+
+    @classmethod
+    def check_llvmconfig(cls, version_req):
+        """Try to find the highest version of llvm-config."""
+        for llvmconfig in cls.llvm_config_bins:
+            try:
+                p, out = Popen_safe([llvmconfig, '--version'])[0:2]
+                out = out.strip()
+                if p.returncode != 0:
+                    continue
+                if version_req:
+                    if version_compare(out, version_req, strict=True):
+                        if cls.__best_found and version_compare(out, '<={}'.format(cls.__best_found), strict=True):
+                            continue
+                        cls.__best_found = out
+                        cls.llvmconfig = llvmconfig
+                else:
+                    # If no specific version is requested use the first version
+                    # found, since that should be the best.
+                    cls.__best_found = out
+                    cls.llvmconfig = llvmconfig
+                    break
+            except (FileNotFoundError, PermissionError):
+                pass
+        if cls.__best_found:
+            mlog.log('Found llvm-config:',
+                     mlog.bold(shutil.which(cls.llvmconfig)),
+                     '({})'.format(out.strip()))
+            cls._llvmconfig_found = True
+        else:
+            cls.llvmconfig = False
+
+    def need_threads(self):
+        return True
+
+
 def get_dep_identifier(name, kwargs):
     elements = [name]
     modlist = kwargs.get('modules', [])
@@ -1676,4 +1802,5 @@ packages = {'boost': BoostDependency,
             'threads': ThreadDependency,
             'python3': Python3Dependency,
             'valgrind': ValgrindDependency,
+            'llvm': LLVMDependency,
             }
