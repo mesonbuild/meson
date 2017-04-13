@@ -45,6 +45,7 @@ index.md
 			Simd-module.md
 			Windows-module.md
 			Cuda-module.md
+			Kconfig-module.md
 		Java.md
 		Vala.md
 		D.md
