@@ -25,7 +25,7 @@ from . import mesonlib
 from .mesonlib import FileMode, Popen_safe, get_meson_script
 from .dependencies import InternalDependency, Dependency
 from .interpreterbase import InterpreterBase
-from .interpreterbase import check_stringlist, noPosargs, noKwargs, stringArgs
+from .interpreterbase import check_stringlist, noPosargs, noKwargs, stringArgs, typeofArgs
 from .interpreterbase import InterpreterException, InvalidArguments, InvalidCode
 from .interpreterbase import InterpreterObject, MutableInterpreterObject
 from .modules import ModuleReturnValue
@@ -417,6 +417,12 @@ class IncludeDirsHolder(InterpreterObject):
     def __init__(self, idobj):
         super().__init__()
         self.held_object = idobj
+
+    def get_is_system(self):
+        return self.held_object.get_is_system()
+
+    def get_incdirs(self):
+        return self.held_object.get_incdirs()
 
 class Headers(InterpreterObject):
 
@@ -2366,11 +2372,20 @@ class Interpreter(InterpreterBase):
             self.build.data.append(build.Data([cfile], idir))
         return mesonlib.File.from_built_file(self.subdir, output)
 
-    @stringArgs
+    @typeofArgs(str, IncludeDirsHolder)
     def func_include_directories(self, node, args, kwargs):
+        extargs = []
+        incdirs_postcheck = []
+        for n, a in enumerate(args):
+            if isinstance(a, str):
+                extargs.append(a)
+            else:
+                incdirs_postcheck.append((n + 1, a.get_is_system()))
+                extargs += a.get_incdirs()
+
         src_root = self.environment.get_source_dir()
         absbase = os.path.join(src_root, self.subdir)
-        for a in args:
+        for a in extargs:
             if a.startswith(src_root):
                 raise InvalidArguments('''Tried to form an absolute path to a source dir. You should not do that but use
 relative paths instead.
@@ -2395,7 +2410,12 @@ different subdirectory.
         is_system = kwargs.get('is_system', False)
         if not isinstance(is_system, bool):
             raise InvalidArguments('Is_system must be boolean.')
-        i = IncludeDirsHolder(build.IncludeDirs(self.subdir, args, is_system))
+        for n, a_is_system in incdirs_postcheck:
+            if a_is_system != is_system:
+                raise InvalidArguments(
+                    'Unsupported mixing of system and non-system headers: argument at position {} contains {} headers.'
+                    .format(n, "system" if a_is_system else "non-system"))
+        i = IncludeDirsHolder(build.IncludeDirs(self.subdir, extargs, is_system))
         return i
 
     @stringArgs

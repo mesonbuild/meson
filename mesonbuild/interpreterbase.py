@@ -31,6 +31,15 @@ def check_stringlist(a, msg='Arguments must be strings.'):
         mlog.debug('Element not a string:', str(a))
         raise InvalidArguments(msg)
 
+def check_typeof(a, types, msg=None):
+    if not isinstance(a, list):
+        mlog.debug('Not a list:', str(a))
+        raise InvalidArguments('Argument not a list.')
+    if not all(any([isinstance(s, t) for t in types]) for s in a):
+        mlog.debug('Element not {}: {}'.format(" or ".join((t.__name__ for t in types)), str(a)))
+        raise InvalidArguments(msg if msg is not None else
+                               'Arguments must be {}.'.format(" or ".join((t.__name__ for t in types))))
+
 def noPosargs(f):
     @wraps(f)
     def wrapped(self, node, args, kwargs):
@@ -54,6 +63,16 @@ def stringArgs(f):
         check_stringlist(args)
         return f(self, node, args, kwargs)
     return wrapped
+
+def typeofArgs(*types):
+    def _typeofArgs(f):
+        @wraps(f)
+        def wrapped(self, node, args, kwargs):
+            assert(isinstance(args, list))
+            check_typeof(args, types)
+            return f(self, node, args, kwargs)
+        return wrapped
+    return _typeofArgs
 
 
 class InterpreterException(mesonlib.MesonException):
