@@ -318,6 +318,7 @@ In addition to the above substitutions, the `arguments` keyword argument also ac
 - `@OUTPUT@`: the full path to the output file
 - `@INPUT@`: the full path to the input file
 - `@SOURCE_DIR@`: the full path to the root of the source tree
+- `@CURRENT_SOURCE_DIR@`: this is the directory where the currently processed meson.build is located in
 - `@BUILD_DIR@`: the full path to the root of the build dir where the output will be placed
 
 NOTE: Generators should only be used for outputs that will ***only*** be used as inputs for a [build target](#build_target) or a [custom target](#custom_target). When you use the processed output of a generator in multiple targets, the generator will be run multiple times to create outputs for each target. Each output will be created in a target-private directory `@BUILD_DIR@`.

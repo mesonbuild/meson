@@ -1650,6 +1650,7 @@ rule FORTRAN_DEP_HACK
         outfilelist = genlist.get_outputs()
         base_args = generator.get_arglist()
         extra_dependencies = [os.path.join(self.build_to_src, i) for i in genlist.extra_depends]
+        source_target_dir = self.get_target_source_dir(target)
         for i in range(len(infilelist)):
             if len(generator.outputs) == 1:
                 sole_output = os.path.join(self.get_target_private_dir(target), outfilelist[i])
@@ -1676,6 +1677,7 @@ rule FORTRAN_DEP_HACK
             relout = self.get_target_private_dir(target)
             args = [x.replace("@SOURCE_DIR@", self.build_to_src).replace("@BUILD_DIR@", relout)
                     for x in args]
+            args = [x.replace("@CURRENT_SOURCE_DIR@", source_target_dir) for x in args]
             args = [x.replace("@SOURCE_ROOT@", self.build_to_src).replace("@BUILD_ROOT@", '.')
                     for x in args]
             cmdlist = exe_arr + self.replace_extra_args(args, genlist)
