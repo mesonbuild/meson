@@ -2375,7 +2375,10 @@ class Interpreter(InterpreterBase):
     @stringArgs
     def func_include_directories(self, node, args, kwargs):
         src_root = self.environment.get_source_dir()
-        absbase = os.path.join(src_root, self.subdir)
+        build_root = self.environment.get_build_dir()
+        absbase_src = os.path.join(src_root, self.subdir)
+        absbase_build = os.path.join(build_root, self.subdir)
+
         for a in args:
             if a.startswith(src_root):
                 raise InvalidArguments('''Tried to form an absolute path to a source dir. You should not do that but use
@@ -2395,8 +2398,9 @@ put in the include directories by default so you only need to do
 include_directories('.') if you intend to use the result in a
 different subdirectory.
 ''')
-            absdir = os.path.join(absbase, a)
-            if not os.path.isdir(absdir):
+            absdir_src = os.path.join(absbase_src, a)
+            absdir_build = os.path.join(absbase_build, a)
+            if not os.path.isdir(absdir_src) and not os.path.isdir(absdir_build):
                 raise InvalidArguments('Include dir %s does not exist.' % a)
         is_system = kwargs.get('is_system', False)
         if not isinstance(is_system, bool):
