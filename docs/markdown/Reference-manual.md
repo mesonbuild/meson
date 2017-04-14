@@ -248,6 +248,7 @@ Executable supports the following keyword arguments. Note that just like the pos
 - `name_suffix` the string that will be used as the extension for the target by overriding the default. By default on Windows this is `exe` and on other platforms it is omitted.
 - `build_by_default` causes, when set to true, to have this target be built by default, that is, when invoking plain `ninja`, the default value is true for all built target types, since 0.38.0
 - `override_options` takes an array of strings in the same format as `project`'s `default_options` overriding the values of these options for this target only, since 0.40.0
+- `implib` when set to true, an import library is generated for the executable, used when the returned build target object appears elsewhere in `link_with:`, on platforms where this is meaningful (e.g. Windows), since 0.42.0
 
 The list of `sources`, `objects`, and `dependencies` is always flattened, which means you can freely nest and add lists while creating the final list. As a corollary, the best way to handle a 'disabled dependency' is by assigning an empty list `[]` to it and passing it like any other dependency to the `dependencies:` keyword argument.
 

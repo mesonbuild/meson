@@ -183,7 +183,7 @@ def get_relative_files_list_from_dir(fromdir):
             paths.append(path)
     return paths
 
-def platform_fix_name(fname):
+def platform_fix_name(fname, compiler):
     if '?lib' in fname:
         if mesonlib.is_cygwin():
             fname = re.sub(r'\?lib(.*)\.dll$', r'cyg\1.dll', fname)
@@ -194,6 +194,16 @@ def platform_fix_name(fname):
         fname = fname[:-4]
         if mesonlib.is_windows() or mesonlib.is_cygwin():
             return fname + '.exe'
+
+    if fname.startswith('?msvc:'):
+        fname = fname[6:]
+        if compiler != 'cl':
+            return None
+
+    if fname.startswith('?gcc:'):
+        fname = fname[5:]
+        if compiler == 'cl':
+            return None
 
     return fname
 
@@ -210,7 +220,9 @@ def validate_install(srcdir, installdir, compiler):
     elif os.path.exists(info_file):
         with open(info_file) as f:
             for line in f:
-                expected[platform_fix_name(line.strip())] = False
+                line = platform_fix_name(line.strip(), compiler)
+                if line:
+                    expected[line] = False
     # Check if expected files were found
     for fname in expected:
         file_path = os.path.join(installdir, fname)

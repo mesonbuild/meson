@@ -1,0 +1,4 @@
+usr/bin/prog.exe
+usr/bin/prog.pdb
+?gcc:usr/lib/libprog.exe.a
+?msvc:usr/lib/prog.lib
