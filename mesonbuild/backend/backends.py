@@ -149,6 +149,10 @@ class Backend:
             dirname = 'meson-out'
         return dirname
 
+    def get_target_source_dir(self, target):
+        dirname = os.path.join(self.build_to_src, self.get_target_dir(target))
+        return dirname
+
     def get_target_private_dir(self, target):
         dirname = os.path.join(self.get_target_dir(target), target.get_basename() + target.type_suffix())
         return dirname
