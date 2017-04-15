@@ -14,6 +14,7 @@
 
 import re
 from .mesonlib import MesonException
+from . import mlog
 
 class ParseException(MesonException):
     def __init__(self, text, line, lineno, colno):
@@ -366,6 +367,8 @@ class ArgumentNode:
             self.arguments += [statement]
 
     def set_kwarg(self, name, value):
+        if name in self.kwargs:
+            mlog.warning('Keyword argument "%s" defined multiple times. This will be a an error in future Meson releases.' % name)
         self.kwargs[name] = value
 
     def num_args(self):
