@@ -27,11 +27,11 @@ import subprocess
 import sysconfig
 from enum import Enum
 from collections import OrderedDict
-from . import mlog
-from . import mesonlib
-from .mesonlib import Popen_safe, flatten
-from .mesonlib import MesonException, version_compare, version_compare_many
-from .environment import detect_cpu_family, for_windows
+from .. import mlog
+from .. import mesonlib
+from ..mesonlib import Popen_safe, flatten
+from ..mesonlib import MesonException, version_compare, version_compare_many
+from ..environment import detect_cpu_family, for_windows
 
 class DependencyException(MesonException):
     '''Exceptions raised while trying to find dependencies'''
