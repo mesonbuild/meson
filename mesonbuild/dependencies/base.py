@@ -12,23 +12,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# This file contains the detection logic for external
-# dependencies. Mostly just uses pkg-config but also contains
-# custom logic for packages that don't provide them.
+# This file contains the detection logic for external dependencies.
+# Custom logic for several other packages are in separate files.
 
-# Currently one file, should probably be split into a
-# package before this gets too big.
-
+import os
+import shutil
+import stat
 import sys
-import os, stat, shutil
 from enum import Enum
+
 from .. import mlog
 from .. import mesonlib
-from ..mesonlib import MesonException, flatten, version_compare_many, Popen_safe
+from ..mesonlib import MesonException, Popen_safe, flatten, version_compare_many
+
+
+# This must be defined in this file to avoid cyclical references.
+packages = {}
 
 
 class DependencyException(MesonException):
     '''Exceptions raised while trying to find dependencies'''
+
 
 class DependencyMethods(Enum):
     # Auto means to use whatever dependency checking mechanisms in whatever order meson thinks is best.
@@ -43,6 +47,7 @@ class DependencyMethods(Enum):
     EXTRAFRAMEWORK = 'extraframework'
     # Detect using the sysconfig module.
     SYSCONFIG = 'sysconfig'
+
 
 class Dependency:
     def __init__(self, type_name, kwargs):
@@ -59,7 +64,10 @@ class Dependency:
         elif method in self.get_methods():
             self.methods = [method]
         else:
-            raise MesonException('Unsupported detection method: {}, allowed methods are {}'.format(method.value, mlog.format_list(map(lambda x: x.value, [DependencyMethods.AUTO] + self.get_methods()))))
+            raise MesonException(
+                'Unsupported detection method: {}, allowed methods are {}'.format(
+                    method.value,
+                    mlog.format_list(map(lambda x: x.value, [DependencyMethods.AUTO] + self.get_methods()))))
 
     def __repr__(self):
         s = '<{0} {1}: {2}>'
@@ -94,6 +102,7 @@ class Dependency:
     def get_pkgconfig_variable(self, variable_name):
         raise MesonException('Tried to get a pkg-config variable from a non-pkgconfig dependency.')
 
+
 class InternalDependency(Dependency):
     def __init__(self, version, incdirs, compile_args, link_args, libraries, sources, ext_deps):
         super().__init__('internal', {})
@@ -114,6 +123,7 @@ class InternalDependency(Dependency):
 
     def get_version(self):
         return self.version
+
 
 class PkgConfigDependency(Dependency):
     # The class's copy of the pkg-config path. Avoids having to search for it
@@ -489,6 +499,7 @@ class ExternalProgram:
     def get_name(self):
         return self.name
 
+
 class ExternalLibrary(Dependency):
     # TODO: Add `language` support to all Dependency objects so that languages
     # can be exposed for dependencies that support that (i.e., not pkg-config)
@@ -596,6 +607,7 @@ def get_dep_identifier(name, kwargs, want_cross):
         identifier += (key, value)
     return identifier
 
+
 def find_external_dependency(name, environment, kwargs):
     required = kwargs.get('required', True)
     if not isinstance(required, bool):
@@ -627,8 +639,3 @@ def find_external_dependency(name, environment, kwargs):
         raise pkg_exc
     mlog.log('Dependency', mlog.bold(name), 'found:', mlog.red('NO'))
     return pkgdep
-
-
-# This has to be at the end so the classes it references
-# are defined.
-packages = {}
