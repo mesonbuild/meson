@@ -787,30 +787,6 @@ class BoostDependency(Dependency):
         return 'thread' in self.requested_modules
 
 
-class AppleFrameworks(Dependency):
-    def __init__(self, environment, kwargs):
-        Dependency.__init__(self, 'appleframeworks', kwargs)
-        modules = kwargs.get('modules', [])
-        if isinstance(modules, str):
-            modules = [modules]
-        if not modules:
-            raise DependencyException("AppleFrameworks dependency requires at least one module.")
-        self.frameworks = modules
-
-    def get_link_args(self):
-        args = []
-        for f in self.frameworks:
-            args.append('-framework')
-            args.append(f)
-        return args
-
-    def found(self):
-        return mesonlib.is_osx()
-
-    def get_version(self):
-        return 'unknown'
-
-
 class ExtraFrameworkDependency(Dependency):
     def __init__(self, name, required, path, kwargs):
         Dependency.__init__(self, 'extraframeworks', kwargs)
@@ -1011,7 +987,6 @@ def find_external_dependency(name, environment, kwargs):
 # This has to be at the end so the classes it references
 # are defined.
 packages = {'boost': BoostDependency,
-            'appleframeworks': AppleFrameworks,
             'threads': ThreadDependency,
             'python3': Python3Dependency,
             }
