@@ -1,0 +1,7 @@
+usr/bin/app_d?exe
+usr/lib/libsay1.so
+usr/lib/libsay1.so.0
+usr/lib/libsay1.so.1.2.3
+usr/lib/libsay2.so
+usr/lib/libsay2.so.1
+usr/lib/libsay2.so.1.2.4
