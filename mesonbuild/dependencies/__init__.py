@@ -14,6 +14,7 @@
 
 from .base import *
 from .dev import GMockDependency, GTestDependency, LLVMDependency, ValgrindDependency
+from .misc import BoostDependency, Python3Dependency, ThreadDependency
 from .platform import AppleFrameworks
 from .ui import GLDependency, GnuStepDependency, Qt4Dependency, Qt5Dependency, SDL2Dependency, WxDependency
 
@@ -24,6 +25,11 @@ packages.update({
     'gmock': GMockDependency,
     'llvm': LLVMDependency,
     'valgrind': ValgrindDependency,
+
+    # From misc:
+    'boost': BoostDependency,
+    'python3': Python3Dependency,
+    'threads': ThreadDependency,
 
     # From platform:
     'appleframeworks': AppleFrameworks,
