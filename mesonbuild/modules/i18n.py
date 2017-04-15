@@ -74,6 +74,10 @@ class I18nModule(ExtensionModule):
         if datadirs:
             command.append(datadirs)
 
+        if 'extra_args' in kwargs:
+            command.append('--')
+            command.append(mesonlib.stringlistify(kwargs.pop('extra_args', [])))
+
         kwargs['command'] = command
         ct = build.CustomTarget(kwargs['output'] + '_merge', state.subdir, kwargs)
         return ModuleReturnValue(ct, [ct])
