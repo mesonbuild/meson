@@ -13,11 +13,18 @@
 # limitations under the License.
 
 from .base import *
+from .dev import GMockDependency, GTestDependency, LLVMDependency, ValgrindDependency
 from .ui import GLDependency, GnuStepDependency, Qt4Dependency, Qt5Dependency, SDL2Dependency, WxDependency
 
 
-# From _ui:
 packages.update({
+    # From dev:
+    'gtest': GTestDependency,
+    'gmock': GMockDependency,
+    'llvm': LLVMDependency,
+    'valgrind': ValgrindDependency,
+
+    # From ui:
     'gl': GLDependency,
     'gnustep': GnuStepDependency,
     'qt4': Qt4Dependency,
