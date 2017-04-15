@@ -13,3 +13,15 @@
 # limitations under the License.
 
 from .base import *
+from .ui import GLDependency, GnuStepDependency, Qt4Dependency, Qt5Dependency, SDL2Dependency, WxDependency
+
+
+# From _ui:
+packages.update({
+    'gl': GLDependency,
+    'gnustep': GnuStepDependency,
+    'qt4': Qt4Dependency,
+    'qt5': Qt5Dependency,
+    'sdl2': SDL2Dependency,
+    'wxwidgets': WxDependency,
+})
