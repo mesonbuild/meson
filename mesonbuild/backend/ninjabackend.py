@@ -2189,7 +2189,7 @@ rule FORTRAN_DEP_HACK
 
     def get_link_whole_args(self, linker, target):
         target_args = self.build_target_link_arguments(linker, target.link_whole_targets)
-        return linker.get_link_whole_for(target_args)
+        return linker.get_link_whole_for(target_args) if len(target_args) else []
 
     def generate_link(self, target, outfile, outname, obj_list, linker, extra_args=[]):
         if isinstance(target, build.StaticLibrary):
