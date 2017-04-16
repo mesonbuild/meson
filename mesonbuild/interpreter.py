@@ -1403,8 +1403,11 @@ class Interpreter(InterpreterBase):
             raise InvalidCode('Import takes one argument.')
         modname = args[0]
         if modname not in self.environment.coredata.modules:
-            module = importlib.import_module('mesonbuild.modules.' + modname).initialize()
-            self.environment.coredata.modules[modname] = module
+            try:
+                module = importlib.import_module('mesonbuild.modules.' + modname)
+            except ImportError:
+                raise InvalidArguments('Module "%s" does not exist' % (modname, ))
+            self.environment.coredata.modules[modname] = module.initialize()
         return ModuleHolder(modname, self.environment.coredata.modules[modname], self)
 
     @stringArgs
