@@ -74,7 +74,6 @@ class Lexer:
                         lineno += 1
                         col = 1
                         line_start = mo.end()
-                        pass
                     elif tid == 'varexp':
                         yield(Token('varexp', match_text[2:-1]))
                     else:
