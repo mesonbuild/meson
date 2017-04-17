@@ -435,7 +435,7 @@ class Backend:
         for d in deps:
             if not isinstance(d, (build.StaticLibrary, build.SharedLibrary)):
                 raise RuntimeError('Tried to link with a non-library target "%s".' % d.get_basename())
-            if isinstance(compiler, compilers.LLVMDCompiler):
+            if isinstance(compiler, compilers.LLVMDCompiler) or isinstance(compiler, compilers.DmdDCompiler):
                 args += ['-L' + self.get_target_filename_for_linking(d)]
             else:
                 args.append(self.get_target_filename_for_linking(d))
