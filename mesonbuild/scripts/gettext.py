@@ -81,7 +81,7 @@ def do_install(src_sub, bld_sub, dest, pkgname, langs):
         os.makedirs(os.path.split(outfile)[0], exist_ok=True)
         shutil.copyfile(srcfile, outfile)
         shutil.copystat(srcfile, outfile)
-        print('Installing %s to %s.' % (srcfile, outfile))
+        print('Installing %s to %s' % (srcfile, outfile))
     return 0
 
 def run(args):
