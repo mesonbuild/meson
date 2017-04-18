@@ -491,7 +491,7 @@ class InterpreterBase:
             if not isinstance(cmpr, str):
                 raise InterpreterException('Version_compare() argument must be a string.')
             return mesonlib.version_compare(obj, cmpr)
-        elif method_name == 'len':
+        elif method_name == 'length':
             return len(obj)
         elif method_name == 'is_empty':
             return not (obj and obj.strip())

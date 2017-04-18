@@ -73,10 +73,10 @@ empty_whitespace = ' \n'
 not_empty = 'abc'
 not_empty_whitespace = 'a b c \n'
 
-assert(empty.len() == 0, 'len broken')
-assert(empty_whitespace.len() == 2, 'len broken')
-assert(not_empty.len() == 3, 'len broken')
-assert(not_empty_whitespace.len() == 7, 'len broken')
+assert(empty.length() == 0, 'length broken')
+assert(empty_whitespace.length() == 2, 'length broken')
+assert(not_empty.length() == 3, 'length broken')
+assert(not_empty_whitespace.length() == 7, 'length broken')
 
 assert(empty.is_empty() == true, 'is_empty broken')
 assert(empty_whitespace.is_empty() == true, 'is_empty broken')
