@@ -1136,7 +1136,7 @@ class QtBaseDependency(Dependency):
         self.cargs.append('-I' + incdir)
         libdir = qvars['QT_INSTALL_LIBS']
         # Used by self.compilers_detect()
-        self.bindir = qvars['QT_INSTALL_BINS']
+        self.bindir = self.get_qmake_host_bins(qvars)
         self.is_found = True
         for module in mods:
             mincdir = os.path.join(incdir, 'Qt' + module)
@@ -1168,7 +1168,15 @@ class QtBaseDependency(Dependency):
                 self.cargs += fwdep.get_compile_args()
                 self.largs += fwdep.get_link_args()
         # Used by self.compilers_detect()
-        self.bindir = qvars['QT_INSTALL_BINS']
+        self.bindir = self.get_qmake_host_bins(qvars)
+
+    def get_qmake_host_bins(self, qvars):
+        # Prefer QT_HOST_BINS (qt5, correct for cross and native compiling)
+        # but fall back to QT_INSTALL_BINS (qt4)
+        if 'QT_HOST_BINS' in qvars:
+            return qvars['QT_HOST_BINS']
+        else:
+            return qvars['QT_INSTALL_BINS']
 
     def get_version(self):
         return self.version
