@@ -65,7 +65,7 @@ def install_help(srcdir, blddir, sources, media, langs, install_dir, destdir, pr
         for source in sources:
             infile = os.path.join(srcdir if lang == 'C' else blddir, lang, source)
             outfile = os.path.join(indir, source)
-            mlog.log('Installing %s to %s.' % (infile, outfile))
+            mlog.log('Installing %s to %s' % (infile, outfile))
             shutil.copyfile(infile, outfile)
             shutil.copystat(infile, outfile)
         for m in media:
@@ -81,7 +81,7 @@ def install_help(srcdir, blddir, sources, media, langs, install_dir, destdir, pr
                         os.makedirs(os.path.dirname(outfile), exist_ok=True)
                     os.symlink(srcfile, outfile)
                 continue
-            mlog.log('Installing %s to %s.' % (infile, outfile))
+            mlog.log('Installing %s to %s' % (infile, outfile))
             if '/' in m or '\\' in m:
                 os.makedirs(os.path.dirname(outfile), exist_ok=True)
             shutil.copyfile(infile, outfile)

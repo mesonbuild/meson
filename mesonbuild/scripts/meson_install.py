@@ -133,7 +133,7 @@ def install_subdirs(data):
         if src_dir.endswith('/') or src_dir.endswith('\\'):
             src_dir = src_dir[:-1]
         src_prefix = os.path.join(src_dir, inst_dir)
-        print('Installing subdir %s to %s.' % (src_prefix, dst_dir))
+        print('Installing subdir %s to %s' % (src_prefix, dst_dir))
         dst_dir = get_destdir_path(data, dst_dir)
         if not os.path.exists(dst_dir):
             os.makedirs(dst_dir)
@@ -148,7 +148,7 @@ def install_data(d):
         mode = i[2]
         outdir = os.path.split(outfilename)[0]
         os.makedirs(outdir, exist_ok=True)
-        print('Installing %s to %s.' % (fullfilename, outdir))
+        print('Installing %s to %s' % (fullfilename, outdir))
         do_copyfile(fullfilename, outfilename)
         set_mode(outfilename, mode)
 
@@ -158,7 +158,7 @@ def install_man(d):
         outfilename = get_destdir_path(d, m[1])
         outdir = os.path.split(outfilename)[0]
         os.makedirs(outdir, exist_ok=True)
-        print('Installing %s to %s.' % (full_source_filename, outdir))
+        print('Installing %s to %s' % (full_source_filename, outdir))
         if outfilename.endswith('.gz') and not full_source_filename.endswith('.gz'):
             with open(outfilename, 'wb') as of:
                 with open(full_source_filename, 'rb') as sf:
@@ -259,7 +259,7 @@ def install_targets(d):
             pdb_filename = os.path.splitext(fname)[0] + '.pdb'
             if not should_strip and os.path.exists(pdb_filename):
                 pdb_outname = os.path.splitext(outname)[0] + '.pdb'
-                print('Installing pdb file %s to %s.' % (pdb_filename, pdb_outname))
+                print('Installing pdb file %s to %s' % (pdb_filename, pdb_outname))
                 do_copyfile(pdb_filename, pdb_outname)
         elif os.path.isdir(fname):
             fname = os.path.join(d.build_dir, fname.rstrip('/'))
