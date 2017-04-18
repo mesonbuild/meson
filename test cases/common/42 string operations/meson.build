@@ -67,3 +67,18 @@ assert(not version_number.version_compare('!=1.2.8'), 'Version_compare neq broke
 
 assert(version_number.version_compare('<2.0'), 'Version_compare major less broken')
 assert(version_number.version_compare('>0.9'), 'Version_compare major greater broken')
+
+empty = ''
+empty_whitespace = ' \n'
+not_empty = 'abc'
+not_empty_whitespace = 'a b c \n'
+
+assert(empty.len() == 0, 'len broken')
+assert(empty_whitespace.len() == 2, 'len broken')
+assert(not_empty.len() == 3, 'len broken')
+assert(not_empty_whitespace.len() == 7, 'len broken')
+
+assert(empty.is_empty() == true, 'is_empty broken')
+assert(empty_whitespace.is_empty() == true, 'is_empty broken')
+assert(not_empty.is_empty() == false, 'is_empty broken')
+assert(not_empty_whitespace.is_empty() == false, 'is_empty broken')

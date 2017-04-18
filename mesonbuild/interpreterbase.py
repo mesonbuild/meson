@@ -491,6 +491,10 @@ class InterpreterBase:
             if not isinstance(cmpr, str):
                 raise InterpreterException('Version_compare() argument must be a string.')
             return mesonlib.version_compare(obj, cmpr)
+        elif method_name == 'len':
+            return len(obj)
+        elif method_name == 'is_empty':
+            return not (obj and obj.strip())
         raise InterpreterException('Unknown method "%s" for a string.' % method_name)
 
     def unknown_function_called(self, func_name):
