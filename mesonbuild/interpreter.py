@@ -2346,6 +2346,7 @@ class Interpreter(InterpreterBase):
                     self.build_def_files.append(conffile)
                 os.makedirs(os.path.join(self.environment.build_dir, self.subdir), exist_ok=True)
                 mesonlib.do_conf_file(ifile_abs, ofile_abs, conf.held_object)
+                shutil.copystat(ifile_abs, ofile_abs)
             else:
                 mesonlib.dump_conf_header(ofile_abs, conf.held_object)
             conf.mark_used()
