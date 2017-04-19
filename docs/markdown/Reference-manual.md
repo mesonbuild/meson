@@ -233,7 +233,7 @@ Executable supports the following keyword arguments. Note that just like the pos
 - `<languagename>_pch` precompiled header file to use for the given language
 - `<languagename>_args` compiler flags to use for the given language; eg: `cpp_args` for C++
 - `link_args` flags to use during linking. You can use UNIX-style flags here for all platforms.
-- `link_depends` an extra file in the source tree that the link step depends on such as a symbol visibility map. The purpose is to automatically trigger a re-link (but not a re-compile) of the target when this file changes.
+- `link_depends`  strings, files, or custom targets the link step depends on such as a symbol visibility map. The purpose is to automatically trigger a re-link (but not a re-compile) of the target when this file changes.
 - `include_directories` one or more objects created with the `include_directories` function
 - `dependencies` one or more objects created with [`dependency`](#dependency) or [`find_library`](#compiler-object) (for external deps) or [`declare_dependency`](#declare_dependency) (for deps built by the project)
 - `gui_app` when set to true flags this target as a GUI application on platforms where this makes a difference (e.g. Windows)

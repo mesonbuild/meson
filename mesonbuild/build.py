@@ -503,6 +503,34 @@ class BuildTarget(Target):
                 assert(len(self.compilers) == 1)
                 return
 
+    def process_link_depends(self, sources, environment):
+        """Process the link_depends keyword argument.
+
+        This is designed to handle strings, Files, and the output of Custom
+        Targets. Notably it doesn't handle generator() returned objects, since
+        adding them as a link depends would inherently cause them to be
+        generated twice, since the output needs to be passed to the ld_args and
+        link_depends.
+        """
+        if not isinstance(sources, list):
+            sources = [sources]
+        for s in sources:
+            if hasattr(s, 'held_object'):
+                s = s.held_object
+
+            if isinstance(s, File):
+                self.link_depends.append(s)
+            elif isinstance(s, str):
+                self.link_depends.append(
+                    File.from_source_file(environment.source_dir, self.subdir, s))
+            elif hasattr(s, 'get_outputs'):
+                self.link_depends.extend(
+                    [File.from_built_file(s.subdir, p) for p in s.get_outputs()])
+            else:
+                raise InvalidArguments(
+                    'Link_depends arguments must be strings, Files, '
+                    'or a Custom Target, or lists thereof.')
+
     def get_original_kwargs(self):
         return self.kwargs
 
@@ -616,12 +644,7 @@ class BuildTarget(Target):
         for i in self.link_args:
             if not isinstance(i, str):
                 raise InvalidArguments('Link_args arguments must be strings.')
-        self.link_depends = kwargs.get('link_depends', [])
-        if not isinstance(self.link_depends, list):
-            self.link_depends = [self.link_depends]
-        for i in self.link_depends:
-            if not isinstance(i, str):
-                raise InvalidArguments('Link_depends arguments must be strings.')
+        self.process_link_depends(kwargs.get('link_depends', []), environment)
         # Target-specific include dirs must be added BEFORE include dirs from
         # internal deps (added inside self.add_deps()) to override them.
         inclist = kwargs.get('include_directories', [])
@@ -1264,13 +1287,11 @@ class SharedLibrary(BuildTarget):
                     self.vs_module_defs = File.from_absolute_file(path)
                 else:
                     self.vs_module_defs = File.from_source_file(environment.source_dir, self.subdir, path)
-                # link_depends can be an absolute path or relative to self.subdir
-                self.link_depends.append(path)
+                self.link_depends.append(self.vs_module_defs)
             elif isinstance(path, File):
                 # When passing a generated file.
                 self.vs_module_defs = path
-                # link_depends can be an absolute path or relative to self.subdir
-                self.link_depends.append(path.absolute_path(environment.source_dir, environment.build_dir))
+                self.link_depends.append(path)
             else:
                 raise InvalidArguments(
                     'Shared library vs_module_defs must be either a string, '
