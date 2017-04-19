@@ -2304,8 +2304,8 @@ rule FORTRAN_DEP_HACK
         # current compiler.
         commands = commands.to_native()
         dep_targets = [self.get_dependency_filename(t) for t in dependencies]
-        dep_targets += [os.path.join(self.environment.source_dir,
-                                     target.subdir, t) for t in target.link_depends]
+        dep_targets.extend([self.get_dependency_filename(t)
+                            for t in target.link_depends])
         elem = NinjaBuildElement(self.all_outputs, outname, linker_rule, obj_list)
         elem.add_dep(dep_targets + custom_target_libraries)
         elem.add_item('LINK_ARGS', commands)
@@ -2323,6 +2323,12 @@ rule FORTRAN_DEP_HACK
     def get_dependency_filename(self, t):
         if isinstance(t, build.SharedLibrary):
             return os.path.join(self.get_target_private_dir(t), self.get_target_filename(t) + '.symbols')
+        elif isinstance(t, mesonlib.File):
+            if t.is_built:
+                return t.relative_name()
+            else:
+                return t.absolute_path(self.environment.get_source_dir(),
+                                       self.environment.get_build_dir())
         return self.get_target_filename(t)
 
     def generate_shlib_aliases(self, target, outdir):
