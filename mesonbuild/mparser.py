@@ -420,6 +420,9 @@ class Parser:
         except StopIteration:
             self.current = Token('eof', '', self.current.line_start, self.current.lineno, self.current.colno + self.current.bytespan[1] - self.current.bytespan[0], (0, 0), None)
 
+    def getline(self):
+        return self.lexer.getline(self.current.line_start)
+
     def accept(self, s):
         if self.current.tid == s:
             self.getsym()
@@ -429,12 +432,12 @@ class Parser:
     def expect(self, s):
         if self.accept(s):
             return True
-        raise ParseException('Expecting %s got %s.' % (s, self.current.tid), self.lexer.getline(self.current.line_start), self.current.lineno, self.current.colno)
+        raise ParseException('Expecting %s got %s.' % (s, self.current.tid), self.getline(), self.current.lineno, self.current.colno)
 
     def block_expect(self, s, block_start):
         if self.accept(s):
             return True
-        raise BlockParseException('Expecting %s got %s.' % (s, self.current.tid), self.lexer.getline(self.current.line_start), self.current.lineno, self.current.colno, self.lexer.getline(block_start.line_start), block_start.lineno, block_start.colno)
+        raise BlockParseException('Expecting %s got %s.' % (s, self.current.tid), self.getline(), self.current.lineno, self.current.colno, self.lexer.getline(block_start.line_start), block_start.lineno, block_start.colno)
 
     def parse(self):
         block = self.codeblock()
@@ -449,18 +452,18 @@ class Parser:
         if self.accept('plusassign'):
             value = self.e1()
             if not isinstance(left, IdNode):
-                raise ParseException('Plusassignment target must be an id.', left.lineno, left.colno)
+                raise ParseException('Plusassignment target must be an id.', self.getline(), left.lineno, left.colno)
             return PlusAssignmentNode(left.lineno, left.colno, left.value, value)
         elif self.accept('assign'):
             value = self.e1()
             if not isinstance(left, IdNode):
                 raise ParseException('Assignment target must be an id.',
-                                     left.lineno, left.colno)
+                                     self.getline(), left.lineno, left.colno)
             return AssignmentNode(left.lineno, left.colno, left.value, value)
         elif self.accept('questionmark'):
             if self.in_ternary:
                 raise ParseException('Nested ternary operators are not allowed.',
-                                     left.lineno, left.colno)
+                                     self.getline(), left.lineno, left.colno)
             self.in_ternary = True
             trueblock = self.e1()
             self.expect('colon')
@@ -536,7 +539,7 @@ class Parser:
             self.block_expect('rparen', block_start)
             if not isinstance(left, IdNode):
                 raise ParseException('Function call must be applied to plain id',
-                                     left.lineno, left.colno)
+                                     self.getline(), left.lineno, left.colno)
             left = FunctionNode(left.subdir, left.lineno, left.colno, left.value, args)
         go_again = True
         while go_again:
@@ -588,7 +591,7 @@ class Parser:
             elif self.accept('colon'):
                 if not isinstance(s, IdNode):
                     raise ParseException('Keyword argument must be a plain identifier.',
-                                         s.lineno, s.colno)
+                                         self.getline(), s.lineno, s.colno)
                 a.set_kwarg(s.value, self.statement())
                 potential = self.current
                 if not self.accept('comma'):
@@ -604,7 +607,7 @@ class Parser:
         methodname = self.e9()
         if not(isinstance(methodname, IdNode)):
             raise ParseException('Method name must be plain id',
-                                 self.current.lineno, self.current.colno)
+                                 self.getline(), self.current.lineno, self.current.colno)
         self.expect('lparen')
         args = self.args()
         self.expect('rparen')
