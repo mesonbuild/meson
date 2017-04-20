@@ -253,6 +253,8 @@ class GnomeModule(ExtensionModule):
             missing_basename = os.path.basename(missing)
 
             for dep in dependencies:
+                if hasattr(dep, 'held_object'):
+                    dep = dep.held_object
                 if isinstance(dep, mesonlib.File):
                     if dep.fname == missing_basename:
                         found = True
@@ -260,18 +262,20 @@ class GnomeModule(ExtensionModule):
                         dep_files.append(dep)
                         subdirs.append(dep.subdir)
                         break
-                elif isinstance(dep, interpreter.CustomTargetHolder):
-                    if dep.held_object.get_basename() == missing_basename:
+                elif isinstance(dep, build.CustomTarget):
+                    if dep.get_basename() == missing_basename:
                         found = True
                         dep_files.remove(missing)
                         dep_files.append(
                             mesonlib.File(
                                 is_built=True,
-                                subdir=dep.held_object.get_subdir(),
-                                fname=dep.held_object.get_basename()))
-                        depends.append(dep.held_object)
-                        subdirs.append(dep.held_object.get_subdir())
+                                subdir=dep.get_subdir(),
+                                fname=dep.get_basename()))
+                        depends.append(dep)
+                        subdirs.append(dep.get_subdir())
                         break
+                else:
+                    raise RuntimeError('Unreachable code.')
 
             if not found:
                 raise MesonException(
