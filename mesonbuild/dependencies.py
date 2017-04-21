@@ -51,6 +51,7 @@ class DependencyMethods(Enum):
 class Dependency:
     def __init__(self, type_name, kwargs):
         self.name = "null"
+        self.language = None
         self.is_found = False
         self.type_name = type_name
         method = DependencyMethods(kwargs.get('method', 'auto'))
@@ -570,11 +571,12 @@ class ExternalProgram:
         return self.name
 
 class ExternalLibrary(Dependency):
-    # TODO: Add `lang` to the parent Dependency object so that dependencies can
-    # be expressed for languages other than C-like
-    def __init__(self, name, link_args=None, language=None, silent=False):
+    # TODO: Add `language` support to all Dependency objects so that languages
+    # can be exposed for dependencies that support that (i.e., not pkg-config)
+    def __init__(self, name, link_args, language, silent=False):
         super().__init__('external', {})
         self.name = name
+        self.language = language
         self.is_found = False
         self.link_args = []
         self.lang_args = []
@@ -582,9 +584,13 @@ class ExternalLibrary(Dependency):
             self.is_found = True
             if not isinstance(link_args, list):
                 link_args = [link_args]
-            if language:
-                self.lang_args = {language: link_args}
-            else:
+            self.lang_args = {language: link_args}
+            # We special-case Vala for now till the Dependency object gets
+            # proper support for exposing the language it was written in.
+            # Without this, vala-specific link args will end up in the C link
+            # args list if you link to a Vala library.
+            # This hack use to be in CompilerHolder.find_library().
+            if language != 'vala':
                 self.link_args = link_args
         if not silent:
             if self.is_found:
