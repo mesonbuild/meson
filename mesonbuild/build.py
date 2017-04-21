@@ -868,6 +868,28 @@ You probably should put it in link_with instead.''')
     def get_aliases(self):
         return {}
 
+    def get_langs_used_by_deps(self):
+        '''
+        Sometimes you want to link to a C++ library that exports C API, which
+        means the linker must link in the C++ stdlib, and we must use a C++
+        compiler for linking. The same is also applicable for objc/objc++, etc,
+        so we can keep using clike_langs for the priority order.
+
+        See: https://github.com/mesonbuild/meson/issues/1653
+        '''
+        langs = []
+        # Check if any of the external libraries were written in this language
+        for dep in self.external_deps:
+            if dep.language not in langs:
+                langs.append(dep.language)
+        # Check if any of the internal libraries this target links to were
+        # written in this language
+        for link_target in self.link_targets:
+            for language in link_target.compilers:
+                if language not in langs:
+                    langs.append(language)
+        return langs
+
     def get_clike_dynamic_linker(self):
         '''
         We use the order of languages in `clike_langs` to determine which
@@ -878,9 +900,20 @@ You probably should put it in link_with instead.''')
         that can link compiled C. We don't actually need to add an exception
         for Vala here because of that.
         '''
+        # Populate list of all compilers, not just those being used to compile
+        # sources in this target
+        if self.is_cross:
+            all_compilers = self.environment.coredata.cross_compilers
+        else:
+            all_compilers = self.environment.coredata.compilers
+        # Languages used by dependencies
+        dep_langs = self.get_langs_used_by_deps()
+        # Pick a compiler based on the language priority-order
         for l in clike_langs:
-            if l in self.compilers:
-                return self.compilers[l]
+            if l in self.compilers or l in dep_langs:
+                return all_compilers[l]
+        m = 'Could not get a dynamic linker for build target {!r}'
+        raise AssertionError(m.format(self.name))
 
     def get_using_msvc(self):
         '''
