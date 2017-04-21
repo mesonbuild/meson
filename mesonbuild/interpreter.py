@@ -2313,9 +2313,11 @@ class Interpreter(InterpreterBase):
                 raise InterpreterException('Input must be a string or a file')
             if isinstance(inputfile, str):
                 inputfile = os.path.join(self.subdir, inputfile)
+                ifile_abs = os.path.join(self.environment.source_dir, inputfile)
             else:
+                ifile_abs = inputfile.absolute_path(self.environment.source_dir,
+                                                    self.environment.build_dir)
                 inputfile = inputfile.relative_name()
-            ifile_abs = os.path.join(self.environment.source_dir, inputfile)
         elif 'command' in kwargs and '@INPUT@' in kwargs['command']:
             raise InterpreterException('@INPUT@ used as command argument, but no input file specified.')
         # Validate output
