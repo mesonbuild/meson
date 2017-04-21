@@ -12,13 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project('C and C++ static link test', ['c', 'cpp'],
-        default_options : ['cpp_std=c++03'])
+project('C and C++ static link test', ['c', 'cpp'])
 
-dep_boost = dependency('boost')
-
-libcppfoo = static_library('cppfoo', ['foo.cpp', 'foo.hpp'],
-                           dependencies : dep_boost)
+libcppfoo = static_library('cppfoo', ['foo.cpp', 'foo.hpp'])
 libcfoo = static_library('cfoo', ['foo.c', 'foo.h'])
 
 libfoo = shared_library(

@@ -13,10 +13,17 @@
  * limitations under the License.
  */
 #include <vector>
-#include <boost/assign/list_of.hpp>
+
+const int cnums[] = {0, 61};
+
+template<typename T, int N>
+std::vector<T> makeVector(const T (&data)[N])
+{
+    return std::vector<T>(data, data+N);
+}
 
 namespace {
-    std::vector<int> numbers = boost::assign::list_of(61);
+    std::vector<int> numbers = makeVector(cnums);
 }
 
 extern "C" int six_one(void) {
