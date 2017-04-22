@@ -982,14 +982,7 @@ class CompilerHolder(InterpreterObject):
         if required and not linkargs:
             l = self.compiler.language.capitalize()
             raise InterpreterException('{} library {!r} not found'.format(l, libname))
-        # If this is set to None, the library and link arguments are for
-        # a C-like compiler. Otherwise, it's for some other language that has
-        # a find_library implementation. We do this because it's easier than
-        # maintaining a list of languages that can consume C libraries.
-        lang = None
-        if self.compiler.language == 'vala':
-            lang = 'vala'
-        lib = dependencies.ExternalLibrary(libname, linkargs, language=lang)
+        lib = dependencies.ExternalLibrary(libname, linkargs, self.compiler.language)
         return ExternalLibraryHolder(lib)
 
     def has_argument_method(self, args, kwargs):
@@ -2320,9 +2313,11 @@ class Interpreter(InterpreterBase):
                 raise InterpreterException('Input must be a string or a file')
             if isinstance(inputfile, str):
                 inputfile = os.path.join(self.subdir, inputfile)
+                ifile_abs = os.path.join(self.environment.source_dir, inputfile)
             else:
+                ifile_abs = inputfile.absolute_path(self.environment.source_dir,
+                                                    self.environment.build_dir)
                 inputfile = inputfile.relative_name()
-            ifile_abs = os.path.join(self.environment.source_dir, inputfile)
         elif 'command' in kwargs and '@INPUT@' in kwargs['command']:
             raise InterpreterException('@INPUT@ used as command argument, but no input file specified.')
         # Validate output
