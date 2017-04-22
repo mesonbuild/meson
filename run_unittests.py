@@ -1060,6 +1060,17 @@ class AllPlatformTests(BasePlatformTests):
             self.utime(os.path.join(testdir, f))
             self.assertRebuiltTarget('prog')
 
+    def test_static_library_lto(self):
+        '''
+        Test that static libraries can be built with LTO and linked to
+        executables. On Linux, this requires the use of gcc-ar.
+        https://github.com/mesonbuild/meson/issues/1646
+        '''
+        testdir = os.path.join(self.common_test_dir, '5 linkstatic')
+        self.init(testdir, extra_args='-Db_lto=true')
+        self.build()
+        self.run_tests()
+
 
 class WindowsTests(BasePlatformTests):
     '''

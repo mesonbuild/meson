@@ -262,8 +262,10 @@ class Environment:
         self.default_objc = ['cc']
         self.default_objcpp = ['c++']
         self.default_fortran = ['gfortran', 'g95', 'f95', 'f90', 'f77']
-        self.default_static_linker = 'ar'
-        self.vs_static_linker = 'lib'
+        self.default_static_linker = ['ar']
+        self.vs_static_linker = ['lib']
+        self.gcc_static_linker = ['gcc-ar']
+        self.clang_static_linker = ['llvm-ar']
 
         # Various prefixes and suffixes for import libraries, shared libraries,
         # static libraries, and executables.
@@ -433,8 +435,8 @@ class Environment:
             exe_wrap = None
         return compilers, ccache, is_cross, exe_wrap
 
-    def _handle_compiler_exceptions(self, exceptions, compilers):
-        errmsg = 'Unknown compiler(s): ' + str(compilers)
+    def _handle_exceptions(self, exceptions, binaries, bintype='compiler'):
+        errmsg = 'Unknown {}(s): {}'.format(bintype, binaries)
         if exceptions:
             errmsg += '\nThe follow exceptions were encountered:'
             for (c, e) in exceptions.items():
@@ -484,7 +486,7 @@ class Environment:
                 inteltype = ICC_STANDARD
                 cls = IntelCCompiler if lang == 'c' else IntelCPPCompiler
                 return cls(ccache + compiler, version, inteltype, is_cross, exe_wrap)
-        self._handle_compiler_exceptions(popen_exceptions, compilers)
+        self._handle_exceptions(popen_exceptions, compilers)
 
     def detect_c_compiler(self, want_cross):
         return self._detect_c_or_cpp_compiler('c', 'CC', want_cross)
@@ -537,7 +539,7 @@ class Environment:
 
                 if 'NAG Fortran' in err:
                     return NAGFortranCompiler(compiler, version, is_cross, exe_wrap)
-        self._handle_compiler_exceptions(popen_exceptions, compilers)
+        self._handle_exceptions(popen_exceptions, compilers)
 
     def get_scratch_dir(self):
         return self.scratch_dir
@@ -570,7 +572,7 @@ class Environment:
                 return ClangObjCCompiler(ccache + compiler, version, CLANG_OSX, is_cross, exe_wrap)
             if out.startswith('clang'):
                 return ClangObjCCompiler(ccache + compiler, version, CLANG_STANDARD, is_cross, exe_wrap)
-        self._handle_compiler_exceptions(popen_exceptions, compilers)
+        self._handle_exceptions(popen_exceptions, compilers)
 
     def detect_objcpp_compiler(self, want_cross):
         popen_exceptions = {}
@@ -596,7 +598,7 @@ class Environment:
                 return ClangObjCPPCompiler(ccache + compiler, version, CLANG_OSX, is_cross, exe_wrap)
             if out.startswith('clang'):
                 return ClangObjCPPCompiler(ccache + compiler, version, CLANG_STANDARD, is_cross, exe_wrap)
-        self._handle_compiler_exceptions(popen_exceptions, compilers)
+        self._handle_exceptions(popen_exceptions, compilers)
 
     def detect_java_compiler(self):
         exelist = ['javac']
@@ -693,28 +695,39 @@ class Environment:
             linker = self.cross_info.config['binaries']['ar']
             if isinstance(linker, str):
                 linker = [linker]
+            linkers = [linker]
         else:
             evar = 'AR'
             if evar in os.environ:
-                linker = shlex.split(os.environ[evar])
+                linkers = [shlex.split(os.environ[evar])]
             elif isinstance(compiler, VisualStudioCCompiler):
-                linker = [self.vs_static_linker]
+                linkers = [self.vs_static_linker]
+            elif isinstance(compiler, GnuCompiler):
+                # Use gcc-ar if available; needed for LTO
+                linkers = [self.gcc_static_linker, self.default_static_linker]
+            elif isinstance(compiler, ClangCompiler):
+                # Use llvm-ar if available; needed for LTO
+                linkers = [self.clang_static_linker, self.default_static_linker]
             else:
-                linker = [self.default_static_linker]
-        if 'lib' in linker or 'lib.exe' in linker:
-            arg = '/?'
-        else:
-            arg = '--version'
-        try:
-            p, out, err = Popen_safe(linker + [arg])
-        except OSError:
-            raise EnvironmentException('Could not execute static linker "%s".' % ' '.join(linker))
-        if '/OUT:' in out or '/OUT:' in err:
-            return VisualStudioLinker(linker)
-        if p.returncode == 0:
-            return ArLinker(linker)
-        if p.returncode == 1 and err.startswith('usage'): # OSX
-            return ArLinker(linker)
+                linkers = [self.default_static_linker]
+        popen_exceptions = {}
+        for linker in linkers:
+            if 'lib' in linker or 'lib.exe' in linker:
+                arg = '/?'
+            else:
+                arg = '--version'
+            try:
+                p, out, err = Popen_safe(linker + [arg])
+            except OSError as e:
+                popen_exceptions[' '.join(linker + [arg])] = e
+                continue
+            if '/OUT:' in out or '/OUT:' in err:
+                return VisualStudioLinker(linker)
+            if p.returncode == 0:
+                return ArLinker(linker)
+            if p.returncode == 1 and err.startswith('usage'): # OSX
+                return ArLinker(linker)
+        self._handle_exceptions(popen_exceptions, linkers, 'linker')
         raise EnvironmentException('Unknown static linker "%s"' % ' '.join(linker))
 
     def detect_ccache(self):
