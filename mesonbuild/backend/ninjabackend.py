@@ -1450,12 +1450,13 @@ int dummy;
 
     def generate_swift_compile_rules(self, compiler, outfile):
         rule = 'rule %s_COMPILER\n' % compiler.get_language()
-        full_exe = [sys.executable,
-                    self.environment.get_build_command(),
+        full_exe = [ninja_quote(sys.executable),
+                    ninja_quote(self.environment.get_build_command()),
                     '--internal',
                     'dirchanger',
-                    '$RUNDIR'] + compiler.get_exelist()
-        invoc = ' '.join([ninja_quote(i) for i in full_exe])
+                    '$RUNDIR']
+        invoc = (' '.join(full_exe) + ' ' +
+                 ' '.join(ninja_quote(i) for i in compiler.get_exelist()))
         command = ' command = %s $ARGS $in\n' % invoc
         description = ' description = Compiling Swift source $in.\n'
         outfile.write(rule)
