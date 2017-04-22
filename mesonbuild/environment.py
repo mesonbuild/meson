@@ -24,6 +24,16 @@ import shutil
 
 build_filename = 'meson.build'
 
+# Environment variables that each lang uses.
+cflags_mapping = {'c': 'CFLAGS',
+                  'cpp': 'CXXFLAGS',
+                  'objc': 'OBJCFLAGS',
+                  'objcpp': 'OBJCXXFLAGS',
+                  'fortran': 'FFLAGS',
+                  'd': 'DFLAGS',
+                  'vala': 'VALAFLAGS'}
+
+
 def find_coverage_tools():
     gcovr_exe = 'gcovr'
     lcov_exe = 'lcov'
@@ -808,15 +818,6 @@ def get_args_from_envvars(compiler):
     compiler_is_linker = False
     if hasattr(compiler, 'get_linker_exelist'):
         compiler_is_linker = (compiler.get_exelist() == compiler.get_linker_exelist())
-
-    # Compile flags
-    cflags_mapping = {'c': 'CFLAGS',
-                      'cpp': 'CXXFLAGS',
-                      'objc': 'OBJCFLAGS',
-                      'objcpp': 'OBJCXXFLAGS',
-                      'fortran': 'FFLAGS',
-                      'd': 'DFLAGS',
-                      'vala': 'VALAFLAGS'}
 
     if lang not in cflags_mapping.keys():
         return [], [], []

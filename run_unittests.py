@@ -1556,5 +1556,15 @@ class RewriterTests(unittest.TestCase):
         self.assertEqual(s2, self.read_contents('sub2/meson.build'))
 
 
+def unset_envs():
+    # For unit tests we must fully control all commend lines
+    # so that there are no unexpected changes coming from the
+    # environment, for example when doing a package build.
+    varnames = ['CPPFLAGS', 'LDFLAGS'] + list(mesonbuild.environment.cflags_mapping.values())
+    for v in varnames:
+        if v in os.environ:
+            del os.environ[v]
+
 if __name__ == '__main__':
+    unset_envs()
     unittest.main(buffer=True)
