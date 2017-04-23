@@ -232,18 +232,14 @@ def search_version(text):
     return 'unknown version'
 
 class Environment:
-    private_dir = 'meson-private'
-    log_dir = 'meson-logs'
-    coredata_file = os.path.join(private_dir, 'coredata.dat')
+    coredata_file = os.path.join(coredata.private_dir, 'coredata.dat')
 
     def __init__(self, source_dir, build_dir, main_script_launcher, options, original_cmd_line_args):
         self.source_dir = source_dir
         self.build_dir = build_dir
         self.meson_script_launcher = main_script_launcher
-        self.scratch_dir = os.path.join(build_dir, Environment.private_dir)
-        self.log_dir = os.path.join(build_dir, Environment.log_dir)
-        os.makedirs(self.scratch_dir, exist_ok=True)
-        os.makedirs(self.log_dir, exist_ok=True)
+        self.scratch_dir = os.path.join(build_dir, coredata.private_dir)
+        self.log_dir = os.path.join(build_dir, coredata.log_dir)
         try:
             cdf = os.path.join(self.get_build_dir(), Environment.coredata_file)
             self.coredata = coredata.load(cdf)
@@ -261,6 +257,9 @@ class Environment:
             self.cross_info = None
         self.cmd_line_options = options
         self.original_cmd_line_args = original_cmd_line_args
+        # Create private dir and log dir if needed
+        os.makedirs(self.scratch_dir, exist_ok=True)
+        os.makedirs(self.log_dir, exist_ok=True)
 
         # List of potential compilers.
         if mesonlib.is_windows():

@@ -26,6 +26,7 @@ from ..build import BuildTarget
 from ..compilers import CompilerArgs
 from ..mesonlib import MesonException, File, get_meson_script
 from ..environment import Environment
+from ..coredata import private_dir as meson_private_dir
 
 def autodetect_vs_version(build):
     vs_version = os.getenv('VisualStudioVersion', None)
@@ -190,7 +191,7 @@ class Vs2010Backend(backends.Backend):
 
     @staticmethod
     def get_regen_stampfile(build_dir):
-        return os.path.join(os.path.join(build_dir, Environment.private_dir), 'regen.stamp')
+        return os.path.join(os.path.join(build_dir, meson_private_dir), 'regen.stamp')
 
     @staticmethod
     def touch_regen_timestamp(build_dir):

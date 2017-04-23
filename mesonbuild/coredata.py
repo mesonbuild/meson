@@ -15,11 +15,29 @@
 import pickle, os, uuid
 from pathlib import PurePath
 from collections import OrderedDict
+import ast
+import shutil
+
 from .mesonlib import MesonException, commonpath
 from .mesonlib import default_libdir, default_libexecdir, default_prefix
-import ast
 
+# For releases, keep this in the format:
+#
+#   {major}.{minor}.{micro}
+#
+# {micro} is incremented for stable releases.
+#
+# During development, keep this in the format:
+#
+#   {major}.{minor}.0dev{N}
+#
+# {N} must be incremented whenever the format of any pickled/serialized data is
+# changed. For example, adding new class variables to Coredata, to Dependency
+# objects, etc, or changing the format of the data file used during install,
+# and so on. If in doubt, request someone to cross-check during PR review.
 version = '0.41.0.dev1'
+private_dir = 'meson-private'
+log_dir = 'meson-logs'
 backendlist = ['ninja', 'vs', 'vs2010', 'vs2015', 'vs2017', 'xcode']
 
 class UserOption:
@@ -139,6 +157,7 @@ class UserStringArrayOption(UserOption):
 class CoreData:
 
     def __init__(self, options):
+        global version
         self.guid = str(uuid.uuid4()).upper()
         self.test_guid = str(uuid.uuid4()).upper()
         self.regen_guid = str(uuid.uuid4()).upper()
@@ -241,6 +260,7 @@ class CoreData:
         raise MesonException('Tried to validate unknown option %s.' % option_name)
 
 def load(filename):
+    global version
     load_fail_msg = 'Coredata file {!r} is corrupted. Try with a fresh build tree.'.format(filename)
     try:
         with open(filename, 'rb') as f:
@@ -250,11 +270,31 @@ def load(filename):
     if not isinstance(obj, CoreData):
         raise MesonException(load_fail_msg)
     if obj.version != version:
-        raise MesonException('Build directory has been generated with Meson version %s, which is incompatible with current version %s.\nPlease delete this build directory AND create a new one.' %
-                             (obj.version, version))
+        # If running in CI mode and the versions don't match, just wipe it all.
+        # This allows people to build their projects on a CI with the latest
+        # meson master without needing manual intervention to delete the build
+        # dir when the version changes.
+        if 'MESON_CI_MODE' in os.environ:
+            # Automatically wipe the contents of the builddir and re-create it.
+            # We don't delete the builddir itself because it may, for instance,
+            # be a symlink or a mount point, or have special attributes.
+            builddir = PurePath(filename).parent.parent
+            for each in os.listdir(str(builddir)):
+                if os.path.isdir(each):
+                    shutil.rmtree(each)
+                else:
+                    os.remove(each)
+            # Raise this to signal that the coredata file no longer exists
+            raise FileNotFoundError
+        else:
+            m = 'Build directory has been generated with Meson version {}, ' \
+                'which is incompatible with the current version {}.\nPlease ' \
+                'delete this build directory AND create a new one.'
+            raise MesonException(m.format(obj.version, version))
     return obj
 
 def save(obj, filename):
+    global version
     if obj.version != version:
         raise MesonException('Fatal version mismatch corruption.')
     with open(filename, 'wb') as f:

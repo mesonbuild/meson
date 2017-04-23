@@ -24,6 +24,7 @@ from pathlib import PurePath
 import mesonbuild.compilers
 import mesonbuild.environment
 import mesonbuild.mesonlib
+import mesonbuild.mesonmain
 from mesonbuild.mesonlib import is_windows, is_osx, is_cygwin
 from mesonbuild.environment import Environment
 from mesonbuild.dependencies import PkgConfigDependency, ExternalProgram
@@ -335,7 +336,8 @@ class BasePlatformTests(unittest.TestCase):
         # Get the backend
         # FIXME: Extract this from argv?
         self.backend = getattr(Backend, os.environ.get('MESON_UNIT_TEST_BACKEND', 'ninja'))
-        self.meson_command = [sys.executable, os.path.join(src_root, 'meson.py'),
+        self.meson_py = os.path.join(src_root, 'meson.py')
+        self.meson_command = [sys.executable, self.meson_py,
                               '--backend=' + self.backend.name]
         self.mconf_command = [sys.executable, os.path.join(src_root, 'mesonconf.py')]
         self.mintro_command = [sys.executable, os.path.join(src_root, 'mesonintrospect.py')]
@@ -384,7 +386,7 @@ class BasePlatformTests(unittest.TestCase):
             raise subprocess.CalledProcessError(p.returncode, command)
         return output
 
-    def init(self, srcdir, extra_args=None, default_args=True):
+    def init(self, srcdir, extra_args=None, default_args=True, inprocess=False):
         self.assertTrue(os.path.exists(srcdir))
         if extra_args is None:
             extra_args = []
@@ -394,8 +396,12 @@ class BasePlatformTests(unittest.TestCase):
         if default_args:
             args += ['--prefix', self.prefix,
                      '--libdir', self.libdir]
+        args += extra_args
         try:
-            self._run(self.meson_command + args + extra_args)
+            if inprocess:
+                mesonbuild.mesonmain.run(self.meson_py, self.meson_command[2:] + args)
+            else:
+                self._run(self.meson_command + args)
         except:
             self._print_meson_log()
             raise
@@ -1107,6 +1113,30 @@ int main(int argc, char **argv) {
             checksumfile = distfile + '.sha256sum'
             self.assertTrue(os.path.exists(distfile))
             self.assertTrue(os.path.exists(checksumfile))
+
+    def test_ci_auto_version_mismatch_wipe(self):
+        '''
+        Test that when the meson version changes, reconfigure fails, and if you
+        enable MESON_CI_MODE, the reconfigure will wipe everything and build
+        from scratch automatically.
+        '''
+        testdir = os.path.join(self.common_test_dir, '1 trivial')
+        # Set the version as something ancient and configure
+        current_version = mesonbuild.mesonmain.coredata.version
+        mesonbuild.mesonmain.coredata.version = '0.27.0'
+        self.init(testdir, inprocess=True)
+        mesonbuild.mesonmain.coredata.version = current_version
+        # Build should succeed
+        self.build()
+        # Make changes to meson.build
+        self.utime(os.path.join(testdir, 'meson.build'))
+        # Build should fail because of version mismatch
+        with self.assertRaises(subprocess.CalledProcessError, msg='is incompatible with'):
+            self.build()
+        # Build should automatically reconfigure and rebuild from scratch
+        os.environ['MESON_CI_MODE'] = '1'
+        self.build()
+
 
 class WindowsTests(BasePlatformTests):
     '''
