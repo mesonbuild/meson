@@ -175,11 +175,16 @@ int dummy;
                               stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (stdo, _) = pc.communicate()
 
+        # We want to match 'Note: including file: ' in the line
+        # 'Note: including file: d:\MyDir\include\stdio.h', however
+        # different locales have different messages with a different
+        # number of colons. Match up to the the drive name 'd:\'.
+        matchre = re.compile(rb"^(.*\s)[a-zA-Z]:\\.*stdio.h$")
         for line in stdo.split(b'\r\n'):
-            if line.endswith(b'stdio.h'):
-                matchstr = b':'.join(line.split(b':')[0:2]) + b':'
+            match = matchre.match(line)
+            if match:
                 with open(tempfilename, 'ab') as binfile:
-                    binfile.write(b'msvc_deps_prefix = ' + matchstr + b'\n')
+                    binfile.write(b'msvc_deps_prefix = ' + match.group(1) + b'\n')
                 return open(tempfilename, 'a')
         raise MesonException('Could not determine vs dep dependency prefix string.')
 
