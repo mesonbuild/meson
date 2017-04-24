@@ -371,7 +371,7 @@ def do_replacement(regex, line, confdata):
     match = re.search(regex, line)
     while match:
         varname = match.group(1)
-        if varname in confdata.keys():
+        if varname in confdata:
             (var, desc) = confdata.get(varname)
             if isinstance(var, str):
                 pass

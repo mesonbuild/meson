@@ -819,7 +819,7 @@ def get_args_from_envvars(compiler):
     if hasattr(compiler, 'get_linker_exelist'):
         compiler_is_linker = (compiler.get_exelist() == compiler.get_linker_exelist())
 
-    if lang not in cflags_mapping.keys():
+    if lang not in cflags_mapping:
         return [], [], []
 
     compile_flags = os.environ.get(cflags_mapping[lang], '')
