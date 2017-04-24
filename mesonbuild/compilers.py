@@ -621,16 +621,16 @@ class Compiler:
             'Language {} does not support has_multi_arguments.'.format(
                 self.language))
 
-    def get_cross_extra_flags(self, environment, *, compile, link):
+    def get_cross_extra_flags(self, environment, link):
         extra_flags = []
         if self.is_cross and environment:
             if 'properties' in environment.cross_info.config:
+                props = environment.cross_info.config['properties']
                 lang_args_key = self.language + '_args'
-                if compile:
-                    extra_flags += environment.cross_info.config['properties'].get(lang_args_key, [])
+                extra_flags += props.get(lang_args_key, [])
                 lang_link_args_key = self.language + '_link_args'
                 if link:
-                    extra_flags += environment.cross_info.config['properties'].get(lang_link_args_key, [])
+                    extra_flags += props.get(lang_link_args_key, [])
         return extra_flags
 
     def _get_compile_output(self, dirname, mode):
@@ -871,10 +871,10 @@ class CCompiler(Compiler):
                 # on OSX the compiler binary is the same but you need
                 # a ton of compiler flags to differentiate between
                 # arm and x86_64. So just compile.
-                extra_flags += self.get_cross_extra_flags(environment, compile=True, link=False)
+                extra_flags += self.get_cross_extra_flags(environment, link=False)
                 extra_flags += self.get_compile_only_args()
             else:
-                extra_flags += self.get_cross_extra_flags(environment, compile=True, link=True)
+                extra_flags += self.get_cross_extra_flags(environment, link=True)
         # Is a valid executable output for all toolchains and platforms
         binname += '.exe'
         # Write binary check source
@@ -956,8 +956,7 @@ class CCompiler(Compiler):
         if mode == 'link':
             args += self.get_linker_debug_crt_args()
         # Read c_args/cpp_args/etc from the cross-info file (if needed)
-        args += self.get_cross_extra_flags(env, compile=(mode != 'preprocess'),
-                                           link=(mode == 'link'))
+        args += self.get_cross_extra_flags(env, link=(mode == 'link'))
         if mode == 'preprocess':
             # Add CPPFLAGS from the env.
             args += env.coredata.external_preprocess_args[self.language]
@@ -1330,7 +1329,7 @@ class CCompiler(Compiler):
         }
         #endif
         '''
-        args = self.get_cross_extra_flags(env, compile=True, link=False)
+        args = self.get_cross_extra_flags(env, link=False)
         args += self.get_compiler_check_args()
         n = 'symbols_have_underscore_prefix'
         with self.compile(code, args, 'compile') as p:
@@ -1430,7 +1429,7 @@ class ObjCCompiler(CCompiler):
         # TODO try to use sanity_check_impl instead of duplicated code
         source_name = os.path.join(work_dir, 'sanitycheckobjc.m')
         binary_name = os.path.join(work_dir, 'sanitycheckobjc')
-        extra_flags = self.get_cross_extra_flags(environment, compile=True, link=False)
+        extra_flags = self.get_cross_extra_flags(environment, link=False)
         if self.is_cross:
             extra_flags += self.get_compile_only_args()
         with open(source_name, 'w') as ofile:
@@ -1457,7 +1456,7 @@ class ObjCPPCompiler(CPPCompiler):
         # TODO try to use sanity_check_impl instead of duplicated code
         source_name = os.path.join(work_dir, 'sanitycheckobjcpp.mm')
         binary_name = os.path.join(work_dir, 'sanitycheckobjcpp')
-        extra_flags = self.get_cross_extra_flags(environment, compile=True, link=False)
+        extra_flags = self.get_cross_extra_flags(environment, link=False)
         if self.is_cross:
             extra_flags += self.get_compile_only_args()
         with open(source_name, 'w') as ofile:
@@ -1684,7 +1683,7 @@ class ValaCompiler(Compiler):
 
     def sanity_check(self, work_dir, environment):
         code = 'class MesonSanityCheck : Object { }'
-        args = self.get_cross_extra_flags(environment, compile=True, link=False)
+        args = self.get_cross_extra_flags(environment, link=False)
         with self.compile(code, args, 'compile') as p:
             if p.returncode != 0:
                 msg = 'Vala compiler {!r} can not compile programs' \
@@ -1704,7 +1703,7 @@ class ValaCompiler(Compiler):
         if len(extra_dirs) == 0:
             code = 'class MesonFindLibrary : Object { }'
             vapi_args = ['--pkg', libname]
-            args = self.get_cross_extra_flags(env, compile=True, link=False)
+            args = self.get_cross_extra_flags(env, link=False)
             args += vapi_args
             with self.compile(code, args, 'compile') as p:
                 if p.returncode == 0:
@@ -1821,7 +1820,7 @@ class SwiftCompiler(Compiler):
         with open(source_name, 'w') as ofile:
             ofile.write('''print("Swift compilation is working.")
 ''')
-        extra_flags = self.get_cross_extra_flags(environment, compile=True, link=True)
+        extra_flags = self.get_cross_extra_flags(environment, link=True)
         pc = subprocess.Popen(self.exelist + extra_flags + ['-emit-executable', '-o', output_name, src], cwd=work_dir)
         pc.wait()
         if pc.returncode != 0:
@@ -2249,7 +2248,7 @@ class VisualStudioCCompiler(CCompiler):
         with open(srcname, 'w') as ofile:
             ofile.write(code)
         # Read c_args/cpp_args/etc from the cross-info file (if needed)
-        extra_args = self.get_cross_extra_flags(env, compile=True, link=False)
+        extra_args = self.get_cross_extra_flags(env, link=False)
         extra_args += self.get_compile_only_args()
         commands = self.exelist + args + extra_args + [srcname]
         mlog.debug('Running VS compile:')
@@ -2841,7 +2840,7 @@ class FortranCompiler(Compiler):
      print *, "Fortran compilation is working."
 end program prog
 ''')
-        extra_flags = self.get_cross_extra_flags(environment, compile=True, link=True)
+        extra_flags = self.get_cross_extra_flags(environment, link=True)
         pc = subprocess.Popen(self.exelist + extra_flags + [source_name, '-o', binary_name])
         pc.wait()
         if pc.returncode != 0:
