@@ -115,6 +115,10 @@ class InternalDependency(Dependency):
     def get_link_args(self):
         return self.link_args
 
+    def found(self):
+        # True when ext_deps is empty
+        return all(d.found() for d in self.ext_deps)
+
     def get_version(self):
         return self.version
 
