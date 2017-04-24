@@ -271,7 +271,7 @@ class Environment:
             self.default_cpp = ['c++']
         self.default_objc = ['cc']
         self.default_objcpp = ['c++']
-        self.default_fortran = ['gfortran', 'g95', 'f95', 'f90', 'f77']
+        self.default_fortran = ['gfortran', 'g95', 'f95', 'f90', 'f77', 'ifort']
         self.default_static_linker = ['ar']
         self.vs_static_linker = ['lib']
         self.gcc_static_linker = ['gcc-ar']
