@@ -43,7 +43,7 @@ class PkgConfigModule(ExtensionModule):
 
     def generate_pkgconfig_file(self, state, libraries, subdirs, name, description,
                                 url, version, pcfile, pub_reqs, priv_reqs,
-                                conflicts, priv_libs):
+                                conflicts, priv_libs, variables):
         coredata = state.environment.get_coredata()
         outdir = state.environment.scratch_dir
         fname = os.path.join(outdir, pcfile)
@@ -53,6 +53,8 @@ class PkgConfigModule(ExtensionModule):
             # 'os.path.join' for details)
             ofile.write('libdir=%s\n' % os.path.join('${prefix}', coredata.get_builtin_option('libdir')))
             ofile.write('includedir=%s\n' % os.path.join('${prefix}', coredata.get_builtin_option('includedir')))
+            for k, v in variables:
+                ofile.write('%s=%s\n' % (k, v))
             ofile.write('\n')
             ofile.write('Name: %s\n' % name)
             if len(description) > 0:
@@ -136,6 +138,33 @@ class PkgConfigModule(ExtensionModule):
         pub_reqs = mesonlib.stringlistify(kwargs.get('requires', []))
         priv_reqs = mesonlib.stringlistify(kwargs.get('requires_private', []))
         conflicts = mesonlib.stringlistify(kwargs.get('conflicts', []))
+
+        def parse_variable_list(stringlist):
+            reserved = ['prefix', 'libdir', 'includedir']
+            variables = []
+            for var in stringlist:
+                # foo=bar=baz is ('foo', 'bar=baz')
+                l = var.split('=', 1)
+                if len(l) < 2:
+                    raise mesonlib.MesonException('Variables must be in \'name=value\' format')
+
+                name, value = l[0].strip(), l[1].strip()
+                if not name or not value:
+                    raise mesonlib.MesonException('Variables must be in \'name=value\' format')
+
+                # Variable names must not contain whitespaces
+                if any(c.isspace() for c in name):
+                    raise mesonlib.MesonException('Invalid whitespace in assignment "{}"'.format(var))
+
+                if name in reserved:
+                    raise mesonlib.MesonException('Variable "{}" is reserved'.format(name))
+
+                variables.append((name, value))
+
+            return variables
+
+        variables = parse_variable_list(mesonlib.stringlistify(kwargs.get('variables', [])))
+
         pcfile = filebase + '.pc'
         pkgroot = kwargs.get('install_dir', None)
         if pkgroot is None:
@@ -144,7 +173,7 @@ class PkgConfigModule(ExtensionModule):
             raise mesonlib.MesonException('Install_dir must be a string.')
         self.generate_pkgconfig_file(state, libs, subdirs, name, description, url,
                                      version, pcfile, pub_reqs, priv_reqs,
-                                     conflicts, priv_libs)
+                                     conflicts, priv_libs, variables)
         res = build.Data(mesonlib.File(True, state.environment.get_scratch_dir(), pcfile), pkgroot)
         return ModuleReturnValue(res, [res])
 
