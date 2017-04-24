@@ -356,13 +356,16 @@ class WxDependency(Dependency):
     def __init__(self, environment, kwargs):
         Dependency.__init__(self, 'wx', kwargs)
         self.is_found = False
+        # FIXME: use version instead of modversion
         self.modversion = 'none'
         if WxDependency.wx_found is None:
             self.check_wxconfig()
         if not WxDependency.wx_found:
+            # FIXME: this message could be printed after Dependncy found
             mlog.log("Neither wx-config-3.0 nor wx-config found; can't detect dependency")
             return
 
+        # FIXME: This should print stdout and stderr using mlog.debug
         p, out = Popen_safe([self.wxc, '--version'])[0:2]
         if p.returncode != 0:
             mlog.log('Dependency wxwidgets found:', mlog.red('NO'))
@@ -382,10 +385,12 @@ class WxDependency(Dependency):
             # wx-config seems to have a cflags as well but since it requires C++,
             # this should be good, at least for now.
             p, out = Popen_safe([self.wxc, '--cxxflags'])[0:2]
+            # FIXME: this error should only be raised if required is true
             if p.returncode != 0:
                 raise DependencyException('Could not generate cargs for wxwidgets.')
             self.cargs = out.split()
 
+            # FIXME: this error should only be raised if required is true
             p, out = Popen_safe([self.wxc, '--libs'] + self.requested_modules)[0:2]
             if p.returncode != 0:
                 raise DependencyException('Could not generate libs for wxwidgets.')
