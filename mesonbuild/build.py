@@ -909,7 +909,14 @@ You probably should put it in link_with instead.''')
         # Pick a compiler based on the language priority-order
         for l in clike_langs:
             if l in self.compilers or l in dep_langs:
-                return all_compilers[l]
+                try:
+                    return all_compilers[l]
+                except KeyError:
+                    raise MesonException(
+                        'Could not get a dynamic linker for build target {!r}. '
+                        'Requires a linker for language "{}", but that is not '
+                        'a project language.'.format(self.name, l))
+
         m = 'Could not get a dynamic linker for build target {!r}'
         raise AssertionError(m.format(self.name))
 
