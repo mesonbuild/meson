@@ -159,7 +159,7 @@ class Resolver:
             return False
         # Submodule has not been added, add it
         if out.startswith(b'-'):
-            if subprocess.call(['git', 'submodule', 'update', dirname]) != 0:
+            if subprocess.call(['git', 'submodule', 'update', '--init', dirname]) != 0:
                 return False
         # Submodule was added already, but it wasn't populated. Do a checkout.
         elif out.startswith(b' '):
