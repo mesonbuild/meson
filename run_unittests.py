@@ -24,7 +24,7 @@ from pathlib import PurePath
 import mesonbuild.compilers
 import mesonbuild.environment
 import mesonbuild.mesonlib
-from mesonbuild.mesonlib import is_windows, is_osx, is_cygwin
+from mesonbuild.mesonlib import is_windows, is_osx, is_cygwin, OrderedSet
 from mesonbuild.environment import Environment
 from mesonbuild.dependencies import PkgConfigDependency, ExternalProgram
 
@@ -315,6 +315,13 @@ class InternalTests(unittest.TestCase):
         # Many outputs, can't use @OUTPUT@ like this
         cmd = ['@OUTPUT@.out', 'ordinary', 'strings']
         self.assertRaises(ME, substfunc, cmd, d)
+
+    def test_ordered_set(self):
+        oset = OrderedSet()
+        oset.update(['a', 'b', 'c'])
+        self.assertListEqual(['a', 'b', 'c'], list(oset))
+        oset |= ['c', 'd', 'e', 'f']
+        self.assertListEqual(['a', 'b', 'c', 'd', 'e', 'f'], list(oset))
 
 
 class BasePlatformTests(unittest.TestCase):
