@@ -60,11 +60,11 @@ You can omit either of the two directories, and Meson will substitute
 the current directory and autodetect what you mean. This allows you to
 do things like this:
 
-`cd source_root; mkdir build; cd build; meson ..`
+`cd source_root; mkdir builddir; cd builddir; meson ..`
 
 or
 
-`cd source_root; mkdir build; meson build`
+`cd source_root; mkdir builddir; meson builddir`
 
 To compile, cd into your build directory and type `ninja`. To run unit
 tests, type `ninja test`.
