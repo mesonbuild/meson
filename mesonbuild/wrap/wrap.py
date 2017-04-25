@@ -38,8 +38,9 @@ def build_ssl_context():
     ctx.load_default_certs()
     return ctx
 
-def quiet_git(cmd):
-    pc = subprocess.Popen(['git'] + cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+def quiet_git(cmd, workingdir):
+    pc = subprocess.Popen(['git', '-C', workingdir] + cmd,
+                          stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = pc.communicate()
     if pc.returncode != 0:
         return False, err
@@ -150,16 +151,16 @@ class Resolver:
 
     def resolve_git_submodule(self, dirname):
         # Are we in a git repository?
-        ret, out = quiet_git(['rev-parse'])
+        ret, out = quiet_git(['rev-parse'], self.subdir_root)
         if not ret:
             return False
         # Is `dirname` a submodule?
-        ret, out = quiet_git(['submodule', 'status', dirname])
+        ret, out = quiet_git(['submodule', 'status', dirname], self.subdir_root)
         if not ret:
             return False
         # Submodule has not been added, add it
         if out.startswith(b'-'):
-            if subprocess.call(['git', 'submodule', 'update', '--init', dirname]) != 0:
+            if subprocess.call(['git', '-C', self.subdir_root, 'submodule', 'update', '--init', dirname]) != 0:
                 return False
         # Submodule was added already, but it wasn't populated. Do a checkout.
         elif out.startswith(b' '):
