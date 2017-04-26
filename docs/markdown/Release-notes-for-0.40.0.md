@@ -1,9 +1,7 @@
 ---
 title: Release 0.40
-short-description: Release notes for 0.40 (unreleased)
+short-description: Release notes for 0.40
 ...
-
-**Preliminary, 0.40.0 has not been released yet**
 
 # New features
 
