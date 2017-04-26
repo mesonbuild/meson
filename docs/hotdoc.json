@@ -11,6 +11,6 @@
     "project_version": "1.0",
     "default-license": "CC-BY-SAv4.0",
     "sitemap": "sitemap.txt",
-    "git_upload_repository": "git@github.com:thiblahute/jpakkane.github.io.git",
+    "git_upload_repository": "git@github.com:jpakkane/jpakkane.github.io.git",
     "edit_on_github_repository": "https://github.com/mesonbuild/meson/"
 }
