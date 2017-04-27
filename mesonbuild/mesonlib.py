@@ -687,17 +687,37 @@ def get_filenames_templates_dict(inputs, outputs):
             values['@OUTDIR@'] = '.'
     return values
 
-class OrderedSet(collections.OrderedDict):
-    '''
-    A 'set' equivalent that preserves the order in which items are added.
-
-    This is a hack implementation that wraps OrderedDict. It may not be the
-    most efficient solution and might need fixing to override more methods.
-    '''
+class OrderedSet(collections.MutableSet):
+    """A set that preserves the order in which items are added, by first
+    insertion.
+    """
     def __init__(self, iterable=None):
+        self.__container = collections.OrderedDict()
         if iterable:
             self.update(iterable)
 
+    def __contains__(self, value):
+        return value in self.__container
+
+    def __iter__(self):
+        return iter(self.__container.keys())
+
+    def __len__(self):
+        return len(self.__container)
+
+    def __repr__(self):
+        # Don't print 'OrderedSet("")' for an empty set.
+        if self.__container:
+            return 'OrderedSet("{}")'.format('", "'.join(self.__container.keys()))
+        return 'OrderedSet()'
+
+    def add(self, value):
+        self.__container[value] = None
+
+    def discard(self, value):
+        if value in self.__container:
+            del self.__container[value]
+
     def update(self, iterable):
         for item in iterable:
-            self[item] = True
+            self.__container[item] = None
