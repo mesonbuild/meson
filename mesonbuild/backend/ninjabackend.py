@@ -720,7 +720,19 @@ int dummy;
                         d.targets.append([f, outdir, {}, False, None])
 
     def generate_custom_install_script(self, d):
-        d.install_scripts = self.build.install_scripts
+        result = []
+        srcdir = self.environment.get_source_dir()
+        builddir = self.environment.get_build_dir()
+        for i in self.build.install_scripts:
+            exe = i['exe']
+            args = i['args']
+            fixed_args = []
+            for a in args:
+                a = a.replace('@SOURCE_ROOT@', srcdir)
+                a = a.replace('@BUILD_ROOT@', builddir)
+                fixed_args.append(a)
+            result.append(build.RunScript(exe, fixed_args))
+        d.install_scripts = result
 
     def generate_header_install(self, d):
         incroot = self.environment.get_includedir()
