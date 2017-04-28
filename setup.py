@@ -30,28 +30,21 @@ if sys.version_info[0] < 3:
 # plain distutils when setuptools is not available.
 try:
     from setuptools import setup
-    from setuptools.command.install_scripts import install_scripts as orig
 except ImportError:
     from distutils.core import setup
-    from distutils.command.install_scripts import install_scripts as orig
 
-class install_scripts(orig):
-    def run(self):
-        if sys.platform == 'win32':
-            super().run()
-            return
-
-        self.outfiles = []
-        if not self.dry_run:
-            mkpath(self.install_dir)
-
-        # We want the files to be installed without a suffix on Unix
-        for infile in self.get_inputs():
-            in_stripped = infile[:-3] if infile.endswith('.py') else infile
-            outfile = os.path.join(self.install_dir, in_stripped)
-            # NOTE: Mode is preserved by default
-            copy_file(infile, outfile, dry_run=self.dry_run)
-            self.outfiles.append(outfile)
+if sys.platform == 'win32':
+    scripts = ['meson.py',
+               'mesonconf.py',
+               'mesontest.py',
+               'mesonintrospect.py',
+               'wraptool.py']
+else:
+    scripts = ['scripts/meson',
+               'scripts/mesonconf',
+               'scripts/mesontest',
+               'scripts/mesonintrospect',
+               'scripts/wraptool']
 
 setup(name='meson',
       version=version,
@@ -65,12 +58,7 @@ setup(name='meson',
                 'mesonbuild.scripts',
                 'mesonbuild.backend',
                 'mesonbuild.wrap'],
-      scripts=['meson.py',
-               'mesonconf.py',
-               'mesontest.py',
-               'mesonintrospect.py',
-               'wraptool.py'],
-      cmdclass={'install_scripts': install_scripts},
+      scripts=scripts,
       data_files=[('share/man/man1', ['man/meson.1',
                                       'man/mesonconf.1',
                                       'man/mesonintrospect.1',
