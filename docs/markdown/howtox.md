@@ -2,7 +2,7 @@
 
 This page lists code snippets for common tasks. These are written mostly using the C compiler, but the same approach should work on almost all other compilers.
 
-# Set compiler
+## Set compiler
 
 When first running Meson, set it in an environment variable.
 
@@ -10,14 +10,14 @@ When first running Meson, set it in an environment variable.
 $ CC=mycc meson <options>
 ```
 
-# Set default C/C++ language version
+## Set default C/C++ language version
 
 ```meson
 project('myproj', 'c', 'cpp',
         default_options : ['c_std=c11', 'cpp_std=c++11'])
 ```
 
-# Enable threads
+## Enable threads
 
 Lots of people seem to do this manually with `find_library('phtread')` or something similar. Do not do that. It is not portable. Instead do this.
 
@@ -26,7 +26,7 @@ thread_dep = dependency('threads')
 executable(..., dependencies : thread_dep)
 ```
 
-# Set extra compiler and linker flags from the outside (when e.g. building distro packages)
+## Set extra compiler and linker flags from the outside (when e.g. building distro packages)
 
 The behaviour is the same as with other build systems, with environment variables during first invocation.
 
@@ -34,7 +34,7 @@ The behaviour is the same as with other build systems, with environment variable
 $ CFLAGS=-fsomething LDFLAGS=-Wl,--linker-flag meson <options>
 ```
 
-# Use an argument only with a specific compiler
+## Use an argument only with a specific compiler
 
 First check which arguments to use.
 
@@ -60,7 +60,7 @@ if meson.get_compiler('c').get_id() == 'clang'
 endif
 ```
 
-# Set a command's output to configuration
+## Set a command's output to configuration
 
 ```meson
 txt = run_command('script', 'argument').stdout().strip()
@@ -69,7 +69,7 @@ cdata.set('SOMETHING', txt)
 configure_file(...)
 ```
 
-# Generate a runnable script with `configure_file`
+## Generate a runnable script with `configure_file`
 
 `configure_file` preserves metadata so if your template file has execute permissions, the generated file will have them too.
 
@@ -154,7 +154,3 @@ executable(..., dependencies : m_dep)
 ```meson
 executable(..., install : true, install_dir : get_option('libexecdir'))
 ```
-
-----
-
-[Wiki home](index.md)
