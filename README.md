@@ -1,5 +1,5 @@
 <p align="center">
-<img src="http://mesonbuild.com/meson_logo.png">
+<img src="http://mesonbuild.com/assets/images/meson_logo.png">
 </p>
 Meson® is a project to create the best possible next-generation
 build system.
