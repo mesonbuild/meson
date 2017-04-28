@@ -127,6 +127,8 @@ if __name__ == '__main__':
     # Running on a developer machine? Be nice!
     if not mesonlib.is_windows() and 'TRAVIS' not in os.environ:
         os.nice(20)
+    if shutil.which('hotdoc'):
+        returncode += subprocess.call(['hotdoc', 'run', '--disable-incremental'], cwd='docs')
     # Appveyor sets the `platform` environment variable which completely messes
     # up building with the vs2010 and vs2015 backends.
     #
