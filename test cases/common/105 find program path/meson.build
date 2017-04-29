@@ -23,3 +23,9 @@ foreach f : [prog, find_program(py), find_program(progf)]
   assert(ret.returncode() == 0, 'can\'t run @0@'.format(prog.path()))
   assert(ret.stdout().strip() == 'Found', 'wrong output from @0@'.format(prog.path()))
 endforeach
+
+# Source file via string with additional search path
+prog = find_program('program2.py', search_paths : 'scripts')
+ret = run_command(prog)
+assert(ret.returncode() == 0, 'can\'t run @0@'.format(prog.path()))
+assert(ret.stdout().strip() == 'Found', 'wrong output from @0@'.format(prog.path()))

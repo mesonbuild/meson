@@ -1845,6 +1845,18 @@ class Interpreter(InterpreterBase):
             progobj = ExternalProgramHolder(extprog)
             if progobj.found():
                 return progobj
+            # Search additional paths provided in search_paths argument
+            search_paths = kwargs.get('search_paths', [])
+            if not isinstance(search_paths, list):
+                search_paths = [search_paths]
+            for path in search_paths:
+                if not isinstance(path, str):
+                    raise InvalidArguments('"search_paths" argument must contain '
+                                           'a string, or list of strings.')
+                extprog = dependencies.ExternalProgram(exename, search_dir=path)
+                progobj = ExternalProgramHolder(extprog)
+                if progobj.found():
+                    return progobj
         if required and not progobj.found():
             raise InvalidArguments('Program "%s" not found.' % exename)
         return progobj

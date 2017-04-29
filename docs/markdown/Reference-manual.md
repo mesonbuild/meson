@@ -260,7 +260,7 @@ This function is deprecated and in the 0.31.0 release it was moved to [the compi
     program find_program(program_name1, program_name2, ...)
 ```
 
-`program_name1` here is a string that can be an executable or script to be searched for in `PATH`, or a script in the current source directory.
+`program_name1` here is a string that can be an executable or script to be searched for in `PATH`, or a script in the current source directory.  Additional search paths can be specified using the 'search_paths' keyword argument.
 
 Meson will also autodetect scripts with a shebang line and run them with the executable/interpreter specified in it both on Windows (because the command invocator will reject the command otherwise) and UNIXes (if the script file does not have the executable bit set). Hence, you *must not* manually add the interpreter while using this script as part of a list of commands.
 
