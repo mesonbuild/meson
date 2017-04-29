@@ -25,6 +25,7 @@ This function also defines targets for maintainers to use:
 This merges translations into a text file using `msgfmt`. See [custom_target](https://github.com/mesonbuild/meson/wiki/Reference%20manual#custom_target) for normal keywords. In addition it accepts these keywords:
 
 * `po_dir`: directory containing translations, relative to current directory
+* `data_dirs`: (*Added 0.41.0*) list of directories for its files (See also `i18n.gettext()`)
 * `type`: type of file, valid options are `'xml'` (default) and `'desktop'`
 
 *Added 0.37.0*
