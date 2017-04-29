@@ -1823,11 +1823,24 @@ class Interpreter(InterpreterBase):
         required = kwargs.get('required', True)
         if not isinstance(required, bool):
             raise InvalidArguments('"required" argument must be a boolean.')
+        # Get the additional search paths
+        search_paths = kwargs.get('search_paths', [])
+        if not isinstance(search_paths, list):
+            search_paths = [search_paths]
+        for path in search_paths:
+            if not isinstance(path, str):
+                raise InvalidArguments('"search_paths" argument must contain '
+                                       'a string, or list of strings.')
+        # Add exenames prefixed with search paths
+        prefixed_names = []
+        for exename in args:
+            for path in search_paths:
+                prefixed_names.append(os.path.join(path, exename).replace('\\', '/'))
         # Search for scripts relative to current subdir.
         # Do not cache found programs because find_program('foobar')
         # might give different results when run from different source dirs.
         source_dir = os.path.join(self.environment.get_source_dir(), self.subdir)
-        for exename in args:
+        for exename in [*args, *prefixed_names]:
             if isinstance(exename, mesonlib.File):
                 if exename.is_built:
                     search_dir = os.path.join(self.environment.get_build_dir(),
@@ -1845,18 +1858,6 @@ class Interpreter(InterpreterBase):
             progobj = ExternalProgramHolder(extprog)
             if progobj.found():
                 return progobj
-            # Search additional paths provided in search_paths argument
-            search_paths = kwargs.get('search_paths', [])
-            if not isinstance(search_paths, list):
-                search_paths = [search_paths]
-            for path in search_paths:
-                if not isinstance(path, str):
-                    raise InvalidArguments('"search_paths" argument must contain '
-                                           'a string, or list of strings.')
-                extprog = dependencies.ExternalProgram(exename, search_dir=path)
-                progobj = ExternalProgramHolder(extprog)
-                if progobj.found():
-                    return progobj
         if required and not progobj.found():
             raise InvalidArguments('Program "%s" not found.' % exename)
         return progobj
