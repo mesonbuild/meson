@@ -41,6 +41,8 @@ exe = executable('myprog', 'file.cc', dependencies : boost_dep)
 
 You can call `dependency` multiple times with different modules and use those to link against your targets.
 
+If your boost headers or libraries are in non-standard locations you can set the BOOST_ROOT, BOOST_INCLUDEDIR, and/or BOOST_LIBRARYDIR environment variables.
+
 ## GTest and GMock ##
 
 GTest and GMock come as sources that must be compiled as part of your project. With Meson you don't have to care about the details, just pass `gtest` or `gmock` to `dependency` and it will do everything for you. If you want to use GMock, it is recommended to use GTest as well, as getting it to work standalone is tricky.
