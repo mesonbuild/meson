@@ -313,7 +313,9 @@ class Backend:
             # anyone both enables unity builds and has a file called foo-unity.cpp.
             osrc = self.get_unity_source_filename(extobj.target,
                                                   comp.get_default_suffix())
+            osrc = os.path.join(self.get_target_private_dir(extobj.target), osrc)
             objname = self.object_filename_from_source(extobj.target, osrc, True)
+            objname = objname.replace('/', '_').replace('\\', '_')
             objpath = os.path.join(proj_dir_to_build_root, targetdir, objname)
             return [objpath]
         for osrc in extobj.srclist:
