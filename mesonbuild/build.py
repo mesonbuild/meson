@@ -650,12 +650,11 @@ class BuildTarget(Target):
         elif 'gui_app' in kwargs:
             raise InvalidArguments('Argument gui_app can only be used on executables.')
         extra_files = kwargs.get('extra_files', [])
-        if isinstance(extra_files, str):
+        if not isinstance(extra_files, list):
             extra_files = [extra_files]
         for i in extra_files:
-            if not isinstance(i, str):
-                raise InvalidArguments('Arguments to extra_files must be strings.')
-            trial = os.path.join(environment.get_source_dir(), self.subdir, i)
+            assert(isinstance(i, File))
+            trial = os.path.join(environment.get_source_dir(), i.subdir, i.fname)
             if not(os.path.isfile(trial)):
                 raise InvalidArguments('Tried to add non-existing extra file %s.' % i)
         self.extra_files = extra_files
