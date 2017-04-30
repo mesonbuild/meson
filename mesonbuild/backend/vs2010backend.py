@@ -980,7 +980,7 @@ class Vs2010Backend(backends.Backend):
             for h in gen_hdrs:
                 ET.SubElement(inc_hdrs, 'CLInclude', Include=h)
             for h in target.extra_files:
-                relpath = os.path.join(proj_to_src_dir, h)
+                relpath = os.path.join(down, h.rel_to_builddir(self.build_to_src))
                 ET.SubElement(inc_hdrs, 'CLInclude', Include=relpath)
 
         if len(sources) + len(gen_src) + len(pch_sources) > 0:

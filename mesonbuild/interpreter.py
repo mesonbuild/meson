@@ -2554,6 +2554,11 @@ different subdirectory.
         sources = self.source_strings_to_files(sources)
         objs = self.flatten(kwargs.get('objects', []))
         kwargs['dependencies'] = self.flatten(kwargs.get('dependencies', []))
+        if 'extra_files' in kwargs:
+            ef = kwargs['extra_files']
+            if not isinstance(ef, list):
+                ef = [ef]
+            kwargs['extra_files'] = self.source_strings_to_files(ef)
         if not isinstance(objs, list):
             objs = [objs]
         self.check_sources_exist(os.path.join(self.source_root, self.subdir), sources)
