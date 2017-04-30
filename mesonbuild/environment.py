@@ -872,7 +872,7 @@ class CrossBuildInfo:
                 if ' ' in entry or '\t' in entry or "'" in entry or '"' in entry:
                     raise EnvironmentException('Malformed variable name %s in cross file..' % entry)
                 try:
-                    res = eval(value, {'true': True, 'false': False})
+                    res = eval(value, {'__builtins__': None}, {'true': True, 'false': False})
                 except Exception:
                     raise EnvironmentException('Malformed value in cross file variable %s.' % entry)
                 if self.ok_type(res):
