@@ -40,25 +40,6 @@ else:
 def ninja_quote(text):
     return text.replace(' ', '$ ').replace(':', '$:')
 
-class RawFilename:
-    """
-    Used when a filename is already relative to the root build directory, so
-    that we know not to add the target's private build directory to it.
-    """
-    def __init__(self, fname):
-        self.fname = fname
-
-    def __str__(self):
-        return self.fname
-
-    def __repr__(self):
-        return '<RawFilename: {0}>'.format(self.fname)
-
-    def split(self, c):
-        return self.fname.split(c)
-
-    def startswith(self, s):
-        return self.fname.startswith(s)
 
 class NinjaBuildElement:
     def __init__(self, all_outputs, outfilenames, rule, infilenames):
@@ -376,7 +357,8 @@ int dummy;
         # same time, also deal with generated sources that need to be compiled.
         generated_source_files = []
         for rel_src, gensrc in generated_sources.items():
-            raw_src = RawFilename(rel_src)
+            dirpart, fnamepart = os.path.split(rel_src)
+            raw_src = File(True, dirpart, fnamepart)
             if self.environment.is_source(rel_src) and not self.environment.is_header(rel_src):
                 if is_unity and self.get_target_source_can_unity(target, rel_src):
                     unity_deps.append(raw_src)
@@ -409,7 +391,8 @@ int dummy;
         # necessary. This needs to be separate for at least Vala
         vala_generated_source_files = []
         for src in vala_generated_sources:
-            raw_src = RawFilename(src)
+            dirpart, fnamepart = os.path.split(src)
+            raw_src = File(True, dirpart, fnamepart)
             if is_unity:
                 unity_src.append(os.path.join(self.environment.get_build_dir(), src))
                 header_deps.append(raw_src)
@@ -1846,8 +1829,11 @@ rule FORTRAN_DEP_HACK
         # Compiler args for compiling this target
         commands += compilers.get_base_compile_args(self.environment.coredata.base_options,
                                                     compiler)
-        if isinstance(src, (RawFilename, File)):
-            src_filename = src.fname
+        if isinstance(src, File):
+            if src.is_built:
+                src_filename = os.path.join(src.subdir, src.fname)
+            else:
+                src_filename = src.fname
         elif os.path.isabs(src):
             src_filename = os.path.basename(src)
         else:
@@ -1856,7 +1842,7 @@ rule FORTRAN_DEP_HACK
         rel_obj = os.path.join(self.get_target_private_dir(target), obj_basename)
         rel_obj += '.' + self.environment.get_object_suffix()
         commands += self.get_compile_debugfile_args(compiler, target, rel_obj)
-        if isinstance(src, RawFilename):
+        if isinstance(src, File) and src.is_built:
             rel_src = src.fname
         elif isinstance(src, File):
             rel_src = src.rel_to_builddir(self.build_to_src)
@@ -1978,13 +1964,7 @@ rule FORTRAN_DEP_HACK
         """
         if isinstance(src, str) and src.endswith('.h'):
             raise AssertionError('BUG: sources should not contain headers {!r}'.format(src))
-        if isinstance(src, RawFilename) and src.fname.endswith('.h'):
-            raise AssertionError('BUG: sources should not contain headers {!r}'.format(src.fname))
 
-        if isinstance(src, str) and src.endswith('.h'):
-            raise AssertionError('BUG: sources should not contain headers {!r}'.format(src))
-        if isinstance(src, RawFilename) and src.fname.endswith('.h'):
-            raise AssertionError('BUG: sources should not contain headers {!r}'.format(src.fname))
         compiler = get_compiler_for_source(target.compilers.values(), src)
         key = (target, compiler, is_generated)
         if key in self.target_arg_cache:
@@ -1994,14 +1974,12 @@ rule FORTRAN_DEP_HACK
             self.target_arg_cache[key] = commands
         commands = CompilerArgs(commands.compiler, commands)
 
-        # FIXME: This file handling is atrocious and broken. We need to
-        # replace it with File objects used consistently everywhere.
-        if isinstance(src, RawFilename):
-            rel_src = src.fname
-            if os.path.isabs(src.fname):
-                abs_src = src.fname
-            else:
-                abs_src = os.path.join(self.environment.get_build_dir(), src.fname)
+        if isinstance(src, mesonlib.File) and src.is_built:
+            rel_src = os.path.join(src.subdir, src.fname)
+            if os.path.isabs(rel_src):
+                assert(rel_src.startswith(self.environment.get_build_dir()))
+                rel_src = rel_src[len(self.environment.get_build_dir())+1:]
+            abs_src = os.path.join(self.environment.get_build_dir(), rel_src)
         elif isinstance(src, mesonlib.File):
             rel_src = src.rel_to_builddir(self.build_to_src)
             abs_src = src.absolute_path(self.environment.get_source_dir(),
@@ -2014,8 +1992,14 @@ rule FORTRAN_DEP_HACK
             else:
                 raise InvalidArguments('Invalid source type: {!r}'.format(src))
             abs_src = os.path.join(self.environment.get_build_dir(), rel_src)
-        if isinstance(src, (RawFilename, File)):
-            src_filename = src.fname
+        if isinstance(src, File):
+            if src.is_built:
+                src_filename = os.path.join(src.subdir, src.fname)
+                if os.path.isabs(src_filename):
+                    assert(src_filename.startswith(self.environment.get_build_dir()))
+                    src_filename = src_filename[len(self.environment.get_build_dir())+1:]
+            else:
+                src_filename = src.fname
         elif os.path.isabs(src):
             src_filename = os.path.basename(src)
         else:
@@ -2068,16 +2052,16 @@ rule FORTRAN_DEP_HACK
 
         element = NinjaBuildElement(self.all_outputs, rel_obj, compiler_name, rel_src)
         for d in header_deps:
-            if isinstance(d, RawFilename):
-                d = d.fname
+            if isinstance(d, File):
+                d = d.rel_to_builddir(self.build_to_src)
             elif not self.has_dir_part(d):
                 d = os.path.join(self.get_target_private_dir(target), d)
             element.add_dep(d)
         for d in extra_deps:
             element.add_dep(d)
         for d in order_deps:
-            if isinstance(d, RawFilename):
-                d = d.fname
+            if isinstance(d, File):
+                d = d.rel_to_builddir(self.build_to_src)
             elif not self.has_dir_part(d):
                 d = os.path.join(self.get_target_private_dir(target), d)
             element.add_orderdep(d)
@@ -2094,6 +2078,8 @@ rule FORTRAN_DEP_HACK
 
     def has_dir_part(self, fname):
         # FIXME FIXME: The usage of this is a terrible and unreliable hack
+        if isinstance(fname, File):
+            return fname.subdir != ''
         return '/' in fname or '\\' in fname
 
     # Fortran is a bit weird (again). When you link against a library, just compiling a source file
