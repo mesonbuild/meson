@@ -15,6 +15,7 @@
 # limitations under the License.
 
 from glob import glob
+import itertools
 import os, subprocess, shutil, sys, signal
 from io import StringIO
 from ast import literal_eval
@@ -645,4 +646,10 @@ if __name__ == '__main__':
         print('\nMesonlogs of failing tests\n')
         for l in failing_logs:
             print(l, '\n')
+    for name, dirs, skip in all_tests:
+        dirs = (os.path.basename(x) for x in dirs)
+        for k, g in itertools.groupby(dirs, key=lambda x: x.split()[0]):
+            tests = list(g)
+            if len(tests) != 1:
+                print('WARNING: The %s suite contains duplicate "%s" tests: "%s"' % (name, k, '", "'.join(tests)))
     sys.exit(failing_tests)
