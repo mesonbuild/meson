@@ -269,10 +269,10 @@ def run(mainfile, args):
     args = mesonlib.expand_arguments(args)
     options = parser.parse_args(args)
     args = options.directories
-    if len(args) == 0 or len(args) > 2:
+    if not args or len(args) > 2:
         # if there's a meson.build in the dir above, and not in the current
         # directory, assume we're in the build directory
-        if len(args) == 0 and not os.path.exists('meson.build') and os.path.exists('../meson.build'):
+        if not args and not os.path.exists('meson.build') and os.path.exists('../meson.build'):
             dir1 = '..'
             dir2 = '.'
         else:

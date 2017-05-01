@@ -328,7 +328,7 @@ class Backend:
         includeargs = compiler.get_include_args(pchpath, False)
         for lang in ['c', 'cpp']:
             p = target.get_pch(lang)
-            if len(p) == 0:
+            if not p:
                 continue
             if compiler.can_compile(p[-1]):
                 header = p[0]

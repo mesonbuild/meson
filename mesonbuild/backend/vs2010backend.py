@@ -865,7 +865,7 @@ class Vs2010Backend(backends.Backend):
         pch_sources = {}
         for lang in ['c', 'cpp']:
             pch = target.get_pch(lang)
-            if len(pch) == 0:
+            if not pch:
                 continue
             pch_node.text = 'Use'
             pch_sources[lang] = [pch[0], pch[1], lang]

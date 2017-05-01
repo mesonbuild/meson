@@ -56,7 +56,7 @@ class Conf:
         # Ninja is run.
 
     def print_aligned(self, arr):
-        if len(arr) == 0:
+        if not arr:
             return
         titles = ['Option', 'Description', 'Current Value', '']
         longest_name = len(titles[0])
@@ -139,7 +139,7 @@ class Conf:
         print('')
         print('Base options:')
         okeys = sorted(self.coredata.base_options.keys())
-        if len(okeys) == 0:
+        if not okeys:
             print('  No base options\n')
         else:
             coarr = []
@@ -158,7 +158,7 @@ class Conf:
         print('')
         print('Compiler options:')
         okeys = sorted(self.coredata.compiler_options.keys())
-        if len(okeys) == 0:
+        if not okeys:
             print('  No compiler options\n')
         else:
             coarr = []
@@ -188,7 +188,7 @@ class Conf:
         self.print_aligned(parr)
         print('')
         print('Project options:')
-        if len(self.coredata.user_options) == 0:
+        if not self.coredata.user_options:
             print('  This project does not have any options')
         else:
             options = self.coredata.user_options
@@ -197,7 +197,7 @@ class Conf:
             optarr = []
             for key in keys:
                 opt = options[key]
-                if (opt.choices is None) or (len(opt.choices) == 0):
+                if (opt.choices is None) or (not opt.choices):
                     # Zero length list or string
                     choices = ''
                 else:
@@ -222,7 +222,7 @@ def run(args):
         print('%s <build directory>' % args[0])
         print('If you omit the build directory, the current directory is substituted.')
         return 1
-    if len(options.directory) == 0:
+    if not options.directory:
         builddir = os.getcwd()
     else:
         builddir = options.directory[0]

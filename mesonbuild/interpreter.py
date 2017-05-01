@@ -1581,7 +1581,7 @@ class Interpreter(InterpreterBase):
 
     @noKwargs
     def func_configuration_data(self, node, args, kwargs):
-        if len(args) != 0:
+        if args:
             raise InterpreterException('configuration_data takes no arguments')
         return ConfigurationDataHolder()
 
@@ -1818,7 +1818,7 @@ class Interpreter(InterpreterBase):
             self.coredata.base_options[optname] = oobj
 
     def func_find_program(self, node, args, kwargs):
-        if len(args) == 0:
+        if not args:
             raise InterpreterException('No program name specified.')
         required = kwargs.get('required', True)
         if not isinstance(required, bool):
@@ -2533,7 +2533,7 @@ different subdirectory.
             self.coredata.target_guids[idname] = str(uuid.uuid4()).upper()
 
     def build_target(self, node, args, kwargs, targetholder):
-        if len(args) == 0:
+        if not args:
             raise InterpreterException('Target does not have a name.')
         name = args[0]
         sources = args[1:]

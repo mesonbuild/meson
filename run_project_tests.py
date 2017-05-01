@@ -368,7 +368,7 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, compiler, backen
     if returncode != 0:
         return TestResult('Running unit tests failed.', BuildStep.test, stdo, stde, mesonlog, gen_time, build_time, test_time)
     # Do installation, if the backend supports it
-    if len(install_commands) != 0:
+    if install_commands:
         env = os.environ.copy()
         env['DESTDIR'] = install_dir
         # Install with subprocess
@@ -384,7 +384,7 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, compiler, backen
     stde += e
     if pi.returncode != 0:
         return TestResult('Running clean failed.', BuildStep.clean, stdo, stde, mesonlog, gen_time, build_time, test_time)
-    if len(install_commands) == 0:
+    if not install_commands:
         return TestResult('', BuildStep.install, '', '', mesonlog, gen_time, build_time, test_time)
     return TestResult(validate_install(testdir, install_dir, compiler), BuildStep.validate, stdo, stde, mesonlog, gen_time, build_time, test_time)
 

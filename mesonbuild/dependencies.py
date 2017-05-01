@@ -777,7 +777,7 @@ class BoostDependency(Dependency):
         else:
             libdir = []
         # Can't find libdir, bail
-        if len(libdir) == 0:
+        if not libdir:
             return
         libdir = libdir[0]
         self.libdir = libdir
@@ -1021,7 +1021,7 @@ class QtBaseDependency(Dependency):
         self.is_found = False
         if isinstance(mods, str):
             mods = [mods]
-        if len(mods) == 0:
+        if not mods:
             raise DependencyException('No ' + self.qtname + '  modules specified.')
         type_text = 'cross' if env.is_cross_build() else 'native'
         found_msg = '{} {} {{}} dependency (modules: {}) found:' \
@@ -1332,7 +1332,7 @@ class AppleFrameworks(Dependency):
         modules = kwargs.get('modules', [])
         if isinstance(modules, str):
             modules = [modules]
-        if len(modules) == 0:
+        if not modules:
             raise DependencyException("AppleFrameworks dependency requires at least one module.")
         self.frameworks = modules
 

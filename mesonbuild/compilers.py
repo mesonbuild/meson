@@ -317,12 +317,12 @@ def get_base_link_args(options, linker, is_shared_module):
     return args
 
 def build_unix_rpath_args(build_dir, rpath_paths, install_rpath):
-        if len(rpath_paths) == 0 and len(install_rpath) == 0:
+        if not rpath_paths and not install_rpath:
             return []
         paths = ':'.join([os.path.join(build_dir, p) for p in rpath_paths])
         if len(paths) < len(install_rpath):
             padding = 'X' * (len(install_rpath) - len(paths))
-            if len(paths) == 0:
+            if not paths:
                 paths = padding
             else:
                 paths = paths + ':' + padding
@@ -388,7 +388,7 @@ class CompilerArgs(list):
         if len(args) > 2:
             raise TypeError("CompilerArgs() only accepts at most 2 arguments: "
                             "The compiler, and optionally an initial list")
-        elif len(args) == 0:
+        elif not args:
             return cargs
         elif len(args) == 1:
             if isinstance(args[0], (Compiler, StaticLinker)):
@@ -708,7 +708,7 @@ class Compiler:
         return self.get_std_shared_lib_link_args()
 
     def get_link_whole_for(self, args):
-        if isinstance(args, list) and len(args) == 0:
+        if isinstance(args, list) and not args:
             return []
         raise EnvironmentException('Language %s does not support linking whole archives.' % self.language)
 
@@ -1360,7 +1360,7 @@ class CCompiler(Compiler):
             extra_dirs = [extra_dirs]
         # Gcc + co seem to prefer builtin lib dirs to -L dirs.
         # Only try to find std libs if no extra dirs specified.
-        if len(extra_dirs) == 0:
+        if not extra_dirs:
             args = ['-l' + libname]
             if self.links(code, env, extra_args=args):
                 return args
@@ -1700,7 +1700,7 @@ class ValaCompiler(Compiler):
             extra_dirs = [extra_dirs]
         # Valac always looks in the default vapi dir, so only search there if
         # no extra dirs are specified.
-        if len(extra_dirs) == 0:
+        if not extra_dirs:
             code = 'class MesonFindLibrary : Object { }'
             vapi_args = ['--pkg', libname]
             args = self.get_cross_extra_flags(env, link=False)
@@ -1892,12 +1892,12 @@ class DCompiler(Compiler):
     def build_rpath_args(self, build_dir, rpath_paths, install_rpath):
         # This method is to be used by LDC and DMD.
         # GDC can deal with the verbatim flags.
-        if len(rpath_paths) == 0 and len(install_rpath) == 0:
+        if not rpath_paths and not install_rpath:
             return []
         paths = ':'.join([os.path.join(build_dir, p) for p in rpath_paths])
         if len(paths) < len(install_rpath):
             padding = 'X' * (len(install_rpath) - len(paths))
-            if len(paths) == 0:
+            if not paths:
                 paths = padding
             else:
                 paths = paths + ':' + padding

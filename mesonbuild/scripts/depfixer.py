@@ -305,7 +305,7 @@ class Elf(DataSizes):
         # the chance of obliterating other strings. It might still happen
         # but our behaviour is identical to what chrpath does and it has
         # been in use for ages so based on that this should be rare.
-        if len(new_rpath) == 0:
+        if not new_rpath:
             self.remove_rpath_entry(entrynum)
         else:
             self.bf.seek(rp_off)

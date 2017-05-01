@@ -566,7 +566,7 @@ class GnomeModule(ExtensionModule):
         return ModuleReturnValue(rv, rv)
 
     def compile_schemas(self, state, args, kwargs):
-        if len(args) != 0:
+        if args:
             raise MesonException('Compile_schemas does not take positional arguments.')
         srcdir = os.path.join(state.build_to_src, state.subdir)
         outdir = state.subdir

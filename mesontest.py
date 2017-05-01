@@ -364,7 +364,7 @@ TIMEOUT: %4d
         return False
 
     def test_suitable(self, test):
-        return (len(self.options.include_suites) == 0 or TestHarness.test_in_suites(test, self.options.include_suites)) \
+        return (not self.options.include_suites or TestHarness.test_in_suites(test, self.options.include_suites)) \
             and not TestHarness.test_in_suites(test, self.options.exclude_suites)
 
     def load_suites(self):
@@ -610,7 +610,7 @@ def run(args):
     if options.list:
         list_tests(th)
         return 0
-    if len(options.args) == 0:
+    if not options.args:
         return th.doit()
     return th.run_special()
 
