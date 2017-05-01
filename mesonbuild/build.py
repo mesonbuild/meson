@@ -115,7 +115,7 @@ class Build:
             self.compilers[lang] = compiler
 
     def add_cross_compiler(self, compiler):
-        if len(self.cross_compilers) == 0:
+        if not self.cross_compilers:
             self.static_cross_linker = self.environment.detect_static_linker(compiler)
         lang = compiler.get_language()
         if lang not in self.cross_compilers:
@@ -340,9 +340,7 @@ class BuildTarget(Target):
         self.process_objectlist(objects)
         self.process_kwargs(kwargs, environment)
         self.check_unknown_kwargs(kwargs)
-        if len(self.sources) == 0 \
-                and len(self.generated) == 0 \
-                and len(self.objects) == 0:
+        if not self.sources and not self.generated and not self.objects:
             raise InvalidArguments('Build target %s has no sources.' % name)
         self.process_compilers()
         self.validate_sources()
@@ -433,7 +431,7 @@ class BuildTarget(Target):
         We also add compilers that were used by extracted objects to simplify
         dynamic linker determination.
         '''
-        if len(self.sources) + len(self.generated) + len(self.objects) == 0:
+        if not self.sources and not self.generated and not self.objects:
             return
         # Populate list of compilers
         if self.is_cross:
@@ -488,7 +486,7 @@ class BuildTarget(Target):
             self.compilers['c'] = compilers['c']
 
     def validate_sources(self):
-        if len(self.sources) == 0:
+        if not self.sources:
             return
         for lang in ('cs', 'java'):
             if lang in self.compilers:
@@ -675,7 +673,7 @@ class BuildTarget(Target):
         if 'name_prefix' in kwargs:
             name_prefix = kwargs['name_prefix']
             if isinstance(name_prefix, list):
-                if len(name_prefix) != 0:
+                if name_prefix:
                     raise InvalidArguments('name_prefix array must be empty to signify null.')
             elif not isinstance(name_prefix, str):
                 raise InvalidArguments('name_prefix must be a string.')
@@ -684,7 +682,7 @@ class BuildTarget(Target):
         if 'name_suffix' in kwargs:
             name_suffix = kwargs['name_suffix']
             if isinstance(name_suffix, list):
-                if len(name_suffix) != 0:
+                if name_suffix:
                     raise InvalidArguments('name_suffix array must be empty to signify null.')
             else:
                 if not isinstance(name_suffix, str):
@@ -825,7 +823,7 @@ You probably should put it in link_with instead.''')
             self.link_whole_targets.append(t)
 
     def add_pch(self, language, pchlist):
-        if len(pchlist) == 0:
+        if not pchlist:
             return
         elif len(pchlist) == 1:
             if not environment.is_header(pchlist[0]):

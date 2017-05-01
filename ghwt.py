@@ -85,7 +85,7 @@ def install(sproj):
     return unpack(sproj, branch, sproj_dir)
 
 def run(args):
-    if len(args) == 0 or args[0] == '-h' or args[0] == '--help':
+    if not args or args[0] == '-h' or args[0] == '--help':
         print(sys.argv[0], 'list/install', 'package_name')
         return 1
     command = args[0]

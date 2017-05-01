@@ -36,7 +36,7 @@ def do_uninstall(log):
     print('\nRemember that files created by custom scripts have not been removed.')
 
 def run(args):
-    if len(args) != 0:
+    if args:
         print('Weird error.')
         return 1
     if not os.path.exists(logfile):

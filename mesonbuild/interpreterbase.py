@@ -34,7 +34,7 @@ def check_stringlist(a, msg='Arguments must be strings.'):
 def noPosargs(f):
     @wraps(f)
     def wrapped(self, node, args, kwargs):
-        if len(args) != 0:
+        if args:
             raise InvalidArguments('Function does not take positional arguments.')
         return f(self, node, args, kwargs)
     return wrapped
@@ -42,7 +42,7 @@ def noPosargs(f):
 def noKwargs(f):
     @wraps(f)
     def wrapped(self, node, args, kwargs):
-        if len(kwargs) != 0:
+        if kwargs:
             raise InvalidArguments('Function does not take keyword arguments.')
         return f(self, node, args, kwargs)
     return wrapped
@@ -94,7 +94,7 @@ class InterpreterBase:
             raise InvalidArguments('Missing Meson file in %s' % mesonfile)
         with open(mesonfile, encoding='utf8') as mf:
             code = mf.read()
-        if len(code.strip()) == 0:
+        if code.isspace():
             raise InvalidCode('Builder file is empty.')
         assert(isinstance(code, str))
         try:
@@ -113,7 +113,7 @@ class InterpreterBase:
     def sanity_check_ast(self):
         if not isinstance(self.ast, mparser.CodeBlockNode):
             raise InvalidCode('AST is of invalid type. Possibly a bug in the parser.')
-        if len(self.ast.lines) == 0:
+        if not self.ast.lines:
             raise InvalidCode('No statements in code.')
         first = self.ast.lines[0]
         if not isinstance(first, mparser.FunctionNode) or first.func_name != 'project':
@@ -405,7 +405,7 @@ class InterpreterBase:
         obj = self.to_native(obj)
         (posargs, _) = self.reduce_arguments(args)
         if method_name == 'to_string':
-            if len(posargs) == 0:
+            if not posargs:
                 if obj:
                     return 'true'
                 else:
@@ -429,12 +429,12 @@ class InterpreterBase:
         obj = self.to_native(obj)
         (posargs, _) = self.reduce_arguments(args)
         if method_name == 'is_even':
-            if len(posargs) == 0:
+            if not posargs:
                 return obj % 2 == 0
             else:
                 raise InterpreterException('int.is_even() must have no arguments.')
         elif method_name == 'is_odd':
-            if len(posargs) == 0:
+            if not posargs:
                 return obj % 2 != 0
             else:
                 raise InterpreterException('int.is_odd() must have no arguments.')

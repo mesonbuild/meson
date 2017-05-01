@@ -1048,7 +1048,7 @@ int dummy;
         """Vala is compiled into C. Set up all necessary build steps here."""
         (vala_src, vapi_src, other_src) = self.split_vala_sources(target)
         extra_dep_files = []
-        if len(vala_src) == 0:
+        if not vala_src:
             msg = 'Vala library {!r} has no Vala source files.'
             raise InvalidArguments(msg.format(target.name))
 
@@ -2034,7 +2034,7 @@ rule FORTRAN_DEP_HACK
             pchlist = target.get_pch(compiler.language)
         else:
             pchlist = []
-        if len(pchlist) == 0:
+        if not pchlist:
             pch_dep = []
         elif compiler.id == 'intel':
             pch_dep = []
@@ -2139,7 +2139,7 @@ rule FORTRAN_DEP_HACK
             cstr = '_CROSS'
         for lang in ['c', 'cpp']:
             pch = target.get_pch(lang)
-            if len(pch) == 0:
+            if not pch:
                 continue
             if '/' not in pch[0] or '/' not in pch[-1]:
                 msg = 'Precompiled header of {!r} must not be in the same ' \

@@ -135,7 +135,7 @@ def update(name):
 def info(name):
     jd = get_result(API_ROOT + 'projects/' + name)
     versions = jd['versions']
-    if len(versions) == 0:
+    if not versions:
         print('No available versions of', name)
         sys.exit(0)
     print('Available versions of %s:' % name)
@@ -162,7 +162,7 @@ def status():
             print('', name, 'not up to date. Have %s %d, but %s %d is available.' % (current_branch, current_revision, latest_branch, latest_revision))
 
 def run(args):
-    if len(args) == 0 or args[0] == '-h' or args[0] == '--help':
+    if not args or args[0] == '-h' or args[0] == '--help':
         print_help()
         return 0
     command = args[0]
