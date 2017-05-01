@@ -15,6 +15,7 @@
 # limitations under the License.
 
 from glob import glob
+import itertools
 import os, subprocess, shutil, sys, signal
 from io import StringIO
 from ast import literal_eval
@@ -411,27 +412,30 @@ def have_java():
     return False
 
 def detect_tests_to_run():
-    all_tests = []
-    all_tests.append(('common', gather_tests('test cases/common'), False))
-    all_tests.append(('failing-meson', gather_tests('test cases/failing'), False))
-    all_tests.append(('failing-build', gather_tests('test cases/failing build'), False))
-    all_tests.append(('failing-tests', gather_tests('test cases/failing tests'), False))
-    all_tests.append(('prebuilt', gather_tests('test cases/prebuilt'), False))
+    # Name, subdirectory, skip condition.
+    all_tests = [
+        ('common', 'common', False),
+        ('failing-meson', 'failing', False),
+        ('failing-build', 'failing build', False),
+        ('failing-tests', 'failing tests', False),
+        ('prebuilt', 'prebuilt', False),
 
-    all_tests.append(('platform-osx', gather_tests('test cases/osx'), False if mesonlib.is_osx() else True))
-    all_tests.append(('platform-windows', gather_tests('test cases/windows'), False if mesonlib.is_windows() or mesonlib.is_cygwin() else True))
-    all_tests.append(('platform-linux', gather_tests('test cases/linuxlike'), False if not (mesonlib.is_osx() or mesonlib.is_windows()) else True))
-    all_tests.append(('framework', gather_tests('test cases/frameworks'), False if not mesonlib.is_osx() and not mesonlib.is_windows() and not mesonlib.is_cygwin() else True))
-    all_tests.append(('java', gather_tests('test cases/java'), False if backend is Backend.ninja and not mesonlib.is_osx() and have_java() else True))
-    all_tests.append(('C#', gather_tests('test cases/csharp'), False if backend is Backend.ninja and shutil.which('mcs') else True))
-    all_tests.append(('vala', gather_tests('test cases/vala'), False if backend is Backend.ninja and shutil.which('valac') else True))
-    all_tests.append(('rust', gather_tests('test cases/rust'), False if backend is Backend.ninja and shutil.which('rustc') else True))
-    all_tests.append(('d', gather_tests('test cases/d'), False if backend is Backend.ninja and have_d_compiler() else True))
-    all_tests.append(('objective c', gather_tests('test cases/objc'), False if backend in (Backend.ninja, Backend.xcode) and not mesonlib.is_windows() else True))
-    all_tests.append(('fortran', gather_tests('test cases/fortran'), False if backend is Backend.ninja and shutil.which('gfortran') else True))
-    all_tests.append(('swift', gather_tests('test cases/swift'), False if backend in (Backend.ninja, Backend.xcode) and shutil.which('swiftc') else True))
-    all_tests.append(('python3', gather_tests('test cases/python3'), False if backend is Backend.ninja and shutil.which('python3') else True))
-    return all_tests
+        ('platform-osx', 'osx', not mesonlib.is_osx()),
+        ('platform-windows', 'windows', not mesonlib.is_windows() and not mesonlib.is_cygwin()),
+        ('platform-linux', 'linuxlike', mesonlib.is_osx() or mesonlib.is_windows()),
+
+        ('framework', 'frameworks', mesonlib.is_osx() or mesonlib.is_windows() or mesonlib.is_cygwin()),
+        ('java', 'java', backend is not Backend.ninja or mesonlib.is_osx() or not have_java()),
+        ('C#', 'csharp', backend is not Backend.ninja or not shutil.which('mcs')),
+        ('vala', 'vala', backend is not Backend.ninja or not shutil.which('valac')),
+        ('rust', 'rust', backend is not Backend.ninja or not shutil.which('rustc')),
+        ('d', 'd', backend is not Backend.ninja or not have_d_compiler()),
+        ('objective c', 'objc', backend not in (Backend.ninja, Backend.xcode) or mesonlib.is_windows()),
+        ('fortran', 'fortran', backend is not Backend.ninja or not shutil.which('gfortran')),
+        ('swift', 'swift', backend not in (Backend.ninja, Backend.xcode) or not shutil.which('swiftc')),
+        ('python3', 'python3', backend is not Backend.ninja or not shutil.which('python3')),
+    ]
+    return [(name, gather_tests('test cases/' + subdir), skip) for name, subdir, skip in all_tests]
 
 def run_tests(all_tests, log_name_base, extra_args):
     global stop, executor, futures
@@ -642,4 +646,10 @@ if __name__ == '__main__':
         print('\nMesonlogs of failing tests\n')
         for l in failing_logs:
             print(l, '\n')
+    for name, dirs, skip in all_tests:
+        dirs = (os.path.basename(x) for x in dirs)
+        for k, g in itertools.groupby(dirs, key=lambda x: x.split()[0]):
+            tests = list(g)
+            if len(tests) != 1:
+                print('WARNING: The %s suite contains duplicate "%s" tests: "%s"' % (name, k, '", "'.join(tests)))
     sys.exit(failing_tests)
