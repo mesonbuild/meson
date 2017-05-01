@@ -56,7 +56,7 @@ If you are not using any external libraries, this is all you need to do. You now
 As an example we are going to use the [SDL2](https://libsdl.org/) framework. In order to bundle it in our app, we first specify an installer script to run.
 
 ```meson
-meson.set_install_script('install_script.sh')
+meson.add_install_script('install_script.sh')
 ```
 
 The install script does two things. First it copies the whole framework into our bundle.

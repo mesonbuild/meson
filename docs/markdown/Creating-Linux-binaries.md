@@ -61,7 +61,7 @@ The aim is to put the executable in `/tmp/myapp/bin` and shared libraries to `/t
 Make the script run during install with this:
 
 ```meson
-meson.set_install_script('linux_bundler.sh')
+meson.add_install_script('linux_bundler.sh')
 ```
 
 ## Final steps

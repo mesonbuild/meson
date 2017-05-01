@@ -56,7 +56,7 @@ As you can see, Meson sets up some environment variables to help you write your 
 Telling Meson to run this script at install time is a one-liner.
 
 ```meson
-meson.set_install_script('myscript.sh')
+meson.add_install_script('myscript.sh')
 ```
 
 The argument is the name of the script file relative to the current subdirectory.
