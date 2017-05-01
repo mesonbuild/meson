@@ -19,7 +19,7 @@ mycomp = find_program('mycompiler')
 Custom targets can take zero or more input files and use them to generate one or more output files. Using a custom target, you can run this compiler at build time to generate the sources:
 
 ```meson
-gen_src = custom_target('gen-output,
+gen_src = custom_target('gen-output',
                         input : ['somefile1.c', 'file2.c']
                         output : ['out.c', 'out.h']
                         command : [mycomp, '@INPUT@',
