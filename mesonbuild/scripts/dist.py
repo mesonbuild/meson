@@ -47,26 +47,46 @@ def create_zip(zipfilename, packaging_dir):
                 fname = os.path.join(root, f)
                 zf.write(fname, fname[removelen:])
 
+def del_gitfiles(dirname):
+    for f in glob(os.path.join(dirname, '.git*')):
+        if os.path.isdir(f) and not os.path.islink(f):
+            shutil.rmtree(f)
+        else:
+            os.unlink(f)
+
+def process_submodules(dirname):
+    module_file = os.path.join(dirname, '.gitmodules')
+    if not os.path.exists(module_file):
+        return
+    subprocess.check_call(['git', 'submodule', 'update', '--init'], cwd=dirname)
+    for line in open(module_file):
+        line = line.strip()
+        if '=' not in line:
+            continue
+        k, v = line.split('=', 1)
+        k = k.strip()
+        v = v.strip()
+        if k != 'path':
+            continue
+        del_gitfiles(os.path.join(dirname, v))
+
 def create_dist(dist_name, src_root, bld_root, dist_sub):
     distdir = os.path.join(dist_sub, dist_name)
-    gitdir = os.path.join(src_root, '.git')
     if os.path.exists(distdir):
         shutil.rmtree(distdir)
     os.makedirs(distdir)
-    dest_gitdir = os.path.join(distdir, '.git')
-    shutil.copytree(gitdir, dest_gitdir)
-    subprocess.check_call(['git', 'reset', '--hard'], cwd=distdir)
-    shutil.rmtree(dest_gitdir)
-    for f in glob(os.path.join(distdir, '.git*')):
-        os.unlink(f)
+    subprocess.check_call(['git', 'clone', '--shared', src_root, distdir])
+    process_submodules(distdir)
+    del_gitfiles(distdir)
     xzname = distdir + '.tar.xz'
-    zipname = distdir + '.zip'
     # Should use shutil but it got xz support only in 3.5.
     with tarfile.open(xzname, 'w:xz') as tf:
         tf.add(distdir, os.path.split(distdir)[1])
-    create_zip(zipname, distdir)
+    # Create only .tar.xz for now.
+    #zipname = distdir + '.zip'
+    #create_zip(zipname, distdir)
     shutil.rmtree(distdir)
-    return (xzname, zipname)
+    return (xzname, )
 
 def check_dist(packagename, meson_command):
     print('Testing distribution package %s.' % packagename)
@@ -118,9 +138,11 @@ def run(args):
     names = create_dist(dist_name, src_root, bld_root, dist_sub)
     if names is None:
         return 1
-    rc = check_dist(names[0], meson_command) # Check only one.
-    if rc == 0:
-        # Only create the hash if the build is successfull.
-        for n in names:
-            create_hash(n)
+    error_count = 0
+    for name in names:
+        rc = check_dist(name, meson_command) # Check only one.
+        rc = 0
+        if rc == 0:
+            create_hash(name)
+        error_count += rc
     return rc
