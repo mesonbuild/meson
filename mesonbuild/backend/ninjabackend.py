@@ -2361,7 +2361,7 @@ rule FORTRAN_DEP_HACK
         e.add_item('COMMAND', [sys.executable,
                                self.environment.get_build_command(),
                                '--internal', 'cleantrees', d_file])
-        e.add_item('description', 'Cleaning custom targets directories.')
+        e.add_item('description', 'Cleaning custom target directories.')
         e.write(outfile)
         # Write out the data file passed to the script
         with open(d_file, 'wb') as ofile:
