@@ -87,8 +87,8 @@ class MesonApp:
         return os.path.exists(fname)
 
     def validate_core_dirs(self, dir1, dir2):
-        ndir1 = os.path.abspath(dir1)
-        ndir2 = os.path.abspath(dir2)
+        ndir1 = os.path.abspath(os.path.realpath(dir1))
+        ndir2 = os.path.abspath(os.path.realpath(dir2))
         if not os.path.exists(ndir1):
             os.makedirs(ndir1)
         if not os.path.exists(ndir2):
