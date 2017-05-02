@@ -1430,7 +1430,7 @@ int dummy;
         rule = 'rule %s_COMPILER\n' % compiler.get_language()
         invoc = ' '.join([ninja_quote(i) for i in compiler.get_exelist()])
         command = ' command = %s $ARGS $in\n' % invoc
-        description = ' description = Compiling C# target $out.\n'
+        description = ' description = Compiling C Sharp target $out.\n'
         outfile.write(rule)
         outfile.write(command)
         outfile.write(description)
