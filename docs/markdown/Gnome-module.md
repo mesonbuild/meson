@@ -12,13 +12,19 @@ To use this module, just do: **`gnome = import('gnome')`**. The following functi
 
 ### gnome.compile_resources()
 
-This function compiles resources specified in an XML file into code that can be embedded inside the main binary. Similar a build target it takes two positional arguments. The first one is the name of the resource and the second is the xml file containing the resource definitions. If the name is `foobar`, Meson will generate a header file called `foobar.h`, which you can then include in your sources. There are two keyword arguments.
+This function compiles resources specified in an XML file into code that can be embedded inside the main binary. Similar a build target it takes two positional arguments. The first one is the name of the resource and the second is the xml file containing the resource definitions. If the name is `foobar`, Meson will generate a header file called `foobar.h`, which you can then include in your sources.
 
 * `source_dir`: a list of subdirectories where the resource compiler should look up the files, relative to the location of the xml file
 * `c_name`: passed to the resource compiler as an argument after `--c-name`
+* `dependencies`: extra targets to depend upon for building
+* `export`: (*Added 0.37.0*) if true, export the symbols of the generated sources
+* `gresource_bundle`: (*Added 0.37.0*) if true, output a `.gresource` file instead of source
+* `install_header`: (*Added 0.37.0*) if true, install the header file
+* `install`: (*Added 0.37.0*) if true, install the gresource file
+* `install_dir`: (*Added 0.37.0*) location to install the header or bundle depending on previous options
 * `extra_args`: extra command line arguments to pass to the resource compiler
 
-Returns an array of two elements which are: `[c_source, header_file]`
+Returns an array containing: `[c_source, header_file]` or `[gresource_bundle]`
 
 ### gnome.generate_gir()
 
