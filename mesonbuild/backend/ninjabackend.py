@@ -112,11 +112,12 @@ class NinjaBuildElement:
         line = line.replace('\\', '/')
         outfile.write(line)
 
+        # All the entries that should remain unquoted
+        raw_names = {'DEPFILE', 'DESC', 'pool', 'description'}
+
         for e in self.elems:
             (name, elems) = e
-            should_quote = True
-            if name == 'DEPFILE' or name == 'DESC' or name == 'pool' or name == 'description':
-                should_quote = False
+            should_quote = name not in raw_names
             line = ' %s = ' % name
             q_templ = quote_char + "%s" + quote_char
             noq_templ = "%s"
