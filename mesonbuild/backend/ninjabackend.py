@@ -851,7 +851,7 @@ int dummy;
              quote_char + ninja_quote(self.environment.get_source_dir()) + quote_char,
              quote_char + ninja_quote(self.environment.get_build_dir()) + quote_char)
         outfile.write(" command = %s %s %s %s %s %s --backend ninja\n" % c)
-        outfile.write(' description = Regenerating build files\n')
+        outfile.write(' description = Regenerating build files.\n')
         outfile.write(' generator = 1\n\n')
         outfile.write('\n')
 
@@ -1351,7 +1351,7 @@ int dummy;
         command = command_template.format(
             executable=' '.join(cmdlist),
             output_args=' '.join(static_linker.get_output_args('$out')))
-        description = ' description = Static linking library $out\n\n'
+        description = ' description = Linking static target $out.\n\n'
         outfile.write(rule)
         outfile.write(command)
         outfile.write(description)
@@ -1394,7 +1394,7 @@ int dummy;
                     cross_args=' '.join(cross_args),
                     output_args=' '.join(compiler.get_linker_output_args('$out'))
                 )
-                description = ' description = Linking target $out'
+                description = ' description = Linking target $out.'
                 outfile.write(rule)
                 outfile.write(command)
                 outfile.write(description)
@@ -1573,7 +1573,7 @@ rule FORTRAN_DEP_HACK
             output_args=' '.join(compiler.get_output_args('$out')),
             compile_only_args=' '.join(compiler.get_compile_only_args())
         )
-        description = ' description = Compiling %s object $out\n' % langname
+        description = ' description = Compiling %s object $out.\n' % langname.title()
         if compiler.get_id() == 'msvc':
             deps = ' deps = msvc\n'
         else:
@@ -1617,7 +1617,7 @@ rule FORTRAN_DEP_HACK
             output_args=output,
             compile_only_args=' '.join(compiler.get_compile_only_args())
         )
-        description = ' description = Precompiling header %s\n' % '$in'
+        description = ' description = Precompiling header %s.\n' % '$in'
         if compiler.get_id() == 'msvc':
             deps = ' deps = msvc\n'
         else:
@@ -2360,7 +2360,7 @@ rule FORTRAN_DEP_HACK
         e.add_item('COMMAND', [sys.executable,
                                self.environment.get_build_command(),
                                '--internal', 'cleantrees', d_file])
-        e.add_item('description', 'Cleaning CustomTarget directories')
+        e.add_item('description', 'Cleaning CustomTarget directories.')
         e.write(outfile)
         # Write out the data file passed to the script
         with open(d_file, 'wb') as ofile:
@@ -2372,14 +2372,14 @@ rule FORTRAN_DEP_HACK
             script_root = self.environment.get_script_dir()
             clean_script = os.path.join(script_root, 'delwithsuffix.py')
             gcno_elem.add_item('COMMAND', [sys.executable, clean_script, '.', 'gcno'])
-            gcno_elem.add_item('description', 'Deleting gcno files')
+            gcno_elem.add_item('description', 'Deleting gcno files.')
             gcno_elem.write(outfile)
 
             gcda_elem = NinjaBuildElement(self.all_outputs, 'clean-gcda', 'CUSTOM_COMMAND', 'PHONY')
             script_root = self.environment.get_script_dir()
             clean_script = os.path.join(script_root, 'delwithsuffix.py')
             gcda_elem.add_item('COMMAND', [sys.executable, clean_script, '.', 'gcda'])
-            gcda_elem.add_item('description', 'Deleting gcda files')
+            gcda_elem.add_item('description', 'Deleting gcda files.')
             gcda_elem.write(outfile)
 
     def get_user_option_args(self):
@@ -2425,7 +2425,7 @@ rule FORTRAN_DEP_HACK
             raise MesonException('Could not detect Ninja v1.6 or newer')
         elem = NinjaBuildElement(self.all_outputs, 'clean', 'CUSTOM_COMMAND', 'PHONY')
         elem.add_item('COMMAND', [ninja_command, '-t', 'clean'])
-        elem.add_item('description', 'Cleaning')
+        elem.add_item('description', 'Cleaning.')
 
         # If we have custom targets in this project, add all their outputs to
         # the list that is passed to the `cleantrees.py` script. The script
