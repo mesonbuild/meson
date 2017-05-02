@@ -115,7 +115,7 @@ class NinjaBuildElement:
         for e in self.elems:
             (name, elems) = e
             should_quote = True
-            if name == 'DEPFILE' or name == 'DESC' or name == 'pool':
+            if name == 'DEPFILE' or name == 'DESC' or name == 'pool' or name == 'description':
                 should_quote = False
             line = ' %s = ' % name
             q_templ = quote_char + "%s" + quote_char
