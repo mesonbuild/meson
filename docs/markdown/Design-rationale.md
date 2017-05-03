@@ -69,7 +69,7 @@ The difference between the proposed DSL and existing ones is that the new one is
 
 A DSL is more work than the approach taken by SCons, which is to provide the system as a Python library. However it allows us to make the syntax more expressive and prevent certain types of bugs by e.g. making certain objects truly immutable. The end result is again the same: less work for the user.
 
-The backend for Unix requires a bit more thought. The default choice would be Make. However it is extremely slow. It is not uncommon on large code bases for Make to take several minutes just to determine that nothing needs to be done. Instead of Make we use [Ninja](http://martine.github.com/ninja/), which is extremely fast. The backend code is abstracted away from the core, so other backends can be added with relatively little effort.
+The backend for Unix requires a bit more thought. The default choice would be Make. However it is extremely slow. It is not uncommon on large code bases for Make to take several minutes just to determine that nothing needs to be done. Instead of Make we use [Ninja](https://ninja-build.org/), which is extremely fast. The backend code is abstracted away from the core, so other backends can be added with relatively little effort.
 
 Sample code
 --

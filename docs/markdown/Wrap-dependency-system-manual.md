@@ -16,7 +16,7 @@ To use this kind of a project as a dependency you could just copy and extract it
 [wrap-file]
 directory = libfoobar-1.0
 
-source_url = http://example.com/foobar-1.0.tar.gz
+source_url = https://example.com/foobar-1.0.tar.gz
 source_filename = foobar-1.0.tar.gz
 source_hash = 5ebeea0dfb75d090ea0e7ff84799b2a7a1550db3fe61eb5f6f61c2e971e57663
 ```
@@ -29,7 +29,7 @@ Unfortunately most software projects in the world do not build with Meson. Becau
 [wrap-file]
 directory = libfoobar-1.0
 
-source_url = http://upstream.example.com/foobar-1.0.tar.gz
+source_url = https://upstream.example.com/foobar-1.0.tar.gz
 source_filename = foobar-1.0.tar.gz
 source_hash = 5ebeea0dfb75d090ea0e7ff84799b2a7a1550db3fe61eb5f6f61c2e971e57663
 

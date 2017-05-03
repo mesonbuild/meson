@@ -15,7 +15,7 @@ If you have a project that uses Meson that you want to add to this list, let us 
  - [Gnome Recipes](https://github.com/matthiasclasen/gr), application for cooking recipes
  - [Gnome Software](https://git.gnome.org//browse/gnome-software), an app store for Gnome
  - [Gnome Twitch](https://github.com/vinszent/gnome-twitch), an app for viewing Twitch streams on Gnome desktop
- - [Graphene](http://ebassi.github.io/graphene/), a thin type library for graphics
+ - [Graphene](https://ebassi.github.io/graphene/), a thin type library for graphics
  - [Grilo](https://mail.gnome.org/archives/grilo-list/2017-February/msg00000.html) and [Grilo plugins](https://git.gnome.org/browse/grilo-plugins/commit/?id=ea047c4fb63e90268eb795ed91a09a2be5068a4c), the Grilo multimedia framework
  - [GStreamer](https://cgit.freedesktop.org/gstreamer/gstreamer/), multimedia framework (not the default yet)
  - [GTK+](https://git.gnome.org/browse/gtk+/log/?h=wip/meson), the multi-platform toolkit used by GNOME (not merged yet)

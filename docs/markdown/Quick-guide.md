@@ -12,7 +12,7 @@ Requirements
 
 Meson has two main dependencies.
 
-* [Python 3](http://python.org)
+* [Python 3](https://python.org)
 * [Ninja](https://github.com/ninja-build/ninja/)
 
 Ninja is only needed if you use the Ninja backend. Meson can also generate native VS and XCode project files.

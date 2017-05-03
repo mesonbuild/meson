@@ -103,7 +103,7 @@ This causes all subsequent builds to use this command line argument.
 
 ## Use address sanitizer
 
-Clang comes with a selection of analysis tools such as the [address sanitizer](http://clang.llvm.org/docs/AddressSanitizer.html). Meson has native support for these with the `b_sanitize` option.
+Clang comes with a selection of analysis tools such as the [address sanitizer](https://clang.llvm.org/docs/AddressSanitizer.html). Meson has native support for these with the `b_sanitize` option.
 
 ```console
 $ meson <other options> -Db_sanitize=address
