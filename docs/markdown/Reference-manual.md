@@ -635,13 +635,15 @@ Defined tests can be run in a backend-agnostic way by calling `mesontest` inside
     ctarget vcs_tag(...)
 ```
 
-This command detects revision control commit information at build time and places it in the specified output file. This file is guaranteed to be up to date on every build. Keywords are similar to `custom_target` and all of them are mandatory.
+This command detects revision control commit information at build time and places it in the specified output file. This file is guaranteed to be up to date on every build. Keywords are similar to `custom_target`.
 
-- `input` file to modify (e.g. `version.c.in`)
-- `output` file to write the results to (e.g. `version.c`)
-- `fallback` version number to use when no revision control information is present, such as when building from a release tarball
+- `input` file to modify (e.g. `version.c.in`) (required)
+- `output` file to write the results to (e.g. `version.c`) (required)
+- `fallback` version number to use when no revision control information is present, such as when building from a release tarball (required)
+- `command` string list with the command to execute, see [`custom_target`](#custom_target) for details on how this command must be specified
+- `replace_string` string in the input file to substitute with the commit information (defaults to `@VCS_TAG@`)
 
-Meson will read the contents of `input`, replace the string `@VCS_TAG@` with the detected revision number and write the result to `output`. This method returns an opaque [`custom_target`](#custom_target) object that can be used as source. If you desire more specific behavior than what this command provides, you should use `custom_target`.
+Meson will read the contents of `input`, substitute the `replace_string` with the detected revision number, and write the result to `output`. This method returns an opaque [`custom_target`](#custom_target) object that can be used as source. If you desire more specific behavior than what this command provides, you should use `custom_target`.
 
 ## Built-in objects
 
