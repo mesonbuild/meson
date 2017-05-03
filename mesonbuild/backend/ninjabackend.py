@@ -1940,6 +1940,9 @@ rule FORTRAN_DEP_HACK
         # near the end since these are supposed to override everything else.
         commands += self.escape_extra_args(compiler,
                                            target.get_extra_args(compiler.get_language()))
+        # Add per-target compiler standard version.
+        if(target.get_compiler_standard(compiler.get_language()) is not None):
+            commands += [compiler.get_standard_args(target.get_compiler_standard(compiler.get_language()))]
         # Add source dir and build dir. Project-specific and target-specific
         # include paths must override per-target compile args, include paths
         # from external dependencies, internal dependencies, and from
@@ -2084,7 +2087,7 @@ rule FORTRAN_DEP_HACK
 
     # Fortran is a bit weird (again). When you link against a library, just compiling a source file
     # requires the mod files that are output when single files are built. To do this right we would need to
-    # scan all inputs and write out explicit deps for each file. That is stoo slow and too much effort so
+    # scan all inputs and write out explicit deps for each file. That is too slow and too much effort so
     # instead just have an ordered dependendy on the library. This ensures all required mod files are created.
     # The real deps are then detected via dep file generation from the compiler. This breaks on compilers that
     # produce incorrect dep files but such is life.

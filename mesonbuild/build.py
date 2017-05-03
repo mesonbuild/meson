@@ -28,7 +28,9 @@ known_basic_kwargs = {'install': True,
                       'c_pch': True,
                       'cpp_pch': True,
                       'c_args': True,
+                      'c_std': True,
                       'cpp_args': True,
+                      'cpp_std': True,
                       'cs_args': True,
                       'vala_args': True,
                       'fortran_args': True,
@@ -318,6 +320,7 @@ class BuildTarget(Target):
         self.link_targets = []
         self.link_whole_targets = []
         self.link_depends = []
+        self.compiler_version = {}
         self.name_prefix_set = False
         self.name_suffix_set = False
         self.filename = 'no_name'
@@ -588,6 +591,11 @@ class BuildTarget(Target):
         if not isinstance(clist, list):
             clist = [clist]
         self.add_compiler_args('c', clist)
+        cstd = kwargs.get('c_std', None)
+        if not isinstance(cstd, str) and cstd is not None:
+            raise InvalidArguments('c_std argument must be a string.')
+        if cstd is not None:
+            self.set_compiler_standard('c', cstd)
         cpplist = kwargs.get('cpp_args', [])
         if not isinstance(cpplist, list):
             cpplist = [cpplist]
@@ -596,6 +604,11 @@ class BuildTarget(Target):
         if not isinstance(cslist, list):
             cslist = [cslist]
         self.add_compiler_args('cs', cslist)
+        cppstd = kwargs.get('cpp_std', None)
+        if not isinstance(cppstd, str) and cppstd is not None:
+            raise InvalidArguments('cpp_std argument must be a string.')
+        if cppstd is not None:
+            self.set_compiler_standard('cpp', cppstd)
         valalist = kwargs.get('vala_args', [])
         if not isinstance(valalist, list):
             valalist = [valalist]
@@ -862,6 +875,15 @@ You probably should put it in link_with instead.''')
             self.extra_args[language] += args
         else:
             self.extra_args[language] = args
+
+    def set_compiler_standard(self, language, version):
+        self.compiler_version[language] = version
+
+    def get_compiler_standard(self, language,):
+        if language in self.compiler_version:
+            return self.compiler_version[language]
+        else:
+            return None
 
     def get_aliases(self):
         return {}

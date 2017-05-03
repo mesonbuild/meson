@@ -781,6 +781,9 @@ class CCompiler(Compiler):
     def get_linker_exelist(self):
         return self.exelist[:]
 
+    def get_standard_versions(self):
+        return []
+
     def get_preprocess_only_args(self):
         return ['-E']
 
@@ -2228,6 +2231,11 @@ class VisualStudioCCompiler(CCompiler):
             result.append(i)
         return result
 
+    def get_standard_args(self, version):
+        # Visual studio doesn't support standard versions in the C
+        # compiler. Give no argument and hope for the best.
+        return ''
+
     def get_werror_args(self):
         return ['/WX']
 
@@ -2308,6 +2316,13 @@ class VisualStudioCPPCompiler(VisualStudioCCompiler, CPPCompiler):
         if std.value != 'none':
             args.append('/EH' + std.value)
         return args
+
+    def get_standard_args(self, version):
+        # Visual studio only has flags for c++14 and later.
+        if version in ['c++03', 'c++11', 'c++14']:
+            return '/std:c++14'
+        else:
+            raise MesonException('Invalid C++ standard ' + version)
 
     def get_option_link_args(self, options):
         return options['cpp_winlibs'].value[:]
@@ -2449,10 +2464,12 @@ class GnuCCompiler(GnuCompiler, CCompiler):
                           '2': default_warn_args + ['-Wextra'],
                           '3': default_warn_args + ['-Wextra', '-Wpedantic']}
 
+    def get_standard_versions(self):
+        return ['c89', 'c99', 'c11', 'gnu89', 'gnu99', 'gnu11']
+
     def get_options(self):
         opts = {'c_std': coredata.UserComboOption('c_std', 'C language standard to use',
-                                                  ['none', 'c89', 'c99', 'c11',
-                                                   'gnu89', 'gnu99', 'gnu11'],
+                                                  ['none'] + self.get_standard_versions(),
                                                   'none')}
         if self.gcc_type == GCC_MINGW:
             opts.update({
@@ -2466,6 +2483,12 @@ class GnuCCompiler(GnuCompiler, CCompiler):
         if std.value != 'none':
             args.append('-std=' + std.value)
         return args
+
+    def get_standard_args(self, version):
+        if version in self.get_standard_versions():
+            return '-std=' + version
+        else:
+            raise MesonException('Invalid C standard ' + version)
 
     def get_option_link_args(self, options):
         if self.gcc_type == GCC_MINGW:
@@ -2486,10 +2509,12 @@ class GnuCPPCompiler(GnuCompiler, CPPCompiler):
                           '2': default_warn_args + ['-Wextra'],
                           '3': default_warn_args + ['-Wextra', '-Wpedantic']}
 
+    def get_standard_versions(self):
+        return ['c++03', 'c++11', 'c++14', 'c++1z', 'gnu++03', 'gnu++11', 'gnu++14', 'gnu++1z']
+
     def get_options(self):
         opts = {'cpp_std': coredata.UserComboOption('cpp_std', 'C++ language standard to use',
-                                                    ['none', 'c++03', 'c++11', 'c++14', 'c++1z',
-                                                     'gnu++03', 'gnu++11', 'gnu++14', 'gnu++1z'],
+                                                    ['none'] + self.get_standard_versions(),
                                                     'none'),
                 'cpp_debugstl': coredata.UserBooleanOption('cpp_debugstl',
                                                            'STL debug mode',
@@ -2508,6 +2533,12 @@ class GnuCPPCompiler(GnuCompiler, CPPCompiler):
         if options['cpp_debugstl'].value:
             args.append('-D_GLIBCXX_DEBUG=1')
         return args
+
+    def get_standard_args(self, version):
+        if version in self.get_standard_versions():
+            return '-std=' + version
+        else:
+            raise MesonException('Invalid C++ standard ' + version)
 
     def get_option_link_args(self, options):
         if self.gcc_type == GCC_MINGW:
@@ -2623,10 +2654,12 @@ class ClangCCompiler(ClangCompiler, CCompiler):
                           '2': default_warn_args + ['-Wextra'],
                           '3': default_warn_args + ['-Wextra', '-Wpedantic']}
 
+    def get_standard_versions(self):
+        return ['c89', 'c99', 'c11', 'gnu89', 'gnu99', 'gnu11']
+
     def get_options(self):
         return {'c_std': coredata.UserComboOption('c_std', 'C language standard to use',
-                                                  ['none', 'c89', 'c99', 'c11',
-                                                   'gnu89', 'gnu99', 'gnu11'],
+                                                  ['none'] + self.get_standard_versions(),
                                                   'none')}
 
     def get_option_compile_args(self, options):
@@ -2635,6 +2668,12 @@ class ClangCCompiler(ClangCompiler, CCompiler):
         if std.value != 'none':
             args.append('-std=' + std.value)
         return args
+
+    def get_standard_args(self, version):
+        if version in self.get_standard_versions():
+            return '-std=' + version
+        else:
+            raise MesonException('Invalid C++ standard ' + version)
 
     def get_option_link_args(self, options):
         return []
@@ -2649,10 +2688,12 @@ class ClangCPPCompiler(ClangCompiler, CPPCompiler):
                           '2': default_warn_args + ['-Wextra'],
                           '3': default_warn_args + ['-Wextra', '-Wpedantic']}
 
+    def get_standard_versions(self):
+        return ['c++03', 'c++11', 'c++14', 'c++1z', 'gnu++11', 'gnu++14', 'gnu++1z']
+
     def get_options(self):
         return {'cpp_std': coredata.UserComboOption('cpp_std', 'C++ language standard to use',
-                                                    ['none', 'c++03', 'c++11', 'c++14', 'c++1z',
-                                                     'gnu++11', 'gnu++14', 'gnu++1z'],
+                                                    ['none'] + self.get_standard_versions(),
                                                     'none')}
 
     def get_option_compile_args(self, options):
@@ -2661,6 +2702,12 @@ class ClangCPPCompiler(ClangCompiler, CPPCompiler):
         if std.value != 'none':
             args.append('-std=' + std.value)
         return args
+
+    def get_standard_args(self, version):
+        if version in self.get_standard_versions():
+            return '-std=' + version
+        else:
+            raise MesonException('Invalid C++ standard ' + version)
 
     def get_option_link_args(self, options):
         return []
@@ -2728,7 +2775,6 @@ class IntelCompiler:
         #     return ['-bundle']
         return ['-shared']
 
-
 class IntelCCompiler(IntelCompiler, CCompiler):
     def __init__(self, exelist, version, icc_type, is_cross, exe_wrapper=None):
         CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
@@ -2739,13 +2785,16 @@ class IntelCCompiler(IntelCompiler, CCompiler):
                           '2': default_warn_args + ['-Wextra'],
                           '3': default_warn_args + ['-Wextra', '-Wpedantic']}
 
-    def get_options(self):
+    def get_standard_versions(self):
         c_stds = ['c89', 'c99']
         g_stds = ['gnu89', 'gnu99']
         if mesonlib.version_compare(self.version, '>=16.0.0'):
             c_stds += ['c11']
+        return c_stds + g_stds
+
+    def get_options(self):
         opts = {'c_std': coredata.UserComboOption('c_std', 'C language standard to use',
-                                                  ['none'] + c_stds + g_stds,
+                                                  ['none'] + self.get_standard_versions(),
                                                   'none')}
         return opts
 
@@ -2755,6 +2804,12 @@ class IntelCCompiler(IntelCompiler, CCompiler):
         if std.value != 'none':
             args.append('-std=' + std.value)
         return args
+
+    def get_standard_args(self, version):
+        if version in self.get_standard_versions():
+            return '-std=' + version
+        else:
+            raise MesonException('Invalid C standard ' + version)
 
     def get_std_shared_lib_link_args(self):
         return ['-shared']
@@ -2774,7 +2829,7 @@ class IntelCPPCompiler(IntelCompiler, CPPCompiler):
                           '2': default_warn_args + ['-Wextra'],
                           '3': default_warn_args + ['-Wextra', '-Wpedantic']}
 
-    def get_options(self):
+    def get_standard_versions(self):
         c_stds = []
         g_stds = ['gnu++98']
         if mesonlib.version_compare(self.version, '>=15.0.0'):
@@ -2784,8 +2839,11 @@ class IntelCPPCompiler(IntelCompiler, CPPCompiler):
             c_stds += ['c++17']
         if mesonlib.version_compare(self.version, '>=17.0.0'):
             g_stds += ['gnu++14']
+        return c_stds + g_stds
+
+    def get_options(self):
         opts = {'cpp_std': coredata.UserComboOption('cpp_std', 'C++ language standard to use',
-                                                    ['none'] + c_stds + g_stds,
+                                                    ['none'] + self.get_standard_versions(),
                                                     'none'),
                 'cpp_debugstl': coredata.UserBooleanOption('cpp_debugstl',
                                                            'STL debug mode',
@@ -2800,6 +2858,12 @@ class IntelCPPCompiler(IntelCompiler, CPPCompiler):
         if options['cpp_debugstl'].value:
             args.append('-D_GLIBCXX_DEBUG=1')
         return args
+
+    def get_standard_args(self, version):
+        if version in self.get_standard_versions():
+            return '-std=' + version
+        else:
+            raise MesonException('Invalid C++ standard ' + version)
 
     def get_option_link_args(self, options):
         return []
