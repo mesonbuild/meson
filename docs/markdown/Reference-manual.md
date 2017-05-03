@@ -641,7 +641,7 @@ This command detects revision control commit information at build time and place
 - `output` file to write the results to (e.g. `version.c`)
 - `fallback` version number to use when no revision control information is present, such as when building from a release tarball
 
-Meson will read the contents of `input`, replace the string `@VCS_TAG@` with the detected revision number and write the result to `output`. This method returns an opaque [`custom_target`](#custom_target) object that you should put in your main program. If you desire more specific behavior than what this command provides, you should use `custom_target`.
+Meson will read the contents of `input`, replace the string `@VCS_TAG@` with the detected revision number and write the result to `output`. This method returns an opaque [`custom_target`](#custom_target) object that can be used as source. If you desire more specific behavior than what this command provides, you should use `custom_target`.
 
 ## Built-in objects
 
