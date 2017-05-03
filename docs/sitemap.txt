@@ -74,7 +74,6 @@ index.md
 		Design-rationale.md
 		IndepthTutorial.md
 		In-the-press.md
-		Meson-design-rationale:-A-proposal-for-a-better-cross-platform-build-system.md
 		Pkg-config-files.md
 		Playground.md
 		Porting-from-autotools.md
