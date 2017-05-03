@@ -837,6 +837,9 @@ class GnomeModule(ExtensionModule):
             if arg in kwargs:
                 custom_kwargs[arg] = kwargs[arg]
 
+        if mesonlib.version_compare(self._get_native_glib_version(state), '>= 2.51.0'):
+            cmd += ['--output', '@OUTPUT@']
+
         targets = []
 
         if h_template is not None:
@@ -891,8 +894,8 @@ class GnomeModule(ExtensionModule):
         custom_kwargs = {
             'input': sources,
             'output': output,
-            'capture': True,
-            'command': cmd
+            'command': cmd,
+            'capture': '--output' not in cmd
         }
         custom_kwargs.update(kwargs)
         return build.CustomTarget(output, state.subdir, custom_kwargs,
