@@ -1,3 +1,7 @@
+---
+short-description: Configuring a pre-generated build directory
+...
+
 # Configuring a build directory
 
 Often you want to change the settings of your build after it has been generated. For example you might want to change from a debug build into a release build, set custom compiler flags, change the build options provided in your `meson_options.txt` file and so on.

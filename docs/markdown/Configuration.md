@@ -1,3 +1,7 @@
+---
+short-description: Build-time configuration options
+...
+
 # Configuration
 
 If there are multiple configuration options, passing them through compiler flags becomes very burdensome. It also makes the configuration settings hard to inspect. To make things easier, Meson supports the generation of configure files. This feature is similar to one found in other build systems such as CMake.

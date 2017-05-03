@@ -1,3 +1,7 @@
+---
+short-description: Auto-detection of features like ccache and code coverage
+...
+
 # Feature autodetection
 
 Meson is designed for high productivity. It tries to do as many things automatically as it possibly can.

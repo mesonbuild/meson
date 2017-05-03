@@ -696,7 +696,7 @@ Provides information about the build machine — the machine that is doing the a
 - `system()` returns the operating system name, such as `windows` (all versions of Windows), `linux` (all Linux distros), `darwin` (all versions of OS X), etc.
 - `endian()` returns `big` on big-endian systems and `little` on little-endian systems.
 
-Currently, these values are populated using the [`platform.system()`](https://docs.python.org/3.4/library/platform.html#platform.system) and [`platform.machine()`](https://docs.python.org/3.4/library/platform.html#platform.machine). If you think the returned values for any of these are incorrect for your system or CPU, please file [a bug report](/mesonbuild/meson/issues/new).
+Currently, these values are populated using the [`platform.system()`](https://docs.python.org/3.4/library/platform.html#platform.system) and [`platform.machine()`](https://docs.python.org/3.4/library/platform.html#platform.machine). If you think the returned values for any of these are incorrect for your system or CPU, please file [a bug report](https://github.com/mesonbuild/meson/issues/new).
 
 ### `host_machine` object
 

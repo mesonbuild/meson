@@ -1,3 +1,7 @@
+---
+short-description: Creating universal Linux binaries
+...
+
 # Creating Linux binaries
 
 Creating Linux binaries that can be downloaded and run on any distro (like .dmg packages for OSX or .exe installers for Windows) has traditionally been difficult. This is even more tricky if you want to use modern compilers and features, which is especially desired in game development. There is still no simple turn key solution for this problem but with a bit of setup it can be relatively straightforward.

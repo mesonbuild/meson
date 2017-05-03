@@ -8,8 +8,8 @@ In order to generate Visual Studio projects, Meson needs to know the settings of
 
 1. Click on start menu and select "Visual Studio 2015 Command Prompt"
 1. cd into your source directory
-1. mkdir build
-1. python3 path/to/meson.py build --backend vs2015
+1. mkdir builddir
+1. python3 path/to/meson.py builddir --backend vs2015
 
 If you wish to use the Ninja backend instead of vs2015, pass `--backend ninja`. At the time of writing the Ninja backend is more mature than the VS backend so you might want to use it for serious work.
 

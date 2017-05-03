@@ -33,8 +33,8 @@ script:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then echo FROM YOUR/REPO:yakkety > Dockerfile; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then echo ADD . /root >> Dockerfile; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then docker build -t withgit .; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then docker run withgit /bin/sh -c "cd /root && TRAVIS=true CC=$CC CXX=$CXX meson build && ninja -C build test"; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then SDKROOT=$(xcodebuild -version -sdk macosx Path) meson build && ninja -C build test; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then docker run withgit /bin/sh -c "cd /root && TRAVIS=true CC=$CC CXX=$CXX meson builddir && ninja -C builddir test"; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then SDKROOT=$(xcodebuild -version -sdk macosx Path) meson builddir && ninja -C builddir test; fi
 ```
 
 ## AppVeyor for Windows
@@ -67,11 +67,11 @@ install:
 
 build_script:
   - cmd: echo Building on %arch% with %compiler%
-  - cmd: PATH=%cd%;%MESON_PYTHON_PATH%;%PATH%; && python meson.py --backend=ninja build
-  - cmd: PATH=%cd%;%MESON_PYTHON_PATH%;%PATH%; && ninja -C build
+  - cmd: PATH=%cd%;%MESON_PYTHON_PATH%;%PATH%; && python meson.py --backend=ninja builddir
+  - cmd: PATH=%cd%;%MESON_PYTHON_PATH%;%PATH%; && ninja -C builddir
 
 test_script:
-  - cmd: PATH=%cd%;%MESON_PYTHON_PATH%;%PATH%; && ninja -C build test
+  - cmd: PATH=%cd%;%MESON_PYTHON_PATH%;%PATH%; && ninja -C builddir test
 ```
 
 ## Travis without Docker
@@ -96,7 +96,7 @@ install:
   - pip3 install meson
 
 script:
-  - meson build
-  - ninja -C build
-  - ninja -C build test
+  - meson builddir
+  - ninja -C builddir
+  - ninja -C builddir test
 ```

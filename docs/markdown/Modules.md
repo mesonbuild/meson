@@ -1,3 +1,7 @@
+---
+short-description: Meson modules for common build operations
+...
+
 # Modules
 
 In addition to core language features, Meson also provides a module system aimed at providing helper methods for common build operations. Using modules is simple, first you import them:

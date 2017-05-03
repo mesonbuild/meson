@@ -40,7 +40,7 @@ The most common use case of Meson is compiling code on a code base you are worki
 
 ```console
 $ cd /path/to/source/root
-$ meson build && cd build
+$ meson builddir && cd builddir
 $ ninja
 $ ninja test
 ```
@@ -58,10 +58,10 @@ Distro packagers usually want total control on the build flags used. Meson suppo
 
 ```console
 $ cd /path/to/source/root
-$ CFLAGS=... CXXFLAGS=... LDFLAGS=.. meson --prefix /usr --buildtype=plain build
-$ ninja -v -C build
-$ ninja -C build test
-$ DESTDIR=/path/to/staging/root ninja -C build install
+$ CFLAGS=... CXXFLAGS=... LDFLAGS=.. meson --prefix /usr --buildtype=plain builddir
+$ ninja -v -C builddir
+$ ninja -C builddir test
+$ DESTDIR=/path/to/staging/root ninja -C builddir install
 ````
 
 The command line switch `--buildtype=plain` tells Meson not to add its own flags to the command line. This gives the packager total control on used flags.

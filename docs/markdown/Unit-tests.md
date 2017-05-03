@@ -1,3 +1,7 @@
+---
+short-description: Meson's own unit-test system
+...
+
 # Unit tests
 
 Meson comes with a fully functional unit test system. To use it simply build an executable and then use it in a test.

@@ -1,3 +1,7 @@
+---
+short-description: Build targets for custom languages or corner-cases
+...
+
 # Custom build targets
 
 While Meson tries to support as many languages and tools as possible, there is no possible way for it to cover all corner cases. For these cases it permits you to define custom build targets. Here is how one would use it.

@@ -1,3 +1,7 @@
+---
+short-description: Meson's API to integrate Meson support into an IDE
+...
+
 # IDE integration
 
 Meson has exporters for Visual Studio and XCode, but writing a custom backend for every IDE out there is not a scalable approach. To solve this problem, Meson provides an API that makes it easy for any IDE or build tool to integrate Meson builds and provide an experience comparable to a solution native to the IDE.
@@ -6,7 +10,7 @@ The basic tool for this is a script called `mesonintrospect.py`. Some distro pac
 
 The first thing to do when setting up a Meson project in an IDE is to select the source and build directories. For this example we assume that the source resides in an Eclipse-like directory called `workspace/project` and the build tree is nested inside it as `workspace/project/build`. First we initialise Meson by running the following command in the source directory.
 
-    meson build
+    meson builddir
 
 For the remainder of the document we assume that all commands are executed inside the build directory unless otherwise specified.
 
@@ -32,7 +36,7 @@ The next thing to display is the list of options that can be set. These include 
 
 To set the options, use the `mesonconf.py` binary.
 
-Compilation and unit tests are done as usual by running the `ninja` and `ninja test` commands. A JSON formatted result log can be found in `workspace/project/build/meson-logs/testlog.json`.
+Compilation and unit tests are done as usual by running the `ninja` and `ninja test` commands. A JSON formatted result log can be found in `workspace/project/builddir/meson-logs/testlog.json`.
 
 When these tests fail, the user probably wants to run the failing test in a debugger. To make this as integrated as possible, extract the test test setups with this command.
 

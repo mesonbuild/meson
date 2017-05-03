@@ -1,3 +1,7 @@
+---
+short-description: Converting other build systems to Meson
+...
+
 # Build system converters
 
 Moving from one build system into another includes a fair bit of work. To make things easier, Meson provides scripts to convert other build systems into Meson. At the time of writing, scripts for CMake and autotools exist. It can be found in the `tools` subdirectory in Meson's source tree.

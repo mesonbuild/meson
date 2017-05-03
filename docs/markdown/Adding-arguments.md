@@ -1,3 +1,7 @@
+---
+short-description: Adding compiler arguments
+...
+
 # Adding arguments
 
 Often you need to specify extra compiler arguments. Meson provides two different ways to achieve this: global arguments and per-target arguments.

@@ -15,8 +15,8 @@ Let us assume that we have a source tree that has a Meson build system. This mea
 
 
     cd /path/to/source/root
-    mkdir build
-    cd build
+    mkdir builddir
+    cd builddir
     meson ..
 
 First we create a directory to hold all files generated during the build. Then we go into it and invoke Meson, giving it the location of the source root.
