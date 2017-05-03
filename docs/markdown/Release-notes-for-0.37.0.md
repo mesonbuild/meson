@@ -37,21 +37,21 @@ The new `shared_module` function allows the creation of shared modules, that is,
 
 ### gtkdoc
 
-- Allow passing a list of directories to `src_dir` kwarg
-- Add `namespace` kwarg
-- Add `mode` kwarg
+- Allow passing a list of directories to `src_dir` keyword argument
+- Add `namespace` keyword argument
+- Add `mode` keyword argument
 - Fix `gtkdoc-scangobj` finding local libraries
 
 ### compile_resources
 
-- Add `gresource_bundle` kwarg to output `.gresource` files
-- Add `export` and `install_header` kwargs
+- Add `gresource_bundle` keyword argument to output `.gresource` files
+- Add `export` and `install_header` keyword arguments
 - Use depfile support available in GLib >= 2.52.0
 
 ## i18n module
 
 - Add `merge_file()` function for creating translated files
-- Add `preset` kwarg to included common gettext flags
+- Add `preset` keyword argument to included common gettext flags
 - Read languages from `LINGUAS` file
 
 ## LLVM IR compilation

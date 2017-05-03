@@ -145,11 +145,11 @@ Create a custom top level build target. The only positional argument is the name
 - `build_always` if `true` this target is always considered out of date and is rebuilt every time, useful for things such as build timestamps or revision control tags
 - `capture`, there are some compilers that can't be told to write their output to a file but instead write it to standard output. When this argument is set to true, Meson captures `stdout` and writes it to the target file. Note that your command argument list may not contain `@OUTPUT@` when capture mode is active.
 - `depends` specifies that this target depends on the specified target(s), even though it does not take any of them as a command line argument. This is meant for cases where you have a tool that e.g. does globbing internally. Usually you should just put the generated sources as inputs and Meson will set up all dependencies automatically.
-- `depend_files` files ([`string`](#string-object), [`files()`](#files), or [`configure_file()`](#configure_file)) that this target depends on but are not listed in the `command` kwarg. Useful for adding regen dependencies.
+- `depend_files` files ([`string`](#string-object), [`files()`](#files), or [`configure_file()`](#configure_file)) that this target depends on but are not listed in the `command` keyword argument. Useful for adding regen dependencies.
 - `depfile` is a dependency file that the command can write listing all the additional files this target depends on, for example a C compiler would list all the header files it included, and a change in any one of these files triggers a recompilation
 - `build_by_default` *(added 0.38.0)* causes, when set to true, to have this target be built by default, that is, when invoking plain `ninja`; the default value is false
 
-The list of strings passed to the `command` kwarg accept the following special string substitutions:
+The list of strings passed to the `command` keyword argument accept the following special string substitutions:
 
 - `@INPUT@` the full path to the input passed to `input`. If more than one input is specified, all of them will be substituted as separate arguments only if the command uses `'@INPUT@'` as a standalone-argument. For instance, this would not work: `command : ['cp', './@INPUT@']`, but this would: `command : ['cp', '@INPUT@']`.
 - `@OUTPUT@` the full path to the output passed to `output`. If more than one outputs are specified, the behaviour is the same as `@INPUT@`.
@@ -184,7 +184,7 @@ Finds an external dependency with the given name with `pkg-config` if possible a
 
 - `modules` specifies submodules to use for dependencies such as Qt5 or Boost.
 - `required`, when set to false, Meson will proceed with the build even if the dependency is not found
-- `version`, specifies the required version, a string containing a comparison operator followed by the version string, examples include `>1.0.0`, `<=2.3.5` or `3.1.4` for exact matching. (*Added 0.37.0*) You can also specify multiple restrictions by passing a list to this kwarg, such as: `['>=3.14.0', '<=4.1.0']`.
+- `version`, specifies the required version, a string containing a comparison operator followed by the version string, examples include `>1.0.0`, `<=2.3.5` or `3.1.4` for exact matching. (*Added 0.37.0*) You can also specify multiple restrictions by passing a list to this keyword argument, such as: `['>=3.14.0', '<=4.1.0']`.
 - `native` if set to `true`, causes Meson to find the dependency on the build machine system rather than the host system (i.e. where the cross compiled binary will run on), usually only needed if you build a tool to be used during compilation.
 - `static` tells the dependency provider to try to get static libraries instead of dynamic ones (note that this is not supported by all dependency backends)
 - `fallback` specifies a subproject fallback to use in case the dependency is not found in the system. The value is an array `['subproj_name', 'subproj_dep']` where the first value is the name of the subproject and the second is the variable name in that subproject that contains the value of [`declare_dependency`](#declare_dependency).
@@ -246,7 +246,7 @@ Executable supports the following keyword arguments. Note that just like the pos
 - `build_by_default` causes, when set to true, to have this target be built by default, that is, when invoking plain `ninja`, the default value is true for all built target types, since 0.38.0
 - `override_options` takes an array of strings in the same format as `project`'s `default_options` overriding the values of these options for this target only, since 0.40.0
 
-The list of `sources`, `objects`, and `dependencies` is always flattened, which means you can freely nest and add lists while creating the final list. As a corollary, the best way to handle a 'disabled dependency' is by assigning an empty list `[]` to it and passing it like any other dependency to the `dependencies:` kwarg.
+The list of `sources`, `objects`, and `dependencies` is always flattened, which means you can freely nest and add lists while creating the final list. As a corollary, the best way to handle a 'disabled dependency' is by assigning an empty list `[]` to it and passing it like any other dependency to the `dependencies:` keyword argument.
 
 The returned object also has methods that are documented in the [object methods section](#build-target-object) below.
 
@@ -306,14 +306,14 @@ This function creates a [generator object](#generator-object) that can be used t
 
 The returned object also has methods that are documented in the [object methods section](#generator-object) below.
 
-The template strings passed to all the above kwargs accept the following special substitutions:
+The template strings passed to all the above keyword arguments accept the following special substitutions:
 
 - `@PLAINNAME@`: the complete input file name, e.g: `foo.c` becomes `foo.c` (unchanged)
 - `@BASENAME@`: the base of the input filename, e.g.: `foo.c.y` becomes `foo.c` (extension is removed)
 
-Each string passed to the `outputs` kwarg *must* be constructed using one or both of these two substitutions.
+Each string passed to the `outputs` keyword argument *must* be constructed using one or both of these two substitutions.
 
-In addition to the above substitutions, the `arguments` kwarg also accepts the following:
+In addition to the above substitutions, the `arguments` keyword argument also accepts the following:
 
 - `@OUTPUT@`: the full path to the output file
 - `@INPUT@`: the full path to the input file
@@ -757,7 +757,7 @@ This object is returned by [`meson.get_compiler(lang)`](#meson-object). It repre
 
 The following keyword arguments can be used:
 
-- `name` the name to use for printing a message about the compiler check. Supported by the methods `compiles()`, `links()`, and `run()`. If this kwarg is not passed to those methods, no message will be printed about the check.
+- `name` the name to use for printing a message about the compiler check. Supported by the methods `compiles()`, `links()`, and `run()`. If this keyword argument is not passed to those methods, no message will be printed about the check.
 
 - `prefix` can be used to add #includes and other things that are required for the symbol to be declared. System definitions should be passed via compiler args (eg: `_GNU_SOURCE` is often required for some symbols to be exposed on Linux, and it should be passed via `args` keyword argument, see below). Supported by the methods `sizeof`, `has_type`, `has_function`, `has_member`, `has_members`, `has_header_symbol`.
 
