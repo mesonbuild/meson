@@ -20,7 +20,7 @@ The first thing to do is to set up the default build, that is, the one we are go
 Another common setup is to build with debug and optimizations to, for example, run performance tests. Setting this up is just as simple.
 
     mkdir buildopt
-    meson --buildtype=debugoptimized
+    meson --buildtype=debugoptimized buildopt
 
 For systems where the default compiler is GCC, we would like to compile with Clang, too. So let's do that.
 
