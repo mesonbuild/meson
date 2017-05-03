@@ -30,7 +30,7 @@ executable('demo', 'main.c')
 That is all. We are now ready to build our application. First we need to initialise the build by going into the source directory and issuing the following commands.
 
 ```console
-$ meson build
+$ meson builddir
 ```
 
 We create a separate build directory to hold all of the compiler output. Meson is different from some other build systems in that it does not permit in-source builds. You must always create a separate build directory. Common convention is to put the default build directory in a subdirectory of your toplevel source directory.
@@ -40,7 +40,7 @@ When Meson is run it prints the following output.
     The Meson build system
      version: 0.13.0-research
     Source dir: /home/jpakkane/mesontutorial
-    Build dir: /home/jpakkane/mesontutorial/build
+    Build dir: /home/jpakkane/mesontutorial/builddir
     Build type: native build
     Project name is "tutorial".
     Using native c compiler "ccache cc". (gcc 4.8.2)
@@ -49,7 +49,7 @@ When Meson is run it prints the following output.
 Now we are ready to build our code.
 
 ```
-$ cd build
+$ cd builddir
 $ ninja
 ```
 
@@ -102,7 +102,7 @@ Once you have set up your build directory the first time, you don't ever need to
     The Meson build system
      version: 0.13.0-research
     Source dir: /home/jpakkane/mesontutorial
-    Build dir: /home/jpakkane/mesontutorial/build
+    Build dir: /home/jpakkane/mesontutorial/builddir
     Build type: native build
     Project name is "tutorial".
     Using native c compiler "ccache cc". (gcc 4.8.2)

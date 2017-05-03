@@ -14,8 +14,8 @@ Since a build directory is fully self contained and treats the source tree as a 
 
 The first thing to do is to set up the default build, that is, the one we are going to use over 90% of the time. In this we use the system compiler and build with debug enabled and no optimizations so it builds as fast as possible. This is the default project type for Meson, so setting it up is simple.
 
-    mkdir build
-    meson build
+    mkdir builddir
+    meson builddir
 
 Another common setup is to build with debug and optimizations to, for example, run performance tests. Setting this up is just as simple.
 
