@@ -2022,6 +2022,8 @@ class Interpreter(InterpreterBase):
             raise InterpreterException('Unknown target_type.')
 
     def func_vcs_tag(self, node, args, kwargs):
+        if 'input' not in kwargs or 'output' not in kwargs:
+            raise InterpreterException('Keyword arguments input and output must exist')
         fallback = kwargs.pop('fallback', None)
         if not isinstance(fallback, str):
             raise InterpreterException('Keyword argument fallback must exist and be a string.')
