@@ -1,3 +1,7 @@
+---
+short-description: Generation of source files before compilation
+...
+
 # Generating sources
 
   Sometimes source files need to be preprocessed before they are passed to the actual compiler. As an example you might want build an IDL compiler and then run some files through that to generate actual source files. In Meson this is done with [`generator()`](https://github.com/mesonbuild/meson/wiki/Reference-manual#generator) or [`custom_target()`](https://github.com/mesonbuild/meson/wiki/Reference-manual#custom_target).

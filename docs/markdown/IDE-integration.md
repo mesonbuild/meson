@@ -1,3 +1,7 @@
+---
+short-description: Meson's API to integrate Meson support into an IDE
+...
+
 # IDE integration
 
 Meson has exporters for Visual Studio and XCode, but writing a custom backend for every IDE out there is not a scalable approach. To solve this problem, Meson provides an API that makes it easy for any IDE or build tool to integrate Meson builds and provide an experience comparable to a solution native to the IDE.

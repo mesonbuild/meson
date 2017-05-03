@@ -1,3 +1,7 @@
+---
+short-description: Running external commands
+...
+
 # External commands
 
 As a part of the software configuration, you may want to get extra data by running external commands. The basic syntax is the following.

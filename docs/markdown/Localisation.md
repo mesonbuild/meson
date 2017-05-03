@@ -1,3 +1,7 @@
+---
+short-description: Localization with GNU Gettext
+...
+
 # Localisation
 
 Localising your application with GNU Gettext takes a little effort but is quite straightforward. This documentation assumes that you have a `po` subdirectory at your project root directory that contains all the localisation info.

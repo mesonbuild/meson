@@ -1,3 +1,7 @@
+---
+short-description: Targets to run external commands
+...
+
 # Run targets
 
 Sometimes you need to have a target that just runs an external command. As an example you might have a build target that reformats your source code, runs `cppcheck` or something similar. In Meson this is accomplished with a so called *run target*.

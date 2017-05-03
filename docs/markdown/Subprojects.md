@@ -1,3 +1,7 @@
+---
+short-description: Using meson projects as subprojects within other meson projects
+...
+
 # Subprojects
 
 Some platforms do not provide a native packaging system. In these cases it is common to bundle all third party libraries in your source tree. This is usually frowned upon because it makes it hard to add these kinds of projects into e.g. those Linux distributions that forbid bundled libraries.

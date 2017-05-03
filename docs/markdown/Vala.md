@@ -1,5 +1,6 @@
 ---
 title: Vala
+short-description: Compiling Vala programs
 ...
 
 # Compiling Vala applications

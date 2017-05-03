@@ -1,3 +1,7 @@
+---
+short-description: Unity builds are a technique for reducing build times
+...
+
 # Unity builds
 
 Unity builds are a technique for cutting down build times. The way it works is relatively straightforward. Suppose we have source files `src1.c`, `src2.c` and `src3.c`. Normally we would run the compiler three times, once for each file. In a unity build we instead compile all these sources in a single unit. The simplest approach is to create a new source file that looks like this.

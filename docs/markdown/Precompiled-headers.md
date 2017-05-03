@@ -1,3 +1,7 @@
+---
+short-description: Using precompiled headers to reduce compilation time
+...
+
 # Precompiled headers
 
 Parsing header files of system libraries is surprisingly expensive. A typical source file has less than one thousand lines of code. In contrast the headers of large libraries can be tens of thousands of lines. This is especially problematic with C++, where header-only libraries are common and they may contain extremely complex code. This makes them slow to compile.

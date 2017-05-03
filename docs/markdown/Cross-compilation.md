@@ -1,3 +1,7 @@
+---
+short-description: Setting up cross-compilation
+...
+
 # Cross compilation
 
 Meson has full support for cross compilation. Since cross compiling is more complicated than native building,
