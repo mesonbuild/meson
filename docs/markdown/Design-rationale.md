@@ -15,7 +15,7 @@ The most positive statement on build systems you can usually get (and it might r
 
 Let's illustrate this with a simple example. Suppose we want to run a program built with GNU Autotools under GDB. The instinctive thing to do is to just run `gdb programname`. The problem is that this may or may not work. In some cases the executable file is a binary whereas at other times it is a wrapper shell script that invokes the real binary which resides in a hidden subdirectory. GDB invocation fails if the binary is a script but succeeds if it is not. The user has to remember the type of each one of his executables (which is an implementation detail of the build system) just to be able to debug them. Several other such pain points can be found in [this blog post](http://voices.canonical.com/jussi.pakkanen/2011/09/13/autotools/).
 
-Given these idiosyncrasies it is no wonder that most people don't want to have anything to do with build systems. They'll just copypaste code that works (somewhat) in one place to another and hope for the best. They actively go out of their way not to understand the system because the mere thought of it is repulsive. Doing this also provides a kind of inverse job security. If you don't know tool X, there's less chance of finding yourself responsible for its use in your organisation. Instead you get to work on more enjoyable things.
+Given these idiosyncrasies it is no wonder that most people don't want to have anything to do with build systems. They'll just copy-paste code that works (somewhat) in one place to another and hope for the best. They actively go out of their way not to understand the system because the mere thought of it is repulsive. Doing this also provides a kind of inverse job security. If you don't know tool X, there's less chance of finding yourself responsible for its use in your organisation. Instead you get to work on more enjoyable things.
 
 This leads to a vicious circle. Since people avoid the tools and don't want to deal with them, very few work on improving them. The result is apathy and stagnation.
 
@@ -93,7 +93,7 @@ sources = ['main.c', 'file1.c', 'file2.c', 'file3.c']
 executable('program', sources : sourcelist)
 ```
 
-External depencencies are simple to use.
+External dependencies are simple to use.
 
 ```meson
 project('external lib', 'c')

@@ -62,7 +62,7 @@ index.md
 		Release-notes-for-0.39.0.md
 		Release-notes-for-0.38.0.md
 		Release-notes-for-0.37.0.md
-	Additionnal.md
+	Additional.md
 		Release-procedure.md
 		Performance-comparison.md
 			ARM-performance-test.md

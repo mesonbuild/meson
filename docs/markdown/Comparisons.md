@@ -1,5 +1,5 @@
 ---
-title: Comparisions
+title: Comparisons
 ...
 
 # Comparing Meson with other build systems #
@@ -14,7 +14,7 @@ Excellent support for legacy Unix platforms, large selection of existing modules
 
 ### Cons ###
 
-Needlessly slow, complicated, hard to use correctly, unreliable, painful to debug, ununderstandable for most people, poor support for non-Unix platforms (especially Windows).
+Needlessly slow, complicated, hard to use correctly, unreliable, painful to debug, incomprehensible for most people, poor support for non-Unix platforms (especially Windows).
 
 ## CMake ##
 

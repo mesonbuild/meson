@@ -172,7 +172,7 @@ This function returns a [dependency object](#dependency-object) that behaves lik
   - `dependencies`, other dependencies needed to use this dependency
   - `compile_args`, compile arguments to use
   - `link_args`, link arguments to use
-  - `version`, the version of this depency, such as `1.2.3`
+  - `version`, the version of this dependency, such as `1.2.3`
 
 ### dependency()
 
@@ -474,7 +474,7 @@ Returns true if a variable of the given name exists and false otherwise.
    jar_object jar(name, list_of_sources, ...)
 ```
 
-Build a jar from the specified Java source files. Keyword arguments are the same as executable's, with the addition of `main_class` which specifies the main class to execute when running the jar with `java -jar file.jar`.
+Build a jar from the specified Java source files. Keyword arguments are the same as [`executable`](#executable)'s, with the addition of `main_class` which specifies the main class to execute when running the jar with `java -jar file.jar`.
 
 ### join_paths()
 
@@ -641,7 +641,7 @@ This command detects revision control commit information at build time and place
 - `output` file to write the results to (e.g. `version.c`)
 - `fallback` version number to use when no revision control information is present, such as when building from a release tarball
 
-Meson will read the contents of `input`, replace the string `@VCS_TAG@` with the detected revision number and write the result to `output`. This method returns an opaque [`custom_target`](#custom_target) object that you should put in your main program. If you desire more specific behavior than what this command provides, you should use `custom_target`.
+Meson will read the contents of `input`, replace the string `@VCS_TAG@` with the detected revision number and write the result to `output`. This method returns an opaque [`custom_target`](#custom_target) object that you should put in your main program. If you desire more specific behaviour than what this command provides, you should use `custom_target`.
 
 ## Built-in objects
 

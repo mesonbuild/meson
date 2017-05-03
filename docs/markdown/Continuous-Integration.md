@@ -1,4 +1,4 @@
-# Continous Integration
+# Continuous Integration
 
 Here you will find snippets to use Meson with various CI such as Travis and AppVeyor.
 

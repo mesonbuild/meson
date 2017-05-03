@@ -19,7 +19,7 @@ We also need to define an array of strings containing all the locales we want to
 langs = ['fi', 'de']
 ```
 
-Then we need to generate the main pot file. Usually this is generated manually or exists already. If not, see later on how to generate it using Meson. The potfile can have any name but is usually the name of the gettext package. Let's say the project is called *intltest*. In this case the corresponding pot file would be called `inltest.pot`.
+Then we need to generate the main pot file. Usually this is generated manually or exists already. If not, see later on how to generate it using Meson. The potfile can have any name but is usually the name of the gettext package. Let's say the project is called *intltest*. In this case the corresponding pot file would be called `intltest.pot`.
 
 For each language listed in the array above we need a corresponding `.po` file. This has to be generated manually, see the gettext manual for details. Once we have all this, we can define the localisation to Meson with these lines.
 

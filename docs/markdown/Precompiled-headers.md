@@ -44,7 +44,7 @@ executable('multilang', sources : srclist,
 Using precompiled headers with MSVC
 --
 
-MSVC is a bit trickier, because in addition to the header file, it also requires a correspongind source file. If your header is called `foo_pch.h`, the corresponding source file is usually called `foo_pch.cpp` and it resides in the same `pch` subdirectory as the header. Its contents are this:
+MSVC is a bit trickier, because in addition to the header file, it also requires a corresponding source file. If your header is called `foo_pch.h`, the corresponding source file is usually called `foo_pch.cpp` and it resides in the same `pch` subdirectory as the header. Its contents are this:
 
 ```cpp
 #if !defined(_MSC_VER)

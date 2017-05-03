@@ -19,7 +19,7 @@ project('myproj', 'c', 'cpp',
 
 ## Enable threads
 
-Lots of people seem to do this manually with `find_library('phtread')` or something similar. Do not do that. It is not portable. Instead do this.
+Lots of people seem to do this manually with `find_library('pthread')` or something similar. Do not do that. It is not portable. Instead do this.
 
 ```meson
 thread_dep = dependency('threads')

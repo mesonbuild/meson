@@ -33,7 +33,7 @@ That is all. We are now ready to build our application. First we need to initial
 $ meson builddir
 ```
 
-We create a separate build directory to hold all of the compiler output. Meson is different from some other build systems in that it does not permit in-source builds. You must always create a separate build directory. Common convention is to put the default build directory in a subdirectory of your toplevel source directory.
+We create a separate build directory to hold all of the compiler output. Meson is different from some other build systems in that it does not permit in-source builds. You must always create a separate build directory. Common convention is to put the default build directory in a subdirectory of your top level source directory.
 
 When Meson is run it prints the following output.
 

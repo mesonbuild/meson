@@ -66,7 +66,7 @@ Build targets got a new keyword `build_by_default` which tells whether the targe
 
 # Add option to mesonconf to wipe cached data.
 
-Meson caches the results of depencency lookups. Sometimes these may get out of sync with the system state. Mesonconf now has a `--clearcache` option to clear these values so they will be re-searched from the system upon next compile.
+Meson caches the results of dependency lookups. Sometimes these may get out of sync with the system state. Mesonconf now has a `--clearcache` option to clear these values so they will be re-searched from the system upon next compile.
 
 # Can specify file permissions and owner when installing data
 

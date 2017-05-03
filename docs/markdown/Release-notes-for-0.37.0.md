@@ -21,7 +21,7 @@ or under `gdb`, 1000 times in a row. This is handy for tests that fail spuriousl
 
 ## Mesonrewriter
 
-Mesonrewrite is an experimental tool to manipulate your build definitions programmatically. It is not installed by default yet but those interested can run it from the source repository.
+Mesonrewriter is an experimental tool to manipulate your build definitions programmatically. It is not installed by default yet but those interested can run it from the source repository.
 
 As an example, here is how you would add a source file to a build target:
 
@@ -111,7 +111,7 @@ if cc.symbols_have_underscore_prefix()
 endif
 ```
 
-C symbol mangling is platform and architecture dependent, and a helper function is needed to detect it. Eg: Windows 32-bit prefixes underscore, but 64-bit does not. Linux does not prefix an underscore but OS X does.
+C symbol mangling is platform and architecture dependent, and a helper function is needed to detect it. For example, Windows 32-bit prefixes underscore, but 64-bit does not. Linux does not prefix an underscore but OS X does.
 
 ## Vala
 
