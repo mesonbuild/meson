@@ -4,7 +4,7 @@
 
 ## Overview
 
-The wrap provider service is a simple web service that makes it easy to download build definitions for projects. It works in much the same way as Debian: we take the unaltered upstream source package and add a new build system to it as a patch. These build systems are stored as Git repositories on Github. They only contain build definition files. You may also think of them as an overlay to upstream source.
+The wrap provider service is a simple web service that makes it easy to download build definitions for projects. It works in much the same way as Debian: we take the unaltered upstream source package and add a new build system to it as a patch. These build systems are stored as Git repositories on GitHub. They only contain build definition files. You may also think of them as an overlay to upstream source.
 
 ## Creator script
 
@@ -37,13 +37,13 @@ Create a new branch whose name matches the upstream release number.
     git checkout master
     git checkout -b 1.0.0
     git push origin 1.0.0
-    (or from Github web page, remember to branch from master)
+    (or from GitHub web page, remember to branch from master)
 
 Branch names must fully match this regexp: `[a-z0-9._]+`.
 
 ## Adding a new release to an existing branch
 
-Here is where the magic happens. Whenever a new commit is pushed into Github's project branch, a new wrap is generated with an incremented version number. All the old releases remain unaltered. New commits are always done via Github merge requests and must be reviewed by someone other than the submitter.
+Here is where the magic happens. Whenever a new commit is pushed into GitHub's project branch, a new wrap is generated with an incremented version number. All the old releases remain unaltered. New commits are always done via GitHub merge requests and must be reviewed by someone other than the submitter.
 
 Note that your Git repo must *not* contain the subdirectory of the source release. That gets added automatically by the service. You also must *not* commit any source code from the original tarball into the wrap repository.
 
@@ -61,7 +61,7 @@ First you need to fork the repository to your own page. Then you can create the 
     git commit -a -m 'Created wrap files for libfoo-1.0.0.'
     git push origin 1.0.0
 
-Now you can file a merge request. Remember to file it against branch 1.0.0 rather than master. Github should do this automatically.
+Now you can file a merge request. Remember to file it against branch 1.0.0 rather than master. GitHub should do this automatically.
 
 ## Changes to original source
 

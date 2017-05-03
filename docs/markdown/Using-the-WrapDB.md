@@ -1,4 +1,4 @@
-# Using the wrapDB
+# Using the WrapDB
 
 The Wrap database is a web service that provides Meson build definitions to projects that do not have it natively. Using it is simple. The service can be found [here](http://wrapdb.mesonbuild.com).
 

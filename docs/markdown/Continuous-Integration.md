@@ -1,6 +1,6 @@
 # Continous Integration
 
-Here you will find snippets to use Meson with various CI such as Travis and Appveyor.
+Here you will find snippets to use Meson with various CI such as Travis and AppVeyor.
 
 Please [file an issue](https://github.com/mesonbuild/meson/issues/new) if these instructions don't work for you.
 

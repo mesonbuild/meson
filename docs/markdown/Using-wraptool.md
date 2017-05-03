@@ -1,6 +1,6 @@
 # Using wraptool
 
-Wraptool is a helper tool that allows you to manage your source dependencies using the Wrapdb database. It gives you all things you would expect, such as installing and updating dependencies. The wrap tool works on all platforms, the only limitation is that the wrap definition works on your target platform. If you find some Wraps that don't work, please file bugs or, even better, patches.
+Wraptool is a helper tool that allows you to manage your source dependencies using the WrapDB database. It gives you all things you would expect, such as installing and updating dependencies. The wrap tool works on all platforms, the only limitation is that the wrap definition works on your target platform. If you find some Wraps that don't work, please file bugs or, even better, patches.
 
 All code examples here assume that you are running the commands in your top level source directory. Lines that start with the `#` mark are commands to type.
 

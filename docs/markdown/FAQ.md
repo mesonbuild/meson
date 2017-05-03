@@ -27,7 +27,7 @@ Starting from version 0.29.0, Meson is available from the [Python Package Index]
 $ pip3 install <your options here> meson
 ```
 
-If you don't have access to PyPi, that is not a problem either. Meson has been designed to be easily runnable from an extracted source tarball or even a git checkout. First you need to download Meson. Then use this command to set up you build instead of plain `meson`.
+If you don't have access to PyPI, that is not a problem either. Meson has been designed to be easily runnable from an extracted source tarball or even a git checkout. First you need to download Meson. Then use this command to set up you build instead of plain `meson`.
 
 ```console
 $ /path/to/meson.py <options>
@@ -104,15 +104,15 @@ A related question to this is *Why is Meson's configuration language not Turing-
 
 There are many good reasons for this, most of which are summarized on this web page: [Against The Use Of Programming Languages in Configuration Files](http://taint.org/2011/02/18/001527a.html).
 
-In addition to those reasons, not exposing Python or any other "real" programming language makes it possible to port Meson's implementation to a different language. This might become necessary if, for example, Python turns out to be a performance bottleneck. This is an actual problem that has caused complications for GNU Autotools and Scons.
+In addition to those reasons, not exposing Python or any other "real" programming language makes it possible to port Meson's implementation to a different language. This might become necessary if, for example, Python turns out to be a performance bottleneck. This is an actual problem that has caused complications for GNU Autotools and SCons.
 
 ## How do I do the equivalent of Libtools export-symbol and export-regex?
 
-Either by using [gcc symbol visibility](https://gcc.gnu.org/wiki/Visibility) or by writing a [linker script](http://ftp.gnu.org/old-gnu/Manuals/ld-2.9.1/html_mono/ld.html). This has the added benefit that your symbol definitions are in a standalone file instead of being buried inside your build definitions. An example can be found [here](https://github.com/jpakkane/meson/tree/master/test%20cases/linuxlike/3%20linker%20script).
+Either by using [GCC symbol visibility](https://gcc.gnu.org/wiki/Visibility) or by writing a [linker script](http://ftp.gnu.org/old-gnu/Manuals/ld-2.9.1/html_mono/ld.html). This has the added benefit that your symbol definitions are in a standalone file instead of being buried inside your build definitions. An example can be found [here](https://github.com/jpakkane/meson/tree/master/test%20cases/linuxlike/3%20linker%20script).
 
 ## My project works fine on Linux and MinGW but fails with MSVC due to a missing .lib file
 
-With gcc, all symbols on shared libraries are exported automatically unless you specify otherwise. With MSVC no symbols are exported by default. If your shared library exports no symbols, MSVC will silently not produce an import library file leading to failures. The solution is to add symbol visibility definitions [as specified in GCC wiki](https://gcc.gnu.org/wiki/Visibility).
+With GCC, all symbols on shared libraries are exported automatically unless you specify otherwise. With MSVC no symbols are exported by default. If your shared library exports no symbols, MSVC will silently not produce an import library file leading to failures. The solution is to add symbol visibility definitions [as specified in GCC wiki](https://gcc.gnu.org/wiki/Visibility).
 
 ## I added some compiler flags and now the build fails with weird errors. What is happening?
 
@@ -138,7 +138,7 @@ You probably had a project that looked something like this:
 project('foobar', 'cpp')
 ```
 
-This defaults to `c++11` on Gcc compilers. Suppose you want to use `c++14` instead, so you change the definition to this:
+This defaults to `c++11` on GCC compilers. Suppose you want to use `c++14` instead, so you change the definition to this:
 
 ```meson
 project('foobar', 'cpp', default_options : ['cpp_std=c++14'])

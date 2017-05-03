@@ -67,7 +67,7 @@ custom_target('two_out',
 
 For backwards compatibility and for conciseness, if you only specify one directory all outputs will be installed into it.
 
-The same feature is also available for Vala build targets. For instance, to install a shared library built by valac, the generated header, and the generated vapi (respectively) into the default locations, you can do:
+The same feature is also available for Vala build targets. For instance, to install a shared library built by valac, the generated header, and the generated VAPI (respectively) into the default locations, you can do:
 
 ```meson
 shared_library('valalib', 'mylib.vala',

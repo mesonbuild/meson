@@ -93,7 +93,7 @@ The coverage report can be found in the meson-logs subdirectory.
 
 ## Add some optimization to debug builds ##
 
-By default the debug build does not use any optimizations. This is the desired approach most of the time. However some projects benefit from having some minor optimizations enabled. Gcc even has a specific compiler flag `-Og` for this. To enable its use, just issue the following command.
+By default the debug build does not use any optimizations. This is the desired approach most of the time. However some projects benefit from having some minor optimizations enabled. GCC even has a specific compiler flag `-Og` for this. To enable its use, just issue the following command.
 
 ```console
 $ mesonconf -Dc_args=-Og

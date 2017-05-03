@@ -232,7 +232,7 @@ Executable supports the following keyword arguments. Note that just like the pos
 - `link_whole` links all contents of the given static libraries whether they are used by not, equivalent to the `-Wl,--whole-archive` argument flag of GCC, available since 0.40.0
 - `<languagename>_pch` precompiled header file to use for the given language
 - `<languagename>_args` compiler flags to use for the given language; eg: `cpp_args` for C++
-- `link_args` flags to use during linking. You can use unix-style flags here for all platforms.
+- `link_args` flags to use during linking. You can use UNIX-style flags here for all platforms.
 - `link_depends` an extra file in the source tree that the link step depends on such as a symbol visibility map. The purpose is to automatically trigger a re-link (but not a re-compile) of the target when this file changes.
 - `include_directories` one or more objects created with the `include_directories` function
 - `dependencies` one or more objects created with [`dependency`](#dependency) or [`find_library`](#compiler-object) (for external deps) or [`declare_dependency`](#declare_dependency) (for deps built by the project)
@@ -262,7 +262,7 @@ This function is deprecated and in the 0.31.0 release it was moved to [the compi
 
 `program_name1` here is a string that can be an executable or script to be searched for in `PATH`, or a script in the current source directory.
 
-Meson will also autodetect scripts with a shebang line and run them with the executable/interpreter specified in it both on Windows (because the command invocator will reject the command otherwise) and UNIXes (if the script file does not have the executable bit set). Hence, you *must not* manually add the interpreter while using this script as part of a list of commands.
+Meson will also autodetect scripts with a shebang line and run them with the executable/interpreter specified in it both on Windows (because the command invocator will reject the command otherwise) and Unixes (if the script file does not have the executable bit set). Hence, you *must not* manually add the interpreter while using this script as part of a list of commands.
 
 `program_name2` and later positional arguments are used as fallback strings to search for. This is meant to be used for cases where the program may have many alternative names, such as `foo` and `foo.py`. The function will check for the arguments one by one and the first one that is found is returned. Meson versions earlier than 0.37.0 only accept one argument.
 
@@ -765,7 +765,7 @@ The following keyword arguments can be used:
 
 - `args` can be used to pass a list of compiler arguments that are required to find the header or symbol. For example, you might need to pass the include path `-Isome/path/to/header` if a header is not in the default include path. In versions newer than 0.38.0 you should use the `include_directories` keyword described above. You may also want to pass a library name `-lfoo` for `has_function` to check for a function. Supported by all methods except `get_id`, `version`, and `find_library`.
 
-Note that if you have a single prefix with all your dependencies, you might find it easier to append to the environment variables `C_INCLUDE_PATH` with gcc/clang and `INCLUDE` with msvc to expand the default include path, and `LIBRARY_PATH` with gcc/clang and `LIB` with msvc to expand the default library search path.
+Note that if you have a single prefix with all your dependencies, you might find it easier to append to the environment variables `C_INCLUDE_PATH` with GCC/Clang and `INCLUDE` with MSVC to expand the default include path, and `LIBRARY_PATH` with GCC/Clang and `LIB` with MSVC to expand the default library search path.
 
 However, with GCC, these variables will be ignored when cross-compiling. In that case you need to use a specs file. See: <http://www.mingw.org/wiki/SpecsFileHOWTO>
 

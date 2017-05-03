@@ -17,6 +17,6 @@ Here is a list of projects that have had a build system port done.
 * [Firefox NSPR](https://groups.google.com/forum/#!topic/mozilla.dev.builds/daS3DK2F1MQ)
 * [Wayland](http://lists.freedesktop.org/archives/wayland-devel/2015-February/020124.html)
 
-## More from Wrapdb
+## More from WrapDB
 
 The [Meson Wrap database](http://wrapdb.mesonbuild.com) contains several projects that have been converted into Meson and are ready to use.

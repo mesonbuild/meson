@@ -15,7 +15,7 @@ or with an arbitrary wrapper executable:
 
     mesontest --wrap='valgrind --tool=helgrind' a_test
 
-or under gdb, 1000 times in a row. This is handy for tests that fail spuriously, as when the crash happens you are given the full GDB command line:
+or under `gdb`, 1000 times in a row. This is handy for tests that fail spuriously, as when the crash happens you are given the full GDB command line:
 
     mesontest --repeat=1000 --gdb a_test
 
@@ -115,7 +115,7 @@ C symbol mangling is platform and architecture dependent, and a helper function 
 
 ## Vala
 
-Glib Resources compiled with [`gnome.compile_resources`](Gnome-module.md#compile_resources) that are added to the sources of a Vala build target will now cause the appropriate `--gresources` flag to be passed to the Vala compiler so you don't need to add that yourself to `vala_args:`.
+GLib Resources compiled with [`gnome.compile_resources`](Gnome-module.md#compile_resources) that are added to the sources of a Vala build target will now cause the appropriate `--gresources` flag to be passed to the Vala compiler so you don't need to add that yourself to `vala_args:`.
 
 ## Improvements to install scripts
 
