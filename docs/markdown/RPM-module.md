@@ -1,6 +1,6 @@
 # RPM module
 
-The RPM module can be used to create a sample rpm spec file for a Meson project. It autodetects installed files, dependencies and so on. Using it is very simple. At the very end of your Meson project (that is, the end of your toplevel `meson.build` file) add these two lines.
+The RPM module can be used to create a sample rpm spec file for a Meson project. It autodetects installed files, dependencies and so on. Using it is very simple. At the very end of your Meson project (that is, the end of your top level `meson.build` file) add these two lines.
 
 ```meson
 rpm = import('rpm')

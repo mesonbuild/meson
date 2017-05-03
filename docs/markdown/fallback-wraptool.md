@@ -4,7 +4,7 @@ title: fallback wraptool
 
 # In case of emergency
 
-In case wraptool is down we have created a backup script that you can use to download wraps directly from the Github repos. It is not as slick and may have bugs but at least it will allow you to use wraps.
+In case wraptool is down we have created a backup script that you can use to download wraps directly from the GitHub repos. It is not as slick and may have bugs but at least it will allow you to use wraps.
 
 ## Using it
 
@@ -26,6 +26,6 @@ Nuke the contents of `subprojects` and start again.
 
 ## Known issues
 
-Some repositories show up in the list but are not installable. They would not show up in the real wrapdb because they are works in progress.
+Some repositories show up in the list but are not installable. They would not show up in the real WrapDB because they are works in progress.
 
-Github web API limits the amount of queries you can do to 60/hour. If you exceed that you need to wait for the timer to reset.
+GitHub web API limits the amount of queries you can do to 60/hour. If you exceed that you need to wait for the timer to reset.

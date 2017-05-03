@@ -1,6 +1,6 @@
-# Porting from autotools
+# Porting from Autotools
 
-This page uses [appstream-glib](https://github.com/hughsie/appstream-glib/) as an example project. Appstream-Glib contains some libraries, gobject-introspection, tests, man pages, i18n, bash-completion with optional flags to build/notbuild support for some things.
+This page uses [AppStream-glib](https://github.com/hughsie/appstream-glib/) as an example project. AppStream-Glib contains some libraries, GObject Introspection data, tests, man pages, i18n, bash-completion with optional flags to build/not build support for some things.
 
 Meson comes with a helper script `ac_converter` that you can use to convert the basic autoconf checks for your project.
 
@@ -99,7 +99,7 @@ if gperf.found()
 endif
 ```
 
-### Finding pkgconfig modules
+### Finding pkg-config modules
 
 `configure.ac`:
 

@@ -10,7 +10,7 @@ Here we extract the C compiler. We could also have given the argument `cpp` to g
 
 ## System information
 
-This is a bit complex and more throughly explained on the page on [cross compilation](Cross compilation). But if you just want to know the operating system your code will run on, issue this command:
+This is a bit complex and more thoroughly explained on the page on [cross compilation](Cross compilation). But if you just want to know the operating system your code will run on, issue this command:
 
 ```meson
 host_machine.system()

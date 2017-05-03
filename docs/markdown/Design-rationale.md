@@ -13,9 +13,9 @@ Those are pretty much universally despised.
 
 The most positive statement on build systems you can usually get (and it might require some coaxing) is something along the lines of *well, it's a terrible system, but all other options are even worse*. It is easy to see why this is the case. For starters, commonly used free build systems have obtuse syntaxes. They use for the most part global variables that are set in random locations so you can never really be sure what a given line of code does. They do strange and unpredictable things at every turn.
 
-Let's illustrate this with a simple example. Suppose we want to run a program built with GNU Autotools under gdb. The instinctive thing to do is to just run `gdb programname`. The problem is that this may or may not work. In some cases the executable file is a binary whereas at other times it is a wrapper shell script that invokes the real binary which resides in a hidden subdirectory. Gdb invocation fails if the binary is a script but succeeds if it is not. The user has to remember the type of each one of his executables (which is an implementation detail of the build system) just to be able to debug them. Several other such pain points can be found in [this blog post](http://voices.canonical.com/jussi.pakkanen/2011/09/13/autotools/).
+Let's illustrate this with a simple example. Suppose we want to run a program built with GNU Autotools under GDB. The instinctive thing to do is to just run `gdb programname`. The problem is that this may or may not work. In some cases the executable file is a binary whereas at other times it is a wrapper shell script that invokes the real binary which resides in a hidden subdirectory. GDB invocation fails if the binary is a script but succeeds if it is not. The user has to remember the type of each one of his executables (which is an implementation detail of the build system) just to be able to debug them. Several other such pain points can be found in [this blog post](http://voices.canonical.com/jussi.pakkanen/2011/09/13/autotools/).
 
-Given these idiosyncrasies it is no wonder that most people don't want to have anything to do with build systems. They'll just copypaste code that works (somewhat) in one place to another and hope for the best. They actively go out of their way not to understand the system because the mere thought of it is repulsive. Doing this also provides a kind of inverse job security. If you don't know tool X, there's less chance of finding yourself responsible for its use in your organisation. Instead you get to work on more enjoyable things.
+Given these idiosyncrasies it is no wonder that most people don't want to have anything to do with build systems. They'll just copy-paste code that works (somewhat) in one place to another and hope for the best. They actively go out of their way not to understand the system because the mere thought of it is repulsive. Doing this also provides a kind of inverse job security. If you don't know tool X, there's less chance of finding yourself responsible for its use in your organisation. Instead you get to work on more enjoyable things.
 
 This leads to a vicious circle. Since people avoid the tools and don't want to deal with them, very few work on improving them. The result is apathy and stagnation.
 
@@ -46,7 +46,7 @@ A lot of free software projects can be used on non-free platforms such as Window
 
 ###5. Must not add complexity due to obsolete platforms###
 
-Work on this build system started during the Christmas holidays of 2012. This provides a natural hard cutoff line of 2012/12/24. Any platform, tool or library that was not in active use at that time is explicitly not supported. These include unixes such as IRIX, SunOS, OSF-1, Ubuntu versions older than 12/10, GCC versions older than 4.7 and so on. If these old versions happen to work, great. If they don't, not a single line of code will be added to the system to work around their bugs.
+Work on this build system started during the Christmas holidays of 2012. This provides a natural hard cutoff line of 2012/12/24. Any platform, tool or library that was not in active use at that time is explicitly not supported. These include Unixes such as IRIX, SunOS, OSF-1, Ubuntu versions older than 12/10, GCC versions older than 4.7 and so on. If these old versions happen to work, great. If they don't, not a single line of code will be added to the system to work around their bugs.
 
 ###6. Must be fast###
 
@@ -69,7 +69,7 @@ The difference between the proposed DSL and existing ones is that the new one is
 
 A DSL is more work than the approach taken by SCons, which is to provide the system as a Python library. However it allows us to make the syntax more expressive and prevent certain types of bugs by e.g. making certain objects truly immutable. The end result is again the same: less work for the user.
 
-The backend for Unix requires a bit more thought. The default choice would be Make. However it is extremely slow. It is not uncommon on large code bases for Make to take several minutes just to determine that nothing needs to be done. Instead of Make we use [Ninja](http://martine.github.com/ninja/), which is extremely fast. The backend code is abstracted away from the core, so other backends can be added with relatively little effort.
+The backend for Unix requires a bit more thought. The default choice would be Make. However it is extremely slow. It is not uncommon on large code bases for Make to take several minutes just to determine that nothing needs to be done. Instead of Make we use [Ninja](https://ninja-build.org/), which is extremely fast. The backend code is abstracted away from the core, so other backends can be added with relatively little effort.
 
 Sample code
 --
@@ -93,7 +93,7 @@ sources = ['main.c', 'file1.c', 'file2.c', 'file3.c']
 executable('program', sources : sourcelist)
 ```
 
-External depencencies are simple to use.
+External dependencies are simple to use.
 
 ```meson
 project('external lib', 'c')

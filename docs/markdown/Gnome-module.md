@@ -12,9 +12,9 @@ To use this module, just do: **`gnome = import('gnome')`**. The following functi
 
 ### gnome.compile_resources()
 
-This function compiles resources specified in an XML file into code that can be embedded inside the main binary. Similar a build target it takes two positional arguments. The first one is the name of the resource and the second is the xml file containing the resource definitions. If the name is `foobar`, Meson will generate a header file called `foobar.h`, which you can then include in your sources.
+This function compiles resources specified in an XML file into code that can be embedded inside the main binary. Similar a build target it takes two positional arguments. The first one is the name of the resource and the second is the XML file containing the resource definitions. If the name is `foobar`, Meson will generate a header file called `foobar.h`, which you can then include in your sources.
 
-* `source_dir`: a list of subdirectories where the resource compiler should look up the files, relative to the location of the xml file
+* `source_dir`: a list of subdirectories where the resource compiler should look up the files, relative to the location of the XML file
 * `c_name`: passed to the resource compiler as an argument after `--c-name`
 * `dependencies`: extra targets to depend upon for building
 * `export`: (*Added 0.37.0*) if true, export the symbols of the generated sources
@@ -105,15 +105,15 @@ Returns an opaque object containing the source files. Add it to a top level targ
 
 ### gnome.compile_vapi()
 
-Creates a vapi file from gir. The first argument is the name of the library.
+Creates a VAPI file from gir. The first argument is the name of the library.
 
-* `sources`: the gir source to generate the vapi from
-* `packages`: vapi packages that are depended upon
+* `sources`: the gir source to generate the VAPI from
+* `packages`: VAPI packages that are depended upon
 * `metadata_dirs`: extra directories to include for metadata files
 * `gir_dirs`: extra directories to include for gir files
-* `vapi_dirs`: extra directories to include for vapi files
+* `vapi_dirs`: extra directories to include for VAPI files
 
-Returns a custom dependency that can be included when building other vapi or vala binaries.
+Returns a custom dependency that can be included when building other VAPI or Vala binaries.
 
 *Added 0.36.0*
 
@@ -134,7 +134,7 @@ This also creates two targets for translations `help-$project-update-po` and `he
 
 Compiles and installs gtkdoc documentation. Takes one positional arguments; The name of the module.
 
-* `main_xml`: specifies the main xml file
+* `main_xml`: specifies the main XML file
 * `main_sgml`: equal to `main_xml`
 * `src_dir`: include_directories to include
 * `dependencies`: a list of dependencies
@@ -145,7 +145,7 @@ Compiles and installs gtkdoc documentation. Takes one positional arguments; The 
 * `gobject_typesfile`: a list of type files
 * `fixxref_args`: a list of arguments to pass to `gtkdoc-fixxref`
 * `html_args` a list of arguments to pass to `gtkdoc-mkhtml`
-* `html_assets`: a list of assets for the html pages
+* `html_assets`: a list of assets for the HTML pages
 * `content_files`: a list of content files
 
 ### gnome.gtkdoc_html_dir()

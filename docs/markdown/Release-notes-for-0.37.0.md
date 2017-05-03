@@ -15,13 +15,13 @@ or with an arbitrary wrapper executable:
 
     mesontest --wrap='valgrind --tool=helgrind' a_test
 
-or under gdb, 1000 times in a row. This is handy for tests that fail spuriously, as when the crash happens you are given the full GDB command line:
+or under `gdb`, 1000 times in a row. This is handy for tests that fail spuriously, as when the crash happens you are given the full GDB command line:
 
     mesontest --repeat=1000 --gdb a_test
 
 ## Mesonrewriter
 
-Mesonrewrite is an experimental tool to manipulate your build definitions programmatically. It is not installed by default yet but those interested can run it from the source repository.
+Mesonrewriter is an experimental tool to manipulate your build definitions programmatically. It is not installed by default yet but those interested can run it from the source repository.
 
 As an example, here is how you would add a source file to a build target:
 
@@ -37,21 +37,21 @@ The new `shared_module` function allows the creation of shared modules, that is,
 
 ### gtkdoc
 
-- Allow passing a list of directories to `src_dir` kwarg
-- Add `namespace` kwarg
-- Add `mode` kwarg
+- Allow passing a list of directories to `src_dir` keyword argument
+- Add `namespace` keyword argument
+- Add `mode` keyword argument
 - Fix `gtkdoc-scangobj` finding local libraries
 
 ### compile_resources
 
-- Add `gresource_bundle` kwarg to output `.gresource` files
-- Add `export` and `install_header` kwargs
+- Add `gresource_bundle` keyword argument to output `.gresource` files
+- Add `export` and `install_header` keyword arguments
 - Use depfile support available in GLib >= 2.52.0
 
 ## i18n module
 
 - Add `merge_file()` function for creating translated files
-- Add `preset` kwarg to included common gettext flags
+- Add `preset` keyword argument to included common gettext flags
 - Read languages from `LINGUAS` file
 
 ## LLVM IR compilation
@@ -111,11 +111,11 @@ if cc.symbols_have_underscore_prefix()
 endif
 ```
 
-C symbol mangling is platform and architecture dependent, and a helper function is needed to detect it. Eg: Windows 32-bit prefixes underscore, but 64-bit does not. Linux does not prefix an underscore but OS X does.
+C symbol mangling is platform and architecture dependent, and a helper function is needed to detect it. For example, Windows 32-bit prefixes underscore, but 64-bit does not. Linux does not prefix an underscore but OS X does.
 
 ## Vala
 
-Glib Resources compiled with [`gnome.compile_resources`](Gnome-module.md#compile_resources) that are added to the sources of a Vala build target will now cause the appropriate `--gresources` flag to be passed to the Vala compiler so you don't need to add that yourself to `vala_args:`.
+GLib Resources compiled with [`gnome.compile_resources`](Gnome-module.md#compile_resources) that are added to the sources of a Vala build target will now cause the appropriate `--gresources` flag to be passed to the Vala compiler so you don't need to add that yourself to `vala_args:`.
 
 ## Improvements to install scripts
 

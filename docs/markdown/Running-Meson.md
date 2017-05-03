@@ -54,7 +54,7 @@ You can then open the generated solution with Visual Studio and compile it in th
 Building the source
 ==
 
-If you are not using an IDE, Meson uses the [Ninja build system](http://martine.github.com/ninja/) to actually build the code. To start the build, simply type the following command.
+If you are not using an IDE, Meson uses the [Ninja build system](https://ninja-build.org/) to actually build the code. To start the build, simply type the following command.
 
     ninja
 

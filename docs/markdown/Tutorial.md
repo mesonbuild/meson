@@ -33,7 +33,7 @@ That is all. We are now ready to build our application. First we need to initial
 $ meson builddir
 ```
 
-We create a separate build directory to hold all of the compiler output. Meson is different from some other build systems in that it does not permit in-source builds. You must always create a separate build directory. Common convention is to put the default build directory in a subdirectory of your toplevel source directory.
+We create a separate build directory to hold all of the compiler output. Meson is different from some other build systems in that it does not permit in-source builds. You must always create a separate build directory. Common convention is to put the default build directory in a subdirectory of your top level source directory.
 
 When Meson is run it prints the following output.
 
@@ -66,7 +66,7 @@ This produces the expected output.
 Adding dependencies
 -----
 
-Just printing text is a bit old fashioned. Let's update our program to create a graphical window instead. We'll use the [GTK+](https://gtk.org) widget toolkit. First we edit the main file to use Gtk. The new version looks like this.
+Just printing text is a bit old fashioned. Let's update our program to create a graphical window instead. We'll use the [GTK+](https://gtk.org) widget toolkit. First we edit the main file to use GTK+. The new version looks like this.
 
 ```c
 #include<gtk/gtk.h>
@@ -82,7 +82,7 @@ int main(int argc, char **argv) {
 }
 ```
 
-Then we edit the Meson file, instructing it to find and use the Gtk libraries.
+Then we edit the Meson file, instructing it to find and use the GTK+ libraries.
 
 ```meson
 project('tutorial', 'c')
@@ -120,4 +120,4 @@ $ ./demo
 
 This creates the following GUI application.
 
-![Gtk sample application screenshot](images/gtksample.png)
+![GTK+ sample application screenshot](images/gtksample.png)

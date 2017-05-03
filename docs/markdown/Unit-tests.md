@@ -30,14 +30,14 @@ Note how you need to specify multiple values as an array.
 Coverage
 --
 
-If you enable coverage measurements by giving Meson the command line flag `-Db_coverage=true`, you can generate coverage reports. Meson will autodetect what coverage generator tools you have installed and will generate the corresponding targets. These targets are `coverage-xml` and `coverage-text` which are both provided by [Gcovr](https://software.sandia.gov/trac/fast/wiki/gcovr) and `coverage-html`, which requires [Lcov](http://ltp.sourceforge.net/coverage/lcov.php) and [GenHTML](http://linux.die.net/man/1/genhtml).
+If you enable coverage measurements by giving Meson the command line flag `-Db_coverage=true`, you can generate coverage reports. Meson will autodetect what coverage generator tools you have installed and will generate the corresponding targets. These targets are `coverage-xml` and `coverage-text` which are both provided by [Gcovr](https://software.sandia.gov/trac/fast/wiki/gcovr) and `coverage-html`, which requires [Lcov](https://ltp.sourceforge.io/coverage/lcov.php) and [GenHTML](https://linux.die.net/man/1/genhtml).
 
 The the output of these commands is written to the log directory `meson-logs` in your build directory.
 
 Parallelism
 --
 
-To reduce test times, Meson will by default run multiple unit tests in parallel. It is common to have some tests which can not be run in parallel because they require unique hold on some resource such as a file or a dbus name. You have to specify these tests with a keyword argument.
+To reduce test times, Meson will by default run multiple unit tests in parallel. It is common to have some tests which can not be run in parallel because they require unique hold on some resource such as a file or a D-Bus name. You have to specify these tests with a keyword argument.
 
 ```meson
 test('unique test', t, is_parallel : false)
@@ -89,13 +89,13 @@ Arguments to the wrapper binary can be given like this:
 $ mesontest --wrap='valgrind --tool=helgrind' testname
 ```
 
-Meson also supports running the tests under gdb. Just doing this:
+Meson also supports running the tests under GDB. Just doing this:
 
 ```console
 $ mesontest --gdb testname
 ```
 
-Mesontest will launch gdb all set up to run the test. Just type `run` in the gdb command prompt to start the program.
+Mesontest will launch `gdb` all set up to run the test. Just type `run` in the GDB command prompt to start the program.
 
 The second use case is a test that segfaults only rarely. In this case you can invoke the following command:
 
@@ -103,6 +103,6 @@ The second use case is a test that segfaults only rarely. In this case you can i
 $ mesontest --gdb --repeat=10000 testname
 ```
 
-This runs the test up to 10 000 times under gdb automatically. If the program crashes, gdb will halt and the user can debug the application. Note that testing timeouts are disabled in this case so mesontest will not kill gdb while the developer is still debugging it. The downside is that if the test binary freezes, the test runner will wait forever.
+This runs the test up to 10 000 times under GDB automatically. If the program crashes, GDB will halt and the user can debug the application. Note that testing timeouts are disabled in this case so mesontest will not kill `gdb` while the developer is still debugging it. The downside is that if the test binary freezes, the test runner will wait forever.
 
 For further information see the command line help of Mesontest by running `mesontest -h`.

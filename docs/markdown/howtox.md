@@ -19,7 +19,7 @@ project('myproj', 'c', 'cpp',
 
 ## Enable threads
 
-Lots of people seem to do this manually with `find_library('phtread')` or something similar. Do not do that. It is not portable. Instead do this.
+Lots of people seem to do this manually with `find_library('pthread')` or something similar. Do not do that. It is not portable. Instead do this.
 
 ```meson
 thread_dep = dependency('threads')
@@ -93,7 +93,7 @@ The coverage report can be found in the meson-logs subdirectory.
 
 ## Add some optimization to debug builds ##
 
-By default the debug build does not use any optimizations. This is the desired approach most of the time. However some projects benefit from having some minor optimizations enabled. Gcc even has a specific compiler flag `-Og` for this. To enable its use, just issue the following command.
+By default the debug build does not use any optimizations. This is the desired approach most of the time. However some projects benefit from having some minor optimizations enabled. GCC even has a specific compiler flag `-Og` for this. To enable its use, just issue the following command.
 
 ```console
 $ mesonconf -Dc_args=-Og
@@ -103,7 +103,7 @@ This causes all subsequent builds to use this command line argument.
 
 ## Use address sanitizer
 
-Clang comes with a selection of analysis tools such as the [address sanitizer](http://clang.llvm.org/docs/AddressSanitizer.html). Meson has native support for these with the `b_sanitize` option.
+Clang comes with a selection of analysis tools such as the [address sanitizer](https://clang.llvm.org/docs/AddressSanitizer.html). Meson has native support for these with the `b_sanitize` option.
 
 ```console
 $ meson <other options> -Db_sanitize=address

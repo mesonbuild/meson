@@ -12,9 +12,9 @@ The main design point of Meson is that every moment a developer spends writing o
 
 ## Features
 
-*   multiplatform support for Linux, OSX, Windows, Gcc, Clang, Visual Studio and others
+*   multiplatform support for Linux, OSX, Windows, GCC, Clang, Visual Studio and others
 *   supported languages include C, C++, Fortran, Java, Rust
-*   build definitions in a very readable and user friendly non-turing complete DSL
+*   build definitions in a very readable and user friendly non-Turing complete DSL
 *   cross compilation for many operating systems as well as bare metal
 *   optimized for extremely fast full and incremental builds without sacrificing correctness
 *   built-in multiplatform dependency provider that works together with distro packages
@@ -28,6 +28,6 @@ The second way is via IRC. The channel to use is <tt>#mesonbuild</tt> at [Freeno
 
 ## Development
 
-All development on Meson is done on [Github project](https://github.com/mesonbuild/meson). For further info look into the <tt>contributing.txt</tt> file that comes with Meson's source checkout.
+All development on Meson is done on [GitHub project](https://github.com/mesonbuild/meson). For further info look into the <tt>contributing.txt</tt> file that comes with Meson's source checkout.
 
 You do not need to sign a CLA to contribute to Meson.

@@ -2,7 +2,7 @@
 
 ## Downloading Meson
 
-Meson releases can be downloaded from the [Github release page].
+Meson releases can be downloaded from the [GitHub release page].
 
 Meson is also available in the [Python Package Index] and can be
 installed with <tt>pip3 install meson</tt>.
@@ -20,7 +20,7 @@ Depending on your platform and backend you wish to use, you might need
 the [Ninja executable]. Again, use your distro-provided version if
 possible. Otherwise download it from Ninja project's web site.
 
-  [Github release page]: https://github.com/mesonbuild/meson/releases
+  [GitHub release page]: https://github.com/mesonbuild/meson/releases
   [Python Package Index]: https://pypi.python.org/pypi/meson/
   [Git]: https://github.com/mesonbuild/meson
   [Python's home page]: https://www.python.org/downloads/

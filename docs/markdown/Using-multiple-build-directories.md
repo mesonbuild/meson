@@ -27,7 +27,7 @@ For systems where the default compiler is GCC, we would like to compile with Cla
     mkdir buildclang
     CC=clang CXX=clang++ meson buildclang
 
-You can add cross builds, too. As an example, let's set up a Linux -> Windows cross compilation build using mingw.
+You can add cross builds, too. As an example, let's set up a Linux -> Windows cross compilation build using MinGW.
 
     mkdir buildwine
     meson --cross-file=mingw-cross.txt buildwine

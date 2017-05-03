@@ -4,7 +4,7 @@ In order to get a package in the Wrap database it must be reviewed and accepted 
 
 ## Checklist ##
 
-Reviewer: copypaste this to MR discussion box and tick all boxes that apply.
+Reviewer: copy-paste this to MR discussion box and tick all boxes that apply.
 
     - [ ] project() has version string
     - [ ] project() has license string

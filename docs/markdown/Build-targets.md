@@ -13,7 +13,7 @@ project('shared lib', 'c')
 shared_library('mylib', 'source.c')
 ```
 
-In unix-like operating systems, shared libraries can be versioned. Meson supports this with keyword arguments.
+In Unix-like operating systems, shared libraries can be versioned. Meson supports this with keyword arguments.
 
 ```meson
 project('shared lib', 'c')

@@ -4,7 +4,7 @@ short-description: Dependencies for external libraries and frameworks
 
 # Dependencies
 
-Very few applications are fully self-contained, but rather they use external libraries and frameworks to do their work. Meson makes it very easy to find and use external dependencies. Here is how one would use the Zlib compression library.
+Very few applications are fully self-contained, but rather they use external libraries and frameworks to do their work. Meson makes it very easy to find and use external dependencies. Here is how one would use the zlib compression library.
 
 ```meson
 zdep = dependency('zlib', version : '>=1.2.8')

@@ -1,6 +1,6 @@
 # Pkgconfig module
 
-This module is a simple generator for [pkg-config](http://pkg-config.freedesktop.org/) files.
+This module is a simple generator for [pkg-config](https://pkg-config.freedesktop.org/) files.
 
 ## Usage
 

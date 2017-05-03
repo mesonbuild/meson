@@ -21,7 +21,7 @@ In Meson, precompiled header files are always per-target. That is, the given pre
 Toggling the usage of precompiled headers
 --
 
-If you wish to compile your project without precompiled headers, you can configure it by running Meson with the `--disable-pch` flag. You can also toggle the use of pch in a configured build directory with the gui tool. You don't have to do any changes to the source code. Typically this is done to test whether your project compiles cleanly without pch (that is, checking that its #includes are in order) and working around compiler bugs.
+If you wish to compile your project without precompiled headers, you can configure it by running Meson with the `--disable-pch` flag. You can also toggle the use of pch in a configured build directory with the GUI tool. You don't have to do any changes to the source code. Typically this is done to test whether your project compiles cleanly without pch (that is, checking that its #includes are in order) and working around compiler bugs.
 
 Using precompiled headers with GCC and derivatives
 --
@@ -44,7 +44,7 @@ executable('multilang', sources : srclist,
 Using precompiled headers with MSVC
 --
 
-MSVC is a bit trickier, because in addition to the header file, it also requires a correspongind source file. If your header is called `foo_pch.h`, the corresponding source file is usually called `foo_pch.cpp` and it resides in the same `pch` subdirectory as the header. Its contents are this:
+MSVC is a bit trickier, because in addition to the header file, it also requires a corresponding source file. If your header is called `foo_pch.h`, the corresponding source file is usually called `foo_pch.cpp` and it resides in the same `pch` subdirectory as the header. Its contents are this:
 
 ```cpp
 #if !defined(_MSC_VER)
@@ -61,6 +61,6 @@ executable('myexe', sources : srclist,
            cpp_pch : ['pch/foo_pch.h', 'pch/foo_pch.cpp'])
 ```
 
-This form will work with both gcc and msvc, because Meson knows that gcc does not need a `.cpp` file and thus just ignores it.
+This form will work with both GCC and msvc, because Meson knows that GCC does not need a `.cpp` file and thus just ignores it.
 
 It should be noted that due to implementation details of the MSVC compiler, having precompiled headers for multiple languages in the same target is not guaranteed to work.

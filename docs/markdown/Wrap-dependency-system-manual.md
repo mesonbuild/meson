@@ -16,20 +16,20 @@ To use this kind of a project as a dependency you could just copy and extract it
 [wrap-file]
 directory = libfoobar-1.0
 
-source_url = http://example.com/foobar-1.0.tar.gz
+source_url = https://example.com/foobar-1.0.tar.gz
 source_filename = foobar-1.0.tar.gz
 source_hash = 5ebeea0dfb75d090ea0e7ff84799b2a7a1550db3fe61eb5f6f61c2e971e57663
 ```
 
 If you then use this subproject in your build, Meson will automatically download and extract it during build. This makes subproject embedding extremely easy.
 
-Unfortunately most software projects in the world do not build with Meson. Because of this Meson allows you to specify a patch url. This works in much the same way as Debian's distro patches. That is, they are downloaded and automatically applied to the subproject. These files contain a Meson build definition for the given subproject. A wrap file with an additional patch url would look like this.
+Unfortunately most software projects in the world do not build with Meson. Because of this Meson allows you to specify a patch URL. This works in much the same way as Debian's distro patches. That is, they are downloaded and automatically applied to the subproject. These files contain a Meson build definition for the given subproject. A wrap file with an additional patch URL would look like this.
 
 ```
 [wrap-file]
 directory = libfoobar-1.0
 
-source_url = http://upstream.example.com/foobar-1.0.tar.gz
+source_url = https://upstream.example.com/foobar-1.0.tar.gz
 source_filename = foobar-1.0.tar.gz
 source_hash = 5ebeea0dfb75d090ea0e7ff84799b2a7a1550db3fe61eb5f6f61c2e971e57663
 
@@ -57,7 +57,7 @@ The format is straightforward. The only thing to note is the revision element th
 
 Note that in this case you cannot specify an extra patch file to use. The git repo must contain all necessary Meson build definitions.
 
-Usually you would use subprojects as read only. However in some cases you want to do commits to subprojects and push them upstream. For these cases you can specify the upload url by adding the following at the end of your wrap file:
+Usually you would use subprojects as read only. However in some cases you want to do commits to subprojects and push them upstream. For these cases you can specify the upload URL by adding the following at the end of your wrap file:
 
 ```ini
 push-url=git@git.example.com:projects/someproject.git # Supported since version 0.37.0

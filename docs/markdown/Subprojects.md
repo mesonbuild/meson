@@ -18,7 +18,7 @@ else
 endif
 ```
 
-All Meson features of the subproject, such as project options keep working and can be set in the master project. There are a few limitations, the most imporant being that global compiler arguments must be set in the main project before calling subproject. Subprojects must not set global arguments because there is no way to do that reliably over multiple subprojects. To check whether you are running as a subproject, use the `is_subproject` function.
+All Meson features of the subproject, such as project options keep working and can be set in the master project. There are a few limitations, the most important being that global compiler arguments must be set in the main project before calling subproject. Subprojects must not set global arguments because there is no way to do that reliably over multiple subprojects. To check whether you are running as a subproject, use the `is_subproject` function.
 
 As an example, suppose we have a simple project that provides a shared library.
 

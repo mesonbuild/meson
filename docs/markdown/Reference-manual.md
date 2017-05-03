@@ -145,11 +145,11 @@ Create a custom top level build target. The only positional argument is the name
 - `build_always` if `true` this target is always considered out of date and is rebuilt every time, useful for things such as build timestamps or revision control tags
 - `capture`, there are some compilers that can't be told to write their output to a file but instead write it to standard output. When this argument is set to true, Meson captures `stdout` and writes it to the target file. Note that your command argument list may not contain `@OUTPUT@` when capture mode is active.
 - `depends` specifies that this target depends on the specified target(s), even though it does not take any of them as a command line argument. This is meant for cases where you have a tool that e.g. does globbing internally. Usually you should just put the generated sources as inputs and Meson will set up all dependencies automatically.
-- `depend_files` files ([`string`](#string-object), [`files()`](#files), or [`configure_file()`](#configure_file)) that this target depends on but are not listed in the `command` kwarg. Useful for adding regen dependencies.
+- `depend_files` files ([`string`](#string-object), [`files()`](#files), or [`configure_file()`](#configure_file)) that this target depends on but are not listed in the `command` keyword argument. Useful for adding regen dependencies.
 - `depfile` is a dependency file that the command can write listing all the additional files this target depends on, for example a C compiler would list all the header files it included, and a change in any one of these files triggers a recompilation
 - `build_by_default` *(added 0.38.0)* causes, when set to true, to have this target be built by default, that is, when invoking plain `ninja`; the default value is false
 
-The list of strings passed to the `command` kwarg accept the following special string substitutions:
+The list of strings passed to the `command` keyword argument accept the following special string substitutions:
 
 - `@INPUT@` the full path to the input passed to `input`. If more than one input is specified, all of them will be substituted as separate arguments only if the command uses `'@INPUT@'` as a standalone-argument. For instance, this would not work: `command : ['cp', './@INPUT@']`, but this would: `command : ['cp', '@INPUT@']`.
 - `@OUTPUT@` the full path to the output passed to `output`. If more than one outputs are specified, the behaviour is the same as `@INPUT@`.
@@ -172,7 +172,7 @@ This function returns a [dependency object](#dependency-object) that behaves lik
   - `dependencies`, other dependencies needed to use this dependency
   - `compile_args`, compile arguments to use
   - `link_args`, link arguments to use
-  - `version`, the version of this depency, such as `1.2.3`
+  - `version`, the version of this dependency, such as `1.2.3`
 
 ### dependency()
 
@@ -184,7 +184,7 @@ Finds an external dependency with the given name with `pkg-config` if possible a
 
 - `modules` specifies submodules to use for dependencies such as Qt5 or Boost.
 - `required`, when set to false, Meson will proceed with the build even if the dependency is not found
-- `version`, specifies the required version, a string containing a comparison operator followed by the version string, examples include `>1.0.0`, `<=2.3.5` or `3.1.4` for exact matching. (*Added 0.37.0*) You can also specify multiple restrictions by passing a list to this kwarg, such as: `['>=3.14.0', '<=4.1.0']`.
+- `version`, specifies the required version, a string containing a comparison operator followed by the version string, examples include `>1.0.0`, `<=2.3.5` or `3.1.4` for exact matching. (*Added 0.37.0*) You can also specify multiple restrictions by passing a list to this keyword argument, such as: `['>=3.14.0', '<=4.1.0']`.
 - `native` if set to `true`, causes Meson to find the dependency on the build machine system rather than the host system (i.e. where the cross compiled binary will run on), usually only needed if you build a tool to be used during compilation.
 - `static` tells the dependency provider to try to get static libraries instead of dynamic ones (note that this is not supported by all dependency backends)
 - `fallback` specifies a subproject fallback to use in case the dependency is not found in the system. The value is an array `['subproj_name', 'subproj_dep']` where the first value is the name of the subproject and the second is the variable name in that subproject that contains the value of [`declare_dependency`](#declare_dependency).
@@ -232,7 +232,7 @@ Executable supports the following keyword arguments. Note that just like the pos
 - `link_whole` links all contents of the given static libraries whether they are used by not, equivalent to the `-Wl,--whole-archive` argument flag of GCC, available since 0.40.0
 - `<languagename>_pch` precompiled header file to use for the given language
 - `<languagename>_args` compiler flags to use for the given language; eg: `cpp_args` for C++
-- `link_args` flags to use during linking. You can use unix-style flags here for all platforms.
+- `link_args` flags to use during linking. You can use UNIX-style flags here for all platforms.
 - `link_depends` an extra file in the source tree that the link step depends on such as a symbol visibility map. The purpose is to automatically trigger a re-link (but not a re-compile) of the target when this file changes.
 - `include_directories` one or more objects created with the `include_directories` function
 - `dependencies` one or more objects created with [`dependency`](#dependency) or [`find_library`](#compiler-object) (for external deps) or [`declare_dependency`](#declare_dependency) (for deps built by the project)
@@ -246,7 +246,7 @@ Executable supports the following keyword arguments. Note that just like the pos
 - `build_by_default` causes, when set to true, to have this target be built by default, that is, when invoking plain `ninja`, the default value is true for all built target types, since 0.38.0
 - `override_options` takes an array of strings in the same format as `project`'s `default_options` overriding the values of these options for this target only, since 0.40.0
 
-The list of `sources`, `objects`, and `dependencies` is always flattened, which means you can freely nest and add lists while creating the final list. As a corollary, the best way to handle a 'disabled dependency' is by assigning an empty list `[]` to it and passing it like any other dependency to the `dependencies:` kwarg.
+The list of `sources`, `objects`, and `dependencies` is always flattened, which means you can freely nest and add lists while creating the final list. As a corollary, the best way to handle a 'disabled dependency' is by assigning an empty list `[]` to it and passing it like any other dependency to the `dependencies:` keyword argument.
 
 The returned object also has methods that are documented in the [object methods section](#build-target-object) below.
 
@@ -262,7 +262,7 @@ This function is deprecated and in the 0.31.0 release it was moved to [the compi
 
 `program_name1` here is a string that can be an executable or script to be searched for in `PATH`, or a script in the current source directory.
 
-Meson will also autodetect scripts with a shebang line and run them with the executable/interpreter specified in it both on Windows (because the command invocator will reject the command otherwise) and UNIXes (if the script file does not have the executable bit set). Hence, you *must not* manually add the interpreter while using this script as part of a list of commands.
+Meson will also autodetect scripts with a shebang line and run them with the executable/interpreter specified in it both on Windows (because the command invocator will reject the command otherwise) and Unixes (if the script file does not have the executable bit set). Hence, you *must not* manually add the interpreter while using this script as part of a list of commands.
 
 `program_name2` and later positional arguments are used as fallback strings to search for. This is meant to be used for cases where the program may have many alternative names, such as `foo` and `foo.py`. The function will check for the arguments one by one and the first one that is found is returned. Meson versions earlier than 0.37.0 only accept one argument.
 
@@ -306,14 +306,14 @@ This function creates a [generator object](#generator-object) that can be used t
 
 The returned object also has methods that are documented in the [object methods section](#generator-object) below.
 
-The template strings passed to all the above kwargs accept the following special substitutions:
+The template strings passed to all the above keyword arguments accept the following special substitutions:
 
 - `@PLAINNAME@`: the complete input file name, e.g: `foo.c` becomes `foo.c` (unchanged)
 - `@BASENAME@`: the base of the input filename, e.g.: `foo.c.y` becomes `foo.c` (extension is removed)
 
-Each string passed to the `outputs` kwarg *must* be constructed using one or both of these two substitutions.
+Each string passed to the `outputs` keyword argument *must* be constructed using one or both of these two substitutions.
 
-In addition to the above substitutions, the `arguments` kwarg also accepts the following:
+In addition to the above substitutions, the `arguments` keyword argument also accepts the following:
 
 - `@OUTPUT@`: the full path to the output file
 - `@INPUT@`: the full path to the input file
@@ -474,7 +474,7 @@ Returns true if a variable of the given name exists and false otherwise.
    jar_object jar(name, list_of_sources, ...)
 ```
 
-Build a jar from the specified Java source files. Keyword arguments are the same as executable's, with the addition of `main_class` which specifies the main class to execute when running the jar with `java -jar file.jar`.
+Build a jar from the specified Java source files. Keyword arguments are the same as [`executable`](#executable)'s, with the addition of `main_class` which specifies the main class to execute when running the jar with `java -jar file.jar`.
 
 ### join_paths()
 
@@ -641,7 +641,7 @@ This command detects revision control commit information at build time and place
 - `output` file to write the results to (e.g. `version.c`)
 - `fallback` version number to use when no revision control information is present, such as when building from a release tarball
 
-Meson will read the contents of `input`, replace the string `@VCS_TAG@` with the detected revision number and write the result to `output`. This method returns an opaque [`custom_target`](#custom_target) object that you should put in your main program. If you desire more specific behavior than what this command provides, you should use `custom_target`.
+Meson will read the contents of `input`, replace the string `@VCS_TAG@` with the detected revision number and write the result to `output`. This method returns an opaque [`custom_target`](#custom_target) object that you should put in your main program. If you desire more specific behaviour than what this command provides, you should use `custom_target`.
 
 ## Built-in objects
 
@@ -757,7 +757,7 @@ This object is returned by [`meson.get_compiler(lang)`](#meson-object). It repre
 
 The following keyword arguments can be used:
 
-- `name` the name to use for printing a message about the compiler check. Supported by the methods `compiles()`, `links()`, and `run()`. If this kwarg is not passed to those methods, no message will be printed about the check.
+- `name` the name to use for printing a message about the compiler check. Supported by the methods `compiles()`, `links()`, and `run()`. If this keyword argument is not passed to those methods, no message will be printed about the check.
 
 - `prefix` can be used to add #includes and other things that are required for the symbol to be declared. System definitions should be passed via compiler args (eg: `_GNU_SOURCE` is often required for some symbols to be exposed on Linux, and it should be passed via `args` keyword argument, see below). Supported by the methods `sizeof`, `has_type`, `has_function`, `has_member`, `has_members`, `has_header_symbol`.
 
@@ -765,7 +765,7 @@ The following keyword arguments can be used:
 
 - `args` can be used to pass a list of compiler arguments that are required to find the header or symbol. For example, you might need to pass the include path `-Isome/path/to/header` if a header is not in the default include path. In versions newer than 0.38.0 you should use the `include_directories` keyword described above. You may also want to pass a library name `-lfoo` for `has_function` to check for a function. Supported by all methods except `get_id`, `version`, and `find_library`.
 
-Note that if you have a single prefix with all your dependencies, you might find it easier to append to the environment variables `C_INCLUDE_PATH` with gcc/clang and `INCLUDE` with msvc to expand the default include path, and `LIBRARY_PATH` with gcc/clang and `LIB` with msvc to expand the default library search path.
+Note that if you have a single prefix with all your dependencies, you might find it easier to append to the environment variables `C_INCLUDE_PATH` with GCC/Clang and `INCLUDE` with MSVC to expand the default include path, and `LIBRARY_PATH` with GCC/Clang and `LIB` with MSVC to expand the default library search path.
 
 However, with GCC, these variables will be ignored when cross-compiling. In that case you need to use a specs file. See: <http://www.mingw.org/wiki/SpecsFileHOWTO>
 

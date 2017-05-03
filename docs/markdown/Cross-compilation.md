@@ -17,7 +17,7 @@ This might be easier to understand through examples. Let's start with the regula
 
 Let's next look at the most common cross-compilation setup. Let's suppose you are on a 64 bit OSX machine and you are cross compiling a binary that will run on a 32 bit ARM Linux board. In this case your *build machine* is 64 bit OSX and both your *host* and *target machines* are 32 bit ARM Linux. This should be quite understandable as well.
 
-It gets a bit trickier when we think about how the cross compiler was generated. It was built and it runs on a specific platform but the output it generates is for a different platfom. In this case *build* and *host machines* are the same, but *target machine* is different.
+It gets a bit trickier when we think about how the cross compiler was generated. It was built and it runs on a specific platform but the output it generates is for a different platform. In this case *build* and *host machines* are the same, but *target machine* is different.
 
 The most complicated case is when you cross-compile a cross compiler. As an example you can, on a Linux machine, generate a cross compiler that runs on Windows but produces binaries on MIPS Linux. In this case *build machine* is x86 Linux, *host machine* is x86 Windows and *target machine* is MIPS Linux. This setup is known as the [Canadian Cross](https://en.wikipedia.org/wiki/Cross_compiler#Canadian_Cross). As a side note, be careful when reading cross compilation articles on Wikipedia or the net in general. It is very common for them to get build, host and target mixed up, even in consecutive sentences, which can leave you puzzled until you figure it out.
 
