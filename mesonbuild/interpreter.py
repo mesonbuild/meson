@@ -2024,9 +2024,9 @@ class Interpreter(InterpreterBase):
     def func_vcs_tag(self, node, args, kwargs):
         if 'input' not in kwargs or 'output' not in kwargs:
             raise InterpreterException('Keyword arguments input and output must exist')
-        fallback = kwargs.pop('fallback', None)
+        fallback = kwargs.pop('fallback', self.project_version)
         if not isinstance(fallback, str):
-            raise InterpreterException('Keyword argument fallback must exist and be a string.')
+            raise InterpreterException('Keyword argument fallback must be a string.')
         replace_string = kwargs.pop('replace_string', '@VCS_TAG@')
         regex_selector = '(.*)' # default regex selector for custom command: use complete output
         vcs_cmd = kwargs.get('command', None)

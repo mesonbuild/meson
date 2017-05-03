@@ -639,7 +639,7 @@ This command detects revision control commit information at build time and place
 
 - `input` file to modify (e.g. `version.c.in`) (required)
 - `output` file to write the results to (e.g. `version.c`) (required)
-- `fallback` version number to use when no revision control information is present, such as when building from a release tarball (required)
+- `fallback` version number to use when no revision control information is present, such as when building from a release tarball (defaults to `meson.project_version()`)
 - `command` string list with the command to execute, see [`custom_target`](#custom_target) for details on how this command must be specified
 - `replace_string` string in the input file to substitute with the commit information (defaults to `@VCS_TAG@`)
 
