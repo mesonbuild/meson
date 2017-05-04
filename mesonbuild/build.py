@@ -42,6 +42,7 @@ known_basic_kwargs = {'install': True,
                       'dependencies': True,
                       'install_dir': True,
                       'main_class': True,
+                      'name_suffix': True,
                       'gui_app': True,
                       'extra_files': True,
                       'install_rpath': True,
@@ -62,7 +63,6 @@ known_lib_kwargs = known_basic_kwargs.copy()
 known_lib_kwargs.update({'version': True, # Only for shared libs
                          'soversion': True, # Only for shared libs
                          'name_prefix': True,
-                         'name_suffix': True,
                          'vs_module_defs': True, # Only for shared libs
                          'vala_header': True,
                          'vala_vapi': True,
