@@ -10,4 +10,4 @@ The scripts do not try to do a perfect conversion. This would be extremely diffi
 
     cmake2meson.py path/to/CMake/project/root
 
-This command generates a skeleton Meson project definition that tries to mirror CMake's setup as close as possible. Once this is done, you need to go through these files manually and finalise the conversion. To make this task as simple as possible, the converter script will transfer all comments from the CMake definition into Meson definition.
+This command generates a skeleton Meson project definition that tries to mirror CMake's setup as close as possible. Once this is done, you need to go through these files manually and finalize the conversion. To make this task as simple as possible, the converter script will transfer all comments from the CMake definition into Meson definition.

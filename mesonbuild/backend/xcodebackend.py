@@ -66,7 +66,7 @@ class XCodeBackend(backends.Backend):
 
     def generate(self, interp):
         self.interpreter = interp
-        test_data = self.serialise_tests()[0]
+        test_data = self.serialize_tests()[0]
         self.generate_filemap()
         self.generate_buildmap()
         self.generate_buildstylemap()

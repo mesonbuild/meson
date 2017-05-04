@@ -27,7 +27,7 @@ project('tutorial', 'c')
 executable('demo', 'main.c')
 ```
 
-That is all. We are now ready to build our application. First we need to initialise the build by going into the source directory and issuing the following commands.
+That is all. We are now ready to build our application. First we need to initialize the build by going into the source directory and issuing the following commands.
 
 ```console
 $ meson builddir
