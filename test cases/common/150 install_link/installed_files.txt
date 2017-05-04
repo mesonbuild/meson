@@ -1,0 +1,12 @@
+usr/bin/foo?exe
+usr/bin/bar?exe
+usr/bin/ish?exe
+usr/bin/subdir/bar2?exe
+usr/bin/custom2?exe
+usr/bin/custom3?exe
+usr/custom/custom?exe
+usr/lib/libfoo.a
+usr/lib/libbar.a
+usr/lib/libish.a
+usr/lib/libtwo?so
+usr/lib/libother.a

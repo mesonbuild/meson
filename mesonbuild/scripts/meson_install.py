@@ -1,4 +1,4 @@
-# Copyright 2013-2014 The Meson development team
+# Copyright 2013-2017 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@ import sys, pickle, os, shutil, subprocess, gzip, platform, errno
 from glob import glob
 from . import depfixer
 from . import destdir_join
-from ..mesonlib import is_windows, Popen_safe
+from ..mesonlib import is_windows, Popen_safe, chdir
 
 install_log_file = None
 
@@ -126,6 +126,7 @@ def do_install(datafilename):
     install_headers(d)
     install_man(d)
     install_data(d)
+    install_fs_links(d)  # Must be after install_targets.
     run_install_script(d)
 
 def install_subdirs(data):
@@ -167,6 +168,48 @@ def install_man(d):
             append_to_log(outfilename)
         else:
             do_copyfile(full_source_filename, outfilename)
+
+def install_fs_links(d):
+    for source, to, type_ in d.fs_links:
+        to += os.path.splitext(source)[1]
+        print('Linking {} to {} as {} link"'.format(source, to, type_))
+
+        to = os.path.join(d.fullprefix, to)
+        append_to_log(to)
+        outdir = os.path.dirname(to)
+        if not os.path.isabs(source):
+            source = get_destdir_path(d, source)
+        os.makedirs(outdir, exist_ok=True)
+
+        # Neither symlink nor link have a force option
+        try:
+            os.unlink(to)
+        except FileNotFoundError:
+            pass
+
+        if type_ == 'symbolic':
+            # Symbolic links need to be created relative to the install
+            # directory not the build directory to ensure that the install is
+            # portable.
+            with chdir(outdir):
+                try:
+                    os.symlink(os.path.relpath(source, outdir),
+                               os.path.relpath(to, outdir))
+                except NotImplementedError:
+                    print('WARNING: Not creating link, symlinks not supported '
+                          'on Windows < 6.0 (Vista)')
+                except OSError as e:
+                    # On windows either administrative privilege is required, or
+                    # for windows 10 with Developer mode enabled (which is new
+                    # in the "Creators Update")
+                    if e.errno == errno.EPERM and sys.platform == 'win32':
+                        print('WARNING: Not creating link, creating symlinks '
+                              'on Windows require admin privilege or developer'
+                              ' mode to be enabled')
+                    else:
+                        raise
+        else:
+            os.link(source, to)
 
 def install_headers(d):
     for t in d.headers:

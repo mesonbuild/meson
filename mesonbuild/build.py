@@ -96,6 +96,7 @@ class Build:
         self.headers = []
         self.man = []
         self.data = []
+        self.fs_links = []
         self.static_linker = None
         self.static_cross_linker = None
         self.subprojects = {}
@@ -141,6 +142,9 @@ class Build:
 
     def get_data(self):
         return self.data
+
+    def get_fs_links(self):
+        return self.fs_links
 
     def get_install_subdirs(self):
         return self.install_dirs

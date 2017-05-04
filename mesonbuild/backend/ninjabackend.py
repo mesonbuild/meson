@@ -626,6 +626,7 @@ int dummy;
         self.generate_data_install(d)
         self.generate_custom_install_script(d)
         self.generate_subdir_install(d)
+        self.generate_fs_link_install(d)
         elem.write(outfile)
 
         with open(install_data_file, 'wb') as ofile:
@@ -749,6 +750,18 @@ int dummy;
                 abspath = f.absolute_path(srcdir, builddir)
                 i = [abspath, outdir]
                 d.headers.append(i)
+
+    def generate_fs_link_install(self, d):
+        for s in self.build.get_fs_links():
+            if s.source.need_install:
+                source = os.path.join(s.source.get_custom_install_dir()[0],
+                                      s.source.get_outputs()[0])
+            else:
+                source = os.path.join(self.environment.get_build_dir(),
+                                      s.source.get_subdir(),
+                                      s.source.get_filename())
+            output = os.path.join(s.install_dir, s.output)
+            d.fs_links.append((source, output, s.type))
 
     def generate_man_install(self, d):
         manroot = self.environment.get_mandir()

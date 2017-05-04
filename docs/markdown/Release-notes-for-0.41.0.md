@@ -13,6 +13,7 @@ Add features here as code is merged to master.
 
 Native support for linking against LLVM using the `dependency` function.
 
+
 ## vcs_tag keyword fallback is is now optional
 
 The `fallback` keyword in `vcs_tag` is now optional. If not given, its value
@@ -38,3 +39,8 @@ pkg.generate(libraries : libs,
              description : 'A simple demo library.',
              variables : ['datadir=${prefix}/data'])
 ```
+
+## install_link function
+
+Adds support for creating symbolic from installed targets and hard links from
+both installed and not installed targets.

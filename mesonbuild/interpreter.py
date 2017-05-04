@@ -408,6 +408,22 @@ class IncludeDirsHolder(InterpreterObject):
         super().__init__()
         self.held_object = idobj
 
+
+class FSLink(InterpreterObject):
+    """Class representing a symlink (soft or hard) that will be created at
+    install time.
+    """
+
+    def __init__(self, source, output, install_dir, type_):
+        if type_ == 'symbolic' and not source.should_install():
+            raise mesonlib.MesonException(
+                'A symlink can only be generated for an installed target')
+        self.source = source
+        self.output = output
+        self.install_dir = install_dir
+        self.type = type_
+
+
 class Headers(InterpreterObject):
 
     def __init__(self, sources, kwargs):
@@ -1298,6 +1314,7 @@ class Interpreter(InterpreterBase):
                            'assert': self.func_assert,
                            'environment': self.func_environment,
                            'join_paths': self.func_join_paths,
+                           'install_link': self.func_install_link,
                            })
 
     def holderify(self, item):
@@ -2219,6 +2236,25 @@ class Interpreter(InterpreterBase):
         m = Man(self.subdir, args, kwargs)
         self.build.man.append(m)
         return m
+
+    def func_install_link(self, node, args, kwargs):
+        if not len(args) == 2:
+            raise InterpreterException(
+                'install_link requires exactly two positional arguments')
+
+        source, output = args
+        if hasattr(source, 'held_object'):
+            source = source.held_object
+
+        try:
+            outdir = kwargs['install_dir']
+        except KeyError:
+            raise InterpreterException(
+                'install_link missing required keyword argument "install_dir"')
+
+        s = FSLink(source, output, outdir, kwargs.get('type', 'symbolic'))
+        self.build.fs_links.append(s)
+        return s
 
     @noKwargs
     def func_subdir(self, node, args, kwargs):
