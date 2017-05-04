@@ -1439,8 +1439,7 @@ class CustomTarget(Target):
     def process_kwargs(self, kwargs):
         super().process_kwargs(kwargs)
         self.sources = kwargs.get('input', [])
-        if not isinstance(self.sources, list):
-            self.sources = [self.sources]
+        self.sources = flatten(self.sources)
         if 'output' not in kwargs:
             raise InvalidArguments('Missing keyword argument "output".')
         self.outputs = kwargs['output']
