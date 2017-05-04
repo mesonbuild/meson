@@ -9,7 +9,7 @@ See also [How do I do X in Meson](howtox.md).
 
 When the name was originally chosen, there were two main limitations: there must not exist either a Debian package or a Sourceforge project of the given name. This ruled out tens of potential project names. At some point the name Gluon was considered. Gluons are elementary particles that hold protons and neutrons together, much like a build system's job is to take pieces of source code and a compiler and bind them to a complete whole.
 
-Unfortunately this name was taken, too. Then the rest of physical elementary particles were examined and Meson was found to be available.
+Unfortunately this name was taken, too. Then the rest of subatomic particles were examined and Meson was found to be available.
 
 ## What is the correct way to use threads (such as pthreads)?
 
