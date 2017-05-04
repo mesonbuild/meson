@@ -761,7 +761,7 @@ class CCompiler(Compiler):
     def split_shlib_to_parts(self, fname):
         return None, fname
 
-    # The default behaviour is this, override in
+    # The default behavior is this, override in
     # OSX and MSVC.
     def build_rpath_args(self, build_dir, rpath_paths, install_rpath):
         return build_unix_rpath_args(build_dir, rpath_paths, install_rpath)

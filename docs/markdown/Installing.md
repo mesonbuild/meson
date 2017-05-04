@@ -44,7 +44,7 @@ giving an absolute install path.
 install_data(sources : 'foo.dat', install_dir : '/etc') # -> /etc/foo.dat
 ```
 
-## Custom install behaviour ##
+## Custom install behavior ##
 
 Sometimes you need to do more than just install basic targets. Meson makes this easy by allowing you to specify a custom script to execute at install time. As an example, here is a script that generates an empty file in a custom directory.
 
