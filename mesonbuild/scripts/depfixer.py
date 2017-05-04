@@ -303,7 +303,7 @@ class Elf(DataSizes):
         # completely unrelated. This has already happened once with X.org.
         # Thus we want to keep this change as small as possible to minimize
         # the chance of obliterating other strings. It might still happen
-        # but our behaviour is identical to what chrpath does and it has
+        # but our behavior is identical to what chrpath does and it has
         # been in use for ages so based on that this should be rare.
         if not new_rpath:
             self.remove_rpath_entry(entrynum)

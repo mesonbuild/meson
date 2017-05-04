@@ -28,7 +28,7 @@ executable(..., dependencies : thread_dep)
 
 ## Set extra compiler and linker flags from the outside (when e.g. building distro packages)
 
-The behaviour is the same as with other build systems, with environment variables during first invocation.
+The behavior is the same as with other build systems, with environment variables during first invocation.
 
 ```console
 $ CFLAGS=-fsomething LDFLAGS=-Wl,--linker-flag meson <options>

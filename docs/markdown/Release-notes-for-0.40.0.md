@@ -87,7 +87,7 @@ qt5_dep = dependency('qt5', modules : 'core', method : 'qmake')
 
 ## Link whole contents of static libraries
 
-The default behaviour of static libraries is to discard all symbols that are not not directly referenced. This may lead to exported symbols being lost. Most compilers support "whole archive" linking that includes all symbols and code of a given static library. This is exposed with the `link_whole` keyword.
+The default behavior of static libraries is to discard all symbols that are not not directly referenced. This may lead to exported symbols being lost. Most compilers support "whole archive" linking that includes all symbols and code of a given static library. This is exposed with the `link_whole` keyword.
 
 ```meson
 shared_library('foo', 'foo.c', link_whole : some_static_library)
