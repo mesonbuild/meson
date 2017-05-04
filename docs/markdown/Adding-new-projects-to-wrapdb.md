@@ -16,7 +16,7 @@ Wrapped subprojects are used much like external dependencies. Thus they should h
 
 ## Adding new project to the Wrap provider service
 
-Each project gets its own repo. It is initialised like this:
+Each project gets its own repo. It is initialized like this:
 
     git init
     git add readme.txt

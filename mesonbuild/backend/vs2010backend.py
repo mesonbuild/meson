@@ -443,7 +443,7 @@ class Vs2010Backend(backends.Backend):
         # Always use a wrapper because MSBuild eats random characters when
         # there are many arguments.
         tdir_abs = os.path.join(self.environment.get_build_dir(), self.get_target_dir(target))
-        exe_data = self.serialise_executable(target.command[0], cmd[1:],
+        exe_data = self.serialize_executable(target.command[0], cmd[1:],
                                              # All targets run from the target dir
                                              tdir_abs,
                                              capture=ofilenames[0] if target.capture else None)
@@ -1182,7 +1182,7 @@ endlocal & call :cmErrorLevel %%errorlevel%% & goto :cmDone
 exit /b %%1
 :cmDone
 if %%errorlevel%% neq 0 goto :VCEnd'''
-        self.serialise_tests()
+        self.serialize_tests()
         ET.SubElement(postbuild, 'Command').text =\
             cmd_templ % ('" "'.join(test_command))
         ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.targets')

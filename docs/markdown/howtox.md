@@ -75,7 +75,7 @@ configure_file(...)
 
 ## Producing a coverage report
 
-First initialise the build directory with this command.
+First initialize the build directory with this command.
 
 ```console
 $ meson <other flags> -Db_coverage=true

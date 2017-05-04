@@ -486,7 +486,7 @@ int dummy;
         # CustomTarget command needs extra paths first.
         if target.capture or ((mesonlib.is_windows() or mesonlib.is_cygwin()) and
                               self.determine_windows_extra_paths(target.command[0])):
-            exe_data = self.serialise_executable(target.command[0], cmd[1:],
+            exe_data = self.serialize_executable(target.command[0], cmd[1:],
                                                  # All targets are built from the build dir
                                                  self.environment.get_build_dir(),
                                                  capture=ofilenames[0] if target.capture else None)
@@ -784,7 +784,7 @@ int dummy;
             d.install_subdirs.append([src_dir, inst_dir, dst_dir, sd.install_mode])
 
     def generate_tests(self, outfile):
-        self.serialise_tests()
+        self.serialize_tests()
         test_exe = get_meson_script(self.environment, 'mesontest')
         cmd = [sys.executable, test_exe, '--no-rebuild']
         if not self.environment.coredata.get_builtin_option('stdsplit'):

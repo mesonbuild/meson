@@ -220,7 +220,7 @@ class Backend:
                 raise MesonException('Unknown data type in object list.')
         return obj_list
 
-    def serialise_executable(self, exe, cmd_args, workdir, env={},
+    def serialize_executable(self, exe, cmd_args, workdir, env={},
                              capture=None):
         import hashlib
         # Can't just use exe.name here; it will likely be run more than once
@@ -265,7 +265,7 @@ class Backend:
             pickle.dump(es, f)
         return exe_data
 
-    def serialise_tests(self):
+    def serialize_tests(self):
         test_data = os.path.join(self.environment.get_scratch_dir(), 'meson_test_setup.dat')
         with open(test_data, 'wb') as datafile:
             self.write_test_file(datafile)

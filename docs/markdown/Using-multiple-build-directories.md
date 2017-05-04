@@ -36,7 +36,7 @@ The cross compilation file sets up Wine so that not only can you compile your ap
 
 To compile any of these build types, just cd into the corresponding build directory and run `ninja` or instruct your IDE to do the same. Note that once you have set up your build directory once, you can just run Ninja and Meson will ensure that the resulting build is fully up to date according to the source. Even if you have not touched one of the directories in weeks and have done major changes to your build configuration, Meson will detect this and bring the build directory up to date (or print an error if it can't do that). This allows you to do most of your work in the default directory and use the others every now and then without having to babysit your build directories.
 
-## Specialised uses ##
+## Specialized uses ##
 
 Separate build directories allows easy integration for various different kinds of tools. As an example, Clang comes with a static analyzer. It is meant to be run from scratch on a given source tree. The steps to run it with Meson are very simple.
 
