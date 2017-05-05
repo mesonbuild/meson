@@ -283,14 +283,19 @@ def run_test_inprocess(testdir):
     sys.stderr = mystderr = StringIO()
     old_cwd = os.getcwd()
     os.chdir(testdir)
+    test_log_fname = 'meson-logs/testlog.txt'
     try:
         returncode_test = mesontest.run(['--no-rebuild'])
+        if os.path.exists(test_log_fname):
+            test_log = open(test_log_fname, errors='ignore').read()
+        else:
+            test_log = ''
         returncode_benchmark = mesontest.run(['--no-rebuild', '--benchmark', '--logbase', 'benchmarklog'])
     finally:
         sys.stdout = old_stdout
         sys.stderr = old_stderr
         os.chdir(old_cwd)
-    return max(returncode_test, returncode_benchmark), mystdout.getvalue(), mystderr.getvalue()
+    return max(returncode_test, returncode_benchmark), mystdout.getvalue(), mystderr.getvalue(), test_log
 
 def parse_test_args(testdir):
     args = []
@@ -357,10 +362,11 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, compiler, backen
     os.utime(os.path.join(testdir, 'meson.build'))
     test_start = time.time()
     # Test in-process
-    (returncode, tstdo, tstde) = run_test_inprocess(test_build_dir)
+    (returncode, tstdo, tstde, test_log) = run_test_inprocess(test_build_dir)
     test_time = time.time() - test_start
     stdo += tstdo
     stde += tstde
+    mesonlog += test_log
     if should_fail == 'test':
         if returncode != 0:
             return TestResult('', BuildStep.test, stdo, stde, mesonlog, gen_time)
