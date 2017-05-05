@@ -782,7 +782,7 @@ class CCompiler(Compiler):
         return self.exelist[:]
 
     def get_preprocess_only_args(self):
-        return ['-E']
+        return ['-E', '-P']
 
     def get_compile_only_args(self):
         return ['-c']
@@ -2135,7 +2135,7 @@ class VisualStudioCCompiler(CCompiler):
         return ['/FI' + base, '/Yu' + base, '/Fp' + os.path.join(pch_dir, pchname)]
 
     def get_preprocess_only_args(self):
-        return ['/E']
+        return ['/EP']
 
     def get_compile_only_args(self):
         return ['/c']
