@@ -140,7 +140,7 @@ In older versions (<= 0.30) meson would error out if the size could not be deter
 Does a function exist?
 ==
 
-Just having a header does say anything about its contents. Sometimes you need to explicitly check if some function exists. This is how we would check whether the function `somefunc` exists in header `someheader.h`
+Just having a header doesn't say anything about its contents. Sometimes you need to explicitly check if some function exists. This is how we would check whether the function `somefunc` exists in header `someheader.h`
 
 ```meson
 if compiler.has_function('somefunc', prefix : '#include<someheader.h>')
