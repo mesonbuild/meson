@@ -1139,10 +1139,10 @@ class CCompiler(Compiler):
         delim = '"MESON_GET_DEFINE_DELIMITER"'
         fargs = {'prefix': prefix, 'define': dname, 'delim': delim}
         code = '''
+        {prefix}
         #ifndef {define}
         # define {define}
         #endif
-        {prefix}
         {delim}\n{define}'''
         args = self._get_compiler_check_args(env, extra_args, dependencies,
                                              mode='preprocess').to_native()
