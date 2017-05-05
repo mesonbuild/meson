@@ -69,6 +69,7 @@ To use a subproject simply do this in your top level `meson.build`.
 
 ```meson
 foobar_sp = subproject('foobar')
+```
 
 Usually dependencies consist of some header files plus a library to link against. To do this you would declare this internal dependency like this:
 
