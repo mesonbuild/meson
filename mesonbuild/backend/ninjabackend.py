@@ -38,7 +38,12 @@ else:
     rmfile_prefix = 'rm -f {} &&'
 
 def ninja_quote(text):
-    return text.replace(' ', '$ ').replace(':', '$:')
+    for char in ('$', ' ', ':'):
+        text = text.replace(char, '$' + char)
+    if '\n' in text:
+        raise MesonException('Ninja does not support newlines in rules. '
+                             'Please report this error with a test case to the Meson bug tracker.')
+    return text
 
 
 class NinjaBuildElement:
@@ -480,12 +485,16 @@ int dummy;
         # If the target requires capturing stdout, then use the serialized
         # executable wrapper to capture that output and save it to a file.
         #
+        # If the command line requires a newline, also use the wrapper, as
+        # ninja does not support them in its build rule syntax.
+        #
         # Windows doesn't have -rpath, so for EXEs that need DLLs built within
         # the project, we need to set PATH so the DLLs are found. We use
         # a serialized executable wrapper for that and check if the
         # CustomTarget command needs extra paths first.
-        if target.capture or ((mesonlib.is_windows() or mesonlib.is_cygwin()) and
-                              self.determine_windows_extra_paths(target.command[0])):
+        if (target.capture or any('\n' in c for c in cmd) or
+                ((mesonlib.is_windows() or mesonlib.is_cygwin()) and
+                 self.determine_windows_extra_paths(target.command[0]))):
             exe_data = self.serialize_executable(target.command[0], cmd[1:],
                                                  # All targets are built from the build dir
                                                  self.environment.get_build_dir(),
@@ -1448,12 +1457,13 @@ int dummy;
 
     def generate_swift_compile_rules(self, compiler, outfile):
         rule = 'rule %s_COMPILER\n' % compiler.get_language()
-        full_exe = [sys.executable,
-                    self.environment.get_build_command(),
+        full_exe = [ninja_quote(sys.executable),
+                    ninja_quote(self.environment.get_build_command()),
                     '--internal',
                     'dirchanger',
-                    '$RUNDIR'] + compiler.get_exelist()
-        invoc = ' '.join([ninja_quote(i) for i in full_exe])
+                    '$RUNDIR']
+        invoc = (' '.join(full_exe) + ' ' +
+                 ' '.join(ninja_quote(i) for i in compiler.get_exelist()))
         command = ' command = %s $ARGS $in\n' % invoc
         description = ' description = Compiling Swift source $in.\n'
         outfile.write(rule)
