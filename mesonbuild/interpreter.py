@@ -2217,10 +2217,12 @@ class Interpreter(InterpreterBase):
         subdir = os.path.join(prev_subdir, args[0])
         if os.path.isabs(subdir):
             raise InvalidArguments('Subdir argument must be a relative path.')
-        if subdir in self.visited_subdirs:
+        absdir = os.path.join(self.environment.get_source_dir(), subdir)
+        symlinkless_dir = os.path.realpath(absdir)
+        if symlinkless_dir in self.visited_subdirs:
             raise InvalidArguments('Tried to enter directory "%s", which has already been visited.'
                                    % subdir)
-        self.visited_subdirs[subdir] = True
+        self.visited_subdirs[symlinkless_dir] = True
         self.subdir = subdir
         os.makedirs(os.path.join(self.environment.build_dir, subdir), exist_ok=True)
         buildfilename = os.path.join(self.subdir, environment.build_filename)
