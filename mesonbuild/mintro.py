@@ -65,7 +65,13 @@ def determine_installed_path(target, installdata):
 def list_installed(installdata):
     res = {}
     if installdata is not None:
+        for path, installdir, aliases, unknown1, unknown2 in installdata.targets:
+            res[os.path.join(installdata.build_dir, path)] = os.path.join(installdata.prefix, installdir, os.path.basename(path))
         for path, installpath, unused_prefix in installdata.data:
+            res[path] = os.path.join(installdata.prefix, installpath)
+        for path, installdir in installdata.headers:
+            res[path] = os.path.join(installdata.prefix, installdir, os.path.basename(path))
+        for path, installpath in installdata.man:
             res[path] = os.path.join(installdata.prefix, installpath)
     print(json.dumps(res))
 
