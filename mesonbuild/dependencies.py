@@ -1742,21 +1742,17 @@ class LLVMDependency(Dependency):
         return True
 
 
-def get_dep_identifier(name, kwargs):
-    elements = [name]
-    modlist = kwargs.get('modules', [])
-    if isinstance(modlist, str):
-        modlist = [modlist]
-    for module in modlist:
-        elements.append(module)
-    # We use a tuple because we need a non-mutable structure to use as the key
-    # of a dictionary and a string has potential for name collisions
-    identifier = tuple(elements)
-    identifier += ('main', kwargs.get('main', False))
-    identifier += ('static', kwargs.get('static', False))
-    if 'fallback' in kwargs:
-        f = kwargs.get('fallback')
-        identifier += ('fallback', f[0], f[1])
+def get_dep_identifier(name, kwargs, want_cross):
+    # Need immutable objects since the identifier will be used as a dict key
+    identifier = (name, want_cross)
+    for key, value in kwargs.items():
+        # Ignore versions, they will be handled by the caller
+        if key == 'version':
+            continue
+        # All keyword arguments are strings, ints, or lists (or lists of lists)
+        if isinstance(value, list):
+            value = frozenset(mesonlib.flatten(value))
+        identifier += (key, value)
     return identifier
 
 def find_external_dependency(name, environment, kwargs):

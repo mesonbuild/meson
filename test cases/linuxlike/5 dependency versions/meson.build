@@ -48,6 +48,16 @@ fakezlib_dep = dependency('zlib',
   fallback : ['somelib', 'fakezlib_dep'])
 assert(fakezlib_dep.type_name() == 'internal', 'fakezlib_dep should be of type "internal", not ' + fakezlib_dep.type_name())
 
+if meson.is_cross_build()
+  # Test caching of native and cross dependencies
+  # https://github.com/mesonbuild/meson/issues/1736
+  cross_prefix = dependency('zlib').get_pkgconfig_variable('prefix')
+  native_prefix = dependency('zlib', native : true).get_pkgconfig_variable('prefix')
+  assert(cross_prefix != '', 'cross zlib prefix is not defined')
+  assert(native_prefix != '', 'native zlib prefix is not defined')
+  assert(native_prefix != cross_prefix, 'native prefix == cross_prefix == ' + native_prefix)
+endif
+
 foreach d : ['sdl2', 'gnustep', 'wx', 'gl', 'python3', 'boost', 'gtest', 'gmock']
   dep = dependency(d, required : false)
   if dep.found()

@@ -1858,7 +1858,6 @@ class Interpreter(InterpreterBase):
         if '<' in name or '>' in name or '=' in name:
             raise InvalidArguments('Characters <, > and = are forbidden in dependency names. To specify'
                                    'version\n requirements use the \'version\' keyword argument instead.')
-        identifier = dependencies.get_dep_identifier(name, kwargs)
         # Check if we want this as a cross-dep or a native-dep
         # FIXME: Not all dependencies support such a distinction right now,
         # and we repeat this check inside dependencies that do. We need to
@@ -1868,10 +1867,14 @@ class Interpreter(InterpreterBase):
             want_cross = not kwargs['native']
         else:
             want_cross = is_cross
+        identifier = dependencies.get_dep_identifier(name, kwargs, want_cross)
         # Check if we've already searched for and found this dep
         cached_dep = None
         if identifier in self.coredata.deps:
             cached_dep = self.coredata.deps[identifier]
+            # All other kwargs are handled in get_dep_identifier(). We have
+            # this here as a tiny optimization to avoid searching for
+            # dependencies that we already have.
             if 'version' in kwargs:
                 wanted = kwargs['version']
                 found = cached_dep.get_version()
@@ -1880,13 +1883,6 @@ class Interpreter(InterpreterBase):
                     # Cached dep has the wrong version. Check if an external
                     # dependency or a fallback dependency provides it.
                     cached_dep = None
-            # Don't re-use cached dep if it wasn't required but this one is,
-            # so we properly go into fallback/error code paths
-            if kwargs.get('required', True) and not getattr(cached_dep, 'required', False):
-                cached_dep = None
-            # Don't reuse cached dep if one is a cross-dep and the other is a native dep
-            if not getattr(cached_dep, 'want_cross', is_cross) == want_cross:
-                cached_dep = None
 
         if cached_dep:
             dep = cached_dep
