@@ -1469,28 +1469,33 @@ class Interpreter(InterpreterBase):
             raise InterpreterException('Not enough arguments')
         cmd = args[0]
         cargs = args[1:]
+        srcdir = self.environment.get_source_dir()
+        builddir = self.environment.get_build_dir()
         if isinstance(cmd, ExternalProgramHolder):
             cmd = cmd.get_command()
         elif isinstance(cmd, str):
             cmd = [cmd]
+        elif isinstance(cmd, mesonlib.File):
+            cmd = [cmd.absolute_path(srcdir, builddir)]
         else:
-            raise InterpreterException('First argument should be find_program() '
-                                       'or string, not {!r}'.format(cmd))
+            m = 'First argument must be a string, or the output of ' \
+                'find_program(), files(), or configure_file(); not {!r}'
+            raise InterpreterException(m.format(cmd))
         expanded_args = []
         for a in mesonlib.flatten(cargs):
             if isinstance(a, str):
                 expanded_args.append(a)
             elif isinstance(a, mesonlib.File):
-                if a.is_built:
-                    raise InterpreterException('Can not use generated files in run_command.')
-                expanded_args.append(os.path.join(self.environment.get_source_dir(), str(a)))
+                expanded_args.append(a.absolute_path(srcdir, builddir))
             else:
-                raise InterpreterException('Run_command arguments must be strings or the output of files().')
+                m = 'run_command() arguments must be strings, the output of ' \
+                    'files(), or configure_file(); not {!r}'
+                raise InterpreterException(m.format(a))
         args = cmd + expanded_args
         in_builddir = kwargs.get('in_builddir', False)
         if not isinstance(in_builddir, bool):
             raise InterpreterException('in_builddir must be boolean.')
-        return RunProcess(args, self.environment.source_dir, self.environment.build_dir, self.subdir,
+        return RunProcess(args, srcdir, builddir, self.subdir,
                           get_meson_script(self.environment, 'mesonintrospect'), in_builddir)
 
     @stringArgs
