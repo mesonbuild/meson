@@ -316,10 +316,20 @@ def get_base_link_args(options, linker, is_shared_module):
         pass
     return args
 
-def build_unix_rpath_args(build_dir, rpath_paths, install_rpath):
+def build_unix_rpath_args(build_dir, from_dir, rpath_paths, install_rpath):
         if not rpath_paths and not install_rpath:
             return []
-        paths = ':'.join([os.path.join(build_dir, p) for p in rpath_paths])
+        # The rpaths we write must be relative, because otherwise
+        # they have different length depending on the build
+        # directory. This breaks reproducible builds.
+        rel_rpaths = []
+        for p in rpath_paths:
+            if p == from_dir:
+                relative = '' # relpath errors out in this case
+            else:
+                relative = os.path.relpath(p, from_dir)
+            rel_rpaths.append(relative)
+        paths = ':'.join([os.path.join('$ORIGIN', p) for p in rel_rpaths])
         if len(paths) < len(install_rpath):
             padding = 'X' * (len(install_rpath) - len(paths))
             if not paths:
@@ -762,8 +772,8 @@ class CCompiler(Compiler):
 
     # The default behavior is this, override in
     # OSX and MSVC.
-    def build_rpath_args(self, build_dir, rpath_paths, install_rpath):
-        return build_unix_rpath_args(build_dir, rpath_paths, install_rpath)
+    def build_rpath_args(self, build_dir, from_dir, rpath_paths, install_rpath):
+        return build_unix_rpath_args(build_dir, from_dir, rpath_paths, install_rpath)
 
     def get_dependency_gen_args(self, outtarget, outfile):
         return ['-MMD', '-MQ', outtarget, '-MF', outfile]
@@ -1901,7 +1911,7 @@ class DCompiler(Compiler):
     def get_std_exe_link_args(self):
         return []
 
-    def build_rpath_args(self, build_dir, rpath_paths, install_rpath):
+    def build_rpath_args(self, build_dir, from_dir, rpath_paths, install_rpath):
         # This method is to be used by LDC and DMD.
         # GDC can deal with the verbatim flags.
         if not rpath_paths and not install_rpath:
@@ -2024,8 +2034,8 @@ class GnuDCompiler(DCompiler):
     def get_buildtype_args(self, buildtype):
         return d_gdc_buildtype_args[buildtype]
 
-    def build_rpath_args(self, build_dir, rpath_paths, install_rpath):
-        return build_unix_rpath_args(build_dir, rpath_paths, install_rpath)
+    def build_rpath_args(self, build_dir, from_dir, rpath_paths, install_rpath):
+        return build_unix_rpath_args(build_dir, from_dir, rpath_paths, install_rpath)
 
     def get_unittest_args(self):
         return ['-funittest']
@@ -2233,7 +2243,7 @@ class VisualStudioCCompiler(CCompiler):
         "The name of the outputted import library"
         return ['/IMPLIB:' + implibname]
 
-    def build_rpath_args(self, build_dir, rpath_paths, install_rpath):
+    def build_rpath_args(self, build_dir, from_dir, rpath_paths, install_rpath):
         return []
 
     # FIXME, no idea what these should be.
@@ -2973,8 +2983,8 @@ end program prog
     def get_std_exe_link_args(self):
         return []
 
-    def build_rpath_args(self, build_dir, rpath_paths, install_rpath):
-        return build_unix_rpath_args(build_dir, rpath_paths, install_rpath)
+    def build_rpath_args(self, build_dir, from_dir, rpath_paths, install_rpath):
+        return build_unix_rpath_args(build_dir, from_dir, rpath_paths, install_rpath)
 
     def module_name_to_filename(self, module_name):
         return module_name.lower() + '.mod'
@@ -3154,7 +3164,7 @@ class VisualStudioLinker(StaticLinker):
     def get_linker_always_args(self):
         return VisualStudioLinker.always_args
 
-    def build_rpath_args(self, build_dir, rpath_paths, install_rpath):
+    def build_rpath_args(self, build_dir, from_dir, rpath_paths, install_rpath):
         return []
 
     def thread_link_flags(self):
@@ -3183,7 +3193,7 @@ class ArLinker(StaticLinker):
         else:
             self.std_args = ['csr']
 
-    def build_rpath_args(self, build_dir, rpath_paths, install_rpath):
+    def build_rpath_args(self, build_dir, from_dir, rpath_paths, install_rpath):
         return []
 
     def get_exelist(self):

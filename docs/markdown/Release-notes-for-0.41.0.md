@@ -61,3 +61,9 @@ Targets for building rust now take a `rust_args` keyword.
 Code coverage can be generated for tests by passing the `--cov` argument to
 the `run_tests.py` test runner. Note, since multiple processes are used,
 coverage must be combined before producing a report (`coverage3 combine`.)
+
+## Reproducible builds
+
+All known issues have been fixed and Meson can now build reproducible Debian
+packages out of the box.
+
