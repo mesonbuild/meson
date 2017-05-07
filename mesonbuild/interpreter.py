@@ -1882,25 +1882,24 @@ class Interpreter(InterpreterBase):
             # was found already.
             # We only return early if we find a usable cached dependency since
             # there might be multiple cached dependencies like this.
-            w = identifier[1]
+            wanted = identifier[1]
             for trial, trial_dep in self.coredata.deps.items():
                 # trial[1], identifier[1] are the version requirements
                 if trial[0] != identifier[0] or trial[2:] != identifier[2:]:
                     continue
-                # The version requirements are the only thing that's different.
                 if trial_dep.found():
-                    # Cached dependency was found. We're close.
-                    f = trial_dep.get_version()
-                    if not w or mesonlib.version_compare_many(f, w)[0]:
-                        # We either don't care about the version, or the
-                        # cached dep version matches our requirements! Yay!
+                    found = trial_dep.get_version()
+                    if not wanted or mesonlib.version_compare_many(found, wanted)[0]:
+                        # We either don't care about the version, or our
+                        # version requirements matched the trial dep's version,
+                        # and the trial dep was a found dep!
                         return identifier, trial_dep
-                elif 'fallback' not in kwargs:
-                    # this cached dependency matched everything but was
-                    # not-found. Tentatively set this as the dep to use.
-                    # If no other cached dep matches, we will use this as the
-                    # not-found dep.
+                elif not trial[1]:
+                    # If the not-found cached dep did not have any version
+                    # requirements, this probably means the external dependency
+                    # cannot be found.
                     cached_dep = trial_dep
+                    break
         # There's a subproject fallback specified for this not-found dependency
         # which might provide it, so we must check it.
         if cached_dep and not cached_dep.found() and 'fallback' in kwargs:

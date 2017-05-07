@@ -62,10 +62,23 @@ assert(somefail_dep.found() == false, 'somefail_dep found via wrong fallback')
 fallbackzlib_dep = dependency('zlib',
   fallback : ['somelib', 'fakezlib_dep'])
 assert(fallbackzlib_dep.type_name() == 'pkgconfig', 'fallbackzlib_dep should be of type "pkgconfig", not ' + fallbackzlib_dep.type_name())
-# Check that the above dependency was not found because it wasn't checked, not because the fallback didn't work
+# Check that the above dependency was pkgconfig because the fallback wasn't
+# checked, not because the fallback didn't work
 fakezlib_dep = dependency('fakezlib',
   fallback : ['somelib', 'fakezlib_dep'])
 assert(fakezlib_dep.type_name() == 'internal', 'fakezlib_dep should be of type "internal", not ' + fakezlib_dep.type_name())
+
+# Check that you can find a dependency by not specifying a version after not
+# finding it by specifying a version. We add `static: true` here so that the
+# previously cached zlib dependencies don't get checked.
+dependency('zlib', static : true, version : '>=8000', required : false)
+dependency('zlib', static : true)
+
+# Check that you can find a dependency by specifying a correct version after
+# not finding it by specifying a wrong one. We add `method: pkg-config` here so that
+# the previously cached zlib dependencies don't get checked.
+bzip2 = dependency('zlib', method : 'pkg-config', version : '>=9000', required : false)
+bzip2 = dependency('zlib', method : 'pkg-config', version : '>=1.0')
 
 if meson.is_cross_build()
   # Test caching of native and cross dependencies
