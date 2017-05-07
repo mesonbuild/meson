@@ -1854,15 +1854,6 @@ class Interpreter(InterpreterBase):
         mlog.log(mlog.red('DEPRECATION:'), 'find_library() is removed, use the corresponding method in compiler object instead.')
 
     def _find_cached_dep(self, name, kwargs):
-        '''
-        Check that there aren't any mismatches between the cached dep and the
-        wanted dep in terms of version and whether to use a fallback or not.
-        For instance, the cached dep and the wanted dep could have mismatching
-        version requirements. The cached dep did not search for a fallback, but
-        the wanted dep specifies a fallback. There are many more edge-cases.
-        Most cases are (or should be) documented in:
-        `test cases/linuxlike/5 dependency versions/meson.build`
-        '''
         # Check if we want this as a cross-dep or a native-dep
         # FIXME: Not all dependencies support such a distinction right now,
         # and we repeat this check inside dependencies that do. We need to
@@ -1880,33 +1871,17 @@ class Interpreter(InterpreterBase):
         else:
             # Check if exactly the same dep with different version requirements
             # was found already.
-            # We only return early if we find a usable cached dependency since
-            # there might be multiple cached dependencies like this.
             wanted = identifier[1]
             for trial, trial_dep in self.coredata.deps.items():
                 # trial[1], identifier[1] are the version requirements
                 if trial[0] != identifier[0] or trial[2:] != identifier[2:]:
                     continue
-                if trial_dep.found():
-                    found = trial_dep.get_version()
-                    if not wanted or mesonlib.version_compare_many(found, wanted)[0]:
-                        # We either don't care about the version, or our
-                        # version requirements matched the trial dep's version,
-                        # and the trial dep was a found dep!
-                        return identifier, trial_dep
-                elif not trial[1]:
-                    # If the not-found cached dep did not have any version
-                    # requirements, this probably means the external dependency
-                    # cannot be found.
+                found = trial_dep.get_version()
+                if not wanted or mesonlib.version_compare_many(found, wanted)[0]:
+                    # We either don't care about the version, or our
+                    # version requirements matched the trial dep's version.
                     cached_dep = trial_dep
                     break
-        # There's a subproject fallback specified for this not-found dependency
-        # which might provide it, so we must check it.
-        if cached_dep and not cached_dep.found() and 'fallback' in kwargs:
-            return identifier, None
-        # Either no cached deps matched the dep we're looking for, or some
-        # not-found cached dep matched and there is no fallback specified.
-        # Either way, we're done.
         return identifier, cached_dep
 
     def func_dependency(self, node, args, kwargs):
@@ -1958,7 +1933,9 @@ class Interpreter(InterpreterBase):
                 if not dep:
                     raise exception
 
-        self.coredata.deps[identifier] = dep
+        # Only store found-deps in the cache
+        if dep.found():
+            self.coredata.deps[identifier] = dep
         return DependencyHolder(dep)
 
     def get_subproject_infos(self, kwargs):
