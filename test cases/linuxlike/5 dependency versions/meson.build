@@ -21,10 +21,18 @@ if dependency('zlib', version : ['<=1.0', '>=9999', '=' + zlib.version()], requi
   error('zlib <=1.0 >=9999 should not have been found')
 endif
 
+# Test that a versionless zlib is found after not finding an optional zlib dep with version reqs
+zlibopt = dependency('zlib', required : false)
+assert(zlibopt.found() == true, 'zlib not found')
+
 # Test https://github.com/mesonbuild/meson/pull/610
 dependency('somebrokenlib', version : '>=2.0', required : false)
 dependency('somebrokenlib', version : '>=1.0', required : false)
 
+# Search for an external dependency that won't be found, but must later be
+# found via fallbacks
+somelibnotfound = dependency('somelib', required : false)
+assert(somelibnotfound.found() == false, 'somelibnotfound was found?')
 # Find internal dependency without version
 somelibver = dependency('somelib',
   fallback : ['somelibnover', 'some_dep'])
@@ -37,14 +45,25 @@ somelib = dependency('somelib',
 somelibver = dependency('somelib',
   version : '>= 0.3',
   fallback : ['somelibver', 'some_dep'])
-# Find somelib again, but with a fallback that will fail
+# Find somelib again, but with a fallback that will fail because subproject does not exist
 somelibfail = dependency('somelib',
   version : '>= 0.2',
   required : false,
   fallback : ['somelibfail', 'some_dep'])
 assert(somelibfail.found() == false, 'somelibfail found via wrong fallback')
+# Find somelib again, but with a fallback that will fail because dependency does not exist
+somefail_dep = dependency('somelib',
+  version : '>= 0.2',
+  required : false,
+  fallback : ['somelib', 'somefail_dep'])
+assert(somefail_dep.found() == false, 'somefail_dep found via wrong fallback')
 
-fakezlib_dep = dependency('zlib',
+# Fallback should only be used if the primary was not found
+fallbackzlib_dep = dependency('zlib',
+  fallback : ['somelib', 'fakezlib_dep'])
+assert(fallbackzlib_dep.type_name() == 'pkgconfig', 'fallbackzlib_dep should be of type "pkgconfig", not ' + fallbackzlib_dep.type_name())
+# Check that the above dependency was not found because it wasn't checked, not because the fallback didn't work
+fakezlib_dep = dependency('fakezlib',
   fallback : ['somelib', 'fakezlib_dep'])
 assert(fakezlib_dep.type_name() == 'internal', 'fakezlib_dep should be of type "internal", not ' + fakezlib_dep.type_name())
 

@@ -305,7 +305,7 @@ def version_compare(vstr1, vstr2, strict=False):
     return cmpop(varr1, varr2)
 
 def version_compare_many(vstr1, conditions):
-    if not isinstance(conditions, (list, tuple)):
+    if not isinstance(conditions, (list, tuple, frozenset)):
         conditions = [conditions]
     found = []
     not_found = []

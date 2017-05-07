@@ -27,9 +27,10 @@ import subprocess
 import sysconfig
 from enum import Enum
 from collections import OrderedDict
-from . mesonlib import MesonException, version_compare, version_compare_many, Popen_safe
 from . import mlog
 from . import mesonlib
+from .mesonlib import Popen_safe, flatten
+from .mesonlib import MesonException, version_compare, version_compare_many
 from .environment import detect_cpu_family, for_windows
 
 class DependencyException(MesonException):
@@ -103,6 +104,7 @@ class InternalDependency(Dependency):
     def __init__(self, version, incdirs, compile_args, link_args, libraries, sources, ext_deps):
         super().__init__('internal', {})
         self.version = version
+        self.is_found = True
         self.include_directories = incdirs
         self.compile_args = compile_args
         self.link_args = link_args
@@ -1744,14 +1746,20 @@ class LLVMDependency(Dependency):
 
 def get_dep_identifier(name, kwargs, want_cross):
     # Need immutable objects since the identifier will be used as a dict key
-    identifier = (name, want_cross)
+    version_reqs = flatten(kwargs.get('version', []))
+    if isinstance(version_reqs, list):
+        version_reqs = frozenset(version_reqs)
+    identifier = (name, version_reqs, want_cross)
     for key, value in kwargs.items():
-        # Ignore versions, they will be handled by the caller
-        if key == 'version':
+        # 'version' is embedded above as the second element for easy access
+        # 'native' is handled above with `want_cross`
+        # 'required' is irrelevant for caching; the caller handles it separately
+        # 'fallback' subprojects cannot be cached -- they must be initialized
+        if key in ('version', 'native', 'required', 'fallback',):
             continue
         # All keyword arguments are strings, ints, or lists (or lists of lists)
         if isinstance(value, list):
-            value = frozenset(mesonlib.flatten(value))
+            value = frozenset(flatten(value))
         identifier += (key, value)
     return identifier
 
