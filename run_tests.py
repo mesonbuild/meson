@@ -16,6 +16,7 @@
 
 import os
 import sys
+import time
 import shutil
 import subprocess
 import platform
@@ -97,6 +98,13 @@ def get_backend_commands(backend, debug=False):
     else:
         raise AssertionError('Unknown backend: {!r}'.format(backend))
     return cmd, clean_cmd, test_cmd, install_cmd, uninstall_cmd
+
+def ensure_backend_detects_changes(backend):
+    # This is needed to increase the difference between build.ninja's
+    # timestamp and the timestamp of whatever you changed due to a Ninja
+    # bug: https://github.com/ninja-build/ninja/issues/371
+    if backend is Backend.ninja:
+        time.sleep(1)
 
 def get_fake_options(prefix):
     import argparse
