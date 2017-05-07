@@ -32,6 +32,8 @@ before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install ninja python3; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then docker pull jpakkane/mesonci:zesty; fi
+  - pip3 install codecov
+  - mkdir .coverage
 
 # We need to copy the current checkout inside the Docker container,
 # because it has the MR id to be tested checked out.
@@ -40,5 +42,15 @@ script:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then echo FROM jpakkane/mesonci:zesty > Dockerfile; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then echo ADD . /root >> Dockerfile; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then docker build -t withgit .; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then docker run withgit /bin/sh -c "cd /root && TRAVIS=true CC=$CC CXX=$CXX OBJC=$CC OBJCXX=$CXX ./run_tests.py -- $MESON_ARGS"; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then SDKROOT=$(xcodebuild -version -sdk macosx Path) OBJC=$CC OBJCXX=$CXX ./run_tests.py --backend=ninja -- $MESON_ARGS ; fi
+  - |
+    if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+      ci_env=`bash <(curl -s https://codecov.io/env)`
+      docker run $ci_env -v ${PWD}/.coverage:/root/.coverage \
+        withgit \
+          /bin/sh -c "cd /root && CC=$CC CXX=$CXX OBJC=$CC OBJCXX=$CXX ./run_tests.py --cov -- $MESON_ARGS; chmod -R a+rwX .coverage"
+    fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then SDKROOT=$(xcodebuild -version -sdk macosx Path) OBJC=$CC OBJCXX=$CXX ./run_tests.py --cov --backend=ninja -- $MESON_ARGS ; fi
+
+after_success:
+  - coverage3 combine
+  - codecov
