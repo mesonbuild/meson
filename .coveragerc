@@ -1,0 +1,17 @@
+[run]
+branch = True
+concurrency =
+    multiprocessing
+data_file = .coverage/coverage
+parallel = True
+source =
+    meson.py
+    mesonbuild/
+    mesonconf.py
+    mesonintrospect.py
+    mesonrewriter.py
+    mesontest.py
+    run_cross_test.py
+    run_project_tests.py
+    run_tests.py
+    run_unittests.py

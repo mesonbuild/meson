@@ -5,6 +5,7 @@
 /.idea
 
 __pycache__
+.coverage
 /install dir
 /work area
 
