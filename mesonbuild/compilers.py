@@ -2451,6 +2451,16 @@ class GnuCompiler:
     def get_link_whole_for(self, args):
         return ['-Wl,--whole-archive'] + args + ['-Wl,--no-whole-archive']
 
+    def gen_vs_module_defs_args(self, defsfile):
+        if not isinstance(defsfile, str):
+            raise RuntimeError('Module definitions file should be str')
+        # On Windows targets, .def files may be specified on the linker command
+        # line like an object file.
+        if self.gcc_type in (GCC_CYGWIN, GCC_MINGW):
+            return [defsfile]
+        # For other targets, discard the .def file.
+        return []
+
 
 class GnuCCompiler(GnuCompiler, CCompiler):
     def __init__(self, exelist, version, gcc_type, is_cross, exe_wrapper=None, defines=None):
