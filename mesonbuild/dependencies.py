@@ -127,6 +127,7 @@ class PkgConfigDependency(Dependency):
     def __init__(self, name, environment, kwargs):
         Dependency.__init__(self, 'pkgconfig', kwargs)
         self.is_libtool = False
+        self.version_reqs = kwargs.get('version', None)
         self.required = kwargs.get('required', True)
         self.static = kwargs.get('static', False)
         self.silent = kwargs.get('silent', False)
@@ -187,7 +188,6 @@ class PkgConfigDependency(Dependency):
                                           ''.format(self.type_string, name))
             return
         found_msg = [self.type_string + ' dependency', mlog.bold(name), 'found:']
-        self.version_reqs = kwargs.get('version', None)
         if self.version_reqs is None:
             self.is_found = True
         else:
