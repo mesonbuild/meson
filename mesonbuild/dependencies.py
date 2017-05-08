@@ -1648,7 +1648,7 @@ class LLVMDependency(Dependency):
             self.check_llvmconfig(req_version)
         if not self._llvmconfig_found:
             if self.__best_found is not None:
-                mlog.log('found {!r} but need:'.format(self.version),
+                mlog.log('found {!r} but need:'.format(self.__best_found),
                          req_version)
             else:
                 mlog.log("No llvm-config found; can't detect dependency")
