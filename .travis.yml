@@ -53,4 +53,4 @@ script:
 
 after_success:
   - coverage3 combine
-  - codecov
+  - codecov -n "${TRAVIS_OS_NAME}-${CC}-{$(echo ${MESON_ARGS} | sed -e 's/^--//g' -e 's/ --/,/g')}"

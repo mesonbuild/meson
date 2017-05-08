@@ -90,7 +90,7 @@ after_test:
   - cmd: "%WRAPPER% %PYTHON% -m coverage combine"
   # Generate XML report manually because codecov module doesn't know how to run it properly.
   - cmd: "%WRAPPER% %PYTHON% -m coverage xml"
-  - cmd: "%WRAPPER% %PYTHON% -m codecov -X search pycov -f coverage.xml"
+  - cmd: "%WRAPPER% %PYTHON% -m codecov -X search pycov -f coverage.xml -n windows-%arch%-%compiler%-%backend%"
 
 on_finish:
   - set "PATH=%ORIG_PATH%"
