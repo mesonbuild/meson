@@ -1,6 +1,4 @@
 usr/share/doc/spede/html/annotated.html
-usr/share/doc/spede/html/arrowdown.png
-usr/share/doc/spede/html/arrowright.png
 usr/share/doc/spede/html/bc_s.png
 usr/share/doc/spede/html/bdwn.png
 usr/share/doc/spede/html/classComedy_1_1Comedian.html
@@ -29,6 +27,8 @@ usr/share/doc/spede/html/functions_func.html
 usr/share/doc/spede/html/hierarchy.html
 usr/share/doc/spede/html/index.html
 usr/share/doc/spede/html/jquery.js
+usr/share/doc/spede/html/menu.js
+usr/share/doc/spede/html/menudata.js
 usr/share/doc/spede/html/namespaceComedy.html
 usr/share/doc/spede/html/namespacemembers.html
 usr/share/doc/spede/html/namespacemembers_func.html
