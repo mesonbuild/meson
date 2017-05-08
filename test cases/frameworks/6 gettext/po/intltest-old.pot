@@ -1,14 +1,14 @@
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
-# This file is distributed under the same license as the intltest package.
+# This file is distributed under the same license as the intltest-old package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: intltest\n"
+"Project-Id-Version: intltest-old\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2017-06-04 14:11+0200\n"
+"POT-Creation-Date: 2017-06-04 14:13+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -21,6 +21,14 @@ msgstr ""
 msgid "International greeting."
 msgstr ""
 
-#: data/test.desktop.in:7
-msgid "Test Value"
+#: data/test.desktop.in:3
+msgid "Test"
+msgstr ""
+
+#: data/test.desktop.in:4
+msgid "Application"
+msgstr ""
+
+#: data/test.desktop.in:5
+msgid "Test Application"
 msgstr ""

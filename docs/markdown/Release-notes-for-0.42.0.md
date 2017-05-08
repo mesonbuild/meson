@@ -51,3 +51,10 @@ Rust's [linkage reference][rust-linkage].
 
 Both the address- and undefined behavior sanitizers can now be used
 simultaneously by passing `-Db_sanitize=address,undefined` to Meson.
+
+## More fine-grained control over i18n files
+
+The i18n module now has its `files()` wrapper to add i18n metadata
+to files before using then to generate a POT file.
+Such metadata being custom keywords and extra arguments to `xgettext`
+invocation.
