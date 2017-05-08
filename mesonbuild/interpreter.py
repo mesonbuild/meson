@@ -23,7 +23,7 @@ from . import compilers
 from .wrap import wrap, WrapMode
 from . import mesonlib
 from .mesonlib import FileMode, Popen_safe, get_meson_script
-from .dependencies import InternalDependency, Dependency
+from .dependencies import InternalDependency, Dependency, ExternalProgram
 from .interpreterbase import InterpreterBase
 from .interpreterbase import check_stringlist, noPosargs, noKwargs, stringArgs
 from .interpreterbase import InterpreterException, InvalidArguments, InvalidCode
@@ -72,17 +72,19 @@ class TryRunResultHolder(InterpreterObject):
 
 class RunProcess(InterpreterObject):
 
-    def __init__(self, command_array, source_dir, build_dir, subdir, mesonintrospect, in_builddir=False):
+    def __init__(self, cmd, args, source_dir, build_dir, subdir, mesonintrospect, in_builddir=False):
         super().__init__()
-        pc, self.stdout, self.stderr = self.run_command(command_array, source_dir, build_dir, subdir, mesonintrospect, in_builddir)
+        if not isinstance(cmd, ExternalProgram):
+            raise AssertionError('BUG: RunProcess must be passed an ExternalProgram')
+        pc, self.stdout, self.stderr = self.run_command(cmd, args, source_dir, build_dir, subdir, mesonintrospect, in_builddir)
         self.returncode = pc.returncode
         self.methods.update({'returncode': self.returncode_method,
                              'stdout': self.stdout_method,
                              'stderr': self.stderr_method,
                              })
 
-    def run_command(self, command_array, source_dir, build_dir, subdir, mesonintrospect, in_builddir):
-        cmd_name = command_array[0]
+    def run_command(self, cmd, args, source_dir, build_dir, subdir, mesonintrospect, in_builddir):
+        command_array = cmd.get_command() + args
         env = {'MESON_SOURCE_ROOT': source_dir,
                'MESON_BUILD_ROOT': build_dir,
                'MESON_SUBDIR': subdir,
@@ -94,18 +96,6 @@ class RunProcess(InterpreterObject):
         child_env = os.environ.copy()
         child_env.update(env)
         mlog.debug('Running command:', ' '.join(command_array))
-        try:
-            return Popen_safe(command_array, env=child_env, cwd=cwd)
-        except FileNotFoundError:
-            pass
-        # Was not a command, is a program in path?
-        exe = shutil.which(cmd_name)
-        if exe is not None:
-            command_array = [exe] + command_array[1:]
-            return Popen_safe(command_array, env=child_env, cwd=cwd)
-        # No? Maybe it is a script in the source tree.
-        fullpath = os.path.join(source_dir, subdir, cmd_name)
-        command_array = [fullpath] + command_array[1:]
         try:
             return Popen_safe(command_array, env=child_env, cwd=cwd)
         except FileNotFoundError:
@@ -250,7 +240,6 @@ class DependencyHolder(InterpreterObject):
     def found_method(self, args, kwargs):
         if self.held_object.type_name == 'internal':
             return True
-
         return self.held_object.found()
 
     def version_method(self, args, kwargs):
@@ -1105,7 +1094,8 @@ class MesonMain(InterpreterObject):
             if found.found():
                 self._found_source_scripts[key] = found
             else:
-                raise InterpreterException('Script {!r} not found'.format(name))
+                m = 'Script or command {!r} not found or not executable'
+                raise InterpreterException(m.format(name))
         return build.RunScript(found.get_command(), args)
 
     def add_install_script_method(self, args, kwargs):
@@ -1469,28 +1459,38 @@ class Interpreter(InterpreterBase):
             raise InterpreterException('Not enough arguments')
         cmd = args[0]
         cargs = args[1:]
+        srcdir = self.environment.get_source_dir()
+        builddir = self.environment.get_build_dir()
+        m = 'must be a string, or the output of find_program(), files(), or ' \
+            'configure_file(); not {!r}'
         if isinstance(cmd, ExternalProgramHolder):
-            cmd = cmd.get_command()
-        elif isinstance(cmd, str):
-            cmd = [cmd]
+            cmd = cmd.held_object
         else:
-            raise InterpreterException('First argument should be find_program() '
-                                       'or string, not {!r}'.format(cmd))
+            if isinstance(cmd, mesonlib.File):
+                cmd = cmd.absolute_path(srcdir, builddir)
+            elif not isinstance(cmd, str):
+                raise InterpreterException('First argument ' + m.format(cmd))
+            # Prefer scripts in the current source directory
+            search_dir = os.path.join(srcdir, self.subdir)
+            prog = ExternalProgram(cmd, silent=True, search_dir=search_dir)
+            if not prog.found():
+                raise InterpreterException('Program or command {!r} not found'
+                                           'or not executable'.format(cmd))
+            cmd = prog
         expanded_args = []
         for a in mesonlib.flatten(cargs):
             if isinstance(a, str):
                 expanded_args.append(a)
             elif isinstance(a, mesonlib.File):
-                if a.is_built:
-                    raise InterpreterException('Can not use generated files in run_command.')
-                expanded_args.append(os.path.join(self.environment.get_source_dir(), str(a)))
+                expanded_args.append(a.absolute_path(srcdir, builddir))
+            elif isinstance(a, ExternalProgramHolder):
+                expanded_args.append(a.held_object.get_path())
             else:
-                raise InterpreterException('Run_command arguments must be strings or the output of files().')
-        args = cmd + expanded_args
+                raise InterpreterException('Arguments ' + m.format(a))
         in_builddir = kwargs.get('in_builddir', False)
         if not isinstance(in_builddir, bool):
             raise InterpreterException('in_builddir must be boolean.')
-        return RunProcess(args, self.environment.source_dir, self.environment.build_dir, self.subdir,
+        return RunProcess(cmd, expanded_args, srcdir, builddir, self.subdir,
                           get_meson_script(self.environment, 'mesonintrospect'), in_builddir)
 
     @stringArgs
@@ -1846,7 +1846,7 @@ class Interpreter(InterpreterBase):
             if progobj.found():
                 return progobj
         if required and not progobj.found():
-            raise InvalidArguments('Program "%s" not found.' % exename)
+            raise InvalidArguments('Program "%s" not found or not executable' % exename)
         return progobj
 
     def func_find_library(self, node, args, kwargs):
@@ -2426,7 +2426,7 @@ different subdirectory.
                     exe_wrapper.append(i)
                 elif isinstance(i, dependencies.ExternalProgram):
                     if not i.found():
-                        raise InterpreterException('Tried to use non-found external executable.')
+                        raise InterpreterException('Tried to use non-found executable.')
                     exe_wrapper += i.get_command()
                 else:
                     raise InterpreterException('Exe wrapper can only contain strings or external binaries.')

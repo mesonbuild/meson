@@ -465,8 +465,9 @@ class ExternalProgram:
     @staticmethod
     def _shebang_to_cmd(script):
         """
-        Windows does not understand shebangs, so we check if the file has a
-        shebang and manually parse it to figure out the interpreter to use
+        Check if the file has a shebang and manually parse it to figure out
+        the interpreter to use. This is useful if the script is not executable
+        or if we're on Windows (which does not understand shebangs).
         """
         try:
             with open(script) as f:
@@ -504,15 +505,17 @@ class ExternalProgram:
         if os.path.exists(trial):
             if self._is_executable(trial):
                 return [trial]
+            # Now getting desperate. Maybe it is a script file that is
+            # a) not chmodded executable, or
+            # b) we are on windows so they can't be directly executed.
+            return self._shebang_to_cmd(trial)
         else:
-            for ext in self.windows_exts:
-                trial_ext = '{}.{}'.format(trial, ext)
-                if os.path.exists(trial_ext):
-                    return [trial_ext]
-            return False
-        # Now getting desperate. Maybe it is a script file that is a) not chmodded
-        # executable or b) we are on windows so they can't be directly executed.
-        return self._shebang_to_cmd(trial)
+            if mesonlib.is_windows():
+                for ext in self.windows_exts:
+                    trial_ext = '{}.{}'.format(trial, ext)
+                    if os.path.exists(trial_ext):
+                        return [trial_ext]
+        return False
 
     def _search(self, name, search_dir):
         '''
@@ -525,7 +528,8 @@ class ExternalProgram:
         # Do a standard search in PATH
         command = shutil.which(name)
         if not mesonlib.is_windows():
-            # On UNIX-like platforms, the standard PATH search is enough
+            # On UNIX-like platforms, shutil.which() is enough to find
+            # all executables whether in PATH or with an absolute path
             return [command]
         # HERE BEGINS THE TERROR OF WINDOWS
         if command:
@@ -567,9 +571,9 @@ class ExternalProgram:
         return self.command[:]
 
     def get_path(self):
-        # Assume that the last element is the full path to the script
-        # If it's not a script, this will be an array of length 1
         if self.found():
+            # Assume that the last element is the full path to the script or
+            # binary being run
             return self.command[-1]
         return None
 
