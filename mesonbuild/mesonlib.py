@@ -722,3 +722,6 @@ class OrderedSet(collections.MutableSet):
     def update(self, iterable):
         for item in iterable:
             self.__container[item] = None
+
+    def difference(self, set_):
+        return type(self)(e for e in self if e not in set_)
