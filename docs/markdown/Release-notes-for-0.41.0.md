@@ -24,3 +24,7 @@ The ninja backend now quotes special characters that may be interpreted by
 ninja itself, providing better interoperability with custom commands. This
 support may not be perfect; please report any issues found with special
 characters to the issue tracker.
+
+## Support for passing arguments to Rust compiler
+
+Targets for building rust now take a `rust_args` keyword.
