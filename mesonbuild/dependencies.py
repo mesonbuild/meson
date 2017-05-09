@@ -1635,6 +1635,7 @@ class LLVMDependency(Dependency):
     llvmconfig = None
     _llvmconfig_found = False
     __best_found = None
+    __cpp_blacklist = {'-DNDEBUG'}
 
     def __init__(self, environment, kwargs):
         super().__init__('llvm-config', kwargs)
@@ -1651,7 +1652,7 @@ class LLVMDependency(Dependency):
             self.check_llvmconfig(req_version)
         if not self._llvmconfig_found:
             if self.__best_found is not None:
-                mlog.log('found {!r} but need:'.format(self.version),
+                mlog.log('found {!r} but need:'.format(self.__best_found),
                          req_version)
             else:
                 mlog.log("No llvm-config found; can't detect dependency")
@@ -1680,7 +1681,7 @@ class LLVMDependency(Dependency):
             p, out = Popen_safe([self.llvmconfig, '--cppflags'])[:2]
             if p.returncode != 0:
                 raise DependencyException('Could not generate includedir for LLVM.')
-            self.cargs = shlex.split(out)
+            self.cargs = list(mesonlib.OrderedSet(shlex.split(out)).difference(self.__cpp_blacklist))
 
             p, out = Popen_safe([self.llvmconfig, '--components'])[:2]
             if p.returncode != 0:

@@ -708,7 +708,8 @@ class OrderedSet(collections.MutableSet):
     def __repr__(self):
         # Don't print 'OrderedSet("")' for an empty set.
         if self.__container:
-            return 'OrderedSet("{}")'.format('", "'.join(self.__container.keys()))
+            return 'OrderedSet("{}")'.format(
+                '", "'.join(repr(e) for e in self.__container.keys()))
         return 'OrderedSet()'
 
     def add(self, value):
@@ -721,3 +722,6 @@ class OrderedSet(collections.MutableSet):
     def update(self, iterable):
         for item in iterable:
             self.__container[item] = None
+
+    def difference(self, set_):
+        return type(self)(e for e in self if e not in set_)
