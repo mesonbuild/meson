@@ -27,9 +27,10 @@ import subprocess
 import sysconfig
 from enum import Enum
 from collections import OrderedDict
-from . mesonlib import MesonException, version_compare, version_compare_many, Popen_safe
 from . import mlog
 from . import mesonlib
+from .mesonlib import Popen_safe, flatten
+from .mesonlib import MesonException, version_compare, version_compare_many
 from .environment import detect_cpu_family, for_windows
 
 class DependencyException(MesonException):
@@ -103,6 +104,7 @@ class InternalDependency(Dependency):
     def __init__(self, version, incdirs, compile_args, link_args, libraries, sources, ext_deps):
         super().__init__('internal', {})
         self.version = version
+        self.is_found = True
         self.include_directories = incdirs
         self.compile_args = compile_args
         self.link_args = link_args
@@ -127,6 +129,7 @@ class PkgConfigDependency(Dependency):
     def __init__(self, name, environment, kwargs):
         Dependency.__init__(self, 'pkgconfig', kwargs)
         self.is_libtool = False
+        self.version_reqs = kwargs.get('version', None)
         self.required = kwargs.get('required', True)
         self.static = kwargs.get('static', False)
         self.silent = kwargs.get('silent', False)
@@ -187,7 +190,6 @@ class PkgConfigDependency(Dependency):
                                           ''.format(self.type_string, name))
             return
         found_msg = [self.type_string + ' dependency', mlog.bold(name), 'found:']
-        self.version_reqs = kwargs.get('version', None)
         if self.version_reqs is None:
             self.is_found = True
         else:
@@ -1743,21 +1745,23 @@ class LLVMDependency(Dependency):
         return True
 
 
-def get_dep_identifier(name, kwargs):
-    elements = [name]
-    modlist = kwargs.get('modules', [])
-    if isinstance(modlist, str):
-        modlist = [modlist]
-    for module in modlist:
-        elements.append(module)
-    # We use a tuple because we need a non-mutable structure to use as the key
-    # of a dictionary and a string has potential for name collisions
-    identifier = tuple(elements)
-    identifier += ('main', kwargs.get('main', False))
-    identifier += ('static', kwargs.get('static', False))
-    if 'fallback' in kwargs:
-        f = kwargs.get('fallback')
-        identifier += ('fallback', f[0], f[1])
+def get_dep_identifier(name, kwargs, want_cross):
+    # Need immutable objects since the identifier will be used as a dict key
+    version_reqs = flatten(kwargs.get('version', []))
+    if isinstance(version_reqs, list):
+        version_reqs = frozenset(version_reqs)
+    identifier = (name, version_reqs, want_cross)
+    for key, value in kwargs.items():
+        # 'version' is embedded above as the second element for easy access
+        # 'native' is handled above with `want_cross`
+        # 'required' is irrelevant for caching; the caller handles it separately
+        # 'fallback' subprojects cannot be cached -- they must be initialized
+        if key in ('version', 'native', 'required', 'fallback',):
+            continue
+        # All keyword arguments are strings, ints, or lists (or lists of lists)
+        if isinstance(value, list):
+            value = frozenset(flatten(value))
+        identifier += (key, value)
     return identifier
 
 def find_external_dependency(name, environment, kwargs):

@@ -30,6 +30,7 @@ from mesonbuild.dependencies import PkgConfigDependency, ExternalProgram
 
 from run_tests import exe_suffix, get_fake_options, FakeEnvironment
 from run_tests import get_builddir_target_args, get_backend_commands, Backend
+from run_tests import ensure_backend_detects_changes
 
 
 def get_soname(fname):
@@ -355,13 +356,6 @@ class BasePlatformTests(unittest.TestCase):
             # XCode backend is untested with unit tests, help welcome!
             self.no_rebuild_stdout = 'UNKNOWN BACKEND {!r}'.format(self.backend.name)
 
-    def ensure_backend_detects_changes(self):
-        # This is needed to increase the difference between build.ninja's
-        # timestamp and the timestamp of whatever you changed due to a Ninja
-        # bug: https://github.com/ninja-build/ninja/issues/371
-        if self.backend is Backend.ninja:
-            time.sleep(1)
-
     def _print_meson_log(self):
         log = os.path.join(self.logdir, 'meson-log.txt')
         if not os.path.isfile(log):
@@ -439,14 +433,14 @@ class BasePlatformTests(unittest.TestCase):
 
     def setconf(self, arg, will_build=True):
         if will_build:
-            self.ensure_backend_detects_changes()
+            ensure_backend_detects_changes(self.backend)
         self._run(self.mconf_command + [arg, self.builddir])
 
     def wipe(self):
         shutil.rmtree(self.builddir)
 
     def utime(self, f):
-        self.ensure_backend_detects_changes()
+        ensure_backend_detects_changes(self.backend)
         os.utime(f)
 
     def get_compdb(self):

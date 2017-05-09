@@ -161,12 +161,12 @@ def list_buildsystem_files(coredata, builddata):
     print(json.dumps(filelist))
 
 def list_deps(coredata):
-    result = {}
-    for d in coredata.deps.values():
+    result = []
+    for d in coredata.deps:
         if d.found():
             args = {'compile_args': d.get_compile_args(),
                     'link_args': d.get_link_args()}
-            result[d.name] = args
+            result += [d.name, args]
     print(json.dumps(result))
 
 def list_tests(testdata):

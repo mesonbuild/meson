@@ -23,7 +23,8 @@ from . import compilers
 from .wrap import wrap, WrapMode
 from . import mesonlib
 from .mesonlib import FileMode, Popen_safe, get_meson_script
-from .dependencies import InternalDependency, Dependency, ExternalProgram
+from .dependencies import ExternalProgram
+from .dependencies import InternalDependency, Dependency, DependencyException
 from .interpreterbase import InterpreterBase
 from .interpreterbase import check_stringlist, noPosargs, noKwargs, stringArgs
 from .interpreterbase import InterpreterException, InvalidArguments, InvalidCode
@@ -1852,13 +1853,7 @@ class Interpreter(InterpreterBase):
     def func_find_library(self, node, args, kwargs):
         mlog.log(mlog.red('DEPRECATION:'), 'find_library() is removed, use the corresponding method in compiler object instead.')
 
-    def func_dependency(self, node, args, kwargs):
-        self.validate_arguments(args, 1, [str])
-        name = args[0]
-        if '<' in name or '>' in name or '=' in name:
-            raise InvalidArguments('Characters <, > and = are forbidden in dependency names. To specify'
-                                   'version\n requirements use the \'version\' keyword argument instead.')
-        identifier = dependencies.get_dep_identifier(name, kwargs)
+    def _find_cached_dep(self, name, kwargs):
         # Check if we want this as a cross-dep or a native-dep
         # FIXME: Not all dependencies support such a distinction right now,
         # and we repeat this check inside dependencies that do. We need to
@@ -1868,60 +1863,79 @@ class Interpreter(InterpreterBase):
             want_cross = not kwargs['native']
         else:
             want_cross = is_cross
-        # Check if we've already searched for and found this dep
+        identifier = dependencies.get_dep_identifier(name, kwargs, want_cross)
         cached_dep = None
+        # Check if we've already searched for and found this dep
         if identifier in self.coredata.deps:
             cached_dep = self.coredata.deps[identifier]
-            if 'version' in kwargs:
-                wanted = kwargs['version']
-                found = cached_dep.get_version()
-                if not cached_dep.found() or \
-                   not mesonlib.version_compare_many(found, wanted)[0]:
-                    # Cached dep has the wrong version. Check if an external
-                    # dependency or a fallback dependency provides it.
-                    cached_dep = None
-            # Don't re-use cached dep if it wasn't required but this one is,
-            # so we properly go into fallback/error code paths
-            if kwargs.get('required', True) and not getattr(cached_dep, 'required', False):
-                cached_dep = None
-            # Don't reuse cached dep if one is a cross-dep and the other is a native dep
-            if not getattr(cached_dep, 'want_cross', is_cross) == want_cross:
-                cached_dep = None
+        else:
+            # Check if exactly the same dep with different version requirements
+            # was found already.
+            wanted = identifier[1]
+            for trial, trial_dep in self.coredata.deps.items():
+                # trial[1], identifier[1] are the version requirements
+                if trial[0] != identifier[0] or trial[2:] != identifier[2:]:
+                    continue
+                found = trial_dep.get_version()
+                if not wanted or mesonlib.version_compare_many(found, wanted)[0]:
+                    # We either don't care about the version, or our
+                    # version requirements matched the trial dep's version.
+                    cached_dep = trial_dep
+                    break
+        return identifier, cached_dep
+
+    def func_dependency(self, node, args, kwargs):
+        self.validate_arguments(args, 1, [str])
+        name = args[0]
+        if '<' in name or '>' in name or '=' in name:
+            raise InvalidArguments('Characters <, > and = are forbidden in dependency names. To specify'
+                                   'version\n requirements use the \'version\' keyword argument instead.')
+        identifier, cached_dep = self._find_cached_dep(name, kwargs)
 
         if cached_dep:
+            if kwargs.get('required', True) and not cached_dep.found():
+                m = 'Dependency {!r} was already checked and was not found'
+                raise DependencyException(m.format(name))
             dep = cached_dep
         else:
             # We need to actually search for this dep
             exception = None
             dep = None
-            # If the fallback has already been configured (possibly by a higher level project)
-            # try to use it before using the native version
+            # If the dependency has already been configured, possibly by
+            # a higher level project, try to use it first.
             if 'fallback' in kwargs:
                 dirname, varname = self.get_subproject_infos(kwargs)
                 if dirname in self.subprojects:
+                    subproject = self.subprojects[dirname]
                     try:
-                        dep = self.subprojects[dirname].get_variable_method([varname], {})
-                        dep = dep.held_object
+                        # Never add fallback deps to self.coredata.deps
+                        return subproject.get_variable_method([varname], {})
                     except KeyError:
                         pass
 
+            # Search for it outside the project
             if not dep:
                 try:
                     dep = dependencies.find_external_dependency(name, self.environment, kwargs)
-                except dependencies.DependencyException as e:
+                except DependencyException as e:
                     exception = e
                     pass
 
+            # Search inside the projects list
             if not dep or not dep.found():
                 if 'fallback' in kwargs:
                     fallback_dep = self.dependency_fallback(name, kwargs)
                     if fallback_dep:
+                        # Never add fallback deps to self.coredata.deps since we
+                        # cannot cache them. They must always be evaluated else
+                        # we won't actually read all the build files.
                         return fallback_dep
-
                 if not dep:
                     raise exception
 
-        self.coredata.deps[identifier] = dep
+        # Only store found-deps in the cache
+        if dep.found():
+            self.coredata.deps[identifier] = dep
         return DependencyHolder(dep)
 
     def get_subproject_infos(self, kwargs):
@@ -2230,7 +2244,7 @@ class Interpreter(InterpreterBase):
         absname = os.path.join(self.environment.get_source_dir(), buildfilename)
         if not os.path.isfile(absname):
             self.subdir = prev_subdir
-            raise InterpreterException('Nonexistent build def file %s.' % buildfilename)
+            raise InterpreterException('Non-existent build file {!r}'.format(buildfilename))
         with open(absname, encoding='utf8') as f:
             code = f.read()
         assert(isinstance(code, str))
