@@ -660,37 +660,39 @@ The `meson` object allows you to introspect various properties of the system. Th
 
 - `backend()` *(added 0.37.0)* returns a string representing the current backend: `ninja`, `vs2010`, `vs2015`, or `xcode`.
 
-- `is_cross_build()` returns `true` if the current build is a [cross build](Cross-compilation.md) and `false` otherwise
+- `is_cross_build()` returns `true` if the current build is a [cross build](Cross-compilation.md) and `false` otherwise.
 
-- `is_unity()` returns `true` when doing a [unity build](Unity-builds.md) (multiple sources are combined before compilation to reduce build time) and `false` otherwise
+- `is_unity()` returns `true` when doing a [unity build](Unity-builds.md) (multiple sources are combined before compilation to reduce build time) and `false` otherwise.
 
-- `is_subproject()` returns `true` if the current project is being built as a subproject of some other project and `false` otherwise
+- `is_subproject()` returns `true` if the current project is being built as a subproject of some other project and `false` otherwise.
 
-- `has_exe_wrapper()` returns true when doing a cross build if there is a wrapper command that can be used to execute cross built binaries (for example when cross compiling from Linux to Windows, one can use `wine` as the wrapper)
+- `has_exe_wrapper()` returns true when doing a cross build if there is a wrapper command that can be used to execute cross built binaries (for example when cross compiling from Linux to Windows, one can use `wine` as the wrapper).
 
-- `add_install_script(script_name, arg1, arg2, ...)` causes the script given as an argument to be run during the install step, this script will have the environment variables `MESON_SOURCE_ROOT`, `MESON_BUILD_ROOT`, `MESON_INSTALL_PREFIX`, and `MESON_INSTALL_DESTDIR_PREFIX` set. All additional arguments are passed as parameters.
+- `add_install_script(script_name, arg1, arg2, ...)` causes the script given as an argument to be run during the install step, this script will have the environment variables `MESON_SOURCE_ROOT`, `MESON_BUILD_ROOT`, `MESON_INSTALL_PREFIX`, `MESON_INSTALL_DESTDIR_PREFIX`, and `MESONINTROSPECT` set. All additional arguments are passed as parameters.
 
-  `MESON_INSTALL_PREFIX` has the value of the `prefix` option passed to Meson, and `MESON_INSTALL_DESTDIR_PREFIX` has both the value of `DESTDIR` and `prefix` joined together. This is useful because both are absolute paths, and many path-joining functions such as [`os.path.join` in Python](https://docs.python.org/3/library/os.path.html#os.path.join) special-case absolute paths.
+  To determine the installation location, the script should use the `DESTDIR`, `MESON_INSTALL_PREFIX`, `MESON_INSTALL_DESTDIR_PREFIX` variables. `DESTDIR` will be set only if it is inherited from the outside environment. `MESON_INSTALL_PREFIX` is always set and has the value of the `prefix` option passed to Meson. `MESON_INSTALL_DESTDIR_PREFIX` is always set and contains `DESTDIR` and `prefix` joined together. This is useful because both are absolute paths, and many path-joining functions such as [`os.path.join` in Python](https://docs.python.org/3/library/os.path.html#os.path.join) special-case absolute paths.
+
+  `MESONINTROSPECT` contains the path to the `mesonintrospect` executable that corresponds to the `meson` executable that was used to configure the build. (This might be a different path then the first `mesonintrospect` executable found in `PATH`.) It can be used to query build configuration.
 
 - `add_postconf_script(script_name, arg1, arg2, ...)` will run the executable given as an argument after all project files have been generated. This script will have the environment variables `MESON_SOURCE_ROOT` and `MESON_BUILD_ROOT` set.
 
 - `current_source_dir()` returns a string to the current source directory. Note: **you do not need to use this function** when passing files from the current source directory to a function since that is the default. Also, you can use the `files()` function to refer to files in the current or any other source directory instead of constructing paths manually with `meson.current_source_dir()`.
 
-- `current_build_dir()` returns a string to the current build directory
+- `current_build_dir()` returns a string with the absolute path to the current build directory.
 
 - `source_root()` returns a string with the absolute path to the source root directory. Note: you should use the `files()` function to refer to files in the root source directory instead of constructing paths manually with `meson.source_root()`.
 
-- `build_root()` returns a string with the absolute path to the build root directory
+- `build_root()` returns a string with the absolute path to the build root directory.
 
-- `project_version()` returns the version string specified in `project` function call
+- `project_version()` returns the version string specified in `project` function call.
 
-- `project_name()` returns the project name specified in the `project` function call
+- `project_name()` returns the project name specified in the `project` function call.
 
-- `version()` return a string with the version of Meson
+- `version()` return a string with the version of Meson.
 
-- `get_cross_property(propname, fallback_value)` returns the given property from a cross file, the optional second argument is returned if not cross compiling or the given property is not found
+- `get_cross_property(propname, fallback_value)` returns the given property from a cross file, the optional second argument is returned if not cross compiling or the given property is not found.
 
-- `install_dependency_manifest(output_name)` installs a manifest file containing a list of all subprojects, their versions and license files to the file name given as the argument
+- `install_dependency_manifest(output_name)` installs a manifest file containing a list of all subprojects, their versions and license files to the file name given as the argument.
 
 ### `build_machine` object
 
