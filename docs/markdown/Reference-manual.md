@@ -266,6 +266,16 @@ Meson will also autodetect scripts with a shebang line and run them with the exe
 
 `program_name2` and later positional arguments are used as fallback strings to search for. This is meant to be used for cases where the program may have many alternative names, such as `foo` and `foo.py`. The function will check for the arguments one by one and the first one that is found is returned. Meson versions earlier than 0.37.0 only accept one argument.
 
+If you need to check for a program in a non-standard location, you can just pass an absolute path to `find_program`, e.g.
+```
+setcap = find_program('setcap', '/usr/sbin/setcap', '/sbin/setcap', required : false)
+```
+
+It is also possible to pass an array to `find_program` in case you need to construct the set of paths to search on the fly:
+```
+setcap = find_program(['setcap', '/usr/sbin/setcap', '/sbin/setcap'], required : false)
+```
+
 If none of the programs are found, Meson will abort. You can tell it not to by setting the keyword argument `required` to false, and then use the `.found()` method on the returned object to check whether it was found or not.
 
 The returned object also has methods that are documented in the [object methods section](#external-program-object) below.
