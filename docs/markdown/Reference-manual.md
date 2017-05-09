@@ -660,9 +660,9 @@ The `meson` object allows you to introspect various properties of the system. Th
 
 - `backend()` *(added 0.37.0)* returns a string representing the current backend: `ninja`, `vs2010`, `vs2015`, or `xcode`.
 
-- `is_cross_build()` returns `true` if the current build is a cross build and `false` otherwise
+- `is_cross_build()` returns `true` if the current build is a [cross build](Cross-compilation.md) and `false` otherwise
 
-- `is_unity()` returns `true` when doing a unity build and `false` otherwise
+- `is_unity()` returns `true` when doing a [unity build](Unity-builds.md) (multiple sources are combined before compilation to reduce build time) and `false` otherwise
 
 - `is_subproject()` returns `true` if the current project is being built as a subproject of some other project and `false` otherwise
 
