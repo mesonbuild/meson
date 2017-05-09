@@ -379,7 +379,7 @@ class Vs2010Backend(backends.Backend):
         pl.text = self.platform
         globalgroup = ET.SubElement(root, 'PropertyGroup', Label='Globals')
         guidelem = ET.SubElement(globalgroup, 'ProjectGuid')
-        guidelem.text = self.environment.coredata.test_guid
+        guidelem.text = '{%s}' % self.environment.coredata.test_guid
         kw = ET.SubElement(globalgroup, 'Keyword')
         kw.text = self.platform + 'Proj'
         p = ET.SubElement(globalgroup, 'Platform')
@@ -636,7 +636,7 @@ class Vs2010Backend(backends.Backend):
         # Globals
         globalgroup = ET.SubElement(root, 'PropertyGroup', Label='Globals')
         guidelem = ET.SubElement(globalgroup, 'ProjectGuid')
-        guidelem.text = guid
+        guidelem.text = '{%s}' % guid
         kw = ET.SubElement(globalgroup, 'Keyword')
         kw.text = self.platform + 'Proj'
         ns = ET.SubElement(globalgroup, 'RootNamespace')
@@ -1050,7 +1050,7 @@ class Vs2010Backend(backends.Backend):
         pl.text = self.platform
         globalgroup = ET.SubElement(root, 'PropertyGroup', Label='Globals')
         guidelem = ET.SubElement(globalgroup, 'ProjectGuid')
-        guidelem.text = self.environment.coredata.test_guid
+        guidelem.text = '{%s}' % self.environment.coredata.test_guid
         kw = ET.SubElement(globalgroup, 'Keyword')
         kw.text = self.platform + 'Proj'
         p = ET.SubElement(globalgroup, 'Platform')
@@ -1130,7 +1130,7 @@ if %%errorlevel%% neq 0 goto :VCEnd'''
         pl.text = self.platform
         globalgroup = ET.SubElement(root, 'PropertyGroup', Label='Globals')
         guidelem = ET.SubElement(globalgroup, 'ProjectGuid')
-        guidelem.text = self.environment.coredata.test_guid
+        guidelem.text = '{%s}' % self.environment.coredata.test_guid
         kw = ET.SubElement(globalgroup, 'Keyword')
         kw.text = self.platform + 'Proj'
         p = ET.SubElement(globalgroup, 'Platform')
