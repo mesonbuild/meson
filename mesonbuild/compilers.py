@@ -1678,6 +1678,18 @@ class ValaCompiler(Compiler):
     def get_compile_only_args(self):
         return ['-C']
 
+    def get_pic_args(self):
+        return []
+
+    def get_always_args(self):
+        return ['-C']
+
+    def get_warn_args(self, warning_level):
+        return []
+
+    def get_no_warn_args(self):
+        return ['--disable-warnings']
+
     def get_werror_args(self):
         return ['--fatal-warnings']
 

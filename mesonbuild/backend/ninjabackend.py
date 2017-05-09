@@ -1070,20 +1070,11 @@ int dummy;
             vala_c_src.append(vala_c_file)
             valac_outputs.append(vala_c_file)
 
-        # TODO: Use self.generate_basic_compiler_args to get something more
-        #       consistent Until then, we should be careful to preserve the
-        #       precedence of arguments if it changes upstream.
-        args = []
-        args += valac.get_buildtype_args(self.get_option_for_target('buildtype', target))
-        args += self.build.get_project_args(valac, target.subproject)
-        args += self.build.get_global_args(valac)
-        args += self.environment.coredata.external_args[valac.get_language()]
-
+        args = self.generate_basic_compiler_args(target, valac)
         # Tell Valac to output everything in our private directory. Sadly this
         # means it will also preserve the directory components of Vala sources
         # found inside the build tree (generated sources).
         args += ['-d', c_out_dir]
-        args += ['-C']
         if not isinstance(target, build.Executable):
             # Library name
             args += ['--library=' + target.name]
@@ -1112,18 +1103,6 @@ int dummy;
                 # Install GIR to default location if requested by user
                 if len(target.install_dir) > 3 and target.install_dir[3] is True:
                     target.install_dir[3] = os.path.join(self.environment.get_datadir(), 'gir-1.0')
-        if self.get_option_for_target('werror', target):
-            args += valac.get_werror_args()
-        for d in target.get_external_deps():
-            if isinstance(d, dependencies.PkgConfigDependency):
-                if d.name == 'glib-2.0' and d.version_reqs is not None:
-                    for req in d.version_reqs:
-                        if req.startswith(('>=', '==')):
-                            args += ['--target-glib', req[2:]]
-                            break
-                args += ['--pkg', d.name]
-            elif isinstance(d, dependencies.ExternalLibrary):
-                args += d.get_lang_args('vala')
         # Detect gresources and add --gresources arguments for each
         for (gres, gensrc) in other_src[1].items():
             if isinstance(gensrc, modules.GResourceTarget):
