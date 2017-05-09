@@ -228,8 +228,8 @@ With the Ninja backend, Meson will create a build-time [order-only dependency](h
 
 Executable supports the following keyword arguments. Note that just like the positional arguments above, these keyword arguments can also be passed to [shared and static libraries](#library).
 
-- `link_with`, one or more shared or static libraries (built by this project) that this target should be linked with
-- `link_whole` links all contents of the given static libraries whether they are used by not, equivalent to the `-Wl,--whole-archive` argument flag of GCC, available since 0.40.0
+- `link_with`, one or more shared or static libraries (built by this project) that this target should be linked with, If passed a list this list will be flattened as of 0.41.0.
+- `link_whole` links all contents of the given static libraries whether they are used by not, equivalent to the `-Wl,--whole-archive` argument flag of GCC, available since 0.40.0. As of 0.41.0 if passed a list that list will be flattened.
 - `<languagename>_pch` precompiled header file to use for the given language
 - `<languagename>_args` compiler flags to use for the given language; eg: `cpp_args` for C++
 - `link_args` flags to use during linking. You can use UNIX-style flags here for all platforms.

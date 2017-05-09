@@ -813,9 +813,7 @@ You probably should put it in link_with instead.''')
         return self.external_deps
 
     def link(self, target):
-        if not isinstance(target, list):
-            target = [target]
-        for t in target:
+        for t in flatten(target):
             if hasattr(t, 'held_object'):
                 t = t.held_object
             if not isinstance(t, (StaticLibrary, SharedLibrary)):
@@ -829,9 +827,7 @@ You probably should put it in link_with instead.''')
             self.link_targets.append(t)
 
     def link_whole(self, target):
-        if not isinstance(target, list):
-            target = [target]
-        for t in target:
+        for t in flatten(target):
             if hasattr(t, 'held_object'):
                 t = t.held_object
             if not isinstance(t, StaticLibrary):
