@@ -741,26 +741,26 @@ A build target is either an [executable](#executable), [shared](#shared_library)
 
 This object is returned by [`meson.get_compiler(lang)`](#meson-object). It represents a compiler for a given language and allows you to query its properties. It has the following methods:
 
-- `get_id()` returns a string identifying the compiler (e.g. `'gcc'`)
-- `version()` returns the compiler's version number as a string
+- `get_id()` returns a string identifying the compiler (e.g. `'gcc'`).
+- `version()` returns the compiler's version number as a string.
 - `find_library(lib_name, ...)` tries to find the library specified in the positional argument. The [result object](#external-library-object) can be used just like the return value of `dependency`. If the keyword argument `required` is false, Meson will proceed even if the library is not found. By default the library is searched for in the system library directory (e.g. /usr/lib). This can be overridden with the `dirs` keyword argument, which can be either a string or a list of strings.
-- `sizeof(typename, ...)` returns the size of the given type (e.g. `'int'`) or -1 if the type is unknown, to add includes set them in the `prefix` keyword argument, you can specify external dependencies to use with `dependencies` keyword argument
-- `alignment(typename)` returns the alignment of the type specified in the positional argument, you can specify external dependencies to use with `dependencies` keyword argument
-- `compiles(code)` returns true if the code fragment given in the positional argument compiles, you can specify external dependencies to use with `dependencies` keyword argument, `code` can be either a string containing source code or a `file` object pointing to the source code
-- `links(code)` returns true if the code fragment given in the positional argument compiles and links, you can specify external dependencies to use with `dependencies` keyword argument, `code` can be either a string containing source code or a `file` object pointing to the source code
-- `run(code)` attempts to compile and execute the given code fragment, returns a run result object, you can specify external dependencies to use with `dependencies` keyword argument, `code` can be either a string containing source code or a `file` object pointing to the source code
+- `sizeof(typename, ...)` returns the size of the given type (e.g. `'int'`) or -1 if the type is unknown, to add includes set them in the `prefix` keyword argument, you can specify external dependencies to use with `dependencies` keyword argument.
+- `alignment(typename)` returns the alignment of the type specified in the positional argument, you can specify external dependencies to use with `dependencies` keyword argument.
+- `compiles(code)` returns true if the code fragment given in the positional argument compiles, you can specify external dependencies to use with `dependencies` keyword argument, `code` can be either a string containing source code or a `file` object pointing to the source code.
+- `links(code)` returns true if the code fragment given in the positional argument compiles and links, you can specify external dependencies to use with `dependencies` keyword argument, `code` can be either a string containing source code or a `file` object pointing to the source code.
+- `run(code)` attempts to compile and execute the given code fragment, returns a run result object, you can specify external dependencies to use with `dependencies` keyword argument, `code` can be either a string containing source code or a `file` object pointing to the source code.
 - `has_header` returns true if the specified header can be included, you can specify external dependencies to use with `dependencies` keyword argument and extra code to put above the header test with the `prefix` keyword. In order to look for headers in a specific directory you can use `args : '-I/extra/include/dir`, but this should only be used in exceptional cases for includes that can't be detected via pkg-config and passed via `dependencies`.
-- `has_type(typename)` returns true if the specified token is a type, you can specify external dependencies to use with `dependencies` keyword argument
-- `has_function(funcname)` returns true if the given function is provided by the standard library or a library passed in with the `args` keyword, you can specify external dependencies to use with `dependencies` keyword argument
-- `has_member(typename, membername)` takes two arguments, type name and member name and returns true if the type has the specified member, you can specify external dependencies to use with `dependencies` keyword argument
-- `has_members(typename, membername1, membername2, ...)` takes at least two arguments, type name and one or more member names, returns true if the type has all the specified members, you can specify external dependencies to use with `dependencies` keyword argument
-- `has_header_symbol(headername, symbolname)` allows one to detect whether a particular symbol (function, variable, #define, type definition, etc) is declared in the specified header, you can specify external dependencies to use with `dependencies` keyword argument
-- `has_argument(argument_name)` returns true if the compiler accepts the specified command line argument, that is, can compile code without erroring out or printing a warning about an unknown flag, you can specify external dependencies to use with `dependencies` keyword argument
-- `has_multi_arguments(arg1, arg2, arg3, ...)` is the same as `has_argument` but takes multiple arguments and uses them all in a single compiler invocation, available since 0.37.0
-- `first_supported_argument(list_of_strings)`, given a list of strings, returns the first argument that passes the `has_argument` test above or an empty array if none pass
-- `symbols_have_underscore_prefix()` returns `true` if the C symbol mangling is one underscore (`_`) prefixed to the symbol, available since 0.37.0
+- `has_type(typename)` returns true if the specified token is a type, you can specify external dependencies to use with `dependencies` keyword argument.
+- `has_function(funcname)` returns true if the given function is provided by the standard library or a library passed in with the `args` keyword, you can specify external dependencies to use with `dependencies` keyword argument.
+- `has_member(typename, membername)` takes two arguments, type name and member name and returns true if the type has the specified member, you can specify external dependencies to use with `dependencies` keyword argument.
+- `has_members(typename, membername1, membername2, ...)` takes at least two arguments, type name and one or more member names, returns true if the type has all the specified members, you can specify external dependencies to use with `dependencies` keyword argument.
+- `has_header_symbol(headername, symbolname)` allows one to detect whether a particular symbol (function, variable, #define, type definition, etc) is declared in the specified header, you can specify external dependencies to use with `dependencies` keyword argument.
+- `has_argument(argument_name)` returns true if the compiler accepts the specified command line argument, that is, can compile code without erroring out or printing a warning about an unknown flag, you can specify external dependencies to use with `dependencies` keyword argument.
+- `has_multi_arguments(arg1, arg2, arg3, ...)` is the same as `has_argument` but takes multiple arguments and uses them all in a single compiler invocation, available since 0.37.0.
+- `first_supported_argument(list_of_strings)`, given a list of strings, returns the first argument that passes the `has_argument` test above or an empty array if none pass.
+- `symbols_have_underscore_prefix()` returns `true` if the C symbol mangling is one underscore (`_`) prefixed to the symbol, available since 0.37.0.
 - `compute_int(expr, ...')` computes the value of the given expression (as an example `1 + 2`). When cross compiling this is evaluated with an iterative algorithm, you can specify keyword arguments `low` (defaults to -1024), `high` (defaults to 1024) and `guess` to specify max and min values for the search and the value to try first.
-- `get_define(definename)` returns the given preprocessor symbol's value as a string or empty string if it is not defined
+- `get_define(definename)` returns the given preprocessor symbol's value as a string or empty string if it is not defined.
 
 The following keyword arguments can be used:
 
