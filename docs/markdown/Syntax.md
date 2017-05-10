@@ -103,7 +103,7 @@ Strings also support a number of other methods that return transformed copies.
 ```meson
 # Similar to the Python str.strip(). Removes leading/ending spaces and newlines
 define = ' -Dsomedefine '
-stripped_define = target.strip()
+stripped_define = define.strip()
 # 'stripped_define' now has the value '-Dsomedefine'
 ```
 
