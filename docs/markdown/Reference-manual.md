@@ -670,37 +670,39 @@ The `meson` object allows you to introspect various properties of the system. Th
 
 - `backend()` *(added 0.37.0)* returns a string representing the current backend: `ninja`, `vs2010`, `vs2015`, or `xcode`.
 
-- `is_cross_build()` returns `true` if the current build is a cross build and `false` otherwise
+- `is_cross_build()` returns `true` if the current build is a [cross build](Cross-compilation.md) and `false` otherwise.
 
-- `is_unity()` returns `true` when doing a unity build and `false` otherwise
+- `is_unity()` returns `true` when doing a [unity build](Unity-builds.md) (multiple sources are combined before compilation to reduce build time) and `false` otherwise.
 
-- `is_subproject()` returns `true` if the current project is being built as a subproject of some other project and `false` otherwise
+- `is_subproject()` returns `true` if the current project is being built as a subproject of some other project and `false` otherwise.
 
-- `has_exe_wrapper()` returns true when doing a cross build if there is a wrapper command that can be used to execute cross built binaries (for example when cross compiling from Linux to Windows, one can use `wine` as the wrapper)
+- `has_exe_wrapper()` returns true when doing a cross build if there is a wrapper command that can be used to execute cross built binaries (for example when cross compiling from Linux to Windows, one can use `wine` as the wrapper).
 
-- `add_install_script(script_name, arg1, arg2, ...)` causes the script given as an argument to be run during the install step, this script will have the environment variables `MESON_SOURCE_ROOT`, `MESON_BUILD_ROOT`, `MESON_INSTALL_PREFIX`, and `MESON_INSTALL_DESTDIR_PREFIX` set. All additional arguments are passed as parameters.
+- `add_install_script(script_name, arg1, arg2, ...)` causes the script given as an argument to be run during the install step, this script will have the environment variables `MESON_SOURCE_ROOT`, `MESON_BUILD_ROOT`, `MESON_INSTALL_PREFIX`, `MESON_INSTALL_DESTDIR_PREFIX`, and `MESONINTROSPECT` set. All additional arguments are passed as parameters.
 
-  `MESON_INSTALL_PREFIX` has the value of the `prefix` option passed to Meson, and `MESON_INSTALL_DESTDIR_PREFIX` has both the value of `DESTDIR` and `prefix` joined together. This is useful because both are absolute paths, and many path-joining functions such as [`os.path.join` in Python](https://docs.python.org/3/library/os.path.html#os.path.join) special-case absolute paths.
+  To determine the installation location, the script should use the `DESTDIR`, `MESON_INSTALL_PREFIX`, `MESON_INSTALL_DESTDIR_PREFIX` variables. `DESTDIR` will be set only if it is inherited from the outside environment. `MESON_INSTALL_PREFIX` is always set and has the value of the `prefix` option passed to Meson. `MESON_INSTALL_DESTDIR_PREFIX` is always set and contains `DESTDIR` and `prefix` joined together. This is useful because both are absolute paths, and many path-joining functions such as [`os.path.join` in Python](https://docs.python.org/3/library/os.path.html#os.path.join) special-case absolute paths.
+
+  `MESONINTROSPECT` contains the path to the `mesonintrospect` executable that corresponds to the `meson` executable that was used to configure the build. (This might be a different path then the first `mesonintrospect` executable found in `PATH`.) It can be used to query build configuration.
 
 - `add_postconf_script(script_name, arg1, arg2, ...)` will run the executable given as an argument after all project files have been generated. This script will have the environment variables `MESON_SOURCE_ROOT` and `MESON_BUILD_ROOT` set.
 
 - `current_source_dir()` returns a string to the current source directory. Note: **you do not need to use this function** when passing files from the current source directory to a function since that is the default. Also, you can use the `files()` function to refer to files in the current or any other source directory instead of constructing paths manually with `meson.current_source_dir()`.
 
-- `current_build_dir()` returns a string to the current build directory
+- `current_build_dir()` returns a string with the absolute path to the current build directory.
 
 - `source_root()` returns a string with the absolute path to the source root directory. Note: you should use the `files()` function to refer to files in the root source directory instead of constructing paths manually with `meson.source_root()`.
 
-- `build_root()` returns a string with the absolute path to the build root directory
+- `build_root()` returns a string with the absolute path to the build root directory.
 
-- `project_version()` returns the version string specified in `project` function call
+- `project_version()` returns the version string specified in `project` function call.
 
-- `project_name()` returns the project name specified in the `project` function call
+- `project_name()` returns the project name specified in the `project` function call.
 
-- `version()` return a string with the version of Meson
+- `version()` return a string with the version of Meson.
 
-- `get_cross_property(propname, fallback_value)` returns the given property from a cross file, the optional second argument is returned if not cross compiling or the given property is not found
+- `get_cross_property(propname, fallback_value)` returns the given property from a cross file, the optional second argument is returned if not cross compiling or the given property is not found.
 
-- `install_dependency_manifest(output_name)` installs a manifest file containing a list of all subprojects, their versions and license files to the file name given as the argument
+- `install_dependency_manifest(output_name)` installs a manifest file containing a list of all subprojects, their versions and license files to the file name given as the argument.
 
 ### `build_machine` object
 
@@ -749,26 +751,26 @@ A build target is either an [executable](#executable), [shared](#shared_library)
 
 This object is returned by [`meson.get_compiler(lang)`](#meson-object). It represents a compiler for a given language and allows you to query its properties. It has the following methods:
 
-- `get_id()` returns a string identifying the compiler (e.g. `'gcc'`)
-- `version()` returns the compiler's version number as a string
+- `get_id()` returns a string identifying the compiler (e.g. `'gcc'`).
+- `version()` returns the compiler's version number as a string.
 - `find_library(lib_name, ...)` tries to find the library specified in the positional argument. The [result object](#external-library-object) can be used just like the return value of `dependency`. If the keyword argument `required` is false, Meson will proceed even if the library is not found. By default the library is searched for in the system library directory (e.g. /usr/lib). This can be overridden with the `dirs` keyword argument, which can be either a string or a list of strings.
-- `sizeof(typename, ...)` returns the size of the given type (e.g. `'int'`) or -1 if the type is unknown, to add includes set them in the `prefix` keyword argument, you can specify external dependencies to use with `dependencies` keyword argument
-- `alignment(typename)` returns the alignment of the type specified in the positional argument, you can specify external dependencies to use with `dependencies` keyword argument
-- `compiles(code)` returns true if the code fragment given in the positional argument compiles, you can specify external dependencies to use with `dependencies` keyword argument, `code` can be either a string containing source code or a `file` object pointing to the source code
-- `links(code)` returns true if the code fragment given in the positional argument compiles and links, you can specify external dependencies to use with `dependencies` keyword argument, `code` can be either a string containing source code or a `file` object pointing to the source code
-- `run(code)` attempts to compile and execute the given code fragment, returns a run result object, you can specify external dependencies to use with `dependencies` keyword argument, `code` can be either a string containing source code or a `file` object pointing to the source code
+- `sizeof(typename, ...)` returns the size of the given type (e.g. `'int'`) or -1 if the type is unknown, to add includes set them in the `prefix` keyword argument, you can specify external dependencies to use with `dependencies` keyword argument.
+- `alignment(typename)` returns the alignment of the type specified in the positional argument, you can specify external dependencies to use with `dependencies` keyword argument.
+- `compiles(code)` returns true if the code fragment given in the positional argument compiles, you can specify external dependencies to use with `dependencies` keyword argument, `code` can be either a string containing source code or a `file` object pointing to the source code.
+- `links(code)` returns true if the code fragment given in the positional argument compiles and links, you can specify external dependencies to use with `dependencies` keyword argument, `code` can be either a string containing source code or a `file` object pointing to the source code.
+- `run(code)` attempts to compile and execute the given code fragment, returns a run result object, you can specify external dependencies to use with `dependencies` keyword argument, `code` can be either a string containing source code or a `file` object pointing to the source code.
 - `has_header` returns true if the specified header can be included, you can specify external dependencies to use with `dependencies` keyword argument and extra code to put above the header test with the `prefix` keyword. In order to look for headers in a specific directory you can use `args : '-I/extra/include/dir`, but this should only be used in exceptional cases for includes that can't be detected via pkg-config and passed via `dependencies`.
-- `has_type(typename)` returns true if the specified token is a type, you can specify external dependencies to use with `dependencies` keyword argument
-- `has_function(funcname)` returns true if the given function is provided by the standard library or a library passed in with the `args` keyword, you can specify external dependencies to use with `dependencies` keyword argument
-- `has_member(typename, membername)` takes two arguments, type name and member name and returns true if the type has the specified member, you can specify external dependencies to use with `dependencies` keyword argument
-- `has_members(typename, membername1, membername2, ...)` takes at least two arguments, type name and one or more member names, returns true if the type has all the specified members, you can specify external dependencies to use with `dependencies` keyword argument
-- `has_header_symbol(headername, symbolname)` allows one to detect whether a particular symbol (function, variable, #define, type definition, etc) is declared in the specified header, you can specify external dependencies to use with `dependencies` keyword argument
-- `has_argument(argument_name)` returns true if the compiler accepts the specified command line argument, that is, can compile code without erroring out or printing a warning about an unknown flag, you can specify external dependencies to use with `dependencies` keyword argument
-- `has_multi_arguments(arg1, arg2, arg3, ...)` is the same as `has_argument` but takes multiple arguments and uses them all in a single compiler invocation, available since 0.37.0
-- `first_supported_argument(list_of_strings)`, given a list of strings, returns the first argument that passes the `has_argument` test above or an empty array if none pass
-- `symbols_have_underscore_prefix()` returns `true` if the C symbol mangling is one underscore (`_`) prefixed to the symbol, available since 0.37.0
+- `has_type(typename)` returns true if the specified token is a type, you can specify external dependencies to use with `dependencies` keyword argument.
+- `has_function(funcname)` returns true if the given function is provided by the standard library or a library passed in with the `args` keyword, you can specify external dependencies to use with `dependencies` keyword argument.
+- `has_member(typename, membername)` takes two arguments, type name and member name and returns true if the type has the specified member, you can specify external dependencies to use with `dependencies` keyword argument.
+- `has_members(typename, membername1, membername2, ...)` takes at least two arguments, type name and one or more member names, returns true if the type has all the specified members, you can specify external dependencies to use with `dependencies` keyword argument.
+- `has_header_symbol(headername, symbolname)` allows one to detect whether a particular symbol (function, variable, #define, type definition, etc) is declared in the specified header, you can specify external dependencies to use with `dependencies` keyword argument.
+- `has_argument(argument_name)` returns true if the compiler accepts the specified command line argument, that is, can compile code without erroring out or printing a warning about an unknown flag, you can specify external dependencies to use with `dependencies` keyword argument.
+- `has_multi_arguments(arg1, arg2, arg3, ...)` is the same as `has_argument` but takes multiple arguments and uses them all in a single compiler invocation, available since 0.37.0.
+- `first_supported_argument(list_of_strings)`, given a list of strings, returns the first argument that passes the `has_argument` test above or an empty array if none pass.
+- `symbols_have_underscore_prefix()` returns `true` if the C symbol mangling is one underscore (`_`) prefixed to the symbol, available since 0.37.0.
 - `compute_int(expr, ...')` computes the value of the given expression (as an example `1 + 2`). When cross compiling this is evaluated with an iterative algorithm, you can specify keyword arguments `low` (defaults to -1024), `high` (defaults to 1024) and `guess` to specify max and min values for the search and the value to try first.
-- `get_define(definename)` returns the given preprocessor symbol's value as a string or empty string if it is not defined
+- `get_define(definename)` returns the given preprocessor symbol's value as a string or empty string if it is not defined.
 
 The following keyword arguments can be used:
 
