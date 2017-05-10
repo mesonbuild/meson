@@ -98,7 +98,7 @@ def check_dist(packagename, meson_command):
         tf = tarfile.open(packagename)
         tf.extractall(unpackdir)
         srcdir = glob(os.path.join(unpackdir, '*'))[0]
-        if subprocess.call(meson_command + [srcdir, builddir]) != 0:
+        if subprocess.call(meson_command + ['--backend=ninja', srcdir, builddir]) != 0:
             print('Running Meson on distribution package failed')
             return 1
         if subprocess.call([ninja_bin], cwd=builddir) != 0:

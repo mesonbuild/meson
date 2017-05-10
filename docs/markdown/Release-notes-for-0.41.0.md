@@ -38,3 +38,18 @@ pkg.generate(libraries : libs,
              description : 'A simple demo library.',
              variables : ['datadir=${prefix}/data'])
 ```
+
+## A target for creating tarballs
+
+Creating distribution tarballs is simple:
+
+    ninja dist
+
+This will create a `.tar.xz` archive of the source code including
+submodules without any revision control information. This command also
+verifies that the resulting archive can be built, tested and
+installed. This is roughly equivalent to the `distcheck` target in
+other build systems. Currently this only works for projects using Git
+and only with the Ninja backend.
+
+
