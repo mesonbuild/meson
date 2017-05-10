@@ -58,37 +58,62 @@ class Conf:
     def print_aligned(self, arr):
         if not arr:
             return
-        titles = ['Option', 'Description', 'Current Value', '']
-        longest_name = len(titles[0])
-        longest_descr = len(titles[1])
-        longest_value = len(titles[2])
-        longest_possible_value = len(titles[3])
-        for x in arr:
-            longest_name = max(longest_name, len(x[0]))
-            longest_descr = max(longest_descr, len(x[1]))
-            longest_value = max(longest_value, len(str(x[2])))
-            if x[3]:
-                longest_possible_value = max(longest_possible_value, len(x[3]))
+        titles = {'name': 'Option', 'descr': 'Description', 'value': 'Current Value', 'choices': 'Possible Values'}
+        len_name = longest_name = len(titles['name'])
+        len_descr = longest_descr = len(titles['descr'])
+        len_value = longest_value = len(titles['value'])
+        len_choices = longest_choices = 0 # not printed if we don't get any optional values
 
-        if longest_possible_value > 0:
-            titles[3] = 'Possible Values'
-        print('  %s%s %s%s %s%s %s' % (titles[0], ' ' * (longest_name - len(titles[0])), titles[1], ' ' * (longest_descr - len(titles[1])), titles[2], ' ' * (longest_value - len(titles[2])), titles[3]))
-        print('  %s%s %s%s %s%s %s' % ('-' * len(titles[0]), ' ' * (longest_name - len(titles[0])), '-' * len(titles[1]), ' ' * (longest_descr - len(titles[1])), '-' * len(titles[2]), ' ' * (longest_value - len(titles[2])), '-' * len(titles[3])))
+        # calculate the max length of each
+        for x in arr:
+            name = x['name']
+            descr = x['descr']
+            value = x['value'] if isinstance(x['value'], str) else str(x['value']).lower()
+            choices = ''
+            if isinstance(x['choices'], list):
+                if x['choices']:
+                    x['choices'] = [s if isinstance(s, str) else str(s).lower() for s in x['choices']]
+                    choices = '[%s]' % ', '.join(map(str, x['choices']))
+            elif x['choices']:
+                choices = x['choices'] if isinstance(x['choices'], str) else str(x['choices']).lower()
+
+            longest_name = max(longest_name, len(name))
+            longest_descr = max(longest_descr, len(descr))
+            longest_value = max(longest_value, len(value))
+            longest_choices = max(longest_choices, len(choices))
+
+            # update possible non strings
+            x['value'] = value
+            x['choices'] = choices
+
+        # prints header
+        namepad = ' ' * (longest_name - len_name)
+        valuepad = ' ' * (longest_value - len_value)
+        if longest_choices:
+            len_choices = len(titles['choices'])
+            longest_choices = max(longest_choices, len_choices)
+            choicepad = ' ' * (longest_choices - len_choices)
+            print('  %s%s %s%s %s%s %s' % (titles['name'], namepad, titles['value'], valuepad, titles['choices'], choicepad, titles['descr']))
+            print('  %s%s %s%s %s%s %s' % ('-' * len_name, namepad, '-' * len_value, valuepad, '-' * len_choices, choicepad, '-' * len_descr))
+        else:
+            print('  %s%s %s%s %s' % (titles['name'], namepad, titles['value'], valuepad, titles['descr']))
+            print('  %s%s %s%s %s' % ('-' * len_name, namepad, '-' * len_value, valuepad, '-' * len_descr))
+
+        # print values
         for i in arr:
-            name = i[0]
-            descr = i[1]
-            value = i[2] if isinstance(i[2], str) else str(i[2]).lower()
-            possible_values = ''
-            if isinstance(i[3], list):
-                if len(i[3]) > 0:
-                    i[3] = [s if isinstance(s, str) else str(s).lower() for s in i[3]]
-                    possible_values = '[%s]' % ', '.join(map(str, i[3]))
-            elif i[3]:
-                possible_values = i[3] if isinstance(i[3], str) else str(i[3]).lower()
+            name = i['name']
+            descr = i['descr']
+            value = i['value']
+            choices = i['choices']
+
             namepad = ' ' * (longest_name - len(name))
-            descrpad = ' ' * (longest_descr - len(descr))
-            valuepad = ' ' * (longest_value - len(str(value)))
-            f = '  %s%s %s%s %s%s %s' % (name, namepad, descr, descrpad, value, valuepad, possible_values)
+            valuepad = ' ' * (longest_value - len(value))
+            if longest_choices:
+                choicespad = ' ' * (longest_choices - len(choices))
+                f = '  %s%s %s%s %s%s %s' % (name, namepad, value, valuepad, choices, choicespad, descr)
+            else:
+                f = '  %s%s %s%s %s' % (name, namepad, value, valuepad, descr)
+
             print(f)
 
     def set_options(self, options):
@@ -133,8 +158,10 @@ class Conf:
         print('Core options:')
         carr = []
         for key in ['buildtype', 'warning_level', 'werror', 'strip', 'unity', 'default_library']:
-            carr.append([key, coredata.get_builtin_option_description(key),
-                         self.coredata.get_builtin_option(key), coredata.get_builtin_option_choices(key)])
+            carr.append({'name': key,
+                         'descr': coredata.get_builtin_option_description(key),
+                         'value': self.coredata.get_builtin_option(key),
+                         'choices': coredata.get_builtin_option_choices(key)})
         self.print_aligned(carr)
         print('')
         print('Base options:')
@@ -145,7 +172,7 @@ class Conf:
             coarr = []
             for k in okeys:
                 o = self.coredata.base_options[k]
-                coarr.append([k, o.description, o.value, ''])
+                coarr.append({'name': k, 'descr': o.description, 'value': o.value, 'choices': ''})
             self.print_aligned(coarr)
         print('')
         print('Compiler arguments:')
@@ -164,7 +191,7 @@ class Conf:
             coarr = []
             for k in okeys:
                 o = self.coredata.compiler_options[k]
-                coarr.append([k, o.description, o.value, ''])
+                coarr.append({'name': k, 'descr': o.description, 'value': o.value, 'choices': ''})
             self.print_aligned(coarr)
         print('')
         print('Directories:')
@@ -183,8 +210,10 @@ class Conf:
                     'localstatedir',
                     'sharedstatedir',
                     ]:
-            parr.append([key, coredata.get_builtin_option_description(key),
-                         self.coredata.get_builtin_option(key), coredata.get_builtin_option_choices(key)])
+            parr.append({'name': key,
+                         'descr': coredata.get_builtin_option_description(key),
+                         'value': self.coredata.get_builtin_option(key),
+                         'choices': coredata.get_builtin_option_choices(key)})
         self.print_aligned(parr)
         print('')
         print('Project options:')
@@ -203,14 +232,19 @@ class Conf:
                 else:
                     # A non zero length list or string, convert to string
                     choices = str(opt.choices)
-                optarr.append([key, opt.description, opt.value, choices])
+                optarr.append({'name': key,
+                               'descr': opt.description,
+                               'value': opt.value,
+                               'choices': choices})
             self.print_aligned(optarr)
         print('')
         print('Testing options:')
         tarr = []
         for key in ['stdsplit', 'errorlogs']:
-            tarr.append([key, coredata.get_builtin_option_description(key),
-                         self.coredata.get_builtin_option(key), coredata.get_builtin_option_choices(key)])
+            tarr.append({'name': key,
+                         'descr': coredata.get_builtin_option_description(key),
+                         'value': self.coredata.get_builtin_option(key),
+                         'choices': coredata.get_builtin_option_choices(key)})
         self.print_aligned(tarr)
 
 def run(args):
