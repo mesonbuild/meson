@@ -947,7 +947,13 @@ class GnomeModule(ExtensionModule):
             if arg in kwargs:
                 custom_kwargs[arg] = kwargs[arg]
 
-        custom_kwargs['command'] = cmd + ['--body', '@INPUT@']
+        # https://bugzilla.gnome.org/show_bug.cgi?id=781755
+        if mesonlib.version_compare(self._get_native_glib_version(state), '>= 2.53.0'):
+            include_header_cmd = ['--include-header', output + '.h']
+        else:
+            include_header_cmd = []
+
+        custom_kwargs['command'] = cmd + include_header_cmd + ['--body', '@INPUT@']
         custom_kwargs['output'] = output + '.c'
         body = build.CustomTarget(output + '_c', state.subdir, custom_kwargs)
 
