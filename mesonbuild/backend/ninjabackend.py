@@ -567,6 +567,18 @@ int dummy;
         self.processed_targets[target.name + target.type_suffix()] = True
 
     def generate_coverage_rules(self, outfile):
+        e = NinjaBuildElement(self.all_outputs, 'coverage', 'CUSTOM_COMMAND', 'PHONY')
+        e.add_item('COMMAND', [sys.executable,
+                               self.environment.get_build_command(),
+                               '--internal', 'coverage',
+                               self.environment.get_source_dir(),
+                               self.environment.get_build_dir(),
+                               self.environment.get_log_dir()])
+        e.add_item('description', 'Generates coverage reports.')
+        e.write(outfile)
+        self.generate_coverage_legacy_rules(outfile)
+
+    def generate_coverage_legacy_rules(self, outfile):
         (gcovr_exe, lcov_exe, genhtml_exe) = environment.find_coverage_tools()
         added_rule = False
         if gcovr_exe:
