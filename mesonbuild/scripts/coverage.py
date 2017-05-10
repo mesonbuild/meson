@@ -14,7 +14,12 @@
 
 from mesonbuild import environment
 
-import sys, os, subprocess, re
+import sys, os, subprocess
+
+def remove_dir_from_trace(lcov_command, covfile, dirname):
+    tmpfile = covfile + '.tmp'
+    subprocess.check_call([lcov_command, '--remove', covfile, dirname, '-o', tmpfile])
+    os.replace(tmpfile, covfile)
 
 def coverage(source_root, build_root, log_dir):
     (gcovr_exe, lcov_exe, genhtml_exe) = environment.find_coverage_tools()
@@ -31,23 +36,36 @@ def coverage(source_root, build_root, log_dir):
     if lcov_exe and genhtml_exe:
         htmloutdir = os.path.join(log_dir, 'coveragereport')
         covinfo = os.path.join(log_dir, 'coverage.info')
-        lcov_command = [lcov_exe,
-                        '--directory', build_root,
-                        '--capture',
-                        '--output-file', covinfo,
-                        '--no-checksum',
-                        '--rc', 'lcov_branch_coverage=1',
-                        ]
-        genhtml_command = [genhtml_exe,
-                           '--prefix', build_root,
-                           '--output-directory', htmloutdir,
-                           '--title', 'Code coverage',
-                           '--legend',
-                           '--show-details',
-                           '--branch-coverage',
-                           covinfo]
-        subprocess.check_call(lcov_command)
-        subprocess.check_call(genhtml_command)
+        initial_tracefile = covinfo + '.initial'
+        run_tracefile = covinfo + '.run'
+        subprocess.check_call([lcov_exe,
+                               '--directory', build_root,
+                               '--capture',
+                               '--initial',
+                               '--output-file',
+                               initial_tracefile])
+        subprocess.check_call([lcov_exe,
+                               '--directory', build_root,
+                               '--capture',
+                               '--output-file', run_tracefile,
+                               '--no-checksum',
+                               '--rc', 'lcov_branch_coverage=1',
+                               ])
+        # Join initial and test results.
+        subprocess.check_call([lcov_exe,
+                               '-a', initial_tracefile,
+                               '-a', run_tracefile,
+                               '-o', covinfo])
+        remove_dir_from_trace(lcov_exe, covinfo, '/usr/include/*')
+        remove_dir_from_trace(lcov_exe, covinfo, '/usr/local/include/*')
+        subprocess.check_call([genhtml_exe,
+                               '--prefix', build_root,
+                               '--output-directory', htmloutdir,
+                               '--title', 'Code coverage',
+                               '--legend',
+                               '--show-details',
+                               '--branch-coverage',
+                               covinfo])
     return 0
 
 def run(args):
