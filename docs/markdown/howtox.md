@@ -73,7 +73,7 @@ configure_file(...)
 
 `configure_file` preserves metadata so if your template file has execute permissions, the generated file will have them too.
 
-## Producing a coverage report
+# Producing a coverage report
 
 First initialize the build directory with this command.
 
@@ -91,7 +91,7 @@ $ ninja coverage-html (or coverage-xml)
 
 The coverage report can be found in the meson-logs subdirectory.
 
-## Add some optimization to debug builds ##
+# Add some optimization to debug builds
 
 By default the debug build does not use any optimizations. This is the desired approach most of the time. However some projects benefit from having some minor optimizations enabled. GCC even has a specific compiler flag `-Og` for this. To enable its use, just issue the following command.
 
@@ -101,7 +101,7 @@ $ mesonconf -Dc_args=-Og
 
 This causes all subsequent builds to use this command line argument.
 
-## Use address sanitizer
+# Use address sanitizer
 
 Clang comes with a selection of analysis tools such as the [address sanitizer](https://clang.llvm.org/docs/AddressSanitizer.html). Meson has native support for these with the `b_sanitize` option.
 
@@ -111,7 +111,7 @@ $ meson <other options> -Db_sanitize=address
 
 After this you just compile your code and run the test suite. Address sanitizer will abort executables which have bugs so they show up as test failures.
 
-## Use Clang static analyzer
+# Use Clang static analyzer
 
 Install scan-build and configure your project. Then do this:
 
@@ -119,7 +119,7 @@ Install scan-build and configure your project. Then do this:
 $ ninja scan-build
 ```
 
-## Use profile guided optimization
+# Use profile guided optimization
 
 Using profile guided optimization with GCC is a two phase operation. First we set up the project with profile measurements enabled and compile it.
 
@@ -139,7 +139,7 @@ $ ninja
 
 After these steps the resulting binary is fully optimized.
 
-## Add math library (`-lm`) portably
+# Add math library (`-lm`) portably
 
 Some platforms (e.g. Linux) have a standalone math library. Other platforms (pretty much everyone else) do not. How to specify that `m` is used only when needed?
 
@@ -149,7 +149,7 @@ m_dep = cc.find_library('m', required : false)
 executable(..., dependencies : m_dep)
 ```
 
-## Install an executable to `libexecdir`
+# Install an executable to `libexecdir`
 
 ```meson
 executable(..., install : true, install_dir : get_option('libexecdir'))
