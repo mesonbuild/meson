@@ -639,3 +639,16 @@ def find_external_dependency(name, environment, kwargs):
         raise pkg_exc
     mlog.log('Dependency', mlog.bold(name), 'found:', mlog.red('NO'))
     return pkgdep
+
+def dependency_get_compiler(language, environment, kwargs):
+    if 'native' in kwargs and environment.is_cross_build():
+        want_cross = not kwargs['native']
+    else:
+        want_cross = environment.is_cross_build()
+
+    if want_cross:
+        compilers = environment.coredata.cross_compilers
+    else:
+        compilers = environment.coredata.compilers
+
+    return compilers.get(language, None)
