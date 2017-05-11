@@ -22,38 +22,34 @@ import shutil
 from .. import mlog
 from .. import mesonlib
 from ..mesonlib import version_compare, Popen_safe
-from .base import Dependency, DependencyException, PkgConfigDependency
-
+from .base import Dependency, DependencyException, PkgConfigDependency, dependency_get_compiler
 
 class GTestDependency(Dependency):
     def __init__(self, environment, kwargs):
         Dependency.__init__(self, 'gtest', kwargs)
+        self.env = environment
         self.main = kwargs.get('main', False)
         self.name = 'gtest'
-        self.libname = 'libgtest.so'
-        self.libmain_name = 'libgtest_main.so'
         self.include_dir = '/usr/include'
         self.src_dirs = ['/usr/src/gtest/src', '/usr/src/googletest/googletest/src']
+
+        self.cpp_compiler = dependency_get_compiler('cpp', environment, kwargs)
+        if self.cpp_compiler is None:
+            raise DependencyException('Tried to use gtest but a C++ compiler is not defined.')
         self.detect()
 
     def found(self):
         return self.is_found
 
     def detect(self):
-        trial_dirs = mesonlib.get_library_dirs()
-        glib_found = False
-        gmain_found = False
-        for d in trial_dirs:
-            if os.path.isfile(os.path.join(d, self.libname)):
-                glib_found = True
-            if os.path.isfile(os.path.join(d, self.libmain_name)):
-                gmain_found = True
-        if glib_found and gmain_found:
+        gtest_detect = self.cpp_compiler.find_library("gtest", self.env, [])
+        gtest_main_detect = self.cpp_compiler.find_library("gtest_main", self.env, [])
+        if gtest_detect and gtest_main_detect:
             self.is_found = True
             self.compile_args = []
-            self.link_args = ['-lgtest']
+            self.link_args = gtest_detect
             if self.main:
-                self.link_args.append('-lgtest_main')
+                self.link_args += gtest_main_detect
             self.sources = []
             mlog.log('Dependency GTest found:', mlog.green('YES'), '(prebuilt)')
         elif self.detect_srcdir():
