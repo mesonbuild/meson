@@ -638,9 +638,7 @@ class BuildTarget(Target):
             self.vala_gir = kwargs.get('vala_gir', None)
         dlist = stringlistify(kwargs.get('d_args', []))
         self.add_compiler_args('d', dlist)
-        self.link_args = kwargs.get('link_args', [])
-        if not isinstance(self.link_args, list):
-            self.link_args = [self.link_args]
+        self.link_args = flatten(kwargs.get('link_args', []))
         for i in self.link_args:
             if not isinstance(i, str):
                 raise InvalidArguments('Link_args arguments must be strings.')
