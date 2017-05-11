@@ -1103,6 +1103,22 @@ int dummy;
                 # Install GIR to default location if requested by user
                 if len(target.install_dir) > 3 and target.install_dir[3] is True:
                     target.install_dir[3] = os.path.join(self.environment.get_datadir(), 'gir-1.0')
+            # Generate header for internal symbols if requested by user
+            if isinstance(target.vala_internal_header, str):
+                internalheadername = os.path.join(self.get_target_dir(target), target.vala_internal_header)
+                args += ['--internal-header', internalheadername]
+                valac_outputs.append(internalheadername)
+                target.outputs.append(target.vala_internal_header)
+                if len(target.install_dir) > 4 and target.install_dir[4] is True:
+                    target.install_dir[4] = self.environment.get_includedir()
+            # Generate VAPI for internal symbols if requested by user
+            if isinstance(target.vala_internal_vapi, str):
+                internalvapi = os.path.join(self.get_target_dir(target), target.vala_internal_vapi)
+                args += ['--internal-vapi', internalvapi]
+                valac_outputs.append(internalvapi)
+                target.outputs.append(target.vala_internal_vapi)
+                if len(target.install_dir) > 5 and target.install_dir[5] is True:
+                    target.install_dir[5] = os.path.join(self.environment.get_datadir(), 'vala', 'vapi')
         if self.get_option_for_target('werror', target):
             args += valac.get_werror_args()
         for d in target.get_external_deps():
