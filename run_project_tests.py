@@ -206,6 +206,16 @@ def platform_fix_name(fname):
         else:
             fname = re.sub(r'\?lib', 'lib', fname)
 
+    # TODO: What about library versions?
+    if fname.endswith('?so'):
+        fname = fname[:-3]
+        if mesonlib.is_osx():
+            return fname + '.dylib'
+        elif mesonlib.is_windows() or mesonlib.is_cygwin():
+            return fname + '.dll'
+        else:
+            return fname + '.so'
+
     if fname.endswith('?exe'):
         fname = fname[:-4]
         if mesonlib.is_windows() or mesonlib.is_cygwin():

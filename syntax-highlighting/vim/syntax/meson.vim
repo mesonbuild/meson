@@ -92,6 +92,7 @@ syn keyword mesonBuiltin
   \ include_directories
   \ install_data
   \ install_headers
+  \ install_link
   \ install_man
   \ install_subdir
   \ is_variable

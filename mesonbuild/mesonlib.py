@@ -17,6 +17,7 @@
 import stat
 import platform, subprocess, operator, os, shutil, re
 import collections
+import contextlib
 
 from glob import glob
 
@@ -725,3 +726,16 @@ class OrderedSet(collections.MutableSet):
 
     def difference(self, set_):
         return type(self)(e for e in self if e not in set_)
+
+
+@contextlib.contextmanager
+def chdir(new):
+    """Change directory and guarantee a return to the previous directory in
+    case of an exception.
+    """
+    current = os.getcwd()
+    os.chdir(new)
+    try:
+        yield
+    finally:
+        os.chdir(current)
