@@ -20,6 +20,15 @@ foreach lang : ['c', 'cpp']
     error('Please report a bug and help us improve support for this platform')
   endif
 
+  if cc.find_library('z', required : false).found()
+    # When a C file containing #include <foo.h> is pre-processed and foo.h is
+    # found in the compiler's default search path, GCC inserts an extra comment
+    # between the delimiter and the define which causes a parsing error.
+    # https://github.com/mesonbuild/meson/issues/1726
+    ver = cc.get_define('ZLIB_VER_MAJOR', prefix : '#include <zlib.h>')
+    assert(ver == '1', 'ZLIB_VER_MAJOR value is "@0@" instead of "1"'.format(ver))
+  endif
+
   # Check that an undefined value is empty.
   have = cc.get_define('MESON_FAIL_VALUE')
   assert(have == '', 'MESON_FAIL_VALUE value is "@0@" instead of ""'.format(have))

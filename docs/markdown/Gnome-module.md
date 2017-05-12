@@ -103,7 +103,7 @@ Compiles the given XML schema into gdbus source code. Takes two positional argum
 
 Returns an opaque object containing the source files. Add it to a top level target's source list.
 
-### gnome.compile_vapi()
+### gnome.generate_vapi()
 
 Creates a VAPI file from gir. The first argument is the name of the library.
 

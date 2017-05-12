@@ -45,4 +45,3 @@ inc = include_directories('incdir')
 
 r = cc.run(code, include_directories : inc, dependencies : zlibdep)
 assert(r.returncode() == 0, 'Running manual zlib test failed.')
-

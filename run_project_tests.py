@@ -36,6 +36,7 @@ import concurrent.futures as conc
 import re
 
 from run_tests import get_backend_commands, get_backend_args_for_dir, Backend
+from run_tests import ensure_backend_detects_changes
 
 
 class BuildStep(Enum):
@@ -342,6 +343,10 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, compiler, backen
         return TestResult('Test that should have failed succeeded', BuildStep.configure, stdo, stde, mesonlog, gen_time)
     if returncode != 0:
         return TestResult('Generating the build system failed.', BuildStep.configure, stdo, stde, mesonlog, gen_time)
+    # Touch the meson.build file to force a regenerate so we can test that
+    # regeneration works before a build is run.
+    ensure_backend_detects_changes(backend)
+    os.utime(os.path.join(testdir, 'meson.build'))
     # Build with subprocess
     dir_args = get_backend_args_for_dir(backend, test_build_dir)
     build_start = time.time()
@@ -356,9 +361,8 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, compiler, backen
     if pc.returncode != 0:
         return TestResult('Compiling source code failed.', BuildStep.build, stdo, stde, mesonlog, gen_time, build_time)
     # Touch the meson.build file to force a regenerate so we can test that
-    # regeneration works. We need to sleep for 0.2s because Ninja tracks mtimes
-    # at a low resolution: https://github.com/ninja-build/ninja/issues/371
-    time.sleep(0.2)
+    # regeneration works after a build is complete.
+    ensure_backend_detects_changes(backend)
     os.utime(os.path.join(testdir, 'meson.build'))
     test_start = time.time()
     # Test in-process

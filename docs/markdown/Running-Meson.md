@@ -58,7 +58,7 @@ If you are not using an IDE, Meson uses the [Ninja build system](https://ninja-b
 
     ninja
 
-The main usability difference between Ninja and Make is that Ninja will automatically detect the number of CPUs in your computer and parallelize itself accordingly. You can override the amount of parallel processes used with the command line argument `-j &lt;num processes&gt;`.
+The main usability difference between Ninja and Make is that Ninja will automatically detect the number of CPUs in your computer and parallelize itself accordingly. You can override the amount of parallel processes used with the command line argument `-j <num processes>`.
 
 It should be noted that after the initial configure step `ninja` is the only command you ever need to type to compile. No matter how you alter your source tree (short of moving it to a completely new location), Meson will detect the changes and regenerate itself accordingly. This is especially handy if you have multiple build directories. Often one of them is used for development (the "debug" build) and others only every now and then (such as a "static analysis" build). Any configuration can be built just by `cd`'ing to the corresponding directory and running Ninja.
 

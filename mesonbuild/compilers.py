@@ -782,7 +782,7 @@ class CCompiler(Compiler):
         return self.exelist[:]
 
     def get_preprocess_only_args(self):
-        return ['-E']
+        return ['-E', '-P']
 
     def get_compile_only_args(self):
         return ['-c']
@@ -1139,10 +1139,10 @@ class CCompiler(Compiler):
         delim = '"MESON_GET_DEFINE_DELIMITER"'
         fargs = {'prefix': prefix, 'define': dname, 'delim': delim}
         code = '''
+        {prefix}
         #ifndef {define}
         # define {define}
         #endif
-        {prefix}
         {delim}\n{define}'''
         args = self._get_compiler_check_args(env, extra_args, dependencies,
                                              mode='preprocess').to_native()
@@ -1678,6 +1678,18 @@ class ValaCompiler(Compiler):
     def get_compile_only_args(self):
         return ['-C']
 
+    def get_pic_args(self):
+        return []
+
+    def get_always_args(self):
+        return ['-C']
+
+    def get_warn_args(self, warning_level):
+        return []
+
+    def get_no_warn_args(self):
+        return ['--disable-warnings']
+
     def get_werror_args(self):
         return ['--fatal-warnings']
 
@@ -2135,7 +2147,7 @@ class VisualStudioCCompiler(CCompiler):
         return ['/FI' + base, '/Yu' + base, '/Fp' + os.path.join(pch_dir, pchname)]
 
     def get_preprocess_only_args(self):
-        return ['/E']
+        return ['/EP']
 
     def get_compile_only_args(self):
         return ['/c']

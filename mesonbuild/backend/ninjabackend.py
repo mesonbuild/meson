@@ -38,7 +38,12 @@ else:
     rmfile_prefix = 'rm -f {} &&'
 
 def ninja_quote(text):
-    return text.replace(' ', '$ ').replace(':', '$:')
+    for char in ('$', ' ', ':'):
+        text = text.replace(char, '$' + char)
+    if '\n' in text:
+        raise MesonException('Ninja does not support newlines in rules. '
+                             'Please report this error with a test case to the Meson bug tracker.')
+    return text
 
 
 class NinjaBuildElement:
@@ -480,12 +485,16 @@ int dummy;
         # If the target requires capturing stdout, then use the serialized
         # executable wrapper to capture that output and save it to a file.
         #
+        # If the command line requires a newline, also use the wrapper, as
+        # ninja does not support them in its build rule syntax.
+        #
         # Windows doesn't have -rpath, so for EXEs that need DLLs built within
         # the project, we need to set PATH so the DLLs are found. We use
         # a serialized executable wrapper for that and check if the
         # CustomTarget command needs extra paths first.
-        if target.capture or ((mesonlib.is_windows() or mesonlib.is_cygwin()) and
-                              self.determine_windows_extra_paths(target.command[0])):
+        if (target.capture or any('\n' in c for c in cmd) or
+                ((mesonlib.is_windows() or mesonlib.is_cygwin()) and
+                 self.determine_windows_extra_paths(target.command[0]))):
             exe_data = self.serialize_executable(target.command[0], cmd[1:],
                                                  # All targets are built from the build dir
                                                  self.environment.get_build_dir(),
@@ -1061,20 +1070,11 @@ int dummy;
             vala_c_src.append(vala_c_file)
             valac_outputs.append(vala_c_file)
 
-        # TODO: Use self.generate_basic_compiler_args to get something more
-        #       consistent Until then, we should be careful to preserve the
-        #       precedence of arguments if it changes upstream.
-        args = []
-        args += valac.get_buildtype_args(self.get_option_for_target('buildtype', target))
-        args += self.build.get_project_args(valac, target.subproject)
-        args += self.build.get_global_args(valac)
-        args += self.environment.coredata.external_args[valac.get_language()]
-
+        args = self.generate_basic_compiler_args(target, valac)
         # Tell Valac to output everything in our private directory. Sadly this
         # means it will also preserve the directory components of Vala sources
         # found inside the build tree (generated sources).
         args += ['-d', c_out_dir]
-        args += ['-C']
         if not isinstance(target, build.Executable):
             # Library name
             args += ['--library=' + target.name]
@@ -1119,18 +1119,6 @@ int dummy;
                 target.outputs.append(target.vala_internal_vapi)
                 if len(target.install_dir) > 5 and target.install_dir[5] is True:
                     target.install_dir[5] = os.path.join(self.environment.get_datadir(), 'vala', 'vapi')
-        if self.get_option_for_target('werror', target):
-            args += valac.get_werror_args()
-        for d in target.get_external_deps():
-            if isinstance(d, dependencies.PkgConfigDependency):
-                if d.name == 'glib-2.0' and d.version_reqs is not None:
-                    for req in d.version_reqs:
-                        if req.startswith(('>=', '==')):
-                            args += ['--target-glib', req[2:]]
-                            break
-                args += ['--pkg', d.name]
-            elif isinstance(d, dependencies.ExternalLibrary):
-                args += d.get_lang_args('vala')
         # Detect gresources and add --gresources arguments for each
         for (gres, gensrc) in other_src[1].items():
             if isinstance(gensrc, modules.GResourceTarget):
@@ -1464,12 +1452,13 @@ int dummy;
 
     def generate_swift_compile_rules(self, compiler, outfile):
         rule = 'rule %s_COMPILER\n' % compiler.get_language()
-        full_exe = [sys.executable,
-                    self.environment.get_build_command(),
+        full_exe = [ninja_quote(sys.executable),
+                    ninja_quote(self.environment.get_build_command()),
                     '--internal',
                     'dirchanger',
-                    '$RUNDIR'] + compiler.get_exelist()
-        invoc = ' '.join([ninja_quote(i) for i in full_exe])
+                    '$RUNDIR']
+        invoc = (' '.join(full_exe) + ' ' +
+                 ' '.join(ninja_quote(i) for i in compiler.get_exelist()))
         command = ' command = %s $ARGS $in\n' % invoc
         description = ' description = Compiling Swift source $in.\n'
         outfile.write(rule)
@@ -1666,6 +1655,7 @@ rule FORTRAN_DEP_HACK
         outfilelist = genlist.get_outputs()
         base_args = generator.get_arglist()
         extra_dependencies = [os.path.join(self.build_to_src, i) for i in genlist.extra_depends]
+        source_target_dir = self.get_target_source_dir(target)
         for i in range(len(infilelist)):
             if len(generator.outputs) == 1:
                 sole_output = os.path.join(self.get_target_private_dir(target), outfilelist[i])
@@ -1692,6 +1682,7 @@ rule FORTRAN_DEP_HACK
             relout = self.get_target_private_dir(target)
             args = [x.replace("@SOURCE_DIR@", self.build_to_src).replace("@BUILD_DIR@", relout)
                     for x in args]
+            args = [x.replace("@CURRENT_SOURCE_DIR@", source_target_dir) for x in args]
             args = [x.replace("@SOURCE_ROOT@", self.build_to_src).replace("@BUILD_ROOT@", '.')
                     for x in args]
             cmdlist = exe_arr + self.replace_extra_args(args, genlist)
@@ -2320,8 +2311,8 @@ rule FORTRAN_DEP_HACK
         # current compiler.
         commands = commands.to_native()
         dep_targets = [self.get_dependency_filename(t) for t in dependencies]
-        dep_targets += [os.path.join(self.environment.source_dir,
-                                     target.subdir, t) for t in target.link_depends]
+        dep_targets.extend([self.get_dependency_filename(t)
+                            for t in target.link_depends])
         elem = NinjaBuildElement(self.all_outputs, outname, linker_rule, obj_list)
         elem.add_dep(dep_targets + custom_target_libraries)
         elem.add_item('LINK_ARGS', commands)
@@ -2339,6 +2330,12 @@ rule FORTRAN_DEP_HACK
     def get_dependency_filename(self, t):
         if isinstance(t, build.SharedLibrary):
             return os.path.join(self.get_target_private_dir(t), self.get_target_filename(t) + '.symbols')
+        elif isinstance(t, mesonlib.File):
+            if t.is_built:
+                return t.relative_name()
+            else:
+                return t.absolute_path(self.environment.get_source_dir(),
+                                       self.environment.get_build_dir())
         return self.get_target_filename(t)
 
     def generate_shlib_aliases(self, target, outdir):

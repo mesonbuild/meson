@@ -23,7 +23,8 @@ from . import compilers
 from .wrap import wrap, WrapMode
 from . import mesonlib
 from .mesonlib import FileMode, Popen_safe, get_meson_script
-from .dependencies import InternalDependency, Dependency
+from .dependencies import ExternalProgram
+from .dependencies import InternalDependency, Dependency, DependencyException
 from .interpreterbase import InterpreterBase
 from .interpreterbase import check_stringlist, noPosargs, noKwargs, stringArgs
 from .interpreterbase import InterpreterException, InvalidArguments, InvalidCode
@@ -72,17 +73,19 @@ class TryRunResultHolder(InterpreterObject):
 
 class RunProcess(InterpreterObject):
 
-    def __init__(self, command_array, source_dir, build_dir, subdir, mesonintrospect, in_builddir=False):
+    def __init__(self, cmd, args, source_dir, build_dir, subdir, mesonintrospect, in_builddir=False):
         super().__init__()
-        pc, self.stdout, self.stderr = self.run_command(command_array, source_dir, build_dir, subdir, mesonintrospect, in_builddir)
+        if not isinstance(cmd, ExternalProgram):
+            raise AssertionError('BUG: RunProcess must be passed an ExternalProgram')
+        pc, self.stdout, self.stderr = self.run_command(cmd, args, source_dir, build_dir, subdir, mesonintrospect, in_builddir)
         self.returncode = pc.returncode
         self.methods.update({'returncode': self.returncode_method,
                              'stdout': self.stdout_method,
                              'stderr': self.stderr_method,
                              })
 
-    def run_command(self, command_array, source_dir, build_dir, subdir, mesonintrospect, in_builddir):
-        cmd_name = command_array[0]
+    def run_command(self, cmd, args, source_dir, build_dir, subdir, mesonintrospect, in_builddir):
+        command_array = cmd.get_command() + args
         env = {'MESON_SOURCE_ROOT': source_dir,
                'MESON_BUILD_ROOT': build_dir,
                'MESON_SUBDIR': subdir,
@@ -94,18 +97,6 @@ class RunProcess(InterpreterObject):
         child_env = os.environ.copy()
         child_env.update(env)
         mlog.debug('Running command:', ' '.join(command_array))
-        try:
-            return Popen_safe(command_array, env=child_env, cwd=cwd)
-        except FileNotFoundError:
-            pass
-        # Was not a command, is a program in path?
-        exe = shutil.which(cmd_name)
-        if exe is not None:
-            command_array = [exe] + command_array[1:]
-            return Popen_safe(command_array, env=child_env, cwd=cwd)
-        # No? Maybe it is a script in the source tree.
-        fullpath = os.path.join(source_dir, subdir, cmd_name)
-        command_array = [fullpath] + command_array[1:]
         try:
             return Popen_safe(command_array, env=child_env, cwd=cwd)
         except FileNotFoundError:
@@ -250,7 +241,6 @@ class DependencyHolder(InterpreterObject):
     def found_method(self, args, kwargs):
         if self.held_object.type_name == 'internal':
             return True
-
         return self.held_object.found()
 
     def version_method(self, args, kwargs):
@@ -1105,7 +1095,8 @@ class MesonMain(InterpreterObject):
             if found.found():
                 self._found_source_scripts[key] = found
             else:
-                raise InterpreterException('Script {!r} not found'.format(name))
+                m = 'Script or command {!r} not found or not executable'
+                raise InterpreterException(m.format(name))
         return build.RunScript(found.get_command(), args)
 
     def add_install_script_method(self, args, kwargs):
@@ -1469,28 +1460,38 @@ class Interpreter(InterpreterBase):
             raise InterpreterException('Not enough arguments')
         cmd = args[0]
         cargs = args[1:]
+        srcdir = self.environment.get_source_dir()
+        builddir = self.environment.get_build_dir()
+        m = 'must be a string, or the output of find_program(), files(), or ' \
+            'configure_file(); not {!r}'
         if isinstance(cmd, ExternalProgramHolder):
-            cmd = cmd.get_command()
-        elif isinstance(cmd, str):
-            cmd = [cmd]
+            cmd = cmd.held_object
         else:
-            raise InterpreterException('First argument should be find_program() '
-                                       'or string, not {!r}'.format(cmd))
+            if isinstance(cmd, mesonlib.File):
+                cmd = cmd.absolute_path(srcdir, builddir)
+            elif not isinstance(cmd, str):
+                raise InterpreterException('First argument ' + m.format(cmd))
+            # Prefer scripts in the current source directory
+            search_dir = os.path.join(srcdir, self.subdir)
+            prog = ExternalProgram(cmd, silent=True, search_dir=search_dir)
+            if not prog.found():
+                raise InterpreterException('Program or command {!r} not found'
+                                           'or not executable'.format(cmd))
+            cmd = prog
         expanded_args = []
         for a in mesonlib.flatten(cargs):
             if isinstance(a, str):
                 expanded_args.append(a)
             elif isinstance(a, mesonlib.File):
-                if a.is_built:
-                    raise InterpreterException('Can not use generated files in run_command.')
-                expanded_args.append(os.path.join(self.environment.get_source_dir(), str(a)))
+                expanded_args.append(a.absolute_path(srcdir, builddir))
+            elif isinstance(a, ExternalProgramHolder):
+                expanded_args.append(a.held_object.get_path())
             else:
-                raise InterpreterException('Run_command arguments must be strings or the output of files().')
-        args = cmd + expanded_args
+                raise InterpreterException('Arguments ' + m.format(a))
         in_builddir = kwargs.get('in_builddir', False)
         if not isinstance(in_builddir, bool):
             raise InterpreterException('in_builddir must be boolean.')
-        return RunProcess(args, self.environment.source_dir, self.environment.build_dir, self.subdir,
+        return RunProcess(cmd, expanded_args, srcdir, builddir, self.subdir,
                           get_meson_script(self.environment, 'mesonintrospect'), in_builddir)
 
     @stringArgs
@@ -1846,19 +1847,13 @@ class Interpreter(InterpreterBase):
             if progobj.found():
                 return progobj
         if required and not progobj.found():
-            raise InvalidArguments('Program "%s" not found.' % exename)
+            raise InvalidArguments('Program "%s" not found or not executable' % exename)
         return progobj
 
     def func_find_library(self, node, args, kwargs):
         mlog.log(mlog.red('DEPRECATION:'), 'find_library() is removed, use the corresponding method in compiler object instead.')
 
-    def func_dependency(self, node, args, kwargs):
-        self.validate_arguments(args, 1, [str])
-        name = args[0]
-        if '<' in name or '>' in name or '=' in name:
-            raise InvalidArguments('Characters <, > and = are forbidden in dependency names. To specify'
-                                   'version\n requirements use the \'version\' keyword argument instead.')
-        identifier = dependencies.get_dep_identifier(name, kwargs)
+    def _find_cached_dep(self, name, kwargs):
         # Check if we want this as a cross-dep or a native-dep
         # FIXME: Not all dependencies support such a distinction right now,
         # and we repeat this check inside dependencies that do. We need to
@@ -1868,60 +1863,79 @@ class Interpreter(InterpreterBase):
             want_cross = not kwargs['native']
         else:
             want_cross = is_cross
-        # Check if we've already searched for and found this dep
+        identifier = dependencies.get_dep_identifier(name, kwargs, want_cross)
         cached_dep = None
+        # Check if we've already searched for and found this dep
         if identifier in self.coredata.deps:
             cached_dep = self.coredata.deps[identifier]
-            if 'version' in kwargs:
-                wanted = kwargs['version']
-                found = cached_dep.get_version()
-                if not cached_dep.found() or \
-                   not mesonlib.version_compare_many(found, wanted)[0]:
-                    # Cached dep has the wrong version. Check if an external
-                    # dependency or a fallback dependency provides it.
-                    cached_dep = None
-            # Don't re-use cached dep if it wasn't required but this one is,
-            # so we properly go into fallback/error code paths
-            if kwargs.get('required', True) and not getattr(cached_dep, 'required', False):
-                cached_dep = None
-            # Don't reuse cached dep if one is a cross-dep and the other is a native dep
-            if not getattr(cached_dep, 'want_cross', is_cross) == want_cross:
-                cached_dep = None
+        else:
+            # Check if exactly the same dep with different version requirements
+            # was found already.
+            wanted = identifier[1]
+            for trial, trial_dep in self.coredata.deps.items():
+                # trial[1], identifier[1] are the version requirements
+                if trial[0] != identifier[0] or trial[2:] != identifier[2:]:
+                    continue
+                found = trial_dep.get_version()
+                if not wanted or mesonlib.version_compare_many(found, wanted)[0]:
+                    # We either don't care about the version, or our
+                    # version requirements matched the trial dep's version.
+                    cached_dep = trial_dep
+                    break
+        return identifier, cached_dep
+
+    def func_dependency(self, node, args, kwargs):
+        self.validate_arguments(args, 1, [str])
+        name = args[0]
+        if '<' in name or '>' in name or '=' in name:
+            raise InvalidArguments('Characters <, > and = are forbidden in dependency names. To specify'
+                                   'version\n requirements use the \'version\' keyword argument instead.')
+        identifier, cached_dep = self._find_cached_dep(name, kwargs)
 
         if cached_dep:
+            if kwargs.get('required', True) and not cached_dep.found():
+                m = 'Dependency {!r} was already checked and was not found'
+                raise DependencyException(m.format(name))
             dep = cached_dep
         else:
             # We need to actually search for this dep
             exception = None
             dep = None
-            # If the fallback has already been configured (possibly by a higher level project)
-            # try to use it before using the native version
+            # If the dependency has already been configured, possibly by
+            # a higher level project, try to use it first.
             if 'fallback' in kwargs:
                 dirname, varname = self.get_subproject_infos(kwargs)
                 if dirname in self.subprojects:
+                    subproject = self.subprojects[dirname]
                     try:
-                        dep = self.subprojects[dirname].get_variable_method([varname], {})
-                        dep = dep.held_object
+                        # Never add fallback deps to self.coredata.deps
+                        return subproject.get_variable_method([varname], {})
                     except KeyError:
                         pass
 
+            # Search for it outside the project
             if not dep:
                 try:
                     dep = dependencies.find_external_dependency(name, self.environment, kwargs)
-                except dependencies.DependencyException as e:
+                except DependencyException as e:
                     exception = e
                     pass
 
+            # Search inside the projects list
             if not dep or not dep.found():
                 if 'fallback' in kwargs:
                     fallback_dep = self.dependency_fallback(name, kwargs)
                     if fallback_dep:
+                        # Never add fallback deps to self.coredata.deps since we
+                        # cannot cache them. They must always be evaluated else
+                        # we won't actually read all the build files.
                         return fallback_dep
-
                 if not dep:
                     raise exception
 
-        self.coredata.deps[identifier] = dep
+        # Only store found-deps in the cache
+        if dep.found():
+            self.coredata.deps[identifier] = dep
         return DependencyHolder(dep)
 
     def get_subproject_infos(self, kwargs):
@@ -2217,10 +2231,12 @@ class Interpreter(InterpreterBase):
         subdir = os.path.join(prev_subdir, args[0])
         if os.path.isabs(subdir):
             raise InvalidArguments('Subdir argument must be a relative path.')
-        if subdir in self.visited_subdirs:
+        absdir = os.path.join(self.environment.get_source_dir(), subdir)
+        symlinkless_dir = os.path.realpath(absdir)
+        if symlinkless_dir in self.visited_subdirs:
             raise InvalidArguments('Tried to enter directory "%s", which has already been visited.'
                                    % subdir)
-        self.visited_subdirs[subdir] = True
+        self.visited_subdirs[symlinkless_dir] = True
         self.subdir = subdir
         os.makedirs(os.path.join(self.environment.build_dir, subdir), exist_ok=True)
         buildfilename = os.path.join(self.subdir, environment.build_filename)
@@ -2228,7 +2244,7 @@ class Interpreter(InterpreterBase):
         absname = os.path.join(self.environment.get_source_dir(), buildfilename)
         if not os.path.isfile(absname):
             self.subdir = prev_subdir
-            raise InterpreterException('Nonexistent build def file %s.' % buildfilename)
+            raise InterpreterException('Non-existent build file {!r}'.format(buildfilename))
         with open(absname, encoding='utf8') as f:
             code = f.read()
         assert(isinstance(code, str))
@@ -2424,7 +2440,7 @@ different subdirectory.
                     exe_wrapper.append(i)
                 elif isinstance(i, dependencies.ExternalProgram):
                     if not i.found():
-                        raise InterpreterException('Tried to use non-found external executable.')
+                        raise InterpreterException('Tried to use non-found executable.')
                     exe_wrapper += i.get_command()
                 else:
                     raise InterpreterException('Exe wrapper can only contain strings or external binaries.')

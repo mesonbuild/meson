@@ -1,9 +1,6 @@
 project('find program', 'c')
 
-python = find_program('python3', required : false)
-if not python.found()
-  python = find_program('python')
-endif
+python = import('python3').find_python()
 
 # Source file via string
 prog = find_program('program.py')
@@ -14,8 +11,8 @@ py = configure_file(input : 'program.py',
                     output : 'builtprogram.py',
                     configuration : configuration_data())
 
-foreach f : [prog, find_program(py), find_program(progf)]
-  ret = run_command(python, f.path())
+foreach f : [prog, progf, py, find_program(py), find_program(progf)]
+  ret = run_command(python, f)
   assert(ret.returncode() == 0, 'can\'t manually run @0@'.format(prog.path()))
   assert(ret.stdout().strip() == 'Found', 'wrong output from manually-run @0@'.format(prog.path()))
 

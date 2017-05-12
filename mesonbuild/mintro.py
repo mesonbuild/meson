@@ -65,7 +65,13 @@ def determine_installed_path(target, installdata):
 def list_installed(installdata):
     res = {}
     if installdata is not None:
+        for path, installdir, aliases, unknown1, unknown2 in installdata.targets:
+            res[os.path.join(installdata.build_dir, path)] = os.path.join(installdata.prefix, installdir, os.path.basename(path))
         for path, installpath, unused_prefix in installdata.data:
+            res[path] = os.path.join(installdata.prefix, installpath)
+        for path, installdir in installdata.headers:
+            res[path] = os.path.join(installdata.prefix, installdir, os.path.basename(path))
+        for path, installpath in installdata.man:
             res[path] = os.path.join(installdata.prefix, installpath)
     print(json.dumps(res))
 
@@ -155,12 +161,12 @@ def list_buildsystem_files(coredata, builddata):
     print(json.dumps(filelist))
 
 def list_deps(coredata):
-    result = {}
-    for d in coredata.deps.values():
+    result = []
+    for d in coredata.deps:
         if d.found():
             args = {'compile_args': d.get_compile_args(),
                     'link_args': d.get_link_args()}
-            result[d.name] = args
+            result += [d.name, args]
     print(json.dumps(result))
 
 def list_tests(testdata):

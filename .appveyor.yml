@@ -49,6 +49,10 @@ branches:
   only:
     - master
 
+skip_commits:
+  files:
+    - docs/**/*
+
 install:
   # Use the x86 python only when building for x86 for the cpython tests.
   # For all other archs (including, say, arm), use the x64 python.

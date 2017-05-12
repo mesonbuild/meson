@@ -149,6 +149,10 @@ class Backend:
             dirname = 'meson-out'
         return dirname
 
+    def get_target_source_dir(self, target):
+        dirname = os.path.join(self.build_to_src, self.get_target_dir(target))
+        return dirname
+
     def get_target_private_dir(self, target):
         dirname = os.path.join(self.get_target_dir(target), target.get_basename() + target.type_suffix())
         return dirname
@@ -415,7 +419,18 @@ class Backend:
         # NOTE: We must preserve the order in which external deps are
         # specified, so we reverse the list before iterating over it.
         for dep in reversed(target.get_external_deps()):
-            commands += dep.get_compile_args()
+            if compiler.language == 'vala':
+                if isinstance(dep, dependencies.PkgConfigDependency):
+                    if dep.name == 'glib-2.0' and dep.version_reqs is not None:
+                        for req in dep.version_reqs:
+                            if req.startswith(('>=', '==')):
+                                commands += ['--target-glib', req[2:]]
+                                break
+                    commands += ['--pkg', dep.name]
+                elif isinstance(dep, dependencies.ExternalLibrary):
+                    commands += dep.get_lang_args('vala')
+            else:
+                commands += dep.get_compile_args()
             # Qt needs -fPIC for executables
             # XXX: We should move to -fPIC for all executables
             if isinstance(target, build.Executable):

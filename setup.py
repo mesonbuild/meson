@@ -16,8 +16,6 @@
 
 import os
 import sys
-from distutils.dir_util import mkpath
-from distutils.file_util import copy_file
 
 from mesonbuild.coredata import version
 
@@ -41,16 +39,20 @@ class install_scripts(orig):
             super().run()
             return
 
+        if not self.skip_build:
+            self.run_command('build_scripts')
         self.outfiles = []
         if not self.dry_run:
-            mkpath(self.install_dir)
+            self.mkpath(self.install_dir)
 
         # We want the files to be installed without a suffix on Unix
         for infile in self.get_inputs():
+            infile = os.path.basename(infile)
+            in_built = os.path.join(self.build_dir, infile)
             in_stripped = infile[:-3] if infile.endswith('.py') else infile
             outfile = os.path.join(self.install_dir, in_stripped)
             # NOTE: Mode is preserved by default
-            copy_file(infile, outfile, dry_run=self.dry_run)
+            self.copy_file(in_built, outfile)
             self.outfiles.append(outfile)
 
 setup(name='meson',

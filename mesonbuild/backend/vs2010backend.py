@@ -120,6 +120,7 @@ class Vs2010Backend(backends.Backend):
         custom_target_include_dirs = []
         custom_target_output_files = []
         target_private_dir = self.relpath(self.get_target_private_dir(target), self.get_target_dir(target))
+        source_target_dir = self.get_target_source_dir(target)
         down = self.target_to_build_root(target)
         for genlist in target.get_generated_sources():
             if isinstance(genlist, build.CustomTarget):
@@ -154,6 +155,7 @@ class Vs2010Backend(backends.Backend):
                     args = [x.replace("@SOURCE_DIR@", self.environment.get_source_dir())
                              .replace("@BUILD_DIR@", target_private_dir)
                             for x in args]
+                    args = [x.replace("@CURRENT_SOURCE_DIR@", source_target_dir) for x in args]
                     args = [x.replace("@SOURCE_ROOT@", self.environment.get_source_dir())
                              .replace("@BUILD_ROOT@", self.environment.get_build_dir())
                             for x in args]
@@ -377,7 +379,7 @@ class Vs2010Backend(backends.Backend):
         pl.text = self.platform
         globalgroup = ET.SubElement(root, 'PropertyGroup', Label='Globals')
         guidelem = ET.SubElement(globalgroup, 'ProjectGuid')
-        guidelem.text = self.environment.coredata.test_guid
+        guidelem.text = '{%s}' % self.environment.coredata.test_guid
         kw = ET.SubElement(globalgroup, 'Keyword')
         kw.text = self.platform + 'Proj'
         p = ET.SubElement(globalgroup, 'Platform')
@@ -634,7 +636,7 @@ class Vs2010Backend(backends.Backend):
         # Globals
         globalgroup = ET.SubElement(root, 'PropertyGroup', Label='Globals')
         guidelem = ET.SubElement(globalgroup, 'ProjectGuid')
-        guidelem.text = guid
+        guidelem.text = '{%s}' % guid
         kw = ET.SubElement(globalgroup, 'Keyword')
         kw.text = self.platform + 'Proj'
         ns = ET.SubElement(globalgroup, 'RootNamespace')
@@ -1048,7 +1050,7 @@ class Vs2010Backend(backends.Backend):
         pl.text = self.platform
         globalgroup = ET.SubElement(root, 'PropertyGroup', Label='Globals')
         guidelem = ET.SubElement(globalgroup, 'ProjectGuid')
-        guidelem.text = self.environment.coredata.test_guid
+        guidelem.text = '{%s}' % self.environment.coredata.test_guid
         kw = ET.SubElement(globalgroup, 'Keyword')
         kw.text = self.platform + 'Proj'
         p = ET.SubElement(globalgroup, 'Platform')
@@ -1128,7 +1130,7 @@ if %%errorlevel%% neq 0 goto :VCEnd'''
         pl.text = self.platform
         globalgroup = ET.SubElement(root, 'PropertyGroup', Label='Globals')
         guidelem = ET.SubElement(globalgroup, 'ProjectGuid')
-        guidelem.text = self.environment.coredata.test_guid
+        guidelem.text = '{%s}' % self.environment.coredata.test_guid
         kw = ET.SubElement(globalgroup, 'Keyword')
         kw.text = self.platform + 'Proj'
         p = ET.SubElement(globalgroup, 'Platform')

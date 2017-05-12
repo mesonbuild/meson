@@ -97,12 +97,12 @@ result = compiler.run(code, name : 'basic check')
 
 The `result` variable encapsulates the state of the test, which can be extracted with the following methods. The `name` keyword argument works the same as with `compiles`.
 
-Method | Return value
--------|----------------
-compiled | `True` if compilation succeeded. If `false` then all other methods return undefined values.
-returncode | The return code of the application as an integer
-stdout | Program's standard out as text.
-stderr | Program's standard error as text.
+| Method     | Return value
+| ------     | ------------
+| compiled   | `True` if compilation succeeded. If `false` then all other methods return undefined values.
+| returncode | The return code of the application as an integer
+| stdout     | Program's standard out as text.
+| stderr     | Program's standard error as text.
 
 Here is an example usage:
 
@@ -140,7 +140,7 @@ In older versions (<= 0.30) meson would error out if the size could not be deter
 Does a function exist?
 ==
 
-Just having a header does say anything about its contents. Sometimes you need to explicitly check if some function exists. This is how we would check whether the function `somefunc` exists in header `someheader.h`
+Just having a header doesn't say anything about its contents. Sometimes you need to explicitly check if some function exists. This is how we would check whether the function `somefunc` exists in header `someheader.h`
 
 ```meson
 if compiler.has_function('somefunc', prefix : '#include<someheader.h>')
