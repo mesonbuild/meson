@@ -36,9 +36,21 @@ foo_dep = dependency('foo') # 'foo.vapi' will be resolved in './vapi/foo.vapi'
 executable('app', 'app.vala', dependencies: [glib_dep, gobject_dep, foo_dep])
 ```
 
+In this case, make sure that the VAPI name correspond to the pkg-config file. 
+
+If no pkg-config file is provided, you must use `find_library`. Using`declare_dependency` is cleaner because it does not require passing both dependency objects to the target.
+
+```meson
+foo_lib = meson.get_compiler('vala').find_library('foo') # assuming libfoo.so is installed
+foo_vapi = meson.get_compiler('vala').find_library('foo', dirs: join_paths(meson.current_source_dir(), 'vapi')
+foo_dep = declare_dependency(dependencies: [foo_lib, foo_vapi])
+
+executable('app', 'app.vala', dependencies: [glib_dep, gobject_dep, foo_dep])
+```
+
 ## Custom output names
 
-If a library target is used, Meson automatically output the C header and the VAPI. They can be renamed by setting the `vala_header` and `vala_vapi` arguments respectively. In this case, the second and third elements of the `install_dir` array indicate the destination with `true` to indicate default directories.
+If a library target is used, Meson automatically output the C header and the VAPI. They can be renamed by setting the `vala_header` and `vala_vapi` arguments respectively. In this case, the second and third elements of the `install_dir` array indicate the destination with `true` to indicate default directories (i.e. `include` and `share/vala/vapi`).
 
 ```meson
 foo_lib = library('foo', 'foo.vala', 
