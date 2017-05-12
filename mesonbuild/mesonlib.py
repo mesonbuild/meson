@@ -203,7 +203,7 @@ def classify_unity_sources(compilers, sources):
 
 def flatten(item):
     if not isinstance(item, list):
-        return item
+        return [item]
     result = []
     for i in item:
         if isinstance(i, list):

@@ -638,9 +638,7 @@ class BuildTarget(Target):
             self.vala_gir = kwargs.get('vala_gir', None)
         dlist = stringlistify(kwargs.get('d_args', []))
         self.add_compiler_args('d', dlist)
-        self.link_args = kwargs.get('link_args', [])
-        if not isinstance(self.link_args, list):
-            self.link_args = [self.link_args]
+        self.link_args = flatten(kwargs.get('link_args', []))
         for i in self.link_args:
             if not isinstance(i, str):
                 raise InvalidArguments('Link_args arguments must be strings.')
@@ -813,9 +811,7 @@ You probably should put it in link_with instead.''')
         return self.external_deps
 
     def link(self, target):
-        if not isinstance(target, list):
-            target = [target]
-        for t in target:
+        for t in flatten(target):
             if hasattr(t, 'held_object'):
                 t = t.held_object
             if not isinstance(t, (StaticLibrary, SharedLibrary)):
@@ -829,9 +825,7 @@ You probably should put it in link_with instead.''')
             self.link_targets.append(t)
 
     def link_whole(self, target):
-        if not isinstance(target, list):
-            target = [target]
-        for t in target:
+        for t in flatten(target):
             if hasattr(t, 'held_object'):
                 t = t.held_object
             if not isinstance(t, StaticLibrary):
@@ -1443,8 +1437,7 @@ class CustomTarget(Target):
     def process_kwargs(self, kwargs):
         super().process_kwargs(kwargs)
         self.sources = kwargs.get('input', [])
-        if not isinstance(self.sources, list):
-            self.sources = [self.sources]
+        self.sources = flatten(self.sources)
         if 'output' not in kwargs:
             raise InvalidArguments('Missing keyword argument "output".')
         self.outputs = kwargs['output']
