@@ -246,6 +246,9 @@ def run_script_command(args):
     elif cmdname == 'uninstall':
         import mesonbuild.scripts.uninstall as abc
         cmdfunc = abc.run
+    elif cmdname == 'dist':
+        import mesonbuild.scripts.dist as abc
+        cmdfunc = abc.run
     else:
         raise MesonException('Unknown internal command {}.'.format(cmdname))
     return cmdfunc(cmdargs)

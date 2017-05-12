@@ -331,6 +331,7 @@ class BasePlatformTests(unittest.TestCase):
         self.prefix = '/usr'
         self.libdir = os.path.join(self.prefix, 'lib')
         self.installdir = os.path.join(self.builddir, 'install')
+        self.distdir = os.path.join(self.builddir, 'meson-dist')
         # Get the backend
         # FIXME: Extract this from argv?
         self.backend = getattr(Backend, os.environ.get('MESON_UNIT_TEST_BACKEND', 'ninja'))
@@ -1065,6 +1066,47 @@ class AllPlatformTests(BasePlatformTests):
         self.build()
         self.run_tests()
 
+    def test_dist(self):
+        if not shutil.which('git'):
+            raise unittest.SkipTest('Git not found')
+        try:
+            self.dist_impl()
+        except PermissionError:
+            # When run under Windows CI, something (virus scanner?)
+            # holds on to the git files so cleaning up the dir
+            # fails sometimes.
+            pass
+
+    def dist_impl(self):
+        # Create this on the fly because having rogue .git directories inside
+        # the source tree leads to all kinds of trouble.
+        with tempfile.TemporaryDirectory() as project_dir:
+            with open(os.path.join(project_dir, 'meson.build'), 'w') as ofile:
+                ofile.write('''project('disttest', 'c', version : '1.4.3')
+e = executable('distexe', 'distexe.c')
+test('dist test', e)
+''')
+            with open(os.path.join(project_dir, 'distexe.c'), 'w') as ofile:
+                ofile.write('''#include<stdio.h>
+
+int main(int argc, char **argv) {
+    printf("I am a distribution test.\\n");
+    return 0;
+}
+''')
+            subprocess.check_call(['git', 'init'], cwd=project_dir)
+            subprocess.check_call(['git', 'config',
+                                   'user.name', 'Author Person'], cwd=project_dir)
+            subprocess.check_call(['git', 'config',
+                                   'user.email', 'teh_coderz@example.com'], cwd=project_dir)
+            subprocess.check_call(['git', 'add', 'meson.build', 'distexe.c'], cwd=project_dir)
+            subprocess.check_call(['git', 'commit', '-a', '-m', 'I am a project'], cwd=project_dir)
+            self.init(project_dir)
+            self.build('dist')
+            distfile = os.path.join(self.distdir, 'disttest-1.4.3.tar.xz')
+            checksumfile = distfile + '.sha256sum'
+            self.assertTrue(os.path.exists(distfile))
+            self.assertTrue(os.path.exists(checksumfile))
 
 class WindowsTests(BasePlatformTests):
     '''

@@ -42,6 +42,7 @@ index.md
 		Build-system-converters.md
 		Configuring-a-build-directory.md
 		Run-targets.md
+		Creating-releases.md
 		Creating-OSX-packages.md
 		Creating-Linux-binaries.md
 	Reference-manual.md
