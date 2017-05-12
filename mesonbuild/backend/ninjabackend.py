@@ -233,6 +233,9 @@ int dummy;
             for src in genlist.get_outputs():
                 if self.environment.is_header(src):
                     header_deps.append(self.get_target_generated_dir(target, genlist, src))
+        if 'vala' in target.compilers and not isinstance(target, build.Executable):
+            vala_header = File.from_built_file(self.get_target_dir(target), target.vala_header)
+            header_deps.append(vala_header)
         # Recurse and find generated headers
         for dep in target.link_targets:
             if isinstance(dep, (build.StaticLibrary, build.SharedLibrary)):
@@ -1081,7 +1084,7 @@ int dummy;
             args += ['--library=' + target.name]
             # Outputted header
             hname = os.path.join(self.get_target_dir(target), target.vala_header)
-            args += ['-H', hname]
+            args += ['-H', hname, '--use-header']
             valac_outputs.append(hname)
             # Outputted vapi file
             vapiname = os.path.join(self.get_target_dir(target), target.vala_vapi)
