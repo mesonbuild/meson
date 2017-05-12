@@ -1114,7 +1114,7 @@ int dummy;
             # Generate VAPI for internal symbols if requested by user
             if isinstance(target.vala_internal_vapi, str):
                 internalvapi = os.path.join(self.get_target_dir(target), target.vala_internal_vapi)
-                args += ['--internal-vapi', internalvapi]
+                args += ['--internal-vapi', os.path.join('..', target.vala_internal_vapi)]
                 valac_outputs.append(internalvapi)
                 target.outputs.append(target.vala_internal_vapi)
                 if len(target.install_dir) > 5 and target.install_dir[5] is True:
