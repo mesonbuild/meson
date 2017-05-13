@@ -20,7 +20,7 @@ from .. import mlog
 from .. import dependencies
 from .. import compilers
 from ..compilers import CompilerArgs
-from ..mesonlib import File, MesonException
+from ..mesonlib import File, MesonException, OrderedSet
 from ..mesonlib import get_meson_script, get_compiler_for_source, Popen_safe
 from .backends import CleanTrees, InstallData
 from ..build import InvalidArguments
@@ -976,7 +976,7 @@ int dummy;
         the same name as the BuildTarget and return the path to it relative to
         the build directory.
         """
-        result = []
+        result = OrderedSet()
         for dep in target.link_targets:
             for i in dep.sources:
                 if hasattr(i, 'fname'):
@@ -984,9 +984,9 @@ int dummy;
                 if i.endswith('vala'):
                     vapiname = dep.name + '.vapi'
                     fullname = os.path.join(self.get_target_dir(dep), vapiname)
-                    result.append(fullname)
+                    result.add(fullname)
                     break
-        return result
+        return list(result)
 
     def split_vala_sources(self, t):
         """
