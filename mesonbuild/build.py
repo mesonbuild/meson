@@ -34,6 +34,7 @@ known_basic_kwargs = {'install': True,
                       'fortran_args': True,
                       'd_args': True,
                       'java_args': True,
+                      'rust_args': True,
                       'link_args': True,
                       'link_depends': True,
                       'link_with': True,
@@ -632,6 +633,10 @@ class BuildTarget(Target):
         if not isinstance(fortranlist, list):
             fortranlist = [fortranlist]
         self.add_compiler_args('fortran', fortranlist)
+        rustlist = kwargs.get('rust_args', [])
+        if not isinstance(rustlist, list):
+            rustlist = [rustlist]
+        self.add_compiler_args('rust', rustlist)
         if not isinstance(self, Executable):
             self.vala_header = kwargs.get('vala_header', self.name + '.h')
             self.vala_vapi = kwargs.get('vala_vapi', self.name + '.vapi')
