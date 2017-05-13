@@ -2227,6 +2227,8 @@ class Interpreter(InterpreterBase):
             raise InvalidArguments('Subdir contains ..')
         if self.subdir == '' and args[0] == self.subproject_dir:
             raise InvalidArguments('Must not go into subprojects dir with subdir(), use subproject() instead.')
+        if self.subdir == '' and args[0].startswith('meson-'):
+            raise InvalidArguments('The "meson-" prefix is reserved and cannot be used for top-level subdir().')
         prev_subdir = self.subdir
         subdir = os.path.join(prev_subdir, args[0])
         if os.path.isabs(subdir):
