@@ -2169,6 +2169,9 @@ rule FORTRAN_DEP_HACK
         if isinstance(target, build.Executable):
             # Currently only used with the Swift compiler to add '-emit-executable'
             commands += linker.get_std_exe_link_args()
+            # If gui_app, and that's significant on this platform
+            if target.gui_app and hasattr(linker, 'get_gui_app_args'):
+                commands += linker.get_gui_app_args()
         elif isinstance(target, build.SharedLibrary):
             if isinstance(target, build.SharedModule):
                 commands += linker.get_std_shared_module_link_args()

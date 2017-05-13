@@ -2461,6 +2461,10 @@ class GnuCompiler:
         # For other targets, discard the .def file.
         return []
 
+    def get_gui_app_args(self):
+        if self.gcc_type in (GCC_CYGWIN, GCC_MINGW):
+            return ['-mwindows']
+        return []
 
 class GnuCCompiler(GnuCompiler, CCompiler):
     def __init__(self, exelist, version, gcc_type, is_cross, exe_wrapper=None, defines=None):
