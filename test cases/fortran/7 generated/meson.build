@@ -4,15 +4,19 @@
 project('generated', 'fortran')
 
 conf_data = configuration_data()
+conf_data.set('ONE', 1)
+conf_data.set('TWO', 2)
 
-sources_fortran_basenames = ['mod2', 'mod1']
-preproc_sources_fortran = []
-foreach fsource_basename : sources_fortran_basenames
-  infilename = '@0@.fpp'.format(fsource_basename)
-  outfilename = '@0@.f90'.format(fsource_basename)
+templates_basenames = ['mod2', 'mod1']
+generated_sources = []
+foreach template_basename : templates_basenames
+  infilename = '@0@.fpp'.format(template_basename)
+  outfilename = '@0@.f90'.format(template_basename)
   outfile = configure_file(
       input : infilename, output : outfilename, configuration : conf_data)
-  preproc_sources_fortran += [outfile]
+  generated_sources += [outfile]
 endforeach
 
-mylib = static_library('mylib', preproc_sources_fortran)
+sources = ['prog.f90'] + generated_sources
+exe = executable('generated', sources)
+test('generated', exe)
