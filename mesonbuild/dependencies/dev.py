@@ -105,16 +105,14 @@ class GMockDependency(Dependency):
         # GMock may be a library or just source.
         # Work with both.
         self.name = 'gmock'
-        self.libname = 'libgmock.so'
-        trial_dirs = mesonlib.get_library_dirs()
-        gmock_found = False
-        for d in trial_dirs:
-            if os.path.isfile(os.path.join(d, self.libname)):
-                gmock_found = True
-        if gmock_found:
+        cpp_compiler = dependency_get_compiler('cpp', environment, kwargs)
+        if cpp_compiler is None:
+            raise DependencyException('Tried to use gmock but a C++ compiler is not defined.')
+        gmock_detect = cpp_compiler.find_library("gmock", environment, [])
+        if gmock_detect:
             self.is_found = True
             self.compile_args = []
-            self.link_args = ['-lgmock']
+            self.link_args = gmock_detect
             self.sources = []
             mlog.log('Dependency GMock found:', mlog.green('YES'), '(prebuilt)')
             return
