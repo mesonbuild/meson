@@ -140,3 +140,10 @@ using the `pcap-config` tool. It is used like any other dependency:
 ```meson
 pcap_dep = dependency('pcap', version : '>=1.0')
 ```
+
+## GNOME module mkenums_simple() addition
+
+Most libraries and applications use the same standard templates for
+glib-mkenums. There is now a new `mkenums_simple()` convenience method
+that passes those default templates to glib-mkenums and allows some tweaks
+such as optional function decorators or leading underscores.

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 '''This module provides helper functions for Gnome/GLib related
-functionality such as gobject-introspection and gresources.'''
+functionality such as gobject-introspection, gresources and gtk-doc'''
 
 from .. import build
 import os
@@ -31,7 +31,6 @@ from . import GResourceTarget, GResourceHeaderTarget, GirTarget, TypelibTarget, 
 from . import find_program, get_include_args
 from . import ExtensionModule
 from . import noKwargs, permittedKwargs
-
 
 # gresource compilation is broken due to the way
 # the resource compiler and Ninja clash about it
@@ -954,6 +953,108 @@ class GnomeModule(ExtensionModule):
             return ModuleReturnValue(targets[0], [targets[0]])
         else:
             return ModuleReturnValue(targets, targets)
+
+    def mkenums_simple(self, state, args, kwargs):
+        hdr_filename = args[0] + '.h'
+        body_filename = args[0] + '.c'
+
+        # not really needed, just for sanity checking
+        forbidden_kwargs = ['c_template', 'h_template', 'eprod', 'fhead',
+                            'fprod', 'ftail', 'vhead', 'vtail', 'comments']
+        for arg in forbidden_kwargs:
+            if arg in kwargs:
+                raise MesonException('mkenums_simple() does not take a %s keyword argument' % (arg, ))
+
+        # kwargs to pass as-is from mkenums_simple() to mkenums()
+        shared_kwargs = ['sources', 'install_header', 'install_dir',
+                         'identifier_prefix', 'symbol_prefix']
+        mkenums_kwargs = {}
+        for arg in shared_kwargs:
+            if arg in kwargs:
+                mkenums_kwargs[arg] = kwargs[arg]
+
+        # .c file generation
+        c_file_kwargs = copy.deepcopy(mkenums_kwargs)
+        if 'sources' not in kwargs:
+            raise MesonException('Missing keyword argument "sources".')
+        sources = kwargs['sources']
+        if isinstance(sources, str):
+            sources = [sources]
+        elif not isinstance(sources, list):
+            raise MesonException(
+                'Sources keyword argument must be a string or array.')
+
+        header_prefix = kwargs.get('header_prefix', '')
+        decl_decorator = kwargs.get('decorator', '')
+        func_prefix = kwargs.get('function_prefix', '')
+        body_prefix = kwargs.get('body_prefix', '')
+
+        # Maybe we should write our own template files into the build dir
+        # instead, but that seems like much more work, nice as it would be.
+        fhead = ''
+        if body_prefix != '':
+            fhead += '%s\n' % body_prefix
+        fhead += '#include "%s"\n' % hdr_filename
+        for hdr in sources:
+            fhead += '#include "%s"\n' % hdr
+        fhead += '''
+#define C_ENUM(v) ((gint) v)
+#define C_FLAGS(v) ((guint) v)
+'''
+        c_file_kwargs['fhead'] = fhead
+
+        c_file_kwargs['fprod'] = '''
+/* enumerations from "@basename@" */
+'''
+
+        c_file_kwargs['vhead'] = '''
+GType
+%s@enum_name@_get_type (void)
+{
+  static volatile gsize gtype_id = 0;
+  static const G@Type@Value values[] = {''' % func_prefix
+
+        c_file_kwargs['vprod'] = '    { C_@TYPE@(@VALUENAME@), "@VALUENAME@", "@valuenick@" },'
+
+        c_file_kwargs['vtail'] = '''    { 0, NULL, NULL }
+  };
+  if (g_once_init_enter (&gtype_id)) {
+    GType new_type = g_@type@_register_static ("@EnumName@", values);
+    g_once_init_leave (&gtype_id, new_type);
+  }
+  return (GType) gtype_id;
+}'''
+
+        rv = self.mkenums(state, [body_filename], c_file_kwargs)
+        c_file = rv.return_value
+
+        # .h file generation
+        h_file_kwargs = copy.deepcopy(mkenums_kwargs)
+
+        h_file_kwargs['fhead'] = '''#pragma once
+
+#include <glib-object.h>
+{}
+
+G_BEGIN_DECLS
+'''.format(header_prefix)
+
+        h_file_kwargs['fprod'] = '''
+/* enumerations from "@basename@" */
+'''
+
+        h_file_kwargs['vhead'] = '''
+{}
+GType {}@enum_name@_get_type (void);
+#define @ENUMPREFIX@_TYPE_@ENUMSHORT@ ({}@enum_name@_get_type())'''.format(decl_decorator, func_prefix, func_prefix)
+
+        h_file_kwargs['ftail'] = '''
+G_END_DECLS'''
+
+        rv = self.mkenums(state, [hdr_filename], h_file_kwargs)
+        h_file = rv.return_value
+
+        return ModuleReturnValue([c_file, h_file], [c_file, h_file])
 
     @staticmethod
     def _make_mkenum_custom_target(state, sources, output, cmd, kwargs):

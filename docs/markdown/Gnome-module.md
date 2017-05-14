@@ -72,6 +72,12 @@ Returns an array of two elements which are: `[c_source, header_file]`
 
 Generates enum files for GObject using the `glib-mkenums` tool. The first argument is the base name of the output files.
 
+This method is essentially a wrapper around the `glib-mkenums` tool's command line API. It is the most featureful method for enum creation.
+
+Typically you either provide template files or you specify the various template sections manually as strings.
+
+Most libraries and applications will be using the same standard template with only minor tweaks, in which case the `gnome.mkenums_simple()` convenience method can be used instead.
+
 Note that if you `#include` the generated header in any of the sources for a build target, you must add the generated header to the build target's list of sources to codify the dependency. This is true for all generated sources, not just `mkenums`.
 
 * `sources`: the list of sources to make enums with
@@ -90,6 +96,49 @@ Note that if you `#include` the generated header in any of the sources for a bui
 * `vtail`: value tail
 
 *Added 0.35.0*
+
+Returns an array of two elements which are: `[c_source, header_file]`
+
+### gnome.mkenums_simple()
+
+Generates enum `.c` and `.h` files for GObject using the `glib-mkenums` tool
+with the standard template used by most GObject-based C libraries. The first
+argument is the base name of the output files.
+
+Note that if you `#include` the generated header in any of the sources for a
+build target, you must add the generated header to the build target's list of
+sources to codify the dependency. This is true for all generated sources, not
+just `mkenums_simple`.
+
+* `sources`: the list of sources to make enums with
+* `install_header`: if true, install the generated header
+* `install_dir`: directory to install the header
+* `identifier_prefix`: prefix to use for the identifiers
+* `symbol_prefix`: prefix to use for the symbols
+* `header_prefix`: additional prefix at the top of the header file, e.g. for extra includes (which may be needed if you specify a decorator for the function declarations)
+* `decorator`: optional decorator for the function declarations, e.g. `GTK_AVAILABLE` or `GST_EXPORT`
+* `function_prefix`: additional prefix for function names, e.g. in case you want to add a leading underscore to functions used only internally
+* `body_prefix`: additional prefix at the top of the body file, e.g. for extra includes
+
+Example:
+
+```meson
+gnome = import('gnome')
+
+my_headers = ['myheader1.h', 'myheader2.h']
+my_sources = ['mysource1.c', 'mysource2.c']
+
+# will generate myenums.c and myenums.h based on enums in myheader1.h and myheader2.h
+enums = gnome.mkenums_simple('myenums', sources : my_headers)
+
+mylib = library('my', my_sources, enums,
+                include_directories: my_incs,
+                dependencies: my_deps,
+                c_args: my_cargs,
+                install: true)
+```
+
+*Added 0.42.0*
 
 Returns an array of two elements which are: `[c_source, header_file]`
 

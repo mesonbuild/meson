@@ -117,3 +117,12 @@ main = configure_file(
 enumexe3 = executable('enumprog3', main, enums_c3, enums_h3,
 dependencies : gobj)
 test('enum test 3', enumexe3)
+
+enums4 = gnome.mkenums_simple('enums4', sources : 'meson-sample.h',
+                              function_prefix : '_')
+enumexe4 = executable('enumprog4', 'main4.c', enums4, dependencies : gobj)
+
+enums5 = gnome.mkenums_simple('enums5', sources : 'meson-sample.h',
+                              decorator : 'MESON_EXPORT',
+                              header_prefix : '#include "meson-decls.h"')
+enumexe5 = executable('enumprog5', main, enums5, dependencies : gobj)
