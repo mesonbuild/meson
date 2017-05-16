@@ -1109,16 +1109,12 @@ int dummy;
                 args += ['--internal-header', internalheadername]
                 valac_outputs.append(internalheadername)
                 target.outputs.append(target.vala_internal_header)
-                if len(target.install_dir) > 4 and target.install_dir[4] is True:
-                    target.install_dir[4] = self.environment.get_includedir()
             # Generate VAPI for internal symbols if requested by user
             if isinstance(target.vala_internal_vapi, str):
                 internalvapi = os.path.join(self.get_target_dir(target), target.vala_internal_vapi)
                 args += ['--internal-vapi', os.path.join('..', target.vala_internal_vapi)]
                 valac_outputs.append(internalvapi)
                 target.outputs.append(target.vala_internal_vapi)
-                if len(target.install_dir) > 5 and target.install_dir[5] is True:
-                    target.install_dir[5] = os.path.join(self.environment.get_datadir(), 'vala', 'vapi')
         # Detect gresources and add --gresources arguments for each
         for (gres, gensrc) in other_src[1].items():
             if isinstance(gensrc, modules.GResourceTarget):
