@@ -272,6 +272,7 @@ class Environment:
         self.default_objc = ['cc']
         self.default_objcpp = ['c++']
         self.default_fortran = ['gfortran', 'g95', 'f95', 'f90', 'f77', 'ifort']
+        self.default_vala = ['valac']
         self.default_static_linker = ['ar']
         self.vs_static_linker = ['lib']
         self.gcc_static_linker = ['gcc-ar']
@@ -632,16 +633,22 @@ class Environment:
             return MonoCompiler(exelist, version)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
 
-    def detect_vala_compiler(self):
-        exelist = ['valac']
-        try:
-            p, out = Popen_safe(exelist + ['--version'])[0:2]
-        except OSError:
-            raise EnvironmentException('Could not execute Vala compiler "%s"' % ' '.join(exelist))
-        version = search_version(out)
-        if 'Vala' in out:
-            return ValaCompiler(exelist, version)
-        raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
+    def detect_vala_compiler(self, want_cross):
+        popen_exceptions = {}
+        compilers, ccache, is_cross, exe_wrap = self._get_compilers('vala', 'VALAC', want_cross)
+        for compiler in compilers:
+            if isinstance(compiler, str):
+                compiler = [compiler]
+            arg = ['--version']
+            try:
+                p, out = Popen_safe(compiler + arg)[0:2]
+            except OSError as e:
+                popen_exceptions[' '.join(compiler + arg)] = e
+                continue
+            version = search_version(out)
+            if 'Vala' in out:
+                return ValaCompiler(compiler, version, is_cross)
+        self._handle_exceptions(popen_exceptions, compilers)
 
     def detect_rust_compiler(self):
         exelist = ['rustc']

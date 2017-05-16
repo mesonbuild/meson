@@ -1659,12 +1659,12 @@ class JavaCompiler(Compiler):
         return False
 
 class ValaCompiler(Compiler):
-    def __init__(self, exelist, version):
+    def __init__(self, exelist, version, is_cross):
         self.language = 'vala'
         super().__init__(exelist, version)
         self.version = version
         self.id = 'valac'
-        self.is_cross = False
+        self.is_cross = is_cross
 
     def name_string(self):
         return ' '.join(self.exelist)
