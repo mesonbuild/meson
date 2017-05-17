@@ -852,7 +852,6 @@ class AllPlatformTests(BasePlatformTests):
         env = Environment(testdir, self.builddir, self.meson_command,
                           get_fake_options(self.prefix), [])
         for lang, evar in langs:
-            evalue = None
             # Detect with evar and do sanity checks on that
             if evar in os.environ:
                 ecc = getattr(env, 'detect_{}_compiler'.format(lang))(False)

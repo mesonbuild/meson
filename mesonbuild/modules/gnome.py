@@ -730,7 +730,7 @@ class GnomeModule(ExtensionModule):
 
         return args
 
-    def gtkdoc_html_dir(self, state, args, kwarga):
+    def gtkdoc_html_dir(self, state, args, kwargs):
         if len(args) != 1:
             raise MesonException('Must have exactly one argument.')
         modulename = args[0]

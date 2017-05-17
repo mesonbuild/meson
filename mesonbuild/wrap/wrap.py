@@ -178,7 +178,6 @@ class Resolver:
         if is_there:
             try:
                 subprocess.check_call(['git', 'rev-parse'], cwd=checkoutdir)
-                is_there = True
             except subprocess.CalledProcessError:
                 raise RuntimeError('%s is not empty but is not a valid '
                                    'git repository, we can not work with it'

@@ -217,7 +217,6 @@ def validate_install(srcdir, installdir, compiler):
     # If this exists, the test does not install any other files
     noinst_file = 'usr/no-installed-files'
     expected = {}
-    found = {}
     ret_msg = ''
     # Generate list of expected files
     if os.path.exists(os.path.join(installdir, noinst_file)):

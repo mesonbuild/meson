@@ -34,7 +34,7 @@ def set_mode(path, mode):
         except PermissionError as e:
             msg = '{!r}: Unable to set owner {!r} and group {!r}: {}, ignoring...'
             print(msg.format(path, mode.owner, mode.group, e.strerror))
-        except LookupError as e:
+        except LookupError:
             msg = '{!r}: Non-existent owner {!r} or group {!r}: ignoring...'
             print(msg.format(path, mode.owner, mode.group))
         except OSError as e:
