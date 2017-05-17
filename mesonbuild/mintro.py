@@ -79,9 +79,7 @@ def list_installed(installdata):
 def list_targets(coredata, builddata, installdata):
     tlist = []
     for (idname, target) in builddata.get_targets().items():
-        t = {}
-        t['name'] = target.get_basename()
-        t['id'] = idname
+        t = {'name': target.get_basename(), 'id': idname}
         fname = target.get_filename()
         if isinstance(fname, list):
             fname = [os.path.join(target.subdir, x) for x in fname]
@@ -132,9 +130,7 @@ def add_keys(optlist, options):
     keys.sort()
     for key in keys:
         opt = options[key]
-        optdict = {}
-        optdict['name'] = key
-        optdict['value'] = opt.value
+        optdict = {'name': key, 'value': opt.value}
         if isinstance(opt, coredata.UserStringOption):
             typestr = 'string'
         elif isinstance(opt, coredata.UserBooleanOption):
@@ -190,9 +186,7 @@ def list_tests(testdata):
     print(json.dumps(result))
 
 def list_projinfo(builddata):
-    result = {}
-    result['name'] = builddata.project_name
-    result['version'] = builddata.project_version
+    result = {'name': builddata.project_name, 'version': builddata.project_version}
     subprojects = []
     for k, v in builddata.subprojects.items():
         c = {'name': k,
