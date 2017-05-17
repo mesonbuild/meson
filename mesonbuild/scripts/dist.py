@@ -112,7 +112,7 @@ def check_dist(packagename, meson_command):
             print('Installing the distribution package failed.')
             return 1
     finally:
-        shutil.rmtree(srcdir)
+        shutil.rmtree(unpackdir)
         shutil.rmtree(builddir)
         shutil.rmtree(installdir)
     print('Distribution package %s tested.' % packagename)
