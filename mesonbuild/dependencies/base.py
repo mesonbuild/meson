@@ -547,6 +547,7 @@ class ExtraFrameworkDependency(Dependency):
     def __init__(self, name, required, path, kwargs):
         Dependency.__init__(self, 'extraframeworks', kwargs)
         self.name = None
+        self.required = required
         self.detect(name, path)
         if self.found():
             mlog.log('Dependency', mlog.bold(name), 'found:', mlog.green('YES'),
@@ -570,6 +571,8 @@ class ExtraFrameworkDependency(Dependency):
                 self.path = p
                 self.name = d
                 return
+        if not self.found() and self.required:
+            raise DependencyException('Framework dependency %s not found.' % (name, ))
 
     def get_compile_args(self):
         if self.found():
