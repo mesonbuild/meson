@@ -8,6 +8,8 @@ rm -rf buildtmp
 mkdir -p mnttmp
 rm -f working.dmg
 gunzip < template.dmg.gz > working.dmg
+# NOTE: output of hdiutil changes every now and then.
+# Verify that this is still working.
 hdiutil attach working.dmg -noautoopen -quiet -mountpoint mnttmp
 rm -rf mnttmp/myapp.app
 mv /tmp/myapp.app mnttmp
