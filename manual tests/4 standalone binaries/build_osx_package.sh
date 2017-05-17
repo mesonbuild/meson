@@ -9,12 +9,9 @@ mkdir -p mnttmp
 rm -f working.dmg
 gunzip < template.dmg.gz > working.dmg
 hdiutil attach working.dmg -noautoopen -quiet -mountpoint mnttmp
-# NOTE: output of hdiutil changes every now and then.
-# Verify that this is still working.
-DEV=`hdiutil info|tail -1|awk '{print $1}'`
 rm -rf mnttmp/myapp.app
 mv /tmp/myapp.app mnttmp
-hdiutil detach ${DEV}
+hdiutil detach $(hdiutil info|grep "mnttmp"|awk '{print $1}')
 rm -rf mnttmp
 rm -f myapp.dmg
 hdiutil convert working.dmg -quiet -format UDZO -imagekey zlib-level=9 -o myapp.dmg
