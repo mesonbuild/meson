@@ -381,6 +381,8 @@ class BasePlatformTests(unittest.TestCase):
         output = p.communicate()[0]
         print(output)
         if p.returncode != 0:
+            if 'MESON_SKIP_TEST' in output:
+                raise unittest.SkipTest('Project requested skipping.')
             raise subprocess.CalledProcessError(p.returncode, command)
         return output
 
@@ -396,6 +398,8 @@ class BasePlatformTests(unittest.TestCase):
                      '--libdir', self.libdir]
         try:
             self._run(self.meson_command + args + extra_args)
+        except unittest.SkipTest:
+            raise unittest.SkipTest('Project requested skipping: ' + srcdir)
         except:
             self._print_meson_log()
             raise
