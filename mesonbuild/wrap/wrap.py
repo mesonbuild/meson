@@ -301,12 +301,13 @@ class Resolver:
             try:
                 import lzma
                 del lzma
+            except ImportError:
+                pass
+            else:
                 try:
                     shutil.register_unpack_format('xztar', ['.tar.xz', '.txz'], shutil._unpack_tarfile, [], "xz'ed tar-file")
                 except shutil.RegistryError:
                     pass
-            except ImportError:
-                pass
         target_dir = os.path.join(self.subdir_root, package.get('directory'))
         if os.path.isdir(target_dir):
             return

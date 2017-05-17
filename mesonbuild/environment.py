@@ -459,11 +459,11 @@ class Environment:
         for compiler in compilers:
             if isinstance(compiler, str):
                 compiler = [compiler]
+            if 'cl' in compiler or 'cl.exe' in compiler:
+                arg = '/?'
+            else:
+                arg = '--version'
             try:
-                if 'cl' in compiler or 'cl.exe' in compiler:
-                    arg = '/?'
-                else:
-                    arg = '--version'
                 p, out, err = Popen_safe(compiler + [arg])
             except OSError as e:
                 popen_exceptions[' '.join(compiler + [arg])] = e

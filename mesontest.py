@@ -457,11 +457,11 @@ TIMEOUT: %4d
             return test.name
 
     def run_tests(self, tests):
+        executor = None
+        logfile = None
+        jsonlogfile = None
+        futures = []
         try:
-            executor = None
-            logfile = None
-            jsonlogfile = None
-            futures = []
             numlen = len('%d' % len(tests))
             (logfile, logfilename, jsonlogfile, jsonlogfilename) = self.open_log_files()
             wrap = self.get_wrapper()
