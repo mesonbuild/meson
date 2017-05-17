@@ -11,6 +11,8 @@ gunzip < template.dmg.gz > working.dmg
 hdiutil attach working.dmg -noautoopen -quiet -mountpoint mnttmp
 rm -rf mnttmp/myapp.app
 mv /tmp/myapp.app mnttmp
+# NOTE: output of hdiutil changes every now and then.
+# Verify that this is still working.
 hdiutil detach $(hdiutil info|grep "mnttmp"|awk '{print $1}')
 rm -rf mnttmp
 rm -f myapp.dmg
