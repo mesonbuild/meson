@@ -573,6 +573,7 @@ class CustomTargetHolder(TargetHolder):
 
 class RunTargetHolder(InterpreterObject):
     def __init__(self, name, command, args, dependencies, subdir):
+        super().__init__()
         self.held_object = build.RunTarget(name, command, args, dependencies, subdir)
 
     def __repr__(self):
