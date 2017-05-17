@@ -66,9 +66,6 @@ class DummyFuture(conc.Future):
     ask for the result. Used on platforms where sem_open() is not available:
     MSYS2, OpenBSD, etc: https://bugs.python.org/issue3770
     '''
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
     def set_function(self, fn, *args, **kwargs):
         self.fn = fn
         self.fn_args = args

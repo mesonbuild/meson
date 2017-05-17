@@ -26,8 +26,7 @@ parser.add_argument('--clearcache', action='store_true', default=False,
                     help='Clear cached state (e.g. found dependencies)')
 
 class ConfException(mesonlib.MesonException):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    pass
 
 class Conf:
     def __init__(self, build_dir):

@@ -329,8 +329,7 @@ def build_unix_rpath_args(build_dir, rpath_paths, install_rpath):
         return ['-Wl,-rpath,' + paths]
 
 class CrossNoRunException(MesonException):
-    def __init(self, *args, **kwargs):
-        Exception.__init__(self, *args, **kwargs)
+    pass
 
 class RunResult:
     def __init__(self, compiled, returncode=999, stdout='UNDEFINED', stderr='UNDEFINED'):
