@@ -1353,7 +1353,6 @@ class Interpreter(InterpreterBase):
 
     def module_method_callback(self, return_object):
         if not isinstance(return_object, ModuleReturnValue):
-            assert False
             raise InterpreterException('Bug in module, it returned an invalid object')
         invalues = return_object.new_objects
         self.process_new_values(invalues)

@@ -140,8 +140,7 @@ def run(args):
     error_count = 0
     for name in names:
         rc = check_dist(name, meson_command) # Check only one.
-        rc = 0
         if rc == 0:
             create_hash(name)
         error_count += rc
-    return rc
+    return 1 if error_count else 0
