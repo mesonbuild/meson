@@ -198,8 +198,6 @@ class InterpreterBase:
 
     def evaluate_notstatement(self, cur):
         v = self.evaluate_statement(cur.value)
-        if isinstance(v, mparser.BooleanNode):
-            v = v.value
         if not isinstance(v, bool):
             raise InterpreterException('Argument to "not" is not a boolean.')
         return not v
@@ -217,16 +215,8 @@ class InterpreterBase:
             self.evaluate_codeblock(node.elseblock)
 
     def evaluate_comparison(self, node):
-        v1 = self.evaluate_statement(node.left)
-        v2 = self.evaluate_statement(node.right)
-        if self.is_elementary_type(v1):
-            val1 = v1
-        else:
-            val1 = v1.value
-        if self.is_elementary_type(v2):
-            val2 = v2
-        else:
-            val2 = v2.value
+        val1 = self.evaluate_statement(node.left)
+        val2 = self.evaluate_statement(node.right)
         if node.ctype == '==':
             return val1 == val2
         elif node.ctype == '!=':
@@ -244,45 +234,35 @@ class InterpreterBase:
 
     def evaluate_andstatement(self, cur):
         l = self.evaluate_statement(cur.left)
-        if isinstance(l, mparser.BooleanNode):
-            l = l.value
         if not isinstance(l, bool):
             raise InterpreterException('First argument to "and" is not a boolean.')
         if not l:
             return False
         r = self.evaluate_statement(cur.right)
-        if isinstance(r, mparser.BooleanNode):
-            r = r.value
         if not isinstance(r, bool):
             raise InterpreterException('Second argument to "and" is not a boolean.')
         return r
 
     def evaluate_orstatement(self, cur):
         l = self.evaluate_statement(cur.left)
-        if isinstance(l, mparser.BooleanNode):
-            l = l.get_value()
         if not isinstance(l, bool):
             raise InterpreterException('First argument to "or" is not a boolean.')
         if l:
             return True
         r = self.evaluate_statement(cur.right)
-        if isinstance(r, mparser.BooleanNode):
-            r = r.get_value()
         if not isinstance(r, bool):
             raise InterpreterException('Second argument to "or" is not a boolean.')
         return r
 
     def evaluate_uminusstatement(self, cur):
         v = self.evaluate_statement(cur.value)
-        if isinstance(v, mparser.NumberNode):
-            v = v.value
         if not isinstance(v, int):
             raise InterpreterException('Argument to negation is not an integer.')
         return -v
 
     def evaluate_arithmeticstatement(self, cur):
-        l = self.to_native(self.evaluate_statement(cur.left))
-        r = self.to_native(self.evaluate_statement(cur.right))
+        l = self.evaluate_statement(cur.left)
+        r = self.evaluate_statement(cur.right)
 
         if cur.operation == 'add':
             try:
@@ -382,8 +362,6 @@ class InterpreterBase:
             obj = self.evaluate_statement(invokable)
         method_name = node.name
         args = node.args
-        if isinstance(obj, mparser.StringNode):
-            obj = obj.get_value()
         if isinstance(obj, str):
             return self.string_method_call(obj, method_name, args)
         if isinstance(obj, bool):
@@ -402,7 +380,6 @@ class InterpreterBase:
         return obj.method_call(method_name, self.flatten(args), kwargs)
 
     def bool_method_call(self, obj, method_name, args):
-        obj = self.to_native(obj)
         (posargs, _) = self.reduce_arguments(args)
         if method_name == 'to_string':
             if not posargs:
@@ -426,7 +403,6 @@ class InterpreterBase:
             raise InterpreterException('Unknown method "%s" for a boolean.' % method_name)
 
     def int_method_call(self, obj, method_name, args):
-        obj = self.to_native(obj)
         (posargs, _) = self.reduce_arguments(args)
         if method_name == 'is_even':
             if not posargs:
@@ -442,7 +418,6 @@ class InterpreterBase:
             raise InterpreterException('Unknown method "%s" for an integer.' % method_name)
 
     def string_method_call(self, obj, method_name, args):
-        obj = self.to_native(obj)
         (posargs, _) = self.reduce_arguments(args)
         if method_name == 'strip':
             return obj.strip()
@@ -534,8 +509,6 @@ class InterpreterBase:
                 raise InvalidArguments('Keyword argument name is not a string.')
             a = args.kwargs[key]
             reduced_kw[key] = self.evaluate_statement(a)
-        if not isinstance(reduced_pos, list):
-            reduced_pos = [reduced_pos]
         self.argument_depth -= 1
         return reduced_pos, reduced_kw
 
@@ -564,7 +537,6 @@ To specify a keyword argument, use : instead of =.''')
         if not isinstance(var_name, str):
             raise InvalidArguments('Tried to assign value to a non-variable.')
         value = self.evaluate_statement(node.value)
-        value = self.to_native(value)
         if not self.is_assignable(value):
             raise InvalidCode('Tried to assign an invalid value to variable.')
         # For mutable objects we need to make a copy on assignment
@@ -593,12 +565,6 @@ To specify a keyword argument, use : instead of =.''')
             return self.variables[varname]
         raise InvalidCode('Unknown variable "%s".' % varname)
 
-    def to_native(self, arg):
-        if isinstance(arg, (mparser.StringNode, mparser.NumberNode,
-                            mparser.BooleanNode)):
-            return arg.value
-        return arg
-
     def is_assignable(self, value):
         return isinstance(value, (InterpreterObject, dependencies.Dependency,
                                   str, int, list, mesonlib.File))
@@ -624,7 +590,7 @@ To specify a keyword argument, use : instead of =.''')
         if len(args) != 2:
             raise InvalidCode('Set_variable takes two arguments.')
         varname = args[0]
-        value = self.to_native(args[1])
+        value = args[1]
         self.set_variable(varname, value)
 
 #    @noKwargs

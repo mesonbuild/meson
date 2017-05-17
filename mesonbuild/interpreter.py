@@ -2625,11 +2625,10 @@ different subdirectory.
                 raise InterpreterException('Tried to add non-existing source file %s.' % s)
 
     def format_string(self, templ, args):
-        templ = self.to_native(templ)
         if isinstance(args, mparser.ArgumentNode):
             args = args.arguments
         for (i, arg) in enumerate(args):
-            arg = self.to_native(self.evaluate_statement(arg))
+            arg = self.evaluate_statement(arg)
             if isinstance(arg, bool): # Python boolean is upper case.
                 arg = str(arg).lower()
             templ = templ.replace('@{}@'.format(i), str(arg))
