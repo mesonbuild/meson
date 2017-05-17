@@ -738,7 +738,7 @@ class Environment:
             if p.returncode == 1 and err.startswith('usage'): # OSX
                 return ArLinker(linker)
         self._handle_exceptions(popen_exceptions, linkers, 'linker')
-        raise EnvironmentException('Unknown static linker "%s"' % ' '.join(linker))
+        raise EnvironmentException('Unknown static linker "%s"' % ' '.join(linkers))
 
     def detect_ccache(self):
         try:

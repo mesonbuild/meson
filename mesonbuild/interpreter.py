@@ -100,7 +100,7 @@ class RunProcess(InterpreterObject):
         try:
             return Popen_safe(command_array, env=child_env, cwd=cwd)
         except FileNotFoundError:
-            raise InterpreterException('Could not execute command "%s".' % cmd_name)
+            raise InterpreterException('Could not execute command "%s".' % ' '.join(command_array))
 
     def returncode_method(self, args, kwargs):
         return self.returncode
