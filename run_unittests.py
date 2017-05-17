@@ -250,6 +250,7 @@ class InternalTests(unittest.TestCase):
         self.assertEqual(substfunc(cmd, d), inputs + cmd[2:])
         # Many inputs, can't use @INPUT@ like this
         cmd = ['@INPUT@.out', 'ordinary', 'strings']
+        self.assertRaises(ME, substfunc, cmd, d)
         # Not enough inputs
         cmd = ['@INPUT2@.out', 'ordinary', 'strings']
         self.assertRaises(ME, substfunc, cmd, d)
@@ -284,6 +285,7 @@ class InternalTests(unittest.TestCase):
         self.assertEqual(substfunc(cmd, d), [outputs[0] + '.out', inputs[1] + '.ok'] + cmd[2:])
         # Many inputs, can't use @INPUT@ like this
         cmd = ['@INPUT@.out', 'ordinary', 'strings']
+        self.assertRaises(ME, substfunc, cmd, d)
         # Not enough inputs
         cmd = ['@INPUT2@.out', 'ordinary', 'strings']
         self.assertRaises(ME, substfunc, cmd, d)
@@ -310,6 +312,7 @@ class InternalTests(unittest.TestCase):
         self.assertEqual(substfunc(cmd, d), [outputs[0] + '.out', inputs[1] + '.ok', 'dir'])
         # Many inputs, can't use @INPUT@ like this
         cmd = ['@INPUT@.out', 'ordinary', 'strings']
+        self.assertRaises(ME, substfunc, cmd, d)
         # Not enough inputs
         cmd = ['@INPUT2@.out', 'ordinary', 'strings']
         self.assertRaises(ME, substfunc, cmd, d)
