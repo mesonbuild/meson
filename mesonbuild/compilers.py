@@ -51,8 +51,8 @@ c_suffixes = lang_suffixes['c'] + ('h',)
 # used in build.py:process_compilers() and build.py:get_dynamic_linker()
 clike_langs = ('objcpp', 'objc', 'd', 'cpp', 'c', 'fortran',)
 clike_suffixes = ()
-for l in clike_langs:
-    clike_suffixes += lang_suffixes[l]
+for _l in clike_langs:
+    clike_suffixes += lang_suffixes[_l]
 clike_suffixes += ('h', 'll', 's')
 
 # All these are only for C-like languages; see `clike_langs` above.
@@ -1017,31 +1017,31 @@ class CCompiler(Compiler):
         int main() {{ static int a[1-2*!({expression})]; a[0]=0; return 0; }}'''
         return self.compiles(t.format(**fargs), env, extra_args, dependencies)
 
-    def cross_compute_int(self, expression, l, h, guess, prefix, env, extra_args, dependencies):
+    def cross_compute_int(self, expression, low, high, guess, prefix, env, extra_args, dependencies):
         if isinstance(guess, int):
             if self._compile_int('%s == %d' % (expression, guess), prefix, env, extra_args, dependencies):
                 return guess
 
-        cur = l
-        while l < h:
-            cur = int((l + h) / 2)
-            if cur == l:
+        cur = low
+        while low < high:
+            cur = int((low + high) / 2)
+            if cur == low:
                 break
 
             if self._compile_int('%s >= %d' % (expression, cur), prefix, env, extra_args, dependencies):
-                l = cur
+                low = cur
             else:
-                h = cur
+                high = cur
 
         if self._compile_int('%s == %d' % (expression, cur), prefix, env, extra_args, dependencies):
             return cur
         raise EnvironmentException('Cross-compile check overflowed')
 
-    def compute_int(self, expression, l, h, guess, prefix, env, extra_args=None, dependencies=None):
+    def compute_int(self, expression, low, high, guess, prefix, env, extra_args=None, dependencies=None):
         if extra_args is None:
             extra_args = []
         if self.is_cross:
-            return self.cross_compute_int(expression, l, h, guess, prefix, env, extra_args, dependencies)
+            return self.cross_compute_int(expression, low, high, guess, prefix, env, extra_args, dependencies)
         fargs = {'prefix': prefix, 'expression': expression}
         t = '''#include<stdio.h>
         {prefix}
