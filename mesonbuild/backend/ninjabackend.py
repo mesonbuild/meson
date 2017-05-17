@@ -21,7 +21,7 @@ from .. import dependencies
 from .. import compilers
 from ..compilers import CompilerArgs
 from ..mesonlib import File, MesonException, OrderedSet
-from ..mesonlib import get_meson_script, get_compiler_for_source, Popen_safe
+from ..mesonlib import get_meson_script, get_compiler_for_source
 from .backends import CleanTrees, InstallData
 from ..build import InvalidArguments
 import os, sys, pickle, re

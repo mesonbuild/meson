@@ -13,9 +13,8 @@
 # limitations under the License.
 
 
-import os, sys
+import os
 import shutil
-import argparse
 import subprocess
 import pickle
 import hashlib

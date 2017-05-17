@@ -18,7 +18,10 @@ import shlex
 import subprocess
 import re, json
 import tempfile
-import unittest, os, sys, shutil, time
+import os
+import shutil
+import sys
+import unittest
 from glob import glob
 from pathlib import PurePath
 import mesonbuild.compilers

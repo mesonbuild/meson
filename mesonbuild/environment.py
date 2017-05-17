@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os, re, subprocess, platform
-from . import coredata
-from . import mesonlib
-from . import mlog
+import os
+import platform
+import re
+
 from .compilers import *
 from .mesonlib import EnvironmentException, Popen_safe
 import configparser
