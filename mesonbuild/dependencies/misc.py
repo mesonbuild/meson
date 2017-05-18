@@ -95,7 +95,6 @@ class BoostDependency(Dependency):
 
     def get_compile_args(self):
         args = []
-        include_dir = ''
         if self.boost_root is not None:
             if mesonlib.is_windows():
                 include_dir = self.boost_root

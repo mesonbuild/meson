@@ -227,8 +227,6 @@ class ExtractedObjects:
               'You can only extract all the object files at once.'
         raise MesonException(msg)
 
-    def get_want_all_objects(self):
-        return self.want_all_objects
 
 class EnvironmentVariables:
     def __init__(self):
@@ -238,7 +236,7 @@ class EnvironmentVariables:
         repr_str = "<{0}: {1}>"
         return repr_str.format(self.__class__.__name__, self.envvars)
 
-    def get_value(self, name, values, kwargs):
+    def get_value(self, values, kwargs):
         separator = kwargs.get('separator', os.pathsep)
 
         value = ''
@@ -247,16 +245,16 @@ class EnvironmentVariables:
         return separator, value.strip(separator)
 
     def set(self, env, name, values, kwargs):
-        return self.get_value(name, values, kwargs)[1]
+        return self.get_value(values, kwargs)[1]
 
     def append(self, env, name, values, kwargs):
-        sep, value = self.get_value(name, values, kwargs)
+        sep, value = self.get_value(values, kwargs)
         if name in env:
             return env[name] + sep + value
         return value
 
     def prepend(self, env, name, values, kwargs):
-        sep, value = self.get_value(name, values, kwargs)
+        sep, value = self.get_value(values, kwargs)
         if name in env:
             return value + sep + env[name]
 

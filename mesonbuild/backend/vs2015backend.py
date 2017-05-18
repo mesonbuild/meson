@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from xml.etree import ElementTree as ET
 from .vs2010backend import Vs2010Backend
 
 

@@ -100,7 +100,7 @@ class RunProcess(InterpreterObject):
         try:
             return Popen_safe(command_array, env=child_env, cwd=cwd)
         except FileNotFoundError:
-            raise InterpreterException('Could not execute command "%s".' % cmd_name)
+            raise InterpreterException('Could not execute command "%s".' % ' '.join(command_array))
 
     def returncode_method(self, args, kwargs):
         return self.returncode
@@ -573,6 +573,7 @@ class CustomTargetHolder(TargetHolder):
 
 class RunTargetHolder(InterpreterObject):
     def __init__(self, name, command, args, dependencies, subdir):
+        super().__init__()
         self.held_object = build.RunTarget(name, command, args, dependencies, subdir)
 
     def __repr__(self):
@@ -1353,7 +1354,6 @@ class Interpreter(InterpreterBase):
 
     def module_method_callback(self, return_object):
         if not isinstance(return_object, ModuleReturnValue):
-            assert False
             raise InterpreterException('Bug in module, it returned an invalid object')
         invalues = return_object.new_objects
         self.process_new_values(invalues)
@@ -2625,11 +2625,10 @@ different subdirectory.
                 raise InterpreterException('Tried to add non-existing source file %s.' % s)
 
     def format_string(self, templ, args):
-        templ = self.to_native(templ)
         if isinstance(args, mparser.ArgumentNode):
             args = args.arguments
         for (i, arg) in enumerate(args):
-            arg = self.to_native(self.evaluate_statement(arg))
+            arg = self.evaluate_statement(arg)
             if isinstance(arg, bool): # Python boolean is upper case.
                 arg = str(arg).lower()
             templ = templ.replace('@{}@'.format(i), str(arg))

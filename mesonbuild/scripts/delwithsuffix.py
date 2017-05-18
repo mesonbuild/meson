@@ -15,12 +15,12 @@
 import os, sys
 
 def run(args):
-    if len(sys.argv) != 3:
+    if len(args) != 2:
         print('delwithsuffix.py <root of subdir to process> <suffix to delete>')
         sys.exit(1)
 
-    topdir = sys.argv[1]
-    suffix = sys.argv[2]
+    topdir = args[0]
+    suffix = args[1]
     if suffix[0] != '.':
         suffix = '.' + suffix
 

@@ -18,7 +18,10 @@ import shlex
 import subprocess
 import re, json
 import tempfile
-import unittest, os, sys, shutil, time
+import os
+import shutil
+import sys
+import unittest
 from glob import glob
 from pathlib import PurePath
 import mesonbuild.compilers
@@ -247,6 +250,7 @@ class InternalTests(unittest.TestCase):
         self.assertEqual(substfunc(cmd, d), inputs + cmd[2:])
         # Many inputs, can't use @INPUT@ like this
         cmd = ['@INPUT@.out', 'ordinary', 'strings']
+        self.assertRaises(ME, substfunc, cmd, d)
         # Not enough inputs
         cmd = ['@INPUT2@.out', 'ordinary', 'strings']
         self.assertRaises(ME, substfunc, cmd, d)
@@ -281,6 +285,7 @@ class InternalTests(unittest.TestCase):
         self.assertEqual(substfunc(cmd, d), [outputs[0] + '.out', inputs[1] + '.ok'] + cmd[2:])
         # Many inputs, can't use @INPUT@ like this
         cmd = ['@INPUT@.out', 'ordinary', 'strings']
+        self.assertRaises(ME, substfunc, cmd, d)
         # Not enough inputs
         cmd = ['@INPUT2@.out', 'ordinary', 'strings']
         self.assertRaises(ME, substfunc, cmd, d)
@@ -307,6 +312,7 @@ class InternalTests(unittest.TestCase):
         self.assertEqual(substfunc(cmd, d), [outputs[0] + '.out', inputs[1] + '.ok', 'dir'])
         # Many inputs, can't use @INPUT@ like this
         cmd = ['@INPUT@.out', 'ordinary', 'strings']
+        self.assertRaises(ME, substfunc, cmd, d)
         # Not enough inputs
         cmd = ['@INPUT2@.out', 'ordinary', 'strings']
         self.assertRaises(ME, substfunc, cmd, d)
@@ -853,7 +859,6 @@ class AllPlatformTests(BasePlatformTests):
         env = Environment(testdir, self.builddir, self.meson_command,
                           get_fake_options(self.prefix), [])
         for lang, evar in langs:
-            evalue = None
             # Detect with evar and do sanity checks on that
             if evar in os.environ:
                 ecc = getattr(env, 'detect_{}_compiler'.format(lang))(False)

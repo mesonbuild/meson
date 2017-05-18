@@ -13,9 +13,8 @@
 # limitations under the License.
 
 
-import os, sys
+import os
 import shutil
-import argparse
 import subprocess
 import pickle
 import hashlib
@@ -113,7 +112,7 @@ def check_dist(packagename, meson_command):
             print('Installing the distribution package failed.')
             return 1
     finally:
-        shutil.rmtree(srcdir)
+        shutil.rmtree(unpackdir)
         shutil.rmtree(builddir)
         shutil.rmtree(installdir)
     print('Distribution package %s tested.' % packagename)
@@ -141,8 +140,7 @@ def run(args):
     error_count = 0
     for name in names:
         rc = check_dist(name, meson_command) # Check only one.
-        rc = 0
         if rc == 0:
             create_hash(name)
         error_count += rc
-    return rc
+    return 1 if error_count else 0

@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os, re, subprocess, platform
-from . import coredata
-from . import mesonlib
-from . import mlog
+import os
+import platform
+import re
+
 from .compilers import *
 from .mesonlib import EnvironmentException, Popen_safe
 import configparser
@@ -459,11 +459,11 @@ class Environment:
         for compiler in compilers:
             if isinstance(compiler, str):
                 compiler = [compiler]
+            if 'cl' in compiler or 'cl.exe' in compiler:
+                arg = '/?'
+            else:
+                arg = '--version'
             try:
-                if 'cl' in compiler or 'cl.exe' in compiler:
-                    arg = '/?'
-                else:
-                    arg = '--version'
                 p, out, err = Popen_safe(compiler + [arg])
             except OSError as e:
                 popen_exceptions[' '.join(compiler + [arg])] = e
@@ -738,7 +738,7 @@ class Environment:
             if p.returncode == 1 and err.startswith('usage'): # OSX
                 return ArLinker(linker)
         self._handle_exceptions(popen_exceptions, linkers, 'linker')
-        raise EnvironmentException('Unknown static linker "%s"' % ' '.join(linker))
+        raise EnvironmentException('Unknown static linker "%s"' % ' '.join(linkers))
 
     def detect_ccache(self):
         try:

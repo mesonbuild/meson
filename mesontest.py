@@ -304,7 +304,7 @@ class TestHarness:
         if jsonlogfile:
             write_json_log(jsonlogfile, name, result)
 
-    def print_summary(self, logfile, jsonlogfile):
+    def print_summary(self, logfile):
         msg = '''
 OK:      %4d
 FAIL:    %4d
@@ -446,7 +446,7 @@ TIMEOUT: %4d
         assert(isinstance(wrap, list))
         return wrap
 
-    def get_pretty_suite(self, test, tests):
+    def get_pretty_suite(self, test):
         if len(self.suites) > 1:
             rv = TestHarness.split_suite_string(test.suite[0])[0]
             s = "+".join(TestHarness.split_suite_string(s)[1] for s in test.suite)
@@ -457,24 +457,24 @@ TIMEOUT: %4d
             return test.name
 
     def run_tests(self, tests):
+        executor = None
+        logfile = None
+        jsonlogfile = None
+        futures = []
         try:
-            executor = None
-            logfile = None
-            jsonlogfile = None
-            futures = []
             numlen = len('%d' % len(tests))
             (logfile, logfilename, jsonlogfile, jsonlogfilename) = self.open_log_files()
             wrap = self.get_wrapper()
 
-            for i in range(self.options.repeat):
+            for _ in range(self.options.repeat):
                 for i, test in enumerate(tests):
-                    visible_name = self.get_pretty_suite(test, tests)
+                    visible_name = self.get_pretty_suite(test)
 
                     if self.options.gdb:
                         test.timeout = None
 
                     if not test.is_parallel or self.options.gdb:
-                        self.drain_futures(futures, logfile, jsonlogfile)
+                        self.drain_futures(futures)
                         futures = []
                         res = self.run_single_test(wrap, test)
                         self.print_stats(numlen, tests, visible_name, res, i, logfile, jsonlogfile)
@@ -488,8 +488,8 @@ TIMEOUT: %4d
                 if self.options.repeat > 1 and self.fail_count:
                     break
 
-            self.drain_futures(futures, logfile, jsonlogfile)
-            self.print_summary(logfile, jsonlogfile)
+            self.drain_futures(futures)
+            self.print_summary(logfile)
             self.print_collected_logs()
 
             if logfilename:
@@ -500,7 +500,7 @@ TIMEOUT: %4d
             if logfile:
                 logfile.close()
 
-    def drain_futures(self, futures, logfile, jsonlogfile):
+    def drain_futures(self, futures):
         for i in futures:
             (result, numlen, tests, name, i, logfile, jsonlogfile) = i
             if self.options.repeat > 1 and self.fail_count:
@@ -525,7 +525,7 @@ TIMEOUT: %4d
 def list_tests(th):
     tests = th.get_tests()
     for t in tests:
-        print(th.get_pretty_suite(t, tests))
+        print(th.get_pretty_suite(t))
 
 def merge_suite_options(options):
     buildfile = os.path.join(options.wd, 'meson-private/build.dat')
@@ -558,7 +558,7 @@ def rebuild_all(wd):
         return False
 
     p = subprocess.Popen([ninja, '-C', wd])
-    (stdo, stde) = p.communicate()
+    p.communicate()
 
     if p.returncode != 0:
         print("Could not rebuild")

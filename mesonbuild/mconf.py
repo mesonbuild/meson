@@ -26,8 +26,7 @@ parser.add_argument('--clearcache', action='store_true', default=False,
                     help='Clear cached state (e.g. found dependencies)')
 
 class ConfException(mesonlib.MesonException):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    pass
 
 class Conf:
     def __init__(self, build_dir):
@@ -62,7 +61,7 @@ class Conf:
         len_name = longest_name = len(titles['name'])
         len_descr = longest_descr = len(titles['descr'])
         len_value = longest_value = len(titles['value'])
-        len_choices = longest_choices = 0 # not printed if we don't get any optional values
+        longest_choices = 0 # not printed if we don't get any optional values
 
         # calculate the max length of each
         for x in arr:
