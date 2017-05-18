@@ -702,6 +702,8 @@ The `meson` object allows you to introspect various properties of the system. Th
 
 - `version()` return a string with the version of Meson.
 
+- `get_cross_binary(binname, fallback_value)` returns the given binary from a cross file, the optional second argument is returned if not cross compiling or the given binary is not specified.
+
 - `get_cross_property(propname, fallback_value)` returns the given property from a cross file, the optional second argument is returned if not cross compiling or the given property is not found.
 
 - `install_dependency_manifest(output_name)` installs a manifest file containing a list of all subprojects, their versions and license files to the file name given as the argument.

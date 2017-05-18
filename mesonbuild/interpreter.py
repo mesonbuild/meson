@@ -1079,6 +1079,7 @@ class MesonMain(InterpreterObject):
                              'project_version': self.project_version_method,
                              'version': self.version_method,
                              'project_name': self.project_name_method,
+                             'get_cross_binary': self.get_cross_binary_method,
                              'get_cross_property': self.get_cross_property_method,
                              'backend': self.backend_method,
                              })
@@ -1195,6 +1196,20 @@ class MesonMain(InterpreterObject):
 
     def project_name_method(self, args, kwargs):
         return self.interpreter.active_projectname
+
+    def get_cross_binary_method(self, args, kwargs):
+        if len(args) < 1 or len(args) > 2:
+            raise InterpreterException('Must have one or two arguments.')
+        binname = args[0]
+        if not isinstance(binname, str):
+            raise InterpreterException('Binary name must be string.')
+        try:
+            binaries = self.interpreter.environment.cross_info.get_binaries()
+            return binaries[binname]
+        except Exception:
+            if len(args) == 2:
+                return args[1]
+            raise InterpreterException('Unknown cross binary: %s.' % binname)
 
     def get_cross_property_method(self, args, kwargs):
         if len(args) < 1 or len(args) > 2:
