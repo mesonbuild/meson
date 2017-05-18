@@ -221,6 +221,10 @@ class InterpreterBase:
             return val1 == val2
         elif node.ctype == '!=':
             return val1 != val2
+        elif not self.is_elementary_type(val1):
+            raise InterpreterException('{} can only be compared for equality.'.format(node.left.value))
+        elif not self.is_elementary_type(val2):
+            raise InterpreterException('{} can only be compared for equality.'.format(node.right.value))
         elif node.ctype == '<':
             return val1 < val2
         elif node.ctype == '<=':
