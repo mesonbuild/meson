@@ -221,6 +221,11 @@ class InterpreterBase:
             return val1 == val2
         elif node.ctype == '!=':
             return val1 != val2
+        elif not isinstance(val1, type(val2)):
+            raise InterpreterException(
+                'Values of different types ({}, {}) cannot be compared using {}.'.format(type(val1).__name__,
+                                                                                         type(val2).__name__,
+                                                                                         node.ctype))
         elif not self.is_elementary_type(val1):
             raise InterpreterException('{} can only be compared for equality.'.format(node.left.value))
         elif not self.is_elementary_type(val2):
