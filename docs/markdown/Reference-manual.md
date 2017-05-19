@@ -214,7 +214,7 @@ Returns an empty [environment variable object](#environment-object).
 ### executable()
 
 ``` meson
-    exe executable(*exe_name*, *sources*, ...)
+    buildtarget executable(*exe_name*, *sources*, ...)
 ```
 
 Creates a new executable. The first argument specifies its name and the remaining positional arguments define the input files to use. They can be of the following types:
