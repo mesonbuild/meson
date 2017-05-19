@@ -1722,8 +1722,8 @@ rule FORTRAN_DEP_HACK
                 for line in f:
                     modmatch = modre.match(line)
                     if modmatch is not None:
-                        modname = modmatch.group(1)
-                        if modname.lower() == 'procedure':
+                        modname = modmatch.group(1).lower()
+                        if modname == 'procedure':
                             # MODULE PROCEDURE construct
                             continue
                         if modname in module_files:
@@ -1743,7 +1743,7 @@ rule FORTRAN_DEP_HACK
             for line in f:
                 usematch = usere.match(line)
                 if usematch is not None:
-                    usename = usematch.group(1)
+                    usename = usematch.group(1).lower()
                     if usename not in tdeps:
                         # The module is not provided by any source file. This
                         # is due to:
