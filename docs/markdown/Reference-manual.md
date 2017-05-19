@@ -132,7 +132,7 @@ These are all the supported keyword arguments:
 ### custom_target()
 
 ``` meson
-    ctarget custom_target(*name*, ...)
+    customtarget custom_target(*name*, ...)
 ```
 
 Create a custom top level build target. The only positional argument is the name of this target and the keyword arguments are the following.
@@ -157,6 +157,8 @@ The list of strings passed to the `command` keyword argument accept the followin
 - `@OUTPUT0@` `@OUTPUT1@` `...` the full path to the output with the specified array index in `output`
 - `@OUTDIR@` the full path to the directory where the output(s) must be written
 - `@DEPFILE@` the full path to the dependency file passed to `depfile`
+
+The returned object also has methods that are documented in the [object methods section](#custom-target-object) below.
 
 ### declare_dependency()
 
@@ -647,7 +649,7 @@ Defined tests can be run in a backend-agnostic way by calling `mesontest` inside
 ### vcs_tag()
 
 ``` meson
-    ctarget vcs_tag(...)
+    customtarget vcs_tag(...)
 ```
 
 This command detects revision control commit information at build time and places it in the specified output file. This file is guaranteed to be up to date on every build. Keywords are similar to `custom_target`.
@@ -844,6 +846,12 @@ This object is returned by [`configuration_data()`](#configuration_data) and enc
  - `get(varname, default_value)` returns the value of `varname`, if the value has not been set returns `default_value` if it is defined *(added 0.38.0)* and errors out if not
 
 They all take the `description` keyword that will be written in the result file. The replacement assumes a file with C syntax. If your generated file is source code in some other language, you probably don't want to add a description field because it most likely will cause a syntax error.
+
+### `custom target` object
+
+This object is returned by [`custom_target`](#custom_target) and contains a target with the following methods:
+
+- `full_path()` returns a full path pointing to the result target file
 
 ### `dependency` object
 
