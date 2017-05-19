@@ -1,0 +1,2 @@
+pf = files('prog.c')
+

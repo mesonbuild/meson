@@ -2593,7 +2593,14 @@ different subdirectory.
         else:
             mlog.debug('Unknown target type:', str(targetholder))
             raise RuntimeError('Unreachable code')
-        target = targetclass(name, self.subdir, self.subproject, is_cross, sources, objs, self.environment, kwargs)
+        # Fix failing test 53 when removing this.
+        if '/' in name or '\\' in name:
+            mlog.warning('Target name must not contain a path separator. This will become a hard error in a future release.')
+            subpart, name = os.path.split(name)
+            subdir = os.path.join(self.subdir, subpart)
+        else:
+            subdir = self.subdir
+        target = targetclass(name, subdir, self.subproject, is_cross, sources, objs, self.environment, kwargs)
         if is_cross:
             self.add_cross_stdlib_info(target)
         l = targetholder(target, self)
