@@ -209,7 +209,7 @@ def for_darwin(is_cross, env):
     if not is_cross:
         return mesonlib.is_osx()
     elif env.cross_info.has_host():
-        return env.cross_info.config['host_machine']['system'] == 'darwin'
+        return env.cross_info.config['host_machine']['system'] in ('darwin', 'macos', 'ios', 'tvos', 'watchos')
     return False
 
 
