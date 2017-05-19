@@ -823,7 +823,7 @@ These are objects returned by the [functions listed above](#functions).
 
 ### `build target` object
 
-A build target is either an [executable](#executable), [shared](#shared_library) or [static library](#static_library).
+A build target is either an [executable](#executable), [shared](#shared_library), [static library](#static_library) or [shared module](#shared_module).
 
 - `extract_objects()` returns an opaque value representing the generated object files of arguments, usually used to take single object files and link them to unit tests or to compile some source files with custom flags. To use the object file(s) in another build target, use the `objects:` keyword argument.
 
