@@ -74,3 +74,15 @@ configure_file(output : 'config3.h',
   configuration : dump)
 
 test('Configless.', executable('dumpprog', 'dumpprog.c'))
+
+
+# Config file generation in a loop with @BASENAME@ substitution
+dump = configuration_data()
+dump.set('ZERO', 0)
+config_templates = files(['config4a.h.in', 'config4b.h.in'])
+foreach config_template : config_templates
+  configure_file(input : config_template, output : '@BASENAME@',
+                 configuration : dump)
+endforeach
+
+test('Substituted', executable('prog4', 'prog4.c'))
