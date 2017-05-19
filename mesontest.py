@@ -19,6 +19,7 @@
 import shlex
 import subprocess, sys, os, argparse
 import pickle
+from pathlib import Path
 from mesonbuild import build
 from mesonbuild import environment
 from mesonbuild.dependencies import ExternalProgram
@@ -64,6 +65,8 @@ parser.add_argument('--repeat', default=1, dest='repeat', type=int,
                     help='Number of times to run the tests.')
 parser.add_argument('--no-rebuild', default=False, action='store_true',
                     help='Do not rebuild before running tests.')
+parser.add_argument('--build-dir-moved', default=False, action='store_true',
+                    help='Attempt to fix up paths if the build directory has moved.')
 parser.add_argument('--gdb', default=False, dest='gdb', action='store_true',
                     help='Run test under gdb.')
 parser.add_argument('--list', default=False, dest='list', action='store_true',
@@ -383,6 +386,26 @@ TIMEOUT: %4d
         self.load_tests()
         self.load_suites()
 
+    def fix_build_dir_paths(self):
+        build_dir = get_private_build_dir(self.options)
+        current_wd = Path(self.options.wd)
+        stored_wd = Path(build_dir)
+        for i, test in enumerate(self.tests):
+            for j, fname in enumerate(test.fname):
+                current_path = Path(fname)
+                try:
+                    new_path = current_path.joinpath(current_wd, current_path.relative_to(stored_wd))
+                except ValueError:
+                    continue
+                self.tests[i].fname[j] = str(new_path)
+            for j, arg in enumerate(test.cmd_args):
+                current_path = Path(arg)
+                try:
+                    new_path = current_path.joinpath(current_wd, current_path.relative_to(stored_wd))
+                except ValueError:
+                    continue
+                self.tests[i].cmd_args[j] = str(new_path)
+
     def get_tests(self):
         if not self.tests:
             print('No tests defined.')
@@ -527,6 +550,12 @@ def list_tests(th):
     for t in tests:
         print(th.get_pretty_suite(t))
 
+def get_private_build_dir(options):
+    buildfile = os.path.join(options.wd, 'meson-private/build.dat')
+    with open(buildfile, 'rb') as f:
+        build = pickle.load(f)
+    return build.environment.build_dir
+
 def merge_suite_options(options):
     buildfile = os.path.join(options.wd, 'meson-private/build.dat')
     with open(buildfile, 'rb') as f:
@@ -607,6 +636,8 @@ def run(args):
             sys.exit(-1)
 
     th = TestHarness(options)
+    if options.build_dir_moved:
+        th.fix_build_dir_paths()
     if options.list:
         list_tests(th)
         return 0
