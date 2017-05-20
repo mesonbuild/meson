@@ -1914,6 +1914,43 @@ class DCompiler(Compiler):
                 paths = paths + ':' + padding
         return ['-L-rpath={}'.format(paths)]
 
+    def _get_compiler_check_args(self, env, extra_args, dependencies, mode='compile'):
+        if extra_args is None:
+            extra_args = []
+        elif isinstance(extra_args, str):
+            extra_args = [extra_args]
+        if dependencies is None:
+            dependencies = []
+        elif not isinstance(dependencies, list):
+            dependencies = [dependencies]
+        # Collect compiler arguments
+        args = CompilerArgs(self)
+        for d in dependencies:
+            # Add compile flags needed by dependencies
+            args += d.get_compile_args()
+            if mode == 'link':
+                # Add link flags needed to find dependencies
+                args += d.get_link_args()
+
+        if mode == 'compile':
+            # Add DFLAGS from the env
+            args += env.coredata.external_args[self.language]
+        elif mode == 'link':
+            # Add LDFLAGS from the env
+            args += env.coredata.external_link_args[self.language]
+        # extra_args must override all other arguments, so we add them last
+        args += extra_args
+        return args
+
+    def compiles(self, code, env, extra_args=None, dependencies=None, mode='compile'):
+        args = self._get_compiler_check_args(env, extra_args, dependencies, mode)
+
+        with self.compile(code, args, mode) as p:
+            return p.returncode == 0
+
+    def has_multi_arguments(self, args, env):
+        return self.compiles('int i;\n', env, extra_args=args)
+
     @classmethod
     def translate_args_to_nongnu(cls, args):
         dcargs = []
