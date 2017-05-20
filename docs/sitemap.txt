@@ -50,13 +50,13 @@ index.md
 	Reproducible-builds.md
 	howtox.md
 	Wrap-dependency-system-manual.md
-		fallback-wraptool.md
 		Adding-new-projects-to-wrapdb.md
 		Using-the-WrapDB.md
 		Using-wraptool.md
 		Wrap-best-practices-and-tips.md
 		Wrap-review-guidelines.md
 		Shipping-prebuilt-binaries-as-wraps.md
+		fallback-wraptool.md
 	Release-notes.md
 		Release-notes-for-0.41.0.md
 		Release-notes-for-0.40.0.md

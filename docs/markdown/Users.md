@@ -9,6 +9,7 @@ If you have a project that uses Meson that you want to add to this list, let us 
  - [AQEMU](https://github.com/tobimensch/aqemu), a Qt GUI for QEMU virtual machines, since version 0.9.3
  - [Arduino sample project](https://github.com/jpakkane/mesonarduino)
  - [Emeus](https://github.com/ebassi/emeus), Constraint based layout manager for GTK+
+ - [Frida.re](https://github.com/frida/frida-core), a code tracing framework
  - [GLib](https://github.com/centricular/glib/), cross-platform C library used by GTK+ (not merged yet)
  - [Gnome Builder](https://git.gnome.org/browse/gnome-builder/), an IDE for the Gnome platform
  - [Gnome MPV](https://github.com/gnome-mpv/gnome-mpv), Gnome frontend to the mpv video player
@@ -19,6 +20,7 @@ If you have a project that uses Meson that you want to add to this list, let us 
  - [Grilo](https://mail.gnome.org/archives/grilo-list/2017-February/msg00000.html) and [Grilo plugins](https://git.gnome.org/browse/grilo-plugins/commit/?id=ea047c4fb63e90268eb795ed91a09a2be5068a4c), the Grilo multimedia framework
  - [GStreamer](https://cgit.freedesktop.org/gstreamer/gstreamer/), multimedia framework (not the default yet)
  - [GTK+](https://git.gnome.org/browse/gtk+/log/?h=wip/meson), the multi-platform toolkit used by GNOME (not merged yet)
+ - [GtkDApp](https://gitlab.com/csoriano/GtkDApp), an application template for developing Flatpak apps with Gtk+ and D
  - [Json-glib](https://git.gnome.org/browse/json-glib), GLib-based JSON manipulation library
  - [Libepoxy](https://github.com/anholt/libepoxy/), a library for handling OpenGL function pointer management
  - [Libgit2-glib](https://git.gnome.org/browse/libgit2-glib/), a GLib wrapper for libgit2
@@ -30,7 +32,8 @@ If you have a project that uses Meson that you want to add to this list, let us 
  - [Pitivi](http://pitivi.org/), a nonlinear video editor
  - [Polari](https://git.gnome.org/browse/polari), an IRC client
  - [Sysprof](https://wiki.gnome.org/Apps/Sysprof), a profiling tool
- - [systemd](https://github.com/systemd/systemd/pull/5704), the init system (not merged yet)
+ - [systemd](https://github.com/systemd/systemd/pull/5704), the init system (not the default yet)
+ - [Xorg](https://cgit.freedesktop.org/xorg/xserver/) the X.org display server (not the default yet)
  - [Valum](https://github.com/valum-framework/valum), a micro web framework written in Vala
  - [Wayland and Weston](https://lists.freedesktop.org/archives/wayland-devel/2016-November/031984.html), a next generation display server (not merged yet)
  - [ZStandard](https://github.com/facebook/zstd/commit/4dca56ed832c6a88108a2484a8f8ff63d8d76d91) a compression algorithm developed at Facebook (not used by default)
