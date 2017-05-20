@@ -21,4 +21,5 @@ packagecache
 /dist
 /meson.egg-info
 
-hotdoc-private*
+/docs/built_docs
+/docs/hotdoc-private*
