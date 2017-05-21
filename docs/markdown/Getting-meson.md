@@ -12,7 +12,7 @@ The newest development code can be obtained directly from [Git]
 ## Dependencies
 
 Meson is implemented in Python 3. If your operating system provides a
-package manager, use should install it with that. For platforms that
+package manager, you should install it with that. For platforms that
 don't have a package manager, you need to download it from [Python's
 home page].
 
