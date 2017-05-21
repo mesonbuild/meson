@@ -22,6 +22,7 @@ import os
 import shutil
 import sys
 import unittest
+from configparser import ConfigParser
 from glob import glob
 from pathlib import PurePath
 import mesonbuild.compilers
@@ -322,6 +323,35 @@ class InternalTests(unittest.TestCase):
         # Many outputs, can't use @OUTPUT@ like this
         cmd = ['@OUTPUT@.out', 'ordinary', 'strings']
         self.assertRaises(ME, substfunc, cmd, d)
+
+    def test_needs_exe_wrapper_override(self):
+        config = ConfigParser()
+        config['binaries'] = {
+            'c': '\'/usr/bin/gcc\'',
+        }
+        config['host_machine'] = {
+            'system': '\'linux\'',
+            'cpu_family': '\'arm\'',
+            'cpu': '\'armv7\'',
+            'endian': '\'little\'',
+        }
+
+        with tempfile.NamedTemporaryFile(mode='w+') as configfile:
+            config.write(configfile)
+            configfile.flush()
+            detected_value = mesonbuild.environment.CrossBuildInfo(configfile.name).need_exe_wrapper()
+
+        desired_value = not detected_value
+        config['properties'] = {
+            'needs_exe_wrapper': 'true' if desired_value else 'false'
+        }
+
+        with tempfile.NamedTemporaryFile(mode='w+') as configfile:
+            config.write(configfile)
+            configfile.flush()
+            forced_value = mesonbuild.environment.CrossBuildInfo(configfile.name).need_exe_wrapper()
+
+        self.assertEqual(forced_value, desired_value)
 
 
 class BasePlatformTests(unittest.TestCase):

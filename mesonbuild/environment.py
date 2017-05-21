@@ -906,6 +906,9 @@ class CrossBuildInfo:
         return 'host_machine' in self.config
 
     def need_exe_wrapper(self):
+        value = self.config['properties'].get('needs_exe_wrapper', None)
+        if value is not None:
+            return value
         # Can almost always run 32-bit binaries on 64-bit natively if the host
         # and build systems are the same. We don't pass any compilers to
         # detect_cpu_family() here because we always want to know the OS

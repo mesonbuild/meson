@@ -61,3 +61,12 @@ Targets for building rust now take a `rust_args` keyword.
 Code coverage can be generated for tests by passing the `--cov` argument to
 the `run_tests.py` test runner. Note, since multiple processes are used,
 coverage must be combined before producing a report (`coverage3 combine`.)
+
+## Cross-config property for overriding whether an exe wrapper is needed
+
+The new `needs_exe_wrapper` property allows overriding auto-detection for
+cases where `build_machine` appears to be compatible with `host_machine`,
+but actually isn't. For example when:
+- `build_machine` is macOS and `host_machine` is the iOS Simulator
+- the `build_machine`'s libc is glibc but the `host_machine` libc is uClibc
+- code relies on kernel features not available on the `build_machine`
