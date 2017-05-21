@@ -62,6 +62,7 @@ Code coverage can be generated for tests by passing the `--cov` argument to
 the `run_tests.py` test runner. Note, since multiple processes are used,
 coverage must be combined before producing a report (`coverage3 combine`.)
 
+<<<<<<< HEAD
 ## Reproducible builds
 
 All known issues have been fixed and Meson can now build reproducible Debian
