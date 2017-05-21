@@ -6,7 +6,7 @@ short-description: Overview of the Meson build system
 
 Meson is a build system that is designed to be as user-friendly as possible without sacrificing performance. The main tool for this is a custom language that the user uses to describe the structure of his build. The main design goals of this language has been simplicity, clarity and conciseness. Much inspiration was drawn from the Python programming language, which is considered very readable, even to people who have not programmed in Python before.
 
-Another main idea has been to provide first class support for modern programming tools and best practices. These include features as varied as unit testing, code coverage reporting, precompiled headers and the like. All of these features should be immediately available to any project using Meson. The user should not need to hunt for third party macros or write shell scripts to get these features. They just just work out of the box.
+Another main idea has been to provide first class support for modern programming tools and best practices. These include features as varied as unit testing, code coverage reporting, precompiled headers and the like. All of these features should be immediately available to any project using Meson. The user should not need to hunt for third party macros or write shell scripts to get these features. They should just work out of the box.
 
 This power should not come at the expense of limited usability. Many software builds require unorthodox steps. A common example is that you first need to build a custom tool and then use that tool to generate more source code to build. This functionality needs to be supported and be as easy to use as other parts of the system.
 
