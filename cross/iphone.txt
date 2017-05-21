@@ -20,7 +20,7 @@ has_function_printf = true
 has_function_hfkerhisadf = false
 
 [host_machine]
-system = 'ios'
+system = 'darwin'
 cpu_family = 'arm'
 cpu = 'armv7'
 endian = 'little'
