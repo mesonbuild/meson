@@ -584,7 +584,7 @@ Builds a shared library with the given sources. Positional and keyword arguments
 
 - `version` a string specifying the version of this shared library, such as `1.1.0`. On Linux and OS X, this is used to set the shared library version in the filename, such as `libfoo.so.1.1.0` and `libfoo.1.1.0.dylib`. If this is not specified, `soversion` is used instead (see below).
 - `soversion` a string specifying the soversion of this shared library, such as `0`. On Linux and Windows this is used to set the soversion (or equivalent) in the filename. For example, if `soversion` is `4`, a Windows DLL will be called `foo-4.dll` and one of the aliases of the Linux shared library would be `libfoo.so.4`. If this is not specified, the first part of `version` is used instead. For example, if `version` is `3.6.0` and `soversion` is not defined, it is set to `3`.
-- `vs_module_defs` a string pointing to a file or a File object that is a Microsoft module definition file for controlling symbol exports, etc., on platforms where that is possible (e.g. Windows).
+- `vs_module_defs` a string, a File object, or Custom Target for a Microsoft module definition file for controlling symbol exports, etc., on platforms where that is possible (e.g. Windows).
 
 ### shared_module()
 

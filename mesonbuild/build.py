@@ -1279,6 +1279,8 @@ class SharedLibrary(BuildTarget):
         # Visual Studio module-definitions file
         if 'vs_module_defs' in kwargs:
             path = kwargs['vs_module_defs']
+            if hasattr(path, 'held_object'):
+                path = path.held_object
             if isinstance(path, str):
                 if os.path.isabs(path):
                     self.vs_module_defs = File.from_absolute_file(path)
@@ -1289,10 +1291,15 @@ class SharedLibrary(BuildTarget):
                 # When passing a generated file.
                 self.vs_module_defs = path
                 self.link_depends.append(path)
+            elif hasattr(path, 'get_filename'):
+                # When passing output of a Custom Target
+                path = File.from_built_file(path.subdir, path.get_filename())
+                self.vs_module_defs = path
+                self.link_depends.append(path)
             else:
                 raise InvalidArguments(
                     'Shared library vs_module_defs must be either a string, '
-                    'or a file object')
+                    'a file object or a Custom Target')
 
     def check_unknown_kwargs(self, kwargs):
         self.check_unknown_kwargs_int(kwargs, known_lib_kwargs)
