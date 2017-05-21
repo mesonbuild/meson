@@ -1531,6 +1531,27 @@ class LinuxlikeTests(BasePlatformTests):
         env['LD_LIBRARY_PATH'] = installed_libdir
         self.assertEqual(subprocess.call(installed_exe, env=env), 0)
 
+class LinuxArmCrossCompileTests(BasePlatformTests):
+    '''
+    Tests that verify cross-compilation to Linux/ARM
+    '''
+    def setUp(self):
+        super().setUp()
+        src_root = os.path.dirname(__file__)
+        self.meson_command += ['--cross=' + os.path.join(src_root, 'cross', 'ubuntu-armhf.txt')]
+
+    def test_cflags_cross_environment_pollution(self):
+        '''
+        Test that the CFLAGS environment variable does not pollute the cross
+        environment. This can't be an ordinary test case because we need to
+        inspect the compiler database.
+        '''
+        testdir = os.path.join(self.common_test_dir, '3 static')
+        os.environ['CFLAGS'] = '-DBUILD_ENVIRONMENT_ONLY'
+        self.init(testdir)
+        compdb = self.get_compdb()
+        self.assertNotIn('-DBUILD_ENVIRONMENT_ONLY', compdb[0]['command'])
+
 class RewriterTests(unittest.TestCase):
 
     def setUp(self):
