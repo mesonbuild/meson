@@ -9,7 +9,7 @@ If you have a project that uses Meson that you want to add to this list, let us 
  - [AQEMU](https://github.com/tobimensch/aqemu), a Qt GUI for QEMU virtual machines, since version 0.9.3
  - [Arduino sample project](https://github.com/jpakkane/mesonarduino)
  - [Emeus](https://github.com/ebassi/emeus), Constraint based layout manager for GTK+
- - [Frida.re](https://github.com/frida/frida-core), a code tracing framework
+ - [Frida](https://www.frida.re/), a dynamic binary instrumentation toolkit
  - [GLib](https://github.com/centricular/glib/), cross-platform C library used by GTK+ (not merged yet)
  - [Gnome Builder](https://git.gnome.org/browse/gnome-builder/), an IDE for the Gnome platform
  - [Gnome MPV](https://github.com/gnome-mpv/gnome-mpv), Gnome frontend to the mpv video player
