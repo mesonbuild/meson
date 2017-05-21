@@ -405,9 +405,10 @@ class Backend:
         # Add compile args added using add_global_arguments()
         # These override per-project arguments
         commands += self.build.get_global_args(compiler)
-        # Compile args added from the env: CFLAGS/CXXFLAGS, etc. We want these
-        # to override all the defaults, but not the per-target compile args.
-        commands += self.environment.coredata.external_args[compiler.get_language()]
+        if not target.is_cross:
+            # Compile args added from the env: CFLAGS/CXXFLAGS, etc. We want these
+            # to override all the defaults, but not the per-target compile args.
+            commands += self.environment.coredata.external_args[compiler.get_language()]
         # Always set -fPIC for shared libraries
         if isinstance(target, build.SharedLibrary):
             commands += compiler.get_pic_args()

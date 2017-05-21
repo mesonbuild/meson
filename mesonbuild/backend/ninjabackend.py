@@ -2267,9 +2267,10 @@ rule FORTRAN_DEP_HACK
             # Add link args added using add_global_link_arguments()
             # These override per-project link arguments
             commands += self.build.get_global_link_args(linker)
-            # Link args added from the env: LDFLAGS. We want these to
-            # override all the defaults but not the per-target link args.
-            commands += self.environment.coredata.external_link_args[linker.get_language()]
+            if not target.is_cross:
+                # Link args added from the env: LDFLAGS. We want these to
+                # override all the defaults but not the per-target link args.
+                commands += self.environment.coredata.external_link_args[linker.get_language()]
 
         # Now we will add libraries and library paths from various sources
 

@@ -114,6 +114,9 @@ def get_fake_options(prefix):
     opts.prefix = prefix
     return opts
 
+def should_run_linux_cross_tests():
+    return shutil.which('arm-linux-gnueabihf-gcc-6') and not platform.machine().startswith('arm')
+
 class FakeEnvironment(object):
     def __init__(self):
         self.cross_info = None
@@ -154,6 +157,8 @@ if __name__ == '__main__':
     units = ['InternalTests', 'AllPlatformTests']
     if mesonlib.is_linux():
         units += ['LinuxlikeTests']
+        if should_run_linux_cross_tests():
+            units += ['LinuxArmCrossCompileTests']
     elif mesonlib.is_windows():
         units += ['WindowsTests']
     # Can't pass arguments to unit tests, so set the backend to use in the environment
@@ -161,7 +166,7 @@ if __name__ == '__main__':
     env['MESON_UNIT_TEST_BACKEND'] = backend.name
     returncode += subprocess.call([sys.executable, 'run_unittests.py', '-v'] + units, env=env)
     # Ubuntu packages do not have a binary without -6 suffix.
-    if shutil.which('arm-linux-gnueabihf-gcc-6') and not platform.machine().startswith('arm'):
+    if should_run_linux_cross_tests():
         print('Running cross compilation tests.\n')
         returncode += subprocess.call([sys.executable, 'run_cross_test.py', 'cross/ubuntu-armhf.txt'])
     returncode += subprocess.call([sys.executable, 'run_project_tests.py'] + sys.argv[1:])
