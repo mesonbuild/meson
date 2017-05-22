@@ -220,7 +220,7 @@ base_options = {'b_pch': coredata.UserBooleanOption('b_pch', 'Use precompiled he
                                                          False),
                 'b_colorout': coredata.UserComboOption('b_colorout', 'Use colored output',
                                                        ['auto', 'always', 'never'],
-                                                       'always'),
+                                                       'auto'),
                 'b_ndebug': coredata.UserBooleanOption('b_ndebug',
                                                        'Disable asserts',
                                                        False),
