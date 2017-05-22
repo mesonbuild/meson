@@ -812,7 +812,7 @@ int dummy;
     def generate_tests(self, outfile):
         self.serialize_tests()
         test_exe = get_meson_script(self.environment, 'mesontest')
-        cmd = [sys.executable, test_exe, '--no-rebuild']
+        cmd = [sys.executable, '-u', test_exe, '--no-rebuild']
         if not self.environment.coredata.get_builtin_option('stdsplit'):
             cmd += ['--no-stdsplit']
         if self.environment.coredata.get_builtin_option('errorlogs'):
@@ -824,7 +824,7 @@ int dummy;
         elem.write(outfile)
 
         # And then benchmarks.
-        cmd = [sys.executable, test_exe, '--benchmark', '--logbase',
+        cmd = [sys.executable, '-u', test_exe, '--benchmark', '--logbase',
                'benchmarklog', '--num-processes=1', '--no-rebuild']
         elem = NinjaBuildElement(self.all_outputs, 'benchmark', 'CUSTOM_COMMAND', ['all', 'PHONY'])
         elem.add_item('COMMAND', cmd)
