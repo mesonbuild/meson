@@ -199,7 +199,7 @@ gnu_color_args = {'auto': ['-fdiagnostics-color=auto'],
                   'never': ['-fdiagnostics-color=never'],
                   }
 
-clang_color_args = {'auto': ['-Xclang', '-fcolor-diagnostics'],
+clang_color_args = {'auto': [],
                     'always': ['-Xclang', '-fcolor-diagnostics'],
                     'never': ['-Xclang', '-fno-color-diagnostics'],
                     }
