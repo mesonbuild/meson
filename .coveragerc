@@ -1,0 +1,50 @@
+[run]
+branch = True
+concurrency =
+    multiprocessing
+data_file = .coverage/coverage
+parallel = True
+source =
+    meson.py
+    mesonbuild/
+    mesonconf.py
+    mesonintrospect.py
+    mesonrewriter.py
+    mesontest.py
+    run_cross_test.py
+    run_project_tests.py
+    run_tests.py
+    run_unittests.py
+
+# Aliases to /root/ are needed because Travis runs in docker at /root/.
+[paths]
+meson =
+    meson.py
+    /root/meson.py
+mesonbuild =
+    mesonbuild/
+    /root/mesonbuild/
+mesonconf =
+    mesonconf.py
+    /root/mesonconf.py
+mesonintrospect =
+    mesonintrospect.py
+    /root/mesonintrospect.py
+mesonrewriter =
+    mesonrewriter.py
+    /root/mesonrewriter.py
+mesontest =
+    mesontest.py
+    /root/mesontest.py
+run_cross_test =
+    run_cross_test.py
+    /root/run_cross_test.py
+run_project_tests =
+    run_project_tests.py
+    /root/run_project_tests.py
+run_tests =
+    run_tests.py
+    /root/run_tests.py
+run_unittests =
+    run_unittests.py
+    /root/run_unittests.py

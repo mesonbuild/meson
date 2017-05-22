@@ -19,6 +19,7 @@ import sys
 import time
 import shutil
 import subprocess
+import tempfile
 import platform
 from mesonbuild import mesonlib
 from mesonbuild.environment import detect_ninja
@@ -125,6 +126,13 @@ class FakeEnvironment(object):
         return False
 
 if __name__ == '__main__':
+    # Enable coverage early...
+    enable_coverage = '--cov' in sys.argv
+    if enable_coverage:
+        os.makedirs('.coverage', exist_ok=True)
+        sys.argv.remove('--cov')
+        import coverage
+        coverage.process_startup()
     returncode = 0
     # Iterate over list in reverse order to find the last --backend arg
     backend = Backend.ninja
@@ -164,10 +172,19 @@ if __name__ == '__main__':
     # Can't pass arguments to unit tests, so set the backend to use in the environment
     env = os.environ.copy()
     env['MESON_UNIT_TEST_BACKEND'] = backend.name
-    returncode += subprocess.call([sys.executable, 'run_unittests.py', '-v'] + units, env=env)
-    # Ubuntu packages do not have a binary without -6 suffix.
-    if should_run_linux_cross_tests():
-        print('Running cross compilation tests.\n')
-        returncode += subprocess.call([sys.executable, 'run_cross_test.py', 'cross/ubuntu-armhf.txt'])
-    returncode += subprocess.call([sys.executable, 'run_project_tests.py'] + sys.argv[1:])
+    with tempfile.TemporaryDirectory() as td:
+        # Enable coverage on all subsequent processes.
+        if enable_coverage:
+            with open(os.path.join(td, 'usercustomize.py'), 'w') as f:
+                f.write('import coverage\n'
+                        'coverage.process_startup()\n')
+            env['COVERAGE_PROCESS_START'] = '.coveragerc'
+            env['PYTHONPATH'] = os.pathsep.join([td] + env.get('PYTHONPATH', []))
+
+        returncode += subprocess.call([sys.executable, 'run_unittests.py', '-v'] + units, env=env)
+        # Ubuntu packages do not have a binary without -6 suffix.
+        if should_run_linux_cross_tests():
+            print('Running cross compilation tests.\n')
+            returncode += subprocess.call([sys.executable, 'run_cross_test.py', 'cross/ubuntu-armhf.txt'], env=env)
+        returncode += subprocess.call([sys.executable, 'run_project_tests.py'] + sys.argv[1:], env=env)
     sys.exit(returncode)
