@@ -29,6 +29,7 @@ known_basic_kwargs = {'install': True,
                       'cpp_pch': True,
                       'c_args': True,
                       'objc_args': True,
+                      'objcpp_args': True,
                       'cpp_args': True,
                       'cs_args': True,
                       'vala_args': True,
@@ -632,6 +633,10 @@ class BuildTarget(Target):
         if not isinstance(objclist, list):
           objclist = [objclist]
         self.add_compiler_args('objc', objclist)
+        objcpplist = kwargs.get('objcpp_args', [])
+        if not isinstance(objcpplist, list):
+          objcpplist = [objcpplist]
+        self.add_compiler_args('objcpp', objcpplist)
         fortranlist = kwargs.get('fortran_args', [])
         if not isinstance(fortranlist, list):
             fortranlist = [fortranlist]
