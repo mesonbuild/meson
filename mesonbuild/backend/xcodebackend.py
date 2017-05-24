@@ -14,6 +14,7 @@
 
 from . import backends
 from .. import build
+from .. import dependencies
 from .. import mesonlib
 import uuid, os, sys
 
@@ -77,6 +78,7 @@ class XCodeBackend(backends.Backend):
         self.generate_buildall_configurations_map()
         self.generate_test_configurations_map()
         self.generate_native_target_map()
+        self.generate_native_frameworks_map()
         self.generate_source_phase_map()
         self.generate_target_dependency_map()
         self.generate_pbxdep_map()
@@ -91,6 +93,7 @@ class XCodeBackend(backends.Backend):
             self.generate_pbx_build_style()
             self.generate_pbx_container_item_proxy()
             self.generate_pbx_file_reference()
+            self.generate_pbx_frameworks_buildphase()
             self.generate_pbx_group()
             self.generate_pbx_native_target()
             self.generate_pbx_project()
@@ -133,9 +136,14 @@ class XCodeBackend(backends.Backend):
         self.buildstylemap = {'debug': self.gen_id()}
 
     def generate_build_phase_map(self):
-        self.buildphasemap = {}
-        for t in self.build.targets:
-            self.buildphasemap[t] = self.gen_id()
+        for tname, t in self.build.targets.items():
+            # generate id for our own target-name
+            t.buildphasemap = {}
+            t.buildphasemap[tname] = self.gen_id()
+            # each target can have it's own Frameworks/Sources/..., generate id's for those
+            t.buildphasemap['Frameworks'] = self.gen_id()
+            t.buildphasemap['Resources'] = self.gen_id()
+            t.buildphasemap['Sources'] = self.gen_id()
 
     def generate_build_configuration_map(self):
         self.buildconfmap = {}
@@ -161,6 +169,16 @@ class XCodeBackend(backends.Backend):
         self.native_targets = {}
         for t in self.build.targets:
             self.native_targets[t] = self.gen_id()
+
+    def generate_native_frameworks_map(self):
+        self.native_frameworks = {}
+        self.native_frameworks_fileref = {}
+        for t in self.build.targets.values():
+            for dep in t.get_external_deps():
+                if isinstance(dep, dependencies.AppleFrameworks):
+                    for f in dep.frameworks:
+                        self.native_frameworks[f] = self.gen_id()
+                        self.native_frameworks_fileref[f] = self.gen_id()
 
     def generate_target_dependency_map(self):
         self.target_dependency_map = {}
@@ -222,7 +240,14 @@ class XCodeBackend(backends.Backend):
         self.ofile.write('\n/* Begin PBXBuildFile section */\n')
         templ = '%s /* %s */ = { isa = PBXBuildFile; fileRef = %s /* %s */; settings = { COMPILER_FLAGS = "%s"; }; };\n'
         otempl = '%s /* %s */ = { isa = PBXBuildFile; fileRef = %s /* %s */;};\n'
+
         for t in self.build.targets.values():
+
+            for dep in t.get_external_deps():
+                if isinstance(dep, dependencies.AppleFrameworks):
+                    for f in dep.frameworks:
+                        self.ofile.write('%s /* %s.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = %s /* %s.framework */; };\n' % (self.native_frameworks[f], f, self.native_frameworks_fileref[f], f))
+
             for s in t.sources:
                 if isinstance(s, mesonlib.File):
                     s = s.fname
@@ -276,6 +301,12 @@ class XCodeBackend(backends.Backend):
 
     def generate_pbx_file_reference(self):
         self.ofile.write('\n/* Begin PBXFileReference section */\n')
+
+        for t in self.build.targets.values():
+            for dep in t.get_external_deps():
+                if isinstance(dep, dependencies.AppleFrameworks):
+                    for f in dep.frameworks:
+                        self.ofile.write('%s /* %s.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = %s.framework; path = System/Library/Frameworks/%s.framework; sourceTree = SDKROOT; };\n' % (self.native_frameworks_fileref[f], f, f, f))
         src_templ = '%s /* %s */ = { isa = PBXFileReference; explicitFileType = "%s"; fileEncoding = 4; name = "%s"; path = "%s"; sourceTree = SOURCE_ROOT; };\n'
         for fname, idval in self.filemap.items():
             fullpath = os.path.join(self.environment.get_source_dir(), fname)
@@ -300,6 +331,27 @@ class XCodeBackend(backends.Backend):
             self.ofile.write(target_templ % (idval, tname, typestr, path, reftype))
         self.ofile.write('/* End PBXFileReference section */\n')
 
+    def generate_pbx_frameworks_buildphase(self):
+        for tname, t in self.build.targets.items():
+            self.ofile.write('\n/* Begin PBXFrameworksBuildPhase section */\n')
+            self.indent_level += 1
+            self.write_line('%s /* %s */ = {\n' %(t.buildphasemap['Frameworks'], 'Frameworks'))
+            self.indent_level += 1
+            self.write_line('isa = PBXFrameworksBuildPhase;\n')
+            self.write_line('buildActionMask = %s;\n' %(2147483647))
+            self.write_line('files = (\n')
+            self.indent_level += 1
+            for dep in t.get_external_deps():
+                if isinstance(dep, dependencies.AppleFrameworks):
+                    for f in dep.frameworks:
+                        self.write_line('%s /* %s.framework in Frameworks */,\n' %(self.native_frameworks[f], f))
+            self.indent_level -= 1
+            self.write_line(');\n')
+            self.write_line('runOnlyForDeploymentPostprocessing = 0;\n')
+            self.indent_level -= 1
+            self.write_line('};\n')
+        self.ofile.write('/* End PBXFrameworksBuildPhase section */\n')
+
     def generate_pbx_group(self):
         groupmap = {}
         target_src_map = {}
@@ -310,6 +362,7 @@ class XCodeBackend(backends.Backend):
         sources_id = self.gen_id()
         resources_id = self.gen_id()
         products_id = self.gen_id()
+        frameworks_id = self.gen_id()
         self.write_line('%s = {' % self.maingroup_id)
         self.indent_level += 1
         self.write_line('isa = PBXGroup;')
@@ -318,6 +371,7 @@ class XCodeBackend(backends.Backend):
         self.write_line('%s /* Sources */,' % sources_id)
         self.write_line('%s /* Resources */,' % resources_id)
         self.write_line('%s /* Products */,' % products_id)
+        self.write_line('%s /* Frameworks */,' % frameworks_id)
         self.indent_level -= 1
         self.write_line(');')
         self.write_line('sourceTree = "<group>";')
@@ -345,6 +399,26 @@ class XCodeBackend(backends.Backend):
         self.write_line('children = (')
         self.write_line(');')
         self.write_line('name = Resources;')
+        self.write_line('sourceTree = "<group>";')
+        self.indent_level -= 1
+        self.write_line('};')
+
+        self.write_line('%s /* Frameworks */ = {' % frameworks_id)
+        self.indent_level += 1
+        self.write_line('isa = PBXGroup;')
+        self.write_line('children = (')
+        # write frameworks
+        self.indent_level += 1
+
+        for t in self.build.targets.values():
+            for dep in t.get_external_deps():
+                if isinstance(dep, dependencies.AppleFrameworks):
+                    for f in dep.frameworks:
+                        self.write_line('%s /* %s.framework */,\n' % (self.native_frameworks_fileref[f], f))
+
+        self.indent_level -= 1
+        self.write_line(');')
+        self.write_line('name = Frameworks;')
         self.write_line('sourceTree = "<group>";')
         self.indent_level -= 1
         self.write_line('};')
@@ -409,7 +483,9 @@ class XCodeBackend(backends.Backend):
                             % (self.buildconflistmap[tname], tname))
             self.write_line('buildPhases = (')
             self.indent_level += 1
-            self.write_line('%s /* Sources */,' % self.buildphasemap[tname])
+            t = self.build.targets[tname]
+            for bpname, bpval in t.buildphasemap.items():
+                self.write_line('%s /* %s yyy */,' % (bpval, bpname))
             self.indent_level -= 1
             self.write_line(');')
             self.write_line('buildRules = (')
@@ -503,7 +579,8 @@ class XCodeBackend(backends.Backend):
     def generate_pbx_sources_build_phase(self):
         self.ofile.write('\n/* Begin PBXSourcesBuildPhase section */\n')
         for name, phase_id in self.source_phase.items():
-            self.write_line('%s /* Sources */ = {' % self.buildphasemap[name])
+            t = self.build.targets[name]
+            self.write_line('%s /* Sources */ = {' % (t.buildphasemap[name]))
             self.indent_level += 1
             self.write_line('isa = PBXSourcesBuildPhase;')
             self.write_line('buildActionMask = 2147483647;')
