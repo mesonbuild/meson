@@ -682,7 +682,10 @@ class Environment:
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
 
     def detect_vala_compiler(self):
-        exelist = ['valac']
+        if 'VALAC' in os.environ:
+            exelist = shlex.split(os.environ['VALAC'])
+        else:
+            exelist = ['valac']
         try:
             p, out = Popen_safe(exelist + ['--version'])[0:2]
         except OSError:
