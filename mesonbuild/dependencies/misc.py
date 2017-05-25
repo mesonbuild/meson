@@ -1,4 +1,4 @@
-# Copyright 2013-2017 The Meson development team
+﻿# Copyright 2013-2017 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -37,6 +37,7 @@ class BoostDependency(Dependency):
         self.name = 'boost'
         self.environment = environment
         self.libdir = ''
+        self.static = kwargs.get('static', False)
         if 'native' in kwargs and environment.is_cross_build():
             self.want_cross = not kwargs['native']
         else:
@@ -194,7 +195,7 @@ class BoostDependency(Dependency):
             return
         libdir = libdir[0]
         self.libdir = libdir
-        globber = 'boost_*-gd-*.lib'  # FIXME
+        globber = 'libboost_*-gd-*.lib' if self.static else 'boost_*-gd-*.lib'  # FIXME
         for entry in glob.glob(os.path.join(libdir, globber)):
             (_, fname) = os.path.split(entry)
             base = fname.split('_', 1)[1]
