@@ -203,7 +203,9 @@ class BoostDependency(Dependency):
             self.lib_modules_mt[modname] = fname
 
     def detect_lib_modules_nix(self):
-        if mesonlib.is_osx() and not self.want_cross:
+        if self.static:
+            libsuffix = 'a'
+        elif mesonlib.is_osx() and not self.want_cross:
             libsuffix = 'dylib'
         else:
             libsuffix = 'so'
@@ -221,7 +223,7 @@ class BoostDependency(Dependency):
                 name = lib.split('.')[0].split('_', 1)[-1]
                 # I'm not 100% sure what to do here. Some distros
                 # have modules such as thread only as -mt versions.
-                if entry.endswith('-mt.so'):
+                if entry.endswith('-mt.{}'.format(libsuffix)):
                     self.lib_modules_mt[name] = True
                 else:
                     self.lib_modules[name] = True
