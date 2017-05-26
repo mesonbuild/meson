@@ -15,6 +15,7 @@
 """A library of random helper functionality."""
 
 import stat
+import time
 import platform, subprocess, operator, os, shutil, re
 import collections
 
@@ -686,6 +687,22 @@ def get_filenames_templates_dict(inputs, outputs):
         if values['@OUTDIR@'] == '':
             values['@OUTDIR@'] = '.'
     return values
+
+
+def windows_proof_rmtree(f):
+    # On Windows if anyone is holding a file open you can't
+    # delete it. As an example an anti virus scanner might
+    # be scanning files you are trying to delete. The only
+    # way to fix this is to try again and again.
+    delays = [0.1, 0.1, 0.2, 0.2, 0.2, 0.5, 0.5, 1, 1, 1, 1, 2]
+    for d in delays:
+        try:
+            shutil.rmtree(f)
+            return
+        except (OSError, PermissionError):
+            time.sleep(d)
+    # Try one last time and throw if it fails.
+    shutil.rmtree(f)
 
 class OrderedSet(collections.MutableSet):
     """A set that preserves the order in which items are added, by first

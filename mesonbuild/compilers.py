@@ -956,15 +956,16 @@ class CCompiler(Compiler):
             args += self.get_linker_debug_crt_args()
         # Read c_args/cpp_args/etc from the cross-info file (if needed)
         args += self.get_cross_extra_flags(env, link=(mode == 'link'))
-        if mode == 'preprocess':
-            # Add CPPFLAGS from the env.
-            args += env.coredata.external_preprocess_args[self.language]
-        elif mode == 'compile':
-            # Add CFLAGS/CXXFLAGS/OBJCFLAGS/OBJCXXFLAGS from the env
-            args += env.coredata.external_args[self.language]
-        elif mode == 'link':
-            # Add LDFLAGS from the env
-            args += env.coredata.external_link_args[self.language]
+        if not self.is_cross:
+            if mode == 'preprocess':
+                # Add CPPFLAGS from the env.
+                args += env.coredata.external_preprocess_args[self.language]
+            elif mode == 'compile':
+                # Add CFLAGS/CXXFLAGS/OBJCFLAGS/OBJCXXFLAGS from the env
+                args += env.coredata.external_args[self.language]
+            elif mode == 'link':
+                # Add LDFLAGS from the env
+                args += env.coredata.external_link_args[self.language]
         args += self.get_compiler_check_args()
         # extra_args must override all other arguments, so we add them last
         args += extra_args
@@ -1913,6 +1914,43 @@ class DCompiler(Compiler):
             else:
                 paths = paths + ':' + padding
         return ['-L-rpath={}'.format(paths)]
+
+    def _get_compiler_check_args(self, env, extra_args, dependencies, mode='compile'):
+        if extra_args is None:
+            extra_args = []
+        elif isinstance(extra_args, str):
+            extra_args = [extra_args]
+        if dependencies is None:
+            dependencies = []
+        elif not isinstance(dependencies, list):
+            dependencies = [dependencies]
+        # Collect compiler arguments
+        args = CompilerArgs(self)
+        for d in dependencies:
+            # Add compile flags needed by dependencies
+            args += d.get_compile_args()
+            if mode == 'link':
+                # Add link flags needed to find dependencies
+                args += d.get_link_args()
+
+        if mode == 'compile':
+            # Add DFLAGS from the env
+            args += env.coredata.external_args[self.language]
+        elif mode == 'link':
+            # Add LDFLAGS from the env
+            args += env.coredata.external_link_args[self.language]
+        # extra_args must override all other arguments, so we add them last
+        args += extra_args
+        return args
+
+    def compiles(self, code, env, extra_args=None, dependencies=None, mode='compile'):
+        args = self._get_compiler_check_args(env, extra_args, dependencies, mode)
+
+        with self.compile(code, args, mode) as p:
+            return p.returncode == 0
+
+    def has_multi_arguments(self, args, env):
+        return self.compiles('int i;\n', env, extra_args=args)
 
     @classmethod
     def translate_args_to_nongnu(cls, args):

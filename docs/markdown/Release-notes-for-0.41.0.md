@@ -52,7 +52,12 @@ installed. This is roughly equivalent to the `distcheck` target in
 other build systems. Currently this only works for projects using Git
 and only with the Ninja backend.
 
-
 ## Support for passing arguments to Rust compiler
 
 Targets for building rust now take a `rust_args` keyword.
+
+## Code coverage export for tests
+
+Code coverage can be generated for tests by passing the `--cov` argument to
+the `run_tests.py` test runner. Note, since multiple processes are used,
+coverage must be combined before producing a report (`coverage3 combine`.)

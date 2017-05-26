@@ -7,5 +7,5 @@ if _%arch%_ == _x86_ set SETUP=setup-x86.exe && set CYGWIN_ROOT=C:\cygwin
 if not exist %CACHE% mkdir %CACHE%
 
 echo Updating Cygwin and installing ninja and test prerequisites
-%CYGWIN_ROOT%\%SETUP% -qnNdO -R "%CYGWIN_ROOT%" -s "%CYGWIN_MIRROR%" -l "%CACHE%" -g -P "ninja,gcc-objc,gcc-objc++,libglib2.0-devel,zlib-devel"
+%CYGWIN_ROOT%\%SETUP% -qnNdO -R "%CYGWIN_ROOT%" -s "%CYGWIN_MIRROR%" -l "%CACHE%" -g -P "ninja,gcc-objc,gcc-objc++,libglib2.0-devel,zlib-devel,python3-pip"
 echo Install done

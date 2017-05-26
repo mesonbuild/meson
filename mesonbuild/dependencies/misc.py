@@ -202,7 +202,7 @@ class BoostDependency(Dependency):
             self.lib_modules_mt[modname] = fname
 
     def detect_lib_modules_nix(self):
-        if mesonlib.is_osx():
+        if mesonlib.is_osx() and not self.want_cross:
             libsuffix = 'dylib'
         else:
             libsuffix = 'so'

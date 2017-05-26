@@ -22,6 +22,7 @@ import tarfile, zipfile
 import tempfile
 from glob import glob
 from mesonbuild.environment import detect_ninja
+from mesonbuild.mesonlib import windows_proof_rmtree
 
 def create_hash(fname):
     hashname = fname + '.sha256sum'
@@ -49,7 +50,7 @@ def create_zip(zipfilename, packaging_dir):
 def del_gitfiles(dirname):
     for f in glob(os.path.join(dirname, '.git*')):
         if os.path.isdir(f) and not os.path.islink(f):
-            shutil.rmtree(f)
+            windows_proof_rmtree(f)
         else:
             os.unlink(f)
 

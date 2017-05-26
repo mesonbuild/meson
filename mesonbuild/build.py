@@ -28,6 +28,8 @@ known_basic_kwargs = {'install': True,
                       'c_pch': True,
                       'cpp_pch': True,
                       'c_args': True,
+                      'objc_args': True,
+                      'objcpp_args': True,
                       'cpp_args': True,
                       'cs_args': True,
                       'vala_args': True,
@@ -627,6 +629,14 @@ class BuildTarget(Target):
         if not isinstance(valalist, list):
             valalist = [valalist]
         self.add_compiler_args('vala', valalist)
+        objclist = kwargs.get('objc_args', [])
+        if not isinstance(objclist, list):
+          objclist = [objclist]
+        self.add_compiler_args('objc', objclist)
+        objcpplist = kwargs.get('objcpp_args', [])
+        if not isinstance(objcpplist, list):
+          objcpplist = [objcpplist]
+        self.add_compiler_args('objcpp', objcpplist)
         fortranlist = kwargs.get('fortran_args', [])
         if not isinstance(fortranlist, list):
             fortranlist = [fortranlist]
@@ -1279,6 +1289,8 @@ class SharedLibrary(BuildTarget):
         # Visual Studio module-definitions file
         if 'vs_module_defs' in kwargs:
             path = kwargs['vs_module_defs']
+            if hasattr(path, 'held_object'):
+                path = path.held_object
             if isinstance(path, str):
                 if os.path.isabs(path):
                     self.vs_module_defs = File.from_absolute_file(path)
@@ -1289,10 +1301,15 @@ class SharedLibrary(BuildTarget):
                 # When passing a generated file.
                 self.vs_module_defs = path
                 self.link_depends.append(path)
+            elif hasattr(path, 'get_filename'):
+                # When passing output of a Custom Target
+                path = File.from_built_file(path.subdir, path.get_filename())
+                self.vs_module_defs = path
+                self.link_depends.append(path)
             else:
                 raise InvalidArguments(
                     'Shared library vs_module_defs must be either a string, '
-                    'or a file object')
+                    'a file object or a Custom Target')
 
     def check_unknown_kwargs(self, kwargs):
         self.check_unknown_kwargs_int(kwargs, known_lib_kwargs)

@@ -114,24 +114,11 @@ class AutoDeletedDir:
         return self.dir
 
     def __exit__(self, _type, value, traceback):
-        # On Windows, shutil.rmtree fails sometimes, because 'the directory is not empty'.
-        # Retrying fixes this.
-        # That's why we don't use tempfile.TemporaryDirectory, but wrap the deletion in the AutoDeletedDir class.
-        retries = 5
-        for i in range(0, retries):
-            try:
-                shutil.rmtree(self.dir)
-                return
-            # Sometimes we get: ValueError: I/O operation on closed file.
-            except ValueError:
-                return
-            # Deleting can raise OSError or PermissionError on Windows
-            # (most likely because of anti-virus locking the file)
-            except (OSError, PermissionError):
-                if i == retries - 1:
-                    mlog.warning('Could not delete temporary directory.')
-                    return
-                time.sleep(0.1 * (2**i))
+        # We don't use tempfile.TemporaryDirectory, but wrap the
+        # deletion in the AutoDeletedDir class because
+        # it fails on Windows due antivirus programs
+        # holding files open.
+        mesonlib.windows_proof_rmtree(self.dir)
 
 failing_logs = []
 print_debug = 'MESON_PRINT_TEST_OUTPUT' in os.environ

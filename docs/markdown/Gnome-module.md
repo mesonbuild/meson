@@ -148,6 +148,8 @@ Compiles and installs gtkdoc documentation. Takes one positional arguments; The 
 * `html_assets`: a list of assets for the HTML pages
 * `content_files`: a list of content files
 
+This creates a `$module-doc` target that can be ran to build docs and normally these are only built on install.
+
 ### gnome.gtkdoc_html_dir()
 
 Takes as argument a module name and returns the path where that module's HTML files will be installed. Usually used with `install_data` to install extra files, such as images, to the output directory.
