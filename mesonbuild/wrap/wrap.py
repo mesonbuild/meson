@@ -274,7 +274,7 @@ class Resolver:
             mlog.log('Using', mlog.bold(packagename), 'from cache.')
             return
         srcurl = p.get('source_url')
-        mlog.log('Dowloading', mlog.bold(packagename), 'from', mlog.bold(srcurl))
+        mlog.log('Downloading', mlog.bold(packagename), 'from', mlog.bold(srcurl))
         srcdata = self.get_data(srcurl)
         dhash = self.get_hash(srcdata)
         expected = p.get('source_hash')
