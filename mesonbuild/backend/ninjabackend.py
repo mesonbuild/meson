@@ -1989,7 +1989,7 @@ rule FORTRAN_DEP_HACK
             rel_src = os.path.join(src.subdir, src.fname)
             if os.path.isabs(rel_src):
                 assert(rel_src.startswith(self.environment.get_build_dir()))
-                rel_src = rel_src[len(self.environment.get_build_dir())+1:]
+                rel_src = rel_src[len(self.environment.get_build_dir()) + 1:]
             abs_src = os.path.join(self.environment.get_build_dir(), rel_src)
         elif isinstance(src, mesonlib.File):
             rel_src = src.rel_to_builddir(self.build_to_src)
@@ -2008,7 +2008,7 @@ rule FORTRAN_DEP_HACK
                 src_filename = os.path.join(src.subdir, src.fname)
                 if os.path.isabs(src_filename):
                     assert(src_filename.startswith(self.environment.get_build_dir()))
-                    src_filename = src_filename[len(self.environment.get_build_dir())+1:]
+                    src_filename = src_filename[len(self.environment.get_build_dir()) + 1:]
             else:
                 src_filename = src.fname
         elif os.path.isabs(src):

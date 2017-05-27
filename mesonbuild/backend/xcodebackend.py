@@ -335,16 +335,16 @@ class XCodeBackend(backends.Backend):
         for tname, t in self.build.targets.items():
             self.ofile.write('\n/* Begin PBXFrameworksBuildPhase section */\n')
             self.indent_level += 1
-            self.write_line('%s /* %s */ = {\n' %(t.buildphasemap['Frameworks'], 'Frameworks'))
+            self.write_line('%s /* %s */ = {\n' % (t.buildphasemap['Frameworks'], 'Frameworks'))
             self.indent_level += 1
             self.write_line('isa = PBXFrameworksBuildPhase;\n')
-            self.write_line('buildActionMask = %s;\n' %(2147483647))
+            self.write_line('buildActionMask = %s;\n' % (2147483647))
             self.write_line('files = (\n')
             self.indent_level += 1
             for dep in t.get_external_deps():
                 if isinstance(dep, dependencies.AppleFrameworks):
                     for f in dep.frameworks:
-                        self.write_line('%s /* %s.framework in Frameworks */,\n' %(self.native_frameworks[f], f))
+                        self.write_line('%s /* %s.framework in Frameworks */,\n' % (self.native_frameworks[f], f))
             self.indent_level -= 1
             self.write_line(');\n')
             self.write_line('runOnlyForDeploymentPostprocessing = 0;\n')

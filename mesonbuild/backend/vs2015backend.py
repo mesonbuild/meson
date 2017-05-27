@@ -21,4 +21,3 @@ class Vs2015Backend(Vs2010Backend):
         self.name = 'vs2015'
         self.platform_toolset = 'v140'
         self.vs_version = '2015'
-

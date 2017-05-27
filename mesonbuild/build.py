@@ -633,11 +633,11 @@ class BuildTarget(Target):
         self.add_compiler_args('vala', valalist)
         objclist = kwargs.get('objc_args', [])
         if not isinstance(objclist, list):
-          objclist = [objclist]
+            objclist = [objclist]
         self.add_compiler_args('objc', objclist)
         objcpplist = kwargs.get('objcpp_args', [])
         if not isinstance(objcpplist, list):
-          objcpplist = [objcpplist]
+            objcpplist = [objcpplist]
         self.add_compiler_args('objcpp', objcpplist)
         fortranlist = kwargs.get('fortran_args', [])
         if not isinstance(fortranlist, list):
@@ -1101,7 +1101,7 @@ class Executable(BuildTarget):
         if not hasattr(self, 'suffix'):
             # Executable for Windows or C#/Mono
             if (for_windows(is_cross, environment) or
-                for_cygwin(is_cross, environment) or 'cs' in self.compilers):
+                    for_cygwin(is_cross, environment) or 'cs' in self.compilers):
                 self.suffix = 'exe'
             else:
                 self.suffix = ''
