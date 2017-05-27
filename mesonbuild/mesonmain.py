@@ -68,7 +68,7 @@ parser.add_argument('-D', action='append', dest='projectoptions', default=[], me
                     help='Set the value of an option, can be used several times to set multiple options.')
 parser.add_argument('-v', '--version', action='version',
                     version=coredata.version)
-                    # See the mesonlib.WrapMode enum for documentation
+# See the mesonlib.WrapMode enum for documentation
 parser.add_argument('--wrap-mode', default=WrapMode.default,
                     type=lambda t: getattr(WrapMode, t), choices=WrapMode,
                     help='Special wrap mode to use')

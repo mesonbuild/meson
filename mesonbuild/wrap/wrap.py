@@ -50,7 +50,7 @@ def open_wrapdburl(urlstring):
     global ssl_warning_printed
     if has_ssl:
         try:
-            return urllib.request.urlopen(urlstring)#, context=build_ssl_context())
+            return urllib.request.urlopen(urlstring)# , context=build_ssl_context())
         except urllib.error.URLError:
             if not ssl_warning_printed:
                 print('SSL connection failed. Falling back to unencrypted connections.')

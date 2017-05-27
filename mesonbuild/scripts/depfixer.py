@@ -103,7 +103,7 @@ class SectionHeader(DataSizes):
             self.sh_addralign = struct.unpack(self.XWord, ifile.read(self.XWordSize))[0]
         else:
             self.sh_addralign = struct.unpack(self.Word, ifile.read(self.WordSize))[0]
-#Elf64_Xword
+# Elf64_Xword
         if is_64:
             self.sh_entsize = struct.unpack(self.XWord, ifile.read(self.XWordSize))[0]
         else:

@@ -629,7 +629,6 @@ class Backend:
             return True
         return False
 
-
     def get_custom_target_sources(self, target):
         '''
         Custom target sources can be of various object types; strings, File,

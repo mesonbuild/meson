@@ -83,8 +83,8 @@ def create_dist(dist_name, src_root, bld_root, dist_sub):
     with tarfile.open(xzname, 'w:xz') as tf:
         tf.add(distdir, os.path.split(distdir)[1])
     # Create only .tar.xz for now.
-    #zipname = distdir + '.zip'
-    #create_zip(zipname, distdir)
+    # zipname = distdir + '.zip'
+    # create_zip(zipname, distdir)
     shutil.rmtree(distdir)
     return (xzname, )
 
