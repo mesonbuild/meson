@@ -459,10 +459,6 @@ class GnomeModule(ExtensionModule):
             sanitize = compiler.get_options().get('b_sanitize')
             if sanitize:
                 cflags += compilers.sanitizer_compile_args(sanitize)
-        if cflags:
-            scan_command += ['--cflags-begin']
-            scan_command += cflags
-            scan_command += ['--cflags-end']
         if kwargs.get('symbol_prefix'):
             sym_prefix = kwargs.pop('symbol_prefix')
             if not isinstance(sym_prefix, str):
@@ -525,9 +521,12 @@ class GnomeModule(ExtensionModule):
         # ldflags will be misinterpreted by gir scanner (showing
         # spurious dependencies) but building GStreamer fails if they
         # are not used here.
-        cflags, ldflags, gi_includes = self._get_dependencies_flags(deps, state, depends,
-                                                                    use_gir_args=True)
-        scan_command += list(cflags)
+        dep_cflags, ldflags, gi_includes = self._get_dependencies_flags(deps, state, depends,
+                                                                        use_gir_args=True)
+        cflags += list(dep_cflags)
+        scan_command += ['--cflags-begin']
+        scan_command += cflags
+        scan_command += ['--cflags-end']
         # need to put our output directory first as we need to use the
         # generated libraries instead of any possibly installed system/prefix
         # ones.
