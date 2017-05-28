@@ -32,6 +32,7 @@ parser.add_argument('--scanargs', dest='scanargs', default='')
 parser.add_argument('--scanobjsargs', dest='scanobjsargs', default='')
 parser.add_argument('--gobjects-types-file', dest='gobject_typesfile', default='')
 parser.add_argument('--fixxrefargs', dest='fixxrefargs', default='')
+parser.add_argument('--mkdbargs', dest='mkdbargs', default='')
 parser.add_argument('--ld', dest='ld', default='')
 parser.add_argument('--cc', dest='cc', default='')
 parser.add_argument('--ldflags', dest='ldflags', default='')
@@ -55,7 +56,8 @@ def gtkdoc_run_check(cmd, cwd):
         raise MesonException('\n'.join(err_msg))
 
 def build_gtkdoc(source_root, build_root, doc_subdir, src_subdirs,
-                 main_file, module, html_args, scan_args, fixxref_args,
+                 main_file, module,
+                 html_args, scan_args, fixxref_args, mkdb_args,
                  gobject_typesfile, scanobjs_args, ld, cc, ldflags, cflags,
                  html_assets, content_files, ignore_headers, namespace,
                  expand_content_files, mode):
@@ -141,6 +143,8 @@ def build_gtkdoc(source_root, build_root, doc_subdir, src_subdirs,
     if len(main_file) > 0:
         # Yes, this is the flag even if the file is in xml.
         mkdb_cmd.append('--main-sgml-file=' + main_file)
+    # Add user-specified arguments
+    mkdb_cmd += mkdb_args
     gtkdoc_run_check(mkdb_cmd, abs_out)
 
     # Make HTML documentation
@@ -185,6 +189,10 @@ def run(args):
         fixxrefargs = options.fixxrefargs.split('@@')
     else:
         fixxrefargs = []
+    if len(options.mkdbargs) > 0:
+        mkdbargs = options.mkdbargs.split('@@')
+    else:
+        mkdbargs = []
     build_gtkdoc(
         options.sourcedir,
         options.builddir,
@@ -195,6 +203,7 @@ def run(args):
         htmlargs,
         scanargs,
         fixxrefargs,
+        mkdbargs,
         options.gobject_typesfile,
         scanobjsargs,
         options.ld,

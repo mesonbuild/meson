@@ -697,6 +697,7 @@ class GnomeModule(ExtensionModule):
         args += self._unpack_args('--scanobjsargs=', 'scanobjs_args', kwargs)
         args += self._unpack_args('--gobjects-types-file=', 'gobject_typesfile', kwargs, state)
         args += self._unpack_args('--fixxrefargs=', 'fixxref_args', kwargs)
+        args += self._unpack_args('--mkdbargs=', 'mkdb_args', kwargs)
         args += self._unpack_args('--html-assets=', 'html_assets', kwargs, state)
         args += self._unpack_args('--content-files=', 'content_files', kwargs, state)
         args += self._unpack_args('--expand-content-files=', 'expand_content_files', kwargs, state)
