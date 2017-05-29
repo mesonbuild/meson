@@ -27,7 +27,7 @@ from .. import compilers
 from ..compilers import CompilerArgs
 from ..linkers import ArLinker
 from ..mesonlib import File, MesonException, OrderedSet
-from ..mesonlib import get_compiler_for_source
+from ..mesonlib import get_compiler_for_source, has_path_sep
 from .backends import CleanTrees, InstallData
 from ..build import InvalidArguments
 
@@ -1335,7 +1335,7 @@ int dummy;
 
             # Set runtime-paths so we can run executables without needing to set
             # LD_LIBRARY_PATH, etc in the environment. Doesn't work on Windows.
-            if '/' in target.name or '\\' in target.name:
+            if has_path_sep(target.name):
                 # Target names really should not have slashes in them, but
                 # unfortunately we did not check for that and some downstream projects
                 # now have them. Once slashes are forbidden, remove this bit.
@@ -2324,7 +2324,7 @@ rule FORTRAN_DEP_HACK
         # FIXME FIXME: The usage of this is a terrible and unreliable hack
         if isinstance(fname, File):
             return fname.subdir != ''
-        return '/' in fname or '\\' in fname
+        return has_path_sep(fname)
 
     # Fortran is a bit weird (again). When you link against a library, just compiling a source file
     # requires the mod files that are output when single files are built. To do this right we would need to
@@ -2370,7 +2370,7 @@ rule FORTRAN_DEP_HACK
             pch = target.get_pch(lang)
             if not pch:
                 continue
-            if '/' not in pch[0] or '/' not in pch[-1]:
+            if not has_path_sep(pch[0]) or not has_path_sep(pch[-1]):
                 msg = 'Precompiled header of {!r} must not be in the same ' \
                       'directory as source, please put it in a subdirectory.' \
                       ''.format(target.get_basename())
@@ -2547,7 +2547,7 @@ rule FORTRAN_DEP_HACK
         commands += linker.get_option_link_args(self.environment.coredata.compiler_options)
         # Set runtime-paths so we can run executables without needing to set
         # LD_LIBRARY_PATH, etc in the environment. Doesn't work on Windows.
-        if '/' in target.name or '\\' in target.name:
+        if has_path_sep(target.name):
             # Target names really should not have slashes in them, but
             # unfortunately we did not check for that and some downstream projects
             # now have them. Once slashes are forbidden, remove this bit.
