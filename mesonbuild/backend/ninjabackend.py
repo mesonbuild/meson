@@ -291,7 +291,7 @@ int dummy;
             self.generate_custom_target(target, outfile)
         if isinstance(target, build.RunTarget):
             self.generate_run_target(target, outfile)
-        name = target.get_id()
+        name = target.get_uniqid()
         if name in self.processed_targets:
             return
         self.processed_targets[name] = True
@@ -447,8 +447,7 @@ int dummy;
 
     def process_target_dependencies(self, target, outfile):
         for t in target.get_dependencies():
-            tname = t.get_basename() + t.type_suffix()
-            if tname not in self.processed_targets:
+            if t.get_uniqid() not in self.processed_targets:
                 self.generate_target(t, outfile)
 
     def custom_target_generator_inputs(self, target, outfile):
@@ -518,7 +517,7 @@ int dummy;
         elem.add_item('COMMAND', cmd)
         elem.add_item('description', desc.format(target.name, cmd_type))
         elem.write(outfile)
-        self.processed_targets[target.name + target.type_suffix()] = True
+        self.processed_targets[target.get_uniqid()] = True
 
     def generate_run_target(self, target, outfile):
         cmd = [sys.executable, self.environment.get_build_command(), '--internal', 'commandrunner']
@@ -568,7 +567,7 @@ int dummy;
         elem.add_item('description', 'Running external command %s.' % target.name)
         elem.add_item('pool', 'console')
         elem.write(outfile)
-        self.processed_targets[target.name + target.type_suffix()] = True
+        self.processed_targets[target.get_uniqid()] = True
 
     def generate_coverage_rules(self, outfile):
         e = NinjaBuildElement(self.all_outputs, 'coverage', 'CUSTOM_COMMAND', 'PHONY')

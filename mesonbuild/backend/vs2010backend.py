@@ -90,7 +90,7 @@ class Vs2010Backend(backends.Backend):
     def object_filename_from_source(self, target, source, is_unity=False):
         basename = os.path.basename(source.fname)
         filename_without_extension = '.'.join(basename.split('.')[:-1])
-        if basename in self.sources_conflicts[target.get_id()]:
+        if basename in self.sources_conflicts[target.get_uniqid()]:
             # If there are multiple source files with the same basename, we must resolve the conflict
             # by giving each a unique object output file.
             filename_without_extension = '.'.join(source.fname.split('.')[:-1]).replace('/', '_').replace('\\', '_')
@@ -112,8 +112,8 @@ class Vs2010Backend(backends.Backend):
                     conflicting_sources = []
                     conflicts[basename] = conflicting_sources
                 conflicting_sources.append(s)
-            self.sources_conflicts[target.get_id()] = {name: src_conflicts for name, src_conflicts in conflicts.items()
-                                                       if len(src_conflicts) > 1}
+            self.sources_conflicts[name] = {name: src_conflicts for name, src_conflicts in conflicts.items()
+                                            if len(src_conflicts) > 1}
 
     def generate_custom_generator_commands(self, target, parent_node):
         generator_output_files = []
@@ -211,7 +211,7 @@ class Vs2010Backend(backends.Backend):
         result = {}
         for o in obj_list:
             if isinstance(o, build.ExtractedObjects):
-                result[o.target.get_id()] = o.target
+                result[o.target.get_uniqid()] = o.target
         return result.items()
 
     def get_target_deps(self, t, recursive=False):
@@ -219,25 +219,25 @@ class Vs2010Backend(backends.Backend):
         for target in t.values():
             if isinstance(target, build.CustomTarget):
                 for d in target.get_target_dependencies():
-                    all_deps[d.get_id()] = d
+                    all_deps[d.get_uniqid()] = d
             elif isinstance(target, build.RunTarget):
                 for d in [target.command] + target.args:
                     if isinstance(d, (build.BuildTarget, build.CustomTarget)):
-                        all_deps[d.get_id()] = d
+                        all_deps[d.get_uniqid()] = d
             elif isinstance(target, build.BuildTarget):
                 for ldep in target.link_targets:
-                    all_deps[ldep.get_id()] = ldep
+                    all_deps[ldep.get_uniqid()] = ldep
                 for ldep in target.link_whole_targets:
-                    all_deps[ldep.get_id()] = ldep
+                    all_deps[ldep.get_uniqid()] = ldep
                 for obj_id, objdep in self.get_obj_target_deps(target.objects):
                     all_deps[obj_id] = objdep
                 for gendep in target.get_generated_sources():
                     if isinstance(gendep, build.CustomTarget):
-                        all_deps[gendep.get_id()] = gendep
+                        all_deps[gendep.get_uniqid()] = gendep
                     else:
                         gen_exe = gendep.generator.get_exe()
                         if isinstance(gen_exe, build.Executable):
-                            all_deps[gen_exe.get_id()] = gen_exe
+                            all_deps[gen_exe.get_uniqid()] = gen_exe
             else:
                 raise MesonException('Unknown target type for target %s' % target)
         if not t or not recursive:
@@ -258,7 +258,7 @@ class Vs2010Backend(backends.Backend):
                                         p[0], p[1], p[2])
                 ofile.write(prj_line)
                 target = self.build.targets[p[0]]
-                t = {target.get_id(): target}
+                t = {p[0]: target}
                 # Get direct deps
                 all_deps = self.get_target_deps(t)
                 # Get recursive deps
@@ -325,7 +325,7 @@ class Vs2010Backend(backends.Backend):
         projlist = []
         for name, target in self.build.targets.items():
             outdir = os.path.join(self.environment.get_build_dir(), self.get_target_dir(target))
-            fname = name + '.vcxproj'
+            fname = target.get_id() + '.vcxproj'
             relname = os.path.join(target.subdir, fname)
             projfile = os.path.join(outdir, fname)
             uuid = self.environment.coredata.target_guids[name]
@@ -931,7 +931,7 @@ class Vs2010Backend(backends.Backend):
 
         # Add more libraries to be linked if needed
         for t in target.get_dependencies():
-            lobj = self.build.targets[t.get_id()]
+            lobj = self.build.targets[t.get_uniqid()]
             linkname = os.path.join(down, self.get_target_filename_for_linking(lobj))
             if t in target.link_whole_targets:
                 linkname = compiler.get_link_whole_for(linkname)[0]
@@ -998,7 +998,7 @@ class Vs2010Backend(backends.Backend):
                 self.add_preprocessor_defines(lang, inc_cl, file_defines)
                 self.add_include_dirs(lang, inc_cl, file_inc_dirs)
                 basename = os.path.basename(s.fname)
-                if basename in self.sources_conflicts[target.get_id()]:
+                if basename in self.sources_conflicts[target.get_uniqid()]:
                     ET.SubElement(inc_cl, 'ObjectFileName').text = "$(IntDir)" + self.object_filename_from_source(target, s)
             for s in gen_src:
                 inc_cl = ET.SubElement(inc_src, 'CLCompile', Include=s)

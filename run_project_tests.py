@@ -369,6 +369,10 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, compiler, backen
         pi, o, e = Popen_safe(install_commands, cwd=test_build_dir, env=env)
         stdo += o
         stde += e
+        if should_fail == 'install':
+            if pi.returncode != 0:
+                return TestResult('', BuildStep.install, stdo, stde, mesonlog, gen_time)
+            return TestResult('Test that should have failed to run install succeeded', BuildStep.install, stdo, stde, mesonlog, gen_time)
         if pi.returncode != 0:
             return TestResult('Running install failed.', BuildStep.install, stdo, stde, mesonlog, gen_time, build_time, test_time)
     # Clean with subprocess
@@ -430,6 +434,7 @@ def detect_tests_to_run():
         ('common', 'common', False),
         ('failing-meson', 'failing', False),
         ('failing-build', 'failing build', False),
+        ('failing-install', 'failing install', False),
         ('failing-tests', 'failing tests', False),
         ('prebuilt', 'prebuilt', False),
 

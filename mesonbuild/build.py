@@ -285,6 +285,23 @@ class Target:
     def get_subdir(self):
         return self.subdir
 
+    def get_id(self):
+        '''
+        This ID is used for the target's private directory in the build
+        subdiretory. It must be a valid file name on all OSs. It should also
+        avoid shell metacharacters for obvious reasons.
+        '''
+        return self.name + self.type_suffix()
+
+    def get_uniqid(self):
+        '''
+        Get a unique id for this specific target inside this subdirectory
+        '''
+        tid = self.get_id()
+        if self.subdir:
+            return self.subdir + '@@' + tid
+        return tid
+
     def process_kwargs(self, kwargs):
         if 'build_by_default' in kwargs:
             self.build_by_default = kwargs['build_by_default']
@@ -359,15 +376,6 @@ class BuildTarget(Target):
     def validate_cross_install(self, environment):
         if environment.is_cross_build() and not self.is_cross and self.install:
             raise InvalidArguments('Tried to install a natively built target in a cross build.')
-
-    def get_id(self):
-        # This ID must also be a valid file name on all OSs.
-        # It should also avoid shell metacharacters for obvious
-        # reasons.
-        base = self.name + self.type_suffix()
-        if self.subproject == '':
-            return base
-        return self.subproject + '@@' + base
 
     def check_unknown_kwargs(self, kwargs):
         # Override this method in derived classes that have more
@@ -1416,9 +1424,6 @@ class CustomTarget(Target):
         repr_str = "<{0} {1}: {2}>"
         return repr_str.format(self.__class__.__name__, self.get_id(), self.command)
 
-    def get_id(self):
-        return self.name + self.type_suffix()
-
     def get_target_dependencies(self):
         deps = self.dependencies[:]
         deps += self.extra_depends
@@ -1583,9 +1588,6 @@ class RunTarget(Target):
     def __repr__(self):
         repr_str = "<{0} {1}: {2}>"
         return repr_str.format(self.__class__.__name__, self.get_id(), self.command)
-
-    def get_id(self):
-        return self.name + self.type_suffix()
 
     def get_dependencies(self):
         return self.dependencies

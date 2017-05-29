@@ -2543,9 +2543,13 @@ different subdirectory.
                                    % name)
         # To permit an executable and a shared library to have the
         # same name, such as "foo.exe" and "libfoo.a".
-        idname = tobj.get_id()
+        idname = tobj.get_uniqid()
         if idname in self.build.targets:
-            raise InvalidCode('Tried to create target "%s", but a target of that name already exists.' % name)
+            # We ensure that we don't try to install two files with the same
+            # name into the same destination directory during the install phase
+            m = 'Tried to create target {!r} inside {!r}, but a target ' \
+                'of that name already exists in the same subdir.'
+            raise InvalidCode(m.format(name, self.subdir))
         self.build.targets[idname] = tobj
         if idname not in self.coredata.target_guids:
             self.coredata.target_guids[idname] = str(uuid.uuid4()).upper()

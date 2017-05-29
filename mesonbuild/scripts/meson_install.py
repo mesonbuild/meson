@@ -20,6 +20,14 @@ from ..mesonlib import is_windows, Popen_safe
 
 install_log_file = None
 
+def check_installed(fname, outname, installed):
+    if outname in installed:
+        m = 'ERROR: Can\'t install {} to {} because {} was already installed there'
+        print(m.format(fname, outname, installed[outname]))
+        sys.exit(1)
+    installed[outname] = fname
+    return installed
+
 def set_mode(path, mode):
     if mode is None:
         # Keep mode unchanged
@@ -89,7 +97,7 @@ def do_copydir(src_prefix, src_dir, dst_dir):
             if os.path.isdir(abs_dst):
                 continue
             if os.path.exists(abs_dst):
-                print('Tried to copy directory %s but a file of that name already exists.' % abs_dst)
+                print('ERROR: Tried to copy directory %s but a file of that name already exists.' % abs_dst)
                 sys.exit(1)
             os.makedirs(abs_dst)
             shutil.copystat(abs_src, abs_dst)
@@ -142,21 +150,25 @@ def install_subdirs(data):
         set_mode(dst_prefix, mode)
 
 def install_data(d):
+    installed = {}
     for i in d.data:
         fullfilename = i[0]
         outfilename = get_destdir_path(d, i[1])
         mode = i[2]
         outdir = os.path.split(outfilename)[0]
+        installed = check_installed(fullfilename, outfilename, installed)
         os.makedirs(outdir, exist_ok=True)
         print('Installing %s to %s' % (fullfilename, outdir))
         do_copyfile(fullfilename, outfilename)
         set_mode(outfilename, mode)
 
 def install_man(d):
+    installed = {}
     for m in d.man:
         full_source_filename = m[0]
         outfilename = get_destdir_path(d, m[1])
         outdir = os.path.split(outfilename)[0]
+        installed = check_installed(full_source_filename, outfilename, installed)
         os.makedirs(outdir, exist_ok=True)
         print('Installing %s to %s' % (full_source_filename, outdir))
         if outfilename.endswith('.gz') and not full_source_filename.endswith('.gz'):
@@ -169,11 +181,13 @@ def install_man(d):
             do_copyfile(full_source_filename, outfilename)
 
 def install_headers(d):
+    installed = {}
     for t in d.headers:
         fullfilename = t[0]
         fname = os.path.split(fullfilename)[1]
         outdir = get_destdir_path(d, t[1])
         outfilename = os.path.join(outdir, fname)
+        installed = check_installed(fname, outfilename, installed)
         print('Installing %s to %s' % (fname, outdir))
         os.makedirs(outdir, exist_ok=True)
         do_copyfile(fullfilename, outfilename)
@@ -197,7 +211,7 @@ def run_install_script(d):
             if rc != 0:
                 sys.exit(rc)
         except:
-            print('Failed to run install script {!r}'.format(name))
+            print('ERROR: Failed to run install script {!r}'.format(name))
             sys.exit(1)
 
 def is_elf_platform():
@@ -216,7 +230,7 @@ def check_for_stampfile(fname):
             (base, suffix) = os.path.splitext(fname)
             files = glob(base + '-*' + suffix)
             if len(files) > 1:
-                print("Stale dynamic library files in build dir. Can't install.")
+                print("ERROR: Stale dynamic library files in build dir. Can't install.")
                 sys.exit(1)
             if len(files) == 1:
                 return files[0]
@@ -225,13 +239,14 @@ def check_for_stampfile(fname):
             (base, suffix) = os.path.splitext(fname)
             files = glob(base + '-*' + '.rlib')
             if len(files) > 1:
-                print("Stale static library files in build dir. Can't install.")
+                print("ERROR: Stale static library files in build dir. Can't install.")
                 sys.exit(1)
             if len(files) == 1:
                 return files[0]
     return fname
 
 def install_targets(d):
+    installed = {}
     for t in d.targets:
         fname = check_for_stampfile(t[0])
         outdir = get_destdir_path(d, t[1])
@@ -239,6 +254,7 @@ def install_targets(d):
         aliases = t[2]
         should_strip = t[3]
         install_rpath = t[4]
+        installed = check_installed(fname, outname, installed)
         print('Installing %s to %s' % (fname, outname))
         os.makedirs(outdir, exist_ok=True)
         if not os.path.exists(fname):
@@ -252,7 +268,7 @@ def install_targets(d):
                 print('Stripping target {!r}'.format(fname))
                 ps, stdo, stde = Popen_safe(d.strip_bin + [outname])
                 if ps.returncode != 0:
-                    print('Could not strip file.\n')
+                    print('ERROR: Could not strip file.\n')
                     print('Stdout:\n%s\n' % stdo)
                     print('Stderr:\n%s\n' % stde)
                     sys.exit(1)
