@@ -2598,7 +2598,7 @@ different subdirectory.
             mlog.debug('Unknown target type:', str(targetholder))
             raise RuntimeError('Unreachable code')
         # Fix failing test 53 when removing this.
-        if '/' in name or '\\' in name:
+        if mesonlib.has_path_sep(name):
             mlog.warning('Target name must not contain a path separator. This will become a hard error in a future release.')
             subpart, name = os.path.split(name)
             subdir = os.path.join(self.subdir, subpart)

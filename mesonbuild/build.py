@@ -21,6 +21,7 @@ from . import mlog
 from .mesonlib import File, MesonException
 from .mesonlib import flatten, typeslistify, stringlistify, classify_unity_sources
 from .mesonlib import get_filenames_templates_dict, substitute_values
+from .mesonlib import has_path_sep
 from .environment import for_windows, for_darwin, for_cygwin
 from .compilers import is_object, clike_langs, sort_clike, lang_suffixes
 
@@ -270,8 +271,9 @@ class EnvironmentVariables:
 
 class Target:
     def __init__(self, name, subdir, build_by_default):
-        if '/' in name or '\\' in name:
-            raise InvalidArguments('Target name must not contain a path separator.')
+        if has_path_sep(name):
+            m = 'Target name {!r} must not contain a path separator'
+            raise InvalidArguments(m.format(name))
         self.name = name
         self.subdir = subdir
         self.build_by_default = build_by_default
@@ -1025,7 +1027,7 @@ class Generator:
                 raise InvalidArguments('"output" may only contain strings.')
             if '@BASENAME@' not in rule and '@PLAINNAME@' not in rule:
                 raise InvalidArguments('Every element of "output" must contain @BASENAME@ or @PLAINNAME@.')
-            if '/' in rule or '\\' in rule:
+            if has_path_sep(rule):
                 raise InvalidArguments('"outputs" must not contain a directory separator.')
         if len(outputs) > 1:
             for o in outputs:
@@ -1476,7 +1478,7 @@ class CustomTarget(Target):
         for i in self.outputs:
             if not(isinstance(i, str)):
                 raise InvalidArguments('Output argument not a string.')
-            if '/' in i:
+            if has_path_sep(i):
                 raise InvalidArguments('Output must not contain a path segment.')
             if '@INPUT@' in i or '@INPUT0@' in i:
                 m = 'Output cannot contain @INPUT@ or @INPUT0@, did you ' \

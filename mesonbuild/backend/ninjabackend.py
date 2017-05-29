@@ -21,7 +21,7 @@ from .. import dependencies
 from .. import compilers
 from ..compilers import CompilerArgs
 from ..mesonlib import File, MesonException, OrderedSet
-from ..mesonlib import get_meson_script, get_compiler_for_source
+from ..mesonlib import get_meson_script, get_compiler_for_source, has_path_sep
 from .backends import CleanTrees, InstallData
 from ..build import InvalidArguments
 import os, sys, pickle, re
@@ -2090,7 +2090,7 @@ rule FORTRAN_DEP_HACK
         # FIXME FIXME: The usage of this is a terrible and unreliable hack
         if isinstance(fname, File):
             return fname.subdir != ''
-        return '/' in fname or '\\' in fname
+        return has_path_sep(fname)
 
     # Fortran is a bit weird (again). When you link against a library, just compiling a source file
     # requires the mod files that are output when single files are built. To do this right we would need to
@@ -2137,7 +2137,7 @@ rule FORTRAN_DEP_HACK
             pch = target.get_pch(lang)
             if not pch:
                 continue
-            if '/' not in pch[0] or '/' not in pch[-1]:
+            if not has_path_sep(pch[0]) or not has_path_sep(pch[-1]):
                 msg = 'Precompiled header of {!r} must not be in the same ' \
                       'directory as source, please put it in a subdirectory.' \
                       ''.format(target.get_basename())
