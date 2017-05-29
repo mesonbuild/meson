@@ -13,7 +13,7 @@ nomoddep = dependency('boost')
 
 nolinkexe = executable('nolinkedexe', 'nolinkexe.cc', dependencies : nolinkdep)
 linkexe = executable('linkedexe', 'linkexe.cc', dependencies : linkdep)
-staticexe = executable('linkedexe', 'linkexe.cc', dependencies : staticdep)
+staticexe = executable('staticlinkedexe', 'linkexe.cc', dependencies : staticdep)
 unitexe = executable('utf', 'unit_test.cpp', dependencies: testdep)
 nomodexe = executable('nomod', 'nomod.cpp', dependencies : nomoddep)
 
