@@ -519,6 +519,12 @@ def get_library_dirs():
     unixdirs += glob('/lib/' + plat + '*')
     return unixdirs
 
+def has_path_sep(name, sep='/\\'):
+    'Checks if any of the specified @sep path separators are in @name'
+    for each in sep:
+        if each in name:
+            return True
+    return False
 
 def do_replacement(regex, line, confdata):
     missing_variables = set()

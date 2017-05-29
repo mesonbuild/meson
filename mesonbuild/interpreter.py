@@ -21,7 +21,7 @@ from . import optinterpreter
 from . import compilers
 from .wrap import wrap, WrapMode
 from . import mesonlib
-from .mesonlib import FileMode, Popen_safe, listify, extract_as_list
+from .mesonlib import FileMode, Popen_safe, listify, extract_as_list, has_path_sep
 from .dependencies import ExternalProgram
 from .dependencies import InternalDependency, Dependency, DependencyException
 from .interpreterbase import InterpreterBase
@@ -1863,7 +1863,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             raise InterpreterException('Subproject name must not contain a ".." path segment.')
         if os.path.isabs(dirname):
             raise InterpreterException('Subproject name must not be an absolute path.')
-        if '\\' in dirname or '/' in dirname:
+        if has_path_sep(dirname):
             mlog.warning('Subproject name has a path separator. This may cause unexpected behaviour.')
         if dirname in self.subproject_stack:
             fullstack = self.subproject_stack + [dirname]

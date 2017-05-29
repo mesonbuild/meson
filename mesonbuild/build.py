@@ -23,7 +23,7 @@ from . import mlog
 from .mesonlib import File, MesonException, listify, extract_as_list
 from .mesonlib import typeslistify, stringlistify, classify_unity_sources
 from .mesonlib import get_filenames_templates_dict, substitute_values
-from .mesonlib import for_windows, for_darwin, for_cygwin, for_android
+from .mesonlib import for_windows, for_darwin, for_cygwin, for_android, has_path_sep
 from .compilers import is_object, clike_langs, sort_clike, lang_suffixes
 
 known_basic_kwargs = {'install': True,
@@ -286,7 +286,7 @@ class EnvironmentVariables:
 
 class Target:
     def __init__(self, name, subdir, subproject, build_by_default):
-        if '/' in name or '\\' in name:
+        if has_path_sep(name):
             # Fix failing test 53 when this becomes an error.
             mlog.warning('''Target "%s" has a path separator in its name.
 This is not supported, it can cause unexpected failures and will become
@@ -1067,7 +1067,7 @@ class Generator:
                 raise InvalidArguments('"output" may only contain strings.')
             if '@BASENAME@' not in rule and '@PLAINNAME@' not in rule:
                 raise InvalidArguments('Every element of "output" must contain @BASENAME@ or @PLAINNAME@.')
-            if '/' in rule or '\\' in rule:
+            if has_path_sep(rule):
                 raise InvalidArguments('"outputs" must not contain a directory separator.')
         if len(outputs) > 1:
             for o in outputs:
@@ -1666,7 +1666,7 @@ class CustomTarget(Target):
                 raise InvalidArguments('Output must not be empty.')
             if i.strip() == '':
                 raise InvalidArguments('Output must not consist only of whitespace.')
-            if '/' in i:
+            if has_path_sep(i):
                 raise InvalidArguments('Output must not contain a path segment.')
             if '@INPUT@' in i or '@INPUT0@' in i:
                 m = 'Output cannot contain @INPUT@ or @INPUT0@, did you ' \
