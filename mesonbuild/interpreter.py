@@ -2602,6 +2602,12 @@ different subdirectory.
             mlog.warning('Target name must not contain a path separator. This will become a hard error in a future release.')
             subpart, name = os.path.split(name)
             subdir = os.path.join(self.subdir, subpart)
+            # The subdir changed above, so insert self.subdir in include dirs
+            # for compatibility with the old behaviour
+            subdirinc = self.func_include_directories(node, ['.'], {})
+            inclist = mesonlib.flatten(kwargs.get('include_directories', []))
+            inclist.insert(0, subdirinc)
+            kwargs['include_directories'] = inclist
         else:
             subdir = self.subdir
         target = targetclass(name, subdir, self.subproject, is_cross, sources, objs, self.environment, kwargs)
