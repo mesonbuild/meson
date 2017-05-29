@@ -20,8 +20,10 @@ from . import mlog
 from . import build
 from . import optinterpreter
 from . import compilers
+from . import compat
 from .wrap import wrap, WrapMode
 from . import mesonlib
+from .compat import check_compat_needed
 from .mesonlib import FileMode, Popen_safe, get_meson_script
 from .dependencies import ExternalProgram
 from .dependencies import InternalDependency, Dependency, DependencyException
@@ -1365,6 +1367,9 @@ class Interpreter(InterpreterBase):
     def get_variables(self):
         return self.variables
 
+    def get_meson_version(self):
+        return self.build.projects_meson_versions[self.subproject]
+
     def check_cross_stdlibs(self):
         if self.build.environment.is_cross_build():
             cross_info = self.build.environment.cross_info
@@ -1664,8 +1669,21 @@ class Interpreter(InterpreterBase):
             cv = coredata.version
             pv = kwargs['meson_version']
             if not mesonlib.version_compare(cv, pv):
-                raise InterpreterException('Meson version is %s but project requires %s.' % (cv, pv))
+                raise InterpreterException('Meson version is %s but project requires %s' % (cv, pv))
+            # Grab the oldest Meson version that we have to be compatible with
+            if pv.startswith('>='):
+                meson_version = pv[2:]
+            elif pv.startswith('>'):
+                meson_version = pv[1:]
+            elif pv.startswith('='):
+                meson_version = coredata.version
+            else:
+                # This is the oldest version we can possibly be compatible with
+                meson_version = compat.oldest_version
+        else:
+            meson_version = coredata.version
         self.build.projects[self.subproject] = proj_name
+        self.build.projects_meson_versions[self.subproject] = meson_version
         mlog.log('Project name: ', mlog.bold(proj_name), sep='')
         self.add_languages(proj_langs, True)
         langs = self.coredata.compilers.keys()
@@ -2598,8 +2616,10 @@ different subdirectory.
             mlog.debug('Unknown target type:', str(targetholder))
             raise RuntimeError('Unreachable code')
         # Fix failing test 53 when removing this.
-        if mesonlib.has_path_sep(name):
-            mlog.warning('Target name must not contain a path separator. This will become a hard error in a future release.')
+        msg = 'Target name {!r} must not contain a path separator'.format(name)
+        if mesonlib.has_path_sep(name) and \
+           check_compat_needed(self.get_meson_version(), '0.41.0', msg):
+            # Create binary in the specified subdir for compatibility
             subpart, name = os.path.split(name)
             subdir = os.path.join(self.subdir, subpart)
             # The subdir changed above, so insert self.subdir in include dirs

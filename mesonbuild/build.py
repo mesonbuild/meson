@@ -95,6 +95,8 @@ class Build:
         self.projects_args = {}
         self.global_link_args = {}
         self.projects_link_args = {}
+        # Meson versions to maintain compatibility with for each (sub)project
+        self.projects_meson_versions = {}
         self.tests = []
         self.benchmarks = []
         self.headers = []

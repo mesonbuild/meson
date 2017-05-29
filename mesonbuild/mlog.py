@@ -100,6 +100,9 @@ def log(*args, **kwargs):
 def warning(*args, **kwargs):
     log(yellow('WARNING:'), *args, **kwargs)
 
+def deprecated(*args, **kwargs):
+    log(yellow('DEPRECATED:'), *args, **kwargs)
+
 # Format a list for logging purposes as a string. It separates
 # all but the last item with commas, and the last with 'and'.
 def format_list(list):
