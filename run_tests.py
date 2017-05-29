@@ -160,6 +160,8 @@ if __name__ == '__main__':
     # While building for x86, `platform` should be unset.
     if 'APPVEYOR' in os.environ and os.environ['arch'] == 'x86':
         os.environ.pop('platform')
+    # Force meson to always also print a backtrace
+    os.environ['MESON_FORCE_BACKTRACE'] = '1'
     # Run tests
     print('Running unittests.\n')
     units = ['InternalTests', 'AllPlatformTests']
