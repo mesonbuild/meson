@@ -262,7 +262,7 @@ This function is deprecated and in the 0.31.0 release it was moved to [the compi
     program find_program(program_name1, program_name2, ...)
 ```
 
-`program_name1` here is a string that can be an executable or script to be searched for in `PATH`, or a script in the current source directory.
+`program_name1` here is a string that can be an executable or script to be searched for in `PATH`, or a script in the current source directory.  Additional search paths can be specified using the 'search_paths' keyword argument.
 
 `program_name2` and later positional arguments are used as fallback strings to search for. This is meant to be used for cases where the program may have many alternative names, such as `foo` and `foo.py`. The function will check for the arguments one by one and the first one that is found is returned. Meson versions earlier than 0.37.0 only accept one argument.
 
