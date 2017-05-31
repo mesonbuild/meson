@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: intltest\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2016-03-28 19:59+0300\n"
+"POT-Creation-Date: 2017-05-31 05:16-0500\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -19,4 +19,16 @@ msgstr ""
 
 #: src/intlmain.c:15
 msgid "International greeting."
+msgstr ""
+
+#: data/test.desktop.in:3
+msgid "Test"
+msgstr ""
+
+#: data/test.desktop.in:4
+msgid "Application"
+msgstr ""
+
+#: data/test.desktop.in:5
+msgid "Test Application"
 msgstr ""
