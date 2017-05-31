@@ -855,6 +855,9 @@ class Vs2010Backend(backends.Backend):
             target_args.append('%(AdditionalOptions)')
             ET.SubElement(clconf, "AdditionalOptions").text = ' '.join(target_args)
 
+        # Append the root include directory
+        incroot = os.path.join(self.environment.get_prefix(), self.environment.get_includedir()).replace('\\', '/')
+        target_inc_dirs.append(incroot)
         target_inc_dirs.append('%(AdditionalIncludeDirectories)')
         ET.SubElement(clconf, 'AdditionalIncludeDirectories').text = ';'.join(target_inc_dirs)
         target_defines.append('%(PreprocessorDefinitions)')
