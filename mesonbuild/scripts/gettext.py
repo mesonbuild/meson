@@ -88,7 +88,7 @@ def run(args):
     options = parser.parse_args(args)
     subcmd = options.command
     langs = options.langs.split('@@') if options.langs else None
-    extra_args = options.extra_args.split('@@')
+    extra_args = options.extra_args.split('@@') if options.extra_args else []
     subdir = os.environ.get('MESON_SUBDIR', '')
     if options.subdir:
         subdir = options.subdir
