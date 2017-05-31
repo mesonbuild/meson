@@ -1,2 +1,2 @@
 src/intlmain.c
-data/test.desktop
+data/test.desktop.in
