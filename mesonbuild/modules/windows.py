@@ -66,7 +66,7 @@ class WindowsModule(ExtensionModule):
             res_args = extra_args + ['@INPUT@', '@OUTPUT@']
             suffix = 'o'
         if not rescomp.found():
-            raise MesonException('Could not find Windows resource compiler %s.' % ' '.join(rescomp.get_command()))
+            raise MesonException('Could not find Windows resource compiler %s' % rescomp.get_name())
         res_kwargs = {'output': '@BASENAME@.' + suffix,
                       'arguments': res_args}
         res_gen = build.Generator([rescomp], res_kwargs)

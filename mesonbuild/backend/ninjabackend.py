@@ -21,7 +21,7 @@ from .. import dependencies
 from .. import compilers
 from ..compilers import CompilerArgs
 from ..mesonlib import File, MesonException, OrderedSet
-from ..mesonlib import get_meson_script, get_compiler_for_source
+from ..mesonlib import get_meson_script, get_compiler_for_source, has_path_sep
 from .backends import CleanTrees, InstallData
 from ..build import InvalidArguments
 import os, sys, pickle, re
@@ -291,7 +291,7 @@ int dummy;
             self.generate_custom_target(target, outfile)
         if isinstance(target, build.RunTarget):
             self.generate_run_target(target, outfile)
-        name = target.get_id()
+        name = target.get_uniqid()
         if name in self.processed_targets:
             return
         self.processed_targets[name] = True
@@ -447,8 +447,7 @@ int dummy;
 
     def process_target_dependencies(self, target, outfile):
         for t in target.get_dependencies():
-            tname = t.get_basename() + t.type_suffix()
-            if tname not in self.processed_targets:
+            if t.get_uniqid() not in self.processed_targets:
                 self.generate_target(t, outfile)
 
     def custom_target_generator_inputs(self, target, outfile):
@@ -518,7 +517,7 @@ int dummy;
         elem.add_item('COMMAND', cmd)
         elem.add_item('description', desc.format(target.name, cmd_type))
         elem.write(outfile)
-        self.processed_targets[target.name + target.type_suffix()] = True
+        self.processed_targets[target.get_uniqid()] = True
 
     def generate_run_target(self, target, outfile):
         cmd = [sys.executable, self.environment.get_build_command(), '--internal', 'commandrunner']
@@ -568,7 +567,7 @@ int dummy;
         elem.add_item('description', 'Running external command %s.' % target.name)
         elem.add_item('pool', 'console')
         elem.write(outfile)
-        self.processed_targets[target.name + target.type_suffix()] = True
+        self.processed_targets[target.get_uniqid()] = True
 
     def generate_coverage_rules(self, outfile):
         e = NinjaBuildElement(self.all_outputs, 'coverage', 'CUSTOM_COMMAND', 'PHONY')
@@ -2091,7 +2090,7 @@ rule FORTRAN_DEP_HACK
         # FIXME FIXME: The usage of this is a terrible and unreliable hack
         if isinstance(fname, File):
             return fname.subdir != ''
-        return '/' in fname or '\\' in fname
+        return has_path_sep(fname)
 
     # Fortran is a bit weird (again). When you link against a library, just compiling a source file
     # requires the mod files that are output when single files are built. To do this right we would need to
@@ -2138,7 +2137,7 @@ rule FORTRAN_DEP_HACK
             pch = target.get_pch(lang)
             if not pch:
                 continue
-            if '/' not in pch[0] or '/' not in pch[-1]:
+            if not has_path_sep(pch[0]) or not has_path_sep(pch[-1]):
                 msg = 'Precompiled header of {!r} must not be in the same ' \
                       'directory as source, please put it in a subdirectory.' \
                       ''.format(target.get_basename())

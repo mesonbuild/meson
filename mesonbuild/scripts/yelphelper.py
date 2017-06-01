@@ -17,6 +17,7 @@ import subprocess
 import shutil
 import argparse
 from .. import mlog
+from ..mesonlib import has_path_sep
 from . import destdir_join
 
 parser = argparse.ArgumentParser()
@@ -77,12 +78,12 @@ def install_help(srcdir, blddir, sources, media, langs, install_dir, destdir, pr
                 elif symlinks:
                     srcfile = os.path.join(c_install_dir, m)
                     mlog.log('Symlinking %s to %s.' % (outfile, srcfile))
-                    if '/' in m or '\\' in m:
+                    if has_path_sep(m):
                         os.makedirs(os.path.dirname(outfile), exist_ok=True)
                     os.symlink(srcfile, outfile)
                 continue
             mlog.log('Installing %s to %s' % (infile, outfile))
-            if '/' in m or '\\' in m:
+            if has_path_sep(m):
                 os.makedirs(os.path.dirname(outfile), exist_ok=True)
             shutil.copyfile(infile, outfile)
             shutil.copystat(infile, outfile)

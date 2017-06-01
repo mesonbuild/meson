@@ -1117,6 +1117,17 @@ int main(int argc, char **argv) {
             self.assertTrue(os.path.exists(distfile))
             self.assertTrue(os.path.exists(checksumfile))
 
+    def test_flat_layout_duplicate_targets(self):
+        '''
+        Test that duplicate targets properly cause an error out during
+        configure with flat layouts.
+        '''
+        testdir = os.path.join(self.common_test_dir, '154 duplicate target name')
+        with self.assertRaises(subprocess.CalledProcessError,
+                               msg='Please rename your targets'):
+            self.init(testdir, extra_args='--layout=flat')
+
+
 class WindowsTests(BasePlatformTests):
     '''
     Tests that should run on Cygwin, MinGW, and MSVC

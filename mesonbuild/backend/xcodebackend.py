@@ -495,7 +495,7 @@ class XCodeBackend(backends.Backend):
             for lt in self.build.targets[tname].link_targets:
                 # NOT DOCUMENTED, may need to make different links
                 # to same target have different targetdependency item.
-                idval = self.pbx_dep_map[lt.get_id()]
+                idval = self.pbx_dep_map[lt.get_uniqid()]
                 self.write_line('%s /* PBXTargetDependency */,' % idval)
             self.indent_level -= 1
             self.write_line(");")

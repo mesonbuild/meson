@@ -1,5 +1,5 @@
 project('slashname', 'c',
-  meson_version : '>=0.41.0')
+  meson_version : '>=0.40.0')
 
 # Traverse this subdir so the corresponding dir
 # is created inside the build dir.
