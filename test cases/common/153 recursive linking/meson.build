@@ -20,3 +20,7 @@ test('alldeps',
 
 # More combinations of static and shared libraries
 subdir('3rdorderdeps')
+
+# Circular dependencies between static libraries
+# This requires the use of --start/end-group with GNU ld
+subdir('circular')

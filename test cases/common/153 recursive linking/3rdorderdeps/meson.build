@@ -16,8 +16,10 @@ foreach dep2 : ['sh', 'st']
 
       if libtype == 'sh'
         target = 'shared_library'
+        build_args = []
       elif libtype == 'st'
         target = 'static_library'
+        build_args = ['-DMESON_STATIC_BUILD']
       else
         error('Unknown libtype "@0@"'.format(libtype))
       endif
@@ -31,13 +33,16 @@ foreach dep2 : ['sh', 'st']
                              output : name + '-lib.c',
                              configuration : cdata)
       dep = get_variable(dep1 + dep2 + 'dep')
-      dep3_lib = build_target(name, lib_c, link_with : dep, target_type : target)
+      dep3_lib = build_target(name, lib_c, link_with : dep,
+                              target_type : target,
+                              c_args : build_args)
       dep3_libs += [dep3_lib]
 
       main_c = configure_file(input : 'main.c.in',
                               output : name + '-main.c',
                               configuration : cdata)
-      dep3_bin = executable(name, main_c, link_with : dep3_lib)
+      dep3_bin = executable(name, main_c, link_with : dep3_lib,
+                            c_args : build_args)
       test(name + 'test', dep3_bin)
     endforeach
   endforeach

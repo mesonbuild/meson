@@ -2,12 +2,12 @@
 
 #include "lib.h"
 
-SYMBOL_IMPORT int get_stnodep_value (void);
+int get_stnodep_value (void);
+int get_stshdep_value (void);
+int get_ststdep_value (void);
 SYMBOL_IMPORT int get_shnodep_value (void);
 SYMBOL_IMPORT int get_shshdep_value (void);
 SYMBOL_IMPORT int get_shstdep_value (void);
-SYMBOL_IMPORT int get_stshdep_value (void);
-SYMBOL_IMPORT int get_ststdep_value (void);
 
 int main(int argc, char *argv[]) {
   int val;

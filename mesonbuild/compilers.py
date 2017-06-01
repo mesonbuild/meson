@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import re
 import shutil
 import contextlib
 import subprocess, os.path
@@ -375,10 +376,15 @@ class CompilerArgs(list):
     # Arg prefixes that override by prepending instead of appending
     prepend_prefixes = ('-I', '-L')
     # Arg prefixes and args that must be de-duped by returning 2
-    dedup2_prefixes = ('-I', '-L', '-D')
+    dedup2_prefixes = ('-I', '-L', '-D', '-U')
+    dedup2_suffixes = ()
     dedup2_args = ()
     # Arg prefixes and args that must be de-duped by returning 1
-    dedup1_prefixes = ()
+    dedup1_prefixes = ('-l',)
+    dedup1_suffixes = ('.lib', '.dll', '.so', '.dylib', '.a')
+    # Match a .so of the form path/to/libfoo.so.0.1.0
+    # Only UNIX shared libraries require this. Others have a fixed extension.
+    dedup1_regex = re.compile(r'([\/\\]|\A)lib.*\.so(\.[0-9]+)?(\.[0-9]+)?(\.[0-9]+)?$')
     dedup1_args = ('-c', '-S', '-E', '-pipe', '-pthread')
     compiler = None
 
@@ -416,7 +422,7 @@ class CompilerArgs(list):
     def _can_dedup(cls, arg):
         '''
         Returns whether the argument can be safely de-duped. This is dependent
-        on two things:
+        on three things:
 
         a) Whether an argument can be 'overriden' by a later argument.  For
            example, -DFOO defines FOO and -UFOO undefines FOO. In this case, we
@@ -430,10 +436,20 @@ class CompilerArgs(list):
            a particular argument is present. This can matter for symbol
            resolution in static or shared libraries, so we cannot de-dup or
            reorder them. For these we return `0`. This is the default.
+
+        In addition to these, we handle library arguments specially.
+        With GNU ld, we surround library arguments with -Wl,--start/end-group
+        to recursively search for symbols in the libraries. This is not needed
+        with other linkers.
         '''
-        if arg.startswith(cls.dedup2_prefixes) or arg in cls.dedup2_args:
+        if arg in cls.dedup2_args or \
+           arg.startswith(cls.dedup2_prefixes) or \
+           arg.endswith(cls.dedup2_suffixes):
             return 2
-        if arg.startswith(cls.dedup1_prefixes) or arg in cls.dedup1_args:
+        if arg in cls.dedup1_args or \
+           arg.startswith(cls.dedup1_prefixes) or \
+           arg.endswith(cls.dedup1_suffixes) or \
+           re.search(cls.dedup1_regex, arg):
             return 1
         return 0
 
@@ -444,6 +460,21 @@ class CompilerArgs(list):
         return False
 
     def to_native(self):
+        # Check if we need to add --start/end-group for circular dependencies
+        # between static libraries.
+        if get_compiler_uses_gnuld(self.compiler):
+            group_started = False
+            for each in self:
+                if not each.startswith('-l') and not each.endswith('.a'):
+                    continue
+                i = self.index(each)
+                if not group_started:
+                    # First occurance of a library
+                    self.insert(i, '-Wl,--start-group')
+                    group_started = True
+            # Last occurance of a library
+            if group_started:
+                self.insert(i + 1, '-Wl,--end-group')
         return self.compiler.unix_args_to_native(self)
 
     def __add__(self, args):
@@ -2399,6 +2430,15 @@ def get_compiler_is_linuxlike(compiler):
     if (getattr(compiler, 'gcc_type', None) == GCC_STANDARD) or \
        (getattr(compiler, 'clang_type', None) == CLANG_STANDARD) or \
        (getattr(compiler, 'icc_type', None) == ICC_STANDARD):
+        return True
+    return False
+
+def get_compiler_uses_gnuld(c):
+    # FIXME: Perhaps we should detect the linker in the environment?
+    # FIXME: Assumes that *BSD use GNU ld, but they might start using lld soon
+    if (getattr(c, 'gcc_type', None) in (GCC_STANDARD, GCC_MINGW, GCC_CYGWIN)) or \
+       (getattr(c, 'clang_type', None) in (CLANG_STANDARD, CLANG_WIN)) or \
+       (getattr(c, 'icc_type', None) in (ICC_STANDARD, ICC_WIN)):
         return True
     return False
 

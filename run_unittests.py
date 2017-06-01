@@ -139,7 +139,7 @@ class InternalTests(unittest.TestCase):
         self.assertEqual(a, ['-Ibar', '-Ifoo', '-Ibaz', '-I..', '-I.', '-O3', '-O2', '-Wall'])
 
         ## Test that reflected addition works
-        # Test that adding to a list with just one old arg works and DOES NOT yield the same array
+        # Test that adding to a list with just one old arg works and yields the same array
         a = ['-Ifoo'] + a
         self.assertEqual(a, ['-Ibar', '-Ifoo', '-Ibaz', '-I..', '-I.', '-O3', '-O2', '-Wall'])
         # Test that adding to a list with just one new arg that is not pre-pended works
@@ -148,6 +148,19 @@ class InternalTests(unittest.TestCase):
         # Test that adding to a list with two new args preserves the order
         a = ['-Ldir', '-Lbah'] + a
         self.assertEqual(a, ['-Ibar', '-Ifoo', '-Ibaz', '-I..', '-I.', '-Ldir', '-Lbah', '-Werror', '-O3', '-O2', '-Wall'])
+        # Test that adding to a list with old args does nothing
+        a = ['-Ibar', '-Ibaz', '-Ifoo'] + a
+        self.assertEqual(a, ['-Ibar', '-Ifoo', '-Ibaz', '-I..', '-I.', '-Ldir', '-Lbah', '-Werror', '-O3', '-O2', '-Wall'])
+
+        ## Test that adding libraries works
+        l = cargsfunc(c, ['-Lfoodir', '-lfoo'])
+        self.assertEqual(l, ['-Lfoodir', '-lfoo'])
+        # Adding a library and a libpath appends both correctly
+        l += ['-Lbardir', '-lbar']
+        self.assertEqual(l, ['-Lbardir', '-Lfoodir', '-lfoo', '-lbar'])
+        # Adding the same library again does nothing
+        l += ['-lbar']
+        self.assertEqual(l, ['-Lbardir', '-Lfoodir', '-lfoo', '-lbar'])
 
     def test_commonpath(self):
         from os.path import sep
