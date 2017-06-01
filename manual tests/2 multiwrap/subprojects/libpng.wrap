@@ -5,6 +5,6 @@ source_url = ftp://ftp.simplesystems.org/pub/libpng/png/src/history/libpng16/lib
 source_filename = libpng-1.6.17.tar.xz
 source_hash = 98507b55fbe5cd43c51981f2924e4671fd81fe35d52dc53357e20f2c77fa5dfd
 
-patch_url = https://wrapdb.mesonbuild.com/v1/projects/libpng/1.6.17/5/get_zip
-patch_filename = libpng-1.6.17-5-wrap.zip
-patch_hash = 952c0a2664cca835c98a10829e169cff29342601e9d5b237dc71a500ac67c80f
+patch_url = https://wrapdb.mesonbuild.com/v1/projects/libpng/1.6.17/6/get_zip
+patch_filename = libpng-1.6.17-6-wrap.zip
+patch_hash = 8bd272e28e6ae84691935e84bca9f5eb02632221e6faccf427eb71bf745a7295

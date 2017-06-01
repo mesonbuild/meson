@@ -1,18 +1,12 @@
-project('multiwrap', 'c')
+project('multiwrap', 'c',
+  default_options : 'c_std=c99')
 
 # Using multiple downloaded projects for great justice.
 
-if meson.get_compiler('c').get_id() != 'msvc'
-  add_global_arguments('-std=c99', language : 'c')
-  extra_libs = ['-lm']
-else
-  extra_libs = []
-endif
+cc = meson.get_compiler('c')
 
-luap = subproject('lua')
-pngp = subproject('libpng')
+luadep = dependency('lua', fallback : ['lua', 'lua_dep'])
+pngdep = dependency('libpng', fallback : ['libpng', 'pngdep'])
 
 executable('prog', 'prog.c',
-include_directories : [pngp.get_variable('incdir'), luap.get_variable('incdir')],
-link_with :[pngp.get_variable('libpng'), luap.get_variable('lualib')],
-link_args : extra_libs)
+  dependencies : [pngdep, luadep])
