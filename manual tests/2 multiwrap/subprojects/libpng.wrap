@@ -1,10 +1,10 @@
 [wrap-file]
-directory = libpng-1.6.16
+directory = libpng-1.6.17
 
-source_url = ftp://ftp.simplesystems.org/pub/libpng/png/src/history/libpng16/libpng-1.6.16.tar.gz
-source_filename = libpng-1.6.16.tar.gz
-source_hash = 02f96b6bad5a381d36d7ba7a5d9be3b06f7fe6c274da00707509c23592a073ad
+source_url = ftp://ftp.simplesystems.org/pub/libpng/png/src/history/libpng16/libpng-1.6.17.tar.xz
+source_filename = libpng-1.6.17.tar.xz
+source_hash = 98507b55fbe5cd43c51981f2924e4671fd81fe35d52dc53357e20f2c77fa5dfd
 
-patch_url = https://dl.dropboxusercontent.com/u/37517477/libpng-meson.tar.gz
-patch_filename = libpng-meson.tar.gz
-patch_hash = b91d1abb19711a5aaa4b8581000df0e15420e46d9ce6ecf688e33144ea688f06
+patch_url = https://wrapdb.mesonbuild.com/v1/projects/libpng/1.6.17/5/get_zip
+patch_filename = libpng-1.6.17-5-wrap.zip
+patch_hash = 952c0a2664cca835c98a10829e169cff29342601e9d5b237dc71a500ac67c80f
