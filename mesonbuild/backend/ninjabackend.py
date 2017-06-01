@@ -58,22 +58,22 @@ class NinjaBuildElement:
             self.infilenames = [infilenames]
         else:
             self.infilenames = infilenames
-        self.deps = []
-        self.orderdeps = []
+        self.deps = set()
+        self.orderdeps = set()
         self.elems = []
         self.all_outputs = all_outputs
 
     def add_dep(self, dep):
         if isinstance(dep, list):
-            self.deps += dep
+            self.deps.update(dep)
         else:
-            self.deps.append(dep)
+            self.deps.add(dep)
 
     def add_orderdep(self, dep):
         if isinstance(dep, list):
-            self.orderdeps += dep
+            self.orderdeps.update(dep)
         else:
-            self.orderdeps.append(dep)
+            self.orderdeps.add(dep)
 
     def add_item(self, name, elems):
         if isinstance(elems, str):
