@@ -1690,6 +1690,9 @@ class ValaCompiler(Compiler):
     def get_no_warn_args(self):
         return ['--disable-warnings']
 
+    def get_coverage_args(self):
+        return ['--debug']
+
     def get_werror_args(self):
         return ['--fatal-warnings']
 
