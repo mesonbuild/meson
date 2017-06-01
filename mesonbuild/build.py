@@ -271,7 +271,10 @@ class EnvironmentVariables:
 class Target:
     def __init__(self, name, subdir, build_by_default):
         if '/' in name or '\\' in name:
-            raise InvalidArguments('Target name must not contain a path separator.')
+            # Fix failing test 53 when this becomes an error.
+            mlog.warning('''Target "%s" has a path separator in its name.
+This is not supported, it can cause unexpected failures and will become
+a hard error in the future.''' % name)
         self.name = name
         self.subdir = subdir
         self.build_by_default = build_by_default
