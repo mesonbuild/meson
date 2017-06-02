@@ -50,7 +50,7 @@ Implemented in Java. Poor Windows support. Heavily focused on Google's way of do
 
 ### Pros ###
 
-The fastest build system [see measurements](Performance comparison), user friendly, designed to be as invisible to the developer as possible, native support for modern tools (precompiled headers, coverage, Valgrind etc). Not Turing complete so build definition files are easy to read and understand.
+The fastest build system [see measurements](Performance-comparison.md), user friendly, designed to be as invisible to the developer as possible, native support for modern tools (precompiled headers, coverage, Valgrind etc). Not Turing complete so build definition files are easy to read and understand.
 
 ### Cons ###
 
