@@ -12,6 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import shlex
+import os, sys, pickle, re
+import subprocess, shutil
+from collections import OrderedDict
+
 from . import backends
 from .. import modules
 from .. import environment, mesonlib
@@ -24,16 +29,13 @@ from ..mesonlib import File, MesonException, OrderedSet
 from ..mesonlib import get_meson_script, get_compiler_for_source
 from .backends import CleanTrees, InstallData
 from ..build import InvalidArguments
-import os, sys, pickle, re
-import subprocess, shutil
-from collections import OrderedDict
 
 if mesonlib.is_windows():
-    quote_char = '"'
+    quote_func = lambda s: '"{}"'.format(s)
     execute_wrapper = 'cmd /c'
     rmfile_prefix = 'del /f /s /q {} &&'
 else:
-    quote_char = "'"
+    quote_func = shlex.quote
     execute_wrapper = ''
     rmfile_prefix = 'rm -f {} &&'
 
@@ -105,18 +107,17 @@ class NinjaBuildElement:
             (name, elems) = e
             should_quote = name not in raw_names
             line = ' %s = ' % name
-            q_templ = quote_char + "%s" + quote_char
             noq_templ = "%s"
             newelems = []
             for i in elems:
                 if not should_quote or i == '&&': # Hackety hack hack
-                    templ = noq_templ
+                    quoter = ninja_quote
                 else:
-                    templ = q_templ
+                    quoter = lambda x: ninja_quote(quote_func(x))
                 i = i.replace('\\', '\\\\')
-                if quote_char == '"':
+                if quote_func('') == '""':
                     i = i.replace('"', '\\"')
-                newelems.append(templ % ninja_quote(i))
+                newelems.append(quoter(i))
             line += ' '.join(newelems)
             line += '\n'
             outfile.write(line)
@@ -854,12 +855,12 @@ int dummy;
         outfile.write(' depfile = $DEPFILE\n')
         outfile.write(' restat = 1\n\n')
         outfile.write('rule REGENERATE_BUILD\n')
-        c = (quote_char + ninja_quote(sys.executable) + quote_char,
-             quote_char + ninja_quote(self.environment.get_build_command()) + quote_char,
+        c = (ninja_quote(quote_func(sys.executable)),
+             ninja_quote(quote_func(self.environment.get_build_command())),
              '--internal',
              'regenerate',
-             quote_char + ninja_quote(self.environment.get_source_dir()) + quote_char,
-             quote_char + ninja_quote(self.environment.get_build_dir()) + quote_char)
+             ninja_quote(quote_func(self.environment.get_source_dir())),
+             ninja_quote(quote_func(self.environment.get_build_dir())))
         outfile.write(" command = %s %s %s %s %s %s --backend ninja\n" % c)
         outfile.write(' description = Regenerating build files.\n')
         outfile.write(' generator = 1\n\n')
@@ -1515,7 +1516,7 @@ rule FORTRAN_DEP_HACK
                 pass
         return []
 
-    def generate_compile_rule_for(self, langname, compiler, qstr, is_cross, outfile):
+    def generate_compile_rule_for(self, langname, compiler, is_cross, outfile):
         if langname == 'java':
             if not is_cross:
                 self.generate_java_compile_rule(compiler, outfile)
@@ -1547,7 +1548,7 @@ rule FORTRAN_DEP_HACK
         quoted_depargs = []
         for d in depargs:
             if d != '$out' and d != '$in':
-                d = qstr % d
+                d = quote_func(d)
             quoted_depargs.append(d)
         cross_args = self.get_cross_info_lang_args(langname, is_cross)
         if mesonlib.is_windows():
@@ -1576,7 +1577,7 @@ rule FORTRAN_DEP_HACK
         outfile.write(description)
         outfile.write('\n')
 
-    def generate_pch_rule_for(self, langname, compiler, qstr, is_cross, outfile):
+    def generate_pch_rule_for(self, langname, compiler, is_cross, outfile):
         if langname != 'c' and langname != 'cpp':
             return
         if is_cross:
@@ -1595,7 +1596,7 @@ rule FORTRAN_DEP_HACK
         quoted_depargs = []
         for d in depargs:
             if d != '$out' and d != '$in':
-                d = qstr % d
+                d = quote_func(d)
             quoted_depargs.append(d)
         if compiler.get_id() == 'msvc':
             output = ''
@@ -1621,12 +1622,11 @@ rule FORTRAN_DEP_HACK
         outfile.write('\n')
 
     def generate_compile_rules(self, outfile):
-        qstr = quote_char + "%s" + quote_char
         for langname, compiler in self.build.compilers.items():
             if compiler.get_id() == 'clang':
                 self.generate_llvm_ir_compile_rule(compiler, False, outfile)
-            self.generate_compile_rule_for(langname, compiler, qstr, False, outfile)
-            self.generate_pch_rule_for(langname, compiler, qstr, False, outfile)
+            self.generate_compile_rule_for(langname, compiler, False, outfile)
+            self.generate_pch_rule_for(langname, compiler, False, outfile)
         if self.environment.is_cross_build():
             # In case we are going a target-only build, make the native compilers
             # masquerade as cross compilers.
@@ -1637,8 +1637,8 @@ rule FORTRAN_DEP_HACK
             for langname, compiler in cclist.items():
                 if compiler.get_id() == 'clang':
                     self.generate_llvm_ir_compile_rule(compiler, True, outfile)
-                self.generate_compile_rule_for(langname, compiler, qstr, True, outfile)
-                self.generate_pch_rule_for(langname, compiler, qstr, True, outfile)
+                self.generate_compile_rule_for(langname, compiler, True, outfile)
+                self.generate_pch_rule_for(langname, compiler, True, outfile)
         outfile.write('\n')
 
     def generate_generator_list_rules(self, target, outfile):

@@ -1266,15 +1266,15 @@ class LinuxlikeTests(BasePlatformTests):
         self.assertIsNotNone(vala_command)
         self.assertIsNotNone(c_command)
         # -w suppresses all warnings, should be there in Vala but not in C
-        self.assertIn("'-w'", vala_command)
-        self.assertNotIn("'-w'", c_command)
+        self.assertIn(" -w ", vala_command)
+        self.assertNotIn(" -w ", c_command)
         # -Wall enables all warnings, should be there in C but not in Vala
-        self.assertNotIn("'-Wall'", vala_command)
-        self.assertIn("'-Wall'", c_command)
+        self.assertNotIn(" -Wall ", vala_command)
+        self.assertIn(" -Wall ", c_command)
         # -Werror converts warnings to errors, should always be there since it's
         # injected by an unrelated piece of code and the project has werror=true
-        self.assertIn("'-Werror'", vala_command)
-        self.assertIn("'-Werror'", c_command)
+        self.assertIn(" -Werror ", vala_command)
+        self.assertIn(" -Werror ", c_command)
 
     def test_qt5dependency_pkgconfig_detection(self):
         '''
@@ -1405,7 +1405,7 @@ class LinuxlikeTests(BasePlatformTests):
             self.init(testdir, ['-D' + std_opt])
             cmd = self.get_compdb()[0]['command']
             if v != 'none':
-                cmd_std = "'-std={}'".format(v)
+                cmd_std = " -std={} ".format(v)
                 self.assertIn(cmd_std, cmd)
             try:
                 self.build()
@@ -1420,7 +1420,7 @@ class LinuxlikeTests(BasePlatformTests):
         os.environ[env_flags] = cmd_std
         self.init(testdir)
         cmd = self.get_compdb()[0]['command']
-        qcmd_std = "'{}'".format(cmd_std)
+        qcmd_std = " {} ".format(cmd_std)
         self.assertIn(qcmd_std, cmd)
         with self.assertRaises(subprocess.CalledProcessError,
                                msg='{} should have failed'.format(qcmd_std)):
