@@ -67,3 +67,7 @@ coverage must be combined before producing a report (`coverage3 combine`.)
 All known issues have been fixed and Meson can now build reproducible Debian
 packages out of the box.
 
+## Extended template substitution in configure_file
+
+The output argument of `configure_file()` is parsed for @BASENAME@ and
+@PLAINNAME@ substitutions.

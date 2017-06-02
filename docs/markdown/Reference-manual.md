@@ -124,7 +124,7 @@ When a list of strings is passed to the `command:` keyword argument, it takes an
 These are all the supported keyword arguments:
 
 - `input` the input file name. If it's not specified in configuration mode, all the variables in the `configuration:` object (see above) are written to the `output:` file.
-- `output` the output file name. In configuration mode, the permissions of the input file (if it is specified) are copied to the output file.
+- `output` the output file name (may contain `@PLAINNAME@` or `@BASENAME@` substitutions). In configuration mode, the permissions of the input file (if it is specified) are copied to the output file.
 - `configuration` as explained above, this is where you pass the configuration data object as returned by `configuration_data()`
 - `command` as explained above, if specified, Meson does not create the file itself but rather runs the specified command, which allows you to do fully custom file generation
 - `install_dir` the subdirectory to install the generated file to (e.g. `share/myproject`), if omitted the file is not installed.
