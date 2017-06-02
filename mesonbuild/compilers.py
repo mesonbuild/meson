@@ -1371,10 +1371,10 @@ class CCompiler(Compiler):
             for suffix in suffixes:
                 trial = os.path.join(d, 'lib' + libname + '.' + suffix)
                 if os.path.isfile(trial):
-                    return trial
+                    return [trial]
                 trial2 = os.path.join(d, libname + '.' + suffix)
                 if os.path.isfile(trial2):
-                    return trial2
+                    return [trial2]
         return None
 
     def thread_flags(self):
