@@ -345,7 +345,7 @@ If you want to generate files for general purposes such as for generating header
     value get_option(option_name)
 ```
 
-Obtains the value of the [project build option](Build options) specified in the positional argument.
+Obtains the value of the [project build option](Build-options.md) specified in the positional argument.
 
 ### get_variable()
 

@@ -69,4 +69,4 @@ This uses the system dependency when available and the self built version if not
 
 # Obtaining subprojects
 
-Meson ships with a dependency system to automatically obtain dependency subprojects. It is documented in the [Wrap dependency system manual](Wrap dependency system manual).
+Meson ships with a dependency system to automatically obtain dependency subprojects. It is documented in the [Wrap dependency system manual](Wrap-dependency-system-manual.md).
