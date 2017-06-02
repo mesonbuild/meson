@@ -124,8 +124,12 @@ class BoostDependency(Dependency):
 
         # For now, use -isystem for all includes except for some
         # typical defaults (which don't need to be included at all
-        # since they are in the default include paths)
-        if include_dir != '/usr/include' and include_dir != '/usr/local/include':
+        # since they are in the default include paths). These typical
+        # defaults include the usual directories at the root of the
+        # filesystem, but also any path that ends with those directory
+        # names in order to handle cases like cross-compiling where we
+        # might have a different sysroot.
+        if not include_dir.endswith(('/usr/include', '/usr/local/include')):
             args.append("".join(self.cpp_compiler.get_include_args(include_dir, True)))
         return args
 
