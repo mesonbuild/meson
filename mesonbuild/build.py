@@ -737,7 +737,7 @@ class BuildTarget(Target):
                 mlog.warning("Use the 'pic' kwarg instead of passing -fPIC manually to static library {!r}".format(self.name))
                 self.pic = True
             else:
-                self.pic = kwargs.get('pic', False)
+                self.pic = kwargs.get('pic', True)
                 if not isinstance(self.pic, bool):
                     raise InvalidArguments('Argument pic to static library {!r} must be boolean'.format(self.name))
 
