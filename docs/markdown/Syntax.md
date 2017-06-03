@@ -8,8 +8,7 @@ The syntax of Meson's specification language has been kept as simple as possible
 
 The main building blocks of the language are *variables*, *numbers*, *booleans*, *strings*, *arrays*, *function calls*, *method calls*, *if statements* and *includes*.
 
-Usually one Meson statement takes just one line. There is no way to have multiple statements on one line as in e.g. *C*. Function and method calls' argument lists can be split over multiple lines. Meson will autodetect this case and do the right thing. Apart from line ending whitespace has no syntactical meaning.
-
+Usually one Meson statement takes just one line. There is no way to have multiple statements on one line as in e.g. *C*. Function and method calls' argument lists can be split over multiple lines. Meson will autodetect this case and do the right thing. In other cases you can get multi-line statements by ending the line with a `\`. Apart from line ending whitespace has no syntactic meaning.
 
 Variables
 --
