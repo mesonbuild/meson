@@ -86,3 +86,20 @@ foreach config_template : config_templates
 endforeach
 
 test('Substituted', executable('prog4', 'prog4.c'))
+
+# Test `capture` keyword
+
+basename_py = find_program('basename.py')
+file_contains_py = find_program('file_contains.py')
+test_string = 'hello world'
+test_input_file = join_paths(meson.current_build_dir(), test_string)
+run_command(find_program('touch.py'), test_input_file)
+configs = [
+    # no input
+    configure_file(command: [ basename_py, test_string ], capture: true, output: 'capture test 1'),
+    # with input
+    configure_file(input: test_input_file, command: [ basename_py, '@INPUT@' ], capture: true, output: 'capture test 2'),
+]
+foreach c : configs
+    test('@0@'.format(c), file_contains_py, args: [ c, test_string ])
+endforeach
