@@ -481,6 +481,8 @@ class Environment:
             if 'clang' in out:
                 if 'Apple' in out or for_darwin(want_cross, self):
                     cltype = CLANG_OSX
+                elif 'windows' in out or for_windows(want_cross, self):
+                    cltype = CLANG_WIN
                 else:
                     cltype = CLANG_STANDARD
                 cls = ClangCCompiler if lang == 'c' else ClangCPPCompiler
