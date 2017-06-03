@@ -619,7 +619,7 @@ def substitute_values(command, values):
             else:
                 raise MesonException("Command has '@INPUT@' as part of a "
                                      "string and more than one input file")
-        elif '@OUTPUT@' in vv:
+        if '@OUTPUT@' in vv:
             outputs = values['@OUTPUT@']
             if vv == '@OUTPUT@':
                 outcmd += outputs
