@@ -2344,6 +2344,10 @@ class Interpreter(InterpreterBase):
         output = kwargs['output']
         if not isinstance(output, str):
             raise InterpreterException('Output file name must be a string')
+        if ifile_abs:
+            values = mesonlib.get_filenames_templates_dict([ifile_abs], None)
+            outputs = mesonlib.substitute_values([output], values)
+            output = outputs[0]
         if os.path.split(output)[0] != '':
             raise InterpreterException('Output file name must not contain a subdirectory.')
         (ofile_path, ofile_fname) = os.path.split(os.path.join(self.subdir, output))
