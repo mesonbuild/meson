@@ -40,7 +40,7 @@ from run_tests import ensure_backend_detects_changes
 def get_dynamic_section_entry(fname, entry):
     raw_out = subprocess.check_output(['readelf', '-d', fname],
                                       universal_newlines=True)
-    pattern = re.compile(entry + ': \[(.*?)\]')
+    pattern = re.compile(entry + r': \[(.*?)\]')
     for line in raw_out.split('\n'):
         m = pattern.search(line)
         if m is not None:
@@ -51,7 +51,7 @@ def get_soname(fname):
     return get_dynamic_section_entry(fname, 'soname')
 
 def get_rpath(fname):
-    return get_dynamic_section_entry(fname, 'rpath')
+    return get_dynamic_section_entry(fname, r'(?:rpath|runpath)')
 
 
 class InternalTests(unittest.TestCase):
