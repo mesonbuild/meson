@@ -16,6 +16,8 @@
 
 import glob
 import os
+import re
+import shlex
 import stat
 import sysconfig
 
@@ -24,7 +26,7 @@ from .. import mesonlib
 from ..environment import detect_cpu_family
 
 from .base import DependencyException, DependencyMethods
-from .base import ExternalDependency, ExtraFrameworkDependency, PkgConfigDependency
+from .base import ExternalDependency, ExternalProgram, ExtraFrameworkDependency, PkgConfigDependency
 
 
 class BoostDependency(ExternalDependency):
@@ -275,6 +277,133 @@ class BoostDependency(ExternalDependency):
 
     def need_threads(self):
         return 'thread' in self.requested_modules
+
+
+class MPIDependency(ExternalDependency):
+    def __init__(self, environment, kwargs):
+        language = kwargs.get('language', 'c')
+        super().__init__('mpi', environment, language, kwargs)
+        required = kwargs.pop('required', True)
+        kwargs['required'] = False
+        kwargs['silent'] = True
+        self.is_found = False
+
+        # NOTE: Only OpenMPI supplies a pkg-config file at the moment.
+        if language == 'c':
+            env_vars = ['MPICC']
+            pkgconfig_files = ['ompi-c']
+            default_wrappers = ['mpicc']
+        elif language == 'cpp':
+            env_vars = ['MPICXX']
+            pkgconfig_files = ['ompi-cxx']
+            default_wrappers = ['mpic++', 'mpicxx', 'mpiCC']
+        elif language == 'fortran':
+            env_vars = ['MPIFC', 'MPIF90', 'MPIF77']
+            pkgconfig_files = ['ompi-fort']
+            default_wrappers = ['mpifort', 'mpif90', 'mpif77']
+        else:
+            raise DependencyException('Language {} is not supported with MPI.'.format(language))
+
+        for pkg in pkgconfig_files:
+            try:
+                pkgdep = PkgConfigDependency(pkg, environment, kwargs)
+                if pkgdep.found():
+                    self.compile_args = pkgdep.get_compile_args()
+                    self.link_args = pkgdep.get_link_args()
+                    self.version = pkgdep.get_version()
+                    self.is_found = True
+                    break
+            except Exception:
+                pass
+
+        if not self.is_found:
+            # Prefer environment.
+            for var in env_vars:
+                if var in os.environ:
+                    wrappers = [os.environ[var]]
+                    break
+            else:
+                # Or search for default wrappers.
+                wrappers = default_wrappers
+
+            for prog in wrappers:
+                result = self._try_openmpi_wrapper(prog)
+                if result is not None:
+                    self.is_found = True
+                    self.version = result[0]
+                    self.compile_args = result[1]
+                    self.link_args = result[2]
+                    break
+                result = self._try_other_wrapper(prog)
+                if result is not None:
+                    self.is_found = True
+                    self.version = result[0]
+                    self.compile_args = result[1]
+                    self.link_args = result[2]
+                    break
+
+        if self.is_found:
+            mlog.log('Dependency', mlog.bold(self.name), 'for', self.language, 'found:', mlog.green('YES'), self.version)
+        else:
+            mlog.log('Dependency', mlog.bold(self.name), 'for', self.language, 'found:', mlog.red('NO'))
+            if required:
+                raise DependencyException('MPI dependency {!r} not found'.format(self.name))
+
+    def _try_openmpi_wrapper(self, prog):
+        prog = ExternalProgram(prog, silent=True)
+        if prog.found():
+            cmd = prog.get_command() + ['--showme:compile']
+            p, o, e = mesonlib.Popen_safe(cmd)
+            p.wait()
+            if p.returncode != 0:
+                mlog.debug('Command', mlog.bold(cmd), 'failed to run:')
+                mlog.debug(mlog.bold('Standard output\n'), o)
+                mlog.debug(mlog.bold('Standard error\n'), e)
+                return
+            cargs = shlex.split(o)
+
+            cmd = prog.get_command() + ['--showme:link']
+            p, o, e = mesonlib.Popen_safe(cmd)
+            p.wait()
+            if p.returncode != 0:
+                mlog.debug('Command', mlog.bold(cmd), 'failed to run:')
+                mlog.debug(mlog.bold('Standard output\n'), o)
+                mlog.debug(mlog.bold('Standard error\n'), e)
+                return
+            libs = shlex.split(o)
+
+            cmd = prog.get_command() + ['--showme:version']
+            p, o, e = mesonlib.Popen_safe(cmd)
+            p.wait()
+            if p.returncode != 0:
+                mlog.debug('Command', mlog.bold(cmd), 'failed to run:')
+                mlog.debug(mlog.bold('Standard output\n'), o)
+                mlog.debug(mlog.bold('Standard error\n'), e)
+                return
+            version = re.search('\d+.\d+.\d+', o)
+            if version:
+                version = version.group(0)
+            else:
+                version = 'none'
+
+            return version, cargs, libs
+
+    def _try_other_wrapper(self, prog):
+        prog = ExternalProgram(prog, silent=True)
+        if prog.found():
+            cmd = prog.get_command() + ['-show']
+            p, o, e = mesonlib.Popen_safe(cmd)
+            p.wait()
+            if p.returncode != 0:
+                mlog.debug('Command', mlog.bold(cmd), 'failed to run:')
+                mlog.debug(mlog.bold('Standard output\n'), o)
+                mlog.debug(mlog.bold('Standard error\n'), e)
+                return
+            args = shlex.split(o)
+
+            version = 'none'
+
+            return version, args, args
 
 
 class ThreadDependency(ExternalDependency):
