@@ -12,7 +12,7 @@ girlib = shared_library(
 girexe = executable(
   'girprog',
   sources : 'prog.c',
-  dependencies : [glib, gobj, gir],
+  dependencies : [glib, gobj, gir, dep1_dep],
   link_with : girlib
 )
 
