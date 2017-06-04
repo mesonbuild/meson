@@ -104,3 +104,11 @@ By default Meson adds the current source and build directories to the
 header search path. On some rare occasions this is not desired. Setting
 the `implicit_include_directories` keyword argument to `false` these
 directories are not used.
+
+## Support for MPI dependency
+
+MPI is now supported as a dependency. Because dependencies are
+language-specific, you must specify the requested language with the `language`
+keyword, i.e., `dependency('mpi', language='c')` will request the C MPI headers
+and libraries. See [the MPI dependency](Dependencies.md#mpi) for more
+information.

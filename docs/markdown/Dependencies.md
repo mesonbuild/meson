@@ -51,6 +51,21 @@ If your boost headers or libraries are in non-standard locations you can set the
 
 GTest and GMock come as sources that must be compiled as part of your project. With Meson you don't have to care about the details, just pass `gtest` or `gmock` to `dependency` and it will do everything for you. If you want to use GMock, it is recommended to use GTest as well, as getting it to work standalone is tricky.
 
+## MPI ##
+
+MPI is supported for C, C++ and Fortran. Because dependencies are
+language-specific, you must specify the requested language using the
+`language` keyword argument, i.e.,
+ * `dependency('mpi', language='c')` for the C MPI headers and libraries
+ * `dependency('mpi', language='cpp')` for the C++ MPI headers and libraries
+ * `dependency('mpi', language='fortran')` for the Fortran MPI headers and libraries
+
+Meson prefers pkg-config for MPI, but if your MPI implementation does not
+provide them, it will search for the standard wrapper executables, `mpic`,
+`mpicxx`, `mpic++`, `mpifort`, `mpif90`, `mpif77`. If these are not in your
+path, they can be specified by setting the standard environment variables
+`MPICC`, `MPICXX`, `MPIFC`, `MPIF90`, or `MPIF77`, during configuration.
+
 ## Qt5 ##
 
 Meson has native Qt5 support. Its usage is best demonstrated with an example.
