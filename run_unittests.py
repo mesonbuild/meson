@@ -50,6 +50,9 @@ def get_dynamic_section_entry(fname, entry):
 def get_soname(fname):
     return get_dynamic_section_entry(fname, 'soname')
 
+def get_rpath(fname):
+    return get_dynamic_section_entry(fname, 'rpath')
+
 
 class InternalTests(unittest.TestCase):
 
@@ -1162,6 +1165,25 @@ int main(int argc, char **argv) {
             checksumfile = distfile + '.sha256sum'
             self.assertTrue(os.path.exists(distfile))
             self.assertTrue(os.path.exists(checksumfile))
+
+    def test_rpath_uses_ORIGIN(self):
+        '''
+        Test that built targets use $ORIGIN in rpath, which ensures that they
+        are relocatable and ensures that builds are reproducible since the
+        build directory won't get embedded into the built binaries.
+        '''
+        if is_windows() or is_cygwin():
+            raise unittest.SkipTest('Windows PE/COFF binaries do not use RPATH')
+        testdir = os.path.join(self.common_test_dir, '46 library chain')
+        self.init(testdir)
+        self.build()
+        for each in ('prog', 'subdir/liblib1.so', 'subdir/subdir2/liblib2.so',
+                     'subdir/subdir3/liblib3.so'):
+            rpath = get_rpath(os.path.join(self.builddir, each))
+            self.assertTrue(rpath)
+            for path in rpath.split(':'):
+                self.assertTrue(path.startswith('$ORIGIN'), msg=(each, path))
+
 
 class WindowsTests(BasePlatformTests):
     '''

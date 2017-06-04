@@ -337,7 +337,12 @@ def build_unix_rpath_args(build_dir, from_dir, rpath_paths, install_rpath):
                 paths = padding
             else:
                 paths = paths + ':' + padding
-        return ['-Wl,-rpath,' + paths]
+        # Rpaths to use while linking must be absolute. These are not used
+        # while running and are not written to the binary.
+        # https://github.com/mesonbuild/meson/issues/1897
+        # https://sourceware.org/bugzilla/show_bug.cgi?id=16936
+        linkpaths = ':'.join([os.path.join(build_dir, p) for p in rpath_paths])
+        return ['-Wl,-rpath,' + paths, '-Wl,-rpath-link,' + linkpaths]
 
 class CrossNoRunException(MesonException):
     pass
