@@ -310,7 +310,8 @@ class QtBaseDependency(ExternalDependency):
         libdir = qvars['QT_INSTALL_LIBS']
         for m in modules:
             fname = 'Qt' + m
-            fwdep = ExtraFrameworkDependency(fname, kwargs.get('required', True), libdir, kwargs)
+            fwdep = ExtraFrameworkDependency(fname, False, libdir, self.env,
+                                             self.language, kwargs)
             self.cargs.append('-F' + libdir)
             if fwdep.found():
                 self.is_found = True
@@ -400,7 +401,8 @@ class SDL2Dependency(ExternalDependency):
             mlog.debug('Could not find sdl2-config binary, trying next.')
         if DependencyMethods.EXTRAFRAMEWORK in self.methods:
             if mesonlib.is_osx():
-                fwdep = ExtraFrameworkDependency('sdl2', False, None, kwargs)
+                fwdep = ExtraFrameworkDependency('sdl2', False, None, self.env,
+                                                 self.language, kwargs)
                 if fwdep.found():
                     self.is_found = True
                     self.compile_args = fwdep.get_compile_args()
