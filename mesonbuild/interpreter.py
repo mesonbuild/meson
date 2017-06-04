@@ -973,7 +973,8 @@ class CompilerHolder(InterpreterObject):
         if required and not linkargs:
             l = self.compiler.language.capitalize()
             raise InterpreterException('{} library {!r} not found'.format(l, libname))
-        lib = dependencies.ExternalLibrary(libname, linkargs, self.compiler.language)
+        lib = dependencies.ExternalLibrary(libname, linkargs, self.environment,
+                                           self.compiler.language)
         return ExternalLibraryHolder(lib)
 
     def has_argument_method(self, args, kwargs):

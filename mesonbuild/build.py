@@ -806,7 +806,7 @@ class BuildTarget(Target):
                 self.external_deps.append(extpart)
                 # Deps of deps.
                 self.add_deps(dep.ext_deps)
-            elif isinstance(dep, dependencies.Dependency):
+            elif isinstance(dep, dependencies.ExternalDependency):
                 self.external_deps.append(dep)
                 self.process_sourcelist(dep.get_sources())
             elif isinstance(dep, BuildTarget):
