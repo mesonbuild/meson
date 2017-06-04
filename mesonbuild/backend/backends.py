@@ -429,7 +429,7 @@ class Backend:
                                 break
                     commands += ['--pkg', dep.name]
                 elif isinstance(dep, dependencies.ExternalLibrary):
-                    commands += dep.get_lang_args('vala')
+                    commands += dep.get_link_args('vala')
             else:
                 commands += dep.get_compile_args()
             # Qt needs -fPIC for executables

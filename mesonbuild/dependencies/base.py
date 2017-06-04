@@ -52,9 +52,13 @@ class DependencyMethods(Enum):
 class Dependency:
     def __init__(self, type_name, kwargs):
         self.name = "null"
-        self.language = None
+        self.version = 'none'
+        self.language = None # None means C-like
         self.is_found = False
         self.type_name = type_name
+        self.compile_args = []
+        self.link_args = []
+        self.sources = []
         method = DependencyMethods(kwargs.get('method', 'auto'))
 
         # Set the detection method. If the method is set to auto, use any available method.
@@ -74,10 +78,10 @@ class Dependency:
         return s.format(self.__class__.__name__, self.name, self.is_found)
 
     def get_compile_args(self):
-        return []
+        return self.compile_args
 
     def get_link_args(self):
-        return []
+        return self.link_args
 
     def found(self):
         return self.is_found
@@ -85,13 +89,16 @@ class Dependency:
     def get_sources(self):
         """Source files that need to be added to the target.
         As an example, gtest-all.cc when using GTest."""
-        return []
+        return self.sources
 
     def get_methods(self):
         return [DependencyMethods.AUTO]
 
     def get_name(self):
         return self.name
+
+    def get_version(self):
+        return self.version
 
     def get_exe_args(self, compiler):
         return []
@@ -100,7 +107,7 @@ class Dependency:
         return False
 
     def get_pkgconfig_variable(self, variable_name):
-        raise MesonException('Tried to get a pkg-config variable from a non-pkgconfig dependency.')
+        raise NotImplementedError('{!r} is not a pkgconfig dependency'.format(self.name))
 
 
 class InternalDependency(Dependency):
@@ -115,41 +122,52 @@ class InternalDependency(Dependency):
         self.sources = sources
         self.ext_deps = ext_deps
 
-    def get_compile_args(self):
-        return self.compile_args
 
-    def get_link_args(self):
-        return self.link_args
+class ExternalDependency(Dependency):
+    def __init__(self, type_name, environment, language, kwargs):
+        super().__init__(type_name, kwargs)
+        self.env = environment
+        self.name = type_name # default
+        self.is_found = False
+        self.language = language
+        if language and language not in self.env.coredata.compilers:
+            m = self.name.capitalize() + ' requires a {} compiler'
+            raise DependencyException(m.format(language.capitalize()))
+        self.version_reqs = kwargs.get('version', None)
+        self.required = kwargs.get('required', True)
+        self.silent = kwargs.get('silent', False)
+        self.static = kwargs.get('static', False)
+        if not isinstance(self.static, bool):
+            raise DependencyException('Static keyword must be boolean')
+        # Is this dependency for cross-com,pilation?
+        if 'native' in kwargs and self.env.is_cross_build():
+            self.want_cross = not kwargs['native']
+        else:
+            self.want_cross = self.env.is_cross_build()
+        # Set the compiler that will be used by this dependency
+        # This is only used for configuration checks
+        if self.want_cross:
+            compilers = self.env.coredata.cross_compilers
+        else:
+            compilers = self.env.coredata.compilers
+        self.compiler = compilers.get(self.language or 'c', None)
 
-    def get_version(self):
-        return self.version
+    def get_compiler(self):
+        return self.compiler
 
 
-class PkgConfigDependency(Dependency):
+class PkgConfigDependency(ExternalDependency):
     # The class's copy of the pkg-config path. Avoids having to search for it
     # multiple times in the same Meson invocation.
     class_pkgbin = None
 
     def __init__(self, name, environment, kwargs):
-        Dependency.__init__(self, 'pkgconfig', kwargs)
+        super().__init__('pkgconfig', environment, None, kwargs)
+        self.name = name
         self.is_libtool = False
-        self.version_reqs = kwargs.get('version', None)
-        self.required = kwargs.get('required', True)
-        self.static = kwargs.get('static', False)
-        self.silent = kwargs.get('silent', False)
-        if not isinstance(self.static, bool):
-            raise DependencyException('Static keyword must be boolean')
         # Store a copy of the pkg-config path on the object itself so it is
         # stored in the pickled coredata and recovered.
         self.pkgbin = None
-        self.cargs = []
-        self.libs = []
-        if 'native' in kwargs and environment.is_cross_build():
-            self.want_cross = not kwargs['native']
-        else:
-            self.want_cross = environment.is_cross_build()
-        self.name = name
-        self.modversion = 'none'
 
         # When finding dependencies for cross-compiling, we don't care about
         # the 'native' pkg-config
@@ -175,7 +193,6 @@ class PkgConfigDependency(Dependency):
         else:
             self.pkgbin = PkgConfigDependency.class_pkgbin
 
-        self.is_found = False
         if not self.pkgbin:
             if self.required:
                 raise DependencyException('Pkg-config not found.')
@@ -187,7 +204,7 @@ class PkgConfigDependency(Dependency):
 
         mlog.debug('Determining dependency {!r} with pkg-config executable '
                    '{!r}'.format(name, self.pkgbin))
-        ret, self.modversion = self._call_pkgbin(['--modversion', name])
+        ret, self.version = self._call_pkgbin(['--modversion', name])
         if ret != 0:
             if self.required:
                 raise DependencyException('{} dependency {!r} not found'
@@ -202,10 +219,10 @@ class PkgConfigDependency(Dependency):
             if isinstance(self.version_reqs, str):
                 self.version_reqs = [self.version_reqs]
             (self.is_found, not_found, found) = \
-                version_compare_many(self.modversion, self.version_reqs)
+                version_compare_many(self.version, self.version_reqs)
             if not self.is_found:
                 found_msg += [mlog.red('NO'),
-                              'found {!r} but need:'.format(self.modversion),
+                              'found {!r} but need:'.format(self.version),
                               ', '.join(["'{}'".format(e) for e in not_found])]
                 if found:
                     found_msg += ['; matched:',
@@ -214,9 +231,9 @@ class PkgConfigDependency(Dependency):
                     mlog.log(*found_msg)
                 if self.required:
                     m = 'Invalid version of dependency, need {!r} {!r} found {!r}.'
-                    raise DependencyException(m.format(name, not_found, self.modversion))
+                    raise DependencyException(m.format(name, not_found, self.version))
                 return
-        found_msg += [mlog.green('YES'), self.modversion]
+        found_msg += [mlog.green('YES'), self.version]
         # Fetch cargs to be used while using this dependency
         self._set_cargs()
         # Fetch the libraries and library paths needed for using this
@@ -240,7 +257,7 @@ class PkgConfigDependency(Dependency):
         if ret != 0:
             raise DependencyException('Could not generate cargs for %s:\n\n%s' %
                                       (self.name, out))
-        self.cargs = out.split()
+        self.compile_args = out.split()
 
     def _set_libs(self):
         libcmd = [self.name, '--libs']
@@ -250,7 +267,7 @@ class PkgConfigDependency(Dependency):
         if ret != 0:
             raise DependencyException('Could not generate libs for %s:\n\n%s' %
                                       (self.name, out))
-        self.libs = []
+        self.link_args = []
         for lib in out.split():
             if lib.endswith(".la"):
                 shared_libname = self.extract_libtool_shlib(lib)
@@ -264,7 +281,7 @@ class PkgConfigDependency(Dependency):
                                               'library path' % lib)
                 lib = shared_lib
                 self.is_libtool = True
-            self.libs.append(lib)
+            self.link_args.append(lib)
 
     def get_pkgconfig_variable(self, variable_name):
         ret, out = self._call_pkgbin(['--variable=' + variable_name, self.name])
@@ -277,18 +294,6 @@ class PkgConfigDependency(Dependency):
             variable = out.strip()
         mlog.debug('Got pkgconfig variable %s : %s' % (variable_name, variable))
         return variable
-
-    def get_modversion(self):
-        return self.modversion
-
-    def get_version(self):
-        return self.modversion
-
-    def get_compile_args(self):
-        return self.cargs
-
-    def get_link_args(self):
-        return self.libs
 
     def get_methods(self):
         return [DependencyMethods.PKGCONFIG]
@@ -318,9 +323,6 @@ class PkgConfigDependency(Dependency):
             else:
                 mlog.log('Found Pkg-config:', mlog.red('NO'))
         return pkgbin
-
-    def found(self):
-        return self.is_found
 
     def extract_field(self, la_file, fieldname):
         with open(la_file) as f:
@@ -500,52 +502,39 @@ class ExternalProgram:
         return self.name
 
 
-class ExternalLibrary(Dependency):
-    # TODO: Add `language` support to all Dependency objects so that languages
-    # can be exposed for dependencies that support that (i.e., not pkg-config)
-    def __init__(self, name, link_args, language, silent=False):
-        super().__init__('external', {})
+class ExternalLibrary(ExternalDependency):
+    def __init__(self, name, link_args, environment, language, silent=False):
+        super().__init__('external', environment, language, {})
         self.name = name
         self.language = language
         self.is_found = False
-        self.link_args = []
-        self.lang_args = []
         if link_args:
             self.is_found = True
             if not isinstance(link_args, list):
                 link_args = [link_args]
-            self.lang_args = {language: link_args}
-            # We special-case Vala for now till the Dependency object gets
-            # proper support for exposing the language it was written in.
-            # Without this, vala-specific link args will end up in the C link
-            # args list if you link to a Vala library.
-            # This hack use to be in CompilerHolder.find_library().
-            if language != 'vala':
-                self.link_args = link_args
+            self.link_args = link_args
         if not silent:
             if self.is_found:
                 mlog.log('Library', mlog.bold(name), 'found:', mlog.green('YES'))
             else:
                 mlog.log('Library', mlog.bold(name), 'found:', mlog.red('NO'))
 
-    def found(self):
-        return self.is_found
-
-    def get_name(self):
-        return self.name
-
-    def get_link_args(self):
+    def get_link_args(self, language=None):
+        '''
+        External libraries detected using a compiler must only be used with
+        compatible code. For instance, Vala libraries (.vapi files) cannot be
+        used with C code, and not all Rust library types can be linked with
+        C-like code. Note that C++ libraries *can* be linked with C code with
+        a C++ linker (and vice-versa).
+        '''
+        if self.language == 'vala' and language != 'vala':
+            return []
         return self.link_args
 
-    def get_lang_args(self, lang):
-        if lang in self.lang_args:
-            return self.lang_args[lang]
-        return []
 
-
-class ExtraFrameworkDependency(Dependency):
-    def __init__(self, name, required, path, kwargs):
-        Dependency.__init__(self, 'extraframeworks', kwargs)
+class ExtraFrameworkDependency(ExternalDependency):
+    def __init__(self, name, required, path, env, lang, kwargs):
+        super().__init__('extraframeworks', env, lang, kwargs)
         self.name = None
         self.required = required
         self.detect(name, path)
@@ -570,6 +559,7 @@ class ExtraFrameworkDependency(Dependency):
                     continue
                 self.path = p
                 self.name = d
+                self.is_found = True
                 return
         if not self.found() and self.required:
             raise DependencyException('Framework dependency %s not found.' % (name, ))
@@ -583,9 +573,6 @@ class ExtraFrameworkDependency(Dependency):
         if self.found():
             return ['-F' + self.path, '-framework', self.name.split('.')[0]]
         return []
-
-    def found(self):
-        return self.name is not None
 
     def get_version(self):
         return 'unknown'
@@ -611,7 +598,7 @@ def get_dep_identifier(name, kwargs, want_cross):
     return identifier
 
 
-def find_external_dependency(name, environment, kwargs):
+def find_external_dependency(name, env, kwargs):
     required = kwargs.get('required', True)
     if not isinstance(required, bool):
         raise DependencyException('Keyword "required" must be a boolean.')
@@ -619,20 +606,20 @@ def find_external_dependency(name, environment, kwargs):
         raise DependencyException('Keyword "method" must be a string.')
     lname = name.lower()
     if lname in packages:
-        dep = packages[lname](environment, kwargs)
+        dep = packages[lname](env, kwargs)
         if required and not dep.found():
             raise DependencyException('Dependency "%s" not found' % name)
         return dep
     pkg_exc = None
     pkgdep = None
     try:
-        pkgdep = PkgConfigDependency(name, environment, kwargs)
+        pkgdep = PkgConfigDependency(name, env, kwargs)
         if pkgdep.found():
             return pkgdep
     except Exception as e:
         pkg_exc = e
     if mesonlib.is_osx():
-        fwdep = ExtraFrameworkDependency(name, required, None, kwargs)
+        fwdep = ExtraFrameworkDependency(name, required, None, env, kwargs)
         if required and not fwdep.found():
             m = 'Dependency {!r} not found, tried Extra Frameworks ' \
                 'and Pkg-Config:\n\n' + str(pkg_exc)
@@ -642,16 +629,3 @@ def find_external_dependency(name, environment, kwargs):
         raise pkg_exc
     mlog.log('Dependency', mlog.bold(name), 'found:', mlog.red('NO'))
     return pkgdep
-
-def dependency_get_compiler(language, environment, kwargs):
-    if 'native' in kwargs and environment.is_cross_build():
-        want_cross = not kwargs['native']
-    else:
-        want_cross = environment.is_cross_build()
-
-    if want_cross:
-        compilers = environment.coredata.cross_compilers
-    else:
-        compilers = environment.coredata.compilers
-
-    return compilers.get(language, None)

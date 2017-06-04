@@ -26,24 +26,22 @@ from .. import mesonlib
 from ..mesonlib import MesonException, Popen_safe, version_compare
 from ..environment import for_windows
 
-from .base import (Dependency, DependencyException, DependencyMethods,
-                   ExternalProgram, ExtraFrameworkDependency, PkgConfigDependency)
+from .base import DependencyException, DependencyMethods
+from .base import ExternalDependency, ExternalProgram
+from .base import ExtraFrameworkDependency, PkgConfigDependency
 
 
-class GLDependency(Dependency):
+class GLDependency(ExternalDependency):
     def __init__(self, environment, kwargs):
-        Dependency.__init__(self, 'gl', kwargs)
-        self.is_found = False
-        self.cargs = []
-        self.linkargs = []
+        super().__init__('gl', environment, None, kwargs)
         if DependencyMethods.PKGCONFIG in self.methods:
             try:
                 pcdep = PkgConfigDependency('gl', environment, kwargs)
                 if pcdep.found():
                     self.type_name = 'pkgconfig'
                     self.is_found = True
-                    self.cargs = pcdep.get_compile_args()
-                    self.linkargs = pcdep.get_link_args()
+                    self.compile_args = pcdep.get_compile_args()
+                    self.link_args = pcdep.get_link_args()
                     self.version = pcdep.get_version()
                     return
             except Exception:
@@ -51,20 +49,18 @@ class GLDependency(Dependency):
         if DependencyMethods.SYSTEM in self.methods:
             if mesonlib.is_osx():
                 self.is_found = True
-                self.linkargs = ['-framework', 'OpenGL']
-                self.version = '1'  # FIXME
+                # FIXME: Use AppleFrameworks dependency
+                self.link_args = ['-framework', 'OpenGL']
+                # FIXME: Detect version using self.compiler
+                self.version = '1'
                 return
             if mesonlib.is_windows():
                 self.is_found = True
-                self.linkargs = ['-lopengl32']
-                self.version = '1'  # FIXME: unfixable?
+                # FIXME: Use self.compiler.find_library()
+                self.link_args = ['-lopengl32']
+                # FIXME: Detect version using self.compiler
+                self.version = '1'
                 return
-
-    def get_link_args(self):
-        return self.linkargs
-
-    def get_version(self):
-        return self.version
 
     def get_methods(self):
         if mesonlib.is_osx() or mesonlib.is_windows():
@@ -73,10 +69,9 @@ class GLDependency(Dependency):
             return [DependencyMethods.PKGCONFIG]
 
 
-class GnuStepDependency(Dependency):
+class GnuStepDependency(ExternalDependency):
     def __init__(self, environment, kwargs):
-        Dependency.__init__(self, 'gnustep', kwargs)
-        self.required = kwargs.get('required', True)
+        super().__init__('gnustep', environment, 'objc', kwargs)
         self.modules = kwargs.get('modules', [])
         self.detect()
 
@@ -85,11 +80,9 @@ class GnuStepDependency(Dependency):
         try:
             gp = Popen_safe([self.confprog, '--help'])[0]
         except (FileNotFoundError, PermissionError):
-            self.args = None
             mlog.log('Dependency GnuStep found:', mlog.red('NO'), '(no gnustep-config)')
             return
         if gp.returncode != 0:
-            self.args = None
             mlog.log('Dependency GnuStep found:', mlog.red('NO'))
             return
         if 'gui' in self.modules:
@@ -100,12 +93,13 @@ class GnuStepDependency(Dependency):
         if fp.returncode != 0:
             raise DependencyException('Error getting objc-args: %s %s' % (flagtxt, flagerr))
         args = flagtxt.split()
-        self.args = self.filter_arsg(args)
+        self.compile_args = self.filter_args(args)
         fp, libtxt, liberr = Popen_safe([self.confprog, arg])
         if fp.returncode != 0:
             raise DependencyException('Error getting objc-lib args: %s %s' % (libtxt, liberr))
-        self.libs = self.weird_filter(libtxt.split())
+        self.link_args = self.weird_filter(libtxt.split())
         self.version = self.detect_version()
+        self.is_found = True
         mlog.log('Dependency', mlog.bold('GnuStep'), 'found:',
                  mlog.green('YES'), self.version)
 
@@ -115,7 +109,7 @@ is sometimes mixed among the subprocess output. I have no idea
 why. As a hack filter out everything that is not a flag."""
         return [e for e in elems if e.startswith('-')]
 
-    def filter_arsg(self, args):
+    def filter_args(self, args):
         """gnustep-config returns a bunch of garbage args such
         as -O2 and so on. Drop everything that is not needed."""
         result = []
@@ -157,25 +151,10 @@ why. As a hack filter out everything that is not a flag."""
                                       ''.format(self.confprog, var))
         return o.strip()
 
-    def found(self):
-        return self.args is not None
 
-    def get_version(self):
-        return self.version
-
-    def get_compile_args(self):
-        if self.args is None:
-            return []
-        return self.args
-
-    def get_link_args(self):
-        return self.libs
-
-
-class QtBaseDependency(Dependency):
+class QtBaseDependency(ExternalDependency):
     def __init__(self, name, env, kwargs):
-        Dependency.__init__(self, name, kwargs)
-        self.name = name
+        super().__init__(name, env, 'cpp', kwargs)
         self.qtname = name.capitalize()
         self.qtver = name[-1]
         if self.qtver == "4":
@@ -184,16 +163,7 @@ class QtBaseDependency(Dependency):
             self.qtpkgname = self.qtname
         self.root = '/usr'
         self.bindir = None
-        self.silent = kwargs.get('silent', False)
-        # We store the value of required here instead of passing it on to
-        # PkgConfigDependency etc because we want to try the qmake-based
-        # fallback as well.
-        self.required = kwargs.pop('required', True)
-        kwargs['required'] = False
         mods = kwargs.get('modules', [])
-        self.cargs = []
-        self.largs = []
-        self.is_found = False
         if isinstance(mods, str):
             mods = [mods]
         if not mods:
@@ -207,16 +177,16 @@ class QtBaseDependency(Dependency):
         methods = []
         # Prefer pkg-config, then fallback to `qmake -query`
         if DependencyMethods.PKGCONFIG in self.methods:
-            self._pkgconfig_detect(mods, env, kwargs)
+            self._pkgconfig_detect(mods, kwargs)
             methods.append('pkgconfig')
         if not self.is_found and DependencyMethods.QMAKE in self.methods:
-            from_text = self._qmake_detect(mods, env, kwargs)
+            from_text = self._qmake_detect(mods, kwargs)
             methods.append('qmake-' + self.name)
             methods.append('qmake')
         if not self.is_found:
             # Reset compile args and link args
-            self.cargs = []
-            self.largs = []
+            self.compile_args = []
+            self.link_args = []
             from_text = '(checked {})'.format(mlog.format_list(methods))
             self.version = 'none'
             if self.required:
@@ -244,24 +214,27 @@ class QtBaseDependency(Dependency):
             rcc = ExternalProgram('rcc-' + self.name, silent=True)
         return moc, uic, rcc
 
-    def _pkgconfig_detect(self, mods, env, kwargs):
+    def _pkgconfig_detect(self, mods, kwargs):
+        # We set the value of required to False so that we can try the
+        # qmake-based fallback if pkg-config fails.
+        kwargs['required'] = False
         modules = OrderedDict()
         for module in mods:
-            modules[module] = PkgConfigDependency(self.qtpkgname + module, env, kwargs)
-        self.is_found = True
+            modules[module] = PkgConfigDependency(self.qtpkgname + module, self.env, kwargs)
         for m in modules.values():
             if not m.found():
                 self.is_found = False
                 return
-            self.cargs += m.get_compile_args()
-            self.largs += m.get_link_args()
-        self.version = m.modversion
+            self.compile_args += m.get_compile_args()
+            self.link_args += m.get_link_args()
+        self.is_found = True
+        self.version = m.version
         # Try to detect moc, uic, rcc
         if 'Core' in modules:
             core = modules['Core']
         else:
             corekwargs = {'required': 'false', 'silent': 'true'}
-            core = PkgConfigDependency(self.qtpkgname + 'Core', env, corekwargs)
+            core = PkgConfigDependency(self.qtpkgname + 'Core', self.env, corekwargs)
         # Used by self.compilers_detect()
         self.bindir = self.get_pkgconfig_host_bins(core)
         if not self.bindir:
@@ -270,16 +243,16 @@ class QtBaseDependency(Dependency):
             if prefix:
                 self.bindir = os.path.join(prefix, 'bin')
 
-    def _find_qmake(self, qmake, env):
+    def _find_qmake(self, qmake):
         # Even when cross-compiling, if we don't get a cross-info qmake, we
         # fallback to using the qmake in PATH because that's what we used to do
-        if env.is_cross_build():
-            qmake = env.cross_info.config['binaries'].get('qmake', qmake)
+        if self.env.is_cross_build():
+            qmake = self.env.cross_info.config['binaries'].get('qmake', qmake)
         return ExternalProgram(qmake, silent=True)
 
-    def _qmake_detect(self, mods, env, kwargs):
+    def _qmake_detect(self, mods, kwargs):
         for qmake in ('qmake-' + self.name, 'qmake'):
-            self.qmake = self._find_qmake(qmake, env)
+            self.qmake = self._find_qmake(qmake)
             if not self.qmake.found():
                 continue
             # Check that the qmake is for qt5
@@ -293,6 +266,7 @@ class QtBaseDependency(Dependency):
             break
         else:
             # Didn't find qmake :(
+            self.is_found = False
             return
         self.version = re.search(self.qtver + '(\.\d+)+', stdo).group(0)
         # Query library path, header path, and binary path
@@ -308,15 +282,15 @@ class QtBaseDependency(Dependency):
         if mesonlib.is_osx():
             return self._framework_detect(qvars, mods, kwargs)
         incdir = qvars['QT_INSTALL_HEADERS']
-        self.cargs.append('-I' + incdir)
+        self.compile_args.append('-I' + incdir)
         libdir = qvars['QT_INSTALL_LIBS']
         # Used by self.compilers_detect()
         self.bindir = self.get_qmake_host_bins(qvars)
         self.is_found = True
         for module in mods:
             mincdir = os.path.join(incdir, 'Qt' + module)
-            self.cargs.append('-I' + mincdir)
-            if for_windows(env.is_cross_build(), env):
+            self.compile_args.append('-I' + mincdir)
+            if for_windows(self.env.is_cross_build(), self.env):
                 libfile = os.path.join(libdir, self.qtpkgname + module + '.lib')
                 if not os.path.isfile(libfile):
                     # MinGW can link directly to .dll
@@ -329,7 +303,7 @@ class QtBaseDependency(Dependency):
                 if not os.path.isfile(libfile):
                     self.is_found = False
                     break
-            self.largs.append(libfile)
+            self.link_args.append(libfile)
         return qmake
 
     def _framework_detect(self, qvars, modules, kwargs):
@@ -340,8 +314,8 @@ class QtBaseDependency(Dependency):
             self.cargs.append('-F' + libdir)
             if fwdep.found():
                 self.is_found = True
-                self.cargs += fwdep.get_compile_args()
-                self.largs += fwdep.get_link_args()
+                self.compile_args += fwdep.get_compile_args()
+                self.link_args += fwdep.get_link_args()
         # Used by self.compilers_detect()
         self.bindir = self.get_qmake_host_bins(qvars)
 
@@ -353,23 +327,8 @@ class QtBaseDependency(Dependency):
         else:
             return qvars['QT_INSTALL_BINS']
 
-    def get_version(self):
-        return self.version
-
-    def get_compile_args(self):
-        return self.cargs
-
-    def get_sources(self):
-        return []
-
-    def get_link_args(self):
-        return self.largs
-
     def get_methods(self):
         return [DependencyMethods.PKGCONFIG, DependencyMethods.QMAKE]
-
-    def found(self):
-        return self.is_found
 
     def get_exe_args(self, compiler):
         # Originally this was -fPIE but nowadays the default
@@ -408,20 +367,18 @@ class Qt5Dependency(QtBaseDependency):
 
 # There are three different ways of depending on SDL2:
 # sdl2-config, pkg-config and OSX framework
-class SDL2Dependency(Dependency):
+class SDL2Dependency(ExternalDependency):
     def __init__(self, environment, kwargs):
-        Dependency.__init__(self, 'sdl2', kwargs)
-        self.is_found = False
-        self.cargs = []
-        self.linkargs = []
+        super().__init__('sdl2', environment, None, kwargs)
         if DependencyMethods.PKGCONFIG in self.methods:
             try:
+                kwargs['required'] = False
                 pcdep = PkgConfigDependency('sdl2', environment, kwargs)
                 if pcdep.found():
                     self.type_name = 'pkgconfig'
                     self.is_found = True
-                    self.cargs = pcdep.get_compile_args()
-                    self.linkargs = pcdep.get_link_args()
+                    self.compile_args = pcdep.get_compile_args()
+                    self.link_args = pcdep.get_link_args()
                     self.version = pcdep.get_version()
                     return
             except Exception as e:
@@ -431,9 +388,9 @@ class SDL2Dependency(Dependency):
             sdlconf = shutil.which('sdl2-config')
             if sdlconf:
                 stdo = Popen_safe(['sdl2-config', '--cflags'])[1]
-                self.cargs = stdo.strip().split()
+                self.compile_args = stdo.strip().split()
                 stdo = Popen_safe(['sdl2-config', '--libs'])[1]
-                self.linkargs = stdo.strip().split()
+                self.link_args = stdo.strip().split()
                 stdo = Popen_safe(['sdl2-config', '--version'])[1]
                 self.version = stdo.strip()
                 self.is_found = True
@@ -443,26 +400,14 @@ class SDL2Dependency(Dependency):
             mlog.debug('Could not find sdl2-config binary, trying next.')
         if DependencyMethods.EXTRAFRAMEWORK in self.methods:
             if mesonlib.is_osx():
-                fwdep = ExtraFrameworkDependency('sdl2', kwargs.get('required', True), None, kwargs)
+                fwdep = ExtraFrameworkDependency('sdl2', False, None, kwargs)
                 if fwdep.found():
                     self.is_found = True
-                    self.cargs = fwdep.get_compile_args()
-                    self.linkargs = fwdep.get_link_args()
+                    self.compile_args = fwdep.get_compile_args()
+                    self.link_args = fwdep.get_link_args()
                     self.version = '2'  # FIXME
                     return
             mlog.log('Dependency', mlog.bold('sdl2'), 'found:', mlog.red('NO'))
-
-    def get_compile_args(self):
-        return self.cargs
-
-    def get_link_args(self):
-        return self.linkargs
-
-    def found(self):
-        return self.is_found
-
-    def get_version(self):
-        return self.version
 
     def get_methods(self):
         if mesonlib.is_osx():
@@ -471,14 +416,12 @@ class SDL2Dependency(Dependency):
             return [DependencyMethods.PKGCONFIG, DependencyMethods.SDLCONFIG]
 
 
-class WxDependency(Dependency):
+class WxDependency(ExternalDependency):
     wx_found = None
 
     def __init__(self, environment, kwargs):
-        Dependency.__init__(self, 'wx', kwargs)
-        self.is_found = False
-        # FIXME: use version instead of modversion
-        self.modversion = 'none'
+        super().__init__('wx', environment, None, kwargs)
+        self.version = 'none'
         if WxDependency.wx_found is None:
             self.check_wxconfig()
         if not WxDependency.wx_found:
@@ -490,15 +433,14 @@ class WxDependency(Dependency):
         p, out = Popen_safe([self.wxc, '--version'])[0:2]
         if p.returncode != 0:
             mlog.log('Dependency wxwidgets found:', mlog.red('NO'))
-            self.cargs = []
-            self.libs = []
         else:
-            self.modversion = out.strip()
+            self.version = out.strip()
+            # FIXME: Support multiple version reqs like PkgConfigDependency
             version_req = kwargs.get('version', None)
             if version_req is not None:
-                if not version_compare(self.modversion, version_req, strict=True):
+                if not version_compare(self.version, version_req, strict=True):
                     mlog.log('Wxwidgets version %s does not fullfill requirement %s' %
-                             (self.modversion, version_req))
+                             (self.version, version_req))
                     return
             mlog.log('Dependency wxwidgets found:', mlog.green('YES'))
             self.is_found = True
@@ -509,13 +451,13 @@ class WxDependency(Dependency):
             # FIXME: this error should only be raised if required is true
             if p.returncode != 0:
                 raise DependencyException('Could not generate cargs for wxwidgets.')
-            self.cargs = out.split()
+            self.compile_args = out.split()
 
             # FIXME: this error should only be raised if required is true
             p, out = Popen_safe([self.wxc, '--libs'] + self.requested_modules)[0:2]
             if p.returncode != 0:
                 raise DependencyException('Could not generate libs for wxwidgets.')
-            self.libs = out.split()
+            self.link_args = out.split()
 
     def get_requested(self, kwargs):
         modules = 'modules'
@@ -528,18 +470,6 @@ class WxDependency(Dependency):
             if not isinstance(c, str):
                 raise DependencyException('wxwidgets module argument is not a string.')
         return candidates
-
-    def get_modversion(self):
-        return self.modversion
-
-    def get_version(self):
-        return self.modversion
-
-    def get_compile_args(self):
-        return self.cargs
-
-    def get_link_args(self):
-        return self.libs
 
     def check_wxconfig(self):
         for wxc in ['wx-config-3.0', 'wx-config']:
@@ -555,6 +485,3 @@ class WxDependency(Dependency):
                 pass
         WxDependency.wxconfig_found = False
         mlog.log('Found wx-config:', mlog.red('NO'))
-
-    def found(self):
-        return self.is_found

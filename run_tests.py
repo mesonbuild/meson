@@ -121,6 +121,8 @@ def should_run_linux_cross_tests():
 class FakeEnvironment(object):
     def __init__(self):
         self.cross_info = None
+        self.coredata = lambda: None
+        self.coredata.compilers = {}
 
     def is_cross_build(self):
         return False
