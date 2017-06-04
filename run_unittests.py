@@ -36,16 +36,19 @@ from run_tests import get_builddir_target_args, get_backend_commands, Backend
 from run_tests import ensure_backend_detects_changes
 
 
-def get_soname(fname):
-    # HACK, fix to not use shell.
-    raw_out = subprocess.check_output(['readelf', '-a', fname],
+def get_dynamic_section_entry(fname, entry):
+    raw_out = subprocess.check_output(['readelf', '-d', fname],
                                       universal_newlines=True)
-    pattern = re.compile('soname: \[(.*?)\]')
+    pattern = re.compile(entry + ': \[(.*?)\]')
     for line in raw_out.split('\n'):
         m = pattern.search(line)
         if m is not None:
             return m.group(1)
-    raise RuntimeError('Could not determine soname:\n\n' + raw_out)
+    raise RuntimeError('Could not determine {}:\n\n'.format(entry) + raw_out)
+
+def get_soname(fname):
+    return get_dynamic_section_entry(fname, 'soname')
+
 
 class InternalTests(unittest.TestCase):
 
@@ -1319,14 +1322,6 @@ class LinuxlikeTests(BasePlatformTests):
         mesonlog = self.get_meson_log()
         self.assertTrue(msg in mesonlog or msg2 in mesonlog)
 
-    def get_soname(self, fname):
-        output = subprocess.check_output(['readelf', '-a', fname],
-                                         universal_newlines=True)
-        for line in output.split('\n'):
-            if 'SONAME' in line:
-                return line.split('[')[1].split(']')[0]
-        raise RuntimeError('Readelf gave no SONAME.')
-
     def _test_soname_impl(self, libpath, install):
         testdir = os.path.join(self.unit_test_dir, '1 soname')
         self.init(testdir)
@@ -1338,28 +1333,28 @@ class LinuxlikeTests(BasePlatformTests):
         nover = os.path.join(libpath, 'libnover.so')
         self.assertTrue(os.path.exists(nover))
         self.assertFalse(os.path.islink(nover))
-        self.assertEqual(self.get_soname(nover), 'libnover.so')
+        self.assertEqual(get_soname(nover), 'libnover.so')
         self.assertEqual(len(glob(nover[:-3] + '*')), 1)
 
         # File with version set
         verset = os.path.join(libpath, 'libverset.so')
         self.assertTrue(os.path.exists(verset + '.4.5.6'))
         self.assertEqual(os.readlink(verset), 'libverset.so.4')
-        self.assertEqual(self.get_soname(verset), 'libverset.so.4')
+        self.assertEqual(get_soname(verset), 'libverset.so.4')
         self.assertEqual(len(glob(verset[:-3] + '*')), 3)
 
         # File with soversion set
         soverset = os.path.join(libpath, 'libsoverset.so')
         self.assertTrue(os.path.exists(soverset + '.1.2.3'))
         self.assertEqual(os.readlink(soverset), 'libsoverset.so.1.2.3')
-        self.assertEqual(self.get_soname(soverset), 'libsoverset.so.1.2.3')
+        self.assertEqual(get_soname(soverset), 'libsoverset.so.1.2.3')
         self.assertEqual(len(glob(soverset[:-3] + '*')), 2)
 
         # File with version and soversion set to same values
         settosame = os.path.join(libpath, 'libsettosame.so')
         self.assertTrue(os.path.exists(settosame + '.7.8.9'))
         self.assertEqual(os.readlink(settosame), 'libsettosame.so.7.8.9')
-        self.assertEqual(self.get_soname(settosame), 'libsettosame.so.7.8.9')
+        self.assertEqual(get_soname(settosame), 'libsettosame.so.7.8.9')
         self.assertEqual(len(glob(settosame[:-3] + '*')), 2)
 
         # File with version and soversion set to different values
@@ -1367,7 +1362,7 @@ class LinuxlikeTests(BasePlatformTests):
         self.assertTrue(os.path.exists(bothset + '.1.2.3'))
         self.assertEqual(os.readlink(bothset), 'libbothset.so.1.2.3')
         self.assertEqual(os.readlink(bothset + '.1.2.3'), 'libbothset.so.4.5.6')
-        self.assertEqual(self.get_soname(bothset), 'libbothset.so.1.2.3')
+        self.assertEqual(get_soname(bothset), 'libbothset.so.1.2.3')
         self.assertEqual(len(glob(bothset[:-3] + '*')), 3)
 
     def test_soname(self):
