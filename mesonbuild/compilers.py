@@ -317,33 +317,6 @@ def get_base_link_args(options, linker, is_shared_module):
         pass
     return args
 
-def build_unix_rpath_args(build_dir, from_dir, rpath_paths, install_rpath):
-        if not rpath_paths and not install_rpath:
-            return []
-        # The rpaths we write must be relative, because otherwise
-        # they have different length depending on the build
-        # directory. This breaks reproducible builds.
-        rel_rpaths = []
-        for p in rpath_paths:
-            if p == from_dir:
-                relative = '' # relpath errors out in this case
-            else:
-                relative = os.path.relpath(p, from_dir)
-            rel_rpaths.append(relative)
-        paths = ':'.join([os.path.join('$ORIGIN', p) for p in rel_rpaths])
-        if len(paths) < len(install_rpath):
-            padding = 'X' * (len(install_rpath) - len(paths))
-            if not paths:
-                paths = padding
-            else:
-                paths = paths + ':' + padding
-        # Rpaths to use while linking must be absolute. These are not used
-        # while running and are not written to the binary.
-        # https://github.com/mesonbuild/meson/issues/1897
-        # https://sourceware.org/bugzilla/show_bug.cgi?id=16936
-        linkpaths = ':'.join([os.path.join(build_dir, p) for p in rpath_paths])
-        return ['-Wl,-rpath,' + paths, '-Wl,-rpath-link,' + linkpaths]
-
 class CrossNoRunException(MesonException):
     pass
 
@@ -757,6 +730,37 @@ class Compiler:
             return []
         raise EnvironmentException('Language %s does not support linking whole archives.' % self.language)
 
+    def build_unix_rpath_args(self, build_dir, from_dir, rpath_paths, install_rpath):
+            if not rpath_paths and not install_rpath:
+                return []
+            # The rpaths we write must be relative, because otherwise
+            # they have different length depending on the build
+            # directory. This breaks reproducible builds.
+            rel_rpaths = []
+            for p in rpath_paths:
+                if p == from_dir:
+                    relative = '' # relpath errors out in this case
+                else:
+                    relative = os.path.relpath(p, from_dir)
+                rel_rpaths.append(relative)
+            paths = ':'.join([os.path.join('$ORIGIN', p) for p in rel_rpaths])
+            if len(paths) < len(install_rpath):
+                padding = 'X' * (len(install_rpath) - len(paths))
+                if not paths:
+                    paths = padding
+                else:
+                    paths = paths + ':' + padding
+            args = ['-Wl,-rpath,' + paths]
+            if get_compiler_is_linuxlike(self):
+                # Rpaths to use while linking must be absolute. These are not
+                # written to the binary. Needed only with GNU ld:
+                # https://sourceware.org/bugzilla/show_bug.cgi?id=16936
+                # Not needed on Windows or other platforms that don't use RPATH
+                # https://github.com/mesonbuild/meson/issues/1897
+                lpaths = ':'.join([os.path.join(build_dir, p) for p in rpath_paths])
+                args += ['-Wl,-rpath-link,' + lpaths]
+            return args
+
 class CCompiler(Compiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
         # If a child ObjC or CPP class has already set it, don't set it ourselves
@@ -806,10 +810,9 @@ class CCompiler(Compiler):
     def split_shlib_to_parts(self, fname):
         return None, fname
 
-    # The default behavior is this, override in
-    # OSX and MSVC.
+    # The default behavior is this, override in MSVC
     def build_rpath_args(self, build_dir, from_dir, rpath_paths, install_rpath):
-        return build_unix_rpath_args(build_dir, from_dir, rpath_paths, install_rpath)
+        return self.build_unix_rpath_args(build_dir, from_dir, rpath_paths, install_rpath)
 
     def get_dependency_gen_args(self, outtarget, outfile):
         return ['-MMD', '-MQ', outtarget, '-MF', outfile]
@@ -2071,7 +2074,7 @@ class GnuDCompiler(DCompiler):
         return d_gdc_buildtype_args[buildtype]
 
     def build_rpath_args(self, build_dir, from_dir, rpath_paths, install_rpath):
-        return build_unix_rpath_args(build_dir, from_dir, rpath_paths, install_rpath)
+        return self.build_unix_rpath_args(build_dir, from_dir, rpath_paths, install_rpath)
 
     def get_unittest_args(self):
         return ['-funittest']
@@ -3029,7 +3032,7 @@ end program prog
         return []
 
     def build_rpath_args(self, build_dir, from_dir, rpath_paths, install_rpath):
-        return build_unix_rpath_args(build_dir, from_dir, rpath_paths, install_rpath)
+        return self.build_unix_rpath_args(build_dir, from_dir, rpath_paths, install_rpath)
 
     def module_name_to_filename(self, module_name):
         return module_name.lower() + '.mod'
