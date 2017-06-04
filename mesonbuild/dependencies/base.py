@@ -139,7 +139,7 @@ class ExternalDependency(Dependency):
         self.static = kwargs.get('static', False)
         if not isinstance(self.static, bool):
             raise DependencyException('Static keyword must be boolean')
-        # Is this dependency for cross-com,pilation?
+        # Is this dependency for cross-compilation?
         if 'native' in kwargs and self.env.is_cross_build():
             self.want_cross = not kwargs['native']
         else:
@@ -619,7 +619,7 @@ def find_external_dependency(name, env, kwargs):
     except Exception as e:
         pkg_exc = e
     if mesonlib.is_osx():
-        fwdep = ExtraFrameworkDependency(name, required, None, env, kwargs)
+        fwdep = ExtraFrameworkDependency(name, False, None, env, None, kwargs)
         if required and not fwdep.found():
             m = 'Dependency {!r} not found, tried Extra Frameworks ' \
                 'and Pkg-Config:\n\n' + str(pkg_exc)
