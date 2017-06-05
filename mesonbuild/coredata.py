@@ -63,9 +63,9 @@ class UserBooleanOption(UserOption):
     def tobool(self, thing):
         if isinstance(thing, bool):
             return thing
-        if thing.lower() == 'true':
+        if thing.lower() in ('true', 'yes', 'on', '1'):
             return True
-        if thing.lower() == 'false':
+        if thing.lower() in ('false', 'no', 'off', '0'):
             return False
         raise MesonException('Value %s is not boolean (true or false).' % thing)
 
@@ -73,9 +73,9 @@ class UserBooleanOption(UserOption):
         self.value = self.tobool(newvalue)
 
     def parse_string(self, valuestring):
-        if valuestring == 'false':
+        if valuestring in ('false', 'no', 'off', '0'):
             return False
-        if valuestring == 'true':
+        if valuestring in ('true', 'yes', 'on', '1'):
             return True
         raise MesonException('Value "%s" for boolean option "%s" is not a boolean.' % (valuestring, self.name))
 
