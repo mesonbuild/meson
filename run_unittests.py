@@ -37,8 +37,12 @@ from run_tests import ensure_backend_detects_changes
 
 
 def get_dynamic_section_entry(fname, entry):
-    raw_out = subprocess.check_output(['readelf', '-d', fname],
-                                      universal_newlines=True)
+    try:
+        raw_out = subprocess.check_output(['readelf', '-d', fname],
+                                          universal_newlines=True)
+    except FileNotFoundError:
+        # FIXME: Try using depfixer.py:Elf() as a fallback
+        raise unittest.SkipTest('readelf not found')
     pattern = re.compile(entry + r': \[(.*?)\]')
     for line in raw_out.split('\n'):
         m = pattern.search(line)
