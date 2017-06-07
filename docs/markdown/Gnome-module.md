@@ -147,6 +147,7 @@ Compiles and installs gtkdoc documentation. Takes one positional arguments; The 
 * `html_args` a list of arguments to pass to `gtkdoc-mkhtml`
 * `html_assets`: a list of assets for the HTML pages
 * `content_files`: a list of content files
+* `mkdb_args`: a list of arguments to pass to `gtkdoc-mkdb`
 
 This creates a `$module-doc` target that can be ran to build docs and normally these are only built on install.
 
