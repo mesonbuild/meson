@@ -71,3 +71,12 @@ packages out of the box.
 
 The output argument of `configure_file()` is parsed for @BASENAME@ and
 @PLAINNAME@ substitutions.
+
+## Cross-config property for overriding whether an exe wrapper is needed
+
+The new `needs_exe_wrapper` property allows overriding auto-detection for
+cases where `build_machine` appears to be compatible with `host_machine`,
+but actually isn't. For example when:
+- `build_machine` is macOS and `host_machine` is the iOS Simulator
+- the `build_machine`'s libc is glibc but the `host_machine` libc is uClibc
+- code relies on kernel features not available on the `build_machine`

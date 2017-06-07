@@ -58,6 +58,13 @@ c_link_args = ['-some_link_arg']
 
 In most cases you don't need the size and alignment settings, Meson will detect all these by compiling and running some sample programs. If your build requires some piece of data that is not listed here, Meson will stop and write an error message describing how to fix the issue. If you need extra compiler arguments to be used during cross compilation you can set them with `[langname]_args = [args]`. Just remember to specify the args as an array and not as a single string (i.e. not as `'-DCROSS=1 -DSOMETHING=3'`).
 
+One important thing to note, if you did not define an `exe_wrapper` in the previous section, is that Meson will make a best-effort guess at whether it can run the generated binaries on the build machine. It determines whether this is possible by looking at the `system` and `cpu_family` of build vs host. There will however be cases where they do match up, but the build machine is actually not compatible with the host machine. Typically this will happen if the libc used by the build and host machines are incompatible, or the code relies on kernel features not available on the build machine. One concrete example is a macOS build machine producing binaries for an iOS Simulator x86-64 host. They're both `darwin` and the same architecture, but their binaries are not actually compatible. In such cases you may use the `needs_exe_wrapper` property to override the auto-detection:
+
+```ini
+[properties]
+needs_exe_wrapper = true
+```
+
 The last bit is the definition of host and target machines. Every cross build definition must have one or both of them. If it had neither, the build would not be a cross build but a native build. You do not need to define the build machine, as all necessary information about it is extracted automatically. The definitions for host and target machines look the same. Here is a sample for host machine.
 
 ```ini
