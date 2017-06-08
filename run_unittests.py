@@ -358,21 +358,28 @@ class InternalTests(unittest.TestCase):
             'cpu': '\'armv7\'',
             'endian': '\'little\'',
         }
-
-        with tempfile.NamedTemporaryFile(mode='w+') as configfile:
-            config.write(configfile)
-            configfile.flush()
-            detected_value = mesonbuild.environment.CrossBuildInfo(configfile.name).need_exe_wrapper()
+        # Can not be used as context manager because we need to
+        # open it a second time and this is not possible on
+        # Windows.
+        configfile = tempfile.NamedTemporaryFile(mode='w+', delete=False)
+        configfilename = configfile.name
+        config.write(configfile)
+        configfile.flush()
+        configfile.close()
+        detected_value = mesonbuild.environment.CrossBuildInfo(configfile.name).need_exe_wrapper()
+        os.unlink(configfilename)
 
         desired_value = not detected_value
         config['properties'] = {
             'needs_exe_wrapper': 'true' if desired_value else 'false'
         }
 
-        with tempfile.NamedTemporaryFile(mode='w+') as configfile:
-            config.write(configfile)
-            configfile.flush()
-            forced_value = mesonbuild.environment.CrossBuildInfo(configfile.name).need_exe_wrapper()
+        configfile = tempfile.NamedTemporaryFile(mode='w+', delete=False)
+        configfilename = configfile.name
+        config.write(configfile)
+        configfile.close()
+        forced_value = mesonbuild.environment.CrossBuildInfo(configfile.name).need_exe_wrapper()
+        os.unlink(configfilename)
 
         self.assertEqual(forced_value, desired_value)
 
