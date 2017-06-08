@@ -80,3 +80,9 @@ but actually isn't. For example when:
 - `build_machine` is macOS and `host_machine` is the iOS Simulator
 - the `build_machine`'s libc is glibc but the `host_machine` libc is uClibc
 - code relies on kernel features not available on the `build_machine`
+
+## Support for capturing stdout of a command in configure_file
+
+`configure_file()` now supports a new keyword - `capture`. When this argument
+is set to true, Meson captures `stdout` of the `command` and writes it to
+the target file specified as `output`.

@@ -2319,6 +2319,12 @@ class Interpreter(InterpreterBase):
             raise InterpreterException('Must not specify both "configuration" '
                                        'and "command" keyword arguments since '
                                        'they are mutually exclusive.')
+        if 'capture' in kwargs:
+            if not isinstance(kwargs['capture'], bool):
+                raise InterpreterException('"capture" keyword must be a boolean.')
+            if 'command' not in kwargs:
+                raise InterpreterException('"capture" keyword requires "command" keyword.')
+
         # Validate input
         inputfile = None
         ifile_abs = None
@@ -2383,6 +2389,13 @@ class Interpreter(InterpreterBase):
             if res.returncode != 0:
                 raise InterpreterException('Running configure command failed.\n%s\n%s' %
                                            (res.stdout, res.stderr))
+            if 'capture' in kwargs and kwargs['capture']:
+                dst_tmp = ofile_abs + '~'
+                with open(dst_tmp, 'w', encoding='utf-8') as f:
+                    f.writelines(res.stdout)
+                if ifile_abs:
+                    shutil.copymode(ifile_abs, dst_tmp)
+                mesonlib.replace_if_different(ofile_abs, dst_tmp)
         else:
             raise InterpreterException('Configure_file must have either "configuration" or "command".')
         idir = kwargs.get('install_dir', None)
