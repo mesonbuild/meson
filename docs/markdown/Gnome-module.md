@@ -112,6 +112,8 @@ Creates a VAPI file from gir. The first argument is the name of the library.
 * `metadata_dirs`: extra directories to include for metadata files
 * `gir_dirs`: extra directories to include for gir files
 * `vapi_dirs`: extra directories to include for VAPI files
+* `install`: if true, install the VAPI file
+* `install_dir`: location to install the VAPI file (defaults to datadir/vala/vapi)
 
 Returns a custom dependency that can be included when building other VAPI or Vala binaries.
 
