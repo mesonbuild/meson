@@ -706,9 +706,6 @@ class Vs2010Backend(backends.Backend):
             ET.SubElement(type_config, 'Optimization').text = 'MinSpace'
         elif '/Od' in o_flags:
             ET.SubElement(type_config, 'Optimization').text = 'Disabled'
-        # Warning level
-        warning_level = self.get_option_for_target('warning_level', target)
-        ET.SubElement(type_config, 'WarningLevel').text = 'Level' + warning_level
         # End configuration
         ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.props')
         generated_files, custom_target_output_files, generated_files_include_dirs = self.generate_custom_generator_commands(target, root)
@@ -862,6 +859,9 @@ class Vs2010Backend(backends.Backend):
         ET.SubElement(clconf, 'MinimalRebuild').text = 'true'
         ET.SubElement(clconf, 'FunctionLevelLinking').text = 'true'
         pch_node = ET.SubElement(clconf, 'PrecompiledHeader')
+        # Warning level
+        warning_level = self.get_option_for_target('warning_level', target)
+        ET.SubElement(clconf, 'WarningLevel').text = 'Level' + str(1 + int(warning_level))
         if self.get_option_for_target('werror', target):
             ET.SubElement(clconf, 'TreatWarningAsError').text = 'true'
         # Note: SuppressStartupBanner is /NOLOGO and is 'true' by default
