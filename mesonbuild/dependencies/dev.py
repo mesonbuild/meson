@@ -202,6 +202,8 @@ class LLVMDependency(ExternalDependency):
                 out = out.strip()
                 if p.returncode != 0:
                     continue
+                # FIXME: As soon as some llvm-config is found, version checks
+                # in further dependnecy() calls will be ignored
                 if version_req:
                     if version_compare(out, version_req, strict=True):
                         if cls.__best_found and version_compare(out, '<={}'.format(cls.__best_found), strict=True):
