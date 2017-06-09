@@ -1809,6 +1809,14 @@ class RustCompiler(Compiler):
     def get_buildtype_args(self, buildtype):
         return rust_buildtype_args[buildtype]
 
+    def build_rpath_args(self, build_dir, rpath_paths, install_rpath):
+        return build_unix_rpath_args(build_dir, rpath_paths, install_rpath)
+
+    def get_sysroot(self):
+        cmd = self.exelist + ['--print', 'sysroot']
+        p, stdo, stde = Popen_safe(cmd)
+        return stdo.split('\n')[0]
+
 class SwiftCompiler(Compiler):
     def __init__(self, exelist, version):
         self.language = 'swift'
