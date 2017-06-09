@@ -29,10 +29,11 @@ def create_hash(fname):
     m = hashlib.sha256()
     m.update(open(fname, 'rb').read())
     with open(hashname, 'w') as f:
-        f.write('%s %s\n' % (m.hexdigest(), os.path.split(fname)[-1]))
+        f.write('%s %s\n' % (m.hexdigest(), os.path.basename(fname)))
+
 
 def create_zip(zipfilename, packaging_dir):
-    prefix = os.path.split(packaging_dir)[0]
+    prefix = os.path.dirname(packaging_dir)
     removelen = len(prefix) + 1
     with zipfile.ZipFile(zipfilename,
                          'w',
@@ -81,7 +82,7 @@ def create_dist(dist_name, src_root, bld_root, dist_sub):
     xzname = distdir + '.tar.xz'
     # Should use shutil but it got xz support only in 3.5.
     with tarfile.open(xzname, 'w:xz') as tf:
-        tf.add(distdir, os.path.split(distdir)[1])
+        tf.add(distdir, dist_name)
     # Create only .tar.xz for now.
     # zipname = distdir + '.zip'
     # create_zip(zipname, distdir)
