@@ -34,7 +34,7 @@ import time
 import multiprocessing
 import concurrent.futures as conc
 import re
-from run_unittests import get_fake_options
+from run_unittests import get_fake_options, run_configure_inprocess
 
 from run_tests import get_backend_commands, get_backend_args_for_dir, Backend
 from run_tests import ensure_backend_detects_changes
@@ -248,18 +248,6 @@ def log_text_file(logfile, testdir, stdo, stde):
             f[2].cancel()
         executor.shutdown()
         raise StopException()
-
-def run_configure_inprocess(commandlist):
-    old_stdout = sys.stdout
-    sys.stdout = mystdout = StringIO()
-    old_stderr = sys.stderr
-    sys.stderr = mystderr = StringIO()
-    try:
-        returncode = mesonmain.run(commandlist[0], commandlist[1:])
-    finally:
-        sys.stdout = old_stdout
-        sys.stderr = old_stderr
-    return returncode, mystdout.getvalue(), mystderr.getvalue()
 
 def run_test_inprocess(testdir):
     old_stdout = sys.stdout

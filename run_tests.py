@@ -22,7 +22,9 @@ import subprocess
 import tempfile
 import platform
 from mesonbuild import mesonlib
+from mesonbuild import mesonmain
 from mesonbuild.environment import detect_ninja
+from io import StringIO
 from enum import Enum
 from glob import glob
 
@@ -118,6 +120,18 @@ def get_fake_options(prefix):
 def should_run_linux_cross_tests():
     return shutil.which('arm-linux-gnueabihf-gcc-6') and not platform.machine().startswith('arm')
 
+def run_configure_inprocess(commandlist):
+    old_stdout = sys.stdout
+    sys.stdout = mystdout = StringIO()
+    old_stderr = sys.stderr
+    sys.stderr = mystderr = StringIO()
+    try:
+        returncode = mesonmain.run(commandlist[0], commandlist[1:])
+    finally:
+        sys.stdout = old_stdout
+        sys.stderr = old_stderr
+    return returncode, mystdout.getvalue(), mystderr.getvalue()
+
 class FakeEnvironment(object):
     def __init__(self):
         self.cross_info = None
@@ -164,7 +178,7 @@ if __name__ == '__main__':
         os.environ.pop('platform')
     # Run tests
     print('Running unittests.\n')
-    units = ['InternalTests', 'AllPlatformTests']
+    units = ['InternalTests', 'AllPlatformTests', 'FailureTests']
     if mesonlib.is_linux():
         units += ['LinuxlikeTests']
         if should_run_linux_cross_tests():

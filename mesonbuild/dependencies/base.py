@@ -59,7 +59,10 @@ class Dependency:
         self.compile_args = []
         self.link_args = []
         self.sources = []
-        method = DependencyMethods(kwargs.get('method', 'auto'))
+        method = kwargs.get('method', 'auto')
+        if method not in [e.value for e in DependencyMethods]:
+            raise DependencyException('method {!r} is invalid'.format(method))
+        method = DependencyMethods(method)
 
         # Set the detection method. If the method is set to auto, use any available method.
         # If method is set to a specific string, allow only that detection method.
@@ -68,7 +71,7 @@ class Dependency:
         elif method in self.get_methods():
             self.methods = [method]
         else:
-            raise MesonException(
+            raise DependencyException(
                 'Unsupported detection method: {}, allowed methods are {}'.format(
                     method.value,
                     mlog.format_list(map(lambda x: x.value, [DependencyMethods.AUTO] + self.get_methods()))))
