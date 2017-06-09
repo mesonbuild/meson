@@ -510,8 +510,6 @@ class ExternalLibrary(ExternalDependency):
         self.is_found = False
         if link_args:
             self.is_found = True
-            if not isinstance(link_args, list):
-                link_args = [link_args]
             self.link_args = link_args
         if not silent:
             if self.is_found:
