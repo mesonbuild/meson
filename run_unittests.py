@@ -468,7 +468,7 @@ class BasePlatformTests(unittest.TestCase):
         self.privatedir = os.path.join(self.builddir, 'meson-private')
         if inprocess:
             try:
-                run_configure_inprocess(self.meson_args + args + extra_args)
+                out = run_configure_inprocess(self.meson_args + args + extra_args)[1]
             except:
                 self._print_meson_log()
                 raise
@@ -479,12 +479,13 @@ class BasePlatformTests(unittest.TestCase):
                 mesonbuild.mlog.log_file = None
         else:
             try:
-                self._run(self.meson_command + args + extra_args)
+                out = self._run(self.meson_command + args + extra_args)
             except unittest.SkipTest:
                 raise unittest.SkipTest('Project requested skipping: ' + srcdir)
             except:
                 self._print_meson_log()
                 raise
+        return out
 
     def build(self, target=None, extra_args=None):
         if extra_args is None:
@@ -1230,19 +1231,39 @@ class FailureTests(BasePlatformTests):
         super().tearDown()
         shutil.rmtree(self.srcdir)
 
-    def assertMesonRaises(self, contents, match, extra_args=None):
+    def assertMesonRaises(self, contents, match, extra_args=None, langs=None):
         '''
-        Assert that running meson configure on the specified contents raises
-        the specified error message.
+        Assert that running meson configure on the specified @contents raises
+        a error message matching regex @match.
         '''
+        if langs is None:
+            langs = []
         with open(self.mbuild, 'w') as f:
             f.write("project('failure test', 'c', 'cpp')\n")
+            for lang in langs:
+                f.write("add_languages('{}', required : false)\n".format(lang))
             f.write(contents)
         # Force tracebacks so we can detect them properly
         os.environ['MESON_FORCE_BACKTRACE'] = '1'
         with self.assertRaisesRegex(DependencyException, match, msg=contents):
             # Must run in-process or we'll get a generic CalledProcessError
             self.init(self.srcdir, extra_args=extra_args, inprocess=True)
+
+    def assertMesonOutputs(self, contents, match, extra_args=None, langs=None):
+        '''
+        Assert that running meson configure on the specified @contents outputs
+        something that matches regex @match.
+        '''
+        if langs is None:
+            langs = []
+        with open(self.mbuild, 'w') as f:
+            f.write("project('output test', 'c', 'cpp')\n")
+            for lang in langs:
+                f.write("add_languages('{}', required : false)\n".format(lang))
+            f.write(contents)
+        # Run in-process for speed and consistency with assertMesonRaises
+        out = self.init(self.srcdir, extra_args=extra_args, inprocess=True)
+        self.assertRegex(out, match)
 
     def test_dependency(self):
         if not shutil.which('pkg-config'):
@@ -1255,6 +1276,41 @@ class FailureTests(BasePlatformTests):
              ("dependency('zlibfail')", self.dnf),)
         for contents, match in a:
             self.assertMesonRaises(contents, match)
+
+    def test_apple_frameworks_dependency(self):
+        if not is_osx():
+            raise unittest.SkipTest('only run on macOS')
+        self.assertMesonRaises("dependency('appleframeworks')",
+                               "requires at least one module")
+
+    def test_sdl2_notfound_dependency(self):
+        # Want to test failure, so skip if available
+        if shutil.which('sdl2-config'):
+            raise unittest.SkipTest('sdl2-config found')
+        self.assertMesonRaises("dependency('sdl2', method : 'sdlconfig')", self.dnf)
+        self.assertMesonRaises("dependency('sdl2', method : 'pkg-config')", self.dnf)
+
+    def test_gnustep_notfound_dependency(self):
+        # Want to test failure, so skip if available
+        if shutil.which('gnustep-config'):
+            raise unittest.SkipTest('gnustep-config found')
+        self.assertMesonRaises("dependency('gnustep')",
+                               "(requires a Objc compiler|{})".format(self.dnf),
+                               langs = ['objc'])
+
+    def test_wx_notfound_dependency(self):
+        # Want to test failure, so skip if available
+        if shutil.which('wx-config-3.0') or shutil.which('wx-config'):
+            raise unittest.SkipTest('wx-config or wx-config-3.0 found')
+        self.assertMesonRaises("dependency('wxwidgets')", self.dnf)
+        self.assertMesonOutputs("dependency('wxwidgets', required : false)",
+                                "nor wx-config found")
+
+    def test_wx_dependency(self):
+        if not shutil.which('wx-config-3.0') and not shutil.which('wx-config'):
+            raise unittest.SkipTest('Neither wx-config nor wx-config-3.0 found')
+        self.assertMesonRaises("dependency('wxwidgets', modules : 1)",
+                               "module argument is not a string")
 
     def test_llvm_dependency(self):
         self.assertMesonRaises("dependency('llvm', modules : 'fail')",

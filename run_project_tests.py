@@ -434,7 +434,7 @@ def detect_tests_to_run():
         ('objective c', 'objc', backend not in (Backend.ninja, Backend.xcode) or mesonlib.is_windows() or not have_objc_compiler()),
         ('fortran', 'fortran', backend is not Backend.ninja or not shutil.which('gfortran')),
         ('swift', 'swift', backend not in (Backend.ninja, Backend.xcode) or not shutil.which('swiftc')),
-        ('python3', 'python3', backend is not Backend.ninja or not shutil.which('python3')),
+        ('python3', 'python3', backend is not Backend.ninja),
     ]
     return [(name, gather_tests('test cases/' + subdir), skip) for name, subdir, skip in all_tests]
 
