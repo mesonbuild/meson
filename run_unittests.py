@@ -25,16 +25,19 @@ import unittest
 from configparser import ConfigParser
 from glob import glob
 from pathlib import PurePath
+
+import mesonbuild.mlog
 import mesonbuild.compilers
 import mesonbuild.environment
 import mesonbuild.mesonlib
 from mesonbuild.mesonlib import is_windows, is_osx, is_cygwin
 from mesonbuild.environment import Environment
+from mesonbuild.dependencies import DependencyException
 from mesonbuild.dependencies import PkgConfigDependency, ExternalProgram
 
 from run_tests import exe_suffix, get_fake_options, FakeEnvironment
 from run_tests import get_builddir_target_args, get_backend_commands, Backend
-from run_tests import ensure_backend_detects_changes
+from run_tests import ensure_backend_detects_changes, run_configure_inprocess
 
 
 def get_dynamic_section_entry(fname, entry):
@@ -401,8 +404,8 @@ class BasePlatformTests(unittest.TestCase):
         # Get the backend
         # FIXME: Extract this from argv?
         self.backend = getattr(Backend, os.environ.get('MESON_UNIT_TEST_BACKEND', 'ninja'))
-        self.meson_command = [sys.executable, os.path.join(src_root, 'meson.py'),
-                              '--backend=' + self.backend.name]
+        self.meson_args = [os.path.join(src_root, 'meson.py'), '--backend=' + self.backend.name]
+        self.meson_command = [sys.executable] + self.meson_args
         self.mconf_command = [sys.executable, os.path.join(src_root, 'mesonconf.py')]
         self.mintro_command = [sys.executable, os.path.join(src_root, 'mesonintrospect.py')]
         self.mtest_command = [sys.executable, os.path.join(src_root, 'mesontest.py'), '-C', self.builddir]
@@ -452,7 +455,7 @@ class BasePlatformTests(unittest.TestCase):
             raise subprocess.CalledProcessError(p.returncode, command)
         return output
 
-    def init(self, srcdir, extra_args=None, default_args=True):
+    def init(self, srcdir, extra_args=None, default_args=True, inprocess=False):
         self.assertTrue(os.path.exists(srcdir))
         if extra_args is None:
             extra_args = []
@@ -462,14 +465,26 @@ class BasePlatformTests(unittest.TestCase):
         if default_args:
             args += ['--prefix', self.prefix,
                      '--libdir', self.libdir]
-        try:
-            self._run(self.meson_command + args + extra_args)
-        except unittest.SkipTest:
-            raise unittest.SkipTest('Project requested skipping: ' + srcdir)
-        except:
-            self._print_meson_log()
-            raise
         self.privatedir = os.path.join(self.builddir, 'meson-private')
+        if inprocess:
+            try:
+                run_configure_inprocess(self.meson_args + args + extra_args)
+            except:
+                self._print_meson_log()
+                raise
+            finally:
+                # Close log file to satisfy Windows file locking
+                mesonbuild.mlog.shutdown()
+                mesonbuild.mlog.log_dir = None
+                mesonbuild.mlog.log_file = None
+        else:
+            try:
+                self._run(self.meson_command + args + extra_args)
+            except unittest.SkipTest:
+                raise unittest.SkipTest('Project requested skipping: ' + srcdir)
+            except:
+                self._print_meson_log()
+                raise
 
     def build(self, target=None, extra_args=None):
         if extra_args is None:
@@ -1194,6 +1209,52 @@ int main(int argc, char **argv) {
             self.assertTrue(rpath)
             for path in rpath.split(':'):
                 self.assertTrue(path.startswith('$ORIGIN'), msg=(each, path))
+
+
+class FailureTests(BasePlatformTests):
+    '''
+    Tests that test failure conditions. Build files here should be dynamically
+    generated and static tests should go into `test cases/failing*`.
+    This is useful because there can be many ways in which a particular
+    function can fail, and creating failing tests for all of them is tedious
+    and slows down testing.
+    '''
+    dnf = "[Dd]ependency.*not found"
+
+    def setUp(self):
+        super().setUp()
+        self.srcdir = os.path.realpath(tempfile.mkdtemp())
+        self.mbuild = os.path.join(self.srcdir, 'meson.build')
+
+    def tearDown(self):
+        super().tearDown()
+        shutil.rmtree(self.srcdir)
+
+    def assertMesonRaises(self, contents, match, extra_args=None):
+        '''
+        Assert that running meson configure on the specified contents raises
+        the specified error message.
+        '''
+        with open(self.mbuild, 'w') as f:
+            f.write("project('failure test', 'c', 'cpp')\n")
+            f.write(contents)
+        # Force tracebacks so we can detect them properly
+        os.environ['MESON_FORCE_BACKTRACE'] = '1'
+        with self.assertRaisesRegex(DependencyException, match, msg=contents):
+            # Must run in-process or we'll get a generic CalledProcessError
+            self.init(self.srcdir, extra_args=extra_args, inprocess=True)
+
+    def test_dependency(self):
+        if not shutil.which('pkg-config'):
+            raise unittest.SkipTest('pkg-config not found')
+        a = (("dependency('zlib', method : 'fail')", "'fail' is invalid"),
+             ("dependency('zlib', static : '1')", "[Ss]tatic.*boolean"),
+             ("dependency('zlib', version : 1)", "[Vv]ersion.*string or list"),
+             ("dependency('zlib', required : 1)", "[Rr]equired.*boolean"),
+             ("dependency('zlib', method : 1)", "[Mm]ethod.*string"),
+             ("dependency('zlibfail')", self.dnf),)
+        for contents, match in a:
+            self.assertMesonRaises(contents, match)
 
 
 class WindowsTests(BasePlatformTests):
