@@ -1256,6 +1256,10 @@ class FailureTests(BasePlatformTests):
         for contents, match in a:
             self.assertMesonRaises(contents, match)
 
+    def test_llvm_dependency(self):
+        self.assertMesonRaises("dependency('llvm', modules : 'fail')",
+                               "(required.*fail|{})".format(self.dnf))
+
 
 class WindowsTests(BasePlatformTests):
     '''
