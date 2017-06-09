@@ -1161,18 +1161,50 @@ class AllPlatformTests(BasePlatformTests):
         self.build()
         self.run_tests()
 
-    def test_dist(self):
+    def test_dist_git(self):
         if not shutil.which('git'):
             raise unittest.SkipTest('Git not found')
+
+        def git_init(project_dir):
+            subprocess.check_call(['git', 'init'], cwd=project_dir)
+            subprocess.check_call(['git', 'config',
+                                   'user.name', 'Author Person'], cwd=project_dir)
+            subprocess.check_call(['git', 'config',
+                                   'user.email', 'teh_coderz@example.com'], cwd=project_dir)
+            subprocess.check_call(['git', 'add', 'meson.build', 'distexe.c'], cwd=project_dir)
+            subprocess.check_call(['git', 'commit', '-a', '-m', 'I am a project'], cwd=project_dir)
+
         try:
-            self.dist_impl()
+            self.dist_impl(git_init)
         except PermissionError:
             # When run under Windows CI, something (virus scanner?)
             # holds on to the git files so cleaning up the dir
             # fails sometimes.
             pass
 
-    def dist_impl(self):
+    def test_dist_hg(self):
+        if not shutil.which('hg'):
+            raise unittest.SkipTest('Mercurial not found')
+        if self.backend is not Backend.ninja:
+            raise unittest.SkipTest('Dist is only supported with Ninja')
+
+        def hg_init(project_dir):
+            subprocess.check_call(['hg', 'init'], cwd=project_dir)
+            with open(os.path.join(project_dir, '.hg', 'hgrc'), 'w') as f:
+                print('[ui]', file=f)
+                print('username=Author Person <teh_coderz@example.com>', file=f)
+            subprocess.check_call(['hg', 'add', 'meson.build', 'distexe.c'], cwd=project_dir)
+            subprocess.check_call(['hg', 'commit', '-m', 'I am a project'], cwd=project_dir)
+
+        try:
+            self.dist_impl(hg_init)
+        except PermissionError:
+            # When run under Windows CI, something (virus scanner?)
+            # holds on to the hg files so cleaning up the dir
+            # fails sometimes.
+            pass
+
+    def dist_impl(self, vcs_init):
         # Create this on the fly because having rogue .git directories inside
         # the source tree leads to all kinds of trouble.
         with tempfile.TemporaryDirectory() as project_dir:
@@ -1189,13 +1221,7 @@ int main(int argc, char **argv) {
     return 0;
 }
 ''')
-            subprocess.check_call(['git', 'init'], cwd=project_dir)
-            subprocess.check_call(['git', 'config',
-                                   'user.name', 'Author Person'], cwd=project_dir)
-            subprocess.check_call(['git', 'config',
-                                   'user.email', 'teh_coderz@example.com'], cwd=project_dir)
-            subprocess.check_call(['git', 'add', 'meson.build', 'distexe.c'], cwd=project_dir)
-            subprocess.check_call(['git', 'commit', '-a', '-m', 'I am a project'], cwd=project_dir)
+            vcs_init(project_dir)
             self.init(project_dir)
             self.build('dist')
             distfile = os.path.join(self.distdir, 'disttest-1.4.3.tar.xz')
