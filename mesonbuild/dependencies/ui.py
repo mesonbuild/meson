@@ -427,7 +427,6 @@ class WxDependency(ExternalDependency):
         if WxDependency.wx_found is None:
             self.check_wxconfig()
         if not WxDependency.wx_found:
-            # FIXME: this message could be printed after Dependncy found
             mlog.log("Neither wx-config-3.0 nor wx-config found; can't detect dependency")
             return
 
@@ -466,11 +465,11 @@ class WxDependency(ExternalDependency):
         if modules not in kwargs:
             return []
         candidates = kwargs[modules]
-        if isinstance(candidates, str):
-            return [candidates]
+        if not isinstance(candidates, list):
+            candidates = [candidates]
         for c in candidates:
             if not isinstance(c, str):
-                raise DependencyException('wxwidgets module argument is not a string.')
+                raise DependencyException('wxwidgets module argument is not a string')
         return candidates
 
     def check_wxconfig(self):
