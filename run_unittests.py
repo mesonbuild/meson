@@ -1316,6 +1316,19 @@ class FailureTests(BasePlatformTests):
         self.assertMesonRaises("dependency('llvm', modules : 'fail')",
                                "(required.*fail|{})".format(self.dnf))
 
+    def test_boost_notfound_dependency(self):
+        # Can be run even if Boost is found or not
+        self.assertMesonRaises("dependency('boost', modules : 1)",
+                               "module.*not a string")
+        self.assertMesonRaises("dependency('boost', modules : 'fail')",
+                               "(fail.*not found|{})".format(self.dnf))
+
+    def test_boost_BOOST_ROOT_dependency(self):
+        # Test BOOST_ROOT; can be run even if Boost is found or not
+        os.environ['BOOST_ROOT'] = 'relative/path'
+        self.assertMesonRaises("dependency('boost')",
+                               "(BOOST_ROOT.*absolute|{})".format(self.dnf))
+
 
 class WindowsTests(BasePlatformTests):
     '''
