@@ -81,7 +81,11 @@ def install_help(srcdir, blddir, sources, media, langs, install_dir, destdir, pr
                     if '/' in m or '\\' in m:
                         os.makedirs(os.path.dirname(outfile), exist_ok=True)
                     try:
-                        os.symlink(srcfile, outfile)
+                        try:
+                            os.symlink(srcfile, outfile)
+                        except FileExistsError:
+                            os.remove(outfile)
+                            os.symlink(srcfile, outfile)
                         continue
                     except (NotImplementedError, OSError):
                         mlog.warning('Symlinking not supported, falling back to copying')
