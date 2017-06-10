@@ -731,35 +731,35 @@ class Compiler:
         raise EnvironmentException('Language %s does not support linking whole archives.' % self.language)
 
     def build_unix_rpath_args(self, build_dir, from_dir, rpath_paths, install_rpath):
-            if not rpath_paths and not install_rpath:
-                return []
-            # The rpaths we write must be relative, because otherwise
-            # they have different length depending on the build
-            # directory. This breaks reproducible builds.
-            rel_rpaths = []
-            for p in rpath_paths:
-                if p == from_dir:
-                    relative = '' # relpath errors out in this case
-                else:
-                    relative = os.path.relpath(p, from_dir)
-                rel_rpaths.append(relative)
-            paths = ':'.join([os.path.join('$ORIGIN', p) for p in rel_rpaths])
-            if len(paths) < len(install_rpath):
-                padding = 'X' * (len(install_rpath) - len(paths))
-                if not paths:
-                    paths = padding
-                else:
-                    paths = paths + ':' + padding
-            args = ['-Wl,-rpath,' + paths]
-            if get_compiler_is_linuxlike(self):
-                # Rpaths to use while linking must be absolute. These are not
-                # written to the binary. Needed only with GNU ld:
-                # https://sourceware.org/bugzilla/show_bug.cgi?id=16936
-                # Not needed on Windows or other platforms that don't use RPATH
-                # https://github.com/mesonbuild/meson/issues/1897
-                lpaths = ':'.join([os.path.join(build_dir, p) for p in rpath_paths])
-                args += ['-Wl,-rpath-link,' + lpaths]
-            return args
+        if not rpath_paths and not install_rpath:
+            return []
+        # The rpaths we write must be relative, because otherwise
+        # they have different length depending on the build
+        # directory. This breaks reproducible builds.
+        rel_rpaths = []
+        for p in rpath_paths:
+            if p == from_dir:
+                relative = '' # relpath errors out in this case
+            else:
+                relative = os.path.relpath(p, from_dir)
+            rel_rpaths.append(relative)
+        paths = ':'.join([os.path.join('$ORIGIN', p) for p in rel_rpaths])
+        if len(paths) < len(install_rpath):
+            padding = 'X' * (len(install_rpath) - len(paths))
+            if not paths:
+                paths = padding
+            else:
+                paths = paths + ':' + padding
+        args = ['-Wl,-rpath,' + paths]
+        if get_compiler_is_linuxlike(self):
+            # Rpaths to use while linking must be absolute. These are not
+            # written to the binary. Needed only with GNU ld:
+            # https://sourceware.org/bugzilla/show_bug.cgi?id=16936
+            # Not needed on Windows or other platforms that don't use RPATH
+            # https://github.com/mesonbuild/meson/issues/1897
+            lpaths = ':'.join([os.path.join(build_dir, p) for p in rpath_paths])
+            args += ['-Wl,-rpath-link,' + lpaths]
+        return args
 
 class CCompiler(Compiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
