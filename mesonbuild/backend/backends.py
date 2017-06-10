@@ -429,6 +429,9 @@ class Backend:
         # NOTE: We must preserve the order in which external deps are
         # specified, so we reverse the list before iterating over it.
         for dep in reversed(target.get_external_deps()):
+            if not dep.found():
+                continue
+
             if compiler.language == 'vala':
                 if isinstance(dep, dependencies.PkgConfigDependency):
                     if dep.name == 'glib-2.0' and dep.version_reqs is not None:
