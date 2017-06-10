@@ -126,8 +126,8 @@ class BoostDependency(ExternalDependency):
 
     def get_requested(self, kwargs):
         candidates = kwargs.get('modules', [])
-        if isinstance(candidates, str):
-            return [candidates]
+        if not isinstance(candidates, list):
+            candidates = [candidates]
         for c in candidates:
             if not isinstance(c, str):
                 raise DependencyException('Boost module argument is not a string.')
@@ -136,7 +136,8 @@ class BoostDependency(ExternalDependency):
     def validate_requested(self):
         for m in self.requested_modules:
             if m not in self.src_modules:
-                raise DependencyException('Requested Boost module "%s" not found.' % m)
+                msg = 'Requested Boost module {!r} not found'
+                raise DependencyException(msg.format(m))
 
     def detect_version(self):
         try:
