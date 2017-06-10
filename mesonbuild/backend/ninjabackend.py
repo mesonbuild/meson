@@ -2261,17 +2261,6 @@ rule FORTRAN_DEP_HACK
         if not isinstance(target, build.StaticLibrary):
             commands += self.get_link_whole_args(linker, target)
 
-        if not isinstance(target, build.StaticLibrary):
-            # Add link args added using add_project_link_arguments()
-            commands += self.build.get_project_link_args(linker, target.subproject)
-            # Add link args added using add_global_link_arguments()
-            # These override per-project link arguments
-            commands += self.build.get_global_link_args(linker)
-            if not target.is_cross:
-                # Link args added from the env: LDFLAGS. We want these to
-                # override all the defaults but not the per-target link args.
-                commands += self.environment.coredata.external_link_args[linker.get_language()]
-
         # Now we will add libraries and library paths from various sources
 
         # Add link args to link to all internal libraries (link_with:) and
@@ -2305,6 +2294,18 @@ rule FORTRAN_DEP_HACK
         # symbols from those can be found here. This is needed when the
         # *_winlibs that we want to link to are static mingw64 libraries.
         commands += linker.get_option_link_args(self.environment.coredata.compiler_options)
+
+        if not isinstance(target, build.StaticLibrary):
+            # Add link args added using add_project_link_arguments()
+            commands += self.build.get_project_link_args(linker, target.subproject)
+            # Add link args added using add_global_link_arguments()
+            # These override per-project link arguments
+            commands += self.build.get_global_link_args(linker)
+            if not target.is_cross:
+                # Link args added from the env: LDFLAGS. We want these to
+                # override all the defaults but not the per-target link args.
+                commands += self.environment.coredata.external_link_args[linker.get_language()]
+
         # Set runtime-paths so we can run executables without needing to set
         # LD_LIBRARY_PATH, etc in the environment. Doesn't work on Windows.
         if '/' in target.name or '\\' in target.name:

@@ -756,12 +756,6 @@ class Vs2010Backend(backends.Backend):
         for l, args in self.build.global_args.items():
             if l in file_args:
                 file_args[l] += args
-        if not target.is_cross:
-            # Compile args added from the env: CFLAGS/CXXFLAGS, etc. We want these
-            # to override all the defaults, but not the per-target compile args.
-            for l, args in self.environment.coredata.external_args.items():
-                if l in file_args:
-                    file_args[l] += args
         for args in file_args.values():
             # This is where Visual Studio will insert target_args, target_defines,
             # etc, which are added later from external deps (see below).
@@ -786,6 +780,12 @@ class Vs2010Backend(backends.Backend):
                 for i in d.get_extra_build_dirs():
                     curdir = os.path.join(d.get_curdir(), i)
                     args.append('-I' + self.relpath(curdir, target.subdir))  # build dir
+        if not target.is_cross:
+            # Compile args added from the env: CFLAGS/CXXFLAGS, etc. We want these
+            # to override all the defaults, but not the per-target compile args.
+            for l, args in self.environment.coredata.external_args.items():
+                if l in file_args:
+                    file_args[l] += args
         # Add per-target compile args, f.ex, `c_args : ['/DFOO']`. We set these
         # near the end since these are supposed to override everything else.
         for l, args in target.extra_args.items():
@@ -902,10 +902,6 @@ class Vs2010Backend(backends.Backend):
             # Add link args added using add_global_link_arguments()
             # These override per-project link arguments
             extra_link_args += self.build.get_global_link_args(compiler)
-            if not target.is_cross:
-                # Link args added from the env: LDFLAGS. We want these to
-                # override all the defaults but not the per-target link args.
-                extra_link_args += self.environment.coredata.external_link_args[compiler.get_language()]
             # Only non-static built targets need link args and link dependencies
             extra_link_args += target.link_args
             # External deps must be last because target link libraries may depend on them.
@@ -915,6 +911,10 @@ class Vs2010Backend(backends.Backend):
                 if isinstance(d, build.StaticLibrary):
                     for dep in d.get_external_deps():
                         extra_link_args += dep.get_link_args()
+            if not target.is_cross:
+                # Link args added from the env: LDFLAGS. We want these to
+                # override all the defaults but not the per-target link args.
+                extra_link_args += self.environment.coredata.external_link_args[compiler.get_language()]
         # Add link args for c_* or cpp_* build options. Currently this only
         # adds c_winlibs and cpp_winlibs when building for Windows. This needs
         # to be after all internal and external libraries so that unresolved
