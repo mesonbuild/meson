@@ -367,7 +367,8 @@ class GnomeModule(ExtensionModule):
                         gi_includes.update([girdir])
             elif isinstance(dep, (build.StaticLibrary, build.SharedLibrary)):
                 for incd in dep.get_include_dirs():
-                    cflags.update(incd.get_incdirs())
+                    for idir in incd.get_incdirs():
+                        cflags.update(["-I%s" % idir])
             else:
                 mlog.log('dependency %s not handled to build gir files' % dep)
                 continue
