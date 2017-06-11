@@ -1773,7 +1773,7 @@ class ValaCompiler(Compiler):
         for d in extra_dirs:
             vapi = os.path.join(d, libname + '.vapi')
             if os.path.isfile(vapi):
-                return vapi
+                return [vapi]
         mlog.debug('Searched {!r} and {!r} wasn\'t found'.format(extra_dirs, libname))
         return None
 

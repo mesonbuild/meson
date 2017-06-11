@@ -23,25 +23,19 @@ from .. import mlog
 from .. import mesonlib
 from ..environment import detect_cpu_family
 
-from .base import Dependency, DependencyException, DependencyMethods, ExtraFrameworkDependency, PkgConfigDependency
+from .base import DependencyException, DependencyMethods
+from .base import ExternalDependency, ExtraFrameworkDependency, PkgConfigDependency
 
 
-class BoostDependency(Dependency):
+class BoostDependency(ExternalDependency):
     # Some boost libraries have different names for
     # their sources and libraries. This dict maps
     # between the two.
     name2lib = {'test': 'unit_test_framework'}
 
     def __init__(self, environment, kwargs):
-        Dependency.__init__(self, 'boost', kwargs)
-        self.name = 'boost'
-        self.environment = environment
+        super().__init__('boost', environment, 'cpp', kwargs)
         self.libdir = ''
-        self.static = kwargs.get('static', False)
-        if 'native' in kwargs and environment.is_cross_build():
-            self.want_cross = not kwargs['native']
-        else:
-            self.want_cross = environment.is_cross_build()
         try:
             self.boost_root = os.environ['BOOST_ROOT']
             if not os.path.isabs(self.boost_root):
@@ -72,7 +66,7 @@ class BoostDependency(Dependency):
         self.detect_version()
         self.requested_modules = self.get_requested(kwargs)
         module_str = ', '.join(self.requested_modules)
-        if self.version is not None:
+        if self.is_found:
             self.detect_src_modules()
             self.detect_lib_modules()
             self.validate_requested()
@@ -83,9 +77,6 @@ class BoostDependency(Dependency):
             mlog.log('Dependency Boost (%s) found:' % module_str, mlog.green('YES'), info)
         else:
             mlog.log("Dependency Boost (%s) found:" % module_str, mlog.red('NO'))
-        if 'cpp' not in self.environment.coredata.compilers:
-            raise DependencyException('Tried to use Boost but a C++ compiler is not defined.')
-        self.cpp_compiler = self.environment.coredata.compilers['cpp']
 
     def detect_win_root(self):
         globtext = 'c:\\local\\boost_*'
@@ -130,13 +121,13 @@ class BoostDependency(Dependency):
         # names in order to handle cases like cross-compiling where we
         # might have a different sysroot.
         if not include_dir.endswith(('/usr/include', '/usr/local/include')):
-            args.append("".join(self.cpp_compiler.get_include_args(include_dir, True)))
+            args.append("".join(self.compiler.get_include_args(include_dir, True)))
         return args
 
     def get_requested(self, kwargs):
         candidates = kwargs.get('modules', [])
-        if isinstance(candidates, str):
-            return [candidates]
+        if not isinstance(candidates, list):
+            candidates = [candidates]
         for c in candidates:
             if not isinstance(c, str):
                 raise DependencyException('Boost module argument is not a string.')
@@ -145,19 +136,13 @@ class BoostDependency(Dependency):
     def validate_requested(self):
         for m in self.requested_modules:
             if m not in self.src_modules:
-                raise DependencyException('Requested Boost module "%s" not found.' % m)
-
-    def found(self):
-        return self.version is not None
-
-    def get_version(self):
-        return self.version
+                msg = 'Requested Boost module {!r} not found'
+                raise DependencyException(msg.format(m))
 
     def detect_version(self):
         try:
             ifile = open(os.path.join(self.boost_inc_subdir, 'version.hpp'))
         except FileNotFoundError:
-            self.version = None
             return
         with ifile:
             for line in ifile:
@@ -165,8 +150,8 @@ class BoostDependency(Dependency):
                     ver = line.split()[-1]
                     ver = ver[1:-1]
                     self.version = ver.replace('_', '.')
+                    self.is_found = True
                     return
-        self.version = None
 
     def detect_src_modules(self):
         for entry in os.listdir(self.boost_inc_subdir):
@@ -180,7 +165,7 @@ class BoostDependency(Dependency):
         return self.detect_lib_modules_nix()
 
     def detect_lib_modules_win(self):
-        arch = detect_cpu_family(self.environment.coredata.compilers)
+        arch = detect_cpu_family(self.env.coredata.compilers)
         # Guess the libdir
         if arch == 'x86':
             gl = 'lib32*'
@@ -254,10 +239,10 @@ class BoostDependency(Dependency):
             module = BoostDependency.name2lib.get(module, module)
             libname = 'boost_' + module
             # The compiler's library detector is the most reliable so use that first.
-            default_detect = self.cpp_compiler.find_library(libname, self.environment, [])
+            default_detect = self.compiler.find_library(libname, self.env, [])
             if default_detect is not None:
                 if module == 'unit_testing_framework':
-                    emon_args = self.cpp_compiler.find_library('boost_test_exec_monitor')
+                    emon_args = self.compiler.find_library('boost_test_exec_monitor')
                 else:
                     emon_args = None
                 args += default_detect
@@ -286,9 +271,9 @@ class BoostDependency(Dependency):
         return 'thread' in self.requested_modules
 
 
-class ThreadDependency(Dependency):
+class ThreadDependency(ExternalDependency):
     def __init__(self, environment, kwargs):
-        super().__init__('threads', {})
+        super().__init__('threads', environment, None, {})
         self.name = 'threads'
         self.is_found = True
         mlog.log('Dependency', mlog.bold(self.name), 'found:', mlog.green('YES'))
@@ -300,19 +285,18 @@ class ThreadDependency(Dependency):
         return 'unknown'
 
 
-class Python3Dependency(Dependency):
+class Python3Dependency(ExternalDependency):
     def __init__(self, environment, kwargs):
-        super().__init__('python3', kwargs)
+        super().__init__('python3', environment, None, kwargs)
         self.name = 'python3'
-        self.is_found = False
         # We can only be sure that it is Python 3 at this point
         self.version = '3'
         if DependencyMethods.PKGCONFIG in self.methods:
             try:
                 pkgdep = PkgConfigDependency('python3', environment, kwargs)
                 if pkgdep.found():
-                    self.cargs = pkgdep.cargs
-                    self.libs = pkgdep.libs
+                    self.compile_args = pkgdep.get_compile_args()
+                    self.link_args = pkgdep.get_link_args()
                     self.version = pkgdep.get_version()
                     self.is_found = True
                     return
@@ -324,10 +308,11 @@ class Python3Dependency(Dependency):
             elif mesonlib.is_osx() and DependencyMethods.EXTRAFRAMEWORK in self.methods:
                 # In OSX the Python 3 framework does not have a version
                 # number in its name.
-                fw = ExtraFrameworkDependency('python', False, None, kwargs)
+                fw = ExtraFrameworkDependency('python', False, None, self.env,
+                                              self.language, kwargs)
                 if fw.found():
-                    self.cargs = fw.get_compile_args()
-                    self.libs = fw.get_link_args()
+                    self.compile_args = fw.get_compile_args()
+                    self.link_args = fw.get_link_args()
                     self.is_found = True
         if self.is_found:
             mlog.log('Dependency', mlog.bold(self.name), 'found:', mlog.green('YES'))
@@ -359,22 +344,16 @@ class Python3Dependency(Dependency):
             return
         inc = sysconfig.get_path('include')
         platinc = sysconfig.get_path('platinclude')
-        self.cargs = ['-I' + inc]
+        self.compile_args = ['-I' + inc]
         if inc != platinc:
-            self.cargs.append('-I' + platinc)
+            self.compile_args.append('-I' + platinc)
         # Nothing exposes this directly that I coulf find
         basedir = sysconfig.get_config_var('base')
         vernum = sysconfig.get_config_var('py_version_nodot')
-        self.libs = ['-L{}/libs'.format(basedir),
-                     '-lpython{}'.format(vernum)]
+        self.link_args = ['-L{}/libs'.format(basedir),
+                          '-lpython{}'.format(vernum)]
         self.version = sysconfig.get_config_var('py_version_short')
         self.is_found = True
-
-    def get_compile_args(self):
-        return self.cargs
-
-    def get_link_args(self):
-        return self.libs
 
     def get_methods(self):
         if mesonlib.is_windows():
@@ -383,6 +362,3 @@ class Python3Dependency(Dependency):
             return [DependencyMethods.PKGCONFIG, DependencyMethods.EXTRAFRAMEWORK]
         else:
             return [DependencyMethods.PKGCONFIG]
-
-    def get_version(self):
-        return self.version

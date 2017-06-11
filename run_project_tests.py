@@ -34,7 +34,7 @@ import time
 import multiprocessing
 import concurrent.futures as conc
 import re
-from run_unittests import get_fake_options
+from run_unittests import get_fake_options, run_configure_inprocess
 
 from run_tests import get_backend_commands, get_backend_args_for_dir, Backend
 from run_tests import ensure_backend_detects_changes
@@ -249,18 +249,6 @@ def log_text_file(logfile, testdir, stdo, stde):
         executor.shutdown()
         raise StopException()
 
-def run_configure_inprocess(commandlist):
-    old_stdout = sys.stdout
-    sys.stdout = mystdout = StringIO()
-    old_stderr = sys.stderr
-    sys.stderr = mystderr = StringIO()
-    try:
-        returncode = mesonmain.run(commandlist[0], commandlist[1:])
-    finally:
-        sys.stdout = old_stdout
-        sys.stderr = old_stderr
-    return returncode, mystdout.getvalue(), mystderr.getvalue()
-
 def run_test_inprocess(testdir):
     old_stdout = sys.stdout
     sys.stdout = mystdout = StringIO()
@@ -383,7 +371,7 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, compiler, backen
     return TestResult(validate_install(testdir, install_dir, compiler), BuildStep.validate, stdo, stde, mesonlog, gen_time, build_time, test_time)
 
 def gather_tests(testdir):
-    tests = [t.replace('\\', '/').split('/', 2)[2] for t in glob(os.path.join(testdir, '*'))]
+    tests = [t.replace('\\', '/').split('/', 2)[2] for t in glob(testdir + '/*')]
     testlist = [(int(t.split()[0]), t) for t in tests]
     testlist.sort()
     tests = [os.path.join(testdir, t[1]) for t in testlist]
@@ -437,7 +425,6 @@ def detect_tests_to_run():
         ('platform-windows', 'windows', not mesonlib.is_windows() and not mesonlib.is_cygwin()),
         ('platform-linux', 'linuxlike', mesonlib.is_osx() or mesonlib.is_windows()),
 
-        ('framework', 'frameworks', mesonlib.is_osx() or mesonlib.is_windows() or mesonlib.is_cygwin()),
         ('java', 'java', backend is not Backend.ninja or mesonlib.is_osx() or not have_java()),
         ('C#', 'csharp', backend is not Backend.ninja or not shutil.which('mcs')),
         ('vala', 'vala', backend is not Backend.ninja or not shutil.which('valac')),
@@ -446,9 +433,17 @@ def detect_tests_to_run():
         ('objective c', 'objc', backend not in (Backend.ninja, Backend.xcode) or mesonlib.is_windows() or not have_objc_compiler()),
         ('fortran', 'fortran', backend is not Backend.ninja or not shutil.which('gfortran')),
         ('swift', 'swift', backend not in (Backend.ninja, Backend.xcode) or not shutil.which('swiftc')),
-        ('python3', 'python3', backend is not Backend.ninja or not shutil.which('python3')),
+        ('python3', 'python3', backend is not Backend.ninja),
     ]
-    return [(name, gather_tests('test cases/' + subdir), skip) for name, subdir, skip in all_tests]
+    gathered_tests = [(name, gather_tests('test cases/' + subdir), skip) for name, subdir, skip in all_tests]
+    if mesonlib.is_windows():
+        # TODO: Set BOOST_ROOT in .appveyor.yml
+        gathered_tests += [('framework', ['test cases/frameworks/1 boost'], 'BOOST_ROOT' not in os.environ)]
+    elif mesonlib.is_osx() or mesonlib.is_cygwin():
+        gathered_tests += [('framework', gather_tests('test cases/frameworks'), True)]
+    else:
+        gathered_tests += [('framework', gather_tests('test cases/frameworks'), False)]
+    return gathered_tests
 
 def run_tests(all_tests, log_name_base, extra_args):
     global stop, executor, futures

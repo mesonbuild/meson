@@ -22,29 +22,20 @@ import shutil
 from .. import mlog
 from .. import mesonlib
 from ..mesonlib import version_compare, Popen_safe
-from .base import Dependency, DependencyException, PkgConfigDependency, dependency_get_compiler
+from .base import DependencyException, ExternalDependency, PkgConfigDependency
 
-class GTestDependency(Dependency):
+class GTestDependency(ExternalDependency):
     def __init__(self, environment, kwargs):
-        Dependency.__init__(self, 'gtest', kwargs)
-        self.env = environment
+        super().__init__('gtest', environment, 'cpp', kwargs)
         self.main = kwargs.get('main', False)
-        self.name = 'gtest'
-        self.include_dir = '/usr/include'
         self.src_dirs = ['/usr/src/gtest/src', '/usr/src/googletest/googletest/src']
-
-        self.cpp_compiler = dependency_get_compiler('cpp', environment, kwargs)
-        if self.cpp_compiler is None:
-            raise DependencyException('Tried to use gtest but a C++ compiler is not defined.')
         self.detect()
 
-    def found(self):
-        return self.is_found
-
     def detect(self):
-        gtest_detect = self.cpp_compiler.find_library("gtest", self.env, [])
-        gtest_main_detect = self.cpp_compiler.find_library("gtest_main", self.env, [])
-        if gtest_detect and gtest_main_detect:
+        self.version = '1.something_maybe'
+        gtest_detect = self.compiler.find_library("gtest", self.env, [])
+        gtest_main_detect = self.compiler.find_library("gtest_main", self.env, [])
+        if gtest_detect and (not self.main or gtest_main_detect):
             self.is_found = True
             self.compile_args = []
             self.link_args = gtest_detect
@@ -64,7 +55,6 @@ class GTestDependency(Dependency):
         else:
             mlog.log('Dependency GTest found:', mlog.red('NO'))
             self.is_found = False
-        return self.is_found
 
     def detect_srcdir(self):
         for s in self.src_dirs:
@@ -78,37 +68,17 @@ class GTestDependency(Dependency):
                 return True
         return False
 
-    def get_compile_args(self):
-        arr = []
-        if self.include_dir != '/usr/include':
-            arr.append('-I' + self.include_dir)
-        if hasattr(self, 'src_include_dir'):
-            arr.append('-I' + self.src_include_dir)
-        return arr
-
-    def get_link_args(self):
-        return self.link_args
-
-    def get_version(self):
-        return '1.something_maybe'
-
-    def get_sources(self):
-        return self.sources
-
     def need_threads(self):
         return True
 
 
-class GMockDependency(Dependency):
+class GMockDependency(ExternalDependency):
     def __init__(self, environment, kwargs):
-        Dependency.__init__(self, 'gmock', kwargs)
+        super().__init__('gmock', environment, 'cpp', kwargs)
+        self.version = '1.something_maybe'
         # GMock may be a library or just source.
         # Work with both.
-        self.name = 'gmock'
-        cpp_compiler = dependency_get_compiler('cpp', environment, kwargs)
-        if cpp_compiler is None:
-            raise DependencyException('Tried to use gmock but a C++ compiler is not defined.')
-        gmock_detect = cpp_compiler.find_library("gmock", environment, [])
+        gmock_detect = self.compiler.find_library("gmock", self.env, [])
         if gmock_detect:
             self.is_found = True
             self.compile_args = []
@@ -133,29 +103,12 @@ class GMockDependency(Dependency):
                     self.sources = [all_src]
                 mlog.log('Dependency GMock found:', mlog.green('YES'), '(building self)')
                 return
-
         mlog.log('Dependency GMock found:', mlog.red('NO'))
         self.is_found = False
 
-    def get_version(self):
-        return '1.something_maybe'
 
-    def get_compile_args(self):
-        return self.compile_args
-
-    def get_sources(self):
-        return self.sources
-
-    def get_link_args(self):
-        return self.link_args
-
-    def found(self):
-        return self.is_found
-
-
-class LLVMDependency(Dependency):
-    """LLVM dependency.
-
+class LLVMDependency(ExternalDependency):
+    """
     LLVM uses a special tool, llvm-config, which has arguments for getting
     c args, cxx args, and ldargs as well as version.
     """
@@ -182,15 +135,11 @@ class LLVMDependency(Dependency):
     __cpp_blacklist = {'-DNDEBUG'}
 
     def __init__(self, environment, kwargs):
-        super().__init__('llvm-config', kwargs)
         # It's necessary for LLVM <= 3.8 to use the C++ linker. For 3.9 and 4.0
         # the C linker works fine if only using the C API.
-        self.language = 'cpp'
-        self.cargs = []
-        self.libs = []
+        super().__init__('llvm-config', environment, 'cpp', kwargs)
         self.modules = []
-
-        required = kwargs.get('required', True)
+        # FIXME: Support multiple version requirements ala PkgConfigDependency
         req_version = kwargs.get('version', None)
         if self.llvmconfig is None:
             self.check_llvmconfig(req_version)
@@ -201,14 +150,14 @@ class LLVMDependency(Dependency):
             else:
                 mlog.log("No llvm-config found; can't detect dependency")
             mlog.log('Dependency LLVM found:', mlog.red('NO'))
-            if required:
+            if self.required:
                 raise DependencyException('Dependency LLVM not found')
             return
 
         p, out, err = Popen_safe([self.llvmconfig, '--version'])
         if p.returncode != 0:
             mlog.debug('stdout: {}\nstderr: {}'.format(out, err))
-            if required:
+            if self.required:
                 raise DependencyException('Dependency LLVM not found')
             return
         else:
@@ -220,12 +169,13 @@ class LLVMDependency(Dependency):
                 [self.llvmconfig, '--libs', '--ldflags', '--system-libs'])[:2]
             if p.returncode != 0:
                 raise DependencyException('Could not generate libs for LLVM.')
-            self.libs = shlex.split(out)
+            self.link_args = shlex.split(out)
 
             p, out = Popen_safe([self.llvmconfig, '--cppflags'])[:2]
             if p.returncode != 0:
                 raise DependencyException('Could not generate includedir for LLVM.')
-            self.cargs = list(mesonlib.OrderedSet(shlex.split(out)).difference(self.__cpp_blacklist))
+            cargs = mesonlib.OrderedSet(shlex.split(out))
+            self.compile_args = list(cargs.difference(self.__cpp_blacklist))
 
             p, out = Popen_safe([self.llvmconfig, '--components'])[:2]
             if p.returncode != 0:
@@ -237,20 +187,11 @@ class LLVMDependency(Dependency):
             if mod not in self.modules:
                 mlog.log('LLVM module', mod, 'found:', mlog.red('NO'))
                 self.is_found = False
-                if required:
+                if self.required:
                     raise DependencyException(
                         'Could not find required LLVM Component: {}'.format(mod))
             else:
                 mlog.log('LLVM module', mod, 'found:', mlog.green('YES'))
-
-    def get_version(self):
-        return self.version
-
-    def get_compile_args(self):
-        return self.cargs
-
-    def get_link_args(self):
-        return self.libs
 
     @classmethod
     def check_llvmconfig(cls, version_req):
@@ -261,6 +202,8 @@ class LLVMDependency(Dependency):
                 out = out.strip()
                 if p.returncode != 0:
                     continue
+                # FIXME: As soon as some llvm-config is found, version checks
+                # in further dependnecy() calls will be ignored
                 if version_req:
                     if version_compare(out, version_req, strict=True):
                         if cls.__best_found and version_compare(out, '<={}'.format(cls.__best_found), strict=True):
@@ -288,8 +231,12 @@ class LLVMDependency(Dependency):
 
 
 class ValgrindDependency(PkgConfigDependency):
-    def __init__(self, environment, kwargs):
-        PkgConfigDependency.__init__(self, 'valgrind', environment, kwargs)
+    '''
+    Consumers of Valgrind usually only need the compile args and do not want to
+    link to its (static) libraries.
+    '''
+    def __init__(self, env, kwargs):
+        super().__init__('valgrind', env, None, kwargs)
 
     def get_link_args(self):
         return []

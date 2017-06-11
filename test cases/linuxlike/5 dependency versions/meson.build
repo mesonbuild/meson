@@ -90,9 +90,15 @@ if meson.is_cross_build()
   assert(native_prefix != cross_prefix, 'native prefix == cross_prefix == ' + native_prefix)
 endif
 
+objc_found = add_languages('objc', required : false)
+
 foreach d : ['sdl2', 'gnustep', 'wx', 'gl', 'python3', 'boost', 'gtest', 'gmock']
-  dep = dependency(d, required : false)
-  if dep.found()
-    dep.version()
+  if d == 'gnustep' and not objc_found
+    message('Skipping gnustep because no ObjC compiler found')
+  else
+    dep = dependency(d, required : false)
+    if dep.found()
+      dep.version()
+    endif
   endif
 endforeach

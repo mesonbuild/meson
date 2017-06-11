@@ -13,8 +13,9 @@
 # limitations under the License.
 
 from .base import (  # noqa: F401
-    Dependency, DependencyException, DependencyMethods, ExternalProgram, ExternalLibrary, ExtraFrameworkDependency,
-    InternalDependency, PkgConfigDependency, find_external_dependency, get_dep_identifier, packages)
+    Dependency, DependencyException, DependencyMethods, ExternalProgram,
+    ExternalDependency, ExternalLibrary, ExtraFrameworkDependency, InternalDependency,
+    PkgConfigDependency, find_external_dependency, get_dep_identifier, packages)
 from .dev import GMockDependency, GTestDependency, LLVMDependency, ValgrindDependency
 from .misc import BoostDependency, Python3Dependency, ThreadDependency
 from .platform import AppleFrameworks
