@@ -5,3 +5,4 @@ zlib_o = configure_file(input : 'zlib.c',
 zlib_so = configure_file(input : zlib_o,
                          output : 'libz.so',
                          command : cc + ['@INPUT@', '-shared', '-fPIC', '-o', '@OUTPUT@'])
+libdir = meson.current_build_dir()

@@ -6,4 +6,7 @@ zlib_dep = dependency('zlib')
 
 e = executable('testzlib', 'main.c', dependencies : zlib_dep)
 
-test('testzlib', e)
+pathenv = environment()
+pathenv.prepend('PATH', libdir)
+
+test('testzlib', e, env : pathenv)
