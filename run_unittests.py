@@ -1755,6 +1755,22 @@ class LinuxlikeTests(BasePlatformTests):
         env['LD_LIBRARY_PATH'] = installed_libdir
         self.assertEqual(subprocess.call(installed_exe, env=env), 0)
 
+    def test_order_of_l_arguments(self):
+        testdir = os.path.join(self.unit_test_dir, '8 L order')
+        os.environ['PKG_CONFIG_PATH'] = testdir
+        self.init(testdir)
+        expected_order = ['-L/me/first', '-L/me/second', '-L/me/third', '-L/me/fourth']
+        with open(os.path.join(self.builddir, 'build.ninja')) as ifile:
+            for line in ifile:
+                if expected_order[0] in line:
+                    previous_index = line.index(expected_order[0])
+                    for entry in expected_order[1:]:
+                        current_index = line.index(entry)
+                        self.assertLess(previous_index, current_index)
+                        previous_index = current_index
+                    return
+        raise RuntimeError('Linker entries not found in the Ninja file.')
+
 class LinuxArmCrossCompileTests(BasePlatformTests):
     '''
     Tests that verify cross-compilation to Linux/ARM
