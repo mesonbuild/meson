@@ -2360,15 +2360,6 @@ rule FORTRAN_DEP_HACK
         elem.add_item('LINK_ARGS', commands)
         return elem
 
-    def determine_rpath_dirs(self, target):
-        link_deps = target.get_all_link_deps()
-        result = []
-        for ld in link_deps:
-            prospective = self.get_target_dir(ld)
-            if prospective not in result:
-                result.append(prospective)
-        return result
-
     def get_dependency_filename(self, t):
         if isinstance(t, build.SharedLibrary):
             return os.path.join(self.get_target_private_dir(t), self.get_target_filename(t) + '.symbols')

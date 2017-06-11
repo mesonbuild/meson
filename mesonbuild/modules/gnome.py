@@ -288,15 +288,23 @@ class GnomeModule(ExtensionModule):
 
     def _get_link_args(self, state, lib, depends=None, include_rpath=False,
                        use_gir_args=False):
+        # Construct link args
         if gir_has_extra_lib_arg() and use_gir_args:
-            link_command = ['--extra-library=%s' % lib.name]
+            link_command = ['--extra-library=' + lib.name]
         else:
-            link_command = ['-l%s' % lib.name]
+            link_command = ['-l' + lib.name]
         if isinstance(lib, build.SharedLibrary):
-            libdir = os.path.join(state.environment.get_build_dir(), lib.subdir)
-            link_command += ['-L%s' % libdir]
+            libdir = state.backend.get_target_dir(lib)
+            link_command.append('-L' + libdir)
+            # Needed for the following binutils bug:
+            # https://github.com/mesonbuild/meson/issues/1911
+            # However, g-ir-scanner does not understand -Wl,-rpath
+            # so we need to use -L instead
+            for d in state.backend.determine_rpath_dirs(lib):
+                d = os.path.join(state.environment.get_build_dir(), d)
+                link_command.append('-L' + d)
             if include_rpath:
-                link_command += ['-Wl,-rpath %s' % libdir]
+                link_command.append('-Wl,-rpath,' + libdir)
             if depends:
                 depends.append(lib)
         return link_command
@@ -536,6 +544,13 @@ class GnomeModule(ExtensionModule):
             scan_command += ['--program', girtarget]
         elif isinstance(girtarget, build.SharedLibrary):
             libname = girtarget.get_basename()
+            # Needed for the following binutils bug:
+            # https://github.com/mesonbuild/meson/issues/1911
+            # However, g-ir-scanner does not understand -Wl,-rpath
+            # so we need to use -L instead
+            for d in state.backend.determine_rpath_dirs(girtarget):
+                d = os.path.join(state.environment.get_build_dir(), d)
+                scan_command.append('-L' + d)
             scan_command += ['--library', libname]
         scankwargs = {'output': girfile,
                       'input': libsources,
