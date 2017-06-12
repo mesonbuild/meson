@@ -104,6 +104,9 @@ def get_backend_commands(backend, debug=False):
     return cmd, clean_cmd, test_cmd, install_cmd, uninstall_cmd
 
 def ensure_backend_detects_changes(backend):
+    # We're using a ninja with QuLogic's patch for sub-1s resolution timestamps
+    if 'MESON_FIXED_NINJA' in os.environ:
+        return
     # This is needed to increase the difference between build.ninja's
     # timestamp and the timestamp of whatever you changed due to a Ninja
     # bug: https://github.com/ninja-build/ninja/issues/371
