@@ -176,6 +176,16 @@ class InternalTests(unittest.TestCase):
         l += ['-lbar']
         self.assertEqual(l, ['-Lbardir', '-Lfoodir', '-lfoo', '-lbar'])
 
+        ## Test that 'direct' append and extend works
+        l = cargsfunc(c, ['-Lfoodir', '-lfoo'])
+        self.assertEqual(l, ['-Lfoodir', '-lfoo'])
+        # Direct-adding a library and a libpath appends both correctly
+        l.extend_direct(['-Lbardir', '-lbar'])
+        self.assertEqual(l, ['-Lfoodir', '-lfoo', '-Lbardir', '-lbar'])
+        # Direct-adding the same library again still adds it
+        l.append_direct('-lbar')
+        self.assertEqual(l, ['-Lfoodir', '-lfoo', '-Lbardir', '-lbar', '-lbar'])
+
     def test_commonpath(self):
         from os.path import sep
         commonpath = mesonbuild.mesonlib.commonpath
@@ -1744,6 +1754,25 @@ class LinuxlikeTests(BasePlatformTests):
         env = os.environ.copy()
         env['LD_LIBRARY_PATH'] = installed_libdir
         self.assertEqual(subprocess.call(installed_exe, env=env), 0)
+
+    def test_order_of_l_arguments(self):
+        testdir = os.path.join(self.unit_test_dir, '9 -L -l order')
+        os.environ['PKG_CONFIG_PATH'] = testdir
+        self.init(testdir)
+        # NOTE: .pc file has -Lfoo -lfoo -Lbar -lbar but pkg-config reorders
+        # the flags before returning them to -Lfoo -Lbar -lfoo -lbar
+        expected_order = ['-L/me/first', '-L/me/second','-lfoo1', '-lfoo2',
+                          '-L/me/third', '-L/me/fourth', '-lfoo3', '-lfoo4']
+        with open(os.path.join(self.builddir, 'build.ninja')) as ifile:
+            for line in ifile:
+                if expected_order[0] in line:
+                    previous_index = line.index(expected_order[0])
+                    for entry in expected_order[1:]:
+                        current_index = line.index(entry)
+                        self.assertLess(previous_index, current_index)
+                        previous_index = current_index
+                    return
+        raise RuntimeError('Linker entries not found in the Ninja file.')
 
 class LinuxArmCrossCompileTests(BasePlatformTests):
     '''

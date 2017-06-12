@@ -2294,11 +2294,13 @@ rule FORTRAN_DEP_HACK
             commands += target.link_args
             # External deps must be last because target link libraries may depend on them.
             for dep in target.get_external_deps():
-                commands += dep.get_link_args()
+                # Extend without reordering or de-dup to preserve `-L -l` sets
+                # https://github.com/mesonbuild/meson/issues/1718
+                commands.extend_direct(dep.get_link_args())
             for d in target.get_dependencies():
                 if isinstance(d, build.StaticLibrary):
                     for dep in d.get_external_deps():
-                        commands += dep.get_link_args()
+                        commands.extend_direct(dep.get_link_args())
         # Add link args for c_* or cpp_* build options. Currently this only
         # adds c_winlibs and cpp_winlibs when building for Windows. This needs
         # to be after all internal and external libraries so that unresolved
