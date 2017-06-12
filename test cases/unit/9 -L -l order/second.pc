@@ -9,5 +9,5 @@ Description: jonne2 library
 Version: 1.0.0
 
 Requires:
-Libs: -L/me/third -L/me/fourth
+Libs: -L/me/third -lfoo3 -L/me/fourth -lfoo4
 Cflags: -I${includedir}

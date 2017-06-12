@@ -1756,10 +1756,13 @@ class LinuxlikeTests(BasePlatformTests):
         self.assertEqual(subprocess.call(installed_exe, env=env), 0)
 
     def test_order_of_l_arguments(self):
-        testdir = os.path.join(self.unit_test_dir, '8 L order')
+        testdir = os.path.join(self.unit_test_dir, '9 -L -l order')
         os.environ['PKG_CONFIG_PATH'] = testdir
         self.init(testdir)
-        expected_order = ['-L/me/first', '-L/me/second', '-L/me/third', '-L/me/fourth']
+        # NOTE: .pc file has -Lfoo -lfoo -Lbar -lbar but pkg-config reorders
+        # the flags before returning them to -Lfoo -Lbar -lfoo -lbar
+        expected_order = ['-L/me/first', '-L/me/second','-lfoo1', '-lfoo2',
+                          '-L/me/third', '-L/me/fourth', '-lfoo3', '-lfoo4']
         with open(os.path.join(self.builddir, 'build.ninja')) as ifile:
             for line in ifile:
                 if expected_order[0] in line:

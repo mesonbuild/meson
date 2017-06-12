@@ -9,5 +9,5 @@ Description: jonne library
 Version: 1.0.0
 
 Requires:
-Libs: -L/me/first -L/me/second
+Libs: -L/me/first -lfoo1 -L/me/second -lfoo2
 Cflags: -I${includedir}
