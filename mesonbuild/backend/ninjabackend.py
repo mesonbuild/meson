@@ -2293,8 +2293,10 @@ rule FORTRAN_DEP_HACK
         if not isinstance(target, build.StaticLibrary):
             commands += target.link_args
             # External deps must be last because target link libraries may depend on them.
+            tmp = []
             for dep in target.get_external_deps():
-                commands += dep.get_link_args()
+                tmp += dep.get_link_args()
+            commands += tmp
             for d in target.get_dependencies():
                 if isinstance(d, build.StaticLibrary):
                     for dep in d.get_external_deps():
