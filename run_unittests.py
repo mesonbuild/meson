@@ -1211,6 +1211,21 @@ int main(int argc, char **argv) {
             for path in rpath.split(':'):
                 self.assertTrue(path.startswith('$ORIGIN'), msg=(each, path))
 
+    def test_user_flags_override(self):
+        '''
+        Test that LDFLAGS and CFLAGS override flags added by external deps
+        https://github.com/mesonbuild/meson/issues/1718
+        '''
+        testdir = os.path.join(self.unit_test_dir, '8 LDFLAGS and CFLAGS override extdeps')
+        libdir = os.path.join(self.builddir, 'lib')
+        incdir = os.path.join(testdir, 'lib')
+        os.environ['CFLAGS'] = shlex.quote('-I' + incdir)
+        os.environ['LDFLAGS'] = ' '.join([shlex.quote('-L' + libdir),
+                                          shlex.quote('-Wl,-rpath,' + libdir)])
+        self.init(testdir)
+        self.build()
+        self.run_tests()
+
 
 class FailureTests(BasePlatformTests):
     '''
