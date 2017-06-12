@@ -30,7 +30,7 @@ import mesonbuild.mlog
 import mesonbuild.compilers
 import mesonbuild.environment
 import mesonbuild.mesonlib
-from mesonbuild.mesonlib import is_windows, is_osx, is_cygwin
+from mesonbuild.mesonlib import is_windows, is_osx, is_cygwin, windows_proof_rmtree
 from mesonbuild.environment import Environment
 from mesonbuild.dependencies import DependencyException
 from mesonbuild.dependencies import PkgConfigDependency, ExternalProgram
@@ -445,7 +445,7 @@ class BasePlatformTests(unittest.TestCase):
             print(f.read())
 
     def tearDown(self):
-        shutil.rmtree(self.builddir)
+        windows_proof_rmtree(self.builddir)
         os.environ = self.orig_env
         super().tearDown()
 
@@ -534,7 +534,7 @@ class BasePlatformTests(unittest.TestCase):
         self._run(self.mconf_command + [arg, self.builddir])
 
     def wipe(self):
-        shutil.rmtree(self.builddir)
+        windows_proof_rmtree(self.builddir)
 
     def utime(self, f):
         ensure_backend_detects_changes(self.backend)
@@ -1239,7 +1239,7 @@ class FailureTests(BasePlatformTests):
 
     def tearDown(self):
         super().tearDown()
-        shutil.rmtree(self.srcdir)
+        windows_proof_rmtree(self.srcdir)
 
     def assertMesonRaises(self, contents, match, extra_args=None, langs=None):
         '''
@@ -1807,7 +1807,7 @@ class RewriterTests(unittest.TestCase):
         self.test_dir = os.path.join(src_root, 'test cases/rewrite')
 
     def tearDown(self):
-        shutil.rmtree(self.tmpdir)
+        windows_proof_rmtree(self.tmpdir)
 
     def read_contents(self, fname):
         with open(os.path.join(self.workdir, fname)) as f:
