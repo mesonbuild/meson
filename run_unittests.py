@@ -176,6 +176,16 @@ class InternalTests(unittest.TestCase):
         l += ['-lbar']
         self.assertEqual(l, ['-Lbardir', '-Lfoodir', '-lfoo', '-lbar'])
 
+        ## Test that 'direct' append and extend works
+        l = cargsfunc(c, ['-Lfoodir', '-lfoo'])
+        self.assertEqual(l, ['-Lfoodir', '-lfoo'])
+        # Direct-adding a library and a libpath appends both correctly
+        l.extend_direct(['-Lbardir', '-lbar'])
+        self.assertEqual(l, ['-Lfoodir', '-lfoo', '-Lbardir', '-lbar'])
+        # Direct-adding the same library again still adds it
+        l.append_direct('-lbar')
+        self.assertEqual(l, ['-Lfoodir', '-lfoo', '-Lbardir', '-lbar', '-lbar'])
+
     def test_commonpath(self):
         from os.path import sep
         commonpath = mesonbuild.mesonlib.commonpath
