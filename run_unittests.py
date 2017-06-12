@@ -22,30 +22,44 @@ import os
 import shutil
 import sys
 import unittest
+from configparser import ConfigParser
 from glob import glob
 from pathlib import PurePath
+
+import mesonbuild.mlog
 import mesonbuild.compilers
 import mesonbuild.environment
 import mesonbuild.mesonlib
 from mesonbuild.mesonlib import is_windows, is_osx, is_cygwin
 from mesonbuild.environment import Environment
+from mesonbuild.dependencies import DependencyException
 from mesonbuild.dependencies import PkgConfigDependency, ExternalProgram
 
 from run_tests import exe_suffix, get_fake_options, FakeEnvironment
 from run_tests import get_builddir_target_args, get_backend_commands, Backend
-from run_tests import ensure_backend_detects_changes
+from run_tests import ensure_backend_detects_changes, run_configure_inprocess
 
 
-def get_soname(fname):
-    # HACK, fix to not use shell.
-    raw_out = subprocess.check_output(['readelf', '-a', fname],
-                                      universal_newlines=True)
-    pattern = re.compile('soname: \[(.*?)\]')
+def get_dynamic_section_entry(fname, entry):
+    try:
+        raw_out = subprocess.check_output(['readelf', '-d', fname],
+                                          universal_newlines=True)
+    except FileNotFoundError:
+        # FIXME: Try using depfixer.py:Elf() as a fallback
+        raise unittest.SkipTest('readelf not found')
+    pattern = re.compile(entry + r': \[(.*?)\]')
     for line in raw_out.split('\n'):
         m = pattern.search(line)
         if m is not None:
             return m.group(1)
-    raise RuntimeError('Could not determine soname:\n\n' + raw_out)
+    raise RuntimeError('Could not determine {}:\n\n'.format(entry) + raw_out)
+
+def get_soname(fname):
+    return get_dynamic_section_entry(fname, 'soname')
+
+def get_rpath(fname):
+    return get_dynamic_section_entry(fname, r'(?:rpath|runpath)')
+
 
 class InternalTests(unittest.TestCase):
 
@@ -336,6 +350,42 @@ class InternalTests(unittest.TestCase):
         cmd = ['@OUTPUT@.out', 'ordinary', 'strings']
         self.assertRaises(ME, substfunc, cmd, d)
 
+    def test_needs_exe_wrapper_override(self):
+        config = ConfigParser()
+        config['binaries'] = {
+            'c': '\'/usr/bin/gcc\'',
+        }
+        config['host_machine'] = {
+            'system': '\'linux\'',
+            'cpu_family': '\'arm\'',
+            'cpu': '\'armv7\'',
+            'endian': '\'little\'',
+        }
+        # Can not be used as context manager because we need to
+        # open it a second time and this is not possible on
+        # Windows.
+        configfile = tempfile.NamedTemporaryFile(mode='w+', delete=False)
+        configfilename = configfile.name
+        config.write(configfile)
+        configfile.flush()
+        configfile.close()
+        detected_value = mesonbuild.environment.CrossBuildInfo(configfile.name).need_exe_wrapper()
+        os.unlink(configfilename)
+
+        desired_value = not detected_value
+        config['properties'] = {
+            'needs_exe_wrapper': 'true' if desired_value else 'false'
+        }
+
+        configfile = tempfile.NamedTemporaryFile(mode='w+', delete=False)
+        configfilename = configfile.name
+        config.write(configfile)
+        configfile.close()
+        forced_value = mesonbuild.environment.CrossBuildInfo(configfile.name).need_exe_wrapper()
+        os.unlink(configfilename)
+
+        self.assertEqual(forced_value, desired_value)
+
 
 class BasePlatformTests(unittest.TestCase):
     def setUp(self):
@@ -354,8 +404,8 @@ class BasePlatformTests(unittest.TestCase):
         # Get the backend
         # FIXME: Extract this from argv?
         self.backend = getattr(Backend, os.environ.get('MESON_UNIT_TEST_BACKEND', 'ninja'))
-        self.meson_command = [sys.executable, os.path.join(src_root, 'meson.py'),
-                              '--backend=' + self.backend.name]
+        self.meson_args = [os.path.join(src_root, 'meson.py'), '--backend=' + self.backend.name]
+        self.meson_command = [sys.executable] + self.meson_args
         self.mconf_command = [sys.executable, os.path.join(src_root, 'mesonconf.py')]
         self.mintro_command = [sys.executable, os.path.join(src_root, 'mesonintrospect.py')]
         self.mtest_command = [sys.executable, os.path.join(src_root, 'mesontest.py'), '-C', self.builddir]
@@ -405,7 +455,7 @@ class BasePlatformTests(unittest.TestCase):
             raise subprocess.CalledProcessError(p.returncode, command)
         return output
 
-    def init(self, srcdir, extra_args=None, default_args=True):
+    def init(self, srcdir, extra_args=None, default_args=True, inprocess=False):
         self.assertTrue(os.path.exists(srcdir))
         if extra_args is None:
             extra_args = []
@@ -415,14 +465,27 @@ class BasePlatformTests(unittest.TestCase):
         if default_args:
             args += ['--prefix', self.prefix,
                      '--libdir', self.libdir]
-        try:
-            self._run(self.meson_command + args + extra_args)
-        except unittest.SkipTest:
-            raise unittest.SkipTest('Project requested skipping: ' + srcdir)
-        except:
-            self._print_meson_log()
-            raise
         self.privatedir = os.path.join(self.builddir, 'meson-private')
+        if inprocess:
+            try:
+                out = run_configure_inprocess(self.meson_args + args + extra_args)[1]
+            except:
+                self._print_meson_log()
+                raise
+            finally:
+                # Close log file to satisfy Windows file locking
+                mesonbuild.mlog.shutdown()
+                mesonbuild.mlog.log_dir = None
+                mesonbuild.mlog.log_file = None
+        else:
+            try:
+                out = self._run(self.meson_command + args + extra_args)
+            except unittest.SkipTest:
+                raise unittest.SkipTest('Project requested skipping: ' + srcdir)
+            except:
+                self._print_meson_log()
+                raise
+        return out
 
     def build(self, target=None, extra_args=None):
         if extra_args is None:
@@ -1130,6 +1193,143 @@ int main(int argc, char **argv) {
             self.assertTrue(os.path.exists(distfile))
             self.assertTrue(os.path.exists(checksumfile))
 
+    def test_rpath_uses_ORIGIN(self):
+        '''
+        Test that built targets use $ORIGIN in rpath, which ensures that they
+        are relocatable and ensures that builds are reproducible since the
+        build directory won't get embedded into the built binaries.
+        '''
+        if is_windows() or is_cygwin():
+            raise unittest.SkipTest('Windows PE/COFF binaries do not use RPATH')
+        testdir = os.path.join(self.common_test_dir, '46 library chain')
+        self.init(testdir)
+        self.build()
+        for each in ('prog', 'subdir/liblib1.so', 'subdir/subdir2/liblib2.so',
+                     'subdir/subdir3/liblib3.so'):
+            rpath = get_rpath(os.path.join(self.builddir, each))
+            self.assertTrue(rpath)
+            for path in rpath.split(':'):
+                self.assertTrue(path.startswith('$ORIGIN'), msg=(each, path))
+
+
+class FailureTests(BasePlatformTests):
+    '''
+    Tests that test failure conditions. Build files here should be dynamically
+    generated and static tests should go into `test cases/failing*`.
+    This is useful because there can be many ways in which a particular
+    function can fail, and creating failing tests for all of them is tedious
+    and slows down testing.
+    '''
+    dnf = "[Dd]ependency.*not found"
+
+    def setUp(self):
+        super().setUp()
+        self.srcdir = os.path.realpath(tempfile.mkdtemp())
+        self.mbuild = os.path.join(self.srcdir, 'meson.build')
+
+    def tearDown(self):
+        super().tearDown()
+        shutil.rmtree(self.srcdir)
+
+    def assertMesonRaises(self, contents, match, extra_args=None, langs=None):
+        '''
+        Assert that running meson configure on the specified @contents raises
+        a error message matching regex @match.
+        '''
+        if langs is None:
+            langs = []
+        with open(self.mbuild, 'w') as f:
+            f.write("project('failure test', 'c', 'cpp')\n")
+            for lang in langs:
+                f.write("add_languages('{}', required : false)\n".format(lang))
+            f.write(contents)
+        # Force tracebacks so we can detect them properly
+        os.environ['MESON_FORCE_BACKTRACE'] = '1'
+        with self.assertRaisesRegex(DependencyException, match, msg=contents):
+            # Must run in-process or we'll get a generic CalledProcessError
+            self.init(self.srcdir, extra_args=extra_args, inprocess=True)
+
+    def assertMesonOutputs(self, contents, match, extra_args=None, langs=None):
+        '''
+        Assert that running meson configure on the specified @contents outputs
+        something that matches regex @match.
+        '''
+        if langs is None:
+            langs = []
+        with open(self.mbuild, 'w') as f:
+            f.write("project('output test', 'c', 'cpp')\n")
+            for lang in langs:
+                f.write("add_languages('{}', required : false)\n".format(lang))
+            f.write(contents)
+        # Run in-process for speed and consistency with assertMesonRaises
+        out = self.init(self.srcdir, extra_args=extra_args, inprocess=True)
+        self.assertRegex(out, match)
+
+    def test_dependency(self):
+        if not shutil.which('pkg-config'):
+            raise unittest.SkipTest('pkg-config not found')
+        a = (("dependency('zlib', method : 'fail')", "'fail' is invalid"),
+             ("dependency('zlib', static : '1')", "[Ss]tatic.*boolean"),
+             ("dependency('zlib', version : 1)", "[Vv]ersion.*string or list"),
+             ("dependency('zlib', required : 1)", "[Rr]equired.*boolean"),
+             ("dependency('zlib', method : 1)", "[Mm]ethod.*string"),
+             ("dependency('zlibfail')", self.dnf),)
+        for contents, match in a:
+            self.assertMesonRaises(contents, match)
+
+    def test_apple_frameworks_dependency(self):
+        if not is_osx():
+            raise unittest.SkipTest('only run on macOS')
+        self.assertMesonRaises("dependency('appleframeworks')",
+                               "requires at least one module")
+
+    def test_sdl2_notfound_dependency(self):
+        # Want to test failure, so skip if available
+        if shutil.which('sdl2-config'):
+            raise unittest.SkipTest('sdl2-config found')
+        self.assertMesonRaises("dependency('sdl2', method : 'sdlconfig')", self.dnf)
+        self.assertMesonRaises("dependency('sdl2', method : 'pkg-config')", self.dnf)
+
+    def test_gnustep_notfound_dependency(self):
+        # Want to test failure, so skip if available
+        if shutil.which('gnustep-config'):
+            raise unittest.SkipTest('gnustep-config found')
+        self.assertMesonRaises("dependency('gnustep')",
+                               "(requires a Objc compiler|{})".format(self.dnf),
+                               langs = ['objc'])
+
+    def test_wx_notfound_dependency(self):
+        # Want to test failure, so skip if available
+        if shutil.which('wx-config-3.0') or shutil.which('wx-config'):
+            raise unittest.SkipTest('wx-config or wx-config-3.0 found')
+        self.assertMesonRaises("dependency('wxwidgets')", self.dnf)
+        self.assertMesonOutputs("dependency('wxwidgets', required : false)",
+                                "nor wx-config found")
+
+    def test_wx_dependency(self):
+        if not shutil.which('wx-config-3.0') and not shutil.which('wx-config'):
+            raise unittest.SkipTest('Neither wx-config nor wx-config-3.0 found')
+        self.assertMesonRaises("dependency('wxwidgets', modules : 1)",
+                               "module argument is not a string")
+
+    def test_llvm_dependency(self):
+        self.assertMesonRaises("dependency('llvm', modules : 'fail')",
+                               "(required.*fail|{})".format(self.dnf))
+
+    def test_boost_notfound_dependency(self):
+        # Can be run even if Boost is found or not
+        self.assertMesonRaises("dependency('boost', modules : 1)",
+                               "module.*not a string")
+        self.assertMesonRaises("dependency('boost', modules : 'fail')",
+                               "(fail.*not found|{})".format(self.dnf))
+
+    def test_boost_BOOST_ROOT_dependency(self):
+        # Test BOOST_ROOT; can be run even if Boost is found or not
+        os.environ['BOOST_ROOT'] = 'relative/path'
+        self.assertMesonRaises("dependency('boost')",
+                               "(BOOST_ROOT.*absolute|{})".format(self.dnf))
+
+
 class WindowsTests(BasePlatformTests):
     '''
     Tests that should run on Cygwin, MinGW, and MSVC
@@ -1319,14 +1519,6 @@ class LinuxlikeTests(BasePlatformTests):
         mesonlog = self.get_meson_log()
         self.assertTrue(msg in mesonlog or msg2 in mesonlog)
 
-    def get_soname(self, fname):
-        output = subprocess.check_output(['readelf', '-a', fname],
-                                         universal_newlines=True)
-        for line in output.split('\n'):
-            if 'SONAME' in line:
-                return line.split('[')[1].split(']')[0]
-        raise RuntimeError('Readelf gave no SONAME.')
-
     def _test_soname_impl(self, libpath, install):
         testdir = os.path.join(self.unit_test_dir, '1 soname')
         self.init(testdir)
@@ -1338,28 +1530,28 @@ class LinuxlikeTests(BasePlatformTests):
         nover = os.path.join(libpath, 'libnover.so')
         self.assertTrue(os.path.exists(nover))
         self.assertFalse(os.path.islink(nover))
-        self.assertEqual(self.get_soname(nover), 'libnover.so')
+        self.assertEqual(get_soname(nover), 'libnover.so')
         self.assertEqual(len(glob(nover[:-3] + '*')), 1)
 
         # File with version set
         verset = os.path.join(libpath, 'libverset.so')
         self.assertTrue(os.path.exists(verset + '.4.5.6'))
         self.assertEqual(os.readlink(verset), 'libverset.so.4')
-        self.assertEqual(self.get_soname(verset), 'libverset.so.4')
+        self.assertEqual(get_soname(verset), 'libverset.so.4')
         self.assertEqual(len(glob(verset[:-3] + '*')), 3)
 
         # File with soversion set
         soverset = os.path.join(libpath, 'libsoverset.so')
         self.assertTrue(os.path.exists(soverset + '.1.2.3'))
         self.assertEqual(os.readlink(soverset), 'libsoverset.so.1.2.3')
-        self.assertEqual(self.get_soname(soverset), 'libsoverset.so.1.2.3')
+        self.assertEqual(get_soname(soverset), 'libsoverset.so.1.2.3')
         self.assertEqual(len(glob(soverset[:-3] + '*')), 2)
 
         # File with version and soversion set to same values
         settosame = os.path.join(libpath, 'libsettosame.so')
         self.assertTrue(os.path.exists(settosame + '.7.8.9'))
         self.assertEqual(os.readlink(settosame), 'libsettosame.so.7.8.9')
-        self.assertEqual(self.get_soname(settosame), 'libsettosame.so.7.8.9')
+        self.assertEqual(get_soname(settosame), 'libsettosame.so.7.8.9')
         self.assertEqual(len(glob(settosame[:-3] + '*')), 2)
 
         # File with version and soversion set to different values
@@ -1367,7 +1559,7 @@ class LinuxlikeTests(BasePlatformTests):
         self.assertTrue(os.path.exists(bothset + '.1.2.3'))
         self.assertEqual(os.readlink(bothset), 'libbothset.so.1.2.3')
         self.assertEqual(os.readlink(bothset + '.1.2.3'), 'libbothset.so.4.5.6')
-        self.assertEqual(self.get_soname(bothset), 'libbothset.so.1.2.3')
+        self.assertEqual(get_soname(bothset), 'libbothset.so.1.2.3')
         self.assertEqual(len(glob(bothset[:-3] + '*')), 3)
 
     def test_soname(self):

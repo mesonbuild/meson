@@ -312,7 +312,11 @@ def run(mainfile, args):
             else:
                 mlog.log(mlog.red('\nMeson encountered an error:'))
             mlog.log(e)
+            if os.environ.get('MESON_FORCE_BACKTRACE'):
+                raise
         else:
+            if os.environ.get('MESON_FORCE_BACKTRACE'):
+                raise
             traceback.print_exc()
         return 1
     return 0

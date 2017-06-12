@@ -973,7 +973,8 @@ class CompilerHolder(InterpreterObject):
         if required and not linkargs:
             l = self.compiler.language.capitalize()
             raise InterpreterException('{} library {!r} not found'.format(l, libname))
-        lib = dependencies.ExternalLibrary(libname, linkargs, self.compiler.language)
+        lib = dependencies.ExternalLibrary(libname, linkargs, self.environment,
+                                           self.compiler.language)
         return ExternalLibraryHolder(lib)
 
     def has_argument_method(self, args, kwargs):
@@ -1010,10 +1011,9 @@ class CompilerHolder(InterpreterObject):
         return []
 
 ModuleState = namedtuple('ModuleState', [
-    'build_to_src', 'subdir', 'environment', 'project_name',
-    'project_version', 'compilers', 'targets', 'data', 'headers',
-    'man', 'global_args', 'project_args', 'build_machine',
-    'host_machine', 'target_machine'])
+    'build_to_src', 'subdir', 'environment', 'project_name', 'project_version',
+    'backend', 'compilers', 'targets', 'data', 'headers', 'man', 'global_args',
+    'project_args', 'build_machine', 'host_machine', 'target_machine'])
 
 class ModuleHolder(InterpreterObject):
     def __init__(self, modname, module, interpreter):
@@ -1039,6 +1039,9 @@ class ModuleHolder(InterpreterObject):
             environment=self.interpreter.environment,
             project_name=self.interpreter.build.project_name,
             project_version=self.interpreter.build.dep_manifest[self.interpreter.active_projectname],
+            # The backend object is under-used right now, but we will need it:
+            # https://github.com/mesonbuild/meson/issues/1419
+            backend=self.interpreter.backend,
             compilers=self.interpreter.build.compilers,
             targets=self.interpreter.build.targets,
             data=self.interpreter.build.data,
@@ -2319,6 +2322,12 @@ class Interpreter(InterpreterBase):
             raise InterpreterException('Must not specify both "configuration" '
                                        'and "command" keyword arguments since '
                                        'they are mutually exclusive.')
+        if 'capture' in kwargs:
+            if not isinstance(kwargs['capture'], bool):
+                raise InterpreterException('"capture" keyword must be a boolean.')
+            if 'command' not in kwargs:
+                raise InterpreterException('"capture" keyword requires "command" keyword.')
+
         # Validate input
         inputfile = None
         ifile_abs = None
@@ -2383,6 +2392,13 @@ class Interpreter(InterpreterBase):
             if res.returncode != 0:
                 raise InterpreterException('Running configure command failed.\n%s\n%s' %
                                            (res.stdout, res.stderr))
+            if 'capture' in kwargs and kwargs['capture']:
+                dst_tmp = ofile_abs + '~'
+                with open(dst_tmp, 'w', encoding='utf-8') as f:
+                    f.writelines(res.stdout)
+                if ifile_abs:
+                    shutil.copymode(ifile_abs, dst_tmp)
+                mesonlib.replace_if_different(ofile_abs, dst_tmp)
         else:
             raise InterpreterException('Configure_file must have either "configuration" or "command".')
         idir = kwargs.get('install_dir', None)

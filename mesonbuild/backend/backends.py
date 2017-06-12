@@ -294,6 +294,15 @@ class Backend:
             raise MesonException(m.format(target.name))
         return l
 
+    def determine_rpath_dirs(self, target):
+        link_deps = target.get_all_link_deps()
+        result = []
+        for ld in link_deps:
+            prospective = self.get_target_dir(ld)
+            if prospective not in result:
+                result.append(prospective)
+        return result
+
     def object_filename_from_source(self, target, source, is_unity):
         if isinstance(source, mesonlib.File):
             source = source.fname
@@ -429,7 +438,7 @@ class Backend:
                                 break
                     commands += ['--pkg', dep.name]
                 elif isinstance(dep, dependencies.ExternalLibrary):
-                    commands += dep.get_lang_args('vala')
+                    commands += dep.get_link_args('vala')
             else:
                 commands += dep.get_compile_args()
             # Qt needs -fPIC for executables

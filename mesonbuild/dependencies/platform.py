@@ -17,25 +17,21 @@
 
 from .. import mesonlib
 
-from .base import Dependency, DependencyException
+from .base import ExternalDependency, DependencyException
 
 
-class AppleFrameworks(Dependency):
-    def __init__(self, environment, kwargs):
-        Dependency.__init__(self, 'appleframeworks', kwargs)
+class AppleFrameworks(ExternalDependency):
+    def __init__(self, env, kwargs):
+        super().__init__('appleframeworks', env, None, kwargs)
         modules = kwargs.get('modules', [])
         if isinstance(modules, str):
             modules = [modules]
         if not modules:
             raise DependencyException("AppleFrameworks dependency requires at least one module.")
         self.frameworks = modules
-
-    def get_link_args(self):
-        args = []
+        # FIXME: Use self.compiler to check if the frameworks are available
         for f in self.frameworks:
-            args.append('-framework')
-            args.append(f)
-        return args
+            self.link_args += ['-framework', f]
 
     def found(self):
         return mesonlib.is_osx()

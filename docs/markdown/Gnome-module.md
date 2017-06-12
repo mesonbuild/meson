@@ -112,6 +112,8 @@ Creates a VAPI file from gir. The first argument is the name of the library.
 * `metadata_dirs`: extra directories to include for metadata files
 * `gir_dirs`: extra directories to include for gir files
 * `vapi_dirs`: extra directories to include for VAPI files
+* `install`: if true, install the VAPI file
+* `install_dir`: location to install the VAPI file (defaults to datadir/vala/vapi)
 
 Returns a custom dependency that can be included when building other VAPI or Vala binaries.
 
@@ -147,6 +149,7 @@ Compiles and installs gtkdoc documentation. Takes one positional arguments; The 
 * `html_args` a list of arguments to pass to `gtkdoc-mkhtml`
 * `html_assets`: a list of assets for the HTML pages
 * `content_files`: a list of content files
+* `mkdb_args`: a list of arguments to pass to `gtkdoc-mkdb`
 
 This creates a `$module-doc` target that can be ran to build docs and normally these are only built on install.
 

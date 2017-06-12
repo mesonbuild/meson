@@ -68,7 +68,7 @@ class GnomeModule(ExtensionModule):
         if native_glib_version is None:
             glib_dep = PkgConfigDependency('glib-2.0', state.environment,
                                            {'native': True})
-            native_glib_version = glib_dep.get_modversion()
+            native_glib_version = glib_dep.get_version()
         return native_glib_version
 
     def __print_gresources_warning(self, state):
@@ -288,15 +288,23 @@ class GnomeModule(ExtensionModule):
 
     def _get_link_args(self, state, lib, depends=None, include_rpath=False,
                        use_gir_args=False):
+        # Construct link args
         if gir_has_extra_lib_arg() and use_gir_args:
-            link_command = ['--extra-library=%s' % lib.name]
+            link_command = ['--extra-library=' + lib.name]
         else:
-            link_command = ['-l%s' % lib.name]
+            link_command = ['-l' + lib.name]
         if isinstance(lib, build.SharedLibrary):
-            libdir = os.path.join(state.environment.get_build_dir(), lib.subdir)
-            link_command += ['-L%s' % libdir]
+            libdir = state.backend.get_target_dir(lib)
+            link_command.append('-L' + libdir)
+            # Needed for the following binutils bug:
+            # https://github.com/mesonbuild/meson/issues/1911
+            # However, g-ir-scanner does not understand -Wl,-rpath
+            # so we need to use -L instead
+            for d in state.backend.determine_rpath_dirs(lib):
+                d = os.path.join(state.environment.get_build_dir(), d)
+                link_command.append('-L' + d)
             if include_rpath:
-                link_command += ['-Wl,-rpath %s' % libdir]
+                link_command.append('-Wl,-rpath,' + libdir)
             if depends:
                 depends.append(lib)
         return link_command
@@ -435,12 +443,18 @@ class GnomeModule(ExtensionModule):
                         'Gir includes must be str, GirTarget, or list of them')
 
         cflags = []
-        if state.global_args.get('c'):
-            cflags += state.global_args['c']
-        if state.project_args.get('c'):
-            cflags += state.project_args['c']
-        if 'c' in state.compilers:
-            compiler = state.compilers['c']
+        for lang, compiler in girtarget.compilers.items():
+            # XXX: Can you use g-i with any other language?
+            if lang in ('c', 'cpp', 'objc', 'objcpp', 'd'):
+                break
+        else:
+            lang = None
+            compiler = None
+        if lang and compiler:
+            if state.global_args.get(lang):
+                cflags += state.global_args[lang]
+            if state.project_args.get(lang):
+                cflags += state.project_args[lang]
             sanitize = compiler.get_options().get('b_sanitize')
             if sanitize:
                 cflags += compilers.sanitizer_compile_args(sanitize)
@@ -536,6 +550,13 @@ class GnomeModule(ExtensionModule):
             scan_command += ['--program', girtarget]
         elif isinstance(girtarget, build.SharedLibrary):
             libname = girtarget.get_basename()
+            # Needed for the following binutils bug:
+            # https://github.com/mesonbuild/meson/issues/1911
+            # However, g-ir-scanner does not understand -Wl,-rpath
+            # so we need to use -L instead
+            for d in state.backend.determine_rpath_dirs(girtarget):
+                d = os.path.join(state.environment.get_build_dir(), d)
+                scan_command.append('-L' + d)
             scan_command += ['--library', libname]
         scankwargs = {'output': girfile,
                       'input': libsources,
@@ -697,6 +718,7 @@ class GnomeModule(ExtensionModule):
         args += self._unpack_args('--scanobjsargs=', 'scanobjs_args', kwargs)
         args += self._unpack_args('--gobjects-types-file=', 'gobject_typesfile', kwargs, state)
         args += self._unpack_args('--fixxrefargs=', 'fixxref_args', kwargs)
+        args += self._unpack_args('--mkdbargs=', 'mkdb_args', kwargs)
         args += self._unpack_args('--html-assets=', 'html_assets', kwargs, state)
         args += self._unpack_args('--content-files=', 'content_files', kwargs, state)
         args += self._unpack_args('--expand-content-files=', 'expand_content_files', kwargs, state)

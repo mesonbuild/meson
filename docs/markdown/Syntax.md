@@ -317,3 +317,8 @@ Most source trees have multiple subdirectories to process. These can be handled 
 test_data_dir = 'data'
 subdir('tests')
 ```
+
+User-defined functions and methods
+--
+
+Meson does not currently support user-defined functions or methods. The addition of user-defined functions would make Meson Turing-complete which would make it harder to reason about and more difficult to integrate with tools like IDEs. More details about this are [in the FAQ](FAQ.md#why-is-meson-not-just-a-python-module-so-i-could-code-my-build-setup-in-python). If because of this limitation you find yourself copying and pasting code a lot you may be able to use a [`foreach` loop instead](#foreach-statements).

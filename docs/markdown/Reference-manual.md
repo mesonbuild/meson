@@ -127,6 +127,7 @@ These are all the supported keyword arguments:
 - `output` the output file name (since v0.41.0, may contain `@PLAINNAME@` or `@BASENAME@` substitutions). In configuration mode, the permissions of the input file (if it is specified) are copied to the output file.
 - `configuration` as explained above, this is where you pass the configuration data object as returned by `configuration_data()`
 - `command` as explained above, if specified, Meson does not create the file itself but rather runs the specified command, which allows you to do fully custom file generation
+- `capture` when this argument is set to true, Meson captures `stdout` of the `command` and writes it to the target file specified as `output`. Available since v0.41.0.
 - `install_dir` the subdirectory to install the generated file to (e.g. `share/myproject`), if omitted the file is not installed.
 
 ### custom_target()
@@ -540,7 +541,7 @@ Project supports the following keyword arguments.
  - `subproject_dir` specifies the top level directory name that holds Meson subprojects. This is only meant as a compatibility option for existing code bases that house their embedded source code in a custom directory. All new projects should not set this but instead use the default value. It should be noted that this keyword argument is ignored inside subprojects. There can be only one subproject dir and it is set in the top level Meson file.
 
   - `meson_version` takes a string describing which Meson version the project requires. Usually something like `>0.28.0`.
-  
+
   - `license` takes a string or array of strings describing the license(s) the code is under. Usually this would be something like `license : 'GPL2+'`, but if the code has multiple licenses you can specify them as an array like this: `license : ['proprietary', 'GPL3']`. Note that the text is informal and is only written to the dependency manifest. Meson does not do any license validation, you are responsible for verifying that you abide by all licensing terms.
 
  - `default_options` takes an array of strings. The strings are in the form `key=value` and have the same format as options to `mesonconf`. For example to set the default project type you would set this: `default_options : ['buildtype=debugoptimized']`. Note that these settings are only used when running Meson for the first time. Global options such as `buildtype` can only be specified in the master project, settings in subprojects are ignored. Project specific options are used normally even in subprojects.
