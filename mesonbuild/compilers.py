@@ -465,6 +465,19 @@ class CompilerArgs(list):
                 self.insert(i + 1, '-Wl,--end-group')
         return self.compiler.unix_args_to_native(self)
 
+    def append_direct(self, arg):
+        '''
+        Append the specified argument without any reordering or de-dup
+        '''
+        super().append(arg)
+
+    def extend_direct(self, iterable):
+        '''
+        Extend using the elements in the specified iterable without any
+        reordering or de-dup
+        '''
+        super().extend(iterable)
+
     def __add__(self, args):
         new = CompilerArgs(self, self.compiler)
         new += args
