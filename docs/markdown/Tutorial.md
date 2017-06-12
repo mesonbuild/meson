@@ -120,4 +120,4 @@ $ ./demo
 
 This creates the following GUI application.
 
-![GTK+ sample application screenshot](images/gtksample.png)
+![GTK+ sample application screenshot](../images/gtksample.png)
