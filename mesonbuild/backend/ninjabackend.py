@@ -2102,19 +2102,15 @@ rule FORTRAN_DEP_HACK
             self.target_arg_cache[key] = commands
         commands = CompilerArgs(commands.compiler, commands)
 
+        build_dir = self.environment.get_build_dir()
         if isinstance(src, File):
-            source_dir = self.environment.get_source_dir()
-            build_dir = self.environment.get_build_dir()
-            abs_src = src.absolute_path(source_dir, build_dir)
             rel_src = src.rel_to_builddir(self.build_to_src)
-            if src.is_built:
-                assert abs_src.startswith(build_dir)
-                if os.path.isabs(rel_src):
-                    rel_src = rel_src[len(build_dir) + 1:]
-            else:
+            if os.path.isabs(rel_src):
                 # Source files may not be from the source directory if they originate in source-only libraries,
                 # so we can't assert that the absolute path is anywhere in particular.
-                pass
+                if src.is_built:
+                    assert rel_src.startswith(build_dir)
+                    rel_src = rel_src[len(build_dir) + 1:]
         elif is_generated:
             raise AssertionError('BUG: broken generated source file handling for {!r}'.format(src))
         else:
@@ -2166,6 +2162,7 @@ rule FORTRAN_DEP_HACK
             # outdir argument instead.
             # https://github.com/mesonbuild/meson/issues/1348
             if not is_generated:
+                abs_src = os.path.join(build_dir, rel_src)
                 extra_deps += self.get_fortran_deps(compiler, abs_src, target)
             # Dependency hack. Remove once multiple outputs in Ninja is fixed:
             # https://groups.google.com/forum/#!topic/ninja-build/j-2RfBIOd_8
