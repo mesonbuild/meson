@@ -2115,21 +2115,8 @@ rule FORTRAN_DEP_HACK
             raise AssertionError('BUG: broken generated source file handling for {!r}'.format(src))
         else:
             raise InvalidArguments('Invalid source type: {!r}'.format(src))
-        if isinstance(src, File):
-            if src.is_built:
-                src_filename = os.path.join(src.subdir, src.fname)
-                if os.path.isabs(src_filename):
-                    assert(src_filename.startswith(self.environment.get_build_dir()))
-                    src_filename = src_filename[len(self.environment.get_build_dir()) + 1:]
-            else:
-                src_filename = src.fname
-        elif os.path.isabs(src):
-            src_filename = os.path.basename(src)
-        else:
-            src_filename = src
-        obj_basename = src_filename.replace('/', '_').replace('\\', '_')
+        obj_basename = self.object_filename_from_source(target, src, self.is_unity(target))
         rel_obj = os.path.join(self.get_target_private_dir(target), obj_basename)
-        rel_obj += '.' + self.environment.get_object_suffix()
         dep_file = compiler.depfile_for_object(rel_obj)
 
         # Add MSVC debug file generation compile flags: /Fd /FS

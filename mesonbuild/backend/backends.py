@@ -315,7 +315,7 @@ class Backend:
         if source.endswith(('.vala', '.gs')):
             if is_unity:
                 return source[:-5] + '.c.' + self.environment.get_object_suffix()
-            source = os.path.join(self.get_target_private_dir(target), source[:-5] + '.c')
+            source = source[:-5] + '.c'
         return source.replace('/', '_').replace('\\', '_') + '.' + self.environment.get_object_suffix()
 
     def determine_ext_objs(self, target, extobj, proj_dir_to_build_root):
