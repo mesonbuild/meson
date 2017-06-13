@@ -2102,24 +2102,23 @@ rule FORTRAN_DEP_HACK
             self.target_arg_cache[key] = commands
         commands = CompilerArgs(commands.compiler, commands)
 
-        if isinstance(src, mesonlib.File) and src.is_built:
-            rel_src = os.path.join(src.subdir, src.fname)
-            if os.path.isabs(rel_src):
-                assert(rel_src.startswith(self.environment.get_build_dir()))
-                rel_src = rel_src[len(self.environment.get_build_dir()) + 1:]
-            abs_src = os.path.join(self.environment.get_build_dir(), rel_src)
-        elif isinstance(src, mesonlib.File):
+        if isinstance(src, File):
+            source_dir = self.environment.get_source_dir()
+            build_dir = self.environment.get_build_dir()
+            abs_src = src.absolute_path(source_dir, build_dir)
             rel_src = src.rel_to_builddir(self.build_to_src)
-            abs_src = src.absolute_path(self.environment.get_source_dir(),
-                                        self.environment.get_build_dir())
+            if src.is_built:
+                assert abs_src.startswith(build_dir)
+                if os.path.isabs(rel_src):
+                    rel_src = rel_src[len(build_dir) + 1:]
+            else:
+                # Source files may not be from the source directory if they originate in source-only libraries,
+                # so we can't assert that the absolute path is anywhere in particular.
+                pass
         elif is_generated:
             raise AssertionError('BUG: broken generated source file handling for {!r}'.format(src))
         else:
-            if isinstance(src, File):
-                rel_src = src.rel_to_builddir(self.build_to_src)
-            else:
-                raise InvalidArguments('Invalid source type: {!r}'.format(src))
-            abs_src = os.path.join(self.environment.get_build_dir(), rel_src)
+            raise InvalidArguments('Invalid source type: {!r}'.format(src))
         if isinstance(src, File):
             if src.is_built:
                 src_filename = os.path.join(src.subdir, src.fname)
