@@ -92,7 +92,7 @@ endif
 
 objc_found = add_languages('objc', required : false)
 
-foreach d : ['sdl2', 'gnustep', 'wx', 'gl', 'python3', 'boost', 'gtest', 'gmock']
+foreach d : ['sdl2', 'gnustep', 'wxwidgets', 'gl', 'python3', 'boost', 'gtest', 'gmock', 'valgrind']
   if d == 'gnustep' and not objc_found
     message('Skipping gnustep because no ObjC compiler found')
   else
