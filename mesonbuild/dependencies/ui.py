@@ -426,6 +426,8 @@ class WxDependency(ExternalDependency):
         self.version = 'none'
         if WxDependency.wx_found is None:
             self.check_wxconfig()
+        else:
+            self.wxc = WxDependency.wx_found
         if not WxDependency.wx_found:
             mlog.log("Neither wx-config-3.0 nor wx-config found; can't detect dependency")
             return
@@ -480,7 +482,7 @@ class WxDependency(ExternalDependency):
                     mlog.log('Found wx-config:', mlog.bold(shutil.which(wxc)),
                              '(%s)' % out.strip())
                     self.wxc = wxc
-                    WxDependency.wx_found = True
+                    WxDependency.wx_found = wxc
                     return
             except (FileNotFoundError, PermissionError):
                 pass
