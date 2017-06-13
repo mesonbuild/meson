@@ -1,1 +1,1 @@
-lib = static_library('empty', 'file.c', 'dir1/file.c')
+lib = static_library('lib', 'file.c', 'dir1/file.c')
