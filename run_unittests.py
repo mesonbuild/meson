@@ -1792,9 +1792,12 @@ class LinuxlikeTests(BasePlatformTests):
         else:
             raise unittest.SkipTest('No --start-group, not using GNU ld?')
         nested = re.compile('--start-group.*--start-group')
+        correct = re.compile('--start-group.*-lz.*--end-group')
         for line in mesonlog:
             if '--start-group' in line:
                 self.assertNotRegex(line, nested)
+                if '-lz' in line:
+                    self.assertRegex(line, correct)
 
 
 class LinuxArmCrossCompileTests(BasePlatformTests):
