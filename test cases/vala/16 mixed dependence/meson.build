@@ -1,6 +1,10 @@
 project('mixed dependence', 'vala', 'c')
 
-deps = [dependency('glib-2.0'), dependency('gobject-2.0')]
+cc = meson.get_compiler('c')
+
+deps = [dependency('glib-2.0'), dependency('gobject-2.0'),
+        # Should be ignored, see https://github.com/mesonbuild/meson/issues/1939
+        cc.find_library('z')]
 
 mixer = static_library('mixer', 'mixer.vala', 'mixer-glue.c',
   dependencies : deps)
