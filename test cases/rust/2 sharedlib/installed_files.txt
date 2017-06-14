@@ -1,2 +1,2 @@
 usr/bin/prog?exe
-usr/lib/libstuff.rlib
+usr/lib/libstuff.so

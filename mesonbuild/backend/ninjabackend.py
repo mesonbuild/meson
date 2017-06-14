@@ -1188,8 +1188,21 @@ int dummy;
             # against are dynamic, otherwise we'll end up with
             # multiple implementations of crates
             args += ['-C', 'prefer-dynamic']
+
             # build the usual rpath arguments as well...
+
+            # Set runtime-paths so we can run executables without needing to set
+            # LD_LIBRARY_PATH, etc in the environment. Doesn't work on Windows.
+            if '/' in target.name or '\\' in target.name:
+                # Target names really should not have slashes in them, but
+                # unfortunately we did not check for that and some downstream projects
+                # now have them. Once slashes are forbidden, remove this bit.
+                target_slashname_workaround_dir = os.path.join(os.path.split(target.name)[0],
+                                                           self.get_target_dir(target))
+            else:
+                target_slashname_workaround_dir = self.get_target_dir(target)
             rpath_args = rustc.build_rpath_args(self.environment.get_build_dir(),
+                                                target_slashname_workaround_dir,
                                                 self.determine_rpath_dirs(target),
                                                 target.install_rpath)
             # ... but then add rustc's sysroot to account for rustup
