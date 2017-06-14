@@ -71,7 +71,7 @@ known_lib_kwargs.update({'version': True, # Only for shared libs
                          'vala_vapi': True,
                          'vala_gir': True,
                          'pic': True, # Only for static libs
-                         'crate_type': True, # Only for Rust libs
+                         'rust_crate_type': True, # Only for Rust libs
                          })
 
 
@@ -1126,12 +1126,12 @@ class StaticLibrary(BuildTarget):
             raise InvalidArguments('Static libraries not supported for C#.')
         if 'rust' in self.compilers:
             # If no crate type is specified, or it's the generic lib type, use rlib
-            if not hasattr(self, 'crate_type') or self.crate_type == 'lib':
+            if not hasattr(self, 'rust_crate_type') or self.rust_crate_type == 'lib':
                 mlog.debug('Defaulting Rust static library target crate type to rlib')
-                self.crate_type = 'rlib'
+                self.rust_crate_type = 'rlib'
             # Don't let configuration proceed with a non-static crate type
-            elif self.crate_type not in ['rlib', 'staticlib']:
-                raise InvalidArguments('Crate type "{0}" invalid for static libraries; must be "rlib" or "staticlib"'.format(self.crate_type))
+            elif self.rust_crate_type not in ['rlib', 'staticlib']:
+                raise InvalidArguments('Crate type "{0}" invalid for static libraries; must be "rlib" or "staticlib"'.format(self.rust_crate_type))
         # By default a static library is named libfoo.a even on Windows because
         # MSVC does not have a consistent convention for what static libraries
         # are called. The MSVC CRT uses libfoo.lib syntax but nothing else uses
@@ -1143,10 +1143,10 @@ class StaticLibrary(BuildTarget):
             self.prefix = 'lib'
         if not hasattr(self, 'suffix'):
             if 'rust' in self.compilers:
-                if not hasattr(self, 'crate_type') or self.crate_type == 'rlib':
+                if not hasattr(self, 'rust_crate_type') or self.rust_crate_type == 'rlib':
                     # default Rust static library suffix
                     self.suffix = 'rlib'
-                elif self.crate_type == 'staticlib':
+                elif self.rust_crate_type == 'staticlib':
                     self.suffix = 'a'
             else:
                 self.suffix = 'a'
@@ -1161,12 +1161,12 @@ class StaticLibrary(BuildTarget):
 
     def process_kwargs(self, kwargs, environment):
         super().process_kwargs(kwargs, environment)
-        if 'crate_type' in kwargs:
-            crate_type = kwargs['crate_type']
-            if isinstance(crate_type, str):
-                self.crate_type = crate_type
+        if 'rust_crate_type' in kwargs:
+            rust_crate_type = kwargs['rust_crate_type']
+            if isinstance(rust_crate_type, str):
+                self.rust_crate_type = rust_crate_type
             else:
-                raise InvalidArguments('Invalid crate_type "{0}": must be a string.'.format(crate_type))
+                raise InvalidArguments('Invalid rust_crate_type "{0}": must be a string.'.format(rust_crate_type))
 
 class SharedLibrary(BuildTarget):
     def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
@@ -1182,12 +1182,12 @@ class SharedLibrary(BuildTarget):
         super().__init__(name, subdir, subproject, is_cross, sources, objects, environment, kwargs)
         if 'rust' in self.compilers:
             # If no crate type is specified, or it's the generic lib type, use dylib
-            if not hasattr(self, 'crate_type') or self.crate_type == 'lib':
+            if not hasattr(self, 'rust_crate_type') or self.rust_crate_type == 'lib':
                 mlog.debug('Defaulting Rust dynamic library target crate type to "dylib"')
-                self.crate_type = 'dylib'
+                self.rust_crate_type = 'dylib'
             # Don't let configuration proceed with a non-dynamic crate type
-            elif self.crate_type not in ['dylib', 'cdylib']:
-                raise InvalidArguments('Crate type "{0}" invalid for dynamic libraries; must be "dylib" or "cdylib"'.format(self.crate_type))
+            elif self.rust_crate_type not in ['dylib', 'cdylib']:
+                raise InvalidArguments('Crate type "{0}" invalid for dynamic libraries; must be "dylib" or "cdylib"'.format(self.rust_crate_type))
         if not hasattr(self, 'prefix'):
             self.prefix = None
         if not hasattr(self, 'suffix'):
@@ -1338,12 +1338,12 @@ class SharedLibrary(BuildTarget):
                 raise InvalidArguments(
                     'Shared library vs_module_defs must be either a string, '
                     'a file object or a Custom Target')
-        if 'crate_type' in kwargs:
-            crate_type = kwargs['crate_type']
-            if isinstance(crate_type, str):
-                self.crate_type = crate_type
+        if 'rust_crate_type' in kwargs:
+            rust_crate_type = kwargs['rust_crate_type']
+            if isinstance(rust_crate_type, str):
+                self.rust_crate_type = rust_crate_type
             else:
-                raise InvalidArguments('Invalid crate_type "{0}": must be a string.'.format(crate_type))
+                raise InvalidArguments('Invalid rust_crate_type "{0}": must be a string.'.format(rust_crate_type))
 
     def check_unknown_kwargs(self, kwargs):
         self.check_unknown_kwargs_int(kwargs, known_lib_kwargs)
