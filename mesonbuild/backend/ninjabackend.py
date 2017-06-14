@@ -1157,8 +1157,8 @@ int dummy;
         args = ['--crate-type']
         if isinstance(target, build.Executable):
             cratetype = 'bin'
-        elif hasattr(target, 'crate_type'):
-            cratetype = target.crate_type
+        elif hasattr(target, 'rust_crate_type'):
+            cratetype = target.rust_crate_type
         elif isinstance(target, build.SharedLibrary):
             cratetype = 'dylib'
         elif isinstance(target, build.StaticLibrary):
