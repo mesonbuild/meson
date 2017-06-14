@@ -23,6 +23,7 @@ import tempfile
 import platform
 from mesonbuild import mesonlib
 from mesonbuild import mesonmain
+from mesonbuild import mlog
 from mesonbuild.environment import detect_ninja
 from io import StringIO
 from enum import Enum
@@ -177,7 +178,8 @@ if __name__ == '__main__':
     if 'APPVEYOR' in os.environ and os.environ['arch'] == 'x86':
         os.environ.pop('platform')
     # Run tests
-    print('Running unittests.\n')
+    print(mlog.bold('Running unittests.').get_text(mlog.colorize_console))
+    print()
     units = ['InternalTests', 'AllPlatformTests', 'FailureTests']
     if mesonlib.is_linux():
         units += ['LinuxlikeTests']
@@ -200,7 +202,8 @@ if __name__ == '__main__':
         returncode += subprocess.call([sys.executable, 'run_unittests.py', '-v'] + units, env=env)
         # Ubuntu packages do not have a binary without -6 suffix.
         if should_run_linux_cross_tests():
-            print('Running cross compilation tests.\n')
+            print(mlog.bold('Running cross compilation tests.').get_text(mlog.colorize_console))
+            print()
             returncode += subprocess.call([sys.executable, 'run_cross_test.py', 'cross/ubuntu-armhf.txt'], env=env)
         returncode += subprocess.call([sys.executable, 'run_project_tests.py'] + sys.argv[1:], env=env)
     sys.exit(returncode)
