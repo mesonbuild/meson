@@ -250,6 +250,23 @@ def log_text_file(logfile, testdir, stdo, stde):
         executor.shutdown()
         raise StopException()
 
+
+def bold(text):
+    return mlog.bold(text).get_text(mlog.colorize_console)
+
+
+def green(text):
+    return mlog.green(text).get_text(mlog.colorize_console)
+
+
+def red(text):
+    return mlog.red(text).get_text(mlog.colorize_console)
+
+
+def yellow(text):
+    return mlog.yellow(text).get_text(mlog.colorize_console)
+
+
 def run_test_inprocess(testdir):
     old_stdout = sys.stdout
     sys.stdout = mystdout = StringIO()
@@ -475,10 +492,12 @@ def run_tests(all_tests, log_name_base, extra_args):
 
     for name, test_cases, skipped in all_tests:
         current_suite = ET.SubElement(junit_root, 'testsuite', {'name': name, 'tests': str(len(test_cases))})
+        print()
         if skipped:
-            print('\nNot running %s tests.\n' % name)
+            print(bold('Not running %s tests.' % name))
         else:
-            print('\nRunning %s tests.\n' % name)
+            print(bold('Running %s tests.' % name))
+        print()
         futures = []
         for t in test_cases:
             # Jenkins screws us over by automatically sorting test cases by name
@@ -494,7 +513,7 @@ def run_tests(all_tests, log_name_base, extra_args):
             sys.stdout.flush()
             result = result.result()
             if result is None or 'MESON_SKIP_TEST' in result.stdo:
-                print('Skipping:', t)
+                print(yellow('Skipping:'), t)
                 current_test = ET.SubElement(current_suite, 'testcase', {'name': testname,
                                                                          'classname': name})
                 ET.SubElement(current_test, 'skipped', {})
@@ -502,7 +521,7 @@ def run_tests(all_tests, log_name_base, extra_args):
             else:
                 without_install = "" if len(install_commands) > 0 else " (without install)"
                 if result.msg != '':
-                    print('Failed test{} during {}: {!r}'.format(without_install, result.step.name, t))
+                    print(red('Failed test{} during {}: {!r}'.format(without_install, result.step.name, t)))
                     print('Reason:', result.msg)
                     failing_tests += 1
                     if result.step == BuildStep.configure and result.mlog != no_meson_log_msg:
@@ -648,9 +667,9 @@ if __name__ == '__main__':
         pass
     for f in pbfiles:
         os.unlink(f)
-    print('\nTotal passed tests:', passing_tests)
-    print('Total failed tests:', failing_tests)
-    print('Total skipped tests:', skipped_tests)
+    print('\nTotal passed tests:', green(str(passing_tests)))
+    print('Total failed tests:', red(str(failing_tests)))
+    print('Total skipped tests:', yellow(str(skipped_tests)))
     if failing_tests > 0:
         print('\nMesonlogs of failing tests\n')
         for l in failing_logs:
