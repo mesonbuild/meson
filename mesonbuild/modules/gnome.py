@@ -456,8 +456,8 @@ class GnomeModule(ExtensionModule):
                 cflags += state.global_args[lang]
             if state.project_args.get(lang):
                 cflags += state.project_args[lang]
-            sanitize = compiler.get_options().get('b_sanitize')
-            if sanitize:
+            if 'b_sanitize' in compiler.base_options:
+                sanitize = state.environment.coredata.base_options['b_sanitize'].value
                 cflags += compilers.sanitizer_compile_args(sanitize)
         if kwargs.get('symbol_prefix'):
             sym_prefix = kwargs.pop('symbol_prefix')
