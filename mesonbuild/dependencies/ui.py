@@ -312,7 +312,7 @@ class QtBaseDependency(ExternalDependency):
             fname = 'Qt' + m
             fwdep = ExtraFrameworkDependency(fname, False, libdir, self.env,
                                              self.language, kwargs)
-            self.cargs.append('-F' + libdir)
+            self.compile_args.append('-F' + libdir)
             if fwdep.found():
                 self.is_found = True
                 self.compile_args += fwdep.get_compile_args()
