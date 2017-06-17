@@ -1251,9 +1251,10 @@ int main(int argc, char **argv) {
         testdir = os.path.join(self.unit_test_dir, '10 d dedup')
         self.init(testdir)
         cmd = self.get_compdb()[0]['command']
-        self.assertTrue('-D FOO -D BAR' in cmd or \
-                        '/D FOO /D BAR' in cmd)
-
+        self.assertTrue('-D FOO -D BAR' in cmd or
+                        '"-D" "FOO" "-D" "BAR"' in cmd or
+                        '/D FOO /D BAR' in cmd or
+                        '"/D" "FOO" "/D" "BAR"' in cmd)
 
 
 class FailureTests(BasePlatformTests):
