@@ -430,6 +430,17 @@ class CompilerArgs(list):
         to recursively search for symbols in the libraries. This is not needed
         with other linkers.
         '''
+
+        # A standalone argument must never be deduplicated because it is
+        # defined by what comes _after_ it. Thus dedupping this:
+        # -D FOO -D BAR
+        # would yield either
+        # -D FOO BAR
+        # or
+        # FOO -D BAR
+        # both of which are invalid.
+        if arg in cls.dedup2_prefixes:
+            return 0
         if arg in cls.dedup2_args or \
            arg.startswith(cls.dedup2_prefixes) or \
            arg.endswith(cls.dedup2_suffixes):

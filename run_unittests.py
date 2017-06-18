@@ -1221,6 +1221,15 @@ int main(int argc, char **argv) {
             for path in rpath.split(':'):
                 self.assertTrue(path.startswith('$ORIGIN'), msg=(each, path))
 
+    def test_dash_d_dedup(self):
+        testdir = os.path.join(self.unit_test_dir, '10 d dedup')
+        self.init(testdir)
+        cmd = self.get_compdb()[0]['command']
+        self.assertTrue('-D FOO -D BAR' in cmd or
+                        '"-D" "FOO" "-D" "BAR"' in cmd or
+                        '/D FOO /D BAR' in cmd or
+                        '"/D" "FOO" "/D" "BAR"' in cmd)
+
 
 class FailureTests(BasePlatformTests):
     '''
