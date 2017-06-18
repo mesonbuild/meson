@@ -1796,16 +1796,22 @@ class LinuxlikeTests(BasePlatformTests):
         self.init(testdir)
         # NOTE: .pc file has -Lfoo -lfoo -Lbar -lbar but pkg-config reorders
         # the flags before returning them to -Lfoo -Lbar -lfoo -lbar
-        expected_order = ['-L/me/first', '-L/me/second','-lfoo1', '-lfoo2',
-                          '-L/me/third', '-L/me/fourth', '-lfoo3', '-lfoo4']
+        # but pkgconf seems to not do that. Sigh. Support both.
+        expected_order = [('-L/me/first', '-lfoo1'),
+                          ('-L/me/second', '-lfoo2'),
+                          ('-L/me/first', '-L/me/second'),
+                          ('-lfoo1', '-lfoo2'),
+                          ('-L/me/second', '-L/me/third'),
+                          ('-L/me/third', '-L/me/fourth',),
+                          ('-L/me/third', '-lfoo3'),
+                          ('-L/me/fourth', '-lfoo4'),
+                          ('-lfoo3', '-lfoo4'),
+                          ]
         with open(os.path.join(self.builddir, 'build.ninja')) as ifile:
             for line in ifile:
-                if expected_order[0] in line:
-                    previous_index = line.index(expected_order[0])
-                    for entry in expected_order[1:]:
-                        current_index = line.index(entry)
-                        self.assertLess(previous_index, current_index)
-                        previous_index = current_index
+                if expected_order[0][0] in line:
+                    for first, second in expected_order:
+                        self.assertLess(line.index(first), line.index(second))
                     return
         raise RuntimeError('Linker entries not found in the Ninja file.')
 
