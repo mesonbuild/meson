@@ -294,7 +294,7 @@ class GnomeModule(ExtensionModule):
         else:
             link_command = ['-l' + lib.name]
         if isinstance(lib, build.SharedLibrary):
-            libdir = state.backend.get_target_dir(lib)
+            libdir = os.path.join(state.environment.get_build_dir(), state.backend.get_target_dir(lib))
             link_command.append('-L' + libdir)
             # Needed for the following binutils bug:
             # https://github.com/mesonbuild/meson/issues/1911
