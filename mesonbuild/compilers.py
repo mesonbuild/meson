@@ -1053,7 +1053,7 @@ class CCompiler(Compiler):
     def _links_wrapper(self, code, env, extra_args, dependencies):
         "Shares common code between self.links and self.run"
         args = self._get_compiler_check_args(env, extra_args, dependencies, mode='link')
-        return self.compile(code, args.to_native())
+        return self.compile(code, args)
 
     def links(self, code, env, extra_args=None, dependencies=None):
         with self._links_wrapper(code, env, extra_args, dependencies) as p:
