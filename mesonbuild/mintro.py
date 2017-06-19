@@ -158,7 +158,7 @@ def list_buildsystem_files(coredata, builddata):
 
 def list_deps(coredata):
     result = []
-    for d in coredata.deps:
+    for d in coredata.deps.values():
         if d.found():
             args = {'compile_args': d.get_compile_args(),
                     'link_args': d.get_link_args()}
