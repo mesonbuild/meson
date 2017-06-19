@@ -34,6 +34,7 @@
       </para>
     </partintro>
     <xi:include href="xml/foo.xml"/>
+    <xi:include href="xml/foo-version.xml"/>
   </reference>
 
 </book>
