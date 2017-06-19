@@ -303,6 +303,8 @@ class GnomeModule(ExtensionModule):
             for d in state.backend.determine_rpath_dirs(lib):
                 d = os.path.join(state.environment.get_build_dir(), d)
                 link_command.append('-L' + d)
+                if include_rpath:
+                    link_command.append('-Wl,-rpath,' + d)
             if include_rpath:
                 link_command.append('-Wl,-rpath,' + libdir)
             if depends:
