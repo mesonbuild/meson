@@ -11,7 +11,7 @@ Native support for linking against LLVM using the `dependency` function.
 
 ## vcs_tag keyword fallback is is now optional
 
-The `fallback` keyword in `vcs_tag` is now optional. If not given, its value
+The `fallback` keyword in `vcs_tag()` is now optional. If not given, its value
 defaults to the return value of `meson.project_version()`.
 
 ## Better quoting of special characters in ninja command invocations
@@ -56,7 +56,7 @@ Targets for building rust now take a `rust_args` keyword.
 
 Code coverage can be generated for tests by passing the `--cov` argument to
 the `run_tests.py` test runner. Note, since multiple processes are used,
-coverage must be combined before producing a report (`coverage3 combine`.)
+coverage must be combined before producing a report (`coverage3 combine`).
 
 ## Reproducible builds
 
