@@ -35,7 +35,7 @@ class BoostDependency(ExternalDependency):
 
     def __init__(self, environment, kwargs):
         super().__init__('boost', environment, 'cpp', kwargs)
-        self.libdir = ''
+        self.libdir = None
         try:
             self.boost_root = os.environ['BOOST_ROOT']
             if not os.path.isabs(self.boost_root):
@@ -56,6 +56,9 @@ class BoostDependency(ExternalDependency):
                     self.incdir = os.environ['BOOST_INCLUDEDIR']
                 else:
                     self.incdir = '/usr/include'
+
+                if 'BOOST_LIBRARYDIR' in os.environ:
+                    self.libdir = os.environ['BOOST_LIBRARYDIR']
         else:
             self.incdir = os.path.join(self.boost_root, 'include')
         self.boost_inc_subdir = os.path.join(self.incdir, 'boost')
@@ -183,7 +186,9 @@ class BoostDependency(ExternalDependency):
         if not libdir:
             return
         libdir = libdir[0]
-        self.libdir = libdir
+        # Don't override what was set in the environment
+        if self.libdir:
+            self.libdir = libdir
         globber = 'libboost_*-gd-*.lib' if self.static else 'boost_*-gd-*.lib'  # FIXME
         for entry in glob.glob(os.path.join(libdir, globber)):
             (_, fname) = os.path.split(entry)
@@ -200,8 +205,8 @@ class BoostDependency(ExternalDependency):
             libsuffix = 'so'
 
         globber = 'libboost_*.{}'.format(libsuffix)
-        if 'BOOST_LIBRARYDIR' in os.environ:
-            libdirs = [os.environ['BOOST_LIBRARYDIR']]
+        if self.libdir:
+            libdirs = [self.libdir]
         elif self.boost_root is None:
             libdirs = mesonlib.get_library_dirs()
         else:
@@ -219,6 +224,7 @@ class BoostDependency(ExternalDependency):
 
     def get_win_link_args(self):
         args = []
+        # TODO: should this check self.libdir?
         if self.boost_root:
             args.append('-L' + self.libdir)
         for module in self.requested_modules:
@@ -233,8 +239,8 @@ class BoostDependency(ExternalDependency):
         args = []
         if self.boost_root:
             args.append('-L' + os.path.join(self.boost_root, 'lib'))
-        elif 'BOOST_LIBRARYDIR' in os.environ:
-            args.append('-L' + os.environ['BOOST_LIBRARYDIR'])
+        elif self.libdir:
+            args.append('-L' + self.libdir)
         for module in self.requested_modules:
             module = BoostDependency.name2lib.get(module, module)
             libname = 'boost_' + module
