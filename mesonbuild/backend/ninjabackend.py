@@ -510,12 +510,12 @@ int dummy;
             cmd_type = 'meson_exe.py custom'
         else:
             cmd_type = 'custom'
-
         if target.depfile is not None:
             rel_dfile = os.path.join(self.get_target_dir(target), target.depfile)
             abs_pdir = os.path.join(self.environment.get_build_dir(), self.get_target_dir(target))
             os.makedirs(abs_pdir, exist_ok=True)
             elem.add_item('DEPFILE', rel_dfile)
+        cmd = self.replace_paths(target, cmd)
         elem.add_item('COMMAND', cmd)
         elem.add_item('description', desc.format(target.name, cmd_type))
         elem.write(outfile)
@@ -564,7 +564,9 @@ int dummy;
         else:
             cmd.append(target.command)
         cmd += arg_strings
+
         elem.add_dep(deps)
+        cmd = self.replace_paths(target, cmd)
         elem.add_item('COMMAND', cmd)
         elem.add_item('description', 'Running external command %s.' % target.name)
         elem.add_item('pool', 'console')
@@ -1688,6 +1690,16 @@ rule FORTRAN_DEP_HACK
                 continue
             self.generate_genlist_for_target(genlist, target, outfile)
 
+    def replace_paths(self, target, args):
+        source_target_dir = self.get_target_source_dir(target)
+        relout = self.get_target_private_dir(target)
+        args = [x.replace("@SOURCE_DIR@", self.build_to_src).replace("@BUILD_DIR@", relout)
+                for x in args]
+        args = [x.replace("@CURRENT_SOURCE_DIR@", source_target_dir) for x in args]
+        args = [x.replace("@SOURCE_ROOT@", self.build_to_src).replace("@BUILD_ROOT@", '.')
+                for x in args]
+        return args
+
     def generate_genlist_for_target(self, genlist, target, outfile):
         generator = genlist.get_generator()
         exe = generator.get_exe()
@@ -1721,11 +1733,7 @@ rule FORTRAN_DEP_HACK
             if sole_output == '':
                 outfilelist = outfilelist[len(generator.outputs):]
             relout = self.get_target_private_dir(target)
-            args = [x.replace("@SOURCE_DIR@", self.build_to_src).replace("@BUILD_DIR@", relout)
-                    for x in args]
-            args = [x.replace("@CURRENT_SOURCE_DIR@", source_target_dir) for x in args]
-            args = [x.replace("@SOURCE_ROOT@", self.build_to_src).replace("@BUILD_ROOT@", '.')
-                    for x in args]
+            args = self.replace_paths(target, args)
             cmdlist = exe_arr + self.replace_extra_args(args, genlist)
             elem = NinjaBuildElement(self.all_outputs, outfiles, rulename, infilename)
             if generator.depfile is not None:
