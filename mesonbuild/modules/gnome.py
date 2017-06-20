@@ -700,6 +700,8 @@ class GnomeModule(ExtensionModule):
                 for inc_dir in src_dir.get_incdirs():
                     header_dirs.append(os.path.join(state.environment.get_source_dir(),
                                                     src_dir.get_curdir(), inc_dir))
+                    header_dirs.append(os.path.join(state.environment.get_build_dir(),
+                                                    src_dir.get_curdir(), inc_dir))
             else:
                 header_dirs.append(src_dir)
 
