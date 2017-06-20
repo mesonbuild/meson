@@ -104,3 +104,9 @@ By default Meson adds the current source and build directories to the
 header search path. On some rare occasions this is not desired. Setting
 the `implicit_include_directories` keyword argument to `false` these
 directories are not used.
+
+## Allow excluding files or directories from `install_subdir`
+
+The [`install_subdir`](Reference-manual.md#install_subdir) command accepts the
+new `exclude_files` and `exclude_directories` keyword arguments that allow
+specified files or directories to be excluded from the installed subdirectory.

@@ -474,10 +474,18 @@ Installs the specified man files from the source tree into system's man director
 ### install_subdir()
 
 ``` meson
-    void install_subdir(subdir_name)
+    void install_subdir(subdir_name, install_dir : ..., exclude_files : ..., exclude_directories : ...)
 ```
 
 Installs the entire given subdirectory and its contents from the source tree to the location specified by the keyword argument `install_dir`. Note that due to implementation issues this command deletes the entire target dir before copying the files, so you should never use `install_subdir` to install into two overlapping directories (such as `foo` and `foo/bar`) because if you do the behavior is undefined.
+
+The following keyword arguments are supported:
+
+- `install_dir`: the location to place the installed subdirectory.
+- `exclude_files`: a list of file names that should not be installed.
+  Names are interpreted as paths relative to the `subdir_name` location.
+- `exclude_directories`: a list of directory names that should not be installed.
+  Names are interpreted as paths relative to the `subdir_name` location.
 
 ### is_variable()
 
