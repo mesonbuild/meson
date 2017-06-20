@@ -762,6 +762,10 @@ class Compiler:
         # directory. This breaks reproducible builds.
         rel_rpaths = []
         for p in rpath_paths:
+            # p can be an empty string for build_dir (relative path), but
+            # os.path.relpath() below won't like that.
+            if p == '':
+                p = build_dir
             if p == from_dir:
                 relative = '' # relpath errors out in this case
             else:
