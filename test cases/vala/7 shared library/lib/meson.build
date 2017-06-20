@@ -1,4 +1,12 @@
-l = shared_library('valalib', 'mylib.vala', dependencies : valadeps)
+args = []
+# https://github.com/mesonbuild/meson/issues/1969
+if get_option('unity') == 'on'
+  vala_args = ['-H', 'mylib.h']
+endif
+
+l = shared_library('valalib', 'mylib.vala',
+                   vala_args : args,
+                   dependencies : valadeps)
 
 shared_library('installed_vala_lib', 'mylib.vala',
   dependencies : valadeps,
