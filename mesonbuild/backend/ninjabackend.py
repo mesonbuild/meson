@@ -1100,7 +1100,13 @@ int dummy;
             args += ['--library=' + target.name]
             # Outputted header
             hname = os.path.join(self.get_target_dir(target), target.vala_header)
-            args += ['-H', hname, '--use-header']
+            args += ['-H', hname]
+            if self.is_unity(target):
+                # Without this the declarations will get duplicated in the .c
+                # files and cause a build failure when all of them are
+                # #include-d in one .c file.
+                # https://github.com/mesonbuild/meson/issues/1969
+                args += ['--use-header']
             valac_outputs.append(hname)
             # Outputted vapi file
             vapiname = os.path.join(self.get_target_dir(target), target.vala_vapi)
