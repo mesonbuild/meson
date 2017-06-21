@@ -13,6 +13,7 @@
 # limitations under the License.
 
 
+import lzma
 import os
 import shutil
 import subprocess
@@ -29,10 +30,11 @@ def create_hash(fname):
     m = hashlib.sha256()
     m.update(open(fname, 'rb').read())
     with open(hashname, 'w') as f:
-        f.write('%s %s\n' % (m.hexdigest(), os.path.split(fname)[-1]))
+        f.write('%s %s\n' % (m.hexdigest(), os.path.basename(fname)))
+
 
 def create_zip(zipfilename, packaging_dir):
-    prefix = os.path.split(packaging_dir)[0]
+    prefix = os.path.dirname(packaging_dir)
     removelen = len(prefix) + 1
     with zipfile.ZipFile(zipfilename,
                          'w',
@@ -70,7 +72,8 @@ def process_submodules(dirname):
             continue
         del_gitfiles(os.path.join(dirname, v))
 
-def create_dist(dist_name, src_root, bld_root, dist_sub):
+
+def create_dist_git(dist_name, src_root, bld_root, dist_sub):
     distdir = os.path.join(dist_sub, dist_name)
     if os.path.exists(distdir):
         shutil.rmtree(distdir)
@@ -81,12 +84,28 @@ def create_dist(dist_name, src_root, bld_root, dist_sub):
     xzname = distdir + '.tar.xz'
     # Should use shutil but it got xz support only in 3.5.
     with tarfile.open(xzname, 'w:xz') as tf:
-        tf.add(distdir, os.path.split(distdir)[1])
+        tf.add(distdir, dist_name)
     # Create only .tar.xz for now.
     # zipname = distdir + '.zip'
     # create_zip(zipname, distdir)
     shutil.rmtree(distdir)
     return (xzname, )
+
+
+def create_dist_hg(dist_name, src_root, bld_root, dist_sub):
+    os.makedirs(dist_sub, exist_ok=True)
+
+    tarname = os.path.join(dist_sub, dist_name + '.tar')
+    xzname = tarname + '.xz'
+    subprocess.check_call(['hg', 'archive', '-R', src_root, '-S', '-t', 'tar', tarname])
+    with lzma.open(xzname, 'wb') as xf, open(tarname, 'rb') as tf:
+        shutil.copyfileobj(tf, xf)
+    os.unlink(tarname)
+    # Create only .tar.xz for now.
+    # zipname = os.path.join(dist_sub, dist_name + '.zip')
+    # subprocess.check_call(['hg', 'archive', '-R', src_root, '-S', '-t', 'zip', zipname])
+    return (xzname, )
+
 
 def check_dist(packagename, meson_command):
     print('Testing distribution package %s.' % packagename)
@@ -132,10 +151,13 @@ def run(args):
 
     dist_name = build.project_name + '-' + build.project_version
 
-    if not os.path.isdir(os.path.join(src_root, '.git')):
-        print('Dist currently only works with Git repos.')
+    if os.path.isdir(os.path.join(src_root, '.git')):
+        names = create_dist_git(dist_name, src_root, bld_root, dist_sub)
+    elif os.path.isdir(os.path.join(src_root, '.hg')):
+        names = create_dist_hg(dist_name, src_root, bld_root, dist_sub)
+    else:
+        print('Dist currently only works with Git or Mercurial repos.')
         return 1
-    names = create_dist(dist_name, src_root, bld_root, dist_sub)
     if names is None:
         return 1
     error_count = 0
