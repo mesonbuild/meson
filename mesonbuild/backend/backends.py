@@ -65,7 +65,7 @@ class ExecutableSerialisation:
 
 class TestSerialisation:
     def __init__(self, name, suite, fname, is_cross, exe_wrapper, is_parallel, cmd_args, env,
-                 should_fail, timeout, workdir, extra_paths):
+                 should_fail, timeout, workdir, profile, extra_paths):
         self.name = name
         self.suite = suite
         self.fname = fname
@@ -78,6 +78,7 @@ class TestSerialisation:
         self.timeout = timeout
         self.workdir = workdir
         self.extra_paths = extra_paths
+        self.profile = profile
 
 class OptionProxy:
     def __init__(self, name, value):
@@ -526,7 +527,7 @@ class Backend:
                     raise MesonException('Bad object in test command.')
             ts = TestSerialisation(t.get_name(), t.suite, cmd, is_cross, exe_wrapper,
                                    t.is_parallel, cmd_args, t.env, t.should_fail,
-                                   t.timeout, t.workdir, extra_paths)
+                                   t.timeout, t.workdir, t.profile, extra_paths)
             arr.append(ts)
         pickle.dump(arr, datafile)
 

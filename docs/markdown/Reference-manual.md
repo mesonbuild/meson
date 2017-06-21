@@ -644,6 +644,12 @@ Defines an unit test. Takes two positional arguments, the first is the name of t
 - `should_fail` when true the test is considered passed if the executable returns a non-zero return value (i.e. reports an error)
 - `timeout` the amount of seconds the test is allowed to run, a test that exceeds its time limit is always considered failed, defaults to 30 seconds
 - `workdir` absolute path that will be used as the working directory for the test
+- `profile` changes behavior in various ways to integrate with existing test suites, see below for details
+
+Supported profiles:
+
+- `glib`
+  Sets `G_TEST_SRCDIR` and `G_TEST_BUILDDIR` to integrate with [GLib's testing framwork](https://developer.gnome.org/glib/stable/glib-Testing.html)
 
 Defined tests can be run in a backend-agnostic way by calling `mesontest` inside the build dir, or by using backend-specific commands, such as `ninja test` or `msbuild RUN_TESTS.vcxproj`.
 

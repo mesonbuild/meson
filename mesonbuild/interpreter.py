@@ -582,7 +582,7 @@ class RunTargetHolder(InterpreterObject):
         return r.format(self.__class__.__name__, h.get_id(), h.command)
 
 class Test(InterpreterObject):
-    def __init__(self, name, suite, exe, is_parallel, cmd_args, env, should_fail, timeout, workdir):
+    def __init__(self, name, suite, exe, is_parallel, cmd_args, env, should_fail, timeout, workdir, profile):
         InterpreterObject.__init__(self)
         self.name = name
         self.suite = suite
@@ -593,6 +593,7 @@ class Test(InterpreterObject):
         self.should_fail = should_fail
         self.timeout = timeout
         self.workdir = workdir
+        self.profile = profile
 
     def get_exe(self):
         return self.exe
@@ -2203,7 +2204,25 @@ class Interpreter(InterpreterBase):
                 suite.append(self.subproject.replace(' ', '_').replace(':', '_') + s)
             else:
                 suite.append(self.build.project_name.replace(' ', '_').replace(':', '_') + s)
-        t = Test(args[0], suite, args[1].held_object, par, cmd_args, env, should_fail, timeout, workdir)
+        profile = kwargs.get('profile')
+        if profile:
+            if not isinstance(profile, str):
+                raise InterpreterException('Test profile must be a string')
+            VALID_PROFILES = ('glib',)
+            if profile not in VALID_PROFILES:
+                raise InterpreterException('{} is not a valid test profile {}'.format(profile, VALID_PROFILES))
+                env.set(None, 'G_TEST_SRCDIR', self.environment.get_source_dir(), {})
+
+        if profile == 'glib':
+            if isinstance(env, dict):
+                env['G_TEST_SRCDIR'] = self.environment.get_source_dir()
+                env['G_TEST_BUILDDIR'] = self.environment.get_build_dir()
+            else:
+                # FIXME ...
+                env.set(None, 'G_TEST_SRCDIR', self.environment.get_source_dir(), {})
+                env.set(None, 'G_TEST_BUILDDIR', self.environment.get_build_dir(), {})
+
+        t = Test(args[0], suite, args[1].held_object, par, cmd_args, env, should_fail, timeout, workdir, profile)
         if is_base_test:
             self.build.tests.append(t)
             mlog.debug('Adding test "', mlog.bold(args[0]), '".', sep='')
