@@ -3,5 +3,13 @@ gnome = import('gnome')
 gnome.yelp('meson',
    sources: 'index.page',
    media: 'media/test.txt',
+   symlink_media: false,
+   languages: ['de', 'es'],
+)
+
+gnome.yelp('meson-symlink',
+   sources: 'index.page',
+   media: 'media/test.txt',
+   symlink_media: true,
    languages: ['de', 'es'],
 )

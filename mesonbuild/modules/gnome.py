@@ -619,7 +619,7 @@ class GnomeModule(ExtensionModule):
 
         langs = mesonlib.stringlistify(kwargs.pop('languages', []))
         media = mesonlib.stringlistify(kwargs.pop('media', []))
-        symlinks = kwargs.pop('symlink_media', False)
+        symlinks = kwargs.pop('symlink_media', True)
 
         if not isinstance(symlinks, bool):
             raise MesonException('symlink_media must be a boolean')
