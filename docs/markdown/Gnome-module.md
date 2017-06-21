@@ -127,7 +127,7 @@ This also creates two targets for translations `help-$project-update-po` and `he
 
 * `sources`: list of pages
 * `media`: list of media such as images
-* `symlink_media`: if media should be symlinked not copied (defaults to `true` since 0.41.0)
+* `symlink_media`: if media should be symlinked not copied (defaults to `true` since 0.42.0)
 * `languages`: list of languages for translations
 
 Note that very old versions of yelp may not support symlinked media; At least 3.10 should work.
