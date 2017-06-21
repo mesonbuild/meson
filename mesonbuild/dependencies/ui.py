@@ -291,10 +291,12 @@ class QtBaseDependency(ExternalDependency):
             mincdir = os.path.join(incdir, 'Qt' + module)
             self.compile_args.append('-I' + mincdir)
             if for_windows(self.env.is_cross_build(), self.env):
+                is_debug = self.env.cmd_line_options.buildtype.startswith('debug')
+                dbg = 'd' if is_debug else ''
                 if self.qtver == '4':
-                    base_name = 'Qt' + module + '4'
+                    base_name = 'Qt' + module + dbg + '4'
                 else:
-                    base_name = 'Qt5' + module
+                    base_name = 'Qt5' + module + dbg
                 libfile = os.path.join(libdir, base_name + '.lib')
                 if not os.path.isfile(libfile):
                     # MinGW can link directly to .dll
