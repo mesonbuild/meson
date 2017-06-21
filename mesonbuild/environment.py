@@ -12,15 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-import platform
-import re
+import configparser, os, platform, re, shlex, shutil
 
 from .compilers import *
+from .linkers import ArLinker, VisualStudioLinker
 from .mesonlib import EnvironmentException, Popen_safe
-import configparser
-import shlex
-import shutil
 
 build_filename = 'meson.build'
 

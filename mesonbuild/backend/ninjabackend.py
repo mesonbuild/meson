@@ -1,4 +1,4 @@
-# Copyright 2012-2016 The Meson development team
+# Copyright 2012-2017 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,9 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import shlex
-import os, sys, pickle, re
-import subprocess, shutil
+import os, pickle, re, shlex, shutil, subprocess, sys
 from collections import OrderedDict
 
 from . import backends
@@ -25,6 +23,7 @@ from .. import mlog
 from .. import dependencies
 from .. import compilers
 from ..compilers import CompilerArgs
+from ..linkers import ArLinker
 from ..mesonlib import File, MesonException, OrderedSet
 from ..mesonlib import get_meson_script, get_compiler_for_source
 from .backends import CleanTrees, InstallData
@@ -1363,7 +1362,7 @@ int dummy;
         # gcc-ar blindly pass the --plugin argument to `ar` and you cannot pass
         # options as arguments while using the @file.rsp syntax.
         # See: https://github.com/mesonbuild/meson/issues/1646
-        if mesonlib.is_windows() and not isinstance(static_linker, compilers.ArLinker):
+        if mesonlib.is_windows() and not isinstance(static_linker, ArLinker):
             command_template = ''' command = {executable} @$out.rsp
  rspfile = $out.rsp
  rspfile_content = $LINK_ARGS {output_args} $in
@@ -1375,7 +1374,7 @@ int dummy;
         #        them out to fix this properly on Windows. See:
         # https://github.com/mesonbuild/meson/issues/1517
         # https://github.com/mesonbuild/meson/issues/1526
-        if isinstance(static_linker, compilers.ArLinker) and not mesonlib.is_windows():
+        if isinstance(static_linker, ArLinker) and not mesonlib.is_windows():
             # `ar` has no options to overwrite archives. It always appends,
             # which is never what we want. Delete an existing library first if
             # it exists. https://github.com/mesonbuild/meson/issues/1355
@@ -2361,8 +2360,9 @@ rule FORTRAN_DEP_HACK
             # Target names really should not have slashes in them, but
             # unfortunately we did not check for that and some downstream projects
             # now have them. Once slashes are forbidden, remove this bit.
-            target_slashname_workaround_dir = os.path.join(os.path.split(target.name)[0],
-                                                       self.get_target_dir(target))
+            target_slashname_workaround_dir = os.path.join(
+                os.path.split(target.name)[0],
+                self.get_target_dir(target))
         else:
             target_slashname_workaround_dir = self.get_target_dir(target)
         commands += linker.build_rpath_args(self.environment.get_build_dir(),
