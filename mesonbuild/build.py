@@ -1135,14 +1135,17 @@ class Executable(BuildTarget):
         # The import library that GCC would generate (and prefer)
         self.gcc_import_filename = None
 
-        # if implib:true appears, this target is linkwith:-able, but that only
-        # means something on Windows platforms.
+        # if implib appears, this target is linkwith:-able, but that only means
+        # something on Windows platforms.
         self.is_linkwithable = False
         if 'implib' in kwargs and kwargs['implib']:
+            implib_basename = self.name + '.exe'
+            if not isinstance(kwargs['implib'], bool):
+                implib_basename = kwargs['implib']
             self.is_linkwithable = True
             if for_windows(is_cross, environment) or for_cygwin(is_cross, environment):
-                self.vs_import_filename = '{0}.lib'.format(self.name)
-                self.gcc_import_filename = 'lib{0}.exe.a'.format(self.name)
+                self.vs_import_filename = '{0}.lib'.format(implib_basename)
+                self.gcc_import_filename = 'lib{0}.a'.format(implib_basename)
 
                 if self.get_using_msvc():
                     self.import_filename = self.vs_import_filename
