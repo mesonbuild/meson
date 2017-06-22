@@ -15,4 +15,4 @@ executable('myprog', 'main.cpp', 'myclass.cpp', moc_files,
 ```
 
 
-The 'modules' argument is used to include Qt modules in the project.  You can determine the list of valid module names by looking at `$QTDIR/include`.  The 'Core' module has a directory in `$QTDIR/include/QtCore` and a library named `Qt5Core.lib`.  'Network' has `$QTDIR/include/QtNetwork` and Qt5Network.lib.  And so on.
+The 'modules' argument is used to include Qt modules in the project.  See the Qt documentation for the list of modules.
