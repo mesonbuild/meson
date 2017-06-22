@@ -1423,6 +1423,10 @@ class LinuxlikeTests(BasePlatformTests):
     '''
     Tests that should run on Linux and *BSD
     '''
+    def setUp(self):
+        super().setUp()
+        self.platform_test_dir = os.path.join(self.src_root, 'test cases/linuxlike')
+
     def test_basic_soname(self):
         '''
         Test that the soname is set correctly for shared libraries. This can't
@@ -1814,6 +1818,28 @@ class LinuxlikeTests(BasePlatformTests):
                         self.assertLess(line.index(first), line.index(second))
                     return
         raise RuntimeError('Linker entries not found in the Ninja file.')
+
+    def test_library_group_nesting(self):
+        '''
+        Older ld versions (such as 2.20) error out on nested library groupings
+        with --start/end-group: https://github.com/mesonbuild/meson/issues/1936
+        '''
+        testdir = os.path.join(self.platform_test_dir, '1 pkg-config')
+        self.init(testdir)
+        mesonlog = self.get_meson_log()
+        for line in mesonlog:
+            if '--start-group' in line:
+                break
+        else:
+            raise unittest.SkipTest('No --start-group, not using GNU ld?')
+        nested = re.compile('--start-group.*--start-group')
+        correct = re.compile('--start-group.*-lz.*--end-group')
+        for line in mesonlog:
+            if '--start-group' in line:
+                self.assertNotRegex(line, nested)
+                if '-lz' in line:
+                    self.assertRegex(line, correct)
+
 
 class LinuxArmCrossCompileTests(BasePlatformTests):
     '''

@@ -414,7 +414,7 @@ class CompilerArgs(list):
 
         a) Whether an argument can be 'overriden' by a later argument.  For
            example, -DFOO defines FOO and -UFOO undefines FOO. In this case, we
-           can safely remove the previous occurance and add a new one. The same
+           can safely remove the previous occurrence and add a new one. The same
            is true for include paths and library paths with -I and -L. For
            these we return `2`. See `dedup2_prefixes` and `dedup2_args`.
         b) Arguments that once specified cannot be undone, such as `-c` or
@@ -458,22 +458,34 @@ class CompilerArgs(list):
             return True
         return False
 
-    def to_native(self):
+    def _fix_broken_linkers(self):
         # Check if we need to add --start/end-group for circular dependencies
         # between static libraries.
-        if get_compiler_uses_gnuld(self.compiler):
-            group_started = False
-            for each in self:
-                if not each.startswith('-l') and not each.endswith('.a'):
-                    continue
-                i = self.index(each)
-                if not group_started:
-                    # First occurance of a library
-                    self.insert(i, '-Wl,--start-group')
-                    group_started = True
-            # Last occurance of a library
-            if group_started:
-                self.insert(i + 1, '-Wl,--end-group')
+        if not get_compiler_uses_gnuld(self.compiler):
+            return
+        group_start = None
+        group_end = None
+        for i, each in enumerate(self):
+            # Must ensure that we don't accidentally nest --start/end-group
+            # since older `ld` versions (such as 2.20) barf on that:
+            # https://github.com/mesonbuild/meson/issues/1936
+            # We could add complicated logic here to detect nesting, but
+            # users should not be adding --start-group themselves. KISS for now.
+            if each.endswith('--start-group'):
+                return
+            if not each.startswith('-l') and not each.endswith('.a'):
+                continue
+            if group_start is None:
+                # First occurrence of a library
+                group_start = i
+            # Last seen occurrence of a library
+            group_end = i
+        if group_start is not None and group_end is not None:
+            self.insert(group_start, '-Wl,--start-group')
+            self.insert(group_end + 2, '-Wl,--end-group')
+
+    def to_native(self):
+        self._fix_broken_linkers()
         return self.compiler.unix_args_to_native(self)
 
     def append_direct(self, arg):
@@ -505,15 +517,15 @@ class CompilerArgs(list):
             raise TypeError('can only concatenate list (not "{}") to list'.format(args))
         for arg in args:
             # If the argument can be de-duped, do it either by removing the
-            # previous occurance of it and adding a new one, or not adding the
-            # new occurance.
+            # previous occurrence of it and adding a new one, or not adding the
+            # new occurrence.
             dedup = self._can_dedup(arg)
             if dedup == 1:
                 # Argument already exists and adding a new instance is useless
                 if arg in self or arg in pre or arg in post:
                     continue
             if dedup == 2:
-                # Remove all previous occurances of the arg and add it anew
+                # Remove all previous occurrences of the arg and add it anew
                 if arg in self:
                     self.remove(arg)
                 if arg in pre:
