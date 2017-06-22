@@ -192,7 +192,7 @@ class Converter:
         # Not implemented: MATCHES
         params[0] = value
         params[1] = booleanExpr
-        return value;
+        return value
 
     def convert_args(self, args, as_array=True):
         res = []
@@ -226,7 +226,7 @@ class Converter:
             booleanExpr = False
             for i, val in enumerate(res):
                 params = [res[i], booleanExpr]
-                res[i] = self.get_translated_value(params);
+                res[i] = self.get_translated_value(params)
                 if params[1]:
                     booleanExpr = True
             if booleanExpr:
@@ -236,7 +236,7 @@ class Converter:
             return start + ''.join(subres) + end
         if len(res) == 1:
             params = [res[0], False]
-            return self.get_translated_value(params);
+            return self.get_translated_value(params)
         return ''
 
     def write_entry(self, outfile, t):
@@ -250,7 +250,7 @@ class Converter:
             line = "subdir('" + t.args[0].value + "')"
         elif t.name == 'pkg_search_module' or t.name == 'pkg_search_modules':
             varname = t.args[0].value.lower()
-            #self.dependencies.append(i.value.lower() for i in t.args[1:])
+#            self.dependencies.append(i.value.lower() for i in t.args[1:])
             mods = ["dependency('%s')" % i.value for i in t.args[1:]]
             if len(mods) == 1:
                 line = '%s = %s' % (varname, mods[0])
