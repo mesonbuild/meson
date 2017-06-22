@@ -236,7 +236,7 @@ class ValgrindDependency(PkgConfigDependency):
     link to its (static) libraries.
     '''
     def __init__(self, env, kwargs):
-        super().__init__('valgrind', env, None, kwargs)
+        super().__init__('valgrind', env, kwargs)
 
     def get_link_args(self):
         return []

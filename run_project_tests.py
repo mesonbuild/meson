@@ -214,7 +214,8 @@ def validate_install(srcdir, installdir, compiler):
                 expected[platform_fix_name(line.strip())] = False
     # Check if expected files were found
     for fname in expected:
-        if os.path.exists(os.path.join(installdir, fname)):
+        file_path = os.path.join(installdir, fname)
+        if os.path.exists(file_path) or os.path.islink(file_path):
             expected[fname] = True
     for (fname, found) in expected.items():
         if not found:

@@ -430,6 +430,17 @@ class CompilerArgs(list):
         to recursively search for symbols in the libraries. This is not needed
         with other linkers.
         '''
+
+        # A standalone argument must never be deduplicated because it is
+        # defined by what comes _after_ it. Thus dedupping this:
+        # -D FOO -D BAR
+        # would yield either
+        # -D FOO BAR
+        # or
+        # FOO -D BAR
+        # both of which are invalid.
+        if arg in cls.dedup2_prefixes:
+            return 0
         if arg in cls.dedup2_args or \
            arg.startswith(cls.dedup2_prefixes) or \
            arg.endswith(cls.dedup2_suffixes):
@@ -464,6 +475,19 @@ class CompilerArgs(list):
             if group_started:
                 self.insert(i + 1, '-Wl,--end-group')
         return self.compiler.unix_args_to_native(self)
+
+    def append_direct(self, arg):
+        '''
+        Append the specified argument without any reordering or de-dup
+        '''
+        super().append(arg)
+
+    def extend_direct(self, iterable):
+        '''
+        Extend using the elements in the specified iterable without any
+        reordering or de-dup
+        '''
+        super().extend(iterable)
 
     def __add__(self, args):
         new = CompilerArgs(self, self.compiler)
@@ -1029,7 +1053,7 @@ class CCompiler(Compiler):
     def _links_wrapper(self, code, env, extra_args, dependencies):
         "Shares common code between self.links and self.run"
         args = self._get_compiler_check_args(env, extra_args, dependencies, mode='link')
-        return self.compile(code, args.to_native())
+        return self.compile(code, args)
 
     def links(self, code, env, extra_args=None, dependencies=None):
         with self._links_wrapper(code, env, extra_args, dependencies) as p:

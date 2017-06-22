@@ -30,7 +30,7 @@ import mesonbuild.mlog
 import mesonbuild.compilers
 import mesonbuild.environment
 import mesonbuild.mesonlib
-from mesonbuild.mesonlib import is_windows, is_osx, is_cygwin
+from mesonbuild.mesonlib import is_windows, is_osx, is_cygwin, windows_proof_rmtree
 from mesonbuild.environment import Environment
 from mesonbuild.dependencies import DependencyException
 from mesonbuild.dependencies import PkgConfigDependency, ExternalProgram
@@ -175,6 +175,16 @@ class InternalTests(unittest.TestCase):
         # Adding the same library again does nothing
         l += ['-lbar']
         self.assertEqual(l, ['-Lbardir', '-Lfoodir', '-lfoo', '-lbar'])
+
+        ## Test that 'direct' append and extend works
+        l = cargsfunc(c, ['-Lfoodir', '-lfoo'])
+        self.assertEqual(l, ['-Lfoodir', '-lfoo'])
+        # Direct-adding a library and a libpath appends both correctly
+        l.extend_direct(['-Lbardir', '-lbar'])
+        self.assertEqual(l, ['-Lfoodir', '-lfoo', '-Lbardir', '-lbar'])
+        # Direct-adding the same library again still adds it
+        l.append_direct('-lbar')
+        self.assertEqual(l, ['-Lfoodir', '-lfoo', '-Lbardir', '-lbar', '-lbar'])
 
     def test_commonpath(self):
         from os.path import sep
@@ -435,7 +445,7 @@ class BasePlatformTests(unittest.TestCase):
             print(f.read())
 
     def tearDown(self):
-        shutil.rmtree(self.builddir)
+        windows_proof_rmtree(self.builddir)
         os.environ = self.orig_env
         super().tearDown()
 
@@ -524,7 +534,7 @@ class BasePlatformTests(unittest.TestCase):
         self._run(self.mconf_command + [arg, self.builddir])
 
     def wipe(self):
-        shutil.rmtree(self.builddir)
+        windows_proof_rmtree(self.builddir)
 
     def utime(self, f):
         ensure_backend_detects_changes(self.backend)
@@ -1151,18 +1161,50 @@ class AllPlatformTests(BasePlatformTests):
         self.build()
         self.run_tests()
 
-    def test_dist(self):
+    def test_dist_git(self):
         if not shutil.which('git'):
             raise unittest.SkipTest('Git not found')
+
+        def git_init(project_dir):
+            subprocess.check_call(['git', 'init'], cwd=project_dir)
+            subprocess.check_call(['git', 'config',
+                                   'user.name', 'Author Person'], cwd=project_dir)
+            subprocess.check_call(['git', 'config',
+                                   'user.email', 'teh_coderz@example.com'], cwd=project_dir)
+            subprocess.check_call(['git', 'add', 'meson.build', 'distexe.c'], cwd=project_dir)
+            subprocess.check_call(['git', 'commit', '-a', '-m', 'I am a project'], cwd=project_dir)
+
         try:
-            self.dist_impl()
+            self.dist_impl(git_init)
         except PermissionError:
             # When run under Windows CI, something (virus scanner?)
             # holds on to the git files so cleaning up the dir
             # fails sometimes.
             pass
 
-    def dist_impl(self):
+    def test_dist_hg(self):
+        if not shutil.which('hg'):
+            raise unittest.SkipTest('Mercurial not found')
+        if self.backend is not Backend.ninja:
+            raise unittest.SkipTest('Dist is only supported with Ninja')
+
+        def hg_init(project_dir):
+            subprocess.check_call(['hg', 'init'], cwd=project_dir)
+            with open(os.path.join(project_dir, '.hg', 'hgrc'), 'w') as f:
+                print('[ui]', file=f)
+                print('username=Author Person <teh_coderz@example.com>', file=f)
+            subprocess.check_call(['hg', 'add', 'meson.build', 'distexe.c'], cwd=project_dir)
+            subprocess.check_call(['hg', 'commit', '-m', 'I am a project'], cwd=project_dir)
+
+        try:
+            self.dist_impl(hg_init)
+        except PermissionError:
+            # When run under Windows CI, something (virus scanner?)
+            # holds on to the hg files so cleaning up the dir
+            # fails sometimes.
+            pass
+
+    def dist_impl(self, vcs_init):
         # Create this on the fly because having rogue .git directories inside
         # the source tree leads to all kinds of trouble.
         with tempfile.TemporaryDirectory() as project_dir:
@@ -1179,13 +1221,7 @@ int main(int argc, char **argv) {
     return 0;
 }
 ''')
-            subprocess.check_call(['git', 'init'], cwd=project_dir)
-            subprocess.check_call(['git', 'config',
-                                   'user.name', 'Author Person'], cwd=project_dir)
-            subprocess.check_call(['git', 'config',
-                                   'user.email', 'teh_coderz@example.com'], cwd=project_dir)
-            subprocess.check_call(['git', 'add', 'meson.build', 'distexe.c'], cwd=project_dir)
-            subprocess.check_call(['git', 'commit', '-a', '-m', 'I am a project'], cwd=project_dir)
+            vcs_init(project_dir)
             self.init(project_dir)
             self.build('dist')
             distfile = os.path.join(self.distdir, 'disttest-1.4.3.tar.xz')
@@ -1211,6 +1247,15 @@ int main(int argc, char **argv) {
             for path in rpath.split(':'):
                 self.assertTrue(path.startswith('$ORIGIN'), msg=(each, path))
 
+    def test_dash_d_dedup(self):
+        testdir = os.path.join(self.unit_test_dir, '10 d dedup')
+        self.init(testdir)
+        cmd = self.get_compdb()[0]['command']
+        self.assertTrue('-D FOO -D BAR' in cmd or
+                        '"-D" "FOO" "-D" "BAR"' in cmd or
+                        '/D FOO /D BAR' in cmd or
+                        '"/D" "FOO" "/D" "BAR"' in cmd)
+
 
 class FailureTests(BasePlatformTests):
     '''
@@ -1229,7 +1274,7 @@ class FailureTests(BasePlatformTests):
 
     def tearDown(self):
         super().tearDown()
-        shutil.rmtree(self.srcdir)
+        windows_proof_rmtree(self.srcdir)
 
     def assertMesonRaises(self, contents, match, extra_args=None, langs=None):
         '''
@@ -1745,6 +1790,31 @@ class LinuxlikeTests(BasePlatformTests):
         env['LD_LIBRARY_PATH'] = installed_libdir
         self.assertEqual(subprocess.call(installed_exe, env=env), 0)
 
+    def test_order_of_l_arguments(self):
+        testdir = os.path.join(self.unit_test_dir, '9 -L -l order')
+        os.environ['PKG_CONFIG_PATH'] = testdir
+        self.init(testdir)
+        # NOTE: .pc file has -Lfoo -lfoo -Lbar -lbar but pkg-config reorders
+        # the flags before returning them to -Lfoo -Lbar -lfoo -lbar
+        # but pkgconf seems to not do that. Sigh. Support both.
+        expected_order = [('-L/me/first', '-lfoo1'),
+                          ('-L/me/second', '-lfoo2'),
+                          ('-L/me/first', '-L/me/second'),
+                          ('-lfoo1', '-lfoo2'),
+                          ('-L/me/second', '-L/me/third'),
+                          ('-L/me/third', '-L/me/fourth',),
+                          ('-L/me/third', '-lfoo3'),
+                          ('-L/me/fourth', '-lfoo4'),
+                          ('-lfoo3', '-lfoo4'),
+                          ]
+        with open(os.path.join(self.builddir, 'build.ninja')) as ifile:
+            for line in ifile:
+                if expected_order[0][0] in line:
+                    for first, second in expected_order:
+                        self.assertLess(line.index(first), line.index(second))
+                    return
+        raise RuntimeError('Linker entries not found in the Ninja file.')
+
 class LinuxArmCrossCompileTests(BasePlatformTests):
     '''
     Tests that verify cross-compilation to Linux/ARM
@@ -1778,7 +1848,7 @@ class RewriterTests(unittest.TestCase):
         self.test_dir = os.path.join(src_root, 'test cases/rewrite')
 
     def tearDown(self):
-        shutil.rmtree(self.tmpdir)
+        windows_proof_rmtree(self.tmpdir)
 
     def read_contents(self, fname):
         with open(os.path.join(self.workdir, fname)) as f:

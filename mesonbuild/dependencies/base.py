@@ -528,7 +528,10 @@ class ExternalLibrary(ExternalDependency):
         C-like code. Note that C++ libraries *can* be linked with C code with
         a C++ linker (and vice-versa).
         '''
-        if self.language == 'vala' and language != 'vala':
+        # Using a vala library in a non-vala target, or a non-vala library in a vala target
+        # XXX: This should be extended to other non-C linkers such as Rust
+        if (self.language == 'vala' and language != 'vala') or \
+           (language == 'vala' and self.language != 'vala'):
             return []
         return self.link_args
 
