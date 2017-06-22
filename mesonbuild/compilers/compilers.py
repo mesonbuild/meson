@@ -14,11 +14,11 @@
 
 import contextlib, os.path, re, shutil, subprocess, tempfile
 
-from .linkers import StaticLinker
-from . import coredata
-from . import mlog
-from . import mesonlib
-from .mesonlib import EnvironmentException, MesonException, version_compare, Popen_safe
+from ..linkers import StaticLinker
+from .. import coredata
+from .. import mlog
+from .. import mesonlib
+from ..mesonlib import EnvironmentException, MesonException, version_compare, Popen_safe
 
 """This file contains the data files of all compilers Meson knows
 about. To support a new compiler, add its information below.

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import configparser, os, platform, re, shlex, shutil
+import configparser, os, platform, re, shlex, shutil, subprocess
 
 from .compilers import *
 from .linkers import ArLinker, VisualStudioLinker
