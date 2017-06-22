@@ -156,7 +156,7 @@ class Converter:
         if dependency in self.dependencyMap:
             return self.dependencyMap[dependency]
         return False
-    
+
     def get_translated_value(self, params):
         value = params[0]
         booleanExpr = params[1]
