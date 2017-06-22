@@ -446,6 +446,7 @@ class GnomeModule(ExtensionModule):
                         'Gir includes must be str, GirTarget, or list of them')
 
         cflags = []
+        ldflags = []
         for lang, compiler in girtarget.compilers.items():
             # XXX: Can you use g-i with any other language?
             if lang in ('c', 'cpp', 'objc', 'objcpp', 'd'):
@@ -458,9 +459,14 @@ class GnomeModule(ExtensionModule):
                 cflags += state.global_args[lang]
             if state.project_args.get(lang):
                 cflags += state.project_args[lang]
-            sanitize = compiler.get_options().get('b_sanitize')
-            if sanitize:
+            if 'b_sanitize' in compiler.base_options:
+                sanitize = state.environment.coredata.base_options['b_sanitize'].value
                 cflags += compilers.sanitizer_compile_args(sanitize)
+                if sanitize == 'address':
+                    ldflags += ['-lasan']
+                # FIXME: Linking directly to libasan is not recommended but g-ir-scanner
+                # does not understand -f LDFLAGS. https://bugzilla.gnome.org/show_bug.cgi?id=783892
+                # ldflags += compilers.sanitizer_link_args(sanitize)
         if kwargs.get('symbol_prefix'):
             sym_prefix = kwargs.pop('symbol_prefix')
             if not isinstance(sym_prefix, str):
@@ -523,9 +529,10 @@ class GnomeModule(ExtensionModule):
         # ldflags will be misinterpreted by gir scanner (showing
         # spurious dependencies) but building GStreamer fails if they
         # are not used here.
-        dep_cflags, ldflags, gi_includes = self._get_dependencies_flags(deps, state, depends,
-                                                                        use_gir_args=True)
+        dep_cflags, dep_ldflags, gi_includes = self._get_dependencies_flags(deps, state, depends,
+                                                                            use_gir_args=True)
         cflags += list(dep_cflags)
+        ldflags += list(dep_ldflags)
         scan_command += ['--cflags-begin']
         scan_command += cflags
         scan_command += ['--cflags-end']
