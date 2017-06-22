@@ -179,8 +179,9 @@ class Backend:
         # target that the GeneratedList is used in
         return os.path.join(self.get_target_private_dir(target), src)
 
-    def get_unity_source_filename(self, target, suffix):
-        return target.name + '-unity.' + suffix
+    def get_unity_source_file(self, target, suffix):
+        osrc = target.name + '-unity.' + suffix
+        return mesonlib.File.from_built_file(self.get_target_private_dir(target), osrc)
 
     def generate_unity_files(self, target, unity_src):
         abs_files = []
@@ -188,18 +189,15 @@ class Backend:
         compsrcs = classify_unity_sources(target.compilers.values(), unity_src)
 
         def init_language_file(suffix):
-            unity_src_name = self.get_unity_source_filename(target, suffix)
-            unity_src_subdir = self.get_target_private_dir_abs(target)
-            outfilename = os.path.join(unity_src_subdir,
-                                       unity_src_name)
-            outfileabs = os.path.join(self.environment.get_build_dir(),
-                                      outfilename)
+            unity_src = self.get_unity_source_file(target, suffix)
+            outfileabs = unity_src.absolute_path(self.environment.get_source_dir(),
+                                                 self.environment.get_build_dir())
             outfileabs_tmp = outfileabs + '.tmp'
             abs_files.append(outfileabs)
             outfileabs_tmp_dir = os.path.dirname(outfileabs_tmp)
             if not os.path.exists(outfileabs_tmp_dir):
                 os.makedirs(outfileabs_tmp_dir)
-            result.append(mesonlib.File(True, unity_src_subdir, unity_src_name))
+            result.append(unity_src)
             return open(outfileabs_tmp, 'w')
 
         # For each language, generate a unity source file and return the list
@@ -351,9 +349,8 @@ class Backend:
                                            extobj.srclist[0])
             # There is a potential conflict here, but it is unlikely that
             # anyone both enables unity builds and has a file called foo-unity.cpp.
-            osrc = self.get_unity_source_filename(extobj.target,
-                                                  comp.get_default_suffix())
-            osrc = os.path.join(self.get_target_private_dir(extobj.target), osrc)
+            osrc = self.get_unity_source_file(extobj.target,
+                                              comp.get_default_suffix())
             objname = self.object_filename_from_source(extobj.target, osrc, True)
             objname = objname.replace('/', '_').replace('\\', '_')
             objpath = os.path.join(proj_dir_to_build_root, targetdir, objname)
