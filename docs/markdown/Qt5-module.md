@@ -15,4 +15,4 @@ executable('myprog', 'main.cpp', 'myclass.cpp', moc_files,
 ```
 
 
-The 'modules' argument is used to include Qt modules in the project.  See the Qt documentation for the list of modules.
+The 'modules' argument is used to include Qt modules in the project.  See the Qt documentation for the [list of modules](http://doc.qt.io/qt-5/qtmodules.html).
