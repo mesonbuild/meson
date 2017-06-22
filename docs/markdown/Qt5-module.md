@@ -8,8 +8,11 @@ This method takes four keyword arguments, `moc_headers`, `moc_sources`, `ui_file
 
 ```meson
 qt5 = import('qt5')
-qt5_dep = dependency('qt5', ...)
+qt5_dep = dependency('qt5', modules: ['Core', 'Gui'])
 moc_files = qt5.preprocess(moc_headers : 'myclass.h')
 executable('myprog', 'main.cpp', 'myclass.cpp', moc_files,
            dependencies : qt5_dep)
 ```
+
+
+The 'modules' argument is used to include Qt modules in the project.  See the Qt documentation for the [list of modules](http://doc.qt.io/qt-5/qtmodules.html).
