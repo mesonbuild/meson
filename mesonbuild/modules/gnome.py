@@ -294,7 +294,7 @@ class GnomeModule(ExtensionModule):
         else:
             link_command = ['-l' + lib.name]
         if isinstance(lib, build.SharedLibrary):
-            libdir = state.backend.get_target_dir(lib)
+            libdir = os.path.join(state.environment.get_build_dir(), state.backend.get_target_dir(lib))
             link_command.append('-L' + libdir)
             # Needed for the following binutils bug:
             # https://github.com/mesonbuild/meson/issues/1911
@@ -303,6 +303,8 @@ class GnomeModule(ExtensionModule):
             for d in state.backend.determine_rpath_dirs(lib):
                 d = os.path.join(state.environment.get_build_dir(), d)
                 link_command.append('-L' + d)
+                if include_rpath:
+                    link_command.append('-Wl,-rpath,' + d)
             if include_rpath:
                 link_command.append('-Wl,-rpath,' + libdir)
             if depends:
@@ -699,6 +701,8 @@ class GnomeModule(ExtensionModule):
                     raise MesonException('Invalid keyword argument for src_dir.')
                 for inc_dir in src_dir.get_incdirs():
                     header_dirs.append(os.path.join(state.environment.get_source_dir(),
+                                                    src_dir.get_curdir(), inc_dir))
+                    header_dirs.append(os.path.join(state.environment.get_build_dir(),
                                                     src_dir.get_curdir(), inc_dir))
             else:
                 header_dirs.append(src_dir)
