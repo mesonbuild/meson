@@ -1165,8 +1165,10 @@ int dummy;
         args = ['--crate-type']
         if isinstance(target, build.Executable):
             cratetype = 'bin'
+        elif hasattr(target, 'rust_crate_type'):
+            cratetype = target.rust_crate_type
         elif isinstance(target, build.SharedLibrary):
-            cratetype = 'rlib'
+            cratetype = 'dylib'
         elif isinstance(target, build.StaticLibrary):
             cratetype = 'rlib'
         else:
@@ -1185,6 +1187,36 @@ int dummy;
             if d == '':
                 d = '.'
             args += ['-L', d]
+        has_shared_deps = False
+        for dep in target.get_dependencies():
+            if isinstance(dep, build.SharedLibrary):
+                has_shared_deps = True
+        if isinstance(target, build.SharedLibrary) or has_shared_deps:
+            # add prefer-dynamic if any of the Rust libraries we link
+            # against are dynamic, otherwise we'll end up with
+            # multiple implementations of crates
+            args += ['-C', 'prefer-dynamic']
+
+            # build the usual rpath arguments as well...
+
+            # Set runtime-paths so we can run executables without needing to set
+            # LD_LIBRARY_PATH, etc in the environment. Doesn't work on Windows.
+            if '/' in target.name or '\\' in target.name:
+                # Target names really should not have slashes in them, but
+                # unfortunately we did not check for that and some downstream projects
+                # now have them. Once slashes are forbidden, remove this bit.
+                target_slashname_workaround_dir = os.path.join(os.path.split(target.name)[0],
+                                                               self.get_target_dir(target))
+            else:
+                target_slashname_workaround_dir = self.get_target_dir(target)
+            rpath_args = rustc.build_rpath_args(self.environment.get_build_dir(),
+                                                target_slashname_workaround_dir,
+                                                self.determine_rpath_dirs(target),
+                                                target.install_rpath)
+            # ... but then add rustc's sysroot to account for rustup
+            # installations
+            for rpath_arg in rpath_args:
+                args += ['-C', 'link-arg=' + rpath_arg + ':' + os.path.join(rustc.get_sysroot(), 'lib')]
         element = NinjaBuildElement(self.all_outputs, target_name, 'rust_COMPILER', relsrc)
         if len(orderdeps) > 0:
             element.add_orderdep(orderdeps)
@@ -1192,6 +1224,8 @@ int dummy;
         element.add_item('targetdep', depfile)
         element.add_item('cratetype', cratetype)
         element.write(outfile)
+        if isinstance(target, build.SharedLibrary):
+            self.generate_shsym(outfile, target)
 
     def swift_module_file_name(self, target):
         return os.path.join(self.get_target_private_dir(target),

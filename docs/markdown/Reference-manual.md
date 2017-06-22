@@ -510,11 +510,12 @@ Joins the given strings into a file system path segment. For example `join_paths
 
 Builds a library that is either static or shared depending on the value of `default_library` user option. You should use this instead of [`shared_library`](#shared_library) or [`static_library`](#static_library) most of the time. This allows you to toggle your entire project (including subprojects) from shared to static with only one option.
 
-The keyword arguments for this are the same as for [`executable`](#executable) with the following addition:
+The keyword arguments for this are the same as for [`executable`](#executable) with the following additions:
 
 - `name_prefix` the string that will be used as the suffix for the target by overriding the default (only used for libraries). By default this is `lib` on all platforms and compilers except with MSVC where it is omitted.
+- `rust_crate_type` specifies the crate type for Rust libraries. Defaults to `dylib` for shared libraries and `rlib` for static libraries.
 
-`static_library` and `shared_library` also accept this keyword argument.
+`static_library` and `shared_library` also accept these keyword arguments.
 
 ### message()
 
