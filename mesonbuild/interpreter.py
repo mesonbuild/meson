@@ -26,7 +26,7 @@ from .mesonlib import FileMode, Popen_safe, get_meson_script
 from .dependencies import ExternalProgram
 from .dependencies import InternalDependency, Dependency, DependencyException
 from .interpreterbase import InterpreterBase
-from .interpreterbase import check_stringlist, noPosargs, noKwargs, stringArgs
+from .interpreterbase import check_stringlist, noPosargs, noKwargs, stringArgs, permittedKwargs
 from .interpreterbase import InterpreterException, InvalidArguments, InvalidCode
 from .interpreterbase import InterpreterObject, MutableInterpreterObject
 from .modules import ModuleReturnValue
@@ -1214,6 +1214,11 @@ class MesonMain(InterpreterObject):
                 return args[1]
             raise InterpreterException('Unknown cross property: %s.' % propname)
 
+
+permitted_kwargs = {'project': set(['version', 'meson_version', 'default_options', 'license', 'subproject_dir']),
+                 }
+
+
 class Interpreter(InterpreterBase):
 
     def __init__(self, build, backend, subproject='', subdir='', subproject_dir='subprojects',
@@ -1632,6 +1637,7 @@ class Interpreter(InterpreterBase):
                 self.environment.cmd_line_options.projectoptions = newoptions
 
     @stringArgs
+    @permittedKwargs(permitted_kwargs['project'])
     def func_project(self, node, args, kwargs):
         if len(args) < 1:
             raise InvalidArguments('Not enough arguments to project(). Needs at least the project name.')
