@@ -109,7 +109,7 @@ class InternalTests(unittest.TestCase):
 
     def test_compiler_args_class(self):
         cargsfunc = mesonbuild.compilers.CompilerArgs
-        c = mesonbuild.environment.CCompiler([], 'fake', False)
+        c = mesonbuild.compilers.CCompiler([], 'fake', False)
         # Test that bad initialization fails
         self.assertRaises(TypeError, cargsfunc, [])
         self.assertRaises(TypeError, cargsfunc, [], [])
