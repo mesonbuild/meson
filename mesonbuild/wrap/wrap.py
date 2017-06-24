@@ -245,7 +245,7 @@ class Resolver:
     def get_build_file(self, p):
         build_file = p.get('build_file')
         print('Looking for %s' % build_file)
-        checkoutdir = os.path.join(self.subdir_root, p.get('directory'))        
+        checkoutdir = os.path.join(self.subdir_root, p.get('directory'))
         dst_file = os.path.join(checkoutdir, "meson.build")
         url = urlparse(build_file)
         buff = []
