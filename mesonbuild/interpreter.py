@@ -1225,28 +1225,46 @@ lang_arg_kwargs = set(['c_args',
                        'fortran_args',
                        'vala_args'])
 
-exe_kwargs = set(['sources',
-                  'link_with',
-                  'link_whole',
-                  'link_args',
-                  'link_depends',
-                  'include_directories',
-                  'dependencies',
-                  'gui_app',
-                  'extra_files',
-                  'install',
-                  'install_rpath',
-                  'install_dir',
-                  'objects',
-                  'native',
-                  'name_suffix',
-                  'build_by_default',
-                  'override_options'])
+buildtarget_kwargs = set(['sources',
+                          'link_with',
+                          'link_whole',
+                          'link_args',
+                          'link_depends',
+                          'include_directories',
+                          'dependencies',
+                          'gui_app',
+                          'extra_files',
+                          'install',
+                          'install_rpath',
+                          'install_dir',
+                          'objects',
+                          'native',
+                          'name_suffix',
+                          'name_prefix',
+                          'build_by_default',
+                          'vs_module_defs',
+                          'pic',
+                          'override_options'])
+
+exe_kwargs = set()
+exe_kwargs.update(buildtarget_kwargs)
 exe_kwargs.update(lang_arg_kwargs)
 exe_kwargs.update(pch_kwargs)
 
+
+shlib_kwargs = set()
+shlib_kwargs.update(buildtarget_kwargs)
+shlib_kwargs.update(lang_arg_kwargs)
+shlib_kwargs.update(pch_kwargs)
+shlib_kwargs.update(['version', 'soversion'])
+shmod_kwargs = shlib_kwargs
+stlib_kwargs = shlib_kwargs
+
 permitted_kwargs = {'project': set(['version', 'meson_version', 'default_options', 'license', 'subproject_dir']),
                     'executable': exe_kwargs,
+                    'shared_library': shlib_kwargs,
+                    'static_library': stlib_kwargs,
+                    'shared_module': shmod_kwargs,
 }
 
 
@@ -2042,12 +2060,15 @@ class Interpreter(InterpreterBase):
     def func_executable(self, node, args, kwargs):
         return self.build_target(node, args, kwargs, ExecutableHolder)
 
+    @permittedKwargs(permitted_kwargs['static_library'])
     def func_static_lib(self, node, args, kwargs):
         return self.build_target(node, args, kwargs, StaticLibraryHolder)
 
+    @permittedKwargs(permitted_kwargs['shared_library'])
     def func_shared_lib(self, node, args, kwargs):
         return self.build_target(node, args, kwargs, SharedLibraryHolder)
 
+    @permittedKwargs(permitted_kwargs['shared_module'])
     def func_shared_module(self, node, args, kwargs):
         return self.build_target(node, args, kwargs, SharedModuleHolder)
 
