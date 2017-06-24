@@ -245,9 +245,8 @@ class Resolver:
     def get_build_file(self, p):
         build_file = p.get('build_file')
         print('Looking for %s' % build_file)
-        checkoutdir = os.path.join(self.subdir_root, p.get('directory'))
-        bf_name = os.path.basename(build_file)
-        dst_file = os.path.join(checkoutdir,"meson.build")
+        checkoutdir = os.path.join(self.subdir_root, p.get('directory'))        
+        dst_file = os.path.join(checkoutdir, "meson.build")
         url = urlparse(build_file)
         buff = []
 
@@ -265,7 +264,7 @@ class Resolver:
             except Exception as e:
                 print('Could not read {}'.format(src_file))
                 raise RuntimeError('Could not copy build file from %s\n%s'
-                % (src_file, e))
+                                   % (src_file, e))
 
         # Copy meson.build file for subproject
         try:
@@ -273,7 +272,7 @@ class Resolver:
                 d.write(buff)
         except Exception as e:
             raise RuntimeError('Could not copy build file to %s\n%s'
-                % (dst_file, e))
+                               % (dst_file, e))
 
 
     def get_data(self, url):
