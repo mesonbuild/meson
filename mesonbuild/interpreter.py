@@ -1,5 +1,4 @@
 # Copyright 2012-2017 The Meson development team
-
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -1260,11 +1259,23 @@ shlib_kwargs.update(['version', 'soversion'])
 shmod_kwargs = shlib_kwargs
 stlib_kwargs = shlib_kwargs
 
+jar_kwargs = exe_kwargs.copy()
+jar_kwargs.update(['main_class'])
+
+build_target_kwargs = exe_kwargs.copy()
+build_target_kwargs.update(['target_type'])
+
 permitted_kwargs = {'project': set(['version', 'meson_version', 'default_options', 'license', 'subproject_dir']),
                     'executable': exe_kwargs,
                     'shared_library': shlib_kwargs,
                     'static_library': stlib_kwargs,
                     'shared_module': shmod_kwargs,
+                    'jar': jar_kwargs,
+                    'build_target': build_target_kwargs,
+                    'custom_target': set(['input', 'output', 'command', 'install', 'install_dir', 'build_always', 'capture', 'depends', 'depend_files', 'depfile', 'build_by_default']),
+                    'run_target': set(['command', 'depends']),
+                    'generator': set(['arguments', 'output', 'depfile']),
+                    'test': set(['args', 'env', 'is_parallel', 'should_fail', 'timeout', 'workdir', 'suite']),
 }
 
 
@@ -2077,9 +2088,12 @@ class Interpreter(InterpreterBase):
             return self.func_shared_lib(node, args, kwargs)
         return self.func_static_lib(node, args, kwargs)
 
+    @permittedKwargs(permitted_kwargs['jar'])
     def func_jar(self, node, args, kwargs):
-        return self.build_target(node, args, kwargs, JarHolder)
+        kwargs['target_type'] = 'jar'
+        return self.func_build_target(node, args, kwargs, JarHolder)
 
+    @permittedKwargs(permitted_kwargs['build_target'])
     def func_build_target(self, node, args, kwargs):
         if 'target_type' not in kwargs:
             raise InterpreterException('Missing target_type keyword argument')
@@ -2135,6 +2149,7 @@ class Interpreter(InterpreterBase):
         return self.func_custom_target(node, [kwargs['output']], kwargs)
 
     @stringArgs
+    @permittedKwargs(permitted_kwargs['custom_target'])
     def func_custom_target(self, node, args, kwargs):
         if len(args) != 1:
             raise InterpreterException('custom_target: Only one positional argument is allowed, and it must be a string name')
@@ -2143,6 +2158,7 @@ class Interpreter(InterpreterBase):
         self.add_target(name, tg.held_object)
         return tg
 
+    @permittedKwargs(permitted_kwargs['run_target'])
     def func_run_target(self, node, args, kwargs):
         global run_depr_printed
         if len(args) > 1:
@@ -2193,6 +2209,7 @@ class Interpreter(InterpreterBase):
         self.add_target(name, tg.held_object)
         return tg
 
+    @permittedKwargs(permitted_kwargs['generator'])
     def func_generator(self, node, args, kwargs):
         gen = GeneratorHolder(self, args, kwargs)
         self.generators.append(gen)
@@ -2201,6 +2218,7 @@ class Interpreter(InterpreterBase):
     def func_benchmark(self, node, args, kwargs):
         self.add_test(node, args, kwargs, False)
 
+    @permittedKwargs(permitted_kwargs['test'])
     def func_test(self, node, args, kwargs):
         self.add_test(node, args, kwargs, True)
 
