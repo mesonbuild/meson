@@ -237,7 +237,7 @@ class Resolver:
                                           cwd=checkoutdir)
         else:
             subprocess.check_call(['hg', 'clone', p.get('url'),
-                                   p.get('directorz')], cwd=self.subdir_root)
+                                   p.get('directory')], cwd=self.subdir_root)
             if revno.lower() != 'tip':
                 subprocess.check_call(['hg', 'checkout', revno],
                                       cwd=checkoutdir)
