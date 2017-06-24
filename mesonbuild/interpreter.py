@@ -1214,9 +1214,40 @@ class MesonMain(InterpreterObject):
                 return args[1]
             raise InterpreterException('Unknown cross property: %s.' % propname)
 
+pch_kwargs = set(['c_pch', 'cpp_pch'])
+
+lang_arg_kwargs = set(['c_args',
+                       'cpp_args',
+                       'java_args',
+                       'rust_args',
+                       'objc_args',
+                       'objcpp_args',
+                       'fortran_args',
+                       'vala_args'])
+
+exe_kwargs = set(['sources',
+                  'link_with',
+                  'link_whole',
+                  'link_args',
+                  'link_depends',
+                  'include_directories',
+                  'dependencies',
+                  'gui_app',
+                  'extra_files',
+                  'install',
+                  'install_rpath',
+                  'install_dir',
+                  'objects',
+                  'native',
+                  'name_suffix',
+                  'build_by_default',
+                  'override_options'])
+exe_kwargs.update(lang_arg_kwargs)
+exe_kwargs.update(pch_kwargs)
 
 permitted_kwargs = {'project': set(['version', 'meson_version', 'default_options', 'license', 'subproject_dir']),
-                 }
+                    'executable': exe_kwargs,
+}
 
 
 class Interpreter(InterpreterBase):
@@ -2007,6 +2038,7 @@ class Interpreter(InterpreterBase):
                  mlog.bold(name))
         return dep
 
+    @permittedKwargs(permitted_kwargs['executable'])
     def func_executable(self, node, args, kwargs):
         return self.build_target(node, args, kwargs, ExecutableHolder)
 
