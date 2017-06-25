@@ -1252,18 +1252,19 @@ buildtarget_kwargs = set(['sources',
                           'override_options',
                       ])
 
+build_target_common_kwargs = set()
+build_target_common_kwargs.update(buildtarget_kwargs)
+build_target_common_kwargs.update(lang_arg_kwargs)
+build_target_common_kwargs.update(pch_kwargs)
+build_target_common_kwargs.update(vala_kwargs)
+build_target_common_kwargs.update(rust_kwargs)
+build_target_common_kwargs.update(cs_kwargs)
+
 exe_kwargs = set()
-exe_kwargs.update(buildtarget_kwargs)
-exe_kwargs.update(lang_arg_kwargs)
-exe_kwargs.update(pch_kwargs)
-exe_kwargs.update(vala_kwargs)
-exe_kwargs.update(rust_kwargs)
-exe_kwargs.update(cs_kwargs)
+exe_kwargs.update(build_target_common_kwargs)
 
 shlib_kwargs = set()
-shlib_kwargs.update(buildtarget_kwargs)
-shlib_kwargs.update(lang_arg_kwargs)
-shlib_kwargs.update(pch_kwargs)
+shlib_kwargs.update(build_target_common_kwargs)
 shlib_kwargs.update(['version', 'soversion'])
 shmod_kwargs = shlib_kwargs
 stlib_kwargs = shlib_kwargs
@@ -1290,6 +1291,16 @@ permitted_kwargs = {'project': set(['version', 'meson_version', 'default_options
                     'install_man': set(['install_dir']),
                     'install_data': set(['install_dir', 'install_mode', 'sources']),
                     'install_subdir': set(['install_dir', 'install_mode']),
+                    'configure_file': set(['input', 'output', 'configuration', 'command', 'install_dir', 'capture', 'install']),
+                    'include_directories': set(['is_system']),
+                    'add_global_arguments': set(['language']),
+                    'add_project_arguments': set(['language']),
+                    'add_test_setup': set(['exe_wrapper', 'gdb', 'timeout_multiplier', 'env']),
+                    'add_languages': set(['required']),
+                    'find_program': set(['required',]),
+                    'run_command': set(['in_builddir']), # INTERNAL
+                    'subproject': set(['version', 'default_options']),
+                    'vcs_tag': set(['input', 'output', 'fallback', 'command', 'replace_string']),
 }
 
 
@@ -1537,6 +1548,7 @@ class Interpreter(InterpreterBase):
                 if not isinstance(actual, wanted):
                     raise InvalidArguments('Incorrect argument type.')
 
+    @permittedKwargs(permitted_kwargs['run_command'])
     def func_run_command(self, node, args, kwargs):
         if len(args) < 1:
             raise InterpreterException('Not enough arguments')
@@ -1583,6 +1595,7 @@ class Interpreter(InterpreterBase):
     def func_option(self, nodes, args, kwargs):
         raise InterpreterException('Tried to call option() in build description file. All options must be in the option file.')
 
+    @permittedKwargs(permitted_kwargs['subproject'])
     @stringArgs
     def func_subproject(self, nodes, args, kwargs):
         if len(args) != 1:
@@ -1758,6 +1771,7 @@ class Interpreter(InterpreterBase):
         if not self.is_subproject():
             self.check_cross_stdlibs()
 
+    @permittedKwargs(permitted_kwargs['add_languages'])
     @stringArgs
     def func_add_languages(self, node, args, kwargs):
         return self.add_languages(args, kwargs.get('required', True))
@@ -1901,6 +1915,7 @@ class Interpreter(InterpreterBase):
                     break
             self.coredata.base_options[optname] = oobj
 
+    @permittedKwargs(permitted_kwargs['find_program'])
     def func_find_program(self, node, args, kwargs):
         if not args:
             raise InterpreterException('No program name specified.')
@@ -2125,6 +2140,7 @@ class Interpreter(InterpreterBase):
         else:
             raise InterpreterException('Unknown target_type.')
 
+    @permittedKwargs(permitted_kwargs['vcs_tag'])
     def func_vcs_tag(self, node, args, kwargs):
         if 'input' not in kwargs or 'output' not in kwargs:
             raise InterpreterException('Keyword arguments input and output must exist')
@@ -2409,6 +2425,7 @@ class Interpreter(InterpreterBase):
         self.build.install_dirs.append(idir)
         return idir
 
+    @permittedKwargs(permitted_kwargs['configure_file'])
     def func_configure_file(self, node, args, kwargs):
         if len(args) > 0:
             raise InterpreterException("configure_file takes only keyword arguments.")
@@ -2503,6 +2520,7 @@ class Interpreter(InterpreterBase):
             self.build.data.append(build.Data([cfile], idir))
         return mesonlib.File.from_built_file(self.subdir, output)
 
+    @permittedKwargs(permitted_kwargs['include_directories'])
     @stringArgs
     def func_include_directories(self, node, args, kwargs):
         src_root = self.environment.get_source_dir()
@@ -2539,6 +2557,7 @@ different subdirectory.
         i = IncludeDirsHolder(build.IncludeDirs(self.subdir, args, is_system))
         return i
 
+    @permittedKwargs(permitted_kwargs['add_test_setup'])
     @stringArgs
     def func_add_test_setup(self, node, args, kwargs):
         if len(args) != 1:
@@ -2580,18 +2599,22 @@ different subdirectory.
             # and just use the master project ones.
             self.build.test_setups[setup_name] = setupobj
 
+    @permittedKwargs(permitted_kwargs['add_global_arguments'])
     @stringArgs
     def func_add_global_arguments(self, node, args, kwargs):
         self.add_global_arguments(node, self.build.global_args, args, kwargs)
 
+    @noKwargs
     @stringArgs
     def func_add_global_link_arguments(self, node, args, kwargs):
         self.add_global_arguments(node, self.build.global_link_args, args, kwargs)
 
+    @permittedKwargs(permitted_kwargs['add_project_arguments'])
     @stringArgs
     def func_add_project_arguments(self, node, args, kwargs):
         self.add_project_arguments(node, self.build.projects_args, args, kwargs)
 
+    @noKwargs
     @stringArgs
     def func_add_project_link_arguments(self, node, args, kwargs):
         self.add_project_arguments(node, self.build.projects_link_args, args, kwargs)
