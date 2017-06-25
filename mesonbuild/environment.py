@@ -12,15 +12,57 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-import platform
-import re
+import configparser, os, platform, re, shlex, shutil, subprocess
 
-from .compilers import *
+from . import coredata
+from .linkers import ArLinker, VisualStudioLinker
+from . import mesonlib
 from .mesonlib import EnvironmentException, Popen_safe
-import configparser
-import shlex
-import shutil
+from . import mlog
+
+from . import compilers
+from .compilers import (
+    CLANG_OSX,
+    CLANG_STANDARD,
+    CLANG_WIN,
+    GCC_CYGWIN,
+    GCC_MINGW,
+    GCC_OSX,
+    GCC_STANDARD,
+    ICC_STANDARD,
+    is_assembly,
+    is_header,
+    is_library,
+    is_llvm_ir,
+    is_object,
+    is_source,
+)
+from .compilers import (
+    ClangCCompiler,
+    ClangCPPCompiler,
+    ClangObjCCompiler,
+    ClangObjCPPCompiler,
+    G95FortranCompiler,
+    GnuCCompiler,
+    GnuCPPCompiler,
+    GnuFortranCompiler,
+    GnuObjCCompiler,
+    GnuObjCPPCompiler,
+    IntelCCompiler,
+    IntelCPPCompiler,
+    IntelFortranCompiler,
+    JavaCompiler,
+    MonoCompiler,
+    NAGFortranCompiler,
+    Open64FortranCompiler,
+    PathScaleFortranCompiler,
+    PGIFortranCompiler,
+    RustCompiler,
+    SunFortranCompiler,
+    ValaCompiler,
+    VisualStudioCCompiler,
+    VisualStudioCPPCompiler,
+)
 
 build_filename = 'meson.build'
 
@@ -684,11 +726,11 @@ class Environment:
             raise EnvironmentException('Could not execute D compiler "%s"' % ' '.join(exelist))
         version = search_version(out)
         if 'LLVM D compiler' in out:
-            return LLVMDCompiler(exelist, version, is_cross)
+            return compilers.LLVMDCompiler(exelist, version, is_cross)
         elif 'gdc' in out:
-            return GnuDCompiler(exelist, version, is_cross)
+            return compilers.GnuDCompiler(exelist, version, is_cross)
         elif 'Digital Mars' in out:
-            return DmdDCompiler(exelist, version, is_cross)
+            return compilers.DmdDCompiler(exelist, version, is_cross)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
 
     def detect_swift_compiler(self):
@@ -699,7 +741,7 @@ class Environment:
             raise EnvironmentException('Could not execute Swift compiler "%s"' % ' '.join(exelist))
         version = search_version(err)
         if 'Swift' in err:
-            return SwiftCompiler(exelist, version)
+            return compilers.SwiftCompiler(exelist, version)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
 
     def detect_static_linker(self, compiler):
@@ -712,12 +754,12 @@ class Environment:
             evar = 'AR'
             if evar in os.environ:
                 linkers = [shlex.split(os.environ[evar])]
-            elif isinstance(compiler, VisualStudioCCompiler):
+            elif isinstance(compiler, compilers.VisualStudioCCompiler):
                 linkers = [self.vs_static_linker]
-            elif isinstance(compiler, GnuCompiler):
+            elif isinstance(compiler, compilers.GnuCompiler):
                 # Use gcc-ar if available; needed for LTO
                 linkers = [self.gcc_static_linker, self.default_static_linker]
-            elif isinstance(compiler, ClangCompiler):
+            elif isinstance(compiler, compilers.ClangCompiler):
                 # Use llvm-ar if available; needed for LTO
                 linkers = [self.clang_static_linker, self.default_static_linker]
             else:

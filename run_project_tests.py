@@ -25,7 +25,6 @@ import mesontest
 from mesonbuild import environment
 from mesonbuild import mesonlib
 from mesonbuild import mlog
-from mesonbuild import mesonmain
 from mesonbuild.mesonlib import stringlistify, Popen_safe
 from mesonbuild.coredata import backendlist
 import argparse

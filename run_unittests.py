@@ -109,7 +109,7 @@ class InternalTests(unittest.TestCase):
 
     def test_compiler_args_class(self):
         cargsfunc = mesonbuild.compilers.CompilerArgs
-        c = mesonbuild.environment.CCompiler([], 'fake', False)
+        c = mesonbuild.compilers.CCompiler([], 'fake', False)
         # Test that bad initialization fails
         self.assertRaises(TypeError, cargsfunc, [])
         self.assertRaises(TypeError, cargsfunc, [], [])
@@ -701,7 +701,7 @@ class AllPlatformTests(BasePlatformTests):
         static_linker = env.detect_static_linker(cc)
         if is_windows():
             raise unittest.SkipTest('https://github.com/mesonbuild/meson/issues/1526')
-        if not isinstance(static_linker, mesonbuild.compilers.ArLinker):
+        if not isinstance(static_linker, mesonbuild.linkers.ArLinker):
             raise unittest.SkipTest('static linker is not `ar`')
         # Configure
         self.init(testdir)
@@ -936,8 +936,8 @@ class AllPlatformTests(BasePlatformTests):
         clang = mesonbuild.compilers.ClangCompiler
         intel = mesonbuild.compilers.IntelCompiler
         msvc = mesonbuild.compilers.VisualStudioCCompiler
-        ar = mesonbuild.compilers.ArLinker
-        lib = mesonbuild.compilers.VisualStudioLinker
+        ar = mesonbuild.linkers.ArLinker
+        lib = mesonbuild.linkers.VisualStudioLinker
         langs = [('c', 'CC'), ('cpp', 'CXX')]
         if not is_windows():
             langs += [('objc', 'OBJC'), ('objcpp', 'OBJCXX')]
