@@ -1222,7 +1222,13 @@ lang_arg_kwargs = set(['c_args',
                        'objc_args',
                        'objcpp_args',
                        'fortran_args',
-                       'vala_args'])
+                       'vala_args',
+                       'd_args',
+                   ])
+
+vala_kwargs = set(['vala_header', 'vala_gir', 'vala_vapi'])
+rust_kwargs = set(['rust_crate_type'])
+cs_kwargs = set(['resources'])
 
 buildtarget_kwargs = set(['sources',
                           'link_with',
@@ -1243,13 +1249,16 @@ buildtarget_kwargs = set(['sources',
                           'build_by_default',
                           'vs_module_defs',
                           'pic',
-                          'override_options'])
+                          'override_options',
+                      ])
 
 exe_kwargs = set()
 exe_kwargs.update(buildtarget_kwargs)
 exe_kwargs.update(lang_arg_kwargs)
 exe_kwargs.update(pch_kwargs)
-
+exe_kwargs.update(vala_kwargs)
+exe_kwargs.update(rust_kwargs)
+exe_kwargs.update(cs_kwargs)
 
 shlib_kwargs = set()
 shlib_kwargs.update(buildtarget_kwargs)
@@ -1276,6 +1285,11 @@ permitted_kwargs = {'project': set(['version', 'meson_version', 'default_options
                     'run_target': set(['command', 'depends']),
                     'generator': set(['arguments', 'output', 'depfile']),
                     'test': set(['args', 'env', 'is_parallel', 'should_fail', 'timeout', 'workdir', 'suite']),
+                    'benchmark': set(['args', 'env', 'should_fail', 'timeout', 'workdir', 'suite']),
+                    'install_headers': set(['install_dir', 'subdir']),
+                    'install_man': set(['install_dir']),
+                    'install_data': set(['install_dir', 'install_mode', 'sources']),
+                    'install_subdir': set(['install_dir', 'install_mode']),
 }
 
 
@@ -2091,7 +2105,7 @@ class Interpreter(InterpreterBase):
     @permittedKwargs(permitted_kwargs['jar'])
     def func_jar(self, node, args, kwargs):
         kwargs['target_type'] = 'jar'
-        return self.func_build_target(node, args, kwargs, JarHolder)
+        return self.build_target(node, args, kwargs, JarHolder)
 
     @permittedKwargs(permitted_kwargs['build_target'])
     def func_build_target(self, node, args, kwargs):
@@ -2215,6 +2229,7 @@ class Interpreter(InterpreterBase):
         self.generators.append(gen)
         return gen
 
+    @permittedKwargs(permitted_kwargs['benchmark'])
     def func_benchmark(self, node, args, kwargs):
         self.add_test(node, args, kwargs, False)
 
@@ -2288,12 +2303,14 @@ class Interpreter(InterpreterBase):
             self.build.benchmarks.append(t)
             mlog.debug('Adding benchmark "', mlog.bold(args[0]), '".', sep='')
 
+    @permittedKwargs(permitted_kwargs['install_headers'])
     def func_install_headers(self, node, args, kwargs):
         source_files = self.source_strings_to_files(args)
         h = Headers(source_files, kwargs)
         self.build.headers.append(h)
         return h
 
+    @permittedKwargs(permitted_kwargs['install_man'])
     @stringArgs
     def func_install_man(self, node, args, kwargs):
         m = Man(self.subdir, args, kwargs)
@@ -2357,6 +2374,7 @@ class Interpreter(InterpreterBase):
                                    'permissions arg to be a string or false')
         return FileMode(*install_mode)
 
+    @permittedKwargs(permitted_kwargs['install_data'])
     def func_install_data(self, node, args, kwargs):
         kwsource = mesonlib.stringlistify(kwargs.get('sources', []))
         raw_sources = args + kwsource
@@ -2376,6 +2394,7 @@ class Interpreter(InterpreterBase):
         self.build.data.append(data.held_object)
         return data
 
+    @permittedKwargs(permitted_kwargs['install_subdir'])
     @stringArgs
     def func_install_subdir(self, node, args, kwargs):
         if len(args) != 1:
