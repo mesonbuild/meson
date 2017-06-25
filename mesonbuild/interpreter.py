@@ -1294,7 +1294,6 @@ permitted_kwargs = {'add_global_arguments': set(['language']),
                     'install_subdir': set(['install_dir', 'install_mode']),
                     'jar': jar_kwargs,
                     'project': set(['version', 'meson_version', 'default_options', 'license', 'subproject_dir']),
-                    'run_command': set(['in_builddir']), # INTERNAL
                     'run_target': set(['command', 'depends']),
                     'shared_library': shlib_kwargs,
                     'shared_module': shmod_kwargs,
@@ -1550,8 +1549,11 @@ class Interpreter(InterpreterBase):
                 if not isinstance(actual, wanted):
                     raise InvalidArguments('Incorrect argument type.')
 
-    @permittedKwargs(permitted_kwargs['run_command'])
+    @noKwargs
     def func_run_command(self, node, args, kwargs):
+        return self.run_command_impl(node, args, kwargs)
+
+    def run_command_impl(self, node, args, kwargs, in_builddir=False):
         if len(args) < 1:
             raise InterpreterException('Not enough arguments')
         cmd = args[0]
@@ -1584,9 +1586,6 @@ class Interpreter(InterpreterBase):
                 expanded_args.append(a.held_object.get_path())
             else:
                 raise InterpreterException('Arguments ' + m.format(a))
-        in_builddir = kwargs.get('in_builddir', False)
-        if not isinstance(in_builddir, bool):
-            raise InterpreterException('in_builddir must be boolean.')
         return RunProcess(cmd, expanded_args, srcdir, builddir, self.subdir,
                           get_meson_script(self.environment, 'mesonintrospect'), in_builddir)
 
@@ -2503,7 +2502,7 @@ class Interpreter(InterpreterBase):
             # Substitute @INPUT@, @OUTPUT@, etc here.
             cmd = mesonlib.substitute_values(kwargs['command'], values)
             mlog.log('Configuring', mlog.bold(output), 'with command')
-            res = self.func_run_command(node, cmd, {'in_builddir': True})
+            res = self.run_command_impl(node, cmd,  {}, True)
             if res.returncode != 0:
                 raise InterpreterException('Running configure command failed.\n%s\n%s' %
                                            (res.stdout, res.stderr))
