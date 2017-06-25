@@ -591,52 +591,5 @@ To specify a keyword argument, use : instead of =.''')
         return isinstance(value, (InterpreterObject, dependencies.Dependency,
                                   str, int, list, mesonlib.File))
 
-    def func_build_target(self, node, args, kwargs):
-        if 'target_type' not in kwargs:
-            raise InterpreterException('Missing target_type keyword argument')
-        target_type = kwargs.pop('target_type')
-        if target_type == 'executable':
-            return self.func_executable(node, args, kwargs)
-        elif target_type == 'shared_library':
-            return self.func_shared_lib(node, args, kwargs)
-        elif target_type == 'static_library':
-            return self.func_static_lib(node, args, kwargs)
-        elif target_type == 'library':
-            return self.func_library(node, args, kwargs)
-        elif target_type == 'jar':
-            return self.func_jar(node, args, kwargs)
-        else:
-            raise InterpreterException('Unknown target_type.')
-
-    def func_set_variable(self, node, args, kwargs):
-        if len(args) != 2:
-            raise InvalidCode('Set_variable takes two arguments.')
-        varname = args[0]
-        value = args[1]
-        self.set_variable(varname, value)
-
-#    @noKwargs
-    def func_get_variable(self, node, args, kwargs):
-        if len(args) < 1 or len(args) > 2:
-            raise InvalidCode('Get_variable takes one or two arguments.')
-        varname = args[0]
-        if not isinstance(varname, str):
-            raise InterpreterException('First argument must be a string.')
-        try:
-            return self.variables[varname]
-        except KeyError:
-            pass
-        if len(args) == 2:
-            return args[1]
-        raise InterpreterException('Tried to get unknown variable "%s".' % varname)
-
-    @stringArgs
-    @noKwargs
-    def func_is_variable(self, node, args, kwargs):
-        if len(args) != 1:
-            raise InvalidCode('Is_variable takes two arguments.')
-        varname = args[0]
-        return varname in self.variables
-
     def is_elementary_type(self, v):
         return isinstance(v, (int, float, str, bool, list))

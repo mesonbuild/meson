@@ -1301,6 +1301,7 @@ permitted_kwargs = {'project': set(['version', 'meson_version', 'default_options
                     'run_command': set(['in_builddir']), # INTERNAL
                     'subproject': set(['version', 'default_options']),
                     'vcs_tag': set(['input', 'output', 'fallback', 'command', 'replace_string']),
+                    'declare_dependency': set(['include_directories', 'link_with', 'sources', 'dependencies', 'compile_args', 'link_args', 'version']),
 }
 
 
@@ -1492,6 +1493,7 @@ class Interpreter(InterpreterBase):
     def func_files(self, node, args, kwargs):
         return [mesonlib.File.from_source_file(self.environment.source_dir, self.subdir, fname) for fname in args]
 
+    @permittedKwargs(permitted_kwargs['declare_dependency'])
     @noPosargs
     def func_declare_dependency(self, node, args, kwargs):
         version = kwargs.get('version', self.project_version)
@@ -2651,6 +2653,8 @@ different subdirectory.
             lang = lang.lower()
             argsdict[lang] = argsdict.get(lang, []) + args
 
+    @noKwargs
+    @noPosargs
     def func_environment(self, node, args, kwargs):
         return EnvironmentVariablesHolder()
 
@@ -2804,3 +2808,34 @@ different subdirectory.
 
     def is_subproject(self):
         return self.subproject != ''
+
+    @noKwargs
+    def func_set_variable(self, node, args, kwargs):
+        if len(args) != 2:
+            raise InvalidCode('Set_variable takes two arguments.')
+        varname = args[0]
+        value = args[1]
+        self.set_variable(varname, value)
+
+    @noKwargs
+    def func_get_variable(self, node, args, kwargs):
+        if len(args) < 1 or len(args) > 2:
+            raise InvalidCode('Get_variable takes one or two arguments.')
+        varname = args[0]
+        if not isinstance(varname, str):
+            raise InterpreterException('First argument must be a string.')
+        try:
+            return self.variables[varname]
+        except KeyError:
+            pass
+        if len(args) == 2:
+            return args[1]
+        raise InterpreterException('Tried to get unknown variable "%s".' % varname)
+
+    @stringArgs
+    @noKwargs
+    def func_is_variable(self, node, args, kwargs):
+        if len(args) != 1:
+            raise InvalidCode('Is_variable takes two arguments.')
+        varname = args[0]
+        return varname in self.variables
