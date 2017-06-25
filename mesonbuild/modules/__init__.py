@@ -3,8 +3,10 @@ import os
 from .. import build
 from .. import dependencies
 from ..mesonlib import MesonException
+from ..interpreterbase import permittedKwargs, noKwargs
 
 _found_programs = {}
+
 
 class ExtensionModule:
     def __init__(self):
