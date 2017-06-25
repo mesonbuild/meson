@@ -11,3 +11,8 @@ short-description: Release notes for 0.42 (preliminary)
 
 Creating distribution tarballs can now be made out of projects based on
 Mercurial. As before, this remains possible only with the Ninja backend.
+
+## Keyword argument verification
+
+Meson will now check the keyword arguments used when calling any function
+and error out if any of keyword arguments is not known.
