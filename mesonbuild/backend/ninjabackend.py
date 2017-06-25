@@ -1290,7 +1290,21 @@ int dummy;
         os.makedirs(self.get_target_private_dir_abs(target), exist_ok=True)
         compile_args = swiftc.get_compile_only_args()
         compile_args += swiftc.get_module_args(module_name)
+        compile_args += self.build.get_project_args(swiftc, target.subproject)
+        compile_args += self.build.get_global_args(swiftc)
+        for i in reversed(target.get_include_dirs()):
+            basedir = i.get_curdir()
+            for d in i.get_incdirs():
+                if d not in ('', '.'):
+                    expdir = os.path.join(basedir, d)
+                else:
+                    expdir = basedir
+                srctreedir = os.path.normpath(os.path.join(self.environment.get_build_dir(), self.build_to_src, expdir))
+                sargs = swiftc.get_include_args(srctreedir)
+                compile_args += sargs
         link_args = swiftc.get_output_args(os.path.join(self.environment.get_build_dir(), self.get_target_filename(target)))
+        link_args += self.build.get_project_link_args(swiftc, target.subproject)
+        link_args += self.build.get_global_link_args(swiftc)
         rundir = self.get_target_private_dir(target)
         out_module_name = self.swift_module_file_name(target)
         in_module_files = self.determine_swift_dep_modules(target)
@@ -1300,6 +1314,11 @@ int dummy;
             module_includes += swiftc.get_include_args(x)
         link_deps = self.get_swift_link_deps(target)
         abs_link_deps = [os.path.join(self.environment.get_build_dir(), x) for x in link_deps]
+        for d in target.link_targets:
+            reldir = self.get_target_dir(d)
+            if reldir == '':
+                reldir = '.'
+            link_args += ['-L', os.path.normpath(os.path.join(self.environment.get_build_dir(), reldir))]
         (rel_generated, _) = self.split_swift_generated_sources(target)
         abs_generated = [os.path.join(self.environment.get_build_dir(), x) for x in rel_generated]
         # We need absolute paths because swiftc needs to be invoked in a subdir
