@@ -32,6 +32,9 @@ class CPPCompiler(CCompiler):
             self.language = 'cpp'
         CCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
 
+    def get_display_language(self):
+        return 'C++'
+
     def get_no_stdinc_args(self):
         return ['-nostdinc++']
 

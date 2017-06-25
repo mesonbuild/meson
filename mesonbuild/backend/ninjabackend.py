@@ -1606,7 +1606,7 @@ rule FORTRAN_DEP_HACK
             output_args=' '.join(compiler.get_output_args('$out')),
             compile_only_args=' '.join(compiler.get_compile_only_args())
         )
-        description = ' description = Compiling %s object $out.\n' % langname.title()
+        description = ' description = Compiling %s object $out.\n' % compiler.get_display_language()
         if compiler.get_id() == 'msvc':
             deps = ' deps = msvc\n'
         else:
