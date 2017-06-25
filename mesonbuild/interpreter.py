@@ -741,7 +741,7 @@ class CompilerHolder(InterpreterObject):
     def unittest_args_method(self, args, kwargs):
         # At time, only D compilers have this feature.
         if not hasattr(self.compiler, 'get_unittest_args'):
-            raise InterpreterException('This {} compiler has no unittest arguments.'.format(self.compiler.language))
+            raise InterpreterException('This {} compiler has no unittest arguments.'.format(self.compiler.get_display_language()))
         return self.compiler.get_unittest_args()
 
     def has_member_method(self, args, kwargs):
@@ -971,8 +971,7 @@ class CompilerHolder(InterpreterObject):
                 raise InvalidCode('Search directory %s is not an absolute path.' % i)
         linkargs = self.compiler.find_library(libname, self.environment, search_dirs)
         if required and not linkargs:
-            l = self.compiler.language.capitalize()
-            raise InterpreterException('{} library {!r} not found'.format(l, libname))
+            raise InterpreterException('{} library {!r} not found'.format(self.compiler.get_display_language(), libname))
         lib = dependencies.ExternalLibrary(libname, linkargs, self.environment,
                                            self.compiler.language)
         return ExternalLibraryHolder(lib)
@@ -986,7 +985,7 @@ class CompilerHolder(InterpreterObject):
             h = mlog.green('YES')
         else:
             h = mlog.red('NO')
-        mlog.log('Compiler for {} supports argument {}:'.format(self.compiler.language, args[0]), h)
+        mlog.log('Compiler for {} supports argument {}:'.format(self.compiler.get_display_language(), args[0]), h)
         return result
 
     def has_multi_arguments_method(self, args, kwargs):
@@ -998,7 +997,7 @@ class CompilerHolder(InterpreterObject):
             h = mlog.red('NO')
         mlog.log(
             'Compiler for {} supports arguments {}:'.format(
-                self.compiler.language, ' '.join(args)),
+                self.compiler.get_display_language(), ' '.join(args)),
             h)
         return result
 
@@ -1794,7 +1793,7 @@ class Interpreter(InterpreterBase):
                         continue
                     else:
                         raise
-            mlog.log('Native %s compiler: ' % lang, mlog.bold(' '.join(comp.get_exelist())), ' (%s %s)' % (comp.id, comp.version), sep='')
+            mlog.log('Native %s compiler: ' % comp.get_display_language(), mlog.bold(' '.join(comp.get_exelist())), ' (%s %s)' % (comp.id, comp.version), sep='')
             if not comp.get_language() in self.coredata.external_args:
                 (preproc_args, compile_args, link_args) = environment.get_args_from_envvars(comp)
                 self.coredata.external_preprocess_args[comp.get_language()] = preproc_args
@@ -1802,7 +1801,7 @@ class Interpreter(InterpreterBase):
                 self.coredata.external_link_args[comp.get_language()] = link_args
             self.build.add_compiler(comp)
             if need_cross_compiler:
-                mlog.log('Cross %s compiler: ' % lang, mlog.bold(' '.join(cross_comp.get_exelist())), ' (%s %s)' % (cross_comp.id, cross_comp.version), sep='')
+                mlog.log('Cross %s compiler: ' % cross_comp.get_display_language(), mlog.bold(' '.join(cross_comp.get_exelist())), ' (%s %s)' % (cross_comp.id, cross_comp.version), sep='')
                 self.build.add_cross_compiler(cross_comp)
             if self.environment.is_cross_build() and not need_cross_compiler:
                 self.build.add_cross_compiler(comp)

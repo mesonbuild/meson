@@ -24,6 +24,9 @@ class ObjCCompiler(CCompiler):
         self.language = 'objc'
         CCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
 
+    def get_display_language(self):
+        return 'Objective-C'
+
     def sanity_check(self, work_dir, environment):
         # TODO try to use sanity_check_impl instead of duplicated code
         source_name = os.path.join(work_dir, 'sanitycheckobjc.m')

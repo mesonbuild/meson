@@ -179,7 +179,7 @@ class CCompiler(Compiler):
         return ['-Wl,--out-implib=' + implibname]
 
     def sanity_check_impl(self, work_dir, environment, sname, code):
-        mlog.debug('Sanity testing ' + self.language + ' compiler:', ' '.join(self.exelist))
+        mlog.debug('Sanity testing ' + self.get_display_language() + ' compiler:', ' '.join(self.exelist))
         mlog.debug('Is cross compiler: %s.' % str(self.is_cross))
 
         extra_flags = []
