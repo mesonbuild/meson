@@ -56,8 +56,8 @@ class I18nModule(ExtensionModule):
         src_dir = path.join(state.environment.get_source_dir(), state.subdir)
         return [path.join(src_dir, d) for d in dirs]
 
-    @permittedKwargs(set(['languages', 'data_dirs', 'preset', 'args', 'po_dir', 'type',
-                          'input', 'output', 'install', 'install_dir']))
+    @permittedKwargs({'languages', 'data_dirs', 'preset', 'args', 'po_dir', 'type',
+                      'input', 'output', 'install', 'install_dir'})
     def merge_file(self, state, args, kwargs):
         podir = kwargs.pop('po_dir', None)
         if not podir:
@@ -81,7 +81,7 @@ class I18nModule(ExtensionModule):
         ct = build.CustomTarget(kwargs['output'] + '_merge', state.subdir, kwargs)
         return ModuleReturnValue(ct, [ct])
 
-    @permittedKwargs(set(['po_dir', 'data_dirs', 'type', 'languages']))
+    @permittedKwargs({'po_dir', 'data_dirs', 'type', 'languages'})
     def gettext(self, state, args, kwargs):
         if len(args) != 1:
             raise coredata.MesonException('Gettext requires one positional argument (package name).')

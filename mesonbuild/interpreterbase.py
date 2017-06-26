@@ -64,7 +64,7 @@ class permittedKwargs:
         def wrapped(s, node, args, kwargs):
             for k in kwargs:
                 if k not in self.permitted:
-                    raise InvalidArguments('Invalid keyword argument %s.' % k)
+                    mlog.warning('Passed invalid keyword argument %s. This will become a hard error in the future.' % k)
             return f(s, node, args, kwargs)
         return wrapped
 

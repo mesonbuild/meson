@@ -30,7 +30,7 @@ class WindowsModule(ExtensionModule):
                 return compilers[l]
         raise MesonException('Resource compilation requires a C or C++ compiler.')
 
-    @permittedKwargs(set(['args', 'include_directories']))
+    @permittedKwargs({'args', 'include_directories'})
     def compile_resources(self, state, args, kwargs):
         comp = self.detect_compiler(state.compilers)
 
