@@ -168,6 +168,7 @@ class ConfigurationDataHolder(MutableInterpreterObject):
                              'set_quoted': self.set_quoted_method,
                              'has': self.has_method,
                              'get': self.get_method,
+                             'get_unquoted': self.get_unquoted_method,
                              'merge_from': self.merge_from_method,
                              })
 
@@ -222,6 +223,20 @@ class ConfigurationDataHolder(MutableInterpreterObject):
         if len(args) > 1:
             return args[1]
         raise InterpreterException('Entry %s not in configuration data.' % name)
+
+    def get_unquoted_method(self, args, kwargs):
+        if len(args) < 1 or len(args) > 2:
+            raise InterpreterException('Get method takes one or two arguments.')
+        name = args[0]
+        if name in self.held_object:
+            val = self.held_object.get(name)[0]
+        elif len(args) > 1:
+            val = args[1]
+        else:
+            raise InterpreterException('Entry %s not in configuration data.' % name)
+        if val[0] == '"' and val[-1] == '"':
+          return val[1:len(val)-1]
+        return val
 
     def get(self, name):
         return self.held_object.values[name]     # (val, desc)
