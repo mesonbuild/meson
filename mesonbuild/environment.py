@@ -514,7 +514,7 @@ class Environment:
             if 'Free Software Foundation' in out:
                 defines = self.get_gnu_compiler_defines(compiler)
                 if not defines:
-                    popen_exceptions[compiler] = 'no pre-processor defines'
+                    popen_exceptions[' '.join(compiler)] = 'no pre-processor defines'
                     continue
                 gtype = self.get_gnu_compiler_type(defines)
                 version = self.get_gnu_version_from_defines(defines)
@@ -566,7 +566,7 @@ class Environment:
                 if 'GNU Fortran' in out:
                     defines = self.get_gnu_compiler_defines(compiler)
                     if not defines:
-                        popen_exceptions[compiler] = 'no pre-processor defines'
+                        popen_exceptions[' '.join(compiler)] = 'no pre-processor defines'
                         continue
                     gtype = self.get_gnu_compiler_type(defines)
                     version = self.get_gnu_version_from_defines(defines)
@@ -617,7 +617,7 @@ class Environment:
             if 'Free Software Foundation' in out:
                 defines = self.get_gnu_compiler_defines(compiler)
                 if not defines:
-                    popen_exceptions[compiler] = 'no pre-processor defines'
+                    popen_exceptions[' '.join(compiler)] = 'no pre-processor defines'
                     continue
                 gtype = self.get_gnu_compiler_type(defines)
                 version = self.get_gnu_version_from_defines(defines)
@@ -643,7 +643,7 @@ class Environment:
             if 'Free Software Foundation' in out:
                 defines = self.get_gnu_compiler_defines(compiler)
                 if not defines:
-                    popen_exceptions[compiler] = 'no pre-processor defines'
+                    popen_exceptions[' '.join(compiler)] = 'no pre-processor defines'
                     continue
                 gtype = self.get_gnu_compiler_type(defines)
                 version = self.get_gnu_version_from_defines(defines)
