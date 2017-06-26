@@ -44,7 +44,7 @@ class PkgConfigModule(ExtensionModule):
 
     def generate_pkgconfig_file(self, state, libraries, subdirs, name, description,
                                 url, version, pcfile, pub_reqs, priv_reqs,
-                                conflicts, priv_libs, variables):
+                                conflicts, priv_libs, extra_cflags, variables):
         coredata = state.environment.get_coredata()
         outdir = state.environment.scratch_dir
         fname = os.path.join(outdir, pcfile)
@@ -101,6 +101,9 @@ class PkgConfigModule(ExtensionModule):
                     h = ''
                 ofile.write(' ')
                 ofile.write(os.path.join('-I${includedir}', h))
+            for f in extra_cflags:
+                ofile.write(' ')
+                ofile.write(f)
             ofile.write('\n')
 
     def process_libs(self, libs):
@@ -117,7 +120,7 @@ class PkgConfigModule(ExtensionModule):
 
     @permittedKwargs({'libraries', 'version', 'name', 'description', 'filebase',
                       'subdirs', 'requires', 'requires_private', 'libraries_private',
-                      'install_dir', 'variables'})
+                      'install_dir', 'extra_cflags', 'variables'})
     def generate(self, state, args, kwargs):
         if len(args) > 0:
             raise mesonlib.MesonException('Pkgconfig_gen takes no positional arguments.')
@@ -142,6 +145,7 @@ class PkgConfigModule(ExtensionModule):
         pub_reqs = mesonlib.stringlistify(kwargs.get('requires', []))
         priv_reqs = mesonlib.stringlistify(kwargs.get('requires_private', []))
         conflicts = mesonlib.stringlistify(kwargs.get('conflicts', []))
+        extra_cflags = mesonlib.stringlistify(kwargs.get('extra_cflags', []))
 
         def parse_variable_list(stringlist):
             reserved = ['prefix', 'libdir', 'includedir']
@@ -177,7 +181,7 @@ class PkgConfigModule(ExtensionModule):
             raise mesonlib.MesonException('Install_dir must be a string.')
         self.generate_pkgconfig_file(state, libs, subdirs, name, description, url,
                                      version, pcfile, pub_reqs, priv_reqs,
-                                     conflicts, priv_libs, variables)
+                                     conflicts, priv_libs, extra_cflags, variables)
         res = build.Data(mesonlib.File(True, state.environment.get_scratch_dir(), pcfile), pkgroot)
         return ModuleReturnValue(res, [res])
 
