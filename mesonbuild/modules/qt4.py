@@ -97,7 +97,7 @@ class Qt4Module(ExtensionModule):
         except Exception:
             return []
 
-    @permittedKwargs(set(['moc_headers', 'moc_sources', 'ui_files', 'qresources', 'method']))
+    @permittedKwargs({'moc_headers', 'moc_sources', 'ui_files', 'qresources', 'method'})
     def preprocess(self, state, args, kwargs):
         rcc_files = kwargs.pop('qresources', [])
         if not isinstance(rcc_files, list):

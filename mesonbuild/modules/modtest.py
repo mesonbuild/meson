@@ -18,6 +18,7 @@ from . import noKwargs
 
 class TestModule(ExtensionModule):
 
+    @noKwargs
     def print_hello(self, state, args, kwargs):
         print('Hello from a Meson module')
         rv = ModuleReturnValue(None, [])

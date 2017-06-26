@@ -115,9 +115,9 @@ class PkgConfigModule(ExtensionModule):
             processed_libs.append(l)
         return processed_libs
 
-    @permittedKwargs(set(['libraries', 'version', 'name', 'description', 'filebase',
-                          'subdirs', 'requires', 'requires_private', 'libraries_private',
-                          'install_dir', 'variables']))
+    @permittedKwargs({'libraries', 'version', 'name', 'description', 'filebase',
+                      'subdirs', 'requires', 'requires_private', 'libraries_private',
+                      'install_dir', 'variables'})
     def generate(self, state, args, kwargs):
         if len(args) > 0:
             raise mesonlib.MesonException('Pkgconfig_gen takes no positional arguments.')

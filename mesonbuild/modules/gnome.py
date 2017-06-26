@@ -91,8 +91,8 @@ class GnomeModule(ExtensionModule):
                          mlog.bold('https://github.com/mesonbuild/meson/issues/1387'))
             gdbuswarning_printed = True
 
-    @permittedKwargs(set(['source_dir', 'c_name', 'dependencies', 'export', 'gresource_bundle', 'install_header',
-                          'install', 'install_dir', 'extra_args']))
+    @permittedKwargs({'source_dir', 'c_name', 'dependencies', 'export', 'gresource_bundle', 'install_header',
+                      'install', 'install_dir', 'extra_args'})
     def compile_resources(self, state, args, kwargs):
         self.__print_gresources_warning(state)
         glib_version = self._get_native_glib_version(state)
@@ -380,10 +380,10 @@ class GnomeModule(ExtensionModule):
 
         return cflags, ldflags, gi_includes
 
-    @permittedKwargs(set(['sources', 'nsversion', 'namespace', 'symbol_prefix', 'identifier_prefix',
-                         'export_packagse', 'includes', 'dependencies', 'link_with', 'include_directories',
-                         'install', 'install_dir_gir', 'install_dir_typelib', 'extra_args',
-                         'packages']))
+    @permittedKwargs({'sources', 'nsversion', 'namespace', 'symbol_prefix', 'identifier_prefix',
+                      'export_packagse', 'includes', 'dependencies', 'link_with', 'include_directories',
+                      'install', 'install_dir_gir', 'install_dir_typelib', 'extra_args',
+                      'packages'})
     def generate_gir(self, state, args, kwargs):
         if len(args) != 1:
             raise MesonException('Gir takes one argument')
@@ -621,7 +621,7 @@ class GnomeModule(ExtensionModule):
         target_g = build.CustomTarget(targetname, state.subdir, kwargs)
         return ModuleReturnValue(target_g, [target_g])
 
-    @permittedKwargs(set(['sources', 'media', 'symlink_media', 'languages']))
+    @permittedKwargs({'sources', 'media', 'symlink_media', 'languages'})
     def yelp(self, state, args, kwargs):
         if len(args) < 1:
             raise MesonException('Yelp requires a project id')
@@ -679,10 +679,10 @@ class GnomeModule(ExtensionModule):
         rv = [inscript, pottarget, potarget]
         return ModuleReturnValue(None, rv)
 
-    @permittedKwargs(set(['main_xml', 'main_sgml', 'src_dir', 'dependencies', 'install',
-                          'install_dir', 'scan_args', 'scanobjs_args', 'gobject_typesfile',
-                          'fixxref_args', 'html_args', 'html_assets', 'content_files',
-                          'mkdb_args']))
+    @permittedKwargs({'main_xml', 'main_sgml', 'src_dir', 'dependencies', 'install',
+                      'install_dir', 'scan_args', 'scanobjs_args', 'gobject_typesfile',
+                      'fixxref_args', 'html_args', 'html_assets', 'content_files',
+                      'mkdb_args'})
     def gtkdoc(self, state, args, kwargs):
         if len(args) != 1:
             raise MesonException('Gtkdoc must have one positional argument.')
@@ -806,7 +806,7 @@ class GnomeModule(ExtensionModule):
 
         return []
 
-    @permittedKwargs(set(['interface_prefix', 'namespace', 'object_manager']))
+    @permittedKwargs({'interface_prefix', 'namespace', 'object_manager'})
     def gdbus_codegen(self, state, args, kwargs):
         if len(args) != 2:
             raise MesonException('Gdbus_codegen takes two arguments, name and xml file.')
@@ -835,9 +835,9 @@ class GnomeModule(ExtensionModule):
         ct = build.CustomTarget(target_name, state.subdir, custom_kwargs)
         return ModuleReturnValue(ct, [ct])
 
-    @permittedKwargs(set(['sources', 'c_template', 'h_template', 'install_header', 'install_dir',
-                          'comments', 'identifier_prefix', 'symbol_prefix', 'eprod', 'vprod',
-                          'fhead', 'fprod', 'ftail', 'vhead', 'vtail', 'depends']))
+    @permittedKwargs({'sources', 'c_template', 'h_template', 'install_header', 'install_dir',
+                      'comments', 'identifier_prefix', 'symbol_prefix', 'eprod', 'vprod',
+                      'fhead', 'fprod', 'ftail', 'vhead', 'vtail', 'depends'})
     def mkenums(self, state, args, kwargs):
         if len(args) != 1:
             raise MesonException('Mkenums requires one positional argument.')
@@ -950,8 +950,8 @@ class GnomeModule(ExtensionModule):
                                   # https://github.com/mesonbuild/meson/issues/973
                                   absolute_paths=True)
 
-    @permittedKwargs(set(['sources', 'prefix', 'install_header', 'install_dir', 'stdinc',
-                          'nostdinc', 'internal', 'skip_source', 'valist_marshallers']))
+    @permittedKwargs({'sources', 'prefix', 'install_header', 'install_dir', 'stdinc',
+                      'nostdinc', 'internal', 'skip_source', 'valist_marshallers'})
     def genmarshal(self, state, args, kwargs):
         if len(args) != 1:
             raise MesonException(
@@ -1090,8 +1090,8 @@ class GnomeModule(ExtensionModule):
                 link_with += self._get_vapi_link_with(dep)
         return link_with
 
-    @permittedKwargs(set(['sources', 'packages', 'metadata_dirs', 'gir_dirs',
-                          'vapi_dirs', 'install', 'install_dir']))
+    @permittedKwargs({'sources', 'packages', 'metadata_dirs', 'gir_dirs',
+                      'vapi_dirs', 'install', 'install_dir'})
     def generate_vapi(self, state, args, kwargs):
         if len(args) != 1:
             raise MesonException('The library name is required')

@@ -15,4 +15,6 @@ Mercurial. As before, this remains possible only with the Ninja backend.
 ## Keyword argument verification
 
 Meson will now check the keyword arguments used when calling any function
-and error out if any of keyword arguments is not known.
+and print a warning if any of the keyword arguments is not known. In the
+future this will become a hard error.
+
