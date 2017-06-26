@@ -11,3 +11,9 @@ short-description: Release notes for 0.42 (preliminary)
 
 Creating distribution tarballs can now be made out of projects based on
 Mercurial. As before, this remains possible only with the Ninja backend.
+
+
+## Add support for Genie to Vala compiler
+
+The Vala compiler has an alternative syntax, Genie, that uses the `.gs`
+file extension. Meson now recognises and uses Genie files.
