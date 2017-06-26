@@ -2,9 +2,25 @@ import os
 
 from .. import build
 from .. import dependencies
+from .. import mlog
 from ..mesonlib import MesonException
+from ..interpreterbase import permittedKwargs, noKwargs
+
+class permittedSnippetKwargs:
+
+    def __init__(self, permitted):
+        self.permitted = permitted
+
+    def __call__(self, f):
+        def wrapped(s, interpreter, state, args, kwargs):
+            for k in kwargs:
+                if k not in self.permitted:
+                    mlog.warning('Passed invalid keyword argument %s. This will become a hard error in the future.' % k)
+            return f(s, interpreter, state, args, kwargs)
+        return wrapped
 
 _found_programs = {}
+
 
 class ExtensionModule:
     def __init__(self):

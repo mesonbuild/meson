@@ -20,6 +20,7 @@ from ..dependencies import Qt4Dependency
 from . import ExtensionModule
 import xml.etree.ElementTree as ET
 from . import ModuleReturnValue
+from . import permittedKwargs
 
 class Qt4Module(ExtensionModule):
     tools_detected = False
@@ -96,6 +97,7 @@ class Qt4Module(ExtensionModule):
         except Exception:
             return []
 
+    @permittedKwargs({'moc_headers', 'moc_sources', 'ui_files', 'qresources', 'method'})
     def preprocess(self, state, args, kwargs):
         rcc_files = kwargs.pop('qresources', [])
         if not isinstance(rcc_files, list):
