@@ -20,4 +20,5 @@ The generated file's properties are specified with the following keyword argumen
 - `requires_private` list of strings to put in the `Requires.private` field
 - `libraries_private` list of strings to put in the `Libraries.private` field
 - `install_dir` the directory to install to, defaults to the value of option `libdir` followed by `/pkgconfig`
+- `extra_cflags` a list of extra compiler flags to be added to the `Cflags` field after the header search path
 - `variables` a list of strings with custom variables to add to the generated file. The strings must be in the form `name=value` and may reference other pkgconfig variables, e.g. `datadir=${prefix}/share`. The names `prefix`, `libdir` and `installdir` are reserved and may not be used.

@@ -23,3 +23,16 @@ future this will become a hard error.
 The Vala compiler has an alternative syntax, Genie, that uses the `.gs`
 file extension. Meson now recognises and uses Genie files.
 
+## Pkgconfig support for additional cflags
+
+The Pkgconfig module object can add arbitrary extra cflags to the Cflags
+value in the .pc file, using the "extra_cflags" keyword:
+```meson
+pkg.generate(libraries : libs,
+             subdirs : h,
+             version : '1.0',
+             name : 'libsimple',
+             filebase : 'simple',
+             description : 'A simple demo library.',
+             extra_cflags : '-Dfoo' )
+```
