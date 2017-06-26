@@ -307,7 +307,7 @@ class Backend:
         if isinstance(source, mesonlib.File):
             source = source.fname
         # foo.vala files compile down to foo.c and then foo.c.o, not foo.vala.o
-        if source.endswith('.vala'):
+        if source.endswith(('.vala', '.gs')):
             if is_unity:
                 return source[:-5] + '.c.' + self.environment.get_object_suffix()
             source = os.path.join(self.get_target_private_dir(target), source[:-5] + '.c')

@@ -39,7 +39,7 @@ lang_suffixes = {
     'objc': ('m',),
     'objcpp': ('mm',),
     'rust': ('rs',),
-    'vala': ('vala', 'vapi'),
+    'vala': ('vala', 'vapi', 'gs'),
     'cs': ('cs',),
     'swift': ('swift',),
     'java': ('java',),
