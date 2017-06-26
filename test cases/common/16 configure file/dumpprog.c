@@ -12,6 +12,9 @@
 #error Token did not get defined
 #endif
 
+#define stringify(s) str(s)
+#define str(s) #s
+
 int main(int argc, char **argv) {
     if(strcmp(SHOULD_BE_STRING, "string") != 0) {
         printf("String token defined wrong.\n");
@@ -27,6 +30,22 @@ int main(int argc, char **argv) {
     }
     if(strcmp(SHOULD_BE_STRING4, "A \" C") != 0) {
         printf("String token 4 defined wrong.\n");
+        return 1;
+    }
+#if !(SHOULD_BE_UNQUOTED_STRING == string)
+        printf("String token (unquoted) defined wrong.\n");
+        return 1;
+#endif
+    if(strcmp(stringify(SHOULD_BE_UNQUOTED_STRING2), "A \"B\" C") != 0) {
+        printf("String token 2 (unquoted) defined wrong.\n");
+        return 1;
+    }
+    if(strcmp(stringify(SHOULD_BE_UNQUOTED_STRING3), "A \"\" C") != 0) {
+        printf("String token 3 (unquoted) defined wrong.\n");
+        return 1;
+    }
+    if(strcmp(stringify(SHOULD_BE_UNQUOTED_STRING4), "A \" C") != 0) {
+        printf("String token 4 (unquoted) defined wrong.\n");
         return 1;
     }
     if(SHOULD_BE_ONE != 1) {
