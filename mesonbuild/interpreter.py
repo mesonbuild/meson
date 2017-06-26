@@ -1301,6 +1301,7 @@ class Interpreter(InterpreterBase):
                            'assert': self.func_assert,
                            'environment': self.func_environment,
                            'join_paths': self.func_join_paths,
+                           'query_exists': self.func_query_exists,
                            })
 
     def holderify(self, item):
@@ -1400,6 +1401,22 @@ class Interpreter(InterpreterBase):
     @noKwargs
     def func_files(self, node, args, kwargs):
         return [mesonlib.File.from_source_file(self.environment.source_dir, self.subdir, fname) for fname in args]
+
+    @stringArgs
+    def func_query_exists(self, node, args, kwargs):
+        check_files = kwargs.get('check_files', True)
+        check_folders = kwargs.get('check_folders', True)
+        for fname in args:
+            fullpath = os.path.join(self.environment.source_dir, self.subdir, fname)
+            if (check_files and os.path.isfile(fullpath)) or (check_folders and os.path.isdir(fullpath)):
+                return fname
+        if (kwargs.get('fail', True)):
+            error_string = 'None of these paths do exist:\n'
+            for fname in args:
+                error_string += '\t{:s}\n'.format(fname)
+            raise mesonlib.MesonException(error_string)
+        else:
+            return ""
 
     @noPosargs
     def func_declare_dependency(self, node, args, kwargs):
