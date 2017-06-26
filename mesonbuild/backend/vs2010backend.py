@@ -81,7 +81,7 @@ class Vs2010Backend(backends.Backend):
         self.name = 'vs2010'
         self.project_file_version = '10.0.30319.1'
         self.sources_conflicts = {}
-        self.platform_toolset = None
+        self.platform_toolset = os.environ.get('PlatformToolset', None)
         self.vs_version = '2010'
         self.windows_target_platform_version = None
 

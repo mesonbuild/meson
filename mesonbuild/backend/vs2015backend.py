@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+
 from .vs2010backend import Vs2010Backend
 
 
@@ -19,5 +21,5 @@ class Vs2015Backend(Vs2010Backend):
     def __init__(self, build):
         super().__init__(build)
         self.name = 'vs2015'
-        self.platform_toolset = 'v140'
+        self.platform_toolset = os.environ.get('PlatformToolset', 'v140')
         self.vs_version = '2015'
