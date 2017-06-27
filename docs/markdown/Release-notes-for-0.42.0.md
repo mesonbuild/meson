@@ -18,3 +18,8 @@ Meson will now check the keyword arguments used when calling any function
 and print a warning if any of the keyword arguments is not known. In the
 future this will become a hard error.
 
+## Add support for Genie to Vala compiler
+
+The Vala compiler has an alternative syntax, Genie, that uses the `.gs`
+file extension. Meson now recognises and uses Genie files.
+

@@ -1005,7 +1005,7 @@ int dummy;
 
     def split_vala_sources(self, t):
         """
-        Splits the target's sources into .vala, .vapi, and other sources.
+        Splits the target's sources into .vala, .gs, .vapi, and other sources.
         Handles both pre-existing and generated sources.
 
         Returns a tuple (vala, vapi, others) each of which is a dictionary with
@@ -1026,7 +1026,7 @@ int dummy;
                       'mesonlib.File, not {!r}'.format(t, s)
                 raise InvalidArguments(msg)
             f = s.rel_to_builddir(self.build_to_src)
-            if s.endswith('.vala'):
+            if s.endswith(('.vala', '.gs')):
                 srctype = vala
             elif s.endswith('.vapi'):
                 srctype = vapi
@@ -1037,7 +1037,7 @@ int dummy;
         for gensrc in t.get_generated_sources():
             for s in gensrc.get_outputs():
                 f = self.get_target_generated_dir(t, gensrc, s)
-                if s.endswith('.vala'):
+                if s.endswith(('.vala', '.gs')):
                     srctype = vala
                 elif s.endswith('.vapi'):
                     srctype = vapi
@@ -1061,7 +1061,7 @@ int dummy;
         (vala_src, vapi_src, other_src) = self.split_vala_sources(target)
         extra_dep_files = []
         if not vala_src:
-            msg = 'Vala library {!r} has no Vala source files.'
+            msg = 'Vala library {!r} has no Vala or Genie source files.'
             raise InvalidArguments(msg.format(target.name))
 
         valac = target.compilers['vala']

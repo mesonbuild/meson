@@ -1,14 +1,14 @@
 ---
 title: Vala
-short-description: Compiling Vala programs
+short-description: Compiling Vala and Genie programs
 ...
 
 # Compiling Vala applications
 
-Meson has support for compiling Vala programs. A skeleton Vala file looks like this.
+Meson has support for compiling Vala and Genie programs. A skeleton `meson.build` file for Vala looks like this:
 
 ```meson
-project('valaprog', ['vala', 'c'])
+project('valaprog', 'vala', 'c')
 
 glib_dep = dependency('glib-2.0')
 gobject_dep = dependency('gobject-2.0')
