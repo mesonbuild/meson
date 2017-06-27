@@ -15,6 +15,7 @@
 from .. import mlog
 import contextlib
 import urllib.request, os, hashlib, shutil
+from urllib.parse import urlparse
 import subprocess
 import sys
 from pathlib import Path
@@ -95,6 +96,9 @@ class PackageDefinition:
     def has_patch(self):
         return 'patch_url' in self.values
 
+    def has_build_file(self):
+        return 'build_file' in self.values
+
 class Resolver:
     def __init__(self, subdir_root, wrap_mode=WrapMode(1)):
         self.wrap_mode = wrap_mode
@@ -147,6 +151,16 @@ class Resolver:
             self.get_hg(p)
         else:
             raise AssertionError('Unreachable code.')
+
+        if p.has_build_file():
+            self.get_build_file(p)
+        else:
+            # Check for a file <name>.meson.build file
+            # in the subproject directory
+            build_file = os.path.join(self.subdir_root, "%s.meson.build" % packagename)
+            if os.path.isfile(build_file):
+                p.set('build_file', build_file)
+                self.get_build_file(p)
         return p.get('directory')
 
     def resolve_git_submodule(self, dirname):
@@ -227,6 +241,39 @@ class Resolver:
             if revno.lower() != 'tip':
                 subprocess.check_call(['hg', 'checkout', revno],
                                       cwd=checkoutdir)
+
+    def get_build_file(self, p):
+        build_file = p.get('build_file')
+        print('Looking for %s' % build_file)
+        checkoutdir = os.path.join(self.subdir_root, p.get('directory'))
+        dst_file = os.path.join(checkoutdir, "meson.build")
+        url = urlparse(build_file)
+        buff = []
+
+        # Get data buffer depending on location prefix (http(s))
+        if url.netloc:
+            buff = self.get_data(build_file)
+        else:
+            src_file = os.path.join(self.subdir_root, build_file)
+            if not os.path.exists(src_file):
+                print('Could not find {}'.format(src_file))
+                raise RuntimeError('Build file does not exist! %s' % src_file)
+            try:
+                with open(src_file) as s:
+                    buff = s.read()
+            except Exception as e:
+                print('Could not read {}'.format(src_file))
+                raise RuntimeError('Could not copy build file from %s\n%s'
+                                   % (src_file, e))
+
+        # Copy meson.build file for subproject
+        try:
+            with open(dst_file, 'w+') as d:
+                d.write(buff)
+        except Exception as e:
+            raise RuntimeError('Could not copy build file to %s\n%s'
+                               % (dst_file, e))
+
 
     def get_data(self, url):
         blocksize = 10 * 1024
