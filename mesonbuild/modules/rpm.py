@@ -22,11 +22,13 @@ from .. import mlog
 from . import GirTarget, TypelibTarget
 from . import ModuleReturnValue
 from . import ExtensionModule
+from . import noKwargs
 
 import os
 
 class RPMModule(ExtensionModule):
 
+    @noKwargs
     def generate_spec_template(self, state, args, kwargs):
         compiler_deps = set()
         for compiler in state.compilers.values():
