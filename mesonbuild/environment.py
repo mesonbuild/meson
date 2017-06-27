@@ -941,6 +941,9 @@ class CrossBuildInfo:
     def get_stdlib(self, language):
         return self.config['properties'][language + '_stdlib']
 
+    def get_binaries(self):
+        return self.config['binaries']
+
     def get_properties(self):
         return self.config['properties']
 
