@@ -475,12 +475,18 @@ class Parser:
     def e2(self):
         left = self.e3()
         while self.accept('or'):
+            if isinstance(left, EmptyNode):
+                raise ParseException('Invalid or clause.',
+                                     self.getline(), left.lineno, left.colno)
             left = OrNode(left, self.e3())
         return left
 
     def e3(self):
         left = self.e4()
         while self.accept('and'):
+            if isinstance(left, EmptyNode):
+                raise ParseException('Invalid and clause.',
+                                     self.getline(), left.lineno, left.colno)
             left = AndNode(left, self.e4())
         return left
 
@@ -633,6 +639,7 @@ class Parser:
     def ifblock(self):
         condition = self.statement()
         clause = IfClauseNode(condition.lineno, condition.colno)
+        self.expect('eol')
         block = self.codeblock()
         clause.ifs.append(IfNode(clause.lineno, clause.colno, condition, block))
         self.elseifblock(clause)
