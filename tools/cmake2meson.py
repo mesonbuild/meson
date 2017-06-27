@@ -143,6 +143,56 @@ class Converter:
         self.indent_unit = '  '
         self.indent_level = 0
         self.options = []
+        self.dependencies = []
+        self.dependencyMap = {'aprutil': 'apr'}
+
+    def get_dependency(self, arg):
+        dependency = arg[0:arg.find('_FOUND')].lower()
+        if ('_FOUND' in arg) and any(dependency in d for d in self.dependencies):
+            for d in self.dependencies:
+                if d in dependency or dependency in d:
+                    return d
+            return dependency
+        if dependency in self.dependencyMap:
+            return self.dependencyMap[dependency]
+        return False
+
+    def get_translated_value(self, params):
+        value = params[0]
+        booleanExpr = params[1]
+        if value == "'NOT'":
+            value = "not"
+            booleanExpr = True
+        elif value == "'AND'":
+            value = "and"
+            booleanExpr = True
+        elif value == "'OR'":
+            value = "or"
+            booleanExpr = True
+        elif value == "'EQUAL'":
+            value = " == "
+            booleanExpr = True
+        elif value == "'STREQUAL'":
+            value = " == "
+            booleanExpr = True
+        elif value == "'LESS'":
+            value = " < "
+            booleanExpr = True
+        elif value == "'STRLESS'":
+            value = " < "
+            booleanExpr = True
+        elif value == "'GREATER'":
+            value = " > "
+            booleanExpr = True
+        elif value == "'STRGREATER'":
+            value = " > "
+            booleanExpr = True
+        elif value == "'MSVC'":
+            value = "meson.get_compiler('cpp').get_id() == 'msvc'"
+        # Not implemented: MATCHES
+        params[0] = value
+        params[1] = booleanExpr
+        return value
 
     def convert_args(self, args, as_array=True):
         res = []
@@ -153,8 +203,17 @@ class Converter:
             start = ''
             end = ''
         for i in args:
+            if isinstance(i, list):
+                for j in i:
+                    res.append(self.convert_args(j, True))
+            dependency = self.get_dependency(i.value)
             if i.tid == 'id':
-                res.append("'%s'" % i.value)
+                if any(i.value in o for o in self.options):
+                    res.append("get_option('%s')" % i.value)
+                elif dependency:
+                    res.append("%s_dep.found()" % dependency)
+                else:
+                    res.append("'%s'" % i.value)
             elif i.tid == 'varexp':
                 res.append('%s' % i.value)
             elif i.tid == 'string':
@@ -163,9 +222,21 @@ class Converter:
                 print(i)
                 raise RuntimeError('Unknown arg type.')
         if len(res) > 1:
-            return start + ', '.join(res) + end
+            subres = []
+            booleanExpr = False
+            for i, val in enumerate(res):
+                params = [res[i], booleanExpr]
+                res[i] = self.get_translated_value(params)
+                if params[1]:
+                    booleanExpr = True
+            if booleanExpr:
+                subres.append(' '.join(res))
+            else:
+                subres.append(', '.join(res))
+            return start + ''.join(subres) + end
         if len(res) == 1:
-            return res[0]
+            params = [res[0], False]
+            return self.get_translated_value(params)
         return ''
 
     def write_entry(self, outfile, t):
@@ -179,13 +250,15 @@ class Converter:
             line = "subdir('" + t.args[0].value + "')"
         elif t.name == 'pkg_search_module' or t.name == 'pkg_search_modules':
             varname = t.args[0].value.lower()
+#            self.dependencies.append(i.value.lower() for i in t.args[1:])
             mods = ["dependency('%s')" % i.value for i in t.args[1:]]
             if len(mods) == 1:
                 line = '%s = %s' % (varname, mods[0])
             else:
                 line = '%s = [%s]' % (varname, ', '.join(["'%s'" % i for i in mods]))
         elif t.name == 'find_package':
-            line = "%s_dep = dependency('%s')" % (t.args[0].value, t.args[0].value)
+            self.dependencies.append(t.args[0].value.lower())
+            line = "%s_dep = dependency('%s')" % (t.args[0].value.lower(), t.args[0].value.lower())
         elif t.name == 'find_library':
             line = "%s = find_library('%s')" % (t.args[0].value.lower(), t.args[0].value)
         elif t.name == 'add_executable':

@@ -1345,7 +1345,9 @@ class Interpreter(InterpreterBase):
         self.funcs.update({'add_global_arguments': self.func_add_global_arguments,
                            'add_project_arguments': self.func_add_project_arguments,
                            'add_global_link_arguments': self.func_add_global_link_arguments,
+                           'add_global_post_link_arguments': self.func_add_global_post_link_arguments,
                            'add_project_link_arguments': self.func_add_project_link_arguments,
+                           'add_project_post_link_arguments': self.func_add_project_post_link_arguments,
                            'add_test_setup': self.func_add_test_setup,
                            'add_languages': self.func_add_languages,
                            'assert': self.func_assert,
@@ -2609,6 +2611,10 @@ different subdirectory.
 
     @permittedKwargs(permitted_kwargs['add_project_arguments'])
     @stringArgs
+    def func_add_global_post_link_arguments(self, node, args, kwargs):
+        self.add_global_arguments(node, self.build.global_post_link_args, args, kwargs)
+
+    @stringArgs
     def func_add_project_arguments(self, node, args, kwargs):
         self.add_project_arguments(node, self.build.projects_args, args, kwargs)
 
@@ -2616,6 +2622,10 @@ different subdirectory.
     @stringArgs
     def func_add_project_link_arguments(self, node, args, kwargs):
         self.add_project_arguments(node, self.build.projects_link_args, args, kwargs)
+
+    @stringArgs
+    def func_add_project_post_link_arguments(self, node, args, kwargs):
+        self.add_project_arguments(node, self.build.projects_post_link_args, args, kwargs)
 
     def add_global_arguments(self, node, argsdict, args, kwargs):
         if self.subproject != '':

@@ -94,7 +94,9 @@ class Build:
         self.global_args = {}
         self.projects_args = {}
         self.global_link_args = {}
+        self.global_post_link_args = {}
         self.projects_link_args = {}
+        self.projects_post_link_args = {}
         self.tests = []
         self.benchmarks = []
         self.headers = []
@@ -161,8 +163,18 @@ class Build:
     def get_global_link_args(self, compiler):
         return self.global_link_args.get(compiler.get_language(), [])
 
+    def get_global_post_link_args(self, compiler):
+        return self.global_post_link_args.get(compiler.get_language(), [])
+
     def get_project_link_args(self, compiler, project):
         link_args = self.projects_link_args.get(project)
+        if not link_args:
+            return []
+
+        return link_args.get(compiler.get_language(), [])
+
+    def get_project_post_link_args(self, compiler, project):
+        link_args = self.projects_post_link_args.get(project)
         if not link_args:
             return []
 
