@@ -622,28 +622,28 @@ class Compiler:
         return []
 
     def has_header(self, *args, **kwargs):
-        raise EnvironmentException('Language %s does not support header checks.' % self.language)
+        raise EnvironmentException('Language %s does not support header checks.' % self.get_display_language())
 
     def has_header_symbol(self, *args, **kwargs):
-        raise EnvironmentException('Language %s does not support header symbol checks.' % self.language)
+        raise EnvironmentException('Language %s does not support header symbol checks.' % self.get_display_language())
 
     def compiles(self, *args, **kwargs):
-        raise EnvironmentException('Language %s does not support compile checks.' % self.language)
+        raise EnvironmentException('Language %s does not support compile checks.' % self.get_display_language())
 
     def links(self, *args, **kwargs):
-        raise EnvironmentException('Language %s does not support link checks.' % self.language)
+        raise EnvironmentException('Language %s does not support link checks.' % self.get_display_language())
 
     def run(self, *args, **kwargs):
-        raise EnvironmentException('Language %s does not support run checks.' % self.language)
+        raise EnvironmentException('Language %s does not support run checks.' % self.get_display_language())
 
     def sizeof(self, *args, **kwargs):
-        raise EnvironmentException('Language %s does not support sizeof checks.' % self.language)
+        raise EnvironmentException('Language %s does not support sizeof checks.' % self.get_display_language())
 
     def alignment(self, *args, **kwargs):
-        raise EnvironmentException('Language %s does not support alignment checks.' % self.language)
+        raise EnvironmentException('Language %s does not support alignment checks.' % self.get_display_language())
 
     def has_function(self, *args, **kwargs):
-        raise EnvironmentException('Language %s does not support function checks.' % self.language)
+        raise EnvironmentException('Language %s does not support function checks.' % self.get_display_language())
 
     @classmethod
     def unix_args_to_native(cls, args):
@@ -651,7 +651,7 @@ class Compiler:
         return args[:]
 
     def find_library(self, *args, **kwargs):
-        raise EnvironmentException('Language {} does not support library finding.'.format(self.language))
+        raise EnvironmentException('Language {} does not support library finding.'.format(self.get_display_language()))
 
     def get_library_dirs(self):
         return []
@@ -662,7 +662,7 @@ class Compiler:
     def has_multi_arguments(self, args, env):
         raise EnvironmentException(
             'Language {} does not support has_multi_arguments.'.format(
-                self.language))
+                self.get_display_language()))
 
     def get_cross_extra_flags(self, environment, link):
         extra_flags = []
@@ -753,7 +753,7 @@ class Compiler:
     def get_link_whole_for(self, args):
         if isinstance(args, list) and not args:
             return []
-        raise EnvironmentException('Language %s does not support linking whole archives.' % self.language)
+        raise EnvironmentException('Language %s does not support linking whole archives.' % self.get_display_language())
 
     def build_unix_rpath_args(self, build_dir, from_dir, rpath_paths, install_rpath):
         if not rpath_paths and not install_rpath:

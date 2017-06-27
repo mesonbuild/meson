@@ -26,7 +26,7 @@ class MonoCompiler(Compiler):
         self.monorunner = 'mono'
 
     def get_display_language(self):
-        return 'C#'
+        return 'C sharp'
 
     def get_output_args(self, fname):
         return ['-out:' + fname]
