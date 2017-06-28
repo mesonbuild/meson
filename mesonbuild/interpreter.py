@@ -1273,6 +1273,8 @@ build_target_kwargs = exe_kwargs.copy()
 build_target_kwargs.update(['target_type'])
 
 permitted_kwargs = {'add_global_arguments': {'language'},
+                    'add_global_link_arguments': {'language'},
+                    'add_project_link_arguments': {'language'},
                     'add_languages': {'required'},
                     'add_project_arguments': {'language'},
                     'add_test_setup': {'exe_wrapper', 'gdb', 'timeout_multiplier', 'env'},
@@ -2602,7 +2604,7 @@ different subdirectory.
     def func_add_global_arguments(self, node, args, kwargs):
         self.add_global_arguments(node, self.build.global_args, args, kwargs)
 
-    @noKwargs
+    @permittedKwargs(permitted_kwargs['add_global_link_arguments'])
     @stringArgs
     def func_add_global_link_arguments(self, node, args, kwargs):
         self.add_global_arguments(node, self.build.global_link_args, args, kwargs)
@@ -2612,7 +2614,7 @@ different subdirectory.
     def func_add_project_arguments(self, node, args, kwargs):
         self.add_project_arguments(node, self.build.projects_args, args, kwargs)
 
-    @noKwargs
+    @permittedKwargs(permitted_kwargs['add_project_link_arguments'])
     @stringArgs
     def func_add_project_link_arguments(self, node, args, kwargs):
         self.add_project_arguments(node, self.build.projects_link_args, args, kwargs)
