@@ -13,12 +13,9 @@ link_flags = []
 if host_machine.system() != 'windows'
   # Needed to export dynamic symbols from the executable
   link_flags += ['-rdynamic']
-  # Need to add this manually because Meson won't add it automatically because
-  # it doesn't know that we are loading a module from the build directory.
-  link_flags += ['-Wl,-rpath,' + meson.current_build_dir()]
 endif
 
 dl = meson.get_compiler('c').find_library('dl', required: false)
 e = executable('prog', 'prog.c', dependencies: dl, implib: true, link_args: link_flags)
 m = shared_module('module', 'module.c', link_with: e)
-test('test', e, args: m)
+test('test', e, args: m.full_path())
