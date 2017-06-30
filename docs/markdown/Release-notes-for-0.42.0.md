@@ -36,3 +36,13 @@ pkg.generate(libraries : libs,
              description : 'A simple demo library.',
              extra_cflags : '-Dfoo' )
 ```
+
+## Allow crate type configuration for Rust compiler
+
+Rust targets now take an optional `rust_crate_type` keyword, allowing
+you to set the crate type of the resulting artifact. Valid crate types
+are `dylib` or `cdylib` for shared libraries, and `rlib` or
+`staticlib` for static libraries. For more, see
+Rust's [linkage reference][rust-linkage].
+
+[rust-linkage]: https://doc.rust-lang.org/reference/linkage.html
