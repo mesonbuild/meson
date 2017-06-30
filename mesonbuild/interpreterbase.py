@@ -61,6 +61,7 @@ class permittedKwargs:
         self.permitted = permitted
 
     def __call__(self, f):
+        @wraps(f)
         def wrapped(s, node, args, kwargs):
             for k in kwargs:
                 if k not in self.permitted:

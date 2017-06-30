@@ -1308,6 +1308,7 @@ class Interpreter(InterpreterBase):
     def __init__(self, build, backend, subproject='', subdir='', subproject_dir='subprojects',
                  default_project_options=[]):
         super().__init__(build.environment.get_source_dir(), subdir)
+        self.an_unpicklable_object = mesonlib.an_unpicklable_object
         self.build = build
         self.environment = build.environment
         self.coredata = self.environment.get_coredata()

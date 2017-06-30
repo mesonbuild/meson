@@ -21,6 +21,11 @@ import collections
 
 from glob import glob
 
+# Put this in objects that should not get dumped to pickle files
+# by accident.
+import threading
+an_unpicklable_object = threading.Lock()
+
 class MesonException(Exception):
     '''Exceptions thrown by Meson'''
 
