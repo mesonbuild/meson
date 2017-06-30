@@ -709,6 +709,14 @@ def windows_proof_rmtree(f):
     # Try one last time and throw if it fails.
     shutil.rmtree(f)
 
+def unholder_array(entries):
+    result = []
+    for e in entries:
+        if hasattr(e, 'held_object'):
+            e = e.held_object
+        result.append(e)
+    return result
+
 class OrderedSet(collections.MutableSet):
     """A set that preserves the order in which items are added, by first
     insertion.

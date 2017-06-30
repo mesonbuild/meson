@@ -546,10 +546,14 @@ class BuildTarget(Target):
             d = [d]
         newd = []
         for i in d:
-            if hasattr(i, 'held_object'):
-                newd.append(i.held_object)
-            else:
-                newd.append(i)
+            if isinstance(i, list):
+                i = self.unpack_holder(i)
+            elif hasattr(i, 'held_object'):
+                i = i.held_object
+            for t in ['dependencies', 'link_with', 'include_directories', 'sources']:
+                if hasattr(i, t):
+                    setattr(i, t, self.unpack_holder(getattr(i, t)))
+            newd.append(i)
         return newd
 
     def copy_kwargs(self, kwargs):
@@ -557,10 +561,14 @@ class BuildTarget(Target):
         # This sucks quite badly. Arguments
         # are holders but they can't be pickled
         # so unpack those known.
-        if 'dependencies' in self.kwargs:
-            self.kwargs['dependencies'] = self.unpack_holder(self.kwargs['dependencies'])
-        if 'link_with' in self.kwargs:
-            self.kwargs['link_with'] = self.unpack_holder(self.kwargs['link_with'])
+        for k, v in self.kwargs.items():
+            if isinstance(v, list):
+                self.kwargs[k] = self.unpack_holder(v)
+            if hasattr(v, 'held_object'):
+                self.kwargs[k] = v.held_object
+        for t in ['dependencies', 'link_with', 'include_directories', 'sources']:
+            if t in self.kwargs:
+                self.kwargs[t] = self.unpack_holder(self.kwargs[t])
 
     def extract_objects(self, srclist):
         obj_src = []
