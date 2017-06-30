@@ -513,8 +513,6 @@ TIMEOUT: %4d
         'Tests run by the user, usually something like "under gdb 1000 times".'
         if self.is_run:
             raise RuntimeError('Can not use run_special after a full run.')
-        if os.path.isfile('build.ninja'):
-            subprocess.check_call([environment.detect_ninja(), 'all'])
         tests = self.get_tests()
         if not tests:
             return 0
