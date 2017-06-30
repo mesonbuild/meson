@@ -381,7 +381,7 @@ class GnomeModule(ExtensionModule):
         return cflags, ldflags, gi_includes
 
     @permittedKwargs({'sources', 'nsversion', 'namespace', 'symbol_prefix', 'identifier_prefix',
-                      'export_packagse', 'includes', 'dependencies', 'link_with', 'include_directories',
+                      'export_packages', 'includes', 'dependencies', 'link_with', 'include_directories',
                       'install', 'install_dir_gir', 'install_dir_typelib', 'extra_args',
                       'packages'})
     def generate_gir(self, state, args, kwargs):
