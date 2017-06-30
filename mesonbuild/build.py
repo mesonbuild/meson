@@ -1490,8 +1490,12 @@ class CustomTarget(Target):
 
     def process_kwargs(self, kwargs):
         super().process_kwargs(kwargs)
-        self.sources = kwargs.get('input', [])
-        self.sources = flatten(self.sources)
+        sources = flatten(kwargs.get('input', []))
+        self.sources = []
+        for s in sources:
+            if hasattr(s, 'held_object'):
+                s = s.held_object
+            self.sources.append(s)
         if 'output' not in kwargs:
             raise InvalidArguments('Missing keyword argument "output".')
         self.outputs = kwargs['output']
