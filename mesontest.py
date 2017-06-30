@@ -602,7 +602,7 @@ def run(args):
             sys.exit("Could not find requested program: %s" % check_bin)
     options.wd = os.path.abspath(options.wd)
 
-    if not options.no_rebuild:
+    if not options.list and not options.no_rebuild:
         if not rebuild_all(options.wd):
             sys.exit(-1)
 
