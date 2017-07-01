@@ -15,7 +15,7 @@ class permittedSnippetKwargs:
         def wrapped(s, interpreter, state, args, kwargs):
             for k in kwargs:
                 if k not in self.permitted:
-                    mlog.warning('Passed invalid keyword argument %s. This will become a hard error in the future.' % k)
+                    mlog.warning('Passed invalid keyword argument "%s". This will become a hard error in the future.' % k)
             return f(s, interpreter, state, args, kwargs)
         return wrapped
 
