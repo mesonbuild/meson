@@ -235,7 +235,7 @@ class ConfigurationDataHolder(MutableInterpreterObject):
         else:
             raise InterpreterException('Entry %s not in configuration data.' % name)
         if val[0] == '"' and val[-1] == '"':
-          return val[1:len(val)-1]
+            return val[1:-1]
         return val
 
     def get(self, name):
