@@ -64,16 +64,18 @@ dump.set_quoted('SHOULD_BE_STRING', 'string', description : 'A string')
 dump.set_quoted('SHOULD_BE_STRING2', 'A "B" C')
 dump.set_quoted('SHOULD_BE_STRING3', 'A "" C')
 dump.set_quoted('SHOULD_BE_STRING4', 'A " C')
-dump.set('SHOULD_BE_UNQUOTED_STRING', dump.get_unquoted('SHOULD_BE_STRING'))
-dump.set('SHOULD_BE_UNQUOTED_STRING2', dump.get_unquoted('SHOULD_BE_STRING2'))
-dump.set('SHOULD_BE_UNQUOTED_STRING3', dump.get_unquoted('SHOULD_BE_STRING3'))
-dump.set('SHOULD_BE_UNQUOTED_STRING4', dump.get_unquoted('SHOULD_BE_STRING4'))
 dump.set('SHOULD_BE_RETURN', 'return')
 dump.set('SHOULD_BE_DEFINED', true)
 dump.set('SHOULD_BE_UNDEFINED', false)
 dump.set('SHOULD_BE_ONE', 1)
 dump.set('SHOULD_BE_ZERO', 0, description : 'Absolutely zero')
 dump.set('SHOULD_BE_QUOTED_ONE', '"1"')
+
+dump.set_quoted('INTEGER_AS_STRING', '12')
+if dump.get_unquoted('INTEGER_AS_STRING').to_int() == 12
+  dump.set('SHOULD_BE_UNQUOTED_STRING', dump.get_unquoted('SHOULD_BE_STRING'))
+endif
+
 configure_file(output : 'config3.h',
   configuration : dump)
 
