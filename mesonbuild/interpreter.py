@@ -1308,6 +1308,7 @@ class Interpreter(InterpreterBase):
     def __init__(self, build, backend, subproject='', subdir='', subproject_dir='subprojects',
                  default_project_options=[]):
         super().__init__(build.environment.get_source_dir(), subdir)
+        self.an_unpicklable_object = mesonlib.an_unpicklable_object
         self.build = build
         self.environment = build.environment
         self.coredata = self.environment.get_coredata()
@@ -1521,7 +1522,13 @@ class Interpreter(InterpreterBase):
             if not isinstance(d, (dependencies.Dependency, dependencies.ExternalLibrary, dependencies.InternalDependency)):
                 raise InterpreterException('Dependencies must be external deps')
             final_deps.append(d)
-        dep = dependencies.InternalDependency(version, incs, compile_args, link_args, libs, sources, final_deps)
+        dep = dependencies.InternalDependency(version,
+                                              mesonlib.unholder_array(incs),
+                                              compile_args,
+                                              link_args,
+                                              mesonlib.unholder_array(libs),
+                                              mesonlib.unholder_array(sources),
+                                              final_deps)
         return DependencyHolder(dep)
 
     @noKwargs
@@ -2288,6 +2295,7 @@ class Interpreter(InterpreterBase):
         for i in cmd_args:
             if not isinstance(i, (str, mesonlib.File, TargetHolder)):
                 raise InterpreterException('Command line arguments must be strings, files or targets.')
+        cmd_args = mesonlib.unholder_array(cmd_args)
         env = self.unpack_env_kwarg(kwargs)
         should_fail = kwargs.get('should_fail', False)
         if not isinstance(should_fail, bool):

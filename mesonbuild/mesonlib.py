@@ -21,6 +21,11 @@ import collections
 
 from glob import glob
 
+# Put this in objects that should not get dumped to pickle files
+# by accident.
+import threading
+an_unpicklable_object = threading.Lock()
+
 class MesonException(Exception):
     '''Exceptions thrown by Meson'''
 
@@ -703,6 +708,14 @@ def windows_proof_rmtree(f):
             time.sleep(d)
     # Try one last time and throw if it fails.
     shutil.rmtree(f)
+
+def unholder_array(entries):
+    result = []
+    for e in entries:
+        if hasattr(e, 'held_object'):
+            e = e.held_object
+        result.append(e)
+    return result
 
 class OrderedSet(collections.MutableSet):
     """A set that preserves the order in which items are added, by first

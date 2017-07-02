@@ -328,8 +328,10 @@ class GnomeModule(ExtensionModule):
             if isinstance(dep, InternalDependency):
                 cflags.update(get_include_args(dep.include_directories))
                 for lib in dep.libraries:
-                    ldflags.update(self._get_link_args(state, lib.held_object, depends, include_rpath))
-                    libdepflags = self._get_dependencies_flags(lib.held_object.get_external_deps(), state, depends, include_rpath,
+                    if hasattr(lib, 'held_object'):
+                        lib = lib.held_object
+                    ldflags.update(self._get_link_args(state, lib, depends, include_rpath))
+                    libdepflags = self._get_dependencies_flags(lib.get_external_deps(), state, depends, include_rpath,
                                                                use_gir_args)
                     cflags.update(libdepflags[0])
                     ldflags.update(libdepflags[1])
@@ -340,9 +342,11 @@ class GnomeModule(ExtensionModule):
                 ldflags.update(extdepflags[1])
                 gi_includes.update(extdepflags[2])
                 for source in dep.sources:
-                    if hasattr(source, 'held_object') and isinstance(source.held_object, GirTarget):
+                    if hasattr(source, 'held_object'):
+                        source = source.held_object
+                    if isinstance(source, GirTarget):
                         gi_includes.update([os.path.join(state.environment.get_build_dir(),
-                                            source.held_object.get_subdir())])
+                                            source.get_subdir())])
             # This should be any dependency other than an internal one.
             elif isinstance(dep, Dependency):
                 cflags.update(dep.get_compile_args())
