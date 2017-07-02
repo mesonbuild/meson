@@ -207,7 +207,7 @@ base_options = {'b_pch': coredata.UserBooleanOption('b_pch', 'Use precompiled he
                 'b_lto': coredata.UserBooleanOption('b_lto', 'Use link time optimization', False),
                 'b_sanitize': coredata.UserComboOption('b_sanitize',
                                                        'Code sanitizer to use',
-                                                       ['none', 'address', 'thread', 'undefined', 'memory'],
+                                                       ['none', 'address', 'thread', 'undefined', 'memory', 'address,undefined'],
                                                        'none'),
                 'b_lundef': coredata.UserBooleanOption('b_lundef', 'Use -Wl,--no-undefined when linking', True),
                 'b_asneeded': coredata.UserBooleanOption('b_asneeded', 'Use -Wl,--as-needed when linking', True),

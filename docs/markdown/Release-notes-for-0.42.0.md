@@ -46,3 +46,8 @@ are `dylib` or `cdylib` for shared libraries, and `rlib` or
 Rust's [linkage reference][rust-linkage].
 
 [rust-linkage]: https://doc.rust-lang.org/reference/linkage.html
+
+## Simultaneous use of Address- and Undefined Behavior Sanitizers
+
+Both the address- and undefined behavior sanitizers can now be used
+simultaneously by passing `-Db_sanitize=address,undefined` to Meson.
