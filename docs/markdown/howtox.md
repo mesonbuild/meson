@@ -17,6 +17,12 @@ project('myproj', 'c', 'cpp',
         default_options : ['c_std=c11', 'cpp_std=c++11'])
 ```
 
+The language version can also be set on a per-target basis.
+
+```meson
+executable(..., override_options : ['c_std=c11'])
+```
+
 ## Enable threads
 
 Lots of people seem to do this manually with `find_library('pthread')` or something similar. Do not do that. It is not portable. Instead do this.
