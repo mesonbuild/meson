@@ -342,9 +342,11 @@ class GnomeModule(ExtensionModule):
                 ldflags.update(extdepflags[1])
                 gi_includes.update(extdepflags[2])
                 for source in dep.sources:
-                    if hasattr(source, 'held_object') and isinstance(source.held_object, GirTarget):
+                    if hasattr(source, 'held_object'):
+                        source = source.held_object
+                    if isinstance(source, GirTarget):
                         gi_includes.update([os.path.join(state.environment.get_build_dir(),
-                                            source.held_object.get_subdir())])
+                                            source.get_subdir())])
             # This should be any dependency other than an internal one.
             elif isinstance(dep, Dependency):
                 cflags.update(dep.get_compile_args())
