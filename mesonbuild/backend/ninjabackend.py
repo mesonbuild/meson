@@ -817,6 +817,8 @@ int dummy;
         for de in data:
             assert(isinstance(de, build.Data))
             subdir = de.install_dir
+            if not subdir:
+                subdir = os.path.join(self.environment.get_datadir(), self.interpreter.build.project_name)
             for f in de.sources:
                 assert(isinstance(f, mesonlib.File))
                 plain_f = os.path.split(f.fname)[1]
