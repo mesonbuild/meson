@@ -712,6 +712,8 @@ arguments. The following keyword arguments are supported:
   directory. If this is a relative path, it is assumed to be relative
   to the prefix.
 
+  If omitted, the directory defaults to `{datadir}/{projectname}` *(added 0.45.0)*.
+
 - `install_mode` specify the file mode in symbolic format and
   optionally the owner/uid and group/gid for the installed files. For
   example:
