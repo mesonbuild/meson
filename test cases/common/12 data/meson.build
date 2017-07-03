@@ -10,6 +10,8 @@ install_data(files('fileobject_datafile.dat'),
   install_dir : 'share/progname',
   install_mode : [false, false, 0])
 
+install_data(files('somefile.txt'))
+
 subdir('vanishing')
 
 install_data(sources : 'vanishing/vanishing2.dat', install_dir : 'share/progname')
