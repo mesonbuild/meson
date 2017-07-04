@@ -9,7 +9,7 @@ short-description: Release notes for 0.41
 
 Native support for linking against LLVM using the `dependency` function.
 
-## vcs_tag keyword fallback is is now optional
+## vcs_tag keyword fallback is now optional
 
 The `fallback` keyword in `vcs_tag()` is now optional. If not given, its value
 defaults to the return value of `meson.project_version()`.
