@@ -21,6 +21,35 @@ from ..mesonlib import is_windows, Popen_safe
 install_log_file = None
 use_selinux = True
 
+class DirMaker:
+    def __init__(self):
+        self.dirs = []
+
+    def makedirs(self, path, exist_ok=False):
+        dirname = os.path.normpath(path)
+        dirs = []
+        while dirname != os.path.dirname(dirname):
+            if not os.path.exists(dirname):
+                dirs.append(dirname)
+            dirname = os.path.dirname(dirname)
+        os.makedirs(path, exist_ok=exist_ok)
+
+        # store the directories in creation order, with the parent directory
+        # before the child directories. Future calls of makedir() will not
+        # create the parent directories, so the last element in the list is
+        # the last one to be created. That is the first one to be removed on
+        # __exit__
+        dirs.reverse()
+        self.dirs += dirs
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self.dirs.reverse()
+        for d in self.dirs:
+            append_to_log(d)
+
 def set_mode(path, mode):
     if mode is None:
         # Keep mode unchanged
@@ -99,7 +128,7 @@ def do_copyfile(from_file, to_file):
     restore_selinux_context(to_file)
     append_to_log(to_file)
 
-def do_copydir(src_prefix, src_dir, dst_dir):
+def do_copydir(data, src_prefix, src_dir, dst_dir):
     '''
     Copies the directory @src_prefix (full path) into @dst_dir
 
@@ -115,7 +144,7 @@ def do_copydir(src_prefix, src_dir, dst_dir):
             if os.path.exists(abs_dst):
                 print('Tried to copy directory %s but a file of that name already exists.' % abs_dst)
                 sys.exit(1)
-            os.makedirs(abs_dst)
+            data.dirmaker.makedirs(abs_dst)
             shutil.copystat(abs_src, abs_dst)
         for f in files:
             abs_src = os.path.join(src_dir, root, f)
@@ -145,12 +174,14 @@ def do_install(datafilename):
     d.destdir = os.environ.get('DESTDIR', '')
     d.fullprefix = destdir_join(d.destdir, d.prefix)
 
-    install_subdirs(d) # Must be first, because it needs to delete the old subtree.
-    install_targets(d)
-    install_headers(d)
-    install_man(d)
-    install_data(d)
-    run_install_script(d)
+    d.dirmaker = DirMaker()
+    with d.dirmaker:
+        install_subdirs(d) # Must be first, because it needs to delete the old subtree.
+        install_targets(d)
+        install_headers(d)
+        install_man(d)
+        install_data(d)
+        run_install_script(d)
 
 def install_subdirs(d):
     for (src_dir, inst_dir, dst_dir, mode) in d.install_subdirs:
@@ -159,9 +190,8 @@ def install_subdirs(d):
         src_prefix = os.path.join(src_dir, inst_dir)
         print('Installing subdir %s to %s' % (src_prefix, dst_dir))
         dst_dir = get_destdir_path(d, dst_dir)
-        if not os.path.exists(dst_dir):
-            os.makedirs(dst_dir)
-        do_copydir(src_prefix, src_dir, dst_dir)
+        d.dirmaker.makedirs(dst_dir, exist_ok=True)
+        do_copydir(d, src_prefix, src_dir, dst_dir)
         dst_prefix = os.path.join(dst_dir, inst_dir)
         set_mode(dst_prefix, mode)
 
@@ -171,7 +201,7 @@ def install_data(d):
         outfilename = get_destdir_path(d, i[1])
         mode = i[2]
         outdir = os.path.split(outfilename)[0]
-        os.makedirs(outdir, exist_ok=True)
+        d.dirmaker.makedirs(outdir, exist_ok=True)
         print('Installing %s to %s' % (fullfilename, outdir))
         do_copyfile(fullfilename, outfilename)
         set_mode(outfilename, mode)
@@ -181,7 +211,7 @@ def install_man(d):
         full_source_filename = m[0]
         outfilename = get_destdir_path(d, m[1])
         outdir = os.path.split(outfilename)[0]
-        os.makedirs(outdir, exist_ok=True)
+        d.dirmaker.makedirs(outdir, exist_ok=True)
         print('Installing %s to %s' % (full_source_filename, outdir))
         if outfilename.endswith('.gz') and not full_source_filename.endswith('.gz'):
             with open(outfilename, 'wb') as of:
@@ -199,7 +229,7 @@ def install_headers(d):
         outdir = get_destdir_path(d, t[1])
         outfilename = os.path.join(outdir, fname)
         print('Installing %s to %s' % (fname, outdir))
-        os.makedirs(outdir, exist_ok=True)
+        d.dirmaker.makedirs(outdir, exist_ok=True)
         do_copyfile(fullfilename, outfilename)
 
 def run_install_script(d):
@@ -264,7 +294,7 @@ def install_targets(d):
         should_strip = t[3]
         install_rpath = t[4]
         print('Installing %s to %s' % (fname, outname))
-        os.makedirs(outdir, exist_ok=True)
+        d.dirmaker.makedirs(outdir, exist_ok=True)
         if not os.path.exists(fname):
             raise RuntimeError('File {!r} could not be found'.format(fname))
         elif os.path.isfile(fname):
@@ -287,7 +317,7 @@ def install_targets(d):
                 do_copyfile(pdb_filename, pdb_outname)
         elif os.path.isdir(fname):
             fname = os.path.join(d.build_dir, fname.rstrip('/'))
-            do_copydir(fname, os.path.dirname(fname), outdir)
+            do_copydir(d, fname, os.path.dirname(fname), outdir)
         else:
             raise RuntimeError('Unknown file type for {!r}'.format(fname))
         printed_symlink_error = False
