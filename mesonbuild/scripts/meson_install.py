@@ -152,13 +152,13 @@ def do_install(datafilename):
     install_data(d)
     run_install_script(d)
 
-def install_subdirs(data):
-    for (src_dir, inst_dir, dst_dir, mode) in data.install_subdirs:
+def install_subdirs(d):
+    for (src_dir, inst_dir, dst_dir, mode) in d.install_subdirs:
         if src_dir.endswith('/') or src_dir.endswith('\\'):
             src_dir = src_dir[:-1]
         src_prefix = os.path.join(src_dir, inst_dir)
         print('Installing subdir %s to %s' % (src_prefix, dst_dir))
-        dst_dir = get_destdir_path(data, dst_dir)
+        dst_dir = get_destdir_path(d, dst_dir)
         if not os.path.exists(dst_dir):
             os.makedirs(dst_dir)
         do_copydir(src_prefix, src_dir, dst_dir)
