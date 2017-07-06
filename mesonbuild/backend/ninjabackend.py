@@ -211,9 +211,10 @@ int dummy;
     # http://clang.llvm.org/docs/JSONCompilationDatabase.html
     def generate_compdb(self):
         ninja_exe = environment.detect_ninja()
+        pch_compilers = ['%s_PCH' % i for i in self.build.compilers]
         native_compilers = ['%s_COMPILER' % i for i in self.build.compilers]
         cross_compilers = ['%s_CROSS_COMPILER' % i for i in self.build.cross_compilers]
-        ninja_compdb = [ninja_exe, '-t', 'compdb'] + native_compilers + cross_compilers
+        ninja_compdb = [ninja_exe, '-t', 'compdb'] + pch_compilers + native_compilers + cross_compilers
         builddir = self.environment.get_build_dir()
         try:
             jsondb = subprocess.check_output(ninja_compdb, cwd=builddir)
@@ -2193,8 +2194,7 @@ rule FORTRAN_DEP_HACK
         return commands, dep, dst, [objname]
 
     def generate_gcc_pch_command(self, target, compiler, pch):
-        commands = []
-        commands += self.generate_basic_compiler_args(target, compiler)
+        commands = self._generate_single_compile(target, compiler)
         dst = os.path.join(self.get_target_private_dir(target),
                            os.path.split(pch)[-1] + '.' + compiler.get_pch_suffix())
         dep = dst + '.' + compiler.get_depfile_suffix()
