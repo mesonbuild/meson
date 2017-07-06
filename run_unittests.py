@@ -1877,6 +1877,13 @@ class LinuxlikeTests(BasePlatformTests):
         install_rpath = get_rpath(os.path.join(self.installdir, 'usr/bin/prog'))
         self.assertEqual(install_rpath, '/baz')
 
+    def test_pch_with_address_sanitizer(self):
+        testdir = os.path.join(self.common_test_dir, '13 pch')
+        self.init(testdir, ['-Db_sanitize=address'])
+        self.build()
+        compdb = self.get_compdb()
+        for i in compdb:
+            self.assertIn("-fsanitize=address", i["command"])
 
 class LinuxArmCrossCompileTests(BasePlatformTests):
     '''
