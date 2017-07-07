@@ -349,6 +349,7 @@ class Environment:
         cdf = os.path.join(self.get_build_dir(), Environment.coredata_file)
         coredata.save(self.coredata, cdf)
         os.utime(cdf, times=(mtime, mtime))
+        return cdf
 
     def get_script_dir(self):
         import mesonbuild.scripts

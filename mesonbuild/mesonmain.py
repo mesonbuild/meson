@@ -180,20 +180,26 @@ If you want to change option values, use the mesonconf tool instead.'''
         intr.run()
         coredata_mtime = time.time()
         g.generate(intr)
-        g.run_postconf_scripts()
         dumpfile = os.path.join(env.get_scratch_dir(), 'build.dat')
         with open(dumpfile, 'wb') as f:
             pickle.dump(b, f)
-        # Write this last since we use the existence of this file to check if
-        # we generated the build file successfully, so we don't want an error
-        # that pops up during generation, post-conf scripts, etc to cause us to
+        # Write this as late as possible since we use the existence of this
+        # file to check if we generated the build file successfully, so we
+        # don't want an error that pops up during generation, etc to cause us to
         # incorrectly signal a successful meson run which will cause an error
         # about an already-configured build directory when the user tries again.
         #
         # However, we set the mtime to an earlier value to ensure that doing an
         # mtime comparison between the coredata dump and other build files
         # shows the build files to be newer, not older.
-        env.dump_coredata(coredata_mtime)
+        cdf = env.dump_coredata(coredata_mtime)
+        # Post-conf scripts must be run after writing coredata or else introspection fails.
+        try:
+            g.run_postconf_scripts()
+        except:
+            os.unlink(cdf)
+            raise
+
 
 def run_script_command(args):
     cmdname = args[0]
