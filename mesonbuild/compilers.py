@@ -762,14 +762,11 @@ class Compiler:
         # directory. This breaks reproducible builds.
         rel_rpaths = []
         for p in rpath_paths:
-            # p can be an empty string for build_dir (relative path), but
-            # os.path.relpath() below won't like that.
-            if p == '':
-                p = build_dir
             if p == from_dir:
                 relative = '' # relpath errors out in this case
             else:
-                relative = os.path.relpath(p, from_dir)
+                relative = os.path.relpath(os.path.join(build_dir, p),
+                                           os.path.join(build_dir, from_dir))
             rel_rpaths.append(relative)
         paths = ':'.join([os.path.join('$ORIGIN', p) for p in rel_rpaths])
         if len(paths) < len(install_rpath):
