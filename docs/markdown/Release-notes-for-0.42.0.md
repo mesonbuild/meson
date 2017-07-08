@@ -37,6 +37,13 @@ pkg.generate(libraries : libs,
              extra_cflags : '-Dfoo' )
 ```
 
+## Base options accessible via get_option()
+
+Base options are now accessible via the get_option() function.
+```meson
+uses_lto = get_option('b_lto')
+```
+
 ## Allow crate type configuration for Rust compiler
 
 Rust targets now take an optional `rust_crate_type` keyword, allowing
