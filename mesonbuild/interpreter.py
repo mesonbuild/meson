@@ -1655,6 +1655,10 @@ class Interpreter(InterpreterBase):
             raise InterpreterException('Argument required for get_option.')
         optname = args[0]
         try:
+            return compilers.base_options[optname].value
+        except KeyError:
+            pass
+        try:
             return self.environment.get_coredata().get_builtin_option(optname)
         except RuntimeError:
             pass
