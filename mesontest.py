@@ -22,6 +22,7 @@ import pickle
 from mesonbuild import build
 from mesonbuild import environment
 from mesonbuild.dependencies import ExternalProgram
+from mesonbuild import mesonlib
 from mesonbuild import mlog
 
 import time, datetime, multiprocessing, json
@@ -101,6 +102,11 @@ parser.add_argument('--test-args', default=[], type=shlex.split,
 parser.add_argument('args', nargs='*',
                     help='Optional list of tests to run')
 
+
+class TestException(mesonlib.MesonException):
+    pass
+
+
 class TestRun:
     def __init__(self, res, returncode, should_fail, duration, stdo, stde, cmd,
                  env):
@@ -172,9 +178,12 @@ class TestHarness:
         self.tests = None
         self.suites = None
         if self.options.benchmark:
-            self.load_datafile(os.path.join(options.wd, 'meson-private', 'meson_benchmark_setup.dat'))
+            datafile = os.path.join(options.wd, 'meson-private', 'meson_benchmark_setup.dat')
         else:
-            self.load_datafile(os.path.join(options.wd, 'meson-private', 'meson_test_setup.dat'))
+            datafile = os.path.join(options.wd, 'meson-private', 'meson_test_setup.dat')
+        if not os.path.isfile(datafile):
+            raise TestException('Directory %s does not seem to be a Meson build directory.' % options.wd)
+        self.load_datafile(datafile)
 
     def run_single_test(self, wrap, test):
         if test.fname[0].endswith('.jar'):
@@ -604,13 +613,18 @@ def run(args):
         if not rebuild_all(options.wd):
             sys.exit(-1)
 
-    th = TestHarness(options)
-    if options.list:
-        list_tests(th)
-        return 0
-    if not options.args:
-        return th.doit()
-    return th.run_special()
+    try:
+        th = TestHarness(options)
+        if options.list:
+            list_tests(th)
+            return 0
+        if not options.args:
+            return th.doit()
+        return th.run_special()
+    except TestException as e:
+        print('Mesontest encountered an error:\n')
+        print(e)
+        return 1
 
 if __name__ == '__main__':
     sys.exit(run(sys.argv[1:]))
