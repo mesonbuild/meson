@@ -96,10 +96,11 @@ class PkgConfigModule(ExtensionModule):
                 ofile.write('Libs.private: {}\n'.format(' '.join(generate_libs_flags(priv_libs))))
             ofile.write('Cflags:')
             for h in subdirs:
-                if h == '.':
-                    h = ''
                 ofile.write(' ')
-                ofile.write(os.path.join('-I${includedir}', h))
+                if h == '.':
+                    ofile.write('-I${includedir}')
+                else:
+                    ofile.write(os.path.join('-I${includedir}', h))
             ofile.write('\n')
 
     def process_libs(self, libs):
