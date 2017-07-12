@@ -1,0 +1,2 @@
+usr/bin/prog?exe
+usr/lib/libnamed_stuff.rlib

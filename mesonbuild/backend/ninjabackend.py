@@ -1173,6 +1173,7 @@ int dummy;
         else:
             raise InvalidArguments('Unknown target type for rustc.')
         args.append(cratetype)
+        args += ['--crate-name', target.name]
         args += rustc.get_buildtype_args(self.get_option_for_target('buildtype', target))
         depfile = os.path.join(target.subdir, target.name + '.d')
         args += ['--emit', 'dep-info={}'.format(depfile), '--emit', 'link']
