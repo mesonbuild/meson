@@ -27,7 +27,7 @@ Meson is also available from
 [PyPi](https://pypi.python.org/pypi/meson), so it can be installed
 with `pip3 install meson` (this does not require a source checkout,
 pip will download the package automatically). The exact command to
-type to install with pip can very between systems, be sure to use the
+type to install with pip can vary between systems, be sure to use the
 Python 3 version of pip.
 
 #### Running
