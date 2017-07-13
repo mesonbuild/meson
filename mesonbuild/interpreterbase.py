@@ -472,8 +472,14 @@ class InterpreterBase:
                 return obj.find(s) >= 0
             return obj.endswith(s)
         elif method_name == 'to_int':
+            # int() can autodetect base:
+            # https://docs.python.org/3.6/library/functions.html#int
+            base = 0
+            # Support C-style octal numbers
+            if obj[0] == '0' and obj[1].isdigit():
+                base = 8
             try:
-                return int(obj)
+                return int(obj, base)
             except Exception:
                 raise InterpreterException('String {!r} cannot be converted to int'.format(obj))
         elif method_name == 'join':
