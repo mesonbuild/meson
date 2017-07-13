@@ -24,8 +24,8 @@ Custom targets can take zero or more input files and use them to generate one or
 
 ```meson
 gen_src = custom_target('gen-output',
-                        input : ['somefile1.c', 'file2.c']
-                        output : ['out.c', 'out.h']
+                        input : ['somefile1.c', 'file2.c'],
+                        output : ['out.c', 'out.h'],
                         command : [mycomp, '@INPUT@',
                                    '--c-out', '@OUTPUT0@',
                                    '--h-out', '@OUTPUT1@'])
