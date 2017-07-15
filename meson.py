@@ -31,7 +31,7 @@ def main():
         mlog.warning('Please switch to a UTF-8 locale for your platform.')
     # Always resolve the command path so Ninja can find it for regen, tests, etc.
     launcher = os.path.realpath(sys.argv[0])
-    return mesonmain.run(launcher, sys.argv[1:])
+    return mesonmain.run(sys.argv[1:], launcher)
 
 if __name__ == '__main__':
     sys.exit(main())

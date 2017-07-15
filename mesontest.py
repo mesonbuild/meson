@@ -16,10 +16,9 @@
 
 # A tool to run tests in many different ways.
 
-from mesonbuild import mesonmain
+from mesonbuild import mesonmain, mlog
 import sys
 
 if __name__ == '__main__':
-    print('Warning: This executable is deprecated. Use "meson test" instead.',
-          file=sys.stderr)
+    mlog.warning('This executable is deprecated, use "meson test" instead.')
     sys.exit(mesonmain.run(['test'] + sys.argv[1:]))

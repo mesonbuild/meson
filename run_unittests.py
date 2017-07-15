@@ -416,8 +416,8 @@ class BasePlatformTests(unittest.TestCase):
         self.backend = getattr(Backend, os.environ.get('MESON_UNIT_TEST_BACKEND', 'ninja'))
         self.meson_args = [os.path.join(src_root, 'meson.py'), '--backend=' + self.backend.name]
         self.meson_command = [sys.executable] + self.meson_args
-        self.mconf_command = [sys.executable, os.path.join(src_root, 'mesonconf.py')]
-        self.mintro_command = [sys.executable, os.path.join(src_root, 'mesonintrospect.py')]
+        self.mconf_command = [sys.executable, os.path.join(src_root, 'meson.py'), 'configure']
+        self.mintro_command = [sys.executable, os.path.join(src_root, 'meson.py'), 'introspect']
         self.mtest_command = [sys.executable, os.path.join(src_root, 'mesontest.py'), '-C', self.builddir]
         # Backend-specific build commands
         self.build_command, self.clean_command, self.test_command, self.install_command, \

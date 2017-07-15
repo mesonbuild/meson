@@ -17,10 +17,11 @@ import time, datetime
 import os.path
 from . import environment, interpreter, mesonlib
 from . import build
+from . import mconf, mintro, mtest, rewriter
 import platform
 from . import mlog, coredata
 from .mesonlib import MesonException
-from .wrap import WrapMode
+from .wrap import WrapMode, wraptool
 
 
 parser = argparse.ArgumentParser()
@@ -262,7 +263,7 @@ def run_script_command(args):
         raise MesonException('Unknown internal command {}.'.format(cmdname))
     return cmdfunc(cmdargs)
 
-def run(mainfile, args):
+def run(args, mainfile=None):
     if sys.version_info < (3, 4):
         print('Meson works correctly only with python 3.4+.')
         print('You have python %s.' % sys.version)
@@ -276,7 +277,7 @@ def run(mainfile, args):
             return mtest.run(remaining_args)
         elif cmd_name == 'setup':
             args = remaining_args
-            # FALLTROUGH like it's 1972.
+            # FALLTHROUGH like it's 1972.
         elif cmd_name == 'introspect':
             return mintro.run(remaining_args)
         elif cmd_name == 'test':
@@ -324,6 +325,8 @@ def run(mainfile, args):
         else:
             dir2 = '.'
     try:
+        if mainfile is None:
+            sys.exit('I iz broken. Sorry.')
         app = MesonApp(dir1, dir2, mainfile, handshake, options, sys.argv)
     except Exception as e:
         # Log directory does not exist, so just print

@@ -23,9 +23,10 @@
 # - move targets
 # - reindent?
 
-from mesonbuild import rewriter
+from mesonbuild import mesonmain, mlog
 import sys
 
 if __name__ == '__main__':
-    sys.exit(rewriter.run(sys.argv[1:]))
+    mlog.warning('This program is deprecated, use "meson rewrite" instead')
+    sys.exit(mesonmain.run(['rewrite'] + sys.argv[1:]))
 
