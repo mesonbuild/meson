@@ -43,7 +43,7 @@ class MonoCompiler(Compiler):
     def split_shlib_to_parts(self, fname):
         return None, fname
 
-    def build_rpath_args(self, build_dir, from_dir, rpath_paths, install_rpath):
+    def build_rpath_args(self, build_dir, from_dir, rpath_paths, build_rpath, install_rpath):
         return []
 
     def get_dependency_gen_args(self, outtarget, outfile):

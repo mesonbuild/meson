@@ -798,8 +798,8 @@ class Compiler:
     def get_instruction_set_args(self, instruction_set):
         return None
 
-    def build_unix_rpath_args(self, build_dir, from_dir, rpath_paths, install_rpath):
-        if not rpath_paths and not install_rpath:
+    def build_unix_rpath_args(self, build_dir, from_dir, rpath_paths, build_rpath, install_rpath):
+        if not rpath_paths and not install_rpath and not build_rpath:
             return []
         # The rpaths we write must be relative, because otherwise
         # they have different length depending on the build
@@ -812,6 +812,9 @@ class Compiler:
                 relative = os.path.relpath(os.path.join(build_dir, p), os.path.join(build_dir, from_dir))
             rel_rpaths.append(relative)
         paths = ':'.join([os.path.join('$ORIGIN', p) for p in rel_rpaths])
+        # Build_rpath is used as-is (it is usually absolute).
+        if build_rpath != '':
+            paths += ':' + build_rpath
         if len(paths) < len(install_rpath):
             padding = 'X' * (len(install_rpath) - len(paths))
             if not paths:

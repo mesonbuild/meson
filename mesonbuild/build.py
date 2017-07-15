@@ -49,6 +49,7 @@ known_basic_kwargs = {'install': True,
                       'gui_app': True,
                       'extra_files': True,
                       'install_rpath': True,
+                      'build_rpath': True,
                       'resources': True,
                       'sources': True,
                       'objects': True,
@@ -707,6 +708,9 @@ class BuildTarget(Target):
         self.install_rpath = kwargs.get('install_rpath', '')
         if not isinstance(self.install_rpath, str):
             raise InvalidArguments('Install_rpath is not a string.')
+        self.build_rpath = kwargs.get('build_rpath', '')
+        if not isinstance(self.build_rpath, str):
+            raise InvalidArguments('Build_rpath is not a string.')
         resources = kwargs.get('resources', [])
         if not isinstance(resources, list):
             resources = [resources]

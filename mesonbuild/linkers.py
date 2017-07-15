@@ -45,7 +45,7 @@ class VisualStudioLinker(StaticLinker):
     def get_linker_always_args(self):
         return VisualStudioLinker.always_args
 
-    def build_rpath_args(self, build_dir, from_dir, rpath_paths, install_rpath):
+    def build_rpath_args(self, build_dir, from_dir, rpath_paths, build_rpath, install_rpath):
         return []
 
     def thread_link_flags(self):
@@ -76,7 +76,7 @@ class ArLinker(StaticLinker):
         else:
             self.std_args = ['csr']
 
-    def build_rpath_args(self, build_dir, from_dir, rpath_paths, install_rpath):
+    def build_rpath_args(self, build_dir, from_dir, rpath_paths, build_rpath, install_rpath):
         return []
 
     def get_exelist(self):

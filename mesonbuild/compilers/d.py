@@ -88,12 +88,14 @@ class DCompiler(Compiler):
     def get_std_exe_link_args(self):
         return []
 
-    def build_rpath_args(self, build_dir, from_dir, rpath_paths, install_rpath):
+    def build_rpath_args(self, build_dir, from_dir, rpath_paths, build_rpath, install_rpath):
         # This method is to be used by LDC and DMD.
         # GDC can deal with the verbatim flags.
         if not rpath_paths and not install_rpath:
             return []
         paths = ':'.join([os.path.join(build_dir, p) for p in rpath_paths])
+        if build_rpath != '':
+            paths += ':' + build_rpath
         if len(paths) < len(install_rpath):
             padding = 'X' * (len(install_rpath) - len(paths))
             if not paths:
@@ -212,8 +214,8 @@ class GnuDCompiler(DCompiler):
     def get_buildtype_args(self, buildtype):
         return d_gdc_buildtype_args[buildtype]
 
-    def build_rpath_args(self, build_dir, from_dir, rpath_paths, install_rpath):
-        return self.build_unix_rpath_args(build_dir, from_dir, rpath_paths, install_rpath)
+    def build_rpath_args(self, build_dir, from_dir, rpath_paths, build_rpath, install_rpath):
+        return self.build_unix_rpath_args(build_dir, from_dir, rpath_paths, build_rpath, install_rpath)
 
     def get_unittest_args(self):
         return ['-funittest']

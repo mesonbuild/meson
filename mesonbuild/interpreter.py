@@ -1241,6 +1241,7 @@ rust_kwargs = set(['rust_crate_type'])
 cs_kwargs = set(['resources'])
 
 buildtarget_kwargs = set(['build_by_default',
+                          'build_rpath',
                           'dependencies',
                           'extra_files',
                           'gui_app',
