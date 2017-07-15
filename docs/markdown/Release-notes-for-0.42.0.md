@@ -65,3 +65,14 @@ A new experimental module to compile code with many different SIMD
 instruction sets and selecting the best one at runtime. This module
 is unstable, meaning its API is subject to change in later releases.
 It might also be removed altogether.
+
+## Added build_rpath keyword argument
+
+You can specify `build_rpath : '/foo/bar'` in build targets and the
+given path will get added to the target's rpath in the build tree. It
+is removed during the install step.
+
+Meson will print a warning when the user tries to add an rpath linker
+flag manually, e.g. via `link_args` to a target. This is not
+recommended because having multiple rpath causes them to stomp on each
+other. This warning will become a hard error in some future release.

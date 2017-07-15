@@ -670,6 +670,10 @@ class BuildTarget(Target):
         for i in self.link_args:
             if not isinstance(i, str):
                 raise InvalidArguments('Link_args arguments must be strings.')
+        for l in self.link_args:
+            if '-Wl,-rpath' in l or l.startswith('-rpath'):
+                mlog.warning('''Please do not define rpath with a linker argument, use install_rpath or build_rpath properties instead.
+This will become a hard error in a future Meson release.''')
         self.process_link_depends(kwargs.get('link_depends', []), environment)
         # Target-specific include dirs must be added BEFORE include dirs from
         # internal deps (added inside self.add_deps()) to override them.
