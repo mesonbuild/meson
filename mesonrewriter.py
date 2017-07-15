@@ -23,42 +23,9 @@
 # - move targets
 # - reindent?
 
-import mesonbuild.astinterpreter
-from mesonbuild.mesonlib import MesonException
-from mesonbuild import mlog
-import sys, traceback
-import argparse
-
-parser = argparse.ArgumentParser()
-
-parser.add_argument('--sourcedir', default='.',
-                    help='Path to source directory.')
-parser.add_argument('--target', default=None,
-                    help='Name of target to edit.')
-parser.add_argument('--filename', default=None,
-                    help='Name of source file to add or remove to target.')
-parser.add_argument('commands', nargs='+')
+from mesonbuild import rewriter
+import sys
 
 if __name__ == '__main__':
-    options = parser.parse_args()
-    if options.target is None or options.filename is None:
-        sys.exit("Must specify both target and filename.")
-    print('This tool is highly experimental, use with care.')
-    rewriter = mesonbuild.astinterpreter.AstInterpreter(options.sourcedir, '')
-    try:
-        if options.commands[0] == 'add':
-            rewriter.add_source(options.target, options.filename)
-        elif options.commands[0] == 'remove':
-            rewriter.remove_source(options.target, options.filename)
-        else:
-            sys.exit('Unknown command: ' + options.commands[0])
-    except Exception as e:
-        if isinstance(e, MesonException):
-            if hasattr(e, 'file') and hasattr(e, 'lineno') and hasattr(e, 'colno'):
-                mlog.log(mlog.red('\nMeson encountered an error in file %s, line %d, column %d:' % (e.file, e.lineno, e.colno)))
-            else:
-                mlog.log(mlog.red('\nMeson encountered an error:'))
-            mlog.log(e)
-        else:
-            traceback.print_exc()
-        sys.exit(1)
+    sys.exit(rewriter.run(sys.argv[1:]))
+
