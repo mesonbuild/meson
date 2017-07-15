@@ -24,3 +24,5 @@ packagecache
 
 /docs/built_docs
 /docs/hotdoc-private*
+
+*.pyc
