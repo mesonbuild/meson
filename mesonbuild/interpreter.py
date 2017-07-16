@@ -2007,9 +2007,6 @@ class Interpreter(InterpreterBase):
                 raise DependencyException(m.format(name))
             dep = cached_dep
         else:
-            # We need to actually search for this dep
-            exception = None
-            dep = None
             # If the dependency has already been configured, possibly by
             # a higher level project, try to use it first.
             if 'fallback' in kwargs:
@@ -2022,13 +2019,15 @@ class Interpreter(InterpreterBase):
                     except KeyError:
                         pass
 
+            # We need to actually search for this dep
+            exception = None
+            dep = None
+
             # Search for it outside the project
-            if not dep:
-                try:
-                    dep = dependencies.find_external_dependency(name, self.environment, kwargs)
-                except DependencyException as e:
-                    exception = e
-                    pass
+            try:
+                dep = dependencies.find_external_dependency(name, self.environment, kwargs)
+            except DependencyException as e:
+                exception = e
 
             # Search inside the projects list
             if not dep or not dep.found():
@@ -2809,11 +2808,8 @@ different subdirectory.
                 found = self.check_contains(element, args)
                 if found:
                     return True
-            try:
-                if element == item:
-                    return True
-            except Exception:
-                pass
+            if element == item:
+                return True
         return False
 
     def is_subproject(self):

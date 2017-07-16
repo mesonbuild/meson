@@ -337,7 +337,7 @@ def run(args):
         print('This application resets target rpath.')
         print('Don\'t run this unless you know what you are doing.')
         print('%s: <binary file> <prefix>' % sys.argv[0])
-        exit(1)
+        sys.exit(1)
     with Elf(args[0]) as e:
         if len(args) == 1:
             e.print_rpath()

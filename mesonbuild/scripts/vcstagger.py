@@ -36,6 +36,7 @@ def run(args):
     infile, outfile, fallback, source_dir, replace_string, regex_selector = args[0:6]
     command = args[6:]
     config_vcs_tag(infile, outfile, fallback, source_dir, replace_string, regex_selector, command)
+    return 0
 
 if __name__ == '__main__':
     sys.exit(run(sys.argv[1:]))

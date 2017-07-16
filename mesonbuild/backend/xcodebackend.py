@@ -483,7 +483,6 @@ class XCodeBackend(backends.Backend):
                             % (self.buildconflistmap[tname], tname))
             self.write_line('buildPhases = (')
             self.indent_level += 1
-            t = self.build.targets[tname]
             for bpname, bpval in t.buildphasemap.items():
                 self.write_line('%s /* %s yyy */,' % (bpval, bpname))
             self.indent_level -= 1
