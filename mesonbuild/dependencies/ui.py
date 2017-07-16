@@ -390,7 +390,6 @@ class SDL2Dependency(ExternalDependency):
                     return
             except Exception as e:
                 mlog.debug('SDL 2 not found via pkgconfig. Trying next, error was:', str(e))
-                pass
         if DependencyMethods.SDLCONFIG in self.methods:
             sdlconf = shutil.which('sdl2-config')
             if sdlconf:

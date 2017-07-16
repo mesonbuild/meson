@@ -2028,7 +2028,6 @@ class Interpreter(InterpreterBase):
                 dep = dependencies.find_external_dependency(name, self.environment, kwargs)
             except DependencyException as e:
                 exception = e
-                pass
 
             # Search inside the projects list
             if not dep or not dep.found():
