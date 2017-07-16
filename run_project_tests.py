@@ -463,10 +463,15 @@ def detect_tests_to_run():
     return gathered_tests
 
 def run_tests(all_tests, log_name_base, extra_args):
-    global stop, executor, futures
+    global logfile
     txtname = log_name_base + '.txt'
+    with open(txtname, 'w', encoding="utf_8") as lf:
+        logfile = lf
+        return _run_tests(all_tests, log_name_base, extra_args)
+
+def _run_tests(all_tests, log_name_base, extra_args):
+    global stop, executor, futures
     xmlname = log_name_base + '.xml'
-    logfile = open(txtname, 'w', encoding="utf_8")
     junit_root = ET.Element('testsuites')
     conf_time = 0
     build_time = 0

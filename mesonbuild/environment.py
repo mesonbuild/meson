@@ -909,9 +909,8 @@ class CrossBuildInfo:
     def parse_datafile(self, filename):
         config = configparser.ConfigParser()
         try:
-            f = open(filename, 'r')
-            config.read_file(f, filename)
-            f.close()
+            with open(filename, 'r') as f:
+                config.read_file(f, filename)
         except FileNotFoundError:
             raise EnvironmentException('File not found: %s.' % filename)
         # This is a bit hackish at the moment.
