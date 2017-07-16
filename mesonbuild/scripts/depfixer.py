@@ -127,8 +127,13 @@ class Elf(DataSizes):
     def __enter__(self):
         return self
 
+    def __del__(self):
+        if self.bf:
+            self.bf.close()
+
     def __exit__(self, exc_type, exc_value, traceback):
         self.bf.close()
+        self.bf = None
 
     def detect_elf_type(self):
         data = self.bf.read(6)

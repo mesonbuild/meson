@@ -177,6 +177,8 @@ class TestHarness:
         self.is_run = False
         self.tests = None
         self.suites = None
+        self.logfile = None
+        self.jsonlogfile = None
         if self.options.benchmark:
             datafile = os.path.join(options.wd, 'meson-private', 'meson_benchmark_setup.dat')
         else:
@@ -184,6 +186,12 @@ class TestHarness:
         if not os.path.isfile(datafile):
             raise TestException('Directory %s does not seem to be a Meson build directory.' % options.wd)
         self.load_datafile(datafile)
+
+    def __del__(self):
+        if self.logfile:
+            self.logfile.close()
+        if self.jsonlogfile:
+            self.jsonlogfile.close()
 
     def run_single_test(self, wrap, test):
         if test.fname[0].endswith('.jar'):
@@ -285,7 +293,7 @@ class TestHarness:
 
         return result
 
-    def print_stats(self, numlen, tests, name, result, i, logfile, jsonlogfile):
+    def print_stats(self, numlen, tests, name, result, i):
         startpad = ' ' * (numlen - len('%d' % (i + 1)))
         num = '%s%d/%d' % (startpad, i + 1, len(tests))
         padding1 = ' ' * (38 - len(name))
@@ -308,12 +316,12 @@ class TestHarness:
                 and (result.returncode != 0) != result.should_fail:
             if self.options.print_errorlogs:
                 self.collected_logs.append(result_str)
-        if logfile:
-            logfile.write(result_str)
-        if jsonlogfile:
-            write_json_log(jsonlogfile, name, result)
+        if self.logfile:
+            self.logfile.write(result_str)
+        if self.jsonlogfile:
+            write_json_log(self.jsonlogfile, name, result)
 
-    def print_summary(self, logfile):
+    def print_summary(self):
         msg = '''
 OK:      %4d
 FAIL:    %4d
@@ -321,8 +329,8 @@ SKIP:    %4d
 TIMEOUT: %4d
 ''' % (self.success_count, self.fail_count, self.skip_count, self.timeout_count)
         print(msg)
-        if logfile:
-            logfile.write(msg)
+        if self.logfile:
+            self.logfile.write(msg)
 
     def print_collected_logs(self):
         if len(self.collected_logs) > 0:
@@ -431,16 +439,14 @@ TIMEOUT: %4d
 
         if namebase:
             logfile_base += '-' + namebase.replace(' ', '_')
-        logfilename = logfile_base + '.txt'
-        jsonlogfilename = logfile_base + '.json'
+        self.logfilename = logfile_base + '.txt'
+        self.jsonlogfilename = logfile_base + '.json'
 
-        jsonlogfile = open(jsonlogfilename, 'w')
-        logfile = open(logfilename, 'w')
+        self.jsonlogfile = open(self.jsonlogfilename, 'w')
+        self.logfile = open(self.logfilename, 'w')
 
-        logfile.write('Log of Meson test suite run on %s\n\n'
-                      % datetime.datetime.now().isoformat())
-
-        return logfile, logfilename, jsonlogfile, jsonlogfilename
+        self.logfile.write('Log of Meson test suite run on %s\n\n'
+                           % datetime.datetime.now().isoformat())
 
     def get_wrapper(self):
         wrap = []
@@ -467,56 +473,48 @@ TIMEOUT: %4d
 
     def run_tests(self, tests):
         executor = None
-        logfile = None
-        jsonlogfile = None
         futures = []
-        try:
-            numlen = len('%d' % len(tests))
-            (logfile, logfilename, jsonlogfile, jsonlogfilename) = self.open_log_files()
-            wrap = self.get_wrapper()
+        numlen = len('%d' % len(tests))
+        self.open_log_files()
+        wrap = self.get_wrapper()
 
-            for _ in range(self.options.repeat):
-                for i, test in enumerate(tests):
-                    visible_name = self.get_pretty_suite(test)
+        for _ in range(self.options.repeat):
+            for i, test in enumerate(tests):
+                visible_name = self.get_pretty_suite(test)
 
-                    if self.options.gdb:
-                        test.timeout = None
+                if self.options.gdb:
+                    test.timeout = None
 
-                    if not test.is_parallel or self.options.gdb:
-                        self.drain_futures(futures)
-                        futures = []
-                        res = self.run_single_test(wrap, test)
-                        self.print_stats(numlen, tests, visible_name, res, i, logfile, jsonlogfile)
-                    else:
-                        if not executor:
-                            executor = conc.ThreadPoolExecutor(max_workers=self.options.num_processes)
-                        f = executor.submit(self.run_single_test, wrap, test)
-                        futures.append((f, numlen, tests, visible_name, i, logfile, jsonlogfile))
-                    if self.options.repeat > 1 and self.fail_count:
-                        break
+                if not test.is_parallel or self.options.gdb:
+                    self.drain_futures(futures)
+                    futures = []
+                    res = self.run_single_test(wrap, test)
+                    self.print_stats(numlen, tests, visible_name, res, i)
+                else:
+                    if not executor:
+                        executor = conc.ThreadPoolExecutor(max_workers=self.options.num_processes)
+                    f = executor.submit(self.run_single_test, wrap, test)
+                    futures.append((f, numlen, tests, visible_name, i))
                 if self.options.repeat > 1 and self.fail_count:
                     break
+            if self.options.repeat > 1 and self.fail_count:
+                break
 
-            self.drain_futures(futures)
-            self.print_summary(logfile)
-            self.print_collected_logs()
+        self.drain_futures(futures)
+        self.print_summary()
+        self.print_collected_logs()
 
-            if logfilename:
-                print('Full log written to %s' % logfilename)
-        finally:
-            if jsonlogfile:
-                jsonlogfile.close()
-            if logfile:
-                logfile.close()
+        if self.logfilename:
+            print('Full log written to %s' % self.logfilename)
 
     def drain_futures(self, futures):
         for i in futures:
-            (result, numlen, tests, name, i, logfile, jsonlogfile) = i
+            (result, numlen, tests, name, i) = i
             if self.options.repeat > 1 and self.fail_count:
                 result.cancel()
             if self.options.verbose:
                 result.result()
-            self.print_stats(numlen, tests, name, result.result(), i, logfile, jsonlogfile)
+            self.print_stats(numlen, tests, name, result.result(), i)
 
     def run_special(self):
         'Tests run by the user, usually something like "under gdb 1000 times".'
