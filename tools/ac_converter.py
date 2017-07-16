@@ -39,7 +39,6 @@ function_data = \
      'HAVE_POSIX_MEMALIGN': ('posix_memalign', 'stdlib.h'),
      'HAVE_SIGACTION': ('sigaction', 'signal.h'),
      'HAVE_ALARM': ('alarm', 'unistd.h'),
-     'HAVE_CLOCK_GETTIME': ('clock_gettime', 'time.h'),
      'HAVE_CTIME_R': ('ctime_r', 'time.h'),
      'HAVE_DRAND48': ('drand48', 'stdlib.h'),
      'HAVE_FLOCKFILE': ('flockfile', 'stdio.h'),
