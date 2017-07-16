@@ -2808,11 +2808,8 @@ different subdirectory.
                 found = self.check_contains(element, args)
                 if found:
                     return True
-            try:
-                if element == item:
-                    return True
-            except Exception:
-                pass
+            if element == item:
+                return True
         return False
 
     def is_subproject(self):
