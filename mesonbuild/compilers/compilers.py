@@ -211,7 +211,7 @@ base_options = {'b_pch': coredata.UserBooleanOption('b_pch', 'Use precompiled he
                                                        'none'),
                 'b_lundef': coredata.UserBooleanOption('b_lundef', 'Use -Wl,--no-undefined when linking', True),
                 'b_asneeded': coredata.UserBooleanOption('b_asneeded', 'Use -Wl,--as-needed when linking', True),
-                'b_pgo': coredata.UserComboOption('b_pgo', 'Use profile guide optimization',
+                'b_pgo': coredata.UserComboOption('b_pgo', 'Use profile guided optimization',
                                                   ['off', 'generate', 'use'],
                                                   'off'),
                 'b_coverage': coredata.UserBooleanOption('b_coverage',
