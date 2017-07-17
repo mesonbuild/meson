@@ -291,11 +291,8 @@ class GnomeModule(ExtensionModule):
 
     def _get_link_args(self, state, lib, depends=None, include_rpath=False,
                        use_gir_args=False):
+        link_command = []
         # Construct link args
-        if gir_has_extra_lib_arg() and use_gir_args:
-            link_command = ['--extra-library=' + lib.name]
-        else:
-            link_command = ['-l' + lib.name]
         if isinstance(lib, build.SharedLibrary):
             libdir = os.path.join(state.environment.get_build_dir(), state.backend.get_target_dir(lib))
             link_command.append('-L' + libdir)
@@ -312,6 +309,10 @@ class GnomeModule(ExtensionModule):
                 link_command.append('-Wl,-rpath,' + libdir)
             if depends:
                 depends.append(lib)
+        if gir_has_extra_lib_arg() and use_gir_args:
+            link_command.append('--extra-library=' + lib.name)
+        else:
+            link_command.append('-l' + lib.name)
         return link_command
 
     def _get_dependencies_flags(self, deps, state, depends=None, include_rpath=False,
