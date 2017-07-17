@@ -62,7 +62,7 @@ proj_dep = declare_dependency(...)
 Then you can use the subproject in the master project like this:
 
 ```meson
-sp_dep = dependency('subproj_pkgconfig_name', fallback : ['subproj_name', 'proj_dep']
+sp_dep = dependency('subproj_pkgconfig_name', fallback : ['subproj_name', 'proj_dep'])
 ```
 
 This uses the system dependency when available and the self built version if not. If you want to always use the subproject, that is also possible, just use `subproject` and `get_variable` as discussed above to get the dependency object.

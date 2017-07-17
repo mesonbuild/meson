@@ -40,7 +40,7 @@ project('foobar', 'c')
 if compiling_for_osx
   add_languages('objc')
 endif
-````
+```
 
 Takes one keyword argument, `required`. It defaults to `true`, which means that if any of the languages specified is not found, Meson will halt. Returns true if all languages specified were found and false otherwise.
 
