@@ -104,12 +104,6 @@ def get_backend_commands(backend, debug=False):
     return cmd, clean_cmd, test_cmd, install_cmd, uninstall_cmd
 
 def ensure_backend_detects_changes(backend):
-    # We're using a ninja with QuLogic's patch for sub-1s resolution timestamps
-    # and not running on HFS+ which only stores dates in seconds:
-    # https://developer.apple.com/legacy/library/technotes/tn/tn1150.html#HFSPlusDates
-    # FIXME: Upgrade Travis image to Apple FS when that becomes available
-    if 'MESON_FIXED_NINJA' in os.environ and not mesonlib.is_osx():
-        return
     # This is needed to increase the difference between build.ninja's
     # timestamp and the timestamp of whatever you changed due to a Ninja
     # bug: https://github.com/ninja-build/ninja/issues/371

@@ -89,19 +89,16 @@ def find_coverage_tools():
         genhtml_exe = None
     return gcovr_exe, lcov_exe, genhtml_exe
 
-def detect_ninja(version='1.5', log=False):
+def detect_ninja(version='1.5'):
     for n in ['ninja', 'ninja-build']:
         try:
             p, found = Popen_safe([n, '--version'])[0:2]
         except (FileNotFoundError, PermissionError):
             # Doesn't exist in PATH or isn't executable
             continue
-        found = found.strip()
         # Perhaps we should add a way for the caller to know the failure mode
         # (not found or too old)
         if p.returncode == 0 and mesonlib.version_compare(found, '>=' + version):
-            if log:
-                mlog.log('Found ninja-{} at {}'.format(found, shlex.quote(shutil.which(n))))
             return n
 
 def detect_native_windows_arch():
