@@ -25,6 +25,8 @@ from .compilers import (
     msvc_buildtype_args,
     msvc_buildtype_linker_args,
     msvc_winlibs,
+    vs32_instruction_set_args,
+    vs64_instruction_set_args,
     ClangCompiler,
     Compiler,
     CompilerArgs,

@@ -44,7 +44,7 @@ class SimdModule(ExtensionModule):
         if 'compiler' not in kwargs:
             raise mesonlib.MesonException('Must specify compiler keyword')
         compiler = kwargs['compiler'].compiler
-        if not isinstance(compiler, compilers.Compiler):
+        if not isinstance(compiler, compilers.compilers.Compiler):
             raise mesonlib.MesonException('Compiler argument must be a compiler object.')
         cdata = interpreter.func_configuration_data(None, [], {})
         conf = cdata.held_object
