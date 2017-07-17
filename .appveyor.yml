@@ -49,10 +49,6 @@ branches:
   only:
     - master
 
-skip_commits:
-  files:
-    - docs/**/*
-
 install:
   - cmd: set "ORIG_PATH=%PATH%"
   # Boost 1.56.0: https://www.appveyor.com/docs/build-environment/#boost
