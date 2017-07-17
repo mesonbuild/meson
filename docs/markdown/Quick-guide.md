@@ -62,7 +62,7 @@ $ CFLAGS=... CXXFLAGS=... LDFLAGS=.. meson --prefix /usr --buildtype=plain build
 $ ninja -v -C builddir
 $ ninja -C builddir test
 $ DESTDIR=/path/to/staging/root ninja -C builddir install
-````
+```
 
 The command line switch `--buildtype=plain` tells Meson not to add its own flags to the command line. This gives the packager total control on used flags.
 
