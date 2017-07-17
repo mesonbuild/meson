@@ -134,14 +134,14 @@ This also creates two targets for translations `help-$project-update-po` and `he
 
 ### gnome.gtkdoc()
 
-Compiles and installs gtkdoc documentation. Takes one positional arguments; The name of the module.
+Compiles and installs gtkdoc documentation into `prefix/share/gtk-doc/html`. Takes one positional argument: The name of the module.
 
 * `main_xml`: specifies the main XML file
 * `main_sgml`: equal to `main_xml`
 * `src_dir`: include_directories to include
 * `dependencies`: a list of dependencies
 * `install`: if true, installs the generated docs
-* `install_dir`: the directory to install the generated docs
+* `install_dir`: the directory to install the generated docs relative to the gtk-doc html dir or an absolute path (default: module name)
 * `scan_args`: a list of arguments to pass to `gtkdoc-scan`
 * `scanobjs_args`: a list of arguments to pass to `gtkdoc-scangobj`
 * `gobject_typesfile`: a list of type files

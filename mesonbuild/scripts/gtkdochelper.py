@@ -218,12 +218,14 @@ def run(args):
         options.mode)
 
     if 'MESON_INSTALL_PREFIX' in os.environ:
-        install_dir = options.install_dir if options.install_dir else options.modulename
         destdir = os.environ.get('DESTDIR', '')
-        installdir = destdir_join(destdir, os.environ['MESON_INSTALL_PREFIX'])
+        install_prefix = destdir_join(destdir, os.environ['MESON_INSTALL_PREFIX'])
+        install_dir = options.install_dir if options.install_dir else options.modulename
+        if os.path.isabs(install_dir):
+            install_dir = destdir_join(destdir, install_dir)
         install_gtkdoc(options.builddir,
                        options.subdir,
-                       installdir,
+                       install_prefix,
                        'share/gtk-doc/html',
                        install_dir)
     return 0
