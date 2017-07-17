@@ -49,15 +49,17 @@ branches:
   only:
     - master
 
+skip_commits:
+  files:
+    - docs/**/*
+
 install:
   - cmd: set "ORIG_PATH=%PATH%"
   # Boost 1.56.0: https://www.appveyor.com/docs/build-environment/#boost
   #- cmd: set "BOOST_ROOT=C:\Libraries\boost"
-  # Use a Ninja with QuLogic's patch: https://github.com/ninja-build/ninja/issues/1219
-  - cmd: set "MESON_FIXED_NINJA=1"
-  - ps: (new-object net.webclient).DownloadFile('http://nirbheek.in/files/binaries/ninja/win32/ninja.exe', 'C:\projects\meson\ninja.exe')
   # Use the x86 python only when building for x86 for the cpython tests.
   # For all other archs (including, say, arm), use the x64 python.
+  - ps: (new-object net.webclient).DownloadFile('https://www.dropbox.com/s/bbzvepq85hv47x1/ninja.exe?dl=1', 'C:\projects\meson\ninja.exe')
   - cmd: if %arch%==x86 (set MESON_PYTHON_PATH=C:\python34) else (set MESON_PYTHON_PATH=C:\python34-x64)
 
   # Set paths and config for each build type.
