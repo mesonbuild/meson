@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from mesonbuild import mlog, mesonmain, mesonlib
+from mesonbuild import mesonmain, mesonlib
 import sys, os, locale
 
 def main():
@@ -24,11 +24,11 @@ def main():
     # encoding, so we can just warn about it.
     e = locale.getpreferredencoding()
     if e.upper() != 'UTF-8' and not mesonlib.is_windows():
-        mlog.warning('You are using {!r} which is not a a Unicode-compatible '
-                     'locale.'.format(e))
-        mlog.warning('You might see errors if you use UTF-8 strings as '
-                     'filenames, as strings, or as file contents.')
-        mlog.warning('Please switch to a UTF-8 locale for your platform.')
+        print('Warning: You are using {!r} which is not a a Unicode-compatible '
+              'locale.'.format(e), file=sys.stderr)
+        print('You might see errors if you use UTF-8 strings as '
+              'filenames, as strings, or as file contents.', file=sys.stderr)
+        print('Please switch to a UTF-8 locale for your platform.', file=sys.stderr)
     # Always resolve the command path so Ninja can find it for regen, tests, etc.
     launcher = os.path.realpath(sys.argv[0])
     return mesonmain.run(sys.argv[1:], launcher)

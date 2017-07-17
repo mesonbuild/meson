@@ -27,6 +27,7 @@ from mesonbuild import mesonmain, mlog
 import sys
 
 if __name__ == '__main__':
-    mlog.warning('This program is deprecated, use "meson rewrite" instead')
+    print('Warning: This executable is deprecated. Use "meson rewrite" instead.',
+          file=sys.stderr)
     sys.exit(mesonmain.run(['rewrite'] + sys.argv[1:]))
 
