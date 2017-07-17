@@ -12,7 +12,7 @@ if meson.get_compiler('c').get_id() == 'intel'
 endif
 
 if meson.is_cross_build()
-  native_exe = executable('native-trivialprog', sources : sources)
+  native_exe = executable('native-trivialprog', sources : sources, native : true)
   test('native exe in cross build', native_exe)
 endif
 
