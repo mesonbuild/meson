@@ -451,6 +451,7 @@ def detect_tests_to_run():
         ('fortran', 'fortran', backend is not Backend.ninja or not shutil.which('gfortran')),
         ('swift', 'swift', backend not in (Backend.ninja, Backend.xcode) or not shutil.which('swiftc')),
         ('python3', 'python3', backend is not Backend.ninja),
+        ('vhdl', 'vhdl', False),
     ]
     gathered_tests = [(name, gather_tests('test cases/' + subdir), skip) for name, subdir, skip in all_tests]
     if mesonlib.is_windows():
