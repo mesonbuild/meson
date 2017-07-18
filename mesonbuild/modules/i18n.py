@@ -81,7 +81,7 @@ class I18nModule(ExtensionModule):
         ct = build.CustomTarget(kwargs['output'] + '_merge', state.subdir, kwargs)
         return ModuleReturnValue(ct, [ct])
 
-    @permittedKwargs({'po_dir', 'data_dirs', 'type', 'languages'})
+    @permittedKwargs({'po_dir', 'data_dirs', 'type', 'languages', 'args', 'preset'})
     def gettext(self, state, args, kwargs):
         if len(args) != 1:
             raise coredata.MesonException('Gettext requires one positional argument (package name).')
