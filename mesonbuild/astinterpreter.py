@@ -69,6 +69,7 @@ class AstInterpreter(interpreterbase.InterpreterBase):
                            'assert': self.func_do_nothing,
                            'subproject': self.func_do_nothing,
                            'dependency': self.func_do_nothing,
+                           'fpga_bitstream': self.func_do_nothing,
                            'get_option': self.func_do_nothing,
                            'join_paths': self.func_do_nothing,
                            'environment': self.func_do_nothing,
