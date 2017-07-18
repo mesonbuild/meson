@@ -58,3 +58,10 @@ Rust's [linkage reference][rust-linkage].
 
 Both the address- and undefined behavior sanitizers can now be used
 simultaneously by passing `-Db_sanitize=address,undefined` to Meson.
+
+## Unstable SIMD module
+
+A new experimental module to compile code with many different SIMD
+instruction sets and selecting the best one at runtime. This module
+is unstable, meaning its API is subject to change in later releases.
+It might also be removed altogether.

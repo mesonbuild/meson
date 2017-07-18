@@ -27,14 +27,15 @@ index.md
 		Build-options.md
 		Subprojects.md
 		Modules.md
+			Gnome-module.md
 			i18n-module.md
 			Pkgconfig-module.md
 			Python-3-module.md
 			Qt4-module.md
 			Qt5-module.md
 			RPM-module.md
+			Simd-module.md
 			Windows-module.md
-			Gnome-module.md
 		Java.md
 		Vala.md
 		IDE-integration.md
