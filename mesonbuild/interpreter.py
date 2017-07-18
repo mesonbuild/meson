@@ -1490,6 +1490,10 @@ class Interpreter(InterpreterBase):
         if len(args) != 1:
             raise InvalidCode('Import takes one argument.')
         modname = args[0]
+        if modname.startswith('unstable-'):
+            plainname = modname.split('-', 1)[1]
+            mlog.warning('Module %s has no backwards or forwards compatibility and might not exist in future releases.' % modname)
+            modname = 'unstable_' + plainname
         if modname not in self.environment.coredata.modules:
             try:
                 module = importlib.import_module('mesonbuild.modules.' + modname)

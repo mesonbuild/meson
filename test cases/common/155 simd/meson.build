@@ -1,6 +1,6 @@
 project('simd', 'c')
 
-simd = import('simd')
+simd = import('unstable-simd')
 
 cc = meson.get_compiler('c')
 
