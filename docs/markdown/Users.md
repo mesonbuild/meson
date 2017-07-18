@@ -23,6 +23,7 @@ If you have a project that uses Meson that you want to add to this list, let us 
  - [GStreamer](https://cgit.freedesktop.org/gstreamer/gstreamer/), multimedia framework (not the default yet)
  - [GTK+](https://git.gnome.org/browse/gtk+/log/?h=wip/meson), the multi-platform toolkit used by GNOME (not the default yet)
  - [GtkDApp](https://gitlab.com/csoriano/GtkDApp), an application template for developing Flatpak apps with Gtk+ and D
+ - [HexChat](https://github.com/hexchat/hexchat), a cross platform IRC client
  - [Json-glib](https://git.gnome.org/browse/json-glib), GLib-based JSON manipulation library
  - [Libepoxy](https://github.com/anholt/libepoxy/), a library for handling OpenGL function pointer management
  - [Libgit2-glib](https://git.gnome.org/browse/libgit2-glib/), a GLib wrapper for libgit2
