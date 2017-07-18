@@ -192,6 +192,9 @@ int dummy;
 
     def generate(self, interp):
         self.interpreter = interp
+        self.ninja_command = environment.detect_ninja(log=True)
+        if self.ninja_command is None:
+            raise MesonException('Could not detect Ninja v1.5 or newer')
         outfilename = os.path.join(self.environment.get_build_dir(), self.ninja_filename)
         tempfilename = outfilename + '~'
         with open(tempfilename, 'w') as outfile:
@@ -225,11 +228,10 @@ int dummy;
 
     # http://clang.llvm.org/docs/JSONCompilationDatabase.html
     def generate_compdb(self):
-        ninja_exe = environment.detect_ninja()
         pch_compilers = ['%s_PCH' % i for i in self.build.compilers]
         native_compilers = ['%s_COMPILER' % i for i in self.build.compilers]
         cross_compilers = ['%s_CROSS_COMPILER' % i for i in self.build.cross_compilers]
-        ninja_compdb = [ninja_exe, '-t', 'compdb'] + pch_compilers + native_compilers + cross_compilers
+        ninja_compdb = [self.ninja_command, '-t', 'compdb'] + pch_compilers + native_compilers + cross_compilers
         builddir = self.environment.get_build_dir()
         try:
             jsondb = subprocess.check_output(ninja_compdb, cwd=builddir)
@@ -2566,11 +2568,8 @@ rule FORTRAN_DEP_HACK
         default = 'default all\n\n'
         outfile.write(default)
 
-        ninja_command = environment.detect_ninja()
-        if ninja_command is None:
-            raise MesonException('Could not detect Ninja v1.6 or newer')
         elem = NinjaBuildElement(self.all_outputs, 'meson-clean', 'CUSTOM_COMMAND', 'PHONY')
-        elem.add_item('COMMAND', [ninja_command, '-t', 'clean'])
+        elem.add_item('COMMAND', [self.ninja_command, '-t', 'clean'])
         elem.add_item('description', 'Cleaning.')
         # Alias that runs the above-defined meson-clean target
         self.create_target_alias('meson-clean', outfile)
