@@ -12,7 +12,7 @@ If you have a project that uses Meson that you want to add to this list, let us 
  - [casync](https://github.com/systemd/casync), 
  - [Emeus](https://github.com/ebassi/emeus), Constraint based layout manager for GTK+
  - [Frida](https://www.frida.re/), a dynamic binary instrumentation toolkit
- - [GLib](https://github.com/centricular/glib/), cross-platform C library used by GTK+ (not the default yet)
+ - [GLib](https://git.gnome.org/browse/glib/), cross-platform C library used by GTK+ and GStreamer (not the default yet)
  - [Gnome Builder](https://git.gnome.org/browse/gnome-builder/), an IDE for the Gnome platform
  - [Gnome MPV](https://github.com/gnome-mpv/gnome-mpv), Gnome frontend to the mpv video player
  - [Gnome Recipes](https://github.com/matthiasclasen/gr), application for cooking recipes
@@ -21,9 +21,8 @@ If you have a project that uses Meson that you want to add to this list, let us 
  - [Graphene](https://ebassi.github.io/graphene/), a thin type library for graphics
  - [Grilo](https://mail.gnome.org/archives/grilo-list/2017-February/msg00000.html) and [Grilo plugins](https://git.gnome.org/browse/grilo-plugins/commit/?id=ea047c4fb63e90268eb795ed91a09a2be5068a4c), the Grilo multimedia framework
  - [GStreamer](https://cgit.freedesktop.org/gstreamer/gstreamer/), multimedia framework (not the default yet)
- - [GTK+](https://git.gnome.org/browse/gtk+/log/?h=wip/meson), the multi-platform toolkit used by GNOME (not the default yet)
+ - [GTK+](https://git.gnome.org/browse/gtk+/), the multi-platform toolkit used by GNOME (not the default yet)
  - [GtkDApp](https://gitlab.com/csoriano/GtkDApp), an application template for developing Flatpak apps with Gtk+ and D
- - [HexChat](https://github.com/hexchat/hexchat), a cross platform IRC client
  - [Json-glib](https://git.gnome.org/browse/json-glib), GLib-based JSON manipulation library
  - [Libepoxy](https://github.com/anholt/libepoxy/), a library for handling OpenGL function pointer management
  - [Libgit2-glib](https://git.gnome.org/browse/libgit2-glib/), a GLib wrapper for libgit2
