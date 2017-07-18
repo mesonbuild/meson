@@ -3,6 +3,7 @@ sudo: false
 branches:
   only:
   - master
+  - add_vhdl_lang
 
 os:
   - linux
