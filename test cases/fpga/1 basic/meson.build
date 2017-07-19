@@ -11,7 +11,8 @@ bitsream = fpga.bitstream('simple-adder', 'adder.vhd',
      pr_options:'some options'
 )
 
-message(bitsream)
+fpga.simulation('adder','adder.vhd',simulator:'GHDL')
+
 
 #test('Simple Test','testbench.vhd', src ,simulator:'GHDL',args:'--vcd=output.vcd')
 
