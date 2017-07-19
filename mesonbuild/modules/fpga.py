@@ -31,15 +31,24 @@ class AnalysisTarget(build.CustomTarget):
     def __init__(self, name, subdir, kwargs):
         super().__init__(name, subdir, kwargs)
 
+class FpgaLibraryTarget(build.CustomTarget):
+    def __init__(self, name, subdir, packages, kwargs):
+        super().__init__(name, subdir, kwargs)
+        self.packages = packages
+
 class GhdlSimulator():
-    def analyse_library():
-        pass
-    def analyse_source(source):
-        cmd = ["ghdl", "-a", source]
+    def analyse_source(source,work="work"):
+        cmd = ["ghdl", "-a", "--work="+work, source]
         return cmd
     def elaborate_simulation(top_entity):
         cmd = ["ghdl", "-e", top_entity]
         return cmd
+
+def _listify(obj_or_list):
+    if isinstance(obj_or_list,list):
+        return obj_or_list
+    else:
+        return [obj_or_list]
 
 _get_simulator={
     "GHDL":GhdlSimulator
@@ -47,7 +56,35 @@ _get_simulator={
 
 class FPGAModule(ExtensionModule):
 
-    @permittedKwargs({'simulator','args','sources'})
+    def _simulation_analyse_source(self,state,src,dependencies,simulator,work="work"):
+        target_kwargs = {}
+        target_kwargs['output']="analysis_"+'_'.join(src.split('/'))
+        target_kwargs['depends']=dependencies
+        target_kwargs['command']=simulator.analyse_source(os.path.join(state.build_to_src, state.subdir,src),work)
+        target = AnalysisTarget('_'.join(src.split('/'))+"_analysis", state.subdir,target_kwargs)
+        return target
+
+    def _simulation_analyse_lib(self,state,lib,simulator):
+        packages=[]
+        targets=[]
+        self_deps=[]
+        lib.packages = _listify(lib.packages)
+        deps = _listify(lib.dependencies)
+        deps = [dep.held_object for dep in deps]
+        for dep in deps:
+            if isinstance(dep, FpgaLibraryTarget):
+                dep_targets,dep_packages = self._simulation_analyse_lib(state,dep,simulator)
+                self_deps+=dep_targets
+                targets+=dep_packages
+        for package in lib.packages:
+            target = self._simulation_analyse_source(state,package,self_deps,simulator,lib.name)
+            packages.append(target)
+        for src in lib.sources:
+            target = self._simulation_analyse_source(state,src,packages,simulator,lib.name)
+            targets.append(target)
+        return targets,packages
+
+    @permittedKwargs({'simulator','args','sources','depends'})
     def simulation(self, state, args, kwargs):
         top = args[0]
         sources = []
@@ -56,31 +93,37 @@ class FPGAModule(ExtensionModule):
         if kwargs.get('sources'):
             sources += kwargs['sources']
         analysis_targets = []
+        libs_targets = []
         simulator=_get_simulator[kwargs["simulator"]]
+        if kwargs.get('depends'):
+            deps = _listify(kwargs['depends'])
+            deps = [dep.held_object for dep in deps]
+            for dep in deps:
+                if isinstance(dep, FpgaLibraryTarget):
+                    dep_targets,dep_packages = self._simulation_analyse_lib(state,dep,simulator)
+                    libs_targets+=dep_targets
+                    analysis_targets+=dep_packages
         for src in sources:
-            target_kwargs = {}
-            target_kwargs['output']="analysis_"+src
-            target_kwargs['command']=simulator.analyse_source(os.path.join(state.build_to_src, state.subdir,src))
-            target = AnalysisTarget(src+"_analysis", state.subdir,target_kwargs)
-            analysis_targets.append(target)
+            analysis_targets.append(self._simulation_analyse_source(state,src,libs_targets,simulator))
         target_kwargs = {}
         target_kwargs['output']=top
         target_kwargs['command']=simulator.elaborate_simulation(top)
         target_kwargs['depends']=analysis_targets
         target = SimulationTarget("simulation", state.subdir,target_kwargs)
-        rv = ModuleReturnValue(target, [target]+analysis_targets)
+        rv = ModuleReturnValue(target, [target]+analysis_targets+libs_targets)
         return rv
 
-    @permittedKwargs({'package','sources'})
+    @permittedKwargs({'packages','sources','depends'})
     def library(self, state, args, kwargs):
-        target_kwargs = {}
-        target_kwargs['output']='blah'
-        target_kwargs['command']='echo'
-        target = BitstreamTarget("bitsream", state.subdir,target_kwargs)
-        rv = ModuleReturnValue(target, [target])
+        kwargs_lib={}
+        kwargs_lib['input']=kwargs['sources']
+        kwargs_lib['output']='dummy-'+args[0]
+        kwargs_lib['command']=['echo','dummy target']
+        lib=FpgaLibraryTarget(args[0], state.subdir,kwargs['packages'], kwargs_lib)
+        rv = ModuleReturnValue(lib, [lib])
         return rv
 
-    @permittedKwargs({'device','toolchain','constraints','dependencies',
+    @permittedKwargs({'device','toolchain','depends','constraints','dependencies',
                      'synth_options','map_options','pr_options'})
     def bitstream(self, state, args, kwargs):
         target_kwargs = {}
