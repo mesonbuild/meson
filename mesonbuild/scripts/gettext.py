@@ -16,11 +16,13 @@ import os
 import shutil
 import argparse
 import subprocess
+import pickle
 from . import destdir_join
 
 parser = argparse.ArgumentParser()
 parser.add_argument('command')
 parser.add_argument('--pkgname', default='')
+parser.add_argument('--datafilename', default='')
 parser.add_argument('--datadirs', default='')
 parser.add_argument('--langs', default='')
 parser.add_argument('--localedir', default='')
@@ -43,7 +45,32 @@ def read_linguas(src_sub):
         print('Could not find file LINGUAS in {}'.format(src_sub))
         return []
 
-def run_potgen(src_sub, pkgname, datadirs, args):
+def run_potgen(src_sub, pkgname, datafilename, datadirs, args):
+    child_env = os.environ.copy()
+    if datadirs:
+        child_env['GETTEXTDATADIRS'] = datadirs
+    ofile = os.path.join(src_sub, pkgname + '.pot')
+
+    if datafilename:
+        with open(datafilename, 'rb') as ifile:
+            files = pickle.load(ifile)
+        tmp_pot = os.path.join(os.path.dirname(datafilename), 'i18n-' + pkgname + '.pot')
+        if os.path.exists(tmp_pot):
+            os.remove(tmp_pot)
+        join_arg = []
+        for f in files:
+            language = ['--language=' + f['language']] if f['language'] is not None else []
+            keywords = ['--keyword=' + k for k in f['keywords']]
+            flags = ['--flag=' + f for f in f['flags']]
+            subprocess.check_call(['xgettext', '--package-name=' + pkgname, '-p', src_sub,
+                                   '-D', os.environ['MESON_SOURCE_ROOT'], '-o', tmp_pot] + join_arg +
+                                  language + keywords + flags + f['extra_args'] + f['files'],
+                                  env=child_env)
+            if os.path.exists(tmp_pot):
+                join_arg = ['-j']
+        os.rename(tmp_pot, ofile)
+        return 0
+
     listfile = os.path.join(src_sub, 'POTFILES')
     if not os.path.exists(listfile):
         listfile = os.path.join(src_sub, 'POTFILES.in')
@@ -51,11 +78,6 @@ def run_potgen(src_sub, pkgname, datadirs, args):
             print('Could not find file POTFILES in %s' % src_sub)
             return 1
 
-    child_env = os.environ.copy()
-    if datadirs:
-        child_env['GETTEXTDATADIRS'] = datadirs
-
-    ofile = os.path.join(src_sub, pkgname + '.pot')
     return subprocess.call(['xgettext', '--package-name=' + pkgname, '-p', src_sub, '-f', listfile,
                             '-D', os.environ['MESON_SOURCE_ROOT'], '-k_', '-o', ofile] + args,
                            env=child_env)
@@ -99,11 +121,11 @@ def run(args):
         langs = read_linguas(src_sub)
 
     if subcmd == 'pot':
-        return run_potgen(src_sub, options.pkgname, options.datadirs, extra_args)
+        return run_potgen(src_sub, options.pkgname, options.datafilename, options.datadirs, extra_args)
     elif subcmd == 'gen_gmo':
         return gen_gmo(src_sub, bld_sub, langs)
     elif subcmd == 'update_po':
-        if run_potgen(src_sub, options.pkgname, options.datadirs, extra_args) != 0:
+        if run_potgen(src_sub, options.pkgname, options.datafilename, options.datadirs, extra_args) != 0:
             return 1
         return update_po(src_sub, options.pkgname, langs)
     elif subcmd == 'install':

@@ -1,4 +1,7 @@
 usr/bin/intlprog
+usr/share/locale/de/LC_MESSAGES/intltest-old.mo
+usr/share/locale/fi/LC_MESSAGES/intltest-old.mo
 usr/share/locale/de/LC_MESSAGES/intltest.mo
 usr/share/locale/fi/LC_MESSAGES/intltest.mo
+usr/share/applications/test-old.desktop
 usr/share/applications/test.desktop
