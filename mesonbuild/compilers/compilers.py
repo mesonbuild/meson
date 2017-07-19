@@ -228,6 +228,43 @@ base_options = {'b_pch': coredata.UserBooleanOption('b_pch', 'Use precompiled he
                                                           True),
                 }
 
+gnulike_instruction_set_args = {'mmx': ['-mmmx'],
+                                'sse': ['-msse'],
+                                'sse2': ['-msse2'],
+                                'sse3': ['-msse3'],
+                                'ssse3': ['-mssse3'],
+                                'sse41': ['-msse4.1'],
+                                'sse42': ['-msse4.2'],
+                                'avx': ['-mavx'],
+                                'avx2': ['-mavx2'],
+                                'neon': ['-mfpu=neon'],
+                                }
+
+vs32_instruction_set_args = {'mmx': ['/arch:SSE'], # There does not seem to be a flag just for MMX
+                             'sse': ['/arch:SSE'],
+                             'sse2': ['/arch:SSE2'],
+                             'sse3': ['/arch:AVX'], # VS leaped from SSE2 directly to AVX.
+                             'sse41': ['/arch:AVX'],
+                             'sse42': ['/arch:AVX'],
+                             'avx': ['/arch:AVX'],
+                             'avx2': ['/arch:AVX2'],
+                             'neon': None,
+}
+
+# The 64 bit compiler defaults to /arch:avx.
+vs64_instruction_set_args = {'mmx': ['/arch:AVX'],
+                             'sse': ['/arch:AVX'],
+                             'sse2': ['/arch:AVX'],
+                             'sse3': ['/arch:AVX'],
+                             'ssse3': ['/arch:AVX'],
+                             'sse41': ['/arch:AVX'],
+                             'sse42': ['/arch:AVX'],
+                             'avx': ['/arch:AVX'],
+                             'avx2': ['/arch:AVX2'],
+                             'neon': None,
+                             }
+
+
 def sanitizer_compile_args(value):
     if value == 'none':
         return []
@@ -755,6 +792,12 @@ class Compiler:
             return []
         raise EnvironmentException('Language %s does not support linking whole archives.' % self.get_display_language())
 
+    # Compiler arguments needed to enable the given instruction set.
+    # May be [] meaning nothing needed or None meaning the given set
+    # is not supported.
+    def get_instruction_set_args(self, instruction_set):
+        return None
+
     def build_unix_rpath_args(self, build_dir, from_dir, rpath_paths, install_rpath):
         if not rpath_paths and not install_rpath:
             return []
@@ -933,6 +976,10 @@ class GnuCompiler:
             return ['-mwindows']
         return []
 
+    def get_instruction_set_args(self, instruction_set):
+        return gnulike_instruction_set_args.get(instruction_set, None)
+
+
 class ClangCompiler:
     def __init__(self, clang_type):
         self.id = 'clang'
@@ -983,7 +1030,7 @@ class ClangCompiler:
 
     def has_multi_arguments(self, args, env):
         return super().has_multi_arguments(
-            ['-Werror=unknown-warning-option'] + args,
+            ['-Werror=unknown-warning-option', '-Werror=unused-command-line-argument'] + args,
             env)
 
     def has_function(self, funcname, prefix, env, extra_args=None, dependencies=None):
@@ -1009,6 +1056,9 @@ class ClangCompiler:
                 result += ['-Wl,-force_load', a]
             return result
         return ['-Wl,--whole-archive'] + args + ['-Wl,--no-whole-archive']
+
+    def get_instruction_set_args(self, instruction_set):
+        return gnulike_instruction_set_args.get(instruction_set, None)
 
 
 # Tested on linux for ICC 14.0.3, 15.0.6, 16.0.4, 17.0.1
