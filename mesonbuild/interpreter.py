@@ -549,10 +549,6 @@ class ExecutableHolder(BuildTargetHolder):
     def __init__(self, target, interp):
         super().__init__(target, interp)
 
-class BitstreamHolder(BuildTargetHolder):
-    def __init__(self, target, interp):
-        super().__init__(target, interp)
-
 class StaticLibraryHolder(BuildTargetHolder):
     def __init__(self, target, interp):
         super().__init__(target, interp)
@@ -1300,7 +1296,6 @@ permitted_kwargs = {'add_global_arguments': {'language'},
                     'declare_dependency': {'include_directories', 'link_with', 'sources', 'dependencies', 'compile_args', 'link_args', 'version'},
                     'executable': exe_kwargs,
                     'find_program': {'required'},
-                    'fpga_bitstream': {'device','toolchain','constraints','dependencies','synth_options','map_options','pr_options'},
                     'generator': {'arguments', 'output', 'depfile'},
                     'include_directories': {'is_system'},
                     'install_data': {'install_dir', 'install_mode', 'sources'},
@@ -1378,7 +1373,6 @@ class Interpreter(InterpreterBase):
                            'environment': self.func_environment,
                            'error': self.func_error,
                            'executable': self.func_executable,
-                           'fpga_bitstream': self.func_fpga_bitstream,
                            'generator': self.func_generator,
                            'gettext': self.func_gettext,
                            'get_option': self.func_get_option,
@@ -2131,11 +2125,6 @@ class Interpreter(InterpreterBase):
     def func_executable(self, node, args, kwargs):
         return self.build_target(node, args, kwargs, ExecutableHolder)
 
-    @permittedKwargs(permitted_kwargs['fpga_bitstream'])
-    def func_fpga_bitstream(self, node, args, kwargs):
-        mlog.log(mlog.bold("adding a FPGA bitstream"))
-        return self.build_target(node, args, kwargs, BitstreamHolder)
-
     @permittedKwargs(permitted_kwargs['static_library'])
     def func_static_lib(self, node, args, kwargs):
         return self.build_target(node, args, kwargs, StaticLibraryHolder)
@@ -2770,8 +2759,6 @@ different subdirectory.
             targetclass = build.StaticLibrary
         elif targetholder is JarHolder:
             targetclass = build.Jar
-        elif targetholder is BitstreamHolder:
-            targetclass = build.Bitstream
         else:
             mlog.debug('Unknown target type:', str(targetholder))
             raise RuntimeError('Unreachable code')

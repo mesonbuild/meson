@@ -1,6 +1,7 @@
 project('simple vhdl', 'c')
+fpga = import('fpga')
 
-e = fpga_bitstream('simple-adder', 'adder.vhd',
+bitsream = fpga.bitstream('simple-adder', 'adder.vhd',
      device:'DEVICE_DIE_REF',
      toolchain:'ISE',
      constraints:['led.ucf','led.xcf'],
@@ -9,6 +10,8 @@ e = fpga_bitstream('simple-adder', 'adder.vhd',
      map_options:'some options',
      pr_options:'some options'
 )
+
+message(bitsream)
 
 #test('Simple Test','testbench.vhd', src ,simulator:'GHDL',args:'--vcd=output.vcd')
 

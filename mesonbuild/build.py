@@ -1125,25 +1125,6 @@ class Executable(BuildTarget):
     def type_suffix(self):
         return "@exe"
 
-class Bitstream(BuildTarget):
-    #TODO Stupid copy paste from Executable, need more work here
-    def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
-        super().__init__(name, subdir, subproject, is_cross, sources, objects, environment, kwargs)
-        if not hasattr(self, 'prefix'):
-            self.prefix = ''
-        if not hasattr(self, 'suffix'):
-            self.suffix = ''
-        self.filename = self.name
-        if self.suffix:
-            self.filename += '.' + self.suffix
-        self.outputs = [self.filename]
-
-    def type_suffix(self):
-        return "@bin"
-
-    def process_kwargs(self, kwargs, environment):
-        pass
-
 class StaticLibrary(BuildTarget):
     def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
         if 'pic' not in kwargs and 'b_staticpic' in environment.coredata.base_options:
