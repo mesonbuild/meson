@@ -331,15 +331,15 @@ class MPIDependency(ExternalDependency):
                 if result is not None:
                     self.is_found = True
                     self.version = result[0]
-                    self.compile_args = result[1]
-                    self.link_args = result[2]
+                    self.compile_args = self._filter_compile_args(result[1])
+                    self.link_args = self._filter_link_args(result[2])
                     break
                 result = self._try_other_wrapper(prog)
                 if result is not None:
                     self.is_found = True
                     self.version = result[0]
-                    self.compile_args = result[1]
-                    self.link_args = result[2]
+                    self.compile_args = self._filter_compile_args(result[1])
+                    self.link_args = self._filter_link_args(result[2])
                     break
 
         if self.is_found:
@@ -348,6 +348,48 @@ class MPIDependency(ExternalDependency):
             mlog.log('Dependency', mlog.bold(self.name), 'for', self.language, 'found:', mlog.red('NO'))
             if required:
                 raise DependencyException('MPI dependency {!r} not found'.format(self.name))
+
+    def _filter_compile_args(self, args):
+        """
+        MPI wrappers return a bunch of garbage args.
+        Drop -O2 and everything that is not needed.
+        """
+        result = []
+        multi_args = ('-I', )
+        if self.language == 'fortran':
+            fc = self.env.coredata.compilers['fortran']
+            multi_args += fc.get_module_incdir_args()
+
+        include_next = False
+        for f in args:
+            if f.startswith(('-D', '-f') + multi_args) or f == '-pthread' \
+                    or (f.startswith('-W') and f != '-Wall' and not f.startswith('-Werror')):
+                result.append(f)
+                if f in multi_args:
+                    # Path is a separate argument.
+                    include_next = True
+            elif include_next:
+                include_next = False
+                result.append(f)
+        return result
+
+    def _filter_link_args(self, args):
+        """
+        MPI wrappers return a bunch of garbage args.
+        Drop -O2 and everything that is not needed.
+        """
+        result = []
+        include_next = False
+        for f in args:
+            if f.startswith(('-L', '-l', '-Xlinker')) or f == '-pthread' \
+                    or (f.startswith('-W') and f != '-Wall' and not f.startswith('-Werror')):
+                result.append(f)
+                if f in ('-L', '-Xlinker'):
+                    include_next = True
+            elif include_next:
+                include_next = False
+                result.append(f)
+        return result
 
     def _try_openmpi_wrapper(self, prog):
         prog = ExternalProgram(prog, silent=True)
