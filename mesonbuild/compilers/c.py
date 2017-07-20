@@ -676,11 +676,11 @@ class CCompiler(Compiler):
         raise RuntimeError('BUG: {!r} check failed unexpectedly'.format(n))
 
     def find_library(self, libname, env, extra_dirs):
+        # These libraries are either built-in or invalid
+        if libname in self.ignore_libs:
+            return []
         # First try if we can just add the library as -l.
-        code = '''int main(int argc, char **argv) {
-    return 0;
-}
-        '''
+        code = 'int main(int argc, char **argv) { return 0; }'
         if extra_dirs and isinstance(extra_dirs, str):
             extra_dirs = [extra_dirs]
         # Gcc + co seem to prefer builtin lib dirs to -L dirs.
@@ -811,6 +811,7 @@ class IntelCCompiler(IntelCompiler, CCompiler):
 class VisualStudioCCompiler(CCompiler):
     std_warn_args = ['/W3']
     std_opt_args = ['/O2']
+    ignore_libs = ('m', 'c', 'pthread')
 
     def __init__(self, exelist, version, is_cross, exe_wrap, is_64):
         CCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
@@ -941,7 +942,7 @@ class VisualStudioCCompiler(CCompiler):
             # Translate GNU-style -lfoo library name to the import library
             elif i.startswith('-l'):
                 name = i[2:]
-                if name in ('m', 'c', 'pthread'):
+                if name in cls.ignore_libs:
                     # With MSVC, these are provided by the C runtime which is
                     # linked in by default
                     continue
