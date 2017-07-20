@@ -1005,7 +1005,11 @@ class GnomeModule(ExtensionModule):
             if arg in kwargs:
                 custom_kwargs[arg] = kwargs[arg]
 
+        header_file = output + '.h'
         custom_kwargs['command'] = cmd + ['--body', '@INPUT@']
+        if mesonlib.version_compare(self._get_native_glib_version(state), '>= 2.53.4'):
+            # Silence any warnings about missing prototypes
+            custom_kwargs['command'] += ['--include-header', header_file]
         custom_kwargs['output'] = output + '.c'
         body = build.CustomTarget(output + '_c', state.subdir, custom_kwargs)
 
@@ -1013,7 +1017,7 @@ class GnomeModule(ExtensionModule):
         if install_dir is not None:
             custom_kwargs['install_dir'] = install_dir
         custom_kwargs['command'] = cmd + ['--header', '@INPUT@']
-        custom_kwargs['output'] = output + '.h'
+        custom_kwargs['output'] = header_file
         header = build.CustomTarget(output + '_h', state.subdir, custom_kwargs)
 
         rv = [body, header]
