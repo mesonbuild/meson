@@ -506,6 +506,8 @@ class Backend:
             is_cross = self.environment.is_cross_build() and \
                 self.environment.cross_info.need_cross_compiler() and \
                 self.environment.cross_info.need_exe_wrapper()
+            if isinstance(exe, build.BuildTarget):
+                is_cross = is_cross and exe.is_cross
             if is_cross:
                 exe_wrapper = self.environment.cross_info.config['binaries'].get('exe_wrapper', None)
             else:
