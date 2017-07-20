@@ -2512,7 +2512,14 @@ class Interpreter(InterpreterBase):
                 if conffile not in self.build_def_files:
                     self.build_def_files.append(conffile)
                 os.makedirs(os.path.join(self.environment.build_dir, self.subdir), exist_ok=True)
-                mesonlib.do_conf_file(ifile_abs, ofile_abs, conf.held_object)
+                missing_variables = mesonlib.do_conf_file(ifile_abs, ofile_abs,
+                                                          conf.held_object)
+                if missing_variables:
+                    var_list = ", ".join(map(repr, sorted(missing_variables)))
+                    mlog.warning(
+                        "The variable(s) %s in the input file %r are not "
+                        "present in the given configuration data" % (
+                            var_list, inputfile))
             else:
                 mesonlib.dump_conf_header(ofile_abs, conf.held_object)
             conf.mark_used()

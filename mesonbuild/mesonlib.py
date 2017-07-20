@@ -375,6 +375,7 @@ def get_library_dirs():
 
 def do_replacement(regex, line, confdata):
     match = re.search(regex, line)
+    missing_variables = set()
     while match:
         varname = match.group(1)
         if varname in confdata:
@@ -386,10 +387,11 @@ def do_replacement(regex, line, confdata):
             else:
                 raise RuntimeError('Tried to replace a variable with something other than a string or int.')
         else:
+            missing_variables.add(varname)
             var = ''
         line = line.replace('@' + varname + '@', var)
         match = re.search(regex, line)
-    return line
+    return line, missing_variables
 
 def do_mesondefine(line, confdata):
     arr = line.split()
@@ -423,17 +425,20 @@ def do_conf_file(src, dst, confdata):
     # Also allow escaping '@' with '\@'
     regex = re.compile(r'[^\\]?@([-a-zA-Z0-9_]+)@')
     result = []
+    missing_variables = set()
     for line in data:
         if line.startswith('#mesondefine'):
             line = do_mesondefine(line, confdata)
         else:
-            line = do_replacement(regex, line, confdata)
+            line, missing = do_replacement(regex, line, confdata)
+            missing_variables.update(missing)
         result.append(line)
     dst_tmp = dst + '~'
     with open(dst_tmp, 'w', encoding='utf-8') as f:
         f.writelines(result)
     shutil.copymode(src, dst_tmp)
     replace_if_different(dst, dst_tmp)
+    return missing_variables
 
 def dump_conf_header(ofilename, cdata):
     with open(ofilename, 'w', encoding='utf-8') as ofile:
