@@ -1431,6 +1431,23 @@ class WindowsTests(BasePlatformTests):
         self.assertPathEqual(prog.get_command()[0], sys.executable)
         self.assertPathBasenameEqual(prog.get_path(), 'test-script-ext.py')
 
+    def test_ignore_libs(self):
+        '''
+        Test that find_library on libs that are to be ignored returns an empty
+        array of arguments. Must be a unit test because we cannot inspect
+        ExternalLibraryHolder from build files.
+        '''
+        testdir = os.path.join(self.platform_test_dir, '1 basic')
+        env = Environment(testdir, self.builddir, self.meson_command,
+                          get_fake_options(self.prefix), [])
+        cc = env.detect_c_compiler(False)
+        if cc.id != 'msvc':
+            raise unittest.SkipTest('Not using MSVC')
+        # To force people to update this test, and also test
+        self.assertEqual(set(cc.ignore_libs), {'c', 'm', 'pthread'})
+        for l in cc.ignore_libs:
+            self.assertEqual(cc.find_library(l, env, []), [])
+
 
 class LinuxlikeTests(BasePlatformTests):
     '''

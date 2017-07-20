@@ -593,6 +593,10 @@ class CompilerArgs(list):
         self.__iadd__(args)
 
 class Compiler:
+    # Libraries to ignore in find_library() since they are provided by the
+    # compiler or the C library. Currently only used for MSVC.
+    ignore_libs = ()
+
     def __init__(self, exelist, version):
         if isinstance(exelist, str):
             self.exelist = [exelist]
