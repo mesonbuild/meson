@@ -35,6 +35,12 @@ class FpgaLibraryTarget(build.CustomTarget):
     def __init__(self, name, subdir, packages, kwargs):
         super().__init__(name, subdir, kwargs)
         self.packages = packages
+        self.libs_dependencies=[]
+        #if 'depends' in kwargs:
+        #    deps=_listify(kwargs['depends'])
+        #    for dep in deps:
+        #        if isinstance(dep.held_object, FpgaLibraryTarget):
+        #            self.libs_dependencies.append(dep)
 
 class GhdlSimulator():
     def analyse_source(source,work="work"):
@@ -69,7 +75,7 @@ class FPGAModule(ExtensionModule):
         targets=[]
         self_deps=[]
         lib.packages = _listify(lib.packages)
-        deps = _listify(lib.dependencies)
+        deps = _listify(lib.libs_dependencies)
         deps = [dep.held_object for dep in deps]
         for dep in deps:
             if isinstance(dep, FpgaLibraryTarget):
@@ -116,6 +122,8 @@ class FPGAModule(ExtensionModule):
     @permittedKwargs({'packages','sources','depends'})
     def library(self, state, args, kwargs):
         kwargs_lib={}
+        if 'depends' in kwargs:
+            kwargs_lib['depends']=kwargs['depends']
         kwargs_lib['input']=kwargs['sources']
         kwargs_lib['output']='dummy-'+args[0]
         kwargs_lib['command']=['echo','dummy target']
