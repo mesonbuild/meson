@@ -65,3 +65,8 @@ A new experimental module to compile code with many different SIMD
 instruction sets and selecting the best one at runtime. This module
 is unstable, meaning its API is subject to change in later releases.
 It might also be removed altogether.
+
+## Import libraries for executables on Windows
+
+The new keyword `implib` to `executable()` allows generation of an import
+library for the executable.
