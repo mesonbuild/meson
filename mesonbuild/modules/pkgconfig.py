@@ -155,11 +155,11 @@ class PkgConfigModule(ExtensionModule):
                 # foo=bar=baz is ('foo', 'bar=baz')
                 l = var.split('=', 1)
                 if len(l) < 2:
-                    raise mesonlib.MesonException('Variables must be in \'name=value\' format')
+                    raise mesonlib.MesonException('Invalid variable "{}". Variables must be in \'name=value\' format'.format(var))
 
                 name, value = l[0].strip(), l[1].strip()
                 if not name or not value:
-                    raise mesonlib.MesonException('Variables must be in \'name=value\' format')
+                    raise mesonlib.MesonException('Invalid variable "{}". Variables must be in \'name=value\' format'.format(var))
 
                 # Variable names must not contain whitespaces
                 if any(c.isspace() for c in name):
