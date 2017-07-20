@@ -49,3 +49,14 @@ run_target('check_exists',
 # executable but test that the output is generated correctly.
 run_target('donotrunme',
   command : hex)
+
+# Ensure configure files can be passed
+conf = configure_file(
+  input: 'configure.in',
+  output: 'configure',
+  configuration: configuration_data()
+)
+
+run_target('configure_script',
+  command : conf
+)

@@ -560,6 +560,8 @@ int dummy;
         elif isinstance(texe, build.CustomTarget):
             deps.append(self.get_target_filename(texe))
             cmd += [os.path.join(self.environment.get_build_dir(), self.get_target_filename(texe))]
+        elif isinstance(texe, mesonlib.File):
+            cmd.append(texe.absolute_path(self.environment.get_source_dir(), self.environment.get_build_dir()))
         else:
             cmd.append(target.command)
         cmd += arg_strings
