@@ -160,9 +160,9 @@ def list_deps(coredata):
     result = []
     for d in coredata.deps.values():
         if d.found():
-            args = {'compile_args': d.get_compile_args(),
-                    'link_args': d.get_link_args()}
-            result += [d.name, args]
+            result += [{'name': d.name,
+                        'compile_args': d.get_compile_args(),
+                        'link_args': d.get_link_args()}]
     print(json.dumps(result))
 
 def list_tests(testdata):

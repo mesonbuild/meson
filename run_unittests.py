@@ -1828,6 +1828,28 @@ class LinuxlikeTests(BasePlatformTests):
                     return
         raise RuntimeError('Linker entries not found in the Ninja file.')
 
+    def test_introspect_dependencies(self):
+        '''
+        Tests that mesonintrospect --dependencies returns expected output.
+        '''
+        testdir = os.path.join(self.framework_test_dir, '7 gnome')
+        self.init(testdir)
+        glib_found = False
+        gobject_found = False
+        deps = self.introspect('--dependencies')
+        self.assertIsInstance(deps, list)
+        for dep in deps:
+            self.assertIsInstance(dep, dict)
+            self.assertIn('name', dep)
+            self.assertIn('compile_args', dep)
+            self.assertIn('link_args', dep)
+            if dep['name'] == 'glib-2.0':
+                glib_found = True
+            elif dep['name'] == 'gobject-2.0':
+                gobject_found = True
+        self.assertTrue(glib_found)
+        self.assertTrue(gobject_found)
+
 class LinuxArmCrossCompileTests(BasePlatformTests):
     '''
     Tests that verify cross-compilation to Linux/ARM
