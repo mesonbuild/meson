@@ -954,8 +954,6 @@ class GnuCompiler:
         return get_gcc_soname_args(self.gcc_type, prefix, shlib_name, suffix, path, soversion, is_shared_module)
 
     def get_std_shared_lib_link_args(self):
-        if self.gcc_type == GCC_OSX:
-            return ['-bundle']
         return ['-shared']
 
     def get_link_whole_for(self, args):
