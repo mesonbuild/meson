@@ -747,7 +747,7 @@ Note that while cross-compiling, it simply returns the values defined in the cro
 
 This object is returned by [`meson.get_compiler(lang)`](#meson-object). It represents a compiler for a given language and allows you to query its properties. It has the following methods:
 
-- `get_id()` returns a string identifying the compiler. Full list: `gcc`, `clang`, `msvc`, `intel`, `rustc`, `valac`, `llvm`, `dmd`, `mono`, plus various fortran compilers.
+- `get_id()` returns a string identifying the compiler. For example, `gcc`, `msvc`, [and more](Compiler-properties.md#compiler-id).
 - `version()` returns the compiler's version number as a string.
 - `find_library(lib_name, ...)` tries to find the library specified in the positional argument. The [result object](#external-library-object) can be used just like the return value of `dependency`. If the keyword argument `required` is false, Meson will proceed even if the library is not found. By default the library is searched for in the system library directory (e.g. /usr/lib). This can be overridden with the `dirs` keyword argument, which can be either a string or a list of strings.
 - `sizeof(typename, ...)` returns the size of the given type (e.g. `'int'`) or -1 if the type is unknown, to add includes set them in the `prefix` keyword argument, you can specify external dependencies to use with `dependencies` keyword argument.
