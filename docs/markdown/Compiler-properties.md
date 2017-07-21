@@ -27,6 +27,11 @@ The compiler object has a method called `get_id`, which returns a lower case str
 | clang     | The Clang compiler             |
 | msvc      | Microsoft Visual Studio        |
 | intel     | Intel compiler                 |
+| llvm      | LLVM-based compiler (Swift, D) |
+| mono      | Xamarin C# compiler            |
+| dmd       | D lang reference compiler      |
+| rustc     | Rust compiler                  |
+| valac     | Vala compiler                  |
 | pathscale | The Pathscale Fortran compiler |
 | pgi       | The Portland Fortran compiler  |
 | sun       | Sun Fortran compiler           |
