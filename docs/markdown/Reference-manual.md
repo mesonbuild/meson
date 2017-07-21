@@ -631,13 +631,15 @@ Takes the project specified in the positional argument and brings that in the cu
  - `version` keyword argument that works just like the one in `dependency`. It specifies what version the subproject should be, as an example `>=1.0.1`
  - `default_options`, *(added 0.37.0)* an array of default option values that override those set in the project's `default_options` invocation (like `default_options` in `project`, they only have effect when Meson is run for the first time, and command line arguments override any default options in build files)
 
+Note that you can use the returned [subproject object](#subproject-object) to access any variable in the subproject. However, if you want to use a dependency object from inside a subproject, an easier way is to use the `fallback:` keyword argument to [`dependency()`](#dependency).
+
 ### test()
 
 ``` meson
     void test(name, executable, ...)
 ```
 
-Defines an unit test. Takes two positional arguments, the first is the name of this test and the second is the executable to run. Keyword arguments are the following.
+Defines a unit test. Takes two positional arguments, the first is the name of this test and the second is the executable to run. Keyword arguments are the following.
 
 - `args` arguments to pass to the executable
 - `env` environment variables to set, such as `['NAME1=value1', 'NAME2=value2']`, or an [`environment()` object](#environment-object) which allows more sophisticated environment juggling
@@ -674,7 +676,7 @@ The `meson` object allows you to introspect various properties of the system. Th
 
 - `get_compiler(language)` returns [an object describing a compiler](#compiler-object), takes one positional argument which is the language to use. It also accepts one keyword argument, `native` which when set to true makes Meson return the compiler for the build machine (the "native" compiler) and when false it returns the host compiler (the "cross" compiler). If `native` is omitted, Meson returns the "cross" compiler if we're currently cross-compiling and the "native" compiler if we're not.
 
-- `backend()` *(added 0.37.0)* returns a string representing the current backend: `ninja`, `vs2010`, `vs2015`, or `xcode`.
+- `backend()` *(added 0.37.0)* returns a string representing the current backend: `ninja`, `vs2010`, `vs2015`, `vs2017`, or `xcode`.
 
 - `is_cross_build()` returns `true` if the current build is a [cross build](Cross-compilation.md) and `false` otherwise.
 
@@ -716,10 +718,10 @@ Provides information about the build machine — the machine that is doing the a
 
 - `cpu_family()` returns the CPU family name. Guaranteed to return `x86` for 32-bit userland on x86 CPUs, `x86_64` for 64-bit userland on x86 CPUs, `arm` for 32-bit userland on all ARM CPUs, etc.
 - `cpu()` returns a more specific CPU name, such as `i686`, `amd64`, etc.
-- `system()` returns the operating system name, such as `windows` (all versions of Windows), `linux` (all Linux distros), `darwin` (all versions of OS X), etc.
+- `system()` returns the operating system name, such as `windows` (all versions of Windows), `linux` (all Linux distros), `darwin` (all versions of OS X/macOS), `cygwin` (for Cygwin), and `bsd` (all *BSD OSes).
 - `endian()` returns `big` on big-endian systems and `little` on little-endian systems.
 
-Currently, these values are populated using the [`platform.system()`](https://docs.python.org/3.4/library/platform.html#platform.system) and [`platform.machine()`](https://docs.python.org/3.4/library/platform.html#platform.machine). If you think the returned values for any of these are incorrect for your system or CPU, please file [a bug report](https://github.com/mesonbuild/meson/issues/new).
+Currently, these values are populated using [`platform.system()`](https://docs.python.org/3.4/library/platform.html#platform.system) and [`platform.machine()`](https://docs.python.org/3.4/library/platform.html#platform.machine). If you think the returned values for any of these are incorrect for your system or CPU, or if your OS is not in the above list, please file [a bug report](https://github.com/mesonbuild/meson/issues/new) with details and we'll look into it.
 
 ### `host_machine` object
 
@@ -745,7 +747,7 @@ Note that while cross-compiling, it simply returns the values defined in the cro
 
 This object is returned by [`meson.get_compiler(lang)`](#meson-object). It represents a compiler for a given language and allows you to query its properties. It has the following methods:
 
-- `get_id()` returns a string identifying the compiler (e.g. `'gcc'`).
+- `get_id()` returns a string identifying the compiler. Full list: `gcc`, `clang`, `msvc`, `intel`, `rustc`, `valac`, `llvm`, `dmd`, `mono`, plus various fortran compilers.
 - `version()` returns the compiler's version number as a string.
 - `find_library(lib_name, ...)` tries to find the library specified in the positional argument. The [result object](#external-library-object) can be used just like the return value of `dependency`. If the keyword argument `required` is false, Meson will proceed even if the library is not found. By default the library is searched for in the system library directory (e.g. /usr/lib). This can be overridden with the `dirs` keyword argument, which can be either a string or a list of strings.
 - `sizeof(typename, ...)` returns the size of the given type (e.g. `'int'`) or -1 if the type is unknown, to add includes set them in the `prefix` keyword argument, you can specify external dependencies to use with `dependencies` keyword argument.
