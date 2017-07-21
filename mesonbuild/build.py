@@ -49,6 +49,7 @@ known_basic_kwargs = {'install': True,
                       'gui_app': True,
                       'extra_files': True,
                       'install_rpath': True,
+                      'build_rpath': True,
                       'resources': True,
                       'sources': True,
                       'objects': True,
@@ -672,6 +673,10 @@ class BuildTarget(Target):
         for i in self.link_args:
             if not isinstance(i, str):
                 raise InvalidArguments('Link_args arguments must be strings.')
+        for l in self.link_args:
+            if '-Wl,-rpath' in l or l.startswith('-rpath'):
+                mlog.warning('''Please do not define rpath with a linker argument, use install_rpath or build_rpath properties instead.
+This will become a hard error in a future Meson release.''')
         self.process_link_depends(kwargs.get('link_depends', []), environment)
         # Target-specific include dirs must be added BEFORE include dirs from
         # internal deps (added inside self.add_deps()) to override them.
@@ -710,6 +715,9 @@ class BuildTarget(Target):
         self.install_rpath = kwargs.get('install_rpath', '')
         if not isinstance(self.install_rpath, str):
             raise InvalidArguments('Install_rpath is not a string.')
+        self.build_rpath = kwargs.get('build_rpath', '')
+        if not isinstance(self.build_rpath, str):
+            raise InvalidArguments('Build_rpath is not a string.')
         resources = kwargs.get('resources', [])
         if not isinstance(resources, list):
             resources = [resources]

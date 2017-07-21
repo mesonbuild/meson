@@ -32,20 +32,24 @@ out = custom_target('library-dependency-hack',
 
 # Need to add this manually because Meson can't add it automatically because
 # it doesn't know that we are linking to libraries in the build directory.
-rpath_arg = '-Wl,-rpath,' + meson.current_build_dir()
+rpath_dir = meson.current_build_dir()
 
 # Manually test if the linker can find the above libraries
 # i.e., whether they were generated with the right naming scheme
 test('manually linked 1', executable('manuallink1', out,
-  link_args : ['-L.', '-lsome', rpath_arg]))
+  link_args : ['-L.', '-lsome'],
+  build_rpath : rpath_dir))
 
 test('manually linked 2', executable('manuallink2', out,
-  link_args : ['-L.', '-lnoversion', rpath_arg]))
+  link_args : ['-L.', '-lnoversion'],
+  build_rpath : rpath_dir))
 
 test('manually linked 3', executable('manuallink3', out,
-  link_args : ['-L.', '-lonlyversion', rpath_arg]))
+  link_args : ['-L.', '-lonlyversion'],
+  build_rpath : rpath_dir))
 
 test('manually linked 4', executable('manuallink4', out,
-  link_args : ['-L.', '-lonlysoversion', rpath_arg]))
+  link_args : ['-L.', '-lonlysoversion'],
+  build_rpath : rpath_dir))
 
 shared_module('module', 'lib.c', install : true)

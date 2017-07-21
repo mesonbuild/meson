@@ -1850,6 +1850,17 @@ class LinuxlikeTests(BasePlatformTests):
         self.assertTrue(glib_found)
         self.assertTrue(gobject_found)
 
+    def test_build_rpath(self):
+        testdir = os.path.join(self.unit_test_dir, '11 build_rpath')
+        self.init(testdir)
+        self.build()
+        build_rpath = get_rpath(os.path.join(self.builddir, 'prog'))
+        self.assertEqual(build_rpath, '$ORIGIN/sub:/foo/bar')
+        self.install()
+        install_rpath = get_rpath(os.path.join(self.installdir, 'usr/bin/prog'))
+        self.assertEqual(install_rpath, '/baz')
+
+
 class LinuxArmCrossCompileTests(BasePlatformTests):
     '''
     Tests that verify cross-compilation to Linux/ARM

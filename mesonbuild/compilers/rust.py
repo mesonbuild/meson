@@ -50,8 +50,8 @@ class RustCompiler(Compiler):
     def get_buildtype_args(self, buildtype):
         return rust_buildtype_args[buildtype]
 
-    def build_rpath_args(self, build_dir, from_dir, rpath_paths, install_rpath):
-        return self.build_unix_rpath_args(build_dir, from_dir, rpath_paths, install_rpath)
+    def build_rpath_args(self, build_dir, from_dir, rpath_paths, build_rpath, install_rpath):
+        return self.build_unix_rpath_args(build_dir, from_dir, rpath_paths, build_rpath, install_rpath)
 
     def get_sysroot(self):
         cmd = self.exelist + ['--print', 'sysroot']

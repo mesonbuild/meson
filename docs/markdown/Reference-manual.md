@@ -243,6 +243,7 @@ Executable supports the following keyword arguments. Note that just like the pos
 - `extra_files` are not used for the build itself but are shown as source files in IDEs that group files by targets (such as Visual Studio)
 - `install`, when set to true, this executable should be installed
 - `install_rpath` a string to set the target's rpath to after install (but *not* before that)
+- `build_rpath` a string to add to target's rpath definition in the build dir, but which will be removed on install
 - `install_dir` override install directory for this file. The value is relative to the `prefix` specified. F.ex, if you want to install plugins into a subdir, you'd use something like this: `install_dir : get_option('libdir') + '/projectname-1.0'`.
 - `objects` list of prebuilt object files (usually for third party products you don't have source to) that should be linked in this target, **never** use this for object files that you build yourself.
 - `name_suffix` the string that will be used as the extension for the target by overriding the default. By default on Windows this is `exe` and on other platforms it is omitted.

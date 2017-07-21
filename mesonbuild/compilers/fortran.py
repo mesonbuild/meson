@@ -132,8 +132,8 @@ end program prog
     def get_std_exe_link_args(self):
         return []
 
-    def build_rpath_args(self, build_dir, from_dir, rpath_paths, install_rpath):
-        return self.build_unix_rpath_args(build_dir, from_dir, rpath_paths, install_rpath)
+    def build_rpath_args(self, build_dir, from_dir, rpath_paths, build_rpath, install_rpath):
+        return self.build_unix_rpath_args(build_dir, from_dir, rpath_paths, build_rpath, install_rpath)
 
     def module_name_to_filename(self, module_name):
         return module_name.lower() + '.mod'
