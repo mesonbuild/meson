@@ -54,6 +54,9 @@ for _l in clike_langs:
     clike_suffixes += lang_suffixes[_l]
 clike_suffixes += ('h', 'll', 's')
 
+# XXX: Use this in is_library()?
+soregex = re.compile(r'.*\.so(\.[0-9]+)?(\.[0-9]+)?(\.[0-9]+)?$')
+
 # All these are only for C-like languages; see `clike_langs` above.
 
 def sort_clike(lang):
@@ -495,20 +498,24 @@ class CompilerArgs(list):
 
     def to_native(self):
         # Check if we need to add --start/end-group for circular dependencies
-        # between static libraries.
+        # between static libraries, and for recursively searching for symbols
+        # needed by static libraries that are provided by object files or
+        # shared libraries.
         if get_compiler_uses_gnuld(self.compiler):
-            group_started = False
+            global soregex
+            group_start = -1
             for each in self:
-                if not each.startswith('-l') and not each.endswith('.a'):
+                if not each.startswith('-l') and not each.endswith('.a') and \
+                   not soregex.match(each):
                     continue
                 i = self.index(each)
-                if not group_started:
+                if group_start < 0:
                     # First occurance of a library
-                    self.insert(i, '-Wl,--start-group')
-                    group_started = True
-            # Last occurance of a library
-            if group_started:
+                    group_start = i
+            if group_start >= 0:
+                # Last occurance of a library
                 self.insert(i + 1, '-Wl,--end-group')
+                self.insert(group_start, '-Wl,--start-group')
         return self.compiler.unix_args_to_native(self)
 
     def append_direct(self, arg):

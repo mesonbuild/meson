@@ -24,3 +24,6 @@ subdir('3rdorderdeps')
 # Circular dependencies between static libraries
 # This requires the use of --start/end-group with GNU ld
 subdir('circular')
+
+# Various edge cases that have been reported
+subdir('edge-cases')
