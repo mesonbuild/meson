@@ -74,6 +74,9 @@ known_lib_kwargs.update({'version': True, # Only for shared libs
                          'rust_crate_type': True, # Only for Rust libs
                          })
 
+known_exe_kwargs = known_basic_kwargs.copy()
+known_exe_kwargs.update({'implib': True,
+                         })
 
 class InvalidArguments(MesonException):
     pass
@@ -841,8 +844,8 @@ You probably should put it in link_with instead.''')
         for t in flatten(target):
             if hasattr(t, 'held_object'):
                 t = t.held_object
-            if not isinstance(t, (StaticLibrary, SharedLibrary)):
-                raise InvalidArguments('Link target {!r} is not library.'.format(t))
+            if not t.is_linkable_target():
+                raise InvalidArguments('Link target {!r} is not linkable.'.format(t))
             if isinstance(self, SharedLibrary) and isinstance(t, StaticLibrary) and not t.pic:
                 msg = "Can't link non-PIC static library {!r} into shared library {!r}. ".format(t.name, self.name)
                 msg += "Use the 'pic' option to static_library to build with PIC."
@@ -986,6 +989,9 @@ You probably should put it in link_with instead.''')
             return True
         return False
 
+    def is_linkable_target(self):
+        return False
+
 
 class Generator:
     def __init__(self, args, kwargs):
@@ -1122,8 +1128,51 @@ class Executable(BuildTarget):
             self.filename += '.' + self.suffix
         self.outputs = [self.filename]
 
+        # The import library this target will generate
+        self.import_filename = None
+        # The import library that Visual Studio would generate (and accept)
+        self.vs_import_filename = None
+        # The import library that GCC would generate (and prefer)
+        self.gcc_import_filename = None
+
+        # if implib appears, this target is linkwith:-able, but that only means
+        # something on Windows platforms.
+        self.is_linkwithable = False
+        if 'implib' in kwargs and kwargs['implib']:
+            implib_basename = self.name + '.exe'
+            if not isinstance(kwargs['implib'], bool):
+                implib_basename = kwargs['implib']
+            self.is_linkwithable = True
+            if for_windows(is_cross, environment) or for_cygwin(is_cross, environment):
+                self.vs_import_filename = '{0}.lib'.format(implib_basename)
+                self.gcc_import_filename = 'lib{0}.a'.format(implib_basename)
+
+                if self.get_using_msvc():
+                    self.import_filename = self.vs_import_filename
+                else:
+                    self.import_filename = self.gcc_import_filename
+
     def type_suffix(self):
         return "@exe"
+
+    def check_unknown_kwargs(self, kwargs):
+        self.check_unknown_kwargs_int(kwargs, known_exe_kwargs)
+
+    def get_import_filename(self):
+        """
+        The name of the import library that will be outputted by the compiler
+
+        Returns None if there is no import library required for this platform
+        """
+        return self.import_filename
+
+    def get_import_filenameslist(self):
+        if self.import_filename:
+            return [self.vs_import_filename, self.gcc_import_filename]
+        return []
+
+    def is_linkable_target(self):
+        return self.is_linkwithable
 
 class StaticLibrary(BuildTarget):
     def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
@@ -1175,6 +1224,9 @@ class StaticLibrary(BuildTarget):
                 self.rust_crate_type = rust_crate_type
             else:
                 raise InvalidArguments('Invalid rust_crate_type "{0}": must be a string.'.format(rust_crate_type))
+
+    def is_linkable_target(self):
+        return True
 
 class SharedLibrary(BuildTarget):
     def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
@@ -1404,6 +1456,9 @@ class SharedLibrary(BuildTarget):
 
     def type_suffix(self):
         return "@sha"
+
+    def is_linkable_target(self):
+        return True
 
 # A shared library that is meant to be used with dlopen rather than linking
 # into something else.

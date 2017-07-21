@@ -1,0 +1,8 @@
+usr/bin/prog.exe
+usr/bin/prog.pdb
+usr/bin/prog2.exe
+usr/bin/prog2.pdb
+?gcc:usr/lib/libprog.exe.a
+?gcc:usr/lib/libburble.a
+?msvc:usr/lib/prog.exe.lib
+?msvc:usr/lib/burble.lib

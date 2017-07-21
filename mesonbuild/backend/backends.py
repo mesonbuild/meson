@@ -140,7 +140,12 @@ class Backend:
             return os.path.join(self.get_target_dir(target), link_lib)
         elif isinstance(target, build.StaticLibrary):
             return os.path.join(self.get_target_dir(target), target.get_filename())
-        raise AssertionError('BUG: Tried to link to something that\'s not a library')
+        elif isinstance(target, build.Executable):
+            if target.import_filename:
+                return os.path.join(self.get_target_dir(target), target.get_import_filename())
+            else:
+                return None
+        raise AssertionError('BUG: Tried to link to {!r} which is not linkable'.format(target))
 
     def get_target_dir(self, target):
         if self.environment.coredata.get_builtin_option('layout') == 'mirror':
@@ -463,12 +468,13 @@ class Backend:
     def build_target_link_arguments(self, compiler, deps):
         args = []
         for d in deps:
-            if not isinstance(d, (build.StaticLibrary, build.SharedLibrary)):
+            if not (d.is_linkable_target()):
                 raise RuntimeError('Tried to link with a non-library target "%s".' % d.get_basename())
+            d_arg = self.get_target_filename_for_linking(d)
+            if not d_arg:
+                continue
             if isinstance(compiler, (compilers.LLVMDCompiler, compilers.DmdDCompiler)):
-                d_arg = '-L' + self.get_target_filename_for_linking(d)
-            else:
-                d_arg = self.get_target_filename_for_linking(d)
+                d_arg = '-L' + d_arg
             args.append(d_arg)
         return args
 

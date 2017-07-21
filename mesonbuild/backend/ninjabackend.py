@@ -693,7 +693,8 @@ int dummy;
                     # On toolchains/platforms that use an import library for
                     # linking (separate from the shared library with all the
                     # code), we need to install that too (dll.a/.lib).
-                    if isinstance(t, build.SharedLibrary) and t.get_import_filename():
+                    if (isinstance(t, build.SharedLibrary) or
+                        isinstance(t, build.Executable)) and t.get_import_filename():
                         if custom_install_dir:
                             # If the DLL is installed into a custom directory,
                             # install the import library into the same place so
@@ -2256,6 +2257,9 @@ rule FORTRAN_DEP_HACK
             # If gui_app, and that's significant on this platform
             if target.gui_app and hasattr(linker, 'get_gui_app_args'):
                 commands += linker.get_gui_app_args()
+            # If implib, and that's significant on this platform (i.e. Windows using either GCC or Visual Studio)
+            if target.import_filename:
+                commands += linker.gen_import_library_args(os.path.join(target.subdir, target.import_filename))
         elif isinstance(target, build.SharedLibrary):
             if isinstance(target, build.SharedModule):
                 commands += linker.get_std_shared_module_link_args()
