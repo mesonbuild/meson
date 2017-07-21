@@ -551,7 +551,7 @@ class ExtraFrameworkDependency(ExternalDependency):
     def detect(self, name, path):
         lname = name.lower()
         if path is None:
-            paths = ['/Library/Frameworks']
+            paths = ['/System/Library/Frameworks', '/Library/Frameworks']
         else:
             paths = [path]
         for p in paths:
