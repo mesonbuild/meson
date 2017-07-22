@@ -42,7 +42,7 @@ If no pkg-config file is provided, you must use `find_library`. Using`declare_de
 
 ```meson
 foo_lib = meson.get_compiler('c').find_library('foo') # assuming libfoo.so is installed
-foo_vapi = meson.get_compiler('vala').find_library('foo', dirs: join_paths(meson.current_source_dir(), 'vapi')
+foo_vapi = meson.get_compiler('vala').find_library('foo', dirs: join_paths(meson.current_source_dir(), 'vapi'))
 foo_dep = declare_dependency(dependencies: [foo_lib, foo_vapi])
 
 executable('app', 'app.vala', dependencies: [glib_dep, gobject_dep, foo_dep])
