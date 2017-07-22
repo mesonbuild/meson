@@ -32,7 +32,7 @@ Coverage
 
 If you enable coverage measurements by giving Meson the command line flag `-Db_coverage=true`, you can generate coverage reports. Meson will autodetect what coverage generator tools you have installed and will generate the corresponding targets. These targets are `coverage-xml` and `coverage-text` which are both provided by [Gcovr](http://gcovr.com) and `coverage-html`, which requires [Lcov](https://ltp.sourceforge.io/coverage/lcov.php) and [GenHTML](https://linux.die.net/man/1/genhtml).
 
-The the output of these commands is written to the log directory `meson-logs` in your build directory.
+The output of these commands is written to the log directory `meson-logs` in your build directory.
 
 Parallelism
 --
