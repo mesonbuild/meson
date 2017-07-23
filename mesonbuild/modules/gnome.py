@@ -954,7 +954,8 @@ class GnomeModule(ExtensionModule):
                                   absolute_paths=True)
 
     @permittedKwargs({'sources', 'prefix', 'install_header', 'install_dir', 'stdinc',
-                      'nostdinc', 'internal', 'skip_source', 'valist_marshallers'})
+                      'nostdinc', 'internal', 'skip_source', 'valist_marshallers',
+                      'extra_args'})
     def genmarshal(self, state, args, kwargs):
         if len(args) != 1:
             raise MesonException(
@@ -970,15 +971,24 @@ class GnomeModule(ExtensionModule):
             raise MesonException(
                 'Sources keyword argument must be a string or array.')
 
+        new_genmarshal = mesonlib.version_compare(self._get_native_glib_version(state), '>= 2.53.3')
+
         cmd = [find_program('glib-genmarshal', output + '_genmarshal')]
         known_kwargs = ['internal', 'nostdinc', 'skip_source', 'stdinc',
-                        'valist_marshallers']
+                        'valist_marshallers', 'extra_args']
         known_custom_target_kwargs = ['build_always', 'depends',
                                       'depend_files', 'install_dir',
                                       'install_header']
         for arg, value in kwargs.items():
             if arg == 'prefix':
                 cmd += ['--prefix', value]
+            elif arg == 'extra_args':
+                if new_genmarshal:
+                    cmd += mesonlib.stringlistify(value, [])
+                else:
+                    mlog.warning('The current version of GLib does not support extra arguments \n'
+                                 'for glib-genmarshal. You need at least GLib 2.53.3. See ',
+                                 mlog.bold('https://github.com/mesonbuild/meson/pull/2049'))
             elif arg in known_kwargs and value:
                 cmd += ['--' + arg.replace('_', '-')]
             elif arg not in known_custom_target_kwargs:
@@ -1014,6 +1024,8 @@ class GnomeModule(ExtensionModule):
         custom_kwargs['install'] = install_header
         if install_dir is not None:
             custom_kwargs['install_dir'] = install_dir
+        if new_genmarshal:
+            cmd += ['--pragma-once']
         custom_kwargs['command'] = cmd + ['--header', '@INPUT@']
         custom_kwargs['output'] = header_file
         header = build.CustomTarget(output + '_h', state.subdir, custom_kwargs)

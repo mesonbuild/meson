@@ -61,7 +61,8 @@ the output files.
 * `internal`: if true, mark generated sources as internal
 * `skip_source`: if true, skip source location comments
 * `valist_marshallers`: if true, generate va_list marshallers
-
+* `extra_args`: (*Added 0.42.0*) additional command line arguments to pass
+  to `glib-genmarshal` (*Requires GLib 2.54*)
 
 *Added 0.35.0*
 
