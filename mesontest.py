@@ -177,6 +177,7 @@ class TestHarness:
         self.is_run = False
         self.tests = None
         self.suites = None
+        self.logfilename = None
         self.logfile = None
         self.jsonlogfile = None
         if self.options.benchmark:
