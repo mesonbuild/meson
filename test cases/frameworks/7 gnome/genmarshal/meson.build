@@ -1,7 +1,8 @@
 marshallers = gnome.genmarshal('marshaller',
 sources : 'marshaller.list',
 install_header : true,
-install_dir : get_option('includedir'))
+install_dir : get_option('includedir'),
+extra_args : ['-UG_ENABLE_DEBUG', '--prototypes'])
 
 marshaller_c = marshallers[0]
 marshaller_h = marshallers[1]
