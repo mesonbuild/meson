@@ -273,9 +273,13 @@ class CCompiler(Compiler):
         for d in dependencies:
             # Add compile flags needed by dependencies
             args += d.get_compile_args()
+            if d.need_threads():
+                args += self.thread_flags()
             if mode == 'link':
                 # Add link flags needed to find dependencies
                 args += d.get_link_args()
+                if d.need_threads():
+                    args += self.thread_link_flags()
         # Select a CRT if needed since we're linking
         if mode == 'link':
             args += self.get_linker_debug_crt_args()
