@@ -24,7 +24,7 @@ from collections import OrderedDict
 from .. import mlog
 from .. import mesonlib
 from ..mesonlib import MesonException, Popen_safe, version_compare
-from ..environment import for_windows
+from ..environment import for_windows, detect_cpu
 
 from .base import DependencyException, DependencyMethods
 from .base import ExternalDependency, ExternalProgram
@@ -493,3 +493,56 @@ class WxDependency(ExternalDependency):
                 pass
         WxDependency.wxconfig_found = False
         mlog.log('Found wx-config:', mlog.red('NO'))
+        
+class VulkanDependency(ExternalDependency):
+    def __init__(self, environment, kwargs):
+        super().__init__('vulkan', environment, None, kwargs)
+        
+        if DependencyMethods.SYSTEM in self.methods:
+            try:
+                self.vulkan_sdk = os.environ['VULKAN_SDK']
+                if not os.path.isabs(self.vulkan_sdk):
+                    raise DependencyException('VULKAN_SDK must be an absolute path.')
+                    
+                # TODO: this config might not work on some platforms, fix bugs as reported
+                # we at least have to detect other 64-bit platforms (e.g. armv8)
+                lib_name = 'vulkan'
+                if mesonlib.is_windows():
+                    lib_name = 'vulkan-1'
+                    
+                lib_dir = 'Lib32'
+                if detect_cpu({}) == 'x86_64':
+                    lib_dir = 'Lib'
+                    
+                self.type_name = 'vulkan_sdk'
+                self.is_found = True
+                self.compile_args.append('-I' + os.path.join(self.vulkan_sdk, 'Include'))
+                self.link_args.append('-L' + os.path.join(self.vulkan_sdk, lib_dir))
+                self.link_args.append('-l' + lib_name)
+                
+                # TODO: find a way to retrieve this from the sdk
+                # we could try go guess it depending on the vulkan_sdk path
+                # usually the paths last component is the vulkan version
+                # but this might be modified at installation
+                self.version = '1' 
+                return
+            except KeyError:
+                self.vulkan_sdk = None
+            
+        if DependencyMethods.PKGCONFIG in self.methods:
+            try:
+                pcdep = PkgConfigDependency('vulkan', environment, kwargs)
+                if pcdep.found():
+                    self.type_name = 'pkgconfig'
+                    self.is_found = True
+                    self.compile_args = pcdep.get_compile_args()
+                    self.link_args = pcdep.get_link_args()
+                    self.version = pcdep.get_version()
+                    return
+            except Exception:
+                pass
+            
+    def get_methods(self):
+        return [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM]
+
+

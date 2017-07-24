@@ -19,7 +19,7 @@ from .base import (  # noqa: F401
 from .dev import GMockDependency, GTestDependency, LLVMDependency, ValgrindDependency
 from .misc import BoostDependency, Python3Dependency, ThreadDependency
 from .platform import AppleFrameworks
-from .ui import GLDependency, GnuStepDependency, Qt4Dependency, Qt5Dependency, SDL2Dependency, WxDependency
+from .ui import GLDependency, GnuStepDependency, Qt4Dependency, Qt5Dependency, SDL2Dependency, WxDependency, VulkanDependency
 
 
 packages.update({
@@ -44,4 +44,5 @@ packages.update({
     'qt5': Qt5Dependency,
     'sdl2': SDL2Dependency,
     'wxwidgets': WxDependency,
+    'vulkan': VulkanDependency,
 })
