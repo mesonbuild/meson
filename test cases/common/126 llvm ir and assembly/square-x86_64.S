@@ -18,6 +18,9 @@ END
 
 .text
 .globl SYMBOL_NAME(square_unsigned)
+# ifdef __linux__
+.type square_unsigned, %function
+#endif
 
 # if defined(_WIN32) || defined(__CYGWIN__) /* msabi */
 SYMBOL_NAME(square_unsigned):
