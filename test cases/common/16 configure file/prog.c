@@ -8,8 +8,14 @@
 #error "FAIL!"
 #endif
 
+#ifdef SHOULD_BE_UNDEF_AUTOCONF_STYLE
+#error "FAIL!"
+#endif
+
 int main(int argc, char **argv) {
 #ifndef BE_TRUE
+    return 1;
+#elif undefined BE_TRUE_AUTOCONF_STYLE
     return 1;
 #else
     return strcmp(MESSAGE, "mystring");

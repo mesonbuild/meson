@@ -6,6 +6,7 @@ conf.set('var', 'mystring')
 conf.set('other', 'string 2')
 conf.set('second', ' bonus')
 conf.set('BE_TRUE', true)
+conf.set('BE_TRUE_AUTOCONF_STYLE', true)
 
 assert(conf.get('var') == 'mystring', 'Get function is not working.')
 assert(conf.get('var', 'default') == 'mystring', 'Get function is not working.')

@@ -32,7 +32,11 @@ More specifically, Meson will find all strings of the type `@varname@` and repla
 
 For more complex configuration file generation Meson provides a second form. To use it, put a line like this in your configuration file.
 
+```c
     #mesondefine TOKEN
+    /* Or Autoconf Style*/
+    #undef TOKEN
+```
 
 The replacement that happens depends on what the value and type of TOKEN is:
 

@@ -393,10 +393,10 @@ def do_replacement(regex, line, confdata):
         match = re.search(regex, line)
     return line, missing_variables
 
-def do_mesondefine(line, confdata):
+def do_define(line, confdata, pattern):
     arr = line.split()
     if len(arr) != 2:
-        raise MesonException('#mesondefine does not contain exactly two tokens: %s', line.strip())
+        raise MesonException('%s does not contain exactly two tokens: %s' % pattern, line.strip())
     varname = arr[1]
     try:
         (v, desc) = confdata.get(varname)
@@ -412,7 +412,7 @@ def do_mesondefine(line, confdata):
     elif isinstance(v, str):
         return '#define %s %s\n' % (varname, v)
     else:
-        raise MesonException('#mesondefine argument "%s" is of unknown type.' % varname)
+        raise MesonException('%pattern argument "%s" is of unknown type.' % (pattern, varname))
 
 
 def do_conf_file(src, dst, confdata):
@@ -428,7 +428,9 @@ def do_conf_file(src, dst, confdata):
     missing_variables = set()
     for line in data:
         if line.startswith('#mesondefine'):
-            line = do_mesondefine(line, confdata)
+            line = do_define(line, confdata, '#mesondefine')
+        elif line.startswith('#undef'):
+            line = do_define(line, confdata, '#undef')
         else:
             line, missing = do_replacement(regex, line, confdata)
             missing_variables.update(missing)
