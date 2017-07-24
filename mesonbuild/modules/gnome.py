@@ -368,7 +368,7 @@ class GnomeModule(ExtensionModule):
                     if lib.startswith("-W"):
                         continue
                     if gir_has_extra_lib_arg() and use_gir_args:
-                        lib = lib.replace('-l', '--extra-library=')
+                        lib = lib.replace('-l', '--extra-library=', 1)
                     ldflags.update([lib])
 
                 if isinstance(dep, PkgConfigDependency):
