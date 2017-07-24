@@ -29,7 +29,7 @@ langs = ['fi', 'de']
 i18n.gettext('intltest', languages : langs)
 ```
 
-The first command imports the `i18n` module that provides gettext features. The second line does the actual invocation. The first argument to the is the gettext package name. This causes two things to happen. The first is that Meson will generate binary mo files and put them to their proper locations when doing an install. The second is that it creates a build rule to regenerate the main pot file. If you are using the Ninja backend, this is how you would invoke the rebuild.
+The first command imports the `i18n` module that provides gettext features. The third line does the actual invocation. The first argument is the gettext package name. This causes two things to happen. The first is that Meson will generate binary mo files and put them to their proper locations when doing an install. The second is that it creates a build rule to regenerate the main pot file. If you are using the Ninja backend, this is how you would invoke the rebuild.
 
 ```console
 $ ninja intltest-pot
