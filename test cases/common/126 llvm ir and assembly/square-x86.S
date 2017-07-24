@@ -23,6 +23,9 @@ END
 
 .text
 .globl SYMBOL_NAME(square_unsigned)
+# ifdef __linux__
+.type square_unsigned, %function
+#endif
 
 SYMBOL_NAME(square_unsigned):
 	movl	4(%esp), %eax
