@@ -216,7 +216,7 @@ my_array += ['something']
 my_array += 'else'
 ```
 
-Note that this will create a new `my_array` object instead of appending to the old one since all objects in Meson are immutable.
+Note appending to an array will always create a new array object and assign it to `my_array` instead of modifying the original since all objects in Meson are immutable.
 
 #### Array methods
 
