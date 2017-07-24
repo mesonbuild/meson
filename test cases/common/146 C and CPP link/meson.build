@@ -60,3 +60,15 @@ libfoo = shared_library(
   ['foobar.c', 'foobar.h'],
   link_with : [libc, libcpp],
 )
+
+# Test that link_whole is also honored
+#
+# VS2010 lacks the /WHOLEARCHIVE option that later versions of MSVC support, so
+# don't run this tests on that backend.
+if meson.backend() != 'vs2010'
+  libfoowhole = shared_library(
+    'foowhole',
+    ['foobar.c', 'foobar.h'],
+    link_whole : [libc, libcpp],
+  )
+endif

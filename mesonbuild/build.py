@@ -14,6 +14,7 @@
 
 import copy, os, re
 from collections import OrderedDict
+import itertools
 
 from . import environment
 from . import dependencies
@@ -936,7 +937,7 @@ You probably should put it in link_with instead.''')
                 langs.append(dep.language)
         # Check if any of the internal libraries this target links to were
         # written in this language
-        for link_target in self.link_targets:
+        for link_target in itertools.chain(self.link_targets, self.link_whole_targets):
             for language in link_target.compilers:
                 if language not in langs:
                     langs.append(language)
