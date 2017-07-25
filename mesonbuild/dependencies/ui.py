@@ -505,7 +505,7 @@ class VulkanDependency(ExternalDependency):
                     raise DependencyException('VULKAN_SDK must be an absolute path.')
 
                 # TODO: this config might not work on some platforms, fix bugs as reported
-                # we at least have to detect other 64-bit platforms (e.g. armv8)
+                # we should at least detect other 64-bit platforms (e.g. armv8)
                 lib_name = 'vulkan'
                 if mesonlib.is_windows():
                     lib_name = 'vulkan-1'
@@ -520,8 +520,8 @@ class VulkanDependency(ExternalDependency):
                 self.link_args.append('-L' + os.path.join(self.vulkan_sdk, lib_dir))
                 self.link_args.append('-l' + lib_name)
 
-                # TODO: find a way to retrieve this from the sdk
-                # we could try go guess it depending on the vulkan_sdk path
+                # TODO: find a way to retrieve the version from the sdk?
+                # we could try go guess it depending on the vulkan_sdk path.
                 # usually the paths last component is the vulkan version
                 # but this might be modified at installation
                 self.version = '1'
