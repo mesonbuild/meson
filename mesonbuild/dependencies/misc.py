@@ -342,6 +342,12 @@ class MPIDependency(ExternalDependency):
                     self.link_args = self._filter_link_args(result[2])
                     break
 
+        if not self.is_found and mesonlib.is_windows():
+            result = self._try_msmpi()
+            if result is not None:
+                self.is_found = True
+                self.version, self.compile_args, self.link_args = result
+
         if self.is_found:
             mlog.log('Dependency', mlog.bold(self.name), 'for', self.language, 'found:', mlog.green('YES'), self.version)
         else:
@@ -446,6 +452,35 @@ class MPIDependency(ExternalDependency):
             version = 'none'
 
             return version, args, args
+
+    def _try_msmpi(self):
+        if self.language == 'cpp':
+            # MS-MPI does not support the C++ version of MPI, only the standard C API.
+            return
+        if 'MSMPI_INC' not in os.environ:
+            return
+        incdir = os.environ['MSMPI_INC']
+        arch = detect_cpu_family(self.env.coredata.compilers)
+        if arch == 'x86':
+            if 'MSMPI_LIB32' not in os.environ:
+                return
+            libdir = os.environ['MSMPI_LIB32']
+            post = 'x86'
+        elif arch == 'x86_64':
+            if 'MSMPI_LIB64' not in os.environ:
+                return
+            libdir = os.environ['MSMPI_LIB64']
+            post = 'x64'
+        else:
+            return
+        if self.language == 'fortran':
+            return ('none',
+                    ['-I' + incdir, '-I' + os.path.join(incdir, post)],
+                    [os.path.join(libdir, 'msmpi.lib'), os.path.join(libdir, 'msmpifec.lib')])
+        else:
+            return ('none',
+                    ['-I' + incdir, '-I' + os.path.join(incdir, post)],
+                    [os.path.join(libdir, 'msmpi.lib')])
 
 
 class ThreadDependency(ExternalDependency):
