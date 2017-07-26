@@ -425,19 +425,43 @@ class GnomeModule(ExtensionModule):
         nsversion = kwargs.pop('nsversion')
         libsources = kwargs.pop('sources')
         girfile = '%s-%s.gir' % (ns, nsversion)
+        srcdir = os.path.join(state.environment.get_source_dir(), state.subdir)
+        builddir = os.path.join(state.environment.get_build_dir(), state.subdir)
         depends = [girtarget]
         gir_inc_dirs = []
 
-        scan_command = [giscanner, '@INPUT@']
+        scan_command = [giscanner]
         scan_command += pkgargs
         scan_command += ['--no-libtool', '--namespace=' + ns, '--nsversion=' + nsversion, '--warn-all',
                          '--output', '@OUTPUT@']
 
         extra_args = mesonlib.stringlistify(kwargs.pop('extra_args', []))
         scan_command += extra_args
-        scan_command += ['-I' + os.path.join(state.environment.get_source_dir(), state.subdir),
-                         '-I' + os.path.join(state.environment.get_build_dir(), state.subdir)]
+        scan_command += ['-I' + srcdir,
+                         '-I' + builddir]
         scan_command += get_include_args(girtarget.get_include_dirs())
+
+        gir_filelist_dir = state.backend.get_target_private_dir_abs(girtarget)
+        if not os.path.isdir(gir_filelist_dir):
+            os.mkdir(gir_filelist_dir)
+        gir_filelist_filename = os.path.join(gir_filelist_dir, '%s_%s_gir_filelist' % (ns, nsversion))
+
+        with open(gir_filelist_filename, 'w', encoding='utf-8') as gir_filelist:
+            for s in libsources:
+                if hasattr(s, 'held_object'):
+                    s = s.held_object
+                if isinstance(s, build.CustomTarget):
+                    gir_filelist.write(os.path.join(state.environment.get_build_dir(),
+                                                    state.backend.get_target_dir(s),
+                                                    s.get_outputs()[0]) + '\n')
+                elif isinstance(s, mesonlib.File):
+                    gir_filelist.write(s.rel_to_builddir(state.build_to_src) + '\n')
+                elif isinstance(s, build.GeneratedList):
+                    for gen_src in s.get_outputs():
+                        gir_filelist.write(os.path.join(srcdir, gen_src) + '\n')
+                else:
+                    gir_filelist.write(os.path.join(srcdir, s) + '\n')
+        scan_command += ['--filelist=' + gir_filelist_filename]
 
         if 'link_with' in kwargs:
             link_with = kwargs.pop('link_with')
@@ -592,7 +616,6 @@ class GnomeModule(ExtensionModule):
                 scan_command.append('-L' + d)
             scan_command += ['--library', libname]
         scankwargs = {'output': girfile,
-                      'input': libsources,
                       'command': scan_command,
                       'depends': depends}
         if kwargs.get('install'):
