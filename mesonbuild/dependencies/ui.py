@@ -538,10 +538,13 @@ class VulkanDependency(ExternalDependency):
                 inc_path = os.path.join(self.vulkan_sdk, inc_dir)
                 header = os.path.join(inc_path, 'vulkan', 'vulkan.h')
                 lib_path = os.path.join(self.vulkan_sdk, lib_dir)
-                find_lib = self.compiler.find_library('vulkan', environment, lib_path)
+                find_lib = self.compiler.find_library(lib_name, environment, lib_path)
 
-                if not (find_lib and os.path.isfile(header)):
-                    raise DependencyException('VULKAN_SDK point to invalid directory')
+                if not find_lib:
+                    raise DependencyException('VULKAN_SDK point to invalid directory (no lib)')
+                
+                if not os.path.isfile(header):
+                    raise DependencyException('VULKAN_SDK point to invalid directory (no include)')
 
                 self.type_name = 'vulkan_sdk'
                 self.is_found = True

@@ -14,13 +14,13 @@ int main()
         	NULL,
     };
 
+    // we don't actually require instance creation to succeed since
+    // we cannot expect test environments to have a vulkan driver installed.
+    // As long as this does not produce as segmentation fault or similar,
+    // everything's alright.
     VkInstance instance;
-    VkResult ret = vkCreateInstance(&instance_create_info, NULL, &instance);
-    if(ret != VK_SUCCESS) {
-        printf("Could not create vulkan instance: %d\n", ret);
-      	return ret;
-    }
-
-    vkDestroyInstance(instance, NULL);
+    if(vkCreateInstance(&instance_create_info, NULL, &instance) == VK_SUCCESS)
+        vkDestroyInstance(instance, NULL);
+        
     return 0;    
 }
