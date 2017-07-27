@@ -542,7 +542,7 @@ class VulkanDependency(ExternalDependency):
 
                 if not find_lib:
                     raise DependencyException('VULKAN_SDK point to invalid directory (no lib)')
-                
+
                 if not os.path.isfile(header):
                     raise DependencyException('VULKAN_SDK point to invalid directory (no include)')
 
