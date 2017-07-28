@@ -68,6 +68,16 @@ single quote = 'contains a \' character'
 
 Similarly `\n` gets converted to a newline and `\\\\` to a single backslash.
 
+#### String concatenation
+
+Strings can be concatenated to form a new string using the `+` symbol.
+
+```meson
+str1 = 'abc'
+str2 = 'xyz'
+combined = str1 + '_' + str2 # combined is now abc_xyz
+```
+
 #### Strings running over multiple lines
 
 Strings running over multiple lines can be declared with three single quotes, like this:
