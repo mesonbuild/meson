@@ -19,6 +19,7 @@ from . import destdir_join
 from ..mesonlib import is_windows, Popen_safe
 
 install_log_file = None
+use_selinux = True
 
 def set_mode(path, mode):
     if mode is None:
@@ -53,6 +54,28 @@ def set_mode(path, mode):
             msg = '{!r}: Unable to set permissions {!r}: {}, ignoring...'
             print(msg.format(path, mode.perms_s, e.strerror))
 
+def restore_selinux_context(to_file):
+    '''
+    Restores the SELinux context for @to_file
+    '''
+    global use_selinux
+
+    if not use_selinux:
+        return
+
+    try:
+        subprocess.check_call(['selinuxenabled'])
+        try:
+            subprocess.check_call(['restorecon', '-F', to_file], stderr=subprocess.DEVNULL)
+        except subprocess.CalledProcessError as e:
+            use_selinux = False
+            msg = "{!r}: Failed to restore SELinux context, ignoring SELinux context for all remaining files..."
+            print(msg.format(to_file, e.returncode))
+    except (FileNotFoundError, subprocess.CalledProcessError) as e:
+        # If we don't have selinux or selinuxenabled returned 1, failure
+        # is ignored quietly.
+        use_selinux = False
+
 def append_to_log(line):
     install_log_file.write(line)
     if not line.endswith('\n'):
@@ -73,6 +96,7 @@ def do_copyfile(from_file, to_file):
         os.unlink(to_file)
     shutil.copyfile(from_file, to_file)
     shutil.copystat(from_file, to_file)
+    restore_selinux_context(to_file)
     append_to_log(to_file)
 
 def do_copydir(src_prefix, src_dir, dst_dir):
