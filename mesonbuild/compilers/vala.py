@@ -56,7 +56,7 @@ class ValaCompiler(Compiler):
         return ['--fatal-warnings']
 
     def get_colorout_args(self, colortype):
-        if version_compare(self.version, '>=0.37.0'):
+        if version_compare(self.version, '>=0.37.1'):
             return ['--color=' + colortype]
         return []
 
