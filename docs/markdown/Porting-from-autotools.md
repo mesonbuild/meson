@@ -625,3 +625,62 @@ if not os.environ.get('DESTDIR'):
 	print('Compiling gsettings schemas...')
 	subprocess.call(['glib-compile-schemas', schemadir])
 ```
+
+### gettext
+
+Note this example does not include `intltool` usage.
+
+`configure.ac`:
+```m4
+AM_GNU_GETTEXT([external])
+AM_GNU_GETTEXT_VERSION([0.19.7])
+
+GETTEXT_PACKAGE=foo
+AC_SUBST(GETTEXT_PACKAGE)
+AC_DEFINE_UNQUOTED(GETTEXT_PACKAGE, "$GETTEXT_PACKAGE", [The prefix for our gettext translation domains.])
+```
+
+`po/Makevars`:
+```make
+XGETTEXT_OPTIONS =  --from-code=UTF-8 --keyword=_ --keyword=N_ --keyword=C_:1c,2 --keyword=NC_:1c,2 --keyword=g_dngettext:2,3 --add-comments
+```
+
+`Makefile.am`:
+```make
+%.desktop: %.desktop.in
+    $(AM_V_GEN)$(MSGFMT) --desktop --template $< -d $(top_srcdir)/po -o $@
+
+%.appdata.xml: %.appdata.xml.in
+    $(AM_V_GEN)$(MSGFMT) --xml --template $< -d $(top_srcdir)/po -o $@
+```
+
+`meson.build`:
+```meson
+i18n = import('i18n')
+
+gettext_package = 'foo'
+add_project_arguments('-DGETTEXT_PACKAGE=' + gettext_package, language: 'c')
+subdir('po')
+
+i18n.merge_file(
+  input: 'foo.desktop.in',
+  output: 'foo.desktop',
+  type: 'desktop',
+  po_dir: 'po',
+  install: true,
+  install_dir: join_paths(get_option('datadir'), 'applications')
+)
+
+i18n.merge_file(
+  input: 'foo.appdata.xml.in',
+  output: 'foo.appdata.xml',
+  po_dir: 'po',
+  install: true,
+  install_dir: join_paths(get_option('datadir'), 'appdata')
+)
+```
+
+`po/meson.build`:
+```meson
+i18n.gettext(gettext_package, preset: 'glib')
+```
