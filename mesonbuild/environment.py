@@ -309,8 +309,8 @@ class Environment:
             self.default_c = ['cl', 'cc', 'gcc', 'clang']
             self.default_cpp = ['cl', 'c++', 'g++', 'clang++']
         else:
-            self.default_c = ['cc']
-            self.default_cpp = ['c++']
+            self.default_c = ['cc', 'gcc', 'clang']
+            self.default_cpp = ['c++', 'g++', 'clang++']
         self.default_objc = ['cc']
         self.default_objcpp = ['c++']
         self.default_fortran = ['gfortran', 'g95', 'f95', 'f90', 'f77', 'ifort']
