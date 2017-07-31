@@ -793,9 +793,13 @@ class Vs2010Backend(backends.Backend):
         # target private dir, target build dir, generated sources include dirs,
         # target source dir
         for args in file_args.values():
-            t_inc_dirs = ['.', self.relpath(self.get_target_private_dir(target),
-                                            self.get_target_dir(target))]
-            t_inc_dirs += generated_files_include_dirs + [proj_to_src_dir]
+            t_inc_dirs = [self.relpath(self.get_target_private_dir(target),
+                                       self.get_target_dir(target))]
+            if target.implicit_include_directories:
+                t_inc_dirs += ['.']
+            t_inc_dirs += generated_files_include_dirs
+            if target.implicit_include_directories:
+                t_inc_dirs += [proj_to_src_dir]
             args += ['-I' + arg for arg in t_inc_dirs]
 
         # Split preprocessor defines and include directories out of the list of

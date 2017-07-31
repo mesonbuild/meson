@@ -2033,9 +2033,11 @@ rule FORTRAN_DEP_HACK
         # srcdir == builddir Autotools build in their source tree. Many
         # projects that are moving to Meson have both Meson and Autotools in
         # parallel as part of the transition.
-        commands += self.get_source_dir_include_args(target, compiler)
+        if target.implicit_include_directories:
+            commands += self.get_source_dir_include_args(target, compiler)
         commands += self.get_custom_target_dir_include_args(target, compiler)
-        commands += self.get_build_dir_include_args(target, compiler)
+        if target.implicit_include_directories:
+            commands += self.get_build_dir_include_args(target, compiler)
         # Finally add the private dir for the target to the include path. This
         # must override everything else and must be the final path added.
         commands += compiler.get_include_args(self.get_target_private_dir(target), False)

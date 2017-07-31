@@ -83,3 +83,9 @@ flag manually, e.g. via `link_args` to a target. This is not
 recommended because having multiple rpath causes them to stomp on each
 other. This warning will become a hard error in some future release.
 
+## Disable implicit include directories
+
+By default Meson adds the current source and build directories to the
+header search path. On some rare occasions this is not desired. Setting
+the `implicit_include_directories` keyword argument to `false` these
+directories are not used.

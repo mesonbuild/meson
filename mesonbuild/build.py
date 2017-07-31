@@ -41,6 +41,7 @@ known_basic_kwargs = {'install': True,
                       'link_depends': True,
                       'link_with': True,
                       'link_whole': True,
+                      'implicit_include_directories': True,
                       'include_directories': True,
                       'dependencies': True,
                       'install_dir': True,
@@ -760,6 +761,9 @@ This will become a hard error in a future Meson release.''')
                 self.pic = kwargs.get('pic', False)
                 if not isinstance(self.pic, bool):
                     raise InvalidArguments('Argument pic to static library {!r} must be boolean'.format(self.name))
+        self.implicit_include_directories = kwargs.get('implicit_include_directories', True)
+        if not isinstance(self.implicit_include_directories, bool):
+            raise InvalidArguments('Implicit_include_directories must be a boolean.')
 
     def get_filename(self):
         return self.filename
