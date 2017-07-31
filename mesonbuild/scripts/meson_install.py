@@ -127,6 +127,7 @@ def do_install(datafilename):
     install_man(d)
     install_data(d)
     run_install_script(d)
+    run_builtin_post_scripts(d)
 
 def install_subdirs(data):
     for (src_dir, inst_dir, dst_dir, mode) in data.install_subdirs:
@@ -199,6 +200,49 @@ def run_install_script(d):
         except:
             print('Failed to run install script {!r}'.format(name))
             sys.exit(1)
+
+def run_builtin_post_scripts(d):
+    if d.destdir:
+        print('Skipping automatic post-install because of DESTDIR')
+        return # Tools that use DESTDIR should handle these
+
+    have_desktop = have_icon = have_mime = False
+    for i in d.data: # FIXME: gettext module installed files are not here
+        filename = i[0]
+        destination = os.path.dirname(i[1])
+
+        # FIXME: We should respect the datadir
+        if have_mime is False and filename.endswith('.xml') and \
+             destination == os.path.join('share', 'mime', 'packages'):
+            have_mime = True
+        elif have_desktop is False and filename.endswith('.desktop') and \
+             destination == os.path.join('share', 'applications'):
+            have_desktop = True
+        elif have_icon is False and filename.endswith(('.png', '.svg', '.xpm')) and \
+             destination.startswith(os.path.join('share', 'icons', 'hicolor')):
+            have_icon = True
+
+    if have_mime:
+        try:
+            print('Updating mime database')
+            subprocess.call(('update-mime-database', '-n', os.path.join(d.prefix, 'share', 'mime')))
+        except FileNotFoundError as e:
+            print('Error updating mime database: {}'.format(e))
+
+    if have_desktop:
+        try:
+            print('Updating desktop database')
+            subprocess.call(('update-desktop-database', '--quiet', os.path.join(d.prefix, 'share', 'applications')))
+        except FileNotFoundError:
+            print('Error updating desktop database: {}'.format(e))
+
+    if have_icon:
+        try:
+            print('Updating icon cache')
+            subprocess.call(('gtk-update-icon-cache', '--quiet', '--ignore-theme-index',
+                             os.path.join(d.prefix, 'share', 'icons', 'hicolor')))
+        except FileNotFoundError as e:
+            print('Error updating icon cache: {}'.format(e))
 
 def is_elf_platform():
     platname = platform.system().lower()
