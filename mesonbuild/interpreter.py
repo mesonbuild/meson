@@ -465,13 +465,10 @@ class InstallDir(InterpreterObject):
 
 class Man(InterpreterObject):
 
-    def __init__(self, source_subdir, sources, kwargs):
+    def __init__(self, sources, kwargs):
         InterpreterObject.__init__(self)
-        self.source_subdir = source_subdir
         self.sources = sources
         self.validate_sources()
-        if len(kwargs) > 1:
-            raise InvalidArguments('Man function takes at most one keyword arguments.')
         self.custom_install_dir = kwargs.get('install_dir', None)
         if self.custom_install_dir is not None and not isinstance(self.custom_install_dir, str):
             raise InterpreterException('Custom_install_dir must be a string.')
@@ -490,9 +487,6 @@ class Man(InterpreterObject):
 
     def get_sources(self):
         return self.sources
-
-    def get_source_subdir(self):
-        return self.source_subdir
 
 class GeneratedObjectsHolder(InterpreterObject):
     def __init__(self, held_object):
@@ -2354,9 +2348,9 @@ class Interpreter(InterpreterBase):
         return h
 
     @permittedKwargs(permitted_kwargs['install_man'])
-    @stringArgs
     def func_install_man(self, node, args, kwargs):
-        m = Man(self.subdir, args, kwargs)
+        fargs = self.source_strings_to_files(args)
+        m = Man(fargs, kwargs)
         self.build.man.append(m)
         return m
 
