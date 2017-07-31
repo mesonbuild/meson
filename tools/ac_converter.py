@@ -14,7 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""This script reads config.h.meson, looks for header
+help_message = """Usage: %s <config.h.meson>
+
+This script reads config.h.meson, looks for header
 checks and writes the corresponding meson declaration.
 
 Copy config.h.in to config.h.meson, replace #undef
@@ -364,6 +366,11 @@ function_data = \
 headers = []
 functions = []
 sizes = []
+
+if len(sys.argv) != 2:
+    print(help_message % sys.argv[0])
+    sys.exit(0)
+
 with open(sys.argv[1]) as f:
     for line in f:
         line = line.strip()
