@@ -15,7 +15,7 @@
 import os.path
 
 from .. import mlog
-from ..mesonlib import EnvironmentException
+from ..mesonlib import EnvironmentException, version_compare
 
 from .compilers import Compiler
 
@@ -26,6 +26,7 @@ class ValaCompiler(Compiler):
         self.version = version
         self.id = 'valac'
         self.is_cross = False
+        self.base_options = ['b_colorout']
 
     def name_string(self):
         return ' '.join(self.exelist)
@@ -53,6 +54,11 @@ class ValaCompiler(Compiler):
 
     def get_werror_args(self):
         return ['--fatal-warnings']
+
+    def get_colorout_args(self, colortype):
+        if version_compare(self.version, '>=0.37.0'):
+            return ['--color=' + colortype]
+        return []
 
     def sanity_check(self, work_dir, environment):
         code = 'class MesonSanityCheck : Object { }'
