@@ -2297,8 +2297,12 @@ class Interpreter(InterpreterBase):
             raise InterpreterException('Incorrect number of arguments')
         if not isinstance(args[0], str):
             raise InterpreterException('First argument of test must be a string.')
-        if not isinstance(args[1], (ExecutableHolder, JarHolder, ExternalProgramHolder)):
-            raise InterpreterException('Second argument must be executable.')
+        exe = args[1]
+        if not isinstance(exe, (ExecutableHolder, JarHolder, ExternalProgramHolder)):
+            if isinstance(exe, mesonlib.File):
+                exe = self.func_find_program(node, (args[1], ), {})
+            else:
+                raise InterpreterException('Second argument must be executable.')
         par = kwargs.get('is_parallel', True)
         if not isinstance(par, bool):
             raise InterpreterException('Keyword argument is_parallel must be a boolean.')
@@ -2332,7 +2336,7 @@ class Interpreter(InterpreterBase):
                 suite.append(self.subproject.replace(' ', '_').replace(':', '_') + s)
             else:
                 suite.append(self.build.project_name.replace(' ', '_').replace(':', '_') + s)
-        t = Test(args[0], suite, args[1].held_object, par, cmd_args, env, should_fail, timeout, workdir)
+        t = Test(args[0], suite, exe.held_object, par, cmd_args, env, should_fail, timeout, workdir)
         if is_base_test:
             self.build.tests.append(t)
             mlog.debug('Adding test "', mlog.bold(args[0]), '".', sep='')
