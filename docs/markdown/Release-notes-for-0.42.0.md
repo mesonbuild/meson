@@ -83,6 +83,7 @@ flag manually, e.g. via `link_args` to a target. This is not
 recommended because having multiple rpath causes them to stomp on each
 other. This warning will become a hard error in some future release.
 
+
 ## Vulkan dependency module
 
 Vulkan can now be used as native dependency. The dependency module will detect 
@@ -96,3 +97,10 @@ concurrent linker processes. This is usually only needed for projects
 that have many large link steps that cause the system to run out of
 memory if they are run in parallel. This limit can be set with the
 new `backend_max_links` option.
+
+## Disable implicit include directories
+
+By default Meson adds the current source and build directories to the
+header search path. On some rare occasions this is not desired. Setting
+the `implicit_include_directories` keyword argument to `false` these
+directories are not used.
