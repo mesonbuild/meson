@@ -420,14 +420,17 @@ def have_d_compiler():
 def have_objc_compiler():
     with AutoDeletedDir(tempfile.mkdtemp(prefix='b ', dir='.')) as build_dir:
         env = environment.Environment(None, build_dir, None, get_fake_options('/'), [])
-        objc_comp = env.detect_objc_compiler(False)
+        try:
+            objc_comp = env.detect_objc_compiler(False)
+        except:
+            return False
         if not objc_comp:
             return False
         try:
             objc_comp.sanity_check(env.get_scratch_dir(), env)
+            objcpp_comp = env.detect_objc_compiler(False)
         except:
             return False
-        objcpp_comp = env.detect_objc_compiler(False)
         if not objcpp_comp:
             return False
         try:
