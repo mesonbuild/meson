@@ -1094,6 +1094,7 @@ int dummy;
             valac_outputs.append(vala_c_file)
 
         args = self.generate_basic_compiler_args(target, valac)
+        args += valac.get_colorout_args(self.environment.coredata.base_options.get('b_colorout').value)
         # Tell Valac to output everything in our private directory. Sadly this
         # means it will also preserve the directory components of Vala sources
         # found inside the build tree (generated sources).
