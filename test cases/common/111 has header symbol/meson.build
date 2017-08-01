@@ -14,8 +14,9 @@ foreach comp : [cc, cpp]
   assert (not comp.has_header_symbol('stdlol.h', 'int'), 'shouldn\'t be able to find "int" with invalid header')
 endforeach
 
-# This is likely only available on Glibc, so just test for it
-if cc.has_function('ppoll')
+# This is available on Glibc, Solaris & the BSD's, so just test for _GNU_SOURCE
+# on Linux
+if cc.has_function('ppoll') and host_machine.system() == 'linux'
   assert (not cc.has_header_symbol('poll.h', 'ppoll'), 'ppoll should not be accessible without _GNU_SOURCE')
   assert (cc.has_header_symbol('poll.h', 'ppoll', prefix : '#define _GNU_SOURCE'), 'ppoll should be accessible with _GNU_SOURCE')
 endif
