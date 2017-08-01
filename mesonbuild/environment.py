@@ -242,7 +242,7 @@ def detect_cpu_family(compilers: CompilersDict) -> str:
                 trial = 'ppc64'
         if 'powerpc64' in stdo:
             trial = 'ppc64'
-    elif trial in ('amd64', 'x64'):
+    elif trial in ('amd64', 'x64', 'i86pc'):
         trial = 'x86_64'
 
     # On Linux (and maybe others) there can be any mixture of 32/64 bit code in
@@ -273,7 +273,7 @@ def detect_cpu(compilers: CompilersDict):
         trial = detect_windows_arch(compilers)
     else:
         trial = platform.machine().lower()
-    if trial in ('amd64', 'x64'):
+    if trial in ('amd64', 'x64', 'i86pc'):
         trial = 'x86_64'
     if trial == 'x86_64':
         # Same check as above for cpu_family
