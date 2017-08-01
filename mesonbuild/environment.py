@@ -515,7 +515,7 @@ class Environment:
         self.default_rust = ['rustc']
         self.default_swift = ['swiftc']
         self.default_vala = ['valac']
-        self.default_static_linker = ['ar']
+        self.default_static_linker = ['ar', 'gar']
         self.default_strip = ['strip']
         self.vs_static_linker = ['lib']
         self.clang_cl_static_linker = ['llvm-lib']
@@ -1320,31 +1320,32 @@ class Environment:
             linkers = [linker]
         else:
             evar = 'AR'
+            defaults = [[l] for l in self.default_static_linker]
             if isinstance(compiler, compilers.CudaCompiler):
-                linkers = [self.cuda_static_linker, self.default_static_linker]
+                linkers = [self.cuda_static_linker] + defaults
             elif evar in os.environ:
                 linkers = [split_args(os.environ[evar])]
             elif isinstance(compiler, compilers.VisualStudioLikeCompiler):
                 linkers = [self.vs_static_linker, self.clang_cl_static_linker]
             elif isinstance(compiler, compilers.GnuCompiler):
                 # Use gcc-ar if available; needed for LTO
-                linkers = [self.gcc_static_linker, self.default_static_linker]
+                linkers = [self.gcc_static_linker] + defaults
             elif isinstance(compiler, compilers.ClangCompiler):
                 # Use llvm-ar if available; needed for LTO
-                linkers = [self.clang_static_linker, self.default_static_linker]
+                linkers = [self.clang_static_linker] + defaults
             elif isinstance(compiler, compilers.DCompiler):
                 # Prefer static linkers over linkers used by D compilers
                 if mesonlib.is_windows():
                     linkers = [self.vs_static_linker, self.clang_cl_static_linker, compiler.get_linker_exelist()]
                 else:
-                    linkers = [self.default_static_linker, compiler.get_linker_exelist()]
+                    linkers = defaults
             elif isinstance(compiler, IntelClCCompiler):
                 # Intel has it's own linker that acts like microsoft's lib
                 linkers = ['xilib']
             elif isinstance(compiler, (PGICCompiler, PGIFortranCompiler)) and mesonlib.is_windows():
                 linkers = [self.default_static_linker]  # this is just a wrapper calling link/lib on Windows, keeping things simple.
             else:
-                linkers = [self.default_static_linker]
+                linkers = defaults
         popen_exceptions = {}
         for linker in linkers:
             if not {'lib', 'lib.exe', 'llvm-lib', 'llvm-lib.exe', 'xilib', 'xilib.exe'}.isdisjoint(linker):
