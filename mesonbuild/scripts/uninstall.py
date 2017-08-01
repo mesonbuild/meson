@@ -24,7 +24,10 @@ def do_uninstall(log):
             continue
         fname = line.strip()
         try:
-            os.unlink(fname)
+            if os.path.isdir(fname) and not os.path.islink(fname):
+                os.rmdir(fname)
+            else:
+                os.unlink(fname)
             print('Deleted:', fname)
             successes += 1
         except Exception as e:
