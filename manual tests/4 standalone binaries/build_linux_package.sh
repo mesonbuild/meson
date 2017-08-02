@@ -1,5 +1,4 @@
-#!/bin/sh
-set -eu
+#!/bin/sh -eu
 
 curdir=`pwd`
 rm -rf buildtmp
