@@ -2452,7 +2452,8 @@ class Interpreter(InterpreterBase):
 
         name = args[0]
         deps = mesonlib.flatten(kwargs.get('dependencies', []))
-        default_value = kwargs.get('default', 'auto')
+        default_value = kwargs.get('default',
+                                   self.coredata.builtins['components_default_value'].value)
         if self.is_subproject():
             option_name = self.subproject + ':' + name
             description = 'Enable %s component for project "%s"' % (name, self.subproject)
@@ -2464,9 +2465,7 @@ class Interpreter(InterpreterBase):
             self.subproject, self.build.environment.cmd_line_options.projectoptions)
         enabled = command_line_options.get(option_name, default_value)
 
-        value = coredata.UserComboOption(option_name, description,
-                                         ['enabled', 'disabled', 'auto'],
-                                         enabled)
+        value = coredata.ComponentOption(option_name, description, enabled)
         self.build.environment.merge_options({option_name: value})
 
         if self.is_subproject() and not name.startswith(self.subproject + ':'):
