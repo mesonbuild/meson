@@ -2049,6 +2049,7 @@ class Interpreter(InterpreterBase):
                         # we won't actually read all the build files.
                         return fallback_dep
                 if not dep:
+                    assert(exception is not None)
                     raise exception
 
         # Only store found-deps in the cache
