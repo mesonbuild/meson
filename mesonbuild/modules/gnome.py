@@ -984,7 +984,7 @@ class GnomeModule(ExtensionModule):
                 cmd += ['--prefix', value]
             elif arg == 'extra_args':
                 if new_genmarshal:
-                    cmd += mesonlib.stringlistify(value, [])
+                    cmd += mesonlib.stringlistify(value)
                 else:
                     mlog.warning('The current version of GLib does not support extra arguments \n'
                                  'for glib-genmarshal. You need at least GLib 2.53.3. See ',
