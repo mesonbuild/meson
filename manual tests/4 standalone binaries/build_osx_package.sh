@@ -1,4 +1,5 @@
 #!/bin/sh
+set -eu
 
 rm -rf buildtmp
 mkdir buildtmp
