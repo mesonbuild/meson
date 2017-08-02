@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/sh -eu
 
 libdir="${MESON_INSTALL_PREFIX}/lib"
 mkdir -p $libdir

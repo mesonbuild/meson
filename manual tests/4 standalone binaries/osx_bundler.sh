@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/sh -eu
 
 mkdir -p ${MESON_INSTALL_PREFIX}/Contents/Frameworks
 cp -R /Library/Frameworks/SDL2.framework ${MESON_INSTALL_PREFIX}/Contents/Frameworks

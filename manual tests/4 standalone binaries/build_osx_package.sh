@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/sh -eu
 
 rm -rf buildtmp
 mkdir buildtmp
