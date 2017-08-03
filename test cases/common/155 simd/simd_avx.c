@@ -1,3 +1,9 @@
+#include<simdheader.h>
+
+#ifndef I_CAN_HAZ_SIMD
+#error The correct internal header was not used
+#endif
+
 #include<simdconfig.h>
 #include<simdfuncs.h>
 #include<stdint.h>

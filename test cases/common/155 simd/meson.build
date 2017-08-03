@@ -28,7 +28,8 @@ rval = simd.check('mysimds',
   avx : 'simd_avx.c',
   avx2 : 'simd_avx2.c',
   neon : 'simd_neon.c',
-  compiler : cc)
+  compiler : cc,
+  include_directories : include_directories('include'))
 
 simdlibs = rval[0]
 cdata.merge_from(rval[1])
