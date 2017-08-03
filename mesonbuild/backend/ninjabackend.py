@@ -842,6 +842,12 @@ int dummy;
         outfile.write('# Rules for compiling.\n\n')
         self.generate_compile_rules(outfile)
         outfile.write('# Rules for linking.\n\n')
+        num_pools = self.environment.coredata.backend_options['backend_max_links'].value
+        if num_pools > 0:
+            outfile.write('''pool link_pool
+  depth = %d
+
+''' % num_pools)
         if self.environment.is_cross_build():
             self.generate_static_link_rules(True, outfile)
         self.generate_static_link_rules(False, outfile)
@@ -1369,6 +1375,7 @@ int dummy;
             raise MesonException('Swift supports only executable and static library targets.')
 
     def generate_static_link_rules(self, is_cross, outfile):
+        num_pools = self.environment.coredata.backend_options['backend_max_links'].value
         if 'java' in self.build.compilers:
             if not is_cross:
                 self.generate_java_link(outfile)
@@ -1412,9 +1419,12 @@ int dummy;
         description = ' description = Linking static target $out.\n\n'
         outfile.write(rule)
         outfile.write(command)
+        if num_pools > 0:
+            outfile.write(' pool = link_pool\n')
         outfile.write(description)
 
     def generate_dynamic_link_rules(self, outfile):
+        num_pools = self.environment.coredata.backend_options['backend_max_links'].value
         ctypes = [(self.build.compilers, False)]
         if self.environment.is_cross_build():
             if self.environment.cross_info.need_cross_compiler():
@@ -1452,9 +1462,11 @@ int dummy;
                     cross_args=' '.join(cross_args),
                     output_args=' '.join(compiler.get_linker_output_args('$out'))
                 )
-                description = ' description = Linking target $out.'
+                description = ' description = Linking target $out.\n'
                 outfile.write(rule)
                 outfile.write(command)
+                if num_pools > 0:
+                    outfile.write(' pool = link_pool\n')
                 outfile.write(description)
                 outfile.write('\n')
         outfile.write('\n')

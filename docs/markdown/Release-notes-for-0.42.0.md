@@ -88,3 +88,11 @@ other. This warning will become a hard error in some future release.
 Vulkan can now be used as native dependency. The dependency module will detect 
 the VULKAN_SDK environment variable or otherwise try to receive the vulkan
 library and header via pkgconfig or from the system.
+
+## Limiting the maximum number of linker processes
+
+With the Ninja backend it is now possible to limit the maximum number of
+concurrent linker processes. This is usually only needed for projects
+that have many large link steps that cause the system to run out of
+memory if they are run in parallel. This limit can be set with the
+new `backend_max_links` option.
