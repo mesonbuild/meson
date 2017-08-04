@@ -83,3 +83,8 @@ flag manually, e.g. via `link_args` to a target. This is not
 recommended because having multiple rpath causes them to stomp on each
 other. This warning will become a hard error in some future release.
 
+## Vulkan dependency module
+
+Vulkan can now be used as native dependency. The dependency module will detect 
+the VULKAN_SDK environment variable or otherwise try to receive the vulkan
+library and header via pkgconfig or from the system.
