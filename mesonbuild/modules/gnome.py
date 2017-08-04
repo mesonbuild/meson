@@ -38,7 +38,7 @@ from ..interpreterbase.decorators import typed_pos_args
 from ..mesonlib import (
     MachineChoice, MesonException, OrderedSet, Popen_safe, join_args,
 )
-from ..programs import ExternalProgram, OverrideProgram
+from ..programs import ExternalProgram, OverrideProgram, EmptyExternalProgram
 
 if T.TYPE_CHECKING:
     from typing_extensions import Literal, TypedDict
@@ -1177,6 +1177,8 @@ class GnomeModule(ExtensionModule):
             t_args.append(f'--{program_name}={path}')
         if namespace:
             t_args.append('--namespace=' + namespace)
+        if state.environment.need_exe_wrapper() and not isinstance(state.environment.get_exe_wrapper(), EmptyExternalProgram):
+            t_args.append('--run=' + ' '.join(state.environment.get_exe_wrapper().get_command()))
         t_args.append(f'--htmlargs={"@@".join(kwargs["html_args"])}')
         t_args.append(f'--scanargs={"@@".join(kwargs["scan_args"])}')
         t_args.append(f'--scanobjsargs={"@@".join(kwargs["scanobjs_args"])}')
