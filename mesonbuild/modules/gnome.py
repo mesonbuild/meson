@@ -775,6 +775,10 @@ This will become a hard error in the future.''')
                 '--mode=' + mode]
         if namespace:
             args.append('--namespace=' + namespace)
+        gtkdoc_exe_wrapper = state.environment.cross_info.config["properties"].get('gtkdoc_exe_wrapper', None)
+        if gtkdoc_exe_wrapper is not None:
+            args.append('--gtkdoc-exe-wrapper=' + gtkdoc_exe_wrapper)
+
         args += self._unpack_args('--htmlargs=', 'html_args', kwargs)
         args += self._unpack_args('--scanargs=', 'scan_args', kwargs)
         args += self._unpack_args('--scanobjsargs=', 'scanobjs_args', kwargs)
@@ -831,14 +835,22 @@ This will become a hard error in the future.''')
         cflags.update(get_include_args(inc_dirs))
         cflags.update(state.environment.coredata.external_args['c'])
         ldflags.update(state.environment.coredata.external_link_args['c'])
+
+        cross_c_args = " ".join(state.environment.cross_info.config["properties"].get('c_args', ""))
+        cross_link_args = " ".join(state.environment.cross_info.config["properties"].get('c_link_args', ""))
+
         if cflags:
-            args += ['--cflags=%s' % ' '.join(cflags)]
+            args += ['--cflags=%s %s' % (cross_c_args,' '.join(cflags))]
         if ldflags:
-            args += ['--ldflags=%s' % ' '.join(ldflags)]
+            args += ['--ldflags=%s %s' % (cross_link_args, ' '.join(ldflags))]
         compiler = state.environment.coredata.compilers.get('c')
-        if compiler:
+        cross_compiler = state.environment.coredata.cross_compilers.get('c')
+        if compiler and not state.environment.is_cross_build():
             args += ['--cc=%s' % ' '.join(compiler.get_exelist())]
             args += ['--ld=%s' % ' '.join(compiler.get_linker_exelist())]
+        elif cross_compiler and state.environment.is_cross_build():
+            args += ['--cc=%s' % ' '.join(cross_compiler.get_exelist())]
+            args += ['--ld=%s' % ' '.join(cross_compiler.get_linker_exelist())]
 
         return args
 

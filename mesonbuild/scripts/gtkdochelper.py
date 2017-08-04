@@ -45,6 +45,7 @@ parser.add_argument('--ignore-headers', dest='ignore_headers', default='')
 parser.add_argument('--namespace', dest='namespace', default='')
 parser.add_argument('--mode', dest='mode', default='')
 parser.add_argument('--installdir', dest='install_dir')
+parser.add_argument('--gtkdoc-exe-wrapper', dest='gtkdoc_exe_wrapper')
 
 def gtkdoc_run_check(cmd, cwd, library_path=None):
     env = dict(os.environ)
@@ -54,7 +55,7 @@ def gtkdoc_run_check(cmd, cwd, library_path=None):
     # This preserves the order of messages.
     p, out = Popen_safe(cmd, cwd=cwd, env=env, stderr=subprocess.STDOUT)[0:2]
     if p.returncode != 0:
-        err_msg = ["{!r} failed with status {:d}".format(cmd[0], p.returncode)]
+        err_msg = ["{!r} failed with status {:d}".format(cmd, p.returncode)]
         if out:
             err_msg.append(out)
         raise MesonException('\n'.join(err_msg))
@@ -62,7 +63,7 @@ def gtkdoc_run_check(cmd, cwd, library_path=None):
 def build_gtkdoc(source_root, build_root, doc_subdir, src_subdirs,
                  main_file, module,
                  html_args, scan_args, fixxref_args, mkdb_args,
-                 gobject_typesfile, scanobjs_args, ld, cc, ldflags, cflags,
+                 gobject_typesfile, scanobjs_args, gtkdoc_exe_wrapper, ld, cc, ldflags, cflags,
                  html_assets, content_files, ignore_headers, namespace,
                  expand_content_files, mode):
     print("Building documentation for %s" % module)
@@ -115,6 +116,9 @@ def build_gtkdoc(source_root, build_root, doc_subdir, src_subdirs,
     if gobject_typesfile:
         scanobjs_cmd = ['gtkdoc-scangobj'] + scanobjs_args + ['--types=' + gobject_typesfile,
                                                               '--module=' + module,
+                                                              '--run=' + gtkdoc_exe_wrapper,
+                                                              '--cc=' + cc,
+                                                              '--ld=' + ld,
                                                               '--cflags=' + cflags,
                                                               '--ldflags=' + ldflags,
                                                               '--ld=' + ld]
@@ -219,6 +223,7 @@ def run(args):
         mkdbargs,
         options.gobject_typesfile,
         scanobjsargs,
+        options.gtkdoc_exe_wrapper,
         options.ld,
         options.cc,
         options.ldflags,
