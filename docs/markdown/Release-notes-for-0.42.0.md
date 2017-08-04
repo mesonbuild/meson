@@ -83,3 +83,10 @@ flag manually, e.g. via `link_args` to a target. This is not
 recommended because having multiple rpath causes them to stomp on each
 other. This warning will become a hard error in some future release.
 
+## Limiting the maximum number of linker processes
+
+With the Ninja backend it is now possible to limit the maximum number of
+concurrent linker processes. This is usually only needed for projects
+that have many large link steps that cause the system to run out of
+memory if they are run in parallel. This limit can be set with the
+new `backend_max_links` option.

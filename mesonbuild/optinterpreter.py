@@ -18,17 +18,18 @@ from . import mesonlib
 import os, re
 
 forbidden_option_names = coredata.get_builtin_options()
-forbidden_prefixes = {'c_': True,
-                      'cpp_': True,
-                      'd_': True,
-                      'rust_': True,
-                      'fortran_': True,
-                      'objc_': True,
-                      'objcpp_': True,
-                      'vala_': True,
-                      'csharp_': True,
-                      'swift_': True,
-                      'b_': True,
+forbidden_prefixes = {'c_',
+                      'cpp_',
+                      'd_',
+                      'rust_',
+                      'fortran_',
+                      'objc_',
+                      'objcpp_',
+                      'vala_',
+                      'csharp_',
+                      'swift_',
+                      'b_',
+                      'backend_',
                       }
 
 def is_invalid_name(name):

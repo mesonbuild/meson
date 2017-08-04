@@ -85,6 +85,36 @@ class UserBooleanOption(UserOption):
     def validate_value(self, value):
         return self.tobool(value)
 
+class UserIntegerOption(UserOption):
+    def __init__(self, name, description, min_value, max_value, value):
+        super().__init__(name, description, [True, False])
+        self.min_value = min_value
+        self.max_value = max_value
+        self.set_value(value)
+
+    def set_value(self, newvalue):
+        if isinstance(newvalue, str):
+            newvalue = self.toint(newvalue)
+        if not isinstance(newvalue, int):
+            raise MesonException('New value for integer option is not an integer.')
+        if self.min_value is not None and newvalue < self.min_value:
+            raise MesonException('New value %d is less than minimum value %d.' % (newvalue, self.min_value))
+        if self.max_value is not None and newvalue > self.max_value:
+            raise MesonException('New value %d is more than maximum value %d.' % (newvalue, self.max_value))
+        self.value = newvalue
+
+    def toint(self, valuestring):
+        try:
+            return int(valuestring)
+        except:
+            raise MesonException('Value string "%s" is not convertable to an integer.' % valuestring)
+
+    def parse_string(self, valuestring):
+        return self.toint(valuestring)
+
+    def validate_value(self, value):
+        return self.toint(value)
+
 class UserComboOption(UserOption):
     def __init__(self, name, description, choices, value):
         super().__init__(name, description, choices)
@@ -145,6 +175,7 @@ class CoreData:
         self.target_guids = {}
         self.version = version
         self.init_builtins(options)
+        self.init_backend_options(self.builtins['backend'].value)
         self.user_options = {}
         self.compiler_options = {}
         self.base_options = {}
@@ -217,6 +248,13 @@ class CoreData:
                 value = get_builtin_option_default(key)
             args = [key] + builtin_options[key][1:-1] + [value]
             self.builtins[key] = builtin_options[key][0](*args)
+
+    def init_backend_options(self, backend_name):
+        self.backend_options = {}
+        if backend_name == 'ninja':
+            self.backend_options['backend_max_links'] = UserIntegerOption('backend_max_links',
+                                                                          'Maximum number of linker processes to run or 0 for no limit',
+                                                                          0, None, 0)
 
     def get_builtin_option(self, optname):
         if optname in self.builtins:

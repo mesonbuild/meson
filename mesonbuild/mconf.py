@@ -122,6 +122,9 @@ class Conf:
             (k, v) = o.split('=', 1)
             if coredata.is_builtin_option(k):
                 self.coredata.set_builtin_option(k, v)
+            elif k in self.coredata.backend_options:
+                tgt = self.coredata.backend_options[k]
+                tgt.set_value(v)
             elif k in self.coredata.user_options:
                 tgt = self.coredata.user_options[k]
                 tgt.set_value(v)
@@ -162,6 +165,16 @@ class Conf:
                          'value': self.coredata.get_builtin_option(key),
                          'choices': coredata.get_builtin_option_choices(key)})
         self.print_aligned(carr)
+        print('')
+        bekeys = sorted(self.coredata.backend_options.keys())
+        if not bekeys:
+            print('  No backend options\n')
+        else:
+            bearr = []
+            for k in bekeys:
+                o = self.coredata.backend_options[k]
+                bearr.append({'name': k, 'descr': o.description, 'value': o.value, 'choices': ''})
+            self.print_aligned(bearr)
         print('')
         print('Base options:')
         okeys = sorted(self.coredata.base_options.keys())
