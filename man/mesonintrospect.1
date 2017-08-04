@@ -3,33 +3,11 @@
 mesonintrospect - a tool to extract information about a Meson build
 .SH DESCRIPTION
 
-Mesonintrospect is a tool designed to make it simple to  integrate with
-other tools, such as IDEs. The output of this command is in JSON.
+This executable is deprecated and will be removed in the future. The
+functionality that was in this executable can be invoked via the main Meson
+command like this:
 
-.B mesonintrospect [
-.I build directory
-.B ] [
-.I option
-.B ]
-
-If build directory is omitted, the current directory is used instead.
-
-.SS "options:"
-.TP
-\fB\-\-targets\fR
-print all top level targets (executables, libraries, etc)
-.TP
-\fB\-\-target\-files\fR
-print the source files of the given target
-.TP
-\fB\-\-buildsystem\-files\fR
-print all files that make up the build system (meson.build, meson_options.txt etc)
-.TP
-\fB\-\-tests\fR
-print all unit tests
-.TP
-\fB\-\-help\fR
-print command line help
+.B meson introspect <options>
 
 .SH SEE ALSO
 http://mesonbuild.com/

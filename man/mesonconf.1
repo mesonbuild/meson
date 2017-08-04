@@ -3,23 +3,8 @@
 mesonconf - a tool to configure Meson builds
 .SH DESCRIPTION
 
-Mesonconf provides a way to configure a Meson
-project from the command line. Its usage is simple.
+This executable is deprecated and will be removed in the future. The
+functionality that was in this executable can be invoked via the main Meson
+command like this:
 
-.B mesonconf [
-.I build directory
-.B ] [
-.I options to set
-.B ]
-
-If build directory is omitted, the current directory is used instead.
-
-If no parameters are set, mesonconf will print the value of all build
-options to the console.
-
-To set values, just use the \-D command line argument like this.
-
-.B mesonconf \-Dopt1=value1 \-Dopt2=value2
-
-.SH SEE ALSO
-http://mesonbuild.com/
+.B meson configure <options>
