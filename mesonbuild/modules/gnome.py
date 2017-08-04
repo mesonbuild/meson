@@ -390,8 +390,6 @@ class GnomeModule(ExtensionModule):
             raise MesonException('Gir takes one argument')
         if kwargs.get('install_dir'):
             raise MesonException('install_dir is not supported with generate_gir(), see "install_dir_gir" and "install_dir_typelib"')
-        giscanner = find_program('g-ir-scanner', 'Gir')
-        gicompiler = find_program('g-ir-compiler', 'Gir')
         girtarget = args[0]
         while hasattr(girtarget, 'held_object'):
             girtarget = girtarget.held_object
@@ -402,6 +400,8 @@ class GnomeModule(ExtensionModule):
                 self.gir_dep = PkgConfigDependency('gobject-introspection-1.0',
                                                    state.environment,
                                                    {'native': True})
+            giscanner = os.environ['PKG_CONFIG_SYSROOT_DIR'] + self.gir_dep.get_pkgconfig_variable('g_ir_scanner', {})
+            gicompiler = os.environ['PKG_CONFIG_SYSROOT_DIR'] + self.gir_dep.get_pkgconfig_variable('g_ir_compiler', {})
             pkgargs = self.gir_dep.get_compile_args()
         except Exception:
             raise MesonException('gobject-introspection dependency was not found, gir cannot be generated.')
