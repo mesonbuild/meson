@@ -3,3 +3,6 @@
 
 #mesondefine BE_TRUE
 #mesondefine SHOULD_BE_UNDEF
+
+#undef BE_TRUE_AUTOCONF_STYLE
+#undef SHOULD_BE_UNDEF_AUTOCONF_STYLE
