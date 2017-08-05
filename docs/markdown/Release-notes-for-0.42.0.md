@@ -83,3 +83,14 @@ flag manually, e.g. via `link_args` to a target. This is not
 recommended because having multiple rpath causes them to stomp on each
 other. This warning will become a hard error in some future release.
 
+## Make all Meson functionality invokable via the main executable
+
+Previously Meson had multiple executables such as `mesonintrospect`
+and `mesontest`. Thes are now invokable via the main Meson executable
+like this:
+
+    meson configure <arguments> # equivalent to mesonconf <options>
+    meson test <arguments> # equivalent to mesontest <arguments>
+
+The old commands are still available but they are deprecated
+and will be removed in some future release.
