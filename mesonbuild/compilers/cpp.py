@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os.path
+
 from .. import coredata
 from ..mesonlib import version_compare
 
@@ -125,6 +127,9 @@ class GnuCPPCompiler(GnuCompiler, CPPCompiler):
         if self.gcc_type == GCC_MINGW:
             return options['cpp_winlibs'].value[:]
         return []
+
+    def get_pch_use_args(self, pch_dir, header):
+        return ['-fpch-preprocess', '-include', os.path.split(header)[-1]]
 
 
 class IntelCPPCompiler(IntelCompiler, CPPCompiler):

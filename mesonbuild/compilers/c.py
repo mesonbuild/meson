@@ -777,6 +777,9 @@ class GnuCCompiler(GnuCompiler, CCompiler):
     def get_std_shared_lib_link_args(self):
         return ['-shared']
 
+    def get_pch_use_args(self, pch_dir, header):
+        return ['-fpch-preprocess', '-include', os.path.split(header)[-1]]
+
 
 class IntelCCompiler(IntelCompiler, CCompiler):
     def __init__(self, exelist, version, icc_type, is_cross, exe_wrapper=None):
