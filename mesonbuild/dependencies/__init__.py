@@ -15,9 +15,9 @@
 from .base import (  # noqa: F401
     Dependency, DependencyException, DependencyMethods, ExternalProgram,
     ExternalDependency, ExternalLibrary, ExtraFrameworkDependency, InternalDependency,
-    PkgConfigDependency, find_external_dependency, get_dep_identifier, packages)
+    PkgConfigDependency, find_external_dependency, get_dep_identifier, packages, _packages_accept_language)
 from .dev import GMockDependency, GTestDependency, LLVMDependency, ValgrindDependency
-from .misc import BoostDependency, Python3Dependency, ThreadDependency
+from .misc import (BoostDependency, MPIDependency, Python3Dependency, ThreadDependency)
 from .platform import AppleFrameworks
 from .ui import GLDependency, GnuStepDependency, Qt4Dependency, Qt5Dependency, SDL2Dependency, WxDependency, VulkanDependency
 
@@ -31,6 +31,7 @@ packages.update({
 
     # From misc:
     'boost': BoostDependency,
+    'mpi': MPIDependency,
     'python3': Python3Dependency,
     'threads': ThreadDependency,
 
@@ -45,4 +46,7 @@ packages.update({
     'sdl2': SDL2Dependency,
     'wxwidgets': WxDependency,
     'vulkan': VulkanDependency,
+})
+_packages_accept_language.update({
+    'mpi',
 })

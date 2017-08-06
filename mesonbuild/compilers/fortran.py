@@ -120,6 +120,9 @@ end program prog
     def get_include_args(self, path, is_system):
         return ['-I' + path]
 
+    def get_module_incdir_args(self):
+        return ('-I', )
+
     def get_module_outdir_args(self, path):
         return ['-J' + path]
 
@@ -209,6 +212,9 @@ class SunFortranCompiler(FortranCompiler):
     def get_warn_args(self, level):
         return []
 
+    def get_module_incdir_args(self):
+        return ('-M', )
+
     def get_module_outdir_args(self, path):
         return ['-moddir=' + path]
 
@@ -250,6 +256,9 @@ class PGIFortranCompiler(FortranCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):
         super().__init__(exelist, version, is_cross, exe_wrapper=None)
         self.id = 'pgi'
+
+    def get_module_incdir_args(self):
+        return ('-module', )
 
     def get_module_outdir_args(self, path):
         return ['-module', path]

@@ -1,0 +1,33 @@
+project('mpi', 'c', 'cpp')
+
+cc = meson.get_compiler('c')
+
+if build_machine.system() == 'windows' and cc.get_id() != 'msvc'
+  error('MESON_SKIP_TEST: MPI not available on Windows without MSVC.')
+endif
+
+mpic = dependency('mpi', language : 'c')
+exec = executable('exec',
+  'main.c',
+  dependencies : [mpic])
+
+test('MPI C', exec)
+
+if build_machine.system() != 'windows'
+  # C++ MPI not supported by MS-MPI used on AppVeyor.
+  mpicpp = dependency('mpi', language : 'cpp')
+  execpp = executable('execpp',
+    'main.cpp',
+    dependencies : [mpicpp])
+
+  test('MPI C++', execpp)
+endif
+
+if add_languages('fortran', required : false)
+  mpifort = dependency('mpi', language : 'fortran')
+  exef = executable('exef',
+    'main.f90',
+    dependencies : [mpifort])
+
+  test('MPI Fortran', exef)
+endif

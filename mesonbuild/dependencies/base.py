@@ -26,8 +26,9 @@ from .. import mesonlib
 from ..mesonlib import MesonException, Popen_safe, flatten, version_compare_many
 
 
-# This must be defined in this file to avoid cyclical references.
+# These must be defined in this file to avoid cyclical references.
 packages = {}
+_packages_accept_language = set()
 
 
 class DependencyException(MesonException):
@@ -610,10 +611,15 @@ def find_external_dependency(name, env, kwargs):
         raise DependencyException('Keyword "method" must be a string.')
     lname = name.lower()
     if lname in packages:
+        if lname not in _packages_accept_language and 'language' in kwargs:
+            raise DependencyException('%s dependency does not accept "language" keyword argument' % (lname, ))
         dep = packages[lname](env, kwargs)
         if required and not dep.found():
             raise DependencyException('Dependency "%s" not found' % name)
         return dep
+    if 'language' in kwargs:
+        # Remove check when PkgConfigDependency supports language.
+        raise DependencyException('%s dependency does not accept "language" keyword argument' % (lname, ))
     pkg_exc = None
     pkgdep = None
     try:
