@@ -119,7 +119,7 @@ def get_fake_options(prefix):
     return opts
 
 def should_run_linux_cross_tests():
-    return shutil.which('arm-linux-gnueabihf-gcc-6') and not platform.machine().startswith('arm')
+    return shutil.which('arm-linux-gnueabihf-gcc-6') and not platform.machine().lower().startswith('arm')
 
 def run_configure_inprocess(commandlist):
     old_stdout = sys.stdout
@@ -142,7 +142,17 @@ class FakeEnvironment(object):
     def is_cross_build(self):
         return False
 
+def print_system_info():
+    print(mlog.bold('System information.').get_text(mlog.colorize_console))
+    print('Architecture:', platform.architecture())
+    print('Machine:', platform.machine())
+    print('Platform:', platform.system())
+    print('Processor:', platform.processor())
+    print('System:', platform.system())
+    print('')
+
 if __name__ == '__main__':
+    print_system_info()
     # Enable coverage early...
     enable_coverage = '--cov' in sys.argv
     if enable_coverage:
