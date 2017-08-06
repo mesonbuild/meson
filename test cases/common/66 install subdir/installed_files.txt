@@ -2,3 +2,5 @@ usr/share/sub1/data1.dat
 usr/share/sub1/second.dat
 usr/share/sub1/third.dat
 usr/share/sub1/sub2/data2.dat
+usr/share/sub2/one.dat
+usr/share/sub2/dircheck/excluded-three.dat

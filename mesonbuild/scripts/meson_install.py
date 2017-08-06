@@ -128,17 +128,25 @@ def do_copyfile(from_file, to_file):
     restore_selinux_context(to_file)
     append_to_log(to_file)
 
-def do_copydir(data, src_prefix, src_dir, dst_dir):
+def do_copydir(data, src_prefix, src_dir, dst_dir, exclude):
     '''
     Copies the directory @src_prefix (full path) into @dst_dir
 
     @src_dir is simply the parent directory of @src_prefix
     '''
+    if exclude is not None:
+        exclude_files, exclude_dirs = exclude
+    else:
+        exclude_files = exclude_dirs = set()
     for root, dirs, files in os.walk(src_prefix):
-        for d in dirs:
+        for d in dirs[:]:
             abs_src = os.path.join(src_dir, root, d)
             filepart = abs_src[len(src_dir) + 1:]
             abs_dst = os.path.join(dst_dir, filepart)
+            # Remove these so they aren't visited by os.walk at all.
+            if filepart in exclude_dirs:
+                dirs.remove(d)
+                continue
             if os.path.isdir(abs_dst):
                 continue
             if os.path.exists(abs_dst):
@@ -149,6 +157,8 @@ def do_copydir(data, src_prefix, src_dir, dst_dir):
         for f in files:
             abs_src = os.path.join(src_dir, root, f)
             filepart = abs_src[len(src_dir) + 1:]
+            if filepart in exclude_files:
+                continue
             abs_dst = os.path.join(dst_dir, filepart)
             if os.path.isdir(abs_dst):
                 print('Tried to copy file %s but a directory of that name already exists.' % abs_dst)
@@ -184,14 +194,14 @@ def do_install(datafilename):
         run_install_script(d)
 
 def install_subdirs(d):
-    for (src_dir, inst_dir, dst_dir, mode) in d.install_subdirs:
+    for (src_dir, inst_dir, dst_dir, mode, exclude) in d.install_subdirs:
         if src_dir.endswith('/') or src_dir.endswith('\\'):
             src_dir = src_dir[:-1]
         src_prefix = os.path.join(src_dir, inst_dir)
         print('Installing subdir %s to %s' % (src_prefix, dst_dir))
         dst_dir = get_destdir_path(d, dst_dir)
         d.dirmaker.makedirs(dst_dir, exist_ok=True)
-        do_copydir(d, src_prefix, src_dir, dst_dir)
+        do_copydir(d, src_prefix, src_dir, dst_dir, exclude)
         dst_prefix = os.path.join(dst_dir, inst_dir)
         set_mode(dst_prefix, mode)
 
@@ -317,7 +327,7 @@ def install_targets(d):
                 do_copyfile(pdb_filename, pdb_outname)
         elif os.path.isdir(fname):
             fname = os.path.join(d.build_dir, fname.rstrip('/'))
-            do_copydir(d, fname, os.path.dirname(fname), outdir)
+            do_copydir(d, fname, os.path.dirname(fname), outdir, None)
         else:
             raise RuntimeError('Unknown file type for {!r}'.format(fname))
         printed_symlink_error = False

@@ -813,7 +813,7 @@ int dummy;
                 inst_dir = sd.installable_subdir
             src_dir = os.path.join(self.environment.get_source_dir(), subdir)
             dst_dir = os.path.join(self.environment.get_prefix(), sd.install_dir)
-            d.install_subdirs.append([src_dir, inst_dir, dst_dir, sd.install_mode])
+            d.install_subdirs.append([src_dir, inst_dir, dst_dir, sd.install_mode, sd.exclude])
 
     def generate_tests(self, outfile):
         self.serialize_tests()

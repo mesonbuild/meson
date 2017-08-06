@@ -108,7 +108,15 @@ directories are not used.
 ## Support for MPI dependency
 
 MPI is now supported as a dependency. Because dependencies are
-language-specific, you must specify the requested language with the `language`
-keyword, i.e., `dependency('mpi', language='c')` will request the C MPI headers
-and libraries. See [the MPI dependency](Dependencies.md#mpi) for more
-information.
+language-specific, you must specify the requested language with the
+`language` keyword, i.e., `dependency('mpi', language='c')` will
+request the C MPI headers and libraries. See [the MPI
+dependency](Dependencies.md#mpi) for more information.
+
+## Allow excluding files or directories from `install_subdir`
+
+The [`install_subdir`](Reference-manual.md#install_subdir) command
+accepts the new `exclude_files` and `exclude_directories` keyword
+arguments that allow specified files or directories to be excluded
+from the installed subdirectory.
+

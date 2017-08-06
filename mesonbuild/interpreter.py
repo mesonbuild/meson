@@ -456,12 +456,13 @@ class DataHolder(InterpreterObject):
         return self.held_object.install_dir
 
 class InstallDir(InterpreterObject):
-    def __init__(self, src_subdir, inst_subdir, install_dir, install_mode):
+    def __init__(self, src_subdir, inst_subdir, install_dir, install_mode, exclude):
         InterpreterObject.__init__(self)
         self.source_subdir = src_subdir
         self.installable_subdir = inst_subdir
         self.install_dir = install_dir
         self.install_mode = install_mode
+        self.exclude = exclude
 
 class Man(InterpreterObject):
 
@@ -1297,7 +1298,7 @@ permitted_kwargs = {'add_global_arguments': {'language'},
                     'install_data': {'install_dir', 'install_mode', 'sources'},
                     'install_headers': {'install_dir', 'subdir'},
                     'install_man': {'install_dir'},
-                    'install_subdir': {'install_dir', 'install_mode'},
+                    'install_subdir': {'exclude_files', 'exclude_directories', 'install_dir', 'install_mode'},
                     'jar': jar_kwargs,
                     'project': {'version', 'meson_version', 'default_options', 'license', 'subproject_dir'},
                     'run_target': {'command', 'depends'},
@@ -2442,13 +2443,39 @@ class Interpreter(InterpreterBase):
     def func_install_subdir(self, node, args, kwargs):
         if len(args) != 1:
             raise InvalidArguments('Install_subdir requires exactly one argument.')
+        subdir = args[0]
         if 'install_dir' not in kwargs:
             raise InvalidArguments('Missing keyword argument install_dir')
         install_dir = kwargs['install_dir']
         if not isinstance(install_dir, str):
             raise InvalidArguments('Keyword argument install_dir not a string.')
+        if 'exclude_files' in kwargs:
+            exclude = kwargs['exclude_files']
+            if not isinstance(exclude, list):
+                exclude = [exclude]
+            for f in exclude:
+                if not isinstance(f, str):
+                    raise InvalidArguments('Exclude argument not a string.')
+                elif os.path.isabs(f):
+                    raise InvalidArguments('Exclude argument cannot be absolute.')
+            exclude_files = {os.path.join(subdir, f) for f in exclude}
+        else:
+            exclude_files = set()
+        if 'exclude_directories' in kwargs:
+            exclude = kwargs['exclude_directories']
+            if not isinstance(exclude, list):
+                exclude = [exclude]
+            for d in exclude:
+                if not isinstance(d, str):
+                    raise InvalidArguments('Exclude argument not a string.')
+                elif os.path.isabs(d):
+                    raise InvalidArguments('Exclude argument cannot be absolute.')
+            exclude_directories = {os.path.join(subdir, f) for f in exclude}
+        else:
+            exclude_directories = set()
+        exclude = (exclude_files, exclude_directories)
         install_mode = self._get_kwarg_install_mode(kwargs)
-        idir = InstallDir(self.subdir, args[0], install_dir, install_mode)
+        idir = InstallDir(self.subdir, subdir, install_dir, install_mode, exclude)
         self.build.install_dirs.append(idir)
         return idir
 
