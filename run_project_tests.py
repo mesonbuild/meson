@@ -21,7 +21,7 @@ from io import StringIO
 from ast import literal_eval
 from enum import Enum
 import tempfile
-import mesontest
+from mesonbuild import mtest
 from mesonbuild import environment
 from mesonbuild import mesonlib
 from mesonbuild import mlog
@@ -287,12 +287,12 @@ def run_test_inprocess(testdir):
     os.chdir(testdir)
     test_log_fname = 'meson-logs/testlog.txt'
     try:
-        returncode_test = mesontest.run(['--no-rebuild'])
+        returncode_test = mtest.run(['--no-rebuild'])
         if os.path.exists(test_log_fname):
             test_log = open(test_log_fname, errors='ignore').read()
         else:
             test_log = ''
-        returncode_benchmark = mesontest.run(['--no-rebuild', '--benchmark', '--logbase', 'benchmarklog'])
+        returncode_benchmark = mtest.run(['--no-rebuild', '--benchmark', '--logbase', 'benchmarklog'])
     finally:
         sys.stdout = old_stdout
         sys.stderr = old_stderr

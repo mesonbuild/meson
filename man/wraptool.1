@@ -3,36 +3,11 @@
 wraptool - source dependency downloader
 .SH DESCRIPTION
 
-Wraptool is a helper utility to manage source dependencies
-using the wrapdb database.
+This executable is deprecated and will be removed in the future. The
+functionality that was in this executable can be invoked via the main Meson
+command like this:
 
-.B wraptool <
-.I command
-.B > [
-.I options
-.B ]
+.B meson wrap <options>
 
-You should run this command in the top level source directory
-of your project.
-
-.SS "Commands:"
-.TP
-\fBlist\fR
-list all available projects
-.TP
-\fBsearch\fR
-search projects by name
-.TP
-\fBinstall\fR
-install a project with the given name
-.TP
-\fBupdate\fR
-update the specified project to latest available version
-.TP
-\fBinfo\fR
-show available versions of the specified project
-.TP
-\fBstatus\fR
-show installed and available versions of currently used subprojects
 .SH SEE ALSO
 http://wrapdb.mesonbuild.com/

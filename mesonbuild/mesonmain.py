@@ -17,10 +17,11 @@ import time, datetime
 import os.path
 from . import environment, interpreter, mesonlib
 from . import build
+from . import mconf, mintro, mtest, rewriter
 import platform
 from . import mlog, coredata
 from .mesonlib import MesonException
-from .wrap import WrapMode
+from .wrap import WrapMode, wraptool
 
 
 parser = argparse.ArgumentParser()
@@ -262,12 +263,33 @@ def run_script_command(args):
         raise MesonException('Unknown internal command {}.'.format(cmdname))
     return cmdfunc(cmdargs)
 
-def run(mainfile, args):
-    if sys.version_info < (3, 3):
-        print('Meson works correctly only with python 3.3+.')
+def run(args, mainfile=None):
+    if sys.version_info < (3, 4):
+        print('Meson works correctly only with python 3.4+.')
         print('You have python %s.' % sys.version)
         print('Please update your environment')
         return 1
+    if len(args) > 0:
+        # First check if we want to run a subcommand.
+        cmd_name = args[0]
+        remaining_args = args[1:]
+        if cmd_name == 'test':
+            return mtest.run(remaining_args)
+        elif cmd_name == 'setup':
+            args = remaining_args
+            # FALLTHROUGH like it's 1972.
+        elif cmd_name == 'introspect':
+            return mintro.run(remaining_args)
+        elif cmd_name == 'test':
+            return mtest.run(remaining_args)
+        elif cmd_name == 'rewrite':
+            return rewriter.run(remaining_args)
+        elif cmd_name == 'configure':
+            return mconf.run(remaining_args)
+        elif cmd_name == 'wrap':
+            return wraptool.run(remaining_args)
+
+    # No special command? Do the basic setup/reconf.
     if len(args) >= 2 and args[0] == '--internal':
         if args[1] != 'regenerate':
             script = args[1]
@@ -281,6 +303,7 @@ def run(mainfile, args):
         handshake = True
     else:
         handshake = False
+
     args = mesonlib.expand_arguments(args)
     options = parser.parse_args(args)
     args = options.directories
@@ -302,6 +325,8 @@ def run(mainfile, args):
         else:
             dir2 = '.'
     try:
+        if mainfile is None:
+            sys.exit('I iz broken. Sorry.')
         app = MesonApp(dir1, dir2, mainfile, handshake, options, sys.argv)
     except Exception as e:
         # Log directory does not exist, so just print

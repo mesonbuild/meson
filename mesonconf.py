@@ -14,7 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from mesonbuild import mconf
+from mesonbuild import mesonmain
 import sys
 
-sys.exit(mconf.run(sys.argv[1:]))
+if __name__ == '__main__':
+    print('Warning: This executable is deprecated. Use "meson configure" instead.',
+          file=sys.stderr)
+    sys.exit(mesonmain.run(['configure'] + sys.argv[1:]))

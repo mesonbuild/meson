@@ -127,7 +127,7 @@ def run_configure_inprocess(commandlist):
     old_stderr = sys.stderr
     sys.stderr = mystderr = StringIO()
     try:
-        returncode = mesonmain.run(commandlist[0], commandlist[1:])
+        returncode = mesonmain.run(commandlist[1:], commandlist[0])
     finally:
         sys.stdout = old_stdout
         sys.stderr = old_stderr

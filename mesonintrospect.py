@@ -14,7 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from mesonbuild import mintro
+from mesonbuild import mesonmain
 import sys
 
-sys.exit(mintro.run(sys.argv[1:]))
+if __name__ == '__main__':
+    print('Warning: This executable is deprecated. Use "meson introspect" instead.',
+          file=sys.stderr)
+    sys.exit(mesonmain.run(['introspect'] + sys.argv[1:]))
