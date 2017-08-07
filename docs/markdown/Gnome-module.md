@@ -153,6 +153,7 @@ Compiles and installs gtkdoc documentation into `prefix/share/gtk-doc/html`. Tak
 * `html_assets`: a list of assets for the HTML pages
 * `content_files`: a list of content files
 * `mkdb_args`: a list of arguments to pass to `gtkdoc-mkdb`
+* `ignore_headers`: a list of header files to ignore
 
 This creates a `$module-doc` target that can be ran to build docs and normally these are only built on install.
 
