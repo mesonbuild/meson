@@ -113,13 +113,13 @@ class MesonApp:
         priv_dir = os.path.join(build_dir, 'meson-private/coredata.dat')
         if os.path.exists(priv_dir):
             if not handshake:
-                msg = '''Trying to run Meson on a build directory that has already been configured.
+                print('''Trying to run Meson on a build directory that has already been configured.
 If you want to build it, just run your build command (e.g. ninja) inside the
 build directory. Meson will autodetect any changes in your setup and regenerate
 itself as required.
 
-If you want to change option values, use the mesonconf tool instead.'''
-                raise RuntimeError(msg)
+If you want to change option values, use the mesonconf tool instead.''')
+                sys.exit(0)
         else:
             if handshake:
                 raise RuntimeError('Something went terribly wrong. Please file a bug.')
