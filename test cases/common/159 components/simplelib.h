@@ -1,0 +1,2 @@
+int simple_function();
+

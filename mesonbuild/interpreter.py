@@ -2645,7 +2645,18 @@ class Interpreter(InterpreterBase):
         if not isinstance(args[0], str):
             raise InterpreterException('First argument of test must be a string.')
         exe = args[1]
-        if not isinstance(exe, (ExecutableHolder, JarHolder, ExternalProgramHolder)):
+        if isinstance(exe, ExecutableHolder):
+            disabling_components = []
+            for component in exe.held_object.components:
+                if component.func_enabled():
+                    continue
+                disabling_components.append(component.name)
+
+            if disabling_components:
+                mlog.log('Test "', mlog.bold(args[0]), '" disabled by ',
+                         'components: ', mlog.red(str(disabling_components)), sep='')
+                return
+        elif not isinstance(exe, (JarHolder, ExternalProgramHolder)):
             if isinstance(exe, mesonlib.File):
                 exe = self.func_find_program(node, (args[1], ), {})
             else:

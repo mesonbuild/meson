@@ -5,10 +5,13 @@ component_disable_by_default = component('hello3', default: 'disabled')
 
 hello1 = executable('hello1', sources: 'hello.c',
   components: tcomponent_default_option)
+
 hello2 = executable('hello2', sources: 'hello.c',
   components: component('hello2'))
 hello3 = executable('hello3', sources: 'hello.c',
         components: [component_disable_by_default])
+
+test('disabled_by_default_test', hello3)
 
 # All targets created in subdir/ will be in a new component called 'subcomponent'
 subdir('subdir', components: [component('subcomponent')])

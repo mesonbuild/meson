@@ -1990,6 +1990,19 @@ endian = 'little'
         with self.assertRaises(subprocess.CalledProcessError):
             self.init(testdir, ['-Dwithdep1=enabled'])
 
+    def test_components_disable_tests(self):
+        testdir = os.path.join(self.common_test_dir, '159 components')
+        self.setUp()
+        self.init(testdir)
+        testlist = self._run(self.mtest_command + ['--list'], workdir=self.builddir)
+        self.assertTrue("No tests defined." in testlist, testlist)
+
+        self.setUp()
+        self.init(testdir, ['-Dhello3=enabled'])
+        testlist = self._run(self.mtest_command + ['--list'], workdir=self.builddir)
+        self.assertTrue("disabled_by_default_test" in testlist, "%s not in '''%s'''" % (
+            'disabled_by_default_test', testlist))
+
     def test_adding_missing_dep_with_enabled_component_fails(self):
         testdir = os.path.join(self.common_test_dir, '159 components')
         self.setUp()
