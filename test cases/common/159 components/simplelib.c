@@ -1,6 +1,5 @@
 #include "simplelib.h"
 
-int simple_function() {
+int DLL_PUBLIC simple_function() {
     return 42;
 }
-

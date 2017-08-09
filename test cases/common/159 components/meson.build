@@ -1,7 +1,7 @@
 project('component', 'c')
 
 libcomp = component('lib')
-lib = library('simplelib', 'simplelib.c', components: libcomp)
+lib = library('simplelib', 'simplelib.c', components: libcomp, install: true)
 
 pkgg = import('pkgconfig')
 pkgg.generate(
@@ -21,12 +21,12 @@ tcomponent_default_option = component('hello1')
 component_disable_by_default = component('hello3', default: 'disabled')
 hello1 = executable('hello1', sources: 'hello.c',
   components: tcomponent_default_option,
-  link_with: lib)
+  link_with: lib, install: true)
 hello2 = executable('hello2', sources: 'hello.c',
   dependencies: lib1_dep,
-  components: component('hello2'))
+  components: component('hello2'), install: true)
 hello3 = executable('hello3', sources: 'hello.c',
-        components: [component_disable_by_default])
+        components: [component_disable_by_default], install: true)
 
 test('disabled_by_default_test', hello3)
 
@@ -38,7 +38,8 @@ withdep1 = component('withdep1', dependencies: [fakedep])
 assert(withdep1.dependencies() == [fakedep], 'component.dependencies() failed')
 executable('withdep1', sources: 'hello.c',
            dependencies: fakedep,
-           components: withdep1)
+           components: withdep1,
+           install: true)
 
 disabled_component = component('disabled', default: 'disabled')
 fakedep2 = dependency('required_not_existing_with_disabled_component',

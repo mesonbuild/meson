@@ -215,11 +215,15 @@ def validate_install(srcdir, installdir, compiler):
     expected = {}
     ret_msg = ''
     # Generate list of expected files
+    allow_extra_files = False
     if os.path.exists(os.path.join(installdir, noinst_file)):
         expected[noinst_file] = False
     elif os.path.exists(info_file):
         with open(info_file) as f:
             for line in f:
+                if line.strip('\n') == '++':
+                    allow_extra_files = True
+                    continue
                 line = platform_fix_name(line.strip(), compiler)
                 if line:
                     expected[line] = False
@@ -234,14 +238,17 @@ def validate_install(srcdir, installdir, compiler):
             if fname.endswith('.pdb') and compiler != 'cl':
                 continue
             ret_msg += 'Expected file {0} missing.\n'.format(fname)
-    # Check if there are any unexpected files
-    found = get_relative_files_list_from_dir(installdir)
-    for fname in found:
-        # Windows-specific tests check for the existence of installed PDB
-        # files, but common tests do not, for obvious reasons. Ignore any
-        # extra PDB files found.
-        if fname not in expected and not fname.endswith('.pdb') and compiler == 'cl':
-            ret_msg += 'Extra file {0} found.\n'.format(fname)
+
+    if not allow_extra_files:
+        # Check if there are any unexpected files
+        found = get_relative_files_list_from_dir(installdir)
+        for fname in found:
+            # Windows-specific tests check for the existence of installed PDB
+            # files, but common tests do not, for obvious reasons. Ignore any
+            # extra PDB files found.
+            if fname not in expected and not fname.endswith('.pdb') and compiler == 'cl':
+                ret_msg += 'Extra file {0} found.\n'.format(fname)
+
     return ret_msg
 
 def log_text_file(logfile, testdir, stdo, stde):

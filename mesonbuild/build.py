@@ -819,7 +819,7 @@ This will become a hard error in a future Meson release.''')
         return self.generated
 
     def should_install(self):
-        return self.need_install
+        return self.need_install and self.should_build()
 
     def has_pch(self):
         return len(self.pch) > 0
@@ -1666,7 +1666,7 @@ class CustomTarget(Target):
         return self.dependencies
 
     def should_install(self):
-        return self.install
+        return self.install and self.should_build()
 
     def get_custom_install_dir(self):
         return self.install_dir
