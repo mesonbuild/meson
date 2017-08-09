@@ -3,13 +3,17 @@ project('component', 'c')
 libcomp = component('lib')
 lib = library('simplelib', 'simplelib.c', components: libcomp)
 
+lib1comp = component('lib1')
+lib1 = library('simplelib1', 'simplelib.c', components: lib1comp)
+lib1_dep = declare_dependency(link_with: lib1)
+
 tcomponent_default_option = component('hello1')
 component_disable_by_default = component('hello3', default: 'disabled')
-
-hello1 = executable('hello_with_lib', sources: 'hello.c',
+hello1 = executable('hello1', sources: 'hello.c',
   components: tcomponent_default_option,
   link_with: lib)
 hello2 = executable('hello2', sources: 'hello.c',
+  dependencies: lib1_dep,
   components: component('hello2'))
 hello3 = executable('hello3', sources: 'hello.c',
         components: [component_disable_by_default])

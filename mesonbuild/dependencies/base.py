@@ -132,16 +132,17 @@ class CustomDependency(Dependency):
 
 
 class InternalDependency(Dependency):
-    def __init__(self, version, incdirs, compile_args, link_args, libraries, sources, ext_deps):
+    def __init__(self, version, incdirs, compile_args, link_args, libraries, sources, ext_deps,
+                 found=True):
         super().__init__('internal', {})
         self.version = version
-        self.is_found = True
         self.include_directories = incdirs
         self.compile_args = compile_args
         self.link_args = link_args
         self.libraries = libraries
         self.sources = sources
         self.ext_deps = ext_deps
+        self.is_found = found
 
 
 class ExternalDependency(Dependency):
