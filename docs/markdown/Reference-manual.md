@@ -183,7 +183,7 @@ This function returns a [dependency object](#dependency-object) that behaves lik
     dependency_object dependency(*dependency_name*, ...)
 ```
 
-Finds an external dependency with the given name with `pkg-config` if possible and with fallback detection logic otherwise. Dependency supports the following keyword arguments.
+Finds an external dependency (usually a library installed on your system) with the given name with `pkg-config` if possible and with [library-specific fallback detection logic](Dependencies.md) otherwise. This function supports the following keyword arguments:
 
 - `modules` specifies submodules to use for dependencies such as Qt5 or Boost.
 - `required`, when set to false, Meson will proceed with the build even if the dependency is not found
