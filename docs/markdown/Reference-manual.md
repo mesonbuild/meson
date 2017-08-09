@@ -1374,6 +1374,13 @@ the following methods:
 
 - `version()` returns the compiler's version number as a string.
 
+- `find_dependency(depname)` returns a [`dependency`](#dependency-object). Arguments:
+    * `libs`: A list of library name to be found and used when linking against the return dependency
+    * `headers`: A list of header names to be found for the dependency to be usable
+    * `headers_symbols`: A list of 2 tuples in the form `[['header1_name.h', 'symbol1_name']]`
+    * `required`: Weather the dependency is required
+    * `links`: A list of snippets to be compiled and linked for the dependency to be usable
+
 The following keyword arguments can be used:
 
 - `args` can be used to pass a list of compiler arguments that are

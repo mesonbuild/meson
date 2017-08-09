@@ -806,7 +806,8 @@ This will become a hard error in a future Meson release.''')
                 self.external_deps.append(extpart)
                 # Deps of deps.
                 self.add_deps(dep.ext_deps)
-            elif isinstance(dep, dependencies.ExternalDependency):
+            elif isinstance(dep, (dependencies.ExternalDependency,
+                            dependencies.CustomDependency)):
                 self.external_deps.append(dep)
                 self.process_sourcelist(dep.get_sources())
             elif isinstance(dep, BuildTarget):

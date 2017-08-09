@@ -648,6 +648,7 @@ class CompilerHolder(InterpreterObject):
                              'alignment': self.alignment_method,
                              'version': self.version_method,
                              'cmd_array': self.cmd_array_method,
+                             'find_dependency': self.find_dependency_func,
                              'find_library': self.find_library_method,
                              'has_argument': self.has_argument_method,
                              'has_multi_arguments': self.has_multi_arguments_method,
@@ -663,12 +664,13 @@ class CompilerHolder(InterpreterObject):
     def cmd_array_method(self, args, kwargs):
         return self.compiler.exelist
 
-    def determine_args(self, kwargs):
+    def determine_args(self, kwargs, incdirs_name='include_directories',
+                       args_name='args', link=True):
         nobuiltins = kwargs.get('no_builtin_args', False)
         if not isinstance(nobuiltins, bool):
             raise InterpreterException('Type of no_builtin_args not a boolean.')
         args = []
-        incdirs = extract_as_list(kwargs, 'include_directories')
+        incdirs = extract_as_list(kwargs, incdirs_name)
         for i in incdirs:
             if not isinstance(i, IncludeDirsHolder):
                 raise InterpreterException('Include directories argument must be an include_directories object.')
@@ -678,8 +680,9 @@ class CompilerHolder(InterpreterObject):
         if not nobuiltins:
             opts = self.environment.coredata.compiler_options
             args += self.compiler.get_option_compile_args(opts)
-            args += self.compiler.get_option_link_args(opts)
-        args += mesonlib.stringlistify(kwargs.get('args', []))
+            if link:
+                args += self.compiler.get_option_link_args(opts)
+        args += mesonlib.stringlistify(kwargs.get(args_name, []))
         return args
 
     def determine_dependencies(self, kwargs):
@@ -930,7 +933,7 @@ class CompilerHolder(InterpreterObject):
             mlog.log('Checking if "', mlog.bold(testname), '" links: ', h, sep='')
         return result
 
-    def has_header_method(self, args, kwargs):
+    def _has_header(self, args, kwargs):
         if len(args) != 1:
             raise InterpreterException('has_header method takes exactly one argument.')
         check_stringlist(args)
@@ -940,17 +943,23 @@ class CompilerHolder(InterpreterObject):
             raise InterpreterException('Prefix argument of has_header must be a string.')
         extra_args = self.determine_args(kwargs)
         deps = self.determine_dependencies(kwargs)
-        haz = self.compiler.has_header(hname, prefix, self.environment, extra_args, deps)
+
+        return self.compiler.has_header(hname, prefix, self.environment, extra_args, deps)
+
+    def has_header_method(self, args, kwargs):
+        haz = self._has_header(args, kwargs)
         if haz:
             h = mlog.green('YES')
         else:
             h = mlog.red('NO')
-        mlog.log('Has header "%s":' % hname, h)
+        mlog.log('Has header "%s":' % args[0], h)
+
         return haz
 
-    def has_header_symbol_method(self, args, kwargs):
+    def _has_header_symbol(self, args, kwargs):
         if len(args) != 2:
-            raise InterpreterException('has_header_symbol method takes exactly two arguments.')
+            raise InterpreterException('has_header_symbol method takes exactly two arguments '
+                                       '(got %s).' % args)
         check_stringlist(args)
         hname = args[0]
         symbol = args[1]
@@ -960,17 +969,26 @@ class CompilerHolder(InterpreterObject):
         extra_args = self.determine_args(kwargs)
         deps = self.determine_dependencies(kwargs)
         haz = self.compiler.has_header_symbol(hname, symbol, prefix, self.environment, extra_args, deps)
+
+        return haz
+
+    def has_header_symbol_method(self, args, kwargs):
+        haz = self._has_header_symbol(args, kwargs)
         if haz:
             h = mlog.green('YES')
         else:
             h = mlog.red('NO')
-        mlog.log('Header <{0}> has symbol "{1}":'.format(hname, symbol), h)
+        mlog.log('Header <{0}> has symbol "{1}":'.format(args[0], args[1]), h)
         return haz
 
     def find_library_method(self, args, kwargs):
+        return self._find_library(args, kwargs)
+
+    def _find_library(self, args, kwargs, silent=False):
         # TODO add dependencies support?
         if len(args) != 1:
-            raise InterpreterException('find_library method takes one argument.')
+            raise InterpreterException('find_library method takes one argument'
+                                       ' (got "%s").' % args)
         libname = args[0]
         if not isinstance(libname, str):
             raise InterpreterException('Library name not a string.')
@@ -985,8 +1003,84 @@ class CompilerHolder(InterpreterObject):
         if required and not linkargs:
             raise InterpreterException('{} library {!r} not found'.format(self.compiler.get_display_language(), libname))
         lib = dependencies.ExternalLibrary(libname, linkargs, self.environment,
-                                           self.compiler.language)
+                                           self.compiler.language, silent=silent)
         return ExternalLibraryHolder(lib)
+
+    def find_dependency_func(self, args, kwargs):
+        if len(args) != 1:
+            raise InterpreterException('find_dependency method takes one argument.')
+        depname = args[0]
+        required = kwargs.get('required', True)
+        if not isinstance(required, bool):
+            raise InterpreterException('required must be boolean.')
+
+        found = True
+        libs = []
+        not_found_reasons = []
+        libnames = mesonlib.stringlistify(kwargs.get('libs', []))
+        for libname in libnames:
+            lib = self._find_library(mesonlib.stringlistify(libname), kwargs, silent=True)
+            if not lib.found():
+                found = False
+                not_found_reasons.append('lib: {} not found'.format(libname))
+            libs.append(lib.held_object)
+
+        headers = mesonlib.stringlistify(kwargs.get('headers', []))
+        for header in headers:
+            has = self._has_header(mesonlib.stringlistify(header), kwargs)
+            if not has:
+                found = False
+                tmp = 'header: {} not found'.format(header)
+                not_found_reasons.append(tmp)
+                if required:
+                    raise InterpreterException("{} dependency {!r} ".format(
+                        self.compiler.get_display_language(), depname) + tmp)
+
+        headers_syms = kwargs.get('headers_symbols', [])
+        if len(headers_syms) == 2 and isinstance(headers_syms[0], str):
+            headers_syms = [headers_syms]
+        for header_sym in headers_syms:
+            header_sym = mesonlib.stringlistify(header_sym)
+            has = self._has_header_symbol(header_sym, kwargs)
+            if not has:
+                found = False
+                tmp = 'header symbol: %s not found' % header_sym
+                not_found_reasons.append(tmp)
+                if required:
+                    raise InterpreterException('{} dependency {!r} {}'.format(
+                        self.compiler.get_display_language(), depname, tmp))
+
+        links = mesonlib.stringlistify(kwargs.get('links', []))
+        for link in links:
+            _links = self.links_method(mesonlib.stringlistify(link), kwargs)
+            if not _links:
+                found = False
+                tmp = 'could not link: ' + link
+                not_found_reasons.append(tmp)
+                if required:
+                    raise InterpreterException('{} dependency {!r} {}'.format(
+                        self.compiler.get_display_language(), depname, tmp))
+
+        build_args = self.determine_args(kwargs, link=False)
+        link_args = self.determine_args(kwargs, incdirs_name=None,
+                                        args_name='link_args')
+        deps = self.determine_dependencies(kwargs)
+        dep = dependencies.CustomDependency(self.compiler.get_id() + '_custom',
+                                            found, build_args, link_args,
+                                            libs, deps, kwargs)
+
+        if found:
+            h = mlog.green('YES')
+        else:
+            h = mlog.red('NO')
+
+        if not not_found_reasons:
+            not_found_reasons = ''
+
+        mlog.log('Dependency', mlog.bold(depname), 'has been found:', h,
+                 str(not_found_reasons))
+
+        return DependencyHolder(dep)
 
     def has_argument_method(self, args, kwargs):
         args = mesonlib.stringlistify(args)
