@@ -1956,26 +1956,27 @@ endian = 'little'
     def test_components(self):
         testdir = os.path.join(self.common_test_dir, '159 components')
         test_data = [
-            (['-Dhello1=disabled'], 'disabled', 'enabled', 'disabled', 'enabled', 'enabled'),
+            (['-Dhello1=disabled'], 'disabled', 'enabled', 'disabled', 'enabled', 'enabled', 'enabled'),
             # hello1 is disabled by the lib
-            (['-Dlib=disabled'], 'disabled', 'enabled', 'disabled', 'enabled', 'enabled'),
+            (['-Dlib=disabled'], 'disabled', 'enabled', 'disabled', 'enabled', 'enabled', 'disabled'),
             (['-Dhello1=disabled', '-Dhello2=disabled'],
-             'disabled', 'disabled', 'disabled', 'enabled', 'enabled'),
+             'disabled', 'disabled', 'disabled', 'enabled', 'enabled', 'enabled'),
             (['-Dhello1=disabled', '-Dhello2=disabled', '-Dhello3=enabled'],
-             'disabled', 'disabled', 'enabled', 'enabled', 'enabled'),
-            (['-Dsubcomponent=disabled'], 'enabled', 'enabled', 'disabled', 'disabled', 'disabled'),
-            (['-Dsubsubcomponent=disabled'], 'enabled', 'enabled', 'disabled', 'enabled', 'disabled'),
-            (['--components-default-value=disabled'], 'disabled', 'disabled', 'disabled', 'disabled', 'disabled'),
-            (['--components-default-value=disabled', '-Dhello3=enabled'], 'disabled', 'disabled', 'enabled', 'disabled', 'disabled'),
+             'disabled', 'disabled', 'enabled', 'enabled', 'enabled', 'enabled'),
+            (['-Dsubcomponent=disabled'], 'enabled', 'enabled', 'disabled', 'disabled', 'disabled', 'enabled'),
+            (['-Dsubsubcomponent=disabled'], 'enabled', 'enabled', 'disabled', 'enabled', 'disabled', 'enabled'),
+            (['--components-default-value=disabled'], 'disabled', 'disabled', 'disabled', 'disabled', 'disabled', 'disabled'),
+            (['--components-default-value=disabled', '-Dhello3=enabled'], 'disabled', 'disabled', 'enabled', 'disabled', 'disabled', 'disabled'),
         ]
 
-        for (options, ehello1, ehello2, ehello3, esubhello, esubsubhello) in test_data:
+        for (options, ehello1, ehello2, ehello3, esubhello, esubsubhello, epkgfile) in test_data:
             self.setUp()
             hello1 = os.path.join(self.builddir, 'hello1')
             hello2 = os.path.join(self.builddir, 'hello2')
             hello3 = os.path.join(self.builddir, 'hello3')
             subhello = os.path.join(self.builddir, 'subdir', 'subhello')
             subsubhello = os.path.join(self.builddir, 'subdir', 'subsubdir', 'subsubhello')
+            pkgfile = os.path.join(self.builddir, 'meson-private', 'simple.pc')
 
             self.init(testdir, options)
             self.build()
@@ -1985,6 +1986,7 @@ endian = 'little'
             self.assertEqual(os.path.exists(hello3), ehello3 == 'enabled', str(options))
             self.assertEqual(os.path.exists(subhello), esubhello == 'enabled', str(options))
             self.assertEqual(os.path.exists(subsubhello), esubsubhello == 'enabled', str(options))
+            self.assertEqual(os.path.exists(pkgfile), epkgfile == 'enabled', str(options))
 
     def test_enabled_component_with_missing_dep_fails(self):
         testdir = os.path.join(self.common_test_dir, '159 components')

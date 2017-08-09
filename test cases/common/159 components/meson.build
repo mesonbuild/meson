@@ -3,6 +3,16 @@ project('component', 'c')
 libcomp = component('lib')
 lib = library('simplelib', 'simplelib.c', components: libcomp)
 
+pkgg = import('pkgconfig')
+pkgg.generate(
+  libraries : [lib],
+  subdirs : '.',
+  version : '1.0',
+  name : 'simplelib',
+  filebase : 'simple',
+  description : 'A simple demo library.',
+)
+
 lib1comp = component('lib1')
 lib1 = library('simplelib1', 'simplelib.c', components: lib1comp)
 lib1_dep = declare_dependency(link_with: lib1)
