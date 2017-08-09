@@ -1957,6 +1957,8 @@ endian = 'little'
         testdir = os.path.join(self.common_test_dir, '159 components')
         test_data = [
             (['-Dhello1=disabled'], 'disabled', 'enabled', 'disabled', 'enabled', 'enabled'),
+            # hello1 is disabled by the lib
+            (['-Dlib=disabled'], 'disabled', 'enabled', 'disabled', 'enabled', 'enabled'),
             (['-Dhello1=disabled', '-Dhello2=disabled'],
              'disabled', 'disabled', 'disabled', 'enabled', 'enabled'),
             (['-Dhello1=disabled', '-Dhello2=disabled', '-Dhello3=enabled'],
