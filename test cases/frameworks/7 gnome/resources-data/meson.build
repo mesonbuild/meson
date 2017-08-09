@@ -10,7 +10,7 @@ print("This is a generated resource.")
 
 # Generate file res3.txt from file res3.txt.in. This is then included
 # in a GResource file, driven by resources/meson.build.
-res3_txt = custom_target('res3.txt',
+res3_txt = custom_target('res3',
   input: 'res3.txt.in',
   output: 'res3.txt',
   command: [python3, '-c', fake_generator_script, '@INPUT@'],
