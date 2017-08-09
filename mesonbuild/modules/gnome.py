@@ -259,21 +259,28 @@ class GnomeModule(ExtensionModule):
                 if hasattr(dep, 'held_object'):
                     dep = dep.held_object
                 if isinstance(dep, mesonlib.File):
-                    if dep.fname == missing_basename:
-                        found = True
-                        dep_files.remove(missing)
-                        dep_files.append(dep)
-                        subdirs.append(dep.subdir)
-                        break
+                    if dep.fname != missing_basename:
+                        continue
+                    found = True
+                    dep_files.remove(missing)
+                    dep_files.append(dep)
+                    subdirs.append(dep.subdir)
+                    break
                 elif isinstance(dep, build.CustomTarget):
-                    if dep.get_basename() == missing_basename:
+                    fname = None
+                    outputs = {(o, os.path.basename(o)) for o in dep.get_outputs()}
+                    for o, baseo in outputs:
+                        if baseo == missing_basename:
+                            fname = o
+                            break
+                    if fname is not None:
                         found = True
                         dep_files.remove(missing)
                         dep_files.append(
                             mesonlib.File(
                                 is_built=True,
                                 subdir=dep.get_subdir(),
-                                fname=dep.get_basename()))
+                                fname=fname))
                         depends.append(dep)
                         subdirs.append(dep.get_subdir())
                         break
