@@ -411,9 +411,9 @@ class Environment:
         # Arguments to output compiler pre-processor defines to stdout
         # gcc, g++, and gfortran all support these arguments
         args = compiler + ['-E', '-dM', '-']
-        p, output = Popen_safe(args, write='', stdin=subprocess.PIPE)[0:2]
+        p, output, error = Popen_safe(args, write='', stdin=subprocess.PIPE)
         if p.returncode != 0:
-            raise EnvironmentException('Unable to detect GNU compiler type:\n' + output)
+            raise EnvironmentException('Unable to detect GNU compiler type:\n' + output + error)
         # Parse several lines of the type:
         # `#define ___SOME_DEF some_value`
         # and extract `___SOME_DEF`
