@@ -154,4 +154,4 @@ First of all there needs to be a `.wrap` file with a download URL in the `subpro
 
 The second requirement is that there needs to be an explicit subproject invocation in your `meson.build` files. Either `subproject('foobar')` or `dependency('foobar', fallback : ['foobar', 'foo_dep'])`. If these declarations either are not in any build file or they are not called (due to e.g. `if/else`) then nothing is downloaded.
 
-If this is not sufficient for you, starting from release 0.40.0 Meson has a option called `wrap-mode`, which can be used to disable wrap downloads altogether.
+If this is not sufficient for you, starting from release 0.40.0 Meson has a option called `wrap-mode` which can be used to disable wrap downloads altogether with `--wrap-mode=nodownload`. You can also disable dependency fallbacks altogether with `--wrap-mode=nofallback`, which also implies the `nodownload` option.
