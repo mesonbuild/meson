@@ -194,6 +194,7 @@ Finds an external dependency (usually a library installed on your system) with t
 - `default_options` *(added 0.37.0)* an array of option values that override those set in the project's `default_options` invocation (like `default_options` in [`project()`](#project), they only have effect when Meson is run for the first time, and command line arguments override any default options in build files)
 - `method` defines the way the dependency is detected, the default is `auto` but can be overridden to be e.g. `qmake` for Qt development, and different dependencies support different values for this (though `auto` will work on all of them)
 - `language` *(added 0.42.0)* defines what language-specific dependency to find if it's available for multiple languages.
+- `search_prefix` *(added 0.43.0)*, when set to true, Meson will pass the prefix path to pkg-config, so `${prefix}/${libdir}/pkgconfig` is searched as a directory where pc files are. (only for `pkg-config` dependencies).
 
 The returned object also has methods that are documented in the [object methods section](#dependency-object) below.
 

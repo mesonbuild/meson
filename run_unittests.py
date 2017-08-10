@@ -646,6 +646,20 @@ class AllPlatformTests(BasePlatformTests):
                 prefix = opt['value']
         self.assertEqual(prefix, '/absoluteprefix')
 
+    def test_library_search_prefix(self):
+        '''
+        Tests that the ${prefix}/${libdir}/pkgconfig directory
+        is searched no matter if prefix is /usr/local or other,
+        as long as the dependency has search_prefix: true
+        '''
+        testdir = os.path.join(self.common_test_dir, '159 pkgconfig search prefix')
+        prefix = os.path.join(self.common_test_dir, '159 pkgconfig search prefix', 'prefix')
+        extra_args = ['--prefix=' + prefix, '--libdir=' + prefix + '/lib']
+        self.init(testdir, extra_args, default_args=False)
+        deps = self.introspect('--dependencies')
+        dep_names = [x['name'] for x in deps]
+        self.assertEqual(dep_names, ['projectA'])
+
     def test_absolute_prefix_libdir(self):
         '''
         Tests that setting absolute paths for --prefix and --libdir work. Can't

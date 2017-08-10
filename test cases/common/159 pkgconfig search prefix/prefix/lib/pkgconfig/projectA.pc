@@ -1,0 +1,8 @@
+prefix=/tmp/test/install
+libdir=${prefix}/lib/x86_64-linux-gnu
+includedir=${prefix}/include
+
+Name: projectA
+Description: ProjectA
+Version: 1
+Cflags: -I${includedir}
