@@ -190,13 +190,6 @@ if __name__ == '__main__':
     # Run tests
     print(mlog.bold('Running unittests.').get_text(mlog.colorize_console))
     print()
-    units = ['InternalTests', 'AllPlatformTests', 'FailureTests']
-    if mesonlib.is_linux():
-        units += ['LinuxlikeTests']
-        if should_run_linux_cross_tests():
-            units += ['LinuxArmCrossCompileTests']
-    elif mesonlib.is_windows():
-        units += ['WindowsTests']
     # Can't pass arguments to unit tests, so set the backend to use in the environment
     env = os.environ.copy()
     env['MESON_UNIT_TEST_BACKEND'] = backend.name
@@ -208,8 +201,7 @@ if __name__ == '__main__':
                         'coverage.process_startup()\n')
             env['COVERAGE_PROCESS_START'] = '.coveragerc'
             env['PYTHONPATH'] = os.pathsep.join([td] + env.get('PYTHONPATH', []))
-
-        returncode += subprocess.call([sys.executable, 'run_unittests.py', '-v'] + units, env=env)
+        returncode += subprocess.call([sys.executable, 'run_unittests.py', '-v'], env=env)
         # Ubuntu packages do not have a binary without -6 suffix.
         if should_run_linux_cross_tests():
             print(mlog.bold('Running cross compilation tests.').get_text(mlog.colorize_console))

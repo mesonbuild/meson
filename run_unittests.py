@@ -30,7 +30,7 @@ import mesonbuild.mlog
 import mesonbuild.compilers
 import mesonbuild.environment
 import mesonbuild.mesonlib
-from mesonbuild.mesonlib import is_windows, is_osx, is_cygwin, windows_proof_rmtree
+from mesonbuild.mesonlib import is_linux, is_windows, is_osx, is_cygwin, windows_proof_rmtree
 from mesonbuild.environment import Environment
 from mesonbuild.dependencies import DependencyException
 from mesonbuild.dependencies import PkgConfigDependency, ExternalProgram
@@ -38,6 +38,7 @@ from mesonbuild.dependencies import PkgConfigDependency, ExternalProgram
 from run_tests import exe_suffix, get_fake_options, FakeEnvironment
 from run_tests import get_builddir_target_args, get_backend_commands, Backend
 from run_tests import ensure_backend_detects_changes, run_configure_inprocess
+from run_tests import should_run_linux_cross_tests
 
 
 def get_dynamic_section_entry(fname, entry):
@@ -1980,4 +1981,12 @@ def unset_envs():
 
 if __name__ == '__main__':
     unset_envs()
-    unittest.main(buffer=True)
+    cases = ['InternalTests', 'AllPlatformTests', 'FailureTests']
+    if is_linux():
+        cases += ['LinuxlikeTests']
+        if should_run_linux_cross_tests():
+            cases += ['LinuxArmCrossCompileTests']
+    elif is_windows():
+        cases += ['WindowsTests']
+
+    unittest.main(defaultTest=cases, buffer=True)
