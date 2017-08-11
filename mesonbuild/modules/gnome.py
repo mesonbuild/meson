@@ -367,7 +367,7 @@ class GnomeModule(ExtensionModule):
                     # Hack to avoid passing some compiler options in
                     if lib.startswith("-W"):
                         continue
-                    if gir_has_extra_lib_arg() and use_gir_args:
+                    if gir_has_extra_lib_arg() and use_gir_args and lib.startswith("-l"):
                         lib = lib.replace('-l', '--extra-library=', 1)
                     ldflags.update([lib])
 
