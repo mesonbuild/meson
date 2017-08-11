@@ -92,7 +92,7 @@ class GnomeModule(ExtensionModule):
             gdbuswarning_printed = True
 
     @permittedKwargs({'source_dir', 'c_name', 'dependencies', 'export', 'gresource_bundle', 'install_header',
-                      'install', 'install_dir', 'extra_args'})
+                      'install', 'install_dir', 'extra_args', 'build_by_default'})
     def compile_resources(self, state, args, kwargs):
         self.__print_gresources_warning(state)
         glib_version = self._get_native_glib_version(state)
@@ -210,6 +210,8 @@ class GnomeModule(ExtensionModule):
             # The header doesn't actually care about the files yet it errors if missing
             'depends': depends
         }
+        if 'build_by_default' in kwargs:
+            h_kwargs['build_by_default'] = kwargs['build_by_default']
         if install_header:
             h_kwargs['install'] = install_header
             h_kwargs['install_dir'] = kwargs.get('install_dir',
@@ -386,7 +388,7 @@ class GnomeModule(ExtensionModule):
     @permittedKwargs({'sources', 'nsversion', 'namespace', 'symbol_prefix', 'identifier_prefix',
                       'export_packages', 'includes', 'dependencies', 'link_with', 'include_directories',
                       'install', 'install_dir_gir', 'install_dir_typelib', 'extra_args',
-                      'packages'})
+                      'packages', 'build_by_default'})
     def generate_gir(self, state, args, kwargs):
         if len(args) != 1:
             raise MesonException('Gir takes one argument')
@@ -585,6 +587,8 @@ class GnomeModule(ExtensionModule):
             scankwargs['install'] = kwargs['install']
             scankwargs['install_dir'] = kwargs.get('install_dir_gir',
                                                    os.path.join(state.environment.get_datadir(), 'gir-1.0'))
+        if 'build_by_default' in kwargs:
+            scankwargs['build_by_default'] = kwargs['build_by_default']
         scan_target = GirTarget(girfile, state.subdir, scankwargs)
 
         typelib_output = '%s-%s.typelib' % (ns, nsversion)
@@ -601,11 +605,13 @@ class GnomeModule(ExtensionModule):
             typelib_kwargs['install'] = kwargs['install']
             typelib_kwargs['install_dir'] = kwargs.get('install_dir_typelib',
                                                        os.path.join(state.environment.get_libdir(), 'girepository-1.0'))
+        if 'build_by_default' in kwargs:
+            typelib_kwargs['build_by_default'] = kwargs['build_by_default']
         typelib_target = TypelibTarget(typelib_output, state.subdir, typelib_kwargs)
         rv = [scan_target, typelib_target]
         return ModuleReturnValue(rv, rv)
 
-    @noKwargs
+    @permittedKwargs({'build_by_default'})
     def compile_schemas(self, state, args, kwargs):
         if args:
             raise MesonException('Compile_schemas does not take positional arguments.')
@@ -809,7 +815,7 @@ class GnomeModule(ExtensionModule):
 
         return []
 
-    @permittedKwargs({'interface_prefix', 'namespace', 'object_manager'})
+    @permittedKwargs({'interface_prefix', 'namespace', 'object_manager', 'build_by_default'})
     def gdbus_codegen(self, state, args, kwargs):
         if len(args) != 2:
             raise MesonException('Gdbus_codegen takes two arguments, name and xml file.')
@@ -835,6 +841,8 @@ class GnomeModule(ExtensionModule):
                          'output': outputs,
                          'command': cmd
                          }
+        if 'build_by_default' in kwargs:
+            custom_kwargs['build_by_default'] = kwargs['build_by_default']
         ct = build.CustomTarget(target_name, state.subdir, custom_kwargs)
         return ModuleReturnValue(ct, [ct])
 
