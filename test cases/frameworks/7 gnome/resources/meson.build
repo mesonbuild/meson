@@ -45,3 +45,11 @@ if glib.version() >= '2.52.0'
     dependencies: gio)
   test('generated resource test', generated_res_exe)
 endif
+
+# Test build_by_default
+gnome.compile_resources('build-resources',
+  'simple.gresource.xml',
+  gresource_bundle : true,
+  build_by_default : true,
+  source_dir : '../resources-data',
+)
