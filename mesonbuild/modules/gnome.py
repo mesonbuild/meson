@@ -456,7 +456,7 @@ class GnomeModule(ExtensionModule):
                                      inc.get_subdir()),
                     ]
                     scan_command += [
-                        "--include=%s" % (inc.get_basename()[:-4], ),
+                        "--include-uninstalled=%s" % (os.path.join(inc.get_subdir(), inc.get_basename()), )
                     ]
                     depends += [inc]
                 else:

@@ -23,6 +23,7 @@ girtarget = gnome.generate_gir(
   symbol_prefix : 'meson_',
   identifier_prefix : 'Meson',
   includes : ['GObject-2.0'],
+  export_packages : 'meson',
   install : true
 )
 meson_gir = girtarget[0]
