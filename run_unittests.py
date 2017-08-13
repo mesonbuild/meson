@@ -419,7 +419,7 @@ class BasePlatformTests(unittest.TestCase):
         self.meson_command = [sys.executable] + self.meson_args
         self.mconf_command = [sys.executable, os.path.join(src_root, 'meson.py'), 'configure']
         self.mintro_command = [sys.executable, os.path.join(src_root, 'meson.py'), 'introspect']
-        self.mtest_command = [sys.executable, os.path.join(src_root, 'mesontest.py'), '-C', self.builddir]
+        self.mtest_command = [sys.executable, os.path.join(src_root, 'meson.py'), 'test', '-C', self.builddir]
         # Backend-specific build commands
         self.build_command, self.clean_command, self.test_command, self.install_command, \
             self.uninstall_command = get_backend_commands(self.backend)

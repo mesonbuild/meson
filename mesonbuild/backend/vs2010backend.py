@@ -1177,7 +1177,8 @@ if %%errorlevel%% neq 0 goto :VCEnd'''
         ET.SubElement(postbuild, 'Message')
         # FIXME: No benchmarks?
         test_command = [sys.executable,
-                        get_meson_script(self.environment, 'mesontest'),
+                        self.environment.get_build_command(),
+                        'test',
                         '--no-rebuild']
         if not self.environment.coredata.get_builtin_option('stdsplit'):
             test_command += ['--no-stdsplit']
