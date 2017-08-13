@@ -577,6 +577,7 @@ class Python3Dependency(ExternalDependency):
         else:
             return [DependencyMethods.PKGCONFIG]
 
+
 class PcapDependency(ExternalDependency):
     def __init__(self, environment, kwargs):
         super().__init__('pcap', environment, None, kwargs)
@@ -600,7 +601,7 @@ class PcapDependency(ExternalDependency):
                 self.compile_args = stdo.strip().split()
                 stdo = Popen_safe(['pcap-config', '--libs'])[1]
                 self.link_args = stdo.strip().split()
-                self.version = '0'
+                self.version = self.get_pcap_lib_version()
                 self.is_found = True
                 mlog.log('Dependency', mlog.bold('pcap'), 'found:',
                          mlog.green('YES'), '(%s)' % pcapconf)
@@ -614,7 +615,9 @@ class PcapDependency(ExternalDependency):
                     self.is_found = True
                     self.compile_args = fwdep.get_compile_args()
                     self.link_args = fwdep.get_link_args()
-                    self.version = '2'  # FIXME
+                    # FIXME: Test on macOS
+                    #self.version = self.get_pcap_lib_version()
+                    self.version = '2' # FIXME
                     return
             mlog.log('Dependency', mlog.bold('pcap'), 'found:', mlog.red('NO'))
 
@@ -623,6 +626,11 @@ class PcapDependency(ExternalDependency):
             return [DependencyMethods.PKGCONFIG, DependencyMethods.PCAPCONFIG, DependencyMethods.EXTRAFRAMEWORK]
         else:
             return [DependencyMethods.PKGCONFIG, DependencyMethods.PCAPCONFIG]
+
+    def get_pcap_lib_version(self):
+        return self.compiler.get_return_value('pcap_lib_version', 'string',
+                                              '#include <pcap.h>', self.env, [], [self])
+
 
 class CupsDependency(ExternalDependency):
     def __init__(self, environment, kwargs):
