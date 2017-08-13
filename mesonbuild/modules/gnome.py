@@ -394,7 +394,7 @@ class GnomeModule(ExtensionModule):
     @permittedKwargs({'sources', 'nsversion', 'namespace', 'symbol_prefix', 'identifier_prefix',
                       'export_packages', 'includes', 'dependencies', 'link_with', 'include_directories',
                       'install', 'install_dir_gir', 'install_dir_typelib', 'extra_args',
-                      'packages', 'build_by_default'})
+                      'packages', 'header', 'build_by_default'})
     def generate_gir(self, state, args, kwargs):
         if len(args) != 1:
             raise MesonException('Gir takes one argument')
@@ -428,6 +428,12 @@ class GnomeModule(ExtensionModule):
         scan_command += pkgargs
         scan_command += ['--no-libtool', '--namespace=' + ns, '--nsversion=' + nsversion, '--warn-all',
                          '--output', '@OUTPUT@']
+
+        header = kwargs.pop('header', None)
+        if header:
+            if not isinstance(header, str):
+                raise MesonException('header must be a string')
+            scan_command += ['--c-include=' + header]
 
         extra_args = mesonlib.stringlistify(kwargs.pop('extra_args', []))
         scan_command += extra_args

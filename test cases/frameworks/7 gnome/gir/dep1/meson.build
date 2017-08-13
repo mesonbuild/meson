@@ -19,6 +19,7 @@ dep1gir = gnome.generate_gir(
   namespace : 'MesonDep1',
   symbol_prefix : 'meson',
   identifier_prefix : 'Meson',
+  header: 'dep1.h',
   includes : ['GObject-2.0', 'MesonDep2-1.0'],
   dependencies : [dep2_dep],
   install : true
