@@ -482,6 +482,34 @@ class CCompiler(Compiler):
         # minus the extra newline at the end
         return p.stdo.split(delim + '\n')[-1][:-1]
 
+    def get_return_value(self, fname, rtype, prefix, env, extra_args, dependencies):
+        if rtype == 'string':
+            fmt = '%s'
+            cast = '(char*)'
+        elif rtype == 'int':
+            fmt = '%lli'
+            cast = '(long long int)'
+        else:
+            raise AssertionError('BUG: Unknown return type {!r}'.format(rtype))
+        fargs = {'prefix': prefix, 'f': fname, 'cast': cast, 'fmt': fmt}
+        code = '''{prefix}
+        #include <stdio.h>
+        int main(int argc, char *argv[]) {{
+            printf ("{fmt}", {cast} {f}());
+        }}'''.format(**fargs)
+        res = self.run(code, env, extra_args, dependencies)
+        if not res.compiled:
+            m = 'Could not get return value of {}()'
+            raise EnvironmentException(m.format(fname))
+        if rtype == 'string':
+            return res.stdout
+        elif rtype == 'int':
+            try:
+                return int(res.stdout.strip())
+            except:
+                m = 'Return value of {}() is not an int'
+                raise EnvironmentException(m.format(fname))
+
     @staticmethod
     def _no_prototype_templ():
         """
