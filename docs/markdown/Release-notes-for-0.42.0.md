@@ -131,3 +131,12 @@ like this:
 
 The old commands are still available but they are deprecated
 and will be removed in some future release.
+
+## Pcap dependency detector
+
+Meson will automatically obtain dependency information for pcap
+using the `pcap-config` tool. It is used like any other dependency:
+
+```meson
+pcap_dep = dependency('pcap', version : '>=1.0')
+```

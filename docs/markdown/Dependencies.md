@@ -90,6 +90,16 @@ q5exe = executable('qt5test',
 
 Here we have an UI file created with Qt Designer and one source and header file each that require preprocessing with the `moc` tool. We also define a resource file to be compiled with `rcc`. We just have to tell Meson which files are which and it will take care of invoking all the necessary tools in the correct order, which is done with the `preprocess` method of the `qt5` module. Its output is simply put in the list of sources for the target. The `modules` keyword of `dependency` works just like it does with Boost. It tells which subparts of Qt the program uses.
 
+## Pcap
+
+The pcap library does not ship with pkg-config at the time or writing
+but instead it has its own `pcap-config` util. Meson will use it
+automatically:
+
+```meson
+pcap_dep = dependency('pcap', version : '>=1.0')
+```
+
 ## Declaring your own
 
 You can declare your own dependency objects that can be used interchangeably with dependency objects obtained from the system. The syntax is straightforward:
