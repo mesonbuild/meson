@@ -44,6 +44,8 @@ class DependencyMethods(Enum):
     SYSTEM = 'system'
     # Detect using sdl2-config
     SDLCONFIG = 'sdlconfig'
+    # Detect using pcap-config
+    PCAPCONFIG = 'pcap-config'
     # This is only supported on OSX - search the frameworks directory by name.
     EXTRAFRAMEWORK = 'extraframework'
     # Detect using the sysconfig module.

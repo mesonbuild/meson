@@ -19,10 +19,12 @@ import os
 import re
 import shlex
 import stat
+import shutil
 import sysconfig
 
 from .. import mlog
 from .. import mesonlib
+from ..mesonlib import Popen_safe
 from ..environment import detect_cpu_family
 
 from .base import DependencyException, DependencyMethods
@@ -574,3 +576,50 @@ class Python3Dependency(ExternalDependency):
             return [DependencyMethods.PKGCONFIG, DependencyMethods.EXTRAFRAMEWORK]
         else:
             return [DependencyMethods.PKGCONFIG]
+
+class PcapDependency(ExternalDependency):
+    def __init__(self, environment, kwargs):
+        super().__init__('pcap', environment, None, kwargs)
+        if DependencyMethods.PKGCONFIG in self.methods:
+            try:
+                kwargs['required'] = False
+                pcdep = PkgConfigDependency('pcap', environment, kwargs)
+                if pcdep.found():
+                    self.type_name = 'pkgconfig'
+                    self.is_found = True
+                    self.compile_args = pcdep.get_compile_args()
+                    self.link_args = pcdep.get_link_args()
+                    self.version = pcdep.get_version()
+                    return
+            except Exception as e:
+                mlog.debug('Pcap not found via pkgconfig. Trying next, error was:', str(e))
+        if DependencyMethods.PCAPCONFIG in self.methods:
+            pcapconf = shutil.which('pcap-config')
+            if pcapconf:
+                stdo = Popen_safe(['pcap-config', '--cflags'])[1]
+                self.compile_args = stdo.strip().split()
+                stdo = Popen_safe(['pcap-config', '--libs'])[1]
+                self.link_args = stdo.strip().split()
+                self.version = '0'
+                self.is_found = True
+                mlog.log('Dependency', mlog.bold('pcap'), 'found:',
+                         mlog.green('YES'), '(%s)' % pcapconf)
+                return
+            mlog.debug('Could not find pcap-config binary, trying next.')
+        if DependencyMethods.EXTRAFRAMEWORK in self.methods:
+            if mesonlib.is_osx():
+                fwdep = ExtraFrameworkDependency('pcap', False, None, self.env,
+                                                 self.language, kwargs)
+                if fwdep.found():
+                    self.is_found = True
+                    self.compile_args = fwdep.get_compile_args()
+                    self.link_args = fwdep.get_link_args()
+                    self.version = '2'  # FIXME
+                    return
+            mlog.log('Dependency', mlog.bold('pcap'), 'found:', mlog.red('NO'))
+
+    def get_methods(self):
+        if mesonlib.is_osx():
+            return [DependencyMethods.PKGCONFIG, DependencyMethods.PCAPCONFIG, DependencyMethods.EXTRAFRAMEWORK]
+        else:
+            return [DependencyMethods.PKGCONFIG, DependencyMethods.PCAPCONFIG]
