@@ -30,6 +30,7 @@ import mesonbuild.mlog
 import mesonbuild.compilers
 import mesonbuild.environment
 import mesonbuild.mesonlib
+import mesonbuild.coredata
 from mesonbuild.mesonlib import is_linux, is_windows, is_osx, is_cygwin, windows_proof_rmtree
 from mesonbuild.environment import Environment
 from mesonbuild.dependencies import DependencyException
@@ -1277,6 +1278,18 @@ int main(int argc, char **argv) {
                         '"-D" "FOO" "-D" "BAR"' in cmd or
                         '/D FOO /D BAR' in cmd or
                         '"/D" "FOO" "/D" "BAR"' in cmd)
+
+    def test_all_forbidden_targets_tested(self):
+        '''
+        Test that all forbidden targets are tested in the '159 reserved targets'
+        test. Needs to be a unit test because it accesses Meson internals.
+        '''
+        testdir = os.path.join(self.common_test_dir, '159 reserved targets')
+        targets = mesonbuild.coredata.forbidden_target_names
+        # We don't actually define a target with this name
+        targets.pop('build.ninja')
+        for i in targets:
+            self.assertPathExists(os.path.join(testdir, i))
 
 
 class FailureTests(BasePlatformTests):
