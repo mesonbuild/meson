@@ -15,7 +15,10 @@ subdir('coverage-xml')
 subdir('dist')
 subdir('distcheck')
 subdir('install')
-subdir('phony')
+# We end up creating duplicate lowercase target names for this on
+# case-insensitive HFS+, so disable it
+# https://travis-ci.org/mesonbuild/meson/jobs/264468097
+#subdir('phony')
 subdir('PHONY')
 subdir('reconfigure')
 subdir('scan-build')
