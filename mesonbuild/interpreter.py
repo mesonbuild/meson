@@ -2744,9 +2744,12 @@ different subdirectory.
     def add_target(self, name, tobj):
         if name == '':
             raise InterpreterException('Target name must not be empty.')
+        if name.startswith('meson-'):
+            raise InvalidArguments("Target names starting with 'meson-' are reserved "
+                                   "for Meson's internal use. Please rename.")
         if name in coredata.forbidden_target_names:
-            raise InvalidArguments('Target name "%s" is reserved for Meson\'s internal use. Please rename.'
-                                   % name)
+            raise InvalidArguments("Target name '%s' is reserved for Meson's "
+                                   "internal use. Please rename." % name)
         # To permit an executable and a shared library to have the
         # same name, such as "foo.exe" and "libfoo.a".
         idname = tobj.get_id()

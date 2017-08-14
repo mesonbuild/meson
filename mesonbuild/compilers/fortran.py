@@ -165,6 +165,12 @@ class GnuFortranCompiler(FortranCompiler):
     def get_always_args(self):
         return ['-pipe']
 
+    def get_coverage_args(self):
+        return ['--coverage']
+
+    def get_coverage_link_args(self):
+        return ['--coverage']
+
     def gen_import_library_args(self, implibname):
         """
         The name of the outputted import library

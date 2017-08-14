@@ -30,6 +30,7 @@ import mesonbuild.mlog
 import mesonbuild.compilers
 import mesonbuild.environment
 import mesonbuild.mesonlib
+import mesonbuild.coredata
 from mesonbuild.mesonlib import is_linux, is_windows, is_osx, is_cygwin, windows_proof_rmtree
 from mesonbuild.environment import Environment
 from mesonbuild.dependencies import DependencyException
@@ -467,7 +468,7 @@ class BasePlatformTests(unittest.TestCase):
         return output
 
     def init(self, srcdir, extra_args=None, default_args=True, inprocess=False):
-        self.assertTrue(os.path.exists(srcdir))
+        self.assertPathExists(srcdir)
         if extra_args is None:
             extra_args = []
         if not isinstance(extra_args, list):
@@ -628,6 +629,14 @@ class BasePlatformTests(unittest.TestCase):
         else:
             raise RuntimeError('Invalid backend: {!r}'.format(self.backend.name))
 
+    def assertPathExists(self, path):
+        m = 'Path {!r} should exist'.format(path)
+        self.assertTrue(os.path.exists(path), msg=m)
+
+    def assertPathDoesNotExist(self, path):
+        m = 'Path {!r} should not exist'.format(path)
+        self.assertFalse(os.path.exists(path), msg=m)
+
 
 class AllPlatformTests(BasePlatformTests):
     '''
@@ -773,11 +782,11 @@ class AllPlatformTests(BasePlatformTests):
         exename = os.path.join(self.installdir, 'usr/bin/prog' + exe_suffix)
         testdir = os.path.join(self.common_test_dir, '8 install')
         self.init(testdir)
-        self.assertFalse(os.path.exists(exename))
+        self.assertPathDoesNotExist(exename)
         self.install()
-        self.assertTrue(os.path.exists(exename))
+        self.assertPathExists(exename)
         self.uninstall()
-        self.assertFalse(os.path.exists(exename))
+        self.assertPathDoesNotExist(exename)
 
     def test_testsetups(self):
         if not shutil.which('valgrind'):
@@ -868,10 +877,10 @@ class AllPlatformTests(BasePlatformTests):
         self.build()
         genfile = os.path.join(self.builddir, 'generated.dat')
         exe = os.path.join(self.builddir, 'fooprog' + exe_suffix)
-        self.assertTrue(os.path.exists(genfile))
-        self.assertFalse(os.path.exists(exe))
+        self.assertPathExists(genfile)
+        self.assertPathDoesNotExist(exe)
         self.build(target=('fooprog' + exe_suffix))
-        self.assertTrue(os.path.exists(exe))
+        self.assertPathExists(exe)
 
     def test_internal_include_order(self):
         testdir = os.path.join(self.common_test_dir, '138 include order')
@@ -1240,8 +1249,8 @@ int main(int argc, char **argv) {
             self.build('dist')
             distfile = os.path.join(self.distdir, 'disttest-1.4.3.tar.xz')
             checksumfile = distfile + '.sha256sum'
-            self.assertTrue(os.path.exists(distfile))
-            self.assertTrue(os.path.exists(checksumfile))
+            self.assertPathExists(distfile)
+            self.assertPathExists(checksumfile)
 
     def test_rpath_uses_ORIGIN(self):
         '''
@@ -1269,6 +1278,18 @@ int main(int argc, char **argv) {
                         '"-D" "FOO" "-D" "BAR"' in cmd or
                         '/D FOO /D BAR' in cmd or
                         '"/D" "FOO" "/D" "BAR"' in cmd)
+
+    def test_all_forbidden_targets_tested(self):
+        '''
+        Test that all forbidden targets are tested in the '159 reserved targets'
+        test. Needs to be a unit test because it accesses Meson internals.
+        '''
+        testdir = os.path.join(self.common_test_dir, '159 reserved targets')
+        targets = mesonbuild.coredata.forbidden_target_names
+        # We don't actually define a target with this name
+        targets.pop('build.ninja')
+        for i in targets:
+            self.assertPathExists(os.path.join(testdir, i))
 
 
 class FailureTests(BasePlatformTests):
@@ -1604,35 +1625,35 @@ class LinuxlikeTests(BasePlatformTests):
 
         # File without aliases set.
         nover = os.path.join(libpath, 'libnover.so')
-        self.assertTrue(os.path.exists(nover))
+        self.assertPathExists(nover)
         self.assertFalse(os.path.islink(nover))
         self.assertEqual(get_soname(nover), 'libnover.so')
         self.assertEqual(len(glob(nover[:-3] + '*')), 1)
 
         # File with version set
         verset = os.path.join(libpath, 'libverset.so')
-        self.assertTrue(os.path.exists(verset + '.4.5.6'))
+        self.assertPathExists(verset + '.4.5.6')
         self.assertEqual(os.readlink(verset), 'libverset.so.4')
         self.assertEqual(get_soname(verset), 'libverset.so.4')
         self.assertEqual(len(glob(verset[:-3] + '*')), 3)
 
         # File with soversion set
         soverset = os.path.join(libpath, 'libsoverset.so')
-        self.assertTrue(os.path.exists(soverset + '.1.2.3'))
+        self.assertPathExists(soverset + '.1.2.3')
         self.assertEqual(os.readlink(soverset), 'libsoverset.so.1.2.3')
         self.assertEqual(get_soname(soverset), 'libsoverset.so.1.2.3')
         self.assertEqual(len(glob(soverset[:-3] + '*')), 2)
 
         # File with version and soversion set to same values
         settosame = os.path.join(libpath, 'libsettosame.so')
-        self.assertTrue(os.path.exists(settosame + '.7.8.9'))
+        self.assertPathExists(settosame + '.7.8.9')
         self.assertEqual(os.readlink(settosame), 'libsettosame.so.7.8.9')
         self.assertEqual(get_soname(settosame), 'libsettosame.so.7.8.9')
         self.assertEqual(len(glob(settosame[:-3] + '*')), 2)
 
         # File with version and soversion set to different values
         bothset = os.path.join(libpath, 'libbothset.so')
-        self.assertTrue(os.path.exists(bothset + '.1.2.3'))
+        self.assertPathExists(bothset + '.1.2.3')
         self.assertEqual(os.readlink(bothset), 'libbothset.so.1.2.3')
         self.assertEqual(os.readlink(bothset + '.1.2.3'), 'libbothset.so.4.5.6')
         self.assertEqual(get_soname(bothset), 'libbothset.so.1.2.3')
@@ -1719,9 +1740,9 @@ class LinuxlikeTests(BasePlatformTests):
     def test_unity_subproj(self):
         testdir = os.path.join(self.common_test_dir, '49 subproject')
         self.init(testdir, extra_args='--unity=subprojects')
-        self.assertTrue(os.path.exists(os.path.join(self.builddir, 'subprojects/sublib/simpletest@exe/simpletest-unity.c')))
-        self.assertTrue(os.path.exists(os.path.join(self.builddir, 'subprojects/sublib/sublib@sha/sublib-unity.c')))
-        self.assertFalse(os.path.exists(os.path.join(self.builddir, 'user@exe/user-unity.c')))
+        self.assertPathExists(os.path.join(self.builddir, 'subprojects/sublib/simpletest@exe/simpletest-unity.c'))
+        self.assertPathExists(os.path.join(self.builddir, 'subprojects/sublib/sublib@sha/sublib-unity.c'))
+        self.assertPathDoesNotExist(os.path.join(self.builddir, 'user@exe/user-unity.c'))
         self.build()
 
     def test_installed_modes(self):
