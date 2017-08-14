@@ -65,7 +65,9 @@ class permittedKwargs:
         def wrapped(s, node, args, kwargs):
             for k in kwargs:
                 if k not in self.permitted:
-                    mlog.warning('Passed invalid keyword argument "%s". This will become a hard error in the future.' % k)
+                    fname = os.path.join(s.subdir, environment.build_filename)
+                    mlog.warning('''Passed invalid keyword argument "%s" in %s line %d.
+This will become a hard error in the future.''' % (k, fname, s.current_lineno))
             return f(s, node, args, kwargs)
         return wrapped
 
@@ -101,6 +103,7 @@ class InterpreterBase:
         self.subdir = subdir
         self.variables = {}
         self.argument_depth = 0
+        self.current_lineno = -1
 
     def load_root_meson_file(self):
         mesonfile = os.path.join(self.source_root, self.subdir, environment.build_filename)
@@ -151,6 +154,7 @@ class InterpreterBase:
         while i < len(statements):
             cur = statements[i]
             try:
+                self.current_lineno = cur.lineno
                 self.evaluate_statement(cur)
             except Exception as e:
                 if not(hasattr(e, 'lineno')):
