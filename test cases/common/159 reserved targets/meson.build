@@ -1,5 +1,6 @@
-project('reserved target names', 'c',
-        default_options : ['b_coverage=true'])
+project('reserved target names', 'c')
+        # FIXME: Setting this causes it to leak to all other tests
+        #default_options : ['b_coverage=true']
 
 subdir('all')
 subdir('benchmark')
