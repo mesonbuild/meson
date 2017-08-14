@@ -62,13 +62,19 @@ class permittedKwargs:
 
     def __call__(self, f):
         @wraps(f)
-        def wrapped(s, node, args, kwargs):
+        def wrapped(s, node_or_state, args, kwargs):
+            if hasattr(s, 'subdir'):
+                subdir = s.subdir
+                lineno = s.current_lineno
+            elif hasattr(node_or_state, 'subdir'):
+                subdir = node_or_state.subdir
+                lineno = node_or_state.current_lineno
             for k in kwargs:
                 if k not in self.permitted:
-                    fname = os.path.join(s.subdir, environment.build_filename)
+                    fname = os.path.join(subdir, environment.build_filename)
                     mlog.warning('''Passed invalid keyword argument "%s" in %s line %d.
-This will become a hard error in the future.''' % (k, fname, s.current_lineno))
-            return f(s, node, args, kwargs)
+This will become a hard error in the future.''' % (k, fname, lineno))
+            return f(s, node_or_state, args, kwargs)
         return wrapped
 
 
