@@ -585,7 +585,7 @@ def check_file(fname):
     with open(fname, 'rb') as f:
         lines = f.readlines()
     for line in lines:
-        if b'\t' in line:
+        if line.startswith(b'\t'):
             print("File %s contains a literal tab on line %d. Only spaces are permitted." % (fname, linenum))
             sys.exit(1)
         if b'\r' in line:
