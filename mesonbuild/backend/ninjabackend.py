@@ -138,6 +138,19 @@ class NinjaBackend(backends.Backend):
         self.fortran_deps = {}
         self.all_outputs = {}
 
+    def create_target_alias(self, to_target, outfile):
+        # We need to use aliases for targets that might be used as directory
+        # names to workaround a Ninja bug that breaks `ninja -t clean`.
+        # This is used for 'reserved' targets such as 'test', 'install',
+        # 'benchmark', etc, and also for RunTargets.
+        # https://github.com/mesonbuild/meson/issues/1644
+        if not to_target.startswith('meson-'):
+            m = 'Invalid usage of create_target_alias with {!r}'
+            raise AssertionError(m.format(to_target))
+        from_target = to_target[len('meson-'):]
+        elem = NinjaBuildElement(self.all_outputs, from_target, 'phony', to_target)
+        elem.write(outfile)
+
     def detect_vs_dep_prefix(self, tempfilename):
         '''VS writes its dependency in a locale dependent format.
         Detect the search prefix to use.'''
@@ -537,7 +550,7 @@ int dummy;
                 arg_strings.append(os.path.join(self.environment.get_build_dir(), relfname))
             else:
                 raise AssertionError('Unreachable code in generate_run_target: ' + str(i))
-        elem = NinjaBuildElement(self.all_outputs, target.name, 'CUSTOM_COMMAND', [])
+        elem = NinjaBuildElement(self.all_outputs, 'meson-' + target.name, 'CUSTOM_COMMAND', [])
         cmd += [self.environment.get_source_dir(),
                 self.environment.get_build_dir(),
                 target.subdir,
@@ -573,10 +586,12 @@ int dummy;
         elem.add_item('description', 'Running external command %s.' % target.name)
         elem.add_item('pool', 'console')
         elem.write(outfile)
+        # Alias that runs the target defined above with the name the user specified
+        self.create_target_alias('meson-' + target.name, outfile)
         self.processed_targets[target.name + target.type_suffix()] = True
 
     def generate_coverage_rules(self, outfile):
-        e = NinjaBuildElement(self.all_outputs, 'coverage', 'CUSTOM_COMMAND', 'PHONY')
+        e = NinjaBuildElement(self.all_outputs, 'meson-coverage', 'CUSTOM_COMMAND', 'PHONY')
         e.add_item('COMMAND', [sys.executable,
                                self.environment.get_build_command(),
                                '--internal', 'coverage',
@@ -585,6 +600,8 @@ int dummy;
                                self.environment.get_log_dir()])
         e.add_item('description', 'Generates coverage reports.')
         e.write(outfile)
+        # Alias that runs the target defined above
+        self.create_target_alias('meson-coverage', outfile)
         self.generate_coverage_legacy_rules(outfile)
 
     def generate_coverage_legacy_rules(self, outfile):
@@ -592,22 +609,28 @@ int dummy;
         added_rule = False
         if gcovr_exe:
             added_rule = True
-            elem = NinjaBuildElement(self.all_outputs, 'coverage-xml', 'CUSTOM_COMMAND', '')
+            elem = NinjaBuildElement(self.all_outputs, 'meson-coverage-xml', 'CUSTOM_COMMAND', '')
             elem.add_item('COMMAND', [gcovr_exe, '-x', '-r', self.environment.get_source_dir(),
                                       '-o', os.path.join(self.environment.get_log_dir(), 'coverage.xml')])
             elem.add_item('DESC', 'Generating XML coverage report.')
             elem.write(outfile)
-            elem = NinjaBuildElement(self.all_outputs, 'coverage-text', 'CUSTOM_COMMAND', '')
+            # Alias that runs the target defined above
+            self.create_target_alias('meson-coverage-xml', outfile)
+            elem = NinjaBuildElement(self.all_outputs, 'meson-coverage-text', 'CUSTOM_COMMAND', '')
             elem.add_item('COMMAND', [gcovr_exe, '-r', self.environment.get_source_dir(),
                                       '-o', os.path.join(self.environment.get_log_dir(), 'coverage.txt')])
             elem.add_item('DESC', 'Generating text coverage report.')
             elem.write(outfile)
+            # Alias that runs the target defined above
+            self.create_target_alias('meson-coverage-text', outfile)
         if lcov_exe and genhtml_exe:
             added_rule = True
             htmloutdir = os.path.join(self.environment.get_log_dir(), 'coveragereport')
             covinfo = os.path.join(self.environment.get_log_dir(), 'coverage.info')
             phony_elem = NinjaBuildElement(self.all_outputs, 'coverage-html', 'phony', os.path.join(htmloutdir, 'index.html'))
             phony_elem.write(outfile)
+            # Alias that runs the target defined above
+            self.create_target_alias('meson-coverage-html', outfile)
             elem = NinjaBuildElement(self.all_outputs, os.path.join(htmloutdir, 'index.html'), 'CUSTOM_COMMAND', '')
             command = [lcov_exe, '--directory', self.environment.get_build_dir(),
                        '--capture', '--output-file', covinfo, '--no-checksum',
@@ -636,7 +659,7 @@ int dummy;
                         self.environment.get_prefix(),
                         strip_bin,
                         get_meson_script(self.environment, 'mesonintrospect'))
-        elem = NinjaBuildElement(self.all_outputs, 'install', 'CUSTOM_COMMAND', 'PHONY')
+        elem = NinjaBuildElement(self.all_outputs, 'meson-install', 'CUSTOM_COMMAND', 'PHONY')
         elem.add_dep('all')
         elem.add_item('DESC', 'Installing files.')
         elem.add_item('COMMAND', [sys.executable, self.environment.get_build_command(), '--internal', 'install', install_data_file])
@@ -649,6 +672,8 @@ int dummy;
         self.generate_custom_install_script(d)
         self.generate_subdir_install(d)
         elem.write(outfile)
+        # Alias that runs the target defined above
+        self.create_target_alias('meson-install', outfile)
 
         with open(install_data_file, 'wb') as ofile:
             pickle.dump(d, ofile)
@@ -822,20 +847,24 @@ int dummy;
             cmd += ['--no-stdsplit']
         if self.environment.coredata.get_builtin_option('errorlogs'):
             cmd += ['--print-errorlogs']
-        elem = NinjaBuildElement(self.all_outputs, 'test', 'CUSTOM_COMMAND', ['all', 'PHONY'])
+        elem = NinjaBuildElement(self.all_outputs, 'meson-test', 'CUSTOM_COMMAND', ['all', 'PHONY'])
         elem.add_item('COMMAND', cmd)
         elem.add_item('DESC', 'Running all tests.')
         elem.add_item('pool', 'console')
         elem.write(outfile)
+        # Alias that runs the above-defined meson-test target
+        self.create_target_alias('meson-test', outfile)
 
         # And then benchmarks.
         cmd = [sys.executable, '-u', self.environment.get_build_command(), 'test', '--benchmark', '--logbase',
                'benchmarklog', '--num-processes=1', '--no-rebuild']
-        elem = NinjaBuildElement(self.all_outputs, 'benchmark', 'CUSTOM_COMMAND', ['all', 'PHONY'])
+        elem = NinjaBuildElement(self.all_outputs, 'meson-benchmark', 'CUSTOM_COMMAND', ['all', 'PHONY'])
         elem.add_item('COMMAND', cmd)
         elem.add_item('DESC', 'Running benchmark suite.')
         elem.add_item('pool', 'console')
         elem.write(outfile)
+        # Alias that runs the above-defined meson-benchmark target
+        self.create_target_alias('meson-benchmark', outfile)
 
     def generate_rules(self, outfile):
         outfile.write('# Rules for compiling.\n\n')
@@ -2453,7 +2482,7 @@ rule FORTRAN_DEP_HACK
                 mlog.debug("Library versioning disabled because we do not have symlink creation privileges.")
 
     def generate_custom_target_clean(self, outfile, trees):
-        e = NinjaBuildElement(self.all_outputs, 'clean-ctlist', 'CUSTOM_COMMAND', 'PHONY')
+        e = NinjaBuildElement(self.all_outputs, 'meson-clean-ctlist', 'CUSTOM_COMMAND', 'PHONY')
         d = CleanTrees(self.environment.get_build_dir(), trees)
         d_file = os.path.join(self.environment.get_scratch_dir(), 'cleantrees.dat')
         e.add_item('COMMAND', [sys.executable,
@@ -2461,25 +2490,31 @@ rule FORTRAN_DEP_HACK
                                '--internal', 'cleantrees', d_file])
         e.add_item('description', 'Cleaning custom target directories.')
         e.write(outfile)
+        # Alias that runs the target defined above
+        self.create_target_alias('meson-clean-ctlist', outfile)
         # Write out the data file passed to the script
         with open(d_file, 'wb') as ofile:
             pickle.dump(d, ofile)
         return 'clean-ctlist'
 
     def generate_gcov_clean(self, outfile):
-            gcno_elem = NinjaBuildElement(self.all_outputs, 'clean-gcno', 'CUSTOM_COMMAND', 'PHONY')
-            script_root = self.environment.get_script_dir()
-            clean_script = os.path.join(script_root, 'delwithsuffix.py')
-            gcno_elem.add_item('COMMAND', [sys.executable, clean_script, '.', 'gcno'])
-            gcno_elem.add_item('description', 'Deleting gcno files.')
-            gcno_elem.write(outfile)
+        gcno_elem = NinjaBuildElement(self.all_outputs, 'meson-clean-gcno', 'CUSTOM_COMMAND', 'PHONY')
+        script_root = self.environment.get_script_dir()
+        clean_script = os.path.join(script_root, 'delwithsuffix.py')
+        gcno_elem.add_item('COMMAND', [sys.executable, clean_script, '.', 'gcno'])
+        gcno_elem.add_item('description', 'Deleting gcno files.')
+        gcno_elem.write(outfile)
+        # Alias that runs the target defined above
+        self.create_target_alias('meson-clean-gcno', outfile)
 
-            gcda_elem = NinjaBuildElement(self.all_outputs, 'clean-gcda', 'CUSTOM_COMMAND', 'PHONY')
-            script_root = self.environment.get_script_dir()
-            clean_script = os.path.join(script_root, 'delwithsuffix.py')
-            gcda_elem.add_item('COMMAND', [sys.executable, clean_script, '.', 'gcda'])
-            gcda_elem.add_item('description', 'Deleting gcda files.')
-            gcda_elem.write(outfile)
+        gcda_elem = NinjaBuildElement(self.all_outputs, 'meson-clean-gcda', 'CUSTOM_COMMAND', 'PHONY')
+        script_root = self.environment.get_script_dir()
+        clean_script = os.path.join(script_root, 'delwithsuffix.py')
+        gcda_elem.add_item('COMMAND', [sys.executable, clean_script, '.', 'gcda'])
+        gcda_elem.add_item('description', 'Deleting gcda files.')
+        gcda_elem.write(outfile)
+        # Alias that runs the target defined above
+        self.create_target_alias('meson-clean-gcda', outfile)
 
     def get_user_option_args(self):
         cmds = []
@@ -2491,7 +2526,7 @@ rule FORTRAN_DEP_HACK
         return sorted(cmds)
 
     def generate_dist(self, outfile):
-        elem = NinjaBuildElement(self.all_outputs, 'dist', 'CUSTOM_COMMAND', 'PHONY')
+        elem = NinjaBuildElement(self.all_outputs, 'meson-dist', 'CUSTOM_COMMAND', 'PHONY')
         elem.add_item('DESC', 'Creating source packages')
         elem.add_item('COMMAND', [sys.executable,
                                   self.environment.get_build_command(),
@@ -2502,22 +2537,28 @@ rule FORTRAN_DEP_HACK
                                   self.environment.get_build_command()])
         elem.add_item('pool', 'console')
         elem.write(outfile)
+        # Alias that runs the target defined above
+        self.create_target_alias('meson-dist', outfile)
 
     # For things like scan-build and other helper tools we might have.
     def generate_utils(self, outfile):
         cmd = [sys.executable, self.environment.get_build_command(),
                '--internal', 'scanbuild', self.environment.source_dir, self.environment.build_dir,
                sys.executable, self.environment.get_build_command()] + self.get_user_option_args()
-        elem = NinjaBuildElement(self.all_outputs, 'scan-build', 'CUSTOM_COMMAND', 'PHONY')
+        elem = NinjaBuildElement(self.all_outputs, 'meson-scan-build', 'CUSTOM_COMMAND', 'PHONY')
         elem.add_item('COMMAND', cmd)
         elem.add_item('pool', 'console')
         elem.write(outfile)
+        # Alias that runs the target defined above
+        self.create_target_alias('meson-scan-build', outfile)
         cmd = [sys.executable, self.environment.get_build_command(),
                '--internal', 'uninstall']
-        elem = NinjaBuildElement(self.all_outputs, 'uninstall', 'CUSTOM_COMMAND', 'PHONY')
+        elem = NinjaBuildElement(self.all_outputs, 'meson-uninstall', 'CUSTOM_COMMAND', 'PHONY')
         elem.add_item('COMMAND', cmd)
         elem.add_item('pool', 'console')
         elem.write(outfile)
+        # Alias that runs the target defined above
+        self.create_target_alias('meson-uninstall', outfile)
 
     def generate_ending(self, outfile):
         targetlist = []
@@ -2535,9 +2576,11 @@ rule FORTRAN_DEP_HACK
         ninja_command = environment.detect_ninja()
         if ninja_command is None:
             raise MesonException('Could not detect Ninja v1.6 or newer')
-        elem = NinjaBuildElement(self.all_outputs, 'clean', 'CUSTOM_COMMAND', 'PHONY')
+        elem = NinjaBuildElement(self.all_outputs, 'meson-clean', 'CUSTOM_COMMAND', 'PHONY')
         elem.add_item('COMMAND', [ninja_command, '-t', 'clean'])
         elem.add_item('description', 'Cleaning.')
+        # Alias that runs the above-defined meson-clean target
+        self.create_target_alias('meson-clean', outfile)
 
         # If we have custom targets in this project, add all their outputs to
         # the list that is passed to the `cleantrees.py` script. The script
