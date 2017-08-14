@@ -116,9 +116,10 @@ class MesonApp:
                 print('''Trying to run Meson on a build directory that has already been configured.
 If you want to build it, just run your build command (e.g. ninja) inside the
 build directory. Meson will autodetect any changes in your setup and regenerate
-itself as required.
+itself as required. Though it shouldn't be necessary, running ninja reconfigure
+will force Meson to regenerate the build files.
 
-If you want to change option values, use the mesonconf tool instead.''')
+If you want to change option values, use meson configure instead.''')
                 sys.exit(0)
         else:
             if handshake:
