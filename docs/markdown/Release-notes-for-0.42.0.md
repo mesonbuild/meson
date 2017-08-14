@@ -1,9 +1,7 @@
 ---
 title: Release 0.42
-short-description: Release notes for 0.42 (preliminary)
-...
+short-description: Release notes for 0.42
 
-**Preliminary, 0.42.0 has not been released yet.**
 
 # New features
 
