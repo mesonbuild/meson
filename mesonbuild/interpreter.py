@@ -1015,9 +1015,10 @@ class CompilerHolder(InterpreterObject):
         return []
 
 ModuleState = namedtuple('ModuleState', [
-    'build_to_src', 'subdir', 'environment', 'project_name', 'project_version',
-    'backend', 'compilers', 'targets', 'data', 'headers', 'man', 'global_args',
-    'project_args', 'build_machine', 'host_machine', 'target_machine'])
+    'build_to_src', 'subdir', 'current_lineno', 'environment', 'project_name',
+    'project_version', 'backend', 'compilers', 'targets', 'data', 'headers',
+    'man', 'global_args', 'project_args', 'build_machine', 'host_machine',
+    'target_machine'])
 
 class ModuleHolder(InterpreterObject):
     def __init__(self, modname, module, interpreter):
@@ -1040,6 +1041,7 @@ class ModuleHolder(InterpreterObject):
             build_to_src=os.path.relpath(self.interpreter.environment.get_source_dir(),
                                          self.interpreter.environment.get_build_dir()),
             subdir=self.interpreter.subdir,
+            current_lineno=self.interpreter.current_lineno,
             environment=self.interpreter.environment,
             project_name=self.interpreter.build.project_name,
             project_version=self.interpreter.build.dep_manifest[self.interpreter.active_projectname],
