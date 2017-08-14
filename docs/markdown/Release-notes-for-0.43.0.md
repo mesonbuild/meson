@@ -1,9 +1,9 @@
 ---
 title: Release 0.43
 short-description: Release notes for 0.43 (preliminary)
+...
 
-
-# New releases
+# New features
 
 This page is a placeholder for the eventual release notes.
 

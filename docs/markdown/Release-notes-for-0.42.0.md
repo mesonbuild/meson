@@ -1,7 +1,7 @@
 ---
 title: Release 0.42
 short-description: Release notes for 0.42
-
+...
 
 # New features
 
