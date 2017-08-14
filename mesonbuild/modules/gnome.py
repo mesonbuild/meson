@@ -1239,7 +1239,11 @@ G_END_DECLS'''
         build_dir = os.path.join(state.environment.get_build_dir(), state.subdir)
         source_dir = os.path.join(state.environment.get_source_dir(), state.subdir)
         pkg_cmd, vapi_depends, vapi_packages, vapi_includes = self._extract_vapi_packages(state, kwargs)
-        cmd = [find_program('vapigen', 'Vaapi')]
+        target_name = 'generate_vapi({})'.format(library)
+        if 'VAPIGEN' in os.environ:
+            cmd = [find_program(os.environ['VAPIGEN'], target_name)]
+        else:
+            cmd = [find_program('vapigen', target_name)]
         cmd += ['--quiet', '--library=' + library, '--directory=' + build_dir]
         cmd += self._vapi_args_to_command('--vapidir=', 'vapi_dirs', kwargs)
         cmd += self._vapi_args_to_command('--metadatadir=', 'metadata_dirs', kwargs)
