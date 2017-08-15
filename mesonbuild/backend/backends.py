@@ -20,10 +20,11 @@ from .. import mlog
 from .. import compilers
 import json
 import subprocess
-from ..mesonlib import MesonException, get_meson_script
+from ..mesonlib import MesonException
 from ..mesonlib import get_compiler_for_source, classify_unity_sources
 from ..compilers import CompilerArgs
 from collections import OrderedDict
+import shlex
 
 class CleanTrees:
     '''
@@ -771,7 +772,8 @@ class Backend:
     def run_postconf_scripts(self):
         env = {'MESON_SOURCE_ROOT': self.environment.get_source_dir(),
                'MESON_BUILD_ROOT': self.environment.get_build_dir(),
-               'MESONINTROSPECT': get_meson_script(self.environment, 'mesonintrospect')}
+               'MESONINTROSPECT': ' '.join([shlex.quote(x) for x in self.environment.get_build_command() + ['introspect']]),
+               }
         child_env = os.environ.copy()
         child_env.update(env)
 

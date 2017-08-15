@@ -2,6 +2,7 @@
 
 import os
 import sys
+import shlex
 
 do_print = False
 
@@ -13,8 +14,15 @@ if 'MESONINTROSPECT' not in os.environ:
 
 mesonintrospect = os.environ['MESONINTROSPECT']
 
-if not os.path.isfile(mesonintrospect):
+introspect_arr = shlex.split(mesonintrospect)
+
+#print(mesonintrospect)
+#print(introspect_arr)
+
+some_executable = introspect_arr[0]
+
+if not os.path.isfile(some_executable):
     raise RuntimeError('{!r} does not exist'.format(mesonintrospect))
 
 if do_print:
-    print(mesonintrospect, end='')
+    print(some_executable, end='')

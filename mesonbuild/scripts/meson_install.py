@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import sys, pickle, os, shutil, subprocess, gzip, platform, errno
+import shlex
 from glob import glob
 from . import depfixer
 from . import destdir_join
@@ -247,7 +248,9 @@ def run_install_script(d):
            'MESON_BUILD_ROOT': d.build_dir,
            'MESON_INSTALL_PREFIX': d.prefix,
            'MESON_INSTALL_DESTDIR_PREFIX': d.fullprefix,
-           'MESONINTROSPECT': d.mesonintrospect}
+           'MESONINTROSPECT': ' '.join([shlex.quote(x) for x in d.mesonintrospect]),
+           }
+    print(env)
     child_env = os.environ.copy()
     child_env.update(env)
 

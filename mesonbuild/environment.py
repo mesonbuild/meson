@@ -19,6 +19,7 @@ from .linkers import ArLinker, VisualStudioLinker
 from . import mesonlib
 from .mesonlib import EnvironmentException, Popen_safe
 from . import mlog
+import sys
 
 from . import compilers
 from .compilers import (
@@ -361,8 +362,15 @@ class Environment:
     def get_coredata(self):
         return self.coredata
 
-    def get_build_command(self):
-        return self.meson_script_launcher
+    def get_build_command(self, unbuffered=False):
+        # If running an executable created with cx_freeze,
+        # Python might not be installed so don't prefix
+        # the command with it.
+        if sys.executable.endswith('meson.exe'):
+            return [sys.executable]
+        if unbuffered:
+            [sys.executable, '-u', self.meson_script_launcher]
+        return [sys.executable, self.meson_script_launcher]
 
     def is_header(self, fname):
         return is_header(fname)

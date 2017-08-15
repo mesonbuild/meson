@@ -182,15 +182,6 @@ class File:
     def relative_name(self):
         return os.path.join(self.subdir, self.fname)
 
-def get_meson_script(env, script):
-    '''
-    Given the path of `meson.py`/`meson`, get the path of a meson script such
-    as `mesonintrospect` or `mesontest`.
-    '''
-    meson_py = env.get_build_command()
-    (base, ext) = os.path.splitext(meson_py)
-    return os.path.join(os.path.dirname(base), script + ext)
-
 def get_compiler_for_source(compilers, src):
     for comp in compilers:
         if comp.can_compile(src):
