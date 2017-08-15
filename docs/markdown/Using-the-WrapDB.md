@@ -25,4 +25,4 @@ When Meson encounters this it will automatically download, unpack and patch the 
 
 ## Contributing build definitions
 
-The contents of the Wrap database are tracked in git repos of the [Mesonbuild project](https://github.com/mesonbuild). The actual process is simple and described in [submission documentation](https://github.com/mesonbuild/wrapweb/wiki).
+The contents of the Wrap database are tracked in git repos of the [Mesonbuild project](https://github.com/mesonbuild). The actual process is simple and described in [submission documentation](Adding-new-projects-to-wrapdb.md).
