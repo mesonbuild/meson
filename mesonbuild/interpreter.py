@@ -21,7 +21,7 @@ from . import optinterpreter
 from . import compilers
 from .wrap import wrap, WrapMode
 from . import mesonlib
-from .mesonlib import FileMode, Popen_safe, get_meson_script
+from .mesonlib import FileMode, Popen_safe
 from .dependencies import ExternalProgram
 from .dependencies import InternalDependency, Dependency, DependencyException
 from .interpreterbase import InterpreterBase
@@ -31,7 +31,7 @@ from .interpreterbase import InterpreterObject, MutableInterpreterObject
 from .modules import ModuleReturnValue
 
 import os, sys, shutil, uuid
-import re
+import re, shlex
 from collections import namedtuple
 
 import importlib
@@ -88,7 +88,8 @@ class RunProcess(InterpreterObject):
         env = {'MESON_SOURCE_ROOT': source_dir,
                'MESON_BUILD_ROOT': build_dir,
                'MESON_SUBDIR': subdir,
-               'MESONINTROSPECT': mesonintrospect}
+               'MESONINTROSPECT': ' '.join([shlex.quote(x) for x in mesonintrospect]),
+               }
         if in_builddir:
             cwd = os.path.join(build_dir, subdir)
         else:
@@ -97,7 +98,13 @@ class RunProcess(InterpreterObject):
         child_env.update(env)
         mlog.debug('Running command:', ' '.join(command_array))
         try:
-            return Popen_safe(command_array, env=child_env, cwd=cwd)
+            p, o, e = Popen_safe(command_array, env=child_env, cwd=cwd)
+            mlog.debug('--- stdout----')
+            mlog.debug(o)
+            mlog.debug('----stderr----')
+            mlog.debug(e)
+            mlog.debug('')
+            return p, o, e
         except FileNotFoundError:
             raise InterpreterException('Could not execute command "%s".' % ' '.join(command_array))
 
@@ -1605,7 +1612,7 @@ class Interpreter(InterpreterBase):
             else:
                 raise InterpreterException('Arguments ' + m.format(a))
         return RunProcess(cmd, expanded_args, srcdir, builddir, self.subdir,
-                          get_meson_script(self.environment, 'mesonintrospect'), in_builddir)
+                          self.environment.get_build_command() + ['introspect'], in_builddir)
 
     @stringArgs
     def func_gettext(self, nodes, args, kwargs):
@@ -2188,16 +2195,15 @@ class Interpreter(InterpreterBase):
             else:
                 vcs_cmd = [' '] # executing this cmd will fail in vcstagger.py and force to use the fallback string
         # vcstagger.py parameters: infile, outfile, fallback, source_dir, replace_string, regex_selector, command...
-        kwargs['command'] = [sys.executable,
-                             self.environment.get_build_command(),
-                             '--internal',
-                             'vcstagger',
-                             '@INPUT0@',
-                             '@OUTPUT0@',
-                             fallback,
-                             source_dir,
-                             replace_string,
-                             regex_selector] + vcs_cmd
+        kwargs['command'] = self.environment.get_build_command() + \
+            ['--internal',
+             'vcstagger',
+             '@INPUT0@',
+             '@OUTPUT0@',
+             fallback,
+             source_dir,
+             replace_string,
+             regex_selector] + vcs_cmd
         kwargs.setdefault('build_always', True)
         return self.func_custom_target(node, [kwargs['output']], kwargs)
 

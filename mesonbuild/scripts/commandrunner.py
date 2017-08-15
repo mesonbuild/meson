@@ -15,13 +15,14 @@
 """This program is a wrapper to run external commands. It determines
 what to run, sets up the environment and executes the command."""
 
-import sys, os, subprocess, shutil
+import sys, os, subprocess, shutil, shlex
 
-def run_command(source_dir, build_dir, subdir, mesonintrospect, command, arguments):
+def run_command(source_dir, build_dir, subdir, meson_command, command, arguments):
     env = {'MESON_SOURCE_ROOT': source_dir,
            'MESON_BUILD_ROOT': build_dir,
            'MESON_SUBDIR': subdir,
-           'MESONINTROSPECT': mesonintrospect}
+           'MESONINTROSPECT': ' '.join([shlex.quote(x) for x in meson_command + ['introspect']]),
+           }
     cwd = os.path.join(source_dir, subdir)
     child_env = os.environ.copy()
     child_env.update(env)
@@ -47,10 +48,16 @@ def run(args):
     src_dir = args[0]
     build_dir = args[1]
     subdir = args[2]
-    mesonintrospect = args[3]
-    command = args[4]
-    arguments = args[5:]
-    pc = run_command(src_dir, build_dir, subdir, mesonintrospect, command, arguments)
+    meson_command = args[3]
+    if 'python' in meson_command: # Hack.
+        meson_command = [meson_command, args[4]]
+        command = args[5]
+        arguments = args[6:]
+    else:
+        meson_command = [meson_command]
+        command = args[4]
+        arguments = args[5:]
+    pc = run_command(src_dir, build_dir, subdir, meson_command, command, arguments)
     pc.wait()
     return pc.returncode
 

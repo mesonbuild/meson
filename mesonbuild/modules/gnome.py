@@ -660,7 +660,7 @@ class GnomeModule(ExtensionModule):
         if kwargs:
             raise MesonException('Unknown arguments passed: {}'.format(', '.join(kwargs.keys())))
 
-        script = [sys.executable, state.environment.get_build_command()]
+        script = state.environment.get_build_command()
         args = ['--internal',
                 'yelphelper',
                 'install',
@@ -676,20 +676,20 @@ class GnomeModule(ExtensionModule):
             args.append('--langs=' + '@@'.join(langs))
         inscript = build.RunScript(script, args)
 
-        potargs = [state.environment.get_build_command(), '--internal', 'yelphelper', 'pot',
+        potargs = state.environment.get_build_command() + ['--internal', 'yelphelper', 'pot',
                    '--subdir=' + state.subdir,
                    '--id=' + project_id,
                    '--sources=' + source_str]
-        pottarget = build.RunTarget('help-' + project_id + '-pot', sys.executable,
-                                    potargs, [], state.subdir)
+        pottarget = build.RunTarget('help-' + project_id + '-pot', potargs[0],
+                                    potargs[1:], [], state.subdir)
 
-        poargs = [state.environment.get_build_command(), '--internal', 'yelphelper', 'update-po',
+        poargs = state.environment.get_build_command() + ['--internal', 'yelphelper', 'update-po',
                   '--subdir=' + state.subdir,
                   '--id=' + project_id,
                   '--sources=' + source_str,
                   '--langs=' + '@@'.join(langs)]
-        potarget = build.RunTarget('help-' + project_id + '-update-po', sys.executable,
-                                   poargs, [], state.subdir)
+        potarget = build.RunTarget('help-' + project_id + '-update-po', poargs[0],
+                                   poargs[1:], [], state.subdir)
 
         rv = [inscript, pottarget, potarget]
         return ModuleReturnValue(None, rv)
@@ -717,7 +717,7 @@ class GnomeModule(ExtensionModule):
                 raise MesonException('You can only specify main_xml or main_sgml, not both.')
             main_file = main_xml
         targetname = modulename + '-doc'
-        command = [sys.executable, state.environment.get_build_command()]
+        command = state.environment.get_build_command()
 
         namespace = kwargs.get('namespace', '')
         mode = kwargs.get('mode', 'auto')

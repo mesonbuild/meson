@@ -25,7 +25,7 @@ from .. import compilers
 from ..compilers import CompilerArgs
 from ..linkers import ArLinker
 from ..mesonlib import File, MesonException, OrderedSet
-from ..mesonlib import get_meson_script, get_compiler_for_source
+from ..mesonlib import get_compiler_for_source
 from .backends import CleanTrees, InstallData
 from ..build import InvalidArguments
 
@@ -520,8 +520,7 @@ int dummy;
                                                  # All targets are built from the build dir
                                                  self.environment.get_build_dir(),
                                                  capture=ofilenames[0] if target.capture else None)
-            cmd = [sys.executable, self.environment.get_build_command(),
-                   '--internal', 'exe', exe_data]
+            cmd = self.environment.get_build_command() + ['--internal', 'exe', exe_data]
             cmd_type = 'meson_exe.py custom'
         else:
             cmd_type = 'custom'
@@ -537,7 +536,7 @@ int dummy;
         self.processed_targets[target.name + target.type_suffix()] = True
 
     def generate_run_target(self, target, outfile):
-        cmd = [sys.executable, self.environment.get_build_command(), '--internal', 'commandrunner']
+        cmd = self.environment.get_build_command() + ['--internal', 'commandrunner']
         deps = self.unwrap_dep_list(target)
         arg_strings = []
         for i in target.args:
@@ -555,8 +554,7 @@ int dummy;
         elem = NinjaBuildElement(self.all_outputs, 'meson-' + target.name, 'CUSTOM_COMMAND', [])
         cmd += [self.environment.get_source_dir(),
                 self.environment.get_build_dir(),
-                target.subdir,
-                get_meson_script(self.environment, 'mesonintrospect')]
+                target.subdir] + self.environment.get_build_command()
         texe = target.command
         try:
             texe = texe.held_object
@@ -594,12 +592,11 @@ int dummy;
 
     def generate_coverage_rules(self, outfile):
         e = NinjaBuildElement(self.all_outputs, 'meson-coverage', 'CUSTOM_COMMAND', 'PHONY')
-        e.add_item('COMMAND', [sys.executable,
-                               self.environment.get_build_command(),
-                               '--internal', 'coverage',
-                               self.environment.get_source_dir(),
-                               self.environment.get_build_dir(),
-                               self.environment.get_log_dir()])
+        e.add_item('COMMAND', self.environment.get_build_command() +
+                   ['--internal', 'coverage',
+                    self.environment.get_source_dir(),
+                    self.environment.get_build_dir(),
+                    self.environment.get_log_dir()])
         e.add_item('description', 'Generates coverage reports.')
         e.write(outfile)
         # Alias that runs the target defined above
@@ -659,12 +656,11 @@ int dummy;
         d = InstallData(self.environment.get_source_dir(),
                         self.environment.get_build_dir(),
                         self.environment.get_prefix(),
-                        strip_bin,
-                        get_meson_script(self.environment, 'mesonintrospect'))
+                        strip_bin, self.environment.get_build_command() + ['introspect'])
         elem = NinjaBuildElement(self.all_outputs, 'meson-install', 'CUSTOM_COMMAND', 'PHONY')
         elem.add_dep('all')
         elem.add_item('DESC', 'Installing files.')
-        elem.add_item('COMMAND', [sys.executable, self.environment.get_build_command(), '--internal', 'install', install_data_file])
+        elem.add_item('COMMAND', self.environment.get_build_command() + ['--internal', 'install', install_data_file])
         elem.add_item('pool', 'console')
         self.generate_depmf_install(d)
         self.generate_target_install(d)
@@ -844,7 +840,7 @@ int dummy;
 
     def generate_tests(self, outfile):
         self.serialize_tests()
-        cmd = [sys.executable, '-u', self.environment.get_build_command(), 'test', '--no-rebuild']
+        cmd = self.environment.get_build_command(True) + ['test', '--no-rebuild']
         if not self.environment.coredata.get_builtin_option('stdsplit'):
             cmd += ['--no-stdsplit']
         if self.environment.coredata.get_builtin_option('errorlogs'):
@@ -858,7 +854,7 @@ int dummy;
         self.create_target_alias('meson-test', outfile)
 
         # And then benchmarks.
-        cmd = [sys.executable, '-u', self.environment.get_build_command(), 'test', '--benchmark', '--logbase',
+        cmd = self.environment.get_build_command(True) + ['test', '--benchmark', '--logbase',
                'benchmarklog', '--num-processes=1', '--no-rebuild']
         elem = NinjaBuildElement(self.all_outputs, 'meson-benchmark', 'CUSTOM_COMMAND', ['all', 'PHONY'])
         elem.add_item('COMMAND', cmd)
@@ -896,13 +892,12 @@ int dummy;
         outfile.write(' depfile = $DEPFILE\n')
         outfile.write(' restat = 1\n\n')
         outfile.write('rule REGENERATE_BUILD\n')
-        c = (ninja_quote(quote_func(sys.executable)),
-             ninja_quote(quote_func(self.environment.get_build_command())),
-             '--internal',
+        c = [ninja_quote(quote_func(x)) for x in self.environment.get_build_command()] + \
+            ['--internal',
              'regenerate',
              ninja_quote(quote_func(self.environment.get_source_dir())),
-             ninja_quote(quote_func(self.environment.get_build_dir())))
-        outfile.write(" command = %s %s %s %s %s %s --backend ninja\n" % c)
+             ninja_quote(quote_func(self.environment.get_build_dir()))]
+        outfile.write(" command = " + ' '.join(c) + ' --backend ninja\n')
         outfile.write(' description = Regenerating build files.\n')
         outfile.write(' generator = 1\n\n')
         outfile.write('\n')
@@ -1500,13 +1495,13 @@ int dummy;
                 outfile.write(description)
                 outfile.write('\n')
         outfile.write('\n')
+        args = [ninja_quote(quote_func(x)) for x in self.environment.get_build_command()] + \
+            ['--internal',
+             'symbolextractor',
+             '$in',
+             '$out']
         symrule = 'rule SHSYM\n'
-        symcmd = ' command = "%s" "%s" %s %s %s %s $CROSS\n' % (ninja_quote(sys.executable),
-                                                                self.environment.get_build_command(),
-                                                                '--internal',
-                                                                'symbolextractor',
-                                                                '$in',
-                                                                '$out')
+        symcmd = ' command = ' + ' '.join(args) + ' $CROSS\n'
         synstat = ' restat = 1\n'
         syndesc = ' description = Generating symbol file $out.\n'
         outfile.write(symrule)
@@ -1564,8 +1559,7 @@ int dummy;
 
     def generate_swift_compile_rules(self, compiler, outfile):
         rule = 'rule %s_COMPILER\n' % compiler.get_language()
-        full_exe = [ninja_quote(sys.executable),
-                    ninja_quote(self.environment.get_build_command()),
+        full_exe = [ninja_quote(x) for x in self.environment.get_build_command()] + [
                     '--internal',
                     'dirchanger',
                     '$RUNDIR']
@@ -2493,9 +2487,7 @@ rule FORTRAN_DEP_HACK
         e = NinjaBuildElement(self.all_outputs, 'meson-clean-ctlist', 'CUSTOM_COMMAND', 'PHONY')
         d = CleanTrees(self.environment.get_build_dir(), trees)
         d_file = os.path.join(self.environment.get_scratch_dir(), 'cleantrees.dat')
-        e.add_item('COMMAND', [sys.executable,
-                               self.environment.get_build_command(),
-                               '--internal', 'cleantrees', d_file])
+        e.add_item('COMMAND', self.environment.get_build_command() + ['--internal', 'cleantrees', d_file])
         e.add_item('description', 'Cleaning custom target directories.')
         e.write(outfile)
         # Alias that runs the target defined above
@@ -2536,13 +2528,10 @@ rule FORTRAN_DEP_HACK
     def generate_dist(self, outfile):
         elem = NinjaBuildElement(self.all_outputs, 'meson-dist', 'CUSTOM_COMMAND', 'PHONY')
         elem.add_item('DESC', 'Creating source packages')
-        elem.add_item('COMMAND', [sys.executable,
-                                  self.environment.get_build_command(),
-                                  '--internal', 'dist',
-                                  self.environment.source_dir,
-                                  self.environment.build_dir,
-                                  sys.executable,
-                                  self.environment.get_build_command()])
+        elem.add_item('COMMAND', self.environment.get_build_command() +
+            ['--internal', 'dist',
+             self.environment.source_dir,
+             self.environment.build_dir] + self.environment.get_build_command())
         elem.add_item('pool', 'console')
         elem.write(outfile)
         # Alias that runs the target defined above
@@ -2550,17 +2539,16 @@ rule FORTRAN_DEP_HACK
 
     # For things like scan-build and other helper tools we might have.
     def generate_utils(self, outfile):
-        cmd = [sys.executable, self.environment.get_build_command(),
-               '--internal', 'scanbuild', self.environment.source_dir, self.environment.build_dir,
-               sys.executable, self.environment.get_build_command()] + self.get_user_option_args()
+        cmd = self.environment.get_build_command() + \
+            ['--internal', 'scanbuild', self.environment.source_dir, self.environment.build_dir] + \
+            self.environment.get_build_command() + self.get_user_option_args()
         elem = NinjaBuildElement(self.all_outputs, 'meson-scan-build', 'CUSTOM_COMMAND', 'PHONY')
         elem.add_item('COMMAND', cmd)
         elem.add_item('pool', 'console')
         elem.write(outfile)
         # Alias that runs the target defined above
         self.create_target_alias('meson-scan-build', outfile)
-        cmd = [sys.executable, self.environment.get_build_command(),
-               '--internal', 'uninstall']
+        cmd = self.environment.get_build_command() + ['--internal', 'uninstall']
         elem = NinjaBuildElement(self.all_outputs, 'meson-uninstall', 'CUSTOM_COMMAND', 'PHONY')
         elem.add_item('COMMAND', cmd)
         elem.add_item('pool', 'console')

@@ -24,7 +24,7 @@ from .. import mlog
 from .. import compilers
 from ..build import BuildTarget
 from ..compilers import CompilerArgs
-from ..mesonlib import MesonException, File, get_meson_script
+from ..mesonlib import MesonException, File
 from ..environment import Environment
 
 def autodetect_vs_version(build):
@@ -413,8 +413,8 @@ class Vs2010Backend(backends.Backend):
         cmd = [sys.executable, os.path.join(self.environment.get_script_dir(), 'commandrunner.py'),
                self.environment.get_build_dir(),
                self.environment.get_source_dir(),
-               self.get_target_dir(target),
-               get_meson_script(self.environment, 'mesonintrospect')]
+               self.get_target_dir(target)] + \
+               self.environment.get_build_command()
         for i in cmd_raw:
             if isinstance(i, build.BuildTarget):
                 cmd.append(os.path.join(self.environment.get_build_dir(), self.get_target_filename(i)))
@@ -447,8 +447,7 @@ class Vs2010Backend(backends.Backend):
                                              # All targets run from the target dir
                                              tdir_abs,
                                              capture=ofilenames[0] if target.capture else None)
-        wrapper_cmd = [sys.executable, self.environment.get_build_command(),
-                       '--internal', 'exe', exe_data]
+        wrapper_cmd = self.environment.get_build_command() + ['--internal', 'exe', exe_data]
         ET.SubElement(customstep, 'Command').text = ' '.join(self.quote_arguments(wrapper_cmd))
         ET.SubElement(customstep, 'Outputs').text = ';'.join(ofilenames)
         ET.SubElement(customstep, 'Inputs').text = ';'.join([exe_data] + srcs + depend_files)
@@ -1095,10 +1094,7 @@ class Vs2010Backend(backends.Backend):
         ET.SubElement(midl, 'TypeLibraryName').text = '%(Filename).tlb'
         ET.SubElement(midl, 'InterfaceIdentifierFilename').text = '%(Filename)_i.c'
         ET.SubElement(midl, 'ProxyFileName').text = '%(Filename)_p.c'
-        regen_command = [sys.executable,
-                         self.environment.get_build_command(),
-                         '--internal',
-                         'regencheck']
+        regen_command = self.environment.get_build_command() + ['--internal', 'regencheck']
         private_dir = self.environment.get_scratch_dir()
         cmd_templ = '''setlocal
 "%s" "%s"
@@ -1178,10 +1174,7 @@ if %%errorlevel%% neq 0 goto :VCEnd'''
         postbuild = ET.SubElement(action, 'PostBuildEvent')
         ET.SubElement(postbuild, 'Message')
         # FIXME: No benchmarks?
-        test_command = [sys.executable,
-                        self.environment.get_build_command(),
-                        'test',
-                        '--no-rebuild']
+        test_command = self.environment.get_build_command() + ['test', '--no-rebuild']
         if not self.environment.coredata.get_builtin_option('stdsplit'):
             test_command += ['--no-stdsplit']
         if self.environment.coredata.get_builtin_option('errorlogs'):
