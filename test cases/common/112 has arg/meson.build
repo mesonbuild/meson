@@ -42,3 +42,10 @@ if cc.get_id() == 'gcc'
   assert(cc.has_multi_arguments(pre_arg), 'Arg that should have worked does not work.')
   assert(cc.has_multi_arguments([pre_arg, arg]), 'Arg that should have worked does not work.')
 endif
+
+if cc.get_id() == 'clang' and cc.version().version_compare('<=4.0.0')
+  # 4.0.0 does not support -fpeel-loops. Newer versions may.
+  # Please adjust above version number as new versions of clang are released.
+  notyet_arg = '-fpeel-loops'
+  assert(not cc.has_argument(notyet_arg), 'Arg that should be broken (unless clang added support recently) is not.')
+endif
