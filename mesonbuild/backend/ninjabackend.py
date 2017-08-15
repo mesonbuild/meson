@@ -1833,7 +1833,9 @@ rule FORTRAN_DEP_HACK
                 continue
             filename = s.absolute_path(self.environment.get_source_dir(),
                                        self.environment.get_build_dir())
-            with open(filename) as f:
+            # Some Fortran editors save in weird encodings,
+            # but all the parts we care about are in ASCII.
+            with open(filename, errors='ignore') as f:
                 for line in f:
                     modmatch = modre.match(line)
                     if modmatch is not None:
