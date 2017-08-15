@@ -1041,8 +1041,11 @@ class ClangCompiler:
         return get_gcc_soname_args(gcc_type, prefix, shlib_name, suffix, path, soversion, is_shared_module)
 
     def has_multi_arguments(self, args, env):
+        myargs = ['-Werror=unknown-warning-option', '-Werror=unused-command-line-argument']
+        if mesonlib.version_compare(self.version, '>=3.6.0'):
+            myargs.append('-Werror=ignored-optimization-argument')
         return super().has_multi_arguments(
-            ['-Werror=unknown-warning-option', '-Werror=unused-command-line-argument'] + args,
+            myargs + args,
             env)
 
     def has_function(self, funcname, prefix, env, extra_args=None, dependencies=None):
