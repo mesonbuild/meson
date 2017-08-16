@@ -31,7 +31,9 @@ def initialize(logdir):
 def shutdown():
     global log_file
     if log_file is not None:
-        log_file.close()
+        exception_around_goer = log_file
+        log_file = None
+        exception_around_goer.close()
 
 class AnsiDecorator:
     plain_code = "\033[0m"
