@@ -312,7 +312,7 @@ Meson will then do the right thing.
 ### generator()
 
 ``` meson
-    generator_object gen(*executable*, ...)
+    generator_object generator(*executable*, ...)
 ```
 
 See also: [`custom_target`](#custom_target)
