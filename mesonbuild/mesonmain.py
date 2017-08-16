@@ -135,6 +135,12 @@ If you want to change option values, use the mesonconf tool instead.'''
     def generate(self):
         env = environment.Environment(self.source_dir, self.build_dir, self.meson_script_launcher, self.options, self.original_cmd_line_args)
         mlog.initialize(env.get_log_dir())
+        try:
+            self._generate(env)
+        finally:
+            mlog.shutdown()
+
+    def _generate(self, env):
         mlog.debug('Build started at', datetime.datetime.now().isoformat())
         mlog.debug('Python binary:', sys.executable)
         mlog.debug('Python system:', platform.system())
