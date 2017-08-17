@@ -68,7 +68,7 @@ class Python3Module(ExtensionModule):
             raise mesonlib.MesonException('{} is not a valid path name {}.'.format(path_name, valid_names))
 
         # Get a relative path without a prefix, e.g. lib/python3.6/site-packages
-        path = sysconfig.get_path(path_name, vars={'base': '', 'platbase': ''})[1:]
+        path = sysconfig.get_path(path_name, vars={'base': '', 'platbase': '', 'installed_base': ''})[1:]
         return ModuleReturnValue(path, [])
 
 
