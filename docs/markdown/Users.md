@@ -21,7 +21,7 @@ If you have a project that uses Meson that you want to add to this list, let us 
  - [Graphene](https://ebassi.github.io/graphene/), a thin type library for graphics
  - [Grilo](https://mail.gnome.org/archives/grilo-list/2017-February/msg00000.html) and [Grilo plugins](https://git.gnome.org/browse/grilo-plugins/commit/?id=ea047c4fb63e90268eb795ed91a09a2be5068a4c), the Grilo multimedia framework
  - [GStreamer](https://cgit.freedesktop.org/gstreamer/gstreamer/), multimedia framework (not the default yet)
- - [GTK+](https://git.gnome.org/browse/gtk+/), the multi-platform toolkit used by GNOME (not the default yet)
+ - [GTK+](https://git.gnome.org/browse/gtk+/), the multi-platform toolkit used by GNOME
  - [GtkDApp](https://gitlab.com/csoriano/GtkDApp), an application template for developing Flatpak apps with Gtk+ and D
  - [HexChat](https://github.com/hexchat/hexchat), a cross-platform IRC client in C
  - [Json-glib](https://git.gnome.org/browse/json-glib), GLib-based JSON manipulation library
@@ -42,3 +42,5 @@ If you have a project that uses Meson that you want to add to this list, let us 
  - [Valum](https://github.com/valum-framework/valum), a micro web framework written in Vala
  - [Wayland and Weston](https://lists.freedesktop.org/archives/wayland-devel/2016-November/031984.html), a next generation display server (not merged yet)
  - [ZStandard](https://github.com/facebook/zstd/commit/4dca56ed832c6a88108a2484a8f8ff63d8d76d91) a compression algorithm developed at Facebook (not used by default)
+
+Note that a more up-to-date list of GNOME projects that use Meson can be found here: https://wiki.gnome.org/Initiatives/GnomeGoals/MesonPorting
