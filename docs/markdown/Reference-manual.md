@@ -853,15 +853,24 @@ A build target is either an [executable](#executable), [shared](#shared_library)
 
 ### `configuration` data object
 
-This object is returned by [`configuration_data()`](#configuration_data) and encapsulates configuration values to be used for generating configuration files. A more in-depth description can be found in the [the configuration wiki page](Configuration.md) It has three methods:
+This object is returned by
+[`configuration_data()`](#configuration_data) and encapsulates
+configuration values to be used for generating configuration files. A
+more in-depth description can be found in the [the configuration wiki
+page](Configuration.md) It has three methods:
 
+ - `get(varname, default_value)` returns the value of `varname`, if the value has not been set returns `default_value` if it is defined *(added 0.38.0)* and errors out if not
+ - `has(varname)`, returns `true` if the specified variable is set
+ - `merge_from(other)` takes as argument a different configuration data object and copies all entries from that object to the current object
  - `set(varname, value)`, sets a variable to a given value
  - `set10(varname, boolean_value)` is the same as above but the value is either `true` or `false` and will be written as 1 or 0, respectively
  - `set_quoted(varname, value)` is same as `set` but quotes the value in double quotes (`"`)
- - `has(varname)`, returns `true` if the specified variable is set
- - `get(varname, default_value)` returns the value of `varname`, if the value has not been set returns `default_value` if it is defined *(added 0.38.0)* and errors out if not
 
-They all take the `description` keyword that will be written in the result file. The replacement assumes a file with C syntax. If your generated file is source code in some other language, you probably don't want to add a description field because it most likely will cause a syntax error.
+They all take the `description` keyword that will be written in the
+result file. The replacement assumes a file with C syntax. If your
+generated file is source code in some other language, you probably
+don't want to add a description field because it most likely will
+cause a syntax error.
 
 ### `custom target` object
 
