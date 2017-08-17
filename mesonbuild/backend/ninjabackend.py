@@ -1818,7 +1818,7 @@ rule FORTRAN_DEP_HACK
                 elem.add_item('DEPFILE', depfile)
             if len(extra_dependencies) > 0:
                 elem.add_dep(extra_dependencies)
-            elem.add_item('DESC', 'Generating $out')
+            elem.add_item('DESC', 'Generating {!r}.'.format(sole_output))
             if isinstance(exe, build.BuildTarget):
                 elem.add_dep(self.get_target_filename(exe))
             elem.add_item('COMMAND', cmdlist)
