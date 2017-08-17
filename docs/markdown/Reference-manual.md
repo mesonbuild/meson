@@ -861,7 +861,7 @@ page](Configuration.md) It has three methods:
 
  - `get(varname, default_value)` returns the value of `varname`, if the value has not been set returns `default_value` if it is defined *(added 0.38.0)* and errors out if not
  - `has(varname)`, returns `true` if the specified variable is set
- - `merge_from(other)` takes as argument a different configuration data object and copies all entries from that object to the current object
+ - `merge_from(other)` takes as argument a different configuration data object and copies all entries from that object to the current object, available since 0.42.0
  - `set(varname, value)`, sets a variable to a given value
  - `set10(varname, boolean_value)` is the same as above but the value is either `true` or `false` and will be written as 1 or 0, respectively
  - `set_quoted(varname, value)` is same as `set` but quotes the value in double quotes (`"`)
