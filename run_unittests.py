@@ -1910,6 +1910,19 @@ class LinuxlikeTests(BasePlatformTests):
         for i in compdb:
             self.assertIn("-fsanitize=address", i["command"])
 
+    def test_coverage(self):
+        if not shutil.which('gcovr'):
+            raise unittest.SkipTest('gcovr not found')
+        if not shutil.which('genhtml'):
+            raise unittest.SkipTest('genhtml not found')
+        if 'clang' in os.environ.get('CC', '') and os.environ.get('TRAVIS_OS_NAME', '') == 'linux':
+            raise unittest.SkipTest('Gcovr has a bug and does not work with Clang in the CI environment.')
+        testdir = os.path.join(self.common_test_dir, '1 trivial')
+        self.init(testdir, ['-Db_coverage=true'])
+        self.build()
+        self.run_tests()
+        self.run_target('coverage-html')
+
 class LinuxArmCrossCompileTests(BasePlatformTests):
     '''
     Tests that verify cross-compilation to Linux/ARM

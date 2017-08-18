@@ -629,7 +629,7 @@ int dummy;
             added_rule = True
             htmloutdir = os.path.join(self.environment.get_log_dir(), 'coveragereport')
             covinfo = os.path.join(self.environment.get_log_dir(), 'coverage.info')
-            phony_elem = NinjaBuildElement(self.all_outputs, 'coverage-html', 'phony', os.path.join(htmloutdir, 'index.html'))
+            phony_elem = NinjaBuildElement(self.all_outputs, 'meson-coverage-html', 'phony', os.path.join(htmloutdir, 'index.html'))
             phony_elem.write(outfile)
             # Alias that runs the target defined above
             self.create_target_alias('meson-coverage-html', outfile)
