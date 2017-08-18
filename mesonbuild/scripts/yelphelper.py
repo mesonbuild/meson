@@ -18,6 +18,7 @@ import shutil
 import argparse
 from .. import mlog
 from . import destdir_join
+from .gettext import read_linguas
 
 parser = argparse.ArgumentParser()
 parser.add_argument('command')
@@ -28,22 +29,6 @@ parser.add_argument('--sources', dest='sources')
 parser.add_argument('--media', dest='media', default='')
 parser.add_argument('--langs', dest='langs', default='')
 parser.add_argument('--symlinks', type=bool, dest='symlinks', default=False)
-
-def read_linguas(src_sub):
-    # Syntax of this file is documented here:
-    # https://www.gnu.org/software/gettext/manual/html_node/po_002fLINGUAS.html
-    linguas = os.path.join(src_sub, 'LINGUAS')
-    try:
-        langs = []
-        with open(linguas) as f:
-            for line in f:
-                line = line.strip()
-                if line and not line.startswith('#'):
-                    langs += line.split()
-        return langs
-    except (FileNotFoundError, PermissionError):
-        print('Could not find file LINGUAS in {}'.format(src_sub))
-        return []
 
 def build_pot(srcdir, project_id, sources):
     # Must be relative paths
