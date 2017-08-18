@@ -29,6 +29,22 @@ parser.add_argument('--media', dest='media', default='')
 parser.add_argument('--langs', dest='langs', default='')
 parser.add_argument('--symlinks', type=bool, dest='symlinks', default=False)
 
+def read_linguas(src_sub):
+    # Syntax of this file is documented here:
+    # https://www.gnu.org/software/gettext/manual/html_node/po_002fLINGUAS.html
+    linguas = os.path.join(src_sub, 'LINGUAS')
+    try:
+        langs = []
+        with open(linguas) as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#'):
+                    langs += line.split()
+        return langs
+    except (FileNotFoundError, PermissionError):
+        print('Could not find file LINGUAS in {}'.format(src_sub))
+        return []
+
 def build_pot(srcdir, project_id, sources):
     # Must be relative paths
     sources = [os.path.join('C', source) for source in sources]
@@ -107,6 +123,9 @@ def run(args):
     src_subdir = os.path.join(os.environ['MESON_SOURCE_ROOT'], options.subdir)
     build_subdir = os.path.join(os.environ['MESON_BUILD_ROOT'], options.subdir)
     abs_sources = [os.path.join(src_subdir, 'C', source) for source in sources]
+
+    if not langs:
+        langs = read_linguas(src_subdir)
 
     if options.command == 'pot':
         build_pot(src_subdir, options.project_id, sources)
