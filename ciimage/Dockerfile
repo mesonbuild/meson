@@ -1,16 +1,14 @@
-FROM ubuntu:zesty
+FROM ubuntu:artful
 
 RUN apt-get -y update && apt-get -y upgrade \
 && apt-get -y install git wget unzip \
 && apt-get -y build-dep meson \
-&& apt-get -y install qt5-default itstool clang libgtk-3-dev \
-&& apt-get -y install pkg-config-arm-linux-gnueabihf g++-6-arm-linux-gnueabihf \
-&& apt-get -y install valgrind doxygen \
-&& apt-get -y install llvm libsdl2-dev \
+&& apt-get -y install qt5-default clang \
+&& apt-get -y install pkg-config-arm-linux-gnueabihf g++-7-arm-linux-gnueabihf \
+&& apt-get -y install doxygen \
 && apt-get -y install python3-pip libxml2-dev libxslt1-dev cmake libyaml-dev \
-&& apt-get -y install openmpi-bin libopenmpi-dev \
-&& apt-get -y install libboost-log-dev \
-&& apt-get -y install libvulkan-dev libpcap-dev libcups2-dev \
+&& apt-get -y install libcups2-dev \
 && apt-get -y install gcovr lcov \
+&& apt-get -y install fpga-icestorm arachne-pnr yosys \
 && apt-get -y install gtk-sharp2 gtk-sharp2-gapi libglib2.0-cil-dev \
 && python3 -m pip install hotdoc codecov

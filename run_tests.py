@@ -125,7 +125,7 @@ def get_fake_options(prefix):
     return opts
 
 def should_run_linux_cross_tests():
-    return shutil.which('arm-linux-gnueabihf-gcc-6') and not platform.machine().lower().startswith('arm')
+    return shutil.which('arm-linux-gnueabihf-gcc-7') and not platform.machine().lower().startswith('arm')
 
 def run_configure_inprocess(commandlist):
     old_stdout = sys.stdout
