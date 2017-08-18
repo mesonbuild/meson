@@ -578,7 +578,7 @@ introspection_sources = [
   'as-tag.c',
   'as-tag.h',
   'as-utils.c',
-  'as-utils.h']
+  'as-utils.h',
   'as-version.h']
 
 gnome.generate_gir(asglib,
