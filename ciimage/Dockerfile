@@ -10,4 +10,5 @@ RUN apt-get -y update && apt-get -y upgrade \
 && apt-get -y install python3-pip libxml2-dev libxslt1-dev cmake libyaml-dev \
 && apt-get -y install openmpi-bin libopenmpi-dev \
 && apt-get -y install libvulkan-dev libpcap-dev \
+&& apt-get -y install gcovr lcov \
 && python3 -m pip install hotdoc codecov
