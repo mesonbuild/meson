@@ -68,10 +68,10 @@ Like `add_project_arguments` but the arguments are passed to the linker.
 
 Add a custom test setup that can be used to run the tests with a custom setup, for example under Valgrind. The keyword arguments are the following:
 
+- `env` an [environment object](#environment-object) to use a custom environment
 - `exe_wrapper` a list containing the wrapper command or script followed by the arguments to it
 - `gdb` if `true`, the tests are also run under `gdb`
 - `timeout_multiplier` a number to multiply the test timeout with
-- `env` an [environment object](#environment-object) to use a custom environment
 
 To use the test setup, run `mesontest --setup=*name*` inside the build dir.
 
@@ -123,12 +123,21 @@ When a list of strings is passed to the `command:` keyword argument, it takes an
 
 These are all the supported keyword arguments:
 
-- `input` the input file name. If it's not specified in configuration mode, all the variables in the `configuration:` object (see above) are written to the `output:` file.
-- `output` the output file name (since v0.41.0, may contain `@PLAINNAME@` or `@BASENAME@` substitutions). In configuration mode, the permissions of the input file (if it is specified) are copied to the output file.
-- `configuration` as explained above, this is where you pass the configuration data object as returned by `configuration_data()`
-- `command` as explained above, if specified, Meson does not create the file itself but rather runs the specified command, which allows you to do fully custom file generation
-- `capture` when this argument is set to true, Meson captures `stdout` of the `command` and writes it to the target file specified as `output`. Available since v0.41.0.
-- `install_dir` the subdirectory to install the generated file to (e.g. `share/myproject`), if omitted the file is not installed.
+- `capture` when this argument is set to true, Meson captures `stdout`
+  of the `command` and writes it to the target file specified as
+  `output`. Available since v0.41.0.
+- `command` as explained above, if specified, Meson does not create
+  the file itself but rather runs the specified command, which allows
+  you to do fully custom file generation
+- `input` the input file name. If it's not specified in configuration
+  mode, all the variables in the `configuration:` object (see above)
+  are written to the `output:` file.
+- `install_dir` the subdirectory to install the generated file to
+  (e.g. `share/myproject`), if omitted the file is not installed.
+- `output` the output file name (since v0.41.0, may contain
+  `@PLAINNAME@` or `@BASENAME@` substitutions). In configuration mode,
+  the permissions of the input file (if it is specified) are copied to
+  the output file.
 
 ### custom_target()
 
@@ -136,30 +145,63 @@ These are all the supported keyword arguments:
     customtarget custom_target(*name*, ...)
 ```
 
-Create a custom top level build target. The only positional argument is the name of this target and the keyword arguments are the following.
+Create a custom top level build target. The only positional argument
+is the name of this target and the keyword arguments are the
+following.
 
+- `build_by_default` *(added 0.38.0)* causes, when set to true, to
+  have this target be built by default, that is, when invoking plain
+  `ninja`; the default value is false
+- `build_always` if `true` this target is always considered out of
+  date and is rebuilt every time, useful for things such as build
+  timestamps or revision control tags
+- `capture`, there are some compilers that can't be told to write
+  their output to a file but instead write it to standard output. When
+  this argument is set to true, Meson captures `stdout` and writes it
+  to the target file. Note that your command argument list may not
+  contain `@OUTPUT@` when capture mode is active.
+- `command` command to run to create outputs from inputs. The command
+  may be strings or the return of `find_program()` or `executable()`
+  (note: always specify commands in array form `['commandname',
+  '-arg1', '-arg2']` rather than as a string `'commandname -arg1
+  -arg2'` as the latter will *not* work)
+- `depend_files` files ([`string`](#string-object),
+  [`files()`](#files), or [`configure_file()`](#configure_file)) that
+  this target depends on but are not listed in the `command` keyword
+  argument. Useful for adding regen dependencies.
+- `depends` specifies that this target depends on the specified
+  target(s), even though it does not take any of them as a command
+  line argument. This is meant for cases where you have a tool that
+  e.g. does globbing internally. Usually you should just put the
+  generated sources as inputs and Meson will set up all dependencies
+  automatically.
+- `depfile` is a dependency file that the command can write listing
+  all the additional files this target depends on, for example a C
+  compiler would list all the header files it included, and a change
+  in any one of these files triggers a recompilation
 - `input` list of source files. As of 0.41.0 the list will be flattened.
-- `output` list of output files
-- `command` command to run to create outputs from inputs. The command may be strings or the return of `find_program()` or `executable()` (note: always specify commands in array form `['commandname', '-arg1', '-arg2']` rather than as a string `'commandname -arg1 -arg2'` as the latter will *not* work)
 - `install` when true, this target is installed during the install step
 - `install_dir` directory to install to
-- `build_always` if `true` this target is always considered out of date and is rebuilt every time, useful for things such as build timestamps or revision control tags
-- `capture`, there are some compilers that can't be told to write their output to a file but instead write it to standard output. When this argument is set to true, Meson captures `stdout` and writes it to the target file. Note that your command argument list may not contain `@OUTPUT@` when capture mode is active.
-- `depends` specifies that this target depends on the specified target(s), even though it does not take any of them as a command line argument. This is meant for cases where you have a tool that e.g. does globbing internally. Usually you should just put the generated sources as inputs and Meson will set up all dependencies automatically.
-- `depend_files` files ([`string`](#string-object), [`files()`](#files), or [`configure_file()`](#configure_file)) that this target depends on but are not listed in the `command` keyword argument. Useful for adding regen dependencies.
-- `depfile` is a dependency file that the command can write listing all the additional files this target depends on, for example a C compiler would list all the header files it included, and a change in any one of these files triggers a recompilation
-- `build_by_default` *(added 0.38.0)* causes, when set to true, to have this target be built by default, that is, when invoking plain `ninja`; the default value is false
+- `output` list of output files
 
-The list of strings passed to the `command` keyword argument accept the following special string substitutions:
+The list of strings passed to the `command` keyword argument accept
+the following special string substitutions:
 
-- `@INPUT@` the full path to the input passed to `input`. If more than one input is specified, all of them will be substituted as separate arguments only if the command uses `'@INPUT@'` as a standalone-argument. For instance, this would not work: `command : ['cp', './@INPUT@']`, but this would: `command : ['cp', '@INPUT@']`.
-- `@OUTPUT@` the full path to the output passed to `output`. If more than one outputs are specified, the behavior is the same as `@INPUT@`.
+- `@INPUT@` the full path to the input passed to `input`. If more than
+  one input is specified, all of them will be substituted as separate
+  arguments only if the command uses `'@INPUT@'` as a
+  standalone-argument. For instance, this would not work: `command :
+  ['cp', './@INPUT@']`, but this would: `command : ['cp', '@INPUT@']`.
+- `@OUTPUT@` the full path to the output passed to `output`. If more
+  than one outputs are specified, the behavior is the same as
+  `@INPUT@`.
 - `@INPUT0@` `@INPUT1@` `...` the full path to the input with the specified array index in `input`
 - `@OUTPUT0@` `@OUTPUT1@` `...` the full path to the output with the specified array index in `output`
 - `@OUTDIR@` the full path to the directory where the output(s) must be written
 - `@DEPFILE@` the full path to the dependency file passed to `depfile`
 
-The returned object also has methods that are documented in the [object methods section](#custom-target-object) below.
+The returned object also has methods that are documented in the
+[object methods section](#custom-target-object) below.
 
 ### declare_dependency()
 
