@@ -61,3 +61,41 @@ executable('dep_using_exe', 'main.c',
 ```
 
 Meson will ensure that the header file has been built before compiling `main.c`.
+
+## Avoid exposing compilable source files in declare_dependency
+
+The main use for the `sources` argument in `declare_dependency` is to construct the correct dependency graph for the backends, as demonstrated in the previous section. It is extremely important to note that it should *not* be used to directly expose compilable sources (`.c`, `.cpp`, etc.) of dependencies, and should rather only be used for header/config files. The following example will illustrate what can go wrong if you accidentally expose compilable source files.
+
+So you've read about unity builds and how Meson natively supports them. You decide to expose the sources of dependencies in order to have unity builds that include their dependencies. For your support library you do
+
+```meson
+my_support_sources = files(...)
+
+mysupportlib = shared_library(
+  ...
+  sources : my_support_sources,
+  ...)
+mysupportlib_dep = declare_dependency(
+  ...
+  link_with : mylibrary,
+  sources : my_support_sources,
+  ...)
+```
+
+And for your main project you do:
+
+```meson
+mylibrary = shared_library(
+  ...
+  dependencies : mysupportlib_dep,
+  ...)
+myexe = executable(
+  ...
+  link_with : mylibrary,
+  dependencies : mysupportlib_dep,
+  ...)
+```
+
+This is extremely dangerous. When building, `mylibrary` will build and link the support sources `my_support_sources` into the resulting shared library. Then, for `myexe`, these same support sources will be compiled again, will be linked into the resulting executable, in addition to them being already present in `mylibrary`. This can quickly run afoul of the [One Definition Rule (ODR)](https://en.wikipedia.org/wiki/One_Definition_Rule) in C++, as you have more than one definition of a symbol, yielding undefined behavior. While C does not have a strict ODR rule, there is no language in the standard which guarantees such behavior to work. Violations of the ODR can lead to weird idiosyncratic failures such as segfaults. In the overwhelming number of cases, exposing library sources via the `sources` argument in `declare_dependency` is thus incorrect. If you wish to get full cross-library performance, consider building `mysupportlib` as a static library instead and employing LTO.
+
+There are exceptions to this rule. If there are some natural constraints on how your library is to be used, you can expose sources. For instance, the WrapDB module for GoogleTest directly exposes the sources of GTest and GMock. This is valid, as GTest and GMock will only ever be used in *terminal* link targets. A terminal target is the final target in a dependency link chain, for instance `myexe` in the last example, whereas `mylibrary` is an intermediate link target. For most libraries this rule is not applicable though, as you cannot in general control how others consume your library, and as such should not expose sources.
