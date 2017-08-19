@@ -1923,6 +1923,28 @@ class LinuxlikeTests(BasePlatformTests):
         self.run_tests()
         self.run_target('coverage-html')
 
+    def test_cross_find_program(self):
+        testdir = os.path.join(self.unit_test_dir, '12 cross prog')
+        crossfile = tempfile.NamedTemporaryFile(mode='w')
+        print(os.path.join(testdir, 'some_cross_tool.py'))
+        crossfile.write('''[binaries]
+c = '/usr/bin/cc'
+ar = '/usr/bin/ar'
+strip = '/usr/bin/ar'
+sometool.py = '%s'
+
+[properties]
+
+[host_machine]
+system = 'linux'
+cpu_family = 'arm'
+cpu = 'armv7' # Not sure if correct.
+endian = 'little'
+''' % os.path.join(testdir, 'some_cross_tool.py'))
+        crossfile.flush()
+        self.init(testdir, ['--cross-file='+crossfile.name])
+
+
 class LinuxArmCrossCompileTests(BasePlatformTests):
     '''
     Tests that verify cross-compilation to Linux/ARM
