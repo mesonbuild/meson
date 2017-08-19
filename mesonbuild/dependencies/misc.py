@@ -142,7 +142,7 @@ class BoostDependency(ExternalDependency):
 
     def validate_requested(self):
         for m in self.requested_modules:
-            if m not in self.src_modules:
+            if m not in self.src_modules and m not in self.lib_modules and m + '-mt' not in self.lib_modules_mt:
                 msg = 'Requested Boost module {!r} not found'
                 raise DependencyException(msg.format(m))
 
