@@ -543,7 +543,7 @@ This function prints its argument to stdout.
     void project(project_name, list_of_languages, ...)
 ```
 
-The first argument to this function must be a string defining the name of this project. It must be followed by one or more programming languages that the project uses. Supported values for languages are `c`, `cpp` (for `C++`), `objc`, `objcpp`, `fortran`, `java`, `cs` (for `C#`) and `vala`.
+The first argument to this function must be a string defining the name of this project. It is followed by programming languages that the project uses. Supported values for languages are `c`, `cpp` (for `C++`), `objc`, `objcpp`, `fortran`, `java`, `cs` (for `C#`) and `vala`. In versions before `0.40.0` you must have at least one language listed.
 
 The project name can be any string you want, it's not used for anything except descriptive purposes. However since it is written to e.g. the dependency manifest is usually makes sense to have it be the same as the project tarball or pkg-config name. So for example you would probably want to use the name _libfoobar_ instead of _The Foobar Library_.
 
