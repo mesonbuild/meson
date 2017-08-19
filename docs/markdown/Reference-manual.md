@@ -466,6 +466,12 @@ Keyword arguments are the following:
   then use the `.found()` method on the returned object to check
   whether it was found or not.
 
+- `native` defines how this executable should be searched. By default
+  it is set to `false`, which causes Meson to first look for the
+  executable in the cross file (when cross building) and if it is not
+  defined there, then from the system. If set to `true`, the cross
+  file is ignored and the program is only searched from the system.
+
 Meson will also autodetect scripts with a shebang line and run them
 with the executable/interpreter specified in it both on Windows
 (because the command invocator will reject the command otherwise) and
