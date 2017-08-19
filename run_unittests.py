@@ -1288,6 +1288,9 @@ int main(int argc, char **argv) {
         targets = mesonbuild.coredata.forbidden_target_names
         # We don't actually define a target with this name
         targets.pop('build.ninja')
+        # Remove this to avoid multiple entries with the same name
+        # but different case.
+        targets.pop('PHONY')
         for i in targets:
             self.assertPathExists(os.path.join(testdir, i))
 
