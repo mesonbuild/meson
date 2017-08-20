@@ -2,7 +2,9 @@
 
 ## Functions
 
-The following functions are available in build files. Click on each to see the description and usage. The objects returned by them are [list afterwards](#returned-objects).
+The following functions are available in build files. Click on each to
+see the description and usage. The objects returned by them are [list
+afterwards](#returned-objects).
 
 
 ### add_global_arguments()
@@ -11,13 +13,24 @@ The following functions are available in build files. Click on each to see the d
   void add_global_arguments(arg1, arg2, ...)
 ```
 
-Adds the positional arguments to the compiler command line for the language specified in `language` keyword argument. If a list of languages is given, the arguments are added to each of the corresponding compiler command lines. Note that there is no way to remove an argument set in this way. If you have an argument that is only used in a subset of targets, you have to specify it in per-target flags.
+Adds the positional arguments to the compiler command line for the
+language specified in `language` keyword argument. If a list of
+languages is given, the arguments are added to each of the
+corresponding compiler command lines. Note that there is no way to
+remove an argument set in this way. If you have an argument that is
+only used in a subset of targets, you have to specify it in per-target
+flags.
 
-The arguments are used in all compiler invocations with the exception of compile tests, because you might need to run a compile test with and without the argument in question. For this reason only the arguments explicitly specified are used during compile tests.
+The arguments are used in all compiler invocations with the exception
+of compile tests, because you might need to run a compile test with
+and without the argument in question. For this reason only the
+arguments explicitly specified are used during compile tests.
 
-**Note:** Usually you should use `add_project_arguments` instead, because that works even when you project is used as a subproject.
+**Note:** Usually you should use `add_project_arguments` instead,
+  because that works even when you project is used as a subproject.
 
-**Note:** You must pass always arguments individually `arg1, arg2, ...` rather than as a string `'arg1 arg2', ...`
+**Note:** You must pass always arguments individually `arg1, arg2,
+  ...` rather than as a string `'arg1 arg2', ...`
 
 ### add_global_link_arguments()
 
@@ -33,7 +46,9 @@ Like `add_global_arguments` but the arguments are passed to the linker.
   add_languages(*langs*)
 ```
 
-Add support for new programming languages. Equivalent to having them in the `project` declaration. This function is usually used to add languages that are only used on some platforms like this:
+Add support for new programming languages. Equivalent to having them
+in the `project` declaration. This function is usually used to add
+languages that are only used on some platforms like this:
 
 ```meson
 project('foobar', 'c')
@@ -42,7 +57,10 @@ if compiling_for_osx
 endif
 ```
 
-Takes one keyword argument, `required`. It defaults to `true`, which means that if any of the languages specified is not found, Meson will halt. Returns true if all languages specified were found and false otherwise.
+Takes one keyword argument, `required`. It defaults to `true`, which
+means that if any of the languages specified is not found, Meson will
+halt. Returns true if all languages specified were found and false
+otherwise.
 
 ### add_project_arguments()
 
@@ -50,7 +68,9 @@ Takes one keyword argument, `required`. It defaults to `true`, which means that 
   void add_project_arguments(arg1, arg2, ...)
 ```
 
-This function behaves in the same way as `add_global_arguments` except that the arguments are only used for the current project, they won't be used in any other subproject.
+This function behaves in the same way as `add_global_arguments` except
+that the arguments are only used for the current project, they won't
+be used in any other subproject.
 
 ### add_project_link_arguments()
 
@@ -66,7 +86,9 @@ Like `add_project_arguments` but the arguments are passed to the linker.
   void add_test_setup(*name*, ...)
 ```
 
-Add a custom test setup that can be used to run the tests with a custom setup, for example under Valgrind. The keyword arguments are the following:
+Add a custom test setup that can be used to run the tests with a
+custom setup, for example under Valgrind. The keyword arguments are
+the following:
 
 - `env` an [environment object](#environment-object) to use a custom environment
 - `exe_wrapper` a list containing the wrapper command or script followed by the arguments to it
@@ -75,7 +97,9 @@ Add a custom test setup that can be used to run the tests with a custom setup, f
 
 To use the test setup, run `mesontest --setup=*name*` inside the build dir.
 
-Note that all these options are also available while running the `mesontest` script for running tests instead of `ninja test` or `msbuild RUN_TESTS.vcxproj`, etc depending on the backend.
+Note that all these options are also available while running the
+`mesontest` script for running tests instead of `ninja test` or
+`msbuild RUN_TESTS.vcxproj`, etc depending on the backend.
 
 ### benchmark()
 
@@ -83,11 +107,15 @@ Note that all these options are also available while running the `mesontest` scr
     void benchmark(name, executable, ...)
 ```
 
-Creates a benchmark item that will be run when the benchmark target is run. The behavior of this function is identical to `test` with the exception that there is no `is_parallel` keyword, because benchmarks are never run in parallel.
+Creates a benchmark item that will be run when the benchmark target is
+run. The behavior of this function is identical to `test` with the
+exception that there is no `is_parallel` keyword, because benchmarks
+are never run in parallel.
 
 ### build_target()
 
-Creates a build target whose type can be set dynamically with the `target_type` keyword argument. This declaration:
+Creates a build target whose type can be set dynamically with the
+`target_type` keyword argument. This declaration:
 
 ```meson
 executable(<arguments and keyword arguments>)
@@ -99,7 +127,10 @@ is equivalent to this:
 build_target(<arguments and keyword arguments>, target_type : 'executable')
 ```
 
-The object returned by `build_target` and all convenience wrappers for `build_target` such as [`executable`](#executable) and [`library`](#library) has methods that are documented in the [object methods section](#build-target-object) below.
+The object returned by `build_target` and all convenience wrappers for
+`build_target` such as [`executable`](#executable) and
+[`library`](#library) has methods that are documented in the [object
+methods section](#build-target-object) below.
 
 ### configuration_data()
 
@@ -107,7 +138,9 @@ The object returned by `build_target` and all convenience wrappers for `build_ta
     configuration_data_object = configuration_data()
 ```
 
-Creates an empty configuration object. You should add your configuration with [its method calls](#configuration-data-object) and finally use it in a call to `configure_file`.
+Creates an empty configuration object. You should add your
+configuration with [its method calls](#configuration-data-object) and
+finally use it in a call to `configure_file`.
 
 ### configure_file()
 
@@ -115,11 +148,18 @@ Creates an empty configuration object. You should add your configuration with [i
     generated_file = configure_file(...)
 ```
 
-This function can run in two modes depending on the keyword arguments passed to it.
+This function can run in two modes depending on the keyword arguments
+passed to it.
 
-When a [`configuration_data()`](#configuration_data) object is passed to the `configuration:` keyword argument, it takes a template file as the `input:` (optional) and produces the `output:` (required) by substituting values from the configuration data as detailed in [the configuration file documentation](Configuration.md).
+When a [`configuration_data()`](#configuration_data) object is passed
+to the `configuration:` keyword argument, it takes a template file as
+the `input:` (optional) and produces the `output:` (required) by
+substituting values from the configuration data as detailed in [the
+configuration file documentation](Configuration.md).
 
-When a list of strings is passed to the `command:` keyword argument, it takes any source or configured file as the `input:` and assumes that the `output:` is produced when the specified command is run.
+When a list of strings is passed to the `command:` keyword argument,
+it takes any source or configured file as the `input:` and assumes
+that the `output:` is produced when the specified command is run.
 
 These are all the supported keyword arguments:
 
@@ -407,27 +447,46 @@ This function is deprecated and in the 0.31.0 release it was moved to
     program find_program(program_name1, program_name2, ...)
 ```
 
-`program_name1` here is a string that can be an executable or script to be searched for in `PATH`, or a script in the current source directory.
+`program_name1` here is a string that can be an executable or script
+to be searched for in `PATH`, or a script in the current source
+directory.
 
-`program_name2` and later positional arguments are used as fallback strings to search for. This is meant to be used for cases where the program may have many alternative names, such as `foo` and `foo.py`. The function will check for the arguments one by one and the first one that is found is returned. Meson versions earlier than 0.37.0 only accept one argument.
+`program_name2` and later positional arguments are used as fallback
+strings to search for. This is meant to be used for cases where the
+program may have many alternative names, such as `foo` and
+`foo.py`. The function will check for the arguments one by one and the
+first one that is found is returned. Meson versions earlier than
+0.37.0 only accept one argument.
 
 Keyword arguments are the following:
 
-- `required` By default, `required` is set to `true` and Meson will abort if no program can be found. If `required` is set to `false`, Meson continue even if none of the programs can be found. You can then use the `.found()` method on the returned object to check whether it was found or not.
+- `required` By default, `required` is set to `true` and Meson will
+  abort if no program can be found. If `required` is set to `false`,
+  Meson continue even if none of the programs can be found. You can
+  then use the `.found()` method on the returned object to check
+  whether it was found or not.
 
-Meson will also autodetect scripts with a shebang line and run them with the executable/interpreter specified in it both on Windows (because the command invocator will reject the command otherwise) and Unixes (if the script file does not have the executable bit set). Hence, you *must not* manually add the interpreter while using this script as part of a list of commands.
+Meson will also autodetect scripts with a shebang line and run them
+with the executable/interpreter specified in it both on Windows
+(because the command invocator will reject the command otherwise) and
+Unixes (if the script file does not have the executable bit
+set). Hence, you *must not* manually add the interpreter while using
+this script as part of a list of commands.
 
-If you need to check for a program in a non-standard location, you can just pass an absolute path to `find_program`, e.g.
-```
-setcap = find_program('setcap', '/usr/sbin/setcap', '/sbin/setcap', required : false)
-```
+If you need to check for a program in a non-standard location, you can
+just pass an absolute path to `find_program`, e.g.  ``` setcap =
+find_program('setcap', '/usr/sbin/setcap', '/sbin/setcap', required :
+false) ```
 
-It is also possible to pass an array to `find_program` in case you need to construct the set of paths to search on the fly:
+It is also possible to pass an array to `find_program` in case you
+need to construct the set of paths to search on the fly:
+
 ```
 setcap = find_program(['setcap', '/usr/sbin/setcap', '/sbin/setcap'], required : false)
 ```
 
-The returned object also has methods that are documented in the [object methods section](#external-program-object) below.
+The returned object also has methods that are documented in the
+[object methods section](#external-program-object) below.
 
 ### files()
 
@@ -435,7 +494,14 @@ The returned object also has methods that are documented in the [object methods 
     file_array files(list_of_filenames)
 ```
 
-This command takes the strings given to it in arguments and returns corresponding File objects that you can use as sources for build targets. The difference is that file objects remember the subdirectory they were defined in and can be used anywhere in the source tree. As an example suppose you have source file `foo.cpp` in subdirectory `bar1` and you would like to use it in a build target that is defined in `bar2`. To make this happen you first create the object in `bar1` like this:
+This command takes the strings given to it in arguments and returns
+corresponding File objects that you can use as sources for build
+targets. The difference is that file objects remember the subdirectory
+they were defined in and can be used anywhere in the source tree. As
+an example suppose you have source file `foo.cpp` in subdirectory
+`bar1` and you would like to use it in a build target that is defined
+in `bar2`. To make this happen you first create the object in `bar1`
+like this:
 
 ```meson
     foofile = files('foo.cpp')
@@ -474,16 +540,20 @@ following:
   how an output file name is (or multiple output names are) generated
   from a single source file name
 
-The returned object also has methods that are documented in the [object methods section](#generator-object) below.
+The returned object also has methods that are documented in the
+[object methods section](#generator-object) below.
 
-The template strings passed to all the above keyword arguments accept the following special substitutions:
+The template strings passed to all the above keyword arguments accept
+the following special substitutions:
 
 - `@PLAINNAME@`: the complete input file name, e.g: `foo.c` becomes `foo.c` (unchanged)
 - `@BASENAME@`: the base of the input filename, e.g.: `foo.c.y` becomes `foo.c` (extension is removed)
 
-Each string passed to the `outputs` keyword argument *must* be constructed using one or both of these two substitutions.
+Each string passed to the `outputs` keyword argument *must* be
+constructed using one or both of these two substitutions.
 
-In addition to the above substitutions, the `arguments` keyword argument also accepts the following:
+In addition to the above substitutions, the `arguments` keyword
+argument also accepts the following:
 
 - `@OUTPUT@`: the full path to the output file
 - `@INPUT@`: the full path to the input file
@@ -491,9 +561,16 @@ In addition to the above substitutions, the `arguments` keyword argument also ac
 - `@CURRENT_SOURCE_DIR@`: this is the directory where the currently processed meson.build is located in
 - `@BUILD_DIR@`: the full path to the root of the build dir where the output will be placed
 
-NOTE: Generators should only be used for outputs that will ***only*** be used as inputs for a [build target](#build_target) or a [custom target](#custom_target). When you use the processed output of a generator in multiple targets, the generator will be run multiple times to create outputs for each target. Each output will be created in a target-private directory `@BUILD_DIR@`.
+NOTE: Generators should only be used for outputs that will ***only***
+be used as inputs for a [build target](#build_target) or a [custom
+target](#custom_target). When you use the processed output of a
+generator in multiple targets, the generator will be run multiple
+times to create outputs for each target. Each output will be created
+in a target-private directory `@BUILD_DIR@`.
 
-If you want to generate files for general purposes such as for generating headers to be used by several sources, or data that will be installed, and so on, use a [`custom_target`](#custom_target) instead.
+If you want to generate files for general purposes such as for
+generating headers to be used by several sources, or data that will be
+installed, and so on, use a [`custom_target`](#custom_target) instead.
 
 ### get_option()
 
@@ -509,7 +586,12 @@ Obtains the value of the [project build option](Build-options.md) specified in t
     value get_variable(variable_name, fallback)
 ```
 
-This function can be used to dynamically obtain a variable. `res = get_variable(varname, fallback)` takes the value of `varname` (which must be a string) and stores the variable of that name into `res`. If the variable does not exist, the variable `fallback` is stored to `res`instead. If a fallback is not specified, then attempting to read a non-existing variable will cause a fatal error.
+This function can be used to dynamically obtain a variable. `res =
+get_variable(varname, fallback)` takes the value of `varname` (which
+must be a string) and stores the variable of that name into `res`. If
+the variable does not exist, the variable `fallback` is stored to
+`res`instead. If a fallback is not specified, then attempting to read
+a non-existing variable will cause a fatal error.
 
 ### import()
 
@@ -517,7 +599,9 @@ This function can be used to dynamically obtain a variable. `res = get_variable(
     module_object import(module_name)
 ```
 
-Imports the given extension module. Returns an opaque object that can be used to call the methods of the module. Here's an example for a hypothetical `testmod` module.
+Imports the given extension module. Returns an opaque object that can
+be used to call the methods of the module. Here's an example for a
+hypothetical `testmod` module.
 
 ```meson
     tmod = import('testmod')
@@ -530,13 +614,22 @@ Imports the given extension module. Returns an opaque object that can be used to
     include_object include_directories(directory_names, ...)
 ```
 
-Returns an opaque object which contains the directories (relative to the current directory) given in the positional arguments. The result can then be passed to the `include_directories:` keyword argument when building executables or libraries. You can use the returned object in any subdirectory you want, Meson will make the paths work automatically.
+Returns an opaque object which contains the directories (relative to
+the current directory) given in the positional arguments. The result
+can then be passed to the `include_directories:` keyword argument when
+building executables or libraries. You can use the returned object in
+any subdirectory you want, Meson will make the paths work
+automatically.
 
-Note that this function call itself does not add the directories into the search path, since there is no global search path. For something like that, see [`add_project_arguments()`](#add_project_arguments).
+Note that this function call itself does not add the directories into
+the search path, since there is no global search path. For something
+like that, see [`add_project_arguments()`](#add_project_arguments).
 
-Each directory given is converted to two include paths: one that is relative to the source root and one relative to the build root.
+Each directory given is converted to two include paths: one that is
+relative to the source root and one relative to the build root.
 
-For example, with the following source tree layout in `/home/user/project.git`:
+For example, with the following source tree layout in
+`/home/user/project.git`:
 
 `meson.build`:
 ```meson
@@ -576,7 +669,8 @@ This function has one keyword argument `is_system` which, if set, flags the spec
     void install_data(list_of_files, ...)
 ```
 
-Installs files from the source tree that are listed as positional arguments. The following keyword arguments are supported:
+Installs files from the source tree that are listed as positional
+arguments. The following keyword arguments are supported:
 
 - `install_dir` the absolute or relative path to the installation
   directory. If this is a relative path, it is assumed to be relative
@@ -600,9 +694,16 @@ Installs files from the source tree that are listed as positional arguments. The
     void install_headers(list_of_headers, ...)
 ```
 
-Installs the specified header files from the source tree into the system header directory (usually `/{prefix}/include`) during the install step. This directory can be overridden by specifying it with the `install_dir` keyword argument. If you just want to install into a subdirectory of the system header directory, then use the `subdir` argument. As an example if this has the value `myproj` then the headers would be installed to `/{prefix}/include/myproj`.
+Installs the specified header files from the source tree into the
+system header directory (usually `/{prefix}/include`) during the
+install step. This directory can be overridden by specifying it with
+the `install_dir` keyword argument. If you just want to install into a
+subdirectory of the system header directory, then use the `subdir`
+argument. As an example if this has the value `myproj` then the
+headers would be installed to `/{prefix}/include/myproj`.
 
-For example, this will install `common.h` and `kola.h` into `/{prefix}/include`:
+For example, this will install `common.h` and `kola.h` into
+`/{prefix}/include`:
 
 ```meson
 install_headers('common.h', 'proj/kola.h')
@@ -626,7 +727,11 @@ install_headers('common.h', 'proj/kola.h', install_dir : 'cust', subdir : 'mypro
     void install_man(list_of_manpages, ...)
 ```
 
-Installs the specified man files from the source tree into system's man directory during the install step. This directory can be overridden by specifying it with the `install_dir` keyword argument. All man pages are compressed during installation and installed with a `.gz` suffix.
+Installs the specified man files from the source tree into system's
+man directory during the install step. This directory can be
+overridden by specifying it with the `install_dir` keyword
+argument. All man pages are compressed during installation and
+installed with a `.gz` suffix.
 
 ### install_subdir()
 
@@ -634,7 +739,13 @@ Installs the specified man files from the source tree into system's man director
     void install_subdir(subdir_name, install_dir : ..., exclude_files : ..., exclude_directories : ...)
 ```
 
-Installs the entire given subdirectory and its contents from the source tree to the location specified by the keyword argument `install_dir`. Note that due to implementation issues this command deletes the entire target dir before copying the files, so you should never use `install_subdir` to install into two overlapping directories (such as `foo` and `foo/bar`) because if you do the behavior is undefined.
+Installs the entire given subdirectory and its contents from the
+source tree to the location specified by the keyword argument
+`install_dir`. Note that due to implementation issues this command
+deletes the entire target dir before copying the files, so you should
+never use `install_subdir` to install into two overlapping directories
+(such as `foo` and `foo/bar`) because if you do the behavior is
+undefined.
 
 The following keyword arguments are supported:
 
@@ -658,7 +769,10 @@ Returns true if a variable of the given name exists and false otherwise.
    jar_object jar(name, list_of_sources, ...)
 ```
 
-Build a jar from the specified Java source files. Keyword arguments are the same as [`executable`](#executable)'s, with the addition of `main_class` which specifies the main class to execute when running the jar with `java -jar file.jar`.
+Build a jar from the specified Java source files. Keyword arguments
+are the same as [`executable`](#executable)'s, with the addition of
+`main_class` which specifies the main class to execute when running
+the jar with `java -jar file.jar`.
 
 ### join_paths()
 
@@ -666,7 +780,10 @@ Build a jar from the specified Java source files. Keyword arguments are the same
    string join_paths(string1, string2, ...)
 ```
 
-Joins the given strings into a file system path segment. For example `join_paths('foo', 'bar')` results in `foo/bar`. If any one of the individual segments is an absolute path, all segments before it are dropped. That means that `join_paths('foo', '/bar')` returns `/bar`.
+Joins the given strings into a file system path segment. For example
+`join_paths('foo', 'bar')` results in `foo/bar`. If any one of the
+individual segments is an absolute path, all segments before it are
+dropped. That means that `join_paths('foo', '/bar')` returns `/bar`.
 
 *Added 0.36.0*
 
@@ -676,7 +793,12 @@ Joins the given strings into a file system path segment. For example `join_paths
     buildtarget library(library_name, list_of_sources, ...)
 ```
 
-Builds a library that is either static or shared depending on the value of `default_library` user option. You should use this instead of [`shared_library`](#shared_library) or [`static_library`](#static_library) most of the time. This allows you to toggle your entire project (including subprojects) from shared to static with only one option.
+Builds a library that is either static or shared depending on the
+value of `default_library` user option. You should use this instead of
+[`shared_library`](#shared_library) or
+[`static_library`](#static_library) most of the time. This allows you
+to toggle your entire project (including subprojects) from shared to
+static with only one option.
 
 The keyword arguments for this are the same as for [`executable`](#executable) with the following additions:
 
@@ -704,9 +826,19 @@ This function prints its argument to stdout.
     void project(project_name, list_of_languages, ...)
 ```
 
-The first argument to this function must be a string defining the name of this project. It is followed by programming languages that the project uses. Supported values for languages are `c`, `cpp` (for `C++`), `objc`, `objcpp`, `fortran`, `java`, `cs` (for `C#`) and `vala`. In versions before `0.40.0` you must have at least one language listed.
+The first argument to this function must be a string defining the name
+of this project. It is followed by programming languages that the
+project uses. Supported values for languages are `c`, `cpp` (for
+`C++`), `objc`, `objcpp`, `fortran`, `java`, `cs` (for `C#`) and
+`vala`. In versions before `0.40.0` you must have at least one
+language listed.
 
-The project name can be any string you want, it's not used for anything except descriptive purposes. However since it is written to e.g. the dependency manifest is usually makes sense to have it be the same as the project tarball or pkg-config name. So for example you would probably want to use the name _libfoobar_ instead of _The Foobar Library_.
+The project name can be any string you want, it's not used for
+anything except descriptive purposes. However since it is written to
+e.g. the dependency manifest is usually makes sense to have it be the
+same as the project tarball or pkg-config name. So for example you
+would probably want to use the name _libfoobar_ instead of _The Foobar
+Library_.
 
 Project supports the following keyword arguments.
 
@@ -750,7 +882,13 @@ Project supports the following keyword arguments.
     runresult run_command(command, list_of_args)
 ```
 
-Runs the command specified in positional arguments. Returns [an opaque object](#run-result-object) containing the result of the invocation. The script is run from an *unspecified* directory, and Meson will set three environment variables `MESON_SOURCE_ROOT`, `MESON_BUILD_ROOT` and `MESON_SUBDIR` that specify the source directory, build directory and subdirectory the target was defined in, respectively.
+Runs the command specified in positional arguments. Returns [an opaque
+object](#run-result-object) containing the result of the
+invocation. The script is run from an *unspecified* directory, and
+Meson will set three environment variables `MESON_SOURCE_ROOT`,
+`MESON_BUILD_ROOT` and `MESON_SUBDIR` that specify the source
+directory, build directory and subdirectory the target was defined in,
+respectively.
 
 ### run_target
 
@@ -758,9 +896,15 @@ Runs the command specified in positional arguments. Returns [an opaque object](#
     buildtarget run_target(target_name, ...)
 ```
 
-This function creates a new top-level target that runs a specified command with the specified arguments. Like all top-level targets, this integrates with the selected backend. For instance, with Ninja you can run it as `ninja target_name`.
+This function creates a new top-level target that runs a specified
+command with the specified arguments. Like all top-level targets, this
+integrates with the selected backend. For instance, with Ninja you can
+run it as `ninja target_name`.
 
-The script is run from an *unspecified* directory, and Meson will set three environment variables `MESON_SOURCE_ROOT`, `MESON_BUILD_ROOT` and `MESON_SUBDIR` that specify the source directory, build directory and subdirectory the target was defined in, respectively.
+The script is run from an *unspecified* directory, and Meson will set
+three environment variables `MESON_SOURCE_ROOT`, `MESON_BUILD_ROOT`
+and `MESON_SUBDIR` that specify the source directory, build directory
+and subdirectory the target was defined in, respectively.
 
  - `command` is a list containing the command to run and the arguments
    to pass to it. Each list item may be a string or a target. For
@@ -777,7 +921,8 @@ The script is run from an *unspecified* directory, and Meson will set three envi
     void set_variable(variable_name, value)
 ```
 
-Assigns a value to the given variable name. Calling `set_variable('foo', bar)` is equivalent to `foo = bar`.
+Assigns a value to the given variable name. Calling
+`set_variable('foo', bar)` is equivalent to `foo = bar`.
 
 ### shared_library()
 
@@ -785,7 +930,9 @@ Assigns a value to the given variable name. Calling `set_variable('foo', bar)` i
     buildtarget shared_library(library_name, list_of_sources, ...)
 ```
 
-Builds a shared library with the given sources. Positional and keyword arguments are the same as for [`library`](#library) with the following extra keyword arguments.
+Builds a shared library with the given sources. Positional and keyword
+arguments are the same as for [`library`](#library) with the following
+extra keyword arguments.
 
 - `soversion` a string specifying the soversion of this shared
   library, such as `0`. On Linux and Windows this is used to set the
@@ -810,9 +957,12 @@ Builds a shared library with the given sources. Positional and keyword arguments
     buildtarget shared_module(module_name, list_of_sources, ...)
 ```
 
-Builds a shared module with the given sources. Positional and keyword arguments are the same as for [`library`](#library).
+Builds a shared module with the given sources. Positional and keyword
+arguments are the same as for [`library`](#library).
 
-This is useful for building modules that will be `dlopen()`ed and hence may contain undefined symbols that will be provided by the library that is loading it.
+This is useful for building modules that will be `dlopen()`ed and
+hence may contain undefined symbols that will be provided by the
+library that is loading it.
 
 *Added 0.37.0*
 
@@ -822,7 +972,9 @@ This is useful for building modules that will be `dlopen()`ed and hence may cont
     buildtarget static_library(library_name, list_of_sources, ...)
 ```
 
-Builds a static library with the given sources. Positional and keyword arguments are otherwise the same as for [`library`](#library), but it has one argument the others don't have:
+Builds a static library with the given sources. Positional and keyword
+arguments are otherwise the same as for [`library`](#library), but it
+has one argument the others don't have:
 
  - `pic`, (*Added 0.36.0*) builds the library as positional
    independent code (so it can be linked into a shared library). This
@@ -835,9 +987,15 @@ Builds a static library with the given sources. Positional and keyword arguments
     void subdir(dir_name)
 ```
 
-Enters the specified subdirectory and executes the `meson.build` file in it. Once that is done, it returns and execution continues on the line following this `subdir()` command. Variables defined in that `meson.build` file are then available for use in later parts of the current build file and in all subsequent build files executed with `subdir()`.
+Enters the specified subdirectory and executes the `meson.build` file
+in it. Once that is done, it returns and execution continues on the
+line following this `subdir()` command. Variables defined in that
+`meson.build` file are then available for use in later parts of the
+current build file and in all subsequent build files executed with
+`subdir()`.
 
-Note that this means that each `meson.build` file in a source tree can and must only be executed once.
+Note that this means that each `meson.build` file in a source tree can
+and must only be executed once.
 
 ### subproject()
 
@@ -845,7 +1003,13 @@ Note that this means that each `meson.build` file in a source tree can and must 
     subproject_object subproject(subproject_name, ...)
 ```
 
-Takes the project specified in the positional argument and brings that in the current build specification by returning a [subproject object](#subproject-object). Subprojects must always be placed inside the `subprojects` directory at the top source directory. So for example a subproject called `foo` must be located in `${MESON_SOURCE_ROOT}/subprojects/foo`. Supports the following keyword arguments:
+Takes the project specified in the positional argument and brings that
+in the current build specification by returning a [subproject
+object](#subproject-object). Subprojects must always be placed inside
+the `subprojects` directory at the top source directory. So for
+example a subproject called `foo` must be located in
+`${MESON_SOURCE_ROOT}/subprojects/foo`. Supports the following keyword
+arguments:
 
  - `default_options`, *(added 0.37.0)* an array of default option
    values that override those set in the project's `default_options`
@@ -868,16 +1032,33 @@ argument to [`dependency()`](#dependency).
     void test(name, executable, ...)
 ```
 
-Defines a unit test. Takes two positional arguments, the first is the name of this test and the second is the executable to run. Keyword arguments are the following.
+Defines a unit test. Takes two positional arguments, the first is the
+name of this test and the second is the executable to run. Keyword
+arguments are the following.
 
 - `args` arguments to pass to the executable
-- `env` environment variables to set, such as `['NAME1=value1', 'NAME2=value2']`, or an [`environment()` object](#environment-object) which allows more sophisticated environment juggling
-- `is_parallel` when false, specifies that no other test must be running at the same time as this test
-- `should_fail` when true the test is considered passed if the executable returns a non-zero return value (i.e. reports an error)
-- `timeout` the amount of seconds the test is allowed to run, a test that exceeds its time limit is always considered failed, defaults to 30 seconds
-- `workdir` absolute path that will be used as the working directory for the test
 
-Defined tests can be run in a backend-agnostic way by calling `mesontest` inside the build dir, or by using backend-specific commands, such as `ninja test` or `msbuild RUN_TESTS.vcxproj`.
+- `env` environment variables to set, such as `['NAME1=value1',
+  'NAME2=value2']`, or an [`environment()`
+  object](#environment-object) which allows more sophisticated
+  environment juggling
+
+- `is_parallel` when false, specifies that no other test must be
+  running at the same time as this test
+
+- `should_fail` when true the test is considered passed if the
+  executable returns a non-zero return value (i.e. reports an error)
+
+- `timeout` the amount of seconds the test is allowed to run, a test
+  that exceeds its time limit is always considered failed, defaults to
+  30 seconds
+
+- `workdir` absolute path that will be used as the working directory
+  for the test
+
+Defined tests can be run in a backend-agnostic way by calling
+`mesontest` inside the build dir, or by using backend-specific
+commands, such as `ninja test` or `msbuild RUN_TESTS.vcxproj`.
 
 ### vcs_tag()
 
@@ -885,7 +1066,9 @@ Defined tests can be run in a backend-agnostic way by calling `mesontest` inside
     customtarget vcs_tag(...)
 ```
 
-This command detects revision control commit information at build time and places it in the specified output file. This file is guaranteed to be up to date on every build. Keywords are similar to `custom_target`.
+This command detects revision control commit information at build time
+and places it in the specified output file. This file is guaranteed to
+be up to date on every build. Keywords are similar to `custom_target`.
 
 - `command` string list with the command to execute, see
   [`custom_target`](#custom_target) for details on how this command
@@ -911,7 +1094,9 @@ These are built-in objects that are always available.
 
 ### `meson` object
 
-The `meson` object allows you to introspect various properties of the system. This object is always mapped in the `meson` variable. It has the following methods.
+The `meson` object allows you to introspect various properties of the
+system. This object is always mapped in the `meson` variable. It has
+the following methods.
 
 - `add_install_script(script_name, arg1, arg2, ...)` causes the script
   given as an argument to be run during the install step, this script
@@ -1004,38 +1189,72 @@ The `meson` object allows you to introspect various properties of the system. Th
 
 ### `build_machine` object
 
-Provides information about the build machine — the machine that is doing the actual compilation. See [Cross-compilation](Cross-compilation.md). It has the following methods:
+Provides information about the build machine — the machine that is
+doing the actual compilation. See
+[Cross-compilation](Cross-compilation.md). It has the following
+methods:
 
-- `cpu_family()` returns the CPU family name. Guaranteed to return `x86` for 32-bit userland on x86 CPUs, `x86_64` for 64-bit userland on x86 CPUs, `arm` for 32-bit userland on all ARM CPUs, etc.
-- `cpu()` returns a more specific CPU name, such as `i686`, `amd64`, etc.
-- `system()` returns the operating system name, such as `windows` (all versions of Windows), `linux` (all Linux distros), `darwin` (all versions of OS X/macOS), `cygwin` (for Cygwin), and `bsd` (all *BSD OSes).
-- `endian()` returns `big` on big-endian systems and `little` on little-endian systems.
+- `cpu_family()` returns the CPU family name. Guaranteed to return
+  `x86` for 32-bit userland on x86 CPUs, `x86_64` for 64-bit userland
+  on x86 CPUs, `arm` for 32-bit userland on all ARM CPUs, etc.
 
-Currently, these values are populated using [`platform.system()`](https://docs.python.org/3.4/library/platform.html#platform.system) and [`platform.machine()`](https://docs.python.org/3.4/library/platform.html#platform.machine). If you think the returned values for any of these are incorrect for your system or CPU, or if your OS is not in the above list, please file [a bug report](https://github.com/mesonbuild/meson/issues/new) with details and we'll look into it.
+- `cpu()` returns a more specific CPU name, such as `i686`, `amd64`,
+  etc.
+
+- `system()` returns the operating system name, such as `windows` (all
+  versions of Windows), `linux` (all Linux distros), `darwin` (all
+  versions of OS X/macOS), `cygwin` (for Cygwin), and `bsd` (all *BSD
+  OSes).
+
+- `endian()` returns `big` on big-endian systems and `little` on
+  little-endian systems.
+
+Currently, these values are populated using
+[`platform.system()`](https://docs.python.org/3.4/library/platform.html#platform.system)
+and
+[`platform.machine()`](https://docs.python.org/3.4/library/platform.html#platform.machine). If
+you think the returned values for any of these are incorrect for your
+system or CPU, or if your OS is not in the above list, please file [a
+bug report](https://github.com/mesonbuild/meson/issues/new) with
+details and we'll look into it.
 
 ### `host_machine` object
 
-Provides information about the host machine — the machine on which the compiled binary will run. See [Cross-compilation](Cross-compilation.md).
+Provides information about the host machine — the machine on which the
+compiled binary will run. See
+[Cross-compilation](Cross-compilation.md).
 
 It has the same methods as [`build_machine`](#build_machine-object).
 
-When not cross-compiling, all the methods return the same values as `build_machine` (because the build machine is the host machine)
+When not cross-compiling, all the methods return the same values as
+`build_machine` (because the build machine is the host machine)
 
-Note that while cross-compiling, it simply returns the values defined in the cross-info file.
+Note that while cross-compiling, it simply returns the values defined
+in the cross-info file.
 
 ### `target_machine` object
 
-Provides information about the target machine — the machine on which the compiled binary's output will run. Hence, this object should only be used while cross-compiling a compiler. See [Cross-compilation](Cross-compilation.md).
+Provides information about the target machine — the machine on which
+the compiled binary's output will run. Hence, this object should only
+be used while cross-compiling a compiler. See
+[Cross-compilation](Cross-compilation.md).
 
 It has the same methods as [`build_machine`](#build_machine-object).
 
-When all compilation is 'native', all the methods return the same values as `build_machine` (because the build machine is the host machine and the target machine).
+When all compilation is 'native', all the methods return the same
+values as `build_machine` (because the build machine is the host
+machine and the target machine).
 
-Note that while cross-compiling, it simply returns the values defined in the cross-info file. If `target_machine` values are not defined in the cross-info file, `host_machine` values are returned instead.
+Note that while cross-compiling, it simply returns the values defined
+in the cross-info file. If `target_machine` values are not defined in
+the cross-info file, `host_machine` values are returned instead.
 
 ### `compiler` object
 
-This object is returned by [`meson.get_compiler(lang)`](#meson-object). It represents a compiler for a given language and allows you to query its properties. It has the following methods:
+This object is returned by
+[`meson.get_compiler(lang)`](#meson-object). It represents a compiler
+for a given language and allows you to query its properties. It has
+the following methods:
 
 - `alignment(typename)` returns the alignment of the type specified in
   the positional argument, you can specify external dependencies to
@@ -1352,7 +1571,10 @@ and has the following methods:
 
 ### `environment` object
 
-This object is returned by [`environment()`](#environment) and stores detailed information about how environment variables should be set during tests. It should be passed as the `env` keyword argument to tests. It has the following methods.
+This object is returned by [`environment()`](#environment) and stores
+detailed information about how environment variables should be set
+during tests. It should be passed as the `env` keyword argument to
+tests. It has the following methods.
 
 - `append(varname, value)` appends the given value to the old value of
   the environment variable, e.g.  `env.append'('FOO', 'BAR', separator
