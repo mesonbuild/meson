@@ -208,6 +208,18 @@ class PkgConfigDependency(ExternalDependency):
         else:
             self.type_string = 'Native'
 
+        # if search_prefix: true is given, we also search for .pc files in the
+        # prefix/libdir/pkgconfig directory.
+        # The prefix/libdir/pkgconfig directory always contains files for the host
+        # system architecture, so we can't use it if we want a dependency for the build
+        # machine. This only happens when we are cross compiling, but we are
+        # building a native library. So we check we are compiling for the host machine.
+        compiles_for_host = self.want_cross or not self.env.is_cross_build()
+        if compiles_for_host and kwargs.get('search_prefix', False):
+            self.pkgconfig_env = self._add_prefix_search()
+        else:
+            self.pkgconfig_env = os.environ
+
         mlog.debug('Determining dependency {!r} with pkg-config executable '
                    '{!r}'.format(name, self.pkgbin))
         ret, self.version = self._call_pkgbin(['--modversion', name])
@@ -254,8 +266,21 @@ class PkgConfigDependency(ExternalDependency):
         return s.format(self.__class__.__name__, self.name, self.is_found,
                         self.version_reqs)
 
+    def _add_prefix_search(self):
+        prefix_search_path = os.path.join(self.env.coredata.get_builtin_option("prefix"),
+                                          self.env.coredata.get_builtin_option("libdir"),
+                                          "pkgconfig")
+        evar = 'PKG_CONFIG_PATH'
+        env = os.environ.copy()
+        if evar in env:
+            pkgconfdir = env[evar].strip() + os.pathsep + prefix_search_path
+        else:
+            pkgconfdir = prefix_search_path
+        env[evar] = pkgconfdir
+        return env
+
     def _call_pkgbin(self, args):
-        p, out = Popen_safe([self.pkgbin] + args, env=os.environ)[0:2]
+        p, out = Popen_safe([self.pkgbin] + args, env=self.pkgconfig_env)[0:2]
         return p.returncode, out.strip()
 
     def _set_cargs(self):
