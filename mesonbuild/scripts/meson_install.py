@@ -250,7 +250,7 @@ def run_install_script(d):
            'MESON_INSTALL_DESTDIR_PREFIX': d.fullprefix,
            'MESONINTROSPECT': ' '.join([shlex.quote(x) for x in d.mesonintrospect]),
            }
-    print(env)
+
     child_env = os.environ.copy()
     child_env.update(env)
 
