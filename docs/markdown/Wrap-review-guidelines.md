@@ -1,6 +1,11 @@
 # Wrap review guidelines
 
-In order to get a package in the Wrap database it must be reviewed and accepted by someone with admin rights. Here is a list of items to check in the review. If some item is not met it does not mean that the package is rejected. What should be done will be determined on a case-by-case basis. Similarly meeting all these requirements does not guarantee that the package will get accepted. Use common sense.
+In order to get a package in the Wrap database it must be reviewed and
+accepted by someone with admin rights. Here is a list of items to
+check in the review. If some item is not met it does not mean that the
+package is rejected. What should be done will be determined on a
+case-by-case basis. Similarly meeting all these requirements does not
+guarantee that the package will get accepted. Use common sense.
 
 ## Checklist ##
 
