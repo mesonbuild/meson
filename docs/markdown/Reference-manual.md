@@ -209,14 +209,21 @@ The returned object also has methods that are documented in the
     dependency_object declare_dependency(...)
 ```
 
-This function returns a [dependency object](#dependency-object) that behaves like the return value of [`dependency`](#dependency) but is internal to the current build. The main use case for this is in subprojects. This allows a subproject to easily specify how it should be used. This makes it interchangeable with the same dependency that is provided externally by the system. This function has the following keyword arguments.
+This function returns a [dependency object](#dependency-object) that
+behaves like the return value of [`dependency`](#dependency) but is
+internal to the current build. The main use case for this is in
+subprojects. This allows a subproject to easily specify how it should
+be used. This makes it interchangeable with the same dependency that
+is provided externally by the system. This function has the following
+keyword arguments.
 
-  - `include_directories`, the directories to add to header search path
-  - `link_with`, libraries to link against
-  - `sources`, sources to add to targets (or generated header files that should be built before sources including them are built)
-  - `dependencies`, other dependencies needed to use this dependency
   - `compile_args`, compile arguments to use
+  - `dependencies`, other dependencies needed to use this dependency
+  - `include_directories`, the directories to add to header search path
   - `link_args`, link arguments to use
+  - `link_with`, libraries to link against
+  - `sources`, sources to add to targets (or generated header files
+    that should be built before sources including them are built)
   - `version`, the version of this dependency, such as `1.2.3`
 
 ### dependency()
@@ -225,19 +232,47 @@ This function returns a [dependency object](#dependency-object) that behaves lik
     dependency_object dependency(*dependency_name*, ...)
 ```
 
-Finds an external dependency (usually a library installed on your system) with the given name with `pkg-config` if possible and with [library-specific fallback detection logic](Dependencies.md) otherwise. This function supports the following keyword arguments:
+Finds an external dependency (usually a library installed on your
+system) with the given name with `pkg-config` if possible and with
+[library-specific fallback detection logic](Dependencies.md)
+otherwise. This function supports the following keyword arguments:
 
-- `modules` specifies submodules to use for dependencies such as Qt5 or Boost.
-- `required`, when set to false, Meson will proceed with the build even if the dependency is not found
-- `version`, specifies the required version, a string containing a comparison operator followed by the version string, examples include `>1.0.0`, `<=2.3.5` or `3.1.4` for exact matching. (*Added 0.37.0*) You can also specify multiple restrictions by passing a list to this keyword argument, such as: `['>=3.14.0', '<=4.1.0']`.
-- `native` if set to `true`, causes Meson to find the dependency on the build machine system rather than the host system (i.e. where the cross compiled binary will run on), usually only needed if you build a tool to be used during compilation.
-- `static` tells the dependency provider to try to get static libraries instead of dynamic ones (note that this is not supported by all dependency backends)
-- `fallback` specifies a subproject fallback to use in case the dependency is not found in the system. The value is an array `['subproj_name', 'subproj_dep']` where the first value is the name of the subproject and the second is the variable name in that subproject that contains the value of [`declare_dependency`](#declare_dependency).
-- `default_options` *(added 0.37.0)* an array of option values that override those set in the project's `default_options` invocation (like `default_options` in [`project()`](#project), they only have effect when Meson is run for the first time, and command line arguments override any default options in build files)
-- `method` defines the way the dependency is detected, the default is `auto` but can be overridden to be e.g. `qmake` for Qt development, and different dependencies support different values for this (though `auto` will work on all of them)
-- `language` *(added 0.42.0)* defines what language-specific dependency to find if it's available for multiple languages.
+- `default_options` *(added 0.37.0)* an array of option values that
+  override those set in the project's `default_options` invocation
+  (like `default_options` in [`project()`](#project), they only have
+  effect when Meson is run for the first time, and command line
+  arguments override any default options in build files)
+- `fallback` specifies a subproject fallback to use in case the
+  dependency is not found in the system. The value is an array
+  `['subproj_name', 'subproj_dep']` where the first value is the name
+  of the subproject and the second is the variable name in that
+  subproject that contains the value of
+  [`declare_dependency`](#declare_dependency).
+- `language` *(added 0.42.0)* defines what language-specific
+  dependency to find if it's available for multiple languages.
+- `method` defines the way the dependency is detected, the default is
+  `auto` but can be overridden to be e.g. `qmake` for Qt development,
+  and different dependencies support different values for this (though
+  `auto` will work on all of them)
+- `modules` specifies submodules to use for dependencies such as Qt5
+  or Boost.
+- `native` if set to `true`, causes Meson to find the dependency on
+  the build machine system rather than the host system (i.e. where the
+  cross compiled binary will run on), usually only needed if you build
+  a tool to be used during compilation.
+- `required`, when set to false, Meson will proceed with the build
+  even if the dependency is not found
+- `static` tells the dependency provider to try to get static
+  libraries instead of dynamic ones (note that this is not supported
+  by all dependency backends)
+- `version`, specifies the required version, a string containing a
+  comparison operator followed by the version string, examples include
+  `>1.0.0`, `<=2.3.5` or `3.1.4` for exact matching. (*Added 0.37.0*)
+  You can also specify multiple restrictions by passing a list to this
+  keyword argument, such as: `['>=3.14.0', '<=4.1.0']`.
 
-The returned object also has methods that are documented in the [object methods section](#dependency-object) below.
+The returned object also has methods that are documented in the
+[object methods section](#dependency-object) below.
 
 ### error()
 
@@ -261,47 +296,110 @@ Returns an empty [environment variable object](#environment-object).
     buildtarget executable(*exe_name*, *sources*, ...)
 ```
 
-Creates a new executable. The first argument specifies its name and the remaining positional arguments define the input files to use. They can be of the following types:
+Creates a new executable. The first argument specifies its name and
+the remaining positional arguments define the input files to use. They
+can be of the following types:
 
 - Strings relative to the current source directory
 - [`files()`](#files) objects defined in any preceding build file
 - The return value of configure-time generators such as [`configure_file()`](#configure_file)
-- The return value of build-time generators such as [`custom_target()`](#custom_target) or [`generator.process()`](#generator-object)
+- The return value of build-time generators such as
+  [`custom_target()`](#custom_target) or
+  [`generator.process()`](#generator-object)
 
-These input files can be sources, objects, libraries, or any other file. Meson will automatically categorize them based on the extension and use them accordingly. For instance, sources (`.c`, `.cpp`, `.vala`, `.rs`, etc) will be compiled, objects (`.o`, `.obj`) and libraries (`.so`, `.dll`, etc) will be linked, and all other files (headers, unknown extensions, etc) will be ignored.
+These input files can be sources, objects, libraries, or any other
+file. Meson will automatically categorize them based on the extension
+and use them accordingly. For instance, sources (`.c`, `.cpp`,
+`.vala`, `.rs`, etc) will be compiled, objects (`.o`, `.obj`) and
+libraries (`.so`, `.dll`, etc) will be linked, and all other files
+(headers, unknown extensions, etc) will be ignored.
 
-With the Ninja backend, Meson will create a build-time [order-only dependency](https://ninja-build.org/manual.html#ref_dependencies) on all generated input files, including unknown files. For all input files (generated and non-generated), Meson uses the [dependency file](https://ninja-build.org/manual.html#ref_headers) generated by your compiler to determine when to rebuild sources. The behavior is similar for other backends.
+With the Ninja backend, Meson will create a build-time [order-only
+dependency](https://ninja-build.org/manual.html#ref_dependencies) on
+all generated input files, including unknown files. For all input
+files (generated and non-generated), Meson uses the [dependency
+file](https://ninja-build.org/manual.html#ref_headers) generated by
+your compiler to determine when to rebuild sources. The behavior is
+similar for other backends.
 
-Executable supports the following keyword arguments. Note that just like the positional arguments above, these keyword arguments can also be passed to [shared and static libraries](#library).
+Executable supports the following keyword arguments. Note that just
+like the positional arguments above, these keyword arguments can also
+be passed to [shared and static libraries](#library).
 
-- `link_with`, one or more shared or static libraries (built by this project) that this target should be linked with, If passed a list this list will be flattened as of 0.41.0.
-- `link_whole` links all contents of the given static libraries whether they are used by not, equivalent to the `-Wl,--whole-archive` argument flag of GCC, available since 0.40.0. As of 0.41.0 if passed a list that list will be flattened.
 - `<languagename>_pch` precompiled header file to use for the given language
-- `<languagename>_args` compiler flags to use for the given language; eg: `cpp_args` for C++
-- `link_args` flags to use during linking. You can use UNIX-style flags here for all platforms.
-- `link_depends`  strings, files, or custom targets the link step depends on such as a symbol visibility map. The purpose is to automatically trigger a re-link (but not a re-compile) of the target when this file changes.
-- `include_directories` one or more objects created with the `include_directories` function
-- `dependencies` one or more objects created with [`dependency`](#dependency) or [`find_library`](#compiler-object) (for external deps) or [`declare_dependency`](#declare_dependency) (for deps built by the project)
-- `gui_app` when set to true flags this target as a GUI application on platforms where this makes a difference (e.g. Windows)
-- `extra_files` are not used for the build itself but are shown as source files in IDEs that group files by targets (such as Visual Studio)
+- `<languagename>_args` compiler flags to use for the given language;
+  eg: `cpp_args` for C++
+- `build_by_default` causes, when set to true, to have this target be
+  built by default, that is, when invoking plain `ninja`, the default
+  value is true for all built target types, since 0.38.0
+- `build_rpath` a string to add to target's rpath definition in the
+  build dir, but which will be removed on install
+- `dependencies` one or more objects created with
+  [`dependency`](#dependency) or [`find_library`](#compiler-object)
+  (for external deps) or [`declare_dependency`](#declare_dependency)
+  (for deps built by the project)
+- `extra_files` are not used for the build itself but are shown as
+  source files in IDEs that group files by targets (such as Visual
+  Studio)
+- `gui_app` when set to true flags this target as a GUI application on
+  platforms where this makes a difference (e.g. Windows)
+- `link_args` flags to use during linking. You can use UNIX-style
+  flags here for all platforms.
+- `link_depends` strings, files, or custom targets the link step
+  depends on such as a symbol visibility map. The purpose is to
+  automaticallytrigger a re-link (but not a re-compile) of the target
+  when this file changes.
+- `link_whole` links all contents of the given static libraries
+  whether they are used by not, equivalent to the
+  `-Wl,--whole-archive` argument flag of GCC, available since
+  0.40.0. As of 0.41.0 if passed a list that list will be flattened.
+- `link_with`, one or more shared or static libraries (built by this
+  project) that this target should be linked with, If passed a list
+  this list will be flattened as of 0.41.0.
+- `implib` when set to true, an import library is generated for the
+  executable (the name of the import library is based on *exe_name*).
+  Alternatively, when set to a string, that gives the base name for
+  the import library.  The import library is used when the returned
+  build target object appears in `link_with:` elsewhere.  Only has any
+  effect on platforms where that is meaningful (e.g. Windows).  Since
+  0.42.0
+- `implicit_include_directories` is a boolean telling whether Meson
+  adds the current source and build directories to the include path,
+  defaults to `true`, since 0.42.0
+- `include_directories` one or more objects created with the
+  `include_directories` function
 - `install`, when set to true, this executable should be installed
-- `install_rpath` a string to set the target's rpath to after install (but *not* before that)
-- `build_rpath` a string to add to target's rpath definition in the build dir, but which will be removed on install
-- `install_dir` override install directory for this file. The value is relative to the `prefix` specified. F.ex, if you want to install plugins into a subdir, you'd use something like this: `install_dir : get_option('libdir') + '/projectname-1.0'`.
-- `objects` list of prebuilt object files (usually for third party products you don't have source to) that should be linked in this target, **never** use this for object files that you build yourself.
-- `name_suffix` the string that will be used as the extension for the target by overriding the default. By default on Windows this is `exe` and on other platforms it is omitted.
-- `build_by_default` causes, when set to true, to have this target be built by default, that is, when invoking plain `ninja`, the default value is true for all built target types, since 0.38.0
-- `override_options` takes an array of strings in the same format as `project`'s `default_options` overriding the values of these options for this target only, since 0.40.0
-- `implib` when set to true, an import library is generated for the executable (the name of the import library is based on *exe_name*).  Alternatively, when set to a string, that gives the base name for the import library.  The import library is used when the returned build target object appears in `link_with:` elsewhere.  Only has any effect on platforms where that is meaningful (e.g. Windows).  Since 0.42.0
-- `implicit_include_directories` is a boolean telling whether Meson adds the current source and build directories to the include path, defaults to `true`, since 0.42.0
+- `install_dir` override install directory for this file. The value is
+  relative to the `prefix` specified. F.ex, if you want to install
+  plugins into a subdir, you'd use something like this: `install_dir :
+  get_option('libdir') + '/projectname-1.0'`.
+- `install_rpath` a string to set the target's rpath to after install
+  (but *not* before that)
+- `objects` list of prebuilt object files (usually for third party
+  products you don't have source to) that should be linked in this
+  target, **never** use this for object files that you build yourself.
+- `name_suffix` the string that will be used as the extension for the
+  target by overriding the default. By default on Windows this is
+  `exe` and on other platforms it is omitted.
+- `override_options` takes an array of strings in the same format as
+  `project`'s `default_options` overriding the values of these options
+  for this target only, since 0.40.0
 
-The list of `sources`, `objects`, and `dependencies` is always flattened, which means you can freely nest and add lists while creating the final list. As a corollary, the best way to handle a 'disabled dependency' is by assigning an empty list `[]` to it and passing it like any other dependency to the `dependencies:` keyword argument.
+The list of `sources`, `objects`, and `dependencies` is always
+flattened, which means you can freely nest and add lists while
+creating the final list. As a corollary, the best way to handle a
+'disabled dependency' is by assigning an empty list `[]` to it and
+passing it like any other dependency to the `dependencies:` keyword
+argument.
 
-The returned object also has methods that are documented in the [object methods section](#build-target-object) below.
+The returned object also has methods that are documented in the
+[object methods section](#build-target-object) below.
 
 ### find_library()
 
-This function is deprecated and in the 0.31.0 release it was moved to [the compiler object](#compiler-object) as obtained from `meson.get_compiler(lang)`.
+This function is deprecated and in the 0.31.0 release it was moved to
+[the compiler object](#compiler-object) as obtained from
+`meson.get_compiler(lang)`.
 
 ### find_program()
 
