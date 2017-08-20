@@ -457,11 +457,22 @@ Meson will then do the right thing.
 
 See also: [`custom_target`](#custom_target)
 
-This function creates a [generator object](#generator-object) that can be used to run custom compilation commands. The only positional argument is the executable to use. It can either be a self-built executable or one returned by find_program. Keyword arguments are the following:
+This function creates a [generator object](#generator-object) that can
+be used to run custom compilation commands. The only positional
+argument is the executable to use. It can either be a self-built
+executable or one returned by find_program. Keyword arguments are the
+following:
 
-- `arguments` a list of template strings that will be the command line arguments passed to the executable
-- `output` a template string (or list of template strings) defining how an output file name is (or multiple output names are) generated from a single source file name
-- `depfile` is a template string pointing to a dependency file that a generator can write listing all the additional files this target depends on, for example a C compiler would list all the header files it included, and a change in any one of these files triggers a recompilation
+- `arguments` a list of template strings that will be the command line
+  arguments passed to the executable
+- `depfile` is a template string pointing to a dependency file that a
+  generator can write listing all the additional files this target
+  depends on, for example a C compiler would list all the header files
+  it included, and a change in any one of these files triggers a
+  recompilation
+- `output` a template string (or list of template strings) defining
+  how an output file name is (or multiple output names are) generated
+  from a single source file name
 
 The returned object also has methods that are documented in the [object methods section](#generator-object) below.
 
@@ -567,8 +578,13 @@ This function has one keyword argument `is_system` which, if set, flags the spec
 
 Installs files from the source tree that are listed as positional arguments. The following keyword arguments are supported:
 
-- `install_dir` the absolute or relative path to the installation directory. If this is a relative path, it is assumed to be relative to the prefix.
-- `install_mode` specify the file mode in symbolic format and optionally the owner/uid and group/gid for the installed files. For example:
+- `install_dir` the absolute or relative path to the installation
+  directory. If this is a relative path, it is assumed to be relative
+  to the prefix.
+
+- `install_mode` specify the file mode in symbolic format and
+  optionally the owner/uid and group/gid for the installed files. For
+  example:
 
   `install_mode: 'rw-r--r--'` for just the file mode
 
@@ -622,11 +638,11 @@ Installs the entire given subdirectory and its contents from the source tree to 
 
 The following keyword arguments are supported:
 
-- `install_dir`: the location to place the installed subdirectory.
 - `exclude_files`: a list of file names that should not be installed.
   Names are interpreted as paths relative to the `subdir_name` location.
 - `exclude_directories`: a list of directory names that should not be installed.
   Names are interpreted as paths relative to the `subdir_name` location.
+- `install_dir`: the location to place the installed subdirectory.
 
 ### is_variable()
 
@@ -664,8 +680,13 @@ Builds a library that is either static or shared depending on the value of `defa
 
 The keyword arguments for this are the same as for [`executable`](#executable) with the following additions:
 
-- `name_prefix` the string that will be used as the suffix for the target by overriding the default (only used for libraries). By default this is `lib` on all platforms and compilers except with MSVC where it is omitted.
-- `rust_crate_type` specifies the crate type for Rust libraries. Defaults to `dylib` for shared libraries and `rlib` for static libraries.
+- `name_prefix` the string that will be used as the suffix for the
+  target by overriding the default (only used for libraries). By
+  default this is `lib` on all platforms and compilers except with
+  MSVC where it is omitted.
+- `rust_crate_type` specifies the crate type for Rust
+  libraries. Defaults to `dylib` for shared libraries and `rlib` for
+  static libraries.
 
 `static_library` and `shared_library` also accept these keyword arguments.
 
@@ -689,15 +710,39 @@ The project name can be any string you want, it's not used for anything except d
 
 Project supports the following keyword arguments.
 
- - `version`, which is a free form string describing the version of this project. You can access the value in your Meson build files with `meson.project_version()`.
+ - `default_options` takes an array of strings. The strings are in the
+   form `key=value` and have the same format as options to
+   `mesonconf`. For example to set the default project type you would
+   set this: `default_options : ['buildtype=debugoptimized']`. Note
+   that these settings are only used when running Meson for the first
+   time. Global options such as `buildtype` can only be specified in
+   the master project, settings in subprojects are ignored. Project
+   specific options are used normally even in subprojects.
 
- - `subproject_dir` specifies the top level directory name that holds Meson subprojects. This is only meant as a compatibility option for existing code bases that house their embedded source code in a custom directory. All new projects should not set this but instead use the default value. It should be noted that this keyword argument is ignored inside subprojects. There can be only one subproject dir and it is set in the top level Meson file.
 
-  - `meson_version` takes a string describing which Meson version the project requires. Usually something like `>0.28.0`.
+  - `license` takes a string or array of strings describing the
+    license(s) the code is under. Usually this would be something like
+    `license : 'GPL2+'`, but if the code has multiple licenses you can
+    specify them as an array like this: `license : ['proprietary',
+    'GPL3']`. Note that the text is informal and is only written to
+    the dependency manifest. Meson does not do any license validation,
+    you are responsible for verifying that you abide by all licensing
+    terms.
 
-  - `license` takes a string or array of strings describing the license(s) the code is under. Usually this would be something like `license : 'GPL2+'`, but if the code has multiple licenses you can specify them as an array like this: `license : ['proprietary', 'GPL3']`. Note that the text is informal and is only written to the dependency manifest. Meson does not do any license validation, you are responsible for verifying that you abide by all licensing terms.
+  - `meson_version` takes a string describing which Meson version the
+    project requires. Usually something like `>0.28.0`.
 
- - `default_options` takes an array of strings. The strings are in the form `key=value` and have the same format as options to `mesonconf`. For example to set the default project type you would set this: `default_options : ['buildtype=debugoptimized']`. Note that these settings are only used when running Meson for the first time. Global options such as `buildtype` can only be specified in the master project, settings in subprojects are ignored. Project specific options are used normally even in subprojects.
+  - `subproject_dir` specifies the top level directory name that holds
+    Meson subprojects. This is only meant as a compatibility option
+    for existing code bases that house their embedded source code in a
+    custom directory. All new projects should not set this but instead
+    use the default value. It should be noted that this keyword
+    argument is ignored inside subprojects. There can be only one
+    subproject dir and it is set in the top level Meson file.
+
+ - `version`, which is a free form string describing the version of
+   this project. You can access the value in your Meson build files
+   with `meson.project_version()`.
 
 ### run_command()
 
@@ -717,8 +762,14 @@ This function creates a new top-level target that runs a specified command with 
 
 The script is run from an *unspecified* directory, and Meson will set three environment variables `MESON_SOURCE_ROOT`, `MESON_BUILD_ROOT` and `MESON_SUBDIR` that specify the source directory, build directory and subdirectory the target was defined in, respectively.
 
- - `command` is a list containing the command to run and the arguments to pass to it. Each list item may be a string or a target. For instance, passing the return value of [`executable()`](#executable) as the first item will run that executable, or passing a string as the first item will find that command in `PATH` and run it.
- - `depends` is a list of targets that this target depends on but which are not listed in the command array (because, for example, the script does file globbing internally)
+ - `command` is a list containing the command to run and the arguments
+   to pass to it. Each list item may be a string or a target. For
+   instance, passing the return value of [`executable()`](#executable)
+   as the first item will run that executable, or passing a string as
+   the first item will find that command in `PATH` and run it.
+- `depends` is a list of targets that this target depends on but which
+  are not listed in the command array (because, for example, the
+  script does file globbing internally)
 
 ### set_variable()
 
@@ -736,9 +787,22 @@ Assigns a value to the given variable name. Calling `set_variable('foo', bar)` i
 
 Builds a shared library with the given sources. Positional and keyword arguments are the same as for [`library`](#library) with the following extra keyword arguments.
 
-- `version` a string specifying the version of this shared library, such as `1.1.0`. On Linux and OS X, this is used to set the shared library version in the filename, such as `libfoo.so.1.1.0` and `libfoo.1.1.0.dylib`. If this is not specified, `soversion` is used instead (see below).
-- `soversion` a string specifying the soversion of this shared library, such as `0`. On Linux and Windows this is used to set the soversion (or equivalent) in the filename. For example, if `soversion` is `4`, a Windows DLL will be called `foo-4.dll` and one of the aliases of the Linux shared library would be `libfoo.so.4`. If this is not specified, the first part of `version` is used instead. For example, if `version` is `3.6.0` and `soversion` is not defined, it is set to `3`.
-- `vs_module_defs` a string, a File object, or Custom Target for a Microsoft module definition file for controlling symbol exports, etc., on platforms where that is possible (e.g. Windows).
+- `soversion` a string specifying the soversion of this shared
+  library, such as `0`. On Linux and Windows this is used to set the
+  soversion (or equivalent) in the filename. For example, if
+  `soversion` is `4`, a Windows DLL will be called `foo-4.dll` and one
+  of the aliases of the Linux shared library would be
+  `libfoo.so.4`. If this is not specified, the first part of `version`
+  is used instead. For example, if `version` is `3.6.0` and
+  `soversion` is not defined, it is set to `3`.
+- `version` a string specifying the version of this shared library,
+  such as `1.1.0`. On Linux and OS X, this is used to set the shared
+  library version in the filename, such as `libfoo.so.1.1.0` and
+  `libfoo.1.1.0.dylib`. If this is not specified, `soversion` is used
+  instead (see below).
+- `vs_module_defs` a string, a File object, or Custom Target for a
+  Microsoft module definition file for controlling symbol exports,
+  etc., on platforms where that is possible (e.g. Windows).
 
 ### shared_module()
 
@@ -760,7 +824,10 @@ This is useful for building modules that will be `dlopen()`ed and hence may cont
 
 Builds a static library with the given sources. Positional and keyword arguments are otherwise the same as for [`library`](#library), but it has one argument the others don't have:
 
- - `pic`, (*Added 0.36.0*) builds the library as positional independent code (so it can be linked into a shared library). This option has no effect on Windows and OS X since it doesn't make sense on Windows and PIC cannot be disabled on OS X.
+ - `pic`, (*Added 0.36.0*) builds the library as positional
+   independent code (so it can be linked into a shared library). This
+   option has no effect on Windows and OS X since it doesn't make
+   sense on Windows and PIC cannot be disabled on OS X.
 
 ### subdir()
 
@@ -780,10 +847,20 @@ Note that this means that each `meson.build` file in a source tree can and must 
 
 Takes the project specified in the positional argument and brings that in the current build specification by returning a [subproject object](#subproject-object). Subprojects must always be placed inside the `subprojects` directory at the top source directory. So for example a subproject called `foo` must be located in `${MESON_SOURCE_ROOT}/subprojects/foo`. Supports the following keyword arguments:
 
- - `version` keyword argument that works just like the one in `dependency`. It specifies what version the subproject should be, as an example `>=1.0.1`
- - `default_options`, *(added 0.37.0)* an array of default option values that override those set in the project's `default_options` invocation (like `default_options` in `project`, they only have effect when Meson is run for the first time, and command line arguments override any default options in build files)
+ - `default_options`, *(added 0.37.0)* an array of default option
+   values that override those set in the project's `default_options`
+   invocation (like `default_options` in `project`, they only have
+   effect when Meson is run for the first time, and command line
+   arguments override any default options in build files)
+ - `version` keyword argument that works just like the one in
+   `dependency`. It specifies what version the subproject should be,
+   as an example `>=1.0.1`
 
-Note that you can use the returned [subproject object](#subproject-object) to access any variable in the subproject. However, if you want to use a dependency object from inside a subproject, an easier way is to use the `fallback:` keyword argument to [`dependency()`](#dependency).
+Note that you can use the returned [subproject
+object](#subproject-object) to access any variable in the
+subproject. However, if you want to use a dependency object from
+inside a subproject, an easier way is to use the `fallback:` keyword
+argument to [`dependency()`](#dependency).
 
 ### test()
 
@@ -810,13 +887,23 @@ Defined tests can be run in a backend-agnostic way by calling `mesontest` inside
 
 This command detects revision control commit information at build time and places it in the specified output file. This file is guaranteed to be up to date on every build. Keywords are similar to `custom_target`.
 
+- `command` string list with the command to execute, see
+  [`custom_target`](#custom_target) for details on how this command
+  must be specified
+- `fallback` version number to use when no revision control
+  information is present, such as when building from a release tarball
+  (defaults to `meson.project_version()`)
 - `input` file to modify (e.g. `version.c.in`) (required)
 - `output` file to write the results to (e.g. `version.c`) (required)
-- `fallback` version number to use when no revision control information is present, such as when building from a release tarball (defaults to `meson.project_version()`)
-- `command` string list with the command to execute, see [`custom_target`](#custom_target) for details on how this command must be specified
-- `replace_string` string in the input file to substitute with the commit information (defaults to `@VCS_TAG@`)
+- `replace_string` string in the input file to substitute with the
+  commit information (defaults to `@VCS_TAG@`)
 
-Meson will read the contents of `input`, substitute the `replace_string` with the detected revision number, and write the result to `output`. This method returns an opaque [`custom_target`](#custom_target) object that can be used as source. If you desire more specific behavior than what this command provides, you should use `custom_target`.
+Meson will read the contents of `input`, substitute the
+`replace_string` with the detected revision number, and write the
+result to `output`. This method returns an opaque
+[`custom_target`](#custom_target) object that can be used as
+source. If you desire more specific behavior than what this command
+provides, you should use `custom_target`.
 
 ## Built-in objects
 
@@ -826,43 +913,94 @@ These are built-in objects that are always available.
 
 The `meson` object allows you to introspect various properties of the system. This object is always mapped in the `meson` variable. It has the following methods.
 
-- `get_compiler(language)` returns [an object describing a compiler](#compiler-object), takes one positional argument which is the language to use. It also accepts one keyword argument, `native` which when set to true makes Meson return the compiler for the build machine (the "native" compiler) and when false it returns the host compiler (the "cross" compiler). If `native` is omitted, Meson returns the "cross" compiler if we're currently cross-compiling and the "native" compiler if we're not.
+- `add_install_script(script_name, arg1, arg2, ...)` causes the script
+  given as an argument to be run during the install step, this script
+  will have the environment variables `MESON_SOURCE_ROOT`,
+  `MESON_BUILD_ROOT`, `MESON_INSTALL_PREFIX`,
+  `MESON_INSTALL_DESTDIR_PREFIX`, and `MESONINTROSPECT` set. All
+  additional arguments are passed as parameters.
 
-- `backend()` *(added 0.37.0)* returns a string representing the current backend: `ninja`, `vs2010`, `vs2015`, `vs2017`, or `xcode`.
+- `add_postconf_script(script_name, arg1, arg2, ...)` will run the
+  executable given as an argument after all project files have been
+  generated. This script will have the environment variables
+  `MESON_SOURCE_ROOT` and `MESON_BUILD_ROOT` set.
 
-- `is_cross_build()` returns `true` if the current build is a [cross build](Cross-compilation.md) and `false` otherwise.
+- `backend()` *(added 0.37.0)* returns a string representing the
+  current backend: `ninja`, `vs2010`, `vs2015`, `vs2017`, or `xcode`.
 
-- `is_unity()` returns `true` when doing a [unity build](Unity-builds.md) (multiple sources are combined before compilation to reduce build time) and `false` otherwise.
+- `build_root()` returns a string with the absolute path to the build
+  root directory.
 
-- `is_subproject()` returns `true` if the current project is being built as a subproject of some other project and `false` otherwise.
+- `current_build_dir()` returns a string with the absolute path to the
+  current build directory.
 
-- `has_exe_wrapper()` returns true when doing a cross build if there is a wrapper command that can be used to execute cross built binaries (for example when cross compiling from Linux to Windows, one can use `wine` as the wrapper).
+- `current_source_dir()` returns a string to the current source
+  directory. Note: **you do not need to use this function** when
+  passing files from the current source directory to a function since
+  that is the default. Also, you can use the `files()` function to
+  refer to files in the current or any other source directory instead
+  of constructing paths manually with `meson.current_source_dir()`.
 
-- `add_install_script(script_name, arg1, arg2, ...)` causes the script given as an argument to be run during the install step, this script will have the environment variables `MESON_SOURCE_ROOT`, `MESON_BUILD_ROOT`, `MESON_INSTALL_PREFIX`, `MESON_INSTALL_DESTDIR_PREFIX`, and `MESONINTROSPECT` set. All additional arguments are passed as parameters.
+- `get_cross_property(propname, fallback_value)` returns the given
+  property from a cross file, the optional second argument is returned
+  if not cross compiling or the given property is not found.
 
-  To determine the installation location, the script should use the `DESTDIR`, `MESON_INSTALL_PREFIX`, `MESON_INSTALL_DESTDIR_PREFIX` variables. `DESTDIR` will be set only if it is inherited from the outside environment. `MESON_INSTALL_PREFIX` is always set and has the value of the `prefix` option passed to Meson. `MESON_INSTALL_DESTDIR_PREFIX` is always set and contains `DESTDIR` and `prefix` joined together. This is useful because both are absolute paths, and many path-joining functions such as [`os.path.join` in Python](https://docs.python.org/3/library/os.path.html#os.path.join) special-case absolute paths.
+- `get_compiler(language)` returns [an object describing a
+  compiler](#compiler-object), takes one positional argument which is
+  the language to use. It also accepts one keyword argument, `native`
+  which when set to true makes Meson return the compiler for the build
+  machine (the "native" compiler) and when false it returns the host
+  compiler (the "cross" compiler). If `native` is omitted, Meson
+  returns the "cross" compiler if we're currently cross-compiling and
+  the "native" compiler if we're not.
 
-  `MESONINTROSPECT` contains the path to the `mesonintrospect` executable that corresponds to the `meson` executable that was used to configure the build. (This might be a different path then the first `mesonintrospect` executable found in `PATH`.) It can be used to query build configuration.
+- `has_exe_wrapper()` returns true when doing a cross build if there
+  is a wrapper command that can be used to execute cross built
+  binaries (for example when cross compiling from Linux to Windows,
+  one can use `wine` as the wrapper).
 
-- `add_postconf_script(script_name, arg1, arg2, ...)` will run the executable given as an argument after all project files have been generated. This script will have the environment variables `MESON_SOURCE_ROOT` and `MESON_BUILD_ROOT` set.
+- `install_dependency_manifest(output_name)` installs a manifest file
+  containing a list of all subprojects, their versions and license
+  files to the file name given as the argument.
 
-- `current_source_dir()` returns a string to the current source directory. Note: **you do not need to use this function** when passing files from the current source directory to a function since that is the default. Also, you can use the `files()` function to refer to files in the current or any other source directory instead of constructing paths manually with `meson.current_source_dir()`.
+- `is_cross_build()` returns `true` if the current build is a [cross
+  build](Cross-compilation.md) and `false` otherwise.
 
-- `current_build_dir()` returns a string with the absolute path to the current build directory.
+- `is_subproject()` returns `true` if the current project is being
+  built as a subproject of some other project and `false` otherwise.
 
-- `source_root()` returns a string with the absolute path to the source root directory. Note: you should use the `files()` function to refer to files in the root source directory instead of constructing paths manually with `meson.source_root()`.
+- `is_unity()` returns `true` when doing a [unity
+  build](Unity-builds.md) (multiple sources are combined before
+  compilation to reduce build time) and `false` otherwise.
 
-- `build_root()` returns a string with the absolute path to the build root directory.
+  To determine the installation location, the script should use the
+  `DESTDIR`, `MESON_INSTALL_PREFIX`, `MESON_INSTALL_DESTDIR_PREFIX`
+  variables. `DESTDIR` will be set only if it is inherited from the
+  outside environment. `MESON_INSTALL_PREFIX` is always set and has
+  the value of the `prefix` option passed to
+  Meson. `MESON_INSTALL_DESTDIR_PREFIX` is always set and contains
+  `DESTDIR` and `prefix` joined together. This is useful because both
+  are absolute paths, and many path-joining functions such as
+  [`os.path.join` in
+  Python](https://docs.python.org/3/library/os.path.html#os.path.join)
+  special-case absolute paths.
+
+  `MESONINTROSPECT` contains the path to the `mesonintrospect`
+  executable that corresponds to the `meson` executable that was used
+  to configure the build. (This might be a different path then the
+  first `mesonintrospect` executable found in `PATH`.) It can be used
+  to query build configuration.
+
+- `source_root()` returns a string with the absolute path to the
+  source root directory. Note: you should use the `files()` function
+  to refer to files in the root source directory instead of
+  constructing paths manually with `meson.source_root()`.
 
 - `project_version()` returns the version string specified in `project` function call.
 
 - `project_name()` returns the project name specified in the `project` function call.
 
 - `version()` return a string with the version of Meson.
-
-- `get_cross_property(propname, fallback_value)` returns the given property from a cross file, the optional second argument is returned if not cross compiling or the given property is not found.
-
-- `install_dependency_manifest(output_name)` installs a manifest file containing a list of all subprojects, their versions and license files to the file name given as the argument.
 
 ### `build_machine` object
 
