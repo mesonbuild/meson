@@ -1037,57 +1037,184 @@ Note that while cross-compiling, it simply returns the values defined in the cro
 
 This object is returned by [`meson.get_compiler(lang)`](#meson-object). It represents a compiler for a given language and allows you to query its properties. It has the following methods:
 
-- `get_id()` returns a string identifying the compiler. For example, `gcc`, `msvc`, [and more](Compiler-properties.md#compiler-id).
+- `alignment(typename)` returns the alignment of the type specified in
+  the positional argument, you can specify external dependencies to
+  use with `dependencies` keyword argument.
+
+- `compute_int(expr, ...')` computes the value of the given expression
+  (as an example `1 + 2`). When cross compiling this is evaluated with
+  an iterative algorithm, you can specify keyword arguments `low`
+  (defaults to -1024), `high` (defaults to 1024) and `guess` to
+  specify max and min values for the search and the value to try
+  first.
+
+- `find_library(lib_name, ...)` tries to find the library specified in
+  the positional argument. The [result
+  object](#external-library-object) can be used just like the return
+  value of `dependency`. If the keyword argument `required` is false,
+  Meson will proceed even if the library is not found. By default the
+  library is searched for in the system library directory
+  (e.g. /usr/lib). This can be overridden with the `dirs` keyword
+  argument, which can be either a string or a list of strings.
+
+- `first_supported_argument(list_of_strings)`, given a list of
+  strings, returns the first argument that passes the `has_argument`
+  test above or an empty array if none pass.
+
+- `get_define(definename)` returns the given preprocessor symbol's
+  value as a string or empty string if it is not defined.
+
+- `get_id()` returns a string identifying the compiler. For example,
+  `gcc`, `msvc`, [and more](Compiler-properties.md#compiler-id).
+
+- `compiles(code)` returns true if the code fragment given in the
+  positional argument compiles, you can specify external dependencies
+  to use with `dependencies` keyword argument, `code` can be either a
+  string containing source code or a `file` object pointing to the
+  source code.
+
+- `has_argument(argument_name)` returns true if the compiler accepts
+  the specified command line argument, that is, can compile code
+  without erroring out or printing a warning about an unknown flag,
+  you can specify external dependencies to use with `dependencies`
+  keyword argument.
+
+- `has_function(funcname)` returns true if the given function is
+  provided by the standard library or a library passed in with the
+  `args` keyword, you can specify external dependencies to use with
+  `dependencies` keyword argument.
+
+- `has_header` returns true if the specified header can be included,
+  you can specify external dependencies to use with `dependencies`
+  keyword argument and extra code to put above the header test with
+  the `prefix` keyword. In order to look for headers in a specific
+  directory you can use `args : '-I/extra/include/dir`, but this
+  should only be used in exceptional cases for includes that can't be
+  detected via pkg-config and passed via `dependencies`.
+
+- `has_header_symbol(headername, symbolname)` allows one to detect
+  whether a particular symbol (function, variable, #define, type
+  definition, etc) is declared in the specified header, you can
+  specify external dependencies to use with `dependencies` keyword
+  argument.
+
+- `has_member(typename, membername)` takes two arguments, type name
+  and member name and returns true if the type has the specified
+  member, you can specify external dependencies to use with
+  `dependencies` keyword argument.
+
+- `has_members(typename, membername1, membername2, ...)` takes at
+  least two arguments, type name and one or more member names, returns
+  true if the type has all the specified members, you can specify
+  external dependencies to use with `dependencies` keyword argument.
+
+- `has_multi_arguments(arg1, arg2, arg3, ...)` is the same as
+  `has_argument` but takes multiple arguments and uses them all in a
+  single compiler invocation, available since 0.37.0.
+
+- `has_type(typename)` returns true if the specified token is a type,
+  you can specify external dependencies to use with `dependencies`
+  keyword argument.
+
+- `links(code)` returns true if the code fragment given in the
+  positional argument compiles and links, you can specify external
+  dependencies to use with `dependencies` keyword argument, `code` can
+  be either a string containing source code or a `file` object
+  pointing to the source code.
+
+- `run(code)` attempts to compile and execute the given code fragment,
+  returns a run result object, you can specify external dependencies
+  to use with `dependencies` keyword argument, `code` can be either a
+  string containing source code or a `file` object pointing to the
+  source code.
+
+- `symbols_have_underscore_prefix()` returns `true` if the C symbol
+  mangling is one underscore (`_`) prefixed to the symbol, available
+  since 0.37.0.
+
+- `sizeof(typename, ...)` returns the size of the given type
+  (e.g. `'int'`) or -1 if the type is unknown, to add includes set
+  them in the `prefix` keyword argument, you can specify external
+  dependencies to use with `dependencies` keyword argument.
+
 - `version()` returns the compiler's version number as a string.
-- `find_library(lib_name, ...)` tries to find the library specified in the positional argument. The [result object](#external-library-object) can be used just like the return value of `dependency`. If the keyword argument `required` is false, Meson will proceed even if the library is not found. By default the library is searched for in the system library directory (e.g. /usr/lib). This can be overridden with the `dirs` keyword argument, which can be either a string or a list of strings.
-- `sizeof(typename, ...)` returns the size of the given type (e.g. `'int'`) or -1 if the type is unknown, to add includes set them in the `prefix` keyword argument, you can specify external dependencies to use with `dependencies` keyword argument.
-- `alignment(typename)` returns the alignment of the type specified in the positional argument, you can specify external dependencies to use with `dependencies` keyword argument.
-- `compiles(code)` returns true if the code fragment given in the positional argument compiles, you can specify external dependencies to use with `dependencies` keyword argument, `code` can be either a string containing source code or a `file` object pointing to the source code.
-- `links(code)` returns true if the code fragment given in the positional argument compiles and links, you can specify external dependencies to use with `dependencies` keyword argument, `code` can be either a string containing source code or a `file` object pointing to the source code.
-- `run(code)` attempts to compile and execute the given code fragment, returns a run result object, you can specify external dependencies to use with `dependencies` keyword argument, `code` can be either a string containing source code or a `file` object pointing to the source code.
-- `has_header` returns true if the specified header can be included, you can specify external dependencies to use with `dependencies` keyword argument and extra code to put above the header test with the `prefix` keyword. In order to look for headers in a specific directory you can use `args : '-I/extra/include/dir`, but this should only be used in exceptional cases for includes that can't be detected via pkg-config and passed via `dependencies`.
-- `has_type(typename)` returns true if the specified token is a type, you can specify external dependencies to use with `dependencies` keyword argument.
-- `has_function(funcname)` returns true if the given function is provided by the standard library or a library passed in with the `args` keyword, you can specify external dependencies to use with `dependencies` keyword argument.
-- `has_member(typename, membername)` takes two arguments, type name and member name and returns true if the type has the specified member, you can specify external dependencies to use with `dependencies` keyword argument.
-- `has_members(typename, membername1, membername2, ...)` takes at least two arguments, type name and one or more member names, returns true if the type has all the specified members, you can specify external dependencies to use with `dependencies` keyword argument.
-- `has_header_symbol(headername, symbolname)` allows one to detect whether a particular symbol (function, variable, #define, type definition, etc) is declared in the specified header, you can specify external dependencies to use with `dependencies` keyword argument.
-- `has_argument(argument_name)` returns true if the compiler accepts the specified command line argument, that is, can compile code without erroring out or printing a warning about an unknown flag, you can specify external dependencies to use with `dependencies` keyword argument.
-- `has_multi_arguments(arg1, arg2, arg3, ...)` is the same as `has_argument` but takes multiple arguments and uses them all in a single compiler invocation, available since 0.37.0.
-- `first_supported_argument(list_of_strings)`, given a list of strings, returns the first argument that passes the `has_argument` test above or an empty array if none pass.
-- `symbols_have_underscore_prefix()` returns `true` if the C symbol mangling is one underscore (`_`) prefixed to the symbol, available since 0.37.0.
-- `compute_int(expr, ...')` computes the value of the given expression (as an example `1 + 2`). When cross compiling this is evaluated with an iterative algorithm, you can specify keyword arguments `low` (defaults to -1024), `high` (defaults to 1024) and `guess` to specify max and min values for the search and the value to try first.
-- `get_define(definename)` returns the given preprocessor symbol's value as a string or empty string if it is not defined.
 
 The following keyword arguments can be used:
 
-- `name` the name to use for printing a message about the compiler check. Supported by the methods `compiles()`, `links()`, and `run()`. If this keyword argument is not passed to those methods, no message will be printed about the check.
+- `args` can be used to pass a list of compiler arguments that are
+  required to find the header or symbol. For example, you might need
+  to pass the include path `-Isome/path/to/header` if a header is not
+  in the default include path. In versions newer than 0.38.0 you
+  should use the `include_directories` keyword described above. You
+  may also want to pass a library name `-lfoo` for `has_function` to
+  check for a function. Supported by all methods except `get_id`,
+  `version`, and `find_library`.
 
-- `prefix` can be used to add #includes and other things that are required for the symbol to be declared. System definitions should be passed via compiler args (eg: `_GNU_SOURCE` is often required for some symbols to be exposed on Linux, and it should be passed via `args` keyword argument, see below). Supported by the methods `sizeof`, `has_type`, `has_function`, `has_member`, `has_members`, `has_header_symbol`.
+- `include_directories` specifies extra directories for header
+  searches. *(added 0.38.0)*
 
-- `include_directories` specifies extra directories for header searches. *(added 0.38.0)*
+- `name` the name to use for printing a message about the compiler
+  check. Supported by the methods `compiles()`, `links()`, and
+  `run()`. If this keyword argument is not passed to those methods, no
+  message will be printed about the check.
 
-- `args` can be used to pass a list of compiler arguments that are required to find the header or symbol. For example, you might need to pass the include path `-Isome/path/to/header` if a header is not in the default include path. In versions newer than 0.38.0 you should use the `include_directories` keyword described above. You may also want to pass a library name `-lfoo` for `has_function` to check for a function. Supported by all methods except `get_id`, `version`, and `find_library`.
+- `prefix` can be used to add #includes and other things that are
+  required for the symbol to be declared. System definitions should be
+  passed via compiler args (eg: `_GNU_SOURCE` is often required for
+  some symbols to be exposed on Linux, and it should be passed via
+  `args` keyword argument, see below). Supported by the methods
+  `sizeof`, `has_type`, `has_function`, `has_member`, `has_members`,
+  `has_header_symbol`.
 
-Note that if you have a single prefix with all your dependencies, you might find it easier to append to the environment variables `C_INCLUDE_PATH` with GCC/Clang and `INCLUDE` with MSVC to expand the default include path, and `LIBRARY_PATH` with GCC/Clang and `LIB` with MSVC to expand the default library search path.
+Note that if you have a single prefix with all your dependencies, you
+might find it easier to append to the environment variables
+`C_INCLUDE_PATH` with GCC/Clang and `INCLUDE` with MSVC to expand the
+default include path, and `LIBRARY_PATH` with GCC/Clang and `LIB` with
+MSVC to expand the default library search path.
 
-However, with GCC, these variables will be ignored when cross-compiling. In that case you need to use a specs file. See: <http://www.mingw.org/wiki/SpecsFileHOWTO>
+However, with GCC, these variables will be ignored when
+cross-compiling. In that case you need to use a specs file. See:
+<http://www.mingw.org/wiki/SpecsFileHOWTO>
 
 ### `string` object
 
-All [strings](Syntax.md#strings) have the following methods. Strings are immutable, all operations return their results as a new string.
+All [strings](Syntax.md#strings) have the following methods. Strings
+are immutable, all operations return their results as a new string.
 
- - `strip()` removes whitespace at the beginning and end of the string
- - `format()` formats text, see the [Syntax manual](Syntax.md#string-formatting) for usage info
- - `to_upper()` creates an upper case version of the string
- - `to_lower()` creates a lower case version of the string
- - `underscorify()` creates a string where every non-alphabetical non-number character is replaced with `_`
- - `split(split_character)` splits the string at the specified character (or whitespace if not set) and returns the parts in an array
- - `startswith(string)` returns true if string starts with the string specified as the argument
- - `endswith(string)` returns true if string ends with the string specified as the argument
- - `contains(string)` returns true if string contains the string specified as the argument
- - `to_int` returns the string converted to an integer (error if string is not a number)
- - `join(list_of_strings)` is the opposite of split, for example `'.'.join(['a', 'b', 'c']` yields `'a.b.c'`
- - `version_compare(comparison_string)` does semantic version comparison, if `x = '1.2.3'` then `x.version_compare('>1.0.0')` returns `true`
+- `contains(string)` returns true if string contains the string
+  specified as the argument
+
+- `endswith(string)` returns true if string ends with the string
+  specified as the argument
+
+- `format()` formats text, see the [Syntax
+  manual](Syntax.md#string-formatting) for usage info
+
+- `join(list_of_strings)` is the opposite of split, for example
+  `'.'.join(['a', 'b', 'c']` yields `'a.b.c'`
+
+- `split(split_character)` splits the string at the specified
+  character (or whitespace if not set) and returns the parts in an
+  array
+
+- `startswith(string)` returns true if string starts with the string
+  specified as the argument
+
+- `strip()` removes whitespace at the beginning and end of the string
+
+- `to_int` returns the string converted to an integer (error if string
+  is not a number)
+
+- `to_lower()` creates a lower case version of the string
+
+- `to_upper()` creates an upper case version of the string
+
+- `underscorify()` creates a string where every non-alphabetical
+  non-number character is replaced with `_`
+
+- `version_compare(comparison_string)` does semantic version
+  comparison, if `x = '1.2.3'` then `x.version_compare('>1.0.0')`
+  returns `true`
 
 ### `Number` object
 
@@ -1100,18 +1227,30 @@ All [strings](Syntax.md#strings) have the following methods. Strings are immutab
 
 A [boolean](Syntax.md#booleans) object has two simple methods:
 
- - `to_string()` returns the string `'true'` if the boolean is true or `'false'` otherwise. You can also pass it two strings as positional arguments to specify what to return for true/false. For instance, `bool.to_string('yes', 'no')` will return `yes` if the boolean is true and `no` if it is false.
- - `to_int()` as above, but returns either `1` or `0`
+- `to_int()` as above, but returns either `1` or `0`
+
+- `to_string()` returns the string `'true'` if the boolean is true or
+  `'false'` otherwise. You can also pass it two strings as positional
+  arguments to specify what to return for true/false. For instance,
+  `bool.to_string('yes', 'no')` will return `yes` if the boolean is
+  true and `no` if it is false.
 
 ### `array` object
 
 The following methods are defined for all [arrays](Syntax.md#arrays):
 
- - `length()`, the size of the array
- - `contains(item)`, returns `true` if the array contains the object given as argument, `false` otherwise
- - `get(index, fallback)`, returns the object at the given index, negative indices count from the back of the array, indexing out of bounds returns the `fallback` value *(added 0.38.0)* or, if it is not specified, causes a fatal error
+- `contains(item)`, returns `true` if the array contains the object
+  given as argument, `false` otherwise
 
-You can also iterate over arrays with the [`foreach` statement](https://github.com/mesonbuild/meson/wiki/Syntax#foreach-statements).
+- `get(index, fallback)`, returns the object at the given index,
+  negative indices count from the back of the array, indexing out of
+  bounds returns the `fallback` value *(added 0.38.0)* or, if it is
+  not specified, causes a fatal error
+
+- `length()`, the size of the array
+
+You can also iterate over arrays with the [`foreach`
+statement](https://github.com/mesonbuild/meson/wiki/Syntax#foreach-statements).
 
 ## Returned objects
 
@@ -1119,15 +1258,26 @@ These are objects returned by the [functions listed above](#functions).
 
 ### `build target` object
 
-A build target is either an [executable](#executable), [shared](#shared_library), [static library](#static_library) or [shared module](#shared_module).
+A build target is either an [executable](#executable),
+[shared](#shared_library), [static library](#static_library) or
+[shared module](#shared_module).
 
-- `extract_objects()` returns an opaque value representing the generated object files of arguments, usually used to take single object files and link them to unit tests or to compile some source files with custom flags. To use the object file(s) in another build target, use the `objects:` keyword argument.
+- `extract_all_objects()` is same as `extract_objects` but returns all
+  object files generated by this target
 
-- `extract_all_objects()` is same as above but returns all object files generated by this target
-
-- `private_dir_include()` returns a opaque value that works like `include_directories` but points to the private directory of this target, usually only needed if an another target needs to access some generated internal headers of this target
+- `extract_objects()` returns an opaque value representing the
+  generated object files of arguments, usually used to take single
+  object files and link them to unit tests or to compile some source
+  files with custom flags. To use the object file(s) in another build
+  target, use the `objects:` keyword argument.
 
 - `full_path()` returns a full path pointing to the result target file
+
+- `private_dir_include()` returns a opaque value that works like
+  `include_directories` but points to the private directory of this
+  target, usually only needed if an another target needs to access
+  some generated internal headers of this target
+
 
 ### `configuration` data object
 
@@ -1137,12 +1287,24 @@ configuration values to be used for generating configuration files. A
 more in-depth description can be found in the [the configuration wiki
 page](Configuration.md) It has three methods:
 
- - `get(varname, default_value)` returns the value of `varname`, if the value has not been set returns `default_value` if it is defined *(added 0.38.0)* and errors out if not
- - `has(varname)`, returns `true` if the specified variable is set
- - `merge_from(other)` takes as argument a different configuration data object and copies all entries from that object to the current object, available since 0.42.0
- - `set(varname, value)`, sets a variable to a given value
- - `set10(varname, boolean_value)` is the same as above but the value is either `true` or `false` and will be written as 1 or 0, respectively
- - `set_quoted(varname, value)` is same as `set` but quotes the value in double quotes (`"`)
+- `get(varname, default_value)` returns the value of `varname`, if the
+  value has not been set returns `default_value` if it is defined
+  *(added 0.38.0)* and errors out if not
+
+- `has(varname)`, returns `true` if the specified variable is set
+
+- `merge_from(other)` takes as argument a different configuration data
+  object and copies all entries from that object to the current
+  object, available since 0.42.0
+
+- `set(varname, value)`, sets a variable to a given value
+
+- `set10(varname, boolean_value)` is the same as above but the value
+  is either `true` or `false` and will be written as 1 or 0,
+  respectively
+
+- `set_quoted(varname, value)` is same as `set` but quotes the value
+  in double quotes (`"`)
 
 They all take the `description` keyword that will be written in the
 result file. The replacement assumes a file with C syntax. If your
@@ -1152,57 +1314,84 @@ cause a syntax error.
 
 ### `custom target` object
 
-This object is returned by [`custom_target`](#custom_target) and contains a target with the following methods:
+This object is returned by [`custom_target`](#custom_target) and
+contains a target with the following methods:
 
 - `full_path()` returns a full path pointing to the result target file
 
 ### `dependency` object
 
-This object is returned by [`dependency()`](#dependency) and contains an external dependency with the following methods:
+This object is returned by [`dependency()`](#dependency) and contains
+an external dependency with the following methods:
 
  - `found()` which returns whether the dependency was found
- - `type_name()` which returns a string describing the type of the dependency, the most common values are `internal` for deps created with `declare_dependencies` and `pkgconfig` for system dependencies obtained with Pkg-config.
+
+ - `get_pkgconfig_variable(varname)` (*Added 0.36.0*) will get the
+   pkg-config variable specified, or, if invoked on a non pkg-config
+   dependency, error out
+
+ - `type_name()` which returns a string describing the type of the
+   dependency, the most common values are `internal` for deps created
+   with `declare_dependencies` and `pkgconfig` for system dependencies
+   obtained with Pkg-config.
+
  - `version()` is the version number as a string, for example `1.2.8`
- - `get_pkgconfig_variable(varname)` (*Added 0.36.0*) will get the pkg-config variable specified, or, if invoked on a non pkg-config dependency, error out
+
 
 ### `external program` object
 
-This object is returned by [`find_program()`](#find_program) and contains an external (i.e. not built as part of this project) program and has the following methods:
+This object is returned by [`find_program()`](#find_program) and
+contains an external (i.e. not built as part of this project) program
+and has the following methods:
 
 - `found()` which returns whether the executable was found
-- `path()` which returns an array pointing to the executable (this is an array as opposed to a string because the program might be `['python', 'foo.py']`, for example)
+
+- `path()` which returns an array pointing to the executable (this is
+  an array as opposed to a string because the program might be
+  `['python', 'foo.py']`, for example)
 
 ### `environment` object
 
 This object is returned by [`environment()`](#environment) and stores detailed information about how environment variables should be set during tests. It should be passed as the `env` keyword argument to tests. It has the following methods.
 
--   `set(varname, value)` sets environment variable in the first
-    argument to the value in the second argument, e.g.
-    `env.set('FOO', 'BAR') sets envvar`FOO`to value`BAR\`
--   `append(varname, value)` appends the given value to the old value of
-    the environment variable, e.g.
-    `env.append'('FOO', 'BAR', separator : ';')` produces `BOB;BAR` if
-    `FOO` had the value `BOB` and plain `BAR` if the value was not
-    defined. If the separator is not specified explicitly, the default
-    path separator for the host operating system will be used, i.e. ';'
-    for Windows and ':' for UNIX/POSIX systems.
--   `prepend(varname, value)` is the same as `append` except that it
-    writes to the beginning of the variable
+- `append(varname, value)` appends the given value to the old value of
+  the environment variable, e.g.  `env.append'('FOO', 'BAR', separator
+  : ';')` produces `BOB;BAR` if `FOO` had the value `BOB` and plain
+  `BAR` if the value was not defined. If the separator is not
+  specified explicitly, the default path separator for the host
+  operating system will be used, i.e. ';' for Windows and ':' for
+  UNIX/POSIX systems.
 
+- `prepend(varname, value)` is the same as `append` except that it
+  writes to the beginning of the variable
+
+- `set(varname, value)` sets environment variable in the first
+  argument to the value in the second argument, e.g.
+  `env.set('FOO', 'BAR') sets envvar`FOO`to value`BAR\`
 
 ### `external library` object
 
-This object is returned by [`find_library()`](#find_library) and contains an external (i.e. not built as part of this project) library. This object has only one method, `found`, which returns whether the library was found.
+This object is returned by [`find_library()`](#find_library) and
+contains an external (i.e. not built as part of this project)
+library. This object has only one method, `found`, which returns
+whether the library was found.
 
 ### `generator` object
 
-This object is returned by [`generator()`](#generator) and contains a generator that is used to transform files from one type to another by an executable (e.g. `idl` files into source code and headers).
+This object is returned by [`generator()`](#generator) and contains a
+generator that is used to transform files from one type to another by
+an executable (e.g. `idl` files into source code and headers).
 
-* `process(list_of_files)` takes a list of files, causes them to be processed and returns an object containing the result which can then, for example, be passed into a build target definition. The keyword argument `extra_args`, if specified, will be used to replace an entry `@EXTRA_ARGS@` in the argument list.
+* `process(list_of_files)` takes a list of files, causes them to be
+  processed and returns an object containing the result which can
+  then, for example, be passed into a build target definition. The
+  keyword argument `extra_args`, if specified, will be used to replace
+  an entry `@EXTRA_ARGS@` in the argument list.
 
 ### `subproject` object
 
-This object is returned by [`subproject()`](#subproject) and is an opaque object representing it.
+This object is returned by [`subproject()`](#subproject) and is an
+opaque object representing it.
 
 - `get_variable(name)` fetches the specified variable from inside the
   subproject. This is useful to, for instance, get a [declared
@@ -1210,9 +1399,12 @@ This object is returned by [`subproject()`](#subproject) and is an opaque object
 
 ### `run result` object
 
-This object encapsulates the result of trying to compile and run a sample piece of code with [`compiler.run()`](#compiler-object) or [`run_command()`](#run_command). It has the following methods:
+This object encapsulates the result of trying to compile and run a
+sample piece of code with [`compiler.run()`](#compiler-object) or
+[`run_command()`](#run_command). It has the following methods:
 
-- `compiled()` if true, the compilation succeeded, if false it did not and the other methods return unspecified data
+- `compiled()` if true, the compilation succeeded, if false it did not
+  and the other methods return unspecified data
 - `returncode()` the return code of executing the compiled binary
-- `stdout()` the standard out produced when the binary was run
-- `stderr()` the standard error produced when the binary was run
+- `stderr()` the standard error produced when the command was run
+- `stdout()` the standard out produced when the command was run
