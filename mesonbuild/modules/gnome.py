@@ -266,17 +266,18 @@ class GnomeModule(ExtensionModule):
                         subdirs.append(dep.subdir)
                         break
                 elif isinstance(dep, build.CustomTarget):
-                    if dep.get_basename() == missing_basename:
-                        found = True
-                        dep_files.remove(missing)
-                        dep_files.append(
-                            mesonlib.File(
-                                is_built=True,
-                                subdir=dep.get_subdir(),
-                                fname=dep.get_basename()))
-                        depends.append(dep)
-                        subdirs.append(dep.get_subdir())
-                        break
+                    for output in dep.get_outputs():
+                        if output == missing_basename:
+                            found = True
+                            dep_files.remove(missing)
+                            dep_files.append(
+                                mesonlib.File(
+                                    is_built=True,
+                                    subdir=dep.get_subdir(),
+                                    fname=output))
+                            depends.append(dep)
+                            subdirs.append(dep.get_subdir())
+                            break
                 else:
                     raise RuntimeError('Unreachable code.')
 
