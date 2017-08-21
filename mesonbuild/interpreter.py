@@ -2289,7 +2289,7 @@ class Interpreter(InterpreterBase):
         else:
             if not isinstance(envlist, list):
                 envlist = [envlist]
-            env = {}
+            env = build.EnvironmentVariables()
             for e in envlist:
                 if '=' not in e:
                     raise InterpreterException('Env var definition must be of type key=val.')
@@ -2298,7 +2298,7 @@ class Interpreter(InterpreterBase):
                 val = val.strip()
                 if ' ' in k:
                     raise InterpreterException('Env var key must not have spaces in it.')
-                env[k] = val
+                env.append(val)
         return env
 
     def add_test(self, node, args, kwargs, is_base_test):
