@@ -112,7 +112,7 @@ class I18nModule(ExtensionModule):
             potargs.append(extra_args)
         pottarget = build.RunTarget(packagename + '-pot', potargs[0], potargs[1:], [], state.subdir)
 
-        gmoargs = state.environment.get_build_command() + ['--internal', 'gettext', 'gen_gmo']
+        gmoargs = state.environment.get_build_command() + ['--internal', 'gettext', 'gen_gmo', pkg_arg]
         if lang_arg:
             gmoargs.append(lang_arg)
         gmotarget = build.RunTarget(packagename + '-gmo', gmoargs[0], gmoargs[1:], [], state.subdir)

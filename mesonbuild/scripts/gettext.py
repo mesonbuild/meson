@@ -60,10 +60,15 @@ def run_potgen(src_sub, pkgname, datadirs, args):
                             '-D', os.environ['MESON_SOURCE_ROOT'], '-k_', '-o', ofile] + args,
                            env=child_env)
 
-def gen_gmo(src_sub, bld_sub, langs):
+def gen_gmo(src_sub, pkgname, bld_sub, langs):
     for l in langs:
         subprocess.check_call(['msgfmt', os.path.join(src_sub, l + '.po'),
                                '-o', os.path.join(bld_sub, l + '.gmo')])
+
+        destdir = os.path.join(bld_sub, l, 'LC_MESSAGES')
+        os.makedirs(destdir, exist_ok=True)
+        subprocess.check_call(['msgfmt', os.path.join(src_sub, l + '.po'),
+                               '-o', os.path.join(destdir, pkgname + '.gmo')])
     return 0
 
 def update_po(src_sub, pkgname, langs):
@@ -101,7 +106,7 @@ def run(args):
     if subcmd == 'pot':
         return run_potgen(src_sub, options.pkgname, options.datadirs, extra_args)
     elif subcmd == 'gen_gmo':
-        return gen_gmo(src_sub, bld_sub, langs)
+        return gen_gmo(src_sub, options.pkgname, bld_sub, langs)
     elif subcmd == 'update_po':
         if run_potgen(src_sub, options.pkgname, options.datadirs, extra_args) != 0:
             return 1
@@ -110,7 +115,7 @@ def run(args):
         destdir = os.environ.get('DESTDIR', '')
         dest = destdir_join(destdir, os.path.join(os.environ['MESON_INSTALL_PREFIX'],
                                                   options.localedir))
-        if gen_gmo(src_sub, bld_sub, langs) != 0:
+        if gen_gmo(src_sub, options.pkgname, bld_sub, langs) != 0:
             return 1
         do_install(src_sub, bld_sub, dest, options.pkgname, langs)
     else:
