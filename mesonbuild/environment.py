@@ -539,10 +539,14 @@ class Environment:
                 cls = ClangCCompiler if lang == 'c' else ClangCPPCompiler
                 return cls(ccache + compiler, version, cltype, is_cross, exe_wrap)
             if 'Microsoft' in out or 'Microsoft' in err:
-                # Visual Studio prints version number to stderr but
-                # everything else to stdout. Why? Lord only knows.
+                # Latest versions of Visual Studio print version 
+                # number to stderr but earlier ones print version
+                # on stdout.  Why? Lord only knows.
+                # Check both outputs to figure out version.
                 version = search_version(err)
-                if not err or not err.split('\n')[0]:
+                if version == 'unknown version':
+                    version = search_version(out)
+                if version == 'unknown version':
                     m = 'Failed to detect MSVC compiler arch: stderr was\n{!r}'
                     raise EnvironmentException(m.format(err))
                 is_64 = err.split('\n')[0].endswith(' x64')
