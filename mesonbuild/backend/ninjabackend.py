@@ -987,10 +987,19 @@ int dummy;
             outputs = [outname_rel, outname_rel + '.mdb']
         else:
             outputs = [outname_rel]
+        generated_sources = self.get_target_generated_sources(target)
+        for rel_src in generated_sources.keys():
+            dirpart, fnamepart = os.path.split(rel_src)
+            if rel_src.lower().endswith('.cs'):
+                rel_srcs.append(rel_src)
+            deps.append(rel_src)
+
         elem = NinjaBuildElement(self.all_outputs, outputs, 'cs_COMPILER', rel_srcs)
         elem.add_dep(deps)
         elem.add_item('ARGS', commands)
         elem.write(outfile)
+
+        self.generate_generator_list_rules(target, outfile)
 
     def generate_single_java_compile(self, src, target, compiler, outfile):
         args = []
