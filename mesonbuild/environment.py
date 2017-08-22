@@ -511,6 +511,15 @@ class Environment:
             if isinstance(compiler, str):
                 compiler = [compiler]
             if 'cl' in compiler or 'cl.exe' in compiler:
+                if 'WATCOM' in os.environ:
+                    def sanitize(p):
+                        return os.path.normcase(os.path.abspath(p))
+
+                    watcom_cls = [sanitize(os.path.join(os.environ['WATCOM'], 'BINNT', 'cl')),
+                                  sanitize(os.path.join(os.environ['WATCOM'], 'BINNT', 'cl.exe'))]
+                    found_cl = sanitize(shutil.which('cl'))
+                    if found_cl in watcom_cls:
+                        continue
                 arg = '/?'
             else:
                 arg = '--version'
