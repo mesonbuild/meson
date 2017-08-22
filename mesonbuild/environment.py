@@ -531,7 +531,7 @@ class Environment:
                 cls = ClangCCompiler if lang == 'c' else ClangCPPCompiler
                 return cls(ccache + compiler, version, cltype, is_cross, exe_wrap)
             if 'Microsoft' in out or 'Microsoft' in err:
-                # Latest versions of Visual Studio print version 
+                # Latest versions of Visual Studio print version
                 # number to stderr but earlier ones print version
                 # on stdout.  Why? Lord only knows.
                 # Check both outputs to figure out version.
