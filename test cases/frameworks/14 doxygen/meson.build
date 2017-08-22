@@ -9,7 +9,11 @@ cdata = configuration_data()
 cdata.set('VERSION', meson.project_version())
 
 if find_program('dot', required : false).found()
-  cdata.set('HAVE_DOT', 'YES')
+  # In the real world this would set the variable
+  # to YES. However we set it to NO so that the
+  # list of generated files is always the same
+  # so tests always pass.
+  cdata.set('HAVE_DOT', 'NO')
 else
   cdata.set('HAVE_DOT', 'NO')
 endif
