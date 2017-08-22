@@ -111,3 +111,44 @@ Will produce:
 /* Set BAR if it is available */
 #define BAR
 ```
+
+# A full example
+
+Generating and using a configuration file requires the following steps:
+
+ - generate the file
+ - create an include directory object for the directory that holds the file
+ - use it in a target
+
+We are going to use the traditional approach of generating a header
+file in the top directory. The common name is `config.h` but we're
+going to use an unique name. This avoids the problem of accidentally
+including the wrong header file when building a project with many
+subprojects.
+
+At the top level we generate the file:
+
+```meson
+configure_file(input : 'projconfig.h.in',
+  output : 'projconfig.h',
+  configuration : cdata_object)
+```
+
+Immediately afterwards we generate the include object.
+
+```meson
+configuration_inc = include_directories('.')
+```
+
+Finally we specify this in a target that can be in any subdirectory.
+
+```meson
+executable(..., include_directories : configuration_inc)
+```
+
+Now any source file in this target can include the configuration
+header like this:
+
+```c
+#include<projconfig.h>
+```
