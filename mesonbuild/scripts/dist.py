@@ -75,20 +75,36 @@ def process_submodules(dirname):
 
 def create_dist_git(dist_name, src_root, bld_root, dist_sub):
     distdir = os.path.join(dist_sub, dist_name)
-    if os.path.exists(distdir):
-        shutil.rmtree(distdir)
-    os.makedirs(distdir)
-    subprocess.check_call(['git', 'clone', '--shared', src_root, distdir])
-    process_submodules(distdir)
-    del_gitfiles(distdir)
-    xzname = distdir + '.tar.xz'
-    # Should use shutil but it got xz support only in 3.5.
-    with tarfile.open(xzname, 'w:xz') as tf:
-        tf.add(distdir, dist_name)
     # Create only .tar.xz for now.
     # zipname = distdir + '.zip'
     # create_zip(zipname, distdir)
-    shutil.rmtree(distdir)
+    xzname = distdir + '.tar.xz'
+    try:
+        root = subprocess.check_output(['git', 'rev-parse', '--show-toplevel'])
+        root = root.decode().strip()
+
+        def use_distdir(info):
+            info.path = os.path.join(dist_name, os.path.relpath("/" + info.path, root))
+            return info
+
+        files = subprocess.check_output(['git', 'ls-files', '--full-name',
+                                         '--recurse-submodules', root])
+        with tarfile.open(xzname, 'w:xz') as tf:
+            for f in files.decode().splitlines():
+                tf.add(os.path.join(root, f), filter=use_distdir)
+    except:
+        if os.path.exists(distdir):
+            shutil.rmtree(distdir)
+        os.makedirs(distdir)
+        subprocess.check_call(['git', 'clone', '--shared', src_root, distdir])
+        process_submodules(distdir)
+        del_gitfiles(distdir)
+
+        # Should use shutil but it got xz support only in 3.5.
+        with tarfile.open(xzname, 'w:xz') as tf:
+            tf.add(distdir, dist_name)
+            shutil.rmtree(distdir)
+
     return (xzname, )
 
 

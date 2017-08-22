@@ -1598,7 +1598,7 @@ class Interpreter(InterpreterBase):
             search_dir = os.path.join(srcdir, self.subdir)
             prog = ExternalProgram(cmd, silent=True, search_dir=search_dir)
             if not prog.found():
-                raise InterpreterException('Program or command {!r} not found'
+                raise InterpreterException('Program or command {!r} not found '
                                            'or not executable'.format(cmd))
             cmd = prog
         expanded_args = []
