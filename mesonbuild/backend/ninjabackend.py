@@ -31,6 +31,7 @@ from ..build import InvalidArguments
 
 if mesonlib.is_windows():
     quote_func = lambda s: '"{}"'.format(s)
+    wat_quote_func = lambda s: '{}'.format(s)
     execute_wrapper = 'cmd /c'
     rmfile_prefix = 'del /f /s /q {} &&'
 else:
@@ -38,9 +39,11 @@ else:
     execute_wrapper = ''
     rmfile_prefix = 'rm -f {} &&'
 
-def ninja_quote(text):
+def ninja_quote(text, compiler=None):
     for char in ('$', ' ', ':'):
         text = text.replace(char, '$' + char)
+        if type(compiler) is WatcomCCompiler:
+            text = text.replace('/', '\\')
     if '\n' in text:
         raise MesonException('Ninja does not support newlines in rules. '
                              'Please report this error with a test case to the Meson bug tracker.')
@@ -81,12 +84,17 @@ class NinjaBuildElement:
             elems = [elems]
         self.elems.append((name, elems))
 
-    def write(self, outfile):
+    def write(self, outfile, compiler=None):
+        if type(compiler) is WatcomCCompiler:
+            qf = wat_quote_func
+        else:
+            qf = quote_func
+
         self.check_outputs()
         line = 'build %s: %s %s' % (
-            ' '.join([ninja_quote(i) for i in self.outfilenames]),
+            ' '.join([ninja_quote(i, compiler) for i in self.outfilenames]),
             self.rule,
-            ' '.join([ninja_quote(i) for i in self.infilenames]))
+            ' '.join([ninja_quote(i, compiler) for i in self.infilenames]))
         if len(self.deps) > 0:
             line += ' | ' + ' '.join([ninja_quote(x) for x in self.deps])
         if len(self.orderdeps) > 0:
@@ -96,7 +104,8 @@ class NinjaBuildElement:
         # platforms including Windows command shell. Slash is a dir separator
         # on Windows, too, so all characters are unambiguous and, more importantly,
         # do not require quoting.
-        line = line.replace('\\', '/')
+        if not (mesonlib.is_windows() and type(compiler) is WatcomCCompiler):
+            line = line.replace('\\', '/')
         outfile.write(line)
 
         # All the entries that should remain unquoted
@@ -112,9 +121,9 @@ class NinjaBuildElement:
                 if not should_quote or i == '&&': # Hackety hack hack
                     quoter = ninja_quote
                 else:
-                    quoter = lambda x: ninja_quote(quote_func(x))
+                    quoter = lambda x: ninja_quote(qf(x))
                 i = i.replace('\\', '\\\\')
-                if quote_func('') == '""':
+                if qf('') == '""':
                     i = i.replace('"', '\\"')
                 newelems.append(quoter(i))
             line += ' '.join(newelems)
@@ -2214,8 +2223,9 @@ rule FORTRAN_DEP_HACK
         for i in self.get_fortran_orderdeps(target, compiler):
             element.add_orderdep(i)
         element.add_item('DEPFILE', dep_file)
+        print(commands)
         element.add_item('ARGS', commands)
-        element.write(outfile)
+        element.write(outfile, compiler)
         return rel_obj
 
     def has_dir_part(self, fname):
