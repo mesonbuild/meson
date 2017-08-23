@@ -375,8 +375,6 @@ class GnomeModule(ExtensionModule):
                     # Hack to avoid passing some compiler options in
                     if lib.startswith("-W"):
                         continue
-                    if gir_has_extra_lib_arg() and use_gir_args and lib.startswith("-l"):
-                        lib = lib.replace('-l', '--extra-library=', 1)
                     ldflags.update([lib])
 
                 if isinstance(dep, PkgConfigDependency):
@@ -389,6 +387,14 @@ class GnomeModule(ExtensionModule):
                 mlog.log('dependency %s not handled to build gir files' % dep)
                 continue
 
+        if gir_has_extra_lib_arg() and use_gir_args:
+            fixed_ldflags = set()
+            for ldflag in ldflags:
+                if ldflag.startswith("-l"):
+                    fixed_ldflags.add(ldflag.replace('-l', '--extra-library=', 1))
+                else:
+                    fixed_ldflags.add(ldflag)
+            ldflags = fixed_ldflags
         return cflags, ldflags, gi_includes
 
     @permittedKwargs({'sources', 'nsversion', 'namespace', 'symbol_prefix', 'identifier_prefix',
