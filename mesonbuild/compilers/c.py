@@ -58,7 +58,7 @@ class CCompiler(Compiler):
 
     def get_always_args(self):
         '''
-        Args that are always-on for all C compilers other than MSVC
+        Args that are always-on for all C compilers other than MSVC and Watcom
         '''
         return ['-pipe'] + get_largefile_args(self)
 
@@ -1044,6 +1044,13 @@ class WatcomCCompiler(CCompiler):
         self.base_options = ['b_pch'] # FIXME add lto, pgo and the like
         self.is_64 = False
 
+    # Override CCompiler.get_always_args
+    def get_always_args(self):
+        return self.always_args
+
+    def get_dependency_gen_args(self, outtarget, outfile):
+        return []
+
     def get_buildtype_args(self, buildtype):
         return watcom_buildtype_args[buildtype]
 
@@ -1058,8 +1065,10 @@ class WatcomCCompiler(CCompiler):
             # -pthread is only valid for GCC
             if i in ('-mms-bitfields', '-pthread'):
                 continue
+            if i.startswith('-I'):
+                i = '-i=' + i[2:]
             if i.startswith('-L'):
-                i = '/LIBPATH:' + i[2:]
+                i = '-\"library' + i[2:] + '\"'
             # Translate GNU-style -lfoo library name to the import library
             elif i.startswith('-l'):
                 name = i[2:]
