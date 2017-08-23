@@ -1044,8 +1044,36 @@ class WatcomCCompiler(CCompiler):
         self.base_options = ['b_pch'] # FIXME add lto, pgo and the like
         self.is_64 = False
 
-    def unix_args_to_native(self):
-        pass
+    def get_buildtype_args(self, buildtype):
+        return watcom_buildtype_args[buildtype]
+
+    def get_buildtype_linker_args(self, buildtype):
+        return watcom_buildtype_linker_args[buildtype]
+
+    @classmethod
+    def unix_args_to_native(cls, args):
+        result = []
+        for i in args:
+            # -mms-bitfields is specific to MinGW-GCC
+            # -pthread is only valid for GCC
+            if i in ('-mms-bitfields', '-pthread'):
+                continue
+            if i.startswith('-L'):
+                i = '/LIBPATH:' + i[2:]
+            # Translate GNU-style -lfoo library name to the import library
+            elif i.startswith('-l'):
+                name = i[2:]
+                if name in cls.ignore_libs:
+                    # With MSVC, these are provided by the C runtime which is
+                    # linked in by default
+                    continue
+                else:
+                    i = name + '.lib'
+            # -pthread in link flags is only used on Linux
+            elif i == '-pthread':
+                continue
+            result.append(i)
+        return result
 
     def get_output_args(self, target):
         if target.endswith('.exe'):
