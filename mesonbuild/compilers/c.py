@@ -1037,8 +1037,17 @@ class WatcomCCompiler(CCompiler):
         # /showIncludes is needed for build dependency tracking in Ninja
         # See: https://ninja-build.org/manual.html#_deps
         self.always_args = ['-zq', '-fr']
+
         self.warn_args = {'1': ['-w=2'],
                           '2': ['-w=3'],
                           '3': ['-w=4']}
         self.base_options = ['b_pch'] # FIXME add lto, pgo and the like
         self.is_64 = False
+
+    def unix_args_to_native(self):
+        pass
+
+    def get_output_args(self, target):
+        if target.endswith('.exe'):
+            return ['-fe=' + target]
+        return ['-fo=' + target]

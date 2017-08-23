@@ -531,8 +531,8 @@ class Environment:
                     if found_cl in watcom_cls:
                         continue
                 arg = '/?'
-            elif ['wcc', 'wcc.exe', 'wcc386', 'wcc386.exe'] in compiler:
-                arg = '-h'
+            elif ['wcl', 'wcl.exe', 'wcl386', 'wcl386.exe'] in compiler:
+                arg = '-v'
             else:
                 arg = '--version'
             try:
