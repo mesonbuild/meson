@@ -515,6 +515,10 @@ class Backend:
                 self.environment.cross_info.need_exe_wrapper()
             if isinstance(exe, build.BuildTarget):
                 is_cross = is_cross and exe.is_cross
+            if isinstance(exe, dependencies.ExternalProgram):
+                # E.g. an external verificator or simulator program run on a generated executable.
+                # Can always be run.
+                is_cross = False
             if is_cross:
                 exe_wrapper = self.environment.cross_info.config['binaries'].get('exe_wrapper', None)
             else:
