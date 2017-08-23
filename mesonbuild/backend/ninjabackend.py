@@ -22,7 +22,7 @@ from .. import build
 from .. import mlog
 from .. import dependencies
 from .. import compilers
-from ..compilers import CompilerArgs
+from ..compilers import CompilerArgs, WatcomCCompiler
 from ..linkers import ArLinker
 from ..mesonlib import File, MesonException, OrderedSet
 from ..mesonlib import get_compiler_for_source
@@ -1668,7 +1668,7 @@ rule FORTRAN_DEP_HACK
                 d = quote_func(d)
             quoted_depargs.append(d)
         cross_args = self.get_cross_info_lang_args(langname, is_cross)
-        if mesonlib.is_windows():
+        if mesonlib.is_windows() and not type(compiler) is WatcomCCompiler:
             command_template = ''' command = {executable} @$out.rsp
  rspfile = $out.rsp
  rspfile_content = {cross_args} $ARGS {dep_args} {output_args} {compile_only_args} $in
