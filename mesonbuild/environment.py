@@ -503,6 +503,24 @@ class Environment:
             if isinstance(compiler, str):
                 compiler = [compiler]
             if 'cl' in compiler or 'cl.exe' in compiler:
+                # Watcom C provides it's own cl.exe clone that mimics an older
+                # version of Microsoft's compiler. Since Watcom's cl.exe is
+                # just a wrapper, we skip using it if we detect its presence
+                # so as not to confuse Meson when configuring for MSVC.
+                #
+                # Additionally the help text of Watcom's cl.exe is paged, and
+                # the binary will not exit without human intervention. In
+                # practice, Meson will block waiting for Watcom's cl.exe to
+                # exit, which requires user input and thus will never exit.
+                if 'WATCOM' in os.environ:
+                    def sanitize(p):
+                        return os.path.normcase(os.path.abspath(p))
+
+                    watcom_cls = [sanitize(os.path.join(os.environ['WATCOM'], 'BINNT', 'cl')),
+                                  sanitize(os.path.join(os.environ['WATCOM'], 'BINNT', 'cl.exe'))]
+                    found_cl = sanitize(shutil.which('cl'))
+                    if found_cl in watcom_cls:
+                        continue
                 arg = '/?'
             else:
                 arg = '--version'
