@@ -63,6 +63,7 @@ from .compilers import (
     ValaCompiler,
     VisualStudioCCompiler,
     VisualStudioCPPCompiler,
+    WatcomCCompiler,
 )
 
 build_filename = 'meson.build'
@@ -530,10 +531,13 @@ class Environment:
                     if found_cl in watcom_cls:
                         continue
                 arg = '/?'
+            elif ['wcc', 'wcc.exe', 'wcc386', 'wcc386.exe'] in compiler:
+                arg = '-h'
             else:
                 arg = '--version'
             try:
                 p, out, err = Popen_safe(compiler + [arg])
+                print(out)
             except OSError as e:
                 popen_exceptions[' '.join(compiler + [arg])] = e
                 continue
@@ -575,6 +579,12 @@ class Environment:
                 inteltype = ICC_STANDARD
                 cls = IntelCCompiler if lang == 'c' else IntelCPPCompiler
                 return cls(ccache + compiler, version, inteltype, is_cross, exe_wrap)
+            if 'Open Watcom' in out:
+                if lang == 'c':
+                    cls = WatcomCCompiler
+                    # OpenWatcom v2 supports 64-bit, not currently supported.
+                    return cls(compiler, version, is_cross, exe_wrap, False)
+
         self._handle_exceptions(popen_exceptions, compilers)
 
     def detect_c_compiler(self, want_cross):

@@ -27,6 +27,8 @@ from .compilers import (
     msvc_winlibs,
     vs32_instruction_set_args,
     vs64_instruction_set_args,
+    watcom_buildtype_args,
+    watcom_buildtype_linker_args,
     ClangCompiler,
     Compiler,
     CompilerArgs,
@@ -1028,3 +1030,15 @@ class VisualStudioCCompiler(CCompiler):
         return vs32_instruction_set_args.get(instruction_set, None)
 
 
+class WatcomCCompiler(CCompiler):
+    def __init__(self, exelist, version, is_cross, exe_wrap, is_64):
+        CCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
+        self.id = 'watcom'
+        # /showIncludes is needed for build dependency tracking in Ninja
+        # See: https://ninja-build.org/manual.html#_deps
+        self.always_args = ['-zq', '-fr']
+        self.warn_args = {'1': ['-w=2'],
+                          '2': ['-w=3'],
+                          '3': ['-w=4']}
+        self.base_options = ['b_pch'] # FIXME add lto, pgo and the like
+        self.is_64 = False
