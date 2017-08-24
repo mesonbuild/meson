@@ -996,6 +996,8 @@ int dummy;
 
         for dep in target.get_external_deps():
             commands.extend_direct(dep.get_link_args())
+        commands += self.build.get_project_args(compiler, target.subproject)
+        commands += self.build.get_global_args(compiler)
 
         elem = NinjaBuildElement(self.all_outputs, outputs, 'cs_COMPILER', rel_srcs)
         elem.add_dep(deps)
