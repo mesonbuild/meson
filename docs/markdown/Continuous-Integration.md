@@ -1,14 +1,21 @@
 # Continuous Integration
 
-Here you will find snippets to use Meson with various CI such as Travis and AppVeyor.
+Here you will find snippets to use Meson with various CI such as
+Travis and AppVeyor.
 
-Please [file an issue](https://github.com/mesonbuild/meson/issues/new) if these instructions don't work for you.
+Please [file an issue](https://github.com/mesonbuild/meson/issues/new)
+if these instructions don't work for you.
 
 ## Travis for OS X and Linux (with Docker)
 
-Travis for Linux provides ancient versions of Ubuntu which will likely cause problems building your projects regardless of which build system you're using. We recommend using Docker to get a more-recent version of Ubuntu and installing Ninja, Python3, and Meson inside it.
+Travis for Linux provides ancient versions of Ubuntu which will likely
+cause problems building your projects regardless of which build system
+you're using. We recommend using Docker to get a more-recent version
+of Ubuntu and installing Ninja, Python3, and Meson inside it.
 
-This `yml` file is derived from the [configuration used by Meson for running its own tests](https://github.com/mesonbuild/meson/blob/master/.travis.yml).
+This `yml` file is derived from the [configuration used by Meson for
+running its own
+tests](https://github.com/mesonbuild/meson/blob/master/.travis.yml).
 
 ```yaml
 sudo: false
@@ -39,7 +46,8 @@ script:
 
 ## AppVeyor for Windows
 
-For CI on Windows, [AppVeyor](https://www.appveyor.com/) is probably your best bet. Here's a sample `yml` file for use with that.
+For CI on Windows, [AppVeyor](https://www.appveyor.com/) is probably
+your best bet. Here's a sample `yml` file for use with that.
 
 ```yaml
 os: Visual Studio 2015
