@@ -967,7 +967,7 @@ int dummy;
         compiler = target.compilers['cs']
         rel_srcs = [s.rel_to_builddir(self.build_to_src) for s in src_list]
         deps = []
-        commands = target.extra_args.get('cs', [])
+        commands = CompilerArgs(compiler, target.extra_args.get('cs', []))
         commands += compiler.get_buildtype_args(buildtype)
         if isinstance(target, build.Executable):
             commands.append('-target:exe')
@@ -993,6 +993,9 @@ int dummy;
             if rel_src.lower().endswith('.cs'):
                 rel_srcs.append(rel_src)
             deps.append(rel_src)
+
+        for dep in target.get_external_deps():
+            commands.extend_direct(dep.get_link_args())
 
         elem = NinjaBuildElement(self.all_outputs, outputs, 'cs_COMPILER', rel_srcs)
         elem.add_dep(deps)
