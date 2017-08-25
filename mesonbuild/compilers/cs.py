@@ -15,15 +15,16 @@
 import os.path, subprocess
 
 from ..mesonlib import EnvironmentException
+from ..mesonlib import is_windows
 
 from .compilers import Compiler, mono_buildtype_args
 
-class MonoCompiler(Compiler):
-    def __init__(self, exelist, version, **kwargs):
+class CsCompiler(Compiler):
+    def __init__(self, exelist, version, id, runner=None):
         self.language = 'cs'
-        super().__init__(exelist, version, **kwargs)
-        self.id = 'mono'
-        self.monorunner = 'mono'
+        super().__init__(exelist, version)
+        self.id = id
+        self.runner = runner
 
     def get_display_language(self):
         return 'C sharp'
@@ -96,7 +97,10 @@ class MonoCompiler(Compiler):
         pc.wait()
         if pc.returncode != 0:
             raise EnvironmentException('Mono compiler %s can not compile programs.' % self.name_string())
-        cmdlist = [self.monorunner, obj]
+        if self.runner:
+            cmdlist = [self.runner, obj]
+        else:
+            cmdlist = [os.path.join(work_dir, obj)]
         pe = subprocess.Popen(cmdlist, cwd=work_dir)
         pe.wait()
         if pe.returncode != 0:
@@ -107,3 +111,25 @@ class MonoCompiler(Compiler):
 
     def get_buildtype_args(self, buildtype):
         return mono_buildtype_args[buildtype]
+
+
+class MonoCompiler(CsCompiler):
+    def __init__(self, exelist, version):
+        super().__init__(exelist, version, 'mono',
+                         'mono')
+
+
+class VisualStudioCsCompiler(CsCompiler):
+    def __init__(self, exelist, version):
+        super().__init__(exelist, version, 'csc')
+
+    def get_buildtype_args(self, buildtype):
+        res = mono_buildtype_args[buildtype]
+        if not is_windows():
+            tmp = []
+            for flag in res:
+                if flag == '-debug':
+                    flag = '-debug:portable'
+                tmp.append(flag)
+            res = tmp
+        return res

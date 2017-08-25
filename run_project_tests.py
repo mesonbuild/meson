@@ -478,7 +478,7 @@ def detect_tests_to_run():
         ('platform-linux', 'linuxlike', mesonlib.is_osx() or mesonlib.is_windows()),
 
         ('java', 'java', backend is not Backend.ninja or mesonlib.is_osx() or not have_java()),
-        ('C#', 'csharp', backend is not Backend.ninja or not shutil.which('mcs')),
+        ('C#', 'csharp', backend is not Backend.ninja or not (shutil.which('mcs') or shutil.which('csc')) or not shutil.which('resgen')),
         ('vala', 'vala', backend is not Backend.ninja or not shutil.which('valac')),
         ('rust', 'rust', backend is not Backend.ninja or not shutil.which('rustc')),
         ('d', 'd', backend is not Backend.ninja or not have_d_compiler()),

@@ -103,7 +103,8 @@ class NinjaBuildElement:
         # This is the only way I could find to make this work on all
         # platforms including Windows command shell. Slash is a dir separator
         # on Windows, too, so all characters are unambiguous and, more importantly,
-        # do not require quoting.
+        # do not require quoting, unless explicitely specified, which is necessary for
+        # the csc compiler.
         line = line.replace('\\', '/')
         outfile.write(line)
 
@@ -988,7 +989,7 @@ int dummy;
         outname_rel = os.path.join(self.get_target_dir(target), fname)
         src_list = target.get_sources()
         compiler = target.compilers['cs']
-        rel_srcs = [s.rel_to_builddir(self.build_to_src) for s in src_list]
+        rel_srcs = [os.path.normpath(s.rel_to_builddir(self.build_to_src)) for s in src_list]
         deps = []
         commands = CompilerArgs(compiler, target.extra_args.get('cs', []))
         commands += compiler.get_buildtype_args(buildtype)
@@ -1014,8 +1015,8 @@ int dummy;
         for rel_src in generated_sources.keys():
             dirpart, fnamepart = os.path.split(rel_src)
             if rel_src.lower().endswith('.cs'):
-                rel_srcs.append(rel_src)
-            deps.append(rel_src)
+                rel_srcs.append(os.path.normpath(rel_src))
+            deps.append(os.path.normpath(rel_src))
 
         for dep in target.get_external_deps():
             commands.extend_direct(dep.get_link_args())
@@ -1588,7 +1589,15 @@ int dummy;
     def generate_cs_compile_rule(self, compiler, outfile):
         rule = 'rule %s_COMPILER\n' % compiler.get_language()
         invoc = ' '.join([ninja_quote(i) for i in compiler.get_exelist()])
-        command = ' command = %s $ARGS $in\n' % invoc
+
+        if mesonlib.is_windows():
+            command = ''' command = {executable}  @$out.rsp
+ rspfile = $out.rsp
+ rspfile_content =  $ARGS  $in
+'''.format(executable=invoc)
+        else:
+            command = ' command = %s $ARGS $in\n' % invoc
+
         description = ' description = Compiling C Sharp target $out.\n'
         outfile.write(rule)
         outfile.write(command)
