@@ -12,4 +12,5 @@ RUN apt-get -y update && apt-get -y upgrade \
 && apt-get -y install libboost-log-dev \
 && apt-get -y install libvulkan-dev libpcap-dev \
 && apt-get -y install gcovr lcov \
+&& apt-get -y install gtk-sharp2 gtk-sharp2-gapi libglib2.0-cil-dev \
 && python3 -m pip install hotdoc codecov

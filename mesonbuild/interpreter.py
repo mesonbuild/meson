@@ -1238,6 +1238,7 @@ lang_arg_kwargs = set(['c_args',
                        'objcpp_args',
                        'rust_args',
                        'vala_args',
+                       'cs_args',
                    ])
 
 vala_kwargs = set(['vala_header', 'vala_gir', 'vala_vapi'])
