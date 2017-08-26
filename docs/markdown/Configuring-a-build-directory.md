@@ -4,11 +4,18 @@ short-description: Configuring a pre-generated build directory
 
 # Configuring a build directory
 
-Often you want to change the settings of your build after it has been generated. For example you might want to change from a debug build into a release build, set custom compiler flags, change the build options provided in your `meson_options.txt` file and so on.
+Often you want to change the settings of your build after it has been
+generated. For example you might want to change from a debug build
+into a release build, set custom compiler flags, change the build
+options provided in your `meson_options.txt` file and so on.
 
-The main tool for this is the `mesonconf` script. You may also use the `mesongui` graphical application if you want. However this document describes the use of the command line client.
+The main tool for this is the `mesonconf` script. You may also use the
+`mesongui` graphical application if you want. However this document
+describes the use of the command line client.
 
-You invoke `mesonconf` by giving it the location of your build dir. If omitted, the current working directory is used instead. Here's a sample output for a simple project.
+You invoke `mesonconf` by giving it the location of your build dir. If
+omitted, the current working directory is used instead. Here's a
+sample output for a simple project.
 
     Core properties
 
@@ -43,8 +50,14 @@ You invoke `mesonconf` by giving it the location of your build dir. If omitted, 
 
     This project does not have any options
 
-These are all the options available for the current project arranged into related groups. The first column in every field is the name of the option. To set an option you use the `-D` option. For example, changing the installation prefix from `/usr/local` to `/tmp/testroot` you would issue the following command.
+These are all the options available for the current project arranged
+into related groups. The first column in every field is the name of
+the option. To set an option you use the `-D` option. For example,
+changing the installation prefix from `/usr/local` to `/tmp/testroot`
+you would issue the following command.
 
     mesonconf -Dprefix=/tmp/testroot
 
-Then you would run your build command (usually `ninja`), which would cause Meson to detect that the build setup has changed and do all the work required to bring your build tree up to date.
+Then you would run your build command (usually `ninja`), which would
+cause Meson to detect that the build setup has changed and do all the
+work required to bring your build tree up to date.
