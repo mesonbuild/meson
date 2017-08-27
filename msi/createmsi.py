@@ -29,12 +29,13 @@ xml_templ = '''<?xml version='1.0' encoding='windows-1252'?>
            Language='1033' Codepage='1252' Version='%s'>
     <Package Id='*' Keywords='Installer' Description="Meson %s installer"
              Comments='Meson is a high performance build system' Manufacturer='Meson development team'
-             InstallerVersion='100' Languages='1033' Compressed='yes' SummaryCodepage='1252' />
+             InstallerVersion='200' Languages='1033' Compressed='yes' SummaryCodepage='1252'
+             %s />
 
     <Media Id="1" Cabinet="meson.cab" EmbedCab="yes" />
 
     <Directory Id='TARGETDIR' Name='SourceDir'>
-      <Directory Id="ProgramFilesFolder">
+      <Directory Id="%s">
         <Directory Id="INSTALLDIR" Name="Meson">
 '''
 
@@ -85,6 +86,14 @@ class PackageGenerator:
         self.bytesize = '32' if '32' in platform.architecture()[0] else '64'
         self.final_output = 'meson-%s-%s.msi' % (self.version, self.bytesize)
         self.staging_dir = 'dist'
+        if self.bytesize == '64':
+            self.platform_str = 'Platform="x64"'
+            self.progfile_dir = 'ProgramFiles64Folder'
+            self.component_platform = 'Win64="yes"'
+        else:
+            self.platform_sr = ''
+            self.progfile_dir = 'ProgramFilesFolder'
+            self.component_platform = ''
 
     def build_dist(self):
         if os.path.exists(self.staging_dir):
@@ -114,7 +123,8 @@ class PackageGenerator:
             for root, dirs, files in os.walk(self.staging_dir):
                 cur_node = Node(dirs, files)
                 nodes[root] = cur_node
-            ofile.write(xml_templ % (self.guid, self.update_guid, self.version, self.version))
+            ofile.write(xml_templ % (self.guid, self.update_guid, self.version, self.version,
+                                     self.platform_str, self.progfile_dir))
             self.component_num = 0
             self.create_xml(nodes, ofile, self.staging_dir)
             for i in range(self.component_num):
@@ -124,7 +134,7 @@ class PackageGenerator:
     def create_xml(self, nodes, ofile, root):
         cur_node = nodes[root]
         if cur_node.files:
-            ofile.write("<Component Id='ApplicationFiles%d' Guid='%s'>\n" % (self.component_num, gen_guid()))
+            ofile.write("<Component Id='ApplicationFiles%d' Guid='%s' %s>\n" % (self.component_num, gen_guid(), self.component_platform))
             if self.component_num == 0:
                 ofile.write(path_addition_xml)
             self.component_num += 1
