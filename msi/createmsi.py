@@ -142,8 +142,11 @@ class PackageGenerator:
 
 
     def build_package(self):
-        subprocess.check_call(['c:\\Program Files\\Wix Toolset v3.11\\bin\candle', self.main_xml])
-        subprocess.check_call(['c:\\Program Files\\Wix Toolset v3.11\\bin\light',
+        wixdir = 'c:\\Program Files\\Wix Toolset v3.11\\bin'
+        if not os.path.isdir(wixdir):
+            wixdir = 'c:\\Program Files (x86)\\Wix Toolset v3.11\\bin'
+        subprocess.check_call([os.path.join(wixdir, 'candle'), self.main_xml])
+        subprocess.check_call([os.path.join(wixdir, 'light'),
                                '-ext', 'WixUIExtension',
                                '-cultures:en-us',
                                '-dWixUILicenseRtf=msi\\License.rtf',
