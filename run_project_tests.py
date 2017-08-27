@@ -503,6 +503,12 @@ def _run_tests(all_tests, log_name_base, extra_args):
         print('Could not determine number of CPUs due to the following reason:' + str(e))
         print('Defaulting to using only one process')
         num_workers = 1
+    # Due to Ninja deficiency, almost 50% of build time
+    # is spent waiting. Do something useful instead.
+    #
+    # Remove this once the following issue has been resolved:
+    # https://github.com/mesonbuild/meson/pull/2082
+    num_workers *= 2
     try:
         executor = conc.ProcessPoolExecutor(max_workers=num_workers)
     except ImportError:
