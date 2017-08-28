@@ -255,7 +255,7 @@ def detect_vcs(source_dir):
 
 def grab_leading_numbers(vstr, strict=False):
     result = []
-    for x in vstr.split('.'):
+    for x in vstr.rstrip('.').split('.'):
         try:
             result.append(int(x))
         except ValueError as e:
