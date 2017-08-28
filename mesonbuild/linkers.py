@@ -65,7 +65,7 @@ class VisualStudioLinker(StaticLinker):
 
 
 class WatcomLinker(StaticLinker):
-    always_args = ['-zq', '-fr']
+    always_args = ['-q']
 
     def __init__(self, exelist):
         self.exelist = exelist
@@ -80,7 +80,7 @@ class WatcomLinker(StaticLinker):
         return []
 
     def get_output_args(self, target):
-        return ['-fe=' + target]
+        return []
 
     def get_coverage_link_args(self):
         return []

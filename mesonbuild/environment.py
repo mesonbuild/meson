@@ -15,7 +15,7 @@
 import configparser, os, platform, re, shlex, shutil, subprocess
 
 from . import coredata
-from .linkers import ArLinker, VisualStudioLinker
+from .linkers import ArLinker, VisualStudioLinker, WatcomLinker
 from . import mesonlib
 from .mesonlib import EnvironmentException, Popen_safe
 from . import mlog
@@ -815,6 +815,8 @@ class Environment:
         for linker in linkers:
             if 'lib' in linker or 'lib.exe' in linker:
                 arg = '/?'
+            elif 'wlib' in linker:
+                arg = '-v'
             else:
                 arg = '--version'
             try:
@@ -828,6 +830,8 @@ class Environment:
                 return ArLinker(linker)
             if p.returncode == 1 and err.startswith('usage'): # OSX
                 return ArLinker(linker)
+            if p.returncode == 8 and 'Open Watcom Library Manager' in out:
+                return WatcomLinker(linker)
         self._handle_exceptions(popen_exceptions, linkers, 'linker')
         raise EnvironmentException('Unknown static linker "%s"' % ' '.join(linkers))
 
