@@ -1505,6 +1505,8 @@ int dummy;
  rspfile = $out.rsp
  rspfile_content = $ARGS  {output_args} $in $LINK_ARGS {cross_args} $aliasing
 '''
+                elif compiler.get_id() == 'watcom':
+                    command_template = ' command = {executable} $ARGS {output_args} $in_mangled $LINK_ARGS {cross_args} $aliasing\n'
                 else:
                     command_template = ' command = {executable} $ARGS {output_args} $in $LINK_ARGS {cross_args} $aliasing\n'
                 command = command_template.format(
@@ -2481,10 +2483,20 @@ rule FORTRAN_DEP_HACK
         dep_targets = [self.get_dependency_filename(t) for t in dependencies]
         dep_targets.extend([self.get_dependency_filename(t)
                             for t in target.link_depends])
+
         (qf, winpaths) = self.query_commandline_hacks(linker)
         elem = NinjaBuildElement(self.all_outputs, outname, linker_rule, obj_list, qf, winpaths)
         elem.add_dep(dep_targets + custom_target_libraries)
         elem.add_item('LINK_ARGS', commands)
+
+        if linker.get_id() == 'watcom':
+            objs_mangled = []
+            for obj in obj_list:
+                objs_mangled.append('\'{}\''.format(obj))
+
+            in_mangled = 'file ' + ', '.join(objs_mangled)
+            elem.add_item('in_mangled', in_mangled)
+
         return elem
 
     def get_dependency_filename(self, t):
