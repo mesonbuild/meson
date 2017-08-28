@@ -17,7 +17,7 @@ from .base import (  # noqa: F401
     ExternalDependency, ExternalLibrary, ExtraFrameworkDependency, InternalDependency,
     PkgConfigDependency, find_external_dependency, get_dep_identifier, packages, _packages_accept_language)
 from .dev import GMockDependency, GTestDependency, LLVMDependency, ValgrindDependency
-from .misc import (BoostDependency, MPIDependency, Python3Dependency, ThreadDependency, PcapDependency)
+from .misc import (BoostDependency, MPIDependency, Python3Dependency, ThreadDependency, PcapDependency, CupsDependency)
 from .platform import AppleFrameworks
 from .ui import GLDependency, GnuStepDependency, Qt4Dependency, Qt5Dependency, SDL2Dependency, WxDependency, VulkanDependency
 
@@ -35,6 +35,7 @@ packages.update({
     'python3': Python3Dependency,
     'threads': ThreadDependency,
     'pcap': PcapDependency,
+    'cups': CupsDependency,
 
     # From platform:
     'appleframeworks': AppleFrameworks,
