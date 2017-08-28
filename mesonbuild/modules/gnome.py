@@ -804,7 +804,7 @@ class GnomeModule(ExtensionModule):
         modulename = args[0]
         if not isinstance(modulename, str):
             raise MesonException('Argument must be a string')
-        return ModuleReturnValue(os.path.join('share/gtkdoc/html', modulename), [])
+        return ModuleReturnValue(os.path.join('share/gtk-doc/html', modulename), [])
 
     @staticmethod
     def _unpack_args(arg, kwarg_name, kwargs, expend_file_state=None):

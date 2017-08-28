@@ -2,7 +2,7 @@ project('gtkdoctest', 'c', version : '1.0.0')
 
 gnome = import('gnome')
 
-assert(gnome.gtkdoc_html_dir('foobar') == 'share/gtkdoc/html/foobar', 'Gtkdoc install dir is incorrect.')
+assert(gnome.gtkdoc_html_dir('foobar') == 'share/gtk-doc/html/foobar', 'Gtkdoc install dir is incorrect.')
 
 inc = include_directories('include')
 
