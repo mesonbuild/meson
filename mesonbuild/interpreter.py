@@ -1302,7 +1302,7 @@ permitted_kwargs = {'add_global_arguments': {'language'},
                     'executable': exe_kwargs,
                     'find_program': {'required'},
                     'generator': {'arguments', 'output', 'depfile'},
-                    'include_directories': {'is_system'},
+                    'include_directories': {'is_system', 'is_build_only'},
                     'install_data': {'install_dir', 'install_mode', 'sources'},
                     'install_headers': {'install_dir', 'subdir'},
                     'install_man': {'install_dir'},
@@ -2595,6 +2595,7 @@ class Interpreter(InterpreterBase):
         build_root = self.environment.get_build_dir()
         absbase_src = os.path.join(src_root, self.subdir)
         absbase_build = os.path.join(build_root, self.subdir)
+        is_build_only = kwargs.get('is_build_only', False)
 
         for a in args:
             if a.startswith(src_root):
@@ -2617,12 +2618,12 @@ different subdirectory.
 ''')
             absdir_src = os.path.join(absbase_src, a)
             absdir_build = os.path.join(absbase_build, a)
-            if not os.path.isdir(absdir_src) and not os.path.isdir(absdir_build):
+            if not is_build_only and not os.path.isdir(absdir_src) and not os.path.isdir(absdir_build):
                 raise InvalidArguments('Include dir %s does not exist.' % a)
         is_system = kwargs.get('is_system', False)
         if not isinstance(is_system, bool):
             raise InvalidArguments('Is_system must be boolean.')
-        i = IncludeDirsHolder(build.IncludeDirs(self.subdir, args, is_system))
+        i = IncludeDirsHolder(build.IncludeDirs(self.subdir, args, is_system, None, is_build_only))
         return i
 
     @permittedKwargs(permitted_kwargs['add_test_setup'])
