@@ -537,7 +537,6 @@ class Environment:
                 arg = '--version'
             try:
                 p, out, err = Popen_safe(compiler + [arg])
-                print(out)
             except OSError as e:
                 popen_exceptions[' '.join(compiler + [arg])] = e
                 continue

@@ -1048,6 +1048,15 @@ class WatcomCCompiler(CCompiler):
     def get_always_args(self):
         return self.always_args
 
+    def get_linker_exelist(self):
+        return ["wlink"]
+
+    def get_linker_always_args(self):
+        return ['option quiet']
+
+    def get_linker_output_args(self, outputname):
+        return ['name ' + outputname]
+
     def get_dependency_gen_args(self, outtarget, outfile):
         return []
 

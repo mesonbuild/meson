@@ -1500,7 +1500,7 @@ int dummy;
                     except KeyError:
                         pass
                 rule = 'rule %s%s_LINKER\n' % (langname, crstr)
-                if mesonlib.is_windows():
+                if mesonlib.is_windows() and not compiler.get_id() == 'watcom':
                     command_template = ''' command = {executable} @$out.rsp
  rspfile = $out.rsp
  rspfile_content = $ARGS  {output_args} $in $LINK_ARGS {cross_args} $aliasing
@@ -1679,7 +1679,7 @@ rule FORTRAN_DEP_HACK
                 d = quote_func(d)
             quoted_depargs.append(d)
         cross_args = self.get_cross_info_lang_args(langname, is_cross)
-        if mesonlib.is_windows() and not compiler.get_id() == "watcom":
+        if mesonlib.is_windows() and not compiler.get_id() == 'watcom':
             command_template = ''' command = {executable} @$out.rsp
  rspfile = $out.rsp
  rspfile_content = {cross_args} $ARGS {dep_args} {output_args} {compile_only_args} $in
@@ -1767,7 +1767,7 @@ rule FORTRAN_DEP_HACK
             for langname, compiler in cclist.items():
                 if compiler.get_id() == 'clang':
                     self.generate_llvm_ir_compile_rule(compiler, True, outfile)
-                self.generate_compile_rule_for(langname, compiler, True, outfile, qf, winpaths)
+                self.generate_compile_rule_for(langname, compiler, True, outfile)
                 self.generate_pch_rule_for(langname, compiler, True, outfile)
         outfile.write('\n')
 
@@ -2481,7 +2481,8 @@ rule FORTRAN_DEP_HACK
         dep_targets = [self.get_dependency_filename(t) for t in dependencies]
         dep_targets.extend([self.get_dependency_filename(t)
                             for t in target.link_depends])
-        elem = NinjaBuildElement(self.all_outputs, outname, linker_rule, obj_list)
+        (qf, winpaths) = self.query_commandline_hacks(linker)
+        elem = NinjaBuildElement(self.all_outputs, outname, linker_rule, obj_list, qf, winpaths)
         elem.add_dep(dep_targets + custom_target_libraries)
         elem.add_item('LINK_ARGS', commands)
         return elem

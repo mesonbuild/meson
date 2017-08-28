@@ -64,6 +64,53 @@ class VisualStudioLinker(StaticLinker):
         return []
 
 
+class WatcomLinker(StaticLinker):
+    always_args = ['-zq', '-fr']
+
+    def __init__(self, exelist):
+        self.exelist = exelist
+
+    def get_exelist(self):
+        return self.exelist[:]
+
+    def get_std_link_args(self):
+        return []
+
+    def get_buildtype_linker_args(self, buildtype):
+        return []
+
+    def get_output_args(self, target):
+        return ['-fe=' + target]
+
+    def get_coverage_link_args(self):
+        return []
+
+    def get_always_args(self):
+        return WatcomLinker.always_args
+
+    def get_linker_always_args(self):
+        return WatcomLinker.always_args
+
+    def build_rpath_args(self, build_dir, from_dir, rpath_paths, build_rpath, install_rpath):
+        return []
+
+    def thread_link_flags(self):
+        return []
+
+    def get_option_link_args(self, options):
+        return []
+
+    @classmethod
+    def unix_args_to_native(cls, args):
+        from .compilers import WatcomCCompiler
+        return WatcomCCompiler.unix_args_to_native(args)
+
+    def get_link_debugfile_args(self, targetfile):
+        # Static libraries do not have PDB files
+        return []
+
+
+
 class ArLinker(StaticLinker):
 
     def __init__(self, exelist):
