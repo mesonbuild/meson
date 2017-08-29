@@ -1,7 +1,10 @@
 project('D Shared Library', 'd')
 
-if meson.get_compiler('d').get_id() == 'gcc'
-  error('MESON_SKIP_TEST: GDC can not build shared libraries')
+dc = meson.get_compiler('d')
+if dc.get_id() == 'gcc'
+  if dc.version().version_compare('< 7')
+    error('MESON_SKIP_TEST: GDC < 7.0 can not build shared libraries')
+  endif
 endif
 
 ldyn = shared_library('stuff', 'libstuff.d', install : true)
