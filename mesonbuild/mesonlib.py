@@ -473,6 +473,17 @@ def replace_if_different(dst, dst_tmp):
     else:
         os.unlink(dst_tmp)
 
+
+def listify(*args):
+    '''
+    Returns a list with all args embedded in a list if they are not of type list.
+    This function preserve order.
+    '''
+    if len(args) == 1:  # Special case with one single arg
+        return args[0] if type(args[0]) is list else [args[0]]
+    return [item if type(item) is list else [item] for item in args]
+
+
 def typeslistify(item, types):
     '''
     Ensure that type(@item) is one of @types or a

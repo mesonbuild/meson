@@ -20,7 +20,7 @@ from . import environment
 from . import dependencies
 from . import mlog
 from .mesonlib import File, MesonException
-from .mesonlib import flatten, typeslistify, stringlistify, classify_unity_sources
+from .mesonlib import flatten, typeslistify, stringlistify, classify_unity_sources, listify
 from .mesonlib import get_filenames_templates_dict, substitute_values
 from .environment import for_windows, for_darwin, for_cygwin
 from .compilers import is_object, clike_langs, sort_clike, lang_suffixes
@@ -414,8 +414,7 @@ class BuildTarget(Target):
                 raise InvalidArguments(msg)
 
     def process_sourcelist(self, sources):
-        if not isinstance(sources, list):
-            sources = [sources]
+        sources = listify(sources)
         added_sources = {} # If the same source is defined multiple times, use it only once.
         for s in sources:
             # Holder unpacking. Ugly.
@@ -528,8 +527,7 @@ class BuildTarget(Target):
         generated twice, since the output needs to be passed to the ld_args and
         link_depends.
         """
-        if not isinstance(sources, list):
-            sources = [sources]
+        sources = listify(sources)
         for s in sources:
             if hasattr(s, 'held_object'):
                 s = s.held_object
@@ -551,8 +549,7 @@ class BuildTarget(Target):
         return self.kwargs
 
     def unpack_holder(self, d):
-        if not isinstance(d, list):
-            d = [d]
+        d = listify(d)
         newd = []
         for i in d:
             if isinstance(i, list):
@@ -610,64 +607,42 @@ class BuildTarget(Target):
         self.copy_kwargs(kwargs)
         kwargs.get('modules', [])
         self.need_install = kwargs.get('install', self.need_install)
-        llist = kwargs.get('link_with', [])
-        if not isinstance(llist, list):
-            llist = [llist]
+        llist = listify(kwargs.get('link_with', []))
         for linktarget in llist:
             # Sorry for this hack. Keyword targets are kept in holders
             # in kwargs. Unpack here without looking at the exact type.
             if hasattr(linktarget, "held_object"):
                 linktarget = linktarget.held_object
             self.link(linktarget)
-        lwhole = kwargs.get('link_whole', [])
-        if not isinstance(lwhole, list):
-            lwhole = [lwhole]
+        lwhole = listify(kwargs.get('link_whole', []))
         for linktarget in lwhole:
             # Sorry for this hack. Keyword targets are kept in holders
             # in kwargs. Unpack here without looking at the exact type.
             if hasattr(linktarget, "held_object"):
                 linktarget = linktarget.held_object
             self.link_whole(linktarget)
-        c_pchlist = kwargs.get('c_pch', [])
-        if not isinstance(c_pchlist, list):
-            c_pchlist = [c_pchlist]
+
+        c_pchlist, cpp_pchlist, clist, cpplist, cslist, valalist, objclist, objcpplist, fortranlist, rustlist = \
+            listify(kwargs.get('c_pch', []),
+                    kwargs.get('cpp_pch', []),
+                    kwargs.get('c_args', []),
+                    kwargs.get('cpp_args', []),
+                    kwargs.get('cs_args', []),
+                    kwargs.get('vala_args', []),
+                    kwargs.get('objc_args', []),
+                    kwargs.get('objcpp_args', []),
+                    kwargs.get('fortran_args', []),
+                    kwargs.get('rust_args', [])
+                    )
+
         self.add_pch('c', c_pchlist)
-        cpp_pchlist = kwargs.get('cpp_pch', [])
-        if not isinstance(cpp_pchlist, list):
-            cpp_pchlist = [cpp_pchlist]
         self.add_pch('cpp', cpp_pchlist)
-        clist = kwargs.get('c_args', [])
-        if not isinstance(clist, list):
-            clist = [clist]
-        self.add_compiler_args('c', clist)
-        cpplist = kwargs.get('cpp_args', [])
-        if not isinstance(cpplist, list):
-            cpplist = [cpplist]
-        self.add_compiler_args('cpp', cpplist)
-        cslist = kwargs.get('cs_args', [])
-        if not isinstance(cslist, list):
-            cslist = [cslist]
-        self.add_compiler_args('cs', cslist)
-        valalist = kwargs.get('vala_args', [])
-        if not isinstance(valalist, list):
-            valalist = [valalist]
-        self.add_compiler_args('vala', valalist)
-        objclist = kwargs.get('objc_args', [])
-        if not isinstance(objclist, list):
-            objclist = [objclist]
-        self.add_compiler_args('objc', objclist)
-        objcpplist = kwargs.get('objcpp_args', [])
-        if not isinstance(objcpplist, list):
-            objcpplist = [objcpplist]
-        self.add_compiler_args('objcpp', objcpplist)
-        fortranlist = kwargs.get('fortran_args', [])
-        if not isinstance(fortranlist, list):
-            fortranlist = [fortranlist]
-        self.add_compiler_args('fortran', fortranlist)
-        rustlist = kwargs.get('rust_args', [])
-        if not isinstance(rustlist, list):
-            rustlist = [rustlist]
-        self.add_compiler_args('rust', rustlist)
+        compiler_args = {'c':clist, 'cpp':cpplist, 'cs':cslist, 'vala':valalist, 'objc':objclist, 'objcpp':objclist,
+                         'fortran':fortranlist, 'rust':rustlist
+                         }
+        for key,value in compiler_args.items():
+            self.add_compiler_args(key,value)
+
         if not isinstance(self, Executable):
             self.vala_header = kwargs.get('vala_header', self.name + '.h')
             self.vala_vapi = kwargs.get('vala_vapi', self.name + '.vapi')
@@ -700,14 +675,10 @@ This will become a hard error in a future Meson release.''')
         self.process_link_depends(kwargs.get('link_depends', []), environment)
         # Target-specific include dirs must be added BEFORE include dirs from
         # internal deps (added inside self.add_deps()) to override them.
-        inclist = kwargs.get('include_directories', [])
-        if not isinstance(inclist, list):
-            inclist = [inclist]
+        inclist = listify(kwargs.get('include_directories', []))
         self.add_include_dirs(inclist)
         # Add dependencies (which also have include_directories)
-        deplist = kwargs.get('dependencies', [])
-        if not isinstance(deplist, list):
-            deplist = [deplist]
+        deplist = listify(kwargs.get('dependencies', []))
         self.add_deps(deplist)
         # If an item in this list is False, the output corresponding to
         # the list index of that item will not be installed
@@ -723,9 +694,7 @@ This will become a hard error in a future Meson release.''')
                 raise InvalidArguments('Argument gui_app must be boolean.')
         elif 'gui_app' in kwargs:
             raise InvalidArguments('Argument gui_app can only be used on executables.')
-        extra_files = kwargs.get('extra_files', [])
-        if not isinstance(extra_files, list):
-            extra_files = [extra_files]
+        extra_files = listify(kwargs.get('extra_files', []))
         for i in extra_files:
             assert(isinstance(i, File))
             trial = os.path.join(environment.get_source_dir(), i.subdir, i.fname)
@@ -738,9 +707,7 @@ This will become a hard error in a future Meson release.''')
         self.build_rpath = kwargs.get('build_rpath', '')
         if not isinstance(self.build_rpath, str):
             raise InvalidArguments('Build_rpath is not a string.')
-        resources = kwargs.get('resources', [])
-        if not isinstance(resources, list):
-            resources = [resources]
+        resources = listify(kwargs.get('resources', []))
         for r in resources:
             if not isinstance(r, str):
                 raise InvalidArguments('Resource argument is not a string.')
