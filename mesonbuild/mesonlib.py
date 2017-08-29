@@ -477,11 +477,18 @@ def replace_if_different(dst, dst_tmp):
 def listify(*args):
     '''
     Returns a list with all args embedded in a list if they are not of type list.
-    This function preserve order.
+    This function preserves order.
     '''
     if len(args) == 1:  # Special case with one single arg
         return args[0] if type(args[0]) is list else [args[0]]
     return [item if type(item) is list else [item] for item in args]
+
+
+def extract_as_list(dict_object, *keys):
+    '''
+    Extracts all values from given dict_object and listifies them.
+    '''
+    return listify(*[dict_object.get(key, []) for key in keys])
 
 
 def typeslistify(item, types):
