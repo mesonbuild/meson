@@ -3,5 +3,6 @@
 int
 main()
 {
-    return !cupsGetDefault();
+    cupsGetDefault();
+    return 0;
 }
