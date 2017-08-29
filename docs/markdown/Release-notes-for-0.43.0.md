@@ -5,12 +5,8 @@ short-description: Release notes for 0.43 (preliminary)
 
 # New features
 
-This page is a placeholder for the eventual release notes.
+## Adding module to parse kconfig output files
 
-Notable new features should come with release note updates. This is
-done by creating a file snippet called `snippets/featurename.md` and
-whose contents should look like this:
+Adds the ability to load and use kconfig output files as part of the
+meson.build files be loading the kconfig module.
 
-    # Feature name
-
-    A short description explaining the new feature and how it should be used.
