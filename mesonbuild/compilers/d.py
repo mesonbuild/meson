@@ -27,6 +27,20 @@ from .compilers import (
     CompilerArgs,
 )
 
+d_feature_args = {'gcc':  {'unittest': '-funittest',
+                           'version': '-fversion',
+                           'import_dir': '-J'
+                           },
+                  'llvm': {'unittest': '-unittest',
+                           'version': '-d-version',
+                           'import_dir': '-J'
+                           },
+                  'dmd':  {'unittest': '-unittest',
+                           'version': '-version',
+                           'import_dir': '-J'
+                           }
+                  }
+
 class DCompiler(Compiler):
     def __init__(self, exelist, version, is_cross):
         self.language = 'd'
@@ -79,8 +93,42 @@ class DCompiler(Compiler):
         # FIXME: Make this work for Windows, MacOS and cross-compiling
         return get_gcc_soname_args(GCC_STANDARD, prefix, shlib_name, suffix, path, soversion, is_shared_module)
 
-    def get_unittest_args(self):
-        return ['-unittest']
+    def get_feature_args(self, args, kwargs):
+        res = []
+        if 'unittest' in kwargs:
+            unittest = kwargs.pop('unittest')
+            unittest_arg = d_feature_args[self.id]['unittest']
+            if not unittest_arg:
+                raise EnvironmentException('D compiler %s does not support the "unittest" feature.' % self.name_string())
+            if unittest:
+                res.append(unittest_arg)
+
+        if 'versions' in kwargs:
+            versions = kwargs.pop('versions')
+            if not isinstance(versions, list):
+                versions = [versions]
+
+            version_arg = d_feature_args[self.id]['version']
+            if not version_arg:
+                raise EnvironmentException('D compiler %s does not support the "feature versions" feature.' % self.name_string())
+            for v in versions:
+                res.append('{0}={1}'.format(version_arg, v))
+
+        if 'import_dirs' in kwargs:
+            import_dirs = kwargs.pop('import_dirs')
+            if not isinstance(import_dirs, list):
+                import_dirs = [import_dirs]
+
+            import_dir_arg = d_feature_args[self.id]['import_dir']
+            if not import_dir_arg:
+                raise EnvironmentException('D compiler %s does not support the "string import directories" feature.' % self.name_string())
+            for d in import_dirs:
+                res.append('{0}{1}'.format(import_dir_arg, d))
+
+        if kwargs:
+            raise EnvironmentException('Unknown D compiler feature(s) selected: %s' % ', '.join(kwargs.keys()))
+
+        return res
 
     def get_buildtype_linker_args(self, buildtype):
         return []
@@ -216,9 +264,6 @@ class GnuDCompiler(DCompiler):
 
     def build_rpath_args(self, build_dir, from_dir, rpath_paths, build_rpath, install_rpath):
         return self.build_unix_rpath_args(build_dir, from_dir, rpath_paths, build_rpath, install_rpath)
-
-    def get_unittest_args(self):
-        return ['-funittest']
 
 
 class LLVMDCompiler(DCompiler):

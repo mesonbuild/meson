@@ -655,6 +655,7 @@ class CompilerHolder(InterpreterObject):
                              'get_supported_arguments': self.get_supported_arguments_method,
                              'first_supported_argument': self.first_supported_argument_method,
                              'unittest_args': self.unittest_args_method,
+                             'feature_args': self.feature_args_method,
                              'symbols_have_underscore_prefix': self.symbols_have_underscore_prefix_method,
                              })
 
@@ -751,11 +752,19 @@ class CompilerHolder(InterpreterObject):
         '''
         return self.compiler.symbols_have_underscore_prefix(self.environment)
 
-    def unittest_args_method(self, args, kwargs):
+    def feature_args_method(self, args, kwargs):
         # At time, only D compilers have this feature.
-        if not hasattr(self.compiler, 'get_unittest_args'):
-            raise InterpreterException('This {} compiler has no unittest arguments.'.format(self.compiler.get_display_language()))
-        return self.compiler.get_unittest_args()
+        if not hasattr(self.compiler, 'get_feature_args'):
+            raise InterpreterException('This {} compiler has no feature arguments.'.format(self.compiler.get_display_language()))
+        return self.compiler.get_feature_args(args, kwargs)
+
+    def unittest_args_method(self, args, kwargs):
+        '''
+        This function is deprecated and should not be used.
+        '''
+        if not hasattr(self.compiler, 'get_feature_args'):
+            raise InterpreterException('This {} compiler has no feature arguments.'.format(self.compiler.get_display_language()))
+        return self.compiler.get_feature_args(args, {'unittest': 'true'})
 
     def has_member_method(self, args, kwargs):
         if len(args) != 2:
