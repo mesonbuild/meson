@@ -1048,6 +1048,9 @@ class WatcomCCompiler(CCompiler):
     def get_always_args(self):
         return self.always_args
 
+    def get_pic_args(self):
+        return [] # PIC is handled by the loader on Windows
+
     def get_linker_exelist(self):
         return ["wlink"]
 
@@ -1077,7 +1080,7 @@ class WatcomCCompiler(CCompiler):
             if i.startswith('-I'):
                 i = '-i=' + i[2:]
             if i.startswith('-L'):
-                i = '-\"library' + i[2:] + '\"'
+                i = 'library ' + i[2:]
             # Translate GNU-style -lfoo library name to the import library
             elif i.startswith('-l'):
                 name = i[2:]

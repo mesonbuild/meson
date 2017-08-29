@@ -22,8 +22,8 @@ from .. import build
 from .. import mlog
 from .. import dependencies
 from .. import compilers
-from ..compilers import CompilerArgs
-from ..linkers import ArLinker
+from ..compilers import CompilerArgs, WatcomCCompiler
+from ..linkers import ArLinker, WatcomLinker
 from ..mesonlib import File, MesonException, OrderedSet
 from ..mesonlib import get_compiler_for_source
 from .backends import CleanTrees, InstallData
@@ -1445,11 +1445,13 @@ int dummy;
         # gcc-ar blindly pass the --plugin argument to `ar` and you cannot pass
         # options as arguments while using the @file.rsp syntax.
         # See: https://github.com/mesonbuild/meson/issues/1646
-        if mesonlib.is_windows() and not isinstance(static_linker, ArLinker):
+        if mesonlib.is_windows() and not (isinstance(static_linker, ArLinker) or isinstance(static_linker, WatcomLinker)):
             command_template = ''' command = {executable} @$out.rsp
  rspfile = $out.rsp
  rspfile_content = $LINK_ARGS {output_args} $in
 '''
+        elif isinstance(static_linker, WatcomLinker):
+            command_template = ' command = {executable} $LINK_ARGS {output_args} $in_mangled\n'
         else:
             command_template = ' command = {executable} $LINK_ARGS {output_args} $in\n'
         cmdlist = []
@@ -2489,12 +2491,15 @@ rule FORTRAN_DEP_HACK
         elem.add_dep(dep_targets + custom_target_libraries)
         elem.add_item('LINK_ARGS', commands)
 
-        if linker.get_id() == 'watcom':
+        if isinstance(linker, WatcomCCompiler) or isinstance(linker, WatcomLinker):
             objs_mangled = []
             for obj in obj_list:
                 objs_mangled.append('\'{}\''.format(obj))
 
-            in_mangled = 'file ' + ', '.join(objs_mangled)
+            if isinstance(target, build.StaticLibrary):
+                in_mangled = ' '.join(['+' + o for o in objs_mangled])
+            else:
+                in_mangled = 'file ' + ', '.join(objs_mangled)
             elem.add_item('in_mangled', in_mangled)
 
         return elem
@@ -2661,7 +2666,7 @@ rule FORTRAN_DEP_HACK
     def query_commandline_hacks(self, compiler):
         qf = None
         windows_paths = False
-        if compiler.get_id() == 'watcom':
+        if isinstance(compiler, WatcomCCompiler) or isinstance(compiler, WatcomLinker):
             qf = lambda s: '{}'.format(s)
             if mesonlib.is_windows():
                 windows_paths = True

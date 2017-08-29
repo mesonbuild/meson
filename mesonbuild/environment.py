@@ -320,6 +320,7 @@ class Environment:
         self.vs_static_linker = ['lib']
         self.gcc_static_linker = ['gcc-ar']
         self.clang_static_linker = ['llvm-ar']
+        self.watcom_static_linker = ['wlib']
 
         # Various prefixes and suffixes for import libraries, shared libraries,
         # static libraries, and executables.
@@ -809,6 +810,8 @@ class Environment:
             elif isinstance(compiler, compilers.ClangCompiler):
                 # Use llvm-ar if available; needed for LTO
                 linkers = [self.clang_static_linker, self.default_static_linker]
+            elif isinstance(compiler, compilers.WatcomCCompiler):
+                linkers = [self.watcom_static_linker]
             else:
                 linkers = [self.default_static_linker]
         popen_exceptions = {}
