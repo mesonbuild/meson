@@ -484,10 +484,12 @@ def listify(*args):
     return [item if type(item) is list else [item] for item in args]
 
 
-def extract_as_list(dict_object, *keys):
+def extract_as_list(dict_object, *keys, pop = False):
     '''
     Extracts all values from given dict_object and listifies them.
     '''
+    if pop:
+        return listify(*[dict_object.pop(key, []) for key in keys])
     return listify(*[dict_object.get(key, []) for key in keys])
 
 

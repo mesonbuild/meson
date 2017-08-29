@@ -98,17 +98,12 @@ class GnomeModule(ExtensionModule):
 
         cmd = ['glib-compile-resources', '@INPUT@']
 
-        source_dirs = kwargs.pop('source_dir', [])
-        if not isinstance(source_dirs, list):
-            source_dirs = [source_dirs]
+        source_dirs, dependencies = mesonlib.extract_as_list(kwargs, 'source_dir', 'dependencies', pop=True)
 
         if len(args) < 2:
             raise MesonException('Not enough arguments; the name of the resource '
                                  'and the path to the XML file are required')
 
-        dependencies = kwargs.pop('dependencies', [])
-        if not isinstance(dependencies, list):
-            dependencies = [dependencies]
         # Validate dependencies
         for (ii, dep) in enumerate(dependencies):
             if hasattr(dep, 'held_object'):
@@ -328,8 +323,7 @@ class GnomeModule(ExtensionModule):
         cflags = OrderedSet()
         ldflags = OrderedSet()
         gi_includes = OrderedSet()
-        if not isinstance(deps, list):
-            deps = [deps]
+        deps = mesonlib.listify(deps)
 
         for dep in deps:
             if hasattr(dep, 'held_object'):
@@ -464,17 +458,14 @@ class GnomeModule(ExtensionModule):
         scan_command += ['--filelist=' + gir_filelist_filename]
 
         if 'link_with' in kwargs:
-            link_with = kwargs.pop('link_with')
-            if not isinstance(link_with, list):
-                link_with = [link_with]
+            link_with = mesonlib.extract_as_list(kwargs, 'link_with', pop = True)
+
             for link in link_with:
                 scan_command += self._get_link_args(state, link.held_object, depends,
                                                     use_gir_args=True)
 
         if 'includes' in kwargs:
-            includes = kwargs.pop('includes')
-            if not isinstance(includes, list):
-                includes = [includes]
+            includes = mesonlib.extract_as_list(kwargs, 'includes', pop = True)
             for inc in includes:
                 if hasattr(inc, 'held_object'):
                     inc = inc.held_object
@@ -515,17 +506,17 @@ class GnomeModule(ExtensionModule):
                 # FIXME: Linking directly to libasan is not recommended but g-ir-scanner
                 # does not understand -f LDFLAGS. https://bugzilla.gnome.org/show_bug.cgi?id=783892
                 # ldflags += compilers.sanitizer_link_args(sanitize)
-        if kwargs.get('symbol_prefix'):
+        if 'symbol_prefix' in kwargs:
             sym_prefix = kwargs.pop('symbol_prefix')
             if not isinstance(sym_prefix, str):
                 raise MesonException('Gir symbol prefix must be str')
             scan_command += ['--symbol-prefix=%s' % sym_prefix]
-        if kwargs.get('identifier_prefix'):
+        if 'identifier_prefix' in kwargs:
             identifier_prefix = kwargs.pop('identifier_prefix')
             if not isinstance(identifier_prefix, str):
                 raise MesonException('Gir identifier prefix must be str')
             scan_command += ['--identifier-prefix=%s' % identifier_prefix]
-        if kwargs.get('export_packages'):
+        if 'export_packages' in kwargs:
             pkgs = kwargs.pop('export_packages')
             if isinstance(pkgs, str):
                 scan_command += ['--pkg-export=%s' % pkgs]
@@ -534,9 +525,7 @@ class GnomeModule(ExtensionModule):
             else:
                 raise MesonException('Gir export packages must be str or list')
 
-        deps = kwargs.pop('dependencies', [])
-        if not isinstance(deps, list):
-            deps = [deps]
+        deps = mesonlib.extract_as_list(kwargs, 'dependencies', pop = True)
         deps = (girtarget.get_all_link_deps() + girtarget.get_external_deps() +
                 deps)
         # Need to recursively add deps on GirTarget sources from our
@@ -593,9 +582,7 @@ class GnomeModule(ExtensionModule):
         for i in gi_includes:
             scan_command += ['--add-include-path=%s' % i]
 
-        inc_dirs = kwargs.pop('include_directories', [])
-        if not isinstance(inc_dirs, list):
-            inc_dirs = [inc_dirs]
+        inc_dirs = mesonlib.extract_as_list(kwargs, 'include_directories', pop = True)
         for incd in inc_dirs:
             if not isinstance(incd.held_object, (str, build.IncludeDirs)):
                 raise MesonException(
@@ -618,7 +605,7 @@ class GnomeModule(ExtensionModule):
         scankwargs = {'output': girfile,
                       'command': scan_command,
                       'depends': depends}
-        if kwargs.get('install'):
+        if 'install' in kwargs:
             scankwargs['install'] = kwargs['install']
             scankwargs['install_dir'] = kwargs.get('install_dir_gir',
                                                    os.path.join(state.environment.get_datadir(), 'gir-1.0'))
@@ -636,7 +623,7 @@ class GnomeModule(ExtensionModule):
             'output': typelib_output,
             'command': typelib_cmd,
         }
-        if kwargs.get('install'):
+        if 'install' in kwargs:
             typelib_kwargs['install'] = kwargs['install']
             typelib_kwargs['install_dir'] = kwargs.get('install_dir_typelib',
                                                        os.path.join(state.environment.get_libdir(), 'girepository-1.0'))
@@ -759,9 +746,7 @@ This will become a hard error in the future.''')
         if mode not in VALID_MODES:
             raise MesonException('gtkdoc: Mode {} is not a valid mode: {}'.format(mode, VALID_MODES))
 
-        src_dirs = kwargs['src_dir']
-        if not isinstance(src_dirs, list):
-            src_dirs = [src_dirs]
+        src_dirs = mesonlib.extract_as_list(kwargs, 'src_dir')
         header_dirs = []
         for src_dir in src_dirs:
             if hasattr(src_dir, 'held_object'):
@@ -806,9 +791,7 @@ This will become a hard error in the future.''')
     def _get_build_args(self, kwargs, state):
         args = []
         cflags, ldflags, gi_includes = self._get_dependencies_flags(kwargs.get('dependencies', []), state, include_rpath=True)
-        inc_dirs = kwargs.get('include_directories', [])
-        if not isinstance(inc_dirs, list):
-            inc_dirs = [inc_dirs]
+        inc_dirs = mesonlib.extract_as_list(kwargs, 'include_directories')
         for incd in inc_dirs:
             if not isinstance(incd.held_object, (str, build.IncludeDirs)):
                 raise MesonException(
@@ -839,9 +822,7 @@ This will become a hard error in the future.''')
         if kwarg_name not in kwargs:
             return []
 
-        new_args = kwargs[kwarg_name]
-        if not isinstance(new_args, list):
-            new_args = [new_args]
+        new_args = mesonlib.extract_as_list(kwargs, kwarg_name)
         args = []
         for i in new_args:
             if expend_file_state and isinstance(i, mesonlib.File):
@@ -1200,12 +1181,8 @@ G_END_DECLS'''
 
     @staticmethod
     def _vapi_args_to_command(prefix, variable, kwargs, accept_vapi=False):
-        arg_list = kwargs.get(variable)
-        if not arg_list:
-            return []
+        arg_list = mesonlib.extract_as_list(kwargs, variable)
         ret = []
-        if not isinstance(arg_list, list):
-            arg_list = [arg_list]
         for arg in arg_list:
             if not isinstance(arg, str):
                 types = 'strings' + ' or InternalDependencys' if accept_vapi else ''
@@ -1300,12 +1277,10 @@ G_END_DECLS'''
         cmd += pkg_cmd
         cmd += ['--metadatadir=' + source_dir]
 
-        inputs = kwargs.get('sources')
-        if not inputs:
+        if 'sources' not in kwargs:
             raise MesonException('sources are required to generate the vapi file')
 
-        if not isinstance(inputs, list):
-            inputs = [inputs]
+        inputs = mesonlib.extract_as_list(kwargs, 'sources')
 
         link_with = []
         for i in inputs:

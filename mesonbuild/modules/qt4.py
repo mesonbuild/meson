@@ -15,7 +15,7 @@
 import os
 from .. import mlog
 from .. import build
-from ..mesonlib import MesonException, Popen_safe
+from ..mesonlib import MesonException, Popen_safe, extract_as_list
 from ..dependencies import Qt4Dependency
 from . import ExtensionModule
 import xml.etree.ElementTree as ET
@@ -99,21 +99,8 @@ class Qt4Module(ExtensionModule):
 
     @permittedKwargs({'moc_headers', 'moc_sources', 'ui_files', 'qresources', 'method'})
     def preprocess(self, state, args, kwargs):
-        rcc_files = kwargs.pop('qresources', [])
-        if not isinstance(rcc_files, list):
-            rcc_files = [rcc_files]
-        ui_files = kwargs.pop('ui_files', [])
-        if not isinstance(ui_files, list):
-            ui_files = [ui_files]
-        moc_headers = kwargs.pop('moc_headers', [])
-        if not isinstance(moc_headers, list):
-            moc_headers = [moc_headers]
-        moc_sources = kwargs.pop('moc_sources', [])
-        if not isinstance(moc_sources, list):
-            moc_sources = [moc_sources]
-        sources = kwargs.pop('sources', [])
-        if not isinstance(sources, list):
-            sources = [sources]
+        rcc_files, ui_files, moc_headers, moc_sources, sources \
+            = extract_as_list(kwargs, 'qresources', 'ui_files', 'moc_headers', 'moc_sources', 'sources', pop = True)
         sources += args[1:]
         method = kwargs.get('method', 'auto')
         self._detect_tools(state.environment, method)

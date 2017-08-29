@@ -16,7 +16,7 @@ import os
 
 from .. import mlog
 from .. import mesonlib, dependencies, build
-from ..mesonlib import MesonException
+from ..mesonlib import MesonException, extract_as_list
 from . import get_include_args
 from . import ModuleReturnValue
 from . import ExtensionModule
@@ -35,9 +35,7 @@ class WindowsModule(ExtensionModule):
         comp = self.detect_compiler(state.compilers)
 
         extra_args = mesonlib.stringlistify(kwargs.get('args', []))
-        inc_dirs = kwargs.pop('include_directories', [])
-        if not isinstance(inc_dirs, list):
-            inc_dirs = [inc_dirs]
+        inc_dirs = extract_as_list(kwargs, 'include_directories', pop = True)
         for incd in inc_dirs:
             if not isinstance(incd.held_object, (str, build.IncludeDirs)):
                 raise MesonException('Resource include dirs should be include_directories().')
