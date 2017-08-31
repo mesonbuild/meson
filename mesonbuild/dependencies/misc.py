@@ -623,3 +623,51 @@ class PcapDependency(ExternalDependency):
             return [DependencyMethods.PKGCONFIG, DependencyMethods.PCAPCONFIG, DependencyMethods.EXTRAFRAMEWORK]
         else:
             return [DependencyMethods.PKGCONFIG, DependencyMethods.PCAPCONFIG]
+
+class CupsDependency(ExternalDependency):
+    def __init__(self, environment, kwargs):
+        super().__init__('cups', environment, None, kwargs)
+        if DependencyMethods.PKGCONFIG in self.methods:
+            try:
+                kwargs['required'] = False
+                pcdep = PkgConfigDependency('cups', environment, kwargs)
+                if pcdep.found():
+                    self.type_name = 'pkgconfig'
+                    self.is_found = True
+                    self.compile_args = pcdep.get_compile_args()
+                    self.link_args = pcdep.get_link_args()
+                    self.version = pcdep.get_version()
+                    return
+            except Exception as e:
+                mlog.debug('cups not found via pkgconfig. Trying next, error was:', str(e))
+        if DependencyMethods.CUPSCONFIG in self.methods:
+            cupsconf = shutil.which('cups-config')
+            if cupsconf:
+                stdo = Popen_safe(['cups-config', '--cflags'])[1]
+                self.compile_args = stdo.strip().split()
+                stdo = Popen_safe(['cups-config', '--libs'])[1]
+                self.link_args = stdo.strip().split()
+                stdo = Popen_safe(['cups-config', '--version'])[1]
+                self.version = stdo.strip().split()
+                self.is_found = True
+                mlog.log('Dependency', mlog.bold('cups'), 'found:',
+                         mlog.green('YES'), '(%s)' % cupsconf)
+                return
+            mlog.debug('Could not find cups-config binary, trying next.')
+        if DependencyMethods.EXTRAFRAMEWORK in self.methods:
+            if mesonlib.is_osx():
+                fwdep = ExtraFrameworkDependency('cups', False, None, self.env,
+                                                 self.language, kwargs)
+                if fwdep.found():
+                    self.is_found = True
+                    self.compile_args = fwdep.get_compile_args()
+                    self.link_args = fwdep.get_link_args()
+                    self.version = fwdep.get_version()
+                    return
+            mlog.log('Dependency', mlog.bold('cups'), 'found:', mlog.red('NO'))
+
+    def get_methods(self):
+        if mesonlib.is_osx():
+            return [DependencyMethods.PKGCONFIG, DependencyMethods.CUPSCONFIG, DependencyMethods.EXTRAFRAMEWORK]
+        else:
+            return [DependencyMethods.PKGCONFIG, DependencyMethods.CUPSCONFIG]

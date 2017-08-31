@@ -132,6 +132,16 @@ automatically:
 pcap_dep = dependency('pcap', version : '>=1.0')
 ```
 
+## CUPS
+
+The cups library does not ship with pkg-config at the time or writing
+but instead it has its own `cups-config` util. Meson will use it
+automatically:
+
+```meson
+cups_dep = dependency('cups', version : '>=1.4')
+```
+
 ## Declaring your own
 
 You can declare your own dependency objects that can be used
