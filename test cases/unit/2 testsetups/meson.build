@@ -16,5 +16,7 @@ test('Test buggy', buggy)
 
 add_test_setup('empty')
 add_test_setup('onlyenv', env : env)
+add_test_setup('onlyenv2', env : 'TEST_ENV=1')
+add_test_setup('onlyenv3', env : ['TEST_ENV=1'])
 add_test_setup('wrapper', exe_wrapper : [vg, '--error-exitcode=1'])
 add_test_setup('timeout', timeout_multiplier : 20)
