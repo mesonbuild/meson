@@ -827,7 +827,7 @@ class GnomeModule(ExtensionModule):
 
         return []
 
-    @permittedKwargs({'interface_prefix', 'namespace', 'object_manager', 'build_by_default'})
+    @permittedKwargs({'interface_prefix', 'namespace', 'object_manager', 'build_by_default', 'annotations'})
     def gdbus_codegen(self, state, args, kwargs):
         if len(args) != 2:
             raise MesonException('Gdbus_codegen takes two arguments, name and xml file.')
@@ -841,6 +841,18 @@ class GnomeModule(ExtensionModule):
             cmd += ['--c-namespace', kwargs.pop('namespace')]
         if kwargs.get('object_manager', False):
             cmd += ['--c-generate-object-manager']
+
+        # Annotations are a bit ugly in that they are a list of lists of strings...
+        annotations = kwargs.pop('annotations', [])
+        if not isinstance(annotations, list):
+            raise MesonException('annotations takes a list')
+        if annotations and isinstance(annotations, list) and not isinstance(annotations[0], list):
+            annotations = [annotations]
+
+        for annotation in annotations:
+            if len(annotation) != 3 or not all(isinstance(i, str) for i in annotation):
+                raise MesonException('Annotations must be made up of 3 strings for ELEMENT, KEY, and VALUE')
+            cmd += ['--annotate'] + annotation
 
         # https://git.gnome.org/browse/glib/commit/?id=ee09bb704fe9ccb24d92dd86696a0e6bb8f0dc1a
         if mesonlib.version_compare(self._get_native_glib_version(state), '>= 2.51.3'):

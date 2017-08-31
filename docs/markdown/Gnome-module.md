@@ -220,13 +220,30 @@ useful when running the application locally for example during tests.
 
 Compiles the given XML schema into gdbus source code. Takes two
 positional arguments, the first one specifies the name of the source
-files and the second specifies the XML file name. There are three
-keyword arguments. `interface_prefix` and `namespace` map to
-corresponding features of the compiler while `object_manager` (since
-0.40.0), when set to true, generates object manager code.
+files and the second specifies the XML file name.
+
+* `interface_prefix`: prefix for the interface
+* `namespace`: namespace of the interface
+* `object_manager`: *(Added 0.40.0)* if true generates object manager code
+* `annotations`: *(Added 0.43.0)* list of lists of 3 strings for the annotation for `'ELEMENT', 'KEY', 'VALUE'`
 
 Returns an opaque object containing the source files. Add it to a top
 level target's source list.
+
+Example:
+
+```meson
+gnome = import('gnome')
+
+# The returned source would be passed to another target
+gdbus_src = gnome.gdbus_codegen('example-interface', 'com.example.Sample.xml',
+  interface_prefix : 'com.example.',
+  namespace : 'Sample',
+  annotations : [
+    ['com.example.Hello()', 'org.freedesktop.DBus.Deprecated', 'true']
+  ]
+)
+```
 
 ### gnome.generate_vapi()
 
