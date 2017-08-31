@@ -1260,6 +1260,12 @@ the following methods:
   the positional argument, you can specify external dependencies to
   use with `dependencies` keyword argument.
 
+- `compiles(code)` returns true if the code fragment given in the
+  positional argument compiles, you can specify external dependencies
+  to use with `dependencies` keyword argument, `code` can be either a
+  string containing source code or a `file` object pointing to the
+  source code.
+
 - `compute_int(expr, ...')` computes the value of the given expression
   (as an example `1 + 2`). When cross compiling this is evaluated with
   an iterative algorithm, you can specify keyword arguments `low`
@@ -1289,12 +1295,6 @@ the following methods:
 - `get_supported_arguments(list_of_string)` returns an array
   containing only the arguments supported by the compiler, as if
   `has_argument` were called on them individually.
-
-- `compiles(code)` returns true if the code fragment given in the
-  positional argument compiles, you can specify external dependencies
-  to use with `dependencies` keyword argument, `code` can be either a
-  string containing source code or a `file` object pointing to the
-  source code.
 
 - `has_argument(argument_name)` returns true if the compiler accepts
   the specified command line argument, that is, can compile code
