@@ -423,7 +423,7 @@ class GnomeModule(ExtensionModule):
             raise MesonException('gobject-introspection dependency was not found, gir cannot be generated.')
         ns = kwargs.pop('namespace')
         nsversion = kwargs.pop('nsversion')
-        libsources = kwargs.pop('sources')
+        libsources = mesonlib.flatten(kwargs.pop('sources'))
         girfile = '%s-%s.gir' % (ns, nsversion)
         srcdir = os.path.join(state.environment.get_source_dir(), state.subdir)
         builddir = os.path.join(state.environment.get_build_dir(), state.subdir)
