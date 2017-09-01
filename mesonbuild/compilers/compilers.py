@@ -712,6 +712,13 @@ class Compiler:
             'Language {} does not support has_multi_arguments.'.format(
                 self.get_display_language()))
 
+    def get_supported_arguments(self, args, env):
+        supported_args = []
+        for arg in args:
+            if self.has_argument(arg, env):
+                supported_args.append(arg)
+        return supported_args
+
     def get_cross_extra_flags(self, environment, link):
         extra_flags = []
         if self.is_cross and environment:
