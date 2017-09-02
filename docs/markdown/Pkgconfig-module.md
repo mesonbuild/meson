@@ -34,6 +34,7 @@ keyword arguments.
 - `requires` list of strings to put in the `Requires` field
 - `requires_private` list of strings to put in the `Requires.private`
   field
+- `url` a string with a url for the library
 - `variables` a list of strings with custom variables to add to the
   generated file. The strings must be in the form `name=value` and may
   reference other pkgconfig variables,
