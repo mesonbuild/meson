@@ -49,12 +49,18 @@ pkg-config files. Meson has autodetection support for some of these.
 
 ## Boost ##
 
-Boost is not a single dependency but rather a group of different
-libraries. To use Boost with Meson, simply list which Boost modules
-you would like to use.
+Boost is not a single dependency but rather a group of different libraries. To
+use headers-only modules from Boost you don't have to list any extra modules.
 
 ```meson
-boost_dep = dependency('boost', modules : ['thread', 'utility'])
+boost_dep = dependency('boost')
+exe = executable('myprog', 'file.cc', dependencies : boost_dep)
+```
+
+To use a compiled module of Boost, simply list the ones you would like to use.
+
+```meson
+boost_dep = dependency('boost', modules : ['thread', 'regex'])
 exe = executable('myprog', 'file.cc', dependencies : boost_dep)
 ```
 
@@ -64,6 +70,8 @@ use those to link against your targets.
 If your boost headers or libraries are in non-standard locations you
 can set the BOOST_ROOT, BOOST_INCLUDEDIR, and/or BOOST_LIBRARYDIR
 environment variables.
+
+NOTE: On Windows it will search for boost in C:\Boost.
 
 ## GTest and GMock ##
 

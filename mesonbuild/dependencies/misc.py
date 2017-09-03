@@ -86,14 +86,12 @@ class BoostDependency(ExternalDependency):
         self.boost_inc_subdir = os.path.join(self.incdir, 'boost')
         mlog.debug('Boost library root dir is', self.boost_root)
         mlog.debug('Boost library include dir is', self.boost_inc_subdir)
-        self.src_modules = {}
         self.lib_modules = {}
         self.lib_modules_mt = {}
         self.detect_version()
         self.requested_modules = self.get_requested(kwargs)
         module_str = ', '.join(self.requested_modules)
         if self.is_found:
-            self.detect_src_modules()
             self.detect_lib_modules()
             self.validate_requested()
             if self.boost_root is not None:
@@ -154,7 +152,7 @@ class BoostDependency(ExternalDependency):
 
     def validate_requested(self):
         for m in self.requested_modules:
-            if m not in self.src_modules and m not in self.lib_modules and m + '-mt' not in self.lib_modules_mt:
+            if m not in self.lib_modules and m + '-mt' not in self.lib_modules_mt:
                 msg = 'Requested Boost module {!r} not found'
                 raise DependencyException(msg.format(m))
 
@@ -171,12 +169,6 @@ class BoostDependency(ExternalDependency):
                     self.version = ver.replace('_', '.')
                     self.is_found = True
                     return
-
-    def detect_src_modules(self):
-        for entry in os.listdir(self.boost_inc_subdir):
-            entry = os.path.join(self.boost_inc_subdir, entry)
-            if stat.S_ISDIR(os.stat(entry).st_mode):
-                self.src_modules[os.path.split(entry)[-1]] = True
 
     def detect_lib_modules(self):
         if mesonlib.is_windows():
