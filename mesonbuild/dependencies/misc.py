@@ -224,9 +224,10 @@ class BoostDependency(ExternalDependency):
 
     def get_win_link_args(self):
         args = []
-        # TODO: should this check self.libdir?
-        if self.boost_root:
-            args.append('-L' + self.libdir)
+        # libdir is not set (and not needed) if only headers are used.
+        if not self.libdir:
+            return args
+        args.append('-L' + self.libdir)
         for module in self.requested_modules:
             module = BoostDependency.name2lib.get(module, module)
             if module in self.lib_modules_mt:
