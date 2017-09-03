@@ -56,7 +56,7 @@ skip_commits:
 install:
   - cmd: set "ORIG_PATH=%PATH%"
   # Boost 1.56.0: https://www.appveyor.com/docs/build-environment/#boost
-  #- cmd: set "BOOST_ROOT=C:\Libraries\boost"
+  - cmd: set "BOOST_ROOT=C:\Libraries\boost"
   # Use the x86 python only when building for x86 for the cpython tests.
   # For all other archs (including, say, arm), use the x64 python.
   - ps: (new-object net.webclient).DownloadFile('https://www.dropbox.com/s/bbzvepq85hv47x1/ninja.exe?dl=1', 'C:\projects\meson\ninja.exe')
