@@ -208,15 +208,15 @@ class BoostDependency(ExternalDependency):
             (_, fname) = os.path.split(entry)
             base = fname.split('_', 1)[1]
             modname = base.split('-', 1)[0]
-            self.lib_modules_mt[modname] = fname
-        # If boost was intalled as layout=system
-        globber = 'libboost_*.lib' if self.static else 'boost_*.lib'
-        for entry in glob.glob(os.path.join(libdir, globber)):
-            (_, fname) = os.path.split(entry)
-            base = fname.split('_', 1)[1]
-            modname = base.split('-', 1)[0]
-            self.lib_modules_mt[modname] = fname
-        mlog.debug('Boost libraries are', ' '.join(self.lib_modules_mt.keys()))
+            self.lib_modules[modname] = fname
+        if not self.lib_modules:
+            # If boost was intalled as layout=system
+            globber = 'libboost_*.lib' if self.static else 'boost_*.lib'
+            for entry in glob.glob(os.path.join(libdir, globber)):
+                (_, fname) = os.path.split(entry)
+                modname = fname.split('_', 1)[1][:-4]
+                self.lib_modules[modname] = fname
+        mlog.debug('Boost libraries are', ' '.join(self.lib_modules.keys()))
 
     def detect_lib_modules_nix(self):
         if self.static:
@@ -252,8 +252,8 @@ class BoostDependency(ExternalDependency):
         args.append('-L' + self.libdir)
         for module in self.requested_modules:
             module = BoostDependency.name2lib.get(module, module)
-            if module in self.lib_modules_mt:
-                args.append(self.lib_modules_mt[module])
+            if module in self.lib_modules:
+                args.append(self.lib_modules[module])
         return args
 
     def get_link_args(self):
