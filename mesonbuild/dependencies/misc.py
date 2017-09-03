@@ -86,10 +86,10 @@ class BoostDependency(ExternalDependency):
             mlog.log("Dependency Boost (%s) found:" % module_str, mlog.red('NO'))
 
     def detect_win_root(self):
-        globtext = 'c:\\local\\boost_*'
-        files = glob.glob(globtext)
-        if len(files) > 0:
-            return files[0]
+        # This is the default install path if `.\b2 install` is run.
+        defaultpath = 'C:\\Boost'
+        if os.path.isdir(defaultpath):
+            return defaultpath
         return 'C:\\'
 
     def get_compile_args(self):
