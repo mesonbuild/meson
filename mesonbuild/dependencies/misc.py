@@ -64,8 +64,8 @@ class BoostDependency(ExternalDependency):
                 else:
                     self.incdir = '/usr/include'
 
-                if 'BOOST_LIBRARYDIR' in os.environ:
-                    self.libdir = os.environ['BOOST_LIBRARYDIR']
+            if 'BOOST_LIBRARYDIR' in os.environ:
+                self.libdir = os.environ['BOOST_LIBRARYDIR']
         else:
             self.incdir = os.path.join(self.boost_root, 'include')
         self.boost_inc_subdir = os.path.join(self.incdir, 'boost')
