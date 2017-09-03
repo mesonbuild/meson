@@ -97,14 +97,7 @@ class BoostDependency(ExternalDependency):
 
     def get_compile_args(self):
         args = []
-        if self.boost_root is not None:
-            if mesonlib.is_windows():
-                include_dir = self.boost_root
-            else:
-                include_dir = os.path.join(self.boost_root, 'include')
-        else:
-            include_dir = self.incdir
-
+        include_dir = self.incdir
         # Use "-isystem" when including boost headers instead of "-I"
         # to avoid compiler warnings/failures when "-Werror" is used
 
