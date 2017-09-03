@@ -191,7 +191,7 @@ class BoostDependency(ExternalDependency):
             return
         libdir = libdir[0]
         # Don't override what was set in the environment
-        if self.libdir:
+        if not self.libdir:
             self.libdir = libdir
         globber = 'libboost_*-gd-*.lib' if self.static else 'boost_*-gd-*.lib'  # FIXME
         for entry in glob.glob(os.path.join(libdir, globber)):
