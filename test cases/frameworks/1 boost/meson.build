@@ -11,13 +11,14 @@ add_project_arguments(['-DBOOST_LOG_DYN_LINK'],
 
 linkdep = dependency('boost', modules : ['thread', 'system'])
 staticdep = dependency('boost', modules : ['thread', 'system'], static : true)
+testdep = dependency('boost', modules : ['unit_test_framework'])
 nomoddep = dependency('boost')
 extralibdep = dependency('boost', modules : ['thread', 'system', 'log_setup', 'log'])
 
 nolinkexe = executable('nolinkedexe', 'nolinkexe.cc', dependencies : nomoddep)
 linkexe = executable('linkedexe', 'linkexe.cc', dependencies : linkdep)
 staticexe = executable('staticlinkedexe', 'linkexe.cc', dependencies : staticdep)
-unitexe = executable('utf', 'unit_test.cpp', dependencies : nomoddep)
+unitexe = executable('utf', 'unit_test.cpp', dependencies : testdep)
 nomodexe = executable('nomod', 'nomod.cpp', dependencies : nomoddep)
 extralibexe = executable('extralibexe', 'extralib.cpp', dependencies : extralibdep)
 
