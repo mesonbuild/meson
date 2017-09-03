@@ -39,6 +39,9 @@ class BoostDependency(ExternalDependency):
 
     def __init__(self, environment, kwargs):
         super().__init__('boost', environment, 'cpp', kwargs)
+        # Building boost for static linking is default in windows. Is this even possible?
+        if mesonlib.is_windows() and 'static' not in kwargs.keys():
+            self.static = True
         self.libdir = None
         try:
             self.boost_root = os.environ['BOOST_ROOT']
