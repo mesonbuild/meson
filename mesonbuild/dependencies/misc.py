@@ -60,16 +60,19 @@ class BoostDependency(ExternalDependency):
                 if 'BOOST_INCLUDEDIR' in os.environ:
                     self.incdir = os.environ['BOOST_INCLUDEDIR']
                 else:
+                    # If headers where install with `layout=system` or manually
+                    # copied they should be in include/boost:
+                    self.incdir = os.path.join(self.boost_root, 'include')
+
+                    # if include/boost does not exist, look for
+                    # include/boost-X_X/boost. That is the correct place if
+                    # `layout=versioned`.
                     boost_incs = glob.glob(os.path.join(self.boost_root, 'include', 'boost-*'))
-                    if os.path.isdir(os.path.join(self.boost_root, 'include', 'boost')):
-                        # If headers where install with `layout=system` or manually copied.
-                        self.incdir = os.path.join(self.boost_root, 'include')
-                    elif len(boost_incs) > 0:
-                        # If boost was installed with `layout=versioned` headers are in version-specific folders
-                        # FIXME: Should pick version according to version requirement in meson.build
-                        #        Take the one that sorts highest alphabetically for now..
+                    if not os.path.isdir(os.path.join(self.boost_root, 'include', 'boost')) and len(boost_incs) > 0:
+                        # FIXME: Should pick version according to version
+                        # requirement in meson.build. Take the one that sorts
+                        # highest alphabetically for now..
                         self.incdir = sorted(boost_incs)[-1]
-                    # Headers not found...
             else:
                 if 'BOOST_INCLUDEDIR' in os.environ:
                     self.incdir = os.environ['BOOST_INCLUDEDIR']
