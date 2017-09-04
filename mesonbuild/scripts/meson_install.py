@@ -100,7 +100,7 @@ def restore_selinux_context(to_file):
             use_selinux = False
             msg = "{!r}: Failed to restore SELinux context, ignoring SELinux context for all remaining files..."
             print(msg.format(to_file, e.returncode))
-    except (FileNotFoundError, subprocess.CalledProcessError) as e:
+    except (FileNotFoundError, PermissionError, subprocess.CalledProcessError) as e:
         # If we don't have selinux or selinuxenabled returned 1, failure
         # is ignored quietly.
         use_selinux = False
