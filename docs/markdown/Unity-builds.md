@@ -16,4 +16,4 @@ This is then compiled rather than the individual files. The exact speedup depend
 
 The downside is that incremental builds are as slow as full rebuilds (because that is what they are). Unity compiles also use more memory, which may become an issue in certain scenarios. There may also be some bugs in the source that need to be fixed before Unity compiles work. As an example, if both `src1.c` and `src2.c` contain a static function or variable of the same name, there will be a clash.
 
-Meson has built-in support for unity builds. To enable them, just pass the `--unity` command line argument or enable unity builds with the GUI. No code changes are necessary apart from the potential clash issue discussed above. Meson will automatically generate all the necessary inclusion files for you.
+Meson has built-in support for unity builds. To enable them, just pass `--unity on` on the command line or enable unity builds with the GUI. No code changes are necessary apart from the potential clash issue discussed above. Meson will automatically generate all the necessary inclusion files for you.
