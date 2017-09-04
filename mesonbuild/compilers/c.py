@@ -268,6 +268,18 @@ class CCompiler(Compiler):
         return self.compiles(code.format(**fargs), env, extra_args,
                              dependencies, 'preprocess')
 
+    def check_header(self, hname, prefix, env, extra_args=None, dependencies=None):
+        fargs = {'prefix': prefix, 'header': hname}
+        code = '''{prefix}
+        #ifdef __has_include
+         #if !__has_include("{header}")
+          #error "Header '{header}' could not be found"
+         #endif
+        #endif
+        #include <{header}>'''
+        return self.compiles(code.format(**fargs), env, extra_args,
+                             dependencies, 'compile')
+
     def has_header_symbol(self, hname, symbol, prefix, env, extra_args=None, dependencies=None):
         fargs = {'prefix': prefix, 'header': hname, 'symbol': symbol}
         t = '''{prefix}

@@ -1556,7 +1556,9 @@ the following methods:
   the `prefix` keyword. In order to look for headers in a specific
   directory you can use `args : '-I/extra/include/dir`, but this
   should only be used in exceptional cases for includes that can't be
-  detected via pkg-config and passed via `dependencies`.
+  detected via pkg-config and passed via `dependencies`. The boolean
+  keyword `use` makes `has_header` detect if the header can be compiled
+  when set to `true`, defaults to `false`.
 
 - `has_header_symbol(headername, symbolname)` allows one to detect
   whether a particular symbol (function, variable, #define, type
