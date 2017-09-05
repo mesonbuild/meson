@@ -39,6 +39,9 @@ class BoostDependency(ExternalDependency):
 
     def __init__(self, environment, kwargs):
         super().__init__('boost', environment, 'cpp', kwargs)
+        # Building boost for static linking is default in windows. Is this even possible?
+        #if mesonlib.is_windows() and 'static' not in kwargs.keys():
+        #    self.static = True
         self.libdir = None
         try:
             self.boost_root = os.environ['BOOST_ROOT']
@@ -54,27 +57,41 @@ class BoostDependency(ExternalDependency):
                     raise DependencyException('BOOST_ROOT or BOOST_INCLUDEDIR is needed while cross-compiling')
             if mesonlib.is_windows():
                 self.boost_root = self.detect_win_root()
-                self.incdir = self.boost_root
+                if 'BOOST_INCLUDEDIR' in os.environ:
+                    self.incdir = os.environ['BOOST_INCLUDEDIR']
+                else:
+                    # If headers where install with `layout=system` or manually
+                    # copied they should be in include/boost:
+                    self.incdir = os.path.join(self.boost_root, 'include')
+
+                    # if include/boost does not exist, look for
+                    # include/boost-X_X/boost. That is the correct place if
+                    # `layout=versioned`.
+                    boost_incs = glob.glob(os.path.join(self.boost_root, 'include', 'boost-*'))
+                    if not os.path.isdir(os.path.join(self.boost_root, 'include', 'boost')) and len(boost_incs) > 0:
+                        # FIXME: Should pick version according to version
+                        # requirement in meson.build. Take the one that sorts
+                        # highest alphabetically for now..
+                        self.incdir = sorted(boost_incs)[-1]
             else:
                 if 'BOOST_INCLUDEDIR' in os.environ:
                     self.incdir = os.environ['BOOST_INCLUDEDIR']
                 else:
                     self.incdir = '/usr/include'
 
-                if 'BOOST_LIBRARYDIR' in os.environ:
-                    self.libdir = os.environ['BOOST_LIBRARYDIR']
+            if 'BOOST_LIBRARYDIR' in os.environ:
+                self.libdir = os.environ['BOOST_LIBRARYDIR']
         else:
             self.incdir = os.path.join(self.boost_root, 'include')
         self.boost_inc_subdir = os.path.join(self.incdir, 'boost')
         mlog.debug('Boost library root dir is', self.boost_root)
-        self.src_modules = {}
+        mlog.debug('Boost library include dir is', self.boost_inc_subdir)
         self.lib_modules = {}
         self.lib_modules_mt = {}
         self.detect_version()
         self.requested_modules = self.get_requested(kwargs)
         module_str = ', '.join(self.requested_modules)
         if self.is_found:
-            self.detect_src_modules()
             self.detect_lib_modules()
             self.validate_requested()
             if self.boost_root is not None:
@@ -86,22 +103,15 @@ class BoostDependency(ExternalDependency):
             mlog.log("Dependency Boost (%s) found:" % module_str, mlog.red('NO'))
 
     def detect_win_root(self):
-        globtext = 'c:\\local\\boost_*'
-        files = glob.glob(globtext)
-        if len(files) > 0:
-            return files[0]
+        # This is the default install path if `.\b2 install` is run.
+        defaultpath = 'C:\\Boost'
+        if os.path.isdir(defaultpath):
+            return defaultpath
         return 'C:\\'
 
     def get_compile_args(self):
         args = []
-        if self.boost_root is not None:
-            if mesonlib.is_windows():
-                include_dir = self.boost_root
-            else:
-                include_dir = os.path.join(self.boost_root, 'include')
-        else:
-            include_dir = self.incdir
-
+        include_dir = self.incdir
         # Use "-isystem" when including boost headers instead of "-I"
         # to avoid compiler warnings/failures when "-Werror" is used
 
@@ -142,7 +152,7 @@ class BoostDependency(ExternalDependency):
 
     def validate_requested(self):
         for m in self.requested_modules:
-            if m not in self.src_modules and m not in self.lib_modules and m + '-mt' not in self.lib_modules_mt:
+            if m not in self.lib_modules and m + '-mt' not in self.lib_modules_mt:
                 msg = 'Requested Boost module {!r} not found'
                 raise DependencyException(msg.format(m))
 
@@ -160,12 +170,6 @@ class BoostDependency(ExternalDependency):
                     self.is_found = True
                     return
 
-    def detect_src_modules(self):
-        for entry in os.listdir(self.boost_inc_subdir):
-            entry = os.path.join(self.boost_inc_subdir, entry)
-            if stat.S_ISDIR(os.stat(entry).st_mode):
-                self.src_modules[os.path.split(entry)[-1]] = True
-
     def detect_lib_modules(self):
         if mesonlib.is_windows():
             return self.detect_lib_modules_win()
@@ -173,32 +177,46 @@ class BoostDependency(ExternalDependency):
 
     def detect_lib_modules_win(self):
         arch = detect_cpu_family(self.env.coredata.compilers)
-        # Guess the libdir
-        if arch == 'x86':
-            gl = 'lib32*'
-        elif arch == 'x86_64':
-            gl = 'lib64*'
+        compiler = self.env.detect_cpp_compiler(False).id
+        if compiler == 'msvc':
+            gl = 'lib'
+            libdir = os.path.join(self.boost_root, gl)
         else:
-            # Does anyone do Boost cross-compiling to other archs on Windows?
-            gl = None
-        # See if the libdir is valid
-        if gl:
-            libdir = glob.glob(os.path.join(self.boost_root, gl))
-        else:
-            libdir = []
-        # Can't find libdir, bail
-        if not libdir:
-            return
-        libdir = libdir[0]
+            # Guess the libdir
+            if arch == 'x86':
+                gl = 'lib32*'
+            elif arch == 'x86_64':
+                gl = 'lib64*'
+            else:
+                # Does anyone do Boost cross-compiling to other archs on Windows?
+                gl = None
+            # See if the libdir is valid
+            if gl:
+                libdir = glob.glob(os.path.join(self.boost_root, gl))
+            else:
+                libdir = []
+            # Can't find libdir, bail
+            if not libdir:
+                return
+            libdir = libdir[0]
         # Don't override what was set in the environment
-        if self.libdir:
+        if not self.libdir:
             self.libdir = libdir
+        # If boost was intalled as layout=versioned
         globber = 'libboost_*-gd-*.lib' if self.static else 'boost_*-gd-*.lib'  # FIXME
         for entry in glob.glob(os.path.join(libdir, globber)):
             (_, fname) = os.path.split(entry)
             base = fname.split('_', 1)[1]
             modname = base.split('-', 1)[0]
-            self.lib_modules_mt[modname] = fname
+            self.lib_modules[modname] = fname
+        if not self.lib_modules:
+            # If boost was intalled as layout=system
+            globber = 'libboost_*.lib' if self.static else 'boost_*.lib'
+            for entry in glob.glob(os.path.join(libdir, globber)):
+                (_, fname) = os.path.split(entry)
+                modname = fname.split('_', 1)[1][:-4]
+                self.lib_modules[modname] = fname
+        mlog.debug('Boost libraries are', ' '.join(self.lib_modules.keys()))
 
     def detect_lib_modules_nix(self):
         if self.static:
@@ -228,13 +246,14 @@ class BoostDependency(ExternalDependency):
 
     def get_win_link_args(self):
         args = []
-        # TODO: should this check self.libdir?
-        if self.boost_root:
-            args.append('-L' + self.libdir)
+        # libdir is not set (and not needed) if only headers are used.
+        if not self.libdir:
+            return args
+        args.append('-L' + self.libdir)
         for module in self.requested_modules:
             module = BoostDependency.name2lib.get(module, module)
-            if module in self.lib_modules_mt:
-                args.append(self.lib_modules_mt[module])
+            if module in self.lib_modules:
+                args.append(self.lib_modules[module])
         return args
 
     def get_link_args(self):
