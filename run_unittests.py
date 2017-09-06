@@ -813,6 +813,8 @@ class AllPlatformTests(BasePlatformTests):
         self._run(self.mtest_command + ['--setup=empty'])
         # Setup with only env works
         self._run(self.mtest_command + ['--setup=onlyenv'])
+        self._run(self.mtest_command + ['--setup=onlyenv2'])
+        self._run(self.mtest_command + ['--setup=onlyenv3'])
         # Setup with only a timeout works
         self._run(self.mtest_command + ['--setup=timeout'])
 
