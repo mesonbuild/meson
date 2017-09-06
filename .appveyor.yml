@@ -19,10 +19,12 @@ environment:
     - arch: x86
       compiler: msvc2015
       backend: ninja
+      BOOST_ROOT: C:\Libraries\Boost_1_59_0
 
     - arch: x86
       compiler: msvc2015
       backend: vs2015
+      BOOST_ROOT: C:\Libraries\Boost_1_59_0
 
     - arch: x64
       compiler: cygwin
@@ -36,11 +38,13 @@ environment:
       compiler: msvc2017
       backend: ninja
       APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+      BOOST_ROOT: C:\Libraries\Boost_1_64_0
 
     - arch: x64
       compiler: msvc2017
       backend: vs2017
       APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+      BOOST_ROOT: C:\Libraries\Boost_1_64_0
 
 platform:
   - x64
@@ -65,6 +69,10 @@ install:
   # Use the x86 python only when building for x86 for the cpython tests.
   # For all other archs (including, say, arm), use the x64 python.
   - cmd: if %arch%==x86 (set MESON_PYTHON_PATH=C:\python34) else (set MESON_PYTHON_PATH=C:\python34-x64)
+
+  # Set paths for BOOST dll files
+  - cmd: if %compiler%==msvc2015 ( if %arch%==x86 ( set "PATH=%PATH%;C:\Libraries\boost_1_59_0\lib32-msvc-14.0" ) else ( set "PATH=%PATH%;C:\Libraries\boost_1_59_0\lib64-msvc-14.0" ) )
+  - cmd: if %compiler%==msvc2017 ( if %arch%==x86 ( set "PATH=%PATH%;C:\Libraries\boost_1_64_0\lib32-msvc-14.1" ) else ( set "PATH=%PATH%;C:\Libraries\boost_1_64_0\lib64-msvc-14.1" ) )
 
   # Set paths and config for each build type.
   - cmd: if %compiler%==msvc2010 ( call "C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\vcvarsall.bat" %arch% )
