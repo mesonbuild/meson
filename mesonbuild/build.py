@@ -279,7 +279,7 @@ class EnvironmentVariables:
         return env
 
 class Target:
-    def __init__(self, name, subdir, build_by_default):
+    def __init__(self, name, subdir, subproject, build_by_default):
         if '/' in name or '\\' in name:
             # Fix failing test 53 when this becomes an error.
             mlog.warning('''Target "%s" has a path separator in its name.
@@ -287,6 +287,7 @@ This is not supported, it can cause unexpected failures and will become
 a hard error in the future.''' % name)
         self.name = name
         self.subdir = subdir
+        self.subproject = subproject
         self.build_by_default = build_by_default
         self.install = False
         self.build_always = False
@@ -297,6 +298,15 @@ a hard error in the future.''' % name)
 
     def get_subdir(self):
         return self.subdir
+
+    def get_id(self):
+        # This ID must also be a valid file name on all OSs.
+        # It should also avoid shell metacharacters for obvious
+        # reasons.
+        base = self.name + self.type_suffix()
+        if self.subproject == '':
+            return base
+        return self.subproject + '@@' + base
 
     def process_kwargs(self, kwargs):
         if 'build_by_default' in kwargs:
@@ -320,8 +330,7 @@ a hard error in the future.''' % name)
 
 class BuildTarget(Target):
     def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
-        super().__init__(name, subdir, True)
-        self.subproject = subproject # Can not be calculated from subdir as subproject dirname can be changed per project.
+        super().__init__(name, subdir, subproject, True)
         self.is_cross = is_cross
         unity_opt = environment.coredata.get_builtin_option('unity')
         self.is_unity = unity_opt == 'on' or (unity_opt == 'subprojects' and subproject != '')
@@ -373,15 +382,6 @@ class BuildTarget(Target):
     def validate_cross_install(self, environment):
         if environment.is_cross_build() and not self.is_cross and self.install:
             raise InvalidArguments('Tried to install a natively built target in a cross build.')
-
-    def get_id(self):
-        # This ID must also be a valid file name on all OSs.
-        # It should also avoid shell metacharacters for obvious
-        # reasons.
-        base = self.name + self.type_suffix()
-        if self.subproject == '':
-            return base
-        return self.subproject + '@@' + base
 
     def check_unknown_kwargs(self, kwargs):
         # Override this method in derived classes that have more
@@ -1511,8 +1511,8 @@ class CustomTarget(Target):
                     'override_options': True,
                     }
 
-    def __init__(self, name, subdir, kwargs, absolute_paths=False):
-        super().__init__(name, subdir, False)
+    def __init__(self, name, subdir, subproject, kwargs, absolute_paths=False):
+        super().__init__(name, subdir, subproject, False)
         self.dependencies = []
         self.extra_depends = []
         self.depend_files = [] # Files that this target depends on but are not on the command line.
@@ -1689,8 +1689,8 @@ class CustomTarget(Target):
         raise NotImplementedError
 
 class RunTarget(Target):
-    def __init__(self, name, command, args, dependencies, subdir):
-        super().__init__(name, subdir, False)
+    def __init__(self, name, command, args, dependencies, subdir, subproject):
+        super().__init__(name, subdir, subproject, False)
         self.command = command
         self.args = args
         self.dependencies = dependencies
@@ -1701,9 +1701,6 @@ class RunTarget(Target):
     def __repr__(self):
         repr_str = "<{0} {1}: {2}>"
         return repr_str.format(self.__class__.__name__, self.get_id(), self.command)
-
-    def get_id(self):
-        return self.name + self.type_suffix()
 
     def get_dependencies(self):
         return self.dependencies

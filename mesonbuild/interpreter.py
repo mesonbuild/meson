@@ -606,9 +606,9 @@ class CustomTargetHolder(TargetHolder):
         raise InterpreterException('Cannot delete a member of a CustomTarget')
 
 class RunTargetHolder(InterpreterObject, ObjectHolder):
-    def __init__(self, name, command, args, dependencies, subdir):
+    def __init__(self, name, command, args, dependencies, subdir, subproject):
         InterpreterObject.__init__(self)
-        ObjectHolder.__init__(self, build.RunTarget(name, command, args, dependencies, subdir))
+        ObjectHolder.__init__(self, build.RunTarget(name, command, args, dependencies, subdir, subproject))
 
     def __repr__(self):
         r = '<{} {}: {}>'
@@ -1060,10 +1060,10 @@ class CompilerHolder(InterpreterObject):
         return []
 
 ModuleState = namedtuple('ModuleState', [
-    'build_to_src', 'subdir', 'current_lineno', 'environment', 'project_name',
-    'project_version', 'backend', 'compilers', 'targets', 'data', 'headers',
-    'man', 'global_args', 'project_args', 'build_machine', 'host_machine',
-    'target_machine'])
+    'build_to_src', 'subproject', 'subdir', 'current_lineno', 'environment',
+    'project_name', 'project_version', 'backend', 'compilers', 'targets',
+    'data', 'headers', 'man', 'global_args', 'project_args', 'build_machine',
+    'host_machine', 'target_machine'])
 
 class ModuleHolder(InterpreterObject, ObjectHolder):
     def __init__(self, modname, module, interpreter):
@@ -1085,6 +1085,7 @@ class ModuleHolder(InterpreterObject, ObjectHolder):
         state = ModuleState(
             build_to_src=os.path.relpath(self.interpreter.environment.get_source_dir(),
                                          self.interpreter.environment.get_build_dir()),
+            subproject=self.interpreter.subproject,
             subdir=self.interpreter.subdir,
             current_lineno=self.interpreter.current_lineno,
             environment=self.interpreter.environment,
@@ -2303,7 +2304,7 @@ to directly access options of other subprojects.''')
         if len(args) != 1:
             raise InterpreterException('custom_target: Only one positional argument is allowed, and it must be a string name')
         name = args[0]
-        tg = CustomTargetHolder(build.CustomTarget(name, self.subdir, kwargs), self)
+        tg = CustomTargetHolder(build.CustomTarget(name, self.subdir, self.subproject, kwargs), self)
         self.add_target(name, tg.held_object)
         return tg
 
@@ -2346,7 +2347,7 @@ to directly access options of other subprojects.''')
             cleaned_deps.append(d)
         command = cleaned_args[0]
         cmd_args = cleaned_args[1:]
-        tg = RunTargetHolder(name, command, cmd_args, cleaned_deps, self.subdir)
+        tg = RunTargetHolder(name, command, cmd_args, cleaned_deps, self.subdir, self.subproject)
         self.add_target(name, tg.held_object)
         return tg
 

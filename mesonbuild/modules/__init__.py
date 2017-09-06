@@ -78,21 +78,21 @@ class ModuleReturnValue:
         self.new_objects = new_objects
 
 class GResourceTarget(build.CustomTarget):
-    def __init__(self, name, subdir, kwargs):
-        super().__init__(name, subdir, kwargs)
+    def __init__(self, name, subdir, subproject, kwargs):
+        super().__init__(name, subdir, subproject, kwargs)
 
 class GResourceHeaderTarget(build.CustomTarget):
-    def __init__(self, name, subdir, kwargs):
-        super().__init__(name, subdir, kwargs)
+    def __init__(self, name, subdir, subproject, kwargs):
+        super().__init__(name, subdir, subproject, kwargs)
 
 class GirTarget(build.CustomTarget):
-    def __init__(self, name, subdir, kwargs):
-        super().__init__(name, subdir, kwargs)
+    def __init__(self, name, subdir, subproject, kwargs):
+        super().__init__(name, subdir, subproject, kwargs)
 
 class TypelibTarget(build.CustomTarget):
-    def __init__(self, name, subdir, kwargs):
-        super().__init__(name, subdir, kwargs)
+    def __init__(self, name, subdir, subproject, kwargs):
+        super().__init__(name, subdir, subproject, kwargs)
 
 class VapiTarget(build.CustomTarget):
-    def __init__(self, name, subdir, kwargs):
-        super().__init__(name, subdir, kwargs)
+    def __init__(self, name, subdir, subproject, kwargs):
+        super().__init__(name, subdir, subproject, kwargs)
