@@ -814,6 +814,11 @@ and other similar methods only support checking compiler arguments.
 Using them to check linker arguments are never supported, and results
 are likely to be wrong regardless of the compiler you are using.
 '''.format(arg))
+        # some compilers, e.g. GCC, don't warn for unsupported warning-disable
+        # flags, so when we are testing a flag like "-Wno-forgotten-towel", also
+        # check the equivalent enable flag too "-Wforgotten-towel"
+        if len(args) == 1 and args[0].startswith('-Wno-'):
+                args.append('-W' + args[0][5:])
         return self.compiles('int i;\n', env, extra_args=args)
 
 
