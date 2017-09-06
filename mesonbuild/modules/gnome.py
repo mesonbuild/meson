@@ -192,7 +192,7 @@ class GnomeModule(ExtensionModule):
             depfile = kwargs['output'] + '.d'
             kwargs['depfile'] = depfile
             kwargs['command'] = copy.copy(cmd) + ['--dependency-file', '@DEPFILE@']
-        target_c = GResourceTarget(name, state.subdir, kwargs)
+        target_c = GResourceTarget(name, state.subdir, state.subproject, kwargs)
 
         if gresource: # Only one target for .gresource files
             return ModuleReturnValue(target_c, [target_c])
@@ -210,7 +210,7 @@ class GnomeModule(ExtensionModule):
             h_kwargs['install'] = install_header
             h_kwargs['install_dir'] = kwargs.get('install_dir',
                                                  state.environment.coredata.get_builtin_option('includedir'))
-        target_h = GResourceHeaderTarget(args[0] + '_h', state.subdir, h_kwargs)
+        target_h = GResourceHeaderTarget(args[0] + '_h', state.subdir, state.subproject, h_kwargs)
         rv = [target_c, target_h]
         return ModuleReturnValue(rv, rv)
 
@@ -612,7 +612,7 @@ class GnomeModule(ExtensionModule):
                                                    os.path.join(state.environment.get_datadir(), 'gir-1.0'))
         if 'build_by_default' in kwargs:
             scankwargs['build_by_default'] = kwargs['build_by_default']
-        scan_target = GirTarget(girfile, state.subdir, scankwargs)
+        scan_target = GirTarget(girfile, state.subdir, state.subproject, scankwargs)
 
         typelib_output = '%s-%s.typelib' % (ns, nsversion)
         typelib_cmd = [gicompiler, scan_target, '--output', '@OUTPUT@']
@@ -630,7 +630,7 @@ class GnomeModule(ExtensionModule):
                                                        os.path.join(state.environment.get_libdir(), 'girepository-1.0'))
         if 'build_by_default' in kwargs:
             typelib_kwargs['build_by_default'] = kwargs['build_by_default']
-        typelib_target = TypelibTarget(typelib_output, state.subdir, typelib_kwargs)
+        typelib_target = TypelibTarget(typelib_output, state.subdir, state.subproject, typelib_kwargs)
         rv = [scan_target, typelib_target]
         return ModuleReturnValue(rv, rv)
 
@@ -650,7 +650,7 @@ class GnomeModule(ExtensionModule):
             targetname = 'gsettings-compile'
         else:
             targetname = 'gsettings-compile-' + state.subdir.replace('/', '_')
-        target_g = build.CustomTarget(targetname, state.subdir, kwargs)
+        target_g = build.CustomTarget(targetname, state.subdir, state.subproject, kwargs)
         return ModuleReturnValue(target_g, [target_g])
 
     @permittedKwargs({'sources', 'media', 'symlink_media', 'languages'})
@@ -705,7 +705,7 @@ This will become a hard error in the future.''')
             '--sources=' + source_str,
         ]
         pottarget = build.RunTarget('help-' + project_id + '-pot', potargs[0],
-                                    potargs[1:], [], state.subdir)
+                                    potargs[1:], [], state.subdir, state.subproject)
 
         poargs = state.environment.get_build_command() + [
             '--internal', 'yelphelper', 'update-po',
@@ -715,7 +715,7 @@ This will become a hard error in the future.''')
             '--langs=' + '@@'.join(langs),
         ]
         potarget = build.RunTarget('help-' + project_id + '-update-po', poargs[0],
-                                   poargs[1:], [], state.subdir)
+                                   poargs[1:], [], state.subdir, state.subproject)
 
         rv = [inscript, pottarget, potarget]
         return ModuleReturnValue(None, rv)
@@ -788,7 +788,7 @@ This will become a hard error in the future.''')
         args += self._unpack_args('--ignore-headers=', 'ignore_headers', kwargs)
         args += self._unpack_args('--installdir=', 'install_dir', kwargs, state)
         args += self._get_build_args(kwargs, state)
-        res = [build.RunTarget(targetname, command[0], command[1:] + args, [], state.subdir)]
+        res = [build.RunTarget(targetname, command[0], command[1:] + args, [], state.subdir, state.subproject)]
         if kwargs.get('install', True):
             res.append(build.RunScript(command, args))
         return ModuleReturnValue(None, res)
@@ -885,7 +885,7 @@ This will become a hard error in the future.''')
                          }
         if 'build_by_default' in kwargs:
             custom_kwargs['build_by_default'] = kwargs['build_by_default']
-        ct = build.CustomTarget(target_name, state.subdir, custom_kwargs)
+        ct = build.CustomTarget(target_name, state.subdir, state.subproject, custom_kwargs)
         return ModuleReturnValue(ct, [ct])
 
     @permittedKwargs({'sources', 'c_template', 'h_template', 'install_header', 'install_dir',
@@ -1101,7 +1101,7 @@ G_END_DECLS'''
             'command': cmd
         }
         custom_kwargs.update(kwargs)
-        return build.CustomTarget(output, state.subdir, custom_kwargs,
+        return build.CustomTarget(output, state.subdir, state.subproject, custom_kwargs,
                                   # https://github.com/mesonbuild/meson/issues/973
                                   absolute_paths=True)
 
@@ -1171,7 +1171,7 @@ G_END_DECLS'''
             # Silence any warnings about missing prototypes
             custom_kwargs['command'] += ['--include-header', header_file]
         custom_kwargs['output'] = output + '.c'
-        body = build.CustomTarget(output + '_c', state.subdir, custom_kwargs)
+        body = build.CustomTarget(output + '_c', state.subdir, state.subproject, custom_kwargs)
 
         custom_kwargs['install'] = install_header
         if install_dir is not None:
@@ -1180,7 +1180,7 @@ G_END_DECLS'''
             cmd += ['--pragma-once']
         custom_kwargs['command'] = cmd + ['--header', '@INPUT@']
         custom_kwargs['output'] = header_file
-        header = build.CustomTarget(output + '_h', state.subdir, custom_kwargs)
+        header = build.CustomTarget(output + '_h', state.subdir, state.subproject, custom_kwargs)
 
         rv = [body, header]
         return ModuleReturnValue(rv, rv)
@@ -1316,7 +1316,7 @@ G_END_DECLS'''
             # We shouldn't need this locally but we install it
             deps_target = self._generate_deps(state, library, vapi_packages, install_dir)
             created_values.append(deps_target)
-        vapi_target = VapiTarget(vapi_output, state.subdir, custom_kwargs)
+        vapi_target = VapiTarget(vapi_output, state.subdir, state.subproject, custom_kwargs)
 
         # So to try our best to get this to just work we need:
         # - link with with the correct library
