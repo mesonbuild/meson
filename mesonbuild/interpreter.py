@@ -2283,6 +2283,7 @@ class Interpreter(InterpreterBase):
         else:
             if not isinstance(envlist, list):
                 envlist = [envlist]
+            # Convert from array to environment object
             env = EnvironmentVariablesHolder()
             for e in envlist:
                 if '=' not in e:
@@ -2292,7 +2293,7 @@ class Interpreter(InterpreterBase):
                 val = val.strip()
                 if ' ' in k:
                     raise InterpreterException('Env var key must not have spaces in it.')
-                env.add_var(env.held_object.set, [k, val], kwargs)
+                env.set_method([k, val], {})
             env = env.held_object
         return env
 
