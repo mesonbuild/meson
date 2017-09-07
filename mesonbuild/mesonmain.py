@@ -63,6 +63,14 @@ add_builtin_argument('warnlevel', dest='warning_level')
 add_builtin_argument('stdsplit', action='store_false')
 add_builtin_argument('errorlogs', action='store_false')
 
+def wrapmodetype(string):
+    try:
+        return getattr(WrapMode, string)
+    except AttributeError:
+        msg = ', '.join([t.name.lower() for t in WrapMode])
+        msg = 'invalid argument {!r}, use one of {}'.format(string, msg)
+        raise argparse.ArgumentTypeError(msg)
+
 parser.add_argument('--cross-file', default=None,
                     help='File describing cross compilation environment.')
 parser.add_argument('-D', action='append', dest='projectoptions', default=[], metavar="option",
@@ -71,7 +79,7 @@ parser.add_argument('-v', '--version', action='version',
                     version=coredata.version)
 # See the mesonlib.WrapMode enum for documentation
 parser.add_argument('--wrap-mode', default=WrapMode.default,
-                    type=lambda t: getattr(WrapMode, t), choices=WrapMode,
+                    type=wrapmodetype, choices=WrapMode,
                     help='Special wrap mode to use')
 parser.add_argument('directories', nargs='*')
 
