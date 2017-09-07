@@ -1,4 +1,4 @@
-e = executable('someexe', 'main.c',
+e = executable('someexe', 'main.c', ctfile,
                c_args : ['-I' + sub3],
                include_directories : j,
                dependencies : dep)

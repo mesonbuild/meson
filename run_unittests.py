@@ -899,7 +899,7 @@ class AllPlatformTests(BasePlatformTests):
             raise Exception('Could not find someexe and somfxe commands')
         # Check include order for 'someexe'
         incs = [a for a in shlex.split(execmd) if a.startswith("-I")]
-        self.assertEqual(len(incs), 8)
+        self.assertEqual(len(incs), 9)
         # target private dir
         self.assertPathEqual(incs[0], "-Isub4/someexe@exe")
         # target build subdir
@@ -916,6 +916,8 @@ class AllPlatformTests(BasePlatformTests):
         self.assertPathEqual(incs[6], "-Isub1")
         # target internal dependency include_directories: source dir
         self.assertPathBasenameEqual(incs[7], 'sub1')
+        # custom target include dir
+        self.assertPathEqual(incs[8], '-Ictsub')
         # Check include order for 'somefxe'
         incs = [a for a in shlex.split(fxecmd) if a.startswith('-I')]
         self.assertEqual(len(incs), 9)
