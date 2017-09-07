@@ -2030,6 +2030,12 @@ rule FORTRAN_DEP_HACK
         # Add compiler args and include paths from several sources; defaults,
         # build options, external dependencies, etc.
         commands += self.generate_basic_compiler_args(target, compiler, no_warn_args)
+        # Add custom target dirs as includes automatically, but before
+        # target-specific include directories.
+        # XXX: Not sure if anyone actually uses this? It can cause problems in
+        # situations which increase the likelihood for a header name collision,
+        # such as in subprojects.
+        commands += self.get_custom_target_dir_include_args(target, compiler)
         # Add include dirs from the `include_directories:` kwarg on the target
         # and from `include_directories:` of internal deps of the target.
         #
@@ -2073,14 +2079,12 @@ rule FORTRAN_DEP_HACK
         # from external dependencies, internal dependencies, and from
         # per-target `include_directories:`
         #
-        # We prefer headers in the build dir and the custom target dir over the
-        # source dir since, for instance, the user might have an
-        # srcdir == builddir Autotools build in their source tree. Many
-        # projects that are moving to Meson have both Meson and Autotools in
-        # parallel as part of the transition.
+        # We prefer headers in the build dir over the source dir since, for
+        # instance, the user might have an srcdir == builddir Autotools build
+        # in their source tree. Many projects that are moving to Meson have
+        # both Meson and Autotools in parallel as part of the transition.
         if target.implicit_include_directories:
             commands += self.get_source_dir_include_args(target, compiler)
-        commands += self.get_custom_target_dir_include_args(target, compiler)
         if target.implicit_include_directories:
             commands += self.get_build_dir_include_args(target, compiler)
         # Finally add the private dir for the target to the include path. This

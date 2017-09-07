@@ -764,6 +764,10 @@ class Vs2010Backend(backends.Backend):
             # This is where Visual Studio will insert target_args, target_defines,
             # etc, which are added later from external deps (see below).
             args += ['%(AdditionalOptions)', '%(PreprocessorDefinitions)', '%(AdditionalIncludeDirectories)']
+            # Add custom target dirs as includes automatically, but before
+            # target-specific include dirs. See _generate_single_compile() in
+            # the ninja backend for caveats.
+            args += ['-I' + arg for arg in generated_files_include_dirs]
             # Add include dirs from the `include_directories:` kwarg on the target
             # and from `include_directories:` of internal deps of the target.
             #
@@ -790,14 +794,12 @@ class Vs2010Backend(backends.Backend):
             if l in file_args:
                 file_args[l] += args
         # The highest priority includes. In order of directory search:
-        # target private dir, target build dir, generated sources include dirs,
-        # target source dir
+        # target private dir, target build dir, target source dir
         for args in file_args.values():
             t_inc_dirs = [self.relpath(self.get_target_private_dir(target),
                                        self.get_target_dir(target))]
             if target.implicit_include_directories:
                 t_inc_dirs += ['.']
-            t_inc_dirs += generated_files_include_dirs
             if target.implicit_include_directories:
                 t_inc_dirs += [proj_to_src_dir]
             args += ['-I' + arg for arg in t_inc_dirs]
