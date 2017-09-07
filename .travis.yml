@@ -32,8 +32,6 @@ before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install ninja python3; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then docker pull jpakkane/mesonci:zesty; fi
-  - pip3 install codecov
-  - mkdir .coverage
 
 # We need to copy the current checkout inside the Docker container,
 # because it has the MR id to be tested checked out.
@@ -50,7 +48,3 @@ script:
           /bin/sh -c "cd /root && CC=$CC CXX=$CXX OBJC=$CC OBJCXX=$CXX ./run_tests.py --cov -- $MESON_ARGS && chmod -R a+rwX .coverage"
     fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then SDKROOT=$(xcodebuild -version -sdk macosx Path) OBJC=$CC OBJCXX=$CXX ./run_tests.py --cov --backend=ninja -- $MESON_ARGS ; fi
-
-after_success:
-  - coverage3 combine
-  - codecov -n "${TRAVIS_OS_NAME}-${CC}-{$(echo ${MESON_ARGS} | sed -e 's/^--//g' -e 's/ --/,/g')}"

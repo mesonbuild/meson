@@ -88,22 +88,13 @@ install:
           c:\projects\MSMpiSetup.exe -unattend -full
         }
 
-  # Install additional packages needed for all builds.
-  - cmd: "%WRAPPER% %PYTHON% -m pip install codecov"
-
 build_script:
   - cmd: echo No build step.
   - cmd: if %backend%==ninja ( %WRAPPER% ninja.exe --version ) else ( MSBuild /version & echo. )
 
 test_script:
   - cmd: echo Running tests for %arch% and %compiler% with the %backend% backend
-  - cmd: "%WRAPPER% %PYTHON% run_tests.py --cov --backend=%backend%"
-
-after_test:
-  - cmd: "%WRAPPER% %PYTHON% -m coverage combine"
-  # Generate XML report manually because codecov module doesn't know how to run it properly.
-  - cmd: "%WRAPPER% %PYTHON% -m coverage xml"
-  - cmd: "%WRAPPER% %PYTHON% -m codecov -X search pycov -f coverage.xml -n windows-%arch%-%compiler%-%backend%"
+  - cmd: "%WRAPPER% %PYTHON% run_tests.py --backend=%backend%"
 
 on_finish:
   - set "PATH=%ORIG_PATH%"
