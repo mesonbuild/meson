@@ -224,7 +224,7 @@ class TestHarness:
 
             child_env.update(test.env)
             if len(test.extra_paths) > 0:
-                child_env['PATH'] += os.pathsep.join([''] + test.extra_paths)
+                child_env['PATH'] = os.pathsep.join(test.extra_paths + ['']) + child_env['PATH']
 
             # If MALLOC_PERTURB_ is not set, or if it is set to an empty value,
             # (i.e., the test or the environment don't explicitly set it), set
