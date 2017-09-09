@@ -65,12 +65,12 @@ class ExecutableSerialisation:
         self.capture = capture
 
 class TestSerialisation:
-    def __init__(self, name, suite, fname, is_cross, exe_wrapper, is_parallel, cmd_args, env,
+    def __init__(self, name, suite, fname, is_cross_built, exe_wrapper, is_parallel, cmd_args, env,
                  should_fail, timeout, workdir, extra_paths):
         self.name = name
         self.suite = suite
         self.fname = fname
-        self.is_cross = is_cross
+        self.is_cross_built = is_cross_built
         self.exe_runner = exe_wrapper
         self.is_parallel = is_parallel
         self.cmd_args = cmd_args
@@ -257,11 +257,11 @@ class Backend:
             else:
                 exe_cmd = [exe]
                 exe_needs_wrapper = False
-            is_cross = exe_needs_wrapper and \
+            is_cross_built = exe_needs_wrapper and \
                 self.environment.is_cross_build() and \
                 self.environment.cross_info.need_cross_compiler() and \
                 self.environment.cross_info.need_exe_wrapper()
-            if is_cross:
+            if is_cross_built:
                 exe_wrapper = self.environment.cross_info.config['binaries'].get('exe_wrapper', None)
             else:
                 exe_wrapper = None
@@ -270,7 +270,7 @@ class Backend:
             else:
                 extra_paths = []
             es = ExecutableSerialisation(basename, exe_cmd, cmd_args, env,
-                                         is_cross, exe_wrapper, workdir,
+                                         is_cross_built, exe_wrapper, workdir,
                                          extra_paths, capture)
             pickle.dump(es, f)
         return exe_data

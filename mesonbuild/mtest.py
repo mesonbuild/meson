@@ -195,10 +195,10 @@ class TestHarness:
     def run_single_test(self, wrap, test):
         if test.fname[0].endswith('.jar'):
             cmd = ['java', '-jar'] + test.fname
-        elif not test.is_cross and run_with_mono(test.fname[0]):
+        elif not test.is_cross_built and run_with_mono(test.fname[0]):
             cmd = ['mono'] + test.fname
         else:
-            if test.is_cross:
+            if test.is_cross_built:
                 if test.exe_runner is None:
                     # Can not run test on cross compiled executable
                     # because there is no execute wrapper.
