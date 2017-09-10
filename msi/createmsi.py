@@ -42,10 +42,10 @@ class PackageGenerator:
         self.update_guid = '141527EE-E28A-4D14-97A4-92E6075D28B2'
         self.main_xml = 'meson.wxs'
         self.main_o = 'meson.wixobj'
-        self.bytesize = '32' if '32' in platform.architecture()[0] else '64'
-        self.final_output = 'meson-%s-%s.msi' % (self.version, self.bytesize)
+        self.bytesize = 32 if '32' in platform.architecture()[0] else 64
+        self.final_output = 'meson-%s-%d.msi' % (self.version, self.bytesize)
         self.staging_dirs = ['dist', 'dist2']
-        if self.bytesize == '64':
+        if self.bytesize == 64:
             self.progfile_dir = 'ProgramFiles64Folder'
         else:
             self.progfile_dir = 'ProgramFilesFolder'
@@ -103,17 +103,20 @@ class PackageGenerator:
             'Version': self.version,
             })
 
-        ET.SubElement(product, 'Package',  {
+        package = ET.SubElement(product, 'Package',  {
             'Id': '*',
             'Keywords': 'Installer',
             'Description': 'Meson %s installer' % self.version,
             'Comments': 'Meson is a high performance build system',
             'Manufacturer': 'The Meson Development Team',
-            'InstallerVersion': '100',
+            'InstallerVersion': '200',
             'Languages': '1033',
             'Compressed': 'yes',
             'SummaryCodepage': '1252',
             })
+
+        if self.bytesize == 64:
+            package.set('Platform', 'x64')
         ET.SubElement(product, 'Media', {
             'Id': '1',
             'Cabinet': 'meson.cab',
