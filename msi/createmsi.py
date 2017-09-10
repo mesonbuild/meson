@@ -109,7 +109,7 @@ class PackageGenerator:
             'Description': 'Meson %s installer' % self.version,
             'Comments': 'Meson is a high performance build system',
             'Manufacturer': 'The Meson Development Team',
-            'InstallerVersion': '200',
+            'InstallerVersion': '500',
             'Languages': '1033',
             'Compressed': 'yes',
             'SummaryCodepage': '1252',
