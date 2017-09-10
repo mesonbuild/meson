@@ -850,7 +850,8 @@ class GnomeModule(ExtensionModule):
 
         return []
 
-    @permittedKwargs({'interface_prefix', 'namespace', 'object_manager', 'build_by_default', 'annotations'})
+    @permittedKwargs({'interface_prefix', 'namespace', 'object_manager', 'build_by_default',
+                      'annotations', 'docbook'})
     def gdbus_codegen(self, state, args, kwargs):
         if len(args) != 2:
             raise MesonException('Gdbus_codegen takes two arguments, name and xml file.')
@@ -864,6 +865,8 @@ class GnomeModule(ExtensionModule):
             cmd += ['--c-namespace', kwargs.pop('namespace')]
         if kwargs.get('object_manager', False):
             cmd += ['--c-generate-object-manager']
+        if 'docbook' in kwargs:
+            cmd += ['--generate-docbook', kwargs.pop('docbook')]
 
         # Annotations are a bit ugly in that they are a list of lists of strings...
         annotations = kwargs.pop('annotations', [])

@@ -226,6 +226,7 @@ files and the second specifies the XML file name.
 * `namespace`: namespace of the interface
 * `object_manager`: *(Added 0.40.0)* if true generates object manager code
 * `annotations`: *(Added 0.43.0)* list of lists of 3 strings for the annotation for `'ELEMENT', 'KEY', 'VALUE'`
+* `docbook`: *(Added 0.43.0)* prefix to generate `'PREFIX'-NAME.xml` docbooks
 
 Returns an opaque object containing the source files. Add it to a top
 level target's source list.
@@ -241,7 +242,8 @@ gdbus_src = gnome.gdbus_codegen('example-interface', 'com.example.Sample.xml',
   namespace : 'Sample',
   annotations : [
     ['com.example.Hello()', 'org.freedesktop.DBus.Deprecated', 'true']
-  ]
+  ],
+  docbook : 'example-interface-doc'
 )
 ```
 
