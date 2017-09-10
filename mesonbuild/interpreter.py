@@ -653,10 +653,11 @@ class RunTargetHolder(InterpreterObject, ObjectHolder):
         return r.format(self.__class__.__name__, h.get_id(), h.command)
 
 class Test(InterpreterObject):
-    def __init__(self, name, suite, exe, is_parallel, cmd_args, env, should_fail, timeout, workdir):
+    def __init__(self, name, project, suite, exe, is_parallel, cmd_args, env, should_fail, timeout, workdir):
         InterpreterObject.__init__(self)
         self.name = name
         self.suite = suite
+        self.project_name = project
         self.exe = exe
         self.is_parallel = is_parallel
         self.cmd_args = cmd_args
@@ -2586,14 +2587,12 @@ root and issuing %s.
         if not isinstance(timeout, int):
             raise InterpreterException('Timeout must be an integer.')
         suite = []
+        prj = self.subproject if self.is_subproject() else self.build.project_name
         for s in mesonlib.stringlistify(kwargs.get('suite', '')):
             if len(s) > 0:
                 s = ':' + s
-            if self.is_subproject():
-                suite.append(self.subproject.replace(' ', '_').replace(':', '_') + s)
-            else:
-                suite.append(self.build.project_name.replace(' ', '_').replace(':', '_') + s)
-        t = Test(args[0], suite, exe.held_object, par, cmd_args, env, should_fail, timeout, workdir)
+            suite.append(prj.replace(' ', '_').replace(':', '_') + s)
+        t = Test(args[0], prj, suite, exe.held_object, par, cmd_args, env, should_fail, timeout, workdir)
         if is_base_test:
             self.build.tests.append(t)
             mlog.debug('Adding test "', mlog.bold(args[0]), '".', sep='')

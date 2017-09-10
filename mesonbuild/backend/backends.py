@@ -65,9 +65,10 @@ class ExecutableSerialisation:
         self.capture = capture
 
 class TestSerialisation:
-    def __init__(self, name, suite, fname, is_cross_built, exe_wrapper, is_parallel, cmd_args, env,
-                 should_fail, timeout, workdir, extra_paths):
+    def __init__(self, name, project, suite, fname, is_cross_built, exe_wrapper, is_parallel,
+                 cmd_args, env, should_fail, timeout, workdir, extra_paths):
         self.name = name
+        self.project_name = project
         self.suite = suite
         self.fname = fname
         self.is_cross_built = is_cross_built
@@ -603,9 +604,9 @@ class Backend:
                     cmd_args.append(self.get_target_filename(a))
                 else:
                     raise MesonException('Bad object in test command.')
-            ts = TestSerialisation(t.get_name(), t.suite, cmd, is_cross, exe_wrapper,
-                                   t.is_parallel, cmd_args, t.env, t.should_fail,
-                                   t.timeout, t.workdir, extra_paths)
+            ts = TestSerialisation(t.get_name(), t.project_name, t.suite, cmd, is_cross,
+                                   exe_wrapper, t.is_parallel, cmd_args, t.env,
+                                   t.should_fail, t.timeout, t.workdir, extra_paths)
             arr.append(ts)
         pickle.dump(arr, datafile)
 
