@@ -45,6 +45,6 @@ script:
       ci_env=`bash <(curl -s https://codecov.io/env)`
       docker run $ci_env -v ${PWD}/.coverage:/root/.coverage \
         withgit \
-          /bin/sh -c "cd /root && CC=$CC CXX=$CXX OBJC=$CC OBJCXX=$CXX ./run_tests.py --cov -- $MESON_ARGS && chmod -R a+rwX .coverage"
+          /bin/sh -c "cd /root && CC=$CC CXX=$CXX OBJC=$CC OBJCXX=$CXX ./run_tests.py -- $MESON_ARGS && chmod -R a+rwX .coverage"
     fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then SDKROOT=$(xcodebuild -version -sdk macosx Path) OBJC=$CC OBJCXX=$CXX ./run_tests.py --cov --backend=ninja -- $MESON_ARGS ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then SDKROOT=$(xcodebuild -version -sdk macosx Path) OBJC=$CC OBJCXX=$CXX ./run_tests.py --backend=ninja -- $MESON_ARGS ; fi
