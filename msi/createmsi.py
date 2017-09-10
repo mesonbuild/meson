@@ -22,50 +22,6 @@ import xml.etree.ElementTree as ET
 sys.path.append(os.getcwd())
 from mesonbuild import coredata
 
-xml_templ = '''<?xml version='1.0' encoding='windows-1252'?>
-<Wix xmlns='http://schemas.microsoft.com/wix/2006/wi'>
-  <Product Name='Meson Build System' Manufacturer='The Meson Development Team'
-           Id='%s' 
-           UpgradeCode='%s'
-           Language='1033' Codepage='1252' Version='%s'>
-    <Package Id='*' Keywords='Installer' Description="Meson %s installer"
-             Comments='Meson is a high performance build system' Manufacturer='Meson development team'
-             InstallerVersion='200' Languages='1033' Compressed='yes' SummaryCodepage='1252'
-             %s />
-
-    <Media Id="1" Cabinet="meson.cab" EmbedCab="yes" />
-
-    <Directory Id='TARGETDIR' Name='SourceDir'>
-      <Directory Id="%s">
-        <Directory Id="INSTALLDIR" Name="Meson">
-'''
-
-xml_footer_templ = '''
-        </Directory>
-      </Directory>
-    </Directory>
-
-    <Feature Id="DefaultFeature" Level="1">
-%s
-    </Feature>
-
-  <Property Id="WIXUI_INSTALLDIR" Value="INSTALLDIR" />
-  <UIRef Id="WixUI_InstallDir" />
-
-  </Product>
-</Wix>
-'''
-
-file_templ = '''<File Id='%s' Name='%s' DiskId='1' Source='%s'  />
-'''
-
-comp_ref_templ = '''<ComponentRef Id="%s" />
-'''
-
-path_addition_xml = '''<Environment Id="Environment" Name="PATH" Part="last" System="yes" Action="set" Value="[INSTALLDIR]"/>
-'''
-
-
 def gen_guid():
     return str(uuid.uuid4()).upper()
 
@@ -165,31 +121,24 @@ class PackageGenerator:
             'Id': 'WixUI_InstallDir',
             })
         assert(os.path.isdir(self.staging_dir))
-        comp_ref_xml = ''
         nodes = {}
-        with open(self.main_xml, 'w') as ofile:
-            for root, dirs, files in os.walk(self.staging_dir):
-                cur_node = Node(dirs, files)
-                nodes[root] = cur_node
-            ofile.write(xml_templ % (self.guid, self.update_guid, self.version, self.version,
-                                     self.platform_str, self.progfile_dir))
-            self.component_num = 0
-            self.create_xml(nodes, ofile, self.staging_dir, installdir)
-            feature = ET.SubElement(product, 'Feature', {
-                'Id': 'DefaultFeature',
-                'Level': '1',
+        for root, dirs, files in os.walk(self.staging_dir):
+            cur_node = Node(dirs, files)
+            nodes[root] = cur_node
+        self.component_num = 0
+        self.create_xml(nodes, self.staging_dir, installdir)
+        feature = ET.SubElement(product, 'Feature', {
+            'Id': 'DefaultFeature',
+            'Level': '1',
+            })
+        
+        for i in range(self.component_num):
+            ET.SubElement(feature, 'ComponentRef', {
+                'Id': 'ApplicationFiles%d' % i,
                 })
-            
-            for i in range(self.component_num):
-                ET.SubElement(feature, 'ComponentRef', {
-                    'Id': 'ApplicationFiles%d' % i,
-                    })
-                comp_ref_xml += comp_ref_templ % ('ApplicationFiles%d' % i)
-            ofile.write(xml_footer_templ % comp_ref_xml)
-
         ET.ElementTree(self.root).write(self.main_xml, encoding='utf-8',xml_declaration=True)
 
-    def create_xml(self, nodes, ofile, current_dir, parent_xml_node):
+    def create_xml(self, nodes, current_dir, parent_xml_node):
         cur_node = nodes[current_dir]
         if cur_node.files:
             comp_xml_node = ET.SubElement(parent_xml_node, 'Component', {
@@ -207,9 +156,6 @@ class PackageGenerator:
                     'Action': 'set',
                     'Value': '[INSTALLDIR]',
                 })
-            ofile.write("<Component Id='ApplicationFiles%d' Guid='%s' %s>\n" % (self.component_num, gen_guid(), self.component_platform))
-            if self.component_num == 0:
-                ofile.write(path_addition_xml)
             self.component_num += 1
             for f in cur_node.files:
                 file_source = os.path.join(current_dir, f).replace('\\', '\\\\')
@@ -219,8 +165,6 @@ class PackageGenerator:
                     'Name': f,
                     'Source': os.path.join(current_dir, f),
                     })
-                ofile.write(file_templ % (file_id, f, file_source))
-            ofile.write('</Component>\n')
 
         for dirname in cur_node.dirs:
             dir_id = os.path.join(current_dir, dirname).replace('\\', '_').replace('/', '_')
@@ -228,11 +172,7 @@ class PackageGenerator:
                 'Id': dir_id,
                 'Name': dirname,
                 })
-            ofile.write('''<Directory Id="%s" Name="%s">\n''' % (dir_id, dirname))
-            self.create_xml(nodes, ofile, os.path.join(current_dir, dirname), dir_node)
-            ofile.write('</Directory>\n')
-        
-
+            self.create_xml(nodes, os.path.join(current_dir, dirname), dir_node)
 
     def build_package(self):
         wixdir = 'c:\\Program Files\\Wix Toolset v3.11\\bin'
