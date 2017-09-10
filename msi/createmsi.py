@@ -44,35 +44,52 @@ class PackageGenerator:
         self.main_o = 'meson.wixobj'
         self.bytesize = '32' if '32' in platform.architecture()[0] else '64'
         self.final_output = 'meson-%s-%s.msi' % (self.version, self.bytesize)
-        self.staging_dir = 'dist'
+        self.staging_dirs = ['dist', 'dist2']
         if self.bytesize == '64':
-            self.platform_str = 'Platform="x64"'
             self.progfile_dir = 'ProgramFiles64Folder'
-            self.component_platform = 'Win64="yes"'
         else:
-            self.platform_str = ''
             self.progfile_dir = 'ProgramFilesFolder'
-            self.component_platform = ''
+        self.component_num = 0
+        self.feature_properties = {
+            self.staging_dirs[0]: {
+                'Id': 'MainProgram',
+                'Title': 'Meson',
+                'Description': 'Meson executables',
+                'Level': '1',
+                'Absent': 'disallow', 
+            },
+            self.staging_dirs[1]: {
+                'Id': 'NinjaProgram',
+                'Title': 'Ninja',
+                'Description': 'Ninja build tool',
+                'Level': '1',
+            }
+        }
+        self.feature_components = {}
+        for sd in self.staging_dirs:
+            self.feature_components[sd] = []
 
     def build_dist(self):
-        if os.path.exists(self.staging_dir):
-            shutil.rmtree(self.staging_dir)
+        for sdir in self.staging_dirs:
+            if os.path.exists(sdir):
+                shutil.rmtree(sdir)
+        main_stage, ninja_stage = self.staging_dirs
         modules = [os.path.splitext(os.path.split(x)[1])[0] for x in glob(os.path.join('mesonbuild/modules/*'))]
         modules = ['mesonbuild.modules.' + x for x in modules if not x.startswith('_')]
         modulestr = ','.join(modules)
         subprocess.check_call(['c:\\Python\python.exe',
                                'c:\\Python\Scripts\\cxfreeze',
                                '--target-dir',
-                               self.staging_dir,
+                               main_stage,
                                '--include-modules',
                                modulestr,
                                'meson.py'])
-        shutil.copy(shutil.which('ninja'), self.staging_dir)
-        if not os.path.exists(os.path.join(self.staging_dir, 'meson.exe')):
+        if not os.path.exists(os.path.join(main_stage, 'meson.exe')):
             sys.exit('Meson exe missing from staging dir.')
-        if not os.path.exists(os.path.join(self.staging_dir, 'ninja.exe')):
+        os.mkdir(ninja_stage)
+        shutil.copy(shutil.which('ninja'), ninja_stage)
+        if not os.path.exists(os.path.join(ninja_stage, 'ninja.exe')):
             sys.exit('Ninja exe missing from staging dir.')
-
 
     def generate_files(self):
         self.root = ET.Element('Wix', {'xmlns': 'http://schemas.microsoft.com/wix/2006/wi'})
@@ -118,33 +135,49 @@ class PackageGenerator:
             'Value': 'INSTALLDIR',
             })
         ET.SubElement(product, 'UIRef', {
-            'Id': 'WixUI_InstallDir',
+            'Id': 'WixUI_FeatureTree',
             })
-        assert(os.path.isdir(self.staging_dir))
-        nodes = {}
-        for root, dirs, files in os.walk(self.staging_dir):
-            cur_node = Node(dirs, files)
-            nodes[root] = cur_node
-        self.component_num = 0
-        self.create_xml(nodes, self.staging_dir, installdir)
-        feature = ET.SubElement(product, 'Feature', {
-            'Id': 'DefaultFeature',
+        for sd in self.staging_dirs:
+            assert(os.path.isdir(sd))
+        top_feature = ET.SubElement(product, 'Feature', {
+            'Id': 'Complete',
+            'Title': 'Meson ' + self.version,
+            'Description': 'The complete package',
+            'Display': 'expand',
             'Level': '1',
+            'ConfigurableDirectory': 'INSTALLDIR',
             })
-        
-        for i in range(self.component_num):
-            ET.SubElement(feature, 'ComponentRef', {
-                'Id': 'ApplicationFiles%d' % i,
-                })
+        for sd in self.staging_dirs:
+            nodes = {}
+            for root, dirs, files in os.walk(sd):
+                cur_node = Node(dirs, files)
+                nodes[root] = cur_node
+            self.create_xml(nodes, sd, installdir, sd)
+            self.build_features(nodes, top_feature, sd)
         ET.ElementTree(self.root).write(self.main_xml, encoding='utf-8',xml_declaration=True)
+        # ElementTree can not do prettyprinting so do it manually
+        import xml.dom.minidom
+        doc = xml.dom.minidom.parse(self.main_xml)
+        with open(self.main_xml, 'w') as of:
+            of.write(doc.toprettyxml())
 
-    def create_xml(self, nodes, current_dir, parent_xml_node):
+    def build_features(self, nodes, top_feature, staging_dir):
+        feature = ET.SubElement(top_feature, 'Feature',  self.feature_properties[staging_dir])
+        for component_id in self.feature_components[staging_dir]:
+            ET.SubElement(feature, 'ComponentRef', {
+                'Id': component_id,
+                })
+        
+
+    def create_xml(self, nodes, current_dir, parent_xml_node, staging_dir):
         cur_node = nodes[current_dir]
         if cur_node.files:
+            component_id = 'ApplicationFiles%d' % self.component_num
             comp_xml_node = ET.SubElement(parent_xml_node, 'Component', {
-                'Id': 'ApplicationFiles%d' % self.component_num,
+                'Id': component_id,
                 'Guid': gen_guid(),
                 })
+            self.feature_components[staging_dir].append(component_id)
             if self.bytesize == 64:
                 comp_xml_node.set('Win64', 'yes')
             if self.component_num == 0:
@@ -172,7 +205,7 @@ class PackageGenerator:
                 'Id': dir_id,
                 'Name': dirname,
                 })
-            self.create_xml(nodes, os.path.join(current_dir, dirname), dir_node)
+            self.create_xml(nodes, os.path.join(current_dir, dirname), dir_node, staging_dir)
 
     def build_package(self):
         wixdir = 'c:\\Program Files\\Wix Toolset v3.11\\bin'
