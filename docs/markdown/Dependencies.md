@@ -141,6 +141,26 @@ automatically:
 ```meson
 cups_dep = dependency('cups', version : '>=1.4')
 ```
+## dpkg packages ##
+Because several packages does not provide `pkg-config` file, meson can't directly detect dependency. But workaround exists, which requires `dpkg-query` package to be installed on machine.
+
+```meson
+# List dpkg packages, which match given name or query string
+r = run_command('dpkg-query', '-W', '-f=\'${status} ${version}\n\'', '<package name here>')
+if r.returncode() != 0
+  # Package does not exist on machine
+  error('Package is missing')
+else
+  # Package was found, so parse result, to get version
+  arr1 = r.stdout().strip().split() # Get rid most of garbage in string
+  arr2 = arr1[3].split('-') # Get rid of OS name in version if exists
+  version = arr2[0]
+  if not version.version_compare('>=1.0.0')
+    # Insufficient version of package
+    error('Insufficient version of package. Required >= 1.0.0')
+  endif
+endif
+```
 
 ## Declaring your own
 
