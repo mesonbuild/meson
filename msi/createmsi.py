@@ -17,53 +17,10 @@
 import sys, os, subprocess, shutil, uuid
 from glob import glob
 import platform
+import xml.etree.ElementTree as ET
 
 sys.path.append(os.getcwd())
 from mesonbuild import coredata
-
-xml_templ = '''<?xml version='1.0' encoding='windows-1252'?>
-<Wix xmlns='http://schemas.microsoft.com/wix/2006/wi'>
-  <Product Name='Meson Build System' Manufacturer='The Meson Development Team'
-           Id='%s' 
-           UpgradeCode='%s'
-           Language='1033' Codepage='1252' Version='%s'>
-    <Package Id='*' Keywords='Installer' Description="Meson %s installer"
-             Comments='Meson is a high performance build system' Manufacturer='Meson development team'
-             InstallerVersion='200' Languages='1033' Compressed='yes' SummaryCodepage='1252'
-             %s />
-
-    <Media Id="1" Cabinet="meson.cab" EmbedCab="yes" />
-
-    <Directory Id='TARGETDIR' Name='SourceDir'>
-      <Directory Id="%s">
-        <Directory Id="INSTALLDIR" Name="Meson">
-'''
-
-xml_footer_templ = '''
-        </Directory>
-      </Directory>
-    </Directory>
-
-    <Feature Id="DefaultFeature" Level="1">
-%s
-    </Feature>
-
-  <Property Id="WIXUI_INSTALLDIR" Value="INSTALLDIR" />
-  <UIRef Id="WixUI_InstallDir" />
-
-  </Product>
-</Wix>
-'''
-
-file_templ = '''<File Id='%s' Name='%s' DiskId='1' Source='%s'  />
-'''
-
-comp_ref_templ = '''<ComponentRef Id="%s" />
-'''
-
-path_addition_xml = '''<Environment Id="Environment" Name="PATH" Part="last" System="yes" Action="set" Value="[INSTALLDIR]"/>
-'''
-
 
 def gen_guid():
     return str(uuid.uuid4()).upper()
@@ -78,78 +35,180 @@ class Node:
 class PackageGenerator:
 
     def __init__(self):
+        self.product_name = 'Meson Build System'
+        self.manufacturer = 'The Meson Development Team'
         self.version = coredata.version.replace('dev', '')
         self.guid = 'DF5B3ECA-4A31-43E3-8CE4-97FC8A97212E'
         self.update_guid = '141527EE-E28A-4D14-97A4-92E6075D28B2'
-        self.main_xml = 'Meson.wxs'
-        self.main_o = 'Meson.wixobj'
-        self.bytesize = '32' if '32' in platform.architecture()[0] else '64'
-        self.final_output = 'meson-%s-%s.msi' % (self.version, self.bytesize)
-        self.staging_dir = 'dist'
-        if self.bytesize == '64':
-            self.platform_str = 'Platform="x64"'
+        self.main_xml = 'meson.wxs'
+        self.main_o = 'meson.wixobj'
+        self.bytesize = 32 if '32' in platform.architecture()[0] else 64
+        self.final_output = 'meson-%s-%d.msi' % (self.version, self.bytesize)
+        self.staging_dirs = ['dist', 'dist2']
+        if self.bytesize == 64:
             self.progfile_dir = 'ProgramFiles64Folder'
-            self.component_platform = 'Win64="yes"'
         else:
-            self.platform_sr = ''
             self.progfile_dir = 'ProgramFilesFolder'
-            self.component_platform = ''
+        self.component_num = 0
+        self.feature_properties = {
+            self.staging_dirs[0]: {
+                'Id': 'MainProgram',
+                'Title': 'Meson',
+                'Description': 'Meson executables',
+                'Level': '1',
+                'Absent': 'disallow', 
+            },
+            self.staging_dirs[1]: {
+                'Id': 'NinjaProgram',
+                'Title': 'Ninja',
+                'Description': 'Ninja build tool',
+                'Level': '1',
+            }
+        }
+        self.feature_components = {}
+        for sd in self.staging_dirs:
+            self.feature_components[sd] = []
 
     def build_dist(self):
-        if os.path.exists(self.staging_dir):
-            shutil.rmtree(self.staging_dir)
+        for sdir in self.staging_dirs:
+            if os.path.exists(sdir):
+                shutil.rmtree(sdir)
+        main_stage, ninja_stage = self.staging_dirs
         modules = [os.path.splitext(os.path.split(x)[1])[0] for x in glob(os.path.join('mesonbuild/modules/*'))]
         modules = ['mesonbuild.modules.' + x for x in modules if not x.startswith('_')]
         modulestr = ','.join(modules)
         subprocess.check_call(['c:\\Python\python.exe',
                                'c:\\Python\Scripts\\cxfreeze',
                                '--target-dir',
-                               self.staging_dir,
+                               main_stage,
                                '--include-modules',
                                modulestr,
                                'meson.py'])
-        shutil.copy(shutil.which('ninja'), self.staging_dir)
-        if not os.path.exists(os.path.join(self.staging_dir, 'meson.exe')):
+        if not os.path.exists(os.path.join(main_stage, 'meson.exe')):
             sys.exit('Meson exe missing from staging dir.')
-        if not os.path.exists(os.path.join(self.staging_dir, 'ninja.exe')):
+        os.mkdir(ninja_stage)
+        shutil.copy(shutil.which('ninja'), ninja_stage)
+        if not os.path.exists(os.path.join(ninja_stage, 'ninja.exe')):
             sys.exit('Ninja exe missing from staging dir.')
 
-
     def generate_files(self):
-        assert(os.path.isdir(self.staging_dir))
-        comp_ref_xml = ''
-        nodes = {}
-        with open(self.main_xml, 'w') as ofile:
-            for root, dirs, files in os.walk(self.staging_dir):
+        self.root = ET.Element('Wix', {'xmlns': 'http://schemas.microsoft.com/wix/2006/wi'})
+        product = ET.SubElement(self.root, 'Product', {
+            'Name': self.product_name,
+            'Manufacturer': 'The Meson Development Team',
+            'Id': self.guid,
+            'UpgradeCode': self.update_guid,
+            'Language': '1033',
+            'Codepage':  '1252',
+            'Version': self.version,
+            })
+
+        package = ET.SubElement(product, 'Package',  {
+            'Id': '*',
+            'Keywords': 'Installer',
+            'Description': 'Meson %s installer' % self.version,
+            'Comments': 'Meson is a high performance build system',
+            'Manufacturer': 'The Meson Development Team',
+            'InstallerVersion': '500',
+            'Languages': '1033',
+            'Compressed': 'yes',
+            'SummaryCodepage': '1252',
+            })
+
+        if self.bytesize == 64:
+            package.set('Platform', 'x64')
+        ET.SubElement(product, 'Media', {
+            'Id': '1',
+            'Cabinet': 'meson.cab',
+            'EmbedCab': 'yes',
+            })
+        targetdir = ET.SubElement(product, 'Directory', {
+            'Id': 'TARGETDIR',
+            'Name': 'SourceDir',
+            })
+        progfiledir = ET.SubElement(targetdir, 'Directory', {
+            'Id' : self.progfile_dir,
+            })
+        installdir = ET.SubElement(progfiledir, 'Directory', {
+            'Id': 'INSTALLDIR',
+            'Name': 'Meson'})
+
+        ET.SubElement(product, 'Property', {
+            'Id': 'WIXUI_INSTALLDIR',
+            'Value': 'INSTALLDIR',
+            })
+        ET.SubElement(product, 'UIRef', {
+            'Id': 'WixUI_FeatureTree',
+            })
+        for sd in self.staging_dirs:
+            assert(os.path.isdir(sd))
+        top_feature = ET.SubElement(product, 'Feature', {
+            'Id': 'Complete',
+            'Title': 'Meson ' + self.version,
+            'Description': 'The complete package',
+            'Display': 'expand',
+            'Level': '1',
+            'ConfigurableDirectory': 'INSTALLDIR',
+            })
+        for sd in self.staging_dirs:
+            nodes = {}
+            for root, dirs, files in os.walk(sd):
                 cur_node = Node(dirs, files)
                 nodes[root] = cur_node
-            ofile.write(xml_templ % (self.guid, self.update_guid, self.version, self.version,
-                                     self.platform_str, self.progfile_dir))
-            self.component_num = 0
-            self.create_xml(nodes, ofile, self.staging_dir)
-            for i in range(self.component_num):
-                comp_ref_xml += comp_ref_templ % ('ApplicationFiles%d' % i)
-            ofile.write(xml_footer_templ % comp_ref_xml)
+            self.create_xml(nodes, sd, installdir, sd)
+            self.build_features(nodes, top_feature, sd)
+        ET.ElementTree(self.root).write(self.main_xml, encoding='utf-8',xml_declaration=True)
+        # ElementTree can not do prettyprinting so do it manually
+        import xml.dom.minidom
+        doc = xml.dom.minidom.parse(self.main_xml)
+        with open(self.main_xml, 'w') as of:
+            of.write(doc.toprettyxml())
 
-    def create_xml(self, nodes, ofile, root):
-        cur_node = nodes[root]
+    def build_features(self, nodes, top_feature, staging_dir):
+        feature = ET.SubElement(top_feature, 'Feature',  self.feature_properties[staging_dir])
+        for component_id in self.feature_components[staging_dir]:
+            ET.SubElement(feature, 'ComponentRef', {
+                'Id': component_id,
+                })
+        
+
+    def create_xml(self, nodes, current_dir, parent_xml_node, staging_dir):
+        cur_node = nodes[current_dir]
         if cur_node.files:
-            ofile.write("<Component Id='ApplicationFiles%d' Guid='%s' %s>\n" % (self.component_num, gen_guid(), self.component_platform))
+            component_id = 'ApplicationFiles%d' % self.component_num
+            comp_xml_node = ET.SubElement(parent_xml_node, 'Component', {
+                'Id': component_id,
+                'Guid': gen_guid(),
+                })
+            self.feature_components[staging_dir].append(component_id)
+            if self.bytesize == 64:
+                comp_xml_node.set('Win64', 'yes')
             if self.component_num == 0:
-                ofile.write(path_addition_xml)
+                ET.SubElement(comp_xml_node, 'Environment', {
+                    'Id': 'Environment',
+                    'Name': 'PATH',
+                    'Part': 'last',
+                    'System': 'yes',
+                    'Action': 'set',
+                    'Value': '[INSTALLDIR]',
+                })
             self.component_num += 1
             for f in cur_node.files:
-                file_source = os.path.join(root, f).replace('\\', '\\\\')
-                file_id = os.path.join(root, f).replace('\\', '_').replace('#', '_').replace('-', '_')
-                ofile.write(file_templ % (file_id, f, file_source))
-            ofile.write('</Component>\n')
+                file_source = os.path.join(current_dir, f).replace('\\', '\\\\')
+                file_id = os.path.join(current_dir, f).replace('\\', '_').replace('#', '_').replace('-', '_')
+                ET.SubElement(comp_xml_node, 'File', {
+                    'Id': file_id,
+                    'Name': f,
+                    'Source': os.path.join(current_dir, f),
+                    })
 
         for dirname in cur_node.dirs:
-            dir_id = os.path.join(root, dirname).replace('\\', '_').replace('/', '_')
-            ofile.write('''<Directory Id="%s" Name="%s">\n''' % (dir_id, dirname))
-            self.create_xml(nodes, ofile, os.path.join(root, dirname))
-            ofile.write('</Directory>\n')
-
+            dir_id = os.path.join(current_dir, dirname).replace('\\', '_').replace('/', '_')
+            dir_node = ET.SubElement(parent_xml_node, 'Directory', {
+                'Id': dir_id,
+                'Name': dirname,
+                })
+            self.create_xml(nodes, os.path.join(current_dir, dirname), dir_node, staging_dir)
 
     def build_package(self):
         wixdir = 'c:\\Program Files\\Wix Toolset v3.11\\bin'
