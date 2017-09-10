@@ -446,7 +446,7 @@ TIMEOUT: %4d
         if self.options.wrapper:
             namebase = os.path.basename(self.get_wrapper()[0])
         elif self.options.setup:
-            namebase = self.options.setup
+            namebase = self.options.setup.replace(":", "_")
 
         if namebase:
             logfile_base += '-' + namebase.replace(' ', '_')
@@ -553,10 +553,11 @@ def merge_suite_options(options):
     buildfile = os.path.join(options.wd, 'meson-private/build.dat')
     with open(buildfile, 'rb') as f:
         build = pickle.load(f)
-    setups = build.test_setups
-    if options.setup not in setups:
+    if ":" not in options.setup:
+        options.setup = (build.subproject if build.subproject else build.project_name) + ":" + options.setup
+    if options.setup not in build.test_setups:
         sys.exit('Unknown test setup: %s' % options.setup)
-    current = setups[options.setup]
+    current = build.test_setups[options.setup]
     if not options.gdb:
         options.gdb = current.gdb
     if options.timeout_multiplier is None:

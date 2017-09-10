@@ -2892,8 +2892,10 @@ different subdirectory.
         if len(args) != 1:
             raise InterpreterException('Add_test_setup needs one argument for the setup name.')
         setup_name = args[0]
-        if re.fullmatch('[_a-zA-Z][_0-9a-zA-Z]*', setup_name) is None:
+        if re.fullmatch('([_a-zA-Z][_0-9a-zA-Z]*:)?[_a-zA-Z][_0-9a-zA-Z]*', setup_name) is None:
             raise InterpreterException('Setup name may only contain alphanumeric characters.')
+        if ":" not in setup_name:
+            setup_name = (self.subproject if self.subproject else self.build.project_name) + ":" + setup_name
         try:
             inp = extract_as_list(kwargs, 'exe_wrapper')
             exe_wrapper = []
@@ -2917,14 +2919,10 @@ different subdirectory.
         if not isinstance(timeout_multiplier, int):
             raise InterpreterException('Timeout multiplier must be a number.')
         env = self.unpack_env_kwarg(kwargs)
-        setupobj = build.TestSetup(exe_wrapper=exe_wrapper,
-                                   gdb=gdb,
-                                   timeout_multiplier=timeout_multiplier,
-                                   env=env)
-        if self.subproject == '':
-            # Dunno what we should do with subprojects really. Let's start simple
-            # and just use the master project ones.
-            self.build.test_setups[setup_name] = setupobj
+        self.build.test_setups[setup_name] = build.TestSetup(exe_wrapper=exe_wrapper,
+                                                             gdb=gdb,
+                                                             timeout_multiplier=timeout_multiplier,
+                                                             env=env)
 
     @permittedKwargs(permitted_kwargs['add_global_arguments'])
     @stringArgs
