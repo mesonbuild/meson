@@ -21,12 +21,12 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    size = read(fd, data, 10);
+    size = read(fd, data, 8);
     if (size < 0) {
         fprintf(stderr, "Failed to read: %s\n", strerror(errno));
         return 1;
     }
-    if (strcmp(data, "contents\n") != 0) {
+    if (strncmp(data, "contents", 8) != 0) {
         fprintf(stderr, "Contents don't match, got %s\n", data);
         return 1;
     }
