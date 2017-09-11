@@ -1948,6 +1948,11 @@ endian = 'little'
         crossfile.flush()
         self.init(testdir, ['--cross-file='+crossfile.name])
 
+    def test_reconfigure(self):
+        testdir = os.path.join(self.unit_test_dir, '13 reconfigure')
+        self.init(testdir, ['-Db_lto=true'], default_args=False)
+        self.build('reconfigure')
+
 
 class LinuxArmCrossCompileTests(BasePlatformTests):
     '''
