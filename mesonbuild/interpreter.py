@@ -2169,7 +2169,7 @@ to directly access options of other subprojects.''')
         if progobj is None:
             progobj = self.program_from_system(args)
         if required and (progobj is None or not progobj.found()):
-            raise InvalidArguments('Program "%s" not found or not executable' % args[0])
+            raise InvalidArguments('Program(s) {!r} not found or not executable'.format(args))
         if progobj is None:
             return ExternalProgramHolder(dependencies.NonExistingExternalProgram())
         return progobj
