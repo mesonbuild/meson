@@ -1692,11 +1692,11 @@ class Interpreter(InterpreterBase):
             raise InterpreterException('Argument required for get_option.')
         optname = args[0]
         try:
-            return compilers.base_options[optname].value
+            return self.environment.get_coredata().base_options[optname].value
         except KeyError:
             pass
         try:
-            return self.environment.get_coredata().get_builtin_option(optname)
+            return self.environment.coredata.get_builtin_option(optname)
         except RuntimeError:
             pass
         try:
@@ -1721,6 +1721,11 @@ class Interpreter(InterpreterBase):
                 return self.coredata.external_args[lang]
             except KeyError:
                 pass
+        # Some base options are not defined in some environments, return the default value.
+        try:
+            return compilers.base_options[optname].value
+        except KeyError:
+            pass
         raise InterpreterException('Tried to access unknown option "%s".' % optname)
 
     @noKwargs
