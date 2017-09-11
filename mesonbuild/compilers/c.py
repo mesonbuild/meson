@@ -1069,6 +1069,9 @@ class WatcomCCompiler(CCompiler):
     def get_buildtype_linker_args(self, buildtype):
         return watcom_buildtype_linker_args[buildtype]
 
+    def get_linker_search_args(self, dirname):
+        return ['libpath ' + dirname]
+
     @classmethod
     def unix_args_to_native(cls, args):
         result = []
@@ -1080,7 +1083,7 @@ class WatcomCCompiler(CCompiler):
             if i.startswith('-I'):
                 i = '-i=' + i[2:]
             if i.startswith('-L'):
-                i = 'library ' + i[2:]
+                i = 'libpath ' + i[2:]
             # Translate GNU-style -lfoo library name to the import library
             elif i.startswith('-l'):
                 name = i[2:]
@@ -1089,7 +1092,7 @@ class WatcomCCompiler(CCompiler):
                     # linked in by default
                     continue
                 else:
-                    i = name + '.lib'
+                    i = 'library ' + name + '.lib'
             # -pthread in link flags is only used on Linux
             elif i == '-pthread':
                 continue

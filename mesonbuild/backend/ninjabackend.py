@@ -130,6 +130,10 @@ class NinjaBuildElement:
                 newelems.append(quoter(i))
             line += ' '.join(newelems)
             line += '\n'
+
+            # Include/Depfiles paths need to be overridden too.
+            if self.windows_paths:
+                line = line.replace('/', '\\')
             outfile.write(line)
         outfile.write('\n')
 

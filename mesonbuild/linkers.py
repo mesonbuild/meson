@@ -80,7 +80,7 @@ class WatcomLinker(StaticLinker):
         return []
 
     def get_output_args(self, target):
-        return []
+        return [target]
 
     def get_coverage_link_args(self):
         return []
