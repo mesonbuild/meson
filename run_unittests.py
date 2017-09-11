@@ -949,6 +949,31 @@ class AllPlatformTests(BasePlatformTests):
         # Setup with only a timeout works
         self._run(self.mtest_command + ['--setup=timeout'])
 
+    def test_testsetup_selection(self):
+        testdir = os.path.join(self.unit_test_dir, '13 testsetup selection')
+        self.init(testdir)
+        self.build()
+
+        # Run tests without setup
+        self.run_tests()
+
+        self.assertRaises(subprocess.CalledProcessError, self._run, self.mtest_command + ['--setup=missingfromfoo'])
+        self._run(self.mtest_command + ['--setup=missingfromfoo', '--no-suite=foo:'])
+
+        self._run(self.mtest_command + ['--setup=worksforall'])
+        self._run(self.mtest_command + ['--setup=main:worksforall'])
+
+        self.assertRaises(subprocess.CalledProcessError, self._run,
+                          self.mtest_command + ['--setup=onlyinbar'])
+        self.assertRaises(subprocess.CalledProcessError, self._run,
+                          self.mtest_command + ['--setup=onlyinbar', '--no-suite=main:'])
+        self._run(self.mtest_command + ['--setup=onlyinbar', '--no-suite=main:', '--no-suite=foo:'])
+        self._run(self.mtest_command + ['--setup=bar:onlyinbar'])
+        self.assertRaises(subprocess.CalledProcessError, self._run,
+                          self.mtest_command + ['--setup=foo:onlyinbar'])
+        self.assertRaises(subprocess.CalledProcessError, self._run,
+                          self.mtest_command + ['--setup=main:onlyinbar'])
+
     def assertFailedTestCount(self, failure_count, command):
         try:
             self._run(command)
