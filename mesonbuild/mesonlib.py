@@ -707,6 +707,7 @@ def windows_proof_rmtree(f):
 
 def unholder_array(entries):
     result = []
+    entries = flatten(entries)
     for e in entries:
         if hasattr(e, 'held_object'):
             e = e.held_object
