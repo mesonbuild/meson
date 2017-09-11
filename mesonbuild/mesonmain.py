@@ -121,13 +121,12 @@ class MesonApp:
         priv_dir = os.path.join(build_dir, 'meson-private/coredata.dat')
         if os.path.exists(priv_dir):
             if not handshake:
-                print('''Trying to run Meson on a build directory that has already been configured.
-If you want to build it, just run your build command (e.g. ninja) inside the
-build directory. Meson will autodetect any changes in your setup and regenerate
-itself as required. Though it shouldn't be necessary, running ninja reconfigure
-will force Meson to regenerate the build files.
-
-If you want to change option values, use meson configure instead.''')
+                print('Directory already configured, exiting Meson. Just run your build command\n'
+                '(e.g. ninja) and Meson will regenerate as necessary. If ninja fails, run ninja\n'
+                'reconfigure to force Meson to regenerate.\n'
+                '\nIf build failures persist, manually wipe your build directory to clear any\n'
+                'stored system data.\n'
+                '\nTo change option values, run meson configure instead.')
                 sys.exit(0)
         else:
             if handshake:
