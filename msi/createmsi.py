@@ -77,8 +77,16 @@ class PackageGenerator:
         modules = [os.path.splitext(os.path.split(x)[1])[0] for x in glob(os.path.join('mesonbuild/modules/*'))]
         modules = ['mesonbuild.modules.' + x for x in modules if not x.startswith('_')]
         modulestr = ','.join(modules)
-        subprocess.check_call(['c:\\Python\python.exe',
-                               'c:\\Python\Scripts\\cxfreeze',
+        python = 'c:\\Python\python.exe'
+        if sys.executable:
+            python = sys.executable
+        cxfreeze = os.path.join(os.path.dirname(python), "Scripts", "cxfreeze")
+        if not os.path.isfile(cxfreeze):
+            print("ERROR: This script requires cx_freeze module")
+            sys.exit(1)
+
+        subprocess.check_call([python,
+                               cxfreeze,
                                '--target-dir',
                                main_stage,
                                '--include-modules',
@@ -214,6 +222,9 @@ class PackageGenerator:
         wixdir = 'c:\\Program Files\\Wix Toolset v3.11\\bin'
         if not os.path.isdir(wixdir):
             wixdir = 'c:\\Program Files (x86)\\Wix Toolset v3.11\\bin'
+        if not os.path.isdir(wixdir):
+            print("ERROR: This script requires WIX")
+            sys.exit(1)
         subprocess.check_call([os.path.join(wixdir, 'candle'), self.main_xml])
         subprocess.check_call([os.path.join(wixdir, 'light'),
                                '-ext', 'WixUIExtension',
