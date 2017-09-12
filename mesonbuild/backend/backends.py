@@ -476,6 +476,10 @@ class Backend:
                 continue
             if isinstance(compiler, (compilers.LLVMDCompiler, compilers.DmdDCompiler)):
                 d_arg = '-L' + d_arg
+            # Libraries must unconditionally be prefixed with "library ", even
+            # if not using libpath.
+            elif isinstance(compiler, compilers.WatcomCCompiler):
+                d_arg = 'library ' + d_arg
             args.append(d_arg)
         return args
 

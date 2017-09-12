@@ -27,6 +27,8 @@ from .compilers import (
     msvc_winlibs,
     vs32_instruction_set_args,
     vs64_instruction_set_args,
+    watcom_buildtype_args,
+    watcom_buildtype_linker_args,
     ClangCompiler,
     Compiler,
     CompilerArgs,
@@ -56,7 +58,7 @@ class CCompiler(Compiler):
 
     def get_always_args(self):
         '''
-        Args that are always-on for all C compilers other than MSVC
+        Args that are always-on for all C compilers other than MSVC and Watcom
         '''
         return ['-pipe'] + get_largefile_args(self)
 
@@ -1028,3 +1030,76 @@ class VisualStudioCCompiler(CCompiler):
         return vs32_instruction_set_args.get(instruction_set, None)
 
 
+class WatcomCCompiler(CCompiler):
+    def __init__(self, exelist, version, is_cross, exe_wrap, is_64):
+        CCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
+        self.id = 'watcom'
+        # /showIncludes is needed for build dependency tracking in Ninja
+        # See: https://ninja-build.org/manual.html#_deps
+        self.always_args = ['-zq', '-fr']
+
+        self.warn_args = {'1': ['-w=2'],
+                          '2': ['-w=3'],
+                          '3': ['-w=4']}
+        self.base_options = ['b_pch'] # FIXME add lto, pgo and the like
+        self.is_64 = False
+
+    # Override CCompiler.get_always_args
+    def get_always_args(self):
+        return self.always_args
+
+    def get_pic_args(self):
+        return [] # PIC is handled by the loader on Windows
+
+    def get_linker_exelist(self):
+        return ["wlink"]
+
+    def get_linker_always_args(self):
+        return ['option quiet']
+
+    def get_linker_output_args(self, outputname):
+        return ['name ' + outputname]
+
+    def get_dependency_gen_args(self, outtarget, outfile):
+        return []
+
+    def get_buildtype_args(self, buildtype):
+        return watcom_buildtype_args[buildtype]
+
+    def get_buildtype_linker_args(self, buildtype):
+        return watcom_buildtype_linker_args[buildtype]
+
+    def get_linker_search_args(self, dirname):
+        return ['libpath ' + dirname]
+
+    @classmethod
+    def unix_args_to_native(cls, args):
+        result = []
+        for i in args:
+            # -mms-bitfields is specific to MinGW-GCC
+            # -pthread is only valid for GCC
+            if i in ('-mms-bitfields', '-pthread'):
+                continue
+            if i.startswith('-I'):
+                i = '-i=' + i[2:]
+            if i.startswith('-L'):
+                i = 'libpath ' + i[2:]
+            # Translate GNU-style -lfoo library name to the import library
+            elif i.startswith('-l'):
+                name = i[2:]
+                if name in cls.ignore_libs:
+                    # With MSVC, these are provided by the C runtime which is
+                    # linked in by default
+                    continue
+                else:
+                    i = 'library ' + name + '.lib'
+            # -pthread in link flags is only used on Linux
+            elif i == '-pthread':
+                continue
+            result.append(i)
+        return result
+
+    def get_output_args(self, target):
+        if target.endswith('.exe'):
+            return ['-fe=' + target]
+        return ['-fo=' + target]

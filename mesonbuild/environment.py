@@ -15,7 +15,7 @@
 import configparser, os, platform, re, shlex, shutil, subprocess
 
 from . import coredata
-from .linkers import ArLinker, VisualStudioLinker
+from .linkers import ArLinker, VisualStudioLinker, WatcomLinker
 from . import mesonlib
 from .mesonlib import EnvironmentException, Popen_safe
 from . import mlog
@@ -63,6 +63,7 @@ from .compilers import (
     ValaCompiler,
     VisualStudioCCompiler,
     VisualStudioCPPCompiler,
+    WatcomCCompiler,
 )
 
 build_filename = 'meson.build'
@@ -319,6 +320,7 @@ class Environment:
         self.vs_static_linker = ['lib']
         self.gcc_static_linker = ['gcc-ar']
         self.clang_static_linker = ['llvm-ar']
+        self.watcom_static_linker = ['wlib']
 
         # Various prefixes and suffixes for import libraries, shared libraries,
         # static libraries, and executables.
@@ -530,6 +532,8 @@ class Environment:
                     if found_cl in watcom_cls:
                         continue
                 arg = '/?'
+            elif ['wcl', 'wcl.exe', 'wcl386', 'wcl386.exe'] in compiler:
+                arg = '-v'
             else:
                 arg = '--version'
             try:
@@ -575,6 +579,12 @@ class Environment:
                 inteltype = ICC_STANDARD
                 cls = IntelCCompiler if lang == 'c' else IntelCPPCompiler
                 return cls(ccache + compiler, version, inteltype, is_cross, exe_wrap)
+            if 'Open Watcom' in out:
+                if lang == 'c':
+                    cls = WatcomCCompiler
+                    # OpenWatcom v2 supports 64-bit, not currently supported.
+                    return cls(compiler, version, is_cross, exe_wrap, False)
+
         self._handle_exceptions(popen_exceptions, compilers)
 
     def detect_c_compiler(self, want_cross):
@@ -800,12 +810,16 @@ class Environment:
             elif isinstance(compiler, compilers.ClangCompiler):
                 # Use llvm-ar if available; needed for LTO
                 linkers = [self.clang_static_linker, self.default_static_linker]
+            elif isinstance(compiler, compilers.WatcomCCompiler):
+                linkers = [self.watcom_static_linker]
             else:
                 linkers = [self.default_static_linker]
         popen_exceptions = {}
         for linker in linkers:
             if 'lib' in linker or 'lib.exe' in linker:
                 arg = '/?'
+            elif 'wlib' in linker:
+                arg = '-v'
             else:
                 arg = '--version'
             try:
@@ -819,6 +833,8 @@ class Environment:
                 return ArLinker(linker)
             if p.returncode == 1 and err.startswith('usage'): # OSX
                 return ArLinker(linker)
+            if p.returncode == 8 and 'Open Watcom Library Manager' in out:
+                return WatcomLinker(linker)
         self._handle_exceptions(popen_exceptions, linkers, 'linker')
         raise EnvironmentException('Unknown static linker "%s"' % ' '.join(linkers))
 

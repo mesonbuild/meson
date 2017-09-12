@@ -119,6 +119,13 @@ msvc_buildtype_args = {'plain': [],
                        'minsize': ["/MD", "/Zi", "/Os", "/Ob1"],
                        }
 
+watcom_buildtype_args = {'plain': [],
+                         'debug': ["-ad", "-od", "-d2"],
+                         'debugoptimized': ["-ad", "-onatx", "-d2"],
+                         'release': ["-ad", "-onatx"],
+                         'minsize': ["-ad", "-onasx"],
+                        }
+
 apple_buildtype_linker_args = {'plain': [],
                                'debug': [],
                                'debugoptimized': [],
@@ -139,6 +146,13 @@ msvc_buildtype_linker_args = {'plain': [],
                               'release': [],
                               'minsize': ['/INCREMENTAL:NO'],
                               }
+
+watcom_buildtype_linker_args = {'plain': [],
+                                'debug': [],
+                                'debugoptimized': [],
+                                'release': [],
+                                'minsize': [],
+                                }
 
 java_buildtype_args = {'plain': [],
                        'debug': ['-g'],

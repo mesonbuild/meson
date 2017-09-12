@@ -22,8 +22,8 @@ from .. import build
 from .. import mlog
 from .. import dependencies
 from .. import compilers
-from ..compilers import CompilerArgs
-from ..linkers import ArLinker
+from ..compilers import CompilerArgs, WatcomCCompiler
+from ..linkers import ArLinker, WatcomLinker
 from ..mesonlib import File, MesonException, OrderedSet
 from ..mesonlib import get_compiler_for_source
 from .backends import CleanTrees, InstallData
@@ -38,7 +38,7 @@ else:
     execute_wrapper = ''
     rmfile_prefix = 'rm -f {} &&'
 
-def ninja_quote(text):
+def ninja_quote(text, compiler=None):
     for char in ('$', ' ', ':'):
         text = text.replace(char, '$' + char)
     if '\n' in text:
@@ -48,7 +48,7 @@ def ninja_quote(text):
 
 
 class NinjaBuildElement:
-    def __init__(self, all_outputs, outfilenames, rule, infilenames):
+    def __init__(self, all_outputs, outfilenames, rule, infilenames, qf_override=None, windows_paths=False):
         if isinstance(outfilenames, str):
             self.outfilenames = [outfilenames]
         else:
@@ -63,6 +63,8 @@ class NinjaBuildElement:
         self.orderdeps = set()
         self.elems = []
         self.all_outputs = all_outputs
+        self.qf_override = qf_override
+        self.windows_paths = windows_paths
 
     def add_dep(self, dep):
         if isinstance(dep, list):
@@ -82,6 +84,11 @@ class NinjaBuildElement:
         self.elems.append((name, elems))
 
     def write(self, outfile):
+        if self.qf_override:
+            qf = self.qf_override
+        else:
+            qf = quote_func
+
         self.check_outputs()
         line = 'build %s: %s %s' % (
             ' '.join([ninja_quote(i) for i in self.outfilenames]),
@@ -95,8 +102,12 @@ class NinjaBuildElement:
         # This is the only way I could find to make this work on all
         # platforms including Windows command shell. Slash is a dir separator
         # on Windows, too, so all characters are unambiguous and, more importantly,
-        # do not require quoting.
-        line = line.replace('\\', '/')
+        # do not require quoting. However, option to override when absolutely
+        # necessary exists.
+        if self.windows_paths:
+            line = line.replace('/', '\\')
+        else:
+            line = line.replace('\\', '/')
         outfile.write(line)
 
         # All the entries that should remain unquoted
@@ -112,13 +123,17 @@ class NinjaBuildElement:
                 if not should_quote or i == '&&': # Hackety hack hack
                     quoter = ninja_quote
                 else:
-                    quoter = lambda x: ninja_quote(quote_func(x))
+                    quoter = lambda x: ninja_quote(qf(x))
                 i = i.replace('\\', '\\\\')
-                if quote_func('') == '""':
+                if qf('') == '""':
                     i = i.replace('"', '\\"')
                 newelems.append(quoter(i))
             line += ' '.join(newelems)
             line += '\n'
+
+            # Include/Depfiles paths need to be overridden too.
+            if self.windows_paths:
+                line = line.replace('/', '\\')
             outfile.write(line)
         outfile.write('\n')
 
@@ -1434,11 +1449,13 @@ int dummy;
         # gcc-ar blindly pass the --plugin argument to `ar` and you cannot pass
         # options as arguments while using the @file.rsp syntax.
         # See: https://github.com/mesonbuild/meson/issues/1646
-        if mesonlib.is_windows() and not isinstance(static_linker, ArLinker):
+        if mesonlib.is_windows() and not (isinstance(static_linker, ArLinker) or isinstance(static_linker, WatcomLinker)):
             command_template = ''' command = {executable} @$out.rsp
  rspfile = $out.rsp
  rspfile_content = $LINK_ARGS {output_args} $in
 '''
+        elif isinstance(static_linker, WatcomLinker):
+            command_template = ' command = {executable} $LINK_ARGS {output_args} $in_mangled\n'
         else:
             command_template = ' command = {executable} $LINK_ARGS {output_args} $in\n'
         cmdlist = []
@@ -1489,11 +1506,13 @@ int dummy;
                     except KeyError:
                         pass
                 rule = 'rule %s%s_LINKER\n' % (langname, crstr)
-                if mesonlib.is_windows():
+                if mesonlib.is_windows() and not compiler.get_id() == 'watcom':
                     command_template = ''' command = {executable} @$out.rsp
  rspfile = $out.rsp
  rspfile_content = $ARGS  {output_args} $in $LINK_ARGS {cross_args} $aliasing
 '''
+                elif compiler.get_id() == 'watcom':
+                    command_template = ' command = {executable} $ARGS {output_args} $in_mangled $LINK_ARGS {cross_args} $aliasing\n'
                 else:
                     command_template = ' command = {executable} $ARGS {output_args} $in $LINK_ARGS {cross_args} $aliasing\n'
                 command = command_template.format(
@@ -1668,7 +1687,7 @@ rule FORTRAN_DEP_HACK
                 d = quote_func(d)
             quoted_depargs.append(d)
         cross_args = self.get_cross_info_lang_args(langname, is_cross)
-        if mesonlib.is_windows():
+        if mesonlib.is_windows() and not compiler.get_id() == 'watcom':
             command_template = ''' command = {executable} @$out.rsp
  rspfile = $out.rsp
  rspfile_content = {cross_args} $ARGS {dep_args} {output_args} {compile_only_args} $in
@@ -1740,6 +1759,8 @@ rule FORTRAN_DEP_HACK
 
     def generate_compile_rules(self, outfile):
         for langname, compiler in self.build.compilers.items():
+            (qf, winpaths) = self.query_commandline_hacks(compiler)
+
             if compiler.get_id() == 'clang':
                 self.generate_llvm_ir_compile_rule(compiler, False, outfile)
             self.generate_compile_rule_for(langname, compiler, False, outfile)
@@ -2116,6 +2137,8 @@ rule FORTRAN_DEP_HACK
             self.target_arg_cache[key] = commands
         commands = CompilerArgs(commands.compiler, commands)
 
+        qf, winpaths = self.query_commandline_hacks(compiler)
+
         if isinstance(src, mesonlib.File) and src.is_built:
             rel_src = os.path.join(src.subdir, src.fname)
             if os.path.isabs(rel_src):
@@ -2192,7 +2215,7 @@ rule FORTRAN_DEP_HACK
                     depelem.write(outfile)
             commands += compiler.get_module_outdir_args(self.get_target_private_dir(target))
 
-        element = NinjaBuildElement(self.all_outputs, rel_obj, compiler_name, rel_src)
+        element = NinjaBuildElement(self.all_outputs, rel_obj, compiler_name, rel_src, qf, winpaths)
         for d in header_deps:
             if isinstance(d, File):
                 d = d.rel_to_builddir(self.build_to_src)
@@ -2466,9 +2489,23 @@ rule FORTRAN_DEP_HACK
         dep_targets = [self.get_dependency_filename(t) for t in dependencies]
         dep_targets.extend([self.get_dependency_filename(t)
                             for t in target.link_depends])
-        elem = NinjaBuildElement(self.all_outputs, outname, linker_rule, obj_list)
+
+        (qf, winpaths) = self.query_commandline_hacks(linker)
+        elem = NinjaBuildElement(self.all_outputs, outname, linker_rule, obj_list, qf, winpaths)
         elem.add_dep(dep_targets + custom_target_libraries)
         elem.add_item('LINK_ARGS', commands)
+
+        if isinstance(linker, WatcomCCompiler) or isinstance(linker, WatcomLinker):
+            objs_mangled = []
+            for obj in obj_list:
+                objs_mangled.append('\'{}\''.format(obj))
+
+            if isinstance(target, build.StaticLibrary):
+                in_mangled = ' '.join(['+' + o for o in objs_mangled])
+            else:
+                in_mangled = 'file ' + ', '.join(objs_mangled)
+            elem.add_item('in_mangled', in_mangled)
+
         return elem
 
     def get_dependency_filename(self, t):
@@ -2625,3 +2662,16 @@ rule FORTRAN_DEP_HACK
 
         elem = NinjaBuildElement(self.all_outputs, deps, 'phony', '')
         elem.write(outfile)
+
+    # Meson generates Ninja files which escape all command line options with
+    # double-quotes and uses Unix-style paths unconditionally, even on
+    # Windows. This function can selectively override both behaviors for
+    # compilers with buggy command line processing.
+    def query_commandline_hacks(self, compiler):
+        qf = None
+        windows_paths = False
+        if isinstance(compiler, WatcomCCompiler) or isinstance(compiler, WatcomLinker):
+            qf = lambda s: '{}'.format(s)
+            if mesonlib.is_windows():
+                windows_paths = True
+        return (qf, windows_paths)
