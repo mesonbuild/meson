@@ -20,3 +20,10 @@ exe = executable('prog', 'prog.c',
 
 test('prog', exe)
 
+# link_whole only
+static = static_library('static', 'dylib.c')
+dylib2 = shared_library('link_whole', link_whole : [stlib, static])
+
+exe2 = executable('prog2', 'prog.c', link_with : dylib2)
+
+test('prog2', exe2)

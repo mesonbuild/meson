@@ -357,7 +357,7 @@ class BuildTarget(Target):
         self.process_compilers()
         self.process_kwargs(kwargs, environment)
         self.check_unknown_kwargs(kwargs)
-        if not self.sources and not self.generated and not self.objects:
+        if not any([self.sources, self.generated, self.objects, self.link_whole]):
             raise InvalidArguments('Build target %s has no sources.' % name)
         self.process_compilers_late()
         self.validate_sources()
