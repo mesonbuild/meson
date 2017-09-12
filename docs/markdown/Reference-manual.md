@@ -1176,11 +1176,13 @@ the following methods.
   Python](https://docs.python.org/3/library/os.path.html#os.path.join)
   special-case absolute paths.
 
-  `MESONINTROSPECT` contains the path to the `mesonintrospect`
-  executable that corresponds to the `meson` executable that was used
-  to configure the build. (This might be a different path then the
-  first `mesonintrospect` executable found in `PATH`.) It can be used
-  to query build configuration.
+  `MESONINTROSPECT` contains the path to the introspect command that
+  corresponds to the `meson` executable that was used to configure the
+  build. (This might be a different path then the first executable
+  found in `PATH`.) It can be used to query build configuration. Note
+  that the value may contain many parts, i.e. it may be `python3
+  /path/to/meson.py introspect`. The user is responsible for splitting
+  the string to an array if needed.
 
 - `source_root()` returns a string with the absolute path to the
   source root directory. Note: you should use the `files()` function
