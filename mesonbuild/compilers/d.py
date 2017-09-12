@@ -93,7 +93,7 @@ class DCompiler(Compiler):
         # FIXME: Make this work for Windows, MacOS and cross-compiling
         return get_gcc_soname_args(GCC_STANDARD, prefix, shlib_name, suffix, path, soversion, is_shared_module)
 
-    def get_feature_args(self, args, kwargs):
+    def get_feature_args(self, kwargs):
         res = []
         if 'unittest' in kwargs:
             unittest = kwargs.pop('unittest')

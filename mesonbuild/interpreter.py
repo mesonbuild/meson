@@ -756,15 +756,16 @@ class CompilerHolder(InterpreterObject):
         # At time, only D compilers have this feature.
         if not hasattr(self.compiler, 'get_feature_args'):
             raise InterpreterException('This {} compiler has no feature arguments.'.format(self.compiler.get_display_language()))
-        return self.compiler.get_feature_args(args, kwargs)
+        return self.compiler.get_feature_args(kwargs)
 
     def unittest_args_method(self, args, kwargs):
         '''
         This function is deprecated and should not be used.
+        It can be removed in a future version of Meson.
         '''
         if not hasattr(self.compiler, 'get_feature_args'):
             raise InterpreterException('This {} compiler has no feature arguments.'.format(self.compiler.get_display_language()))
-        return self.compiler.get_feature_args(args, {'unittest': 'true'})
+        return self.compiler.get_feature_args({'unittest': 'true'})
 
     def has_member_method(self, args, kwargs):
         if len(args) != 2:
@@ -1258,6 +1259,9 @@ pch_kwargs = set(['c_pch', 'cpp_pch'])
 lang_arg_kwargs = set(['c_args',
                        'cpp_args',
                        'd_args',
+                       'd_feature_import_dirs',
+                       'd_feature_unittest',
+                       'd_feature_versions',
                        'fortran_args',
                        'java_args',
                        'objc_args',
