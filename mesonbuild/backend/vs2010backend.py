@@ -80,38 +80,9 @@ class Vs2010Backend(backends.Backend):
         super().__init__(build)
         self.name = 'vs2010'
         self.project_file_version = '10.0.30319.1'
-        self.sources_conflicts = {}
         self.platform_toolset = None
         self.vs_version = '2010'
         self.windows_target_platform_version = None
-
-    def object_filename_from_source(self, target, source, is_unity=False):
-        basename = os.path.basename(source.fname)
-        filename_without_extension = '.'.join(basename.split('.')[:-1])
-        if basename in self.sources_conflicts[target.get_id()]:
-            # If there are multiple source files with the same basename, we must resolve the conflict
-            # by giving each a unique object output file.
-            filename_without_extension = '.'.join(source.fname.split('.')[:-1]).replace('/', '_').replace('\\', '_')
-        return filename_without_extension + '.' + self.environment.get_object_suffix()
-
-    def resolve_source_conflicts(self):
-        for name, target in self.build.targets.items():
-            if not isinstance(target, BuildTarget):
-                continue
-            conflicts = {}
-            for s in target.get_sources():
-                if hasattr(s, 'held_object'):
-                    s = s.held_object
-                if not isinstance(s, File):
-                    continue
-                basename = os.path.basename(s.fname)
-                conflicting_sources = conflicts.get(basename, None)
-                if conflicting_sources is None:
-                    conflicting_sources = []
-                    conflicts[basename] = conflicting_sources
-                conflicting_sources.append(s)
-            self.sources_conflicts[target.get_id()] = {name: src_conflicts for name, src_conflicts in conflicts.items()
-                                                       if len(src_conflicts) > 1}
 
     def generate_custom_generator_commands(self, target, parent_node):
         generator_output_files = []
@@ -164,7 +135,6 @@ class Vs2010Backend(backends.Backend):
         return generator_output_files, custom_target_output_files, custom_target_include_dirs
 
     def generate(self, interp):
-        self.resolve_source_conflicts()
         self.interpreter = interp
         target_machine = self.interpreter.builtin['target_machine'].cpu_family_method(None, None)
         if target_machine.endswith('64'):
@@ -1004,9 +974,7 @@ class Vs2010Backend(backends.Backend):
                 self.add_additional_options(lang, inc_cl, file_args)
                 self.add_preprocessor_defines(lang, inc_cl, file_defines)
                 self.add_include_dirs(lang, inc_cl, file_inc_dirs)
-                basename = os.path.basename(s.fname)
-                if basename in self.sources_conflicts[target.get_id()]:
-                    ET.SubElement(inc_cl, 'ObjectFileName').text = "$(IntDir)" + self.object_filename_from_source(target, s)
+                ET.SubElement(inc_cl, 'ObjectFileName').text = "$(IntDir)" + self.object_filename_from_source(target, s, False)
             for s in gen_src:
                 inc_cl = ET.SubElement(inc_src, 'CLCompile', Include=s)
                 lang = Vs2010Backend.lang_from_source_file(s)

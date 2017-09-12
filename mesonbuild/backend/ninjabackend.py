@@ -2116,39 +2116,21 @@ rule FORTRAN_DEP_HACK
             self.target_arg_cache[key] = commands
         commands = CompilerArgs(commands.compiler, commands)
 
-        if isinstance(src, mesonlib.File) and src.is_built:
-            rel_src = os.path.join(src.subdir, src.fname)
-            if os.path.isabs(rel_src):
-                assert(rel_src.startswith(self.environment.get_build_dir()))
-                rel_src = rel_src[len(self.environment.get_build_dir()) + 1:]
-            abs_src = os.path.join(self.environment.get_build_dir(), rel_src)
-        elif isinstance(src, mesonlib.File):
+        build_dir = self.environment.get_build_dir()
+        if isinstance(src, File):
             rel_src = src.rel_to_builddir(self.build_to_src)
-            abs_src = src.absolute_path(self.environment.get_source_dir(),
-                                        self.environment.get_build_dir())
+            if os.path.isabs(rel_src):
+                # Source files may not be from the source directory if they originate in source-only libraries,
+                # so we can't assert that the absolute path is anywhere in particular.
+                if src.is_built:
+                    assert rel_src.startswith(build_dir)
+                    rel_src = rel_src[len(build_dir) + 1:]
         elif is_generated:
             raise AssertionError('BUG: broken generated source file handling for {!r}'.format(src))
         else:
-            if isinstance(src, File):
-                rel_src = src.rel_to_builddir(self.build_to_src)
-            else:
-                raise InvalidArguments('Invalid source type: {!r}'.format(src))
-            abs_src = os.path.join(self.environment.get_build_dir(), rel_src)
-        if isinstance(src, File):
-            if src.is_built:
-                src_filename = os.path.join(src.subdir, src.fname)
-                if os.path.isabs(src_filename):
-                    assert(src_filename.startswith(self.environment.get_build_dir()))
-                    src_filename = src_filename[len(self.environment.get_build_dir()) + 1:]
-            else:
-                src_filename = src.fname
-        elif os.path.isabs(src):
-            src_filename = os.path.basename(src)
-        else:
-            src_filename = src
-        obj_basename = src_filename.replace('/', '_').replace('\\', '_')
+            raise InvalidArguments('Invalid source type: {!r}'.format(src))
+        obj_basename = self.object_filename_from_source(target, src, self.is_unity(target))
         rel_obj = os.path.join(self.get_target_private_dir(target), obj_basename)
-        rel_obj += '.' + self.environment.get_object_suffix()
         dep_file = compiler.depfile_for_object(rel_obj)
 
         # Add MSVC debug file generation compile flags: /Fd /FS
@@ -2181,6 +2163,7 @@ rule FORTRAN_DEP_HACK
             # outdir argument instead.
             # https://github.com/mesonbuild/meson/issues/1348
             if not is_generated:
+                abs_src = os.path.join(build_dir, rel_src)
                 extra_deps += self.get_fortran_deps(compiler, abs_src, target)
             # Dependency hack. Remove once multiple outputs in Ninja is fixed:
             # https://groups.google.com/forum/#!topic/ninja-build/j-2RfBIOd_8

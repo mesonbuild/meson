@@ -180,8 +180,9 @@ class Backend:
         # target that the GeneratedList is used in
         return os.path.join(self.get_target_private_dir(target), src)
 
-    def get_unity_source_filename(self, target, suffix):
-        return target.name + '-unity.' + suffix
+    def get_unity_source_file(self, target, suffix):
+        osrc = target.name + '-unity.' + suffix
+        return mesonlib.File.from_built_file(self.get_target_private_dir(target), osrc)
 
     def generate_unity_files(self, target, unity_src):
         abs_files = []
@@ -189,18 +190,15 @@ class Backend:
         compsrcs = classify_unity_sources(target.compilers.values(), unity_src)
 
         def init_language_file(suffix):
-            unity_src_name = self.get_unity_source_filename(target, suffix)
-            unity_src_subdir = self.get_target_private_dir_abs(target)
-            outfilename = os.path.join(unity_src_subdir,
-                                       unity_src_name)
-            outfileabs = os.path.join(self.environment.get_build_dir(),
-                                      outfilename)
+            unity_src = self.get_unity_source_file(target, suffix)
+            outfileabs = unity_src.absolute_path(self.environment.get_source_dir(),
+                                                 self.environment.get_build_dir())
             outfileabs_tmp = outfileabs + '.tmp'
             abs_files.append(outfileabs)
             outfileabs_tmp_dir = os.path.dirname(outfileabs_tmp)
             if not os.path.exists(outfileabs_tmp_dir):
                 os.makedirs(outfileabs_tmp_dir)
-            result.append(mesonlib.File(True, unity_src_subdir, unity_src_name))
+            result.append(unity_src)
             return open(outfileabs_tmp, 'w')
 
         # For each language, generate a unity source file and return the list
@@ -310,13 +308,35 @@ class Backend:
         return result
 
     def object_filename_from_source(self, target, source, is_unity):
-        if isinstance(source, mesonlib.File):
-            source = source.fname
+        assert isinstance(source, mesonlib.File)
+        build_dir = self.environment.get_build_dir()
+        rel_src = source.rel_to_builddir(self.build_to_src)
         # foo.vala files compile down to foo.c and then foo.c.o, not foo.vala.o
-        if source.endswith(('.vala', '.gs')):
+        if rel_src.endswith(('.vala', '.gs')):
+            # See description in generate_vala_compile for this logic.
+            if source.is_built:
+                if os.path.isabs(rel_src):
+                    rel_src = rel_src[len(build_dir) + 1:]
+                rel_src = os.path.relpath(rel_src, self.get_target_private_dir(target))
+            else:
+                rel_src = os.path.basename(rel_src)
             if is_unity:
-                return source[:-5] + '.c.' + self.environment.get_object_suffix()
-            source = os.path.join(self.get_target_private_dir(target), source[:-5] + '.c')
+                return 'meson-generated_' + rel_src[:-5] + '.c.' + self.environment.get_object_suffix()
+            # A meson- prefixed directory is reserved; hopefully no-one creates a file name with such a weird prefix.
+            source = 'meson-generated_' + rel_src[:-5] + '.c'
+        elif source.is_built:
+            if os.path.isabs(rel_src):
+                rel_src = rel_src[len(build_dir) + 1:]
+            targetdir = self.get_target_private_dir(target)
+            # A meson- prefixed directory is reserved; hopefully no-one creates a file name with such a weird prefix.
+            source = 'meson-generated_' + os.path.relpath(rel_src, targetdir)
+        else:
+            if os.path.isabs(rel_src):
+                # Not from the source directory; hopefully this doesn't conflict with user's source files.
+                source = os.path.basename(rel_src)
+            else:
+                source = os.path.relpath(os.path.join(build_dir, rel_src),
+                                         os.path.join(self.environment.get_source_dir(), target.get_subdir()))
         return source.replace('/', '_').replace('\\', '_') + '.' + self.environment.get_object_suffix()
 
     def determine_ext_objs(self, target, extobj, proj_dir_to_build_root):
@@ -330,9 +350,8 @@ class Backend:
                                            extobj.srclist[0])
             # There is a potential conflict here, but it is unlikely that
             # anyone both enables unity builds and has a file called foo-unity.cpp.
-            osrc = self.get_unity_source_filename(extobj.target,
-                                                  comp.get_default_suffix())
-            osrc = os.path.join(self.get_target_private_dir(extobj.target), osrc)
+            osrc = self.get_unity_source_file(extobj.target,
+                                              comp.get_default_suffix())
             objname = self.object_filename_from_source(extobj.target, osrc, True)
             objname = objname.replace('/', '_').replace('\\', '_')
             objpath = os.path.join(proj_dir_to_build_root, targetdir, objname)
