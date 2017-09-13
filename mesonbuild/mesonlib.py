@@ -215,6 +215,9 @@ def is_osx():
 def is_linux():
     return platform.system().lower() == 'linux'
 
+def is_haiku():
+    return platform.system().lower() == 'haiku'
+
 def is_windows():
     platname = platform.system().lower()
     return platname == 'windows' or 'mingw' in platname
