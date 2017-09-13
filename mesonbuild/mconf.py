@@ -166,6 +166,7 @@ class Conf:
                          'choices': coredata.get_builtin_option_choices(key)})
         self.print_aligned(carr)
         print('')
+        print('Backend options:')
         bekeys = sorted(self.coredata.backend_options.keys())
         if not bekeys:
             print('  No backend options\n')
