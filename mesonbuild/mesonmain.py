@@ -340,7 +340,7 @@ def run(args, mainfile=None):
             dir2 = '.'
     try:
         if mainfile is None:
-            sys.exit('I iz broken. Sorry.')
+            raise AssertionError('I iz broken. Sorry.')
         app = MesonApp(dir1, dir2, mainfile, handshake, options, sys.argv)
     except Exception as e:
         # Log directory does not exist, so just print
@@ -356,7 +356,11 @@ def run(args, mainfile=None):
                 mlog.log(mlog.red('\nMeson encountered an error in file %s, line %d, column %d:' % (e.file, e.lineno, e.colno)))
             else:
                 mlog.log(mlog.red('\nMeson encountered an error:'))
+            # Error message
             mlog.log(e)
+            # Path to log file
+            logfile = os.path.join(app.build_dir, environment.Environment.log_dir, mlog.log_fname)
+            mlog.log("\nA full log can be found at", mlog.bold(logfile))
             if os.environ.get('MESON_FORCE_BACKTRACE'):
                 raise
         else:

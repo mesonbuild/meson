@@ -22,11 +22,12 @@ colorize_console = platform.system().lower() != 'windows' and os.isatty(sys.stdo
     os.environ.get('TERM') != 'dumb'
 log_dir = None
 log_file = None
+log_fname = 'meson-log.txt'
 
 def initialize(logdir):
     global log_dir, log_file
     log_dir = logdir
-    log_file = open(os.path.join(logdir, 'meson-log.txt'), 'w', encoding='utf8')
+    log_file = open(os.path.join(logdir, log_fname), 'w', encoding='utf8')
 
 def shutdown():
     global log_file
