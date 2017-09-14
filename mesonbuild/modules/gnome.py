@@ -680,6 +680,11 @@ class GnomeModule(ExtensionModule):
         source_str = '@@'.join(sources)
 
         langs = mesonlib.stringlistify(kwargs.pop('languages', []))
+        if langs:
+            mlog.log(mlog.red('DEPRECATION:'), '''The "languages" argument of gnome.yelp() is deprecated.
+Use a LINGUAS file in the sources directory instead.
+This will become a hard error in the future.''')
+
         media = mesonlib.stringlistify(kwargs.pop('media', []))
         symlinks = kwargs.pop('symlink_media', True)
 

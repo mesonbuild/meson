@@ -10,3 +10,9 @@ usr/share/help/es/meson-symlink/media/test.txt
 usr/share/help/es/meson-symlink/index.page
 usr/share/help/de/meson-symlink/index.page
 usr/share/help/de/meson-symlink/media/test.txt
+usr/share/help/C/meson-linguas/index.page
+usr/share/help/C/meson-linguas/media/test.txt
+usr/share/help/es/meson-linguas/media/test.txt
+usr/share/help/es/meson-linguas/index.page
+usr/share/help/de/meson-linguas/index.page
+usr/share/help/de/meson-linguas/media/test.txt

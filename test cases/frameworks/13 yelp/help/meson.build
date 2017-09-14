@@ -13,3 +13,9 @@ gnome.yelp('meson-symlink',
    symlink_media: true,
    languages: ['de', 'es'],
 )
+
+gnome.yelp('meson-linguas',
+   sources: 'index.page',
+   media: 'media/test.txt',
+   symlink_media: false,
+)
