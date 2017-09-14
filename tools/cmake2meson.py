@@ -158,7 +158,7 @@ class Converter:
             if i.tid == 'id':
                 res.append("'%s'" % i.value)
             elif i.tid == 'varexp':
-                res.append('%s' % i.value)
+                res.append('%s' % i.value.lower())
             elif i.tid == 'string':
                 res.append("'%s'" % i.value)
             else:
