@@ -26,7 +26,7 @@ class Token:
 
 class Statement:
     def __init__(self, name, args):
-        self.name = name
+        self.name = name.lower()
         self.args = args
 
 class Lexer:
@@ -120,7 +120,10 @@ class Parser:
             args.append(self.arguments())
             self.expect('rparen')
         arg = self.current
-        if self.accept('string') \
+        if self.accept('comment'):
+            rest = self.arguments()
+            args += rest
+        elif self.accept('string') \
                 or self.accept('varexp') \
                 or self.accept('id'):
             args.append(arg)
@@ -155,7 +158,7 @@ class Converter:
             if i.tid == 'id':
                 res.append("'%s'" % i.value)
             elif i.tid == 'varexp':
-                res.append('%s' % i.value)
+                res.append('%s' % i.value.lower())
             elif i.tid == 'string':
                 res.append("'%s'" % i.value)
             else:
