@@ -172,6 +172,9 @@ class CCompiler(Compiler):
     def get_linker_search_args(self, dirname):
         return ['-L' + dirname]
 
+    def get_default_include_dirs(self):
+        return []
+
     def gen_import_library_args(self, implibname):
         """
         The name of the outputted import library
@@ -1082,3 +1085,8 @@ class VisualStudioCCompiler(CCompiler):
         elif version < 1920:
             return '14.1' # (Visual Studio 2017)
         return None
+
+    def get_default_include_dirs(self):
+        if 'INCLUDE' not in os.environ:
+            return []
+        return os.environ['INCLUDE'].split(os.pathsep)

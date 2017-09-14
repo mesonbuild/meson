@@ -116,18 +116,7 @@ class BoostDependency(ExternalDependency):
         # and http://stackoverflow.com/questions/37218953/isystem-on-a-system-include-directory-causes-errors
         # for more details
 
-        # TODO: The correct solution would probably be to ask the
-        # compiler for it's default include paths (ie: "gcc -xc++ -E
-        # -v -") and avoid including those with -isystem
-
-        # For now, use -isystem for all includes except for some
-        # typical defaults (which don't need to be included at all
-        # since they are in the default include paths). These typical
-        # defaults include the usual directories at the root of the
-        # filesystem, but also any path that ends with those directory
-        # names in order to handle cases like cross-compiling where we
-        # might have a different sysroot.
-        if not include_dir.endswith(('/usr/include', '/usr/local/include')):
+        if include_dir and include_dir not in self.compiler.get_default_include_dirs():
             args.append("".join(self.compiler.get_include_args(include_dir, True)))
         return args
 
