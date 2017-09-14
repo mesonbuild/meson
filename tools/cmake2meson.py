@@ -26,7 +26,7 @@ class Token:
 
 class Statement:
     def __init__(self, name, args):
-        self.name = name
+        self.name = name.lower()
         self.args = args
 
 class Lexer:
