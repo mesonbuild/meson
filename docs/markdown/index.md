@@ -24,10 +24,10 @@ The main design point of Meson is that every moment a developer spends writing o
 
 There are two main methods of connecting with other Meson developers. The first one is the mailing list, which is hosted at [Google Groups](https://groups.google.com/forum/#!forum/mesonbuild).
 
-The second way is via IRC. The channel to use is <tt>#mesonbuild</tt> at [Freenode](https://freenode.net/).
+The second way is via IRC. The channel to use is `#mesonbuild` at [Freenode](https://freenode.net/).
 
 ## Development
 
-All development on Meson is done on [GitHub project](https://github.com/mesonbuild/meson). For further info look into the <tt>contributing.txt</tt> file that comes with Meson's source checkout.
+All development on Meson is done on [GitHub project](https://github.com/mesonbuild/meson). For further info look into the `contributing.txt` file that comes with Meson's source checkout.
 
 You do not need to sign a CLA to contribute to Meson.
