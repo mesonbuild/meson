@@ -65,10 +65,44 @@ libfoo = shared_library(
 #
 # VS2010 lacks the /WHOLEARCHIVE option that later versions of MSVC support, so
 # don't run this tests on that backend.
-if meson.backend() != 'vs2010'
+if not (cxx.get_id() == 'msvc' and cxx.version().version_compare('<19'))
   libfoowhole = shared_library(
     'foowhole',
     ['foobar.c', 'foobar.h'],
     link_whole : [libc, libcpp],
   )
 endif
+
+# Test sublinking (linking C and C++, then linking that to C)
+libfoo_static = static_library(
+  'foo_static',
+  ['foobar.c', 'foobar.h'],
+  link_with : [libc, libcpp],
+)
+
+libsub = shared_library(
+  'sub',
+  ['sub.c', 'sub.h'],
+  link_with : libfoo_static,
+)
+
+if not (cxx.get_id() == 'msvc' and cxx.version().version_compare('<19'))
+  libsubwhole = shared_library(
+    'subwhole',
+    ['sub.c', 'sub.h'],
+    link_whole : libfoo_static,
+  )
+endif
+
+# Test that it really is recursive
+libsub_static = static_library(
+  'sub_static',
+  ['sub.c', 'sub.h'],
+  link_with : libfoo_static,
+)
+
+libsubsub = shared_library(
+  'subsub',
+  ['dummy.c'],
+  link_with : libsub_static,
+)

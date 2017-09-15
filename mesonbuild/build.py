@@ -359,6 +359,7 @@ class BuildTarget(Target):
         self.check_unknown_kwargs(kwargs)
         if not self.sources and not self.generated and not self.objects:
             raise InvalidArguments('Build target %s has no sources.' % name)
+        self.process_compilers_late()
         self.validate_sources()
         self.validate_cross_install(environment)
 
@@ -439,6 +440,39 @@ class BuildTarget(Target):
                 removed = True
         return removed
 
+    def process_compilers_late(self):
+        """Processes additional compilers after kwargs have been evaluated.
+
+        This can add extra compilers that might be required by keyword
+        arguments, such as link_with or dependencies. It will also try to guess
+        which compiler to use if one hasn't been selected already.
+        """
+        # Populate list of compilers
+        if self.is_cross:
+            compilers = self.environment.coredata.cross_compilers
+        else:
+            compilers = self.environment.coredata.compilers
+
+        # If this library is linked against another library we need to consider
+        # the languages of those libraries as well.
+        if self.link_targets or self.link_whole_targets:
+            extra = set()
+            for t in itertools.chain(self.link_targets, self.link_whole_targets):
+                for name, compiler in t.compilers.items():
+                    if name in clike_langs:
+                        extra.add((name, compiler))
+            for name, compiler in sorted(extra, key=lambda p: sort_clike(p[0])):
+                self.compilers[name] = compiler
+
+        if not self.compilers:
+            # No source files or parent targets, target consists of only object
+            # files of unknown origin. Just add the first clike compiler
+            # that we have and hope that it can link these objects
+            for lang in clike_langs:
+                if lang in compilers:
+                    self.compilers[lang] = compilers[lang]
+                    break
+
     def process_compilers(self):
         '''
         Populate self.compilers, which is the list of compilers that this
@@ -487,14 +521,7 @@ class BuildTarget(Target):
             # Re-sort according to clike_langs
             self.compilers = OrderedDict(sorted(self.compilers.items(),
                                                 key=lambda t: sort_clike(t[0])))
-        else:
-            # No source files, target consists of only object files of unknown
-            # origin. Just add the first clike compiler that we have and hope
-            # that it can link these objects
-            for lang in clike_langs:
-                if lang in compilers:
-                    self.compilers[lang] = compilers[lang]
-                    break
+
         # If all our sources are Vala, our target also needs the C compiler but
         # it won't get added above.
         if 'vala' in self.compilers and 'c' not in self.compilers:
