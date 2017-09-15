@@ -1046,7 +1046,7 @@ int dummy;
                 if hasattr(i, 'fname'):
                     i = i.fname
                 if i.endswith('vala'):
-                    vapiname = dep.name + '.vapi'
+                    vapiname = dep.vala_vapi
                     fullname = os.path.join(self.get_target_dir(dep), vapiname)
                     result.add(fullname)
                     break
