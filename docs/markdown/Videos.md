@@ -33,5 +33,5 @@ short-description: Videos about Meson
 (lightning talk at FOSDEM 2014)
 
 <video width="854" height="480" controls>
-  < <source src=http://mirror.onet.pl/pub/mirrors/video.fosdem.org/2014/H2215_Ferrer/Sunday/Introducing_the_Meson_build_system.webm>
+  <source src=http://mirror.onet.pl/pub/mirrors/video.fosdem.org/2014/H2215_Ferrer/Sunday/Introducing_the_Meson_build_system.webm>
 </video>
