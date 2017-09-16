@@ -1178,6 +1178,18 @@ int dummy;
                 # Install GIR to default location if requested by user
                 if len(target.install_dir) > 3 and target.install_dir[3] is True:
                     target.install_dir[3] = os.path.join(self.environment.get_datadir(), 'gir-1.0')
+            # Generate header for internal symbols if requested by user
+            if isinstance(target.vala_internal_header, str):
+                internalheadername = os.path.join(self.get_target_dir(target), target.vala_internal_header)
+                args += ['--internal-header', internalheadername]
+                valac_outputs.append(internalheadername)
+                target.outputs.append(target.vala_internal_header)
+            # Generate VAPI for internal symbols if requested by user
+            if isinstance(target.vala_internal_vapi, str):
+                internalvapi = os.path.join(self.get_target_dir(target), target.vala_internal_vapi)
+                args += ['--internal-vapi', os.path.join('..', target.vala_internal_vapi)]
+                valac_outputs.append(internalvapi)
+                target.outputs.append(target.vala_internal_vapi)
         # Detect gresources and add --gresources arguments for each
         for (gres, gensrc) in other_src[1].items():
             if isinstance(gensrc, modules.GResourceTarget):

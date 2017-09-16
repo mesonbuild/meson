@@ -73,6 +73,8 @@ known_lib_kwargs.update({'version': True, # Only for shared libs
                          'vala_header': True,
                          'vala_vapi': True,
                          'vala_gir': True,
+                         'vala_internal_header': True,
+                         'vala_internal_vapi': True,
                          'pic': True, # Only for static libs
                          'rust_crate_type': True, # Only for Rust libs
                          })
@@ -669,6 +671,8 @@ class BuildTarget(Target):
             self.vala_header = kwargs.get('vala_header', self.name + '.h')
             self.vala_vapi = kwargs.get('vala_vapi', self.name + '.vapi')
             self.vala_gir = kwargs.get('vala_gir', None)
+            self.vala_internal_header = kwargs.get('vala_internal_header', None)
+            self.vala_internal_vapi = kwargs.get('vala_internal_vapi', None)
         dlist = stringlistify(kwargs.get('d_args', []))
         self.add_compiler_args('d', dlist)
         self.link_args = flatten(kwargs.get('link_args', []))
