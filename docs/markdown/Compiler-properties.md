@@ -29,26 +29,9 @@ Compiler id
 ==
 
 The compiler object has a method called `get_id`, which returns a
-lower case string describing the "family" of the compiler. It has one
-of the following values.
-
-| Value     | Compiler family                |
-| -----     | ----------------               |
-| gcc       | The GNU Compiler Collection    |
-| clang     | The Clang compiler             |
-| msvc      | Microsoft Visual Studio        |
-| intel     | Intel compiler                 |
-| llvm      | LLVM-based compiler (Swift, D) |
-| mono      | Xamarin C# compiler            |
-| dmd       | D lang reference compiler      |
-| rustc     | Rust compiler                  |
-| valac     | Vala compiler                  |
-| pathscale | The Pathscale Fortran compiler |
-| pgi       | The Portland Fortran compiler  |
-| sun       | Sun Fortran compiler           |
-| g95       | The G95 Fortran compiler       |
-| open64    | The Open64 Fortran Compiler    |
-| nagfor    | The NAG Fortran compiler       |
+lower case string describing the "family" of the compiler. See
+[reference tables](Reference-tables.md) for a list of supported
+compiler ids.
 
 Does code compile?
 ==

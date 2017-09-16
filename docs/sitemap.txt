@@ -47,6 +47,7 @@ index.md
 		Creating-OSX-packages.md
 		Creating-Linux-binaries.md
 	Reference-manual.md
+	Reference-tables.md
 	FAQ.md
 	Reproducible-builds.md
 	howtox.md
