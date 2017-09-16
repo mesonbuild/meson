@@ -301,7 +301,10 @@ class GnomeModule(ExtensionModule):
                        use_gir_args=False):
         link_command = []
         # Construct link args
-        if isinstance(lib, build.SharedLibrary):
+        if isinstance(lib, build.StaticLibrary):
+            libdir = os.path.join(state.environment.get_build_dir(), state.backend.get_target_dir(lib))
+            link_command.append('-L' + libdir)
+        elif isinstance(lib, build.SharedLibrary):
             libdir = os.path.join(state.environment.get_build_dir(), state.backend.get_target_dir(lib))
             link_command.append('-L' + libdir)
             # Needed for the following binutils bug:

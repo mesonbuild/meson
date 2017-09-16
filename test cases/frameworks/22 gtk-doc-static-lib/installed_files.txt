@@ -1,0 +1,14 @@
+usr/share/gtk-doc/html/share/doc/acme/index.html
+usr/share/gtk-doc/html/share/doc/acme/up.png
+usr/share/gtk-doc/html/share/doc/acme/home.png
+usr/share/gtk-doc/html/share/doc/acme/AcmeDemo.html
+usr/share/gtk-doc/html/share/doc/acme/api-index-full.html
+usr/share/gtk-doc/html/share/doc/acme/right-insensitive.png
+usr/share/gtk-doc/html/share/doc/acme/left-insensitive.png
+usr/share/gtk-doc/html/share/doc/acme/acme.devhelp2
+usr/share/gtk-doc/html/share/doc/acme/up-insensitive.png
+usr/share/gtk-doc/html/share/doc/acme/left.png
+usr/share/gtk-doc/html/share/doc/acme/style.css
+usr/share/gtk-doc/html/share/doc/acme/right.png
+usr/share/gtk-doc/html/share/doc/acme/ch01.html
+usr/share/gtk-doc/html/share/doc/acme/object-tree.html
