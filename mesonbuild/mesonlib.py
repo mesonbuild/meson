@@ -14,6 +14,7 @@
 
 """A library of random helper functionality."""
 
+import sys
 import stat
 import time
 import platform, subprocess, operator, os, shutil, re
@@ -509,11 +510,32 @@ def expand_arguments(args):
     return expended_args
 
 def Popen_safe(args, write=None, stderr=subprocess.PIPE, **kwargs):
+    if sys.version_info < (3, 6) or not sys.stdout.encoding:
+        return Popen_safe_legacy(args, write=write, stderr=stderr, **kwargs)
     p = subprocess.Popen(args, universal_newlines=True,
                          close_fds=False,
                          stdout=subprocess.PIPE,
                          stderr=stderr, **kwargs)
     o, e = p.communicate(write)
+    return p, o, e
+
+def Popen_safe_legacy(args, write=None, stderr=subprocess.PIPE, **kwargs):
+    p = subprocess.Popen(args, universal_newlines=False,
+                         stdout=subprocess.PIPE,
+                         stderr=stderr, **kwargs)
+    if write is not None:
+        write = write.encode('utf-8')
+    o, e = p.communicate(write)
+    if o is not None:
+        if sys.stdout.encoding:
+            o = o.decode(encoding=sys.stdout.encoding, errors='replace').replace('\r\n', '\n')
+        else:
+            o = o.decode(errors='replace').replace('\r\n', '\n')
+    if e is not None:
+        if sys.stderr.encoding:
+            e = e.decode(encoding=sys.stderr.encoding, errors='replace').replace('\r\n', '\n')
+        else:
+            e = e.decode(errors='replace').replace('\r\n', '\n')
     return p, o, e
 
 def commonpath(paths):
