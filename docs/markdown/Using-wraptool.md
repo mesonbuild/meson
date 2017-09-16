@@ -57,3 +57,17 @@ In this case `zlib` has a newer release available. Updating it is straightforwar
     Updated zlib to branch 1.2.8 revision 4
 
 Wraptool can do other things besides these. Documentation for these can be found in the command line help, which can be accessed by `wraptool --help`.
+
+## Promoting dependencies
+
+Meson will only search for subprojects from the top level `subprojects` directory. If you have subprojects that themselves have subprojects, you must transfer them to the top level. This can be done by going to your source root and issuing a promotion command.
+
+    meson wrap promote projname
+
+This will cause Meson to go through your entire project tree, find an embedded subproject and copy it to the top level.
+
+If there are multiple embedded copies of a subproject, Meson will not try to guess which one you want. Instead it will print all the possibilities. You can then manually select which one to promote by writing it out fully.
+
+    meson wrap promote subprojects/s1/subprojects/projname
+
+This functionality was added in Meson release 0.43.0.

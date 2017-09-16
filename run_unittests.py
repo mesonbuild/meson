@@ -468,6 +468,7 @@ class BasePlatformTests(unittest.TestCase):
         self.mconf_command = meson_command + ['configure']
         self.mintro_command = meson_command + ['introspect']
         self.mtest_command = meson_command + ['test', '-C', self.builddir]
+        self.wrap_command = meson_command + ['wrap']
         # Backend-specific build commands
         self.build_command, self.clean_command, self.test_command, self.install_command, \
             self.uninstall_command = get_backend_commands(self.backend)
@@ -1642,6 +1643,26 @@ int main(int argc, char **argv) {
         self.opt_has('free_array_opt', ['foo', 'bar'])
         self.setconf("-Dfree_array_opt=['a,b', 'c,d']", will_build=False)
         self.opt_has('free_array_opt', ['a,b', 'c,d'])
+
+    def test_subproject_promotion(self):
+        testdir = os.path.join(self.unit_test_dir, '13 promote')
+        workdir = os.path.join(self.builddir, 'work')
+        shutil.copytree(testdir, workdir)
+        spdir = os.path.join(workdir, 'subprojects')
+        s3dir = os.path.join(spdir, 's3')
+        scommondir = os.path.join(spdir, 'scommon')
+        self.assertFalse(os.path.isdir(s3dir))
+        subprocess.check_call(self.wrap_command + ['promote', 's3'], cwd=workdir)
+        self.assertTrue(os.path.isdir(s3dir))
+        self.assertFalse(os.path.isdir(scommondir))
+        self.assertNotEqual(subprocess.call(self.wrap_command + ['promote', 'scommon'],
+                                            cwd=workdir,
+                                            stdout=subprocess.DEVNULL), 0)
+        self.assertFalse(os.path.isdir(scommondir))
+        subprocess.check_call(self.wrap_command + ['promote', 'subprojects/s2/subprojects/scommon'], cwd=workdir)
+        self.assertTrue(os.path.isdir(scommondir))
+        self.init(workdir)
+        self.build()
 
 
 class FailureTests(BasePlatformTests):

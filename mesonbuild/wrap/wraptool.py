@@ -142,6 +142,51 @@ def info(name):
     for v in versions:
         print(' ', v['branch'], v['revision'])
 
+def do_promotion(from_path, spdir_name):
+    sproj_name = os.path.split(from_path)[1]
+    outputdir = os.path.join(spdir_name, sproj_name)
+    if os.path.exists(outputdir):
+        sys.exit('Output dir %s already exists. Will not overwrite.' % outputdir)
+    shutil.copytree(from_path, outputdir, ignore=shutil.ignore_patterns('subprojects'))
+
+def detect_subprojects(spdir_name, current_dir='', result=None):
+    if result is None:
+        result = {}
+    spdir = os.path.join(current_dir, spdir_name)
+    if not os.path.exists(spdir):
+        return result
+    for trial in glob(os.path.join(spdir, '*')):
+        basename = os.path.split(trial)[1]
+        if trial == 'packagecache':
+            continue
+        if not os.path.isdir(trial):
+            continue
+        if basename in result:
+            result[basename].append(trial)
+        else:
+            result[basename] = [trial]
+        detect_subprojects(spdir_name, trial, result)
+    return result
+
+def promote(argument):
+    path_segment, subproject_name = os.path.split(argument)
+    spdir_name = 'subprojects'
+    sprojs = detect_subprojects(spdir_name)
+    if subproject_name not in sprojs:
+        sys.exit('Subproject %s not found in directory tree.' % subproject_name)
+    matches = sprojs[subproject_name]
+    if len(matches) == 1:
+        do_promotion(matches[0], spdir_name)
+        return
+    if path_segment == '':
+        print('There are many versions of %s in tree. Please specify which one to promote:\n' % subproject_name)
+        for s in matches:
+            print(s)
+        sys.exit(1)
+    system_native_path_argument = argument.replace('/', os.sep)
+    if system_native_path_argument in matches:
+        do_promotion(argument, spdir_name)
+
 def status():
     print('Subproject status')
     for w in glob('subprojects/*.wrap'):
@@ -189,6 +234,11 @@ def run(args):
             print('info requires exactly one argument.')
             return 1
         info(args[0])
+    elif command == 'promote':
+        if len(args) != 1:
+            print('promote requires exactly one argument.')
+            return 1
+        promote(args[0])
     elif command == 'status':
         status()
     else:
