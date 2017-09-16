@@ -58,7 +58,7 @@ These are bad because they would make Meson's DSL Turing complete. The
 second feature is a Make backend.
 
 The FAQ has specific information why these two features will not be
-added to Meson: https://github.com/mesonbuild/meson/wiki/FAQ
+added to Meson: http://mesonbuild.com/FAQ.html
 
 Merge requests adding either of these two features will be automatically
 rejected. Please save everyone's time (especially your own) and don't start
