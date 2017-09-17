@@ -121,7 +121,7 @@ class PkgConfigModule(ExtensionModule):
 
     @permittedKwargs({'libraries', 'version', 'name', 'description', 'filebase',
                       'subdirs', 'requires', 'requires_private', 'libraries_private',
-                      'install_dir', 'extra_cflags', 'variables', 'url', 'd_feature_versions'})
+                      'install_dir', 'extra_cflags', 'variables', 'url', 'd_module_versions'})
     def generate(self, state, args, kwargs):
         if len(args) > 0:
             raise mesonlib.MesonException('Pkgconfig_gen takes no positional arguments.')
@@ -148,7 +148,7 @@ class PkgConfigModule(ExtensionModule):
         conflicts = mesonlib.stringlistify(kwargs.get('conflicts', []))
         extra_cflags = mesonlib.stringlistify(kwargs.get('extra_cflags', []))
 
-        dversions = kwargs.get('d_feature_versions', None)
+        dversions = kwargs.get('d_module_versions', None)
         if dversions:
             compiler = state.environment.coredata.compilers.get('d')
             if compiler:

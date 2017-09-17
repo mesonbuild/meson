@@ -36,9 +36,9 @@ known_basic_kwargs = {'install': True,
                       'vala_args': True,
                       'fortran_args': True,
                       'd_args': True,
-                      'd_feature_import_dirs': True,
-                      'd_feature_unittest': True,
-                      'd_feature_versions': True,
+                      'd_import_dirs': True,
+                      'd_unittest': True,
+                      'd_module_versions': True,
                       'java_args': True,
                       'rust_args': True,
                       'link_args': True,
@@ -676,13 +676,13 @@ class BuildTarget(Target):
         dlist = stringlistify(kwargs.get('d_args', []))
         self.add_compiler_args('d', dlist)
         dfeatures = dict()
-        dfeature_unittest = kwargs.get('d_feature_unittest', False)
+        dfeature_unittest = kwargs.get('d_unittest', False)
         if dfeature_unittest:
             dfeatures['unittest'] = dfeature_unittest
-        dfeature_versions = kwargs.get('d_feature_versions', None)
+        dfeature_versions = kwargs.get('d_module_versions', None)
         if dfeature_versions:
             dfeatures['versions'] = dfeature_versions
-        dfeature_import_dirs = kwargs.get('d_feature_import_dirs', None)
+        dfeature_import_dirs = kwargs.get('d_import_dirs', None)
         if dfeature_import_dirs:
             dfeatures['import_dirs'] = dfeature_import_dirs
         if dfeatures:
