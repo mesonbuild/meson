@@ -424,6 +424,10 @@ be passed to [shared and static libraries](#library).
 - `override_options` takes an array of strings in the same format as
   `project`'s `default_options` overriding the values of these options
   for this target only, since 0.40.0
+- `d_import_dirs` list of directories to look in for string imports used
+  in the D programmling language
+- `d_unittest`, when set to true, the D modules are compiled in debug mode
+- `d_module_versions` list of module versions set when compiling D sources
 
 The list of `sources`, `objects`, and `dependencies` is always
 flattened, which means you can freely nest and add lists while
@@ -835,7 +839,7 @@ This function prints its argument to stdout.
 The first argument to this function must be a string defining the name
 of this project. It is followed by programming languages that the
 project uses. Supported values for languages are `c`, `cpp` (for
-`C++`), `objc`, `objcpp`, `fortran`, `java`, `cs` (for `C#`) and
+`C++`), `d`, `objc`, `objcpp`, `fortran`, `java`, `cs` (for `C#`) and
 `vala`. In versions before `0.40.0` you must have at least one
 language listed.
 
