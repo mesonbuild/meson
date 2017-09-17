@@ -26,6 +26,9 @@ subdir('uninstall')
 
 subdir('runtarget')
 
+py3 = import('python3').find_python()
+
 custom_target('ctlist-test', output : 'out.txt',
-              command : ['echo'], capture : true,
+              command : [py3, '-c', 'print("")'],
+              capture : true,
               build_by_default : true)
