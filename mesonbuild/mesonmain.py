@@ -64,8 +64,6 @@ def create_parser():
     add_builtin_argument(p, 'layout')
     add_builtin_argument(p, 'default-library')
     add_builtin_argument(p, 'warnlevel', dest='warning_level')
-    add_builtin_argument(p, 'stdsplit', action='store_false')
-    add_builtin_argument(p, 'errorlogs', action='store_false')
     p.add_argument('--cross-file', default=None,
                    help='File describing cross compilation environment.')
     p.add_argument('-D', action='append', dest='projectoptions', default=[], metavar="option",
