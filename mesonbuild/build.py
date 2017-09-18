@@ -36,6 +36,9 @@ known_basic_kwargs = {'install': True,
                       'vala_args': True,
                       'fortran_args': True,
                       'd_args': True,
+                      'd_import_dirs': True,
+                      'd_unittest': True,
+                      'd_module_versions': True,
                       'java_args': True,
                       'rust_args': True,
                       'link_args': True,
@@ -351,11 +354,11 @@ class BuildTarget(Target):
         # 1. Pre-existing objects provided by the user with the `objects:` kwarg
         # 2. Compiled objects created by and extracted from another target
         self.process_objectlist(objects)
+        self.process_compilers()
         self.process_kwargs(kwargs, environment)
         self.check_unknown_kwargs(kwargs)
         if not self.sources and not self.generated and not self.objects:
             raise InvalidArguments('Build target %s has no sources.' % name)
-        self.process_compilers()
         self.validate_sources()
         self.validate_cross_install(environment)
 
@@ -669,8 +672,23 @@ class BuildTarget(Target):
             self.vala_header = kwargs.get('vala_header', self.name + '.h')
             self.vala_vapi = kwargs.get('vala_vapi', self.name + '.vapi')
             self.vala_gir = kwargs.get('vala_gir', None)
+
         dlist = stringlistify(kwargs.get('d_args', []))
         self.add_compiler_args('d', dlist)
+        dfeatures = dict()
+        dfeature_unittest = kwargs.get('d_unittest', False)
+        if dfeature_unittest:
+            dfeatures['unittest'] = dfeature_unittest
+        dfeature_versions = kwargs.get('d_module_versions', None)
+        if dfeature_versions:
+            dfeatures['versions'] = dfeature_versions
+        dfeature_import_dirs = kwargs.get('d_import_dirs', None)
+        if dfeature_import_dirs:
+            dfeatures['import_dirs'] = dfeature_import_dirs
+        if dfeatures:
+            if 'd' in self.compilers:
+                self.add_compiler_args('d', self.compilers['d'].get_feature_args(dfeatures))
+
         self.link_args = flatten(kwargs.get('link_args', []))
         for i in self.link_args:
             if not isinstance(i, str):
