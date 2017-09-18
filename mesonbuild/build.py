@@ -1075,8 +1075,10 @@ class Generator:
         basename = os.path.splitext(plainname)[0]
         return self.depfile.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname)
 
-    def get_arglist(self):
-        return self.arglist
+    def get_arglist(self, inname):
+        plainname = os.path.split(inname)[1]
+        basename = os.path.splitext(plainname)[0]
+        return [x.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname) for x in self.arglist]
 
     def process_files(self, name, files, state, extra_args=[]):
         output = GeneratedList(self, extra_args=extra_args)
