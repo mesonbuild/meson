@@ -856,8 +856,17 @@ int dummy;
         cmd = self.environment.get_build_command(True) + ['test', '--no-rebuild']
         if not self.environment.coredata.get_builtin_option('stdsplit'):
             cmd += ['--no-stdsplit']
-        if self.environment.coredata.get_builtin_option('errorlogs'):
+        out = self.environment.coredata.get_builtin_option('output')
+        if out == 'on-error':
             cmd += ['--print-errorlogs']
+        elif out == 'always':
+            cmd += ['--verbose']
+        suite = self.environment.coredata.get_builtin_option('suite')
+        if suite:
+            cmd += ['--suite=%s' % suite]
+        setup = self.environment.coredata.get_builtin_option('setup')
+        if setup:
+            cmd += ['--setup=%s' % setup]
         elem = NinjaBuildElement(self.all_outputs, 'meson-test', 'CUSTOM_COMMAND', ['all', 'PHONY'])
         elem.add_item('COMMAND', cmd)
         elem.add_item('DESC', 'Running all tests.')

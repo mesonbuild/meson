@@ -253,12 +253,16 @@ class Conf:
         print('')
         print('Testing options:')
         tarr = []
-        for key in ['stdsplit', 'errorlogs']:
-            tarr.append({'name': key,
-                         'descr': coredata.get_builtin_option_description(key),
-                         'value': self.coredata.get_builtin_option(key),
-                         'choices': coredata.get_builtin_option_choices(key)})
-        self.print_aligned(tarr)
+        for keyset in [['suite', 'setup'], ['stdsplit', 'output']]:
+            if len(tarr):
+                print('')
+                tarr = []
+            for key in keyset:
+                tarr.append({'name': key,
+                             'descr': coredata.get_builtin_option_description(key),
+                             'value': self.coredata.get_builtin_option(key),
+                             'choices': coredata.get_builtin_option_choices(key)})
+            self.print_aligned(tarr)
 
 def run(args):
     args = mesonlib.expand_arguments(args)
