@@ -5,7 +5,7 @@
 Meson releases can be downloaded from the [GitHub release page].
 
 Meson is also available in the [Python Package Index] and can be
-installed with <tt>pip3 install meson</tt>.
+installed with `pip3 install meson`.
 
 The newest development code can be obtained directly from [Git]
 
