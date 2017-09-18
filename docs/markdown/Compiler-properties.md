@@ -103,12 +103,12 @@ The `result` variable encapsulates the state of the test, which can be
 extracted with the following methods. The `name` keyword argument
 works the same as with `compiles`.
 
-| Method     | Return value
-| ------     | ------------
-| compiled   | `True` if compilation succeeded. If `false` then all other methods return undefined values.
-| returncode | The return code of the application as an integer
-| stdout     | Program's standard out as text.
-| stderr     | Program's standard error as text.
+| Method     | Return value                                                                                |
+| ------     | ------------                                                                                |
+| compiled   | `True` if compilation succeeded. If `false` then all other methods return undefined values. |
+| returncode | The return code of the application as an integer                                            |
+| stdout     | Program's standard out as text.                                                             |
+| stderr     | Program's standard error as text.                                                           |
 
 Here is an example usage:
 
