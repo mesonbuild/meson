@@ -23,7 +23,7 @@ from collections import OrderedDict
 
 from .. import mlog
 from .. import mesonlib
-from ..mesonlib import MesonException, Popen_safe, version_compare
+from ..mesonlib import MesonException, Popen_safe, version_compare, extract_as_list
 from ..environment import for_windows, detect_cpu
 
 from .base import DependencyException, DependencyMethods
@@ -468,12 +468,9 @@ class WxDependency(ExternalDependency):
             self.link_args = out.split()
 
     def get_requested(self, kwargs):
-        modules = 'modules'
-        if modules not in kwargs:
+        if 'modules' not in kwargs:
             return []
-        candidates = kwargs[modules]
-        if not isinstance(candidates, list):
-            candidates = [candidates]
+        candidates = extract_as_list(kwargs, 'modules')
         for c in candidates:
             if not isinstance(c, str):
                 raise DependencyException('wxwidgets module argument is not a string')

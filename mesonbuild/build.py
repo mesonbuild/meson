@@ -787,8 +787,7 @@ This will become a hard error in a future Meson release.''')
         return self.include_dirs
 
     def add_deps(self, deps):
-        if not isinstance(deps, list):
-            deps = [deps]
+        deps = listify(deps)
         for dep in deps:
             if hasattr(dep, 'held_object'):
                 dep = dep.held_object
@@ -1016,9 +1015,7 @@ class Generator:
         self.arglist = args
         if 'output' not in kwargs:
             raise InvalidArguments('Generator must have "output" keyword argument.')
-        outputs = kwargs['output']
-        if not isinstance(outputs, list):
-            outputs = [outputs]
+        outputs = listify(kwargs['output'])
         for rule in outputs:
             if not isinstance(rule, str):
                 raise InvalidArguments('"output" may only contain strings.')
@@ -1514,8 +1511,7 @@ class CustomTarget(Target):
         return deps
 
     def flatten_command(self, cmd):
-        if not isinstance(cmd, list):
-            cmd = [cmd]
+        cmd = listify(cmd)
         final_cmd = []
         for c in cmd:
             if hasattr(c, 'held_object'):
@@ -1550,9 +1546,7 @@ class CustomTarget(Target):
             self.sources.append(s)
         if 'output' not in kwargs:
             raise InvalidArguments('Missing keyword argument "output".')
-        self.outputs = kwargs['output']
-        if not isinstance(self.outputs, list):
-            self.outputs = [self.outputs]
+        self.outputs = listify(kwargs['output'])
         # This will substitute values from the input into output and return it.
         inputs = get_sources_string_names(self.sources)
         values = get_filenames_templates_dict(inputs, [])
@@ -1606,18 +1600,13 @@ class CustomTarget(Target):
         self.build_always = kwargs.get('build_always', False)
         if not isinstance(self.build_always, bool):
             raise InvalidArguments('Argument build_always must be a boolean.')
-        extra_deps = kwargs.get('depends', [])
-        if not isinstance(extra_deps, list):
-            extra_deps = [extra_deps]
+        extra_deps, depend_files = extract_as_list(kwargs, 'depends', 'depend_files', pop = False)
         for ed in extra_deps:
             while hasattr(ed, 'held_object'):
                 ed = ed.held_object
             if not isinstance(ed, (CustomTarget, BuildTarget)):
                 raise InvalidArguments('Can only depend on toplevel targets: custom_target or build_target (executable or a library)')
             self.extra_depends.append(ed)
-        depend_files = kwargs.get('depend_files', [])
-        if not isinstance(depend_files, list):
-            depend_files = [depend_files]
         for i in depend_files:
             if isinstance(i, (File, str)):
                 self.depend_files.append(i)
@@ -1767,8 +1756,7 @@ class Data:
         self.sources = sources
         self.install_dir = install_dir
         self.install_mode = install_mode
-        if not isinstance(self.sources, list):
-            self.sources = [self.sources]
+        self.sources = listify(self.sources)
         for s in self.sources:
             assert(isinstance(s, File))
 

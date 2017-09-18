@@ -1201,9 +1201,7 @@ G_END_DECLS'''
         arg_list = kwargs.get('packages')
         if not arg_list:
             return [], [], [], []
-        if not isinstance(arg_list, list):
-            arg_list = [arg_list]
-
+        arg_list = mesonlib.listify(arg_list)
         vapi_depends = []
         vapi_packages = []
         vapi_includes = []
