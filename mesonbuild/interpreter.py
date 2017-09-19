@@ -1242,7 +1242,7 @@ lang_arg_kwargs = set(['c_args',
 
 vala_kwargs = set(['vala_header', 'vala_gir', 'vala_vapi'])
 rust_kwargs = set(['rust_crate_type'])
-cs_kwargs = set(['resources'])
+cs_kwargs = set(['resources', 'cs_args'])
 
 buildtarget_kwargs = set(['build_by_default',
                           'build_rpath',
