@@ -49,6 +49,14 @@ branches:
   only:
     - master
 
+init:
+  - ps: |
+        If($Env:compiler -like 'msvc2010') {
+          Set-WinSystemLocale de-DE
+          Start-Sleep -s 5
+          Restart-Computer
+        }
+
 install:
   - cmd: set "ORIG_PATH=%PATH%"
   # Boost 1.56.0: https://www.appveyor.com/docs/build-environment/#boost
