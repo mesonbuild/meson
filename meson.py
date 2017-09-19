@@ -24,7 +24,7 @@ def main():
     # encoding, so we can just warn about it.
     e = locale.getpreferredencoding()
     if e.upper() != 'UTF-8' and not mesonlib.is_windows():
-        print('Warning: You are using {!r} which is not a a Unicode-compatible '
+        print('Warning: You are using {!r} which is not a Unicode-compatible '
               'locale.'.format(e), file=sys.stderr)
         print('You might see errors if you use UTF-8 strings as '
               'filenames, as strings, or as file contents.', file=sys.stderr)
