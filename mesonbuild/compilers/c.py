@@ -16,7 +16,7 @@ import subprocess, os.path, tempfile
 
 from .. import mlog
 from .. import coredata
-from ..mesonlib import EnvironmentException, version_compare, Popen_safe
+from ..mesonlib import EnvironmentException, version_compare, Popen_safe, listify
 
 from .compilers import (
     GCC_MINGW,
@@ -1013,8 +1013,7 @@ class VisualStudioCCompiler(CCompiler):
 
     def get_link_whole_for(self, args):
         # Only since VS2015
-        if not isinstance(args, list):
-            args = [args]
+        args = listify(args)
         return ['/WHOLEARCHIVE:' + x for x in args]
 
     def get_instruction_set_args(self, instruction_set):

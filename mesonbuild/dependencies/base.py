@@ -23,7 +23,7 @@ from enum import Enum
 
 from .. import mlog
 from .. import mesonlib
-from ..mesonlib import MesonException, Popen_safe, flatten, version_compare_many
+from ..mesonlib import MesonException, Popen_safe, flatten, version_compare_many, listify
 
 
 # These must be defined in this file to avoid cyclical references.
@@ -374,10 +374,7 @@ class ExternalProgram:
     def __init__(self, name, command=None, silent=False, search_dir=None):
         self.name = name
         if command is not None:
-            if not isinstance(command, list):
-                self.command = [command]
-            else:
-                self.command = command
+            self.command = listify(command)
         else:
             self.command = self._search(name, search_dir)
         if not silent:

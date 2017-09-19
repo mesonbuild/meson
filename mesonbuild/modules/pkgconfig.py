@@ -108,8 +108,7 @@ class PkgConfigModule(ExtensionModule):
             ofile.write('\n')
 
     def process_libs(self, libs):
-        if not isinstance(libs, list):
-            libs = [libs]
+        libs = mesonlib.listify(libs)
         processed_libs = []
         for l in libs:
             if hasattr(l, 'held_object'):

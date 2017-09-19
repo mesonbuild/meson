@@ -21,7 +21,7 @@ from . import optinterpreter
 from . import compilers
 from .wrap import wrap, WrapMode
 from . import mesonlib
-from .mesonlib import FileMode, Popen_safe
+from .mesonlib import FileMode, Popen_safe, listify, extract_as_list
 from .dependencies import ExternalProgram
 from .dependencies import InternalDependency, Dependency, DependencyException
 from .interpreterbase import InterpreterBase
@@ -264,8 +264,7 @@ class DependencyHolder(InterpreterObject):
         return self.held_object.get_version()
 
     def pkgconfig_method(self, args, kwargs):
-        if not isinstance(args, list):
-            args = [args]
+        args = listify(args)
         if len(args) != 1:
             raise InterpreterException('get_pkgconfig_variable takes exactly one argument.')
         varname = args[0]
@@ -669,9 +668,7 @@ class CompilerHolder(InterpreterObject):
         if not isinstance(nobuiltins, bool):
             raise InterpreterException('Type of no_builtin_args not a boolean.')
         args = []
-        incdirs = kwargs.get('include_directories', [])
-        if not isinstance(incdirs, list):
-            incdirs = [incdirs]
+        incdirs = extract_as_list(kwargs, 'include_directories')
         for i in incdirs:
             if not isinstance(i, IncludeDirsHolder):
                 raise InterpreterException('Include directories argument must be an include_directories object.')
@@ -688,8 +685,7 @@ class CompilerHolder(InterpreterObject):
     def determine_dependencies(self, kwargs):
         deps = kwargs.get('dependencies', None)
         if deps is not None:
-            if not isinstance(deps, list):
-                deps = [deps]
+            deps = listify(deps)
             final_deps = []
             for d in deps:
                 try:
@@ -1460,8 +1456,7 @@ class Interpreter(InterpreterBase):
             raise InterpreterException('Module returned a value of unknown type.')
 
     def process_new_values(self, invalues):
-        if not isinstance(invalues, list):
-            invalues = [invalues]
+        invalues = listify(invalues)
         for v in invalues:
             if isinstance(v, (build.BuildTarget, build.CustomTarget, build.RunTarget)):
                 self.add_target(v.name, v)
@@ -1541,19 +1536,12 @@ class Interpreter(InterpreterBase):
         version = kwargs.get('version', self.project_version)
         if not isinstance(version, str):
             raise InterpreterException('Version must be a string.')
-        incs = kwargs.get('include_directories', [])
-        if not isinstance(incs, list):
-            incs = [incs]
-        libs = kwargs.get('link_with', [])
-        if not isinstance(libs, list):
-            libs = [libs]
-        sources = kwargs.get('sources', [])
-        if not isinstance(sources, list):
-            sources = [sources]
+        incs = extract_as_list(kwargs, 'include_directories')
+        libs = extract_as_list(kwargs, 'link_with')
+        sources = extract_as_list(kwargs, 'sources')
         sources = self.source_strings_to_files(self.flatten(sources))
         deps = self.flatten(kwargs.get('dependencies', []))
-        if not isinstance(deps, list):
-            deps = [deps]
+        deps = listify(deps)
         compile_args = mesonlib.stringlistify(kwargs.get('compile_args', []))
         link_args = mesonlib.stringlistify(kwargs.get('link_args', []))
         final_deps = []
@@ -1741,8 +1729,7 @@ class Interpreter(InterpreterBase):
         return ConfigurationDataHolder()
 
     def parse_default_options(self, default_options):
-        if not isinstance(default_options, list):
-            default_options = [default_options]
+        default_options = listify(default_options)
         for option in default_options:
             if not isinstance(option, str):
                 mlog.debug(option)
@@ -2288,12 +2275,8 @@ class Interpreter(InterpreterBase):
         elif len(args) == 1:
             if 'command' not in kwargs:
                 raise InterpreterException('Missing "command" keyword argument')
-            all_args = kwargs['command']
-            if not isinstance(all_args, list):
-                all_args = [all_args]
-            deps = kwargs.get('depends', [])
-            if not isinstance(deps, list):
-                deps = [deps]
+            all_args = extract_as_list(kwargs, 'command')
+            deps = extract_as_list(kwargs, 'depends')
         else:
             raise InterpreterException('Run_target needs at least one positional argument.')
 
@@ -2344,8 +2327,7 @@ class Interpreter(InterpreterBase):
         if isinstance(envlist, EnvironmentVariablesHolder):
             env = envlist.held_object
         else:
-            if not isinstance(envlist, list):
-                envlist = [envlist]
+            envlist = listify(envlist)
             # Convert from array to environment object
             env = EnvironmentVariablesHolder()
             for e in envlist:
@@ -2374,9 +2356,7 @@ class Interpreter(InterpreterBase):
         par = kwargs.get('is_parallel', True)
         if not isinstance(par, bool):
             raise InterpreterException('Keyword argument is_parallel must be a boolean.')
-        cmd_args = kwargs.get('args', [])
-        if not isinstance(cmd_args, list):
-            cmd_args = [cmd_args]
+        cmd_args = extract_as_list(kwargs, 'args')
         for i in cmd_args:
             if not isinstance(i, (str, mesonlib.File, TargetHolder)):
                 raise InterpreterException('Command line arguments must be strings, files or targets.')
@@ -2515,9 +2495,7 @@ class Interpreter(InterpreterBase):
         if not isinstance(install_dir, str):
             raise InvalidArguments('Keyword argument install_dir not a string.')
         if 'exclude_files' in kwargs:
-            exclude = kwargs['exclude_files']
-            if not isinstance(exclude, list):
-                exclude = [exclude]
+            exclude = extract_as_list(kwargs, 'exclude_files')
             for f in exclude:
                 if not isinstance(f, str):
                     raise InvalidArguments('Exclude argument not a string.')
@@ -2527,9 +2505,7 @@ class Interpreter(InterpreterBase):
         else:
             exclude_files = set()
         if 'exclude_directories' in kwargs:
-            exclude = kwargs['exclude_directories']
-            if not isinstance(exclude, list):
-                exclude = [exclude]
+            exclude = extract_as_list(kwargs, 'exclude_directories')
             for d in exclude:
                 if not isinstance(d, str):
                     raise InvalidArguments('Exclude argument not a string.')
@@ -2692,9 +2668,7 @@ different subdirectory.
         if re.fullmatch('[_a-zA-Z][_0-9a-zA-Z]*', setup_name) is None:
             raise InterpreterException('Setup name may only contain alphanumeric characters.')
         try:
-            inp = kwargs.get('exe_wrapper', [])
-            if not isinstance(inp, list):
-                inp = [inp]
+            inp = extract_as_list(kwargs, 'exe_wrapper')
             exe_wrapper = []
             for i in inp:
                 if hasattr(i, 'held_object'):
@@ -2836,8 +2810,7 @@ different subdirectory.
             is_cross = False
         try:
             kw_src = self.flatten(kwargs['sources'])
-            if not isinstance(kw_src, list):
-                kw_src = [kw_src]
+            kw_src = listify(kw_src)
         except KeyError:
             kw_src = []
         sources += kw_src
@@ -2845,12 +2818,9 @@ different subdirectory.
         objs = self.flatten(kwargs.get('objects', []))
         kwargs['dependencies'] = self.flatten(kwargs.get('dependencies', []))
         if 'extra_files' in kwargs:
-            ef = kwargs['extra_files']
-            if not isinstance(ef, list):
-                ef = [ef]
+            ef = extract_as_list(kwargs, 'extra_files')
             kwargs['extra_files'] = self.source_strings_to_files(ef)
-        if not isinstance(objs, list):
-            objs = [objs]
+        objs = listify(objs)
         self.check_sources_exist(os.path.join(self.source_root, self.subdir), sources)
         if targetholder is ExecutableHolder:
             targetclass = build.Executable

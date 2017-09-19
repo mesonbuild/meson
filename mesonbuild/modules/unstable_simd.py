@@ -73,9 +73,7 @@ class SimdModule(ExtensionModule):
                           }
             lib_kwargs.update(basic_kwargs)
             langarg_key = compiler.get_language() + '_args'
-            old_lang_args = lib_kwargs.get(langarg_key, [])
-            if not isinstance(old_lang_args, list):
-                old_lang_args = [old_lang_args]
+            old_lang_args = mesonlib.extract_as_list(lib_kwargs, langarg_key)
             all_lang_args = old_lang_args + args
             lib_kwargs[langarg_key] = all_lang_args
             result.append(interpreter.func_static_lib(None, [libname], lib_kwargs))

@@ -24,7 +24,7 @@ import sysconfig
 
 from .. import mlog
 from .. import mesonlib
-from ..mesonlib import Popen_safe
+from ..mesonlib import Popen_safe, extract_as_list
 from ..environment import detect_cpu_family
 
 from .base import DependencyException, DependencyMethods
@@ -132,9 +132,7 @@ class BoostDependency(ExternalDependency):
         return args
 
     def get_requested(self, kwargs):
-        candidates = kwargs.get('modules', [])
-        if not isinstance(candidates, list):
-            candidates = [candidates]
+        candidates = extract_as_list(kwargs, 'modules')
         for c in candidates:
             if not isinstance(c, str):
                 raise DependencyException('Boost module argument is not a string.')

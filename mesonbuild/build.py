@@ -19,7 +19,7 @@ import itertools
 from . import environment
 from . import dependencies
 from . import mlog
-from .mesonlib import File, MesonException
+from .mesonlib import File, MesonException, listify, extract_as_list
 from .mesonlib import flatten, typeslistify, stringlistify, classify_unity_sources
 from .mesonlib import get_filenames_templates_dict, substitute_values
 from .environment import for_windows, for_darwin, for_cygwin
@@ -414,8 +414,7 @@ class BuildTarget(Target):
                 raise InvalidArguments(msg)
 
     def process_sourcelist(self, sources):
-        if not isinstance(sources, list):
-            sources = [sources]
+        sources = listify(sources)
         added_sources = {} # If the same source is defined multiple times, use it only once.
         for s in sources:
             # Holder unpacking. Ugly.
@@ -528,8 +527,7 @@ class BuildTarget(Target):
         generated twice, since the output needs to be passed to the ld_args and
         link_depends.
         """
-        if not isinstance(sources, list):
-            sources = [sources]
+        sources = listify(sources)
         for s in sources:
             if hasattr(s, 'held_object'):
                 s = s.held_object
@@ -551,8 +549,7 @@ class BuildTarget(Target):
         return self.kwargs
 
     def unpack_holder(self, d):
-        if not isinstance(d, list):
-            d = [d]
+        d = listify(d)
         newd = []
         for i in d:
             if isinstance(i, list):
@@ -610,64 +607,33 @@ class BuildTarget(Target):
         self.copy_kwargs(kwargs)
         kwargs.get('modules', [])
         self.need_install = kwargs.get('install', self.need_install)
-        llist = kwargs.get('link_with', [])
-        if not isinstance(llist, list):
-            llist = [llist]
+        llist = extract_as_list(kwargs, 'link_with')
         for linktarget in llist:
             # Sorry for this hack. Keyword targets are kept in holders
             # in kwargs. Unpack here without looking at the exact type.
             if hasattr(linktarget, "held_object"):
                 linktarget = linktarget.held_object
             self.link(linktarget)
-        lwhole = kwargs.get('link_whole', [])
-        if not isinstance(lwhole, list):
-            lwhole = [lwhole]
+        lwhole = extract_as_list(kwargs, 'link_whole')
         for linktarget in lwhole:
             # Sorry for this hack. Keyword targets are kept in holders
             # in kwargs. Unpack here without looking at the exact type.
             if hasattr(linktarget, "held_object"):
                 linktarget = linktarget.held_object
             self.link_whole(linktarget)
-        c_pchlist = kwargs.get('c_pch', [])
-        if not isinstance(c_pchlist, list):
-            c_pchlist = [c_pchlist]
+
+        c_pchlist, cpp_pchlist, clist, cpplist, cslist, valalist,  objclist, objcpplist, fortranlist, rustlist \
+            = extract_as_list(kwargs, 'c_pch', 'cpp_pch', 'c_args', 'cpp_args', 'cs_args', 'vala_args', 'objc_args',
+                              'objcpp_args', 'fortran_args', 'rust_args')
+
         self.add_pch('c', c_pchlist)
-        cpp_pchlist = kwargs.get('cpp_pch', [])
-        if not isinstance(cpp_pchlist, list):
-            cpp_pchlist = [cpp_pchlist]
         self.add_pch('cpp', cpp_pchlist)
-        clist = kwargs.get('c_args', [])
-        if not isinstance(clist, list):
-            clist = [clist]
-        self.add_compiler_args('c', clist)
-        cpplist = kwargs.get('cpp_args', [])
-        if not isinstance(cpplist, list):
-            cpplist = [cpplist]
-        self.add_compiler_args('cpp', cpplist)
-        cslist = kwargs.get('cs_args', [])
-        if not isinstance(cslist, list):
-            cslist = [cslist]
-        self.add_compiler_args('cs', cslist)
-        valalist = kwargs.get('vala_args', [])
-        if not isinstance(valalist, list):
-            valalist = [valalist]
-        self.add_compiler_args('vala', valalist)
-        objclist = kwargs.get('objc_args', [])
-        if not isinstance(objclist, list):
-            objclist = [objclist]
-        self.add_compiler_args('objc', objclist)
-        objcpplist = kwargs.get('objcpp_args', [])
-        if not isinstance(objcpplist, list):
-            objcpplist = [objcpplist]
-        self.add_compiler_args('objcpp', objcpplist)
-        fortranlist = kwargs.get('fortran_args', [])
-        if not isinstance(fortranlist, list):
-            fortranlist = [fortranlist]
-        self.add_compiler_args('fortran', fortranlist)
-        rustlist = kwargs.get('rust_args', [])
-        if not isinstance(rustlist, list):
-            rustlist = [rustlist]
-        self.add_compiler_args('rust', rustlist)
+        compiler_args = {'c': clist, 'cpp': cpplist, 'cs': cslist, 'vala': valalist, 'objc': objclist, 'objcpp': objcpplist,
+                         'fortran': fortranlist, 'rust': rustlist
+                         }
+        for key, value in compiler_args.items():
+            self.add_compiler_args(key, value)
+
         if not isinstance(self, Executable):
             self.vala_header = kwargs.get('vala_header', self.name + '.h')
             self.vala_vapi = kwargs.get('vala_vapi', self.name + '.vapi')
@@ -700,14 +666,10 @@ This will become a hard error in a future Meson release.''')
         self.process_link_depends(kwargs.get('link_depends', []), environment)
         # Target-specific include dirs must be added BEFORE include dirs from
         # internal deps (added inside self.add_deps()) to override them.
-        inclist = kwargs.get('include_directories', [])
-        if not isinstance(inclist, list):
-            inclist = [inclist]
+        inclist = extract_as_list(kwargs, 'include_directories')
         self.add_include_dirs(inclist)
         # Add dependencies (which also have include_directories)
-        deplist = kwargs.get('dependencies', [])
-        if not isinstance(deplist, list):
-            deplist = [deplist]
+        deplist = extract_as_list(kwargs, 'dependencies')
         self.add_deps(deplist)
         # If an item in this list is False, the output corresponding to
         # the list index of that item will not be installed
@@ -723,9 +685,7 @@ This will become a hard error in a future Meson release.''')
                 raise InvalidArguments('Argument gui_app must be boolean.')
         elif 'gui_app' in kwargs:
             raise InvalidArguments('Argument gui_app can only be used on executables.')
-        extra_files = kwargs.get('extra_files', [])
-        if not isinstance(extra_files, list):
-            extra_files = [extra_files]
+        extra_files = extract_as_list(kwargs, 'extra_files')
         for i in extra_files:
             assert(isinstance(i, File))
             trial = os.path.join(environment.get_source_dir(), i.subdir, i.fname)
@@ -738,9 +698,7 @@ This will become a hard error in a future Meson release.''')
         self.build_rpath = kwargs.get('build_rpath', '')
         if not isinstance(self.build_rpath, str):
             raise InvalidArguments('Build_rpath is not a string.')
-        resources = kwargs.get('resources', [])
-        if not isinstance(resources, list):
-            resources = [resources]
+        resources = extract_as_list(kwargs, 'resources')
         for r in resources:
             if not isinstance(r, str):
                 raise InvalidArguments('Resource argument is not a string.')
@@ -829,8 +787,7 @@ This will become a hard error in a future Meson release.''')
         return self.include_dirs
 
     def add_deps(self, deps):
-        if not isinstance(deps, list):
-            deps = [deps]
+        deps = listify(deps)
         for dep in deps:
             if hasattr(dep, 'held_object'):
                 dep = dep.held_object
@@ -1058,9 +1015,7 @@ class Generator:
         self.arglist = args
         if 'output' not in kwargs:
             raise InvalidArguments('Generator must have "output" keyword argument.')
-        outputs = kwargs['output']
-        if not isinstance(outputs, list):
-            outputs = [outputs]
+        outputs = listify(kwargs['output'])
         for rule in outputs:
             if not isinstance(rule, str):
                 raise InvalidArguments('"output" may only contain strings.')
@@ -1556,8 +1511,7 @@ class CustomTarget(Target):
         return deps
 
     def flatten_command(self, cmd):
-        if not isinstance(cmd, list):
-            cmd = [cmd]
+        cmd = listify(cmd)
         final_cmd = []
         for c in cmd:
             if hasattr(c, 'held_object'):
@@ -1592,9 +1546,7 @@ class CustomTarget(Target):
             self.sources.append(s)
         if 'output' not in kwargs:
             raise InvalidArguments('Missing keyword argument "output".')
-        self.outputs = kwargs['output']
-        if not isinstance(self.outputs, list):
-            self.outputs = [self.outputs]
+        self.outputs = listify(kwargs['output'])
         # This will substitute values from the input into output and return it.
         inputs = get_sources_string_names(self.sources)
         values = get_filenames_templates_dict(inputs, [])
@@ -1648,18 +1600,13 @@ class CustomTarget(Target):
         self.build_always = kwargs.get('build_always', False)
         if not isinstance(self.build_always, bool):
             raise InvalidArguments('Argument build_always must be a boolean.')
-        extra_deps = kwargs.get('depends', [])
-        if not isinstance(extra_deps, list):
-            extra_deps = [extra_deps]
+        extra_deps, depend_files = extract_as_list(kwargs, 'depends', 'depend_files', pop = False)
         for ed in extra_deps:
             while hasattr(ed, 'held_object'):
                 ed = ed.held_object
             if not isinstance(ed, (CustomTarget, BuildTarget)):
                 raise InvalidArguments('Can only depend on toplevel targets: custom_target or build_target (executable or a library)')
             self.extra_depends.append(ed)
-        depend_files = kwargs.get('depend_files', [])
-        if not isinstance(depend_files, list):
-            depend_files = [depend_files]
         for i in depend_files:
             if isinstance(i, (File, str)):
                 self.depend_files.append(i)
@@ -1809,8 +1756,7 @@ class Data:
         self.sources = sources
         self.install_dir = install_dir
         self.install_mode = install_mode
-        if not isinstance(self.sources, list):
-            self.sources = [self.sources]
+        self.sources = listify(self.sources)
         for s in self.sources:
             assert(isinstance(s, File))
 
