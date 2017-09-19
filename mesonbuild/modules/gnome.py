@@ -815,9 +815,9 @@ This will become a hard error in the future.''')
                     'Gir include dirs should be include_directories().')
         cflags.update(get_include_args(inc_dirs))
         if cflags:
-            args += ['--cflags=%s' % ' '.join(cflags)]
+            args += ['--cflags=%s' % ' '.join(['"' + flag + '"' for flag in cflags])]
         if ldflags:
-            args += ['--ldflags=%s' % ' '.join(ldflags)]
+            args += ['--ldflags=%s' % ' '.join(['"' + flag + '"' for flag in ldflags])]
         compiler = state.environment.coredata.compilers.get('c')
         if compiler:
             args += ['--cc=%s' % ' '.join(compiler.get_exelist())]
