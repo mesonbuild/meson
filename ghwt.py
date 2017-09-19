@@ -14,6 +14,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# ghwt - GitHub WrapTool
+#
+# An emergency wraptool(1) replacement downloader that downloads
+# directly from GitHub in case wrapdb.mesonbuild.com is down.
+
 import urllib.request, json, sys, os, shutil, subprocess
 import configparser, hashlib
 
