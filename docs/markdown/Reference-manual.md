@@ -1429,7 +1429,9 @@ are immutable, all operations return their results as a new string.
 - `startswith(string)` returns true if string starts with the string
   specified as the argument
 
-- `strip()` removes whitespace at the beginning and end of the string
+- `strip()` removes whitespace at the beginning and end of the string  
+  *(added 0.43.0)* optionally can take one positional string argument,
+  and all characters in that string will be stripped
 
 - `to_int` returns the string converted to an integer (error if string
   is not a number)
