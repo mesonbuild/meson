@@ -607,19 +607,6 @@ class PcapDependency(ExternalDependency):
                          mlog.green('YES'), '(%s)' % pcapconf)
                 return
             mlog.debug('Could not find pcap-config binary, trying next.')
-        if DependencyMethods.EXTRAFRAMEWORK in self.methods:
-            if mesonlib.is_osx():
-                fwdep = ExtraFrameworkDependency('pcap', False, None, self.env,
-                                                 self.language, kwargs)
-                if fwdep.found():
-                    self.is_found = True
-                    self.compile_args = fwdep.get_compile_args()
-                    self.link_args = fwdep.get_link_args()
-                    # FIXME: Test on macOS
-                    #self.version = self.get_pcap_lib_version()
-                    self.version = '2' # FIXME
-                    return
-            mlog.log('Dependency', mlog.bold('pcap'), 'found:', mlog.red('NO'))
 
     def get_methods(self):
         if mesonlib.is_osx():
