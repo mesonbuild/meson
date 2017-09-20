@@ -201,10 +201,15 @@ following.
   to the target file. Note that your command argument list may not
   contain `@OUTPUT@` when capture mode is active.
 - `command` command to run to create outputs from inputs. The command
-  may be strings or the return of `find_program()` or `executable()`
-  (note: always specify commands in array form `['commandname',
+  may be strings or the return value of functions that return file-like
+  objects such as [`find_program()`](#find_program),
+  [`executable()`](#executable), [`configure_file()`](#configure_file),
+  [`files()`](#files), [`custom_target()`](#custom_target), etc.
+  Meson will automatically insert the appropriate dependencies on
+  targets and files listed in this keyword argument.  
+  Note: always specify commands in array form `['commandname',
   '-arg1', '-arg2']` rather than as a string `'commandname -arg1
-  -arg2'` as the latter will *not* work)
+  -arg2'` as the latter will *not* work.
 - `depend_files` files ([`string`](#string-object),
   [`files()`](#files), or [`configure_file()`](#configure_file)) that
   this target depends on but are not listed in the `command` keyword
