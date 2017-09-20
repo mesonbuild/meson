@@ -128,7 +128,7 @@ class I18nModule(ExtensionModule):
 
         targets = [pottarget, gmotarget, updatepotarget]
 
-        install = kwargs.get('install') if ('install' in kwargs) else True
+        install = kwargs.get('install', True)
         if install:
             script = state.environment.get_build_command()
             args = ['--internal', 'gettext', 'install',
