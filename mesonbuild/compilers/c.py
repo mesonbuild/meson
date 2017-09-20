@@ -924,6 +924,9 @@ class VisualStudioCCompiler(CCompiler):
     def get_linker_search_args(self, dirname):
         return ['/LIBPATH:' + dirname]
 
+    def get_gui_app_args(self):
+        return ['/SUBSYSTEM:WINDOWS']
+
     def get_pic_args(self):
         return [] # PIC is handled by the loader on Windows
 
