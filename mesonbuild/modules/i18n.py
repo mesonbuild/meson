@@ -81,7 +81,7 @@ class I18nModule(ExtensionModule):
         ct = build.CustomTarget(kwargs['output'] + '_merge', state.subdir, kwargs)
         return ModuleReturnValue(ct, [ct])
 
-    @permittedKwargs({'po_dir', 'data_dirs', 'type', 'languages', 'args', 'preset'})
+    @permittedKwargs({'po_dir', 'data_dirs', 'type', 'languages', 'args', 'preset', 'install'})
     def gettext(self, state, args, kwargs):
         if len(args) != 1:
             raise coredata.MesonException('Gettext requires one positional argument (package name).')
@@ -126,16 +126,21 @@ class I18nModule(ExtensionModule):
             updatepoargs.append(extra_args)
         updatepotarget = build.RunTarget(packagename + '-update-po', updatepoargs[0], updatepoargs[1:], [], state.subdir)
 
-        script = state.environment.get_build_command()
-        args = ['--internal', 'gettext', 'install',
-                '--subdir=' + state.subdir,
-                '--localedir=' + state.environment.coredata.get_builtin_option('localedir'),
-                pkg_arg]
-        if lang_arg:
-            args.append(lang_arg)
-        iscript = build.RunScript(script, args)
+        targets = [pottarget, gmotarget, updatepotarget]
 
-        return ModuleReturnValue(None, [pottarget, gmotarget, iscript, updatepotarget])
+        install = kwargs.get('install') if ('install' in kwargs) else True
+        if install:
+            script = state.environment.get_build_command()
+            args = ['--internal', 'gettext', 'install',
+                    '--subdir=' + state.subdir,
+                    '--localedir=' + state.environment.coredata.get_builtin_option('localedir'),
+                    pkg_arg]
+            if lang_arg:
+                args.append(lang_arg)
+            iscript = build.RunScript(script, args)
+            targets.append(iscript)
+
+        return ModuleReturnValue(None, targets)
 
 def initialize():
     return I18nModule()
