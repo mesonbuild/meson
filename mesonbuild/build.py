@@ -1019,6 +1019,7 @@ class Generator:
             raise InvalidArguments('First generator argument must be an executable.')
         self.exe = exe
         self.depfile = None
+        self.capture = False
         self.process_kwargs(kwargs)
 
     def __repr__(self):
@@ -1062,6 +1063,11 @@ class Generator:
             if os.path.split(depfile)[1] != depfile:
                 raise InvalidArguments('Depfile must be a plain filename without a subdirectory.')
             self.depfile = depfile
+        if 'capture' in kwargs:
+            capture = kwargs['capture']
+            if not isinstance(capture, bool):
+                raise InvalidArguments('Capture must be boolean.')
+            self.capture = capture
 
     def get_base_outnames(self, inname):
         plainname = os.path.split(inname)[1]

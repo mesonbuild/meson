@@ -28,3 +28,13 @@ plainname_gen = generator(prog2,
 plainname_src = plainname_gen.process('name.l')
 
 test('plainname', executable('plainname', plainname_src))
+
+prog3 = find_program('srcgen3.py')
+capture_gen = generator(prog3,
+  output : ['@BASENAME@.yy.c'],
+  arguments : ['@INPUT@'],
+  capture : true)
+
+capture_src = capture_gen.process('name.l')
+
+test('capture', executable('capture', capture_src))
