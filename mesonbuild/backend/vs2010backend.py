@@ -128,6 +128,16 @@ class Vs2010Backend(backends.Backend):
                              .replace("@BUILD_ROOT@", self.environment.get_build_dir())
                             for x in args]
                     cmd = exe_arr + self.replace_extra_args(args, genlist)
+                    if generator.capture:
+                        exe_data = self.serialize_executable(
+                            cmd[0],
+                            cmd[1:],
+                            self.environment.get_build_dir(),
+                            capture=outfiles[0]
+                        )
+                        cmd = self.environment.get_build_command() + ['--internal', 'exe', exe_data]
+                        abs_pdir = os.path.join(self.environment.get_build_dir(), self.get_target_dir(target))
+                        os.makedirs(abs_pdir, exist_ok=True)
                     cbs = ET.SubElement(idgroup, 'CustomBuild', Include=infilename)
                     ET.SubElement(cbs, 'Command').text = ' '.join(self.quote_arguments(cmd))
                     ET.SubElement(cbs, 'Outputs').text = ';'.join(outfiles)

@@ -1814,6 +1814,19 @@ rule FORTRAN_DEP_HACK
             relout = self.get_target_private_dir(target)
             args = self.replace_paths(target, args)
             cmdlist = exe_arr + self.replace_extra_args(args, genlist)
+            if generator.capture:
+                exe_data = self.serialize_executable(
+                    cmdlist[0],
+                    cmdlist[1:],
+                    self.environment.get_build_dir(),
+                    capture=outfiles[0]
+                )
+                cmd = self.environment.get_build_command() + ['--internal', 'exe', exe_data]
+                abs_pdir = os.path.join(self.environment.get_build_dir(), self.get_target_dir(target))
+                os.makedirs(abs_pdir, exist_ok=True)
+            else:
+                cmd = cmdlist
+
             elem = NinjaBuildElement(self.all_outputs, outfiles, rulename, infilename)
             if generator.depfile is not None:
                 elem.add_item('DEPFILE', depfile)
@@ -1822,7 +1835,7 @@ rule FORTRAN_DEP_HACK
             elem.add_item('DESC', 'Generating {!r}.'.format(sole_output))
             if isinstance(exe, build.BuildTarget):
                 elem.add_dep(self.get_target_filename(exe))
-            elem.add_item('COMMAND', cmdlist)
+            elem.add_item('COMMAND', cmd)
             elem.write(outfile)
 
     def scan_fortran_module_outputs(self, target):

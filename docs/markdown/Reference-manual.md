@@ -554,6 +554,9 @@ following:
 - `output` a template string (or list of template strings) defining
   how an output file name is (or multiple output names are) generated
   from a single source file name
+- `capture` when this argument is set to true, Meson captures `stdout`
+  of the `executable` and writes it to the target file specified as
+  `output`. Available since v0.43.0.
 
 The returned object also has methods that are documented in the
 [object methods section](#generator-object) below.
