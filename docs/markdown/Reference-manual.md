@@ -1511,7 +1511,10 @@ A build target is either an [executable](#executable),
   files with custom flags. To use the object file(s) in another build
   target, use the `objects:` keyword argument.
 
-- `full_path()` returns a full path pointing to the result target file
+- `full_path()` returns a full path pointing to the result target file.  
+  NOTE: In most cases using the object itself will do the same job as
+  this and will also allow Meson to setup inter-target dependencies
+  correctly. Please file a bug if that doesn't work for you.
 
 - `private_dir_include()` returns a opaque value that works like
   `include_directories` but points to the private directory of this
@@ -1557,7 +1560,10 @@ cause a syntax error.
 This object is returned by [`custom_target`](#custom_target) and
 contains a target with the following methods:
 
-- `full_path()` returns a full path pointing to the result target file
+- `full_path()` returns a full path pointing to the result target file  
+  NOTE: In most cases using the object itself will do the same job as
+  this and will also allow Meson to setup inter-target dependencies
+  correctly. Please file a bug if that doesn't work for you.
 
 ### `dependency` object
 
