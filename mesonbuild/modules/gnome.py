@@ -17,7 +17,6 @@ functionality such as gobject-introspection, gresources and gtk-doc'''
 
 from .. import build
 import os
-import sys
 import copy
 import subprocess
 from . import ModuleReturnValue
@@ -30,7 +29,7 @@ from .. import interpreter
 from . import GResourceTarget, GResourceHeaderTarget, GirTarget, TypelibTarget, VapiTarget
 from . import find_program, get_include_args
 from . import ExtensionModule
-from . import noKwargs, permittedKwargs
+from ..interpreterbase import noKwargs, permittedKwargs
 
 # gresource compilation is broken due to the way
 # the resource compiler and Ninja clash about it

@@ -20,7 +20,7 @@ from ..dependencies import Qt4Dependency
 from . import ExtensionModule
 import xml.etree.ElementTree as ET
 from . import ModuleReturnValue
-from . import permittedKwargs
+from ..interpreterbase import permittedKwargs
 
 class Qt4Module(ExtensionModule):
     tools_detected = False

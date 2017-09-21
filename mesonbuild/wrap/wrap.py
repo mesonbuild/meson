@@ -299,7 +299,7 @@ class Resolver:
     def extract_package(self, package):
         if sys.version_info < (3, 5):
             try:
-                import lzma
+                import lzma # noqa: F401
                 del lzma
             except ImportError:
                 pass

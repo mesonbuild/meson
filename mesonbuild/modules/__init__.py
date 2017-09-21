@@ -4,7 +4,6 @@ from .. import build
 from .. import dependencies
 from .. import mlog
 from ..mesonlib import MesonException
-from ..interpreterbase import permittedKwargs, noKwargs
 
 class permittedSnippetKwargs:
 

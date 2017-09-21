@@ -19,7 +19,7 @@ from .. import mesonlib
 from .. import mlog
 from . import ModuleReturnValue
 from . import ExtensionModule
-from . import permittedKwargs
+from ..interpreterbase import permittedKwargs
 
 
 class PkgConfigModule(ExtensionModule):

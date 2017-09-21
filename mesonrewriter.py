@@ -23,7 +23,7 @@
 # - move targets
 # - reindent?
 
-from mesonbuild import mesonmain, mlog
+from mesonbuild import mesonmain
 import sys
 
 if __name__ == '__main__':

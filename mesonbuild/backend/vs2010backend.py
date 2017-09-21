@@ -22,7 +22,6 @@ from .. import build
 from .. import dependencies
 from .. import mlog
 from .. import compilers
-from ..build import BuildTarget
 from ..compilers import CompilerArgs
 from ..mesonlib import MesonException, File
 from ..environment import Environment

@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys
 import shutil
 
 from os import path
@@ -20,7 +19,7 @@ from .. import coredata, mesonlib, build
 from ..mesonlib import MesonException
 from . import ModuleReturnValue
 from . import ExtensionModule
-from . import permittedKwargs
+from ..interpreterbase import permittedKwargs
 
 PRESET_ARGS = {
     'glib': [
