@@ -1784,7 +1784,6 @@ rule FORTRAN_DEP_HACK
         exe_arr = self.exe_object_to_cmd_array(exe)
         infilelist = genlist.get_inputs()
         outfilelist = genlist.get_outputs()
-        base_args = generator.get_arglist()
         extra_dependencies = [os.path.join(self.build_to_src, i) for i in genlist.extra_depends]
         source_target_dir = self.get_target_source_dir(target)
         for i in range(len(infilelist)):
@@ -1794,6 +1793,7 @@ rule FORTRAN_DEP_HACK
                 sole_output = ''
             curfile = infilelist[i]
             infilename = curfile.rel_to_builddir(self.build_to_src)
+            base_args = generator.get_arglist(infilename)
             outfiles = genlist.get_outputs_for(curfile)
             outfiles = [os.path.join(self.get_target_private_dir(target), of) for of in outfiles]
             if generator.depfile is None:
