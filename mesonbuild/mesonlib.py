@@ -24,7 +24,7 @@ from glob import glob
 
 # Put this in objects that should not get dumped to pickle files
 # by accident.
-import threading
+import threading  # isort:skip
 an_unpicklable_object = threading.Lock()
 
 class MesonException(Exception):
