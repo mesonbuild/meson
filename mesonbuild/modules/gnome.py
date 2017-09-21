@@ -697,18 +697,22 @@ This will become a hard error in the future.''')
             args.append('--langs=' + '@@'.join(langs))
         inscript = build.RunScript(script, args)
 
-        potargs = state.environment.get_build_command() + ['--internal', 'yelphelper', 'pot',
-                   '--subdir=' + state.subdir,
-                   '--id=' + project_id,
-                   '--sources=' + source_str]
+        potargs = state.environment.get_build_command() + [
+            '--internal', 'yelphelper', 'pot',
+            '--subdir=' + state.subdir,
+            '--id=' + project_id,
+            '--sources=' + source_str,
+        ]
         pottarget = build.RunTarget('help-' + project_id + '-pot', potargs[0],
                                     potargs[1:], [], state.subdir)
 
-        poargs = state.environment.get_build_command() + ['--internal', 'yelphelper', 'update-po',
-                  '--subdir=' + state.subdir,
-                  '--id=' + project_id,
-                  '--sources=' + source_str,
-                  '--langs=' + '@@'.join(langs)]
+        poargs = state.environment.get_build_command() + [
+            '--internal', 'yelphelper', 'update-po',
+            '--subdir=' + state.subdir,
+            '--id=' + project_id,
+            '--sources=' + source_str,
+            '--langs=' + '@@'.join(langs),
+        ]
         potarget = build.RunTarget('help-' + project_id + '-update-po', poargs[0],
                                    poargs[1:], [], state.subdir)
 

@@ -252,7 +252,7 @@ vs32_instruction_set_args = {'mmx': ['/arch:SSE'], # There does not seem to be a
                              'avx': ['/arch:AVX'],
                              'avx2': ['/arch:AVX2'],
                              'neon': None,
-}
+                             }
 
 # The 64 bit compiler defaults to /arch:avx.
 vs64_instruction_set_args = {'mmx': ['/arch:AVX'],

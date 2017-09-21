@@ -1025,5 +1025,3 @@ class VisualStudioCCompiler(CCompiler):
             # and the can not be called.
             return None
         return vs32_instruction_set_args.get(instruction_set, None)
-
-

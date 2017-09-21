@@ -30,4 +30,3 @@ if __name__ == '__main__':
     print('Warning: This executable is deprecated. Use "meson rewrite" instead.',
           file=sys.stderr)
     sys.exit(mesonmain.run(['rewrite'] + sys.argv[1:]))
-

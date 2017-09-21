@@ -16,8 +16,8 @@ mesonintrospect = os.environ['MESONINTROSPECT']
 
 introspect_arr = shlex.split(mesonintrospect)
 
-#print(mesonintrospect)
-#print(introspect_arr)
+# print(mesonintrospect)
+# print(introspect_arr)
 
 some_executable = introspect_arr[0]
 

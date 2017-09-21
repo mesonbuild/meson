@@ -1028,7 +1028,6 @@ class CompilerHolder(InterpreterObject):
             h)
         return result
 
-
     def first_supported_argument_method(self, args, kwargs):
         for i in mesonlib.stringlistify(args):
             if self.compiler.has_argument(i, self.environment):
@@ -1245,48 +1244,50 @@ class MesonMain(InterpreterObject):
 
 pch_kwargs = set(['c_pch', 'cpp_pch'])
 
-lang_arg_kwargs = set(['c_args',
-                       'cpp_args',
-                       'd_args',
-                       'd_import_dirs',
-                       'd_unittest',
-                       'd_module_versions',
-                       'fortran_args',
-                       'java_args',
-                       'objc_args',
-                       'objcpp_args',
-                       'rust_args',
-                       'vala_args',
-                       'cs_args',
-                   ])
+lang_arg_kwargs = set([
+    'c_args',
+    'cpp_args',
+    'd_args',
+    'd_import_dirs',
+    'd_unittest',
+    'd_module_versions',
+    'fortran_args',
+    'java_args',
+    'objc_args',
+    'objcpp_args',
+    'rust_args',
+    'vala_args',
+    'cs_args',
+])
 
 vala_kwargs = set(['vala_header', 'vala_gir', 'vala_vapi'])
 rust_kwargs = set(['rust_crate_type'])
 cs_kwargs = set(['resources', 'cs_args'])
 
-buildtarget_kwargs = set(['build_by_default',
-                          'build_rpath',
-                          'dependencies',
-                          'extra_files',
-                          'gui_app',
-                          'link_with',
-                          'link_whole',
-                          'link_args',
-                          'link_depends',
-                          'implicit_include_directories',
-                          'include_directories',
-                          'install',
-                          'install_rpath',
-                          'install_dir',
-                          'name_prefix',
-                          'name_suffix',
-                          'native',
-                          'objects',
-                          'override_options',
-                          'pic',
-                          'sources',
-                          'vs_module_defs',
-                      ])
+buildtarget_kwargs = set([
+    'build_by_default',
+    'build_rpath',
+    'dependencies',
+    'extra_files',
+    'gui_app',
+    'link_with',
+    'link_whole',
+    'link_args',
+    'link_depends',
+    'implicit_include_directories',
+    'include_directories',
+    'install',
+    'install_rpath',
+    'install_dir',
+    'name_prefix',
+    'name_suffix',
+    'native',
+    'objects',
+    'override_options',
+    'pic',
+    'sources',
+    'vs_module_defs',
+])
 
 build_target_common_kwargs = (
     buildtarget_kwargs |
@@ -2013,7 +2014,7 @@ class Interpreter(InterpreterBase):
             if not isinstance(use_native, bool):
                 raise InvalidArguments('Argument to "native" must be a boolean.')
             if not use_native:
-                 progobj = self.program_from_cross_file(args)
+                progobj = self.program_from_cross_file(args)
         if progobj is None:
             progobj = self.program_from_system(args)
         if required and (progobj is None or not progobj.found()):

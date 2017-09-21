@@ -56,7 +56,7 @@ class PackageGenerator:
                 'Title': 'Meson',
                 'Description': 'Meson executables',
                 'Level': '1',
-                'Absent': 'disallow', 
+                'Absent': 'disallow',
             },
             self.staging_dirs[1]: {
                 'Id': 'NinjaProgram',
@@ -109,7 +109,7 @@ class PackageGenerator:
             'Language': '1033',
             'Codepage':  '1252',
             'Version': self.version,
-            })
+        })
 
         package = ET.SubElement(product, 'Package',  {
             'Id': '*',
@@ -121,7 +121,7 @@ class PackageGenerator:
             'Languages': '1033',
             'Compressed': 'yes',
             'SummaryCodepage': '1252',
-            })
+        })
 
         if self.bytesize == 64:
             package.set('Platform', 'x64')
@@ -129,25 +129,26 @@ class PackageGenerator:
             'Id': '1',
             'Cabinet': 'meson.cab',
             'EmbedCab': 'yes',
-            })
+        })
         targetdir = ET.SubElement(product, 'Directory', {
             'Id': 'TARGETDIR',
             'Name': 'SourceDir',
-            })
+        })
         progfiledir = ET.SubElement(targetdir, 'Directory', {
-            'Id' : self.progfile_dir,
-            })
+            'Id': self.progfile_dir,
+        })
         installdir = ET.SubElement(progfiledir, 'Directory', {
             'Id': 'INSTALLDIR',
-            'Name': 'Meson'})
+            'Name': 'Meson',
+        })
 
         ET.SubElement(product, 'Property', {
             'Id': 'WIXUI_INSTALLDIR',
             'Value': 'INSTALLDIR',
-            })
+        })
         ET.SubElement(product, 'UIRef', {
             'Id': 'WixUI_FeatureTree',
-            })
+        })
         for sd in self.staging_dirs:
             assert(os.path.isdir(sd))
         top_feature = ET.SubElement(product, 'Feature', {
@@ -157,7 +158,7 @@ class PackageGenerator:
             'Display': 'expand',
             'Level': '1',
             'ConfigurableDirectory': 'INSTALLDIR',
-            })
+        })
         for sd in self.staging_dirs:
             nodes = {}
             for root, dirs, files in os.walk(sd):
@@ -165,7 +166,7 @@ class PackageGenerator:
                 nodes[root] = cur_node
             self.create_xml(nodes, sd, installdir, sd)
             self.build_features(nodes, top_feature, sd)
-        ET.ElementTree(self.root).write(self.main_xml, encoding='utf-8',xml_declaration=True)
+        ET.ElementTree(self.root).write(self.main_xml, encoding='utf-8', xml_declaration=True)
         # ElementTree can not do prettyprinting so do it manually
         import xml.dom.minidom
         doc = xml.dom.minidom.parse(self.main_xml)
@@ -177,8 +178,7 @@ class PackageGenerator:
         for component_id in self.feature_components[staging_dir]:
             ET.SubElement(feature, 'ComponentRef', {
                 'Id': component_id,
-                })
-        
+            })
 
     def create_xml(self, nodes, current_dir, parent_xml_node, staging_dir):
         cur_node = nodes[current_dir]
@@ -187,7 +187,7 @@ class PackageGenerator:
             comp_xml_node = ET.SubElement(parent_xml_node, 'Component', {
                 'Id': component_id,
                 'Guid': gen_guid(),
-                })
+            })
             self.feature_components[staging_dir].append(component_id)
             if self.bytesize == 64:
                 comp_xml_node.set('Win64', 'yes')
@@ -208,14 +208,14 @@ class PackageGenerator:
                     'Id': file_id,
                     'Name': f,
                     'Source': os.path.join(current_dir, f),
-                    })
+                })
 
         for dirname in cur_node.dirs:
             dir_id = os.path.join(current_dir, dirname).replace('\\', '_').replace('/', '_')
             dir_node = ET.SubElement(parent_xml_node, 'Directory', {
                 'Id': dir_id,
                 'Name': dirname,
-                })
+            })
             self.create_xml(nodes, os.path.join(current_dir, dirname), dir_node, staging_dir)
 
     def build_package(self):

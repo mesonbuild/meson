@@ -122,11 +122,11 @@ class MesonApp:
         if os.path.exists(priv_dir):
             if not handshake:
                 print('Directory already configured, exiting Meson. Just run your build command\n'
-                '(e.g. ninja) and Meson will regenerate as necessary. If ninja fails, run ninja\n'
-                'reconfigure to force Meson to regenerate.\n'
-                '\nIf build failures persist, manually wipe your build directory to clear any\n'
-                'stored system data.\n'
-                '\nTo change option values, run meson configure instead.')
+                      '(e.g. ninja) and Meson will regenerate as necessary. If ninja fails, run ninja\n'
+                      'reconfigure to force Meson to regenerate.\n'
+                      '\nIf build failures persist, manually wipe your build directory to clear any\n'
+                      'stored system data.\n'
+                      '\nTo change option values, run meson configure instead.')
                 sys.exit(0)
         else:
             if handshake:

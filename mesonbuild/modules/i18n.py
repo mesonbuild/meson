@@ -72,8 +72,10 @@ class I18nModule(ExtensionModule):
         datadirs = self._get_data_dirs(state, mesonlib.stringlistify(kwargs.pop('data_dirs', [])))
         datadirs = '--datadirs=' + ':'.join(datadirs) if datadirs else None
 
-        command = state.environment.get_build_command() + ['--internal', 'msgfmthelper',
-                   '@INPUT@', '@OUTPUT@', file_type, podir]
+        command = state.environment.get_build_command() + [
+            '--internal', 'msgfmthelper',
+            '@INPUT@', '@OUTPUT@', file_type, podir
+        ]
         if datadirs:
             command.append(datadirs)
 

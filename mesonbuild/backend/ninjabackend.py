@@ -83,10 +83,9 @@ class NinjaBuildElement:
 
     def write(self, outfile):
         self.check_outputs()
-        line = 'build %s: %s %s' % (
-            ' '.join([ninja_quote(i) for i in self.outfilenames]),
-            self.rule,
-            ' '.join([ninja_quote(i) for i in self.infilenames]))
+        line = 'build %s: %s %s' % (' '.join([ninja_quote(i) for i in self.outfilenames]),
+                                    self.rule,
+                                    ' '.join([ninja_quote(i) for i in self.infilenames]))
         if len(self.deps) > 0:
             line += ' | ' + ' '.join([ninja_quote(x) for x in self.deps])
         if len(self.orderdeps) > 0:
@@ -721,8 +720,7 @@ int dummy;
                     # On toolchains/platforms that use an import library for
                     # linking (separate from the shared library with all the
                     # code), we need to install that too (dll.a/.lib).
-                    if (isinstance(t, build.SharedLibrary) or
-                        isinstance(t, build.Executable)) and t.get_import_filename():
+                    if (isinstance(t, build.SharedLibrary) or isinstance(t, build.Executable)) and t.get_import_filename():
                         if custom_install_dir:
                             # If the DLL is installed into a custom directory,
                             # install the import library into the same place so
@@ -856,8 +854,9 @@ int dummy;
         self.create_target_alias('meson-test', outfile)
 
         # And then benchmarks.
-        cmd = self.environment.get_build_command(True) + ['test', '--benchmark', '--logbase',
-               'benchmarklog', '--num-processes=1', '--no-rebuild']
+        cmd = self.environment.get_build_command(True) + [
+            'test', '--benchmark', '--logbase',
+            'benchmarklog', '--num-processes=1', '--no-rebuild']
         elem = NinjaBuildElement(self.all_outputs, 'meson-benchmark', 'CUSTOM_COMMAND', ['all', 'PHONY'])
         elem.add_item('COMMAND', cmd)
         elem.add_item('DESC', 'Running benchmark suite.')
@@ -1576,9 +1575,10 @@ int dummy;
     def generate_swift_compile_rules(self, compiler, outfile):
         rule = 'rule %s_COMPILER\n' % compiler.get_language()
         full_exe = [ninja_quote(x) for x in self.environment.get_build_command()] + [
-                    '--internal',
-                    'dirchanger',
-                    '$RUNDIR']
+            '--internal',
+            'dirchanger',
+            '$RUNDIR',
+        ]
         invoc = (' '.join(full_exe) + ' ' +
                  ' '.join(ninja_quote(i) for i in compiler.get_exelist()))
         command = ' command = %s $ARGS $in\n' % invoc
@@ -2527,10 +2527,11 @@ rule FORTRAN_DEP_HACK
     def generate_dist(self, outfile):
         elem = NinjaBuildElement(self.all_outputs, 'meson-dist', 'CUSTOM_COMMAND', 'PHONY')
         elem.add_item('DESC', 'Creating source packages')
-        elem.add_item('COMMAND', self.environment.get_build_command() +
-            ['--internal', 'dist',
-             self.environment.source_dir,
-             self.environment.build_dir] + self.environment.get_build_command())
+        elem.add_item('COMMAND', self.environment.get_build_command() + [
+            '--internal', 'dist',
+            self.environment.source_dir,
+            self.environment.build_dir,
+        ] + self.environment.get_build_command())
         elem.add_item('pool', 'console')
         elem.write(outfile)
         # Alias that runs the target defined above

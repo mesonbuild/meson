@@ -383,8 +383,7 @@ class Vs2010Backend(backends.Backend):
         cmd = [sys.executable, os.path.join(self.environment.get_script_dir(), 'commandrunner.py'),
                self.environment.get_build_dir(),
                self.environment.get_source_dir(),
-               self.get_target_dir(target)] + \
-               self.environment.get_build_command()
+               self.get_target_dir(target)] + self.environment.get_build_command()
         for i in cmd_raw:
             if isinstance(i, build.BuildTarget):
                 cmd.append(os.path.join(self.environment.get_build_dir(), self.get_target_filename(i)))
@@ -926,8 +925,7 @@ class Vs2010Backend(backends.Backend):
         ofile.text = '$(OutDir)%s' % target.get_filename()
         subsys = ET.SubElement(link, 'SubSystem')
         subsys.text = subsystem
-        if (isinstance(target, build.SharedLibrary) or
-            isinstance(target, build.Executable)) and target.get_import_filename():
+        if (isinstance(target, build.SharedLibrary) or isinstance(target, build.Executable)) and target.get_import_filename():
             # DLLs built with MSVC always have an import library except when
             # they're data-only DLLs, but we don't support those yet.
             ET.SubElement(link, 'ImportLibrary').text = target.get_import_filename()
