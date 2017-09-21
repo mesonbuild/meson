@@ -133,6 +133,13 @@ class PkgConfigModule(ExtensionModule):
         name = kwargs.get('name', None)
         if not isinstance(name, str):
             raise mesonlib.MesonException('Name not specified.')
+
+        for l in libs + priv_libs:
+            if isinstance(l, (build.SharedLibrary, build.StaticLibrary)):
+                if not l.should_build():
+                    mlog.log("Not building %s as depending library %s is not being built" % (
+                        name, l.name))
+                    return ModuleReturnValue(None, [])
         filebase = kwargs.get('filebase', name)
         if not isinstance(filebase, str):
             raise mesonlib.MesonException('Filebase must be a string.')

@@ -136,6 +136,11 @@ class UserComboOption(UserOption):
             raise MesonException('Value %s not one of accepted values.' % value)
         return value
 
+class ComponentOption(UserComboOption):
+    def __init__(self, name, description, value):
+        super().__init__(name, description, ['enabled', 'disabled', 'auto'],
+                         value)
+
 class UserStringArrayOption(UserOption):
     def __init__(self, name, description, value, **kwargs):
         super().__init__(name, description, kwargs.get('choices', []))
@@ -310,6 +315,8 @@ def get_builtin_option_choices(optname):
             return None
         elif builtin_options[optname][0] == UserBooleanOption:
             return [True, False]
+        elif builtin_options[optname][0] == ComponentOption:
+            return ['enabled', 'disabled', 'auto']
         else:
             return builtin_options[optname][2]
     else:
@@ -361,6 +368,7 @@ builtin_options = {
     'layout':          [UserComboOption, 'Build directory layout.', ['mirror', 'flat'], 'mirror'],
     'default_library': [UserComboOption, 'Default library type.', ['shared', 'static'], 'shared'],
     'backend':         [UserComboOption, 'Backend to use.', backendlist, 'ninja'],
+    'components_default_value':  [ComponentOption, 'Enable/Disable all components that default to autodetection.', 'auto'],
     'stdsplit':        [UserBooleanOption, 'Split stdout and stderr in test logs.', True],
     'errorlogs':       [UserBooleanOption, "Whether to print the logs from failing tests.", True],
 }

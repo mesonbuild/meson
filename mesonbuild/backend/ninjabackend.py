@@ -305,6 +305,8 @@ int dummy;
         return True
 
     def generate_target(self, target, outfile):
+        if not target.should_build():
+            return
         if isinstance(target, build.CustomTarget):
             self.generate_custom_target(target, outfile)
         if isinstance(target, build.RunTarget):

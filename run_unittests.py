@@ -1953,6 +1953,66 @@ endian = 'little'
         self.init(testdir, ['-Db_lto=true'], default_args=False)
         self.build('reconfigure')
 
+    def test_components(self):
+        testdir = os.path.join(self.common_test_dir, '159 components')
+        test_data = [
+            (['-Dhello1=disabled'], 'disabled', 'enabled', 'disabled', 'enabled', 'enabled', 'enabled'),
+            # hello1 is disabled by the lib
+            (['-Dlib=disabled'], 'disabled', 'enabled', 'disabled', 'enabled', 'enabled', 'disabled'),
+            (['-Dhello1=disabled', '-Dhello2=disabled'],
+             'disabled', 'disabled', 'disabled', 'enabled', 'enabled', 'enabled'),
+            (['-Dhello1=disabled', '-Dhello2=disabled', '-Dhello3=enabled'],
+             'disabled', 'disabled', 'enabled', 'enabled', 'enabled', 'enabled'),
+            (['-Dsubcomponent=disabled'], 'enabled', 'enabled', 'disabled', 'disabled', 'disabled', 'enabled'),
+            (['-Dsubsubcomponent=disabled'], 'enabled', 'enabled', 'disabled', 'enabled', 'disabled', 'enabled'),
+            (['--components-default-value=disabled'], 'disabled', 'disabled', 'disabled', 'disabled', 'disabled', 'disabled'),
+            (['--components-default-value=disabled', '-Dhello3=enabled'], 'disabled', 'disabled', 'enabled', 'disabled', 'disabled', 'disabled'),
+        ]
+
+        for (options, ehello1, ehello2, ehello3, esubhello, esubsubhello, epkgfile) in test_data:
+            self.setUp()
+            hello1 = os.path.join(self.builddir, 'hello1')
+            hello2 = os.path.join(self.builddir, 'hello2')
+            hello3 = os.path.join(self.builddir, 'hello3')
+            subhello = os.path.join(self.builddir, 'subdir', 'subhello')
+            subsubhello = os.path.join(self.builddir, 'subdir', 'subsubdir', 'subsubhello')
+            pkgfile = os.path.join(self.builddir, 'meson-private', 'simple.pc')
+
+            self.init(testdir, options)
+            self.build()
+            self.assertEqual(os.path.exists(hello1), ehello1 == 'enabled',
+                             'Buildding: %s Options: %s' % (self.builddir, str(options)))
+            self.assertEqual(os.path.exists(hello2), ehello2 == 'enabled', str(options))
+            self.assertEqual(os.path.exists(hello3), ehello3 == 'enabled', str(options))
+            self.assertEqual(os.path.exists(subhello), esubhello == 'enabled', str(options))
+            self.assertEqual(os.path.exists(subsubhello), esubsubhello == 'enabled', str(options))
+            self.assertEqual(os.path.exists(pkgfile), epkgfile == 'enabled', str(options))
+
+    def test_enabled_component_with_missing_dep_fails(self):
+        testdir = os.path.join(self.common_test_dir, '159 components')
+        self.setUp()
+        with self.assertRaises(subprocess.CalledProcessError):
+            self.init(testdir, ['-Dwithdep1=enabled'])
+
+    def test_components_disable_tests(self):
+        testdir = os.path.join(self.common_test_dir, '159 components')
+        self.setUp()
+        self.init(testdir)
+        testlist = self._run(self.mtest_command + ['--list'], workdir=self.builddir)
+        self.assertTrue("No tests defined." in testlist, testlist)
+
+        self.setUp()
+        self.init(testdir, ['-Dhello3=enabled'])
+        testlist = self._run(self.mtest_command + ['--list'], workdir=self.builddir)
+        self.assertTrue("disabled_by_default_test" in testlist, "%s not in '''%s'''" % (
+            'disabled_by_default_test', testlist))
+
+    def test_adding_missing_dep_with_enabled_component_fails(self):
+        testdir = os.path.join(self.common_test_dir, '159 components')
+        self.setUp()
+        with self.assertRaises(subprocess.CalledProcessError):
+            self.init(testdir, ['-Ddisabled=enabled'])
+
 
 class LinuxArmCrossCompileTests(BasePlatformTests):
     '''

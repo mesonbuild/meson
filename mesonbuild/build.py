@@ -137,8 +137,16 @@ class Build:
     def get_project(self):
         return self.projects['']
 
-    def get_targets(self):
-        return self.targets
+    def get_targets(self, filter_disabled=False):
+        if not filter_disabled:
+            return self.targets
+
+        targets = {}
+        for n, t in self.targets.items():
+            if t.should_build():
+                targets[n] = t
+
+        return targets
 
     def get_tests(self):
         return self.tests
@@ -291,6 +299,22 @@ a hard error in the future.''' % name)
         self.install = False
         self.build_always = False
         self.option_overrides = {}
+        self.components = set()
+        self._should_build = None
+
+    def should_build(self):
+        if self._should_build is not None:
+            return self._should_build
+
+        for component in self.components:
+            if not component.func_enabled():
+                mlog.debug("Not building %s because of %s" % (
+                    self.name, component.name))
+                self._should_build = False
+                return False
+        self._should_build = True
+
+        return True
 
     def get_basename(self):
         return self.name
@@ -317,6 +341,12 @@ a hard error in the future.''' % name)
             result[k] = v
         return result
 
+    def __getstate__(self):
+        # Make sure we do not try to pickle components
+        res = self.__dict__.copy()
+        res['components'] = set()
+
+        return res
 
 class BuildTarget(Target):
     def __init__(self, name, subdir, subproject, is_cross, sources, objects, environment, kwargs):
@@ -362,6 +392,23 @@ class BuildTarget(Target):
         self.process_compilers_late()
         self.validate_sources()
         self.validate_cross_install(environment)
+
+    def should_build(self):
+        if self._should_build is not None:
+            return self._should_build
+
+        if not super().should_build():
+            return False
+
+        for link_target in self.link_targets:
+            if not link_target.should_build():
+                mlog.debug("Not building %s because of %s" % (
+                    self.name, link_target.name))
+                self._should_build = False
+                return False
+
+        self._should_build = True
+        return True
 
     def __lt__(self, other):
         return self.get_id() < other.get_id()
@@ -799,7 +846,7 @@ This will become a hard error in a future Meson release.''')
         return self.generated
 
     def should_install(self):
-        return self.need_install
+        return self.need_install and self.should_build()
 
     def has_pch(self):
         return len(self.pch) > 0
@@ -833,7 +880,8 @@ This will become a hard error in a future Meson release.''')
                 self.external_deps.append(extpart)
                 # Deps of deps.
                 self.add_deps(dep.ext_deps)
-            elif isinstance(dep, dependencies.ExternalDependency):
+            elif isinstance(dep, (dependencies.ExternalDependency,
+                            dependencies.CustomDependency)):
                 self.external_deps.append(dep)
                 self.process_sourcelist(dep.get_sources())
             elif isinstance(dep, BuildTarget):
@@ -1647,7 +1695,7 @@ class CustomTarget(Target):
         return self.dependencies
 
     def should_install(self):
-        return self.install
+        return self.install and self.should_build()
 
     def get_custom_install_dir(self):
         return self.install_dir

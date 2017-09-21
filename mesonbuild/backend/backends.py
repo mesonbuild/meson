@@ -633,7 +633,7 @@ class Backend:
     def get_build_by_default_targets(self):
         result = OrderedDict()
         # Get all build and custom targets that must be built by default
-        for name, t in self.build.get_targets().items():
+        for name, t in self.build.get_targets(filter_disabled=True).items():
             if t.build_by_default or t.install or t.build_always:
                 result[name] = t
         # Get all targets used as test executables and arguments. These must

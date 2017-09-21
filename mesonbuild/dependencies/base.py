@@ -118,17 +118,31 @@ class Dependency:
         raise NotImplementedError('{!r} is not a pkgconfig dependency'.format(self.name))
 
 
+class CustomDependency(Dependency):
+    def __init__(self, type_name, found, compile_args, link_args, libraries, deps,
+                 kwargs):
+        super().__init__(type_name, kwargs)
+        self.is_found = found
+        self.compile_args = compile_args
+        self.link_args = link_args
+        for lib in libraries:
+            self.link_args += lib.get_link_args()
+        self.dependencies = deps
+        self.libraries = libraries
+
+
 class InternalDependency(Dependency):
-    def __init__(self, version, incdirs, compile_args, link_args, libraries, sources, ext_deps):
+    def __init__(self, version, incdirs, compile_args, link_args, libraries, sources, ext_deps,
+                 found=True):
         super().__init__('internal', {})
         self.version = version
-        self.is_found = True
         self.include_directories = incdirs
         self.compile_args = compile_args
         self.link_args = link_args
         self.libraries = libraries
         self.sources = sources
         self.ext_deps = ext_deps
+        self.is_found = found
 
 
 class ExternalDependency(Dependency):

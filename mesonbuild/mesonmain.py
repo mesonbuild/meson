@@ -62,6 +62,7 @@ add_builtin_argument('default-library')
 add_builtin_argument('warnlevel', dest='warning_level')
 add_builtin_argument('stdsplit', action='store_false')
 add_builtin_argument('errorlogs', action='store_false')
+add_builtin_argument('components-default-value')
 
 def wrapmodetype(string):
     try:

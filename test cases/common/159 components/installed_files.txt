@@ -1,0 +1,4 @@
+usr/bin/hello2?exe
+usr/bin/hello1?exe
+usr/lib/pkgconfig/simple.pc
+++
