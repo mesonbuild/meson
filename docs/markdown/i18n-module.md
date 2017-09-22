@@ -32,6 +32,8 @@ argument which is the name of the gettext module.
   [source](https://github.com/mesonbuild/meson/blob/master/mesonbuild/modules/i18n.py)
   for for their value
 
+* `install`: (*Added 0.43.0*) if false, do not install the built translations.
+
 This function also defines targets for maintainers to use:
 **Note**: These output to the source directory
 
