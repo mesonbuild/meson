@@ -14,7 +14,7 @@
 
 from . import ModuleReturnValue
 from . import ExtensionModule
-from . import noKwargs
+from ..interpreterbase import noKwargs
 
 class TestModule(ExtensionModule):
 

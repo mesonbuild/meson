@@ -22,7 +22,7 @@ from .. import mlog
 from . import GirTarget, TypelibTarget
 from . import ModuleReturnValue
 from . import ExtensionModule
-from . import noKwargs
+from ..interpreterbase import noKwargs
 
 import os
 

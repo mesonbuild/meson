@@ -20,7 +20,7 @@ from ..dependencies import Qt5Dependency
 from . import ExtensionModule
 import xml.etree.ElementTree as ET
 from . import ModuleReturnValue
-from . import permittedKwargs
+from ..interpreterbase import permittedKwargs
 
 class Qt5Module(ExtensionModule):
     tools_detected = False

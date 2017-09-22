@@ -18,7 +18,8 @@ from .. import mesonlib, dependencies
 
 from . import ExtensionModule
 from mesonbuild.modules import ModuleReturnValue
-from . import noKwargs, permittedSnippetKwargs
+from . import permittedSnippetKwargs
+from ..interpreterbase import noKwargs
 from ..interpreter import shlib_kwargs
 
 mod_kwargs = set()

@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys
 import shutil
 
 from os import path
@@ -20,7 +19,7 @@ from .. import coredata, mesonlib, build
 from ..mesonlib import MesonException
 from . import ModuleReturnValue
 from . import ExtensionModule
-from . import permittedKwargs
+from ..interpreterbase import permittedKwargs
 
 PRESET_ARGS = {
     'glib': [
@@ -72,8 +71,10 @@ class I18nModule(ExtensionModule):
         datadirs = self._get_data_dirs(state, mesonlib.stringlistify(kwargs.pop('data_dirs', [])))
         datadirs = '--datadirs=' + ':'.join(datadirs) if datadirs else None
 
-        command = state.environment.get_build_command() + ['--internal', 'msgfmthelper',
-                   '@INPUT@', '@OUTPUT@', file_type, podir]
+        command = state.environment.get_build_command() + [
+            '--internal', 'msgfmthelper',
+            '@INPUT@', '@OUTPUT@', file_type, podir
+        ]
         if datadirs:
             command.append(datadirs)
 

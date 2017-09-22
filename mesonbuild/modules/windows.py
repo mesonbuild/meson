@@ -20,7 +20,7 @@ from ..mesonlib import MesonException, extract_as_list
 from . import get_include_args
 from . import ModuleReturnValue
 from . import ExtensionModule
-from . import permittedKwargs
+from ..interpreterbase import permittedKwargs
 
 class WindowsModule(ExtensionModule):
 

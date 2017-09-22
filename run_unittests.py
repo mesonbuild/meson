@@ -1946,7 +1946,7 @@ cpu = 'armv7' # Not sure if correct.
 endian = 'little'
 ''' % os.path.join(testdir, 'some_cross_tool.py'))
         crossfile.flush()
-        self.init(testdir, ['--cross-file='+crossfile.name])
+        self.init(testdir, ['--cross-file=' + crossfile.name])
 
     def test_reconfigure(self):
         testdir = os.path.join(self.unit_test_dir, '13 reconfigure')
