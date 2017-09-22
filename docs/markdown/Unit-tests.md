@@ -57,42 +57,42 @@ Sometimes a test can only determine at runtime that it can not be run. The GNU s
 
 ## Testing tool
 
-In version 0.37.0 a new tool called `mesontest` was added. The goal of this tool is to provide a simple way to run tests in a variety of different ways. The tool is designed to be run in the build directory.
+The goal of the meson test tool is to provide a simple way to run tests in a variety of different ways. The tool is designed to be run in the build directory.
 
 The simplest thing to do is just to run all tests, which is equivalent to running `ninja test`.
 
 ```console
-$ mesontest
+$ meson test
 ```
 
 You can also run only a single test by giving its name:
 
 ```console
-$ mesontest testname
+$ meson test testname
 ```
 
 Sometimes you need to run the tests multiple times, which is done like this:
 
 ```console
-$ mesontest --repeat=10
+$ meson test --repeat=10
 ```
 
 Invoking tests via a helper executable such as Valgrind can be done with the `--wrap` argument
 
 ```console
-$ mesontest --wrap=valgrind testname
+$ meson test --wrap=valgrind testname
 ```
 
 Arguments to the wrapper binary can be given like this:
 
 ```console
-$ mesontest --wrap='valgrind --tool=helgrind' testname
+$ meson test --wrap='valgrind --tool=helgrind' testname
 ```
 
 Meson also supports running the tests under GDB. Just doing this:
 
 ```console
-$ mesontest --gdb testname
+$ meson test --gdb testname
 ```
 
 Mesontest will launch `gdb` all set up to run the test. Just type `run` in the GDB command prompt to start the program.
@@ -100,9 +100,11 @@ Mesontest will launch `gdb` all set up to run the test. Just type `run` in the G
 The second use case is a test that segfaults only rarely. In this case you can invoke the following command:
 
 ```console
-$ mesontest --gdb --repeat=10000 testname
+$ meson test --gdb --repeat=10000 testname
 ```
 
 This runs the test up to 10 000 times under GDB automatically. If the program crashes, GDB will halt and the user can debug the application. Note that testing timeouts are disabled in this case so mesontest will not kill `gdb` while the developer is still debugging it. The downside is that if the test binary freezes, the test runner will wait forever.
 
 For further information see the command line help of Mesontest by running `mesontest -h`.
+
+**NOTE:** If `meson test` does not work for you, you likely have a old version of Meson. In that case you should call `mesontest` instead. If `mesontest` doesn't work either you have a very old version prior to 0.37.0 and should upgrade.
