@@ -1,0 +1,2 @@
+option('video', type : 'dolphin')
+option('patented', type : 'dolphin', value : 'disabled')
