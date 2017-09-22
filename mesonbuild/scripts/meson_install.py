@@ -227,7 +227,9 @@ def install_man(d):
         if outfilename.endswith('.gz') and not full_source_filename.endswith('.gz'):
             with open(outfilename, 'wb') as of:
                 with open(full_source_filename, 'rb') as sf:
-                    of.write(gzip.compress(sf.read()))
+                    # Set mtime and filename for reproducibility.
+                    with gzip.GzipFile(fileobj=of, mode='wb', filename='', mtime=0) as gz:
+                        gz.write(sf.read())
             shutil.copystat(full_source_filename, outfilename)
             append_to_log(outfilename)
         else:
