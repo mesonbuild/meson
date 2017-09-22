@@ -12,22 +12,34 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os, pickle, re, shlex, subprocess, sys
+import os
+import pickle
+import re
+import shlex
+import subprocess
+import sys
 from collections import OrderedDict
 
 from . import backends
-from .. import modules
-from .. import environment, mesonlib
-from .. import build
-from .. import mlog
-from .. import dependencies
-from .. import compilers
+from .. import (
+    build,
+    compilers,
+    dependencies,
+    environment,
+    mesonlib,
+    mlog,
+    modules,
+)
+from ..build import InvalidArguments
 from ..compilers import CompilerArgs
 from ..linkers import ArLinker
-from ..mesonlib import File, MesonException, OrderedSet
-from ..mesonlib import get_compiler_for_source
+from ..mesonlib import (
+    File,
+    MesonException,
+    OrderedSet,
+    get_compiler_for_source,
+)
 from .backends import CleanTrees, InstallData
-from ..build import InvalidArguments
 
 if mesonlib.is_windows():
     quote_func = lambda s: '"{}"'.format(s)

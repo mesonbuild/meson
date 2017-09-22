@@ -13,33 +13,50 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import stat
-import shlex
-import subprocess
-import re, json
-import tempfile
+import json
 import os
+import re
+import shlex
 import shutil
+import stat
+import subprocess
 import sys
+import tempfile
 import unittest
 from configparser import ConfigParser
 from glob import glob
 from pathlib import PurePath
 
-import mesonbuild.mlog
 import mesonbuild.compilers
+import mesonbuild.coredata
 import mesonbuild.environment
 import mesonbuild.mesonlib
-import mesonbuild.coredata
-from mesonbuild.mesonlib import is_linux, is_windows, is_osx, is_cygwin, windows_proof_rmtree
+import mesonbuild.mlog
+from mesonbuild.dependencies import (
+    DependencyException,
+    ExternalProgram,
+    PkgConfigDependency,
+)
 from mesonbuild.environment import Environment
-from mesonbuild.dependencies import DependencyException
-from mesonbuild.dependencies import PkgConfigDependency, ExternalProgram
+from mesonbuild.mesonlib import (
+    is_cygwin,
+    is_linux,
+    is_osx,
+    is_windows,
+    windows_proof_rmtree,
+)
 
-from run_tests import exe_suffix, get_fake_options, FakeEnvironment
-from run_tests import get_builddir_target_args, get_backend_commands, Backend
-from run_tests import ensure_backend_detects_changes, run_configure_inprocess
-from run_tests import should_run_linux_cross_tests
+from run_tests import (
+    Backend,
+    FakeEnvironment,
+    ensure_backend_detects_changes,
+    exe_suffix,
+    get_backend_commands,
+    get_builddir_target_args,
+    get_fake_options,
+    run_configure_inprocess,
+    should_run_linux_cross_tests,
+)
 
 
 def get_dynamic_section_entry(fname, entry):

@@ -15,19 +15,18 @@
 # limitations under the License.
 
 import os
-import sys
-import time
+import platform
 import shutil
 import subprocess
+import sys
 import tempfile
-import platform
-from mesonbuild import mesonlib
-from mesonbuild import mesonmain
-from mesonbuild import mlog
-from mesonbuild.environment import detect_ninja
-from io import StringIO
+import time
 from enum import Enum
 from glob import glob
+from io import StringIO
+
+from mesonbuild import mesonlib, mesonmain, mlog
+from mesonbuild.environment import detect_ninja
 
 Backend = Enum('Backend', 'ninja vs xcode')
 

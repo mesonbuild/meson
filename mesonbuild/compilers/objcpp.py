@@ -12,12 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os.path, subprocess
+import os.path
+import subprocess
 
 from ..mesonlib import EnvironmentException
-
-from .cpp import CPPCompiler
 from .compilers import ClangCompiler, GnuCompiler
+from .cpp import CPPCompiler
+
 
 class ObjCPPCompiler(CPPCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrap):

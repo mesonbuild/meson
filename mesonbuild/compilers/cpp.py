@@ -16,16 +16,16 @@ import os.path
 
 from .. import coredata
 from ..mesonlib import version_compare
-
 from .c import CCompiler, VisualStudioCCompiler
 from .compilers import (
     GCC_MINGW,
-    gnu_winlibs,
-    msvc_winlibs,
     ClangCompiler,
     GnuCompiler,
     IntelCompiler,
+    gnu_winlibs,
+    msvc_winlibs,
 )
+
 
 class CPPCompiler(CCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrap):

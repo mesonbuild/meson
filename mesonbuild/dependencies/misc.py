@@ -18,17 +18,21 @@ import glob
 import os
 import re
 import shlex
-import stat
 import shutil
+import stat
 import sysconfig
 
-from .. import mlog
-from .. import mesonlib
-from ..mesonlib import Popen_safe, extract_as_list
+from .. import mesonlib, mlog
 from ..environment import detect_cpu_family
-
-from .base import DependencyException, DependencyMethods
-from .base import ExternalDependency, ExternalProgram, ExtraFrameworkDependency, PkgConfigDependency
+from ..mesonlib import Popen_safe, extract_as_list
+from .base import (
+    DependencyException,
+    DependencyMethods,
+    ExternalDependency,
+    ExternalProgram,
+    ExtraFrameworkDependency,
+    PkgConfigDependency,
+)
 
 
 class BoostDependency(ExternalDependency):

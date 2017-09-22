@@ -13,9 +13,10 @@
 # limitations under the License.
 
 import os
-import sys
-import shutil
 import pickle
+import shutil
+import sys
+
 
 def rmtrees(build_dir, trees):
     for t in trees:

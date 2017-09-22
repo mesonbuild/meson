@@ -12,21 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import subprocess, os.path, tempfile
+import os.path
+import subprocess
+import tempfile
 
-from .. import mlog
-from .. import coredata
-from ..mesonlib import EnvironmentException, version_compare, Popen_safe, listify
-
+from .. import coredata, mlog
+from ..mesonlib import (
+    EnvironmentException,
+    Popen_safe,
+    listify,
+    version_compare,
+)
 from .compilers import (
     GCC_MINGW,
-    get_largefile_args,
-    gnu_winlibs,
-    msvc_buildtype_args,
-    msvc_buildtype_linker_args,
-    msvc_winlibs,
-    vs32_instruction_set_args,
-    vs64_instruction_set_args,
     ClangCompiler,
     Compiler,
     CompilerArgs,
@@ -34,6 +32,13 @@ from .compilers import (
     GnuCompiler,
     IntelCompiler,
     RunResult,
+    get_largefile_args,
+    gnu_winlibs,
+    msvc_buildtype_args,
+    msvc_buildtype_linker_args,
+    msvc_winlibs,
+    vs32_instruction_set_args,
+    vs64_instruction_set_args,
 )
 
 

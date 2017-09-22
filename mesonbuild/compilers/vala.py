@@ -16,8 +16,8 @@ import os.path
 
 from .. import mlog
 from ..mesonlib import EnvironmentException, version_compare
-
 from .compilers import Compiler
+
 
 class ValaCompiler(Compiler):
     def __init__(self, exelist, version):

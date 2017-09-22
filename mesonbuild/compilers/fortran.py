@@ -12,23 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os.path, subprocess
+import os.path
+import subprocess
 
 from ..mesonlib import EnvironmentException, is_osx
-
 from .compilers import (
     GCC_CYGWIN,
     GCC_MINGW,
     GCC_OSX,
     GCC_STANDARD,
     ICC_STANDARD,
+    Compiler,
+    IntelCompiler,
     apple_buildtype_linker_args,
     get_gcc_soname_args,
     gnulike_buildtype_args,
     gnulike_buildtype_linker_args,
-    Compiler,
-    IntelCompiler,
 )
+
 
 class FortranCompiler(Compiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None):

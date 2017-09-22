@@ -12,11 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os.path, subprocess
+import os.path
+import subprocess
 
 from ..mesonlib import EnvironmentException
-
 from .compilers import Compiler, mono_buildtype_args
+
 
 class MonoCompiler(Compiler):
     def __init__(self, exelist, version):

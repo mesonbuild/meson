@@ -15,16 +15,13 @@
 '''This module provides helper functions for RPM related
 functionality such as generating template RPM spec file.'''
 
-from .. import build
-from .. import compilers
 import datetime
-from .. import mlog
-from . import GirTarget, TypelibTarget
-from . import ModuleReturnValue
-from . import ExtensionModule
+import os
+
+from . import ExtensionModule, GirTarget, ModuleReturnValue, TypelibTarget
+from .. import build, compilers, mlog
 from ..interpreterbase import noKwargs
 
-import os
 
 class RPMModule(ExtensionModule):
 

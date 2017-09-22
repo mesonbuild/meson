@@ -15,7 +15,10 @@
 '''CD into dir given as first argument and execute
 the command given in the rest of the arguments.'''
 
-import os, subprocess, sys
+import os
+import subprocess
+import sys
+
 
 def run(args):
     dirname = args[0]

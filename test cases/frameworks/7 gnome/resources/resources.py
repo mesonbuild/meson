@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import os
+
 from gi.repository import Gio
 
 if __name__ == '__main__':

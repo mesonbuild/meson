@@ -12,17 +12,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys, stat, traceback, pickle, argparse
-import time, datetime
+import argparse
+import datetime
 import os.path
-from . import environment, interpreter, mesonlib
-from . import build
-from . import mconf, mintro, mtest, rewriter
+import pickle
 import platform
-from . import mlog, coredata
+import stat
+import sys
+import time
+import traceback
+
+from . import (
+    build,
+    coredata,
+    environment,
+    interpreter,
+    mconf,
+    mesonlib,
+    mintro,
+    mlog,
+    mtest,
+    rewriter,
+)
 from .mesonlib import MesonException
 from .wrap import WrapMode, wraptool
-
 
 parser = argparse.ArgumentParser()
 

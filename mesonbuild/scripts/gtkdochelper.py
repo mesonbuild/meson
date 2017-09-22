@@ -12,12 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys, os
-import subprocess
-import shutil
 import argparse
-from ..mesonlib import MesonException, Popen_safe
+import os
+import shutil
+import subprocess
+import sys
+
 from . import destdir_join
+from ..mesonlib import MesonException, Popen_safe
 
 parser = argparse.ArgumentParser()
 

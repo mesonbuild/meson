@@ -13,10 +13,12 @@
 # limitations under the License.
 
 import os
-import subprocess
 import shutil
+import subprocess
 import tempfile
+
 from ..environment import detect_ninja
+
 
 def scanbuild(exename, srcdir, blddir, privdir, logdir, args):
     with tempfile.TemporaryDirectory(dir=privdir) as scandir:

@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 
-import tachyon
 import sys
+
+import tachyon
 
 result = tachyon.phaserize('shoot')
 

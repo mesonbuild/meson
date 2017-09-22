@@ -13,14 +13,14 @@
 # limitations under the License.
 
 import os
-from .. import mlog
-from .. import build
-from ..mesonlib import MesonException, Popen_safe, extract_as_list
-from ..dependencies import Qt4Dependency
-from . import ExtensionModule
 import xml.etree.ElementTree as ET
-from . import ModuleReturnValue
+
+from . import ExtensionModule, ModuleReturnValue
+from .. import build, mlog
+from ..dependencies import Qt4Dependency
 from ..interpreterbase import permittedKwargs
+from ..mesonlib import MesonException, Popen_safe, extract_as_list
+
 
 class Qt4Module(ExtensionModule):
     tools_detected = False

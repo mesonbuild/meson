@@ -14,12 +14,16 @@
 
 """A library of random helper functionality."""
 
-import sys
-import stat
-import time
-import platform, subprocess, operator, os, shutil, re
 import collections
-
+import operator
+import os
+import platform
+import re
+import shutil
+import stat
+import subprocess
+import sys
+import time
 from glob import glob
 
 # Put this in objects that should not get dumped to pickle files

@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 
-import sys
 import argparse
+import sys
+
 
 def main():
     parser = argparse.ArgumentParser()

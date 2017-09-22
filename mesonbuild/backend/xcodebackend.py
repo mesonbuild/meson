@@ -12,13 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from . import backends
-from .. import build
-from .. import dependencies
-from .. import mesonlib
-import uuid, os, sys
+import os
+import sys
+import uuid
 
+from . import backends
+from .. import build, dependencies, mesonlib
 from ..mesonlib import MesonException
+
 
 class XCodeBackend(backends.Backend):
     def __init__(self, build):

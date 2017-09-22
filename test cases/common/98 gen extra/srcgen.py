@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
-import sys
 import argparse
+import sys
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--input', dest='input',

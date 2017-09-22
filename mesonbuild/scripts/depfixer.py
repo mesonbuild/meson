@@ -13,7 +13,8 @@
 # limitations under the License.
 
 
-import sys, struct
+import struct
+import sys
 
 SHT_STRTAB = 3
 DT_NEEDED = 1

@@ -15,21 +15,25 @@
 '''This module provides helper functions for Gnome/GLib related
 functionality such as gobject-introspection, gresources and gtk-doc'''
 
-from .. import build
-import os
 import copy
+import os
 import subprocess
-from . import ModuleReturnValue
-from ..mesonlib import MesonException, OrderedSet, Popen_safe
-from ..dependencies import Dependency, PkgConfigDependency, InternalDependency
-from .. import mlog
-from .. import mesonlib
-from .. import compilers
-from .. import interpreter
-from . import GResourceTarget, GResourceHeaderTarget, GirTarget, TypelibTarget, VapiTarget
-from . import find_program, get_include_args
-from . import ExtensionModule
+
+from . import (
+    ExtensionModule,
+    GirTarget,
+    GResourceHeaderTarget,
+    GResourceTarget,
+    ModuleReturnValue,
+    TypelibTarget,
+    VapiTarget,
+    find_program,
+    get_include_args,
+)
+from .. import build, compilers, interpreter, mesonlib, mlog
+from ..dependencies import Dependency, InternalDependency, PkgConfigDependency
 from ..interpreterbase import noKwargs, permittedKwargs
+from ..mesonlib import MesonException, OrderedSet, Popen_safe
 
 # gresource compilation is broken due to the way
 # the resource compiler and Ninja clash about it

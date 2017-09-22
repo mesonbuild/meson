@@ -14,8 +14,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from mesonbuild import mesonmain, mesonlib
-import sys, os, locale
+import locale
+import os
+import sys
+
+from mesonbuild import mesonlib, mesonmain
+
 
 def main():
     # Warn if the locale is not UTF-8. This can cause various unfixable issues

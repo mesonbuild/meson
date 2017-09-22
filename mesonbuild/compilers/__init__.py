@@ -81,38 +81,6 @@ __all__ = [
     'VisualStudioCPPCompiler',
 ]
 
-# Bring symbols from each module into compilers sub-package namespace
-from .compilers import (
-    GCC_OSX,
-    GCC_MINGW,
-    GCC_CYGWIN,
-    GCC_STANDARD,
-    CLANG_OSX,
-    CLANG_WIN,
-    CLANG_STANDARD,
-    ICC_OSX,
-    ICC_WIN,
-    ICC_STANDARD,
-    base_options,
-    clike_langs,
-    c_suffixes,
-    cpp_suffixes,
-    get_base_compile_args,
-    get_base_link_args,
-    is_header,
-    is_source,
-    is_assembly,
-    is_llvm_ir,
-    is_object,
-    is_library,
-    lang_suffixes,
-    sanitizer_compile_args,
-    sort_clike,
-    ClangCompiler,
-    CompilerArgs,
-    GnuCompiler,
-    IntelCompiler,
-)
 from .c import (
     CCompiler,
     ClangCCompiler,
@@ -120,20 +88,47 @@ from .c import (
     IntelCCompiler,
     VisualStudioCCompiler,
 )
+# Bring symbols from each module into compilers sub-package namespace
+from .compilers import (
+    CLANG_OSX,
+    CLANG_STANDARD,
+    CLANG_WIN,
+    GCC_CYGWIN,
+    GCC_MINGW,
+    GCC_OSX,
+    GCC_STANDARD,
+    ICC_OSX,
+    ICC_STANDARD,
+    ICC_WIN,
+    ClangCompiler,
+    CompilerArgs,
+    GnuCompiler,
+    IntelCompiler,
+    base_options,
+    c_suffixes,
+    clike_langs,
+    cpp_suffixes,
+    get_base_compile_args,
+    get_base_link_args,
+    is_assembly,
+    is_header,
+    is_library,
+    is_llvm_ir,
+    is_object,
+    is_source,
+    lang_suffixes,
+    sanitizer_compile_args,
+    sort_clike,
+)
 from .cpp import (
-    CPPCompiler,
     ClangCPPCompiler,
+    CPPCompiler,
     GnuCPPCompiler,
     IntelCPPCompiler,
     VisualStudioCPPCompiler,
 )
 from .cs import MonoCompiler
-from .d import (
-    DCompiler,
-    DmdDCompiler,
-    GnuDCompiler,
-    LLVMDCompiler,
-)
+from .d import DCompiler, DmdDCompiler, GnuDCompiler, LLVMDCompiler
 from .fortran import (
     FortranCompiler,
     G95FortranCompiler,
@@ -146,16 +141,8 @@ from .fortran import (
     SunFortranCompiler,
 )
 from .java import JavaCompiler
-from .objc import (
-    ObjCCompiler,
-    ClangObjCCompiler,
-    GnuObjCCompiler,
-)
-from .objcpp import (
-    ObjCPPCompiler,
-    ClangObjCPPCompiler,
-    GnuObjCPPCompiler,
-)
+from .objc import ClangObjCCompiler, GnuObjCCompiler, ObjCCompiler
+from .objcpp import ClangObjCPPCompiler, GnuObjCPPCompiler, ObjCPPCompiler
 from .rust import RustCompiler
 from .swift import SwiftCompiler
 from .vala import ValaCompiler

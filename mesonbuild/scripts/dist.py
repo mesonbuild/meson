@@ -13,17 +13,20 @@
 # limitations under the License.
 
 
+import hashlib
 import lzma
 import os
+import pickle
 import shutil
 import subprocess
-import pickle
-import hashlib
-import tarfile, zipfile
+import tarfile
 import tempfile
+import zipfile
 from glob import glob
+
 from mesonbuild.environment import detect_ninja
 from mesonbuild.mesonlib import windows_proof_rmtree
+
 
 def create_hash(fname):
     hashname = fname + '.sha256sum'

@@ -12,18 +12,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import copy, os, re
-from collections import OrderedDict
+import copy
 import itertools
+import os
+import re
+from collections import OrderedDict
 
-from . import environment
-from . import dependencies
-from . import mlog
-from .mesonlib import File, MesonException, listify, extract_as_list
-from .mesonlib import flatten, typeslistify, stringlistify, classify_unity_sources
-from .mesonlib import get_filenames_templates_dict, substitute_values
-from .environment import for_windows, for_darwin, for_cygwin
-from .compilers import is_object, clike_langs, sort_clike, lang_suffixes
+from . import dependencies, environment, mlog
+from .compilers import clike_langs, is_object, lang_suffixes, sort_clike
+from .environment import for_cygwin, for_darwin, for_windows
+from .mesonlib import (
+    File,
+    MesonException,
+    classify_unity_sources,
+    extract_as_list,
+    flatten,
+    get_filenames_templates_dict,
+    listify,
+    stringlistify,
+    substitute_values,
+    typeslistify,
+)
 
 known_basic_kwargs = {'install': True,
                       'c_pch': True,

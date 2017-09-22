@@ -23,8 +23,9 @@
 # - move targets
 # - reindent?
 
-from mesonbuild import mesonmain
 import sys
+
+from mesonbuild import mesonmain
 
 if __name__ == '__main__':
     print('Warning: This executable is deprecated. Use "meson rewrite" instead.',

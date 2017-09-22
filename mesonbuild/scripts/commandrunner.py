@@ -15,7 +15,12 @@
 """This program is a wrapper to run external commands. It determines
 what to run, sets up the environment and executes the command."""
 
-import sys, os, subprocess, shutil, shlex
+import os
+import shlex
+import shutil
+import subprocess
+import sys
+
 
 def run_command(source_dir, build_dir, subdir, meson_command, command, arguments):
     env = {'MESON_SOURCE_ROOT': source_dir,

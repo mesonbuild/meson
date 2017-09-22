@@ -14,13 +14,11 @@
 
 import os
 
-from .. import mlog
-from .. import mesonlib, dependencies, build
-from ..mesonlib import MesonException, extract_as_list
-from . import get_include_args
-from . import ModuleReturnValue
-from . import ExtensionModule
+from . import ExtensionModule, ModuleReturnValue, get_include_args
+from .. import build, dependencies, mesonlib, mlog
 from ..interpreterbase import permittedKwargs
+from ..mesonlib import MesonException, extract_as_list
+
 
 class WindowsModule(ExtensionModule):
 

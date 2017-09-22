@@ -23,11 +23,13 @@
 # - move targets
 # - reindent?
 
-import mesonbuild.astinterpreter
-from mesonbuild.mesonlib import MesonException
-from mesonbuild import mlog
-import sys, traceback
 import argparse
+import sys
+import traceback
+
+import mesonbuild.astinterpreter
+from mesonbuild import mlog
+from mesonbuild.mesonlib import MesonException
 
 parser = argparse.ArgumentParser()
 

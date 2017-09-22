@@ -21,14 +21,22 @@ import shutil
 import subprocess
 from collections import OrderedDict
 
-from .. import mlog
-from .. import mesonlib
-from ..mesonlib import MesonException, Popen_safe, version_compare, extract_as_list
-from ..environment import for_windows, detect_cpu
-
-from .base import DependencyException, DependencyMethods
-from .base import ExternalDependency, ExternalProgram
-from .base import ExtraFrameworkDependency, PkgConfigDependency
+from .. import mesonlib, mlog
+from ..environment import detect_cpu, for_windows
+from ..mesonlib import (
+    MesonException,
+    Popen_safe,
+    extract_as_list,
+    version_compare,
+)
+from .base import (
+    DependencyException,
+    DependencyMethods,
+    ExternalDependency,
+    ExternalProgram,
+    ExtraFrameworkDependency,
+    PkgConfigDependency,
+)
 
 
 class GLDependency(ExternalDependency):

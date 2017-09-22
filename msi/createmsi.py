@@ -14,13 +14,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys, os, subprocess, shutil, uuid
-from glob import glob
+import os
 import platform
+import shutil
+import subprocess
+import sys
+import uuid
 import xml.etree.ElementTree as ET
+from glob import glob
+
+from mesonbuild import coredata
 
 sys.path.append(os.getcwd())
-from mesonbuild import coredata
 
 def gen_guid():
     return str(uuid.uuid4()).upper()

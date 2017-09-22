@@ -3,8 +3,9 @@
 # In order to run this program, PYTHONPATH must be set to
 # point to source root.
 
-from gluon import gluonator
 import sys
+
+from gluon import gluonator
 
 print('Running mainprog from subdir.')
 

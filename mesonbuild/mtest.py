@@ -14,20 +14,23 @@
 
 # A tool to run tests in many different ways.
 
-import shlex
-import subprocess, sys, os, argparse
-import pickle
-from mesonbuild import build
-from mesonbuild import environment
-from mesonbuild.dependencies import ExternalProgram
-from mesonbuild import mesonlib
-from mesonbuild import mlog
-
-import time, datetime, multiprocessing, json
+import argparse
 import concurrent.futures as conc
+import datetime
+import json
+import multiprocessing
+import os
+import pickle
 import platform
-import signal
 import random
+import shlex
+import signal
+import subprocess
+import sys
+import time
+
+from mesonbuild import build, environment, mesonlib, mlog
+from mesonbuild.dependencies import ExternalProgram
 
 # GNU autotools interprets a return code of 77 from tests it executes to
 # mean that the test should be skipped.

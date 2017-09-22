@@ -14,6 +14,7 @@
 
 from .mesonlib import Popen_safe
 
+
 class StaticLinker:
     pass
 

@@ -12,14 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import json
-import sys, os
 import configparser
+import json
+import os
 import shutil
-
+import sys
 from glob import glob
 
 from .wrap import API_ROOT, open_wrapdburl
+
 
 help_templ = '''This program allows you to manage your Wrap dependencies
 using the online wrap database http://wrapdb.mesonbuild.com.

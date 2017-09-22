@@ -12,7 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys, os, platform, io
+import io
+import os
+import platform
+import sys
 
 """This is (mostly) a standalone module used to write logging
 information about Meson runs. Some output goes to screen,

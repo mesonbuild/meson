@@ -13,13 +13,12 @@
 # limitations under the License.
 
 import shutil
-
 from os import path
-from .. import coredata, mesonlib, build
-from ..mesonlib import MesonException
-from . import ModuleReturnValue
-from . import ExtensionModule
+
+from . import ExtensionModule, ModuleReturnValue
+from .. import build, coredata, mesonlib
 from ..interpreterbase import permittedKwargs
+from ..mesonlib import MesonException
 
 PRESET_ARGS = {
     'glib': [
