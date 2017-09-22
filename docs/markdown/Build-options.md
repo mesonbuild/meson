@@ -42,11 +42,16 @@ prefix = get_option('prefix')
 ```
 
 It should be noted that you can not set option values in your Meson
-scripts. They have to be set externally with the `mesonconf` command
-line tool. Running `mesonconf` without arguments in a build dir shows
-you all options you can set. To change their values use the `-D`
+scripts. They have to be set externally with the `meson configure` command
+line tool. Running `meson configure` without arguments in a build dir shows
+you all options you can set.
+
+To change their values use the `-D`
 option:
 
 ```console
-$ mesonconf -Doption=newvalue
+$ meson configure -Doption=newvalue
 ```
+
+
+**NOTE:** If you cannot call `meson configure` you likely have a old version of Meson. In that case you can call `mesonconf` instead, but that is deprecated in newer versions
