@@ -450,9 +450,25 @@ class InterpreterBase:
         else:
             raise InterpreterException('Unknown method "%s" for an integer.' % method_name)
 
+    @staticmethod
+    def _get_one_string_posarg(posargs, method_name):
+        if len(posargs) > 1:
+            m = '{}() must have zero or one arguments'
+            raise InterpreterException(m.format(method_name))
+        elif len(posargs) == 1:
+            s = posargs[0]
+            if not isinstance(s, str):
+                m = '{}() argument must be a string'
+                raise InterpreterException(m.format(method_name))
+            return s
+        return None
+
     def string_method_call(self, obj, method_name, args):
         (posargs, _) = self.reduce_arguments(args)
         if method_name == 'strip':
+            s = self._get_one_string_posarg(posargs, 'strip')
+            if s is not None:
+                return obj.strip(s)
             return obj.strip()
         elif method_name == 'format':
             return self.format_string(obj, args)
@@ -463,15 +479,10 @@ class InterpreterBase:
         elif method_name == 'underscorify':
             return re.sub(r'[^a-zA-Z0-9]', '_', obj)
         elif method_name == 'split':
-            if len(posargs) > 1:
-                raise InterpreterException('Split() must have at most one argument.')
-            elif len(posargs) == 1:
-                s = posargs[0]
-                if not isinstance(s, str):
-                    raise InterpreterException('Split() argument must be a string')
+            s = self._get_one_string_posarg(posargs, 'split')
+            if s is not None:
                 return obj.split(s)
-            else:
-                return obj.split()
+            return obj.split()
         elif method_name == 'startswith' or method_name == 'contains' or method_name == 'endswith':
             s = posargs[0]
             if not isinstance(s, str):

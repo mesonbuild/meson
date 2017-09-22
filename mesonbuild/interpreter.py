@@ -881,7 +881,7 @@ class CompilerHolder(InterpreterObject):
         extra_args = self.determine_args(kwargs)
         deps = self.determine_dependencies(kwargs)
         value = self.compiler.get_define(element, prefix, self.environment, extra_args, deps)
-        mlog.log('Checking for value of define "%s": %s' % (element, value))
+        mlog.log('Fetching value of define "%s": %s' % (element, value))
         return value
 
     def compiles_method(self, args, kwargs):
