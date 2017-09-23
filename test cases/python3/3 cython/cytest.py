@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 
-from storer import Storer
 import sys
+
+from storer import Storer
 
 s = Storer()
 

@@ -12,19 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os, sys
+import os
 import pickle
+import sys
 import xml.dom.minidom
 import xml.etree.ElementTree as ET
 
 from . import backends
-from .. import build
-from .. import dependencies
-from .. import mlog
-from .. import compilers
+from .. import build, compilers, dependencies, mlog
 from ..compilers import CompilerArgs
-from ..mesonlib import MesonException, File
 from ..environment import Environment
+from ..mesonlib import File, MesonException
+
 
 def autodetect_vs_version(build):
     vs_version = os.getenv('VisualStudioVersion', None)

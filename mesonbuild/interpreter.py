@@ -11,30 +11,48 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from . import mparser
-from . import environment
-from . import coredata
-from . import dependencies
-from . import mlog
-from . import build
-from . import optinterpreter
-from . import compilers
-from .wrap import wrap, WrapMode
-from . import mesonlib
-from .mesonlib import FileMode, Popen_safe, listify, extract_as_list
-from .dependencies import ExternalProgram
-from .dependencies import InternalDependency, Dependency, DependencyException
-from .interpreterbase import InterpreterBase
-from .interpreterbase import check_stringlist, noPosargs, noKwargs, stringArgs, permittedKwargs
-from .interpreterbase import InterpreterException, InvalidArguments, InvalidCode
-from .interpreterbase import InterpreterObject, MutableInterpreterObject
-from .modules import ModuleReturnValue
-
-import os, sys, shutil, uuid
-import re, shlex
+import importlib
+import os
+import re
+import shlex
+import shutil
+import sys
+import uuid
 from collections import namedtuple
 
-import importlib
+from . import (
+    build,
+    compilers,
+    coredata,
+    dependencies,
+    environment,
+    mesonlib,
+    mlog,
+    mparser,
+    optinterpreter,
+)
+from .dependencies import (
+    Dependency,
+    DependencyException,
+    ExternalProgram,
+    InternalDependency,
+)
+from .interpreterbase import (
+    InterpreterBase,
+    InterpreterException,
+    InterpreterObject,
+    InvalidArguments,
+    InvalidCode,
+    MutableInterpreterObject,
+    check_stringlist,
+    noKwargs,
+    noPosargs,
+    permittedKwargs,
+    stringArgs,
+)
+from .mesonlib import FileMode, Popen_safe, extract_as_list, listify
+from .modules import ModuleReturnValue
+from .wrap import WrapMode, wrap
 
 run_depr_printed = False
 

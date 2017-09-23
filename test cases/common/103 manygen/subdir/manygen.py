@@ -2,11 +2,14 @@
 
 from __future__ import print_function
 
+import os
+import shutil
+import subprocess
+import sys
+
 # Generates a static library, object file, source
 # file and a header file.
 
-import sys, os
-import shutil, subprocess
 
 with open(sys.argv[1]) as f:
     funcname = f.readline().strip()

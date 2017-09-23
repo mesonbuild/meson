@@ -12,12 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-import subprocess
-import shutil
 import argparse
-from .. import mlog
+import os
+import shutil
+import subprocess
+
 from . import destdir_join
+from .. import mlog
 from .gettext import read_linguas
 
 parser = argparse.ArgumentParser()

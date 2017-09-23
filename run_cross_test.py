@@ -22,10 +22,17 @@ Not part of the main test suite because of two reasons:
 
 Eventually migrate to something fancier.'''
 
-import sys, os
+import os
+import sys
 
-from run_project_tests import gather_tests, run_tests, StopException, setup_commands
-from run_project_tests import failing_logs
+from run_project_tests import (
+    StopException,
+    failing_logs,
+    gather_tests,
+    run_tests,
+    setup_commands,
+)
+
 
 def runtests(cross_file):
     commontests = [('common', gather_tests('test cases/common'), False)]

@@ -12,13 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .. import mlog
 import contextlib
-import urllib.request, os, hashlib, shutil
+import hashlib
+import os
+import shutil
 import subprocess
 import sys
+import urllib.request
 from pathlib import Path
+
 from . import WrapMode
+from .. import mlog
 
 try:
     import ssl

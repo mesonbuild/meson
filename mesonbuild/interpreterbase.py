@@ -15,11 +15,12 @@
 # This class contains the basic functionality needed to run any interpreter
 # or an interpreter-based tool.
 
-from . import mparser, mesonlib, mlog
-from . import environment, dependencies
-
-import os, copy, re
+import copy
+import os
+import re
 from functools import wraps
+
+from . import dependencies, environment, mesonlib, mlog, mparser
 
 # Decorators for method calls.
 

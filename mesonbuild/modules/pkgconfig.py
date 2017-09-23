@@ -14,11 +14,8 @@
 
 import os
 
-from .. import build
-from .. import mesonlib
-from .. import mlog
-from . import ModuleReturnValue
-from . import ExtensionModule
+from . import ExtensionModule, ModuleReturnValue
+from .. import build, mesonlib, mlog
 from ..interpreterbase import permittedKwargs
 
 

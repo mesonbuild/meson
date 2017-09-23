@@ -14,8 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from mesonbuild import mesonmain
 import sys
+
+from mesonbuild import mesonmain
 
 if __name__ == '__main__':
     print('Warning: This executable is deprecated. Use "meson configure" instead.',

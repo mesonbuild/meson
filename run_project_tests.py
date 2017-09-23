@@ -14,29 +14,35 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from glob import glob
+import argparse
+import concurrent.futures as conc
 import itertools
-import os, subprocess, shutil, sys, signal
-from io import StringIO
+import multiprocessing
+import os
+import re
+import shutil
+import signal
+import subprocess
+import sys
+import tempfile
+import time
+import xml.etree.ElementTree as ET
 from ast import literal_eval
 from enum import Enum
-import tempfile
-from mesonbuild import mtest
-from mesonbuild import environment
-from mesonbuild import mesonlib
-from mesonbuild import mlog
-from mesonbuild.mesonlib import stringlistify, Popen_safe
-from mesonbuild.coredata import backendlist
-import argparse
-import xml.etree.ElementTree as ET
-import time
-import multiprocessing
-import concurrent.futures as conc
-import re
-from run_unittests import get_fake_options, run_configure_inprocess
+from glob import glob
+from io import StringIO
 
-from run_tests import get_backend_commands, get_backend_args_for_dir, Backend
-from run_tests import ensure_backend_detects_changes
+from mesonbuild import environment, mesonlib, mlog, mtest
+from mesonbuild.coredata import backendlist
+from mesonbuild.mesonlib import Popen_safe, stringlistify
+
+from run_tests import (
+    Backend,
+    ensure_backend_detects_changes,
+    get_backend_args_for_dir,
+    get_backend_commands,
+)
+from run_unittests import get_fake_options, run_configure_inprocess
 
 
 class BuildStep(Enum):

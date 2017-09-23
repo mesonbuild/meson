@@ -18,12 +18,12 @@ following:
 - all new features must come with a test (or several if it is
   a big feature)
 
-Meson uses Flake8 for style guide enforcement. The Flake8 options for
-the project are contained in setup.cfg.
+Meson uses Flake8 with the isort plugin for style guide enforcement.
+The Flake8 options for the project are contained in setup.cfg.
 
 To run Flake8 on your local clone of Meson:
 
- $ python3 -m pip install flake8
+ $ python3 -m pip install flake8-isort
  $ cd meson
  $ flake8
 

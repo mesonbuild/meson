@@ -12,7 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys, os, subprocess, re
+import os
+import re
+import subprocess
+import sys
+
 
 def config_vcs_tag(infile, outfile, fallback, source_dir, replace_string, regex_selector, cmd):
     try:

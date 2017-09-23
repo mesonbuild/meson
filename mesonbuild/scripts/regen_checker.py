@@ -12,8 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys, os
-import pickle, subprocess
+import os
+import pickle
+import subprocess
+import sys
 
 # This could also be used for XCode.
 

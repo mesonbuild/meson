@@ -19,11 +19,14 @@ tests and so on. All output is in JSON for simple parsing.
 Currently only works for the Ninja backend. Others use generated
 project files and don't need this info."""
 
-import json, pickle
-from . import coredata, build
 import argparse
-import sys, os
+import json
+import os
 import pathlib
+import pickle
+import sys
+
+from . import build, coredata
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--targets', action='store_true', dest='list_targets', default=False,

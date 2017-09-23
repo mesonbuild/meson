@@ -12,11 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os.path, shutil, subprocess
+import os.path
+import shutil
+import subprocess
 
 from ..mesonlib import EnvironmentException
-
 from .compilers import Compiler, java_buildtype_args
+
 
 class JavaCompiler(Compiler):
     def __init__(self, exelist, version):

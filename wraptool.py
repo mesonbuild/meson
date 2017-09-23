@@ -14,7 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from mesonbuild.wrap import wraptool
 import sys
+
+from mesonbuild.wrap import wraptool
 
 sys.exit(wraptool.run(sys.argv[1:]))

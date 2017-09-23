@@ -12,19 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os, pickle, re
-from .. import build
-from .. import dependencies
-from .. import mesonlib
-from .. import mlog
-from .. import compilers
 import json
-import subprocess
-from ..mesonlib import MesonException
-from ..mesonlib import get_compiler_for_source, classify_unity_sources
-from ..compilers import CompilerArgs
-from collections import OrderedDict
+import os
+import pickle
+import re
 import shlex
+import subprocess
+from collections import OrderedDict
+
+from .. import build, compilers, dependencies, mesonlib, mlog
+from ..compilers import CompilerArgs
+from ..mesonlib import (
+    MesonException,
+    classify_unity_sources,
+    get_compiler_for_source,
+)
+
 
 class CleanTrees:
     '''

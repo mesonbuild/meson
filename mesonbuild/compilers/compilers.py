@@ -12,13 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import contextlib, os.path, re, tempfile
+import contextlib
+import os.path
+import re
+import tempfile
 
+from .. import coredata, mesonlib, mlog
 from ..linkers import StaticLinker
-from .. import coredata
-from .. import mlog
-from .. import mesonlib
-from ..mesonlib import EnvironmentException, MesonException, version_compare, Popen_safe
+from ..mesonlib import (
+    EnvironmentException,
+    MesonException,
+    Popen_safe,
+    version_compare,
+)
 
 """This file contains the data files of all compilers Meson knows
 about. To support a new compiler, add its information below.

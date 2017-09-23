@@ -19,10 +19,10 @@ import os
 import shlex
 import shutil
 
-from .. import mlog
-from .. import mesonlib
-from ..mesonlib import version_compare, Popen_safe
+from .. import mesonlib, mlog
+from ..mesonlib import Popen_safe, version_compare
 from .base import DependencyException, ExternalDependency, PkgConfigDependency
+
 
 class GTestDependency(ExternalDependency):
     def __init__(self, environment, kwargs):

@@ -15,12 +15,12 @@
 # This class contains the basic functionality needed to run any interpreter
 # or an interpreter-based tool.
 
-from . import interpreterbase, mlog, mparser, mesonlib
-from . import environment
+import os
+import sys
 
+from . import environment, interpreterbase, mesonlib, mlog, mparser
 from .interpreterbase import InterpreterException, InvalidArguments
 
-import os, sys
 
 class DontCareObject(interpreterbase.InterpreterObject):
     pass

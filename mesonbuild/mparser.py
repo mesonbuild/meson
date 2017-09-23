@@ -13,8 +13,10 @@
 # limitations under the License.
 
 import re
-from .mesonlib import MesonException
+
 from . import mlog
+from .mesonlib import MesonException
+
 
 class ParseException(MesonException):
     def __init__(self, text, line, lineno, colno):

@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from . import mparser
-from . import coredata
-from . import mesonlib
-import os, re
+import os
+import re
+
+from . import coredata, mesonlib, mparser
 
 forbidden_option_names = coredata.get_builtin_options()
 forbidden_prefixes = {'c_',

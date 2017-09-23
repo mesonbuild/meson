@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
-import sys, os
+import os
+import sys
 
 if len(sys.argv) != 3:
     print("You is fail.")

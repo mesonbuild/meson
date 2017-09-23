@@ -12,19 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os.path, subprocess
+import os.path
+import subprocess
 
 from ..mesonlib import EnvironmentException, version_compare
-
 from .compilers import (
     GCC_STANDARD,
+    Compiler,
+    CompilerArgs,
     d_dmd_buildtype_args,
     d_gdc_buildtype_args,
     d_ldc_buildtype_args,
     get_gcc_soname_args,
     gnu_color_args,
-    Compiler,
-    CompilerArgs,
 )
 
 d_feature_args = {'gcc':  {'unittest': '-funittest',

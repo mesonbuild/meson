@@ -14,13 +14,13 @@
 
 import sys
 import sysconfig
-from .. import mesonlib, dependencies
 
-from . import ExtensionModule
 from mesonbuild.modules import ModuleReturnValue
-from . import permittedSnippetKwargs
-from ..interpreterbase import noKwargs
+
+from . import ExtensionModule, permittedSnippetKwargs
+from .. import dependencies, mesonlib
 from ..interpreter import shlib_kwargs
+from ..interpreterbase import noKwargs
 
 mod_kwargs = set()
 mod_kwargs.update(shlib_kwargs)

@@ -12,16 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import configparser, os, platform, re, shlex, shutil, subprocess
-
-from . import coredata
-from .linkers import ArLinker, VisualStudioLinker
-from . import mesonlib
-from .mesonlib import EnvironmentException, Popen_safe
-from . import mlog
+import configparser
+import os
+import platform
+import re
+import shlex
+import shutil
+import subprocess
 import sys
 
-from . import compilers
+from . import compilers, coredata, mesonlib, mlog
 from .compilers import (
     CLANG_OSX,
     CLANG_STANDARD,
@@ -31,14 +31,6 @@ from .compilers import (
     GCC_OSX,
     GCC_STANDARD,
     ICC_STANDARD,
-    is_assembly,
-    is_header,
-    is_library,
-    is_llvm_ir,
-    is_object,
-    is_source,
-)
-from .compilers import (
     ClangCCompiler,
     ClangCPPCompiler,
     ClangObjCCompiler,
@@ -63,7 +55,15 @@ from .compilers import (
     ValaCompiler,
     VisualStudioCCompiler,
     VisualStudioCPPCompiler,
+    is_assembly,
+    is_header,
+    is_library,
+    is_llvm_ir,
+    is_object,
+    is_source,
 )
+from .linkers import ArLinker, VisualStudioLinker
+from .mesonlib import EnvironmentException, Popen_safe
 
 build_filename = 'meson.build'
 

@@ -13,8 +13,8 @@
 # limitations under the License.
 
 import argparse
-import subprocess
 import os
+import subprocess
 
 parser = argparse.ArgumentParser()
 parser.add_argument('input')

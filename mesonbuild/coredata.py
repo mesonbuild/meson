@@ -12,12 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import pickle, os, uuid
-from pathlib import PurePath
-from collections import OrderedDict
-from .mesonlib import MesonException, commonpath
-from .mesonlib import default_libdir, default_libexecdir, default_prefix
 import ast
+import os
+import pickle
+import uuid
+from collections import OrderedDict
+from pathlib import PurePath
+
+from .mesonlib import (
+    MesonException,
+    commonpath,
+    default_libdir,
+    default_libexecdir,
+    default_prefix,
+)
 
 version = '0.43.0.dev1'
 backendlist = ['ninja', 'vs', 'vs2010', 'vs2015', 'vs2017', 'xcode']

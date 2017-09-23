@@ -16,8 +16,7 @@
 # platform-specific (generally speaking).
 
 from .. import mesonlib
-
-from .base import ExternalDependency, DependencyException
+from .base import DependencyException, ExternalDependency
 
 
 class AppleFrameworks(ExternalDependency):

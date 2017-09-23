@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
-import sys, os
+import os
+import sys
 from glob import glob
 
 _, srcdir, depfile, output = sys.argv

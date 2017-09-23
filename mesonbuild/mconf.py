@@ -12,9 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys, os
-import pickle
 import argparse
+import os
+import pickle
+import sys
+
 from . import coredata, mesonlib
 
 parser = argparse.ArgumentParser()

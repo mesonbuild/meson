@@ -13,14 +13,44 @@
 # limitations under the License.
 
 from .base import (  # noqa: F401
-    Dependency, DependencyException, DependencyMethods, ExternalProgram,
-    ExternalDependency, ExternalLibrary, ExtraFrameworkDependency, InternalDependency,
-    PkgConfigDependency, find_external_dependency, get_dep_identifier, packages, _packages_accept_language)
-from .dev import GMockDependency, GTestDependency, LLVMDependency, ValgrindDependency
-from .misc import (BoostDependency, MPIDependency, Python3Dependency, ThreadDependency, PcapDependency, CupsDependency)
+    Dependency,
+    DependencyException,
+    DependencyMethods,
+    ExternalDependency,
+    ExternalLibrary,
+    ExternalProgram,
+    ExtraFrameworkDependency,
+    InternalDependency,
+    PkgConfigDependency,
+    _packages_accept_language,
+    find_external_dependency,
+    get_dep_identifier,
+    packages,
+)
+from .dev import (
+    GMockDependency,
+    GTestDependency,
+    LLVMDependency,
+    ValgrindDependency,
+)
+from .misc import (
+    BoostDependency,
+    CupsDependency,
+    MPIDependency,
+    PcapDependency,
+    Python3Dependency,
+    ThreadDependency,
+)
 from .platform import AppleFrameworks
-from .ui import GLDependency, GnuStepDependency, Qt4Dependency, Qt5Dependency, SDL2Dependency, WxDependency, VulkanDependency
-
+from .ui import (
+    GLDependency,
+    GnuStepDependency,
+    Qt4Dependency,
+    Qt5Dependency,
+    SDL2Dependency,
+    VulkanDependency,
+    WxDependency,
+)
 
 packages.update({
     # From dev:

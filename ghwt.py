@@ -19,8 +19,14 @@
 # An emergency wraptool(1) replacement downloader that downloads
 # directly from GitHub in case wrapdb.mesonbuild.com is down.
 
-import urllib.request, json, sys, os, shutil, subprocess
-import configparser, hashlib
+import configparser
+import hashlib
+import json
+import os
+import shutil
+import subprocess
+import sys
+import urllib.request
 
 private_repos = {'meson', 'wrapweb', 'meson-ci'}
 

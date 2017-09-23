@@ -27,7 +27,6 @@ that are unrelated to configure checks.
 
 import sys
 
-
 # Add stuff here as it is encountered.
 function_data = \
     {'HAVE_FEENABLEEXCEPT': ('feenableexcept', 'fenv.h'),

@@ -21,10 +21,14 @@ import stat
 import sys
 from enum import Enum
 
-from .. import mlog
-from .. import mesonlib
-from ..mesonlib import MesonException, Popen_safe, flatten, version_compare_many, listify
-
+from .. import mesonlib, mlog
+from ..mesonlib import (
+    MesonException,
+    Popen_safe,
+    flatten,
+    listify,
+    version_compare_many,
+)
 
 # These must be defined in this file to avoid cyclical references.
 packages = {}

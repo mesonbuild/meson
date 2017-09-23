@@ -12,12 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys, pickle, os, shutil, subprocess, gzip, platform, errno
+import errno
+import gzip
+import os
+import pickle
+import platform
 import shlex
+import shutil
+import subprocess
+import sys
 from glob import glob
-from . import depfixer
-from . import destdir_join
-from ..mesonlib import is_windows, Popen_safe
+
+from . import depfixer, destdir_join
+from ..mesonlib import Popen_safe, is_windows
 
 install_log_file = None
 use_selinux = True

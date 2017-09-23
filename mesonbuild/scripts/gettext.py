@@ -12,10 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import argparse
 import os
 import shutil
-import argparse
 import subprocess
+
 from . import destdir_join
 
 parser = argparse.ArgumentParser()

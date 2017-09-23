@@ -12,9 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+import subprocess
+import sys
+
 from mesonbuild import environment
 
-import sys, os, subprocess
 
 def remove_dir_from_trace(lcov_command, covfile, dirname):
     tmpfile = covfile + '.tmp'
