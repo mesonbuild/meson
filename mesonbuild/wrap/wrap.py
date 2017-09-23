@@ -230,6 +230,8 @@ class Resolver:
 
     def get_data(self, url):
         blocksize = 10 * 1024
+        h = hashlib.sha256()
+        tmpfile = tempfile.NamedTemporaryFile(mode='wb', dir=self.cachedir, delete=False)
         if url.startswith('https://wrapdb.mesonbuild.com'):
             resp = open_wrapdburl(url)
         else:
@@ -241,26 +243,34 @@ class Resolver:
                 dlsize = None
             if dlsize is None:
                 print('Downloading file of unknown size.')
-                return resp.read()
+                while True:
+                    block = resp.read(blocksize)
+                    if block == b'':
+                        break
+                    h.update(block)
+                    tmpfile.write(block)
+                hashvalue = h.hexdigest()
+                return hashvalue, tmpfile.name
             print('Download size:', dlsize)
             print('Downloading: ', end='')
             sys.stdout.flush()
             printed_dots = 0
-            blocks = []
             downloaded = 0
             while True:
                 block = resp.read(blocksize)
                 if block == b'':
                     break
                 downloaded += len(block)
-                blocks.append(block)
+                h.update(block)
+                tmpfile.write(block)
                 ratio = int(downloaded / dlsize * 10)
                 while printed_dots < ratio:
                     print('.', end='')
                     sys.stdout.flush()
                     printed_dots += 1
             print('')
-        return b''.join(blocks)
+            hashvalue = h.hexdigest()
+        return hashvalue, tmpfile.name
 
     def get_hash(self, data):
         h = hashlib.sha256()
@@ -275,24 +285,22 @@ class Resolver:
         else:
             srcurl = p.get('source_url')
             mlog.log('Downloading', mlog.bold(packagename), 'from', mlog.bold(srcurl))
-            srcdata = self.get_data(srcurl)
-            dhash = self.get_hash(srcdata)
+            dhash, tmpfile = self.get_data(srcurl)
             expected = p.get('source_hash')
             if dhash != expected:
+                os.remove(tmpfile)
                 raise RuntimeError('Incorrect hash for source %s:\n %s expected\n %s actual.' % (packagename, expected, dhash))
-            with open(ofname, 'wb') as f:
-                f.write(srcdata)
+            os.rename(tmpfile, ofname)
         if p.has_patch():
             purl = p.get('patch_url')
             mlog.log('Downloading patch from', mlog.bold(purl))
-            pdata = self.get_data(purl)
-            phash = self.get_hash(pdata)
+            phash, tmpfile = self.get_data(purl)
             expected = p.get('patch_hash')
             if phash != expected:
+                os.remove(tmpfile)
                 raise RuntimeError('Incorrect hash for patch %s:\n %s expected\n %s actual' % (packagename, expected, phash))
             filename = os.path.join(self.cachedir, p.get('patch_filename'))
-            with open(filename, 'wb') as f:
-                f.write(pdata)
+            os.rename(tmpfile, filename)
         else:
             mlog.log('Package does not require patch.')
 
