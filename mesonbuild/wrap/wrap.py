@@ -14,7 +14,7 @@
 
 from .. import mlog
 import contextlib
-import urllib.request, os, hashlib, shutil
+import urllib.request, os, hashlib, shutil, tempfile, stat
 import subprocess
 import sys
 from pathlib import Path
@@ -296,6 +296,25 @@ class Resolver:
         else:
             mlog.log('Package does not require patch.')
 
+    def copy_tree(self, root_src_dir, root_dst_dir):
+        """
+        Copy directory tree. Overwrites also read only files.
+        """
+        for src_dir, dirs, files in os.walk(root_src_dir):
+            dst_dir = src_dir.replace(root_src_dir, root_dst_dir, 1)
+            if not os.path.exists(dst_dir):
+                os.makedirs(dst_dir)
+            for file_ in files:
+                src_file = os.path.join(src_dir, file_)
+                dst_file = os.path.join(dst_dir, file_)
+                if os.path.exists(dst_file):
+                    try:
+                        os.remove(dst_file)
+                    except PermissionError as exc:
+                        os.chmod(dst_file, stat.S_IWUSR)
+                        os.remove(dst_file)
+                shutil.copy2(src_file, dst_dir)
+
     def extract_package(self, package):
         if sys.version_info < (3, 5):
             try:
@@ -322,4 +341,9 @@ class Resolver:
             pass
         shutil.unpack_archive(os.path.join(self.cachedir, package.get('source_filename')), extract_dir)
         if package.has_patch():
-            shutil.unpack_archive(os.path.join(self.cachedir, package.get('patch_filename')), self.subdir_root)
+            try:
+                shutil.unpack_archive(os.path.join(self.cachedir, package.get('patch_filename')), self.subdir_root)
+            except Exception:
+                with tempfile.TemporaryDirectory() as workdir:
+                    shutil.unpack_archive(os.path.join(self.cachedir, package.get('patch_filename')), workdir)
+                    self.copy_tree(workdir, self.subdir_root)
