@@ -272,16 +272,16 @@ class Resolver:
         ofname = os.path.join(self.cachedir, p.get('source_filename'))
         if os.path.exists(ofname):
             mlog.log('Using', mlog.bold(packagename), 'from cache.')
-            return
-        srcurl = p.get('source_url')
-        mlog.log('Downloading', mlog.bold(packagename), 'from', mlog.bold(srcurl))
-        srcdata = self.get_data(srcurl)
-        dhash = self.get_hash(srcdata)
-        expected = p.get('source_hash')
-        if dhash != expected:
-            raise RuntimeError('Incorrect hash for source %s:\n %s expected\n %s actual.' % (packagename, expected, dhash))
-        with open(ofname, 'wb') as f:
-            f.write(srcdata)
+        else:
+            srcurl = p.get('source_url')
+            mlog.log('Downloading', mlog.bold(packagename), 'from', mlog.bold(srcurl))
+            srcdata = self.get_data(srcurl)
+            dhash = self.get_hash(srcdata)
+            expected = p.get('source_hash')
+            if dhash != expected:
+                raise RuntimeError('Incorrect hash for source %s:\n %s expected\n %s actual.' % (packagename, expected, dhash))
+            with open(ofname, 'wb') as f:
+                f.write(srcdata)
         if p.has_patch():
             purl = p.get('patch_url')
             mlog.log('Downloading patch from', mlog.bold(purl))
