@@ -1082,7 +1082,12 @@ ModuleState = namedtuple('ModuleState', [
     'host_machine', 'target_machine'])
 
 class DisablerHolder(InterpreterObject):
-    pass
+    def __init__(self):
+        super().__init__()
+        self.methods.update({'found': self.found_method})
+
+    def found_method(self, args, kwargs):
+        return False
 
 class ModuleHolder(InterpreterObject, ObjectHolder):
     def __init__(self, modname, module, interpreter):
@@ -1092,6 +1097,8 @@ class ModuleHolder(InterpreterObject, ObjectHolder):
         self.interpreter = interpreter
 
     def method_call(self, method_name, args, kwargs):
+        if is_disabled(args, kwargs):
+            return DisablerHolder()
         try:
             fn = getattr(self.held_object, method_name)
         except AttributeError:
@@ -1382,6 +1389,19 @@ permitted_kwargs = {'add_global_arguments': {'language'},
                     'vcs_tag': {'input', 'output', 'fallback', 'command', 'replace_string'},
                     }
 
+def is_disabled(args, kwargs):
+    for i in args:
+        if isinstance(i, DisablerHolder):
+            return True
+    for i in kwargs.values():
+        if isinstance(i, DisablerHolder):
+            return True
+        if isinstance(i, list):
+            for j in i:
+                if isinstance(j, DisablerHolder):
+                    return True
+    return False
+
 
 class Interpreter(InterpreterBase):
 
@@ -1584,6 +1604,8 @@ class Interpreter(InterpreterBase):
     @noPosargs
     def func_declare_dependency(self, node, args, kwargs):
         version = kwargs.get('version', self.project_version)
+        if is_disabled(args, kwargs):
+            return DisableHolder()
         if not isinstance(version, str):
             raise InterpreterException('Version must be a string.')
         incs = extract_as_list(kwargs, 'include_directories', unholder=True)
@@ -2419,7 +2441,7 @@ to directly access options of other subprojects.''')
 
     @permittedKwargs(permitted_kwargs['test'])
     def func_test(self, node, args, kwargs):
-        if self.is_disabled(args, kwargs):
+        if is_disabled(args, kwargs):
             return DisablerHolder()
         self.add_test(node, args, kwargs, True)
 
@@ -2945,7 +2967,7 @@ different subdirectory.
             self.coredata.target_guids[idname] = str(uuid.uuid4()).upper()
 
     def build_target(self, node, args, kwargs, targetholder):
-        if self.is_disabled(args, kwargs):
+        if is_disabled(args, kwargs):
             return DisablerHolder()
         if not args:
             raise InterpreterException('Target does not have a name.')
