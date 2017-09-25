@@ -182,7 +182,7 @@ class LLVMDependency(ExternalDependency):
                 raise DependencyException('Could not generate modules for LLVM.')
             self.modules = shlex.split(out)
 
-        modules = mesonlib.stringlistify(kwargs.get('modules', []))
+        modules = mesonlib.stringlistify(mesonlib.flatten(kwargs.get('modules', [])))
         for mod in modules:
             if mod not in self.modules:
                 mlog.log('LLVM module', mod, 'found:', mlog.red('NO'))
