@@ -14,7 +14,7 @@
 
 from .. import mlog
 import contextlib
-import urllib.request, os, hashlib, shutil
+import urllib.request, os, hashlib, shutil, tempfile, stat
 import subprocess
 import sys
 from pathlib import Path
@@ -230,6 +230,8 @@ class Resolver:
 
     def get_data(self, url):
         blocksize = 10 * 1024
+        h = hashlib.sha256()
+        tmpfile = tempfile.NamedTemporaryFile(mode='wb', dir=self.cachedir, delete=False)
         if url.startswith('https://wrapdb.mesonbuild.com'):
             resp = open_wrapdburl(url)
         else:
@@ -241,26 +243,34 @@ class Resolver:
                 dlsize = None
             if dlsize is None:
                 print('Downloading file of unknown size.')
-                return resp.read()
+                while True:
+                    block = resp.read(blocksize)
+                    if block == b'':
+                        break
+                    h.update(block)
+                    tmpfile.write(block)
+                hashvalue = h.hexdigest()
+                return hashvalue, tmpfile.name
             print('Download size:', dlsize)
             print('Downloading: ', end='')
             sys.stdout.flush()
             printed_dots = 0
-            blocks = []
             downloaded = 0
             while True:
                 block = resp.read(blocksize)
                 if block == b'':
                     break
                 downloaded += len(block)
-                blocks.append(block)
+                h.update(block)
+                tmpfile.write(block)
                 ratio = int(downloaded / dlsize * 10)
                 while printed_dots < ratio:
                     print('.', end='')
                     sys.stdout.flush()
                     printed_dots += 1
             print('')
-        return b''.join(blocks)
+            hashvalue = h.hexdigest()
+        return hashvalue, tmpfile.name
 
     def get_hash(self, data):
         h = hashlib.sha256()
@@ -272,29 +282,46 @@ class Resolver:
         ofname = os.path.join(self.cachedir, p.get('source_filename'))
         if os.path.exists(ofname):
             mlog.log('Using', mlog.bold(packagename), 'from cache.')
-            return
-        srcurl = p.get('source_url')
-        mlog.log('Downloading', mlog.bold(packagename), 'from', mlog.bold(srcurl))
-        srcdata = self.get_data(srcurl)
-        dhash = self.get_hash(srcdata)
-        expected = p.get('source_hash')
-        if dhash != expected:
-            raise RuntimeError('Incorrect hash for source %s:\n %s expected\n %s actual.' % (packagename, expected, dhash))
-        with open(ofname, 'wb') as f:
-            f.write(srcdata)
+        else:
+            srcurl = p.get('source_url')
+            mlog.log('Downloading', mlog.bold(packagename), 'from', mlog.bold(srcurl))
+            dhash, tmpfile = self.get_data(srcurl)
+            expected = p.get('source_hash')
+            if dhash != expected:
+                os.remove(tmpfile)
+                raise RuntimeError('Incorrect hash for source %s:\n %s expected\n %s actual.' % (packagename, expected, dhash))
+            os.rename(tmpfile, ofname)
         if p.has_patch():
             purl = p.get('patch_url')
             mlog.log('Downloading patch from', mlog.bold(purl))
-            pdata = self.get_data(purl)
-            phash = self.get_hash(pdata)
+            phash, tmpfile = self.get_data(purl)
             expected = p.get('patch_hash')
             if phash != expected:
+                os.remove(tmpfile)
                 raise RuntimeError('Incorrect hash for patch %s:\n %s expected\n %s actual' % (packagename, expected, phash))
             filename = os.path.join(self.cachedir, p.get('patch_filename'))
-            with open(filename, 'wb') as f:
-                f.write(pdata)
+            os.rename(tmpfile, filename)
         else:
             mlog.log('Package does not require patch.')
+
+    def copy_tree(self, root_src_dir, root_dst_dir):
+        """
+        Copy directory tree. Overwrites also read only files.
+        """
+        for src_dir, dirs, files in os.walk(root_src_dir):
+            dst_dir = src_dir.replace(root_src_dir, root_dst_dir, 1)
+            if not os.path.exists(dst_dir):
+                os.makedirs(dst_dir)
+            for file_ in files:
+                src_file = os.path.join(src_dir, file_)
+                dst_file = os.path.join(dst_dir, file_)
+                if os.path.exists(dst_file):
+                    try:
+                        os.remove(dst_file)
+                    except PermissionError as exc:
+                        os.chmod(dst_file, stat.S_IWUSR)
+                        os.remove(dst_file)
+                shutil.copy2(src_file, dst_dir)
 
     def extract_package(self, package):
         if sys.version_info < (3, 5):
@@ -322,4 +349,9 @@ class Resolver:
             pass
         shutil.unpack_archive(os.path.join(self.cachedir, package.get('source_filename')), extract_dir)
         if package.has_patch():
-            shutil.unpack_archive(os.path.join(self.cachedir, package.get('patch_filename')), self.subdir_root)
+            try:
+                shutil.unpack_archive(os.path.join(self.cachedir, package.get('patch_filename')), self.subdir_root)
+            except Exception:
+                with tempfile.TemporaryDirectory() as workdir:
+                    shutil.unpack_archive(os.path.join(self.cachedir, package.get('patch_filename')), workdir)
+                    self.copy_tree(workdir, self.subdir_root)
