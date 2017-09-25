@@ -183,7 +183,7 @@ class LLVMDependency(ExternalDependency):
             self.modules = shlex.split(out)
 
         modules = mesonlib.stringlistify(mesonlib.flatten(kwargs.get('modules', [])))
-        for mod in modules:
+        for mod in sorted(set(modules)):
             if mod not in self.modules:
                 mlog.log('LLVM module', mod, 'found:', mlog.red('NO'))
                 self.is_found = False
