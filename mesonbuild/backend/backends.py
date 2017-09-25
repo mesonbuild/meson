@@ -174,7 +174,7 @@ class Backend:
         Returns the full path of the generated source relative to the build root
         """
         # CustomTarget generators output to the build dir of the CustomTarget
-        if isinstance(gensrc, build.CustomTarget):
+        if isinstance(gensrc, (build.CustomTarget, build.CustomTargetIndex)):
             return os.path.join(self.get_target_dir(gensrc), src)
         # GeneratedList generators output to the private build directory of the
         # target that the GeneratedList is used in

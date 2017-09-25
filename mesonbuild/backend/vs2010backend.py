@@ -91,7 +91,7 @@ class Vs2010Backend(backends.Backend):
         source_target_dir = self.get_target_source_dir(target)
         down = self.target_to_build_root(target)
         for genlist in target.get_generated_sources():
-            if isinstance(genlist, build.CustomTarget):
+            if isinstance(genlist, (build.CustomTarget, build.CustomTargetIndex)):
                 for i in genlist.get_outputs():
                     # Path to the generated source from the current vcxproj dir via the build root
                     ipath = os.path.join(down, self.get_target_dir(genlist), i)
@@ -201,6 +201,8 @@ class Vs2010Backend(backends.Backend):
                 for gendep in target.get_generated_sources():
                     if isinstance(gendep, build.CustomTarget):
                         all_deps[gendep.get_id()] = gendep
+                    elif isinstance(gendep, build.CustomTargetIndex):
+                        all_deps[gendep.target.get_id()] = gendep.target
                     else:
                         gen_exe = gendep.generator.get_exe()
                         if isinstance(gen_exe, build.Executable):

@@ -245,7 +245,7 @@ int dummy;
         header_deps = []
         # XXX: Why don't we add deps to CustomTarget headers here?
         for genlist in target.get_generated_sources():
-            if isinstance(genlist, build.CustomTarget):
+            if isinstance(genlist, (build.CustomTarget, build.CustomTargetIndex)):
                 continue
             for src in genlist.get_outputs():
                 if self.environment.is_header(src):
@@ -1761,10 +1761,11 @@ rule FORTRAN_DEP_HACK
         outfile.write('\n')
 
     def generate_generator_list_rules(self, target, outfile):
-        # CustomTargets have already written their rules,
-        # so write rules for GeneratedLists here
+        # CustomTargets have already written their rules and
+        # CustomTargetIndexes don't actually get generated, so write rules for
+        # GeneratedLists here
         for genlist in target.get_generated_sources():
-            if isinstance(genlist, build.CustomTarget):
+            if isinstance(genlist, (build.CustomTarget, build.CustomTargetIndex)):
                 continue
             self.generate_genlist_for_target(genlist, target, outfile)
 
@@ -2013,7 +2014,7 @@ rule FORTRAN_DEP_HACK
             # Generator output goes into the target private dir which is
             # already in the include paths list. Only custom targets have their
             # own target build dir.
-            if not isinstance(i, build.CustomTarget):
+            if not isinstance(i, (build.CustomTarget, build.CustomTargetIndex)):
                 continue
             idir = self.get_target_dir(i)
             if idir not in custom_target_include_dirs:

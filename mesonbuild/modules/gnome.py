@@ -107,12 +107,12 @@ class GnomeModule(ExtensionModule):
         for (ii, dep) in enumerate(dependencies):
             if hasattr(dep, 'held_object'):
                 dependencies[ii] = dep = dep.held_object
-            if not isinstance(dep, (mesonlib.File, build.CustomTarget)):
+            if not isinstance(dep, (mesonlib.File, build.CustomTarget, build.CustomTargetIndex)):
                 m = 'Unexpected dependency type {!r} for gnome.compile_resources() ' \
                     '"dependencies" argument.\nPlease pass the return value of ' \
                     'custom_target() or configure_file()'
                 raise MesonException(m.format(dep))
-            if isinstance(dep, build.CustomTarget):
+            if isinstance(dep, (build.CustomTarget, build.CustomTargetIndex)):
                 if not mesonlib.version_compare(glib_version, gresource_dep_needed_version):
                     m = 'The "dependencies" argument of gnome.compile_resources() can not\n' \
                         'be used with the current version of glib-compile-resources due to\n' \
@@ -131,6 +131,7 @@ class GnomeModule(ExtensionModule):
         elif isinstance(ifile, str):
             ifile = os.path.join(state.subdir, ifile)
         elif isinstance(ifile, (interpreter.CustomTargetHolder,
+                                interpreter.CustomTargetIndexHolder,
                                 interpreter.GeneratedObjectsHolder)):
             m = 'Resource xml files generated at build-time cannot be used ' \
                 'with gnome.compile_resources() because we need to scan ' \
@@ -261,7 +262,7 @@ class GnomeModule(ExtensionModule):
                     dep_files.append(dep)
                     subdirs.append(dep.subdir)
                     break
-                elif isinstance(dep, build.CustomTarget):
+                elif isinstance(dep, (build.CustomTarget, build.CustomTargetIndex)):
                     fname = None
                     outputs = {(o, os.path.basename(o)) for o in dep.get_outputs()}
                     for o, baseo in outputs:
@@ -443,7 +444,7 @@ class GnomeModule(ExtensionModule):
             for s in libsources:
                 if hasattr(s, 'held_object'):
                     s = s.held_object
-                if isinstance(s, build.CustomTarget):
+                if isinstance(s, (build.CustomTarget, build.CustomTargetIndex)):
                     gir_filelist.write(os.path.join(state.environment.get_build_dir(),
                                                     state.backend.get_target_dir(s),
                                                     s.get_outputs()[0]) + '\n')

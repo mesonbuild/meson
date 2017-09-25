@@ -425,7 +425,7 @@ class BuildTarget(Target):
                 if s not in added_sources:
                     self.sources.append(s)
                     added_sources[s] = True
-            elif isinstance(s, (GeneratedList, CustomTarget)):
+            elif isinstance(s, (GeneratedList, CustomTarget, CustomTargetIndex)):
                 self.generated.append(s)
             else:
                 msg = 'Bad source of type {!r} in target {!r}.'.format(type(s).__name__, self.name)
@@ -1676,6 +1676,15 @@ class CustomTarget(Target):
     def type_suffix(self):
         return "@cus"
 
+    def __getitem__(self, index):
+        return CustomTargetIndex(self, self.outputs[index])
+
+    def __setitem__(self, index, value):
+        raise NotImplementedError
+
+    def __delitem__(self, index):
+        raise NotImplementedError
+
 class RunTarget(Target):
     def __init__(self, name, command, args, dependencies, subdir):
         super().__init__(name, subdir, False)
@@ -1733,6 +1742,29 @@ class Jar(BuildTarget):
     def validate_cross_install(self, environment):
         # All jar targets are installable.
         pass
+
+
+class CustomTargetIndex:
+
+    """A special opaque object returned by indexing a CustomTaget. This object
+    exists in meson, but acts as a proxy in the backends, making targets depend
+    on the CustomTarget it's derived from, but only adding one source file to
+    the sources.
+    """
+
+    def __init__(self, target, output):
+        self.target = target
+        self.output = output
+
+    def __repr__(self):
+        return '<CustomTargetIndex: {!r}[{}]>'.format(
+            self.target, self.target.output.index(self.output))
+
+    def get_outputs(self):
+        return [self.output]
+
+    def get_subdir(self):
+        return self.target.get_subdir()
 
 
 class ConfigureFile:
