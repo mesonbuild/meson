@@ -78,6 +78,8 @@ class PackageDefinition:
                 self.type = 'git'
             elif first == '[wrap-hg]':
                 self.type = 'hg'
+            elif first == '[wrap-svn]':
+                self.type = 'svn'
             else:
                 raise RuntimeError('Invalid format of package file')
             for line in ifile:
@@ -145,6 +147,8 @@ class Resolver:
             self.get_git(p)
         elif p.type == "hg":
             self.get_hg(p)
+        elif p.type == "svn":
+            self.get_svn(p)
         else:
             raise AssertionError('Unreachable code.')
         return p.get('directory')
@@ -226,6 +230,28 @@ class Resolver:
                                    p.get('directory')], cwd=self.subdir_root)
             if revno.lower() != 'tip':
                 subprocess.check_call(['hg', 'checkout', revno],
+                                      cwd=checkoutdir)
+
+    def get_svn(self, p):
+        checkoutdir = os.path.join(self.subdir_root, p.get('directory'))
+        revno = p.get('revision')
+        is_there = os.path.isdir(checkoutdir)
+        if is_there:
+            if revno.lower() == 'head':
+                # Failure to do pull is not a fatal error,
+                # because otherwise you can't develop without
+                # a working net connection.
+                subprocess.call(['svn', 'update'], cwd=checkoutdir)
+            else:
+                if subprocess.call(['svn', 'update', '-r', revno], cwd=checkoutdir) != 0:
+                    subprocess.check_call(['svn', 'update'], cwd=checkoutdir)
+                    subprocess.check_call(['svn', 'update', '-r', revno],
+                                          cwd=checkoutdir)
+        else:
+            subprocess.check_call(['svn', 'checkout', p.get('url'),
+                                   p.get('directory')], cwd=self.subdir_root)
+            if revno.lower() != 'head':
+                subprocess.check_call(['svn', 'checkout', '-r', revno],
                                       cwd=checkoutdir)
 
     def get_data(self, url):
