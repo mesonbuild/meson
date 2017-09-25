@@ -566,6 +566,11 @@ class JarHolder(BuildTargetHolder):
     def __init__(self, target, interp):
         super().__init__(target, interp)
 
+class CustomTargetIndexHolder(InterpreterObject):
+    def __init__(self, object_to_hold):
+        super().__init__()
+        self.held_object = object_to_hold
+
 class CustomTargetHolder(TargetHolder):
     def __init__(self, object_to_hold, interp):
         super().__init__()
@@ -581,6 +586,15 @@ class CustomTargetHolder(TargetHolder):
 
     def full_path_method(self, args, kwargs):
         return self.interpreter.backend.get_target_filename_abs(self.held_object)
+
+    def __getitem__(self, index):
+        return CustomTargetIndexHolder(self.held_object[index])
+
+    def __setitem__(self, index, value):
+        raise InterpreterException('Cannot set a member of a CustomTarget')
+
+    def __delitem__(self, index):
+        raise InterpreterException('Cannot delete a member of a CustomTarget')
 
 class RunTargetHolder(InterpreterObject):
     def __init__(self, name, command, args, dependencies, subdir):
@@ -2774,7 +2788,7 @@ different subdirectory.
         results = []
         for s in sources:
             if isinstance(s, (mesonlib.File, GeneratedListHolder,
-                              CustomTargetHolder)):
+                              CustomTargetHolder, CustomTargetIndexHolder)):
                 pass
             elif isinstance(s, str):
                 s = mesonlib.File.from_source_file(self.environment.source_dir, self.subdir, s)

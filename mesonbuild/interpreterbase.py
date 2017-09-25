@@ -369,14 +369,16 @@ class InterpreterBase:
     def evaluate_indexing(self, node):
         assert(isinstance(node, mparser.IndexNode))
         iobject = self.evaluate_statement(node.iobject)
-        if not isinstance(iobject, list):
-            raise InterpreterException('Tried to index a non-array object.')
+        if not hasattr(iobject, '__getitem__'):
+            raise InterpreterException(
+                'Tried to index an object that doesn\'t support indexing.')
         index = self.evaluate_statement(node.index)
         if not isinstance(index, int):
             raise InterpreterException('Index value is not an integer.')
-        if index < -len(iobject) or index >= len(iobject):
+        try:
+            return iobject[index]
+        except IndexError:
             raise InterpreterException('Index %d out of bounds of array of size %d.' % (index, len(iobject)))
-        return iobject[index]
 
     def function_call(self, node):
         func_name = node.func_name
