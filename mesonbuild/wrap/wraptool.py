@@ -21,6 +21,8 @@ from glob import glob
 
 from .wrap import API_ROOT, open_wrapdburl
 
+from .. import mesonlib
+
 help_templ = '''This program allows you to manage your Wrap dependencies
 using the online wrap database http://wrapdb.mesonbuild.com.
 
@@ -149,29 +151,10 @@ def do_promotion(from_path, spdir_name):
         sys.exit('Output dir %s already exists. Will not overwrite.' % outputdir)
     shutil.copytree(from_path, outputdir, ignore=shutil.ignore_patterns('subprojects'))
 
-def detect_subprojects(spdir_name, current_dir='', result=None):
-    if result is None:
-        result = {}
-    spdir = os.path.join(current_dir, spdir_name)
-    if not os.path.exists(spdir):
-        return result
-    for trial in glob(os.path.join(spdir, '*')):
-        basename = os.path.split(trial)[1]
-        if trial == 'packagecache':
-            continue
-        if not os.path.isdir(trial):
-            continue
-        if basename in result:
-            result[basename].append(trial)
-        else:
-            result[basename] = [trial]
-        detect_subprojects(spdir_name, trial, result)
-    return result
-
 def promote(argument):
     path_segment, subproject_name = os.path.split(argument)
     spdir_name = 'subprojects'
-    sprojs = detect_subprojects(spdir_name)
+    sprojs = mesonlib.detect_subprojects(spdir_name)
     if subproject_name not in sprojs:
         sys.exit('Subproject %s not found in directory tree.' % subproject_name)
     matches = sprojs[subproject_name]
