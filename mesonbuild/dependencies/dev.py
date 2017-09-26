@@ -163,7 +163,10 @@ class LLVMDependency(ExternalDependency):
         mlog.log('Dependency LLVM found:', mlog.green('YES'))
         self.is_found = True
 
-        self.version = out.strip()
+        # Currently meson doesn't really atempt to handle pre-release versions,
+        # so strip the 'svn' off the end, since it will probably cuase problems
+        # for users who want the patch version.
+        self.version = out.strip().rstrip('svn')
 
         p, out = Popen_safe(
             [self.llvmconfig, '--libs', '--ldflags', '--system-libs'])[:2]
