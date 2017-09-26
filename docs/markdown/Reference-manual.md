@@ -1309,9 +1309,9 @@ the following methods:
 - `get_id()` returns a string identifying the compiler. For example,
   `gcc`, `msvc`, [and more](Compiler-properties.md#compiler-id).
 
-- `get_supported_arguments(list_of_string)` returns an array
-  containing only the arguments supported by the compiler, as if
-  `has_argument` were called on them individually.
+- `get_supported_arguments(list_of_string)` *(added 0.43.0)* returns
+  an array containing only the arguments supported by the compiler,
+  as if `has_argument` were called on them individually.
 
 - `has_argument(argument_name)` returns true if the compiler accepts
   the specified command line argument, that is, can compile code
