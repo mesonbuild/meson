@@ -238,7 +238,6 @@ class Resolver:
         is_there = os.path.isdir(checkoutdir)
         if is_there:
             svn_info_output = subprocess.getoutput(' '.join(['svn', 'info', '--show-item', 'revision', checkoutdir]))
-            current_revno = int(svn_info_output)
             if current_revno == revno:
                 return
 
