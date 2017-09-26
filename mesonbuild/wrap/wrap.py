@@ -237,16 +237,18 @@ class Resolver:
         revno = p.get('revision')
         is_there = os.path.isdir(checkoutdir)
         if is_there:
+            svn_info_output = subprocess.getoutput(' '.join(['svn', 'info', '--show-item', 'revision', checkoutdir]))
+            current_revno = int(svn_info_output)
+            if current_revno == revno:
+                return
+
             if revno.lower() == 'head':
                 # Failure to do pull is not a fatal error,
                 # because otherwise you can't develop without
                 # a working net connection.
                 subprocess.call(['svn', 'update'], cwd=checkoutdir)
             else:
-                if subprocess.call(['svn', 'update', '-r', revno], cwd=checkoutdir) != 0:
-                    subprocess.check_call(['svn', 'update'], cwd=checkoutdir)
-                    subprocess.check_call(['svn', 'update', '-r', revno],
-                                          cwd=checkoutdir)
+                subprocess.check_call(['svn', 'update', '-r', revno], cwd=checkoutdir)
         else:
             subprocess.check_call(['svn', 'checkout', '-r', revno, p.get('url'),
                                    p.get('directory')], cwd=self.subdir_root)
