@@ -2550,12 +2550,10 @@ class Interpreter(InterpreterBase):
             if not isinstance(inputfile, (str, mesonlib.File)):
                 raise InterpreterException('Input must be a string or a file')
             if isinstance(inputfile, str):
-                inputfile = os.path.join(self.subdir, inputfile)
-                ifile_abs = os.path.join(self.environment.source_dir, inputfile)
-            else:
-                ifile_abs = inputfile.absolute_path(self.environment.source_dir,
-                                                    self.environment.build_dir)
-                inputfile = inputfile.relative_name()
+                inputfile = mesonlib.File.from_source_file(self.environment.source_dir,
+                                                           self.subdir, inputfile)
+            ifile_abs = inputfile.absolute_path(self.environment.source_dir,
+                                                self.environment.build_dir)
         elif 'command' in kwargs and '@INPUT@' in kwargs['command']:
             raise InterpreterException('@INPUT@ used as command argument, but no input file specified.')
         # Validate output
@@ -2576,18 +2574,13 @@ class Interpreter(InterpreterBase):
                 raise InterpreterException('Argument "configuration" is not of type configuration_data')
             mlog.log('Configuring', mlog.bold(output), 'using configuration')
             if inputfile is not None:
-                # Normalize the path of the conffile to avoid duplicates
-                # This is especially important to convert '/' to '\' on Windows
-                conffile = os.path.normpath(inputfile)
-                if conffile not in self.build_def_files:
-                    self.build_def_files.append(conffile)
                 os.makedirs(os.path.join(self.environment.build_dir, self.subdir), exist_ok=True)
                 missing_variables = mesonlib.do_conf_file(ifile_abs, ofile_abs,
                                                           conf.held_object)
                 if missing_variables:
                     var_list = ", ".join(map(repr, sorted(missing_variables)))
                     mlog.warning(
-                        "The variable(s) %s in the input file %r are not "
+                        "The variable(s) %s in the input file %s are not "
                         "present in the given configuration data" % (
                             var_list, inputfile))
             else:
@@ -2617,6 +2610,17 @@ class Interpreter(InterpreterBase):
                 mesonlib.replace_if_different(ofile_abs, dst_tmp)
         else:
             raise InterpreterException('Configure_file must have either "configuration" or "command".')
+        # If the input is a source file, add it to the list of files that we
+        # need to reconfigure on when they change. FIXME: Do the same for
+        # files() objects in the command: kwarg.
+        if inputfile and not inputfile.is_built:
+            # Normalize the path of the conffile (relative to the
+            # source root) to avoid duplicates. This is especially
+            # important to convert '/' to '\' on Windows
+            conffile = os.path.normpath(inputfile.relative_name())
+            if conffile not in self.build_def_files:
+                self.build_def_files.append(conffile)
+        # Install file if requested
         idir = kwargs.get('install_dir', None)
         if isinstance(idir, str):
             cfile = mesonlib.File.from_built_file(ofile_path, ofile_fname)
