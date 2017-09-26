@@ -248,11 +248,8 @@ class Resolver:
                     subprocess.check_call(['svn', 'update', '-r', revno],
                                           cwd=checkoutdir)
         else:
-            subprocess.check_call(['svn', 'checkout', p.get('url'),
+            subprocess.check_call(['svn', 'checkout', '-r', revno, p.get('url'),
                                    p.get('directory')], cwd=self.subdir_root)
-            if revno.lower() != 'head':
-                subprocess.check_call(['svn', 'checkout', '-r', revno],
-                                      cwd=checkoutdir)
 
     def get_data(self, url):
         blocksize = 10 * 1024
