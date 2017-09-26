@@ -20,7 +20,7 @@ import os
 import copy
 import subprocess
 from . import ModuleReturnValue
-from ..mesonlib import MesonException, OrderedSet, Popen_safe
+from ..mesonlib import MesonException, OrderedSet, unholder_array, Popen_safe
 from ..dependencies import Dependency, PkgConfigDependency, InternalDependency
 from .. import mlog
 from .. import mesonlib
@@ -323,11 +323,9 @@ class GnomeModule(ExtensionModule):
         cflags = OrderedSet()
         ldflags = OrderedSet()
         gi_includes = OrderedSet()
-        deps = mesonlib.listify(deps)
+        deps = unholder_array(deps)
 
         for dep in deps:
-            if hasattr(dep, 'held_object'):
-                dep = dep.held_object
             if isinstance(dep, InternalDependency):
                 cflags.update(get_include_args(dep.include_directories))
                 for lib in dep.libraries:
@@ -378,7 +376,7 @@ class GnomeModule(ExtensionModule):
             elif isinstance(dep, (build.StaticLibrary, build.SharedLibrary)):
                 cflags.update(get_include_args(dep.get_include_dirs()))
             else:
-                mlog.log('dependency %s not handled to build gir files' % dep)
+                mlog.log('dependency {!r} not handled to build gir files'.format(dep))
                 continue
 
         if gir_has_extra_lib_arg() and use_gir_args:
@@ -525,9 +523,8 @@ class GnomeModule(ExtensionModule):
             else:
                 raise MesonException('Gir export packages must be str or list')
 
-        deps = mesonlib.extract_as_list(kwargs, 'dependencies', pop = True)
         deps = (girtarget.get_all_link_deps() + girtarget.get_external_deps() +
-                deps)
+                unholder_array(kwargs.pop('dependencies', [])))
         # Need to recursively add deps on GirTarget sources from our
         # dependencies and also find the include directories needed for the
         # typelib generation custom target below.
@@ -794,7 +791,8 @@ This will become a hard error in the future.''')
 
     def _get_build_args(self, kwargs, state):
         args = []
-        cflags, ldflags, gi_includes = self._get_dependencies_flags(kwargs.get('dependencies', []), state, include_rpath=True)
+        deps = unholder_array(kwargs.get('dependencies', []))
+        cflags, ldflags, gi_includes = self._get_dependencies_flags(deps, state, include_rpath=True)
         inc_dirs = mesonlib.extract_as_list(kwargs, 'include_directories')
         for incd in inc_dirs:
             if not isinstance(incd.held_object, (str, build.IncludeDirs)):
