@@ -1562,6 +1562,53 @@ int main(int argc, char **argv) {
         cargs = ['-I' + incdir.as_posix()]
         self.assertEqual(foo_dep.get_compile_args(), cargs)
 
+    def test_array_option_change(self):
+        def get_opt():
+            opts = self.introspect('--buildoptions')
+            for x in opts:
+                if x.get('name') == 'list':
+                    return x
+            raise Exception(opts)
+
+        expected = {
+            'name': 'list',
+            'description': 'list',
+            'type': 'stringarray',
+            'value': ['foo', 'bar'],
+        }
+        tdir = os.path.join(self.unit_test_dir, '18 array option')
+        self.init(tdir)
+        original = get_opt()
+        self.assertDictEqual(original, expected)
+
+        expected['value'] = ['oink', 'boink']
+        self.setconf('-Dlist=oink,boink')
+        changed = get_opt()
+        self.assertEqual(changed, expected)
+
+    def test_array_option_bad_change(self):
+        def get_opt():
+            opts = self.introspect('--buildoptions')
+            for x in opts:
+                if x.get('name') == 'list':
+                    return x
+            raise Exception(opts)
+
+        expected = {
+            'name': 'list',
+            'description': 'list',
+            'type': 'stringarray',
+            'value': ['foo', 'bar'],
+        }
+        tdir = os.path.join(self.unit_test_dir, '18 array option')
+        self.init(tdir)
+        original = get_opt()
+        self.assertDictEqual(original, expected)
+        with self.assertRaises(subprocess.CalledProcessError):
+            self.setconf('-Dlist=bad')
+        changed = get_opt()
+        self.assertDictEqual(changed, expected)
+
 
 class FailureTests(BasePlatformTests):
     '''
