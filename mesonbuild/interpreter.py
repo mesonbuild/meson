@@ -1700,6 +1700,9 @@ class Interpreter(InterpreterBase):
         if len(args) != 1:
             raise InterpreterException('Argument required for get_option.')
         optname = args[0]
+        if ':' in optname:
+            raise InterpreterException('''Having a colon in option name is forbidden, projects are not allowed
+to directly access options of other subprojects.''')
         try:
             return self.environment.get_coredata().base_options[optname].value
         except KeyError:
