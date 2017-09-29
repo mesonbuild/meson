@@ -99,3 +99,66 @@ These are the parameter names for passing language specific arguments to your bu
 | Objective C++ | objcpp_args |
 | Rust          | rust_args |
 | Vala          | vala_args |
+
+
+## Function Attributes
+
+These are the parameters names that are supported using
+`compiler.has_function_attribute()` or
+`compiler.get_supported_function_attributes()`
+
+### GCC __attribute__
+
+These values are supported using the GCC style `__attribute__` annotations,
+which are supported by GCC, Clang, and other compilers.
+
+
+| Name                 |
+|----------------------|
+| alias                |
+| aligned              |
+| alloc_size           |
+| always_inline        |
+| artificial           |
+| cold                 |
+| const                |
+| constructor          |
+| constructor_priority |
+| deprecated           |
+| destructor           |
+| error                |
+| externally_visible   |
+| fallthrough          |
+| flatten              |
+| format               |
+| format_arg           |
+| gnu_inline           |
+| hot                  |
+| ifunc                |
+| malloc               |
+| noclone              |
+| noinline             |
+| nonnull              |
+| noreturn             |
+| nothrow              |
+| optimize             |
+| packed               |
+| pure                 |
+| returns_nonnull      |
+| unused               |
+| used                 |
+| visibility           |
+| warning              |
+| warn_unused_result   |
+| weak                 |
+| weakreaf             |
+
+### MSVC __declspec
+
+These values are supported using the MSVC style `__declspec` annotation,
+which are supported by MSVC, GCC, Clang, and other compilers.
+
+| Name                 |
+|----------------------|
+| dllexport            |
+| dllimport            |

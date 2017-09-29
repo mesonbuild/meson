@@ -1753,6 +1753,18 @@ the following methods:
 
 - `version()` returns the compiler's version number as a string.
 
+- `has_function_attribute(name)` *(added in 0.48.0)* returns `true` if the
+  compiler supports the GNU style (`__attribute__(...)`) `name`. This is
+  preferable to manual compile checks as it may be optimized for compilers that
+  do not support such attributes.
+  [This table](Reference-tables.html#gcc-attribute-support) Lists all of the
+  supported attributes.
+
+- `get_supported_function_attributes(list_of_names)` *(added in 0.48.0)
+  returns an array containing any names that are supported GCC style
+  attributes. Equivalent to `has_function_attribute` was called on each of them
+  individually.
+
 The following keyword arguments can be used:
 
 - `args` can be used to pass a list of compiler arguments that are

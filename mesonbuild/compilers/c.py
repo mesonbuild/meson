@@ -24,9 +24,10 @@ from .. import mlog
 from .. import coredata
 from . import compilers
 from ..mesonlib import (
-    EnvironmentException, version_compare, Popen_safe, listify,
+    EnvironmentException, MesonException, version_compare, Popen_safe, listify,
     for_windows, for_darwin, for_cygwin, for_haiku, for_openbsd,
 )
+from .c_function_attributes import C_FUNC_ATTRIBUTES
 
 from .compilers import (
     GCC_MINGW,
@@ -56,6 +57,13 @@ class CCompiler(Compiler):
     program_dirs_cache = {}
     find_library_cache = {}
     internal_libs = gnu_compiler_internal_libs
+
+    @staticmethod
+    def attribute_check_func(name):
+        try:
+            return C_FUNC_ATTRIBUTES[name]
+        except KeyError:
+            raise MesonException('Unknown function attribute "{}"'.format(name))
 
     def __init__(self, exelist, version, is_cross, exe_wrapper=None, **kwargs):
         # If a child ObjC or CPP class has already set it, don't set it ourselves
@@ -1045,6 +1053,19 @@ class CCompiler(Compiler):
             m = pattern.match(ret)
         return ret
 
+    def has_func_attribute(self, name, env):
+        # Just assume that if we're not on windows that dllimport and dllexport
+        # don't work
+        if not (for_windows(env.is_cross_build(), env) or
+                for_cygwin(env.is_cross_build(), env)):
+            if name in ['dllimport', 'dllexport']:
+                return False
+
+        # Clang and GCC both return warnings if the __attribute__ is undefined,
+        # so set -Werror
+        return self.compiles(self.attribute_check_func(name), env, extra_args='-Werror')
+
+
 class ClangCCompiler(ClangCompiler, CCompiler):
     def __init__(self, exelist, version, clang_type, is_cross, exe_wrapper=None, **kwargs):
         CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwargs)
@@ -1489,6 +1510,12 @@ class VisualStudioCCompiler(CCompiler):
         else:
             assert(buildtype == 'custom')
             raise EnvironmentException('Requested C runtime based on buildtype, but buildtype is "custom".')
+
+    def has_func_attribute(self, name, env):
+        # MSVC doesn't have __attribute__ like Clang and GCC do, so just return
+        # false without compiling anything
+        return name in ['dllimport', 'dllexport']
+
 
 class ArmCCompiler(ArmCompiler, CCompiler):
     def __init__(self, exelist, version, is_cross, exe_wrapper=None, **kwargs):
