@@ -1713,7 +1713,8 @@ class Interpreter(InterpreterBase):
         except KeyError:
             pass
         if not coredata.is_builtin_option(optname) and self.is_subproject():
-            optname = self.subproject + ':' + optname
+            if ':' not in optname:
+                optname = self.subproject + ':' + optname
         try:
             return self.environment.coredata.user_options[optname].value
         except KeyError:
