@@ -300,7 +300,11 @@ def run(original_args, mainfile=None):
         elif cmd_name == 'rewrite':
             return rewriter.run(remaining_args)
         elif cmd_name == 'configure':
-            return mconf.run(remaining_args)
+            try:
+                return mconf.run(remaining_args)
+            except MesonException as e:
+                mlog.log(mlog.red('\nError configuring project:'), e)
+                sys.exit(1)
         elif cmd_name == 'wrap':
             return wraptool.run(remaining_args)
         elif cmd_name == 'runpython':
