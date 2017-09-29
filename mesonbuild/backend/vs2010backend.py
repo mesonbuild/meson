@@ -333,6 +333,11 @@ class Vs2010Backend(backends.Backend):
     def quote_arguments(self, arr):
         return ['"%s"' % i for i in arr]
 
+    def add_project_reference(self, root, include, projid):
+        ig = ET.SubElement(root, 'ItemGroup')
+        pref = ET.SubElement(ig, 'ProjectReference', Include=include)
+        ET.SubElement(pref, 'Project').text = '{%s}' % projid
+
     def create_basic_crap(self, target):
         project_name = target.name
         root = ET.Element('Project', {'DefaultTargets': "Build",
@@ -1009,9 +1014,8 @@ class Vs2010Backend(backends.Backend):
 
         ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.targets')
         # Reference the regen target.
-        ig = ET.SubElement(root, 'ItemGroup')
-        pref = ET.SubElement(ig, 'ProjectReference', Include=os.path.join(self.environment.get_build_dir(), 'REGEN.vcxproj'))
-        ET.SubElement(pref, 'Project').text = self.environment.coredata.regen_guid
+        regen_vcxproj = os.path.join(self.environment.get_build_dir(), 'REGEN.vcxproj')
+        self.add_project_reference(root, regen_vcxproj, self.environment.coredata.regen_guid)
         self._prettyprint_vcxproj_xml(ET.ElementTree(root), ofname)
 
     def gen_regenproj(self, project_name, ofname):
