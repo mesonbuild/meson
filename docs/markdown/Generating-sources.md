@@ -31,7 +31,7 @@ gen_src = custom_target('gen-output',
                                    '--h-out', '@OUTPUT1@'])
 ```
 
-The `@INPUT@` there will be transformed to `'out.c' 'out.h'`. Just like the output, you can also refer to each input file individually by index. 
+The `@INPUT@` there will be transformed to `'somefile1.c' 'file2.c'`. Just like the output, you can also refer to each input file individually by index. 
 
 Then you just put that in your program and you're done.
 
