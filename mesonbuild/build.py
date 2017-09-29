@@ -178,7 +178,7 @@ class Build:
         return link_args.get(compiler.get_language(), [])
 
 class IncludeDirs:
-    def __init__(self, curdir, dirs, is_system, extra_build_dirs=None):
+    def __init__(self, curdir, dirs, is_system, extra_build_dirs=None, is_build_only=False):
         self.curdir = curdir
         self.incdirs = dirs
         self.is_system = is_system
@@ -188,6 +188,7 @@ class IncludeDirs:
             self.extra_build_dirs = []
         else:
             self.extra_build_dirs = extra_build_dirs
+        self.is_build_only = is_build_only
 
     def __repr__(self):
         r = '<{} {}/{}>'

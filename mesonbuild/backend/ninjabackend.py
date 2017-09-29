@@ -2064,17 +2064,20 @@ rule FORTRAN_DEP_HACK
                     expdir = os.path.join(basedir, d)
                 else:
                     expdir = basedir
-                srctreedir = os.path.join(self.build_to_src, expdir)
-                # Add source subdir first so that the build subdir overrides it
-                sargs = compiler.get_include_args(srctreedir, i.is_system)
-                commands += sargs
+
+                if not i.is_build_only:
+                    srctreedir = os.path.join(self.build_to_src, expdir)
+                    # Add source subdir first so that the build subdir overrides it
+                    sargs = compiler.get_include_args(srctreedir, i.is_system)
+                    commands += sargs
+
                 # There may be include dirs where a build directory has not been
                 # created for some source dir. For example if someone does this:
                 #
                 # inc = include_directories('foo/bar/baz')
                 #
                 # But never subdir()s into the actual dir.
-                if os.path.isdir(os.path.join(self.environment.get_build_dir(), expdir)):
+                if i.is_build_only or os.path.isdir(os.path.join(self.environment.get_build_dir(), expdir)):
                     bargs = compiler.get_include_args(expdir, i.is_system)
                 else:
                     bargs = []
