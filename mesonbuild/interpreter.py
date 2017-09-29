@@ -2785,6 +2785,40 @@ different subdirectory.
         super().run()
         mlog.log('Build targets in project:', mlog.bold(str(len(self.build.targets))))
 
+
+    # Check that the indicated file is within the same subproject
+    # as we currently are. This is to stop people doing
+    # nasty things like:
+    #
+    # f = files('../../master_src/file.c')
+    #
+    # Note that this is validated only when the file
+    # object is generated. The result can be used in a different
+    # subproject than it is defined in (due to e.g. a
+    # declare_dependency).
+    def validate_within_subproject(self, subdir, fname):
+        norm = os.path.normpath(os.path.join(subdir, fname))
+        if os.path.isabs(norm):
+            if not norm.startswith(self.environment.source_dir):
+                # Grabbing files outside the source tree is ok.
+                # This is for vendor stuff like:
+                #
+                # /opt/vendorsdk/src/file_with_license_restrictions.c
+                return
+            norm = os.path.relpath(norm, self.environment.source_dir)
+            assert(not os.path.isabs(norm))
+        segments = norm.split(os.path.sep)
+        num_sps = segments.count(self.subproject_dir)
+        if num_sps == 0:
+            if self.subproject == '':
+                return
+            raise InterpreterException('Sandbox violation: Tried to grab file %s from a different subproject.' % segments[-1])
+        if num_sps > 1:
+            raise InterpreterException('Sandbox violation: Tried to grab file %s from a nested subproject.' % segments[-1])
+        sproj_name = segments[segments.index(self.subproject_dir) + 1]
+        if sproj_name != self.subproject:
+            raise InterpreterException('Sandbox violation: Tried to grab file %s from a different subproject.' % segments[-1])
+
     def source_strings_to_files(self, sources):
         results = []
         for s in sources:
@@ -2792,6 +2826,7 @@ different subdirectory.
                               CustomTargetHolder, CustomTargetIndexHolder)):
                 pass
             elif isinstance(s, str):
+                self.validate_within_subproject(self.subdir, s)
                 s = mesonlib.File.from_source_file(self.environment.source_dir, self.subdir, s)
             else:
                 raise InterpreterException('Source item is {!r} instead of '
