@@ -292,15 +292,19 @@ class Resolver:
                 raise RuntimeError('Incorrect hash for source %s:\n %s expected\n %s actual.' % (packagename, expected, dhash))
             os.rename(tmpfile, ofname)
         if p.has_patch():
-            purl = p.get('patch_url')
-            mlog.log('Downloading patch from', mlog.bold(purl))
-            phash, tmpfile = self.get_data(purl)
-            expected = p.get('patch_hash')
-            if phash != expected:
-                os.remove(tmpfile)
-                raise RuntimeError('Incorrect hash for patch %s:\n %s expected\n %s actual' % (packagename, expected, phash))
-            filename = os.path.join(self.cachedir, p.get('patch_filename'))
-            os.rename(tmpfile, filename)
+            patch_filename = p.get('patch_filename')
+            filename = os.path.join(self.cachedir, patch_filename)
+            if os.path.exists(filename):
+                mlog.log('Using', mlog.bold(patch_filename), 'from cache.')
+            else:
+                purl = p.get('patch_url')
+                mlog.log('Downloading patch from', mlog.bold(purl))
+                phash, tmpfile = self.get_data(purl)
+                expected = p.get('patch_hash')
+                if phash != expected:
+                    os.remove(tmpfile)
+                    raise RuntimeError('Incorrect hash for patch %s:\n %s expected\n %s actual' % (packagename, expected, phash))
+                os.rename(tmpfile, filename)
         else:
             mlog.log('Package does not require patch.')
 
