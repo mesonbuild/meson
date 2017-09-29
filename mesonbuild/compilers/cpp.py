@@ -31,8 +31,14 @@ from .compilers import (
     ArmCompiler,
     ArmclangCompiler,
 )
+from .c_function_attributes import CXX_FUNC_ATTRIBUTES
 
 class CPPCompiler(CCompiler):
+
+    @classmethod
+    def attribute_check_func(cls, name):
+        return CXX_FUNC_ATTRIBUTES.get(name, super().attribute_check_func(name))
+
     def __init__(self, exelist, version, is_cross, exe_wrap, **kwargs):
         # If a child ObjCPP class has already set it, don't set it ourselves
         if not hasattr(self, 'language'):

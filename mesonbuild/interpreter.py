@@ -975,6 +975,8 @@ class CompilerHolder(InterpreterObject):
                              'cmd_array': self.cmd_array_method,
                              'find_library': self.find_library_method,
                              'has_argument': self.has_argument_method,
+                             'has_function_attribute': self.has_func_attribute_method,
+                             'get_supported_function_attributes': self.get_supported_function_attributes_method,
                              'has_multi_arguments': self.has_multi_arguments_method,
                              'get_supported_arguments': self.get_supported_arguments_method,
                              'first_supported_argument': self.first_supported_argument_method,
@@ -1544,6 +1546,24 @@ class CompilerHolder(InterpreterObject):
                 return [i]
         mlog.log('First supported link argument:', mlog.red('None'))
         return []
+
+    @FeatureNew('compiler.has_function_attribute', '0.48.0')
+    @permittedKwargs({})
+    def has_func_attribute_method(self, args, kwargs):
+        args = mesonlib.stringlistify(args)
+        if len(args) != 1:
+            raise InterpreterException('has_func_attribute takes exactly one argument.')
+        result = self.compiler.has_func_attribute(args[0], self.environment)
+        h = mlog.green('YES') if result else mlog.red('NO')
+        mlog.log('Compiler for {} supports function attribute {}:'.format(self.compiler.get_display_language(), args[0]), h)
+        return result
+
+    @FeatureNew('compiler.get_supported_function_attributes', '0.48.0')
+    @permittedKwargs({})
+    def get_supported_function_attributes_method(self, args, kwargs):
+        args = mesonlib.stringlistify(args)
+        return [a for a in args if self.has_func_attribute_method(a, kwargs)]
+
 
 ModuleState = namedtuple('ModuleState', [
     'build_to_src', 'subproject', 'subdir', 'current_lineno', 'environment',

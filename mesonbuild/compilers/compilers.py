@@ -1137,6 +1137,10 @@ class Compiler:
     def get_gui_app_args(self, value):
         return []
 
+    def has_func_attribute(self, name, env):
+        raise EnvironmentException(
+            'Language {} does not support function attributes.'.format(self.get_display_language()))
+
 GCC_STANDARD = 0
 GCC_OSX = 1
 GCC_MINGW = 2
