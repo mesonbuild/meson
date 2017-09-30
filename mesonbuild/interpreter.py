@@ -1713,6 +1713,8 @@ class Interpreter(InterpreterBase):
         except KeyError:
             pass
         if not coredata.is_builtin_option(optname) and self.is_subproject():
+            if ':' in optname:
+                raise InterpreterException('Accessing options "%s" of subprojects is forbidden.' % optname)
             optname = self.subproject + ':' + optname
         try:
             return self.environment.coredata.user_options[optname].value
