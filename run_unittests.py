@@ -1324,7 +1324,7 @@ int main(int argc, char **argv) {
 
 
     def test_prebuilt_object(self):
-        (compiler, object_suffix, static_suffix) = self.detect_prebuild_env()
+        (compiler, object_suffix, _) = self.detect_prebuild_env()
         tdir = os.path.join(self.unit_test_dir, '14 prebuilt object')
         source = os.path.join(tdir, 'source.c')
         objectfile = os.path.join(tdir, 'prebuilt.' + object_suffix)
@@ -1335,6 +1335,28 @@ int main(int argc, char **argv) {
             self.run_tests()
         finally:
             os.unlink(objectfile)
+
+    def test_prebuilt_static_lib(self):
+        (compiler, object_suffix, static_suffix) = self.detect_prebuild_env()
+        tdir = os.path.join(self.unit_test_dir, '15 prebuilt static')
+        source = os.path.join(tdir, 'libdir/best.c')
+        objectfile = os.path.join(tdir, 'libdir/best.' + object_suffix)
+        stlibfile = os.path.join(tdir, 'libdir/libbest.' + static_suffix)
+        if compiler == 'cl':
+            link_cmd = ['lib', '/NOLOGO', '/OUT:' + stlibfile, objectfile]
+        else:
+            link_cmd = ['ar', 'csr', stlibfile, objectfile]
+        self.pbcompile(compiler, source, objectfile)
+        try:
+            subprocess.check_call(link_cmd)
+        finally:
+            os.unlink(objectfile)
+        try:
+            self.init(tdir)
+            self.build()
+            self.run_tests()
+        finally:
+            os.unlink(stlibfile)
 
 class FailureTests(BasePlatformTests):
     '''

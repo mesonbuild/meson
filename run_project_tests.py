@@ -124,6 +124,8 @@ print_debug = 'MESON_PRINT_TEST_OUTPUT' in os.environ
 do_debug = not {'MESON_PRINT_TEST_OUTPUT', 'TRAVIS', 'APPVEYOR'}.isdisjoint(os.environ)
 no_meson_log_msg = 'No meson-log.txt found.'
 
+system_compiler = None
+
 meson_command = os.path.join(os.getcwd(), 'meson')
 if not os.path.exists(meson_command):
     meson_command += '.py'
@@ -140,9 +142,6 @@ def stop_handler(signal, frame):
     stop = True
 signal.signal(signal.SIGINT, stop_handler)
 signal.signal(signal.SIGTERM, stop_handler)
-
-# Needed when running cross tests because we don't generate prebuilt files
-compiler = None
 
 def setup_commands(optbackend):
     global do_debug, backend, backend_flags
@@ -451,7 +450,6 @@ def detect_tests_to_run():
         ('failing-meson', 'failing', False),
         ('failing-build', 'failing build', False),
         ('failing-tests', 'failing tests', False),
-        ('prebuilt', 'prebuilt', False),
 
         ('platform-osx', 'osx', not mesonlib.is_osx()),
         ('platform-windows', 'windows', not mesonlib.is_windows() and not mesonlib.is_cygwin()),
@@ -485,7 +483,7 @@ def run_tests(all_tests, log_name_base, extra_args):
         return _run_tests(all_tests, log_name_base, extra_args)
 
 def _run_tests(all_tests, log_name_base, extra_args):
-    global stop, executor, futures
+    global stop, executor, futures, system_compiler
     xmlname = log_name_base + '.xml'
     junit_root = ET.Element('testsuites')
     conf_time = 0
@@ -532,7 +530,7 @@ def _run_tests(all_tests, log_name_base, extra_args):
             should_fail = False
             if name.startswith('failing'):
                 should_fail = name.split('failing-')[1]
-            result = executor.submit(run_test, skipped, t, extra_args, compiler, backend, backend_flags, commands, should_fail)
+            result = executor.submit(run_test, skipped, t, extra_args, system_compiler, backend, backend_flags, commands, should_fail)
             futures.append((testname, t, result))
         for (testname, t, result) in futures:
             sys.stdout.flush()
@@ -600,51 +598,6 @@ def check_format():
                 fullname = os.path.join(root, file)
                 check_file(fullname)
 
-def pbcompile(compiler, source, objectfile):
-    if compiler == 'cl':
-        cmd = [compiler, '/nologo', '/Fo' + objectfile, '/c', source]
-    else:
-        cmd = [compiler, '-c', source, '-o', objectfile]
-    subprocess.check_call(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-
-def generate_pb_object(compiler, object_suffix):
-    source = 'test cases/prebuilt/1 object/source.c'
-    objectfile = 'test cases/prebuilt/1 object/prebuilt.' + object_suffix
-    pbcompile(compiler, source, objectfile)
-    return objectfile
-
-def generate_pb_static(compiler, object_suffix, static_suffix):
-    source = 'test cases/prebuilt/2 static/libdir/best.c'
-    objectfile = 'test cases/prebuilt/2 static/libdir/best.' + object_suffix
-    stlibfile = 'test cases/prebuilt/2 static/libdir/libbest.' + static_suffix
-    pbcompile(compiler, source, objectfile)
-    if compiler == 'cl':
-        linker = ['lib', '/NOLOGO', '/OUT:' + stlibfile, objectfile]
-    else:
-        linker = ['ar', 'csr', stlibfile, objectfile]
-    subprocess.check_call(linker)
-    os.unlink(objectfile)
-    return stlibfile
-
-def generate_prebuilt():
-    global compiler
-    static_suffix = 'a'
-    if shutil.which('cl'):
-        compiler = 'cl'
-        static_suffix = 'lib'
-    elif shutil.which('cc'):
-        compiler = 'cc'
-    elif shutil.which('gcc'):
-        compiler = 'gcc'
-    else:
-        raise RuntimeError("Could not find C compiler.")
-    if mesonlib.is_windows():
-        object_suffix = 'obj'
-    else:
-        object_suffix = 'o'
-    stlibfile = generate_pb_static(compiler, object_suffix, static_suffix)
-    return stlibfile
-
 def check_meson_commands_work():
     global backend, meson_command, compile_commands, test_commands, install_commands
     testdir = 'test cases/common/1 trivial'
@@ -669,6 +622,18 @@ def check_meson_commands_work():
             if pc.returncode != 0:
                 raise RuntimeError('Failed to install {!r}:\n{}\n{}'.format(testdir, e, o))
 
+
+def detect_system_compiler():
+    global system_compiler
+    if shutil.which('cl'):
+        system_compiler = 'cl'
+    elif shutil.which('cc'):
+        system_compiler = 'cc'
+    elif shutil.which('gcc'):
+        system_compiler = 'gcc'
+    else:
+        raise RuntimeError("Could not find C compiler.")
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Run the test suite of Meson.")
     parser.add_argument('extra_args', nargs='*',
@@ -678,18 +643,17 @@ if __name__ == '__main__':
     options = parser.parse_args()
     setup_commands(options.backend)
 
+    detect_system_compiler()
     script_dir = os.path.split(__file__)[0]
     if script_dir != '':
         os.chdir(script_dir)
     check_format()
     check_meson_commands_work()
-    pbfile = generate_prebuilt()
     try:
         all_tests = detect_tests_to_run()
         (passing_tests, failing_tests, skipped_tests) = run_tests(all_tests, 'meson-test-run', options.extra_args)
     except StopException:
         pass
-    os.unlink(pbfile)
     print('\nTotal passed tests:', green(str(passing_tests)))
     print('Total failed tests:', red(str(failing_tests)))
     print('Total skipped tests:', yellow(str(skipped_tests)))
