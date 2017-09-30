@@ -344,6 +344,11 @@ class Vs2010Backend(backends.Backend):
     def quote_arguments(self, arr):
         return ['"%s"' % i for i in arr]
 
+    def add_project_reference(self, root, include, projid):
+        ig = ET.SubElement(root, 'ItemGroup')
+        pref = ET.SubElement(ig, 'ProjectReference', Include=include)
+        ET.SubElement(pref, 'Project').text = '{%s}' % projid
+
     def create_basic_crap(self, target):
         project_name = target.name
         root = ET.Element('Project', {'DefaultTargets': "Build",
@@ -537,6 +542,8 @@ class Vs2010Backend(backends.Backend):
                 if lpath in lpaths:
                     lpaths.remove(lpath)
                 lpaths.append(lpath)
+            elif arg.startswith(('/', '-')):
+                other.append(arg)
             # It's ok if we miss libraries with non-standard extensions here.
             # They will go into the general link arguments.
             elif arg.endswith('.lib') or arg.endswith('.a'):
@@ -907,20 +914,26 @@ class Vs2010Backend(backends.Backend):
         # *_winlibs that we want to link to are static mingw64 libraries.
         extra_link_args += compiler.get_option_link_args(self.environment.coredata.compiler_options)
         (additional_libpaths, additional_links, extra_link_args) = self.split_link_args(extra_link_args.to_native())
-        if len(extra_link_args) > 0:
-            extra_link_args.append('%(AdditionalOptions)')
-            ET.SubElement(link, "AdditionalOptions").text = ' '.join(extra_link_args)
-        if len(additional_libpaths) > 0:
-            additional_libpaths.insert(0, '%(AdditionalLibraryDirectories)')
-            ET.SubElement(link, 'AdditionalLibraryDirectories').text = ';'.join(additional_libpaths)
 
         # Add more libraries to be linked if needed
         for t in target.get_dependencies():
             lobj = self.build.targets[t.get_id()]
             linkname = os.path.join(down, self.get_target_filename_for_linking(lobj))
             if t in target.link_whole_targets:
-                linkname = compiler.get_link_whole_for(linkname)[0]
-            additional_links.append(linkname)
+                # /WHOLEARCHIVE:foo must go into AdditionalOptions
+                extra_link_args += compiler.get_link_whole_for(linkname)
+                # To force Visual Studio to build this project even though it
+                # has no sources, we include a reference to the vcxproj file
+                # that builds this target. Technically we should add this only
+                # if the current target has no sources, but it doesn't hurt to
+                # have 'extra' references.
+                trelpath = self.get_target_dir_relative_to(t, target)
+                tvcxproj = os.path.join(trelpath, t.get_id() + '.vcxproj')
+                tid = self.environment.coredata.target_guids[t.get_id()]
+                self.add_project_reference(root, tvcxproj, tid)
+            else:
+                # Other libraries go into AdditionalDependencies
+                additional_links.append(linkname)
         for lib in self.get_custom_target_provided_libraries(target):
             additional_links.append(self.relpath(lib, self.get_target_dir(target)))
         additional_objects = []
@@ -929,6 +942,13 @@ class Vs2010Backend(backends.Backend):
             additional_objects.append(o)
         for o in custom_objs:
             additional_objects.append(o)
+
+        if len(extra_link_args) > 0:
+            extra_link_args.append('%(AdditionalOptions)')
+            ET.SubElement(link, "AdditionalOptions").text = ' '.join(extra_link_args)
+        if len(additional_libpaths) > 0:
+            additional_libpaths.insert(0, '%(AdditionalLibraryDirectories)')
+            ET.SubElement(link, 'AdditionalLibraryDirectories').text = ';'.join(additional_libpaths)
         if len(additional_links) > 0:
             additional_links.append('%(AdditionalDependencies)')
             ET.SubElement(link, 'AdditionalDependencies').text = ';'.join(additional_links)
@@ -1018,9 +1038,8 @@ class Vs2010Backend(backends.Backend):
 
         ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.targets')
         # Reference the regen target.
-        ig = ET.SubElement(root, 'ItemGroup')
-        pref = ET.SubElement(ig, 'ProjectReference', Include=os.path.join(self.environment.get_build_dir(), 'REGEN.vcxproj'))
-        ET.SubElement(pref, 'Project').text = self.environment.coredata.regen_guid
+        regen_vcxproj = os.path.join(self.environment.get_build_dir(), 'REGEN.vcxproj')
+        self.add_project_reference(root, regen_vcxproj, self.environment.coredata.regen_guid)
         self._prettyprint_vcxproj_xml(ET.ElementTree(root), ofname)
 
     def gen_regenproj(self, project_name, ofname):

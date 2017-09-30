@@ -155,6 +155,12 @@ class Backend:
             dirname = 'meson-out'
         return dirname
 
+    def get_target_dir_relative_to(self, t, o):
+        '''Get a target dir relative to another target's directory'''
+        target_dir = os.path.join(self.environment.get_build_dir(), self.get_target_dir(t))
+        othert_dir = os.path.join(self.environment.get_build_dir(), self.get_target_dir(o))
+        return os.path.relpath(target_dir, othert_dir)
+
     def get_target_source_dir(self, target):
         dirname = os.path.join(self.build_to_src, self.get_target_dir(target))
         return dirname

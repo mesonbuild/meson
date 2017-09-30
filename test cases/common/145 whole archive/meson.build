@@ -1,5 +1,7 @@
 project('whole archive', 'c')
 
+add_project_arguments('-I' + meson.source_root(), language : 'c')
+
 cc = meson.get_compiler('c')
 
 if cc.get_id() == 'msvc'
@@ -8,15 +10,15 @@ if cc.get_id() == 'msvc'
   endif
 endif
 
-stlib = static_library('allofme', 'libfile.c')
-
-# Nothing in dylib.c uses func1, so the linker would throw it
-# away and thus linking the exe would fail.
-dylib = shared_library('shlib', 'dylib.c',
-  link_whole : stlib)
-
-exe = executable('prog', 'prog.c',
-  link_with : dylib)
+subdir('allofme')
+subdir('shlib')
+subdir('exe')
 
 test('prog', exe)
 
+# link_whole only
+subdir('stlib')
+subdir('wholeshlib')
+subdir('exe2')
+
+test('prog2', exe2)
