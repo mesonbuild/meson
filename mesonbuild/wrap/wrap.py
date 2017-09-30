@@ -237,7 +237,8 @@ class Resolver:
         revno = p.get('revision')
         is_there = os.path.isdir(checkoutdir)
         if is_there:
-            current_revno = subprocess.getoutput(' '.join(['svn', 'info', '--show-item', 'revision', checkoutdir]))
+            p, out = Popen_safe(['svn', 'info', '--show-item', 'revision', checkoutdir])
+            current_revno = out
             if current_revno == revno:
                 return
 
