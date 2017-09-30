@@ -642,9 +642,8 @@ def generate_prebuilt():
         object_suffix = 'obj'
     else:
         object_suffix = 'o'
-    objectfile = generate_pb_object(compiler, object_suffix)
     stlibfile = generate_pb_static(compiler, object_suffix, static_suffix)
-    return objectfile, stlibfile
+    return stlibfile
 
 def check_meson_commands_work():
     global backend, meson_command, compile_commands, test_commands, install_commands
@@ -684,14 +683,13 @@ if __name__ == '__main__':
         os.chdir(script_dir)
     check_format()
     check_meson_commands_work()
-    pbfiles = generate_prebuilt()
+    pbfile = generate_prebuilt()
     try:
         all_tests = detect_tests_to_run()
         (passing_tests, failing_tests, skipped_tests) = run_tests(all_tests, 'meson-test-run', options.extra_args)
     except StopException:
         pass
-    for f in pbfiles:
-        os.unlink(f)
+    os.unlink(pbfile)
     print('\nTotal passed tests:', green(str(passing_tests)))
     print('Total failed tests:', red(str(failing_tests)))
     print('Total skipped tests:', yellow(str(skipped_tests)))

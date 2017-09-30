@@ -1298,6 +1298,43 @@ int main(int argc, char **argv) {
         for i in targets:
             self.assertPathExists(os.path.join(testdir, i))
 
+    def detect_prebuild_env(self):
+        if mesonbuild.mesonlib.is_windows():
+            object_suffix = 'obj'
+        else:
+            object_suffix = 'o'
+        static_suffix = 'a'
+        if shutil.which('cl'):
+            compiler = 'cl'
+            static_suffix = 'lib'
+        elif shutil.which('cc'):
+            compiler = 'cc'
+        elif shutil.which('gcc'):
+            compiler = 'gcc'
+        else:
+            raise RuntimeError("Could not find C compiler.")
+        return (compiler, object_suffix, static_suffix)
+
+    def pbcompile(self, compiler, source, objectfile):
+        if compiler == 'cl':
+            cmd = [compiler, '/nologo', '/Fo' + objectfile, '/c', source]
+        else:
+            cmd = [compiler, '-c', source, '-o', objectfile]
+        subprocess.check_call(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
+    def test_prebuilt_object(self):
+        (compiler, object_suffix, static_suffix) = self.detect_prebuild_env()
+        tdir = os.path.join(self.unit_test_dir, '14 prebuilt object')
+        source = os.path.join(tdir, 'source.c')
+        objectfile = os.path.join(tdir, 'prebuilt.' + object_suffix)
+        self.pbcompile(compiler, source, objectfile)
+        try:
+            self.init(tdir)
+            self.build()
+            self.run_tests()
+        finally:
+            os.unlink(objectfile)
 
 class FailureTests(BasePlatformTests):
     '''
