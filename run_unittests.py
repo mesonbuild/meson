@@ -1368,7 +1368,7 @@ int main(int argc, char **argv) {
         if compiler == 'cl':
             extra_args = []
             shlibfile = os.path.join(tdir, 'alexandria.' + shared_suffix)
-            link_cmd = ['link', '/NOLOGO','/DLL', '/DEBUG', '/IMPLIB:alexandria.lib' '/OUT:' + shlibfile, objectfile]
+            link_cmd = ['link', '/NOLOGO','/DLL', '/DEBUG', '/IMPLIB:' + os.path.join(tdir, 'alexandria.lib'), '/OUT:' + shlibfile, objectfile]
         else:
             extra_args = ['-fPIC']
             shlibfile = os.path.join(tdir, 'libalexandria.' + shared_suffix)
@@ -1384,6 +1384,12 @@ int main(int argc, char **argv) {
             self.run_tests()
         finally:
             os.unlink(shlibfile)
+            if mesonbuild.mesonlib.is_windows():
+                # Clean up all the garbage MSVC writes in the
+                # source tree.
+                for fname in glob(os.path.join(tdir, 'alexandria.*')):
+                    if os.path.splitext(fname)[1] not in ['.c', '.h']:
+                        os.unlink(fname)
 
 class FailureTests(BasePlatformTests):
     '''

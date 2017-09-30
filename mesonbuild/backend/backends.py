@@ -306,7 +306,7 @@ class Backend:
                 if len(la) == 1 and la[0].startswith(self.environment.get_source_dir()):
                     # The only link argument is an absolute path to a library file.
                     libpath = la[0]
-                    if not(libpath.lower().endswith('.dll') or libpath.lower().endswith('.so')):
+                    if os.path.splitext(libpath)[1] not in ['.dll', '.lib', '.so']:
                         continue
                     absdir = os.path.split(libpath)[0]
                     rel_to_src = absdir[len(self.environment.get_source_dir())+1:]
@@ -530,6 +530,8 @@ class Backend:
             dirseg = os.path.join(self.environment.get_build_dir(), self.get_target_dir(ld))
             if dirseg not in result:
                 result.append(dirseg)
+        for deppath in self.rpaths_for_bundled_shared_libraries(target):
+            result.append(os.path.normpath(os.path.join(self.environment.get_build_dir(), deppath)))
         return result
 
     def write_benchmark_file(self, datafile):
