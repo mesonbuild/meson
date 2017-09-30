@@ -19,6 +19,7 @@ import subprocess
 import sys
 from pathlib import Path
 from . import WrapMode
+from ..mesonlib import Popen_safe
 
 try:
     import ssl
