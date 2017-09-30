@@ -19,6 +19,7 @@ import subprocess
 import sys
 from pathlib import Path
 from . import WrapMode
+from ..mesonlib import Popen_safe
 
 try:
     import ssl
@@ -78,6 +79,8 @@ class PackageDefinition:
                 self.type = 'git'
             elif first == '[wrap-hg]':
                 self.type = 'hg'
+            elif first == '[wrap-svn]':
+                self.type = 'svn'
             else:
                 raise RuntimeError('Invalid format of package file')
             for line in ifile:
@@ -145,6 +148,8 @@ class Resolver:
             self.get_git(p)
         elif p.type == "hg":
             self.get_hg(p)
+        elif p.type == "svn":
+            self.get_svn(p)
         else:
             raise AssertionError('Unreachable code.')
         return p.get('directory')
@@ -227,6 +232,27 @@ class Resolver:
             if revno.lower() != 'tip':
                 subprocess.check_call(['hg', 'checkout', revno],
                                       cwd=checkoutdir)
+
+    def get_svn(self, p):
+        checkoutdir = os.path.join(self.subdir_root, p.get('directory'))
+        revno = p.get('revision')
+        is_there = os.path.isdir(checkoutdir)
+        if is_there:
+            p, out = Popen_safe(['svn', 'info', '--show-item', 'revision', checkoutdir])
+            current_revno = out
+            if current_revno == revno:
+                return
+
+            if revno.lower() == 'head':
+                # Failure to do pull is not a fatal error,
+                # because otherwise you can't develop without
+                # a working net connection.
+                subprocess.call(['svn', 'update'], cwd=checkoutdir)
+            else:
+                subprocess.check_call(['svn', 'update', '-r', revno], cwd=checkoutdir)
+        else:
+            subprocess.check_call(['svn', 'checkout', '-r', revno, p.get('url'),
+                                   p.get('directory')], cwd=self.subdir_root)
 
     def get_data(self, url):
         blocksize = 10 * 1024
