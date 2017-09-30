@@ -1372,7 +1372,9 @@ int main(int argc, char **argv) {
         else:
             extra_args = ['-fPIC']
             shlibfile = os.path.join(tdir, 'libalexandria.' + shared_suffix)
-            link_cmd = [compiler, '-shared', '-o', shlibfile, objectfile, '-Wl,-soname=libalexandria.so']
+            link_cmd = [compiler, '-shared', '-o', shlibfile, objectfile]
+            if not mesonbuild.mesonlib.is_osx():
+                link_cmd += ['-Wl,-soname=libalexandria.so']
         self.pbcompile(compiler, source, objectfile, extra_args=extra_args)
         try:
             subprocess.check_call(link_cmd)
