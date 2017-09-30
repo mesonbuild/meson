@@ -298,6 +298,22 @@ class Backend:
             raise MesonException(m.format(target.name))
         return l
 
+    def rpaths_for_bundled_shared_libraries(self, target):
+        paths = []
+        for dep in target.external_deps:
+            if isinstance(dep, dependencies.ExternalLibrary):
+                la = dep.link_args
+                if len(la) == 1 and la[0].startswith(self.environment.get_source_dir()):
+                    # The only link argument is an absolute path to a library file.
+                    libpath = la[0]
+                    if not(libpath.lower().endswith('.dll') or libpath.lower().endswith('.so')):
+                        continue
+                    absdir = os.path.split(libpath)[0]
+                    rel_to_src = absdir[len(self.environment.get_source_dir())+1:]
+                    assert(not os.path.isabs(rel_to_src))
+                    paths.append(os.path.join(self.build_to_src, rel_to_src))
+        return paths
+
     def determine_rpath_dirs(self, target):
         link_deps = target.get_all_link_deps()
         result = []
@@ -305,6 +321,7 @@ class Backend:
             prospective = self.get_target_dir(ld)
             if prospective not in result:
                 result.append(prospective)
+        result += self.rpaths_for_bundled_shared_libraries(target)
         return result
 
     def object_filename_from_source(self, target, source, is_unity):

@@ -1304,27 +1304,29 @@ int main(int argc, char **argv) {
         else:
             object_suffix = 'o'
         static_suffix = 'a'
+        shared_suffix = 'so'
         if shutil.which('cl'):
             compiler = 'cl'
             static_suffix = 'lib'
+            shared_suffix = 'dll'
         elif shutil.which('cc'):
             compiler = 'cc'
         elif shutil.which('gcc'):
             compiler = 'gcc'
         else:
             raise RuntimeError("Could not find C compiler.")
-        return (compiler, object_suffix, static_suffix)
+        return (compiler, object_suffix, static_suffix, shared_suffix)
 
-    def pbcompile(self, compiler, source, objectfile):
+    def pbcompile(self, compiler, source, objectfile, extra_args=[]):
         if compiler == 'cl':
-            cmd = [compiler, '/nologo', '/Fo' + objectfile, '/c', source]
+            cmd = [compiler, '/nologo', '/Fo' + objectfile, '/c', source] + extra_args
         else:
-            cmd = [compiler, '-c', source, '-o', objectfile]
+            cmd = [compiler, '-c', source, '-o', objectfile] + extra_args
         subprocess.check_call(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
     def test_prebuilt_object(self):
-        (compiler, object_suffix, _) = self.detect_prebuild_env()
+        (compiler, object_suffix, _, _) = self.detect_prebuild_env()
         tdir = os.path.join(self.unit_test_dir, '14 prebuilt object')
         source = os.path.join(tdir, 'source.c')
         objectfile = os.path.join(tdir, 'prebuilt.' + object_suffix)
@@ -1337,7 +1339,7 @@ int main(int argc, char **argv) {
             os.unlink(objectfile)
 
     def test_prebuilt_static_lib(self):
-        (compiler, object_suffix, static_suffix) = self.detect_prebuild_env()
+        (compiler, object_suffix, static_suffix, _) = self.detect_prebuild_env()
         tdir = os.path.join(self.unit_test_dir, '15 prebuilt static')
         source = os.path.join(tdir, 'libdir/best.c')
         objectfile = os.path.join(tdir, 'libdir/best.' + object_suffix)
@@ -1357,6 +1359,31 @@ int main(int argc, char **argv) {
             self.run_tests()
         finally:
             os.unlink(stlibfile)
+
+    def test_prebuilt_shared_lib(self):
+        (compiler, object_suffix, _, shared_suffix) = self.detect_prebuild_env()
+        tdir = os.path.join(self.unit_test_dir, '16 prebuilt shared')
+        source = os.path.join(tdir, 'alexandria.c')
+        objectfile = os.path.join(tdir, 'alexandria.' + object_suffix)
+        if compiler == 'cl':
+            extra_args = []
+            shlibfile = os.path.join(tdir, 'alexandria.' + shared_suffix)
+            link_cmd = ['link', '/NOLOGO','/DLL', '/DEBUG', '/IMPLIB:alexandria.lib' '/OUT:' + shlibfile, objectfile]
+        else:
+            extra_args = ['-fPIC']
+            shlibfile = os.path.join(tdir, 'libalexandria.' + shared_suffix)
+            link_cmd = [compiler, '-shared', '-o', shlibfile, objectfile, '-Wl,-soname=libalexandria.so']
+        self.pbcompile(compiler, source, objectfile, extra_args=extra_args)
+        try:
+            subprocess.check_call(link_cmd)
+        finally:
+            os.unlink(objectfile)
+        try:
+            self.init(tdir)
+            self.build()
+            self.run_tests()
+        finally:
+            os.unlink(shlibfile)
 
 class FailureTests(BasePlatformTests):
     '''
