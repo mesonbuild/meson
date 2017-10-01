@@ -1131,9 +1131,14 @@ int dummy;
             # file is outside the build directory, the path components will be
             # stripped and just the basename will be used.
             if isinstance(gensrc, (build.CustomTarget, build.GeneratedList)) or gensrc.is_built:
-                vala_c_file = os.path.splitext(vala_file)[0] + '.c'
-            else:
                 vala_c_file = os.path.splitext(os.path.basename(vala_file))[0] + '.c'
+            else:
+                realpath = os.path.abspath(os.path.join(self.environment.get_build_dir(), vala_file))
+                if (realpath.startswith(os.path.join(self.environment.get_source_dir(), target.get_subdir()))):
+                    relpath = os.path.relpath(realpath, os.path.join(self.environment.get_source_dir(), target.get_subdir()))
+                    vala_c_file = os.path.join(os.path.dirname(relpath), os.path.splitext(os.path.basename(vala_file))[0] + '.c')
+                else:
+                    vala_c_file = os.path.splitext(os.path.basename(vala_file))[0] + '.c'
             # All this will be placed inside the c_out_dir
             vala_c_file = os.path.join(c_out_dir, vala_c_file)
             vala_c_src.append(vala_c_file)
@@ -1145,6 +1150,7 @@ int dummy;
         # means it will also preserve the directory components of Vala sources
         # found inside the build tree (generated sources).
         args += ['-d', c_out_dir]
+        args += ['-b', os.path.join(self.environment.get_source_dir(), target.get_subdir())]
         if not isinstance(target, build.Executable):
             # Library name
             args += ['--library=' + target.name]
