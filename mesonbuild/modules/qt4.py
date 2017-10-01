@@ -21,6 +21,7 @@ from . import ExtensionModule
 import xml.etree.ElementTree as ET
 from . import ModuleReturnValue
 from ..interpreterbase import permittedKwargs
+from . import get_include_args
 
 class Qt4Module(ExtensionModule):
     tools_detected = False
@@ -97,10 +98,10 @@ class Qt4Module(ExtensionModule):
         except Exception:
             return []
 
-    @permittedKwargs({'moc_headers', 'moc_sources', 'ui_files', 'qresources', 'method'})
+    @permittedKwargs({'moc_headers', 'moc_sources', 'include_directories', 'ui_files', 'qresources', 'method'})
     def preprocess(self, state, args, kwargs):
-        rcc_files, ui_files, moc_headers, moc_sources, sources \
-            = extract_as_list(kwargs, 'qresources', 'ui_files', 'moc_headers', 'moc_sources', 'sources', pop = True)
+        rcc_files, ui_files, moc_headers, moc_sources, sources, include_directories \
+            = extract_as_list(kwargs, 'qresources', 'ui_files', 'moc_headers', 'moc_sources', 'sources', 'include_directories', pop = True)
         sources += args[1:]
         method = kwargs.get('method', 'auto')
         self._detect_tools(state.environment, method)
@@ -133,9 +134,10 @@ class Qt4Module(ExtensionModule):
             ui_gen = build.Generator([self.uic], ui_kwargs)
             ui_output = ui_gen.process_files('Qt4 ui', ui_files, state)
             sources.append(ui_output)
+        inc = get_include_args(include_dirs=include_directories)
         if len(moc_headers) > 0:
             moc_kwargs = {'output': 'moc_@BASENAME@.cpp',
-                          'arguments': ['@INPUT@', '-o', '@OUTPUT@']}
+                          'arguments': inc + ['@INPUT@', '-o', '@OUTPUT@']}
             moc_gen = build.Generator([self.moc], moc_kwargs)
             moc_output = moc_gen.process_files('Qt4 moc header', moc_headers, state)
             sources.append(moc_output)
