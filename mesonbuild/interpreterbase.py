@@ -100,6 +100,26 @@ class MutableInterpreterObject(InterpreterObject):
     def __init__(self):
         super().__init__()
 
+class Disabler(InterpreterObject):
+    def __init__(self):
+        super().__init__()
+        self.methods.update({'found': self.found_method})
+
+    def found_method(self, args, kwargs):
+        return False
+
+def is_disabled(args, kwargs):
+    for i in args:
+        if isinstance(i, Disabler):
+            return True
+    for i in kwargs.values():
+        if isinstance(i, Disabler):
+            return True
+        if isinstance(i, list):
+            for j in i:
+                if isinstance(j, Disabler):
+                    return True
+    return False
 
 class InterpreterBase:
     def __init__(self, source_root, subdir):
@@ -383,6 +403,8 @@ class InterpreterBase:
     def function_call(self, node):
         func_name = node.func_name
         (posargs, kwargs) = self.reduce_arguments(node.args)
+        if is_disabled(posargs, kwargs):
+            return Disabler()
         if func_name in self.funcs:
             return self.funcs[func_name](node, self.flatten(posargs), kwargs)
         else:
@@ -410,6 +432,8 @@ class InterpreterBase:
         if not isinstance(obj, InterpreterObject):
             raise InvalidArguments('Variable "%s" is not callable.' % object_name)
         (args, kwargs) = self.reduce_arguments(args)
+        if is_disabled(posargs, kwargs):
+            return Disabler()
         if method_name == 'extract_objects':
             self.validate_extraction(obj.held_object)
         return obj.method_call(method_name, self.flatten(args), kwargs)
