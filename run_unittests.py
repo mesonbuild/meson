@@ -31,6 +31,7 @@ import mesonbuild.compilers
 import mesonbuild.environment
 import mesonbuild.mesonlib
 import mesonbuild.coredata
+from mesonbuild.interpreter import ObjectHolder
 from mesonbuild.mesonlib import is_linux, is_windows, is_osx, is_cygwin, windows_proof_rmtree
 from mesonbuild.environment import Environment
 from mesonbuild.dependencies import DependencyException
@@ -61,7 +62,6 @@ def get_soname(fname):
 
 def get_rpath(fname):
     return get_dynamic_section_entry(fname, r'(?:rpath|runpath)')
-
 
 class InternalTests(unittest.TestCase):
 
@@ -397,6 +397,49 @@ class InternalTests(unittest.TestCase):
         os.unlink(configfilename)
 
         self.assertEqual(forced_value, desired_value)
+
+    def test_listify(self):
+        listify = mesonbuild.mesonlib.listify
+        # Test sanity
+        self.assertEqual([1], listify(1))
+        self.assertEqual([], listify([]))
+        self.assertEqual([1], listify([1]))
+        # Test flattening
+        self.assertEqual([1, 2, 3], listify([1, [2, 3]]))
+        self.assertEqual([1, 2, 3], listify([1, [2, [3]]]))
+        self.assertEqual([1, [2, [3]]], listify([1, [2, [3]]], flatten=False))
+        # Test flattening and unholdering
+        holder1 = ObjectHolder(1)
+        holder3 = ObjectHolder(3)
+        self.assertEqual([holder1], listify(holder1))
+        self.assertEqual([holder1], listify([holder1]))
+        self.assertEqual([holder1, 2], listify([holder1, 2]))
+        self.assertEqual([holder1, 2, 3], listify([holder1, 2, [3]]))
+        self.assertEqual([1], listify(holder1, unholder=True))
+        self.assertEqual([1], listify([holder1], unholder=True))
+        self.assertEqual([1, 2], listify([holder1, 2], unholder=True))
+        self.assertEqual([1, 2, 3], listify([holder1, 2, [holder3]], unholder=True))
+        # Unholding doesn't work recursively when not flattening
+        self.assertEqual([1, [2], [holder3]], listify([holder1, [2], [holder3]], unholder=True, flatten=False))
+
+    def test_extract_as_list(self):
+        extract = mesonbuild.mesonlib.extract_as_list
+        # Test sanity
+        kwargs = {'sources': [1, 2, 3]}
+        self.assertEqual([1, 2, 3], extract(kwargs, 'sources'))
+        self.assertEqual(kwargs, {'sources': [1, 2, 3]})
+        self.assertEqual([1, 2, 3], extract(kwargs, 'sources', pop=True))
+        self.assertEqual(kwargs, {})
+        # Test unholding
+        holder3 = ObjectHolder(3)
+        kwargs = {'sources': [1, 2, holder3]}
+        self.assertEqual([1, 2, 3], extract(kwargs, 'sources', unholder=True))
+        self.assertEqual(kwargs, {'sources': [1, 2, holder3]})
+        self.assertEqual([1, 2, 3], extract(kwargs, 'sources', unholder=True, pop=True))
+        self.assertEqual(kwargs, {})
+        # Test listification
+        kwargs = {'sources': [1, 2, 3], 'pch_sources': [4, 5, 6]}
+        self.assertEqual([[1, 2, 3], [4, 5, 6]], extract(kwargs, 'sources', 'pch_sources'))
 
 
 class BasePlatformTests(unittest.TestCase):

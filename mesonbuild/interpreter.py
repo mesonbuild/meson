@@ -1560,12 +1560,11 @@ class Interpreter(InterpreterBase):
         version = kwargs.get('version', self.project_version)
         if not isinstance(version, str):
             raise InterpreterException('Version must be a string.')
-        incs = extract_as_list(kwargs, 'include_directories')
-        libs = extract_as_list(kwargs, 'link_with')
+        incs = extract_as_list(kwargs, 'include_directories', unholder=True)
+        libs = extract_as_list(kwargs, 'link_with', unholder=True)
         sources = extract_as_list(kwargs, 'sources')
-        sources = self.source_strings_to_files(self.flatten(sources))
-        deps = self.flatten(kwargs.get('dependencies', []))
-        deps = listify(deps)
+        sources = listify(self.source_strings_to_files(sources), unholder=True)
+        deps = extract_as_list(kwargs, 'dependencies', unholder=True)
         compile_args = mesonlib.stringlistify(kwargs.get('compile_args', []))
         link_args = mesonlib.stringlistify(kwargs.get('link_args', []))
         final_deps = []
@@ -1577,13 +1576,8 @@ class Interpreter(InterpreterBase):
             if not isinstance(d, (dependencies.Dependency, dependencies.ExternalLibrary, dependencies.InternalDependency)):
                 raise InterpreterException('Dependencies must be external deps')
             final_deps.append(d)
-        dep = dependencies.InternalDependency(version,
-                                              mesonlib.unholder_array(incs),
-                                              compile_args,
-                                              link_args,
-                                              mesonlib.unholder_array(libs),
-                                              mesonlib.unholder_array(sources),
-                                              final_deps)
+        dep = dependencies.InternalDependency(version, incs, compile_args,
+                                              link_args, libs, sources, final_deps)
         return DependencyHolder(dep)
 
     @noKwargs
@@ -1638,7 +1632,7 @@ class Interpreter(InterpreterBase):
                                            'or not executable'.format(cmd))
             cmd = prog
         expanded_args = []
-        for a in mesonlib.flatten(cargs):
+        for a in listify(cargs):
             if isinstance(a, str):
                 expanded_args.append(a)
             elif isinstance(a, mesonlib.File):
@@ -2308,11 +2302,7 @@ to directly access options of other subprojects.''')
             raise InterpreterException('Run_target needs at least one positional argument.')
 
         cleaned_args = []
-        for i in mesonlib.flatten(all_args):
-            try:
-                i = i.held_object
-            except AttributeError:
-                pass
+        for i in listify(all_args, unholder=True):
             if not isinstance(i, (str, build.BuildTarget, build.CustomTarget, dependencies.ExternalProgram, mesonlib.File)):
                 mlog.debug('Wrong type:', str(i))
                 raise InterpreterException('Invalid argument to run_target.')
@@ -2383,11 +2373,10 @@ to directly access options of other subprojects.''')
         par = kwargs.get('is_parallel', True)
         if not isinstance(par, bool):
             raise InterpreterException('Keyword argument is_parallel must be a boolean.')
-        cmd_args = extract_as_list(kwargs, 'args')
+        cmd_args = extract_as_list(kwargs, 'args', unholder=True)
         for i in cmd_args:
-            if not isinstance(i, (str, mesonlib.File, TargetHolder)):
+            if not isinstance(i, (str, mesonlib.File, build.Target)):
                 raise InterpreterException('Command line arguments must be strings, files or targets.')
-        cmd_args = mesonlib.unholder_array(cmd_args)
         env = self.unpack_env_kwarg(kwargs)
         should_fail = kwargs.get('should_fail', False)
         if not isinstance(should_fail, bool):
@@ -2805,7 +2794,8 @@ different subdirectory.
             elif isinstance(s, str):
                 s = mesonlib.File.from_source_file(self.environment.source_dir, self.subdir, s)
             else:
-                raise InterpreterException("Source item is not string or File-type object.")
+                raise InterpreterException('Source item is {!r} instead of '
+                                           'string or File-type object'.format(s))
             results.append(s)
         return results
 
@@ -2831,7 +2821,7 @@ different subdirectory.
         if not args:
             raise InterpreterException('Target does not have a name.')
         name = args[0]
-        sources = args[1:]
+        sources = listify(args[1:])
         if self.environment.is_cross_build():
             if kwargs.get('native', False):
                 is_cross = False
@@ -2839,19 +2829,14 @@ different subdirectory.
                 is_cross = True
         else:
             is_cross = False
-        try:
-            kw_src = self.flatten(kwargs['sources'])
-            kw_src = listify(kw_src)
-        except KeyError:
-            kw_src = []
-        sources += kw_src
+        if 'sources' in kwargs:
+            sources += listify(kwargs['sources'])
         sources = self.source_strings_to_files(sources)
-        objs = self.flatten(kwargs.get('objects', []))
-        kwargs['dependencies'] = self.flatten(kwargs.get('dependencies', []))
+        objs = extract_as_list(kwargs, 'objects')
+        kwargs['dependencies'] = extract_as_list(kwargs, 'dependencies')
         if 'extra_files' in kwargs:
             ef = extract_as_list(kwargs, 'extra_files')
             kwargs['extra_files'] = self.source_strings_to_files(ef)
-        objs = listify(objs)
         self.check_sources_exist(os.path.join(self.source_root, self.subdir), sources)
         if targetholder is ExecutableHolder:
             targetclass = build.Executable
