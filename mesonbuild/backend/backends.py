@@ -303,13 +303,16 @@ class Backend:
         for dep in target.external_deps:
             if isinstance(dep, dependencies.ExternalLibrary):
                 la = dep.link_args
-                if len(la) == 1 and la[0].startswith(self.environment.get_source_dir()):
+                if len(la) == 1 and os.path.isabs(la[0]):
                     # The only link argument is an absolute path to a library file.
                     libpath = la[0]
+                    if libpath.startswith(('/usr/lib', '/lib')):
+                        # No point in adding system paths.
+                        continue
                     if os.path.splitext(libpath)[1] not in ['.dll', '.lib', '.so']:
                         continue
                     absdir = os.path.split(libpath)[0]
-                    rel_to_src = absdir[len(self.environment.get_source_dir())+1:]
+                    rel_to_src = absdir[len(self.environment.get_source_dir()) + 1:]
                     assert(not os.path.isabs(rel_to_src))
                     paths.append(os.path.join(self.build_to_src, rel_to_src))
         return paths
@@ -321,7 +324,9 @@ class Backend:
             prospective = self.get_target_dir(ld)
             if prospective not in result:
                 result.append(prospective)
-        result += self.rpaths_for_bundled_shared_libraries(target)
+        for rp in self.rpaths_for_bundled_shared_libraries(target):
+            if rp not in result:
+                result += [rp]
         return result
 
     def object_filename_from_source(self, target, source, is_unity):

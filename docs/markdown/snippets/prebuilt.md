@@ -1,9 +1,14 @@
-# Better support for prebuilt shared libraries
+# Better support for shared libraries in non-system paths
 
 Meson has had support for prebuilt object files and static libraries.
-This release adds feature parity to shared libraries. This means
-that e.g. shipping prebuilt libraries as subprojects now can
-be as simple as writing a definition file that looks like this.
+This release adds feature parity to shared libraries that are either
+in non-standard system paths or shipped as part of your project. On
+systems that support rpath, Meson automatically adds rpath entries
+to built targets using manually found external libraries.
+
+This means that e.g. supporting prebuilt libraries shipped with your
+source or provided by subprojects or wrap definitions by writing a
+build file like this:
 
     project('myprebuiltlibrary', 'c')
     
