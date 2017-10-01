@@ -90,7 +90,7 @@ def get_backend_commands(backend, debug=False):
         test_cmd = cmd + ['-target', 'RUN_TESTS']
     elif backend is Backend.ninja:
         # We need at least 1.6 because of -w dupbuild=err
-        cmd = [detect_ninja('1.6'), '-w', 'dupbuild=err']
+        cmd = [detect_ninja('1.6'), '-w', 'dupbuild=err', '-d', 'explain']
         if cmd[0] is None:
             raise RuntimeError('Could not find Ninja v1.6 or newer')
         if debug:
