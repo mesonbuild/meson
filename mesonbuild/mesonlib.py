@@ -200,15 +200,7 @@ def classify_unity_sources(compilers, sources):
     return compsrclist
 
 def flatten(item):
-    if not isinstance(item, list):
-        return [item]
-    result = []
-    for i in item:
-        if isinstance(i, list):
-            result += flatten(i)
-        else:
-            result.append(i)
-    return result
+    return listify(item, flatten=True)
 
 def is_osx():
     return platform.system().lower() == 'darwin'
@@ -475,23 +467,33 @@ def replace_if_different(dst, dst_tmp):
         os.unlink(dst_tmp)
 
 
-def listify(*args):
+def listify(item, flatten=True):
     '''
     Returns a list with all args embedded in a list if they are not of type list.
     This function preserves order.
     '''
-    if len(args) == 1:  # Special case with one single arg
-        return args[0] if type(args[0]) is list else [args[0]]
-    return [item if type(item) is list else [item] for item in args]
+    if not isinstance(item, list):
+        return [item]
+    result = []
+    if flatten:
+        for i in item:
+            if isinstance(i, list):
+                result += listify(i, flatten=True)
+            else:
+                result.append(i)
+    else:
+        for i in item:
+            result.append(i)
+    return result
 
 
-def extract_as_list(dict_object, *keys, pop = False):
+def extract_as_list(dict_object, *keys, pop=False):
     '''
     Extracts all values from given dict_object and listifies them.
     '''
     if pop:
-        return listify(*[dict_object.pop(key, []) for key in keys])
-    return listify(*[dict_object.get(key, []) for key in keys])
+        return flatten([dict_object.pop(key, []) for key in keys])
+    return flatten([dict_object.get(key, []) for key in keys])
 
 
 def typeslistify(item, types):
