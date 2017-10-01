@@ -2144,6 +2144,11 @@ to directly access options of other subprojects.''')
                 return Disabler()
             if o.value == 'required':
                 required = True
+        # Dependency resolution does not need to know about disablers and
+        # all other stuff, so set this manually.
+        if 'options' in kwargs:
+            kwargs['required'] = required
+            del kwargs['options']
         name = args[0]
         if '<' in name or '>' in name or '=' in name:
             raise InvalidArguments('Characters <, > and = are forbidden in dependency names. To specify'

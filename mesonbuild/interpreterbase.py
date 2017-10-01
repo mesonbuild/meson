@@ -432,7 +432,11 @@ class InterpreterBase:
         if not isinstance(obj, InterpreterObject):
             raise InvalidArguments('Variable "%s" is not callable.' % object_name)
         (args, kwargs) = self.reduce_arguments(args)
-        if is_disabled(posargs, kwargs):
+        # Special case. This is the only thing you can do with a disabler
+        # object. Every other use immediately returns the disabler object.
+        if isinstance(obj, Disabler) and method_name == 'found':
+            return False
+        if is_disabled(args, kwargs):
             return Disabler()
         if method_name == 'extract_objects':
             self.validate_extraction(obj.held_object)

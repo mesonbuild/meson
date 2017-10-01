@@ -1,2 +1,6 @@
 option('video', type : 'dolphin')
 option('patented', type : 'dolphin', value : 'disabled')
+
+option('req_opt', type : 'dolphin', value : 'required')
+option('auto_opt', type : 'dolphin', value : 'not_required')
+option('dis_opt', type : 'dolphin', value : 'disabled')

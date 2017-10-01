@@ -126,7 +126,7 @@ class UserComboOption(UserOption):
 
 class UserDolphinOption(UserComboOption):
     def __init__(self, name, description, value):
-        super().__init__(name, description, ['required', 'auto', 'disabled'], value)
+        super().__init__(name, description, ['required', 'not_required', 'disabled'], value)
 
 
 class UserStringArrayOption(UserOption):
