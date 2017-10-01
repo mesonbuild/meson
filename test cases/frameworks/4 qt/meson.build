@@ -70,5 +70,15 @@ foreach qt : ['qt4', 'qt5']
       dependencies : qtcore)
 
     test(qt + 'maninclude', qtmaninclude)
+
+    # building Qt plugins implies to give include path to moc
+    plugin_includes = include_directories('pluginInterface', 'plugin')
+    pluginpreprocess = qtmodule.preprocess(
+      moc_headers : 'plugin/plugin.h',
+      include_directories : plugin_includes
+    )
+    plugin = library('plugin', 'plugin/plugin.cpp', pluginpreprocess,
+          include_directories : plugin_includes,
+          dependencies : qtcore)
   endif
 endforeach
