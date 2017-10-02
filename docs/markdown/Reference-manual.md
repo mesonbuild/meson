@@ -820,10 +820,11 @@ static with only one option.
 
 The keyword arguments for this are the same as for [`executable`](#executable) with the following additions:
 
-- `name_prefix` the string that will be used as the suffix for the
+- `name_suffix` the string that will be used as the suffix for the
   target by overriding the default (only used for libraries). By
   default this is `lib` on all platforms and compilers except with
-  MSVC where it is omitted.
+  MSVC where it is omitted and set to `a` to avoid potential name clash
+  with shared libraries (which also generates `lib` files).
 - `rust_crate_type` specifies the crate type for Rust
   libraries. Defaults to `dylib` for shared libraries and `rlib` for
   static libraries.
