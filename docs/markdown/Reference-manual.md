@@ -1614,7 +1614,7 @@ during tests. It should be passed as the `env` keyword argument to
 tests. It has the following methods.
 
 - `append(varname, value)` appends the given value to the old value of
-  the environment variable, e.g.  `env.append'('FOO', 'BAR', separator
+  the environment variable, e.g.  `env.append('FOO', 'BAR', separator
   : ';')` produces `BOB;BAR` if `FOO` had the value `BOB` and plain
   `BAR` if the value was not defined. If the separator is not
   specified explicitly, the default path separator for the host
