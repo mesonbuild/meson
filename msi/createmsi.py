@@ -47,8 +47,10 @@ class PackageGenerator:
         self.staging_dirs = ['dist', 'dist2']
         if self.bytesize == 64:
             self.progfile_dir = 'ProgramFiles64Folder'
+            self.redist_path = 'C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community\\VC\\Redist\\MSVC\\14.11.25325\\MergeModules\\Microsoft_VC141_CRT_x64.msm'
         else:
             self.progfile_dir = 'ProgramFilesFolder'
+            self.redist_path = 'c:\\Program Files\\Microsoft Visual Studio\\2017\\Community\\VC\\Redist\\MSVC\\14.11.25325\\MergeModules\\Microsoft_VC141_CRT_x86.msm'
         self.component_num = 0
         self.feature_properties = {
             self.staging_dirs[0]: {
@@ -141,6 +143,12 @@ class PackageGenerator:
             'Id': 'INSTALLDIR',
             'Name': 'Meson',
         })
+        ET.SubElement(installdir, 'Merge', {
+            'Id': 'VCRedist',
+            'SourceFile': self.redist_path,
+            'DiskId': '1',
+            'Language': '0',
+            })
 
         ET.SubElement(product, 'Property', {
             'Id': 'WIXUI_INSTALLDIR',
@@ -166,6 +174,14 @@ class PackageGenerator:
                 nodes[root] = cur_node
             self.create_xml(nodes, sd, installdir, sd)
             self.build_features(nodes, top_feature, sd)
+        vcredist_feature = ET.SubElement(top_feature, 'Feature', {
+            'Id': 'VCRedist',
+            'Title': 'Visual C++ runtime',
+            'AllowAdvertise': 'no',
+            'Display': 'hidden',
+            'Level': '1',
+            })
+        ET.SubElement(vcredist_feature, 'MergeRef', {'Id': 'VCRedist'})
         ET.ElementTree(self.root).write(self.main_xml, encoding='utf-8', xml_declaration=True)
         # ElementTree can not do prettyprinting so do it manually
         import xml.dom.minidom
