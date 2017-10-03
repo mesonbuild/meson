@@ -1133,10 +1133,9 @@ int dummy;
             if isinstance(gensrc, (build.CustomTarget, build.GeneratedList)) or gensrc.is_built:
                 vala_c_file = os.path.splitext(os.path.basename(vala_file))[0] + '.c'
             else:
-                realpath = os.path.abspath(os.path.join(self.environment.get_build_dir(), vala_file))
-                if (realpath.startswith(os.path.join(self.environment.get_source_dir(), target.get_subdir()))):
-                    relpath = os.path.relpath(realpath, os.path.join(self.environment.get_source_dir(), target.get_subdir()))
-                    vala_c_file = os.path.join(os.path.dirname(relpath), os.path.splitext(os.path.basename(vala_file))[0] + '.c')
+                path_to_target = os.path.join(self.build_to_src, target.get_subdir())
+                if vala_file.startswith(path_to_target):
+                    vala_c_file = os.path.splitext(os.path.relpath(vala_file, path_to_target))[0] + '.c'
                 else:
                     vala_c_file = os.path.splitext(os.path.basename(vala_file))[0] + '.c'
             # All this will be placed inside the c_out_dir
