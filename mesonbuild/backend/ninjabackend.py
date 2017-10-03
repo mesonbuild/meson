@@ -1148,14 +1148,14 @@ int dummy;
         # Tell Valac to output everything in our private directory. Sadly this
         # means it will also preserve the directory components of Vala sources
         # found inside the build tree (generated sources).
-        args += ['-d', c_out_dir]
-        args += ['-b', os.path.join(self.environment.get_source_dir(), target.get_subdir())]
+        args += ['--directory', c_out_dir]
+        args += ['--basedir', os.path.join(self.build_to_src, target.get_subdir())]
         if not isinstance(target, build.Executable):
             # Library name
-            args += ['--library=' + target.name]
+            args += ['--library', target.name]
             # Outputted header
             hname = os.path.join(self.get_target_dir(target), target.vala_header)
-            args += ['-H', hname]
+            args += ['--header', hname]
             if self.is_unity(target):
                 # Without this the declarations will get duplicated in the .c
                 # files and cause a build failure when all of them are
