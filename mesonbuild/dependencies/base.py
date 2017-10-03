@@ -23,7 +23,7 @@ from enum import Enum
 
 from .. import mlog
 from .. import mesonlib
-from ..mesonlib import MesonException, Popen_safe, flatten, version_compare_many, listify
+from ..mesonlib import MesonException, Popen_safe, version_compare_many, listify
 
 
 # These must be defined in this file to avoid cyclical references.
@@ -586,7 +586,7 @@ class ExtraFrameworkDependency(ExternalDependency):
 
 def get_dep_identifier(name, kwargs, want_cross):
     # Need immutable objects since the identifier will be used as a dict key
-    version_reqs = flatten(kwargs.get('version', []))
+    version_reqs = listify(kwargs.get('version', []))
     if isinstance(version_reqs, list):
         version_reqs = frozenset(version_reqs)
     identifier = (name, version_reqs, want_cross)
@@ -599,7 +599,7 @@ def get_dep_identifier(name, kwargs, want_cross):
             continue
         # All keyword arguments are strings, ints, or lists (or lists of lists)
         if isinstance(value, list):
-            value = frozenset(flatten(value))
+            value = frozenset(listify(value))
         identifier += (key, value)
     return identifier
 

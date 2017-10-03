@@ -20,7 +20,7 @@ from . import environment
 from . import dependencies
 from . import mlog
 from .mesonlib import File, MesonException, listify, extract_as_list
-from .mesonlib import flatten, typeslistify, stringlistify, classify_unity_sources
+from .mesonlib import typeslistify, stringlistify, classify_unity_sources
 from .mesonlib import get_filenames_templates_dict, substitute_values
 from .environment import for_windows, for_darwin, for_cygwin
 from .compilers import is_object, clike_langs, sort_clike, lang_suffixes
@@ -682,7 +682,7 @@ class BuildTarget(Target):
             if 'd' in self.compilers:
                 self.add_compiler_args('d', self.compilers['d'].get_feature_args(dfeatures))
 
-        self.link_args = flatten(kwargs.get('link_args', []))
+        self.link_args = extract_as_list(kwargs, 'link_args')
         for i in self.link_args:
             if not isinstance(i, str):
                 raise InvalidArguments('Link_args arguments must be strings.')
@@ -856,9 +856,7 @@ You probably should put it in link_with instead.''')
         return self.external_deps
 
     def link(self, target):
-        for t in flatten(target):
-            if hasattr(t, 'held_object'):
-                t = t.held_object
+        for t in listify(target, unholder=True):
             if not t.is_linkable_target():
                 raise InvalidArguments('Link target {!r} is not linkable.'.format(t))
             if isinstance(self, SharedLibrary) and isinstance(t, StaticLibrary) and not t.pic:
@@ -870,9 +868,7 @@ You probably should put it in link_with instead.''')
             self.link_targets.append(t)
 
     def link_whole(self, target):
-        for t in flatten(target):
-            if hasattr(t, 'held_object'):
-                t = t.held_object
+        for t in listify(target, unholder=True):
             if not isinstance(t, StaticLibrary):
                 raise InvalidArguments('{!r} is not a static library.'.format(t))
             if isinstance(self, SharedLibrary) and not t.pic:
@@ -915,7 +911,7 @@ You probably should put it in link_with instead.''')
         self.include_dirs += ids
 
     def add_compiler_args(self, language, args):
-        args = flatten(args)
+        args = listify(args)
         for a in args:
             if not isinstance(a, (str, File)):
                 raise InvalidArguments('A non-string passed to compiler args.')
@@ -1546,11 +1542,9 @@ class CustomTarget(Target):
         return deps
 
     def flatten_command(self, cmd):
-        cmd = listify(cmd)
+        cmd = listify(cmd, unholder=True)
         final_cmd = []
         for c in cmd:
-            if hasattr(c, 'held_object'):
-                c = c.held_object
             if isinstance(c, str):
                 final_cmd.append(c)
             elif isinstance(c, File):
@@ -1573,12 +1567,7 @@ class CustomTarget(Target):
 
     def process_kwargs(self, kwargs):
         super().process_kwargs(kwargs)
-        sources = flatten(kwargs.get('input', []))
-        self.sources = []
-        for s in sources:
-            if hasattr(s, 'held_object'):
-                s = s.held_object
-            self.sources.append(s)
+        self.sources = extract_as_list(kwargs, 'input', unholder=True)
         if 'output' not in kwargs:
             raise InvalidArguments('Missing keyword argument "output".')
         self.outputs = listify(kwargs['output'])

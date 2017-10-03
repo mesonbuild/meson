@@ -820,10 +820,19 @@ static with only one option.
 
 The keyword arguments for this are the same as for [`executable`](#executable) with the following additions:
 
-- `name_prefix` the string that will be used as the suffix for the
-  target by overriding the default (only used for libraries). By
-  default this is `lib` on all platforms and compilers except with
-  MSVC where it is omitted.
+- `name_prefix` the string that will be used as the prefix for the
+  target output filename by overriding the default (only used for
+  libraries). By default this is `lib` on all platforms and compilers
+  except with MSVC shared libraries where it is omitted to follow
+  convention.
+- `name_suffix` the string that will be used as the suffix for the
+  target output filename by overriding the default (see also:
+  [executable()](#executable)). By default, for shared libraries this
+  is `dylib` on macOS, `dll` on Windows, and `so` everywhere else.
+  For static libraries, it is `a` everywhere. By convention MSVC
+  static libraries use the `lib` suffix, but we use `a` to avoid a
+  potential name clash with shared libraries which also generate
+  `xxx.lib` import files.
 - `rust_crate_type` specifies the crate type for Rust
   libraries. Defaults to `dylib` for shared libraries and `rlib` for
   static libraries.
@@ -1614,7 +1623,7 @@ during tests. It should be passed as the `env` keyword argument to
 tests. It has the following methods.
 
 - `append(varname, value)` appends the given value to the old value of
-  the environment variable, e.g.  `env.append'('FOO', 'BAR', separator
+  the environment variable, e.g.  `env.append('FOO', 'BAR', separator
   : ';')` produces `BOB;BAR` if `FOO` had the value `BOB` and plain
   `BAR` if the value was not defined. If the separator is not
   specified explicitly, the default path separator for the host

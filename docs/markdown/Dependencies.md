@@ -50,8 +50,16 @@ pkg-config files. Meson has autodetection support for some of these.
 ## Boost ##
 
 Boost is not a single dependency but rather a group of different
-libraries. To use Boost with Meson, simply list which Boost modules
-you would like to use.
+libraries. To use Boost headers-only libraries, simply add Boost as a
+dependency.
+
+```meson
+boost_dep = dependency('boost')
+exe = executable('myprog', 'file.cc', dependencies : boost_dep)
+```
+
+To link against boost with Meson, simply list which libraries you would like to
+use.
 
 ```meson
 boost_dep = dependency('boost', modules : ['thread', 'utility'])
@@ -64,6 +72,9 @@ use those to link against your targets.
 If your boost headers or libraries are in non-standard locations you
 can set the BOOST_ROOT, BOOST_INCLUDEDIR, and/or BOOST_LIBRARYDIR
 environment variables.
+
+You can set the argument `threading` to `single` to use boost libraries that
+has been compiled for single-threaded use instead.
 
 ## GTest and GMock ##
 

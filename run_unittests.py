@@ -31,6 +31,7 @@ import mesonbuild.compilers
 import mesonbuild.environment
 import mesonbuild.mesonlib
 import mesonbuild.coredata
+from mesonbuild.interpreter import ObjectHolder
 from mesonbuild.mesonlib import is_linux, is_windows, is_osx, is_cygwin, windows_proof_rmtree
 from mesonbuild.environment import Environment
 from mesonbuild.dependencies import DependencyException
@@ -61,7 +62,6 @@ def get_soname(fname):
 
 def get_rpath(fname):
     return get_dynamic_section_entry(fname, r'(?:rpath|runpath)')
-
 
 class InternalTests(unittest.TestCase):
 
@@ -397,6 +397,49 @@ class InternalTests(unittest.TestCase):
         os.unlink(configfilename)
 
         self.assertEqual(forced_value, desired_value)
+
+    def test_listify(self):
+        listify = mesonbuild.mesonlib.listify
+        # Test sanity
+        self.assertEqual([1], listify(1))
+        self.assertEqual([], listify([]))
+        self.assertEqual([1], listify([1]))
+        # Test flattening
+        self.assertEqual([1, 2, 3], listify([1, [2, 3]]))
+        self.assertEqual([1, 2, 3], listify([1, [2, [3]]]))
+        self.assertEqual([1, [2, [3]]], listify([1, [2, [3]]], flatten=False))
+        # Test flattening and unholdering
+        holder1 = ObjectHolder(1)
+        holder3 = ObjectHolder(3)
+        self.assertEqual([holder1], listify(holder1))
+        self.assertEqual([holder1], listify([holder1]))
+        self.assertEqual([holder1, 2], listify([holder1, 2]))
+        self.assertEqual([holder1, 2, 3], listify([holder1, 2, [3]]))
+        self.assertEqual([1], listify(holder1, unholder=True))
+        self.assertEqual([1], listify([holder1], unholder=True))
+        self.assertEqual([1, 2], listify([holder1, 2], unholder=True))
+        self.assertEqual([1, 2, 3], listify([holder1, 2, [holder3]], unholder=True))
+        # Unholding doesn't work recursively when not flattening
+        self.assertEqual([1, [2], [holder3]], listify([holder1, [2], [holder3]], unholder=True, flatten=False))
+
+    def test_extract_as_list(self):
+        extract = mesonbuild.mesonlib.extract_as_list
+        # Test sanity
+        kwargs = {'sources': [1, 2, 3]}
+        self.assertEqual([1, 2, 3], extract(kwargs, 'sources'))
+        self.assertEqual(kwargs, {'sources': [1, 2, 3]})
+        self.assertEqual([1, 2, 3], extract(kwargs, 'sources', pop=True))
+        self.assertEqual(kwargs, {})
+        # Test unholding
+        holder3 = ObjectHolder(3)
+        kwargs = {'sources': [1, 2, holder3]}
+        self.assertEqual([1, 2, 3], extract(kwargs, 'sources', unholder=True))
+        self.assertEqual(kwargs, {'sources': [1, 2, holder3]})
+        self.assertEqual([1, 2, 3], extract(kwargs, 'sources', unholder=True, pop=True))
+        self.assertEqual(kwargs, {})
+        # Test listification
+        kwargs = {'sources': [1, 2, 3], 'pch_sources': [4, 5, 6]}
+        self.assertEqual([[1, 2, 3], [4, 5, 6]], extract(kwargs, 'sources', 'pch_sources'))
 
 
 class BasePlatformTests(unittest.TestCase):
@@ -1298,6 +1341,100 @@ int main(int argc, char **argv) {
         for i in targets:
             self.assertPathExists(os.path.join(testdir, i))
 
+    def detect_prebuild_env(self):
+        if mesonbuild.mesonlib.is_windows():
+            object_suffix = 'obj'
+        else:
+            object_suffix = 'o'
+        static_suffix = 'a'
+        shared_suffix = 'so'
+        if shutil.which('cl'):
+            compiler = 'cl'
+            static_suffix = 'lib'
+            shared_suffix = 'dll'
+        elif shutil.which('cc'):
+            compiler = 'cc'
+        elif shutil.which('gcc'):
+            compiler = 'gcc'
+        else:
+            raise RuntimeError("Could not find C compiler.")
+        return (compiler, object_suffix, static_suffix, shared_suffix)
+
+    def pbcompile(self, compiler, source, objectfile, extra_args=[]):
+        if compiler == 'cl':
+            cmd = [compiler, '/nologo', '/Fo' + objectfile, '/c', source] + extra_args
+        else:
+            cmd = [compiler, '-c', source, '-o', objectfile] + extra_args
+        subprocess.check_call(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
+    def test_prebuilt_object(self):
+        (compiler, object_suffix, _, _) = self.detect_prebuild_env()
+        tdir = os.path.join(self.unit_test_dir, '14 prebuilt object')
+        source = os.path.join(tdir, 'source.c')
+        objectfile = os.path.join(tdir, 'prebuilt.' + object_suffix)
+        self.pbcompile(compiler, source, objectfile)
+        try:
+            self.init(tdir)
+            self.build()
+            self.run_tests()
+        finally:
+            os.unlink(objectfile)
+
+    def test_prebuilt_static_lib(self):
+        (compiler, object_suffix, static_suffix, _) = self.detect_prebuild_env()
+        tdir = os.path.join(self.unit_test_dir, '15 prebuilt static')
+        source = os.path.join(tdir, 'libdir/best.c')
+        objectfile = os.path.join(tdir, 'libdir/best.' + object_suffix)
+        stlibfile = os.path.join(tdir, 'libdir/libbest.' + static_suffix)
+        if compiler == 'cl':
+            link_cmd = ['lib', '/NOLOGO', '/OUT:' + stlibfile, objectfile]
+        else:
+            link_cmd = ['ar', 'csr', stlibfile, objectfile]
+        self.pbcompile(compiler, source, objectfile)
+        try:
+            subprocess.check_call(link_cmd)
+        finally:
+            os.unlink(objectfile)
+        try:
+            self.init(tdir)
+            self.build()
+            self.run_tests()
+        finally:
+            os.unlink(stlibfile)
+
+    def test_prebuilt_shared_lib(self):
+        (compiler, object_suffix, _, shared_suffix) = self.detect_prebuild_env()
+        tdir = os.path.join(self.unit_test_dir, '16 prebuilt shared')
+        source = os.path.join(tdir, 'alexandria.c')
+        objectfile = os.path.join(tdir, 'alexandria.' + object_suffix)
+        if compiler == 'cl':
+            extra_args = []
+            shlibfile = os.path.join(tdir, 'alexandria.' + shared_suffix)
+            link_cmd = ['link', '/NOLOGO','/DLL', '/DEBUG', '/IMPLIB:' + os.path.join(tdir, 'alexandria.lib'), '/OUT:' + shlibfile, objectfile]
+        else:
+            extra_args = ['-fPIC']
+            shlibfile = os.path.join(tdir, 'libalexandria.' + shared_suffix)
+            link_cmd = [compiler, '-shared', '-o', shlibfile, objectfile]
+            if not mesonbuild.mesonlib.is_osx():
+                link_cmd += ['-Wl,-soname=libalexandria.so']
+        self.pbcompile(compiler, source, objectfile, extra_args=extra_args)
+        try:
+            subprocess.check_call(link_cmd)
+        finally:
+            os.unlink(objectfile)
+        try:
+            self.init(tdir)
+            self.build()
+            self.run_tests()
+        finally:
+            os.unlink(shlibfile)
+            if mesonbuild.mesonlib.is_windows():
+                # Clean up all the garbage MSVC writes in the
+                # source tree.
+                for fname in glob(os.path.join(tdir, 'alexandria.*')):
+                    if os.path.splitext(fname)[1] not in ['.c', '.h']:
+                        os.unlink(fname)
 
 class FailureTests(BasePlatformTests):
     '''

@@ -21,7 +21,7 @@ import shutil
 
 from .. import mlog
 from .. import mesonlib
-from ..mesonlib import version_compare, Popen_safe
+from ..mesonlib import version_compare, Popen_safe, stringlistify, extract_as_list
 from .base import DependencyException, ExternalDependency, PkgConfigDependency
 
 class GTestDependency(ExternalDependency):
@@ -185,7 +185,7 @@ class LLVMDependency(ExternalDependency):
             raise DependencyException('Could not generate modules for LLVM.')
         self.modules = shlex.split(out)
 
-        modules = mesonlib.stringlistify(mesonlib.flatten(kwargs.get('modules', [])))
+        modules = stringlistify(extract_as_list(kwargs, 'modules'))
         for mod in sorted(set(modules)):
             if mod not in self.modules:
                 mlog.log('LLVM module', mod, 'found:', mlog.red('NO'))

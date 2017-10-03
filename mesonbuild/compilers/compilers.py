@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import contextlib, os.path, re, tempfile
+import subprocess
 
 from ..linkers import StaticLinker
 from .. import coredata
@@ -917,6 +918,35 @@ def get_largefile_args(compiler):
         # those features explicitly.
     return []
 
+# TODO: The result from calling compiler should be cached. So that calling this
+# function multiple times don't add latency.
+def gnulike_default_include_dirs(compiler, lang):
+    if lang == 'cpp':
+        lang = 'c++'
+    p = subprocess.Popen(
+        compiler + ['-x{}'.format(lang), '-E', '-v', '-'],
+        stdin=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
+        stdout=subprocess.PIPE
+    )
+    stderr = p.stderr.read().decode('utf-8')
+    parse_state = 0
+    paths = []
+    for line in stderr.split('\n'):
+        if parse_state == 0:
+            if line == '#include "..." search starts here:':
+                parse_state = 1
+        elif parse_state == 1:
+            if line == '#include <...> search starts here:':
+                parse_state = 2
+            else:
+                paths.append(line[1:])
+        elif parse_state == 2:
+            if line == 'End of search list.':
+                break
+            else:
+                paths.append(line[1:])
+    return paths
 
 class GnuCompiler:
     # Functionality that is common to all GNU family compilers.
@@ -997,6 +1027,9 @@ class GnuCompiler:
 
     def get_instruction_set_args(self, instruction_set):
         return gnulike_instruction_set_args.get(instruction_set, None)
+
+    def get_default_include_dirs(self):
+        return gnulike_default_include_dirs(self.exelist, self.language)
 
 
 class ClangCompiler:
@@ -1082,6 +1115,9 @@ class ClangCompiler:
     def get_instruction_set_args(self, instruction_set):
         return gnulike_instruction_set_args.get(instruction_set, None)
 
+    def get_default_include_dirs(self):
+        return gnulike_default_include_dirs(self.exelist, self.language)
+
 
 # Tested on linux for ICC 14.0.3, 15.0.6, 16.0.4, 17.0.1
 class IntelCompiler:
@@ -1132,3 +1168,6 @@ class IntelCompiler:
         # if self.icc_type == ICC_OSX:
         #     return ['-bundle']
         return ['-shared']
+
+    def get_default_include_dirs(self):
+        return gnulike_default_include_dirs(self.exelist, self.language)
