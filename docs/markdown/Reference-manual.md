@@ -823,7 +823,8 @@ The keyword arguments for this are the same as for [`executable`](#executable) w
 - `name_prefix` the string that will be used as the prefix for the
   target output filename by overriding the default (only used for
   libraries). By default this is `lib` on all platforms and compilers
-  except with MSVC where it is omitted to follow convention.
+  except with MSVC shared libraries where it is omitted to follow
+  convention.
 - `name_suffix` the string that will be used as the suffix for the
   target output filename by overriding the default (see also:
   [executable()](#executable)). By default, for shared libraries this
