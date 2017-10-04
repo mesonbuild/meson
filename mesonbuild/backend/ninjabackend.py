@@ -1131,9 +1131,13 @@ int dummy;
             # file is outside the build directory, the path components will be
             # stripped and just the basename will be used.
             if isinstance(gensrc, (build.CustomTarget, build.GeneratedList)) or gensrc.is_built:
-                vala_c_file = os.path.splitext(vala_file)[0] + '.c'
-            else:
                 vala_c_file = os.path.splitext(os.path.basename(vala_file))[0] + '.c'
+            else:
+                path_to_target = os.path.join(self.build_to_src, target.get_subdir())
+                if vala_file.startswith(path_to_target):
+                    vala_c_file = os.path.splitext(os.path.relpath(vala_file, path_to_target))[0] + '.c'
+                else:
+                    vala_c_file = os.path.splitext(os.path.basename(vala_file))[0] + '.c'
             # All this will be placed inside the c_out_dir
             vala_c_file = os.path.join(c_out_dir, vala_c_file)
             vala_c_src.append(vala_c_file)
@@ -1144,13 +1148,14 @@ int dummy;
         # Tell Valac to output everything in our private directory. Sadly this
         # means it will also preserve the directory components of Vala sources
         # found inside the build tree (generated sources).
-        args += ['-d', c_out_dir]
+        args += ['--directory', c_out_dir]
+        args += ['--basedir', os.path.join(self.build_to_src, target.get_subdir())]
         if not isinstance(target, build.Executable):
             # Library name
-            args += ['--library=' + target.name]
+            args += ['--library', target.name]
             # Outputted header
             hname = os.path.join(self.get_target_dir(target), target.vala_header)
-            args += ['-H', hname]
+            args += ['--header', hname]
             if self.is_unity(target):
                 # Without this the declarations will get duplicated in the .c
                 # files and cause a build failure when all of them are
