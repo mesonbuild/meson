@@ -12,10 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os, re
+import functools
+
 from . import mparser
 from . import coredata
 from . import mesonlib
-import os, re
+
 
 forbidden_option_names = coredata.get_builtin_options()
 forbidden_prefixes = {'c_',
@@ -43,15 +46,33 @@ def is_invalid_name(name):
 class OptionException(mesonlib.MesonException):
     pass
 
+
+def permitted_kwargs(permitted):
+    """Function that validates kwargs for options."""
+    def _wraps(func):
+        @functools.wraps(func)
+        def _inner(name, description, kwargs):
+            bad = [a for a in kwargs.keys() if a not in permitted]
+            if bad:
+                raise OptionException('Invalid kwargs for option "{}": "{}"'.format(
+                    name, ' '.join(bad)))
+            return func(name, description, kwargs)
+        return _inner
+    return _wraps
+
+
 optname_regex = re.compile('[^a-zA-Z0-9_-]')
 
+@permitted_kwargs({'value'})
 def StringParser(name, description, kwargs):
     return coredata.UserStringOption(name, description,
                                      kwargs.get('value', ''), kwargs.get('choices', []))
 
+@permitted_kwargs({'value'})
 def BooleanParser(name, description, kwargs):
     return coredata.UserBooleanOption(name, description, kwargs.get('value', True))
 
+@permitted_kwargs({'value', 'choices'})
 def ComboParser(name, description, kwargs):
     if 'choices' not in kwargs:
         raise OptionException('Combo option missing "choices" keyword.')
@@ -141,7 +162,7 @@ class OptionInterpreter:
         (posargs, kwargs) = self.reduce_arguments(node.args)
         if 'type' not in kwargs:
             raise OptionException('Option call missing mandatory "type" keyword argument')
-        opt_type = kwargs['type']
+        opt_type = kwargs.pop('type')
         if opt_type not in option_types:
             raise OptionException('Unknown type %s.' % opt_type)
         if len(posargs) != 1:
@@ -155,7 +176,7 @@ class OptionInterpreter:
             raise OptionException('Option name %s is reserved.' % opt_name)
         if self.subproject != '':
             opt_name = self.subproject + ':' + opt_name
-        opt = option_types[opt_type](opt_name, kwargs.get('description', ''), kwargs)
+        opt = option_types[opt_type](opt_name, kwargs.pop('description', ''), kwargs)
         if opt.description == '':
             opt.description = opt_name
         if opt_name in self.cmd_line_options:
