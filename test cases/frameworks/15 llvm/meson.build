@@ -13,6 +13,9 @@ assert(d.found() == false, 'not-found llvm module found')
 d = dependency('llvm', version : '<0.1', required : false)
 assert(d.found() == false, 'ancient llvm module found')
 
+d = dependency('llvm', optional_modules : 'not-found', required : false)
+assert(d.found() == true, 'optional module stopped llvm from being found.')
+
 executable('sum', 'sum.c',  dependencies : [
   llvm_dep,
   dependency('zlib'),

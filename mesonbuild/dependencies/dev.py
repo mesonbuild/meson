@@ -188,15 +188,24 @@ class LLVMDependency(ExternalDependency):
         modules = stringlistify(extract_as_list(kwargs, 'modules'))
         self.check_components(modules)
 
-    def check_components(self, modules):
-        """Check for llvm components (modules in meson terms). """
+        opt_modules = stringlistify(extract_as_list(kwargs, 'optional_modules'))
+        self.check_components(opt_modules, required=False)
+
+    def check_components(self, modules, required=True):
+        """Check for llvm components (modules in meson terms).
+
+        The required option is whether the module is required, not whether LLVM
+        is required.
+        """
         for mod in sorted(set(modules)):
             if mod not in self.modules:
-                mlog.log('LLVM module', mod, 'found:', mlog.red('NO'))
-                self.is_found = False
-                if self.required:
-                    raise DependencyException(
-                        'Could not find required LLVM Component: {}'.format(mod))
+                mlog.log('LLVM module', mod, 'found:', mlog.red('NO'),
+                         '(optional)' if not required else '')
+                if required:
+                    self.is_found = False
+                    if self.required:
+                        raise DependencyException(
+                            'Could not find required LLVM Component: {}'.format(mod))
             else:
                 mlog.log('LLVM module', mod, 'found:', mlog.green('YES'))
 
