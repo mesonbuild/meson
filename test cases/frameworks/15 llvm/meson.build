@@ -1,12 +1,5 @@
 project('llvmtest', ['c', 'cpp'], default_options : ['c_std=c99'])
 
-llvm_dep = dependency(
-  'llvm',
-  modules : ['bitwriter', 'asmprinter', 'executionengine', 'target',
-             'mcjit', 'nativecodegen'],
-  required : true,
-)
-
 d = dependency('llvm', modules : 'not-found', required : false)
 assert(d.found() == false, 'not-found llvm module found')
 
@@ -16,9 +9,23 @@ assert(d.found() == false, 'ancient llvm module found')
 d = dependency('llvm', optional_modules : 'not-found', required : false)
 assert(d.found() == true, 'optional module stopped llvm from being found.')
 
-executable('sum', 'sum.c',  dependencies : [
-  llvm_dep,
-  dependency('zlib'),
-  meson.get_compiler('c').find_library('dl', required : false),
-  dependency('glib-2.0'),
-  ])
+foreach static : [true, false]
+  llvm_dep = dependency(
+    'llvm',
+    modules : ['bitwriter', 'asmprinter', 'executionengine', 'target',
+               'mcjit', 'nativecodegen'],
+    required : true,
+    static : static,
+  )
+  name = static ? 'static' : 'dynamic'
+  executable(
+    'sum-@0@'.format(name),
+    'sum.c',
+    dependencies : [
+      llvm_dep,
+      dependency('zlib'),
+      dependency('glib-2.0'),
+      meson.get_compiler('c').find_library('dl', required : false),
+    ]
+  )
+endforeach

@@ -139,6 +139,7 @@ class LLVMDependency(ExternalDependency):
         self.provided_modules = []
         self.required_modules = set()
         self.llvmconfig = None
+        self.static = kwargs.get('static', False)
         self.__best_found = None
         # FIXME: Support multiple version requirements ala PkgConfigDependency
         req_version = kwargs.get('version', None)
@@ -180,8 +181,9 @@ class LLVMDependency(ExternalDependency):
         opt_modules = stringlistify(extract_as_list(kwargs, 'optional_modules'))
         self.check_components(opt_modules, required=False)
 
+        link_args = ['--link-static', '--system-libs'] if self.static else ['--link-shared']
         p, out = Popen_safe(
-            [self.llvmconfig, '--libs', '--ldflags'] + list(self.required_modules))[:2]
+            [self.llvmconfig, '--libs', '--ldflags'] + link_args + list(self.required_modules))[:2]
         if p.returncode != 0:
             raise DependencyException('Could not generate libs for LLVM.')
         self.link_args = strip_system_libdirs(environment, shlex.split(out))
