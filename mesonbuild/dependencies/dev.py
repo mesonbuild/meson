@@ -136,7 +136,7 @@ class LLVMDependency(ExternalDependency):
         # It's necessary for LLVM <= 3.8 to use the C++ linker. For 3.9 and 4.0
         # the C linker works fine if only using the C API.
         super().__init__('llvm-config', environment, 'cpp', kwargs)
-        self.modules = []
+        self.provided_modules = []
         self.llvmconfig = None
         self.__best_found = None
         # FIXME: Support multiple version requirements ala PkgConfigDependency
@@ -169,6 +169,16 @@ class LLVMDependency(ExternalDependency):
         # for users who want the patch version.
         self.version = out.strip().rstrip('svn')
 
+        p, out = Popen_safe([self.llvmconfig, '--components'])[:2]
+        if p.returncode != 0:
+            raise DependencyException('Could not generate modules for LLVM.')
+        self.provided_modules = shlex.split(out)
+
+        modules = stringlistify(extract_as_list(kwargs, 'modules'))
+        self.check_components(modules)
+        opt_modules = stringlistify(extract_as_list(kwargs, 'optional_modules'))
+        self.check_components(opt_modules, required=False)
+
         p, out = Popen_safe(
             [self.llvmconfig, '--libs', '--ldflags'])[:2]
         if p.returncode != 0:
@@ -180,17 +190,6 @@ class LLVMDependency(ExternalDependency):
         cargs = mesonlib.OrderedSet(shlex.split(out))
         self.compile_args = list(cargs.difference(self.__cpp_blacklist))
 
-        p, out = Popen_safe([self.llvmconfig, '--components'])[:2]
-        if p.returncode != 0:
-            raise DependencyException('Could not generate modules for LLVM.')
-        self.modules = shlex.split(out)
-
-        modules = stringlistify(extract_as_list(kwargs, 'modules'))
-        self.check_components(modules)
-
-        opt_modules = stringlistify(extract_as_list(kwargs, 'optional_modules'))
-        self.check_components(opt_modules, required=False)
-
     def check_components(self, modules, required=True):
         """Check for llvm components (modules in meson terms).
 
@@ -198,7 +197,7 @@ class LLVMDependency(ExternalDependency):
         is required.
         """
         for mod in sorted(set(modules)):
-            if mod not in self.modules:
+            if mod not in self.provided_modules:
                 mlog.log('LLVM module', mod, 'found:', mlog.red('NO'),
                          '(optional)' if not required else '')
                 if required:
