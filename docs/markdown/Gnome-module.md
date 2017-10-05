@@ -72,7 +72,8 @@ tool so see its documentation for more information.
 * `install_dir_typelib`: (*Added 0.35.0*) which directory to install
   the typelib file into
 * `link_with`: list of libraries to link with
-* `symbol_prefix`: the symbol prefix for the gir object, e.g. `gtk`
+* `symbol_prefix`: the symbol prefix for the gir object, e.g. `gtk`,
+  (*Since 0.43.0*) an ordered list of multiple prefixes is allowed
 
 Returns an array of two elements which are: `[gir_target,
 typelib_target]`

@@ -511,10 +511,8 @@ class GnomeModule(ExtensionModule):
                 # does not understand -f LDFLAGS. https://bugzilla.gnome.org/show_bug.cgi?id=783892
                 # ldflags += compilers.sanitizer_link_args(sanitize)
         if 'symbol_prefix' in kwargs:
-            sym_prefix = kwargs.pop('symbol_prefix')
-            if not isinstance(sym_prefix, str):
-                raise MesonException('Gir symbol prefix must be str')
-            scan_command += ['--symbol-prefix=%s' % sym_prefix]
+            sym_prefixes = mesonlib.stringlistify(kwargs.pop('symbol_prefix', []))
+            scan_command += ['--symbol-prefix=%s' % sym_prefix for sym_prefix in sym_prefixes]
         if 'identifier_prefix' in kwargs:
             identifier_prefix = kwargs.pop('identifier_prefix')
             if not isinstance(identifier_prefix, str):
