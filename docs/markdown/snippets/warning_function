@@ -1,0 +1,6 @@
+# Added warning function
+
+This function prints its argument to the console prefixed by "WARNING:" in
+yellow color. A simple example:
+
+warning('foo is deprecated, please use bar instead')
