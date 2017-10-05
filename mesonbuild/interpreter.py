@@ -2094,37 +2094,15 @@ to directly access options of other subprojects.''')
             # If the dependency has already been configured, possibly by
             # a higher level project, try to use it first.
             if 'fallback' in kwargs:
-                dirname, varname = self.get_subproject_infos(kwargs)
-                if dirname in self.subprojects:
-                    subproject = self.subprojects[dirname]
-                    try:
-                        # Never add fallback deps to self.coredata.deps
-                        return subproject.get_variable_method([varname], {})
-                    except KeyError:
-                        pass
-
-            # We need to actually search for this dep
-            exception = None
-            dep = None
+                fallback_dep = self.dependency_fallback(name, kwargs)
+                if fallback_dep:
+                    # Never add fallback deps to self.coredata.deps since we
+                    # cannot cache them. They must always be evaluated else
+                    # we won't actually read all the build files.
+                    return fallback_dep
 
             # Search for it outside the project
-            try:
-                dep = dependencies.find_external_dependency(name, self.environment, kwargs)
-            except DependencyException as e:
-                exception = e
-
-            # Search inside the projects list
-            if not dep or not dep.found():
-                if 'fallback' in kwargs:
-                    fallback_dep = self.dependency_fallback(name, kwargs)
-                    if fallback_dep:
-                        # Never add fallback deps to self.coredata.deps since we
-                        # cannot cache them. They must always be evaluated else
-                        # we won't actually read all the build files.
-                        return fallback_dep
-                if not dep:
-                    assert(exception is not None)
-                    raise exception
+            dep = dependencies.find_external_dependency(name, self.environment, kwargs)
 
         # Only store found-deps in the cache
         if dep.found():
