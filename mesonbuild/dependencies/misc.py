@@ -82,9 +82,6 @@ class BoostDependency(ExternalDependency):
         if 'BOOST_LIBRARYDIR' in os.environ:
             self.libdir = os.environ['BOOST_LIBRARYDIR']
 
-        if self.want_cross and self.boost_root is None and self.incdir is None:
-            raise DependencyException('BOOST_ROOT or BOOST_INCLUDEDIR is needed while cross-compiling')
-
         if self.boost_root is None:
             if mesonlib.is_windows():
                 self.boost_roots = self.detect_win_roots()
@@ -131,7 +128,8 @@ class BoostDependency(ExternalDependency):
         mlog.log('Dependency Boost (%s) found:' % module_str, mlog.green('YES'), info)
 
     def detect_nix_roots(self):
-        return ['/usr/local', '/usr']
+        return [os.path.abspath(os.path.join(x, '..'))
+                for x in self.compiler.get_default_include_dirs()]
 
     def detect_win_roots(self):
         res = []
