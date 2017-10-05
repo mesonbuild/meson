@@ -186,6 +186,10 @@ class LLVMDependency(ExternalDependency):
         self.modules = shlex.split(out)
 
         modules = stringlistify(extract_as_list(kwargs, 'modules'))
+        self.check_components(modules)
+
+    def check_components(self, modules):
+        """Check for llvm components (modules in meson terms). """
         for mod in sorted(set(modules)):
             if mod not in self.modules:
                 mlog.log('LLVM module', mod, 'found:', mlog.red('NO'))
