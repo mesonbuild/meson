@@ -1442,6 +1442,7 @@ class Interpreter(InterpreterBase):
                            'join_paths': self.func_join_paths,
                            'library': self.func_library,
                            'message': self.func_message,
+                           'warning': self.func_warning,
                            'option': self.func_option,
                            'project': self.func_project,
                            'run_target': self.func_run_target,
@@ -1868,8 +1869,7 @@ to directly access options of other subprojects.''')
     def func_add_languages(self, node, args, kwargs):
         return self.add_languages(args, kwargs.get('required', True))
 
-    @noKwargs
-    def func_message(self, node, args, kwargs):
+    def get_message_string_arg(self, node):
         # reduce arguments again to avoid flattening posargs
         (posargs, _) = self.reduce_arguments(node.args)
         if len(posargs) != 1:
@@ -1885,7 +1885,17 @@ to directly access options of other subprojects.''')
         else:
             raise InvalidArguments('Function accepts only strings, integers, lists and lists thereof.')
 
+        return argstr
+
+    @noKwargs
+    def func_message(self, node, args, kwargs):
+        argstr = self.get_message_string_arg(node)
         mlog.log(mlog.bold('Message:'), argstr)
+
+    @noKwargs
+    def func_warning(self, node, args, kwargs):
+        argstr = self.get_message_string_arg(node)
+        mlog.warning(argstr)
 
     @noKwargs
     def func_error(self, node, args, kwargs):

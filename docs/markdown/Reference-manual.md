@@ -847,6 +847,14 @@ The keyword arguments for this are the same as for [`executable`](#executable) w
 
 This function prints its argument to stdout.
 
+### warning()
+
+``` meson
+    void warning(text)
+```
+
+This function prints its argument to stdout prefixed with WARNING:.
+
 ### project()
 
 ``` meson
