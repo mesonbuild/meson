@@ -137,6 +137,7 @@ class LLVMDependency(ExternalDependency):
         # the C linker works fine if only using the C API.
         super().__init__('llvm-config', environment, 'cpp', kwargs)
         self.provided_modules = []
+        self.required_modules = set()
         self.llvmconfig = None
         self.__best_found = None
         # FIXME: Support multiple version requirements ala PkgConfigDependency
@@ -180,7 +181,7 @@ class LLVMDependency(ExternalDependency):
         self.check_components(opt_modules, required=False)
 
         p, out = Popen_safe(
-            [self.llvmconfig, '--libs', '--ldflags'])[:2]
+            [self.llvmconfig, '--libs', '--ldflags'] + list(self.required_modules))[:2]
         if p.returncode != 0:
             raise DependencyException('Could not generate libs for LLVM.')
         self.link_args = strip_system_libdirs(environment, shlex.split(out))
@@ -206,6 +207,7 @@ class LLVMDependency(ExternalDependency):
                         raise DependencyException(
                             'Could not find required LLVM Component: {}'.format(mod))
             else:
+                self.required_modules.add(mod)
                 mlog.log('LLVM module', mod, 'found:', mlog.green('YES'))
 
     def check_llvmconfig(self, version_req):
