@@ -901,13 +901,18 @@ def detect_subprojects(spdir_name, current_dir='', result=None):
         basename = os.path.split(trial)[1]
         if trial == 'packagecache':
             continue
-        if not os.path.isdir(trial):
-            continue
-        if basename in result:
-            result[basename].append(trial)
+        append_this = True
+        if os.path.isdir(trial):
+            detect_subprojects(spdir_name, trial, result)
+        elif trial.endswith('.wrap') and os.path.isfile(trial):
+            basename = os.path.splitext(basename)[0]
         else:
-            result[basename] = [trial]
-        detect_subprojects(spdir_name, trial, result)
+            append_this = False
+        if append_this:
+            if basename in result:
+                result[basename].append(trial)
+            else:
+                result[basename] = [trial]
     return result
 
 class OrderedSet(collections.MutableSet):

@@ -1661,6 +1661,10 @@ int main(int argc, char **argv) {
         self.assertFalse(os.path.isdir(scommondir))
         subprocess.check_call(self.wrap_command + ['promote', 'subprojects/s2/subprojects/scommon'], cwd=workdir)
         self.assertTrue(os.path.isdir(scommondir))
+        promoted_wrap = os.path.join(spdir, 'athing.wrap')
+        self.assertFalse(os.path.isfile(promoted_wrap))
+        subprocess.check_call(self.wrap_command + ['promote', 'athing'], cwd=workdir)
+        self.assertTrue(os.path.isfile(promoted_wrap))
         self.init(workdir)
         self.build()
 

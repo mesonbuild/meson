@@ -145,11 +145,15 @@ def info(name):
         print(' ', v['branch'], v['revision'])
 
 def do_promotion(from_path, spdir_name):
-    sproj_name = os.path.split(from_path)[1]
-    outputdir = os.path.join(spdir_name, sproj_name)
-    if os.path.exists(outputdir):
-        sys.exit('Output dir %s already exists. Will not overwrite.' % outputdir)
-    shutil.copytree(from_path, outputdir, ignore=shutil.ignore_patterns('subprojects'))
+    if os.path.isfile(from_path):
+        assert(from_path.endswith('.wrap'))
+        shutil.copy(from_path, spdir_name)
+    elif os.path.isdir(from_path):
+        sproj_name = os.path.split(from_path)[1]
+        outputdir = os.path.join(spdir_name, sproj_name)
+        if os.path.exists(outputdir):
+            sys.exit('Output dir %s already exists. Will not overwrite.' % outputdir)
+        shutil.copytree(from_path, outputdir, ignore=shutil.ignore_patterns('subprojects'))
 
 def promote(argument):
     path_segment, subproject_name = os.path.split(argument)
