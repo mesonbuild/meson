@@ -169,7 +169,7 @@ class LLVMDependency(ExternalDependency):
         self.version = out.strip().rstrip('svn')
 
         p, out = Popen_safe(
-            [self.llvmconfig, '--libs', '--ldflags', '--system-libs'])[:2]
+            [self.llvmconfig, '--libs', '--ldflags'])[:2]
         if p.returncode != 0:
             raise DependencyException('Could not generate libs for LLVM.')
         self.link_args = shlex.split(out)
