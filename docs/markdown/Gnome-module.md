@@ -30,28 +30,18 @@ file called `foobar.h`, which you can then include in your sources.
 
 * `c_name`: passed to the resource compiler as an argument after
   `--c-name`
-
 * `dependencies`: extra targets to depend upon for building
-
 * `export`: (*Added 0.37.0*) if true, export the symbols of the
   generated sources
-
 * `extra_args`: extra command line arguments to pass to the resource
-
 * `gresource_bundle`: (*Added 0.37.0*) if true, output a `.gresource`
   file instead of source
-
 * `install`: (*Added 0.37.0*) if true, install the gresource file
-
 * `install_dir`: (*Added 0.37.0*) location to install the header or
   bundle depending on previous options
-
 * `install_header`: (*Added 0.37.0*) if true, install the header file
-
 * `source_dir`: a list of subdirectories where the resource compiler
   should look up the files, relative to the location of the XML file
-
-  compiler
 
 Returns an array containing: `[c_source, header_file]` or
 `[gresource_bundle]`
@@ -64,39 +54,24 @@ keyword arguments. Many of these map directly to the `g-ir-scanner`
 tool so see its documentation for more information.
 
 * `dependencies`: deps to use during introspection scanning
-
 * `extra_args`: command line arguments to pass to gir compiler
-
 * `export_packages`: extra packages the gir file exports
-
 * `sources`: the list of sources to be scanned for gir data
-
 * `nsversion`: namespace version
-
 * `namespace`: the namespace for this gir object which determines
   output files
-
 * `identifier_prefix`: the identifier prefix for the gir object,
   e.g. `Gtk`
-
 * `includes`: list of gir names to be included, can also be a GirTarget
-
 * `header`: *(Added 0.43.0)* name of main c header to include for the library, e.g. `glib.h`
-
 * `dependencies`: deps to use during introspection scanning
-
 * `include_directories`: extra include paths to look for gir files
-
 * `install`: if true, install the generated files
-
 * `install_dir_gir`: (*Added 0.35.0*) which directory to install the
   gir file into
-
 * `install_dir_typelib`: (*Added 0.35.0*) which directory to install
   the typelib file into
-
 * `link_with`: list of libraries to link with
-
 * `symbol_prefix`: the symbol prefix for the gir object, e.g. `gtk`
 
 Returns an array of two elements which are: `[gir_target,
