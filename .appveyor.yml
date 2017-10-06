@@ -85,7 +85,10 @@ install:
   - cmd: if %compiler%==cygwin ( %WRAPPER% which %PYTHON% ) else ( where %PYTHON% )
 
   # Install additional packages needed for specific builds.
-  - ps: If($Env:compiler -eq 'msys2-mingw') {(new-object Net.WebClient).DownloadFile('http://bootstrap.pypa.io/get-pip.py', 'C:\projects\meson\get-pip.py')}
+  # This was originally downloaded from http://bootstrap.pypa.io/get-pip.py,
+  # but they have a broken certificate (on Windows) and an HSTS policy that
+  # forces usage of HTTPS, so we mirror our own copy.
+  - ps: If($Env:compiler -eq 'msys2-mingw') {(new-object Net.WebClient).DownloadFile('https://nirbheek.in/files/meson/get-pip.py', 'C:\projects\meson\get-pip.py')}
   - cmd: if %compiler%==msys2-mingw ( %PYTHON% "C:\projects\meson\get-pip.py" )
   - cmd: if %compiler%==cygwin ( call ci\appveyor-install.bat )
   - ps: |
