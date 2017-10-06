@@ -2098,10 +2098,20 @@ to directly access options of other subprojects.''')
                 if dirname in self.subprojects:
                     subproject = self.subprojects[dirname]
                     try:
-                        # Never add fallback deps to self.coredata.deps
-                        return subproject.get_variable_method([varname], {})
+                        dep = subproject.get_variable_method([varname], {})
                     except KeyError:
                         pass
+                    else:
+                        version = kwargs.get('version')
+                        dep = self.check_version(name, dep, version, dirname, varname)
+                        if dep:
+                            found_msg = ['Configured subproject dependency',
+                                mlog.bold(name), 'found:', mlog.green('YES')]
+                            if version:
+                                found_msg += [dep.version_method([], {})]
+                            mlog.log(*found_msg)
+                            # Never add fallback deps to self.coredata.deps
+                            return dep
 
             # We need to actually search for this dep
             exception = None
@@ -2137,6 +2147,19 @@ to directly access options of other subprojects.''')
         if len(fbinfo) != 2:
             raise InterpreterException('Fallback info must have exactly two items.')
         return fbinfo
+
+    def check_version(self, name, dep, wanted, dirname, varname):
+        if dep is None:
+            return None
+
+        if wanted:
+            found = dep.version_method([], {})
+            if found == 'undefined' or not mesonlib.version_compare(found, wanted):
+                mlog.log('Subproject', mlog.bold(dirname), 'dependency',
+                         mlog.bold(varname), 'version is', mlog.bold(found),
+                         'but', mlog.bold(wanted), 'is required.')
+                return None
+        return dep
 
     def dependency_fallback(self, name, kwargs):
         if self.coredata.wrap_mode in (WrapMode.nofallback, WrapMode.nodownload):
@@ -2177,19 +2200,20 @@ to directly access options of other subprojects.''')
         if not isinstance(dep, DependencyHolder):
             raise InvalidCode('Fallback variable {!r} in the subproject {!r} is '
                               'not a dependency object.'.format(varname, dirname))
+
         # Check if the version of the declared dependency matches what we want
-        if 'version' in kwargs:
-            wanted = kwargs['version']
-            found = dep.version_method([], {})
-            if found == 'undefined' or not mesonlib.version_compare(found, wanted):
-                mlog.log('Subproject', mlog.bold(dirname), 'dependency',
-                         mlog.bold(varname), 'version is', mlog.bold(found),
-                         'but', mlog.bold(wanted), 'is required.')
-                return None
-        mlog.log('Found a', mlog.green('fallback'), 'subproject',
-                 mlog.bold(os.path.join(self.subproject_dir, dirname)), 'for',
-                 mlog.bold(name))
-        return dep
+        version = kwargs.get('version')
+        dep = self.check_version (name, dep, version, dirname, varname)
+        if dep:
+            found_msg = ['Fallback subproject dependency',
+                mlog.bold(name), 'found:', mlog.green('YES'),
+                '({})'.format(os.path.join(self.subproject_dir, dirname))]
+            if version:
+                found_msg += [dep.version_method([], {})]
+            mlog.log(*found_msg)
+            return dep
+        else:
+            return None
 
     @permittedKwargs(permitted_kwargs['executable'])
     def func_executable(self, node, args, kwargs):
