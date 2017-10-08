@@ -26,20 +26,22 @@ object can be used as a source file for other Targets, this will create a
 dependency on the original `CustomTarget`, but will only insert the generated
 file corresponding to the index value of the `CustomTarget`'s `output` keyword.
 
-    c = CustomTarget(
-      ...
-      output : ['out.h', 'out.c'],
-    )
-    lib1 = static_library(
-      'lib1',
-      [lib1_sources, c[0]],
-      ...
-    )
-    exec = executable(
-      'executable',
-      c[1],
-      link_with : lib1,
-    )
+```meson
+c = custom_target(
+  ...
+  output : ['out.h', 'out.c'],
+)
+lib1 = static_library(
+  'lib1',
+  [lib1_sources, c[0]],
+  ...
+)
+exec = executable(
+  'executable',
+  c[1],
+  link_with : lib1,
+)
+```
 
 # Can override executables in the cross file
 
@@ -47,39 +49,47 @@ The cross file can now be used for overriding the result of
 `find_program`. As an example if you want to find the `objdump`
 command and have the following definition in your cross file:
 
-    [binaries]
-    ...
-    objdump = '/usr/bin/arm-linux-gnueabihf-objdump-6'
+```ini
+[binaries]
+...
+objdump = '/usr/bin/arm-linux-gnueabihf-objdump-6'
+```
 
 Then issuing the command `find_program('objdump')` will return the
 version specified in the cross file. If you need the build machine's
 objdump, you can specify the `native` keyword like this:
 
-    native_objdump = find_program('objdump', native : true)
+```meson
+native_objdump = find_program('objdump', native : true)
+```
 
 # Easier handling of supported compiler arguments
 
 A common pattern for handling multiple desired compiler arguments, was to
 test their presence and add them to an array one-by-one, e.g.:
 
-    warning_flags_maybe = [
-      '-Wsomething',
-      '-Wanother-thing',
-      '-Wno-the-other-thing',
-    ]
-    warning_flags = []
-    foreach flag : warning_flags_maybe
-      if cc.has_argument(flag)
-        warning_flags += flag
-      endif
-    endforeach
-    cc.add_project_argument(warning_flags)
+```meson
+warning_flags_maybe = [
+  '-Wsomething',
+  '-Wanother-thing',
+  '-Wno-the-other-thing',
+]
+warning_flags = []
+foreach flag : warning_flags_maybe
+  if cc.has_argument(flag)
+    warning_flags += flag
+  endif
+endforeach
+cc.add_project_argument(warning_flags)
+```
 
 A helper has been added for the foreach/has_argument pattern, so you can
 now simply do:
 
-    warning_flags = [ ... ]
-    flags = cc.get_supported_flags(warning_flags)
+```meson
+warning_flags = [ ... ]
+flags = cc.get_supported_flags(warning_flags)
+```
 
 # Better support for shared libraries in non-system paths
 
@@ -93,12 +103,14 @@ This means that e.g. supporting prebuilt libraries shipped with your
 source or provided by subprojects or wrap definitions by writing a
 build file like this:
 
-    project('myprebuiltlibrary', 'c')
-    
-    cc = meson.get_compiler('c')
-    prebuilt = cc.find_library('mylib', dirs : meson.current_source_dir())
-    mydep = declare_dependency(include_directories : include_directories('.'),
-                               dependencies : prebuilt)
+```meson
+project('myprebuiltlibrary', 'c')
+
+cc = meson.get_compiler('c')
+prebuilt = cc.find_library('mylib', dirs : meson.current_source_dir())
+mydep = declare_dependency(include_directories : include_directories('.'),
+                           dependencies : prebuilt)
+```
 
 Then you can use the dependency object in the same way as any other.
 
