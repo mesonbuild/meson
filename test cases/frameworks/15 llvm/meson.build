@@ -13,4 +13,9 @@ assert(d.found() == false, 'not-found llvm module found')
 d = dependency('llvm', version : '<0.1', required : false)
 assert(d.found() == false, 'ancient llvm module found')
 
-executable('sum', 'sum.c',  dependencies : llvm_dep)
+executable('sum', 'sum.c',  dependencies : [
+  llvm_dep,
+  dependency('zlib'),
+  meson.get_compiler('c').find_library('dl', required : false),
+  dependency('tinfo'),
+  ])
