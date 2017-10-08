@@ -640,6 +640,12 @@ class BuildTarget(Target):
             # in kwargs. Unpack here without looking at the exact type.
             if hasattr(linktarget, "held_object"):
                 linktarget = linktarget.held_object
+            if isinstance(linktarget, dependencies.ExternalLibrary):
+                raise MesonException('''An external library was used in link_with keyword argument, which
+is reserved for libraries built as part of this project. External
+libraries must be passed using the dependencies keyword argument
+instead, because they are conceptually "external dependencies",
+just like those detected with the dependency() function.''')
             self.link(linktarget)
         lwhole = extract_as_list(kwargs, 'link_whole')
         for linktarget in lwhole:
