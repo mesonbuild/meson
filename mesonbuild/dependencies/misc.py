@@ -814,6 +814,7 @@ BOOST_LIBS = [
     'boost_math_c99f',
     'boost_math_c99l',
     'boost_mpi',
+    'boost_program_options',
     'boost_random',
     'boost_regex',
     'boost_serialization',
