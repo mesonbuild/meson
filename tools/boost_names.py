@@ -99,6 +99,10 @@ def get_library_names(jamfile):
         for matches in res:
             if ':' in matches.group(2):
                 libs.append(matches.group(1))
+        res = re.finditer(r'^boost-lib[\s]+([A-Za-z0-9_]+)([^;]*);', jam, re.MULTILINE | re.DOTALL)
+        for matches in res:
+            if ':' in matches.group(2):
+                libs.append('boost_{}'.format(matches.group(1)))
     return libs
 
 def exists(modules, module):
