@@ -19,7 +19,7 @@ found.
 Generators can now be configured to capture the standard output. See
 `test cases/common/98 gen extra/meson.build` for an example.
 
-# Can index CustomTaget objects
+# Can index CustomTarget objects
 
 The `CustomTarget` object can now be indexed like an array. The resulting
 object can be used as a source file for other Targets, this will create a
@@ -93,7 +93,7 @@ flags = cc.get_supported_flags(warning_flags)
 
 # Better support for shared libraries in non-system paths
 
-Meson has had support for prebuilt object files and static libraries.
+Meson has support for prebuilt object files and static libraries.
 This release adds feature parity to shared libraries that are either
 in non-standard system paths or shipped as part of your project. On
 systems that support rpath, Meson automatically adds rpath entries
