@@ -77,7 +77,7 @@ foreach qt : ['qt4', 'qt5']
       moc_headers : 'plugin/plugin.h',
       include_directories : plugin_includes
     )
-    plugin = library('plugin', 'plugin/plugin.cpp', pluginpreprocess,
+    plugin = library(qt + 'plugin', 'plugin/plugin.cpp', pluginpreprocess,
           include_directories : plugin_includes,
           dependencies : qtcore)
   endif
