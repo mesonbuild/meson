@@ -43,6 +43,9 @@ class PackageGenerator:
         self.main_xml = 'meson.wxs'
         self.main_o = 'meson.wixobj'
         self.bytesize = 32 if '32' in platform.architecture()[0] else 64
+        # rely on the environment variable since python architecture may not be the same as system architecture
+        if 'PROGRAMFILES(X86)' in os.environ:
+            self.bytesize = 64
         self.final_output = 'meson-%s-%d.msi' % (self.version, self.bytesize)
         self.staging_dirs = ['dist', 'dist2']
         if self.bytesize == 64:
@@ -50,7 +53,7 @@ class PackageGenerator:
             self.redist_path = 'C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community\\VC\\Redist\\MSVC\\14.11.25325\\MergeModules\\Microsoft_VC141_CRT_x64.msm'
         else:
             self.progfile_dir = 'ProgramFilesFolder'
-            self.redist_path = 'c:\\Program Files\\Microsoft Visual Studio\\2017\\Community\\VC\\Redist\\MSVC\\14.11.25325\\MergeModules\\Microsoft_VC141_CRT_x86.msm'
+            self.redist_path = 'C:\\Program Files\\Microsoft Visual Studio\\2017\\Community\\VC\\Redist\\MSVC\\14.11.25325\\MergeModules\\Microsoft_VC141_CRT_x86.msm'
         self.component_num = 0
         self.feature_properties = {
             self.staging_dirs[0]: {
