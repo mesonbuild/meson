@@ -32,9 +32,11 @@ def need_regen(regeninfo, regen_timestamp):
     return False
 
 def regen(regeninfo, mesonscript, backend):
-    cmd = [sys.executable,
-           mesonscript,
-           '--internal',
+    if sys.executable.lower().endswith('meson.exe'):
+        cmd_exe = [sys.executable]
+    else:
+        cmd_exe = [sys.executable, mesonscript]
+    cmd = cmd_exe + ['--internal',
            'regenerate',
            regeninfo.build_dir,
            regeninfo.source_dir,
