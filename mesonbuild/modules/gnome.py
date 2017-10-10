@@ -832,7 +832,7 @@ This will become a hard error in the future.''')
         args = []
         for i in new_args:
             if expend_file_state and isinstance(i, mesonlib.File):
-                i = os.path.join(expend_file_state.environment.get_build_dir(), i.subdir, i.fname)
+                i = i.absolute_path(expend_file_state.environment.get_source_dir(), expend_file_state.environment.get_build_dir())
             elif not isinstance(i, str):
                 raise MesonException(kwarg_name + ' values must be strings.')
             args.append(i)
