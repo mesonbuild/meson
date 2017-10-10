@@ -43,4 +43,4 @@ If you have a project that uses Meson that you want to add to this list, let us 
  - [Wayland and Weston](https://lists.freedesktop.org/archives/wayland-devel/2016-November/031984.html), a next generation display server (not merged yet)
  - [ZStandard](https://github.com/facebook/zstd/commit/4dca56ed832c6a88108a2484a8f8ff63d8d76d91) a compression algorithm developed at Facebook (not used by default)
 
-Note that a more up-to-date list of GNOME projects that use Meson can be found here: https://wiki.gnome.org/Initiatives/GnomeGoals/MesonPorting
+Note that a more up-to-date list of GNOME projects that use Meson can be found [here](https://wiki.gnome.org/Initiatives/GnomeGoals/MesonPorting).
