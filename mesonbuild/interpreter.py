@@ -1576,6 +1576,10 @@ class Interpreter(InterpreterBase):
             if not isinstance(d, (dependencies.Dependency, dependencies.ExternalLibrary, dependencies.InternalDependency)):
                 raise InterpreterException('Dependencies must be external deps')
             final_deps.append(d)
+        for l in libs:
+            if isinstance(l, dependencies.Dependency):
+                raise InterpreterException('''Entries in "link_with" may only be self-built targets,
+external dependencies (including libraries) must go to "dependencies".''')
         dep = dependencies.InternalDependency(version, incs, compile_args,
                                               link_args, libs, sources, final_deps)
         return DependencyHolder(dep)
