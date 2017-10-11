@@ -17,5 +17,5 @@ executable('sum', 'sum.c',  dependencies : [
   llvm_dep,
   dependency('zlib'),
   meson.get_compiler('c').find_library('dl', required : false),
-  dependency('tinfo'),
+  dependency('glib-2.0'),
   ])
