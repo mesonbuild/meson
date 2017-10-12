@@ -47,51 +47,24 @@ class QtBaseModule:
         # Moc, uic and rcc write their version strings to stderr.
         # Moc and rcc return a non-zero result when doing so.
         # What kind of an idiot thought that was a good idea?
-        if self.moc.found():
-            stdout, stderr = Popen_safe(self.moc.get_command() + ['-v'])[1:3]
-            stdout = stdout.strip()
-            stderr = stderr.strip()
-            if 'Qt {}'.format(self.qt_version) in stderr:
-                moc_ver = stderr
-            elif ' {}.'.format(self.qt_version) in stdout:
-                moc_ver = stdout
+        for compiler, compiler_name in ((self.moc, "Moc"), (self.uic, "Uic"), (self.rcc, "Rcc")):
+            if compiler.found():
+                stdout, stderr = Popen_safe(compiler.get_command() + ['-v'])[1:3]
+                stdout = stdout.strip()
+                stderr = stderr.strip()
+                if 'Qt {}'.format(self.qt_version) in stderr:
+                    compiler_ver = stderr
+                elif 'version {}.'.format(self.qt_version) in stderr:
+                    compiler_ver = stderr
+                elif ' {}.'.format(self.qt_version) in stdout:
+                    compiler_ver = stdout
+                else:
+                    raise MesonException('{name} preprocessor is not for Qt {version}. Output:\n{stdo}\n{stderr}'.format(
+                        name=compiler_name, version=self.qt_version, stdo=stdout, stderr=stderr))
+                mlog.log(' {}:'.format(compiler_name.lower()), mlog.green('YES'), '({path}, {version})'.format(
+                    path=self.moc.get_path(), version=compiler_ver.split()[-1]))
             else:
-                raise MesonException('Moc preprocessor is not for Qt {version}. Output:\n{stdo}\n{stderr}'.format(
-                    version=self.qt_version, stdo=stdout, stderr=stderr))
-            mlog.log(' moc:', mlog.green('YES'), '({path}, {version})'.format(
-                path=self.moc.get_path(), version=moc_ver.split()[-1]))
-        else:
-            mlog.log(' moc:', mlog.red('NO'))
-        if self.uic.found():
-            stdout, stderr = Popen_safe(self.uic.get_command() + ['-v'])[1:3]
-            stdout = stdout.strip()
-            stderr = stderr.strip()
-            if 'version {}.'.format(self.qt_version) in stderr:
-                uic_ver = stderr
-            elif ' {}.'.format(self.qt_version) in stdout:
-                uic_ver = stdout
-            else:
-                raise MesonException('Uic compiler is not for Qt {version}. Output:\n{stdo}\n{stderr}'.format(
-                    version=self.qt_version, stdo=stdout, stderr=stderr))
-            mlog.log(' uic:', mlog.green('YES'), '(%s, %s)' %
-                     (self.uic.get_path(), uic_ver.split()[-1]))
-        else:
-            mlog.log(' uic:', mlog.red('NO'))
-        if self.rcc.found():
-            stdout, stderr = Popen_safe(self.rcc.get_command() + ['-v'])[1:3]
-            stdout = stdout.strip()
-            stderr = stderr.strip()
-            if 'version {}.'.format(self.qt_version) in stderr:
-                rcc_ver = stderr
-            elif ' {}.'.format(self.qt_version) in stdout:
-                rcc_ver = stdout
-            else:
-                raise MesonException('Rcc compiler is not for Qt {version}. Output:\n{stdo}\n{stderr}'.format(
-                    version=self.qt_version, stdo=stdout, stderr=stderr))
-            mlog.log(' rcc:', mlog.green('YES'), '(%s, %s)'
-                     % (self.rcc.get_path(), rcc_ver.split()[-1]))
-        else:
-            mlog.log(' rcc:', mlog.red('NO'))
+                mlog.log(' {}:'.format(compiler_name.lower()), mlog.red('NO'))
         self.tools_detected = True
 
     def parse_qrc(self, state, fname):
