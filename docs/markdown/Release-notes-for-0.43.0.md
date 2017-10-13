@@ -88,7 +88,7 @@ now simply do:
 
 ```meson
 warning_flags = [ ... ]
-flags = cc.get_supported_flags(warning_flags)
+flags = cc.get_supported_arguments(warning_flags)
 ```
 
 # Better support for shared libraries in non-system paths
