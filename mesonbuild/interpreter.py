@@ -1638,6 +1638,9 @@ external dependencies (including libraries) must go to "dependencies".''')
                 raise InterpreterException('Program or command {!r} not found'
                                            'or not executable'.format(cmd))
             cmd = prog
+        cmd_path = os.path.relpath(cmd.get_path(), start=srcdir)
+        if not cmd_path.startswith('..') and cmd_path not in self.build_def_files:
+            self.build_def_files.append(cmd_path)
         expanded_args = []
         for a in listify(cargs):
             if isinstance(a, str):
@@ -1648,6 +1651,14 @@ external dependencies (including libraries) must go to "dependencies".''')
                 expanded_args.append(a.held_object.get_path())
             else:
                 raise InterpreterException('Arguments ' + m.format(a))
+        for a in expanded_args:
+            if not os.path.isabs(a):
+                a = os.path.join(builddir if in_builddir else srcdir, self.subdir, a)
+            if os.path.exists(a):
+                a = os.path.relpath(a, start=srcdir)
+                if not a.startswith('..'):
+                    if a not in self.build_def_files:
+                        self.build_def_files.append(a)
         return RunProcess(cmd, expanded_args, srcdir, builddir, self.subdir,
                           self.environment.get_build_command() + ['introspect'], in_builddir)
 
