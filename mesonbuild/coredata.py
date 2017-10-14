@@ -189,6 +189,7 @@ class CoreData:
         else:
             self.cross_file = None
         self.wrap_mode = options.wrap_mode
+        self.colorlize = options.color
         self.compilers = OrderedDict()
         self.cross_compilers = OrderedDict()
         self.deps = OrderedDict()

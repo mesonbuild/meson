@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import sys, os, platform, io
+from . import Colorize
 
 """This is (mostly) a standalone module used to write logging
 information about Meson runs. Some output goes to screen,
@@ -24,10 +25,14 @@ log_dir = None
 log_file = None
 log_fname = 'meson-log.txt'
 
-def initialize(logdir):
-    global log_dir, log_file
+def initialize(logdir, colorize):
+    global log_dir, log_file, colorize_console
     log_dir = logdir
     log_file = open(os.path.join(logdir, log_fname), 'w', encoding='utf8')
+    if colorize == Colorize.always:
+        colorize_console = True
+    elif colorize == Colorize.never:
+        colorize_console = False
 
 def shutdown():
     global log_file

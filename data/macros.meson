@@ -1,5 +1,6 @@
 %__meson %{_bindir}/meson
 %__meson_wrap_mode nodownload
+%__meson_color auto
 
 %meson \
     export CFLAGS="${CFLAGS:-%__global_cflags}"       \
@@ -23,6 +24,7 @@
         --localstatedir=%{_localstatedir}   \\\
         --sharedstatedir=%{_sharedstatedir} \\\
         --wrap-mode=%{__meson_wrap_mode}    \\\
+        --color=%{__meson_color}            \\\
         %{_vpath_srcdir} %{_vpath_builddir} \\\
         %{nil}
 
