@@ -1373,6 +1373,9 @@ class Interpreter(InterpreterBase):
         self.coredata = self.environment.get_coredata()
         self.backend = backend
         self.subproject = subproject
+        # Subproject directory is usually the name of the subproject, but can
+        # be different for dependencies provided by wrap files.
+        self.subproject_directory_name = subdir.split(os.path.sep)[-1]
         self.subproject_dir = subproject_dir
         self.option_file = os.path.join(self.source_root, self.subdir, 'meson_options.txt')
         self.load_root_meson_file()
@@ -2785,7 +2788,6 @@ different subdirectory.
         super().run()
         mlog.log('Build targets in project:', mlog.bold(str(len(self.build.targets))))
 
-
     # Check that the indicated file is within the same subproject
     # as we currently are. This is to stop people doing
     # nasty things like:
@@ -2816,7 +2818,7 @@ different subdirectory.
         if num_sps > 1:
             raise InterpreterException('Sandbox violation: Tried to grab file %s from a nested subproject.' % segments[-1])
         sproj_name = segments[segments.index(self.subproject_dir) + 1]
-        if sproj_name != self.subproject:
+        if sproj_name != self.subproject_directory_name:
             raise InterpreterException('Sandbox violation: Tried to grab file %s from a different subproject.' % segments[-1])
 
     def source_strings_to_files(self, sources):
