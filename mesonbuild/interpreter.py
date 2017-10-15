@@ -1663,6 +1663,8 @@ class Interpreter(InterpreterBase):
         return self.do_subproject(dirname, kwargs)
 
     def do_subproject(self, dirname, kwargs):
+        if '/' in dirname or '\\' in dirname:
+            raise InterpreterException('Subproject name must not contain a path separator.')
         if dirname in self.subproject_stack:
             fullstack = self.subproject_stack + [dirname]
             incpath = ' => '.join(fullstack)
