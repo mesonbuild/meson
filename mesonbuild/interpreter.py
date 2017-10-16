@@ -2819,6 +2819,12 @@ different subdirectory.
             raise InterpreterException('Sandbox violation: Tried to grab file %s from a nested subproject.' % segments[-1])
         sproj_name = segments[segments.index(self.subproject_dir) + 1]
         if sproj_name != self.subproject_directory_name:
+            # return when a full file path not belong to any subprojects, but
+            # it contain name 'subprojects' or customized subproject name
+            file_path = os.path.abspath(os.path.join(self.environment.source_dir, subdir, fname))
+            subproject_root = os.path.abspath(os.path.join(self.environment.source_dir, self.subproject_dir))
+            if not file_path.startswith(subproject_root):
+                return
             raise InterpreterException('Sandbox violation: Tried to grab file %s from a different subproject.' % segments[-1])
 
     def source_strings_to_files(self, sources):
