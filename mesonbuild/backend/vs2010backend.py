@@ -672,9 +672,6 @@ class Vs2010Backend(backends.Backend):
             ET.SubElement(type_config, 'DebugInformationFormat').text = 'ProgramDatabase'
         elif '/Z7' in buildtype_args:
             ET.SubElement(type_config, 'DebugInformationFormat').text = 'OldStyle'
-        # Generate Debug info
-        if '/DEBUG' in buildtype_link_args:
-            ET.SubElement(type_config, 'GenerateDebugInformation').text = 'true'
         # Runtime checks
         if '/RTC1' in buildtype_args:
             ET.SubElement(type_config, 'BasicRuntimeChecks').text = 'EnableFastChecks'
@@ -885,6 +882,9 @@ class Vs2010Backend(backends.Backend):
         # vcxproj file (similar to buildtype compiler args) instead of in
         # AdditionalOptions?
         extra_link_args += compiler.get_buildtype_linker_args(self.buildtype)
+        # Generate Debug info
+        if self.buildtype.startswith('debug'):
+            self.generate_debug_information(link)
         if not isinstance(target, build.StaticLibrary):
             if isinstance(target, build.SharedModule):
                 extra_link_args += compiler.get_std_shared_module_link_args()
@@ -1190,3 +1190,7 @@ if %%errorlevel%% neq 0 goto :VCEnd'''
             cmd_templ % ('" "'.join(test_command))
         ET.SubElement(root, 'Import', Project='$(VCTargetsPath)\Microsoft.Cpp.targets')
         self._prettyprint_vcxproj_xml(ET.ElementTree(root), ofname)
+
+    def generate_debug_information(self, link):
+        # valid values for vs2015 is 'false', 'true', 'DebugFastLink'
+        ET.SubElement(link, 'GenerateDebugInformation').text = 'true'
