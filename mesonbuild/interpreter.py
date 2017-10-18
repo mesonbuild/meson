@@ -1824,7 +1824,12 @@ to directly access options of other subprojects.''')
         if self.subproject in self.build.projects:
             raise InvalidCode('Second call to project().')
         if not self.is_subproject() and 'subproject_dir' in kwargs:
-            self.subproject_dir = kwargs['subproject_dir']
+            spdirname = kwargs['subproject_dir']
+            if '/' in spdirname or '\\' in spdirname:
+                raise InterpreterException('Subproject_dir must not contain a path segment.')
+            if spdirname.startswith('.'):
+                raise InterpreterException('Subproject_dir must not begin with a period.')
+            self.subproject_dir = spdirname
 
         if 'meson_version' in kwargs:
             cv = coredata.version
