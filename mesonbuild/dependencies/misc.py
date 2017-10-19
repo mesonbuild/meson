@@ -26,8 +26,11 @@ from .. import mesonlib
 from ..mesonlib import Popen_safe, extract_as_list
 from ..environment import detect_cpu_family
 
-from .base import DependencyException, DependencyMethods
-from .base import ExternalDependency, ExternalProgram, ExtraFrameworkDependency, PkgConfigDependency
+from .base import (
+    DependencyException, DependencyMethods, ExternalDependency,
+    ExternalProgram, ExtraFrameworkDependency, PkgConfigDependency,
+    ConfigToolDependency,
+)
 
 # On windows 3 directory layouts are supported:
 # * The default layout (versioned) installed:
@@ -687,9 +690,9 @@ class Python3Dependency(ExternalDependency):
 class PcapDependency(ExternalDependency):
     def __init__(self, environment, kwargs):
         super().__init__('pcap', environment, None, kwargs)
+        kwargs['required'] = False
         if DependencyMethods.PKGCONFIG in self.methods:
             try:
-                kwargs['required'] = False
                 pcdep = PkgConfigDependency('pcap', environment, kwargs)
                 if pcdep.found():
                     self.type_name = 'pkgconfig'
@@ -700,25 +703,26 @@ class PcapDependency(ExternalDependency):
                     return
             except Exception as e:
                 mlog.debug('Pcap not found via pkgconfig. Trying next, error was:', str(e))
-        if DependencyMethods.PCAPCONFIG in self.methods:
-            pcapconf = shutil.which('pcap-config')
-            if pcapconf:
-                stdo = Popen_safe(['pcap-config', '--cflags'])[1]
-                self.compile_args = stdo.strip().split()
-                stdo = Popen_safe(['pcap-config', '--libs'])[1]
-                self.link_args = stdo.strip().split()
-                self.version = self.get_pcap_lib_version()
-                self.is_found = True
-                mlog.log('Dependency', mlog.bold('pcap'), 'found:',
-                         mlog.green('YES'), '(%s)' % pcapconf)
-                return
-            mlog.debug('Could not find pcap-config binary, trying next.')
+        if DependencyMethods.CONFIG_TOOL in self.methods:
+            try:
+                ctdep = ConfigToolDependency.factory(
+                    'pcap', environment, None, kwargs, ['pcap-config'], 'pcap-config')
+                if ctdep.found():
+                    self.config = ctdep.config
+                    self.type_name = 'config-tool'
+                    self.compile_args = ctdep.get_config_value(['--cflags'], 'compile_args')
+                    self.link_args = ctdep.get_config_value(['--libs'], 'link_args')
+                    self.version = self.get_pcap_lib_version()
+                    self.is_found = True
+                    return
+            except Exception as e:
+                mlog.debug('Pcap not found via pcap-config. Trying next, error was:', str(e))
 
     def get_methods(self):
         if mesonlib.is_osx():
-            return [DependencyMethods.PKGCONFIG, DependencyMethods.PCAPCONFIG, DependencyMethods.EXTRAFRAMEWORK]
+            return [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.EXTRAFRAMEWORK]
         else:
-            return [DependencyMethods.PKGCONFIG, DependencyMethods.PCAPCONFIG]
+            return [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL]
 
     def get_pcap_lib_version(self):
         return self.compiler.get_return_value('pcap_lib_version', 'string',
