@@ -20,6 +20,7 @@ import sys
 import stat
 import shlex
 import shutil
+import textwrap
 from enum import Enum
 
 from .. import mlog
@@ -45,8 +46,6 @@ class DependencyMethods(Enum):
     QMAKE = 'qmake'
     # Just specify the standard link arguments, assuming the operating system provides the library.
     SYSTEM = 'system'
-    # Detect using sdl2-config
-    SDLCONFIG = 'sdlconfig'
     # Detect using pcap-config
     PCAPCONFIG = 'pcap-config'
     # Detect using cups-config
@@ -59,6 +58,8 @@ class DependencyMethods(Enum):
     SYSCONFIG = 'sysconfig'
     # Specify using a "program"-config style tool
     CONFIG_TOOL = 'config-tool'
+    # For backewards compatibility
+    SDLCONFIG = 'sdlconfig'
 
 
 class Dependency:
@@ -75,6 +76,15 @@ class Dependency:
         if method not in [e.value for e in DependencyMethods]:
             raise DependencyException('method {!r} is invalid'.format(method))
         method = DependencyMethods(method)
+
+        # This sets per-too config methods which are deprecated to to the new
+        # generic CONFIG_TOOL value.
+        if method in [DependencyMethods.SDLCONFIG]:
+            mlog.warning(textwrap.dedent("""\
+                Configuration method {} has been deprecated in favor of
+                'config-tool'. This will be removed in a future version of
+                meson.""".format(method)))
+            method = DependencyMethods.CONFIG_TOOL
 
         # Set the detection method. If the method is set to auto, use any available method.
         # If method is set to a specific string, allow only that detection method.
