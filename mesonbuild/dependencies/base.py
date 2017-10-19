@@ -24,7 +24,9 @@ from enum import Enum
 
 from .. import mlog
 from .. import mesonlib
-from ..mesonlib import MesonException, Popen_safe, version_compare_many, listify
+from ..mesonlib import (
+    MesonException, Popen_safe, version_compare_many, version_compare, listify
+)
 
 
 # These must be defined in this file to avoid cyclical references.
@@ -55,6 +57,8 @@ class DependencyMethods(Enum):
     EXTRAFRAMEWORK = 'extraframework'
     # Detect using the sysconfig module.
     SYSCONFIG = 'sysconfig'
+    # Specify using a "program"-config style tool
+    CONFIG_TOOL = 'config-tool'
 
 
 class Dependency:
@@ -165,6 +169,94 @@ class ExternalDependency(Dependency):
 
     def get_compiler(self):
         return self.compiler
+
+
+class ConfigToolDependency(ExternalDependency):
+
+    """Class representing dependencies found using a config tool."""
+
+    tools = None
+    tool_name = None
+
+    def __init__(self, name, environment, language, kwargs):
+        super().__init__('config-tool', environment, language, kwargs)
+        self.name = name
+        self.tools = listify(kwargs.get('tools', self.tools))
+
+        req_version = kwargs.get('version', None)
+        tool, version = self.find_config(req_version)
+        self.config = tool
+        self.is_found = self.report_config(version, req_version)
+        if not self.is_found:
+            self.config = None
+            return
+        self.version = version
+
+    def find_config(self, versions=None):
+        """Helper method that searchs for config tool binaries in PATH and
+        returns the one that best matches the given version requirements.
+        """
+        if not isinstance(versions, list) and versions is not None:
+            versions = listify(versions)
+
+        best_match = (None, None)
+        for tool in self.tools:
+            try:
+                p, out = Popen_safe([tool, '--version'])[:2]
+            except (FileNotFoundError, PermissionError):
+                continue
+            if p.returncode != 0:
+                continue
+
+            out = out.strip()
+            # Some tools, like pcap-config don't supply a version, but also
+            # dont fail with --version, in that case just assume that there is
+            # only one verison and return it.
+            if not out:
+                return (tool, 'none')
+            if versions:
+                is_found = version_compare_many(out, versions)[0]
+                # This allows returning a found version without a config tool,
+                # which is useful to inform the user that you found version x,
+                # but y was required.
+                if not is_found:
+                    tool = None
+            if best_match[1]:
+                if version_compare(out, '> {}'.format(best_match[1])):
+                    best_match = (tool, out)
+            else:
+                best_match = (tool, out)
+
+        return best_match
+
+    def report_config(self, version, req_version):
+        """Helper method to print messages about the tool."""
+        if self.config is None:
+            if version is not None:
+                mlog.log('found {} {!r} but need:'.format(self.tool_name, version),
+                         req_version)
+            else:
+                mlog.log("No {} found; can't detect dependency".format(self.tool_name))
+            mlog.log('Dependency {} found:'.format(self.name), mlog.red('NO'))
+            if self.required:
+                raise DependencyException('Dependency {} not found'.format(self.name))
+            return False
+        mlog.log('Found {}:'.format(self.tool_name), mlog.bold(shutil.which(self.config)),
+                 '({})'.format(version))
+        mlog.log('Dependency {} found:'.format(self.name), mlog.green('YES'))
+        return True
+
+    def get_config_value(self, args, stage):
+        p, out, _ = Popen_safe([self.config] + args)
+        if p.returncode != 0:
+            if self.required:
+                raise DependencyException('Could not generate {} for {}'.format(
+                    stage, self.name))
+            return []
+        return shlex.split(out)
+
+    def get_methods(self):
+        return [DependencyMethods.AUTO, DependencyMethods.CONFIG_TOOL]
 
 
 class PkgConfigDependency(ExternalDependency):
