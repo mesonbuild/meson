@@ -132,6 +132,9 @@ class Dependency:
     def get_pkgconfig_variable(self, variable_name):
         raise NotImplementedError('{!r} is not a pkgconfig dependency'.format(self.name))
 
+    def get_configtool_variable(self, variable_name):
+        raise NotImplementedError('{!r} is not a config-tool dependency'.format(self.name))
+
 
 class InternalDependency(Dependency):
     def __init__(self, version, incdirs, compile_args, link_args, libraries, sources, ext_deps):
@@ -287,6 +290,17 @@ class ConfigToolDependency(ExternalDependency):
 
     def get_methods(self):
         return [DependencyMethods.AUTO, DependencyMethods.CONFIG_TOOL]
+
+    def get_configtool_variable(self, variable_name):
+        p, out, _ = Popen_safe([self.config, '--{}'.format(variable_name)])
+        if p.returncode != 0:
+            if self.required:
+                raise DependencyException(
+                    'Could not get variable "{}" for dependency {}'.format(
+                        variable_name, self.name))
+        variable = out.strip()
+        mlog.debug('Got config-tool variable {} : {}'.format(variable_name, variable))
+        return variable
 
 
 class PkgConfigDependency(ExternalDependency):
