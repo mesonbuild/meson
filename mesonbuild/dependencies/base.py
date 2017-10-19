@@ -247,11 +247,12 @@ class ConfigToolDependency(ExternalDependency):
         return True
 
     def get_config_value(self, args, stage):
-        p, out, _ = Popen_safe([self.config] + args)
+        p, out, err = Popen_safe([self.config] + args)
         if p.returncode != 0:
             if self.required:
-                raise DependencyException('Could not generate {} for {}'.format(
-                    stage, self.name))
+                raise DependencyException(
+                    'Could not generate {} for {}.\n{}'.format(
+                        stage, self.name, err))
             return []
         return shlex.split(out)
 
