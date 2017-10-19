@@ -23,13 +23,13 @@ from collections import OrderedDict
 
 from .. import mlog
 from .. import mesonlib
-from ..mesonlib import MesonException, Popen_safe, version_compare
-from ..mesonlib import extract_as_list, for_windows
+from ..mesonlib import MesonException, Popen_safe, extract_as_list, for_windows
 from ..environment import detect_cpu
 
 from .base import DependencyException, DependencyMethods
 from .base import ExternalDependency, ExternalProgram
 from .base import ExtraFrameworkDependency, PkgConfigDependency
+from .base import ConfigToolDependency
 
 
 class GLDependency(ExternalDependency):
@@ -426,49 +426,20 @@ class SDL2Dependency(ExternalDependency):
             return [DependencyMethods.PKGCONFIG, DependencyMethods.SDLCONFIG]
 
 
-class WxDependency(ExternalDependency):
-    wx_found = None
+class WxDependency(ConfigToolDependency):
+
+    tools = ['wx-config-3.0', 'wx-config']
+    tool_name = 'wx-config'
 
     def __init__(self, environment, kwargs):
-        super().__init__('wx', environment, None, kwargs)
-        self.version = 'none'
-        if WxDependency.wx_found is None:
-            self.check_wxconfig()
-        else:
-            self.wxc = WxDependency.wx_found
-        if not WxDependency.wx_found:
-            mlog.log("Neither wx-config-3.0 nor wx-config found; can't detect dependency")
+        super().__init__('WxWidgets', environment, None, kwargs)
+        if not self.is_found:
             return
-
-        # FIXME: This should print stdout and stderr using mlog.debug
-        p, out = Popen_safe([self.wxc, '--version'])[0:2]
-        if p.returncode != 0:
-            mlog.log('Dependency wxwidgets found:', mlog.red('NO'))
-        else:
-            self.version = out.strip()
-            # FIXME: Support multiple version reqs like PkgConfigDependency
-            version_req = kwargs.get('version', None)
-            if version_req is not None:
-                if not version_compare(self.version, version_req, strict=True):
-                    mlog.log('Wxwidgets version %s does not fullfill requirement %s' %
-                             (self.version, version_req))
-                    return
-            mlog.log('Dependency wxwidgets found:', mlog.green('YES'))
-            self.is_found = True
-            self.requested_modules = self.get_requested(kwargs)
-            # wx-config seems to have a cflags as well but since it requires C++,
-            # this should be good, at least for now.
-            p, out = Popen_safe([self.wxc, '--cxxflags'])[0:2]
-            # FIXME: this error should only be raised if required is true
-            if p.returncode != 0:
-                raise DependencyException('Could not generate cargs for wxwidgets.')
-            self.compile_args = out.split()
-
-            # FIXME: this error should only be raised if required is true
-            p, out = Popen_safe([self.wxc, '--libs'] + self.requested_modules)[0:2]
-            if p.returncode != 0:
-                raise DependencyException('Could not generate libs for wxwidgets.')
-            self.link_args = out.split()
+        self.requested_modules = self.get_requested(kwargs)
+        # wx-config seems to have a cflags as well but since it requires C++,
+        # this should be good, at least for now.
+        self.compile_args = self.get_config_value(['--cxxflags'], 'compile_args')
+        self.link_args = self.get_config_value(['--libs'], 'link_args')
 
     def get_requested(self, kwargs):
         if 'modules' not in kwargs:
@@ -479,20 +450,6 @@ class WxDependency(ExternalDependency):
                 raise DependencyException('wxwidgets module argument is not a string')
         return candidates
 
-    def check_wxconfig(self):
-        for wxc in ['wx-config-3.0', 'wx-config']:
-            try:
-                p, out = Popen_safe([wxc, '--version'])[0:2]
-                if p.returncode == 0:
-                    mlog.log('Found wx-config:', mlog.bold(shutil.which(wxc)),
-                             '(%s)' % out.strip())
-                    self.wxc = wxc
-                    WxDependency.wx_found = wxc
-                    return
-            except (FileNotFoundError, PermissionError):
-                pass
-        WxDependency.wxconfig_found = False
-        mlog.log('Found wx-config:', mlog.red('NO'))
 
 class VulkanDependency(ExternalDependency):
     def __init__(self, environment, kwargs):
