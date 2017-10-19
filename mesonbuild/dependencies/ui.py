@@ -23,7 +23,10 @@ from collections import OrderedDict
 
 from .. import mlog
 from .. import mesonlib
-from ..mesonlib import MesonException, Popen_safe, extract_as_list, for_windows
+from ..mesonlib import (
+    MesonException, Popen_safe, extract_as_list, for_windows,
+    version_compare_many
+)
 from ..environment import detect_cpu
 
 from .base import DependencyException, DependencyMethods
@@ -70,39 +73,36 @@ class GLDependency(ExternalDependency):
             return [DependencyMethods.PKGCONFIG]
 
 
-class GnuStepDependency(ExternalDependency):
+class GnuStepDependency(ConfigToolDependency):
+
+    tools = ['gnustep-config']
+    tool_name = 'gnustep-config'
+
     def __init__(self, environment, kwargs):
         super().__init__('gnustep', environment, 'objc', kwargs)
+        if not self.is_found:
+            return
         self.modules = kwargs.get('modules', [])
-        self.detect()
+        self.compile_args = self.filter_args(
+            self.get_config_value(['--objc-flags'], 'compile_args'))
+        self.link_args = self.weird_filter(self.get_config_value(
+            ['--gui-libs' if 'gui' in self.modules else '--base-libs'],
+            'link_args'))
 
-    def detect(self):
-        self.confprog = 'gnustep-config'
+    def find_config(self, versions=None):
+        tool = self.tools[0]
         try:
-            gp = Popen_safe([self.confprog, '--help'])[0]
+            p, out = Popen_safe([tool, '--help'])[:2]
         except (FileNotFoundError, PermissionError):
-            mlog.log('Dependency GnuStep found:', mlog.red('NO'), '(no gnustep-config)')
-            return
-        if gp.returncode != 0:
-            mlog.log('Dependency GnuStep found:', mlog.red('NO'))
-            return
-        if 'gui' in self.modules:
-            arg = '--gui-libs'
-        else:
-            arg = '--base-libs'
-        fp, flagtxt, flagerr = Popen_safe([self.confprog, '--objc-flags'])
-        if fp.returncode != 0:
-            raise DependencyException('Error getting objc-args: %s %s' % (flagtxt, flagerr))
-        args = flagtxt.split()
-        self.compile_args = self.filter_args(args)
-        fp, libtxt, liberr = Popen_safe([self.confprog, arg])
-        if fp.returncode != 0:
-            raise DependencyException('Error getting objc-lib args: %s %s' % (libtxt, liberr))
-        self.link_args = self.weird_filter(libtxt.split())
-        self.version = self.detect_version()
-        self.is_found = True
-        mlog.log('Dependency', mlog.bold('GnuStep'), 'found:',
-                 mlog.green('YES'), self.version)
+            return (None, None)
+        if p.returncode != 0:
+            return (None, None)
+        self.config = tool
+        found_version = self.detect_version()
+        if versions and not version_compare_many(found_version, versions)[0]:
+            return (None, found_version)
+
+        return (tool, found_version)
 
     def weird_filter(self, elems):
         """When building packages, the output of the enclosing Make is
@@ -126,8 +126,8 @@ class GnuStepDependency(ExternalDependency):
         return result
 
     def detect_version(self):
-        gmake = self.get_variable('GNUMAKE')
-        makefile_dir = self.get_variable('GNUSTEP_MAKEFILES')
+        gmake = self.get_config_value(['--variable=GNUMAKE'], 'variable')[0]
+        makefile_dir = self.get_config_value(['--variable=GNUSTEP_MAKEFILES'], 'variable')[0]
         # This Makefile has the GNUStep version set
         base_make = os.path.join(makefile_dir, 'Additional', 'base.make')
         # Print the Makefile variable passed as the argument. For instance, if
@@ -146,13 +146,6 @@ class GnuStepDependency(ExternalDependency):
             # Fallback to setting some 1.x version
             version = '1'
         return version
-
-    def get_variable(self, var):
-        p, o, e = Popen_safe([self.confprog, '--variable=' + var])
-        if p.returncode != 0 and self.required:
-            raise DependencyException('{!r} for variable {!r} failed to run'
-                                      ''.format(self.confprog, var))
-        return o.strip()
 
 
 class QtBaseDependency(ExternalDependency):
