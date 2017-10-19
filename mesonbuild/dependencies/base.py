@@ -48,8 +48,6 @@ class DependencyMethods(Enum):
     SYSTEM = 'system'
     # Detect using pcap-config
     PCAPCONFIG = 'pcap-config'
-    # Detect using cups-config
-    CUPSCONFIG = 'cups-config'
     # Detect using libwmf-config
     LIBWMFCONFIG = 'libwmf-config'
     # This is only supported on OSX - search the frameworks directory by name.
@@ -60,6 +58,7 @@ class DependencyMethods(Enum):
     CONFIG_TOOL = 'config-tool'
     # For backewards compatibility
     SDLCONFIG = 'sdlconfig'
+    CUPSCONFIG = 'cups-config'
 
 
 class Dependency:
@@ -79,7 +78,7 @@ class Dependency:
 
         # This sets per-too config methods which are deprecated to to the new
         # generic CONFIG_TOOL value.
-        if method in [DependencyMethods.SDLCONFIG]:
+        if method in [DependencyMethods.SDLCONFIG, DependencyMethods.CUPSCONFIG]:
             mlog.warning(textwrap.dedent("""\
                 Configuration method {} has been deprecated in favor of
                 'config-tool'. This will be removed in a future version of

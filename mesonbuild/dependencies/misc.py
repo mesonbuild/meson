@@ -1,4 +1,4 @@
-﻿# Copyright 2013-2017 The Meson development team
+# Copyright 2013-2017 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -728,9 +728,9 @@ class PcapDependency(ExternalDependency):
 class CupsDependency(ExternalDependency):
     def __init__(self, environment, kwargs):
         super().__init__('cups', environment, None, kwargs)
+        kwargs['required'] = False
         if DependencyMethods.PKGCONFIG in self.methods:
             try:
-                kwargs['required'] = False
                 pcdep = PkgConfigDependency('cups', environment, kwargs)
                 if pcdep.found():
                     self.type_name = 'pkgconfig'
@@ -741,20 +741,20 @@ class CupsDependency(ExternalDependency):
                     return
             except Exception as e:
                 mlog.debug('cups not found via pkgconfig. Trying next, error was:', str(e))
-        if DependencyMethods.CUPSCONFIG in self.methods:
-            cupsconf = shutil.which('cups-config')
-            if cupsconf:
-                stdo = Popen_safe(['cups-config', '--cflags'])[1]
-                self.compile_args = stdo.strip().split()
-                stdo = Popen_safe(['cups-config', '--libs'])[1]
-                self.link_args = stdo.strip().split()
-                stdo = Popen_safe(['cups-config', '--version'])[1]
-                self.version = stdo.strip().split()
-                self.is_found = True
-                mlog.log('Dependency', mlog.bold('cups'), 'found:',
-                         mlog.green('YES'), '(%s)' % cupsconf)
-                return
-            mlog.debug('Could not find cups-config binary, trying next.')
+        if DependencyMethods.CONFIG_TOOL in self.methods:
+            try:
+                ctdep = ConfigToolDependency.factory(
+                    'cups', environment, None, kwargs, ['cups-config'], 'cups-config')
+                if ctdep.found():
+                    self.config = ctdep.config
+                    self.type_name = 'config-tool'
+                    self.version = ctdep.version
+                    self.compile_args = ctdep.get_config_value(['--cflags'], 'compile_args')
+                    self.link_args = ctdep.get_config_value(['--libs'], 'link_args')
+                    self.is_found = True
+                    return
+            except Exception as e:
+                mlog.debug('cups not found via cups-config. Trying next, error was:', str(e))
         if DependencyMethods.EXTRAFRAMEWORK in self.methods:
             if mesonlib.is_osx():
                 fwdep = ExtraFrameworkDependency('cups', False, None, self.env,
@@ -769,9 +769,10 @@ class CupsDependency(ExternalDependency):
 
     def get_methods(self):
         if mesonlib.is_osx():
-            return [DependencyMethods.PKGCONFIG, DependencyMethods.CUPSCONFIG, DependencyMethods.EXTRAFRAMEWORK]
+            return [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.EXTRAFRAMEWORK]
         else:
-            return [DependencyMethods.PKGCONFIG, DependencyMethods.CUPSCONFIG]
+            return [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL]
+
 
 
 class LibWmfDependency(ExternalDependency):
