@@ -513,7 +513,7 @@ class Environment:
         for compiler in compilers:
             if isinstance(compiler, str):
                 compiler = [compiler]
-            if 'cl' in compiler or 'cl.exe' in compiler:
+            if any(x in compiler for x in ('cl', 'cl.exe', 'icl', 'icl.exe')):
                 # Watcom C provides it's own cl.exe clone that mimics an older
                 # version of Microsoft's compiler. Since Watcom's cl.exe is
                 # just a wrapper, we skip using it if we detect its presence
