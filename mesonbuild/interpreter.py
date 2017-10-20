@@ -2083,6 +2083,11 @@ to directly access options of other subprojects.''')
         return identifier, cached_dep
 
     def func_dependency(self, node, args, kwargs):
+        if (len(args) == 0) or ((len(args) == 1) and (args[0] == '')):
+            if kwargs.get('required', (len(args) != 0)):
+                raise InvalidArguments('Dependency is both required and not-found')
+            return DependencyHolder(Dependency('not-found', {}))
+
         self.validate_arguments(args, 1, [str])
         name = args[0]
         if '<' in name or '>' in name or '=' in name:
