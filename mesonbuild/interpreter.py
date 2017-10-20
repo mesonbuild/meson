@@ -2146,6 +2146,12 @@ to directly access options of other subprojects.''')
     def func_dependency(self, node, args, kwargs):
         self.validate_arguments(args, 1, [str])
         name = args[0]
+
+        if name == '':
+            if kwargs.get('required', True):
+                raise InvalidArguments('Dependency is both required and not-found')
+            return DependencyHolder(Dependency('not-found', {}))
+
         if '<' in name or '>' in name or '=' in name:
             raise InvalidArguments('Characters <, > and = are forbidden in dependency names. To specify'
                                    'version\n requirements use the \'version\' keyword argument instead.')
