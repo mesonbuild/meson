@@ -316,6 +316,13 @@ otherwise. This function supports the following keyword arguments:
   You can also specify multiple restrictions by passing a list to this
   keyword argument, such as: `['>=3.14.0', '<=4.1.0']`.
 
+If dependency_name is '', the dependency is always not found.  So with
+`required: false`, this always returns a dependency object for which the
+`found()` method returns `false`, and which can be passed like any other
+dependency to the `dependencies:` keyword argument of a `build_target`.  This
+can be used to implement a dependency which is sometimes not required e.g. in
+some branches of a conditional.
+
 The returned object also has methods that are documented in the
 [object methods section](#dependency-object) below.
 
@@ -436,10 +443,7 @@ be passed to [shared and static libraries](#library).
 
 The list of `sources`, `objects`, and `dependencies` is always
 flattened, which means you can freely nest and add lists while
-creating the final list. As a corollary, the best way to handle a
-'disabled dependency' is by assigning an empty list `[]` to it and
-passing it like any other dependency to the `dependencies:` keyword
-argument.
+creating the final list.
 
 The returned object also has methods that are documented in the
 [object methods section](#build-target-object) below.
