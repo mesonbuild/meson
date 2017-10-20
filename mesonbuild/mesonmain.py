@@ -37,7 +37,12 @@ def add_builtin_argument(name, **kwargs):
         h = h.rstrip('.') + ' (default: %s).' % coredata.get_builtin_option_default(k)
     if c and not b:
         kwargs['choices'] = c
-    parser.add_argument('--' + name, default=coredata.get_builtin_option_default(k), help=h, **kwargs)
+    default = coredata.get_builtin_option_default(k, noneIfSuppress=True)
+    if default is not None:
+        kwargs['default'] = default
+    else:
+        kwargs['default'] = argparse.SUPPRESS
+    parser.add_argument('--' + name, help=h, **kwargs)
 
 add_builtin_argument('prefix')
 add_builtin_argument('libdir')

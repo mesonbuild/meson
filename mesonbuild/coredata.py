@@ -1,3 +1,4 @@
+
 # Copyright 2012-2017 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -245,7 +246,7 @@ class CoreData:
                 value = self.sanitize_dir_option_value(options.prefix, key, value)
                 setattr(options, key, value)
             else:
-                value = get_builtin_option_default(key)
+                value = get_builtin_option_default(key, prefix=options.prefix)
             args = [key] + builtin_options[key][1:-1] + [value]
             self.builtins[key] = builtin_options[key][0](*args)
 
@@ -321,11 +322,19 @@ def get_builtin_option_description(optname):
     else:
         raise RuntimeError('Tried to get the description for an unknown builtin option \'%s\'.' % optname)
 
-def get_builtin_option_default(optname):
+def get_builtin_option_default(optname, prefix='', noneIfSuppress=False):
     if is_builtin_option(optname):
         o = builtin_options[optname]
         if o[0] == UserComboOption:
             return o[3]
+        if optname in builtin_dir_noprefix_options:
+            if noneIfSuppress:
+                # Return None if argparse defaulting should be suppressed for
+                # this option (so we can determine the default later based on
+                # prefix)
+                return None
+            elif prefix in builtin_dir_noprefix_options[optname]:
+                return builtin_dir_noprefix_options[optname][prefix]
         return o[2]
     else:
         raise RuntimeError('Tried to get the default value for an unknown builtin option \'%s\'.' % optname)
@@ -344,15 +353,6 @@ builtin_options = {
     'mandir':     [UserStringOption, 'Manual page directory.', 'share/man'],
     'infodir':    [UserStringOption, 'Info page directory.', 'share/info'],
     'localedir':  [UserStringOption, 'Locale data directory.', 'share/locale'],
-    # sysconfdir, localstatedir and sharedstatedir are a bit special. These defaults to ${prefix}/etc,
-    # ${prefix}/var and ${prefix}/com but nobody uses that. Instead they always set it
-    # manually to /etc, /var and /var/lib. This default values is thus pointless and not really used
-    # but we set it to this for consistency with other systems.
-    #
-    # Projects installing to sysconfdir, localstatedir or sharedstatedir probably want
-    # to set the following in project():
-    #
-    # default_options : ['sysconfdir=/etc', 'localstatedir=/var', 'sharedstatedir=/var/lib']
     'sysconfdir':      [UserStringOption, 'Sysconf data directory.', 'etc'],
     'localstatedir':   [UserStringOption, 'Localstate data directory.', 'var'],
     'sharedstatedir':  [UserStringOption, 'Architecture-independent data directory.', 'com'],
@@ -365,8 +365,13 @@ builtin_options = {
     'errorlogs':       [UserBooleanOption, "Whether to print the logs from failing tests.", True],
 }
 
-# Installation directories that can reside in a path outside of the prefix
-builtin_dir_noprefix_options = {'sysconfdir', 'localstatedir', 'sharedstatedir'}
+# Special prefix-dependent defaults for installation directories that reside in
+# a path outside of the prefix in FHS and common usage.
+builtin_dir_noprefix_options = {
+    'sysconfdir':     {'/usr': '/etc'},
+    'localstatedir':  {'/usr': '/var',     '/usr/local': '/var/local'},
+    'sharedstatedir': {'/usr': '/var/lib', '/usr/local': '/var/local/lib'},
+}
 
 forbidden_target_names = {'clean': None,
                           'clean-ctlist': None,
