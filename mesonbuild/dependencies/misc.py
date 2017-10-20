@@ -602,15 +602,18 @@ class Python3Dependency(ExternalDependency):
         self.name = 'python3'
         # We can only be sure that it is Python 3 at this point
         self.version = '3'
+        self.pkgdep = None
         if DependencyMethods.PKGCONFIG in self.methods:
             try:
-                pkgdep = PkgConfigDependency('python3', environment, kwargs)
-                if pkgdep.found():
-                    self.compile_args = pkgdep.get_compile_args()
-                    self.link_args = pkgdep.get_link_args()
-                    self.version = pkgdep.get_version()
+                self.pkgdep = PkgConfigDependency('python3', environment, kwargs)
+                if self.pkgdep.found():
+                    self.compile_args = self.pkgdep.get_compile_args()
+                    self.link_args = self.pkgdep.get_link_args()
+                    self.version = self.pkgdep.get_version()
                     self.is_found = True
                     return
+                else:
+                    self.pkgdep = None
             except Exception:
                 pass
         if not self.is_found:
@@ -673,6 +676,12 @@ class Python3Dependency(ExternalDependency):
             return [DependencyMethods.PKGCONFIG, DependencyMethods.EXTRAFRAMEWORK]
         else:
             return [DependencyMethods.PKGCONFIG]
+
+    def get_pkgconfig_variable(self, variable_name):
+        if self.pkgdep:
+            return self.pkgdep.get_pkgconfig_variable(variable_name)
+        else:
+            return super().get_pkgconfig_variable(variable_name)
 
 
 class PcapDependency(ExternalDependency):
