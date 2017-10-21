@@ -129,6 +129,9 @@ def get_modules(init=extra):
 
 def get_modules_2():
     modules = []
+    # The python module uses an older build system format and is not easily parseable.
+    # We add the python module libraries manually.
+    modules.append(Module('python', 'Python', ['boost_python', 'boost_python3', 'boost_numpy', 'boost_numpy3']))
     for (root, dirs, files) in os.walk(LIBS):
         for f in files:
             if f == "libraries.json":
