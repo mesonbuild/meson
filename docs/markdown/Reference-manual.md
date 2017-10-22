@@ -871,7 +871,7 @@ Project supports the following keyword arguments.
 
  - `default_options` takes an array of strings. The strings are in the
    form `key=value` and have the same format as options to
-   `mesonconf`. For example to set the default project type you would
+   `meson configure`. For example to set the default project type you would
    set this: `default_options : ['buildtype=debugoptimized']`. Note
    that these settings are only used when running Meson for the first
    time. Global options such as `buildtype` can only be specified in

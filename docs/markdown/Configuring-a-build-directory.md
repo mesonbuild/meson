@@ -9,11 +9,11 @@ generated. For example you might want to change from a debug build
 into a release build, set custom compiler flags, change the build
 options provided in your `meson_options.txt` file and so on.
 
-The main tool for this is the `mesonconf` script. You may also use the
+The main tool for this is the `meson configure` command. You may also use the
 `mesongui` graphical application if you want. However this document
 describes the use of the command line client.
 
-You invoke `mesonconf` by giving it the location of your build dir. If
+You invoke `meson configure` by giving it the location of your build dir. If
 omitted, the current working directory is used instead. Here's a
 sample output for a simple project.
 
@@ -56,7 +56,7 @@ the option. To set an option you use the `-D` option. For example,
 changing the installation prefix from `/usr/local` to `/tmp/testroot`
 you would issue the following command.
 
-    mesonconf -Dprefix=/tmp/testroot
+    meson configure -Dprefix=/tmp/testroot
 
 Then you would run your build command (usually `ninja`), which would
 cause Meson to detect that the build setup has changed and do all the
