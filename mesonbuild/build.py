@@ -863,6 +863,8 @@ You probably should put it in link_with instead.''')
 
     def link(self, target):
         for t in listify(target, unholder=True):
+            if not isinstance(t, Target):
+                raise InvalidArguments('{!r} is not a target.'.format(t))
             if not t.is_linkable_target():
                 raise InvalidArguments('Link target {!r} is not linkable.'.format(t))
             if isinstance(self, SharedLibrary) and isinstance(t, StaticLibrary) and not t.pic:
