@@ -649,7 +649,7 @@ class GnomeModule(ExtensionModule):
         if state.subdir == '':
             targetname = 'gsettings-compile'
         else:
-            targetname = 'gsettings-compile-' + state.subdir
+            targetname = 'gsettings-compile-' + state.subdir.replace('/', '_')
         target_g = build.CustomTarget(targetname, state.subdir, kwargs)
         return ModuleReturnValue(target_g, [target_g])
 
