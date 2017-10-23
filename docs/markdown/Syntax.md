@@ -45,7 +45,7 @@ Strings can be converted to a number like this:
 
 ```meson
 string_var = '42'
-num = var1.to_int()
+num = string_var.to_int()
 ```
 
 Booleans
