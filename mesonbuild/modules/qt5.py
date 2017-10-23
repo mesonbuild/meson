@@ -88,15 +88,16 @@ class Qt5Module(ExtensionModule):
         self.tools_detected = True
 
     def parse_qrc(self, state, fname):
-        abspath = os.path.join(state.environment.source_dir, state.subdir, fname)
-        relative_part = os.path.split(fname)[0]
+        abspath = os.path.join(state.environment.source_dir, state.subdir, fname.relative_name())
+        relative_part = os.path.split(fname.relative_name())[0]
         try:
             tree = ET.parse(abspath)
             root = tree.getroot()
             result = []
             for child in root[0]:
                 if child.tag != 'file':
-                    mlog.warning("malformed rcc file: ", os.path.join(state.subdir, fname))
+                    mlog.warning("malformed rcc file: ",
+                                 os.path.join(state.subdir, fname.relative_name()))
                     break
                 else:
                     result.append(os.path.join(state.subdir, relative_part, child.text))
@@ -124,7 +125,7 @@ class Qt5Module(ExtensionModule):
             if len(args) > 0:
                 name = args[0]
             else:
-                basename = os.path.split(rcc_files[0])[1]
+                basename = os.path.split(rcc_files[0].relative_name())[1]
                 name = 'qt5-' + basename.replace('.', '_')
             rcc_kwargs = {'input': rcc_files,
                           'output': name + '.cpp',
