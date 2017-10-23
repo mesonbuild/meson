@@ -44,7 +44,7 @@ giving an absolute install path.
 install_data(sources : 'foo.dat', install_dir : '/etc') # -> /etc/foo.dat
 ```
 
-## Custom install behavior ##
+## Custom install behavior
 
 Sometimes you need to do more than just install basic targets. Meson makes this easy by allowing you to specify a custom script to execute at install time. As an example, here is a script that generates an empty file in a custom directory.
 
@@ -65,7 +65,7 @@ meson.add_install_script('myscript.sh')
 
 The argument is the name of the script file relative to the current subdirectory.
 
-## DESTDIR support ##
+## DESTDIR support
 
 Sometimes you need to install to a different directory than the install prefix. This is most common when building rpm or deb packages. This is done with the `DESTDIR` environment variable and it is used just like with other build systems:
 

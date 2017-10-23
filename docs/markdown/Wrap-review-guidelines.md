@@ -7,7 +7,7 @@ package is rejected. What should be done will be determined on a
 case-by-case basis. Similarly meeting all these requirements does not
 guarantee that the package will get accepted. Use common sense.
 
-## Checklist ##
+## Checklist
 
 Reviewer: copy-paste this to MR discussion box and tick all boxes that apply.
 
