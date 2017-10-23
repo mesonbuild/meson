@@ -26,9 +26,9 @@ When dealing with libraries that are not providing Vala bindings, a `--vapidir` 
 ```meson
 project('vala app', 'c', 'vala')
 
-add_project_arguments(['--vapidir', join_paths(meson.current_source_dir(), 'vapi')], 
+add_project_arguments(['--vapidir', join_paths(meson.current_source_dir(), 'vapi')],
                       language: 'vala')
-                      
+
 glib_dep = dependency('glib-2.0')
 gobject_dep = dependency('gobject-2.0')
 foo_dep = dependency('foo') # 'foo.vapi' will be resolved in './vapi/foo.vapi'
@@ -36,7 +36,7 @@ foo_dep = dependency('foo') # 'foo.vapi' will be resolved in './vapi/foo.vapi'
 executable('app', 'app.vala', dependencies: [glib_dep, gobject_dep, foo_dep])
 ```
 
-In this case, make sure that the VAPI name corresponds to the pkg-config file. 
+In this case, make sure that the VAPI name corresponds to the pkg-config file.
 
 If no pkg-config file is provided, you must use `find_library`. Using`declare_dependency` is cleaner because it does not require passing both dependency objects to the target.
 
@@ -63,9 +63,9 @@ executable('app', 'app.vala', dependencies: [glib_dep, gobject_dep, posix_dep])
 If a library target is used, Meson automatically outputs the C header and the VAPI. They can be renamed by setting the `vala_header` and `vala_vapi` arguments respectively. In this case, the second and third elements of the `install_dir` array indicate the destination with `true` to indicate default directories (i.e. `include` and `share/vala/vapi`).
 
 ```meson
-foo_lib = library('foo', 'foo.vala', 
+foo_lib = library('foo', 'foo.vala',
                   vala_header: 'foo.h',
-                  vala_vapi: 'foo-1.0.vapi', 
+                  vala_vapi: 'foo-1.0.vapi',
                   dependencies: [glib_dep, gobject_dep],
                   install: true,
                   install_dir: [true, true, true])
@@ -78,8 +78,8 @@ To generate GObject Introspection metadata, the `vala_gir` option has to be set 
 The fourth element in the `install_dir` array indicate where the GIR file will be installed. The `true` value tells Meson to use the default directory (i.e. `share/gir-1.0`).
 
 ```meson
-foo_lib = library('foo', 'foo.vala', 
-                  vala_gir: 'Foo-1.0.gir', 
+foo_lib = library('foo', 'foo.vala',
+                  vala_gir: 'Foo-1.0.gir',
                   dependencies: [glib_dep, gobject_dep],
                   install: true,
                   install_dir: [true, true, true, true])

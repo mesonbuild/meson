@@ -9,7 +9,7 @@ If you have a project that uses Meson that you want to add to this list, let us 
  - [AQEMU](https://github.com/tobimensch/aqemu), a Qt GUI for QEMU virtual machines, since version 0.9.3
  - [Arduino sample project](https://github.com/jpakkane/mesonarduino)
  - [Budgie Desktop](https://github.com/budgie-desktop/budgie-desktop), a desktop environment built on GNOME technologies
- - [casync](https://github.com/systemd/casync), 
+ - [casync](https://github.com/systemd/casync), Content-Addressable Data Synchronization Tool
  - [Emeus](https://github.com/ebassi/emeus), Constraint based layout manager for GTK+
  - [Frida](https://www.frida.re/), a dynamic binary instrumentation toolkit
  - [GLib](https://git.gnome.org/browse/glib/), cross-platform C library used by GTK+ and GStreamer (not the default yet)
