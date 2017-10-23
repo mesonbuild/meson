@@ -206,7 +206,7 @@ following.
   [`executable()`](#executable), [`configure_file()`](#configure_file),
   [`files()`](#files), [`custom_target()`](#custom_target), etc.
   Meson will automatically insert the appropriate dependencies on
-  targets and files listed in this keyword argument.  
+  targets and files listed in this keyword argument.
   Note: always specify commands in array form `['commandname',
   '-arg1', '-arg2']` rather than as a string `'commandname -arg1
   -arg2'` as the latter will *not* work.
@@ -1452,7 +1452,7 @@ are immutable, all operations return their results as a new string.
 - `startswith(string)` returns true if string starts with the string
   specified as the argument
 
-- `strip()` removes whitespace at the beginning and end of the string  
+- `strip()` removes whitespace at the beginning and end of the string
   *(added 0.43.0)* optionally can take one positional string argument,
   and all characters in that string will be stripped
 
@@ -1525,7 +1525,7 @@ A build target is either an [executable](#executable),
   files with custom flags. To use the object file(s) in another build
   target, use the `objects:` keyword argument.
 
-- `full_path()` returns a full path pointing to the result target file.  
+- `full_path()` returns a full path pointing to the result target file.
   NOTE: In most cases using the object itself will do the same job as
   this and will also allow Meson to setup inter-target dependencies
   correctly. Please file a bug if that doesn't work for you.
@@ -1574,7 +1574,7 @@ cause a syntax error.
 This object is returned by [`custom_target`](#custom_target) and
 contains a target with the following methods:
 
-- `full_path()` returns a full path pointing to the result target file  
+- `full_path()` returns a full path pointing to the result target file
   NOTE: In most cases using the object itself will do the same job as
   this and will also allow Meson to setup inter-target dependencies
   correctly. Please file a bug if that doesn't work for you.
