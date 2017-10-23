@@ -23,6 +23,7 @@ from .. import mlog
 from .. import mesonlib
 from ..mesonlib import version_compare, Popen_safe, stringlistify, extract_as_list
 from .base import DependencyException, ExternalDependency, PkgConfigDependency
+from .base import strip_system_libdirs
 
 class GTestDependency(ExternalDependency):
     def __init__(self, environment, kwargs):
@@ -172,8 +173,7 @@ class LLVMDependency(ExternalDependency):
             [self.llvmconfig, '--libs', '--ldflags'])[:2]
         if p.returncode != 0:
             raise DependencyException('Could not generate libs for LLVM.')
-        self.link_args = shlex.split(out)
-
+        self.link_args = strip_system_libdirs(environment, shlex.split(out))
         p, out = Popen_safe([self.llvmconfig, '--cppflags'])[:2]
         if p.returncode != 0:
             raise DependencyException('Could not generate includedir for LLVM.')

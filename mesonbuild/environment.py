@@ -887,6 +887,24 @@ class Environment:
     def get_datadir(self):
         return self.coredata.get_builtin_option('datadir')
 
+    def get_compiler_system_dirs(self):
+        for comp in self.coredata.compilers.values():
+            if isinstance(comp, compilers.ClangCompiler):
+                index = 1
+                break
+            elif isinstance(comp, compilers.GnuCompiler):
+                index = 2
+                break
+        else:
+            # This option is only supported by gcc and clang. If we don't get a
+            # GCC or Clang compiler return and empty list.
+            return []
+
+        p, out, _ = Popen_safe(comp.get_exelist() + ['-print-search-dirs'])
+        if p.returncode != 0:
+            raise mesonlib.MesonException('Could not calculate system search dirs')
+        out = out.split('\n')[index].lstrip('libraries: =').split(':')
+        return [os.path.normpath(p) for p in out]
 
 def get_args_from_envvars(compiler):
     """
