@@ -1,2 +1,3 @@
 usr/lib/libfoo.so
+usr/lib/girepository-1.0/Foo-1.0.typelib
 usr/share/gir-1.0/Foo-1.0.gir
