@@ -51,11 +51,11 @@ previous invocation.
 
 ## Bazel
 
-# Pros
+### Pros
 
 Proven to scale to very large projects.
 
-## Cons
+### Cons
 
 Implemented in Java. Poor Windows support. Heavily focused on Google's
 way of doing things (which may be a good or a bad thing). Contributing
