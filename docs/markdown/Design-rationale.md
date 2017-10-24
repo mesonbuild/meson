@@ -104,8 +104,8 @@ builder binaries does not count as native support.
 
 ### 5. Must not add complexity due to obsolete platforms
 
-Work on this build system started during the Christmas holidays of
-2012. This provides a natural hard cutoff line of 2012/12/24. Any
+Work on this build system started during the Christmas holidays of 2012.
+This provides a natural hard cutoff line of 2012/12/24. Any
 platform, tool or library that was not in active use at that time is
 explicitly not supported. These include Unixes such as IRIX, SunOS,
 OSF-1, Ubuntu versions older than 12/10, GCC versions older than 4.7
