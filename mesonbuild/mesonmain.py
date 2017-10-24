@@ -165,6 +165,9 @@ class MesonApp:
         if self.options.backend == 'ninja':
             from .backend import ninjabackend
             g = ninjabackend.NinjaBackend(b)
+        elif self.options.backend == 'codeblocks':
+            from .backend import codeblocksbackend
+            g = codeblocksbackend.CodeBlocksBackend(b)
         elif self.options.backend == 'vs':
             from .backend import vs2010backend
             g = vs2010backend.autodetect_vs_version(b)
