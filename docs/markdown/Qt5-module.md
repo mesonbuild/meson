@@ -5,11 +5,11 @@ tools and steps required for Qt. The module has one method.
 
 ## preprocess
 
-This method takes five keyword arguments, `moc_headers`,
-`moc_sources`, `ui_files` and `qresources` which define the files that
-require preprocessing with `moc`, `uic` and `rcc` and 'include_directories' which might be needed by moc. It returns an
-opaque object that should be passed to a main build target. A simple
-example would look like this:
+This method takes six keyword arguments, `moc_headers`, `moc_sources`, `ui_files`, `qresources`
+and `moc_extra_arguments` which define the files that require preprocessing with `moc`, `uic`
+and `rcc` and 'include_directories' which might be needed by moc as well as (optional)
+additional arguments. It returns an opaque object that should be passed to a main build target.
+A simple example would look like this:
 
 ```meson
 qt5 = import('qt5')
