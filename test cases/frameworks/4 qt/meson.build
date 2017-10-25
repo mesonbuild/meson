@@ -61,6 +61,7 @@ foreach qt : ['qt4', 'qt5']
     # headers but the user must manually include moc
     # files from sources.
     manpreprocessed = qtmodule.preprocess(
+      moc_extra_arguments : ['-DMOC_EXTRA_FLAG'], # This is just a random macro to test `moc_extra_arguments`
       moc_sources : 'manualinclude.cpp',
       moc_headers : 'manualinclude.h',
       method : get_option('method'))
