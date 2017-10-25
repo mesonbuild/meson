@@ -69,6 +69,7 @@ c = '/usr/bin/i586-mingw32msvc-gcc'
 cpp = '/usr/bin/i586-mingw32msvc-g++'
 ar = '/usr/i586-mingw32msvc/bin/ar'
 strip = '/usr/i586-mingw32msvc/bin/strip'
+pkgconfig = '/usr/bin/i586-mingw32msvc-pkg-config'
 exe_wrapper = 'wine' # A command used to run generated executables.
 ```
 
