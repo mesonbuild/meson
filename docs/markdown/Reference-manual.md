@@ -1608,6 +1608,10 @@ an external dependency with the following methods:
    pkg-config variable specified, or, if invoked on a non pkg-config
    dependency, error out
 
+ - `get_configtool_variable(varname)` (*Added 0.44.0*) will get the 
+   command line argument from the config tool (with `--` prepended), or,
+   if invoked on a non config-tool dependency, error out.
+
  - `type_name()` which returns a string describing the type of the
    dependency, the most common values are `internal` for deps created
    with `declare_dependencies` and `pkgconfig` for system dependencies
