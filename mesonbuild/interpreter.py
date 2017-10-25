@@ -696,7 +696,8 @@ class CompilerHolder(InterpreterObject):
             if not isinstance(i, IncludeDirsHolder):
                 raise InterpreterException('Include directories argument must be an include_directories object.')
             for idir in i.held_object.get_incdirs():
-                idir = os.path.join(self.environment.get_source_dir(), idir)
+                idir = os.path.join(self.environment.get_source_dir(),
+                                    i.held_object.get_curdir(), idir)
                 args += self.compiler.get_include_args(idir, False)
         if not nobuiltins:
             opts = self.environment.coredata.compiler_options
