@@ -20,7 +20,7 @@ from .mesonlib import default_libdir, default_libexecdir, default_prefix
 import ast
 
 version = '0.44.0.dev1'
-backendlist = ['ninja', 'vs', 'vs2010', 'vs2015', 'vs2017', 'xcode']
+backendlist = ['codeblocks', 'ninja', 'vs', 'vs2010', 'vs2015', 'vs2017', 'xcode']
 
 class UserOption:
     def __init__(self, name, description, choices):
@@ -251,7 +251,7 @@ class CoreData:
 
     def init_backend_options(self, backend_name):
         self.backend_options = {}
-        if backend_name == 'ninja':
+        if backend_name in ('codeblocks', 'ninja'):
             self.backend_options['backend_max_links'] = UserIntegerOption('backend_max_links',
                                                                           'Maximum number of linker processes to run or 0 for no limit',
                                                                           0, None, 0)
