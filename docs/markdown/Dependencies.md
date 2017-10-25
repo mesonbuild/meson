@@ -178,32 +178,22 @@ the list of sources for the target. The `modules` keyword of
 `dependency` works just like it does with Boost. It tells which
 subparts of Qt the program uses.
 
-## Pcap
+## Dependencies using config tools
 
-The pcap library does not ship with pkg-config at the time or writing
-but instead it has its own `pcap-config` util. Meson will use it
-automatically:
+CUPS, LLVM, PCAP, WxWidgets, libwmf, and GnuStep either do not provide
+pkg-config modules or additionally can be detected via a config tool
+(cups-config, llvm-config, etc). Meson has native support for these tools, and
+then can be found like other dependencies:
 
 ```meson
 pcap_dep = dependency('pcap', version : '>=1.0')
-```
-
-## CUPS
-
-The cups library does not ship with pkg-config at the time or writing
-but instead it has its own `cups-config` util. Meson will use it
-automatically:
-
-```meson
 cups_dep = dependency('cups', version : '>=1.4')
+llvm_dep = dependency('llvm', version : '>=4.0')
 ```
 
-## LibWMF
-
-The libwmf library does not ship with pkg-config at the time or writing
-but instead it has its own `libwmf-config` util. Meson will use it
-automatically:
+Some of these tools (like wmf and cups) provide both pkg-config and config
+tools support. You can force one or another via the method keyword:
 
 ```meson
-libwmf_dep = dependency('libwmf', version : '>=0.2.8')
+wmf_dep = dependency('wmf', method : 'config-tool')
 ```
