@@ -122,10 +122,7 @@ class QtBaseModule:
             sources.append(ui_output)
         inc = get_include_args(include_dirs=include_directories)
         if len(moc_headers) > 0:
-            if len(moc_extra_arguments) > 0:
-                arguments = moc_extra_arguments + inc + ['@INPUT@', '-o', '@OUTPUT@']
-            else:
-                arguments = inc + ['@INPUT@', '-o', '@OUTPUT@']
+            arguments = moc_extra_arguments + inc + ['@INPUT@', '-o', '@OUTPUT@']
             moc_kwargs = {'output': 'moc_@BASENAME@.cpp',
                           'arguments': arguments}
             moc_gen = build.Generator([self.moc], moc_kwargs)
