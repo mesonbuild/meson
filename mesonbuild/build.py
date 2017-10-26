@@ -1220,7 +1220,10 @@ class StaticLibrary(BuildTarget):
         # the import library. Using libfoo.a is ok because people using MSVC
         # always pass the library filename while linking anyway.
         if not hasattr(self, 'prefix'):
-            self.prefix = 'lib'
+            if self.get_using_msvc():
+                self.prefix = ''
+            else:
+                self.prefix = 'lib'
         if not hasattr(self, 'suffix'):
             if 'rust' in self.compilers:
                 if not hasattr(self, 'rust_crate_type') or self.rust_crate_type == 'rlib':
@@ -1229,7 +1232,10 @@ class StaticLibrary(BuildTarget):
                 elif self.rust_crate_type == 'staticlib':
                     self.suffix = 'a'
             else:
-                self.suffix = 'a'
+                if self.get_using_msvc():
+                    self.suffix = 'lib'
+                else:
+                    self.suffix = 'a'
         self.filename = self.prefix + self.name + '.' + self.suffix
         self.outputs = [self.filename]
 
