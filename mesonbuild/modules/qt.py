@@ -129,11 +129,7 @@ class QtBaseModule:
             moc_output = moc_gen.process_files('Qt{} moc header'.format(self.qt_version), moc_headers, state)
             sources.append(moc_output)
         if len(moc_sources) > 0:
-            if len(moc_extra_arguments) > 0:
-                concatinated_moc_extra_arguments = ' '.join(moc_extra_arguments)
-                arguments = [concatinated_moc_extra_arguments, '@INPUT@', '-o', '@OUTPUT@']
-            else:
-                arguments = ['@INPUT@', '-o', '@OUTPUT@']
+            arguments = [moc_extra_arguments, '@INPUT@', '-o', '@OUTPUT@']
             moc_kwargs = {'output': '@BASENAME@.moc',
                           'arguments': arguments}
             moc_gen = build.Generator([self.moc], moc_kwargs)
