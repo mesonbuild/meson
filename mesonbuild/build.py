@@ -1226,7 +1226,10 @@ class StaticLibrary(BuildTarget):
                 elif self.rust_crate_type == 'staticlib':
                     self.suffix = 'a'
             else:
-                self.suffix = 'a'
+                if self.get_using_msvc():
+                    self.suffix = 'lib'
+                else:
+                    self.suffix = 'a'
         self.filename = self.prefix + self.name + '.' + self.suffix
         self.outputs = [self.filename]
 
