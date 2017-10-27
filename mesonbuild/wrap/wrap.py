@@ -18,6 +18,7 @@ import urllib.request, os, hashlib, shutil, tempfile, stat
 import subprocess
 import sys
 from pathlib import Path
+from glob import glob
 from . import WrapMode
 from ..mesonlib import Popen_safe
 
@@ -99,9 +100,10 @@ class PackageDefinition:
         return 'patch_url' in self.values
 
 class Resolver:
-    def __init__(self, subdir_root, wrap_mode=WrapMode(1)):
+    def __init__(self, subdir_root, build_dir, wrap_mode=WrapMode(1)):
         self.wrap_mode = wrap_mode
         self.subdir_root = subdir_root
+        self.wrap_cache_root = os.path.join(build_dir, 'meson-private', 'wrapcache')
         self.cachedir = os.path.join(self.subdir_root, 'packagecache')
 
     def resolve(self, packagename):
@@ -110,6 +112,7 @@ class Resolver:
         subprojdir = os.path.join(*dirname.parts[-2:])
         if dirname.is_dir():
             if (dirname / 'meson.build').is_file():
+                self.cache_wrap_files(packagename)
                 # The directory is there and has meson.build? Great, use it.
                 return packagename
             # Is the dir not empty and also not a git submodule dir that is
@@ -124,6 +127,7 @@ class Resolver:
         dirname = str(dirname)
         # Check if the subproject is a git submodule
         if self.resolve_git_submodule(dirname):
+            self.cache_wrap_files(packagename)
             return packagename
 
         # Don't download subproject data based on wrap file if requested.
@@ -134,6 +138,8 @@ class Resolver:
 
         # Check if there's a .wrap file for this subproject
         fname = os.path.join(self.subdir_root, packagename + '.wrap')
+        if not os.path.isfile(fname):
+            fname = os.path.join(self.wrap_cache_root, packagename + '.wrap')
         if not os.path.isfile(fname):
             # No wrap file with this name? Give up.
             m = 'No {}.wrap found for {!r}'
@@ -152,7 +158,66 @@ class Resolver:
             self.get_svn(p)
         else:
             raise AssertionError('Unreachable code.')
+        self.cache_wrap_files(p.get('directory'))
         return p.get('directory')
+
+    def generate_git_wrap_file(self, directory, url):
+        '''
+        Generate wrap-git wrap file.
+        '''
+        wrap_file = os.path.join(self.subdir_root, '{0}.wrap'.format(directory))
+        if os.path.isfile(wrap_file):
+            return
+        wrap_file = os.path.join(self.wrap_cache_root, '{0}.wrap'.format(directory))
+        if os.path.exists(wrap_file):
+            return
+        with open(wrap_file, 'w') as wrapfile:
+            wrapfile.write('[wrap-git]\n')
+            wrapfile.write('directory={0}\n'.format(directory))
+            wrapfile.write('url={0}\n'.format(url))
+            wrapfile.write('revision=head\n')
+
+    def generate_wrap_files_from_dot_gitmodules(self, dot_gitmodules):
+        '''
+        Parse .gitmodules and generate wrap-git wrap file.
+        '''
+        with open(dot_gitmodules) as ifile:
+            for line in ifile:
+                line = line.strip()
+                if line == '' or line.startswith('#') or line.startswith(';'):
+                    continue
+                if line.startswith('[submodule'):
+                    directory = None
+                    url = None
+                    for line in ifile:
+                        (k, v) = line.split('=', 1)
+                        k = k.strip()
+                        v = v.strip()
+                        if k == 'path':
+                            directory = os.path.basename(v)
+                        elif k == 'url':
+                            url = v
+                        if directory and url:
+                            break
+                    if directory and url:
+                        if url.startswith('../'):
+                            continue
+                        self.generate_git_wrap_file(directory, url)
+
+    def cache_wrap_files(self, dirname):
+        """
+        Cache all wrap files ship with subprojects to cache directory.
+        """
+        os.makedirs(self.wrap_cache_root, exist_ok=True)
+        for src_file in glob(os.path.join(self.subdir_root, dirname, 'subprojects', '*.wrap')):
+            wrap_name = os.path.basename(src_file)
+            dest_file = os.path.join(self.wrap_cache_root, wrap_name)
+            if not os.path.exists(dest_file):
+                shutil.copy2(src_file, dest_file)
+        # support generate wrap-git wrap file from .gitmodules
+        dot_gitmodules = os.path.join(self.subdir_root, dirname, '.gitmodules')
+        if os.path.isfile(dot_gitmodules):
+            self.generate_wrap_files_from_dot_gitmodules(dot_gitmodules)
 
     def resolve_git_submodule(self, dirname):
         # Are we in a git repository?

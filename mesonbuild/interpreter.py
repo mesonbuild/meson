@@ -1672,7 +1672,7 @@ class Interpreter(InterpreterBase):
         if dirname in self.subprojects:
             return self.subprojects[dirname]
         subproject_dir_abs = os.path.join(self.environment.get_source_dir(), self.subproject_dir)
-        r = wrap.Resolver(subproject_dir_abs, self.coredata.wrap_mode)
+        r = wrap.Resolver(subproject_dir_abs, self.build.environment.get_build_dir(), self.coredata.wrap_mode)
         try:
             resolved = r.resolve(dirname)
         except RuntimeError as e:
