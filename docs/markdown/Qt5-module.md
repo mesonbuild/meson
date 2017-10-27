@@ -18,7 +18,9 @@ A simple example would look like this:
 qt5 = import('qt5')
 qt5_dep = dependency('qt5', modules: ['Core', 'Gui'])
 inc = include_directories('includes')
-moc_files = qt5.preprocess(moc_headers : 'myclass.h', include_directories: inc)
+moc_files = qt5.preprocess(moc_headers : 'myclass.h',
+                           moc_extra_arguments: ['-DMAKES_MY_MOC_HEADER_COMPILE'],
+                           include_directories: inc)
 executable('myprog', 'main.cpp', 'myclass.cpp', moc_files,
            include_directories: inc,
            dependencies : qt5_dep)
