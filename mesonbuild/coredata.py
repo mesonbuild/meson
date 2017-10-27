@@ -29,9 +29,6 @@ class UserOption:
         self.choices = choices
         self.description = description
 
-    def parse_string(self, valuestring):
-        return valuestring
-
     # Check that the input is a valid value and return the
     # "cleaned" or "native" version. For example the Boolean
     # option could take the string "true" and return True.
@@ -72,13 +69,6 @@ class UserBooleanOption(UserOption):
     def set_value(self, newvalue):
         self.value = self.tobool(newvalue)
 
-    def parse_string(self, valuestring):
-        if valuestring == 'false':
-            return False
-        if valuestring == 'true':
-            return True
-        raise MesonException('Value "%s" for boolean option "%s" is not a boolean.' % (valuestring, self.name))
-
     def __bool__(self):
         return self.value
 
@@ -108,9 +98,6 @@ class UserIntegerOption(UserOption):
             return int(valuestring)
         except:
             raise MesonException('Value string "%s" is not convertable to an integer.' % valuestring)
-
-    def parse_string(self, valuestring):
-        return self.toint(valuestring)
 
     def validate_value(self, value):
         return self.toint(value)
