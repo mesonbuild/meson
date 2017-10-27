@@ -112,7 +112,8 @@ def build_gtkdoc(source_root, build_root, doc_subdir, src_subdirs,
         scanobjs_cmd = ['gtkdoc-scangobj'] + scanobjs_args + ['--types=' + gobject_typesfile,
                                                               '--module=' + module,
                                                               '--cflags=' + cflags,
-                                                              '--ldflags=' + ldflags]
+                                                              '--ldflags=' + ldflags,
+                                                              '--ld=' + ld]
 
         gtkdoc_run_check(scanobjs_cmd, abs_out)
 
