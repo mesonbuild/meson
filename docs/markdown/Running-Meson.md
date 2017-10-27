@@ -146,3 +146,9 @@ Meson has a standard command line help feature. It can be accessed
 with the following command.
 
     meson --help
+
+Exit status
+==
+
+Meson exits with status 0 if successful, 1 for problems with the command line or
+meson.build file, and 2 for internal errors.

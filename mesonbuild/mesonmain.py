@@ -376,11 +376,12 @@ def run(original_args, mainfile=None):
             mlog.log("\nA full log can be found at", mlog.bold(logfile))
             if os.environ.get('MESON_FORCE_BACKTRACE'):
                 raise
+            return 1
         else:
             if os.environ.get('MESON_FORCE_BACKTRACE'):
                 raise
             traceback.print_exc()
-        return 1
+            return 2
     finally:
         mlog.shutdown()
 
