@@ -180,5 +180,5 @@ class OptionInterpreter:
         if opt.description == '':
             opt.description = opt_name
         if opt_name in self.cmd_line_options:
-            opt.set_value(opt.parse_string(self.cmd_line_options[opt_name]))
+            opt.set_value(self.cmd_line_options[opt_name])
         self.options[opt_name] = opt
