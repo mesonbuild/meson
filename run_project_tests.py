@@ -185,6 +185,7 @@ def get_relative_files_list_from_dir(fromdir):
 def platform_fix_name(fname, compiler):
     if '?lib' in fname:
         if mesonlib.is_cygwin():
+            fname = re.sub(r'lib/\?lib(.*)\.so$', r'bin/cyg\1.dll', fname)
             fname = re.sub(r'\?lib(.*)\.dll$', r'cyg\1.dll', fname)
         else:
             fname = re.sub(r'\?lib', 'lib', fname)
