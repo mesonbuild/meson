@@ -5,17 +5,22 @@ tools and steps required for Qt. The module has one method.
 
 ## preprocess
 
-This method takes five keyword arguments, `moc_headers`,
-`moc_sources`, `ui_files` and `qresources` which define the files that
-require preprocessing with `moc`, `uic` and `rcc` and 'include_directories' which might be needed by moc. It returns an
-opaque object that should be passed to a main build target. A simple
-example would look like this:
+This method takes the following keyword arguments:
+ - `moc_headers`, `moc_sources`, `ui_files`, `qresources`, which define the files that require preprocessing with `moc`, `uic` and `rcc`
+ - `include_directories`, the directories to add to header search path for `moc` (optional)
+ - `moc_extra_arguments`, any additional arguments to `moc` (optional). Available since v0.44.0.
+
+It returns an opaque object that should be passed to a main build target.
+
+A simple example would look like this:
 
 ```meson
 qt5 = import('qt5')
 qt5_dep = dependency('qt5', modules: ['Core', 'Gui'])
 inc = include_directories('includes')
-moc_files = qt5.preprocess(moc_headers : 'myclass.h', include_directories: inc)
+moc_files = qt5.preprocess(moc_headers : 'myclass.h',
+                           moc_extra_arguments: ['-DMAKES_MY_MOC_HEADER_COMPILE'],
+                           include_directories: inc)
 executable('myprog', 'main.cpp', 'myclass.cpp', moc_files,
            include_directories: inc,
            dependencies : qt5_dep)
