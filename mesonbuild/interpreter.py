@@ -1373,6 +1373,9 @@ class Interpreter(InterpreterBase):
         self.coredata = self.environment.get_coredata()
         self.backend = backend
         self.subproject = subproject
+        # Subproject directory is usually the name of the subproject, but can
+        # be different for dependencies provided by wrap files.
+        self.subproject_directory_name = subdir.split(os.path.sep)[-1]
         self.subproject_dir = subproject_dir
         self.option_file = os.path.join(self.source_root, self.subdir, 'meson_options.txt')
         self.load_root_meson_file()
@@ -1576,6 +1579,10 @@ class Interpreter(InterpreterBase):
             if not isinstance(d, (dependencies.Dependency, dependencies.ExternalLibrary, dependencies.InternalDependency)):
                 raise InterpreterException('Dependencies must be external deps')
             final_deps.append(d)
+        for l in libs:
+            if isinstance(l, dependencies.Dependency):
+                raise InterpreterException('''Entries in "link_with" may only be self-built targets,
+external dependencies (including libraries) must go to "dependencies".''')
         dep = dependencies.InternalDependency(version, incs, compile_args,
                                               link_args, libs, sources, final_deps)
         return DependencyHolder(dep)
@@ -1660,6 +1667,8 @@ class Interpreter(InterpreterBase):
         return self.do_subproject(dirname, kwargs)
 
     def do_subproject(self, dirname, kwargs):
+        if '/' in dirname or '\\' in dirname:
+            raise InterpreterException('Subproject name must not contain a path separator.')
         if dirname in self.subproject_stack:
             fullstack = self.subproject_stack + [dirname]
             incpath = ' => '.join(fullstack)
@@ -1821,7 +1830,12 @@ to directly access options of other subprojects.''')
         if self.subproject in self.build.projects:
             raise InvalidCode('Second call to project().')
         if not self.is_subproject() and 'subproject_dir' in kwargs:
-            self.subproject_dir = kwargs['subproject_dir']
+            spdirname = kwargs['subproject_dir']
+            if '/' in spdirname or '\\' in spdirname:
+                raise InterpreterException('Subproject_dir must not contain a path segment.')
+            if spdirname.startswith('.'):
+                raise InterpreterException('Subproject_dir must not begin with a period.')
+            self.subproject_dir = spdirname
 
         if 'meson_version' in kwargs:
             cv = coredata.version
@@ -2785,7 +2799,6 @@ different subdirectory.
         super().run()
         mlog.log('Build targets in project:', mlog.bold(str(len(self.build.targets))))
 
-
     # Check that the indicated file is within the same subproject
     # as we currently are. This is to stop people doing
     # nasty things like:
@@ -2816,7 +2829,7 @@ different subdirectory.
         if num_sps > 1:
             raise InterpreterException('Sandbox violation: Tried to grab file %s from a nested subproject.' % segments[-1])
         sproj_name = segments[segments.index(self.subproject_dir) + 1]
-        if sproj_name != self.subproject:
+        if sproj_name != self.subproject_directory_name:
             raise InterpreterException('Sandbox violation: Tried to grab file %s from a different subproject.' % segments[-1])
 
     def source_strings_to_files(self, sources):

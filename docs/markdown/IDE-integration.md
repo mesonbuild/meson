@@ -34,7 +34,7 @@ The next thing to display is the list of options that can be set. These include 
 
     mesonintrospect.py --buildoptions
 
-To set the options, use the `mesonconf.py` binary.
+To set the options, use the `meson configure` command.
 
 Compilation and unit tests are done as usual by running the `ninja` and `ninja test` commands. A JSON formatted result log can be found in `workspace/project/builddir/meson-logs/testlog.json`.
 

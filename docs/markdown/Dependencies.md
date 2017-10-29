@@ -47,7 +47,7 @@ The dependency detector works with all libraries that provide a
 `pkg-config` file. Unfortunately several packages don't provide
 pkg-config files. Meson has autodetection support for some of these.
 
-## Boost ##
+## Boost
 
 Boost is not a single dependency but rather a group of different
 libraries. To use Boost headers-only libraries, simply add Boost as a
@@ -76,7 +76,7 @@ environment variables.
 You can set the argument `threading` to `single` to use boost libraries that
 has been compiled for single-threaded use instead.
 
-## GTest and GMock ##
+## GTest and GMock
 
 GTest and GMock come as sources that must be compiled as part of your
 project. With Meson you don't have to care about the details, just
@@ -84,7 +84,7 @@ pass `gtest` or `gmock` to `dependency` and it will do everything for
 you. If you want to use GMock, it is recommended to use GTest as well,
 as getting it to work standalone is tricky.
 
-## MPI ##
+## MPI
 
 MPI is supported for C, C++ and Fortran. Because dependencies are
 language-specific, you must specify the requested language using the
@@ -100,7 +100,7 @@ are not in your path, they can be specified by setting the standard
 environment variables `MPICC`, `MPICXX`, `MPIFC`, `MPIF90`, or
 `MPIF77`, during configuration.
 
-## Qt5 ##
+## Qt5
 
 Meson has native Qt5 support. Its usage is best demonstrated with an
 example.

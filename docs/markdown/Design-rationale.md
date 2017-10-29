@@ -67,7 +67,7 @@ need to solve? What sort of solutions would be the most appropriate?
 
 To get things started, here is a list of requirements any modern cross-platform build system needs to provide.
 
-###1. Must be simple to use###
+### 1. Must be simple to use
 
 One of the great virtues of Python is the fact that it is very
 readable. It is easy to see what a given block of code does. It is
@@ -76,7 +76,7 @@ be syntactically and semantically clean. Side effects, global state
 and interrelations must be kept at a minimum or, if possible,
 eliminated entirely.
 
-###2. Must do the right thing by default###
+### 2. Must do the right thing by default
 
 Most builds are done by developers working on the code. Therefore the
 defaults must be tailored towards that use case. As an example the
@@ -85,7 +85,7 @@ information. It shall make binaries that can be run directly from the
 build directory without linker tricks, shell scripts or magic
 environment variables.
 
-###3. Must enforce established best practices###
+### 3. Must enforce established best practices
 
 There really is no reason to compile source code without the
 equivalent of `-Wall`. So enable it by default. A different kind of
@@ -94,7 +94,7 @@ directories. All build artifacts must be stored in the build
 directory. Writing stray files in the source directory is not
 permitted under any circumstances.
 
-###4. Must have native support for platforms that are in common use###
+### 4. Must have native support for platforms that are in common use
 
 A lot of free software projects can be used on non-free platforms such
 as Windows or OSX. The system must provide native support for the
@@ -102,10 +102,10 @@ tools of choice on those platforms. In practice this means native
 support for Visual Studio and XCode. Having said IDEs invoke external
 builder binaries does not count as native support.
 
-###5. Must not add complexity due to obsolete platforms###
+### 5. Must not add complexity due to obsolete platforms
 
-Work on this build system started during the Christmas holidays of
-2012. This provides a natural hard cutoff line of 2012/12/24. Any
+Work on this build system started during the Christmas holidays of 2012.
+This provides a natural hard cutoff line of 2012/12/24. Any
 platform, tool or library that was not in active use at that time is
 explicitly not supported. These include Unixes such as IRIX, SunOS,
 OSF-1, Ubuntu versions older than 12/10, GCC versions older than 4.7
@@ -113,20 +113,20 @@ and so on. If these old versions happen to work, great. If they don't,
 not a single line of code will be added to the system to work around
 their bugs.
 
-###6. Must be fast###
+### 6. Must be fast
 
 Running the configuration step on a moderate sized project must not
 take more than five seconds. Running the compile command on a fully up
 to date tree of 1000 source files must not take more than 0.1 seconds.
 
-###7. Must provide easy to use support for modern sw development features###
+### 7. Must provide easy to use support for modern sw development features
 
 An example is precompiled headers. Currently no free software build
 system provides native support for them. Other examples could include
 easy integration of Valgrind and unit tests, test coverage reporting
 and so on.
 
-###8. Must allow override of default values###
+### 8. Must allow override of default values
 
 Sometimes you just have to compile files with only given compiler
 flags and no others, or install files in weird places. The system must

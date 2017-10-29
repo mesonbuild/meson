@@ -23,7 +23,15 @@ if build_machine.system() != 'windows'
   test('MPI C++', execpp)
 endif
 
-if add_languages('fortran', required : false)
+# OpenMPI is broken with Fortran on Ubuntu Artful.
+# Remove this once the following bug has been fixed:
+#
+# https://bugs.launchpad.net/ubuntu/+source/gcc-defaults/+bug/1727474
+
+ubudetector = find_program('is_artful.py')
+uburesult = run_command(ubudetector)
+
+if uburesult.returncode() != 0 and add_languages('fortran', required : false)
   mpifort = dependency('mpi', language : 'fortran')
   exef = executable('exef',
     'main.f90',

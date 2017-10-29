@@ -640,3 +640,14 @@ def find_external_dependency(name, env, kwargs):
         raise pkg_exc
     mlog.log('Dependency', mlog.bold(name), 'found:', mlog.red('NO'))
     return pkgdep
+
+
+def strip_system_libdirs(environment, link_args):
+    """Remove -L<system path> arguments.
+
+    leaving these in will break builds where a user has a version of a library
+    in the system path, and a different version not in the system path if they
+    want to link against the non-system path version.
+    """
+    exclude = {'-L{}'.format(p) for p in environment.get_compiler_system_dirs()}
+    return [l for l in link_args if l not in exclude]

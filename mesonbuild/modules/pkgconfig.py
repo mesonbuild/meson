@@ -80,9 +80,11 @@ class PkgConfigModule(ExtensionModule):
                         yield l
                     else:
                         install_dir = l.get_custom_install_dir()[0]
-                        if install_dir:
+                        if install_dir is False:
+                            continue
+                        if isinstance(install_dir, str):
                             yield '-L${prefix}/%s ' % install_dir
-                        else:
+                        else:  # install_dir is True
                             yield '-L${libdir}'
                         lname = self._get_lname(l, msg, pcfile)
                         # If using a custom suffix, the compiler may not be able to

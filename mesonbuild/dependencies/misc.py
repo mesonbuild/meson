@@ -359,11 +359,12 @@ class BoostDependency(ExternalDependency):
             args.append('-L' + self.libdir)
         for lib in self.requested_modules:
             # The compiler's library detector is the most reliable so use that first.
-            default_detect = self.compiler.find_library('boost_' + lib, self.env, [])
+            boost_lib = 'boost_' + lib
+            default_detect = self.compiler.find_library(boost_lib, self.env, [])
             if default_detect is not None:
                 args += default_detect
-            elif lib in self.lib_modules:
-                linkcmd = '-l' + lib
+            elif boost_lib in self.lib_modules:
+                linkcmd = '-l' + boost_lib
                 args.append(linkcmd)
         return args
 
@@ -815,6 +816,10 @@ BOOST_LIBS = [
     'boost_math_c99l',
     'boost_mpi',
     'boost_program_options',
+    'boost_python',
+    'boost_python3',
+    'boost_numpy',
+    'boost_numpy3',
     'boost_random',
     'boost_regex',
     'boost_serialization',

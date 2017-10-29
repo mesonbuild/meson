@@ -40,7 +40,7 @@ Toggling the usage of precompiled headers
 
 If you wish to compile your project without precompiled headers, you
 can change the value of the pch option by passing `-Db_pch=false`
-argument to Meson at configure time or later with `mesonconf`. You can
+argument to Meson at configure time or later with `meson configure`. You can
 also toggle the use of pch in a configured build directory with the
 GUI tool. You don't have to do any changes to the source
 code. Typically this is done to test whether your project compiles
