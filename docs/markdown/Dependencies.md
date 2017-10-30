@@ -153,6 +153,16 @@ automatically:
 cups_dep = dependency('cups', version : '>=1.4')
 ```
 
+## LibWMF
+
+The libwmf library does not ship with pkg-config at the time or writing
+but instead it has its own `libwmf-config` util. Meson will use it
+automatically:
+
+```meson
+libwmf_dep = dependency('libwmf', version : '>=0.2.8')
+```
+
 ## Declaring your own
 
 You can declare your own dependency objects that can be used
