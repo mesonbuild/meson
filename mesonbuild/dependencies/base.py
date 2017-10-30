@@ -165,6 +165,34 @@ class ExternalDependency(Dependency):
     def get_compiler(self):
         return self.compiler
 
+    def check_version(self):
+        if self.version_reqs is None:
+            self.is_found = True
+        else:
+            if not isinstance(self.version_reqs, (str, list)):
+                raise DependencyException('Version argument must be string or list.')
+            if isinstance(self.version_reqs, str):
+                self.version_reqs = [self.version_reqs]
+            (self.is_found, not_found, found) = \
+                version_compare_many(self.version, self.version_reqs)
+            if not self.is_found:
+                self.found_msg += [
+                    mlog.red('NO'),
+                    'found {!r} but need:'.format(self.version),
+                    ', '.join(["'{}'".format(e) for e in not_found])
+                ]
+                if found:
+                    self.found_msg += [
+                        '; matched:', ', '.join(["'{}'".format(e) for e in found])
+                    ]
+                if not self.silent:
+                    mlog.log(*self.found_msg)
+                if self.required:
+                    m = 'Invalid version of dependency, need {!r} {!r} found {!r}.'
+                    raise DependencyException(m.format(self.name, not_found, self.version))
+                return False
+        return True
+
 
 class PkgConfigDependency(ExternalDependency):
     # The class's copy of the pkg-config path. Avoids having to search for it
@@ -213,37 +241,19 @@ class PkgConfigDependency(ExternalDependency):
             self.type_string = 'Native'
 
         mlog.debug('Determining dependency {!r} with pkg-config executable '
-                   '{!r}'.format(name, self.pkgbin))
-        ret, self.version = self._call_pkgbin(['--modversion', name])
+                   '{!r}'.format(self.name, self.pkgbin))
+        ret, self.version = self._call_pkgbin(['--modversion', self.name])
         if ret != 0:
             if self.required:
                 raise DependencyException('{} dependency {!r} not found'
-                                          ''.format(self.type_string, name))
+                                          ''.format(self.type_string, self.name))
             return
-        found_msg = [self.type_string + ' dependency', mlog.bold(name), 'found:']
-        if self.version_reqs is None:
-            self.is_found = True
-        else:
-            if not isinstance(self.version_reqs, (str, list)):
-                raise DependencyException('Version argument must be string or list.')
-            if isinstance(self.version_reqs, str):
-                self.version_reqs = [self.version_reqs]
-            (self.is_found, not_found, found) = \
-                version_compare_many(self.version, self.version_reqs)
-            if not self.is_found:
-                found_msg += [mlog.red('NO'),
-                              'found {!r} but need:'.format(self.version),
-                              ', '.join(["'{}'".format(e) for e in not_found])]
-                if found:
-                    found_msg += ['; matched:',
-                                  ', '.join(["'{}'".format(e) for e in found])]
-                if not self.silent:
-                    mlog.log(*found_msg)
-                if self.required:
-                    m = 'Invalid version of dependency, need {!r} {!r} found {!r}.'
-                    raise DependencyException(m.format(name, not_found, self.version))
-                return
-        found_msg += [mlog.green('YES'), self.version]
+        self.found_msg = [self.type_string + ' dependency', mlog.bold(self.name), 'found:']
+
+        if not self.check_version():
+            return
+
+        self.found_msg += [mlog.green('YES'), self.version]
         # Fetch cargs to be used while using this dependency
         self._set_cargs()
         # Fetch the libraries and library paths needed for using this
@@ -251,7 +261,7 @@ class PkgConfigDependency(ExternalDependency):
         # Print the found message only at the very end because fetching cflags
         # and libs can also fail if other needed pkg-config files aren't found.
         if not self.silent:
-            mlog.log(*found_msg)
+            mlog.log(*self.found_msg)
 
     def __repr__(self):
         s = '<{0} {1}: {2} {3}>'

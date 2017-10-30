@@ -678,7 +678,7 @@ class PcapDependency(ExternalDependency):
         if DependencyMethods.PKGCONFIG in self.methods:
             try:
                 kwargs['required'] = False
-                pcdep = PkgConfigDependency('pcap', environment, kwargs)
+                pcdep = PkgConfigDependency(self.name, environment, kwargs)
                 if pcdep.found():
                     self.type_name = 'pkgconfig'
                     self.is_found = True
@@ -697,9 +697,13 @@ class PcapDependency(ExternalDependency):
                 self.link_args = stdo.strip().split()
                 self.version = self.get_pcap_lib_version()
                 self.is_found = True
-                mlog.log('Dependency', mlog.bold('pcap'), 'found:',
-                         mlog.green('YES'), '(%s)' % pcapconf)
-                return
+                self.found_msg = ['Dependency', mlog.bold(self.name), 'found:']
+                if self.check_version():
+                    self.found_msg += [mlog.green('YES'), '(%s)' % pcapconf, self.version]
+                    mlog.log(*self.found_msg)
+                    return
+                else:
+                    mlog.log(*self.found_msg)
             mlog.debug('Could not find pcap-config binary, trying next.')
 
     def get_methods(self):
@@ -709,8 +713,9 @@ class PcapDependency(ExternalDependency):
             return [DependencyMethods.PKGCONFIG, DependencyMethods.PCAPCONFIG]
 
     def get_pcap_lib_version(self):
-        return self.compiler.get_return_value('pcap_lib_version', 'string',
-                                              '#include <pcap.h>', self.env, [], [self])
+        return self.compiler.get_return_value(
+            'pcap_lib_version', 'string',
+            '#include <pcap.h>', self.env, [], [self]).split(' ')[2]
 
 
 class CupsDependency(ExternalDependency):
@@ -739,9 +744,13 @@ class CupsDependency(ExternalDependency):
                 stdo = Popen_safe(['cups-config', '--version'])[1]
                 self.version = stdo.strip().split()
                 self.is_found = True
-                mlog.log('Dependency', mlog.bold('cups'), 'found:',
-                         mlog.green('YES'), '(%s)' % cupsconf)
-                return
+                self.found_msg = ['Dependency', mlog.bold(self.name), 'found:']
+                if self.check_version():
+                    self.found_msg += [mlog.green('YES'), '(%s)' % cupsconf, self.version]
+                    mlog.log(*self.found_msg)
+                    return
+                else:
+                    mlog.log(*self.found_msg)
             mlog.debug('Could not find cups-config binary, trying next.')
         if DependencyMethods.EXTRAFRAMEWORK in self.methods:
             if mesonlib.is_osx():
