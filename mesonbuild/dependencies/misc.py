@@ -761,6 +761,44 @@ class CupsDependency(ExternalDependency):
         else:
             return [DependencyMethods.PKGCONFIG, DependencyMethods.CUPSCONFIG]
 
+
+class LibWmfDependency(ExternalDependency):
+    def __init__(self, environment, kwargs):
+        super().__init__('libwmf', environment, None, kwargs)
+        if DependencyMethods.PKGCONFIG in self.methods:
+            try:
+                kwargs['required'] = False
+                pcdep = PkgConfigDependency('libwmf', environment, kwargs)
+                if pcdep.found():
+                    self.type_name = 'pkgconfig'
+                    self.is_found = True
+                    self.compile_args = pcdep.get_compile_args()
+                    self.link_args = pcdep.get_link_args()
+                    self.version = pcdep.get_version()
+                    return
+            except Exception as e:
+                mlog.debug('LibWmf not found via pkgconfig. Trying next, error was:', str(e))
+        if DependencyMethods.LIBWMFCONFIG in self.methods:
+            libwmfconf = shutil.which('libwmf-config')
+            if libwmfconf:
+                stdo = Popen_safe(['libwmf-config', '--cflags'])[1]
+                self.compile_args = stdo.strip().split()
+                stdo = Popen_safe(['libwmf-config', '--libs'])[1]
+                self.link_args = stdo.strip().split()
+                stdo = Popen_safe(['libwmf-config', '--version'])[1]
+                self.version = stdo.strip()
+                self.is_found = True
+                mlog.log('Dependency', mlog.bold('libwmf'), 'found:',
+                         mlog.green('YES'), '(%s)' % libwmfconf)
+                return
+            mlog.debug('Could not find libwmf-config binary, trying next.')
+
+    def get_methods(self):
+        if mesonlib.is_osx():
+            return [DependencyMethods.PKGCONFIG, DependencyMethods.LIBWMFCONFIG, DependencyMethods.EXTRAFRAMEWORK]
+        else:
+            return [DependencyMethods.PKGCONFIG, DependencyMethods.LIBWMFCONFIG]
+
 # Generated with boost_names.py
 BOOST_LIBS = [
     'boost_atomic',

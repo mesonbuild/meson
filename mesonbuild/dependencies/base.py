@@ -48,6 +48,8 @@ class DependencyMethods(Enum):
     PCAPCONFIG = 'pcap-config'
     # Detect using cups-config
     CUPSCONFIG = 'cups-config'
+    # Detect using libwmf-config
+    LIBWMFCONFIG = 'libwmf-config'
     # This is only supported on OSX - search the frameworks directory by name.
     EXTRAFRAMEWORK = 'extraframework'
     # Detect using the sysconfig module.
