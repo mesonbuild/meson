@@ -2811,6 +2811,16 @@ different subdirectory.
         super().run()
         mlog.log('Build targets in project:', mlog.bold(str(len(self.build.targets))))
 
+    def evaluate_subproject_info(self, path_from_source_root, subproject_dirname):
+        depth = 0
+        subproj_name = ''
+        segs = path_from_source_root.split(os.path.sep)
+        while segs and segs[0] == subproject_dirname:
+            depth += 1
+            subproj_name = segs[1]
+            segs = segs[2:]
+        return (depth, subproj_name)
+
     # Check that the indicated file is within the same subproject
     # as we currently are. This is to stop people doing
     # nasty things like:
@@ -2832,17 +2842,16 @@ different subdirectory.
                 return
             norm = os.path.relpath(norm, self.environment.source_dir)
             assert(not os.path.isabs(norm))
-        segments = norm.split(os.path.sep)
-        num_sps = segments.count(self.subproject_dir)
+        (num_sps, sproj_name) = self.evaluate_subproject_info(norm, self.subproject_dir)
+        plain_filename = os.path.split(norm)[-1]
         if num_sps == 0:
             if self.subproject == '':
                 return
-            raise InterpreterException('Sandbox violation: Tried to grab file %s from a different subproject.' % segments[-1])
+            raise InterpreterException('Sandbox violation: Tried to grab file %s from a different subproject.' % plain_filename)
         if num_sps > 1:
-            raise InterpreterException('Sandbox violation: Tried to grab file %s from a nested subproject.' % segments[-1])
-        sproj_name = segments[segments.index(self.subproject_dir) + 1]
+            raise InterpreterException('Sandbox violation: Tried to grab file %s from a nested subproject.' % plain_filename)
         if sproj_name != self.subproject_directory_name:
-            raise InterpreterException('Sandbox violation: Tried to grab file %s from a different subproject.' % segments[-1])
+            raise InterpreterException('Sandbox violation: Tried to grab file %s from a different subproject.' % plain_filename)
 
     def source_strings_to_files(self, sources):
         results = []
