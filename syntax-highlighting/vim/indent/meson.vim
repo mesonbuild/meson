@@ -78,7 +78,7 @@ function GetMesonIndent(lnum)
 
 
   " When inside parenthesis: If at the first line below the parenthesis add
-  " two 'shiftwidth', otherwise same as previous line.
+  " a 'shiftwidth', otherwise same as previous line.
   " i = (a
   "       + b
   "       + c)
@@ -97,7 +97,7 @@ function GetMesonIndent(lnum)
       if pp > 0
 	return indent(plnum) + (exists("g:pyindent_nested_paren") ? eval(g:pyindent_nested_paren) : shiftwidth())
       endif
-      return indent(plnum) + (exists("g:pyindent_open_paren") ? eval(g:pyindent_open_paren) : (shiftwidth() * 2))
+      return indent(plnum) + (exists("g:pyindent_open_paren") ? eval(g:pyindent_open_paren) : shiftwidth())
     endif
     if plnumstart == p
       return indent(plnum)
