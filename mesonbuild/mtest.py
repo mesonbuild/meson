@@ -619,6 +619,6 @@ def run(args):
             return th.doit()
         return th.run_special()
     except TestException as e:
-        print('Mesontest encountered an error:\n')
+        print('Meson test encountered an error:\n')
         print(e)
         return 1

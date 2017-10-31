@@ -95,10 +95,10 @@ the following:
 - `gdb` if `true`, the tests are also run under `gdb`
 - `timeout_multiplier` a number to multiply the test timeout with
 
-To use the test setup, run `mesontest --setup=*name*` inside the build dir.
+To use the test setup, run `meson test --setup=*name*` inside the build dir.
 
 Note that all these options are also available while running the
-`mesontest` script for running tests instead of `ninja test` or
+`meson test` script for running tests instead of `ninja test` or
 `msbuild RUN_TESTS.vcxproj`, etc depending on the backend.
 
 ### benchmark()
@@ -1092,7 +1092,7 @@ arguments are the following.
   for the test
 
 Defined tests can be run in a backend-agnostic way by calling
-`mesontest` inside the build dir, or by using backend-specific
+`meson test` inside the build dir, or by using backend-specific
 commands, such as `ninja test` or `msbuild RUN_TESTS.vcxproj`.
 
 ### vcs_tag()
