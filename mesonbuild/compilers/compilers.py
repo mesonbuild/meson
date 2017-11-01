@@ -923,11 +923,14 @@ def get_largefile_args(compiler):
 def gnulike_default_include_dirs(compiler, lang):
     if lang == 'cpp':
         lang = 'c++'
+    env = os.environ.copy()
+    env["LC_ALL"] = 'C'
     p = subprocess.Popen(
         compiler + ['-x{}'.format(lang), '-E', '-v', '-'],
         stdin=subprocess.DEVNULL,
         stderr=subprocess.PIPE,
-        stdout=subprocess.PIPE
+        stdout=subprocess.PIPE,
+        env=env
     )
     stderr = p.stderr.read().decode('utf-8')
     parse_state = 0
