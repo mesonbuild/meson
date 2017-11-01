@@ -81,5 +81,11 @@ foreach qt : ['qt4', 'qt5']
     plugin = library(qt + 'plugin', 'plugin/plugin.cpp', pluginpreprocess,
           include_directories : plugin_includes,
           dependencies : qtcore)
+
+
+    # Expect a warning since mainWindow.h is a header
+    qtmodule.preprocess(moc_sources : 'mainWindow.h')
+    # Expect a warning since mainWindow.cpp isn't a header
+    qtmodule.preprocess(moc_headers : 'mainWindow.cpp')
   endif
 endforeach
