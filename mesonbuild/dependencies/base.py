@@ -278,8 +278,23 @@ class PkgConfigDependency(ExternalDependency):
             raise DependencyException('Could not generate libs for %s:\n\n%s' %
                                       (self.name, out))
         self.link_args = []
+        libpaths = []
         for lib in out.split():
-            if lib.endswith(".la"):
+            # If we want to use only static libraries, we have to look for the
+            # file ourselves instead of depending on the compiler to find it
+            # with -lfoo or foo.lib. However, we can only do this if we already
+            # have some library paths gathered.
+            if self.static:
+                if lib.startswith('-L'):
+                    libpaths.append(lib[2:])
+                    continue
+                elif lib.startswith('-l') and libpaths:
+                    args = self.compiler.find_library(lib[2:], self.env, libpaths, libtype='static')
+                    if not args or len(args) < 1:
+                        raise DependencyException('Static library not found for {!r}'
+                                                  ''.format(lib[2:]))
+                    lib = args[0]
+            elif lib.endswith(".la"):
                 shared_libname = self.extract_libtool_shlib(lib)
                 shared_lib = os.path.join(os.path.dirname(lib), shared_libname)
                 if not os.path.exists(shared_lib):
