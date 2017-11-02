@@ -1342,34 +1342,31 @@ int main(int argc, char **argv) {
             self.assertPathExists(os.path.join(testdir, i))
 
     def detect_prebuild_env(self):
+        env = Environment('', self.builddir, self.meson_command,
+                          get_fake_options(self.prefix), [])
+        cc = env.detect_c_compiler(False)
         if mesonbuild.mesonlib.is_windows():
             object_suffix = 'obj'
+            shared_suffix = 'dll'
+        elif mesonbuild.mesonlib.is_osx():
+            object_suffix = 'o'
+            shared_suffix = 'dylib'
         else:
             object_suffix = 'o'
-        static_suffix = 'a'
-        shared_suffix = 'so'
-        if shutil.which('cl'):
-            compiler = 'cl'
-            static_suffix = 'lib'
-            shared_suffix = 'dll'
-        elif shutil.which('cc'):
-            compiler = 'cc'
-        elif shutil.which('gcc'):
-            compiler = 'gcc'
-        else:
-            raise RuntimeError("Could not find C compiler.")
-        return (compiler, object_suffix, static_suffix, shared_suffix)
+            shared_suffix = 'so'
+        return (cc, object_suffix, shared_suffix)
 
     def pbcompile(self, compiler, source, objectfile, extra_args=[]):
-        if compiler == 'cl':
-            cmd = [compiler, '/nologo', '/Fo' + objectfile, '/c', source] + extra_args
+        cmd = compiler.get_exelist()
+        if compiler.id == 'msvc':
+            cmd += ['/nologo', '/Fo' + objectfile, '/c', source] + extra_args
         else:
-            cmd = [compiler, '-c', source, '-o', objectfile] + extra_args
+            cmd += ['-c', source, '-o', objectfile] + extra_args
         subprocess.check_call(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
     def test_prebuilt_object(self):
-        (compiler, object_suffix, _, _) = self.detect_prebuild_env()
+        (compiler, object_suffix, _) = self.detect_prebuild_env()
         tdir = os.path.join(self.unit_test_dir, '14 prebuilt object')
         source = os.path.join(tdir, 'source.c')
         objectfile = os.path.join(tdir, 'prebuilt.' + object_suffix)
@@ -1381,21 +1378,27 @@ int main(int argc, char **argv) {
         finally:
             os.unlink(objectfile)
 
-    def test_prebuilt_static_lib(self):
-        (compiler, object_suffix, static_suffix, _) = self.detect_prebuild_env()
-        tdir = os.path.join(self.unit_test_dir, '15 prebuilt static')
-        source = os.path.join(tdir, 'libdir/best.c')
-        objectfile = os.path.join(tdir, 'libdir/best.' + object_suffix)
-        stlibfile = os.path.join(tdir, 'libdir/libbest.' + static_suffix)
-        if compiler == 'cl':
-            link_cmd = ['lib', '/NOLOGO', '/OUT:' + stlibfile, objectfile]
+    def build_static_lib(self, compiler, source, objectfile, outfile, extra_args=None):
+        if extra_args is None:
+            extra_args = []
+        if compiler.id == 'msvc':
+            link_cmd = ['lib', '/NOLOGO', '/OUT:' + outfile, objectfile]
         else:
-            link_cmd = ['ar', 'csr', stlibfile, objectfile]
-        self.pbcompile(compiler, source, objectfile)
+            link_cmd = ['ar', 'csr', outfile, objectfile]
+        self.pbcompile(compiler, source, objectfile, extra_args=extra_args)
         try:
             subprocess.check_call(link_cmd)
         finally:
             os.unlink(objectfile)
+
+    def test_prebuilt_static_lib(self):
+        (cc, object_suffix, _) = self.detect_prebuild_env()
+        tdir = os.path.join(self.unit_test_dir, '15 prebuilt static')
+        source = os.path.join(tdir, 'libdir/best.c')
+        objectfile = os.path.join(tdir, 'libdir/best.' + object_suffix)
+        stlibfile = os.path.join(tdir, 'libdir/libbest.a')
+        self.build_static_lib(cc, source, objectfile, stlibfile)
+        # Run the test
         try:
             self.init(tdir)
             self.build()
@@ -1403,26 +1406,35 @@ int main(int argc, char **argv) {
         finally:
             os.unlink(stlibfile)
 
-    def test_prebuilt_shared_lib(self):
-        (compiler, object_suffix, _, shared_suffix) = self.detect_prebuild_env()
-        tdir = os.path.join(self.unit_test_dir, '16 prebuilt shared')
-        source = os.path.join(tdir, 'alexandria.c')
-        objectfile = os.path.join(tdir, 'alexandria.' + object_suffix)
-        if compiler == 'cl':
+    def build_shared_lib(self, compiler, source, objectfile, outfile, impfile, extra_args=None):
+        if extra_args is None:
             extra_args = []
-            shlibfile = os.path.join(tdir, 'alexandria.' + shared_suffix)
-            link_cmd = ['link', '/NOLOGO','/DLL', '/DEBUG', '/IMPLIB:' + os.path.join(tdir, 'alexandria.lib'), '/OUT:' + shlibfile, objectfile]
+        if compiler.id == 'msvc':
+            link_cmd = ['link', '/NOLOGO', '/DLL', '/DEBUG',
+                        '/IMPLIB:' + impfile, '/OUT:' + outfile, objectfile]
         else:
-            extra_args = ['-fPIC']
-            shlibfile = os.path.join(tdir, 'libalexandria.' + shared_suffix)
-            link_cmd = [compiler, '-shared', '-o', shlibfile, objectfile]
+            extra_args += ['-fPIC']
+            link_cmd = compiler.get_exelist() + ['-shared', '-o', outfile, objectfile]
             if not mesonbuild.mesonlib.is_osx():
-                link_cmd += ['-Wl,-soname=libalexandria.so']
+                link_cmd += ['-Wl,-soname=' + os.path.basename(outfile)]
         self.pbcompile(compiler, source, objectfile, extra_args=extra_args)
         try:
             subprocess.check_call(link_cmd)
         finally:
             os.unlink(objectfile)
+
+    def test_prebuilt_shared_lib(self):
+        (cc, object_suffix, shared_suffix) = self.detect_prebuild_env()
+        tdir = os.path.join(self.unit_test_dir, '16 prebuilt shared')
+        source = os.path.join(tdir, 'alexandria.c')
+        objectfile = os.path.join(tdir, 'alexandria.' + object_suffix)
+        impfile = os.path.join(tdir, 'alexandria.lib')
+        if cc.id == 'msvc':
+            shlibfile = os.path.join(tdir, 'alexandria.' + shared_suffix)
+        else:
+            shlibfile = os.path.join(tdir, 'libalexandria.' + shared_suffix)
+        self.build_shared_lib(cc, source, objectfile, shlibfile, impfile)
+        # Run the test
         try:
             self.init(tdir)
             self.build()
@@ -1435,6 +1447,42 @@ int main(int argc, char **argv) {
                 for fname in glob(os.path.join(tdir, 'alexandria.*')):
                     if os.path.splitext(fname)[1] not in ['.c', '.h']:
                         os.unlink(fname)
+
+    def test_pkgconfig_static(self):
+        '''
+        Test that the we only use static libraries when `static: true` is
+        passed to dependency() with pkg-config. Can't be an ordinary test
+        because we need to build libs and try to find them from meson.build
+        '''
+        (cc, objext, shext) = self.detect_prebuild_env()
+        testdir = os.path.join(self.unit_test_dir, '17 pkgconfig static')
+        source = os.path.join(testdir, 'foo.c')
+        objectfile = os.path.join(testdir, 'foo.' + objext)
+        stlibfile = os.path.join(testdir, 'libfoo.a')
+        impfile = os.path.join(testdir, 'foo.lib')
+        if cc.id == 'msvc':
+            shlibfile = os.path.join(testdir, 'foo.' + shext)
+        else:
+            shlibfile = os.path.join(testdir, 'libfoo.' + shext)
+        # Build libs
+        self.build_static_lib(cc, source, objectfile, stlibfile, extra_args=['-DFOO_STATIC'])
+        self.build_shared_lib(cc, source, objectfile, shlibfile, impfile)
+        # Run test
+        os.environ['PKG_CONFIG_LIBDIR'] = self.builddir
+        try:
+            self.init(testdir)
+            self.build()
+            self.run_tests()
+        finally:
+            os.unlink(stlibfile)
+            os.unlink(shlibfile)
+            if mesonbuild.mesonlib.is_windows():
+                # Clean up all the garbage MSVC writes in the
+                # source tree.
+                for fname in glob(os.path.join(testdir, 'foo.*')):
+                    if os.path.splitext(fname)[1] not in ['.c', '.h', '.in']:
+                        os.unlink(fname)
+
 
 class FailureTests(BasePlatformTests):
     '''
