@@ -16,9 +16,10 @@
 # Custom logic for several other packages are in separate files.
 
 import os
-import shutil
-import stat
 import sys
+import stat
+import shlex
+import shutil
 from enum import Enum
 
 from .. import mlog
@@ -267,7 +268,7 @@ class PkgConfigDependency(ExternalDependency):
         if ret != 0:
             raise DependencyException('Could not generate cargs for %s:\n\n%s' %
                                       (self.name, out))
-        self.compile_args = out.split()
+        self.compile_args = shlex.split(out)
 
     def _set_libs(self):
         libcmd = [self.name, '--libs']
@@ -279,7 +280,7 @@ class PkgConfigDependency(ExternalDependency):
                                       (self.name, out))
         self.link_args = []
         libpaths = []
-        for lib in out.split():
+        for lib in shlex.split(out):
             # If we want to use only static libraries, we have to look for the
             # file ourselves instead of depending on the compiler to find it
             # with -lfoo or foo.lib. However, we can only do this if we already

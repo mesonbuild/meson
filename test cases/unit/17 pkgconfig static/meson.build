@@ -8,6 +8,10 @@ else
   prefix = '/'.join(prefix_parts)
 endif
 
+# Escape spaces
+prefix_parts = prefix.split(' ')
+prefix = '\ '.join(prefix_parts)
+
 conf = configuration_data()
 conf.set('PREFIX', prefix)
 configure_file(input : 'foo.pc.in',
