@@ -1483,6 +1483,28 @@ int main(int argc, char **argv) {
                     if os.path.splitext(fname)[1] not in ['.c', '.h', '.in']:
                         os.unlink(fname)
 
+    def test_pkgconfig_gen_escaping(self):
+        if not shutil.which('pkg-config'):
+            raise unittest.SkipTest('pkg-config not found')
+        testdir = os.path.join(self.common_test_dir, '51 pkgconfig-gen')
+        prefix = '/usr/with spaces'
+        libdir = 'lib'
+        self.init(testdir, extra_args=['--prefix=' + prefix,
+                                       '--libdir=' + libdir])
+        # Find foo dependency
+        os.environ['PKG_CONFIG_LIBDIR'] = self.privatedir
+        env = FakeEnvironment()
+        kwargs = {'required': True, 'silent': True}
+        foo_dep = PkgConfigDependency('libfoo', env, kwargs)
+        # Ensure link_args are properly quoted
+        libdir = PurePath(prefix) / PurePath(libdir)
+        link_args = ['-L' + libdir.as_posix(), '-lfoo']
+        self.assertEqual(foo_dep.get_link_args(), link_args)
+        # Ensure include args are properly quoted
+        incdir = PurePath(prefix) / PurePath('include')
+        cargs = ['-I' + incdir.as_posix()]
+        self.assertEqual(foo_dep.get_compile_args(), cargs)
+
 
 class FailureTests(BasePlatformTests):
     '''
@@ -1723,12 +1745,12 @@ class LinuxlikeTests(BasePlatformTests):
         env = FakeEnvironment()
         kwargs = {'required': True, 'silent': True}
         os.environ['PKG_CONFIG_LIBDIR'] = self.privatedir
-        simple_dep = PkgConfigDependency('libfoo', env, kwargs)
-        self.assertTrue(simple_dep.found())
-        self.assertEqual(simple_dep.get_version(), '1.0')
-        self.assertIn('-lfoo', simple_dep.get_link_args())
-        self.assertEqual(simple_dep.get_pkgconfig_variable('foo'), 'bar')
-        self.assertPathEqual(simple_dep.get_pkgconfig_variable('datadir'), '/usr/data')
+        foo_dep = PkgConfigDependency('libfoo', env, kwargs)
+        self.assertTrue(foo_dep.found())
+        self.assertEqual(foo_dep.get_version(), '1.0')
+        self.assertIn('-lfoo', foo_dep.get_link_args())
+        self.assertEqual(foo_dep.get_pkgconfig_variable('foo'), 'bar')
+        self.assertPathEqual(foo_dep.get_pkgconfig_variable('datadir'), '/usr/data')
 
     def test_vala_c_warnings(self):
         '''
