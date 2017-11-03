@@ -1431,6 +1431,8 @@ int main(int argc, char **argv) {
         impfile = os.path.join(tdir, 'alexandria.lib')
         if cc.id == 'msvc':
             shlibfile = os.path.join(tdir, 'alexandria.' + shared_suffix)
+        elif is_cygwin():
+            shlibfile = os.path.join(tdir, 'cygalexandria.' + shared_suffix)
         else:
             shlibfile = os.path.join(tdir, 'libalexandria.' + shared_suffix)
         self.build_shared_lib(cc, source, objectfile, shlibfile, impfile)
@@ -1464,6 +1466,8 @@ int main(int argc, char **argv) {
         impfile = os.path.join(testdir, 'foo.lib')
         if cc.id == 'msvc':
             shlibfile = os.path.join(testdir, 'foo.' + shext)
+        elif is_cygwin():
+            shlibfile = os.path.join(testdir, 'cygfoo.' + shext)
         else:
             shlibfile = os.path.join(testdir, 'libfoo.' + shext)
         # Build libs
