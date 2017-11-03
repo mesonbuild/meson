@@ -108,7 +108,7 @@ class QtBaseModule:
                 name = 'qt' + str(self.qt_version) + '-' + basename.replace('.', '_')
             rcc_kwargs = {'input': rcc_files,
                           'output': name + '.cpp',
-                          'command': [self.rcc, '--name', '@BASENAME@', '-o', '@OUTPUT@', '@INPUT@'],
+                          'command': [self.rcc, '-name', '@BASENAME@', '-o', '@OUTPUT@', '@INPUT@'],
                           'depend_files': qrc_deps}
             res_target = build.CustomTarget(name, state.subdir, state.subproject, rcc_kwargs)
             sources.append(res_target)
