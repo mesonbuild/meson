@@ -66,6 +66,11 @@ class BoostDependency(ExternalDependency):
         self.is_multithreading = threading == "multi"
 
         self.requested_modules = self.get_requested(kwargs)
+        invalid_modules = [c for c in self.requested_modules if 'boost_' + c not in BOOST_LIBS]
+        if invalid_modules:
+            mlog.debug('Invalid Boost modules: ' + ', '.join(invalid_modules))
+            self.log_fail()
+            return
 
         self.boost_root = None
         self.boost_roots = []
@@ -198,8 +203,6 @@ class BoostDependency(ExternalDependency):
         for c in candidates:
             if not isinstance(c, str):
                 raise DependencyException('Boost module argument is not a string.')
-            if 'boost_' + c not in BOOST_LIBS:
-                raise DependencyException('Dependency {} not found. It is not a valid boost library.'.format(c))
         return candidates
 
     def validate_requested(self):
