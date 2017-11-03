@@ -1454,6 +1454,8 @@ int main(int argc, char **argv) {
         passed to dependency() with pkg-config. Can't be an ordinary test
         because we need to build libs and try to find them from meson.build
         '''
+        if not shutil.which('pkg-config'):
+            raise unittest.SkipTest('pkg-config not found')
         (cc, objext, shext) = self.detect_prebuild_env()
         testdir = os.path.join(self.unit_test_dir, '17 pkgconfig static')
         source = os.path.join(testdir, 'foo.c')
@@ -1562,6 +1564,8 @@ class FailureTests(BasePlatformTests):
     def test_dependency(self):
         if not shutil.which('pkg-config'):
             raise unittest.SkipTest('pkg-config not found')
+        if subprocess.call(['pkg-config', '--exists', 'zlib']) != 0:
+            raise unittest.SkipTest('zlib not found with pkg-config')
         a = (("dependency('zlib', method : 'fail')", "'fail' is invalid"),
              ("dependency('zlib', static : '1')", "[Ss]tatic.*boolean"),
              ("dependency('zlib', version : 1)", "[Vv]ersion.*string or list"),
