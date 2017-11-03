@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import os
+from pathlib import PurePath
 
 from .. import build
 from .. import mesonlib
@@ -42,20 +43,34 @@ class PkgConfigModule(ExtensionModule):
         mlog.warning(msg.format(l.name, 'name_prefix', l.name, pcfile))
         return l.name
 
+    def _escape(self, value):
+        '''
+        We cannot use shlex.quote because it quotes with ' and " which does not
+        work with pkg-config and pkgconf at all.
+        '''
+        # We should always write out paths with / because pkg-config requires
+        # spaces to be quoted with \ and that messes up on Windows:
+        # https://bugs.freedesktop.org/show_bug.cgi?id=103203
+        if isinstance(value, PurePath):
+            value = value.as_posix()
+        return value.replace(' ', '\ ')
+
     def generate_pkgconfig_file(self, state, libraries, subdirs, name, description,
                                 url, version, pcfile, pub_reqs, priv_reqs,
                                 conflicts, priv_libs, extra_cflags, variables):
         coredata = state.environment.get_coredata()
         outdir = state.environment.scratch_dir
         fname = os.path.join(outdir, pcfile)
+        prefix = PurePath(coredata.get_builtin_option('prefix'))
+        # These always return paths relative to prefix
+        libdir = PurePath(coredata.get_builtin_option('libdir'))
+        incdir = PurePath(coredata.get_builtin_option('includedir'))
         with open(fname, 'w') as ofile:
-            ofile.write('prefix=%s\n' % coredata.get_builtin_option('prefix'))
-            # '${prefix}' is ignored if the second path is absolute (see
-            # 'os.path.join' for details)
-            ofile.write('libdir=%s\n' % os.path.join('${prefix}', coredata.get_builtin_option('libdir')))
-            ofile.write('includedir=%s\n' % os.path.join('${prefix}', coredata.get_builtin_option('includedir')))
+            ofile.write('prefix={}\n'.format(self._escape(prefix)))
+            ofile.write('libdir={}\n'.format(self._escape('${prefix}' / libdir)))
+            ofile.write('includedir={}\n'.format(self._escape('${prefix}' / incdir)))
             for k, v in variables:
-                ofile.write('%s=%s\n' % (k, v))
+                ofile.write('{}={}\n'.format(k, self._escape(v)))
             ofile.write('\n')
             ofile.write('Name: %s\n' % name)
             if len(description) > 0:
@@ -83,7 +98,7 @@ class PkgConfigModule(ExtensionModule):
                         if install_dir is False:
                             continue
                         if isinstance(install_dir, str):
-                            yield '-L${prefix}/%s ' % install_dir
+                            yield '-L${prefix}/%s ' % self._escape(install_dir)
                         else:  # install_dir is True
                             yield '-L${libdir}'
                         lname = self._get_lname(l, msg, pcfile)
@@ -103,10 +118,10 @@ class PkgConfigModule(ExtensionModule):
                 if h == '.':
                     ofile.write('-I${includedir}')
                 else:
-                    ofile.write(os.path.join('-I${includedir}', h))
+                    ofile.write(self._escape(PurePath('-I${includedir}') / h))
             for f in extra_cflags:
                 ofile.write(' ')
-                ofile.write(f)
+                ofile.write(self._escape(f))
             ofile.write('\n')
 
     def process_libs(self, libs):
