@@ -52,7 +52,7 @@ are downloaded and automatically applied to the subproject. These
 files contain a Meson build definition for the given subproject. A
 wrap file with an additional patch URL would look like this.
 
-```
+```ini
 [wrap-file]
 directory = libfoobar-1.0
 
@@ -83,7 +83,7 @@ packaged files. Sometimes you want to check code out directly from
 Git. Meson supports this natively. All you need to do is to write a
 slightly different wrap file.
 
-```
+```ini
 [wrap-git]
 directory=samplesubproject
 url=https://github.com/jpakkane/samplesubproject.git
