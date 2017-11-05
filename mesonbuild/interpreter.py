@@ -2617,17 +2617,19 @@ to directly access options of other subprojects.''')
             values = mesonlib.get_filenames_templates_dict([ifile_abs], None)
             outputs = mesonlib.substitute_values([output], values)
             output = outputs[0]
-        if os.path.split(output)[0] != '':
-            raise InterpreterException('Output file name must not contain a subdirectory.')
+        if os.path.isabs(output):
+            raise InterpreterException('Output file path name must not be an absolute path.')
+        if '..' in mesonlib.path_norm_split(output):
+            raise InterpreterException('Output file path name must not contain a .. component.')
         (ofile_path, ofile_fname) = os.path.split(os.path.join(self.subdir, output))
         ofile_abs = os.path.join(self.environment.build_dir, ofile_path, ofile_fname)
+        os.makedirs(os.path.join(self.environment.build_dir, ofile_path), exist_ok=True)
         if 'configuration' in kwargs:
             conf = kwargs['configuration']
             if not isinstance(conf, ConfigurationDataHolder):
                 raise InterpreterException('Argument "configuration" is not of type configuration_data')
             mlog.log('Configuring', mlog.bold(output), 'using configuration')
             if inputfile is not None:
-                os.makedirs(os.path.join(self.environment.build_dir, self.subdir), exist_ok=True)
                 missing_variables = mesonlib.do_conf_file(ifile_abs, ofile_abs,
                                                           conf.held_object)
                 if missing_variables:

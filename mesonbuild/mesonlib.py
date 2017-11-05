@@ -539,6 +539,19 @@ def expand_arguments(args):
             return None
     return expended_args
 
+def path_norm_split(path):
+    '''
+    Normalize a path and split into a list of components. First component of an absolute
+    path will be os.sep
+    Drive will be discarded.
+    '''
+    _, path = os.path.splitdrive(path)
+    norm_path = os.path.normpath(path)
+    components = norm_path.split(os.sep)
+    if components[0] == '':
+        components[0] = os.sep
+    return components
+
 def Popen_safe(args, write=None, stderr=subprocess.PIPE, **kwargs):
     if sys.version_info < (3, 6) or not sys.stdout.encoding:
         return Popen_safe_legacy(args, write=write, stderr=stderr, **kwargs)
