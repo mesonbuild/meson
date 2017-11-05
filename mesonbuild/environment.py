@@ -349,10 +349,9 @@ class Environment:
     def is_cross_build(self):
         return self.cross_info is not None
 
-    def dump_coredata(self, mtime):
+    def dump_coredata(self):
         cdf = os.path.join(self.get_build_dir(), Environment.coredata_file)
         coredata.save(self.coredata, cdf)
-        os.utime(cdf, times=(mtime, mtime))
         return cdf
 
     def get_script_dir(self):

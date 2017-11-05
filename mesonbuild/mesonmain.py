@@ -193,23 +193,19 @@ class MesonApp:
         mlog.log('Build machine cpu family:', mlog.bold(intr.builtin['build_machine'].cpu_family_method([], {})))
         mlog.log('Build machine cpu:', mlog.bold(intr.builtin['build_machine'].cpu_method([], {})))
         intr.run()
-        coredata_mtime = time.time()
-        g.generate(intr)
-        dumpfile = os.path.join(env.get_scratch_dir(), 'build.dat')
-        with open(dumpfile, 'wb') as f:
-            pickle.dump(b, f)
-        # Write this as late as possible since we use the existence of this
-        # file to check if we generated the build file successfully, so we
-        # don't want an error that pops up during generation, etc to cause us to
-        # incorrectly signal a successful meson run which will cause an error
-        # about an already-configured build directory when the user tries again.
-        #
-        # However, we set the mtime to an earlier value to ensure that doing an
-        # mtime comparison between the coredata dump and other build files
-        # shows the build files to be newer, not older.
-        cdf = env.dump_coredata(coredata_mtime)
-        # Post-conf scripts must be run after writing coredata or else introspection fails.
         try:
+            # We would like to write coredata as late as possible since we use the existence of
+            # this file to check if we generated the build file successfully. Since coredata
+            # includes settings, the build files must depend on it and appear newer. However, due
+            # to various kernel caches, we cannot guarantee that any time in Python is exactly in
+            # sync with the time that gets applied to any files. Thus, we dump this file as late as
+            # possible, but before build files, and if any error occurs, delete it.
+            cdf = env.dump_coredata()
+            g.generate(intr)
+            dumpfile = os.path.join(env.get_scratch_dir(), 'build.dat')
+            with open(dumpfile, 'wb') as f:
+                pickle.dump(b, f)
+            # Post-conf scripts must be run after writing coredata or else introspection fails.
             g.run_postconf_scripts()
         except:
             os.unlink(cdf)
