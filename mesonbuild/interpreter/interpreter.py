@@ -1258,10 +1258,10 @@ class Interpreter(InterpreterBase, HoldableObject):
             raise InterpreterException('Subproject_dir must be a string')
         if os.path.isabs(spdirname):
             raise InterpreterException('Subproject_dir must not be an absolute path.')
-        if spdirname.startswith('.'):
-            raise InterpreterException('Subproject_dir must not begin with a period.')
-        if '..' in spdirname:
-            raise InterpreterException('Subproject_dir must not contain a ".." segment.')
+        #if spdirname.startswith('.'):
+        #    raise InterpreterException('Subproject_dir must not begin with a period.')
+        #if '..' in spdirname:
+        #    raise InterpreterException('Subproject_dir must not contain a ".." segment.')
         if not self.is_subproject():
             self.subproject_dir = spdirname
         self.build.subproject_dir = self.subproject_dir
