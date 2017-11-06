@@ -259,8 +259,10 @@ class PkgConfigDependency(ExternalDependency):
         return s.format(self.__class__.__name__, self.name, self.is_found,
                         self.version_reqs)
 
-    def _call_pkgbin(self, args):
-        p, out = Popen_safe([self.pkgbin] + args, env=os.environ)[0:2]
+    def _call_pkgbin(self, args, env=None):
+        if not env:
+            env = os.environ
+        p, out = Popen_safe([self.pkgbin] + args, env=env)[0:2]
         return p.returncode, out.strip()
 
     def _set_cargs(self):
@@ -271,10 +273,15 @@ class PkgConfigDependency(ExternalDependency):
         self.compile_args = shlex.split(out)
 
     def _set_libs(self):
+        env = None
         libcmd = [self.name, '--libs']
         if self.static:
             libcmd.append('--static')
-        ret, out = self._call_pkgbin(libcmd)
+            # Force pkg-config to output -L fields even if they are system
+            # paths so we can do manual searching with cc.find_library() later.
+            env = os.environ.copy()
+            env['PKG_CONFIG_ALLOW_SYSTEM_LIBS'] = '1'
+        ret, out = self._call_pkgbin(libcmd, env=env)
         if ret != 0:
             raise DependencyException('Could not generate libs for %s:\n\n%s' %
                                       (self.name, out))
