@@ -923,11 +923,15 @@ def get_largefile_args(compiler):
 def gnulike_default_include_dirs(compiler, lang):
     if lang == 'cpp':
         lang = 'c++'
+    env = os.environ.copy()
+    env["LC_ALL"] = 'C'
+    cmd = compiler + ['-x{}'.format(lang), '-E', '-v', '-']
     p = subprocess.Popen(
-        compiler + ['-x{}'.format(lang), '-E', '-v', '-'],
+        cmd,
         stdin=subprocess.DEVNULL,
         stderr=subprocess.PIPE,
-        stdout=subprocess.PIPE
+        stdout=subprocess.PIPE,
+        env=env
     )
     stderr = p.stderr.read().decode('utf-8')
     parse_state = 0
@@ -946,6 +950,8 @@ def gnulike_default_include_dirs(compiler, lang):
                 break
             else:
                 paths.append(line[1:])
+    if len(paths) == 0:
+        mlog.warning('No include directory found parsing "{cmd}" output'.format(cmd=" ".join(cmd)))
     return paths
 
 class GnuCompiler:
