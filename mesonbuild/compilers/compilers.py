@@ -273,7 +273,7 @@ def sanitizer_compile_args(value):
     if value == 'none':
         return []
     args = ['-fsanitize=' + value]
-    if value == 'address':
+    if 'address' in value: # For -fsanitize=address,undefined
         args.append('-fno-omit-frame-pointer')
     return args
 
