@@ -778,7 +778,6 @@ class CupsDependency(ExternalDependency):
             return [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL]
 
 
-
 class LibWmfDependency(ExternalDependency):
     def __init__(self, environment, kwargs):
         super().__init__('libwmf', environment, None, kwargs)
@@ -795,26 +794,27 @@ class LibWmfDependency(ExternalDependency):
                     return
             except Exception as e:
                 mlog.debug('LibWmf not found via pkgconfig. Trying next, error was:', str(e))
-        if DependencyMethods.LIBWMFCONFIG in self.methods:
-            libwmfconf = shutil.which('libwmf-config')
-            if libwmfconf:
-                stdo = Popen_safe(['libwmf-config', '--cflags'])[1]
-                self.compile_args = stdo.strip().split()
-                stdo = Popen_safe(['libwmf-config', '--libs'])[1]
-                self.link_args = stdo.strip().split()
-                stdo = Popen_safe(['libwmf-config', '--version'])[1]
-                self.version = stdo.strip()
-                self.is_found = True
-                mlog.log('Dependency', mlog.bold('libwmf'), 'found:',
-                         mlog.green('YES'), '(%s)' % libwmfconf)
-                return
-            mlog.debug('Could not find libwmf-config binary, trying next.')
+        if DependencyMethods.CONFIG_TOOL in self.methods:
+            try:
+                ctdep = ConfigToolDependency.factory(
+                    'libwmf', environment, None, kwargs, ['libwmf-config'], 'libwmf-config')
+                if ctdep.found():
+                    self.config = ctdep.config
+                    self.type_name = 'config-too'
+                    self.version = ctdep.version
+                    self.compile_args = ctdep.get_config_value(['--cflags'], 'compile_args')
+                    self.link_args = ctdep.get_config_value(['--libs'], 'link_args')
+                    self.is_found = True
+                    return
+            except Exception as e:
+                mlog.debug('cups not found via libwmf-config. Trying next, error was:', str(e))
 
     def get_methods(self):
         if mesonlib.is_osx():
-            return [DependencyMethods.PKGCONFIG, DependencyMethods.LIBWMFCONFIG, DependencyMethods.EXTRAFRAMEWORK]
+            return [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.EXTRAFRAMEWORK]
         else:
-            return [DependencyMethods.PKGCONFIG, DependencyMethods.LIBWMFCONFIG]
+            return [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL]
+
 
 # Generated with boost_names.py
 BOOST_LIBS = [

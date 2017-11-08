@@ -46,8 +46,6 @@ class DependencyMethods(Enum):
     QMAKE = 'qmake'
     # Just specify the standard link arguments, assuming the operating system provides the library.
     SYSTEM = 'system'
-    # Detect using libwmf-config
-    LIBWMFCONFIG = 'libwmf-config'
     # This is only supported on OSX - search the frameworks directory by name.
     EXTRAFRAMEWORK = 'extraframework'
     # Detect using the sysconfig module.
@@ -58,6 +56,7 @@ class DependencyMethods(Enum):
     SDLCONFIG = 'sdlconfig'
     CUPSCONFIG = 'cups-config'
     PCAPCONFIG = 'pcap-config'
+    LIBWMFCONFIG = 'libwmf-config'
 
 
 class Dependency:
@@ -78,7 +77,7 @@ class Dependency:
         # This sets per-too config methods which are deprecated to to the new
         # generic CONFIG_TOOL value.
         if method in [DependencyMethods.SDLCONFIG, DependencyMethods.CUPSCONFIG,
-                      DependencyMethods.PCAPCONFIG]:
+                      DependencyMethods.PCAPCONFIG, DependencyMethods.LIBWMFCONFIG]:
             mlog.warning(textwrap.dedent("""\
                 Configuration method {} has been deprecated in favor of
                 'config-tool'. This will be removed in a future version of

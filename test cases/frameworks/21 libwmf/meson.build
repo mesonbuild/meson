@@ -7,3 +7,8 @@ message('libwmf version is "@0@"'.format(libwmf_ver))
 e = executable('libwmf_prog', 'libwmf_prog.c', dependencies : libwmf_dep)
 
 test('libwmftest', e)
+
+# Test using the method keyword:
+
+dependency('libwmf', method : 'config-tool')
+dependency('libwmf', method : 'libwmf-config')
