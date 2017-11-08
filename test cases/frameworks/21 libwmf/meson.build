@@ -1,6 +1,6 @@
 project('libwmf test', 'c')
 
-libwmf_dep = dependency('libwmf', version : '>=3.0')
+libwmf_dep = dependency('libwmf', version : '>= 0.2.8')
 libwmf_ver = libwmf_dep.version()
 assert(libwmf_ver.split('.').length() > 1, 'libwmf version is "@0@"'.format(libwmf_ver))
 message('libwmf version is "@0@"'.format(libwmf_ver))
