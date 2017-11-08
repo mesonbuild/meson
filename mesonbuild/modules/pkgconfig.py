@@ -17,6 +17,7 @@ import os
 from .. import build
 from .. import mesonlib
 from .. import mlog
+from . import dependencies
 from . import ModuleReturnValue
 from . import ExtensionModule
 from ..interpreterbase import permittedKwargs
@@ -78,6 +79,8 @@ class PkgConfigModule(ExtensionModule):
                 for l in libs:
                     if isinstance(l, str):
                         yield l
+                    elif isinstance(l, dependencies.ExternalLibrary):
+                        yield '-l%s' % l.get_name()
                     else:
                         install_dir = l.get_custom_install_dir()[0]
                         if install_dir is False:
@@ -115,7 +118,7 @@ class PkgConfigModule(ExtensionModule):
         for l in libs:
             if hasattr(l, 'held_object'):
                 l = l.held_object
-            if not isinstance(l, (build.SharedLibrary, build.StaticLibrary, str)):
+            if not isinstance(l, (build.SharedLibrary, build.StaticLibrary, dependencies.ExternalLibrary, str)):
                 raise mesonlib.MesonException('Library argument not a library object nor a string.')
             processed_libs.append(l)
         return processed_libs

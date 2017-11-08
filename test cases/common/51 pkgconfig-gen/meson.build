@@ -44,3 +44,17 @@ pkgg.generate(
   description : 'A foo library.',
   variables : ['foo=bar', 'datadir=${prefix}/data']
 )
+
+# Testing for external library inclusion
+libm = meson.get_compiler('c').find_library('m', required : true)
+
+lib3 = shared_library('libbar', 'simple.c',
+  name_prefix : '',
+  version : libver)
+
+pkgg.generate(
+  libraries : [ lib3, libm ],
+  name : 'libbar',
+  version : libver,
+  description : 'A foo library.',
+)
