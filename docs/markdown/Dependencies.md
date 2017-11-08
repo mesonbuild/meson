@@ -45,7 +45,52 @@ non-found dependencies.
 
 The dependency detector works with all libraries that provide a
 `pkg-config` file. Unfortunately several packages don't provide
-pkg-config files. Meson has autodetection support for some of these.
+pkg-config files. Meson has autodetection support for some of these,
+and they are described later on this page.
+
+# Declaring your own
+
+You can declare your own dependency objects that can be used
+interchangeably with dependency objects obtained from the system. The
+syntax is straightforward:
+
+```meson
+my_inc = include_directories(...)
+my_lib = static_library(...)
+my_dep = declare_dependency(link_with : my_lib,
+  include_directories : my_inc)
+```
+
+This declares a dependency that adds the given include directories and
+static library to any target you use it in.
+
+# Building dependencies as subprojects
+
+Many platforms do not provide a system package manager. On these
+systems dependencies must be compiled from source. Meson's subprojects
+make it simple to use system dependencies when they are available and
+to build dependencies manually when they are not.
+
+To make this work, the dependency must have Meson build definitions
+and it must declare its own dependency like this:
+
+    foo_dep = declare_dependency(...)
+
+Then any project that wants to use it can write out the following
+declaration in their main `meson.build` file.
+
+    foo_dep = dependency('foo', fallback : ['foo', 'foo_dep'])
+
+What this declaration means is that first Meson tries to look up the
+dependency from the system (such as by using pkg-config). If it is not
+available, then it builds subproject named `foo` and from that
+extracts a variable `foo_dep`. That means that the return value of
+this function is either an external or an internal dependency
+object. Since they can be used interchangeably, the rest of the build
+definitions do not need to care which one it is. Meson will take care
+of all the work behind the scenes to make this work.
+
+# Dependencies with custom lookup functionality
 
 ## Boost
 
@@ -162,19 +207,3 @@ automatically:
 ```meson
 libwmf_dep = dependency('libwmf', version : '>=0.2.8')
 ```
-
-## Declaring your own
-
-You can declare your own dependency objects that can be used
-interchangeably with dependency objects obtained from the system. The
-syntax is straightforward:
-
-```meson
-my_inc = include_directories(...)
-my_lib = static_library(...)
-my_dep = declare_dependency(link_with : my_lib,
-  include_directories : my_inc)
-```
-
-This declares a dependency that adds the given include directories and
-static library to any target you use it in.
