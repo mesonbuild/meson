@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>270</width>
-    <height>115</height>
+    <width>260</width>
+    <height>313</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -25,6 +25,26 @@
     </property>
     <property name="text">
      <string>I am a button</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_stuff">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>112</y>
+      <width>241</width>
+      <height>91</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_stuff2">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>212</y>
+      <width>241</width>
+      <height>91</height>
+     </rect>
     </property>
    </widget>
   </widget>

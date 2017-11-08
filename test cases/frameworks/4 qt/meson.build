@@ -40,7 +40,7 @@ foreach qt : ['qt4', 'qt5']
     )
 
     # Test that setting a unique name with a positional argument works
-    qtmodule.preprocess(qt + 'teststuff', qresources : ['stuff.qrc'], method : get_option('method'))
+    qtmodule.preprocess(qt + 'teststuff', qresources : ['stuff.qrc', 'stuff2.qrc'], method : get_option('method'))
 
     qexe = executable(qt + 'app',
       sources : ['main.cpp', 'mainWindow.cpp', # Sources that don't need preprocessing.
