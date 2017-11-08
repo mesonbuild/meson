@@ -104,6 +104,7 @@ def list_targets(coredata, builddata, installdata):
             t['install_filename'] = determine_installed_path(target, installdata)
         else:
             t['installed'] = False
+        t['build_by_default'] = target.build_by_default
         tlist.append(t)
     print(json.dumps(tlist))
 
