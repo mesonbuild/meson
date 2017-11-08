@@ -40,7 +40,7 @@ from mesonbuild.dependencies import PkgConfigDependency, ExternalProgram
 
 from run_tests import exe_suffix, get_fake_options, FakeEnvironment
 from run_tests import get_builddir_target_args, get_backend_commands, Backend
-from run_tests import ensure_backend_detects_changes, run_configure_inprocess
+from run_tests import ensure_backend_detects_changes, run_configure
 from run_tests import should_run_linux_cross_tests
 
 
@@ -460,8 +460,9 @@ class BasePlatformTests(unittest.TestCase):
         # Get the backend
         # FIXME: Extract this from argv?
         self.backend = getattr(Backend, os.environ.get('MESON_UNIT_TEST_BACKEND', 'ninja'))
-        self.meson_args = [os.path.join(src_root, 'meson.py'), '--backend=' + self.backend.name]
-        self.meson_command = [sys.executable] + self.meson_args
+        self.meson_mainfile = os.path.join(src_root, 'meson.py')
+        self.meson_args = ['--backend=' + self.backend.name]
+        self.meson_command = [sys.executable, self.meson_mainfile] + self.meson_args
         self.mconf_command = [sys.executable, os.path.join(src_root, 'meson.py'), 'configure']
         self.mintro_command = [sys.executable, os.path.join(src_root, 'meson.py'), 'introspect']
         self.mtest_command = [sys.executable, os.path.join(src_root, 'meson.py'), 'test', '-C', self.builddir]
@@ -527,7 +528,7 @@ class BasePlatformTests(unittest.TestCase):
         self.privatedir = os.path.join(self.builddir, 'meson-private')
         if inprocess:
             try:
-                out = run_configure_inprocess(self.meson_args + args + extra_args)[1]
+                out = run_configure(self.meson_mainfile, self.meson_args + args + extra_args)[1]
             except:
                 self._print_meson_log()
                 raise

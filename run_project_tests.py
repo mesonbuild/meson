@@ -33,7 +33,7 @@ import time
 import multiprocessing
 import concurrent.futures as conc
 import re
-from run_unittests import get_fake_options, run_configure_inprocess
+from run_unittests import get_fake_options, run_configure
 
 from run_tests import get_backend_commands, get_backend_args_for_dir, Backend
 from run_tests import ensure_backend_detects_changes
@@ -327,9 +327,9 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, compiler, backen
     test_args = parse_test_args(testdir)
     gen_start = time.time()
     # Configure in-process
-    gen_command = [meson_command, '--prefix', '/usr', '--libdir', 'lib', testdir, test_build_dir]\
+    gen_args = ['--prefix', '/usr', '--libdir', 'lib', testdir, test_build_dir]\
         + flags + test_args + extra_args
-    (returncode, stdo, stde) = run_configure_inprocess(gen_command)
+    (returncode, stdo, stde) = run_configure(meson_command, gen_args)
     try:
         logfile = os.path.join(test_build_dir, 'meson-logs/meson-log.txt')
         with open(logfile, errors='ignore') as f:

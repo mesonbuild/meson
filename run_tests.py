@@ -31,6 +31,12 @@ from glob import glob
 
 Backend = Enum('Backend', 'ninja vs xcode')
 
+if 'MESON_EXE' in os.environ:
+    import shlex
+    meson_exe = shlex.split(os.environ['MESON_EXE'])
+else:
+    meson_exe = None
+
 if mesonlib.is_windows() or mesonlib.is_cygwin():
     exe_suffix = '.exe'
 else:
@@ -127,17 +133,27 @@ def get_fake_options(prefix):
 def should_run_linux_cross_tests():
     return shutil.which('arm-linux-gnueabihf-gcc-7') and not platform.machine().lower().startswith('arm')
 
-def run_configure_inprocess(commandlist):
+def run_configure_inprocess(meson_command, commandlist):
     old_stdout = sys.stdout
     sys.stdout = mystdout = StringIO()
     old_stderr = sys.stderr
     sys.stderr = mystderr = StringIO()
     try:
-        returncode = mesonmain.run(commandlist[1:], commandlist[0])
+        returncode = mesonmain.run(commandlist, meson_command)
     finally:
         sys.stdout = old_stdout
         sys.stderr = old_stderr
     return returncode, mystdout.getvalue(), mystderr.getvalue()
+
+def run_configure_external(full_command):
+    pc, o, e = mesonlib.Popen_safe(full_command)
+    return pc.returncode, o, e
+
+def run_configure(meson_command, commandlist):
+    global meson_exe
+    if meson_exe:
+        return run_configure_external(meson_exe + commandlist)
+    return run_configure_inprocess(meson_command, commandlist)
 
 class FakeEnvironment(object):
     def __init__(self):
