@@ -117,19 +117,20 @@ class LLVMDependency(ExternalDependency):
 
     # Ordered list of llvm-config binaries to try. Start with base, then try
     # newest back to oldest (3.5 is abitrary), and finally the devel version.
-    # Please note that llvm-config-5.0 is a development snapshot and it should
+    # Please note that llvm-config-6.0 is a development snapshot and it should
     # not be moved to the beginning of the list. The only difference between
-    # llvm-config-5.0 and llvm-config-devel is that the former is used by
+    # llvm-config-6.0 and llvm-config-devel is that the former is used by
     # Debian and the latter is used by FreeBSD.
     llvm_config_bins = [
         'llvm-config', # base
-        'llvm-config-4.0', 'llvm-config40', # latest stable release
-        'llvm-config-3.9', 'llvm-config39', # old stable releases
+        'llvm-config-5.0', 'llvm-config50', # latest stable release
+        'llvm-config-4.0', 'llvm-config40', # old stable releases
+        'llvm-config-3.9', 'llvm-config39',
         'llvm-config-3.8', 'llvm-config38',
         'llvm-config-3.7', 'llvm-config37',
         'llvm-config-3.6', 'llvm-config36',
         'llvm-config-3.5', 'llvm-config35',
-        'llvm-config-5.0', 'llvm-config-devel', # development snapshot
+        'llvm-config-6.0', 'llvm-config-devel', # development snapshot
     ]
     __cpp_blacklist = {'-DNDEBUG'}
 
