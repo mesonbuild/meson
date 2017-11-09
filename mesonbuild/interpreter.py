@@ -1391,6 +1391,8 @@ class Interpreter(InterpreterBase):
         self.subproject_stack = []
         self.default_project_options = default_project_options[:] # Passed from the outside, only used in subprojects.
         self.build_func_dict()
+        # build_def_files needs to be defined before parse_project is called
+        self.build_def_files = [os.path.join(self.subdir, environment.build_filename)]
         self.parse_project()
         self.builtin['build_machine'] = BuildMachine(self.coredata.compilers)
         if not self.build.environment.is_cross_build():
@@ -1406,7 +1408,6 @@ class Interpreter(InterpreterBase):
                 self.builtin['target_machine'] = CrossMachineInfo(cross_info.config['target_machine'])
             else:
                 self.builtin['target_machine'] = self.builtin['host_machine']
-        self.build_def_files = [os.path.join(self.subdir, environment.build_filename)]
 
     def build_func_dict(self):
         self.funcs.update({'add_global_arguments': self.func_add_global_arguments,
