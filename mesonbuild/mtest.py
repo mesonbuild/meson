@@ -58,7 +58,7 @@ def determine_worker_count():
             num_workers = 1
     return num_workers
 
-parser = argparse.ArgumentParser()
+parser = argparse.ArgumentParser(prog='meson test')
 parser.add_argument('--repeat', default=1, dest='repeat', type=int,
                     help='Number of times to run the tests.')
 parser.add_argument('--no-rebuild', default=False, action='store_true',

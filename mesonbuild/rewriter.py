@@ -29,7 +29,7 @@ from mesonbuild import mlog
 import sys, traceback
 import argparse
 
-parser = argparse.ArgumentParser()
+parser = argparse.ArgumentParser(prog='meson rewrite')
 
 parser.add_argument('--sourcedir', default='.',
                     help='Path to source directory.')
