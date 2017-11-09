@@ -24,7 +24,7 @@ from .mesonlib import MesonException
 from .wrap import WrapMode, wraptool
 
 
-parser = argparse.ArgumentParser()
+parser = argparse.ArgumentParser(prog='meson')
 
 default_warning = '1'
 

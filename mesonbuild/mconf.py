@@ -17,7 +17,7 @@ import pickle
 import argparse
 from . import coredata, mesonlib
 
-parser = argparse.ArgumentParser()
+parser = argparse.ArgumentParser(prog='meson configure')
 
 parser.add_argument('-D', action='append', default=[], dest='sets',
                     help='Set an option to the given value.')
