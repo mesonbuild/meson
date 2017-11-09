@@ -35,17 +35,26 @@ foreach qt : ['qt4', 'qt5']
     prep = qtmodule.preprocess(
       moc_headers : ['mainWindow.h'],           # These need to be fed through the moc tool before use. 
       ui_files : 'mainWindow.ui',               # XML files that need to be compiled with the uic tol.
-      qresources : ['stuff.qrc', 'stuff2.qrc'], # Resource file for rcc compiler.
       method : get_option('method')
     )
+
+    # Resource file(s) for rcc compiler
+    extra_cpp_args = []
+    if meson.is_unity()
+      extra_cpp_args += '-DUNITY_BUILD'
+      prep_rcc = qtmodule.preprocess(qt + '_unity_ressource', qresources : ['stuff.qrc', 'stuff2.qrc'], method : get_option('method'))
+    else
+      prep_rcc = qtmodule.preprocess(qresources : ['stuff.qrc', 'stuff2.qrc'], method : get_option('method'))
+    endif
 
     # Test that setting a unique name with a positional argument works
     qtmodule.preprocess(qt + 'teststuff', qresources : ['stuff.qrc', 'stuff2.qrc'], method : get_option('method'))
 
     qexe = executable(qt + 'app',
       sources : ['main.cpp', 'mainWindow.cpp', # Sources that don't need preprocessing.
-      prep],
-      dependencies : qtdep)
+      prep, prep_rcc],
+      dependencies : qtdep,
+      cpp_args: extra_cpp_args)
 
     # We need a console test application because some test environments
     # do not have an X server.

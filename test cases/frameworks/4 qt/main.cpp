@@ -2,8 +2,10 @@
 #include "mainWindow.h"
 
 int main(int argc, char **argv) {
+  #ifndef UNITY_BUILD
   Q_INIT_RESOURCE(stuff);
   Q_INIT_RESOURCE(stuff2);
+  #endif
   QApplication app(argc, argv);
   MainWindow *win = new MainWindow();
   QImage qi(":/thing.png");
