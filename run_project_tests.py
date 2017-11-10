@@ -603,7 +603,7 @@ def check_meson_commands_work():
     testdir = 'test cases/common/1 trivial'
     with AutoDeletedDir(tempfile.mkdtemp(prefix='b ', dir='.')) as build_dir:
         print('Checking that configuring works...')
-        gen_cmd = [sys.executable, meson_command, testdir, build_dir] + backend_flags
+        gen_cmd = mesonlib.meson_command + [testdir, build_dir] + backend_flags
         pc, o, e = Popen_safe(gen_cmd)
         if pc.returncode != 0:
             raise RuntimeError('Failed to configure {!r}:\n{}\n{}'.format(testdir, e, o))

@@ -223,11 +223,12 @@ if __name__ == '__main__':
                         'coverage.process_startup()\n')
             env['COVERAGE_PROCESS_START'] = '.coveragerc'
             env['PYTHONPATH'] = os.pathsep.join([td] + env.get('PYTHONPATH', []))
-        returncode += subprocess.call([sys.executable, 'run_unittests.py', '-v'], env=env)
+        returncode += subprocess.call(mesonlib.python_command + ['run_unittests.py', '-v'], env=env)
         # Ubuntu packages do not have a binary without -6 suffix.
         if should_run_linux_cross_tests():
             print(mlog.bold('Running cross compilation tests.').get_text(mlog.colorize_console))
             print()
-            returncode += subprocess.call([sys.executable, 'run_cross_test.py', 'cross/ubuntu-armhf.txt'], env=env)
-        returncode += subprocess.call([sys.executable, 'run_project_tests.py'] + sys.argv[1:], env=env)
+            returncode += subprocess.call(mesonlib.python_command + ['run_cross_test.py', 'cross/ubuntu-armhf.txt'],
+                                          env=env)
+        returncode += subprocess.call(mesonlib.python_command + ['run_project_tests.py'] + sys.argv[1:], env=env)
     sys.exit(returncode)

@@ -434,7 +434,7 @@ class ExternalProgram:
                         commands = commands[1:]
                     # Windows does not ship python3.exe, but we know the path to it
                     if len(commands) > 0 and commands[0] == 'python3':
-                        commands[0] = sys.executable
+                        commands = mesonlib.python_command + commands[1:]
                 return commands + [script]
         except Exception:
             pass

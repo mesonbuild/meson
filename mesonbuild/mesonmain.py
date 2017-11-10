@@ -155,7 +155,7 @@ class MesonApp:
 
     def _generate(self, env):
         mlog.debug('Build started at', datetime.datetime.now().isoformat())
-        mlog.debug('Python binary:', sys.executable)
+        mlog.debug('Main binary:', sys.executable)
         mlog.debug('Python system:', platform.system())
         mlog.log(mlog.bold('The Meson build system'))
         self.check_pkgconfig_envvar(env)
