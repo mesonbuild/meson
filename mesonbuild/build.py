@@ -22,7 +22,7 @@ from . import mlog
 from .mesonlib import File, MesonException, listify, extract_as_list
 from .mesonlib import typeslistify, stringlistify, classify_unity_sources
 from .mesonlib import get_filenames_templates_dict, substitute_values
-from .environment import for_windows, for_darwin, for_cygwin
+from .mesonlib import for_windows, for_darwin, for_cygwin
 from .compilers import is_object, clike_langs, sort_clike, lang_suffixes
 
 known_basic_kwargs = {'install': True,

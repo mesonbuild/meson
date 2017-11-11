@@ -219,6 +219,42 @@ def is_cygwin():
 def is_debianlike():
     return os.path.isfile('/etc/debian_version')
 
+def for_windows(is_cross, env):
+    """
+    Host machine is windows?
+
+    Note: 'host' is the machine on which compiled binaries will run
+    """
+    if not is_cross:
+        return is_windows()
+    elif env.cross_info.has_host():
+        return env.cross_info.config['host_machine']['system'] == 'windows'
+    return False
+
+def for_cygwin(is_cross, env):
+    """
+    Host machine is cygwin?
+
+    Note: 'host' is the machine on which compiled binaries will run
+    """
+    if not is_cross:
+        return is_cygwin()
+    elif env.cross_info.has_host():
+        return env.cross_info.config['host_machine']['system'] == 'cygwin'
+    return False
+
+def for_darwin(is_cross, env):
+    """
+    Host machine is Darwin (iOS/OS X)?
+
+    Note: 'host' is the machine on which compiled binaries will run
+    """
+    if not is_cross:
+        return is_osx()
+    elif env.cross_info.has_host():
+        return env.cross_info.config['host_machine']['system'] == 'darwin'
+    return False
+
 def exe_exists(arglist):
     try:
         p = subprocess.Popen(arglist, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
