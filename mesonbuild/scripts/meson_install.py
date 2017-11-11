@@ -95,11 +95,13 @@ def restore_selinux_contexts():
         # is ignored quietly.
         return
 
-    try:
-        subprocess.check_call(['restorecon', '-F'] + selinux_updates, stderr=subprocess.DEVNULL)
-    except subprocess.CalledProcessError as e:
-        msg = "{!r}: Failed to restore SELinux context, ignoring SELinux context for all remaining files..."
-        print(msg.format(selinux_updates, e.returncode))
+    with subprocess.Popen(['restorecon', '-F', '-f-', '-0'],
+                          stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE) as proc:
+        out, err = proc.communicate(input=b'\0'.join(os.fsencode(f) for f in selinux_updates) + b'\0')
+        if proc.returncode != 0:
+            print('Failed to restore SELinux context of installed files...',
+                  'Standard output:', out.decode(),
+                  'Standard error:', err.decode(), sep='\n')
 
 def append_to_log(line):
     install_log_file.write(line)
