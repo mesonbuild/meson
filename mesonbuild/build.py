@@ -22,6 +22,7 @@ from . import mlog
 from .mesonlib import File, MesonException, listify, extract_as_list
 from .mesonlib import typeslistify, stringlistify, classify_unity_sources
 from .mesonlib import get_filenames_templates_dict, substitute_values
+from .mesonlib import path_norm_split
 from .environment import for_windows, for_darwin, for_cygwin
 from .compilers import is_object, clike_langs, sort_clike, lang_suffixes
 
@@ -1585,8 +1586,10 @@ class CustomTarget(Target):
         for i in self.outputs:
             if not(isinstance(i, str)):
                 raise InvalidArguments('Output argument not a string.')
-            if '/' in i:
-                raise InvalidArguments('Output must not contain a path segment.')
+            if os.path.isabs(i):
+                raise InvalidArguments('Output file path name must not be an absolute path.')
+            if '..' in path_norm_split(i):
+                raise InvalidArguments('Output file path name must not contain a .. component.')
             if '@INPUT@' in i or '@INPUT0@' in i:
                 m = 'Output cannot contain @INPUT@ or @INPUT0@, did you ' \
                     'mean @PLAINNAME@ or @BASENAME@?'

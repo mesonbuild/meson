@@ -781,6 +781,11 @@ class Backend:
                 i = i.replace('@SOURCE_ROOT@', source_root)
             elif '@BUILD_ROOT@' in i:
                 i = i.replace('@BUILD_ROOT@', build_root)
+            elif '@OUTDIR@' in i:
+                outdir = target.subdir
+                if outdir == '':
+                    outdir = '.'
+                i = i.replace('@OUTDIR@', outdir)
             elif '@DEPFILE@' in i:
                 if target.depfile is None:
                     msg = 'Custom target {!r} has @DEPFILE@ but no depfile ' \

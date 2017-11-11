@@ -718,7 +718,6 @@ def get_filenames_templates_dict(inputs, outputs):
 
     @INPUT@  - the full path to one or more input files, from @inputs
     @OUTPUT@ - the full path to one or more output files, from @outputs
-    @OUTDIR@ - the full path to the directory containing the output files
 
     If there is only one input file, the following keys are also created:
 
@@ -750,11 +749,6 @@ def get_filenames_templates_dict(inputs, outputs):
         values['@OUTPUT@'] = outputs
         for (ii, vv) in enumerate(outputs):
             values['@OUTPUT{}@'.format(ii)] = vv
-        # Outdir should be the same for all outputs
-        values['@OUTDIR@'] = os.path.split(outputs[0])[0]
-        # Many external programs fail on empty arguments.
-        if values['@OUTDIR@'] == '':
-            values['@OUTDIR@'] = '.'
     return values
 
 
