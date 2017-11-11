@@ -4,23 +4,39 @@ short-description: Syntax and structure of Meson files
 
 # Syntax
 
-The syntax of Meson's specification language has been kept as simple as possible. It is *strongly typed* so no object is ever converted to another under the covers. Variables have no visible type which makes Meson *dynamically typed* (also known as *duck typed*).
+The syntax of Meson's specification language has been kept as simple
+as possible. It is *strongly typed* so no object is ever converted to
+another under the covers. Variables have no visible type which makes
+Meson *dynamically typed* (also known as *duck typed*).
 
-The main building blocks of the language are *variables*, *numbers*, *booleans*, *strings*, *arrays*, *function calls*, *method calls*, *if statements* and *includes*.
+The main building blocks of the language are *variables*, *numbers*,
+*booleans*, *strings*, *arrays*, *function calls*, *method calls*, *if
+statements* and *includes*.
 
-Usually one Meson statement takes just one line. There is no way to have multiple statements on one line as in e.g. *C*. Function and method calls' argument lists can be split over multiple lines. Meson will autodetect this case and do the right thing. In other cases you can get multi-line statements by ending the line with a `\`. Apart from line ending whitespace has no syntactic meaning.
+Usually one Meson statement takes just one line. There is no way to
+have multiple statements on one line as in e.g. *C*. Function and
+method calls' argument lists can be split over multiple lines. Meson
+will autodetect this case and do the right thing. In other cases you
+can get multi-line statements by ending the line with a `\`. Apart
+from line ending whitespace has no syntactic meaning.
 
 Variables
 --
 
-Variables in Meson work just like in other high level programming languages. A variable can contain a value of any type, such as an integer or a string. Variables don't need to be predeclared, you can just assign to them and they appear. Here's how you would assign values to two different variables.
+Variables in Meson work just like in other high level programming
+languages. A variable can contain a value of any type, such as an
+integer or a string. Variables don't need to be predeclared, you can
+just assign to them and they appear. Here's how you would assign
+values to two different variables.
 
 ```meson
 var1 = 'hello'
 var2 = 102
 ```
 
-One important difference in how variables work in Meson is that all variables are immutable. This is different from, for example, how Python works.
+One important difference in how variables work in Meson is that all
+objects are immutable. This is different from, for example, how Python
+works.
 
 ```meson
 var1 = [1, 2, 3]
@@ -33,7 +49,8 @@ var2 += [4]
 Numbers
 --
 
-Meson supports only integer numbers. They are declared simply by writing them out. Basic arithmetic operations are supported.
+Meson supports only integer numbers. They are declared simply by
+writing them out. Basic arithmetic operations are supported.
 
 ```meson
 x = 1 + 2
@@ -60,13 +77,15 @@ truth = true
 Strings
 --
 
-Strings in Meson are declared with single quotes. To enter a literal single quote do it like this:
+Strings in Meson are declared with single quotes. To enter a literal
+single quote do it like this:
 
 ```meson
 single quote = 'contains a \' character'
 ```
 
-Similarly `\n` gets converted to a newline and `\\\\` to a single backslash.
+Similarly `\n` gets converted to a newline and `\\\\` to a single
+backslash.
 
 #### String concatenation
 
@@ -80,7 +99,8 @@ combined = str1 + '_' + str2 # combined is now abc_xyz
 
 #### Strings running over multiple lines
 
-Strings running over multiple lines can be declared with three single quotes, like this:
+Strings running over multiple lines can be declared with three single
+quotes, like this:
 
 ```meson
 multiline_string = '''#include <foo.h>
@@ -89,7 +109,8 @@ int main (int argc, char ** argv) {
 }'''
 ```
 
-This can also be combined with the string formatting functionality described below.
+This can also be combined with the string formatting functionality
+described below.
 
 #### String formatting
 
@@ -101,11 +122,13 @@ res = template.format('text', 1, true)
 # res now has value 'string: text, number: 1, bool: true'
 ```
 
-As can be seen, the formatting works by replacing placeholders of type `@number@` with the corresponding argument.
+As can be seen, the formatting works by replacing placeholders of type
+`@number@` with the corresponding argument.
 
 #### String methods
 
-Strings also support a number of other methods that return transformed copies.
+Strings also support a number of other methods that return transformed
+copies.
 
 **.strip()**
 
@@ -226,7 +249,9 @@ my_array += ['something']
 my_array += 'else'
 ```
 
-Note appending to an array will always create a new array object and assign it to `my_array` instead of modifying the original since all objects in Meson are immutable.
+Note appending to an array will always create a new array object and
+assign it to `my_array` instead of modifying the original since all
+objects in Meson are immutable.
 
 #### Array methods
 
@@ -239,7 +264,8 @@ The following methods are defined for all arrays:
 Function calls
 --
 
-Meson provides a set of usable functions. The most common use case is creating build objects.
+Meson provides a set of usable functions. The most common use case is
+creating build objects.
 
 ```meson
 executable('progname', 'prog.c')
@@ -248,7 +274,8 @@ executable('progname', 'prog.c')
 Method calls
 --
 
-Objects can have methods, which are called with the dot operator. The exact methods it provides depends on the object.
+Objects can have methods, which are called with the dot operator. The
+exact methods it provides depends on the object.
 
 ```meson
 myobj = some_function()
@@ -279,7 +306,9 @@ endif
 
 ## Foreach statements
 
-To do an operation on all elements of an array, use the `foreach` command. As an example, here's how you would define two executables with corresponding tests.
+To do an operation on all elements of an array, use the `foreach`
+command. As an example, here's how you would define two executables
+with corresponding tests.
 
 ```meson
 progs = [['prog1', ['prog1.c', 'foo.c']],
@@ -291,7 +320,9 @@ foreach p : progs
 endforeach
 ```
 
-Note that Meson variables are immutable. Trying to assign a new value to `progs` inside a foreach loop will not affect foreach's control flow.
+Note that Meson variables are immutable. Trying to assign a new value
+to `progs` inside a foreach loop will not affect foreach's control
+flow.
 
 Logical operations
 --
@@ -334,12 +365,20 @@ The ternary operator works just like in other languages.
 x = condition ? true_value : false_value
 ```
 
-The only exception is that nested ternary operators are forbidden to improve legibility. If your branching needs are more complex than this you need to write an `if/else` construct.
+The only exception is that nested ternary operators are forbidden to
+improve legibility. If your branching needs are more complex than this
+you need to write an `if/else` construct.
 
 Includes
 --
 
-Most source trees have multiple subdirectories to process. These can be handled by Meson's `subdir` command. It changes to the given subdirectory and executes the contents of `meson.build` in that subdirectory. All state (variables etc) are passed to and from the subdirectory. The effect is roughly the same as if the contents of the subdirectory's Meson file would have been written where the include command is.
+Most source trees have multiple subdirectories to process. These can
+be handled by Meson's `subdir` command. It changes to the given
+subdirectory and executes the contents of `meson.build` in that
+subdirectory. All state (variables etc) are passed to and from the
+subdirectory. The effect is roughly the same as if the contents of the
+subdirectory's Meson file would have been written where the include
+command is.
 
 ```meson
 test_data_dir = 'data'
@@ -349,4 +388,12 @@ subdir('tests')
 User-defined functions and methods
 --
 
-Meson does not currently support user-defined functions or methods. The addition of user-defined functions would make Meson Turing-complete which would make it harder to reason about and more difficult to integrate with tools like IDEs. More details about this are [in the FAQ](FAQ.md#why-is-meson-not-just-a-python-module-so-i-could-code-my-build-setup-in-python). If because of this limitation you find yourself copying and pasting code a lot you may be able to use a [`foreach` loop instead](#foreach-statements).
+Meson does not currently support user-defined functions or
+methods. The addition of user-defined functions would make Meson
+Turing-complete which would make it harder to reason about and more
+difficult to integrate with tools like IDEs. More details about this
+are [in the
+FAQ](FAQ.md#why-is-meson-not-just-a-python-module-so-i-could-code-my-build-setup-in-python). If
+because of this limitation you find yourself copying and pasting code
+a lot you may be able to use a [`foreach` loop
+instead](#foreach-statements).
