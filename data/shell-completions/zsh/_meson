@@ -2,6 +2,30 @@
 
 # vim:ts=2 sw=2
 
+# Copyright (c) 2017 Arseny Maslennikov
+# All rights reserved.  Individual authors, whether or not
+# specifically named, retain copyright in all changes; in what follows, they
+# are referred to as `the Meson development team'.  This is for convenience
+# only and this body has no legal status.  This file is distributed under
+# the following licence.
+#
+# Permission is hereby granted, without written agreement and without
+# licence or royalty fees, to use, copy, modify, and distribute this
+# software and to distribute modified versions of this software for any
+# purpose, provided that the above copyright notice and the following
+# two paragraphs appear in all copies of this software.
+#
+# In no event shall the Meson development team be liable to any party for
+# direct, indirect, special, incidental, or consequential damages arising out
+# of the use of this software and its documentation, even if the Meson
+# development team have been advised of the possibility of such damage.
+#
+# The Meson development team specifically disclaim any warranties, including,
+# but not limited to, the implied warranties of merchantability and fitness
+# for a particular purpose.  The software provided hereunder is on an "as is"
+# basis, and the Meson development team have no obligation to provide
+# maintenance, support, updates, enhancements, or modifications.
+
 local curcontext="$curcontext" state line
 local -i ret
 
