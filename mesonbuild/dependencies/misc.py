@@ -68,7 +68,7 @@ class BoostDependency(ExternalDependency):
         self.requested_modules = self.get_requested(kwargs)
         invalid_modules = [c for c in self.requested_modules if 'boost_' + c not in BOOST_LIBS]
         if invalid_modules:
-            mlog.debug('Invalid Boost modules: ' + ', '.join(invalid_modules))
+            mlog.warning('Invalid Boost modules: ' + ', '.join(invalid_modules))
             self.log_fail()
             return
 
