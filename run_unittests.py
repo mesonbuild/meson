@@ -1348,6 +1348,9 @@ int main(int argc, char **argv) {
         if mesonbuild.mesonlib.is_windows():
             object_suffix = 'obj'
             shared_suffix = 'dll'
+        elif mesonbuild.mesonlib.is_cygwin():
+            object_suffix = 'o'
+            shared_suffix = 'dll'
         elif mesonbuild.mesonlib.is_osx():
             object_suffix = 'o'
             shared_suffix = 'dylib'
