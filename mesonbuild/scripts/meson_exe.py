@@ -17,6 +17,7 @@ import sys
 import argparse
 import pickle
 import platform
+import subprocess
 
 from ..mesonlib import Popen_safe
 
@@ -56,7 +57,12 @@ def run_exe(exe):
     if len(exe.extra_paths) > 0:
         child_env['PATH'] = (os.pathsep.join(exe.extra_paths + ['']) +
                              child_env['PATH'])
-    p, stdout, stderr = Popen_safe(cmd + exe.cmd_args, env=child_env, cwd=exe.workdir)
+    # By default, don't capture output
+    stderr = None
+    if exe.capture:
+        stderr = subprocess.PIPE
+    p, stdout, stderr = Popen_safe(cmd + exe.cmd_args, env=child_env,
+                                   cwd=exe.workdir, stderr=stderr)
     if exe.capture and p.returncode == 0:
         with open(exe.capture, 'w') as output:
             output.write(stdout)
