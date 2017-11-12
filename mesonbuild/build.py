@@ -1638,6 +1638,7 @@ class CustomTarget(Target):
         'depfile',
         'build_by_default',
         'override_options',
+        'console',
     ])
 
     def __init__(self, name, subdir, subproject, kwargs, absolute_paths=False):
@@ -1756,6 +1757,11 @@ class CustomTarget(Target):
         self.capture = kwargs.get('capture', False)
         if self.capture and len(self.outputs) != 1:
             raise InvalidArguments('Capturing can only output to a single file.')
+        self.console = kwargs.get('console', False)
+        if not isinstance(self.console, bool):
+            raise InvalidArguments('"console" kwarg only accepts booleans')
+        if self.capture and self.console:
+            raise InvalidArguments("Can't both capture output and output to console")
         if 'command' not in kwargs:
             raise InvalidArguments('Missing keyword argument "command".')
         if 'depfile' in kwargs:

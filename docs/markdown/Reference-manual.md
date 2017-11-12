@@ -244,6 +244,12 @@ following.
   this argument is set to true, Meson captures `stdout` and writes it
   to the target file. Note that your command argument list may not
   contain `@OUTPUT@` when capture mode is active.
+- `console` keyword argument conflicts with `capture`, and is meant
+  for commands that are resource-intensive and take a long time to
+  finish. With the Ninja backend, setting this will add this target
+  to [Ninja's `console` pool](https://ninja-build.org/manual.html#_the_literal_console_literal_pool),
+  which has special properties such as not buffering stdout and
+  serializing all targets in this pool.
 - `command` command to run to create outputs from inputs. The command
   may be strings or the return value of functions that return file-like
   objects such as [`find_program()`](#find_program),
