@@ -545,6 +545,8 @@ int dummy;
             abs_pdir = os.path.join(self.environment.get_build_dir(), self.get_target_dir(target))
             os.makedirs(abs_pdir, exist_ok=True)
             elem.add_item('DEPFILE', rel_dfile)
+        if target.ninja_pool is not None:
+            elem.add_item('pool', target.ninja_pool)
         cmd = self.replace_paths(target, cmd)
         elem.add_item('COMMAND', cmd)
         elem.add_item('description', desc.format(target.name, cmd_str))
