@@ -89,8 +89,8 @@ install:
   # but they have a broken certificate (on Windows) and an HSTS policy that
   # forces usage of HTTPS, so we mirror our own copy.
   - ps: If($Env:compiler -eq 'msys2-mingw') {(new-object Net.WebClient).DownloadFile('https://nirbheek.in/files/meson/get-pip.py', 'C:\projects\meson\get-pip.py')}
-  # pkg-config is needed for some msvc and cygwin tests
-  - ps: If($Env:compiler -ne 'msys2-mingw') {(new-object net.webclient).DownloadFile('http://nirbheek.in/files/binaries/pkg-config/win32/pkg-config.exe', 'C:\projects\meson\pkg-config.exe')}
+  # pkg-config is needed for the pkg-config tests on msvc
+  - ps: If($Env:compiler.StartsWith('msvc')) {(new-object net.webclient).DownloadFile('http://nirbheek.in/files/binaries/pkg-config/win32/pkg-config.exe', 'C:\projects\meson\pkg-config.exe')}
   - cmd: if %compiler%==msys2-mingw ( %PYTHON% "C:\projects\meson\get-pip.py" )
   - cmd: if %compiler%==cygwin ( call ci\appveyor-install.bat )
   - ps: |
