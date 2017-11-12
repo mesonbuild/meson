@@ -1052,10 +1052,10 @@ class Generator:
         for rule in outputs:
             if not isinstance(rule, str):
                 raise InvalidArguments('"output" may only contain strings.')
-            if '@BASENAME@' not in rule and '@PLAINNAME@' not in rule:
-                raise InvalidArguments('Every element of "output" must contain @BASENAME@ or @PLAINNAME@.')
-            if '/' in rule or '\\' in rule:
-                raise InvalidArguments('"outputs" must not contain a directory separator.')
+            if '@BASENAME@' not in rule and '@PLAINNAME@' not in rule and '@ROOTNAME@' not in rule:
+                raise InvalidArguments('Every element of "output" must contain @BASENAME@, @PLAINNAME@ or @ROOTNAME@.')
+            if '..' in path_norm_split(rule):
+                raise InvalidArguments('Output file path name must not contain a .. component.')
         if len(outputs) > 1:
             for o in outputs:
                 if '@OUTPUT@' in o:
@@ -1077,19 +1077,22 @@ class Generator:
     def get_base_outnames(self, inname):
         plainname = os.path.split(inname)[1]
         basename = os.path.splitext(plainname)[0]
-        return [x.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname) for x in self.outputs]
+        rootname = os.path.splitext(inname)[0]
+        return [x.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname).replace('@ROOTNAME@', rootname) for x in self.outputs]
 
     def get_dep_outname(self, inname):
         if self.depfile is None:
             raise InvalidArguments('Tried to get dep name for rule that does not have dependency file defined.')
         plainname = os.path.split(inname)[1]
         basename = os.path.splitext(plainname)[0]
-        return self.depfile.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname)
+        rootname = os.path.splitext(inname)[0]
+        return self.depfile.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname).replace('@ROOTNAME@', rootname)
 
     def get_arglist(self, inname):
         plainname = os.path.split(inname)[1]
         basename = os.path.splitext(plainname)[0]
-        return [x.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname) for x in self.arglist]
+        rootname = os.path.splitext(inname)[0]
+        return [x.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname).replace('@ROOTNAME@', rootname) for x in self.arglist]
 
     def process_files(self, name, files, state, extra_args=[]):
         output = GeneratedList(self, extra_args=extra_args)
