@@ -15,6 +15,7 @@
 import copy, os, re
 from collections import OrderedDict
 import itertools
+import pathlib
 
 from . import environment
 from . import dependencies
@@ -22,7 +23,6 @@ from . import mlog
 from .mesonlib import File, MesonException, listify, extract_as_list
 from .mesonlib import typeslistify, stringlistify, classify_unity_sources
 from .mesonlib import get_filenames_templates_dict, substitute_values
-from .mesonlib import path_norm_split
 from .environment import for_windows, for_darwin, for_cygwin
 from .compilers import is_object, clike_langs, sort_clike, lang_suffixes
 
@@ -1054,7 +1054,7 @@ class Generator:
                 raise InvalidArguments('"output" may only contain strings.')
             if '@BASENAME@' not in rule and '@PLAINNAME@' not in rule and '@ROOTNAME@' not in rule:
                 raise InvalidArguments('Every element of "output" must contain @BASENAME@, @PLAINNAME@ or @ROOTNAME@.')
-            if '..' in path_norm_split(rule):
+            if '..' in pathlib.PurePath(rule).parts:
                 raise InvalidArguments('Output file path name must not contain a .. component.')
         if len(outputs) > 1:
             for o in outputs:
@@ -1591,7 +1591,7 @@ class CustomTarget(Target):
                 raise InvalidArguments('Output argument not a string.')
             if os.path.isabs(i):
                 raise InvalidArguments('Output file path name must not be an absolute path.')
-            if '..' in path_norm_split(i):
+            if '..' in pathlib.PurePath(i).parts:
                 raise InvalidArguments('Output file path name must not contain a .. component.')
             if '@INPUT@' in i or '@INPUT0@' in i:
                 m = 'Output cannot contain @INPUT@ or @INPUT0@, did you ' \

@@ -33,6 +33,7 @@ from .modules import ModuleReturnValue
 import os, sys, shutil, uuid
 import re, shlex
 from collections import namedtuple
+import pathlib
 
 import importlib
 
@@ -2619,7 +2620,7 @@ to directly access options of other subprojects.''')
             output = outputs[0]
         if os.path.isabs(output):
             raise InterpreterException('Output file path name must not be an absolute path.')
-        if '..' in mesonlib.path_norm_split(output):
+        if '..' in pathlib.PurePath(output).parts:
             raise InterpreterException('Output file path name must not contain a .. component.')
         (ofile_path, ofile_fname) = os.path.split(os.path.join(self.subdir, output))
         ofile_abs = os.path.join(self.environment.build_dir, ofile_path, ofile_fname)
