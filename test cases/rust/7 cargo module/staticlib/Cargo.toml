@@ -1,0 +1,9 @@
+[package]
+name = "mesonstatic"
+version = "0.1.0"
+authors = ["Nirbheek Chauhan <nirbheek@centricular.com>"]
+
+[dependencies]
+
+[lib]
+crate-type = ['staticlib']

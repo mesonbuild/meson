@@ -661,6 +661,8 @@ def expand_arguments(args):
             return None
     return expended_args
 
+Popen_safe_errors = (FileNotFoundError, PermissionError, subprocess.CalledProcessError)
+
 def Popen_safe(args, write=None, stderr=subprocess.PIPE, **kwargs):
     if sys.version_info < (3, 6) or not sys.stdout.encoding:
         return Popen_safe_legacy(args, write=write, stderr=stderr, **kwargs)

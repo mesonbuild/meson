@@ -1,0 +1,5 @@
+?gcc:usr/lib/libmesonstatic.a
+?gcc:usr/lib/libmesonbothlib.a
+?msvc:usr/lib/mesonstatic.lib
+?msvc:usr/lib/mesonbothlib.lib
+usr/bin/mesonbin?exe
