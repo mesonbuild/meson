@@ -623,8 +623,8 @@ def iter_regexin_iter(regexiter, initer):
 
 def _substitute_values_check_errors(command, values):
     # Error checking
-    inregex = ('@INPUT([0-9]+)?@', '@PLAINNAME@', '@BASENAME@')
-    outregex = ('@OUTPUT([0-9]+)?@', '@OUTDIR@')
+    inregex = ('@INPUT([0-9]+)?@', '@PLAINNAME@', '@BASENAME@', '@ROOTNAME@')
+    outregex = ('@OUTPUT([0-9]+)?@',)
     if '@INPUT@' not in values:
         # Error out if any input-derived templates are present in the command
         match = iter_regexin_iter(inregex, command)
@@ -633,7 +633,7 @@ def _substitute_values_check_errors(command, values):
             raise MesonException(m.format(match))
     else:
         if len(values['@INPUT@']) > 1:
-            # Error out if @PLAINNAME@ or @BASENAME@ is present in the command
+            # Error out if @PLAINNAME@, @BASENAME@ or @ROOTNAME@ is present in the command
             match = iter_regexin_iter(inregex[1:], command)
             if match:
                 raise MesonException('Command cannot have {!r} when there is '
@@ -723,6 +723,7 @@ def get_filenames_templates_dict(inputs, outputs):
 
     @PLAINNAME@ - the filename of the input file
     @BASENAME@ - the filename of the input file with the extension removed
+    @ROOTNAME@ - the full path name of the input file with the extension removed
 
     If there is more than one input file, the following keys are also created:
 
@@ -744,6 +745,7 @@ def get_filenames_templates_dict(inputs, outputs):
             # Just one value, substitute @PLAINNAME@ and @BASENAME@
             values['@PLAINNAME@'] = plain = os.path.split(inputs[0])[1]
             values['@BASENAME@'] = os.path.splitext(plain)[0]
+            values['@ROOTNAME@'] = os.path.splitext(inputs[0])[0]
     if outputs:
         # Gather values derived from the outputs, similar to above.
         values['@OUTPUT@'] = outputs
