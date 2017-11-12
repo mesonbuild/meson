@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import copy, os, re
+from pathlib import PurePath
 from collections import OrderedDict
 import itertools
 
@@ -1517,6 +1518,8 @@ class CustomTarget(Target):
         self.extra_depends = []
         self.depend_files = [] # Files that this target depends on but are not on the command line.
         self.depfile = None
+        self.envvars = {}
+        self.ninja_pool = None
         self.process_kwargs(kwargs)
         self.extra_files = []
         # Whether to use absolute paths for all files on the commandline
@@ -1583,10 +1586,13 @@ class CustomTarget(Target):
         inputs = get_sources_string_names(self.sources)
         values = get_filenames_templates_dict(inputs, [])
         for i in self.outputs:
-            if not(isinstance(i, str)):
+            if not isinstance(i, str):
                 raise InvalidArguments('Output argument not a string.')
-            if '/' in i:
-                raise InvalidArguments('Output must not contain a path segment.')
+            ipath = PurePath(i)
+            if ipath.is_absolute():
+                raise InvalidArguments('Output must not be an absolute path')
+            if '..' in ipath.parts:
+                raise InvalidArguments('Output path must not contain ".."')
             if '@INPUT@' in i or '@INPUT0@' in i:
                 m = 'Output cannot contain @INPUT@ or @INPUT0@, did you ' \
                     'mean @PLAINNAME@ or @BASENAME@?'
@@ -1607,8 +1613,11 @@ class CustomTarget(Target):
             depfile = kwargs['depfile']
             if not isinstance(depfile, str):
                 raise InvalidArguments('Depfile must be a string.')
-            if os.path.split(depfile)[1] != depfile:
-                raise InvalidArguments('Depfile must be a plain filename without a subdirectory.')
+            deppath = PurePath(depfile)
+            if deppath.is_absolute():
+                raise InvalidArguments('Depfile must not be an absolute path')
+            if '..' in deppath.parts:
+                raise InvalidArguments('Depfile must not contain ".."')
             self.depfile = depfile
         self.command = self.flatten_command(kwargs['command'])
         if self.capture:

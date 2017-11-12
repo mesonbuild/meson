@@ -1,0 +1,6 @@
+[package]
+name = "mesonbin"
+version = "0.1.0"
+authors = ["Nirbheek Chauhan <nirbheek@centricular.com>"]
+
+[dependencies]

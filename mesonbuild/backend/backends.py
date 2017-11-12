@@ -240,7 +240,7 @@ class Backend:
     def serialize_executable(self, exe, cmd_args, workdir, env={},
                              capture=None):
         import hashlib
-        # Can't just use exe.name here; it will likely be run more than once
+        # Generate a good scratch file name
         if isinstance(exe, (dependencies.ExternalProgram,
                             build.BuildTarget, build.CustomTarget)):
             basename = exe.name
