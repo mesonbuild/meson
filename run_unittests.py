@@ -221,7 +221,7 @@ class InternalTests(unittest.TestCase):
         outputs = []
         ret = dictfunc(inputs, outputs)
         d = {'@INPUT@': inputs, '@INPUT0@': inputs[0],
-             '@PLAINNAME@': 'foo.c.in', '@BASENAME@': 'foo.c'}
+             '@PLAINNAME@': 'foo.c.in', '@BASENAME@': 'foo.c', '@ROOTNAME@': "bar/foo.c"}
         # Check dictionary
         self.assertEqual(ret, d)
         # Check substitutions
@@ -235,6 +235,9 @@ class InternalTests(unittest.TestCase):
         cmd = ['@INPUT@', '@BASENAME@.hah', 'strings']
         self.assertEqual(substfunc(cmd, d),
                          inputs + [d['@BASENAME@'] + '.hah'] + cmd[2:])
+        cmd = ['@INPUT@', '@ROOTNAME@.bar', 'strings']
+        self.assertEqual(substfunc(cmd, d),
+                         inputs + [d['@ROOTNAME@'] + '.bar'] + cmd[2:])
         cmd = ['@OUTPUT@']
         self.assertRaises(ME, substfunc, cmd, d)
 
@@ -243,7 +246,7 @@ class InternalTests(unittest.TestCase):
         outputs = ['out.c']
         ret = dictfunc(inputs, outputs)
         d = {'@INPUT@': inputs, '@INPUT0@': inputs[0],
-             '@PLAINNAME@': 'foo.c.in', '@BASENAME@': 'foo.c',
+             '@PLAINNAME@': 'foo.c.in', '@BASENAME@': 'foo.c', '@ROOTNAME@': 'bar/foo.c',
              '@OUTPUT@': outputs, '@OUTPUT0@': outputs[0]}
         # Check dictionary
         self.assertEqual(ret, d)
@@ -259,12 +262,15 @@ class InternalTests(unittest.TestCase):
         cmd = ['@INPUT@', '@BASENAME@.hah', 'strings']
         self.assertEqual(substfunc(cmd, d),
                          inputs + [d['@BASENAME@'] + '.hah'] + cmd[2:])
+        cmd = ['@INPUT@', '@ROOTNAME@.bar', 'strings']
+        self.assertEqual(substfunc(cmd, d),
+                         inputs + [d['@ROOTNAME@'] + '.bar'] + cmd[2:])
 
         # One input, one output with a subdir
         outputs = ['dir/out.c']
         ret = dictfunc(inputs, outputs)
         d = {'@INPUT@': inputs, '@INPUT0@': inputs[0],
-             '@PLAINNAME@': 'foo.c.in', '@BASENAME@': 'foo.c',
+             '@PLAINNAME@': 'foo.c.in', '@BASENAME@': 'foo.c', '@ROOTNAME@': 'bar/foo.c',
              '@OUTPUT@': outputs, '@OUTPUT0@': outputs[0]}
         # Check dictionary
         self.assertEqual(ret, d)
@@ -297,6 +303,8 @@ class InternalTests(unittest.TestCase):
         cmd = ['@PLAINNAME@']
         self.assertRaises(ME, substfunc, cmd, d)
         cmd = ['@BASENAME@']
+        self.assertRaises(ME, substfunc, cmd, d)
+        cmd = ['@ROOTNAME@']
         self.assertRaises(ME, substfunc, cmd, d)
         # No outputs
         cmd = ['@OUTPUT@']

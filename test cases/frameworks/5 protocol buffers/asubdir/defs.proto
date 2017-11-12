@@ -1,3 +1,0 @@
-message Dummy {
-  required string text = 1;
-}
