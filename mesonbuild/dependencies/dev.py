@@ -173,9 +173,9 @@ class LLVMDependency(ExternalDependency):
         # for users who want the patch version.
         self.version = out.strip().rstrip('svn')
 
-        p, out = Popen_safe([self.llvmconfig, '--components'])[:2]
+        p, out, err = Popen_safe([self.llvmconfig, '--components'])
         if p.returncode != 0:
-            raise DependencyException('Could not generate modules for LLVM.')
+            raise DependencyException('Could not generate modules for LLVM:\n' + err)
         self.provided_modules = shlex.split(out)
 
         modules = stringlistify(extract_as_list(kwargs, 'modules'))
@@ -183,9 +183,9 @@ class LLVMDependency(ExternalDependency):
         opt_modules = stringlistify(extract_as_list(kwargs, 'optional_modules'))
         self.check_components(opt_modules, required=False)
 
-        p, out = Popen_safe([self.llvmconfig, '--cppflags'])[:2]
+        p, out, err = Popen_safe([self.llvmconfig, '--cppflags'])
         if p.returncode != 0:
-            raise DependencyException('Could not generate includedir for LLVM.')
+            raise DependencyException('Could not generate includedir for LLVM:\n' + err)
         cargs = mesonlib.OrderedSet(shlex.split(out))
         self.compile_args = list(cargs.difference(self.__cpp_blacklist))
 
@@ -198,10 +198,10 @@ class LLVMDependency(ExternalDependency):
     def _set_new_link_args(self):
         """How to set linker args for LLVM versions >= 3.9"""
         link_args = ['--link-static', '--system-libs'] if self.static else ['--link-shared']
-        p, out = Popen_safe(
-            [self.llvmconfig, '--libs', '--ldflags'] + link_args + list(self.required_modules))[:2]
+        p, out, err = Popen_safe(
+            [self.llvmconfig, '--libs', '--ldflags'] + link_args + list(self.required_modules))
         if p.returncode != 0:
-            raise DependencyException('Could not generate libs for LLVM.')
+            raise DependencyException('Could not generate libs for LLVM:\n' + err)
         self.link_args = shlex.split(out)
 
     def _set_old_link_args(self):
@@ -213,19 +213,19 @@ class LLVMDependency(ExternalDependency):
         of course we do.
         """
         if self.static:
-            p, out = Popen_safe(
-                [self.llvmconfig, '--libs', '--ldflags', '--system-libs'] + list(self.required_modules))[:2]
+            p, out, err = Popen_safe(
+                [self.llvmconfig, '--libs', '--ldflags', '--system-libs'] + list(self.required_modules))
             if p.returncode != 0:
-                raise DependencyException('Could not generate libs for LLVM.')
+                raise DependencyException('Could not generate libs for LLVM:\n' + err)
             self.link_args = shlex.split(out)
         else:
             # llvm-config will provide arguments for static linking, so we get
             # to figure out for ourselves what to link with. We'll do that by
             # checking in the directory provided by --libdir for a library
             # called libLLVM-<ver>.(so|dylib|dll)
-            p, out = Popen_safe([self.llvmconfig, '--libdir'])[:2]
+            p, out, err = Popen_safe([self.llvmconfig, '--libdir'])
             if p.returncode != 0:
-                raise DependencyException('Could not generate libs for LLVM.')
+                raise DependencyException('Could not generate libs for LLVM:\n' + err)
             libdir = out.strip()
 
             expected_name = 'libLLVM-{}'.format(self.version)
