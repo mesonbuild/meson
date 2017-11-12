@@ -1519,6 +1519,7 @@ class CustomTarget(Target):
         self.depend_files = [] # Files that this target depends on but are not on the command line.
         self.depfile = None
         self.envvars = {}
+        self.ninja_pool = None
         self.process_kwargs(kwargs)
         self.extra_files = []
         # Whether to use absolute paths for all files on the commandline
