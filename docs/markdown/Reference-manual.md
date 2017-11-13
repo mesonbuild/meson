@@ -282,8 +282,8 @@ system) with the given name with `pkg-config` if possible and with
 [library-specific fallback detection logic](Dependencies.md)
 otherwise. This function supports the following keyword arguments:
 
-- `default_options` *(added 0.37.0)* an array of option values that
-  override those set in the project's `default_options` invocation
+- `default_options` *(added 0.37.0)* an array of default option values
+  that override those set in the subproject's `meson_options.txt`
   (like `default_options` in [`project()`](#project), they only have
   effect when Meson is run for the first time, and command line
   arguments override any default options in build files)
@@ -1046,11 +1046,11 @@ example a subproject called `foo` must be located in
 `${MESON_SOURCE_ROOT}/subprojects/foo`. Supports the following keyword
 arguments:
 
- - `default_options`, *(added 0.37.0)* an array of default option
-   values that override those set in the project's `default_options`
-   invocation (like `default_options` in `project`, they only have
-   effect when Meson is run for the first time, and command line
-   arguments override any default options in build files)
+ - `default_options` *(added 0.37.0)* an array of default option values
+   that override those set in the subproject's `meson_options.txt`
+   (like `default_options` in `project`, they only have effect when
+   Meson is run for the first time, and command line arguments override
+   any default options in build files)
  - `version` keyword argument that works just like the one in
    `dependency`. It specifies what version the subproject should be,
    as an example `>=1.0.1`
