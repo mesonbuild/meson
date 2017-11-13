@@ -101,17 +101,25 @@ class QtBaseModule:
             qrc_deps = []
             for i in rcc_files:
                 qrc_deps += self.parse_qrc(state, i)
+            # custom output name set? -> one output file, multiple otherwise
             if len(args) > 0:
                 name = args[0]
+                rcc_kwargs = {'input': rcc_files,
+                              'output': name + '.cpp',
+                              'command': [self.rcc, '-name', name, '-o', '@OUTPUT@', '@INPUT@'],
+                              'depend_files': qrc_deps}
+                res_target = build.CustomTarget(name, state.subdir, state.subproject, rcc_kwargs)
+                sources.append(res_target)
             else:
-                basename = os.path.split(rcc_files[0])[1]
-                name = 'qt' + str(self.qt_version) + '-' + basename.replace('.', '_')
-            rcc_kwargs = {'input': rcc_files,
-                          'output': name + '.cpp',
-                          'command': [self.rcc, '-o', '@OUTPUT@', '@INPUT@'],
-                          'depend_files': qrc_deps}
-            res_target = build.CustomTarget(name, state.subdir, state.subproject, rcc_kwargs)
-            sources.append(res_target)
+                for rcc_file in rcc_files:
+                    basename = os.path.split(rcc_file)[1]
+                    name = 'qt' + str(self.qt_version) + '-' + basename.replace('.', '_')
+                    rcc_kwargs = {'input': rcc_file,
+                                  'output': name + '.cpp',
+                                  'command': [self.rcc, '-name', '@BASENAME@', '-o', '@OUTPUT@', '@INPUT@'],
+                                  'depend_files': qrc_deps}
+                    res_target = build.CustomTarget(name, state.subdir, state.subproject, rcc_kwargs)
+                    sources.append(res_target)
         if len(ui_files) > 0:
             if not self.uic.found():
                 raise MesonException(err_msg.format('UIC', 'uic-qt' + self.qt_version))
