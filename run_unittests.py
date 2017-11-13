@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python3
 # Copyright 2016-2017 The Meson development team
 
@@ -490,7 +491,10 @@ class BasePlatformTests(unittest.TestCase):
             print(f.read())
 
     def tearDown(self):
-        windows_proof_rmtree(self.builddir)
+        try:
+            windows_proof_rmtree(self.builddir)
+        except FileNotFoundError:
+            pass
         os.environ = self.orig_env
         super().tearDown()
 
@@ -738,6 +742,49 @@ class AllPlatformTests(BasePlatformTests):
         # libdir must be inside prefix even when set via mesonconf
         self.init(testdir)
         self.assertRaises(subprocess.CalledProcessError, self.setconf, '-Dlibdir=/opt', False)
+
+    def test_prefix_dependent_defaults(self):
+        '''
+        Tests that configured directory paths are set to prefix dependent
+        defaults.
+        '''
+        testdir = os.path.join(self.common_test_dir, '1 trivial')
+        expected = {
+            '/opt': {'prefix': '/opt',
+                     'bindir': 'bin', 'datadir': 'share', 'includedir': 'include',
+                     'infodir': 'share/info',
+                     'libexecdir': 'libexec', 'localedir': 'share/locale',
+                     'localstatedir': 'var', 'mandir': 'share/man',
+                     'sbindir': 'sbin', 'sharedstatedir': 'com',
+                     'sysconfdir': 'etc'},
+            '/usr': {'prefix': '/usr',
+                     'bindir': 'bin', 'datadir': 'share', 'includedir': 'include',
+                     'infodir': 'share/info',
+                     'libexecdir': 'libexec', 'localedir': 'share/locale',
+                     'localstatedir': '/var', 'mandir': 'share/man',
+                     'sbindir': 'sbin', 'sharedstatedir': '/var/lib',
+                     'sysconfdir': '/etc'},
+            '/usr/local': {'prefix': '/usr/local',
+                           'bindir': 'bin', 'datadir': 'share',
+                           'includedir': 'include', 'infodir': 'share/info',
+                           'libexecdir': 'libexec',
+                           'localedir': 'share/locale',
+                           'localstatedir': '/var/local', 'mandir': 'share/man',
+                           'sbindir': 'sbin', 'sharedstatedir': '/var/local/lib',
+                           'sysconfdir': 'etc'},
+            # N.B. We don't check 'libdir' as it's platform dependent, see
+            # default_libdir():
+        }
+        for prefix in expected:
+            args = ['--prefix', prefix]
+            self.init(testdir, args, default_args=False)
+            opts = self.introspect('--buildoptions')
+            for opt in opts:
+                name = opt['name']
+                value = opt['value']
+                if name in expected[prefix]:
+                    self.assertEqual(value, expected[prefix][name])
+            self.wipe()
 
     def test_static_library_overwrite(self):
         '''
