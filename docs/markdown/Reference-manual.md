@@ -1556,6 +1556,11 @@ page](Configuration.md) It has three methods:
   value has not been set returns `default_value` if it is defined
   *(added 0.38.0)* and errors out if not
 
+- `get_unquoted(varname, default_value)` returns the value of `varname`
+  but without surrounding double quotes (`"`). If the value has not been
+  set returns `default_value` if it is defined and errors out if not.
+  Available since 0.43.0
+
 - `has(varname)`, returns `true` if the specified variable is set
 
 - `merge_from(other)` takes as argument a different configuration data
