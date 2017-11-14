@@ -19,10 +19,12 @@ import shlex
 import subprocess
 import re, json
 import tempfile
+import textwrap
 import os
 import shutil
 import sys
 import unittest
+from unittest import mock
 from configparser import ConfigParser
 from glob import glob
 from pathlib import PurePath
@@ -2222,6 +2224,50 @@ endian = 'little'
         testdir = os.path.join(self.unit_test_dir, '13 reconfigure')
         self.init(testdir, ['-Db_lto=true'], default_args=False)
         self.build('reconfigure')
+
+    def test_cross_file_system_paths(self):
+        testdir = os.path.join(self.common_test_dir, '1 trivial')
+        cross_content = textwrap.dedent("""\
+            [binaries]
+            c = '/usr/bin/cc'
+            ar = '/usr/bin/ar'
+            strip = '/usr/bin/ar'
+
+            [properties]
+
+            [host_machine]
+            system = 'linux'
+            cpu_family = 'x86'
+            cpu = 'i686'
+            endian = 'little'
+            """)
+
+        with tempfile.TemporaryDirectory() as d:
+            dir_ = os.path.join(d, 'meson', 'cross')
+            os.makedirs(dir_)
+            with tempfile.NamedTemporaryFile('w', dir=dir_, delete=False) as f:
+                f.write(cross_content)
+            name = os.path.basename(f.name)
+
+            with mock.patch.dict(os.environ, {'XDG_DATA_HOME': d}):
+                self.init(testdir, ['--cross-file=' + name], inprocess=True)
+                self.wipe()
+
+            with mock.patch.dict(os.environ, {'XDG_DATA_DIRS': d}):
+                os.environ.pop('XDG_DATA_HOME', None)
+                self.init(testdir, ['--cross-file=' + name], inprocess=True)
+                self.wipe()
+
+        with tempfile.TemporaryDirectory() as d:
+            dir_ = os.path.join(d, '.local', 'share', 'meson', 'cross')
+            os.makedirs(dir_)
+            with tempfile.NamedTemporaryFile('w', dir=dir_, delete=False) as f:
+                f.write(cross_content)
+            name = os.path.basename(f.name)
+
+            with mock.patch('mesonbuild.coredata.os.path.expanduser', lambda x: x.replace('~', d)):
+                self.init(testdir, ['--cross-file=' + name], inprocess=True)
+                self.wipe()
 
 
 class LinuxArmCrossCompileTests(BasePlatformTests):
