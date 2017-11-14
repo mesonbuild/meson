@@ -833,7 +833,9 @@ class Compiler:
         paths = ':'.join([os.path.join('$ORIGIN', p) for p in rel_rpaths])
         # Build_rpath is used as-is (it is usually absolute).
         if build_rpath != '':
-            paths += ':' + build_rpath
+            if paths != '':
+                paths += ':'
+            paths += build_rpath
         if len(paths) < len(install_rpath):
             padding = 'X' * (len(install_rpath) - len(paths))
             if not paths:
