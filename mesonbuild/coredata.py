@@ -14,6 +14,7 @@
 # limitations under the License.
 
 import pickle, os, uuid
+import sys
 from pathlib import PurePath
 from collections import OrderedDict
 from .mesonlib import MesonException, commonpath
@@ -172,10 +173,7 @@ class CoreData:
         self.external_preprocess_args = {} # CPPFLAGS only
         self.external_args = {} # CPPFLAGS + CFLAGS
         self.external_link_args = {} # CFLAGS + LDFLAGS (with MSVC: only LDFLAGS)
-        if options.cross_file is not None:
-            self.cross_file = os.path.join(os.getcwd(), options.cross_file)
-        else:
-            self.cross_file = None
+        self.cross_file = self.__load_cross_file(options.cross_file)
         self.wrap_mode = options.wrap_mode
         self.compilers = OrderedDict()
         self.cross_compilers = OrderedDict()
@@ -183,6 +181,46 @@ class CoreData:
         self.modules = {}
         # Only to print a warning if it changes between Meson invocations.
         self.pkgconf_envvar = os.environ.get('PKG_CONFIG_PATH', '')
+
+    @staticmethod
+    def __load_cross_file(filename):
+        """Try to load the cross file.
+
+        If the filename is None return None. If the filename is an absolute
+        (after resolving variables and ~), return that absolute path. Next,
+        check if the file is relative to the current source dir. If the path
+        still isn't resolved do the following:
+            Linux + BSD:
+                - $XDG_DATA_HOME/meson/cross (or ~/.local/share/meson/cross if
+                  undefined)
+                - $XDG_DATA_DIRS/meson/cross (or
+                  /usr/local/share/meson/cross:/usr/share/meson/cross if undefined)
+                - Error
+            *:
+                - Error
+        BSD follows the Linux path and will honor XDG_* if set. This simplifies
+        the implementation somewhat, especially since most BSD users wont set
+        those environment variables.
+        """
+        if filename is None:
+            return None
+        filename = os.path.expanduser(os.path.expandvars(filename))
+        if os.path.isabs(filename):
+            return filename
+        path_to_try = os.path.abspath(filename)
+        if os.path.exists(path_to_try):
+            return path_to_try
+        if sys.platform == 'linux' or 'bsd' in sys.platform.lower():
+            paths = [
+                os.environ.get('XDG_DATA_HOME', os.path.expanduser('~/.local/share')),
+            ] + os.environ.get('XDG_DATA_DIRS', '/usr/local/share:/usr/share').split(':')
+            for path in paths:
+                path_to_try = os.path.join(path, 'meson', 'cross', filename)
+                if os.path.exists(path_to_try):
+                    return path_to_try
+            raise MesonException('Cannot find specified cross file: ' + filename)
+
+        raise MesonException('Cannot find specified cross file: ' + filename)
 
     def sanitize_prefix(self, prefix):
         if not os.path.isabs(prefix):

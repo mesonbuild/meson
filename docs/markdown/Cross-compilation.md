@@ -257,3 +257,29 @@ then you can access that using the `meson` object like this:
 myvar = meson.get_cross_property('somekey')
 # myvar now has the value 'somevalue'
 ```
+
+## Cross file locations
+
+As of version 0.44.0 meson supports loading cross files from system locations
+on Linux and the BSDs. This will be $XDG_DATA_DIRS/meson/cross, or if
+XDG_DATA_DIRS is undefined, then /usr/local/share/meson/cross and
+/usr/share/meson/cross will be tried in that order, for system wide cross
+files. User local files can be put in $XDG_DATA_HOME/meson/cross, or
+~/.local/share/meson/cross if that is undefined.
+
+The order of locations tried is as follows:
+ - A file relative to the local dir
+ - The user local location
+ - The system wide locations in order
+
+Linux and BSD distributions are encouraged to ship cross files either with
+their cross compiler toolchain packages or as a standalone package, and put
+them in one of the system paths referenced above.
+
+These files can be loaded automatically without adding a path to the cross
+file. For example, if a ~/.local/share/meson/cross contains a file called x86-linux,
+then the following command would start a cross build using that cross files:
+
+```sh
+meson builddir/ --cross-file x86-linux
+```
