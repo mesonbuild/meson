@@ -371,7 +371,7 @@ class PkgConfigDependency(ExternalDependency):
 
 
 class ExternalProgram:
-    windows_exts = ('exe', 'msc', 'com', 'bat')
+    windows_exts = ('exe', 'msc', 'com', 'bat', 'cmd')
 
     def __init__(self, name, command=None, silent=False, search_dir=None):
         self.name = name
