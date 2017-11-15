@@ -267,7 +267,13 @@ class TestHarness:
                 if is_windows():
                     subprocess.call(['taskkill', '/F', '/T', '/PID', str(p.pid)])
                 else:
-                    os.killpg(os.getpgid(p.pid), signal.SIGKILL)
+                    try:
+                        os.killpg(os.getpgid(p.pid), signal.SIGKILL)
+                    except ProcessLookupError:
+                        # Sometimes (e.g. with Wine) this happens.
+                        # There's nothing we can do (maybe the process
+                        # already died) so carry on.
+                        pass
                 (stdo, stde) = p.communicate()
             endtime = time.time()
             duration = endtime - starttime
