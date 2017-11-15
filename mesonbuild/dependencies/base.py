@@ -16,9 +16,10 @@
 # Custom logic for several other packages are in separate files.
 
 import os
-import shutil
-import stat
 import sys
+import stat
+import shlex
+import shutil
 from enum import Enum
 
 from .. import mlog
@@ -258,8 +259,10 @@ class PkgConfigDependency(ExternalDependency):
         return s.format(self.__class__.__name__, self.name, self.is_found,
                         self.version_reqs)
 
-    def _call_pkgbin(self, args):
-        p, out = Popen_safe([self.pkgbin] + args, env=os.environ)[0:2]
+    def _call_pkgbin(self, args, env=None):
+        if not env:
+            env = os.environ
+        p, out = Popen_safe([self.pkgbin] + args, env=env)[0:2]
         return p.returncode, out.strip()
 
     def _set_cargs(self):
@@ -267,19 +270,39 @@ class PkgConfigDependency(ExternalDependency):
         if ret != 0:
             raise DependencyException('Could not generate cargs for %s:\n\n%s' %
                                       (self.name, out))
-        self.compile_args = out.split()
+        self.compile_args = shlex.split(out)
 
     def _set_libs(self):
+        env = None
         libcmd = [self.name, '--libs']
         if self.static:
             libcmd.append('--static')
-        ret, out = self._call_pkgbin(libcmd)
+            # Force pkg-config to output -L fields even if they are system
+            # paths so we can do manual searching with cc.find_library() later.
+            env = os.environ.copy()
+            env['PKG_CONFIG_ALLOW_SYSTEM_LIBS'] = '1'
+        ret, out = self._call_pkgbin(libcmd, env=env)
         if ret != 0:
             raise DependencyException('Could not generate libs for %s:\n\n%s' %
                                       (self.name, out))
         self.link_args = []
-        for lib in out.split():
-            if lib.endswith(".la"):
+        libpaths = []
+        for lib in shlex.split(out):
+            # If we want to use only static libraries, we have to look for the
+            # file ourselves instead of depending on the compiler to find it
+            # with -lfoo or foo.lib. However, we can only do this if we already
+            # have some library paths gathered.
+            if self.static:
+                if lib.startswith('-L'):
+                    libpaths.append(lib[2:])
+                    continue
+                elif lib.startswith('-l') and libpaths:
+                    args = self.compiler.find_library(lib[2:], self.env, libpaths, libtype='static')
+                    if not args or len(args) < 1:
+                        raise DependencyException('Static library not found for {!r}'
+                                                  ''.format(lib[2:]))
+                    lib = args[0]
+            elif lib.endswith(".la"):
                 shared_libname = self.extract_libtool_shlib(lib)
                 shared_lib = os.path.join(os.path.dirname(lib), shared_libname)
                 if not os.path.exists(shared_lib):

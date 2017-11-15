@@ -219,46 +219,6 @@ def detect_system():
         return 'cygwin'
     return system
 
-
-def for_windows(is_cross, env):
-    """
-    Host machine is windows?
-
-    Note: 'host' is the machine on which compiled binaries will run
-    """
-    if not is_cross:
-        return mesonlib.is_windows()
-    elif env.cross_info.has_host():
-        return env.cross_info.config['host_machine']['system'] == 'windows'
-    return False
-
-
-def for_cygwin(is_cross, env):
-    """
-    Host machine is cygwin?
-
-    Note: 'host' is the machine on which compiled binaries will run
-    """
-    if not is_cross:
-        return mesonlib.is_cygwin()
-    elif env.cross_info.has_host():
-        return env.cross_info.config['host_machine']['system'] == 'cygwin'
-    return False
-
-
-def for_darwin(is_cross, env):
-    """
-    Host machine is Darwin (iOS/OS X)?
-
-    Note: 'host' is the machine on which compiled binaries will run
-    """
-    if not is_cross:
-        return mesonlib.is_osx()
-    elif env.cross_info.has_host():
-        return env.cross_info.config['host_machine']['system'] == 'darwin'
-    return False
-
-
 def search_version(text):
     # Usually of the type 4.1.4 but compiler output may contain
     # stuff like this:
@@ -550,9 +510,9 @@ class Environment:
                 cls = GnuCCompiler if lang == 'c' else GnuCPPCompiler
                 return cls(ccache + compiler, version, gtype, is_cross, exe_wrap, defines)
             if 'clang' in out:
-                if 'Apple' in out or for_darwin(want_cross, self):
+                if 'Apple' in out or mesonlib.for_darwin(want_cross, self):
                     cltype = CLANG_OSX
-                elif 'windows' in out or for_windows(want_cross, self):
+                elif 'windows' in out or mesonlib.for_windows(want_cross, self):
                     cltype = CLANG_WIN
                 else:
                     cltype = CLANG_STANDARD
