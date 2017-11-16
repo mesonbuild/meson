@@ -19,6 +19,7 @@ import stat
 import time
 import platform, subprocess, operator, os, shutil, re
 import collections
+from . import mlog
 
 from glob import glob
 
@@ -182,6 +183,64 @@ class File:
 
     def relative_name(self):
         return os.path.join(self.subdir, self.fname)
+
+def evaluate_subproject_info(path_from_source_root, subproject_dirname):
+    depth = 0
+    subproj_name = ''
+    segs = path_from_source_root.split(os.path.sep)
+    while segs and segs[0] == subproject_dirname:
+        depth += 1
+        subproj_name = segs[1]
+        segs = segs[2:]
+    return (depth, subproj_name)
+
+    # Check that the indicated file is within the same subproject
+    # as we currently are. This is to stop people doing
+    # nasty things like:
+    #
+    # f = files('../../master_src/file.c')
+    #
+    # Note that this is validated only when the file
+    # object is generated. The result can be used in a different
+    # subproject than it is defined in (due to e.g. a
+    # declare_dependency).
+def validate_within_subproject(subproject, subproject_dir, source_dir, subdir, fname):
+    norm = os.path.normpath(os.path.join(subdir, fname))
+    if os.path.isabs(norm):
+        if not norm.startswith(source_dir):
+            # Grabbing files outside the source tree is ok.
+            # This is for vendor stuff like:
+            #
+            # /opt/vendorsdk/src/file_with_license_restrictions.c
+            return
+        norm = os.path.relpath(norm, source_dir)
+        assert(not os.path.isabs(norm))
+    (num_sps, sproj_name) = evaluate_subproject_info(norm, subproject_dir)
+    plain_filename = os.path.split(norm)[-1]
+    if num_sps == 0:
+        if subproject == '':
+            return
+        raise Exception('Sandbox violation: Tried to grab file {} from a different subproject.'.format(plain_filename))
+    if num_sps > 1:
+        raise Exception('Sandbox violation: Tried to grab file {} from a nested subproject.'.format(plain_filename))
+    if sproj_name != subproject:
+        raise Exception('Sandbox violation: Tried to grab file {} from a different subproject.'.format(plain_filename))
+
+
+def source_strings_to_files(subproject, subproject_dir, source_dir, subdir, sources):
+    results = []
+    for s in listify(sources):
+        if s.__class__.__name__ in ("File", "GeneratedListHolder",
+                                    "CustomTargetHolder", "CustomTargetIndexHolder"):
+            pass
+        elif isinstance(s, str):
+            validate_within_subproject(subproject, subproject_dir, source_dir,  subdir, s)
+            s = File.from_source_file(source_dir, subdir, s)
+        else:
+            raise Exception('Source item is {!r} instead of '
+                            'string or File-type object'.format(s))
+        results.append(s)
+    return results
 
 def get_compiler_for_source(compilers, src):
     for comp in compilers:
@@ -834,3 +893,11 @@ class OrderedSet(collections.MutableSet):
 
     def difference(self, set_):
         return type(self)(e for e in self if e not in set_)
+
+def check_extension(file_list, expected_extensions, lineno, build_fname):
+    for fname in listify(file_list):
+        if '.' in str(fname):
+            ext = fname.split('.')[-1]
+            if ext not in expected_extensions:
+                mlog.warning('''{build_fname}:{lineno}, wrong file extension "{fname}", expecting one of {expected}'''.format(
+                    build_fname=build_fname, lineno=lineno, fname=fname, expected=expected_extensions))

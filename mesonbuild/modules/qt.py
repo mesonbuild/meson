@@ -19,7 +19,7 @@ from ..mesonlib import MesonException, Popen_safe, extract_as_list
 from ..dependencies import Qt4Dependency, Qt5Dependency
 import xml.etree.ElementTree as ET
 from . import ModuleReturnValue, get_include_args
-from ..interpreterbase import permittedKwargs
+from ..interpreterbase import check_extensions, permittedKwargs
 
 _QT_DEPS_LUT = {
     4: Qt4Dependency,
@@ -68,7 +68,7 @@ class QtBaseModule:
         self.tools_detected = True
 
     def parse_qrc(self, state, fname):
-        abspath = os.path.join(state.environment.source_dir, state.subdir, fname)
+        abspath = os.path.join(state.environment.source_dir, fname)
         relative_part = os.path.split(fname)[0]
         try:
             tree = ET.parse(abspath)
@@ -84,7 +84,14 @@ class QtBaseModule:
         except Exception:
             return []
 
-    @permittedKwargs({'moc_headers', 'moc_sources', 'moc_extra_arguments', 'include_directories', 'ui_files', 'qresources', 'method'})
+    @check_extensions({'moc_headers': ["hpp", "h", "H", "hh", "h++"],
+                       'ui_files': ["ui"],
+                       'moc_sources': ["cpp", "cxx", "cc", "C", "cp", "c++"],
+                       'qresources': ["qrc"]
+                       })
+    @permittedKwargs(
+        {'moc_headers', 'moc_sources', 'moc_extra_arguments', 'include_directories', 'ui_files', 'qresources',
+         'method'})
     def preprocess(self, state, args, kwargs):
         rcc_files, ui_files, moc_headers, moc_sources, moc_extra_arguments, sources, include_directories \
             = extract_as_list(kwargs, 'qresources', 'ui_files', 'moc_headers', 'moc_sources', 'moc_extra_arguments', 'sources', 'include_directories', pop = True)
