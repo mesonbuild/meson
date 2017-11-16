@@ -55,6 +55,15 @@ class PkgConfigModule(ExtensionModule):
             value = value.as_posix()
         return value.replace(' ', '\ ')
 
+    def _make_relative(self, prefix, subdir):
+        if isinstance(prefix, PurePath):
+            prefix = prefix.as_posix()
+        if isinstance(subdir, PurePath):
+            subdir = subdir.as_posix()
+        if subdir.startswith(prefix):
+            subdir = subdir.replace(prefix, '')
+        return subdir
+
     def generate_pkgconfig_file(self, state, libraries, subdirs, name, description,
                                 url, version, pcfile, pub_reqs, priv_reqs,
                                 conflicts, priv_libs, extra_cflags, variables):
@@ -98,7 +107,7 @@ class PkgConfigModule(ExtensionModule):
                         if install_dir is False:
                             continue
                         if isinstance(install_dir, str):
-                            yield '-L${prefix}/%s ' % self._escape(install_dir)
+                            yield '-L${prefix}/%s ' % self._escape(self._make_relative(prefix, install_dir))
                         else:  # install_dir is True
                             yield '-L${libdir}'
                         lname = self._get_lname(l, msg, pcfile)
