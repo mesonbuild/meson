@@ -1,0 +1,11 @@
+syntax = "proto2";
+package configure_file;
+import "messages/bits/dummy_enum.proto";
+
+message DummyRequest2 {
+    optional DummyEnum e = 1;
+}
+
+message DummyResponse2 {
+    optional DummyEnum e = 1;
+}

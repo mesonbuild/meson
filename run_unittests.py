@@ -222,7 +222,7 @@ class InternalTests(unittest.TestCase):
         outputs = []
         ret = dictfunc(inputs, outputs)
         d = {'@INPUT@': inputs, '@INPUT0@': inputs[0],
-             '@PLAINNAME@': 'foo.c.in', '@BASENAME@': 'foo.c'}
+             '@PLAINNAME@': 'foo.c.in', '@BASENAME@': 'foo.c', '@ROOTNAME@': "bar/foo.c"}
         # Check dictionary
         self.assertEqual(ret, d)
         # Check substitutions
@@ -236,6 +236,9 @@ class InternalTests(unittest.TestCase):
         cmd = ['@INPUT@', '@BASENAME@.hah', 'strings']
         self.assertEqual(substfunc(cmd, d),
                          inputs + [d['@BASENAME@'] + '.hah'] + cmd[2:])
+        cmd = ['@INPUT@', '@ROOTNAME@.bar', 'strings']
+        self.assertEqual(substfunc(cmd, d),
+                         inputs + [d['@ROOTNAME@'] + '.bar'] + cmd[2:])
         cmd = ['@OUTPUT@']
         self.assertRaises(ME, substfunc, cmd, d)
 
@@ -244,8 +247,8 @@ class InternalTests(unittest.TestCase):
         outputs = ['out.c']
         ret = dictfunc(inputs, outputs)
         d = {'@INPUT@': inputs, '@INPUT0@': inputs[0],
-             '@PLAINNAME@': 'foo.c.in', '@BASENAME@': 'foo.c',
-             '@OUTPUT@': outputs, '@OUTPUT0@': outputs[0], '@OUTDIR@': '.'}
+             '@PLAINNAME@': 'foo.c.in', '@BASENAME@': 'foo.c', '@ROOTNAME@': 'bar/foo.c',
+             '@OUTPUT@': outputs, '@OUTPUT0@': outputs[0]}
         # Check dictionary
         self.assertEqual(ret, d)
         # Check substitutions
@@ -260,13 +263,16 @@ class InternalTests(unittest.TestCase):
         cmd = ['@INPUT@', '@BASENAME@.hah', 'strings']
         self.assertEqual(substfunc(cmd, d),
                          inputs + [d['@BASENAME@'] + '.hah'] + cmd[2:])
+        cmd = ['@INPUT@', '@ROOTNAME@.bar', 'strings']
+        self.assertEqual(substfunc(cmd, d),
+                         inputs + [d['@ROOTNAME@'] + '.bar'] + cmd[2:])
 
         # One input, one output with a subdir
         outputs = ['dir/out.c']
         ret = dictfunc(inputs, outputs)
         d = {'@INPUT@': inputs, '@INPUT0@': inputs[0],
-             '@PLAINNAME@': 'foo.c.in', '@BASENAME@': 'foo.c',
-             '@OUTPUT@': outputs, '@OUTPUT0@': outputs[0], '@OUTDIR@': 'dir'}
+             '@PLAINNAME@': 'foo.c.in', '@BASENAME@': 'foo.c', '@ROOTNAME@': 'bar/foo.c',
+             '@OUTPUT@': outputs, '@OUTPUT0@': outputs[0]}
         # Check dictionary
         self.assertEqual(ret, d)
 
@@ -299,19 +305,19 @@ class InternalTests(unittest.TestCase):
         self.assertRaises(ME, substfunc, cmd, d)
         cmd = ['@BASENAME@']
         self.assertRaises(ME, substfunc, cmd, d)
+        cmd = ['@ROOTNAME@']
+        self.assertRaises(ME, substfunc, cmd, d)
         # No outputs
         cmd = ['@OUTPUT@']
         self.assertRaises(ME, substfunc, cmd, d)
         cmd = ['@OUTPUT0@']
-        self.assertRaises(ME, substfunc, cmd, d)
-        cmd = ['@OUTDIR@']
         self.assertRaises(ME, substfunc, cmd, d)
 
         # Two inputs, one output
         outputs = ['dir/out.c']
         ret = dictfunc(inputs, outputs)
         d = {'@INPUT@': inputs, '@INPUT0@': inputs[0], '@INPUT1@': inputs[1],
-             '@OUTPUT@': outputs, '@OUTPUT0@': outputs[0], '@OUTDIR@': 'dir'}
+             '@OUTPUT@': outputs, '@OUTPUT0@': outputs[0]}
         # Check dictionary
         self.assertEqual(ret, d)
         # Check substitutions
@@ -337,8 +343,7 @@ class InternalTests(unittest.TestCase):
         outputs = ['dir/out.c', 'dir/out2.c']
         ret = dictfunc(inputs, outputs)
         d = {'@INPUT@': inputs, '@INPUT0@': inputs[0], '@INPUT1@': inputs[1],
-             '@OUTPUT@': outputs, '@OUTPUT0@': outputs[0], '@OUTPUT1@': outputs[1],
-             '@OUTDIR@': 'dir'}
+             '@OUTPUT@': outputs, '@OUTPUT0@': outputs[0], '@OUTPUT1@': outputs[1]}
         # Check dictionary
         self.assertEqual(ret, d)
         # Check substitutions
@@ -348,8 +353,8 @@ class InternalTests(unittest.TestCase):
         self.assertEqual(substfunc(cmd, d), outputs + cmd[1:])
         cmd = ['@OUTPUT0@', '@OUTPUT1@', 'strings']
         self.assertEqual(substfunc(cmd, d), outputs + cmd[2:])
-        cmd = ['@OUTPUT0@.out', '@INPUT1@.ok', '@OUTDIR@']
-        self.assertEqual(substfunc(cmd, d), [outputs[0] + '.out', inputs[1] + '.ok', 'dir'])
+        cmd = ['@OUTPUT0@.out', '@INPUT1@.ok']
+        self.assertEqual(substfunc(cmd, d), [outputs[0] + '.out', inputs[1] + '.ok'])
         # Many inputs, can't use @INPUT@ like this
         cmd = ['@INPUT@.out', 'ordinary', 'strings']
         self.assertRaises(ME, substfunc, cmd, d)

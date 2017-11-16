@@ -109,3 +109,13 @@ configs = [
 foreach c : configs
     test('@0@'.format(c), file_contains_py, args: [ c, test_string ])
 endforeach
+
+# Generally you don't want to install version.h directly under /usr/local/include,
+# so we also test generating headers to a subdir of builddir
+conf_version = configuration_data()
+conf_version.set('version', '1.0.0')
+configure_file(input : 'include/prjdir/version.h.in',
+               output : 'prjdir/version.h',
+               configuration: conf_version)
+e5 = executable('prog5', 'prog5.c', include_directories: include_directories('include'))
+test('inctest5', e5)

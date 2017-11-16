@@ -1,0 +1,7 @@
+syntax = "proto2";
+package configure_file;
+
+enum DummyEnum {
+    DUMMY_OK = 1;
+    DUMMY_ERROR = 2;
+}

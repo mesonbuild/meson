@@ -1,0 +1,8 @@
+syntax = "proto2";
+package configure_file;
+option cc_generic_services = true;
+import "messages/dummy_messages.proto";
+
+service DummyService {
+    rpc DummyMethod (DummyRequest) returns (DummyResponse) {};
+}
