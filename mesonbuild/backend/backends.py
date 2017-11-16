@@ -738,9 +738,9 @@ class Backend:
                     deps.append(i.rel_to_builddir(self.build_to_src))
             else:
                 if absolute_paths:
-                    deps.append(os.path.join(self.environment.get_build_dir(), i))
+                    deps.append(os.path.join(self.environment.get_source_dir(), target.subdir, i))
                 else:
-                    deps.append(os.path.join(self.build_to_src, i))
+                    deps.append(os.path.join(self.build_to_src, target.subdir, i))
         return deps
 
     def eval_custom_target_command(self, target, absolute_outputs=False):
