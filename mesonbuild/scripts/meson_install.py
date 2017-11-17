@@ -87,6 +87,8 @@ def set_mode(path, mode):
 def restore_selinux_contexts():
     '''
     Restores the SELinux context for files in @selinux_updates
+
+    If $DESTDIR is set, do not warn if the call fails.
     '''
     try:
         subprocess.check_call(['selinuxenabled'])
@@ -98,7 +100,7 @@ def restore_selinux_contexts():
     with subprocess.Popen(['restorecon', '-F', '-f-', '-0'],
                           stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE) as proc:
         out, err = proc.communicate(input=b'\0'.join(os.fsencode(f) for f in selinux_updates) + b'\0')
-        if proc.returncode != 0:
+        if proc.returncode != 0 and not os.environ.get('DESTDIR'):
             print('Failed to restore SELinux context of installed files...',
                   'Standard output:', out.decode(),
                   'Standard error:', err.decode(), sep='\n')
