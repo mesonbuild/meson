@@ -15,6 +15,7 @@
 import os, re
 import functools
 
+from . import mlog
 from . import mparser
 from . import coredata
 from . import mesonlib
@@ -146,6 +147,14 @@ class OptionInterpreter:
                 e.colno = cur.colno
                 e.file = os.path.join('meson_options.txt')
                 raise e
+        bad = [o for o in sorted(self.cmd_line_options) if not
+               (o in list(self.options) + forbidden_option_names or
+                any(o.startswith(p) for p in forbidden_prefixes))]
+        if bad:
+            sub = 'In subproject {}: '.format(self.subproject) if self.subproject else ''
+            mlog.warning(
+                '{}Unknown command line options: "{}"\n'
+                'This will become a hard error in a future Meson release.'.format(sub, ', '.join(bad)))
 
     def reduce_single(self, arg):
         if isinstance(arg, str):

@@ -1782,6 +1782,25 @@ class FailureTests(BasePlatformTests):
         '''
         self.assertMesonRaises(code, "Method.*configtool.*is invalid.*internal")
 
+    def test_bad_option(self):
+        tdir = os.path.join(self.unit_test_dir, '19 bad command line options')
+        os.environ['MESON_FORCE_BACKTRACE'] = '1'
+        self.init(tdir, extra_args=['-Dopt=bar', '-Dc_args=-Wall'], inprocess=True)
+        self.wipe()
+        out = self.init(tdir, extra_args=['-Dfoo=bar', '-Dbad=true'], inprocess=True)
+        self.assertRegex(
+            out, r'Unknown command line options: "bad, foo"')
+
+    def test_bad_option_subproject(self):
+        tdir = os.path.join(self.unit_test_dir, '19 bad command line options')
+        os.environ['MESON_FORCE_BACKTRACE'] = '1'
+        self.init(tdir, extra_args=['-Done:one=bar'], inprocess=True)
+        self.wipe()
+        out = self.init(tdir, extra_args=['-Done:two=bar'], inprocess=True)
+        self.assertRegex(
+            out,
+            r'In subproject one: Unknown command line options: "one:two"')
+
 
 class WindowsTests(BasePlatformTests):
     '''
