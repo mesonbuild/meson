@@ -1518,7 +1518,7 @@ int dummy;
  rspfile_content = $ARGS  {output_args} $in $LINK_ARGS {cross_args} $aliasing
 '''
                 else:
-                    command_template = ' command = {executable} $ARGS {output_args} $in $LINK_ARGS {cross_args} $aliasing\n'
+                    command_template = ' command = {executable} $ARGS {cross_args} {output_args} $in $LINK_ARGS $aliasing\n'
                 command = command_template.format(
                     executable=' '.join(compiler.get_linker_exelist()),
                     cross_args=' '.join(cross_args),
