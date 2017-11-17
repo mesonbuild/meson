@@ -15,7 +15,7 @@
 import os
 from .. import mlog
 from .. import build
-from ..mesonlib import MesonException, Popen_safe, extract_as_list
+from ..mesonlib import MesonException, Popen_safe, extract_as_list, File
 from ..dependencies import Qt4Dependency, Qt5Dependency
 import xml.etree.ElementTree as ET
 from . import ModuleReturnValue, get_include_args
@@ -67,7 +67,18 @@ class QtBaseModule:
                 mlog.log(' {}:'.format(compiler_name.lower()), mlog.red('NO'))
         self.tools_detected = True
 
+    def check_extensions(self, tool, file_list, expected_extensions):
+        for fname in file_list:
+            if isinstance(fname, File):
+                fname = fname.fname
+            if '.' in fname:
+                ext = fname.split('.')[-1]
+                if ext not in expected_extensions:
+                    mlog.warning('''Qt{qt_ver} {tool}, wrong file extension "{fname}", expecting one of {expected}'''.format(
+                        qt_ver=self.qt_version, tool=tool, fname=fname, expected=expected_extensions))
+
     def parse_qrc(self, state, fname):
+        self.check_extensions("Rcc", [fname], ["qrc"])
         abspath = os.path.join(state.environment.source_dir, state.subdir, fname)
         relative_part = os.path.split(fname)[0]
         try:
@@ -130,6 +141,7 @@ class QtBaseModule:
             sources.append(ui_output)
         inc = get_include_args(include_dirs=include_directories)
         if len(moc_headers) > 0:
+            self.check_extensions("Moc", moc_headers, ["hpp", "h", "H", "hh", "h++"])
             arguments = moc_extra_arguments + inc + ['@INPUT@', '-o', '@OUTPUT@']
             moc_kwargs = {'output': 'moc_@BASENAME@.cpp',
                           'arguments': arguments}
@@ -137,6 +149,7 @@ class QtBaseModule:
             moc_output = moc_gen.process_files('Qt{} moc header'.format(self.qt_version), moc_headers, state)
             sources.append(moc_output)
         if len(moc_sources) > 0:
+            self.check_extensions("Moc", moc_sources, ["cpp", "cxx", "cc", "C", "cp", "c++"])
             arguments = moc_extra_arguments + ['@INPUT@', '-o', '@OUTPUT@']
             moc_kwargs = {'output': '@BASENAME@.moc',
                           'arguments': arguments}
