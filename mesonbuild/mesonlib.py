@@ -394,9 +394,9 @@ def get_library_dirs():
 
 
 def do_replacement(regex, line, confdata):
-    match = re.search(regex, line)
     missing_variables = set()
-    while match:
+
+    def variable_replace(match):
         varname = match.group(1)
         if varname in confdata:
             (var, desc) = confdata.get(varname)
@@ -409,9 +409,8 @@ def do_replacement(regex, line, confdata):
         else:
             missing_variables.add(varname)
             var = ''
-        line = line.replace('@' + varname + '@', var)
-        match = re.search(regex, line)
-    return line, missing_variables
+        return var
+    return re.sub(regex, variable_replace, line), missing_variables
 
 def do_mesondefine(line, confdata):
     arr = line.split()
@@ -443,7 +442,7 @@ def do_conf_file(src, dst, confdata):
         raise MesonException('Could not read input file %s: %s' % (src, str(e)))
     # Only allow (a-z, A-Z, 0-9, _, -) as valid characters for a define
     # Also allow escaping '@' with '\@'
-    regex = re.compile(r'[^\\]?@([-a-zA-Z0-9_]+)@')
+    regex = re.compile(r'(?<!\\)@([-a-zA-Z0-9_]+)@')
     result = []
     missing_variables = set()
     for line in data:
