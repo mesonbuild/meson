@@ -84,7 +84,7 @@ single quote do it like this:
 single quote = 'contains a \' character'
 ```
 
-Similarly `\n` gets converted to a newline and `\\\\` to a single
+Similarly `\n` gets converted to a newline and `\\` to a single
 backslash.
 
 #### String concatenation
