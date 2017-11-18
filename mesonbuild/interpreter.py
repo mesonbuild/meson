@@ -1358,6 +1358,7 @@ permitted_kwargs = {'add_global_arguments': {'language'},
                     'build_target': build_target_kwargs,
                     'configure_file': {'input', 'output', 'configuration', 'command', 'install_dir', 'capture', 'install'},
                     'custom_target': {'input', 'output', 'command', 'install', 'install_dir', 'build_always', 'capture', 'depends', 'depend_files', 'depfile', 'build_by_default'},
+                    'dependency': {'default_options', 'fallback', 'language', 'method', 'modules', 'native', 'required', 'static', 'version'},
                     'declare_dependency': {'include_directories', 'link_with', 'sources', 'dependencies', 'compile_args', 'link_args', 'version'},
                     'executable': exe_kwargs,
                     'find_program': {'required', 'native'},
@@ -2130,6 +2131,7 @@ to directly access options of other subprojects.''')
                     break
         return identifier, cached_dep
 
+    @permittedKwargs(permitted_kwargs['dependency'])
     def func_dependency(self, node, args, kwargs):
         self.validate_arguments(args, 1, [str])
         name = args[0]
