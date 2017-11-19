@@ -82,6 +82,7 @@ known_lib_kwargs.update({'version': True, # Only for shared libs
 
 known_exe_kwargs = known_basic_kwargs.copy()
 known_exe_kwargs.update({'implib': True,
+                         'modular': True
                          })
 
 class InvalidArguments(MesonException):
@@ -1160,12 +1161,23 @@ class Executable(BuildTarget):
         # The import library that GCC would generate (and prefer)
         self.gcc_import_filename = None
 
+        # check for modularity
+        self.is_modular = False
+        if kwargs.get('modular'):
+            if not isinstance(kwargs['implib'], bool):
+                raise InvalidArguments('"modular" must be a boolean')
+            self.is_modular = True
+        if kwargs.get('implib'):
+            self.is_modular = True
+        if self.is_modular and kwargs.get('implib') is False:
+            raise InvalidArguments('"implib" must not be set to false for modular executables')
+
         # if implib appears, this target is linkwith:-able, but that only means
         # something on Windows platforms.
         self.is_linkwithable = False
-        if 'implib' in kwargs and kwargs['implib']:
+        if self.is_modular:
             implib_basename = self.name + '.exe'
-            if not isinstance(kwargs['implib'], bool):
+            if not isinstance(kwargs.get('implib', False), bool):
                 implib_basename = kwargs['implib']
             self.is_linkwithable = True
             if for_windows(is_cross, environment) or for_cygwin(is_cross, environment):
