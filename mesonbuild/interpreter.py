@@ -2983,12 +2983,19 @@ different subdirectory.
     def format_string(self, templ, args):
         if isinstance(args, mparser.ArgumentNode):
             args = args.arguments
-        for (i, arg) in enumerate(args):
+        arg_strings = []
+        for arg in args:
             arg = self.evaluate_statement(arg)
             if isinstance(arg, bool): # Python boolean is upper case.
                 arg = str(arg).lower()
-            templ = templ.replace('@{}@'.format(i), str(arg))
-        return templ
+            arg_strings.append(str(arg))
+
+        def arg_replace(match):
+            idx = int(match.group(1))
+            if idx >= len(arg_strings):
+                raise InterpreterException('Format placeholder @{}@ out of range.'.format(idx))
+            return arg_strings[idx]
+        return re.sub(r'@(\d+)@', arg_replace, templ)
 
     # Only permit object extraction from the same subproject
     def validate_extraction(self, buildtarget):

@@ -13,6 +13,8 @@ subs2 = '42'
 
 assert(templ2.format(subs2) == '42', 'String formatting with variables is broken.')
 
+assert('@@0@@ @@1@@'.format(1, 2) == '@1@ @2@', 'String format is recursive.')
+
 long = 'abcde'
 prefix = 'abc'
 suffix = 'cde'
