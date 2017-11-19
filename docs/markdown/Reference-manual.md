@@ -401,6 +401,9 @@ be passed to [shared and static libraries](#library).
 - `link_with`, one or more shared or static libraries (built by this
   project) that this target should be linked with, If passed a list
   this list will be flattened as of 0.41.0.
+- `modular` when set to true enables the target to load modules built
+  using the [`shared_module`](#shared_module) function by causing its
+  symbols to be dynamically exported.
 - `implib` when set to true, an import library is generated for the
   executable (the name of the import library is based on *exe_name*).
   Alternatively, when set to a string, that gives the base name for
@@ -998,6 +1001,9 @@ arguments are the same as for [`library`](#library).
 This is useful for building modules that will be `dlopen()`ed and
 hence may contain undefined symbols that will be provided by the
 library that is loading it.
+
+If you want an [`executable`](#executable) to be able to load shared
+modules, you will need to set its `modular` argument to `true`.
 
 *Added 0.37.0*
 
