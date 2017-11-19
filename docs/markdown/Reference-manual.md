@@ -392,7 +392,7 @@ be passed to [shared and static libraries](#library).
   flags here for all platforms.
 - `link_depends` strings, files, or custom targets the link step
   depends on such as a symbol visibility map. The purpose is to
-  automaticallytrigger a re-link (but not a re-compile) of the target
+  automatically trigger a re-link (but not a re-compile) of the target
   when this file changes.
 - `link_whole` links all contents of the given static libraries
   whether they are used by not, equivalent to the
@@ -401,13 +401,18 @@ be passed to [shared and static libraries](#library).
 - `link_with`, one or more shared or static libraries (built by this
   project) that this target should be linked with, If passed a list
   this list will be flattened as of 0.41.0.
+- `export_dynamic` when set to true causes the target's symbols to be
+  dynamically exported, allowing modules built using the
+  [`shared_module`](#shared_module) function to refer to functions,
+  variables and other symbols defined in the executable itself. Implies
+  the `implib` argument.  Since 0.44.0
 - `implib` when set to true, an import library is generated for the
   executable (the name of the import library is based on *exe_name*).
   Alternatively, when set to a string, that gives the base name for
   the import library.  The import library is used when the returned
   build target object appears in `link_with:` elsewhere.  Only has any
-  effect on platforms where that is meaningful (e.g. Windows).  Since
-  0.42.0
+  effect on platforms where that is meaningful (e.g. Windows). Implies
+  the `export_dynamic` argument.  Since 0.42.0
 - `implicit_include_directories` is a boolean telling whether Meson
   adds the current source and build directories to the include path,
   defaults to `true`, since 0.42.0
@@ -998,6 +1003,11 @@ arguments are the same as for [`library`](#library).
 This is useful for building modules that will be `dlopen()`ed and
 hence may contain undefined symbols that will be provided by the
 library that is loading it.
+
+If you want the shared module to be able to refer to functions and
+variables defined in the [`executable`](#executable) it is loaded by,
+you will need to set the `export_dynamic` argument of the executable to
+`true`.
 
 *Added 0.37.0*
 

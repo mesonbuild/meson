@@ -82,6 +82,7 @@ known_lib_kwargs.update({'version': True, # Only for shared libs
 
 known_exe_kwargs = known_basic_kwargs.copy()
 known_exe_kwargs.update({'implib': True,
+                         'export_dynamic': True
                          })
 
 class InvalidArguments(MesonException):
@@ -1160,22 +1161,32 @@ class Executable(BuildTarget):
         # The import library that GCC would generate (and prefer)
         self.gcc_import_filename = None
 
-        # if implib appears, this target is linkwith:-able, but that only means
-        # something on Windows platforms.
-        self.is_linkwithable = False
-        if 'implib' in kwargs and kwargs['implib']:
+        # Check for export_dynamic
+        self.export_dynamic = False
+        if kwargs.get('export_dynamic'):
+            if not isinstance(kwargs['export_dynamic'], bool):
+                raise InvalidArguments('"export_dynamic" keyword argument must be a boolean')
+            self.export_dynamic = True
+        if kwargs.get('implib'):
+            self.export_dynamic = True
+        if self.export_dynamic and kwargs.get('implib') is False:
+            raise InvalidArguments('"implib" keyword argument must not be false for if "export_dynamic" is true')
+
+        # If using export_dynamic, set the import library name
+        if self.export_dynamic:
             implib_basename = self.name + '.exe'
-            if not isinstance(kwargs['implib'], bool):
+            if not isinstance(kwargs.get('implib', False), bool):
                 implib_basename = kwargs['implib']
-            self.is_linkwithable = True
             if for_windows(is_cross, environment) or for_cygwin(is_cross, environment):
                 self.vs_import_filename = '{0}.lib'.format(implib_basename)
                 self.gcc_import_filename = 'lib{0}.a'.format(implib_basename)
-
                 if self.get_using_msvc():
                     self.import_filename = self.vs_import_filename
                 else:
                     self.import_filename = self.gcc_import_filename
+
+        # Only linkwithable if using export_dynamic
+        self.is_linkwithable = self.export_dynamic
 
     def type_suffix(self):
         return "@exe"

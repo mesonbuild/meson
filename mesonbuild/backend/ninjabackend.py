@@ -2329,6 +2329,9 @@ rule FORTRAN_DEP_HACK
             # If gui_app, and that's significant on this platform
             if target.gui_app and hasattr(linker, 'get_gui_app_args'):
                 commands += linker.get_gui_app_args()
+            # If export_dynamic, add the appropriate linker arguments
+            if target.export_dynamic:
+                commands += linker.gen_export_dynamic_link_args(self.environment)
             # If implib, and that's significant on this platform (i.e. Windows using either GCC or Visual Studio)
             if target.import_filename:
                 commands += linker.gen_import_library_args(os.path.join(self.get_target_dir(target), target.import_filename))
