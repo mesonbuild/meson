@@ -41,7 +41,7 @@ from mesonbuild.dependencies import PkgConfigDependency, ExternalProgram
 
 from run_tests import exe_suffix, get_fake_options, FakeEnvironment
 from run_tests import get_builddir_target_args, get_backend_commands, Backend
-from run_tests import ensure_backend_detects_changes, run_configure
+from run_tests import ensure_backend_detects_changes, run_configure, meson_exe
 from run_tests import should_run_linux_cross_tests
 
 
@@ -1588,6 +1588,9 @@ class FailureTests(BasePlatformTests):
         Assert that running meson configure on the specified @contents raises
         a error message matching regex @match.
         '''
+        if meson_exe is not None:
+            # Because the exception happens in a different process.
+            raise unittest.SkipTest('Can not test assert raise tests with an external Meson command.')
         if langs is None:
             langs = []
         with open(self.mbuild, 'w') as f:
